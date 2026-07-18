@@ -47,6 +47,7 @@ async fn create_working_condition_success() {
     let svc = make_service(MockEmployeeRepo::with_employee(emp.clone()));
     let req = CreateWorkingConditionRequest {
         type_: "early_leave".into(),
+        condition_type_id: None,
         minute_allowance: 30,
         is_paid: false,
         start_date: NaiveDate::from_ymd_opt(2026, 6, 1).expect("valid date"),
@@ -118,6 +119,7 @@ async fn create_working_condition_employee_not_found() {
     let svc = make_service(MockEmployeeRepo::empty());
     let req = CreateWorkingConditionRequest {
         type_: "early_leave".into(),
+        condition_type_id: None,
         minute_allowance: 30,
         is_paid: false,
         start_date: NaiveDate::from_ymd_opt(2026, 6, 1).expect("valid date"),

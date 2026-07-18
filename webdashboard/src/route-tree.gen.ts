@@ -77,6 +77,7 @@ import { Route as AuthenticatedWorkspaceWorkspaceSettingsEcontractsRouteImport }
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsDangerRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/danger"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/custom-fields"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsConnectivityRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/connectivity"
+import { Route as AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/condition-types"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsBillingRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/billing"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/audit-logs"
 import { Route as AuthenticatedWorkspaceWorkingPatternsPatternIdEditRouteImport } from "./routes/_authenticated/_workspace/working-patterns.$patternId.edit"
@@ -705,6 +706,16 @@ const AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute =
+  AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRouteImport.update({
+    id: "/condition-types",
+    path: "/condition-types",
+    getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/condition-types.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsBillingRoute =
   AuthenticatedWorkspaceWorkspaceSettingsBillingRouteImport.update({
     id: "/billing",
@@ -883,6 +894,7 @@ export interface FileRoutesByFullPath {
   "/working-patterns/$patternId/edit": typeof AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute
   "/workspace/settings/audit-logs": typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   "/workspace/settings/billing": typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
+  "/workspace/settings/condition-types": typeof AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute
   "/workspace/settings/connectivity": typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
   "/workspace/settings/custom-fields": typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
   "/workspace/settings/danger": typeof AuthenticatedWorkspaceWorkspaceSettingsDangerRoute
@@ -957,6 +969,7 @@ export interface FileRoutesByTo {
   "/working-patterns/$patternId/edit": typeof AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute
   "/workspace/settings/audit-logs": typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   "/workspace/settings/billing": typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
+  "/workspace/settings/condition-types": typeof AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute
   "/workspace/settings/connectivity": typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
   "/workspace/settings/custom-fields": typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
   "/workspace/settings/danger": typeof AuthenticatedWorkspaceWorkspaceSettingsDangerRoute
@@ -1039,6 +1052,7 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/working-patterns/$patternId/edit": typeof AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute
   "/_authenticated/_workspace/workspace/settings/audit-logs": typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   "/_authenticated/_workspace/workspace/settings/billing": typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
+  "/_authenticated/_workspace/workspace/settings/condition-types": typeof AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute
   "/_authenticated/_workspace/workspace/settings/connectivity": typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
   "/_authenticated/_workspace/workspace/settings/custom-fields": typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
   "/_authenticated/_workspace/workspace/settings/danger": typeof AuthenticatedWorkspaceWorkspaceSettingsDangerRoute
@@ -1120,6 +1134,7 @@ export interface FileRouteTypes {
     | "/working-patterns/$patternId/edit"
     | "/workspace/settings/audit-logs"
     | "/workspace/settings/billing"
+    | "/workspace/settings/condition-types"
     | "/workspace/settings/connectivity"
     | "/workspace/settings/custom-fields"
     | "/workspace/settings/danger"
@@ -1194,6 +1209,7 @@ export interface FileRouteTypes {
     | "/working-patterns/$patternId/edit"
     | "/workspace/settings/audit-logs"
     | "/workspace/settings/billing"
+    | "/workspace/settings/condition-types"
     | "/workspace/settings/connectivity"
     | "/workspace/settings/custom-fields"
     | "/workspace/settings/danger"
@@ -1275,6 +1291,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/working-patterns/$patternId/edit"
     | "/_authenticated/_workspace/workspace/settings/audit-logs"
     | "/_authenticated/_workspace/workspace/settings/billing"
+    | "/_authenticated/_workspace/workspace/settings/condition-types"
     | "/_authenticated/_workspace/workspace/settings/connectivity"
     | "/_authenticated/_workspace/workspace/settings/custom-fields"
     | "/_authenticated/_workspace/workspace/settings/danger"
@@ -1789,6 +1806,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
     }
+    "/_authenticated/_workspace/workspace/settings/condition-types": {
+      id: "/_authenticated/_workspace/workspace/settings/condition-types"
+      path: "/condition-types"
+      fullPath: "/workspace/settings/condition-types"
+      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
+    }
     "/_authenticated/_workspace/workspace/settings/billing": {
       id: "/_authenticated/_workspace/workspace/settings/billing"
       path: "/billing"
@@ -2012,6 +2036,7 @@ const AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteWithChildren =
 interface AuthenticatedWorkspaceWorkspaceSettingsRouteChildren {
   AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   AuthenticatedWorkspaceWorkspaceSettingsBillingRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
+  AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute
   AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
   AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
   AuthenticatedWorkspaceWorkspaceSettingsDangerRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsDangerRoute
@@ -2038,6 +2063,8 @@ const AuthenticatedWorkspaceWorkspaceSettingsRouteChildren: AuthenticatedWorkspa
       AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute,
     AuthenticatedWorkspaceWorkspaceSettingsBillingRoute:
       AuthenticatedWorkspaceWorkspaceSettingsBillingRoute,
+    AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute:
+      AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute,
     AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute:
       AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute,
     AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute:

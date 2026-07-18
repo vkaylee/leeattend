@@ -171,6 +171,8 @@ impl AppState {
                 services.lifecycle,
                 repos.lifecycle,
                 services.signature,
+                repos.condition_type.clone(),
+                services.condition_type.clone(),
             ),
             crate::AgentState::new(agent_manager, services.agent, repos.agent),
             crate::InfraState::new(

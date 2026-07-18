@@ -144,6 +144,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["forgot_password"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/login": {
         parameters: {
             query?: never;
@@ -202,6 +218,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reset_password"];
         delete?: never;
         options?: never;
         head?: never;
@@ -858,6 +890,50 @@ export interface paths {
         get: operations["list_system_roles"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/smtp/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the current SMTP configuration from system_settings (DB).
+         *     Returns an empty object if not yet configured.
+         */
+        get: operations["get_smtp_config"];
+        /**
+         * Update the SMTP configuration. Persists to DB and invalidates the Redis cache
+         *     so all instances pick up the new config immediately.
+         */
+        put: operations["set_smtp_config"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/smtp/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a test email to verify SMTP configuration is working.
+         * @description Requires **PlatformAdmin** system role.
+         */
+        post: operations["test_smtp"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2482,6 +2558,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{ws_id}/reports/no-show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * No-show report handler.
+         * @description Employees on a shift overlapping `date` who have not punched in yet (status
+         *     `absent`), filtered to only shifts that have *already started*. For today,
+         *     this means `shift_start < now`; for past dates, all shifts are included (they
+         *     have all started). Per-employee timezones are used to determine "today" and
+         *     shift boundaries.
+         */
+        get: operations["get_no_show_report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{ws_id}/roles": {
         parameters: {
             query?: never;
@@ -2629,6 +2729,38 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/condition-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_condition_types"];
+        put?: never;
+        post: operations["create_condition_type"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/condition-types/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_condition_type"];
+        put?: never;
+        post?: never;
+        delete: operations["delete_condition_type"];
+        options?: never;
+        head?: never;
+        patch: operations["update_condition_type"];
         trace?: never;
     };
     "/workspaces/{workspace_id}/employees": {
@@ -2945,6 +3077,22 @@ export interface paths {
         get?: never;
         put: operations["update_leave_type_config"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/leave/types/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["restore_leave_type"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4790,6 +4938,38 @@ export interface components {
             employment: components["schemas"]["CompensationEmploymentContext"];
             total_compensation: string;
         };
+        /**
+         * @description Workspace-scoped catalog entry defining a type of working condition.
+         *
+         *     Each workspace gets 5 system types seeded by migration (EARLY_LEAVE,
+         *     BREASTFEEDING, MATERNITY, SICK, UNPAID) and can create custom types.
+         *     The `affects_rules` JSONB field describes which PolicyRules fields
+         *     this condition type modifies, enabling a data-driven resolver instead
+         *     of hardcoded string matching.
+         */
+        ConditionTypeDefinition: {
+            affects_rules: unknown;
+            category: string;
+            code: string;
+            color?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            default_is_paid: boolean;
+            /** Format: int32 */
+            default_minute_allowance: number;
+            icon?: string | null;
+            /** Format: uuid */
+            id: string;
+            is_active: boolean;
+            is_system: boolean;
+            name_i18n: unknown;
+            /** Format: int32 */
+            sort_order: number;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
         ConfigValue: {
             /** Format: int32 */
             Int: number;
@@ -4874,6 +5054,19 @@ export interface components {
         CreateChecklistRequest: {
             /** Format: uuid */
             template_id: string;
+        };
+        CreateConditionTypeRequest: {
+            affects_rules?: unknown;
+            category?: string;
+            code: string;
+            color?: string | null;
+            default_is_paid?: boolean;
+            /** Format: int32 */
+            default_minute_allowance?: number;
+            icon?: string | null;
+            name_i18n: unknown;
+            /** Format: int32 */
+            sort_order?: number;
         };
         CreateContractRequest: {
             /** Format: uuid */
@@ -5251,6 +5444,8 @@ export interface components {
             steps: components["schemas"]["WorkflowStepRequest"][];
         };
         CreateWorkingConditionRequest: {
+            /** Format: uuid */
+            condition_type_id?: string | null;
             /** Format: date */
             end_date?: string | null;
             is_paid: boolean;
@@ -5843,6 +6038,9 @@ export interface components {
         FileCategory: "EmployeeAvatar" | "WorkspaceLogo" | "AttendancePhoto" | "EmployeeDoc" | "Contract" | "LeaveAttachment" | "Payslip" | "ReportExport" | "OnboardingAttachment" | "ImportFile" | "Policy" | "TemplateOutput" | "UserAvatar" | "SystemAsset" | "AttendanceAdjustmentAttachment" | "OvertimeRequestAttachment" | "OtClaimAttachment";
         /** @enum {string} */
         FileOwnerType: "Employee" | "Employment" | "LeaveRequest" | "Workspace" | "User" | "System" | "Payroll" | "AttendanceAdjustment" | "OvertimeRequest" | "AttendanceDailySummary";
+        ForgotPasswordRequest: {
+            email: string;
+        };
         FullPayslipResponse: components["schemas"]["Payslip"] & {
             incentives: components["schemas"]["IncentiveEvaluationResult"][];
             rule_evaluations: components["schemas"]["PayslipRuleEvaluation"][];
@@ -6936,6 +7134,10 @@ export interface components {
          * @enum {string}
          */
         ReportType: "summary" | "detail";
+        ResetPasswordRequest: {
+            new_password: string;
+            token: string;
+        };
         ResolveStagingLogRequest: {
             /** Format: uuid */
             employee_id: string;
@@ -7192,6 +7394,14 @@ export interface components {
         };
         /** @enum {string} */
         SignatureStatus: "pending" | "signed" | "declined" | "canceled";
+        SmtpTestRequest: {
+            /** @description Email address to send the test message to. */
+            to_email: string;
+        };
+        SmtpTestResponse: {
+            message: string;
+            success: boolean;
+        };
         StagingLogResponse: {
             /** Format: date-time */
             created_at: string;
@@ -7448,6 +7658,19 @@ export interface components {
         UpdateChecklistItemStatusRequest: {
             notes?: string | null;
             status: components["schemas"]["ChecklistItemStatus"];
+        };
+        UpdateConditionTypeRequest: {
+            affects_rules?: unknown;
+            category?: string | null;
+            color?: string | null;
+            default_is_paid?: boolean | null;
+            /** Format: int32 */
+            default_minute_allowance?: number | null;
+            icon?: string | null;
+            is_active?: boolean | null;
+            name_i18n?: unknown;
+            /** Format: int32 */
+            sort_order?: number | null;
         };
         UpdateContractRequest: {
             contract_number?: string | null;
@@ -7786,6 +8009,7 @@ export interface components {
             termination_date: string;
             termination_notes?: string | null;
             termination_reason: string;
+            warnings?: string[];
         };
         WorkLocation: {
             address?: string | null;
@@ -7827,6 +8051,8 @@ export interface components {
             step_order: number;
         };
         WorkingCondition: {
+            /** Format: uuid */
+            condition_type_id?: string | null;
             /** Format: uuid */
             employment_id: string;
             /** Format: date */
@@ -8392,6 +8618,28 @@ export interface operations {
             };
         };
     };
+    forgot_password: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Forgot password request accepted. If email exists, a reset link will be sent. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     login: {
         parameters: {
             query?: never;
@@ -8483,6 +8731,28 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AuthResponse"];
                 };
+            };
+        };
+    };
+    reset_password: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successfully reset password */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -9530,6 +9800,100 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SystemRoleInfo"][];
                 };
+            };
+        };
+    };
+    get_smtp_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current SMTP config */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    set_smtp_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": unknown;
+            };
+        };
+        responses: {
+            /** @description Config saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    test_smtp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmtpTestRequest"];
+            };
+        };
+        responses: {
+            /** @description Test email sent */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmtpTestResponse"];
+                };
+            };
+            /** @description Forbidden — requires PlatformAdmin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description SMTP error details */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -11043,6 +11407,7 @@ export interface operations {
                 department_id?: string | null;
                 permission?: string | null;
                 custom_field_filters?: string | null;
+                status?: string | null;
             };
             header?: never;
             path: {
@@ -11592,6 +11957,7 @@ export interface operations {
                 department_id?: string | null;
                 permission?: string | null;
                 custom_field_filters?: string | null;
+                status?: string | null;
             };
             header?: never;
             path: {
@@ -12387,6 +12753,7 @@ export interface operations {
                 department_id?: string | null;
                 permission?: string | null;
                 custom_field_filters?: string | null;
+                status?: string | null;
             };
             header?: never;
             path: {
@@ -12524,6 +12891,7 @@ export interface operations {
                 department_id?: string | null;
                 permission?: string | null;
                 custom_field_filters?: string | null;
+                status?: string | null;
             };
             header?: never;
             path: {
@@ -13054,6 +13422,7 @@ export interface operations {
                 department_id?: string | null;
                 permission?: string | null;
                 custom_field_filters?: string | null;
+                status?: string | null;
             };
             header?: never;
             path: {
@@ -13168,6 +13537,8 @@ export interface operations {
                 employee_status?: string | null;
                 employer_id?: string | null;
                 employment_id?: string | null;
+                /** @description Comma-separated shift names to filter no-show rows by shift type. */
+                shift_type?: string | null;
                 /**
                  * @description Opt-in query parameter for segment-centric daily reports.
                  *     When `true`, the handler uses
@@ -13194,6 +13565,41 @@ export interface operations {
             };
         };
     };
+    get_no_show_report: {
+        parameters: {
+            query: {
+                /**
+                 * @description Calendar date to query (yyyy-MM-dd) in workspace-local time. Only shifts
+                 *     that overlap this day AND have already started (start < now for today;
+                 *     all shifts for past dates) are included.
+                 */
+                date: string;
+                page?: number | null;
+                limit?: number | null;
+                /** @description Comma-separated employee UUIDs to restrict the search to. */
+                employee_ids?: string | null;
+                department_id?: string | null;
+                /** @description Comma-separated shift names to filter by shift type. */
+                shift_type?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No-show employees with shifts overlapping the target date */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_workspace_roles: {
         parameters: {
             query?: {
@@ -13206,6 +13612,7 @@ export interface operations {
                 department_id?: string | null;
                 permission?: string | null;
                 custom_field_filters?: string | null;
+                status?: string | null;
             };
             header?: never;
             path: {
@@ -13421,6 +13828,7 @@ export interface operations {
                 department_id?: string | null;
                 permission?: string | null;
                 custom_field_filters?: string | null;
+                status?: string | null;
             };
             header?: never;
             path: {
@@ -13556,6 +13964,171 @@ export interface operations {
             };
         };
     };
+    list_condition_types: {
+        parameters: {
+            query?: {
+                /** @description Filter active types only */
+                active_only?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List condition type definitions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionTypeDefinition"][];
+                };
+            };
+        };
+    };
+    create_condition_type: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateConditionTypeRequest"];
+            };
+        };
+        responses: {
+            /** @description Created condition type definition */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionTypeDefinition"];
+                };
+            };
+            /** @description Code already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_condition_type: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Condition type ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get condition type definition */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionTypeDefinition"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_condition_type: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Condition type ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Cannot delete system type */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_condition_type: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Condition type ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateConditionTypeRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated condition type definition */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionTypeDefinition"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_employees: {
         parameters: {
             query?: {
@@ -13568,6 +14141,7 @@ export interface operations {
                 department_id?: string | null;
                 permission?: string | null;
                 custom_field_filters?: string | null;
+                status?: string | null;
             };
             header?: never;
             path: {
@@ -13812,6 +14386,7 @@ export interface operations {
                 department_id?: string | null;
                 permission?: string | null;
                 custom_field_filters?: string | null;
+                status?: string | null;
             };
             header?: never;
             path: {
@@ -14386,6 +14961,31 @@ export interface operations {
         };
         responses: {
             /** @description Leave type config updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveType"];
+                };
+            };
+        };
+    };
+    restore_leave_type: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Leave Type ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Leave type restored */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -15793,6 +16393,7 @@ export interface operations {
                 department_id?: string | null;
                 permission?: string | null;
                 custom_field_filters?: string | null;
+                status?: string | null;
             };
             header?: never;
             path: {

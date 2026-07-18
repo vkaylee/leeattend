@@ -21,6 +21,7 @@ pub mod assignment_rule;
 pub mod attendance;
 pub mod audit;
 pub mod auth;
+pub mod condition_type;
 pub mod department;
 pub mod employee;
 pub mod ess;

@@ -47,6 +47,7 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
                 working_conditions::id,
                 working_conditions::employment_id,
                 working_conditions::type_,
+                working_conditions::condition_type_id,
                 working_conditions::minute_allowance,
                 working_conditions::is_paid,
                 working_conditions::start_date,
@@ -62,6 +63,7 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
                 Uuid,
                 Uuid,
                 String,
+                Option<Uuid>,
                 i32,
                 bool,
                 chrono::NaiveDate,
@@ -72,8 +74,8 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
 
         let data = result
             .into_iter()
-            .map(|(id, emp_id, type_, min, paid, start, end)| {
-                WorkingCondition::new(id, emp_id, type_, min, paid, start, end)
+            .map(|(id, emp_id, type_, ct_id, min, paid, start, end)| {
+                WorkingCondition::new(id, emp_id, type_, ct_id, min, paid, start, end)
             })
             .collect();
 
@@ -118,6 +120,7 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
                 working_conditions::id.eq(condition.id()),
                 working_conditions::employment_id.eq(condition.employment_id()),
                 working_conditions::type_.eq(condition.type_()),
+                working_conditions::condition_type_id.eq(condition.condition_type_id()),
                 working_conditions::minute_allowance.eq(condition.minute_allowance()),
                 working_conditions::is_paid.eq(condition.is_paid()),
                 working_conditions::start_date.eq(condition.start_date()),
@@ -187,6 +190,7 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
                 working_conditions::id,
                 working_conditions::employment_id,
                 working_conditions::type_,
+                working_conditions::condition_type_id,
                 working_conditions::minute_allowance,
                 working_conditions::is_paid,
                 working_conditions::start_date,
@@ -205,6 +209,7 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
                 Uuid,
                 Uuid,
                 String,
+                Option<Uuid>,
                 i32,
                 bool,
                 chrono::NaiveDate,
@@ -215,8 +220,8 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
 
         Ok(result
             .into_iter()
-            .map(|(id, emp_id, type_, min, paid, start, end)| {
-                WorkingCondition::new(id, emp_id, type_, min, paid, start, end)
+            .map(|(id, emp_id, type_, ct_id, min, paid, start, end)| {
+                WorkingCondition::new(id, emp_id, type_, ct_id, min, paid, start, end)
             })
             .collect())
     }
@@ -249,6 +254,7 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
                 working_conditions::id,
                 working_conditions::employment_id,
                 working_conditions::type_,
+                working_conditions::condition_type_id,
                 working_conditions::minute_allowance,
                 working_conditions::is_paid,
                 working_conditions::start_date,
@@ -271,6 +277,7 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
                 Uuid,
                 Uuid,
                 String,
+                Option<Uuid>,
                 i32,
                 bool,
                 chrono::NaiveDate,
@@ -280,11 +287,11 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let mut map = std::collections::HashMap::with_capacity(employment_ids.len());
-        for (id, emp_id, type_, min, paid, start, end) in result {
+        for (id, emp_id, type_, ct_id, min, paid, start, end) in result {
             map.entry(emp_id)
                 .or_insert_with(Vec::new)
                 .push(WorkingCondition::new(
-                    id, emp_id, type_, min, paid, start, end,
+                    id, emp_id, type_, ct_id, min, paid, start, end,
                 ));
         }
         Ok(map)
@@ -387,6 +394,7 @@ mod tests {
             wc_id,
             employment_id,
             "break".to_string(),
+            None,
             30,
             true,
             NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),

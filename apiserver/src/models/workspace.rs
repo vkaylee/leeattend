@@ -101,6 +101,7 @@ pub struct WorkingCondition {
     id: Uuid,
     employment_id: Uuid,
     type_: String,
+    condition_type_id: Option<Uuid>,
     minute_allowance: i32,
     is_paid: bool,
     start_date: NaiveDate,
@@ -112,6 +113,7 @@ impl WorkingCondition {
         id: Uuid,
         employment_id: Uuid,
         type_: String,
+        condition_type_id: Option<Uuid>,
         minute_allowance: i32,
         is_paid: bool,
         start_date: NaiveDate,
@@ -121,6 +123,7 @@ impl WorkingCondition {
             id,
             employment_id,
             type_,
+            condition_type_id,
             minute_allowance,
             is_paid,
             start_date,
@@ -138,6 +141,10 @@ impl WorkingCondition {
 
     pub fn type_(&self) -> &str {
         &self.type_
+    }
+
+    pub fn condition_type_id(&self) -> Option<Uuid> {
+        self.condition_type_id
     }
 
     pub fn minute_allowance(&self) -> i32 {
@@ -160,6 +167,7 @@ impl WorkingCondition {
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct CreateWorkingConditionRequest {
     pub type_: String,
+    pub condition_type_id: Option<Uuid>,
     pub minute_allowance: i32,
     pub is_paid: bool,
     pub start_date: NaiveDate,

@@ -17,6 +17,7 @@ import {
   ClipboardList,
   Database,
   Scale,
+  Tags,
 } from "lucide-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -137,6 +138,13 @@ const getOperationsGroup = (t: TFunction): SettingItem[] => [
     icon: <ClipboardList className="w-4 h-4" />,
     label: t("settings.categories.lifecycle", { defaultValue: "Lifecycle Checklists" }),
     path: ROUTES.SETTINGS.LIFECYCLE_TEMPLATES,
+    permissions: ["workspace:settings:read"],
+  },
+  {
+    description: t("settings.categories.condition_types_desc", { defaultValue: "Configure working condition types available for employees" }),
+    icon: <Tags className="w-4 h-4" />,
+    label: t("settings.categories.condition_types", { defaultValue: "Condition Types" }),
+    path: ROUTES.SETTINGS.CONDITION_TYPES,
     permissions: ["workspace:settings:read"],
   },
 ];

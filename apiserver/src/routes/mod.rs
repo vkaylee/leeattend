@@ -1,5 +1,6 @@
 pub mod attendance;
 pub mod auth;
+pub mod condition_types;
 pub mod custom_fields;
 pub mod dashboard;
 pub mod documents;

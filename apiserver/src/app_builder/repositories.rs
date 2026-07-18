@@ -54,6 +54,7 @@ pub struct Repositories {
     pub location: Arc<dyn crate::repositories::LocationRepository>,
     pub custom_field: Arc<dyn crate::repositories::CustomFieldRepository>,
     pub error: Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository>,
+    pub condition_type: Arc<dyn crate::repositories::ConditionTypeRepository>,
 }
 
 #[allow(clippy::too_many_lines)]
@@ -222,6 +223,9 @@ pub fn build_repositories(
     let error = Arc::new(
         crate::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
+    let condition_type = Arc::new(
+        crate::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+    );
 
     Ok(Repositories {
         agent,
@@ -274,5 +278,6 @@ pub fn build_repositories(
         location,
         custom_field,
         error,
+        condition_type,
     })
 }

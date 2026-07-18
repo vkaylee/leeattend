@@ -24,6 +24,7 @@ pub struct CoreServices {
     pub agent: Arc<crate::services::AgentService>,
     pub tenant_provisioner: Arc<dyn crate::services::tenant_provisioner::TenantProvisionerTrait>,
     pub shift: Arc<crate::services::shift_service::ShiftService>,
+    pub condition_type: Arc<crate::services::ConditionTypeService>,
 }
 
 fn build_auth_and_people_services(
@@ -140,6 +141,10 @@ pub async fn build_core_services(
         Some(repos.system_settings.clone()),
     ));
 
+    let condition_type = Arc::new(crate::services::ConditionTypeService::new(
+        repos.condition_type.clone(),
+    ));
+
     Ok(CoreServices {
         lifecycle,
         employee,
@@ -158,5 +163,6 @@ pub async fn build_core_services(
         agent,
         tenant_provisioner,
         shift,
+        condition_type,
     })
 }

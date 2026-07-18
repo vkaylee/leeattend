@@ -491,6 +491,8 @@ pub struct CoreState {
     lifecycle_service: Arc<crate::services::LifecycleService>,
     lifecycle_repo: Arc<dyn crate::repositories::LifecycleChecklistRepository>,
     signature_service: Arc<SignatureService>,
+    condition_type_repo: Arc<dyn crate::repositories::ConditionTypeRepository>,
+    condition_type_service: Arc<crate::services::ConditionTypeService>,
 }
 
 impl CoreState {
@@ -521,6 +523,8 @@ impl CoreState {
         lifecycle_service: Arc<crate::services::LifecycleService>,
         lifecycle_repo: Arc<dyn crate::repositories::LifecycleChecklistRepository>,
         signature_service: Arc<SignatureService>,
+        condition_type_repo: Arc<dyn crate::repositories::ConditionTypeRepository>,
+        condition_type_service: Arc<crate::services::ConditionTypeService>,
     ) -> Self {
         Self {
             auth_service,
@@ -544,6 +548,8 @@ impl CoreState {
             lifecycle_service,
             lifecycle_repo,
             signature_service,
+            condition_type_repo,
+            condition_type_service,
         }
     }
 
@@ -636,6 +642,14 @@ impl CoreState {
 
     pub fn signature_service(&self) -> &Arc<SignatureService> {
         &self.signature_service
+    }
+
+    pub fn condition_type_repo(&self) -> &Arc<dyn crate::repositories::ConditionTypeRepository> {
+        &self.condition_type_repo
+    }
+
+    pub fn condition_type_service(&self) -> &Arc<crate::services::ConditionTypeService> {
+        &self.condition_type_service
     }
 }
 

@@ -7,6 +7,7 @@ pub mod attendance_matcher;
 pub mod attendance_utils;
 pub mod audit_service;
 pub mod auth_service;
+pub mod condition_type_service;
 pub mod custom_field_service;
 pub mod email_service;
 pub mod employee_service;
@@ -48,6 +49,7 @@ pub use approval_workflow::ApprovalWorkflowService;
 pub use attendance_calculator::AttendanceCalculator;
 pub use attendance_import_service::AttendanceImportService;
 pub use attendance_log_service::AttendanceLogService;
+pub use condition_type_service::ConditionTypeService;
 pub use custom_field_service::CustomFieldService;
 pub use employee_service::EmployeeService;
 pub use employer_service::EmployerService;
@@ -82,6 +84,8 @@ pub mod storage;
 
 #[cfg(test)]
 mod attendance_calculator_tests;
+#[cfg(test)]
+mod condition_type_service_tests;
 #[cfg(test)]
 mod report_service_test;
 #[cfg(test)]

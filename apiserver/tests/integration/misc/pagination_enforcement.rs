@@ -13,6 +13,8 @@ const GET_LIST_WHITELIST: &[&str] = &[
     "get_role_permissions",
     "get_member_roles",
     "list_system_roles",
+    // Condition type catalog (workspace-level, bounded < 100 items)
+    "list_condition_types",
     "get_user_system_roles",
     "get_dashboard_preferences",
     // File downloads (returns binary [u8] data, not collection lists)

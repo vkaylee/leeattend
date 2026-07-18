@@ -28,6 +28,7 @@ pub fn make_working_condition(emp_id: Uuid) -> WorkingCondition {
         Uuid::new_v4(),
         emp_id,
         "late_allowance".into(),
+        None,
         15,
         true,
         NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),

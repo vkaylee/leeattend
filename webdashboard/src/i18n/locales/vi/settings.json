@@ -311,6 +311,8 @@
       "workflows_desc": "Quản lý quy trình phê duyệt các yêu cầu.",
       "lifecycle": "Quy trình Nhân sự",
       "lifecycle_desc": "Quản lý các mẫu danh sách việc cần làm khi tiếp nhận và bàn giao nhân sự",
+      "condition_types": "Loại Điều kiện",
+      "condition_types_desc": "Cấu hình các loại điều kiện làm việc cho nhân viên",
       "storage_desc": "Storage Desc",
       "storage": "Storage",
       "econtracts": "Tích hợp Hợp đồng điện tử",
@@ -771,6 +773,14 @@
       "path_style": "Use Path-Style URLs",
       "path_style_desc": "Enable this if you are using MinIO or a local S3 clone. Disable for AWS S3 (Virtual Hosted-Style).",
       "test_btn": "Test Connection"
+    },
+    "condition_types": {
+      "subtitle": "Cấu hình các loại điều kiện làm việc cho nhân viên",
+      "code": "Mã (viết hoa)",
+      "name_en": "Tên (Tiếng Anh)",
+      "name_vi": "Tên (Tiếng Việt)",
+      "confirm_delete": "Xóa loại điều kiện này? Các điều kiện đang sử dụng sẽ không bị ảnh hưởng.",
+      "no_types": "Chưa có loại điều kiện nào"
     }
   }
 }

@@ -52,6 +52,7 @@ impl EmployeeService {
             new_id(),
             active_employment_id,
             req.type_,
+            req.condition_type_id,
             req.minute_allowance,
             req.is_paid,
             req.start_date,

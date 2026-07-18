@@ -311,6 +311,8 @@
       "workflows_desc": "Manage approval workflows for requests.",
       "lifecycle": "Lifecycle Checklists",
       "lifecycle_desc": "Manage onboarding and offboarding checklist templates",
+      "condition_types": "Condition Types",
+      "condition_types_desc": "Configure working condition types available for employees",
       "storage_desc": "Storage Desc",
       "storage": "Storage",
       "econtracts": "e-Contracts Integration",
@@ -771,6 +773,14 @@
       "path_style": "Use Path-Style URLs",
       "path_style_desc": "Enable this if you are using MinIO or a local S3 clone. Disable for AWS S3 (Virtual Hosted-Style).",
       "test_btn": "Test Connection"
+    },
+    "condition_types": {
+      "subtitle": "Configure working condition types available for employees",
+      "code": "Code (uppercase)",
+      "name_en": "Name (English)",
+      "name_vi": "Name (Vietnamese)",
+      "confirm_delete": "Delete this condition type? Existing conditions using it will not be affected.",
+      "no_types": "No condition types defined"
     }
   }
 }

@@ -1,17 +1,19 @@
 import type { TFunction } from "i18next";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  Plus, 
-  Trash2, 
-  CheckCircle2, 
-  ArrowRight, 
-  Clock, 
-  FileSpreadsheet, 
-  Calendar, 
-  History, 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Plus,
+  Trash2,
+  CheckCircle2,
+  ArrowRight,
+  Clock,
+  FileSpreadsheet,
+  Calendar,
+  History,
   Baby,
-  ShieldAlert
+  ShieldAlert,
+  Heart,
+  Ban,
 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -20,33 +22,46 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkingConditions } from "@/hooks/use-employees";
-import { createWorkingCondition, deleteWorkingCondition, getCurrentWorkspaceId } from "@/lib/api";
+import { createWorkingCondition, deleteWorkingCondition, getCurrentWorkspaceId, fetchConditionTypes, type ConditionTypeDefinition } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-enum EmployeeWorkingConditionType {
-  Regular = "REGULAR",
-  Maternity = "MATERNITY",
-  Sick = "SICK",
-  Unpaid = "UNPAID",
+// Icon map: condition type code → Lucide icon component (fallback = Clock)
+const ICON_MAP: Record<string, React.ReactNode> = {
+  Baby: <Baby size={18} />,
+  Heart: <Heart size={18} />,
+  ShieldAlert: <ShieldAlert size={18} />,
+  Ban: <Ban size={18} />,
+};
+
+function getIconForType(typeCode: string, catalogIcon?: string | null): React.ReactNode {
+  if (catalogIcon && ICON_MAP[catalogIcon]) return ICON_MAP[catalogIcon];
+  return <Clock size={18} />;
+}
+
+function getDisplayName(typeDefs: ConditionTypeDefinition[], typeCode: string, i18nLang: string): string {
+  const def = typeDefs.find(d => d.code === typeCode.toUpperCase());
+  if (def?.name_i18n) {
+    return def.name_i18n[i18nLang] ?? def.name_i18n.en ?? typeCode;
+  }
+  return typeCode;
+}
+
+// Resolve a condition to its catalog icon
+function resolveIcon(typeDefs: ConditionTypeDefinition[], typeCode: string): React.ReactNode {
+  const def = typeDefs.find(d => d.code === typeCode.toUpperCase());
+  return getIconForType(typeCode, def?.icon);
 }
 
 interface Props {
   employeeId: string;
 }
 
-const getIcon = (type: string) => {
-  switch (type.toUpperCase()) {
-    case "MATERNITY": return <Baby size={18} />;
-    case "SICK": return <ShieldAlert size={18} />;
-    default: return <Clock size={18} />;
-  }
-};
-
 interface CreateWorkingConditionData {
   end_date: string | null;
   is_paid: boolean;
   start_date: string;
-  type: EmployeeWorkingConditionType;
+  type_: string;
+  condition_type_id?: string | null;
 }
 
 interface WorkingConditionFormProps {
@@ -61,15 +76,18 @@ interface WorkingConditionFormProps {
   setEndDate: (val: string) => void;
   setIsPaid: (val: boolean) => void;
   setStartDate: (val: string) => void;
-  setType: (val: EmployeeWorkingConditionType) => void;
+  setType: (val: string) => void;
+  setConditionTypeId: (val: string | null) => void;
   startDate: string;
   t: TFunction;
-  type: EmployeeWorkingConditionType;
+  typeDefs: ConditionTypeDefinition[];
+  type_: string;
 }
 
 function WorkingConditionForm({
-  type,
+  type_,
   setType,
+  setConditionTypeId,
   startDate,
   setStartDate,
   endDate,
@@ -79,7 +97,8 @@ function WorkingConditionForm({
   isSubmitting,
   onCancel,
   createMutation,
-  t
+  t,
+  typeDefs,
 }: WorkingConditionFormProps) {
   return (
     <div className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 rounded-[2.5rem] p-8 shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500">
@@ -91,9 +110,21 @@ function WorkingConditionForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
         <div className="space-y-3">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("employees.policies.type_label")}</label>
-          <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all appearance-none" onChange={(e) => { setType(e.target.value as EmployeeWorkingConditionType); }} value={type}>
-            {Object.values(EmployeeWorkingConditionType).map((tValue) => (
-              <option key={tValue} value={tValue}>{tValue}</option>
+          <select
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all appearance-none"
+            onChange={(e) => {
+              const selectedCode = e.target.value;
+              setType(selectedCode);
+              // Find matching catalog type to set condition_type_id
+              const def = typeDefs.find(d => d.code === selectedCode);
+              setConditionTypeId(def?.id ?? null);
+            }}
+            value={type_}
+          >
+            {typeDefs.filter(d => d.is_active).map((def) => (
+              <option key={def.code} value={def.code}>
+                {def.name_i18n?.en ?? def.code}
+              </option>
             ))}
           </select>
         </div>
@@ -119,7 +150,7 @@ function WorkingConditionForm({
 
       <div className="flex justify-end gap-4">
         <Button className="px-8 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" onClick={onCancel} type="button" variant="ghost">{t("common.cancel")}</Button>
-        <Button className="flex items-center gap-3 bg-primary-600 text-white px-10 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={isSubmitting} onClick={() => { createMutation.mutate({ type, start_date: startDate, end_date: endDate === "" ? null : endDate, is_paid: isPaid }); }} variant="ghost">
+        <Button className="flex items-center gap-3 bg-primary-600 text-white px-10 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={isSubmitting} onClick={() => { createMutation.mutate({ type_: type_, start_date: startDate, end_date: endDate === "" ? null : endDate, is_paid: isPaid }); }} variant="ghost">
           <CheckCircle2 size={16} /> {t("common.save").toUpperCase()}
         </Button>
       </div>
@@ -174,7 +205,8 @@ function useWorkingConditionActions({
         start_date: data.start_date,
         end_date: data.end_date,
         is_paid: data.is_paid,
-        type_: data.type,
+        type_: data.type_,
+        condition_type_id: data.condition_type_id ?? null,
         minute_allowance: 0,
       });
     },
@@ -197,17 +229,29 @@ function useWorkingConditionActions({
 }
 
 export default function WorkingConditionConfig({ employeeId }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const { confirm, ConfirmationDialog } = useConfirm();
   const [isAdding, setIsAdding] = useState(false);
-  const [type, setType] = useState<EmployeeWorkingConditionType>(EmployeeWorkingConditionType.Regular);
+  const [type_, setType] = useState("");
+  const [conditionTypeId, setConditionTypeId] = useState<string | null>(null);
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState("");
   const [isPaid, setIsPaid] = useState(true);
 
+  const wsId = getCurrentWorkspaceId();
   const { data: conditions = [], isLoading } = useWorkingConditions(employeeId);
+
+  // Fetch catalog types for the dropdown
+  const { data: typeDefs = [] } = useQuery({
+    queryKey: ["condition-types", wsId],
+    queryFn: () => (wsId ? fetchConditionTypes(wsId) : Promise.resolve([])),
+    enabled: !!wsId,
+  });
+
   const { createMutation, handleDelete } = useWorkingConditionActions({ employeeId, queryClient, confirm, setIsAdding, t });
+
+  const currentLang = i18n.language?.split("-")[0] ?? "en";
 
   if (isLoading) return <div className="p-20 text-center"><div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>;
 
@@ -226,9 +270,11 @@ export default function WorkingConditionConfig({ employeeId }: Props) {
           setIsPaid={setIsPaid}
           setStartDate={setStartDate}
           setType={setType}
+          setConditionTypeId={setConditionTypeId}
           startDate={startDate}
           t={t}
-          type={type}
+          typeDefs={typeDefs}
+          type_={type_}
         />
       ) : null}
 
@@ -244,11 +290,13 @@ export default function WorkingConditionConfig({ employeeId }: Props) {
               <div className="flex items-start justify-between relative z-10">
                 <div className="flex gap-6">
                   <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 shadow-inner group-hover:bg-primary-50 dark:group-hover:bg-primary-950/50 group-hover:text-primary-600 transition-colors">
-                    {getIcon(cond.type)}
+                    {resolveIcon(typeDefs, cond.type)}
                   </div>
                   <div>
                     <div className="flex items-center gap-3 mb-1.5">
-                      <Typography className="font-bold text-slate-700 dark:text-slate-200 text-lg tracking-tight uppercase leading-none" variant="h4">{t(`employees.policies.types.${cond.type.toLowerCase()}`)}</Typography>
+                      <Typography className="font-bold text-slate-700 dark:text-slate-200 text-lg tracking-tight uppercase leading-none" variant="h4">
+                        {getDisplayName(typeDefs, cond.type, currentLang)}
+                      </Typography>
                       <span className={cn("px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest border", cond.is_paid ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800" : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800")}>
                         {cond.is_paid ? t("employees.policies.paid_allowance") : t("employees.policies.unpaid_allowance")}
                       </span>

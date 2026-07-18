@@ -54,6 +54,7 @@ async fn test_working_condition_crud() {
         Uuid::new_v4(),
         employment_id,
         "late_arrival".to_string(),
+        None,
         15,
         true,
         NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),

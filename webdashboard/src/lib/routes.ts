@@ -83,6 +83,7 @@ export const ROUTES = {
     WORKFLOWS: "/workspace/settings/workflows",
     CUSTOM_FIELDS: "/workspace/settings/custom-fields",
     LIFECYCLE_TEMPLATES: "/workspace/settings/lifecycle-templates",
+    CONDITION_TYPES: "/workspace/settings/condition-types",
     STORAGE: "/workspace/settings/storage",
     ECONTRACTS: "/workspace/settings/econtracts",
   },

@@ -639,6 +639,11 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         ),
     );
     let scan_service = apiserver::services::storage::ScanProvider::build();
+    let condition_type_repo: Arc<dyn apiserver::repositories::ConditionTypeRepository> =
+        Arc::new(apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()));
+    let condition_type_service = Arc::new(apiserver::services::ConditionTypeService::new(
+        condition_type_repo.clone(),
+    ));
 
     let state = Arc::new(AppState::new(
         apiserver::EmployeeState::new(
@@ -768,6 +773,8 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             lifecycle_service,
             lifecycle_repo,
             signature_service.clone(),
+            condition_type_repo.clone(),
+            condition_type_service.clone(),
         ),
         apiserver::AgentState::new(
             agent_manager,
@@ -1341,6 +1348,11 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
         ),
     );
     let scan_service = apiserver::services::storage::ScanProvider::build();
+    let condition_type_repo: Arc<dyn apiserver::repositories::ConditionTypeRepository> =
+        Arc::new(apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()));
+    let condition_type_service = Arc::new(apiserver::services::ConditionTypeService::new(
+        condition_type_repo.clone(),
+    ));
 
     let state = Arc::new(AppState::new(
         apiserver::EmployeeState::new(
@@ -1470,6 +1482,8 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
             lifecycle_service,
             lifecycle_repo,
             signature_service.clone(),
+            condition_type_repo.clone(),
+            condition_type_service.clone(),
         ),
         apiserver::AgentState::new(
             agent_manager,
@@ -2092,6 +2106,11 @@ pub async fn setup_app_tower_internal_extended(
         ),
     );
     let scan_service = apiserver::services::storage::ScanProvider::build();
+    let condition_type_repo: Arc<dyn apiserver::repositories::ConditionTypeRepository> =
+        Arc::new(apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()));
+    let condition_type_service = Arc::new(apiserver::services::ConditionTypeService::new(
+        condition_type_repo.clone(),
+    ));
 
     let app_state = Arc::new(AppState::new(
         apiserver::EmployeeState::new(
@@ -2225,6 +2244,8 @@ pub async fn setup_app_tower_internal_extended(
             lifecycle_service,
             lifecycle_repo,
             signature_service.clone(),
+            condition_type_repo.clone(),
+            condition_type_service.clone(),
         ),
         apiserver::AgentState::new(
             agent_manager,

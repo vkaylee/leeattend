@@ -307,6 +307,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .merge(routes::documents::router())
         .merge(routes::employees::router())
         .merge(routes::custom_fields::router())
+        .merge(routes::condition_types::router())
         .merge(routes::time_tracking::router())
         .merge(routes::leaves::router())
         .merge(routes::attendance::router())

@@ -863,6 +863,29 @@ diesel::table! {
 }
 
 diesel::table! {
+    condition_type_definitions (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        #[max_length = 50]
+        code -> Varchar,
+        name_i18n -> Jsonb,
+        #[max_length = 50]
+        category -> Varchar,
+        default_minute_allowance -> Int4,
+        default_is_paid -> Bool,
+        affects_rules -> Jsonb,
+        icon -> Nullable<Varchar>,
+        #[max_length = 20]
+        color -> Nullable<Varchar>,
+        is_system -> Bool,
+        sort_order -> Int4,
+        is_active -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     dashboard_preferences (id) {
         id -> Uuid,
         user_id -> Uuid,
@@ -2032,6 +2055,7 @@ diesel::table! {
         #[sql_name = "type"]
         #[max_length = 50]
         type_ -> Varchar,
+        condition_type_id -> Nullable<Uuid>,
         minute_allowance -> Int4,
         is_paid -> Bool,
         start_date -> Date,
@@ -2310,6 +2334,7 @@ diesel::joinable!(work_segments -> shift_default_intervals (interval_id));
 diesel::joinable!(work_segments -> shifts (shift_id));
 diesel::joinable!(user_system_roles -> system_roles (role_id));
 diesel::joinable!(users -> system_files (avatar_file_id));
+diesel::joinable!(working_conditions -> condition_type_definitions (condition_type_id));
 diesel::joinable!(working_conditions -> employments (employment_id));
 diesel::joinable!(working_pattern_details -> shifts (shift_id));
 diesel::joinable!(working_pattern_details -> working_patterns (pattern_id));
@@ -2376,6 +2401,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     audit_logs_y2026m12,
     authorized_agents,
     behalf_assignments,
+    condition_type_definitions,
     custom_field_definitions,
     custom_field_values,
     dashboard_preferences,
