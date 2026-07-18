@@ -835,7 +835,9 @@
     "filters": {
       "title": "Bộ lọc",
       "custom": "Tùy chỉnh",
-      "specific_month": "Chọn tháng..."
+      "specific_month": "Chọn tháng...",
+      "this_month": "Tháng này",
+      "last_month": "Tháng trước"
     },
     "sections": {
       "organization": "Tổ chức",

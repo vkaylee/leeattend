@@ -122,7 +122,14 @@
     "clear_filters": "Clear filters",
     "empty_zone_b": "No employees need verification.",
     "empty_zone_b_hint": "All in-shift employees have checked in or are still within grace.",
-    "viewing_past": "Historical — fixed records"
+    "viewing_past": "Historical — fixed records",
+    "timeline": "Timeline",
+    "now_badge": "Now",
+    "scrubber_label": "Scrubber at {{time}} {{date}}, use arrow keys to move",
+    "export_reference_time": "Reference Time",
+    "step_back": "Back 1 Hour",
+    "step_forward": "Forward 1 Hour",
+    "jump_to_now": "Now"
   },
   "attendance_import": {
     "subtitle": "Bulk Data Import",

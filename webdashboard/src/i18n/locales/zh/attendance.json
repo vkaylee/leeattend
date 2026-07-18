@@ -854,8 +854,8 @@
     "export_reference_time": "参考时间",
     "step_back": "后退一小时",
     "step_forward": "前进一小时",
-    "step_forward": "前进一小时",
     "jump_to_now": "现在",
-    "export_reference_time": "参考时间"
+    "date_label": "日期",
+    "live_badge": "实时"
   }
 }

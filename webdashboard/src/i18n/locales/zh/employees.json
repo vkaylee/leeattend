@@ -339,7 +339,11 @@
       "conditions_title": "工作条件",
       "conditions_desc": "为员工配置特殊的工作条件和政策。",
       "delete_warning": "您确定要删除此工作条件吗？此操作无法撤销。",
-      "no_conditions": "未配置任何工作条件"
+      "no_conditions": "未配置任何工作条件",
+      "policy_desc": "为此员工覆盖考勤政策",
+      "no_assignments": "无政策覆盖",
+      "no_assignments_desc": "员工使用工作区默认规则。点击\"添加新\"设置自定义考勤政策。",
+      "delete_assign_warning": "删除此政策覆盖？员工将恢复为默认规则。"
     },
     "salary": {
       "title": "更新薪资",

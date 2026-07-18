@@ -8,7 +8,7 @@ import { useLocations } from "@/pages/settings/hooks/use-locations";
 
 import type { DetailTabType } from "../drawer-header";
 
-const TAB_ORDER: DetailTabType[] = ["profile", "documents", "contracts", "phases", "assignments", "salary", "compensation", "policies", "lifecycle"];
+const TAB_ORDER: DetailTabType[] = ["profile", "documents", "contracts", "phases", "assignments", "salary", "compensation", "working-conditions", "attendance-policy", "lifecycle"];
 const SCROLL_STEP = 80;
 
 interface UseEmployeeDetailProps {

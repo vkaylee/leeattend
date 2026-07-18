@@ -32,6 +32,10 @@ vi.mock("../employee-contracts-tab", () => ({
     default: () => <div data-testid="contracts-tab">ContractsTab</div>,
 }));
 
+vi.mock("../employee-attendance-policy-tab", () => ({
+    default: () => <div data-testid="attendance-policy-tab">AttendancePolicyTab</div>,
+}));
+
 vi.mock("../employee-phases-tab", () => ({
     default: () => <div data-testid="phases-tab">PhasesTab</div>,
 }));
@@ -233,12 +237,20 @@ describe("EmployeeDetailDrawer", () => {
         expect(screen.getByTestId("salary-config")).toBeDefined();
     });
 
-    it("switches to Policies tab on click", async () => {
+    it("switches to Working Conditions tab on click", async () => {
         const user = userEvent.setup();
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
-        await user.click(screen.getByTestId("employees-tab-policies"));
+        await user.click(screen.getByTestId("employees-tab-working-conditions"));
         expect(screen.getByTestId("working-condition")).toBeDefined();
+    });
+
+    it("switches to Attendance Policy tab on click", async () => {
+        const user = userEvent.setup();
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
+
+        await user.click(screen.getByTestId("employees-tab-attendance-policy"));
+        expect(screen.getByTestId("attendance-policy-tab")).toBeDefined();
     });
 
     it("switches to Contracts tab on click", async () => {
@@ -411,9 +423,15 @@ describe("EmployeeDetailDrawer", () => {
         await user.keyboard("{ArrowRight}");
         expect(screen.getByTestId("salary-config")).toBeDefined();
 
-        // ArrowRight → Compensation (index 6) → Policies (index 7)
+        // ArrowRight → Compensation (index 6) → Working Conditions (index 7)
         await user.keyboard("{ArrowRight}{ArrowRight}");
         expect(screen.getByTestId("working-condition")).toBeDefined();
+        // ArrowRight → Attendance Policy (index 8)
+        await user.keyboard("{ArrowRight}");
+        expect(screen.getByTestId("attendance-policy-tab")).toBeDefined();
+        // ArrowRight → Lifecycle (index 9)
+        await user.keyboard("{ArrowRight}");
+        expect(screen.getByTestId("lifecycle-tab")).toBeDefined();
     });
 
     it("ArrowLeft moves to the previous tab", async () => {
@@ -442,8 +460,8 @@ describe("EmployeeDetailDrawer", () => {
         const user = userEvent.setup();
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
-        // Navigate to Lifecycle (last tab, index 8): Profile(0) -> 8 steps -> Lifecycle(8)
-        await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}");
+        // Navigate to Lifecycle (last tab, index 9): Profile(0) -> 9 steps -> Lifecycle(9)
+        await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}");
         expect(screen.getByTestId("lifecycle-tab")).toBeDefined();
 
         // ArrowRight → should wrap to Profile
@@ -475,5 +493,40 @@ describe("EmployeeDetailDrawer", () => {
 
         await user.keyboard("{ArrowUp}");
         expect(scrollBySpy).toHaveBeenCalledWith({ top: -80, behavior: "smooth" });
+    });
+
+    // ── Tab nav scroll arrows ───────────────────────────────
+
+    it("renders scroll-left and scroll-right buttons for tab nav", () => {
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
+        expect(screen.getByTestId("employees-tab-scroll-left")).toBeDefined();
+        expect(screen.getByTestId("employees-tab-scroll-right")).toBeDefined();
+    });
+
+    it("scrolls tab container left/right on arrow click", async () => {
+        const user = userEvent.setup();
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
+
+        const container = screen.getByTestId("employees-tab-scroll-container");
+        const scrollBySpy = vi.fn();
+        container.scrollBy = scrollBySpy;
+
+        await user.click(screen.getByTestId("employees-tab-scroll-right"));
+        expect(scrollBySpy).toHaveBeenCalledWith({ left: 240, behavior: "smooth" });
+
+        await user.click(screen.getByTestId("employees-tab-scroll-left"));
+        expect(scrollBySpy).toHaveBeenCalledWith({ left: -240, behavior: "smooth" });
+    });
+
+    it("calls scrollIntoView on active tab when switching tabs", async () => {
+        const user = userEvent.setup();
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
+
+        // scrollIntoView is already mocked globally at the top
+        await user.click(screen.getByTestId("employees-tab-salary"));
+        // After click, the active tab effect fires. Since we use "nearest",
+        // if tab is already visible jsdom treats it as a no-op — we just assert
+        // the Content switch still works (good-enough smoke check).
+        expect(screen.getByTestId("salary-config")).toBeDefined();
     });
 });

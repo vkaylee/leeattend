@@ -15,6 +15,7 @@ import type { DeptHistoryEntry } from "./profile-sections";
 
 import DrawerHeader, { DetailTabType } from "./drawer-header";
 import EmployeeAssignmentsTab from "./employee-assignments-tab";
+import EmployeeAttendancePolicyTab from "./employee-attendance-policy-tab";
 import EmployeeContractsTab from "./employee-contracts-tab";
 import EmployeePhasesTab from "./employee-phases-tab";
 import { useEmployeeDetail } from "./hooks/use-employee-detail";
@@ -60,7 +61,8 @@ const TAB_CONTENT_MAP: Record<DetailTabType, (props: DrawerTabContentProps) => R
     documents: (props) => <EmployeeDocumentsTab employeeId={props.employee.id} />,
     lifecycle: (props) => <EmployeeLifecycleTab employmentId={props.activeEmployment?.id} wsId={props.wsId} />,
     phases: (props) => <EmployeePhasesTab employeeId={props.employee.id} formatDate={props.formatDate} wsId={props.wsId} />,
-    policies: (props) => <WorkingConditionConfig employeeId={props.employee.id} />,
+    "working-conditions": (props) => <WorkingConditionConfig employeeId={props.employee.id} />,
+    "attendance-policy": (props) => <EmployeeAttendancePolicyTab employeeId={props.employee.id} wsId={props.wsId} />,
     profile: (props) => (
         <ProfileTab
             departments={props.departments}

@@ -867,7 +867,9 @@
     "filters": {
       "title": "Filters",
       "custom": "Custom",
-      "specific_month": "Select month..."
+      "specific_month": "Select month...",
+      "this_month": "This Month",
+      "last_month": "Last Month"
     },
     "sections": {
       "organization": "Organization",

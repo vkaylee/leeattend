@@ -122,7 +122,14 @@
     "clear_filters": "Xóa lọc",
     "empty_zone_b": "Không có nhân sự cần xác minh.",
     "empty_zone_b_hint": "Tất cả nhân sự trong ca đã chấm công hoặc vẫn trong thời gian grace.",
-    "viewing_past": "Lịch sử — bản ghi đã cố định"
+    "viewing_past": "Lịch sử — bản ghi đã cố định",
+    "timeline": "Dòng thời gian",
+    "now_badge": "Bây giờ",
+    "scrubber_label": "Thanh trượt tại {{time}} {{date}}, dùng phím mũi tên để di chuyển",
+    "export_reference_time": "Thời gian tham chiếu",
+    "step_back": "Lùi 1 giờ",
+    "step_forward": "Tiến 1 giờ",
+    "jump_to_now": "Hiện tại"
   },
   "attendance_import": {
     "subtitle": "Nhập dữ liệu hàng loạt",

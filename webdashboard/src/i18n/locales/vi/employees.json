@@ -339,7 +339,11 @@
       "conditions_title": "Điều kiện làm việc",
       "conditions_desc": "Cấu hình các điều kiện và chính sách làm việc đặc biệt cho nhân viên.",
       "delete_warning": "Bạn có chắc chắn muốn xóa điều kiện làm việc này không? Thao tác này không thể hoàn tác.",
-      "no_conditions": "Chưa có điều kiện làm việc nào được cấu hình"
+      "no_conditions": "Chưa có điều kiện làm việc nào được cấu hình",
+      "policy_desc": "Ghi đè chính sách chấm công cho nhân viên này",
+      "no_assignments": "Chưa ghi đè chính sách",
+      "no_assignments_desc": "Nhân viên sử dụng quy tắc mặc định của workspace. Nhấn \"Thêm mới\" để gán chính sách chấm công riêng.",
+      "delete_assign_warning": "Xoá ghi đè chính sách này? Nhân viên sẽ trở về quy tắc mặc định."
     },
     "salary": {
       "title": "Cập nhật lương",

@@ -117,16 +117,16 @@ describe("ReportsPage", () => {
   it("renders report table and defaults to last month", async () => {
     renderWithProviders(<ReportsPage />);
     expect(await screen.findByText(/John Doe/i, {}, { timeout: 30000 })).toBeDefined();
-    const lastMonthButton = await screen.findByText(/\d+\/\d+/, {}, { timeout: 30000 });
+    const [lastMonthButton] = await screen.findAllByText(/\d+\/\d+/);
     expect(lastMonthButton).toBeDefined();
   });
 
   it("changes date range when clicking last month", async () => {
     const user = userEvent.setup();
     renderWithProviders(<ReportsPage />);
-    const lastMonthButton = await screen.findByText(/\d+\/\d+/);
+    const [lastMonthButton] = await screen.findAllByText(/\d+\/\d+/);
     await user.click(lastMonthButton);
- 
+
     expect(api.fetchAttendanceReport).toHaveBeenCalled();
   });
 

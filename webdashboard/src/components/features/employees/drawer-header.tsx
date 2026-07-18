@@ -1,5 +1,5 @@
-import { ChevronDown, X, User, FolderOpen, FileText, Milestone, ArrowLeftRight, DollarSign, History, Settings, CheckSquare } from "lucide-react";
-import { createElement } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, X, User, FolderOpen, FileText, Milestone, ArrowLeftRight, DollarSign, History, Calendar, ShieldCheck, CheckSquare } from "lucide-react";
+import { createElement, useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 
 import type { Employee } from "@/lib/api";
 
@@ -13,7 +13,7 @@ import {
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
-export type DetailTabType = "profile" | "documents" | "contracts" | "phases" | "assignments" | "salary" | "compensation" | "policies" | "lifecycle";
+export type DetailTabType = "profile" | "documents" | "contracts" | "phases" | "assignments" | "salary" | "compensation" | "working-conditions" | "attendance-policy" | "lifecycle";
 
 export interface DrawerHeaderProps {
     activeDetailTab: DetailTabType;
@@ -21,6 +21,129 @@ export interface DrawerHeaderProps {
     onClose: () => void;
     setActiveDetailTab: (tab: DetailTabType) => void;
     t: (k: string) => string;
+}
+
+// ── Scrollable tab nav with overflow indicators ─────────────
+function DesktopTabNav({
+  activeDetailTab,
+  setActiveDetailTab,
+  tabs,
+}: {
+  activeDetailTab: DetailTabType;
+  setActiveDetailTab: (tab: DetailTabType) => void;
+  tabs: Array<{ id: DetailTabType; label: string; icon: ComponentType<{ size?: number }> }>;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  // Scroll arrows visibility
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateScrollState();
+    el.addEventListener("scroll", updateScrollState, { passive: true });
+    const ro = new ResizeObserver(updateScrollState);
+    ro.observe(el);
+    return () => { el.removeEventListener("scroll", updateScrollState); ro.disconnect(); };
+  }, [updateScrollState]);
+
+  // Auto-scroll active tab into view when it changes
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const activeBtn = el.querySelector(`[data-testid="employees-tab-${activeDetailTab}"]`) as HTMLElement | null;
+    activeBtn?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+  }, [activeDetailTab]);
+
+  const scroll = (dir: "left" | "right") => {
+    scrollRef.current?.scrollBy({ left: dir === "left" ? -240 : 240, behavior: "smooth" });
+  };
+
+  return (
+    <div className="hidden md:flex items-center gap-1">
+      <button
+        aria-hidden={!canScrollLeft}
+        className={cn(
+          "shrink-0 size-9 rounded-[14px] flex items-center justify-center transition-all border",
+          canScrollLeft
+            ? "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:text-primary-600 shadow-sm cursor-pointer"
+            : "border-transparent text-transparent pointer-events-none",
+        )}
+        data-testid="employees-tab-scroll-left"
+        onClick={() => scroll("left")}
+        tabIndex={canScrollLeft ? 0 : -1}
+        type="button"
+      >
+        <ChevronLeft size={16} />
+      </button>
+
+      <div className="relative flex-1 min-w-0">
+        {/* Gradient fades */}
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-y-0 left-0 w-8 z-10 bg-gradient-to-r from-white dark:from-slate-900/50 to-transparent transition-opacity duration-200",
+            canScrollLeft ? "opacity-100" : "opacity-0",
+          )}
+        />
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-y-0 right-0 w-8 z-10 bg-gradient-to-l from-white dark:from-slate-900/50 to-transparent transition-opacity duration-200",
+            canScrollRight ? "opacity-100" : "opacity-0",
+          )}
+        />
+
+        <div
+          className="flex overflow-x-auto scrollbar-hide bg-white dark:bg-slate-900/50 p-1.5 rounded-[22px] border border-slate-200 dark:border-slate-700/50 shadow-inner w-full scroll-smooth"
+          data-testid="employees-tab-scroll-container"
+          ref={scrollRef}
+        >
+          {tabs.map(tab => (
+            <Button
+              className={cn(
+                "px-5 py-2.5 shrink-0 whitespace-nowrap rounded-[18px] text-[10px] font-bold uppercase tracking-widest transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 h-auto shadow-none border border-transparent",
+                activeDetailTab === tab.id
+                  ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-transparent",
+              )}
+              data-testid={`employees-tab-${tab.id}`}
+              key={tab.id}
+              onClick={() => { setActiveDetailTab(tab.id); }}
+              type="button"
+              variant="ghost"
+            >
+              {tab.label.toUpperCase()}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <button
+        aria-hidden={!canScrollRight}
+        className={cn(
+          "shrink-0 size-9 rounded-[14px] flex items-center justify-center transition-all border",
+          canScrollRight
+            ? "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:text-primary-600 shadow-sm cursor-pointer"
+            : "border-transparent text-transparent pointer-events-none",
+        )}
+        data-testid="employees-tab-scroll-right"
+        onClick={() => scroll("right")}
+        tabIndex={canScrollRight ? 0 : -1}
+        type="button"
+      >
+        <ChevronRight size={16} />
+      </button>
+    </div>
+  );
 }
 
 export default function DrawerHeader({
@@ -38,7 +161,8 @@ export default function DrawerHeader({
         { id: "assignments" as DetailTabType, label: "Phái cử", icon: ArrowLeftRight },
         { id: "salary" as DetailTabType, label: t("employees.details.salary_benefits"), icon: DollarSign },
         { id: "compensation" as DetailTabType, label: t("employees.details.compensation_history"), icon: History },
-        { id: "policies" as DetailTabType, label: t("employees.details.special_policies"), icon: Settings },
+        { id: "working-conditions" as DetailTabType, label: "Điều kiện LV", icon: Calendar },
+        { id: "attendance-policy" as DetailTabType, label: t("employees.details.special_policies"), icon: ShieldCheck },
         { id: "lifecycle" as DetailTabType, label: "Checklist", icon: CheckSquare }
     ];
     const activeTabObj = tabs.find(tab => tab.id === activeDetailTab) || tabs[0];
@@ -61,11 +185,7 @@ export default function DrawerHeader({
             </div>
 
             {/* Desktop Navigation Tabs */}
-            <div className="hidden md:flex overflow-x-auto scrollbar-hide bg-white dark:bg-slate-900/50 p-1.5 rounded-[22px] border border-slate-200 dark:border-slate-700/50 shadow-inner w-full max-w-full relative">
-                {tabs.map(tab => (
-                    <Button className={cn("px-5 py-2.5 shrink-0 whitespace-nowrap rounded-[18px] text-[10px] font-bold uppercase tracking-widest transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 h-auto shadow-none border border-transparent", activeDetailTab === tab.id ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-transparent")} data-testid={`employees-tab-${tab.id}`} key={tab.id} onClick={() => { setActiveDetailTab(tab.id); }} type="button" variant="ghost">{tab.label.toUpperCase()}</Button>
-                ))}
-            </div>
+            <DesktopTabNav activeDetailTab={activeDetailTab} setActiveDetailTab={setActiveDetailTab} tabs={tabs} />
 
             {/* Mobile Navigation Dropdown */}
             <div className="flex md:hidden w-full relative">

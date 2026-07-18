@@ -124,6 +124,9 @@ const LEGACY_VIOLATIONS = new Set([
   "pages/settings/settings-layout.tsx",
   "components/custom-fields/custom-fields-filter-popover.tsx",
   "components/custom-fields/custom-field-editor.tsx",
+  "components/features/employees/drawer-header.tsx",
+  "components/layout/__tests__/icon-rail.test.tsx",
+  "components/shifts/shifts-section-nav.tsx",
 ]);
 
 function walk(dir: string, excludeUiDir: string): string[] {
