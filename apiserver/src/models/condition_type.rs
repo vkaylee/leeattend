@@ -2,13 +2,67 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::models::EarlyArrivalStrategy;
+
+/// JSONB contract for the policy fields a condition type changes.
+///
+/// `authorized_early_leave_minutes` and `grace_period_minutes` derive from
+/// the assigned condition's `minute_allowance`; `is_early_leave_paid` derives
+/// from its `is_paid` flag. The break and early-OT fields are literal values.
+/// `early_arrival_strategy` accepts the API strings `Allow`, `Block`, or
+/// `Clamp`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, utoipa::ToSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ConditionRuleEffects {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub authorized_early_leave_minutes: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_early_leave_paid: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grace_period_minutes: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_break_auto_deduct: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_break_overtime: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allow_early_ot: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub early_arrival_strategy: Option<ConditionEarlyArrivalStrategy>,
+}
+
+impl ConditionRuleEffects {
+    pub fn has_effect(&self) -> bool {
+        self.authorized_early_leave_minutes == Some(true)
+            || self.is_early_leave_paid == Some(true)
+            || self.grace_period_minutes == Some(true)
+            || self.is_break_auto_deduct.is_some()
+            || self.is_break_overtime.is_some()
+            || self.allow_early_ot.is_some()
+            || self.early_arrival_strategy.is_some()
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, utoipa::ToSchema)]
+pub enum ConditionEarlyArrivalStrategy {
+    Allow,
+    Block,
+    Clamp,
+}
+
+impl From<ConditionEarlyArrivalStrategy> for EarlyArrivalStrategy {
+    fn from(value: ConditionEarlyArrivalStrategy) -> Self {
+        match value {
+            ConditionEarlyArrivalStrategy::Allow => Self::Allow,
+            ConditionEarlyArrivalStrategy::Block => Self::Block,
+            ConditionEarlyArrivalStrategy::Clamp => Self::Clamp,
+        }
+    }
+}
+
 /// Workspace-scoped catalog entry defining a type of working condition.
 ///
-/// Each workspace gets 5 system types seeded by migration (EARLY_LEAVE,
-/// BREASTFEEDING, MATERNITY, SICK, UNPAID) and can create custom types.
-/// The `affects_rules` JSONB field describes which PolicyRules fields
-/// this condition type modifies, enabling a data-driven resolver instead
-/// of hardcoded string matching.
+/// The `affects_rules` JSONB field follows [`ConditionRuleEffects`], enabling
+/// a data-driven resolver instead of hardcoded string matching.
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct ConditionTypeDefinition {
     id: Uuid,

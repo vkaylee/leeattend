@@ -314,7 +314,9 @@
       "storage_desc": "Storage Desc",
       "storage": "Storage",
       "econtracts": "电子合同集成",
-      "econtracts_desc": "配置数字签名、签署凭证及合同路由规则。"
+      "econtracts_desc": "配置数字签名、签署凭证及合同路由规则。",
+      "condition_types": "工作条件类型",
+      "condition_types_desc": "配置员工可使用的工作条件类型。"
     },
     "organization": {
       "departments_redirect_desc": "管理部门结构，分配部门经理，配置薪资规则，并监控每个部门的在职员工数。",
@@ -771,6 +773,38 @@
       "path_style": "Use Path-Style URLs",
       "path_style_desc": "Enable this if you are using MinIO or a local S3 clone. Disable for AWS S3 (Virtual Hosted-Style).",
       "test_btn": "Test Connection"
+    },
+    "condition_types": {
+      "subtitle": "配置可供员工使用的工作条件类型",
+      "code": "代码（大写）",
+      "name_en": "名称（英文）",
+      "name_vi": "名称（越南文）",
+      "confirm_delete": "删除此条件类型？正在使用它的现有条件不会受影响。",
+      "no_types": "尚未定义条件类型",
+      "minute_allowance": "默认分钟额度",
+      "default_paid": "默认带薪",
+      "effects_title": "政策影响",
+      "effects_help": "选择为员工分配此条件类型时要修改的考勤政策。",
+      "effects_required": "请至少选择一个政策影响。",
+      "effects_preview": "此类型将影响 {{count}} 条政策规则。",
+      "not_affected": "不影响",
+      "effect_authorized_early_leave_minutes": "允许早退分钟数",
+      "effect_authorized_early_leave_minutes_help": "使用已分配条件的分钟额度。",
+      "effect_is_early_leave_paid": "早退带薪",
+      "effect_is_early_leave_paid_help": "使用已分配条件的带薪状态。",
+      "effect_grace_period_minutes": "宽限期分钟数",
+      "effect_grace_period_minutes_help": "使用已分配条件的正分钟额度。",
+      "effect_is_break_auto_deduct": "自动扣除休息时间",
+      "effect_is_break_auto_deduct_help": "设置固定的休息扣除政策值。",
+      "effect_is_break_overtime": "将休息计为加班",
+      "effect_is_break_overtime_help": "设置固定的休息加班政策值。",
+      "effect_allow_early_ot": "允许提前加班",
+      "effect_allow_early_ot_help": "设置固定的提前加班政策值。",
+      "effect_early_arrival_strategy": "提前到岗策略",
+      "effect_early_arrival_strategy_help": "控制如何处理班次开始前的工作时间。",
+      "strategy_allow": "允许",
+      "strategy_block": "阻止",
+      "strategy_clamp": "限制"
     }
   }
 }

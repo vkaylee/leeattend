@@ -780,7 +780,31 @@
       "name_en": "Name (English)",
       "name_vi": "Name (Vietnamese)",
       "confirm_delete": "Delete this condition type? Existing conditions using it will not be affected.",
-      "no_types": "No condition types defined"
+      "no_types": "No condition types defined",
+      "minute_allowance": "Default minute allowance",
+      "default_paid": "Paid by default",
+      "effects_title": "Policy effects",
+      "effects_help": "Choose the attendance policies this condition type changes when assigned to an employee.",
+      "effects_required": "Choose at least one policy effect.",
+      "effects_preview": "This type will affect {{count}} policy rule(s).",
+      "not_affected": "Does not affect",
+      "effect_authorized_early_leave_minutes": "Authorized early-leave minutes",
+      "effect_authorized_early_leave_minutes_help": "Uses the assigned condition's minute allowance.",
+      "effect_is_early_leave_paid": "Early leave is paid",
+      "effect_is_early_leave_paid_help": "Uses the assigned condition's paid status.",
+      "effect_grace_period_minutes": "Grace period minutes",
+      "effect_grace_period_minutes_help": "Uses the assigned condition's positive minute allowance.",
+      "effect_is_break_auto_deduct": "Automatically deduct break",
+      "effect_is_break_auto_deduct_help": "Sets a fixed break-deduction policy value.",
+      "effect_is_break_overtime": "Treat break as overtime",
+      "effect_is_break_overtime_help": "Sets a fixed break-overtime policy value.",
+      "effect_allow_early_ot": "Allow early overtime",
+      "effect_allow_early_ot_help": "Sets a fixed early-overtime policy value.",
+      "effect_early_arrival_strategy": "Early-arrival strategy",
+      "effect_early_arrival_strategy_help": "Controls how time worked before shift start is handled.",
+      "strategy_allow": "Allow",
+      "strategy_block": "Block",
+      "strategy_clamp": "Clamp"
     }
   }
 }

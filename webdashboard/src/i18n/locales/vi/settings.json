@@ -780,7 +780,31 @@
       "name_en": "Tên (Tiếng Anh)",
       "name_vi": "Tên (Tiếng Việt)",
       "confirm_delete": "Xóa loại điều kiện này? Các điều kiện đang sử dụng sẽ không bị ảnh hưởng.",
-      "no_types": "Chưa có loại điều kiện nào"
+      "no_types": "Chưa có loại điều kiện nào",
+      "minute_allowance": "Số phút mặc định",
+      "default_paid": "Được trả lương mặc định",
+      "effects_title": "Ảnh hưởng chính sách",
+      "effects_help": "Chọn các chính sách chấm công mà loại điều kiện này sẽ thay đổi khi được gán cho nhân viên.",
+      "effects_required": "Hãy chọn ít nhất một ảnh hưởng chính sách.",
+      "effects_preview": "Loại này sẽ ảnh hưởng đến {{count}} quy tắc chính sách.",
+      "not_affected": "Không ảnh hưởng",
+      "effect_authorized_early_leave_minutes": "Số phút về sớm được phép",
+      "effect_authorized_early_leave_minutes_help": "Dùng số phút của điều kiện được gán.",
+      "effect_is_early_leave_paid": "Về sớm được trả lương",
+      "effect_is_early_leave_paid_help": "Dùng trạng thái trả lương của điều kiện được gán.",
+      "effect_grace_period_minutes": "Số phút gia hạn",
+      "effect_grace_period_minutes_help": "Dùng số phút dương của điều kiện được gán.",
+      "effect_is_break_auto_deduct": "Tự động trừ giờ nghỉ",
+      "effect_is_break_auto_deduct_help": "Đặt giá trị chính sách trừ giờ nghỉ cố định.",
+      "effect_is_break_overtime": "Tính giờ nghỉ là tăng ca",
+      "effect_is_break_overtime_help": "Đặt giá trị chính sách tăng ca trong giờ nghỉ cố định.",
+      "effect_allow_early_ot": "Cho phép tăng ca sớm",
+      "effect_allow_early_ot_help": "Đặt giá trị chính sách tăng ca sớm cố định.",
+      "effect_early_arrival_strategy": "Chiến lược đến sớm",
+      "effect_early_arrival_strategy_help": "Kiểm soát cách xử lý thời gian làm việc trước giờ bắt đầu ca.",
+      "strategy_allow": "Cho phép",
+      "strategy_block": "Chặn",
+      "strategy_clamp": "Giới hạn"
     }
   }
 }

@@ -1,7 +1,10 @@
 use crate::domain::policy::defaults::{
     DEFAULT_GRACE_PERIOD_MINUTES, DEFAULT_HOURS_PER_DAY, DEFAULT_STD_WORKING_DAYS,
 };
-use crate::models::{AttendanceRules, ConditionTypeDefinition, EarlyArrivalStrategy, PolicyRules, WorkingCondition};
+use crate::models::{
+    AttendanceRules, ConditionRuleEffects, ConditionTypeDefinition, EarlyArrivalStrategy,
+    PolicyRules, WorkingCondition,
+};
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use std::collections::HashMap;
@@ -102,17 +105,39 @@ impl PolicyResolver {
             return;
         };
 
-        let affects: HashMap<String, bool> =
-            serde_json::from_value(def.affects_rules().clone()).unwrap_or_default();
+        // Invalid legacy JSON must not break attendance calculations. New and updated
+        // catalog rows are validated by ConditionTypeService before persistence.
+        let Ok(affects) =
+            serde_json::from_value::<ConditionRuleEffects>(def.affects_rules().clone())
+        else {
+            return;
+        };
 
-        if affects.get("authorized_early_leave_minutes") == Some(&true)
+        if affects.authorized_early_leave_minutes == Some(true)
             && cond.minute_allowance() > rules.authorized_early_leave_minutes()
         {
             rules.set_authorized_early_leave_minutes(cond.minute_allowance());
+            // Preserve Phase 1 behavior: the winning early-leave allowance also
+            // supplies its payment setting, even if legacy JSON omits the paid flag.
             rules.set_is_early_leave_paid(cond.is_paid());
         }
-        if affects.get("is_early_leave_paid") == Some(&true) {
+        if affects.is_early_leave_paid == Some(true) {
             rules.set_is_early_leave_paid(cond.is_paid());
+        }
+        if affects.grace_period_minutes == Some(true) && cond.minute_allowance() > 0 {
+            rules.set_grace_period_minutes(cond.minute_allowance());
+        }
+        if let Some(value) = affects.is_break_auto_deduct {
+            rules.set_is_break_auto_deduct(value);
+        }
+        if let Some(value) = affects.is_break_overtime {
+            rules.set_is_break_overtime(value);
+        }
+        if let Some(value) = affects.allow_early_ot {
+            rules.set_allow_early_ot(value);
+        }
+        if let Some(strategy) = affects.early_arrival_strategy {
+            rules.set_early_arrival_strategy(strategy.into());
         }
     }
 
@@ -506,8 +531,13 @@ mod tests {
         )
     }
 
-    fn make_catalog(entries: Vec<ConditionTypeDefinition>) -> HashMap<String, ConditionTypeDefinition> {
-        entries.into_iter().map(|d| (d.code().to_string(), d)).collect()
+    fn make_catalog(
+        entries: Vec<ConditionTypeDefinition>,
+    ) -> HashMap<String, ConditionTypeDefinition> {
+        entries
+            .into_iter()
+            .map(|d| (d.code().to_string(), d))
+            .collect()
     }
 
     fn system_catalog() -> HashMap<String, ConditionTypeDefinition> {
@@ -543,6 +573,58 @@ mod tests {
     }
 
     #[test]
+    fn catalog_applies_all_policy_rule_effects() {
+        let catalog = make_catalog(vec![catalog_def(
+            "FULL_EFFECTS",
+            serde_json::json!({
+                "authorized_early_leave_minutes": true,
+                "is_early_leave_paid": true,
+                "grace_period_minutes": true,
+                "is_break_auto_deduct": false,
+                "is_break_overtime": true,
+                "allow_early_ot": true,
+                "early_arrival_strategy": "Clamp"
+            }),
+        )]);
+        let cond = mock_condition("FULL_EFFECTS", 45, true, d(2026, 1, 1), None);
+
+        let rules = PolicyResolver::build_rules_from_conditions(
+            &[cond],
+            d(2026, 3, 1),
+            EarlyArrivalStrategy::Allow,
+            DEFAULT_GRACE_PERIOD_MINUTES,
+            Some(&catalog),
+        );
+
+        assert_eq!(rules.authorized_early_leave_minutes(), 45);
+        assert!(rules.is_early_leave_paid());
+        assert_eq!(rules.grace_period_minutes(), 45);
+        assert!(!rules.is_break_auto_deduct());
+        assert!(rules.is_break_overtime());
+        assert!(rules.allow_early_ot());
+        assert_eq!(rules.early_arrival_strategy(), EarlyArrivalStrategy::Clamp);
+    }
+
+    #[test]
+    fn catalog_grace_period_ignores_non_positive_allowance() {
+        let catalog = make_catalog(vec![catalog_def(
+            "GRACE_ONLY",
+            serde_json::json!({"grace_period_minutes": true}),
+        )]);
+        let cond = mock_condition("GRACE_ONLY", 0, false, d(2026, 1, 1), None);
+
+        let rules = PolicyResolver::build_rules_from_conditions(
+            &[cond],
+            d(2026, 3, 1),
+            EarlyArrivalStrategy::Allow,
+            DEFAULT_GRACE_PERIOD_MINUTES,
+            Some(&catalog),
+        );
+
+        assert_eq!(rules.grace_period_minutes(), DEFAULT_GRACE_PERIOD_MINUTES);
+    }
+
+    #[test]
     fn catalog_unknown_type_is_skipped() {
         let catalog = make_catalog(vec![]);
         let cond = mock_condition("UNKNOWN_TYPE", 99, true, d(2026, 1, 1), None);
@@ -558,10 +640,7 @@ mod tests {
 
     #[test]
     fn catalog_empty_affects_rules_has_no_effect() {
-        let catalog = make_catalog(vec![catalog_def(
-            "CUSTOM",
-            serde_json::json!({}),
-        )]);
+        let catalog = make_catalog(vec![catalog_def("CUSTOM", serde_json::json!({}))]);
         let cond = mock_condition("CUSTOM", 60, true, d(2026, 1, 1), None);
         let rules = PolicyResolver::build_rules_from_conditions(
             &[cond],
@@ -636,8 +715,14 @@ mod tests {
     #[test]
     fn catalog_most_generous_wins() {
         let catalog = make_catalog(vec![
-            catalog_def("EARLY_LEAVE", serde_json::json!({"authorized_early_leave_minutes": true})),
-            catalog_def("BREASTFEEDING", serde_json::json!({"authorized_early_leave_minutes": true, "is_early_leave_paid": true})),
+            catalog_def(
+                "EARLY_LEAVE",
+                serde_json::json!({"authorized_early_leave_minutes": true}),
+            ),
+            catalog_def(
+                "BREASTFEEDING",
+                serde_json::json!({"authorized_early_leave_minutes": true, "is_early_leave_paid": true}),
+            ),
         ]);
 
         let conds = vec![

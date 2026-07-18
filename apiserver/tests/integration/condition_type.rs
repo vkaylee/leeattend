@@ -38,7 +38,11 @@ async fn test_condition_type_crud_lifecycle() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 
-    let user_id = factory.user().with_email("condtype-owner@test.local").create().await;
+    let user_id = factory
+        .user()
+        .with_email("condtype-owner@test.local")
+        .create()
+        .await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
     // 1. List — should have seeded system types
@@ -59,7 +63,10 @@ async fn test_condition_type_crud_lifecycle() {
         .await
         .unwrap();
     let types: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
-    assert!(types.is_empty(), "Catalog should start empty — no system types are pre-seeded");
+    assert!(
+        types.is_empty(),
+        "Catalog should start empty — no system types are pre-seeded"
+    );
     // No pre-seeded types — workspace starts with an empty catalog.
 
     // 2. Create a custom type
@@ -67,9 +74,17 @@ async fn test_condition_type_crud_lifecycle() {
         "code": "REMOTE_WORK",
         "name_i18n": {"en": "Remote Work", "vi": "Làm việc từ xa"},
         "category": "working_hours",
-        "default_minute_allowance": 0,
+        "default_minute_allowance": 45,
         "default_is_paid": true,
-        "affects_rules": {},
+        "affects_rules": {
+            "authorized_early_leave_minutes": true,
+            "is_early_leave_paid": true,
+            "grace_period_minutes": true,
+            "is_break_auto_deduct": false,
+            "is_break_overtime": true,
+            "allow_early_ot": false,
+            "early_arrival_strategy": "Block"
+        },
         "icon": "Clock",
         "color": "green",
         "sort_order": 10
@@ -97,6 +112,9 @@ async fn test_condition_type_crud_lifecycle() {
     assert_eq!(created["name_i18n"]["en"], "Remote Work");
     assert_eq!(created["name_i18n"]["vi"], "Làm việc từ xa");
     assert_eq!(created["is_system"], false);
+    assert_eq!(created["affects_rules"]["grace_period_minutes"], true);
+    assert_eq!(created["affects_rules"]["is_break_auto_deduct"], false);
+    assert_eq!(created["affects_rules"]["early_arrival_strategy"], "Block");
 
     // 3. Get by ID
     let response = app
@@ -185,7 +203,11 @@ async fn test_cannot_delete_system_type() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 
-    let user_id = factory.user().with_email("sys-type-test@test.local").create().await;
+    let user_id = factory
+        .user()
+        .with_email("sys-type-test@test.local")
+        .create()
+        .await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
     // Insert a system type directly (the API always creates non-system types)
@@ -194,8 +216,10 @@ async fn test_cannot_delete_system_type() {
         &_test_db.diesel_pools.api,
         "INSERT INTO condition_type_definitions (id, workspace_id, code, name_i18n, category, is_system, sort_order) \
          VALUES ($1, $2, 'SYSTEM_TEST', '{\"en\":\"Test\"}', 'general', true, 0)",
-        diesel::sql_types::Uuid, system_type_id,
-        diesel::sql_types::Uuid, ws_id
+        diesel::sql_types::Uuid,
+        system_type_id,
+        diesel::sql_types::Uuid,
+        ws_id
     );
 
     // Try to delete a system type
@@ -223,13 +247,19 @@ async fn test_duplicate_code_returns_conflict() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 
-    let user_id = factory.user().with_email("dup-code-test@test.local").create().await;
+    let user_id = factory
+        .user()
+        .with_email("dup-code-test@test.local")
+        .create()
+        .await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
     let payload = json!({
         "code": "UNIQUE_TYPE",
         "name_i18n": {"en": "Unique Type"},
-        "category": "general"
+        "category": "general",
+        "default_minute_allowance": 15,
+        "affects_rules": {"grace_period_minutes": true}
     });
 
     // First creation succeeds
@@ -271,7 +301,11 @@ async fn test_invalid_code_format_returns_validation_error() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 
-    let user_id = factory.user().with_email("bad-code-test@test.local").create().await;
+    let user_id = factory
+        .user()
+        .with_email("bad-code-test@test.local")
+        .create()
+        .await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
     // Lowercase code
@@ -303,7 +337,11 @@ async fn test_active_only_filter() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 
-    let user_id = factory.user().with_email("active-filter@test.local").create().await;
+    let user_id = factory
+        .user()
+        .with_email("active-filter@test.local")
+        .create()
+        .await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
     // List with active_only=true — all seeded types are active

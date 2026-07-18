@@ -16,6 +16,8 @@ import {
   type ConditionTypeDefinition,
   type CreateConditionTypeRequest,
   type UpdateConditionTypeRequest,
+  type ConditionRuleEffects,
+  type ConditionEarlyArrivalStrategy,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +39,7 @@ type FormData = {
   icon: string;
   color: string;
   sort_order: number;
+  affects_rules: ConditionRuleEffects;
 };
 
 function emptyForm(): FormData {
@@ -50,6 +53,7 @@ function emptyForm(): FormData {
     icon: "Clock",
     color: "blue",
     sort_order: 0,
+    affects_rules: {},
   };
 }
 
@@ -69,7 +73,7 @@ function ConditionTypeForm({
   t,
 }: {
   initial?: ConditionTypeDefinition;
-  onSave: (data: CreateConditionTypeRequest) => void;
+  onSave: (data: CreateConditionTypeRequest | UpdateConditionTypeRequest) => void;
   onCancel: () => void;
   isSubmitting: boolean;
   t: (key: string) => string;
@@ -87,21 +91,51 @@ function ConditionTypeForm({
           icon: initial.icon ?? "Clock",
           color: initial.color ?? "blue",
           sort_order: initial.sort_order,
+          affects_rules: initial.affects_rules ?? {},
         }
       : emptyForm(),
   );
+  const [effectError, setEffectError] = useState<string | null>(null);
+
+  const hasEffect = Object.values(form.affects_rules).some((value) => value !== undefined);
+  const setDerivedEffect = (key: "authorized_early_leave_minutes" | "is_early_leave_paid" | "grace_period_minutes", enabled: boolean) => {
+    setForm({
+      ...form,
+      affects_rules: {
+        ...form.affects_rules,
+        [key]: enabled ? true : undefined,
+      },
+    });
+    setEffectError(null);
+  };
+  const setLiteralEffect = (key: "is_break_auto_deduct" | "is_break_overtime" | "allow_early_ot", value: "" | "true" | "false") => {
+    setForm({
+      ...form,
+      affects_rules: {
+        ...form.affects_rules,
+        [key]: value === "" ? undefined : value === "true",
+      },
+    });
+    setEffectError(null);
+  };
 
   const handleSubmit = () => {
-    onSave({
-      code: isEdit ? "" : form.code,
+    if (!hasEffect) {
+      setEffectError(t("settings.condition_types.effects_required"));
+      return;
+    }
+
+    const details = {
       name_i18n: { en: form.name_en, vi: form.name_vi },
       category: form.category,
       default_minute_allowance: form.default_minute_allowance,
       default_is_paid: form.default_is_paid,
+      affects_rules: form.affects_rules,
       icon: form.icon || null,
       color: form.color || null,
       sort_order: form.sort_order,
-    });
+    };
+    onSave(isEdit ? details : { code: form.code, ...details });
   };
 
   return (
@@ -152,6 +186,117 @@ function ConditionTypeForm({
           />
         </div>
       </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+            {t("settings.condition_types.minute_allowance")}
+          </label>
+          <input
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all"
+            min={0}
+            onChange={(e) => setForm({ ...form, default_minute_allowance: Number(e.target.value) })}
+            type="number"
+            value={form.default_minute_allowance}
+          />
+        </div>
+        <label className="flex items-center gap-3 self-end pb-4 text-sm font-bold text-slate-600 dark:text-slate-300">
+          <input
+            checked={form.default_is_paid}
+            className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+            onChange={(e) => setForm({ ...form, default_is_paid: e.target.checked })}
+            type="checkbox"
+          />
+          {t("settings.condition_types.default_paid")}
+        </label>
+      </div>
+
+      <section aria-labelledby="condition-policy-effects" className="mb-8 rounded-3xl border border-primary-100 bg-primary-50/50 p-6 dark:border-primary-900/60 dark:bg-primary-950/20">
+        <div className="mb-5">
+          <Typography className="text-sm font-black text-slate-800 dark:text-slate-100" id="condition-policy-effects" variant="h4">
+            {t("settings.condition_types.effects_title")}
+          </Typography>
+          <Typography className="mt-1 text-xs text-slate-500 dark:text-slate-400" variant="p">
+            {t("settings.condition_types.effects_help")}
+          </Typography>
+        </div>
+
+        <div className="space-y-3">
+          {([
+            ["authorized_early_leave_minutes", "effect_authorized_early_leave_minutes"],
+            ["is_early_leave_paid", "effect_is_early_leave_paid"],
+            ["grace_period_minutes", "effect_grace_period_minutes"],
+          ] as const).map(([key, label]) => (
+            <label className="flex items-start gap-3 rounded-2xl bg-white/80 p-4 dark:bg-slate-900/70" key={key}>
+              <input
+                checked={form.affects_rules[key] === true}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                onChange={(e) => setDerivedEffect(key, e.target.checked)}
+                type="checkbox"
+              />
+              <span>
+                <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">{t(`settings.condition_types.${label}`)}</span>
+                <span className="block pt-0.5 text-xs text-slate-500 dark:text-slate-400">{t(`settings.condition_types.${label}_help`)}</span>
+              </span>
+            </label>
+          ))}
+
+          {([
+            ["is_break_auto_deduct", "effect_is_break_auto_deduct"],
+            ["is_break_overtime", "effect_is_break_overtime"],
+            ["allow_early_ot", "effect_allow_early_ot"],
+          ] as const).map(([key, label]) => (
+            <label className="flex items-center justify-between gap-4 rounded-2xl bg-white/80 p-4 dark:bg-slate-900/70" key={key}>
+              <span>
+                <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">{t(`settings.condition_types.${label}`)}</span>
+                <span className="block pt-0.5 text-xs text-slate-500 dark:text-slate-400">{t(`settings.condition_types.${label}_help`)}</span>
+              </span>
+              <select
+                aria-label={t(`settings.condition_types.${label}`)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                onChange={(e) => setLiteralEffect(key, e.target.value as "" | "true" | "false")}
+                value={form.affects_rules[key] === undefined ? "" : String(form.affects_rules[key])}
+              >
+                <option value="">{t("settings.condition_types.not_affected")}</option>
+                <option value="true">{t("common.yes")}</option>
+                <option value="false">{t("common.no")}</option>
+              </select>
+            </label>
+          ))}
+
+          <label className="flex items-center justify-between gap-4 rounded-2xl bg-white/80 p-4 dark:bg-slate-900/70">
+            <span>
+              <span className="block text-sm font-bold text-slate-700 dark:text-slate-200">{t("settings.condition_types.effect_early_arrival_strategy")}</span>
+              <span className="block pt-0.5 text-xs text-slate-500 dark:text-slate-400">{t("settings.condition_types.effect_early_arrival_strategy_help")}</span>
+            </span>
+            <select
+              aria-label={t("settings.condition_types.effect_early_arrival_strategy")}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+              onChange={(e) => {
+                setForm({
+                  ...form,
+                  affects_rules: {
+                    ...form.affects_rules,
+                    early_arrival_strategy: (e.target.value || undefined) as ConditionEarlyArrivalStrategy | undefined,
+                  },
+                });
+                setEffectError(null);
+              }}
+              value={form.affects_rules.early_arrival_strategy ?? ""}
+            >
+              <option value="">{t("settings.condition_types.not_affected")}</option>
+              <option value="Allow">{t("settings.condition_types.strategy_allow")}</option>
+              <option value="Block">{t("settings.condition_types.strategy_block")}</option>
+              <option value="Clamp">{t("settings.condition_types.strategy_clamp")}</option>
+            </select>
+          </label>
+        </div>
+
+        {effectError && <Typography className="mt-4 text-xs font-bold text-rose-600" variant="p">{effectError}</Typography>}
+        <Typography className="mt-5 text-xs font-bold text-primary-700 dark:text-primary-300" variant="p">
+          {t("settings.condition_types.effects_preview").replace("{{count}}", String(Object.values(form.affects_rules).filter((value) => value !== undefined).length))}
+        </Typography>
+      </section>
 
       <div className="flex justify-end gap-4">
         <Button
@@ -278,7 +423,7 @@ export default function ConditionTypesPage() {
         <ConditionTypeForm
           isSubmitting={createMutation.isPending}
           onCancel={() => setIsAdding(false)}
-          onSave={(data) => createMutation.mutate(data)}
+          onSave={(data) => createMutation.mutate(data as CreateConditionTypeRequest)}
           t={(k) => t(k)}
         />
       )}
