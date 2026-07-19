@@ -935,6 +935,40 @@ diesel::table! {
         password -> Nullable<Varchar>,
         #[max_length = 50]
         timezone -> Nullable<Varchar>,
+        location_id -> Nullable<Uuid>,
+    }
+}
+
+diesel::table! {
+    device_enrollments (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        employee_id -> Uuid,
+        device_id -> Uuid,
+        device_uid -> Nullable<Int4>,
+        #[max_length = 30]
+        sync_status -> Varchar,
+        last_synced_at -> Nullable<Timestamptz>,
+        last_error -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    employee_biometric_templates (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        employee_id -> Uuid,
+        finger_id -> Int2,
+        template_encrypted -> Text,
+        #[max_length = 50]
+        encryption_key_version -> Varchar,
+        source_device_id -> Nullable<Uuid>,
+        quality -> Nullable<Int2>,
+        valid -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
@@ -2406,8 +2440,10 @@ diesel::allow_tables_to_appear_in_same_query!(
     custom_field_values,
     dashboard_preferences,
     departments,
+    device_enrollments,
     devices,
     employee_assignments,
+    employee_biometric_templates,
     employee_contracts,
     employee_documents,
     employee_emergency_contacts,

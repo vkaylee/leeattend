@@ -79,6 +79,9 @@ pub struct Device {
     pub created_at: DateTime<Utc>,
     pub workspace_id: Uuid,
     pub max_concurrent_workers: i32,
+    /// Optional work location, used only as a filter/quick-select hint for bulk
+    /// enrollment. Not the source of truth for enrollment.
+    pub location_id: Option<Uuid>,
 }
 
 fn default_timezone() -> String {
@@ -96,6 +99,7 @@ pub struct CreateDeviceRequest {
     pub timezone: Option<String>,
     pub workspace_id: Option<Uuid>,
     pub max_concurrent_workers: Option<i32>,
+    pub location_id: Option<Uuid>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -107,6 +111,7 @@ pub struct UpdateDeviceRequest {
     pub password: Option<String>,
     pub timezone: Option<String>,
     pub is_enabled: Option<bool>,
+    pub location_id: Option<Uuid>,
 }
 
 #[cfg(test)]

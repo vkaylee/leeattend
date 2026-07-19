@@ -57,6 +57,7 @@ pub struct DeviceEntity {
     pub brand: String,
     pub password: Option<String>,
     pub timezone: Option<String>,
+    pub location_id: Option<Uuid>,
 }
 
 impl From<DeviceEntity> for Device {
@@ -75,6 +76,7 @@ impl From<DeviceEntity> for Device {
             password: entity.password,
             timezone: entity.timezone.unwrap_or_else(|| "UTC".to_string()),
             max_concurrent_workers: 0,
+            location_id: entity.location_id,
         }
     }
 }
@@ -89,4 +91,5 @@ pub struct UpdateDieselDevice {
     pub brand: String,
     pub password: Option<String>,
     pub timezone: Option<String>,
+    pub location_id: Option<Uuid>,
 }

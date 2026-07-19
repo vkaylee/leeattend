@@ -273,6 +273,7 @@ impl AgentRepository for DieselAgentRepository {
             brand: brand.to_string(),
             password: Some(password.to_string()),
             timezone: Some(timezone.to_string()),
+            location_id: None,
         };
 
         diesel::insert_into(devices::table)
@@ -332,6 +333,7 @@ impl AgentRepository for DieselAgentRepository {
             brand: brand.to_string(),
             password: password.map(ToString::to_string),
             timezone: Some(timezone.to_string()),
+            location_id: None,
         };
 
         if update_model.password.is_none() {
