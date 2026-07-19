@@ -65,3 +65,17 @@ export const getHighestPrioritySource = (
   const sources = new Set(schedules.map((s) => s.source));
   return SOURCE_PRIORITY.find((s) => sources.has(s));
 };
+
+/**
+ * Order roster rows to match the user's selection order rather than the
+ * workspace/API order. Rows whose id is not in `orderedIds` are dropped.
+ */
+export const orderSchedulesBySelection = <T extends { employee_id?: string }>(
+  schedules: T[],
+  orderedIds: string[],
+): T[] => {
+  const byId = new Map(schedules.map((s) => [s.employee_id ?? "", s]));
+  return orderedIds
+    .map((id) => byId.get(id))
+    .filter((s): s is T => s !== undefined);
+};

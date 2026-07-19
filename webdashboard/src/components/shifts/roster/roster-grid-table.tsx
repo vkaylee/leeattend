@@ -89,18 +89,30 @@ const RosterGridTable = memo(function RosterGridTable({
           </tr>
         </thead>
         <tbody>
-          {monthSchedules.map((empSchedule) => (
+          {monthSchedules.map((empSchedule) => {
+            const subtitle = [empSchedule.employee_id_number, empSchedule.department_name]
+              .filter(Boolean)
+              .join(" · ");
+
+            return (
             <tr
               className="border-b border-slate-100 dark:border-slate-800 last:border-b-0 hover:bg-slate-50/30 dark:hover:bg-slate-850/10"
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
               key={empSchedule.employee_id ?? empSchedule.employment_id}
             >
-              <td className="sticky left-0 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 px-4 py-3 font-bold text-xs text-slate-700 dark:text-slate-300 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)] min-w-[160px] truncate">
+              <td className="sticky left-0 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 px-4 py-3 font-bold text-xs text-slate-700 dark:text-slate-300 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)] min-w-[200px]">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-extrabold text-slate-600 dark:text-slate-400">
+                  <div className="w-6 h-6 shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-extrabold text-slate-600 dark:text-slate-400">
                     {empSchedule.full_name.substring(0, 2).toUpperCase()}
                   </div>
-                  <span className="truncate">{empSchedule.full_name}</span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="truncate leading-tight">{empSchedule.full_name}</span>
+                    {!!subtitle && (
+                      <span className="truncate text-[10px] font-medium text-slate-400 dark:text-slate-500 leading-tight">
+                        {subtitle}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </td>
 
@@ -128,7 +140,8 @@ const RosterGridTable = memo(function RosterGridTable({
                 );
               })}
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

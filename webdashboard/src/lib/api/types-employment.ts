@@ -24,6 +24,7 @@ export type UpdateEmployeeAssignmentRequest = components["schemas"]["UpdateEmplo
 export type EmployeeSchedule = Omit<components["schemas"]["EmployeeSchedule"], "employee_id_number"> & {
   employee_id_number?: string;
   employee_id?: string;
+  department_name?: string | null;
 };
 
 export type WorkingPattern = Omit<components["schemas"]["WorkingPattern"], "description"> & {

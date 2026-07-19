@@ -4,6 +4,8 @@ import { format } from "date-fns";
 
 import { useShifts } from "@/pages/shifts/hooks/use-shifts";
 
+import { orderSchedulesBySelection } from "@/components/shifts/roster/roster-utils";
+
 interface UseMonthlyRosterProps {
   hook: ReturnType<typeof useShifts>;
 }
@@ -58,10 +60,14 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
         return {
           ...existing,
           employee_id: emp.id,
+          employee_id_number: emp.employee_id_number,
+          department_name: emp.department_name ?? undefined,
         };
       }
       return {
         employee_id: emp.id,
+        employee_id_number: emp.employee_id_number,
+        department_name: emp.department_name ?? undefined,
         employment_id: emp.active_employment_id ?? "",
         full_name: emp.full_name,
         schedules: [],
@@ -69,13 +75,10 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
     });
   }, [employees, monthSchedules, selectedEmployees]);
 
-  const filteredSchedules = useMemo(() => {
-    if (selectedEmployeeIds.length === 0) return [];
-    return combinedSchedules.filter((schedule) =>
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      selectedEmployeeIds.includes(schedule.employee_id ?? "")
-    );
-  }, [combinedSchedules, selectedEmployeeIds]);
+  const filteredSchedules = useMemo(
+    () => orderSchedulesBySelection(combinedSchedules, selectedEmployeeIds),
+    [combinedSchedules, selectedEmployeeIds]
+  );
 
   const [dragStartCell, setDragStartCell] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);

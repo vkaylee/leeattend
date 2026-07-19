@@ -5,6 +5,7 @@ import {
   getHighestPrioritySource,
   getShiftSymbol,
   isWeekend,
+  orderSchedulesBySelection,
 } from "../roster-utils";
 
 // ── isWeekend ───────────────────────────────────────────────────────
@@ -201,5 +202,40 @@ describe("getHighestPrioritySource", () => {
       { source: "roster" },
     ] as any[];
     expect(getHighestPrioritySource(schedules)).toBe("roster");
+  });
+});
+
+// ── orderSchedulesBySelection ───────────────────────────────────────
+
+describe("orderSchedulesBySelection", () => {
+  const rows = [
+    { employee_id: "a", full_name: "Alice" },
+    { employee_id: "b", full_name: "Bob" },
+    { employee_id: "c", full_name: "Carol" },
+  ];
+
+  it("orders rows by selection order, not input order", () => {
+    const result = orderSchedulesBySelection(rows, ["c", "a", "b"]);
+    expect(result.map((r) => r.employee_id)).toEqual(["c", "a", "b"]);
+  });
+
+  it("returns empty array when no ids selected", () => {
+    expect(orderSchedulesBySelection(rows, [])).toEqual([]);
+  });
+
+  it("drops ids that have no matching schedule", () => {
+    const result = orderSchedulesBySelection(rows, ["b", "missing", "a"]);
+    expect(result.map((r) => r.employee_id)).toEqual(["b", "a"]);
+  });
+
+  it("returns only the selected subset", () => {
+    const result = orderSchedulesBySelection(rows, ["c"]);
+    expect(result.map((r) => r.employee_id)).toEqual(["c"]);
+  });
+
+  it("does not include duplicates when an id is selected twice", () => {
+    const result = orderSchedulesBySelection(rows, ["a", "a"]);
+    // same reference returned for each occurrence; order preserved
+    expect(result.map((r) => r.employee_id)).toEqual(["a", "a"]);
   });
 });
