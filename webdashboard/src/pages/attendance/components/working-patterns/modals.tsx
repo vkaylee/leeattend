@@ -233,6 +233,7 @@ function BulkAssignModal({ hook }: PatternModalsProps) {
     wsId,
     assignAnchorDate,
     setAssignAnchorDate,
+    departments,
   } = hook;
 
   const selectedPattern = patterns.find((p) => p.id === selectedPatternId);
@@ -289,7 +290,7 @@ function BulkAssignModal({ hook }: PatternModalsProps) {
         </div>
         <div className="space-y-4 px-1">
           <label className={LABEL_BASE}>{t("patterns.form.select_employees_label").toUpperCase()}</label>
-          <EmployeeSearch className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 rounded-[2rem] p-8 shadow-inner" multiple={true} onChange={(v) => { setSelectedEmployeeIds(v as string[]); }} value={selectedEmployeeIds} workspaceId={wsId} />
+          <EmployeeSearch className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 rounded-[2rem] p-8 shadow-inner" departments={departments} multiple={true} onChange={(v) => { setSelectedEmployeeIds(v as string[]); }} value={selectedEmployeeIds} workspaceId={wsId} />
         </div>
         <div className="pt-8 border-t border-slate-50 dark:border-slate-800 grid grid-cols-2 gap-6">
           <Button onClick={() => { setIsBulkModalOpen(false); }} size="lg" variant="outline">{t("common.cancel").toUpperCase()}</Button>

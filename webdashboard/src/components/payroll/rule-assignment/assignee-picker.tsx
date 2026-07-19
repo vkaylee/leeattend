@@ -33,6 +33,7 @@ export function AssigneePicker({
           {t("payroll.select_employee", "Select Employee")}
         </div>
         <EmployeeSearch
+          departments={departments}
           onChange={(value) => {
             setAssigneeId(Array.isArray(value) ? value[0] : value);
           }}

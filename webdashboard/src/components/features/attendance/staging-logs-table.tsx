@@ -9,8 +9,10 @@ import Button from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Typography } from "@/components/ui/typography";
 import { StagingLog } from '@/lib/api/attendance';
+import type { Department } from '@/lib/api/types';
 
 interface StagingLogsTableProps {
+  departments?: Department[];
   formatDate: (date: string | null | undefined) => string;
   formatTime: (date: string | null | undefined) => string;
   getDeviceName: (deviceId?: string | null) => string;
@@ -27,6 +29,7 @@ interface StagingLogsTableProps {
 
 interface StagingLogRowProps {
   assigningLogId: string | null;
+  departments?: Department[];
   formatDate: (date: string | null | undefined) => string;
   formatTime: (date: string | null | undefined) => string;
   getDeviceName: (deviceId?: string | null) => string;
@@ -44,6 +47,7 @@ function StagingLogRow({
   assigningLogId,
   setAssigningLogId,
   wsId,
+  departments,
   getDeviceName,
   formatDate,
   formatTime,
@@ -85,6 +89,7 @@ function StagingLogRow({
           {assigningLogId === log.id ? (
             <div className="flex items-center gap-2 min-w-[200px]">
               <EmployeeSearch
+                departments={departments}
                 onChange={(value) => {
                   const empId = Array.isArray(value) ? value[0] : value;
                   if (empId) {
@@ -144,6 +149,7 @@ export function StagingLogsTable({
   isFetchingNextPage,
   loadMoreRef,
   wsId,
+  departments,
   getDeviceName,
   formatDate,
   formatTime,
@@ -187,6 +193,7 @@ export function StagingLogsTable({
             {logs.map((log) => (
               <StagingLogRow
                 assigningLogId={assigningLogId}
+                departments={departments}
                 formatDate={formatDate}
                 formatTime={formatTime}
                 getDeviceName={getDeviceName}

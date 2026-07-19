@@ -11,13 +11,14 @@ import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useBehalfAssignments } from "@/hooks/use-behalf-assignments";
 import { fetchDepartments } from "@/lib/api";
-import { BehalfAssignment, Employee } from "@/lib/api/types";
+import { BehalfAssignment, Department, Employee } from "@/lib/api/types";
 import { logError } from "@/lib/logger";
 
 interface AddAssignmentFormProps {
   assigneeId: string;
   assignmentType: "ot" | "leave" | "attendance_adjustment" | "overtime_request";
   departmentOptions: { description?: string | null; label: string; value: string }[];
+  departments: Department[];
   isCreating: boolean;
   onCancel: () => void;
   onSelectAssigneeEmployee: (emp: Employee | null) => void;
@@ -183,6 +184,7 @@ function AddAssignmentForm({
   assigneeId,
   assignmentType,
   departmentOptions,
+  departments,
   isCreating,
   onCancel,
   onSubmit,
@@ -227,6 +229,7 @@ function AddAssignmentForm({
         </label>
         <EmployeeSearch
           clearOnEscape
+          departments={departments}
           emptyQueryBehavior="prompt-to-type"
           id="submitter-select"
           onChange={(val) => {
@@ -295,6 +298,7 @@ function AddAssignmentForm({
           </label>
           <EmployeeSearch
             clearOnEscape
+            departments={departments}
             emptyQueryBehavior="prompt-to-type"
             id="target-employee-select"
             onChange={(val) => { setTargetEmployeeId(typeof val === "string" ? val : val[0] ?? ""); }}
@@ -580,6 +584,7 @@ export function BehalfAssignmentsTab({
           assigneeId={assigneeId}
           assignmentType={assignmentType}
           departmentOptions={departmentOptions}
+          departments={departments}
           isCreating={isCreating}
           onCancel={() => {
             setIsOpen(false);

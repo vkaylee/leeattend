@@ -10,6 +10,7 @@ import { useWorkingPatternGrid } from "@/hooks/use-working-pattern-grid";
 import {
   BulkAssignResponse,
   CreateWorkingPatternRequest,
+  Department,
   Shift,
   WorkingPattern,
   WorkingPatternDetail,
@@ -22,6 +23,7 @@ import {
   fetchWorkingPatterns,
   getCurrentWorkspaceId,
   fetchEmployees,
+  fetchDepartments,
 } from "@/lib/api";
 
 type BulkAssignPatternRequestLocal = Parameters<typeof bulkAssignPattern>[1];
@@ -35,6 +37,7 @@ export interface UseWorkingPatternsReturn {
   createMutation: UseMutationResult<WorkingPattern, Error, CreateWorkingPatternRequest>;
   cycleLengthDays: number;
   deleteMutation: UseMutationResult<unknown, Error, string>;
+  departments: Department[];
   expandedPatternId: string | null;
   handleBulkAssign: () => void;
   handleCreate: () => void;
@@ -243,6 +246,12 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
   });
   const employees = employeesData?.data ?? [];
 
+  const { data: departments = [] } = useQuery<Department[]>({
+    queryKey: ["departments", wsId],
+    queryFn: () => fetchDepartments(wsId),
+    enabled: !!wsId,
+  });
+
   const handleBulkAssign = () => {
     if (selectedPatternId && selectedEmployeeIds.length > 0) {
       const selectedPattern = patterns.find((p) => p.id === selectedPatternId);
@@ -275,6 +284,7 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
     createMutation,
     cycleLengthDays,
     deleteMutation,
+    departments,
     expandedPatternId,
     handleBulkAssign,
     handleCreate,

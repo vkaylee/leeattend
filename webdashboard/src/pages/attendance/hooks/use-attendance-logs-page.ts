@@ -11,9 +11,10 @@ import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { 
-  fetchRawAttendanceLogs, 
-  getCurrentWorkspaceId, 
-  fetchDevices, 
+  fetchRawAttendanceLogs,
+  getCurrentWorkspaceId,
+  fetchDepartments,
+  fetchDevices,
   fetchStagingLogs, 
   resolveStagingLog, 
   dismissStagingLog,
@@ -158,6 +159,12 @@ export function useAttendanceLogsPage() {
     }
   }, [urlFrom, urlTo, urlEmployee]);
 
+  const { data: departments = [] } = useQuery({
+    queryKey: ["departments", wsId],
+    queryFn: () => fetchDepartments(wsId ?? ""),
+    enabled: !!wsId,
+  });
+
   const { employees: _employees } = useAllEmployees(wsId);
   const employeeMap = useMemo(() => {
     const map = new Map<string, Employee>();
@@ -183,6 +190,6 @@ export function useAttendanceLogsPage() {
   const loadMoreStagingRef = useInfiniteScroll<HTMLTableRowElement>({ hasNextPage: hasNextStagingPage, isFetchingNextPage: isFetchingNextStagingPage, fetchNextPage: () => { void fetchNextStagingPage(); } });
 
   return {
-    wsId, t, formatDate, formatTime, activeTab, setActiveTab, employeeId, setEmployeeId, filterMode, dateRange, setDateRange, specificMonth, isImportDialogOpen, setIsImportDialogOpen, handleFilterModeChange, handleSpecificMonthChange, allRecordedLogs, recordedTotal, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, allStagingLogs, stagingTotal, stagingLoading, stagingCount, isFetchingNextStagingPage, hasNextStagingPage, fetchNextStagingPage, getEmployeeName, getEmployeeID, getDeviceName, loadMoreRef, loadMoreStagingRef, handleCreateEmployee: (enrollmentId: string) => { void navigate({ to: "/employees", search: { enrollment_id: enrollmentId } }); }, dismissMutation, resolveMutation,
+    wsId, departments, t, formatDate, formatTime, activeTab, setActiveTab, employeeId, setEmployeeId, filterMode, dateRange, setDateRange, specificMonth, isImportDialogOpen, setIsImportDialogOpen, handleFilterModeChange, handleSpecificMonthChange, allRecordedLogs, recordedTotal, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, allStagingLogs, stagingTotal, stagingLoading, stagingCount, isFetchingNextStagingPage, hasNextStagingPage, fetchNextStagingPage, getEmployeeName, getEmployeeID, getDeviceName, loadMoreRef, loadMoreStagingRef, handleCreateEmployee: (enrollmentId: string) => { void navigate({ to: "/employees", search: { enrollment_id: enrollmentId } }); }, dismissMutation, resolveMutation,
   };
 }

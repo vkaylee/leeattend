@@ -69,9 +69,10 @@ export function AssigneePicker({
     return (
       <div className='space-y-2'>
         <label className='text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1'>{t('common.select_employee')}</label>
-        <EmployeeSearch 
+        <EmployeeSearch
           className='bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14'
           data-testid='assign-employee-search'
+          departments={departments}
           onChange={(value) => { setTargetId(Array.isArray(value) ? value[0] : value); }}
           placeholder={t('common.select_employee')}
           value={targetId}

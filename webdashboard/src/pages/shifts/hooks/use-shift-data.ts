@@ -116,7 +116,7 @@ export function useShiftData({
   const { data: departments } = useQuery<Department[]>({
     queryKey: ["departments", wsId],
     queryFn: () => fetchDepartments(wsId),
-    enabled: !!wsId && viewMode === "month",
+    enabled: !!wsId,
   });
 
   return {

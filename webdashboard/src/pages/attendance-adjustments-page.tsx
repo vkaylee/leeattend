@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -8,6 +9,7 @@ import { CreateAdjustmentModal } from "@/components/features/attendance/create-a
 import { PDFPreviewModal } from "@/components/files/pdf-preview-modal";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { fetchDepartments } from "@/lib/api";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
 import { AdjustmentsHeader } from "./attendance/components/adjustments-header";
@@ -44,6 +46,11 @@ export default function AttendanceAdjustmentsPage() {
   } = useAttendanceAdjustmentsPage();
 
   const { workspace } = useWorkspace(wsId ?? undefined);
+  const { data: departments = [] } = useQuery({
+    queryKey: ["departments", wsId],
+    queryFn: () => fetchDepartments(wsId ?? ""),
+    enabled: !!wsId,
+  });
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const [previewFileUrl, setPreviewFileUrl] = useState<string | null>(null);
@@ -80,6 +87,7 @@ export default function AttendanceAdjustmentsPage() {
           <div className="w-full sm:w-72">
             <EmployeeSearch
               clearOnEscape
+              departments={departments}
               keyboardShortcut={["/", "Enter"]}
               onChange={(value) => {
                 setEmployeeId((Array.isArray(value) ? value[0] : value) || "all");

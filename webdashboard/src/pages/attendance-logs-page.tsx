@@ -24,8 +24,9 @@ function TabContent({ state }: { state: AttendanceLogsState }) {
     handleSpecificMonthChange, 
     setDateRange, 
     setEmployeeId, 
-    specificMonth, 
+    specificMonth,
     wsId,
+    departments,
     formatDate,
     formatTime,
     getDeviceName,
@@ -55,6 +56,7 @@ function TabContent({ state }: { state: AttendanceLogsState }) {
       <>
         <AttendanceLogsFilters
           dateRange={dateRange}
+          departments={departments}
           employeeId={employeeId}
           filterMode={filterMode}
           handleFilterModeChange={handleFilterModeChange}
@@ -81,6 +83,7 @@ function TabContent({ state }: { state: AttendanceLogsState }) {
 
   return (
     <StagingLogsTable
+      departments={departments}
       formatDate={formatDate}
       formatTime={formatTime}
       getDeviceName={getDeviceName}

@@ -39,7 +39,7 @@ export function useAssignOvertimePolicy({
   const { data: departments = [] } = useQuery({
     queryKey: ['departments', wsId],
     queryFn: () => fetchDepartments(wsId),
-    enabled: isOpen && selectedType === 'department'
+    enabled: isOpen
   });
 
   const assignMutation = useMutation({

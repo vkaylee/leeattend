@@ -8,10 +8,13 @@ import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import { cn } from "@/lib/utils";
 
+import type { Department } from "@/lib/api/types";
+
 import type { FilterMode } from "../hooks/use-attendance-logs-page";
 
 interface AttendanceLogsFiltersProps {
   dateRange: { start: string; end: string };
+  departments?: Department[];
   employeeId: string;
   filterMode: FilterMode;
   handleFilterModeChange: (mode: FilterMode) => void;
@@ -62,14 +65,14 @@ function CustomRangeFilter({ dateRange, setDateRange }: { dateRange: { start: st
 
 export function AttendanceLogsFilters(props: AttendanceLogsFiltersProps) {
   const { t } = useTranslation();
-  const { dateRange, setDateRange, employeeId, setEmployeeId, filterMode, handleFilterModeChange, handleSpecificMonthChange, specificMonth, wsId } = props;
+  const { dateRange, setDateRange, employeeId, setEmployeeId, filterMode, handleFilterModeChange, handleSpecificMonthChange, specificMonth, wsId, departments } = props;
 
   return (
     <>
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-sm p-2 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <DateFilterButtons filterMode={filterMode} handleFilterModeChange={handleFilterModeChange} handleSpecificMonthChange={handleSpecificMonthChange} specificMonth={specificMonth} />
         <div className="flex-1 max-w-md flex items-center gap-3 px-2">
-          <div className="flex-1"><EmployeeSearch clearOnEscape data-testid="employee-search" keyboardShortcut={["/", "Enter"]} onChange={(value) => { setEmployeeId((Array.isArray(value) ? value[0] : value) || "all"); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} value={employeeId === "all" ? "" : employeeId} workspaceId={wsId ?? ""} /></div>
+          <div className="flex-1"><EmployeeSearch clearOnEscape data-testid="employee-search" departments={departments} keyboardShortcut={["/", "Enter"]} onChange={(value) => { setEmployeeId((Array.isArray(value) ? value[0] : value) || "all"); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} value={employeeId === "all" ? "" : employeeId} workspaceId={wsId ?? ""} /></div>
           {employeeId !== "all" && (<Button className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl transition-all" onClick={() => { setEmployeeId("all"); }} type="button" variant="ghost"><Users size={18} /></Button>)}
         </div>
       </div>

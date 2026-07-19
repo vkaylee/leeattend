@@ -213,4 +213,51 @@ describe("EmployeeSearch Component", () => {
       })
     );
   });
+
+  it("does NOT render the department filter button when no departments are provided", () => {
+    render(<EmployeeSearch onChange={vi.fn()} workspaceId="ws-1" />, { wrapper });
+
+    expect(screen.queryByTestId("employee-dept-filter")).toBeNull();
+  });
+
+  it("does NOT render the department filter button when departments is empty", () => {
+    render(<EmployeeSearch departments={[]} onChange={vi.fn()} workspaceId="ws-1" />, { wrapper });
+
+    expect(screen.queryByTestId("employee-dept-filter")).toBeNull();
+  });
+
+  it("renders the department filter button when departments are provided", () => {
+    const departments = [
+      { id: "d1", name: "Engineering" },
+      { id: "d2", name: "Sales" },
+    ] as any;
+    render(
+      <EmployeeSearch departments={departments} onChange={vi.fn()} workspaceId="ws-1" />,
+      { wrapper }
+    );
+
+    expect(screen.getByTestId("employee-dept-filter")).toBeDefined();
+  });
+
+  it("passes selected department ids into the useInfiniteQuery queryKey (controlled)", () => {
+    const departments = [
+      { id: "d1", name: "Engineering" },
+      { id: "d2", name: "Sales" },
+    ] as any;
+    render(
+      <EmployeeSearch
+        departments={departments}
+        onChange={vi.fn()}
+        selectedDepartmentIds={["d1", "d2"]}
+        workspaceId="ws-1"
+      />,
+      { wrapper }
+    );
+
+    expect(useInfiniteQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: expect.arrayContaining(["employees", "ws-1", "search", "d1,d2"]),
+      })
+    );
+  });
 });

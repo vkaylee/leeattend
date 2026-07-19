@@ -6,6 +6,7 @@ import { Employee, PaginatedResponse } from '../lib/api/types';
 
 export interface UseEmployeeSearchOptions {
   debouncedSearchTerm: string;
+  departmentIds?: string[];
   emptyQueryBehavior?: 'prompt-to-type' | 'all';
   permission?: string;
   selectedIds: string[];
@@ -18,6 +19,7 @@ export function useEmployeeSearch({
   selectedIds,
   emptyQueryBehavior = 'all',
   permission,
+  departmentIds,
 }: UseEmployeeSearchOptions) {
   const isQueryEmpty = debouncedSearchTerm.trim() === '';
   const isEnabled = workspaceId !== '' && (emptyQueryBehavior === 'all' || !isQueryEmpty);
@@ -29,7 +31,7 @@ export function useEmployeeSearch({
     isFetchingNextPage,
     isLoading,
   } = useInfiniteQuery({
-    queryKey: ['employees', workspaceId, 'search', debouncedSearchTerm, emptyQueryBehavior, permission],
+    queryKey: ['employees', workspaceId, 'search', debouncedSearchTerm, emptyQueryBehavior, permission, departmentIds?.join(',') ?? ''],
     queryFn: async ({ pageParam }) => {
       const res = (await searchEmployees({
         wsId: workspaceId,
@@ -37,6 +39,7 @@ export function useEmployeeSearch({
         page: pageParam,
         limit: 50,
         permission,
+        departmentIds,
       })) as PaginatedResponse<Employee> | undefined;
       return res ?? { data: [], limit: 50, page: pageParam, total: 0 };
     },

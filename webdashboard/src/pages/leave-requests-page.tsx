@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-conversion, complexity, max-lines-per-function */
+import { useQuery } from "@tanstack/react-query";
 import { Clock, Filter, Plus, ShieldCheck, Upload } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
@@ -27,7 +28,7 @@ import { PageTabs, PageTab } from "@/components/ui/page-tabs";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { getCurrentWorkspaceId, Employee } from "@/lib/api";
+import { getCurrentWorkspaceId, fetchDepartments, Employee } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
@@ -55,6 +56,12 @@ export default function LeaveRequestsPage() {
     handleImportComplete,
     t
   } = useLeaveRequests(wsId);
+
+  const { data: departments = [] } = useQuery({
+    queryKey: ["departments", wsId],
+    queryFn: () => fetchDepartments(wsId ?? ""),
+    enabled: !!wsId,
+  });
 
   const employeeMap = useMemo(
     () => {
@@ -172,6 +179,7 @@ export default function LeaveRequestsPage() {
           <div className="w-full sm:w-72">
             <EmployeeSearch
               clearOnEscape
+              departments={departments}
               keyboardShortcut={["/", "Enter"]}
               onChange={(value) => {
                 setEmployeeId((Array.isArray(value) ? value[0] : value) || "all");
