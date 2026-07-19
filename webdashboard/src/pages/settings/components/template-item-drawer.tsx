@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 
 import type {
   LifecycleChecklistTemplateItem,
@@ -11,6 +11,7 @@ import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
 import Sheet from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
+import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 import {
   useCreateLifecycleTemplateItem,
   useUpdateLifecycleTemplateItem,
@@ -31,53 +32,62 @@ export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }:
   const updateMutation = useUpdateLifecycleTemplateItem(templateId);
   const { members } = useWorkspaceMembers();
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<ChecklistCategory>("hr_admin");
-  const [assigneeType, setAssigneeType] = useState<ChecklistAssigneeType>("hr_manager");
-  const [assigneeUserId, setAssigneeUserId] = useState("");
-  const [isRequired, setIsRequired] = useState(true);
-  const [dueDaysOffset, setDueDaysOffset] = useState("0");
-  const [displayOrder, setDisplayOrder] = useState("0");
+  interface ItemFormState {
+    assigneeType: ChecklistAssigneeType;
+    assigneeUserId: string;
+    category: ChecklistCategory;
+    description: string;
+    displayOrder: string;
+    dueDaysOffset: string;
+    isRequired: boolean;
+    title: string;
+  }
 
-  useEffect(() => {
+  const EMPTY_ITEM_FORM: ItemFormState = {
+    title: "",
+    description: "",
+    category: "hr_admin",
+    assigneeType: "hr_manager",
+    assigneeUserId: "",
+    isRequired: true,
+    dueDaysOffset: "0",
+    displayOrder: "0",
+  };
+
+  // Compute external form values — stabilized via useMemo.
+  const externalForm = useMemo((): ItemFormState => {
     if (editingItem) {
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-      setTitle(editingItem.title);
-      setDescription(editingItem.description ?? "");
-      setCategory(editingItem.category);
-      setAssigneeType(editingItem.assignee_type);
-      setAssigneeUserId(editingItem.assignee_user_id ?? "");
-      setIsRequired(editingItem.is_required);
-      setDueDaysOffset(String(editingItem.due_days_offset));
-      setDisplayOrder(String(editingItem.display_order));
-    } else {
-      setTitle("");
-      setDescription("");
-      setCategory("hr_admin");
-      setAssigneeType("hr_manager");
-      setAssigneeUserId("");
-      setIsRequired(true);
-      setDueDaysOffset("0");
-      setDisplayOrder("0");
+      return {
+        title: editingItem.title,
+        description: editingItem.description ?? "",
+        category: editingItem.category,
+        assigneeType: editingItem.assignee_type,
+        assigneeUserId: editingItem.assignee_user_id ?? "",
+        isRequired: editingItem.is_required,
+        dueDaysOffset: String(editingItem.due_days_offset),
+        displayOrder: String(editingItem.display_order),
+      };
     }
-  }, [editingItem, isOpen]);
+    return EMPTY_ITEM_FORM;
+  }, [editingItem]);
+
+  const [form, setForm] = useDerivedStateFrom(externalForm);
 
   const handleSave = () => {
-    if (!title.trim()) {
+    if (!form.title.trim()) {
       toast.error("Checklist item title is required");
       return;
     }
 
     const payload = {
-      title,
-      description: description.trim() ? description : undefined,
-      category,
-      assignee_type: assigneeType,
-      assignee_user_id: assigneeType === "specific_user" && assigneeUserId ? assigneeUserId : undefined,
-      is_required: isRequired,
-      due_days_offset: parseInt(dueDaysOffset) || 0,
-      display_order: parseInt(displayOrder) || 0,
+      title: form.title,
+      description: form.description.trim() ? form.description : undefined,
+      category: form.category,
+      assignee_type: form.assigneeType,
+      assignee_user_id: form.assigneeType === "specific_user" && form.assigneeUserId ? form.assigneeUserId : undefined,
+      is_required: form.isRequired,
+      due_days_offset: parseInt(form.dueDaysOffset) || 0,
+      display_order: parseInt(form.displayOrder) || 0,
     };
 
     if (editingItem) {
@@ -123,16 +133,16 @@ export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }:
       <div className="space-y-6 pt-4 max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar">
         <FormField
           label="Item Title"
-          onChange={(e) => { setTitle(e.target.value); }}
+          onChange={(e) => { setForm(prev => ({ ...prev, title: e.target.value })); }}
           placeholder="e.g., Assign laptop and corporate email"
-          value={title}
+          value={form.title}
         />
         <FormField
           label="Description / Instructions"
-          onChange={(e) => { setDescription(e.target.value); }}
+          onChange={(e) => { setForm(prev => ({ ...prev, description: e.target.value })); }}
           placeholder="Add detailed instructions for completion"
           type="textarea"
-          value={description}
+          value={form.description}
         />
 
         <div className="grid grid-cols-2 gap-4">
@@ -143,8 +153,8 @@ export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }:
             <select
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm"
               id="item-category"
-              onChange={(e) => { setCategory(e.target.value as ChecklistCategory); }}
-              value={category}
+              onChange={(e) => { setForm(prev => ({ ...prev, category: e.target.value as ChecklistCategory })); }}
+              value={form.category}
             >
               <option value="hr_admin">HR Admin</option>
               <option value="it_setup">IT Setup</option>
@@ -161,8 +171,8 @@ export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }:
             <select
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm"
               id="item-assignee-type"
-              onChange={(e) => { setAssigneeType(e.target.value as ChecklistAssigneeType); }}
-              value={assigneeType}
+              onChange={(e) => { setForm(prev => ({ ...prev, assigneeType: e.target.value as ChecklistAssigneeType })); }}
+              value={form.assigneeType}
             >
               <option value="hr_manager">HR Manager</option>
               <option value="direct_manager">Direct Manager</option>
@@ -173,16 +183,16 @@ export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }:
           </div>
         </div>
 
-        {assigneeType === "specific_user" && (
+        {form.assigneeType === "specific_user" && (
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block" htmlFor="item-assignee">
               Select Specific Assignee
             </label>
             <Combobox
-              onChange={setAssigneeUserId}
+              onChange={(v) => { setForm(prev => ({ ...prev, assigneeUserId: v })); }}
               options={memberOptions}
               placeholder="Search user..."
-              value={assigneeUserId}
+              value={form.assigneeUserId}
             />
           </div>
         )}
@@ -190,26 +200,26 @@ export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }:
         <div className="grid grid-cols-2 gap-4">
           <FormField
             label="Due Days Offset"
-            onChange={(e) => { setDueDaysOffset(e.target.value); }}
+            onChange={(e) => { setForm(prev => ({ ...prev, dueDaysOffset: e.target.value })); }}
             placeholder="e.g., -5 (5 days before) or 2 (2 days after)"
             type="number"
-            value={dueDaysOffset}
+            value={form.dueDaysOffset}
           />
           <FormField
             label="Display Order"
-            onChange={(e) => { setDisplayOrder(e.target.value); }}
+            onChange={(e) => { setForm(prev => ({ ...prev, displayOrder: e.target.value })); }}
             placeholder="Order priority"
             type="number"
-            value={displayOrder}
+            value={form.displayOrder}
           />
         </div>
 
         <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
           <input
-            checked={isRequired}
+            checked={form.isRequired}
             className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-slate-300 rounded"
             id="isRequired"
-            onChange={(e) => { setIsRequired(e.target.checked); }}
+            onChange={(e) => { setForm(prev => ({ ...prev, isRequired: e.target.checked })); }}
             type="checkbox"
           />
           <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 cursor-pointer" htmlFor="isRequired">

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import React from "react";
 
 import userEvent from "@testing-library/user-event";
@@ -274,10 +274,10 @@ describe("EmployeesPage", () => {
         const row = await screen.findByText("Alice Nguyen");
         await user.click(row);
 
-        // Detail header should appear with employee name (large heading)
-        const headings = await screen.findAllByText("Alice Nguyen");
-        // At least 2: one in the list, one in the detail panel
-        expect(headings.length).toBeGreaterThanOrEqual(2);
+        // The detail drawer is lazy-loaded into a portal; wait for its dialog
+        // before asserting its header rather than racing the dynamic import.
+        const detailDrawer = await screen.findByRole("dialog");
+        expect(within(detailDrawer).getByText("Alice Nguyen")).toBeInTheDocument();
     });
 
     // ────────────────────────────────────────────────────────────

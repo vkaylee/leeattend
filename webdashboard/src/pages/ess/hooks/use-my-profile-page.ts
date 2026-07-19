@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 import { useEmergencyContacts, useMyProfile } from "@/hooks/use-ess";
 import { logError } from "@/lib/logger";
 
@@ -13,6 +14,13 @@ import { PersonalInfoFormData } from "../components/personal-info-section";
 export type TabType = "personal" | "banking" | "emergency";
 export type FullProfileFormData = BankDetailsFormData & PersonalInfoFormData;
 
+const EMPTY_CONTACT: NewContactData = {
+  contact_name: "",
+  is_primary: false,
+  phone: "",
+  relationship: "",
+};
+
 export function useMyProfilePage() {
   const { t } = useTranslation();
   const toast = useToast();
@@ -21,29 +29,13 @@ export function useMyProfilePage() {
   const { addContact, contacts, deleteContact, isAdding, isDeleting } = useEmergencyContacts();
 
   const [activeTab, setActiveTab] = useState<TabType>("personal");
-  const [formData, setFormData] = useState<FullProfileFormData>({
-    address: "",
-    bank_account_number: "",
-    bank_branch: "",
-    bank_name: "",
-    date_of_birth: "",
-    gender: "",
-    national_id: "",
-    phone: "",
-  });
-
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
-  const [newContact, setNewContact] = useState<NewContactData>({
-    contact_name: "",
-    is_primary: false,
-    phone: "",
-    relationship: "",
-  });
+  const [newContact, setNewContact] = useState<NewContactData>(EMPTY_CONTACT);
 
-  useEffect(() => {
+  // Compute external form data — stabilized via useMemo.
+  const externalFormData = useMemo((): FullProfileFormData => {
     if (profile) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Syncing form data with profile from API
-      setFormData({
+      return {
         address: profile.address ?? "",
         bank_account_number: profile.bank_account_number ?? "",
         bank_branch: profile.bank_branch ?? "",
@@ -52,9 +44,15 @@ export function useMyProfilePage() {
         gender: profile.gender ?? "",
         national_id: profile.national_id ?? "",
         phone: profile.phone ?? "",
-      });
+      };
     }
+    return {
+      address: "", bank_account_number: "", bank_branch: "", bank_name: "",
+      date_of_birth: "", gender: "", national_id: "", phone: "",
+    };
   }, [profile]);
+
+  const [formData, setFormData] = useDerivedStateFrom(externalFormData);
 
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
@@ -70,7 +68,7 @@ export function useMyProfilePage() {
     e.preventDefault();
     try {
       await addContact(newContact);
-      setNewContact({ contact_name: "", is_primary: false, phone: "", relationship: "" });
+      setNewContact(EMPTY_CONTACT);
       setIsContactModalOpen(false);
       toast.success(t("ess.emergency_contact.add_success"));
     } catch (error) {

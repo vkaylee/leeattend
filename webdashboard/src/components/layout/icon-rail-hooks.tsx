@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components -- shared toolkit
  * for IconRail's state-driven tooltip positioning. */
-import { useCallback, useLayoutEffect, useState } from "react";
+import { useCallback, useRef, useSyncExternalStore, useState } from "react";
 import { createPortal } from "react-dom";
 
 // ── Shared: observe element rect without reading ref.current in render ──
@@ -14,8 +14,56 @@ export function useTooltipTarget<T extends HTMLElement>() {
   return { el, hovered, setHovered, refCb } as const;
 }
 
+/**
+ * Observes an element's bounding rect via ResizeObserver + scroll events.
+ * Uses useSyncExternalStore to avoid setState-in-useEffect (DOM measurement
+ * is a legitimate side effect — useSyncExternalStore is the canonical React
+ * pattern for external store subscriptions like DOM rect observation).
+ */
+function useElementRect(el: HTMLElement | null, active: boolean): DOMRect | null {
+  const snapshotRef = useRef<DOMRect | null>(null);
+
+  const getSnapshot = useCallback((): DOMRect | null => {
+    if (!el || !active) return null;
+
+    const next = el.getBoundingClientRect();
+    const previous = snapshotRef.current;
+    if (
+      previous
+      && previous.x === next.x
+      && previous.y === next.y
+      && previous.width === next.width
+      && previous.height === next.height
+    ) {
+      return previous;
+    }
+
+    snapshotRef.current = next;
+    return next;
+  }, [el, active]);
+
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!el || !active) {
+        return () => {};
+      }
+      const measure = () => { onStoreChange(); };
+      const ro = new ResizeObserver(measure);
+      ro.observe(el);
+      window.addEventListener("scroll", measure, true);
+      return () => {
+        ro.disconnect();
+        window.removeEventListener("scroll", measure, true);
+      };
+    },
+    [el, active],
+  );
+
+  return useSyncExternalStore(subscribe, getSnapshot);
+}
+
 // Re-renders when hovered AND element is measurable.
-// The rect is read inside the effect, never during render.
+// DOM rect is observed via useSyncExternalStore — no setState-in-effect.
 export function TooltipPortal({
   el,
   hovered,
@@ -25,27 +73,7 @@ export function TooltipPortal({
   hovered: boolean;
   label: string;
 }) {
-  const [rect, setRect] = useState<DOMRect | null>(null);
-
-  useLayoutEffect(() => {
-    if (!el || !hovered) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setRect(null);
-      return;
-    }
-    const measure = () => {
-       
-      setRect(el.getBoundingClientRect());
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    window.addEventListener("scroll", measure, true);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("scroll", measure, true);
-    };
-  }, [el, hovered]);
+  const rect = useElementRect(el, hovered);
 
   if (!el || !hovered || !rect) return null;
 

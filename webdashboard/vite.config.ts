@@ -118,7 +118,7 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
         routeFileIgnorePattern: '.test.tsx',
       }),
       react({
-        babel: mode === 'production' ? {
+        babel: mode === 'production' && !isTest ? {
           plugins: [
             [
               'react-remove-properties',

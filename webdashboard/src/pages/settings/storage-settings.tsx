@@ -1,6 +1,6 @@
 /* eslint-disable */
 import { Database, Save, CheckCircle2, XCircle, Link as LinkIcon, Server, Key, Shield } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { toast } from "sonner";
@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import { Typography } from "@/components/ui/typography";
+import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 import {
   useDeleteStorageConfig,
   useStorageConfig,
@@ -15,13 +16,33 @@ import {
   useUpsertStorageConfig,
 } from "@/hooks/use-storage-settings";
 
-interface StorageConfig {
+interface StorageConfigData {
   access_key?: string;
   bucket_name?: string;
   endpoint_url?: string;
   region?: string;
   use_path_style?: boolean;
 }
+
+interface FormState {
+  accessKey: string;
+  bucketName: string;
+  endpointUrl: string;
+  isCustom: boolean;
+  region: string;
+  secretKey: string;
+  usePathStyle: boolean;
+}
+
+const EMPTY_FORM: FormState = {
+  isCustom: false,
+  endpointUrl: "",
+  region: "",
+  bucketName: "",
+  accessKey: "",
+  secretKey: "",
+  usePathStyle: true,
+};
 
 export function StorageSettings() {
   const { t } = useTranslation();
@@ -33,39 +54,27 @@ export function StorageSettings() {
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<"success" | "error" | null>(null);
 
-  const [isCustom, setIsCustom] = useState(false);
-  const [endpointUrl, setEndpointUrl] = useState("");
-  const [region, setRegion] = useState("");
-  const [bucketName, setBucketName] = useState("");
-  const [accessKey, setAccessKey] = useState("");
-  const [secretKey, setSecretKey] = useState("");
-  const [usePathStyle, setUsePathStyle] = useState(true);
-
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
+  // Compute external form state — stabilized via useMemo so reference only
+  // changes when config identity changes (React Query cache is stable).
+  const externalForm = useMemo((): FormState => {
     if (config) {
-      const c = config as StorageConfig;
-      setIsCustom(true);
-      setEndpointUrl(c.endpoint_url ?? "");
-      setRegion(c.region ?? "");
-      setBucketName(c.bucket_name ?? "");
-      setAccessKey(c.access_key ?? "");
-      setSecretKey(""); // Blank for masked secret
-      setUsePathStyle(c.use_path_style ?? true);
-    } else {
-      setIsCustom(false);
-      setEndpointUrl("");
-      setRegion("");
-      setBucketName("");
-      setAccessKey("");
-      setSecretKey("");
-      setUsePathStyle(true);
+      return {
+        isCustom: true,
+        endpointUrl: config.endpoint_url ?? "",
+        region: config.region ?? "",
+        bucketName: config.bucket_name ?? "",
+        accessKey: "", // Never prefill secrets; API only returns access_key_masked
+        secretKey: "", // Always blank for masked secret
+        usePathStyle: config.use_path_style ?? true,
+      };
     }
+    return EMPTY_FORM;
   }, [config]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+
+  const [form, setForm] = useDerivedStateFrom(externalForm);
 
   const handleTestConnection = async () => {
-    if (!endpointUrl || !bucketName || !accessKey || !secretKey || !region) {
+    if (!form.endpointUrl || !form.bucketName || !form.accessKey || !form.secretKey || !form.region) {
       toast.error(t("settings.storage.test_missing_fields", "Please fill all fields before testing."));
       return;
     }
@@ -74,12 +83,12 @@ export function StorageSettings() {
     setTestResult(null);
     try {
       await testMutation.mutateAsync({
-        endpoint_url: endpointUrl,
-        region,
-        bucket_name: bucketName,
-        access_key: accessKey,
-        secret_key: secretKey,
-        use_path_style: usePathStyle,
+        endpoint_url: form.endpointUrl,
+        region: form.region,
+        bucket_name: form.bucketName,
+        access_key: form.accessKey,
+        secret_key: form.secretKey,
+        use_path_style: form.usePathStyle,
         max_file_size: 104857600,
         presigned_ttl_secs: 3600,
       });
@@ -94,19 +103,19 @@ export function StorageSettings() {
   };
 
   const handleSaveConfig = async () => {
-    if (isCustom) {
-      if (!endpointUrl || !bucketName || !accessKey || !secretKey || !region) {
+    if (form.isCustom) {
+      if (!form.endpointUrl || !form.bucketName || !form.accessKey || !form.secretKey || !form.region) {
         toast.error(t("settings.storage.missing_fields", "Please fill in all S3 credentials before saving."));
         return;
       }
       try {
         await upsertMutation.mutateAsync({
-          endpoint_url: endpointUrl,
-          region,
-          bucket_name: bucketName,
-          access_key: accessKey,
-          secret_key: secretKey,
-          use_path_style: usePathStyle,
+          endpoint_url: form.endpointUrl,
+          region: form.region,
+          bucket_name: form.bucketName,
+          access_key: form.accessKey,
+          secret_key: form.secretKey,
+          use_path_style: form.usePathStyle,
           max_file_size: 104857600,
           presigned_ttl_secs: 3600,
         });
@@ -172,11 +181,11 @@ export function StorageSettings() {
           <label className="relative inline-flex items-center cursor-pointer flex-shrink-0" htmlFor="use-custom-storage">
             <span className="sr-only">{t("settings.storage.use_custom", "Use Custom Storage Bucket")}</span>
             <input 
-              checked={isCustom} 
-              className="sr-only peer" 
+              checked={form.isCustom}
+              className="sr-only peer"
               id="use-custom-storage"
               onChange={(e) => {
-                setIsCustom(e.target.checked);
+                setForm(prev => ({ ...prev, isCustom: e.target.checked }));
                 setTestResult(null);
               }} 
               type="checkbox" 
@@ -186,7 +195,7 @@ export function StorageSettings() {
         </div>
 
         {/* Custom Storage Fields */}
-        {isCustom ? (
+        {form.isCustom ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-top-4 duration-300">
             <div className="col-span-full border-b border-slate-50 dark:border-slate-800 pb-4">
               <Typography className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h2">
@@ -200,10 +209,10 @@ export function StorageSettings() {
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><LinkIcon size={18} /></div>
                 <input
                   className="w-full h-14 pl-12 pr-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-medium focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all text-slate-700 dark:text-slate-200 outline-none"
-                  onChange={(e) => { setEndpointUrl(e.target.value); }}
+                  onChange={(e) => { setForm(prev => ({ ...prev, endpointUrl: e.target.value })); }}
                   placeholder="https://s3.amazonaws.com or https://play.min.io:9000"
                   type="url"
-                  value={endpointUrl}
+                  value={form.endpointUrl}
                 />
               </div>
             </div>
@@ -214,10 +223,10 @@ export function StorageSettings() {
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><Database size={18} /></div>
                 <input
                   className="w-full h-14 pl-12 pr-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-medium focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all text-slate-700 dark:text-slate-200 outline-none"
-                  onChange={(e) => { setBucketName(e.target.value); }}
+                  onChange={(e) => { setForm(prev => ({ ...prev, bucketName: e.target.value })); }}
                   placeholder="my-company-assets"
                   type="text"
-                  value={bucketName}
+                  value={form.bucketName}
                 />
               </div>
             </div>
@@ -228,10 +237,10 @@ export function StorageSettings() {
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><Server size={18} /></div>
                 <input
                   className="w-full h-14 pl-12 pr-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-medium focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all text-slate-700 dark:text-slate-200 outline-none"
-                  onChange={(e) => { setRegion(e.target.value); }}
+                  onChange={(e) => { setForm(prev => ({ ...prev, region: e.target.value })); }}
                   placeholder="us-east-1"
                   type="text"
-                  value={region}
+                  value={form.region}
                 />
               </div>
             </div>
@@ -242,10 +251,10 @@ export function StorageSettings() {
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><Key size={18} /></div>
                 <input
                   className="w-full h-14 pl-12 pr-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-medium focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all text-slate-700 dark:text-slate-200 outline-none"
-                  onChange={(e) => { setAccessKey(e.target.value); }}
+                  onChange={(e) => { setForm(prev => ({ ...prev, accessKey: e.target.value })); }}
                   placeholder="AKIAIOSFODNN7EXAMPLE"
                   type="text"
-                  value={accessKey}
+                  value={form.accessKey}
                 />
               </div>
             </div>
@@ -256,10 +265,10 @@ export function StorageSettings() {
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><Shield size={18} /></div>
                 <input
                   className="w-full h-14 pl-12 pr-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-medium focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all text-slate-700 dark:text-slate-200 outline-none"
-                  onChange={(e) => { setSecretKey(e.target.value); }}
+                  onChange={(e) => { setForm(prev => ({ ...prev, secretKey: e.target.value })); }}
                   placeholder={config ? "•••••••••••••••• (Leave blank to keep existing)" : "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}
                   type="password"
-                  value={secretKey}
+                  value={form.secretKey}
                 />
               </div>
             </div>
@@ -268,10 +277,10 @@ export function StorageSettings() {
               <label className="flex items-center gap-3 cursor-pointer p-4 bg-slate-50 dark:bg-slate-800/50 rounded-[1.5rem] border border-slate-100 dark:border-slate-700 hover:border-primary-200 transition-colors" htmlFor="use-path-style">
                 <span className="sr-only">{t("settings.storage.path_style", "Use Path-Style URLs")}</span>
                 <input
-                  checked={usePathStyle}
+                  checked={form.usePathStyle}
                   className="w-5 h-5 text-primary-600 rounded border-slate-300 focus:ring-primary-500"
                   id="use-path-style"
-                  onChange={(e) => { setUsePathStyle(e.target.checked); }}
+                  onChange={(e) => { setForm(prev => ({ ...prev, usePathStyle: e.target.checked })); }}
                   type="checkbox"
                 />
                 <div>
