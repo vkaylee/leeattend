@@ -207,7 +207,7 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
 
                 for bal in &balances {
                     let accrued_bd = BigDecimal::from_str(&bal.accrued_amount().to_string())
-                        .unwrap_or_else(|_| BigDecimal::from(0));
+                        .map_err(|e| AppError::Internal(format!("BigDecimal parse failed: {e}")))?;
                     let bal_entity = crate::models::diesel::leave::LeaveBalanceEntity {
                         id: bal.id(),
                         employment_id: bal.employment_id(),
@@ -401,5 +401,54 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
             .await?;
 
         Ok(list.into_iter().map(Into::into).collect())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bigdecimal::BigDecimal;
+    use std::str::FromStr;
+
+    // --- BigDecimal safety regression tests (Debt #2) ---
+    // Verify that from_str for invalid values never silently defaults to zero
+
+    #[test]
+    fn test_bigdecimal_from_str_invalid_returns_error() {
+        let result = BigDecimal::from_str("not_a_number");
+        assert!(
+            result.is_err(),
+            "BigDecimal::from_str('not_a_number') must return Err, not silently default to zero"
+        );
+    }
+
+    #[test]
+    fn test_bigdecimal_from_str_empty_returns_error() {
+        let result = BigDecimal::from_str("");
+        assert!(result.is_err(), "BigDecimal::from_str('') must return Err");
+    }
+
+    #[test]
+    fn test_bigdecimal_error_propagation_pattern() {
+        // Verify the exact pattern used in terminate_employment_transactional:
+        // BigDecimal::from_str(...).map_err(|e| AppError::Internal(format!(...)))?;
+        let result: Result<BigDecimal, AppError> = BigDecimal::from_str("garbage")
+            .map_err(|e| AppError::Internal(format!("BigDecimal parse failed: {e}")));
+        assert!(result.is_err());
+        match result {
+            Err(AppError::Internal(msg)) => {
+                assert!(
+                    msg.contains("BigDecimal parse failed"),
+                    "Error message should describe the problem, got: {msg}"
+                );
+            }
+            _ => panic!("Expected AppError::Internal"),
+        }
+    }
+
+    #[test]
+    fn test_bigdecimal_from_str_valid_returns_ok() {
+        let result = BigDecimal::from_str("42.5");
+        assert!(result.is_ok(), "BigDecimal::from_str('42.5') should return Ok");
     }
 }

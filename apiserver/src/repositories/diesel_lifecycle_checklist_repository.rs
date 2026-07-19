@@ -713,6 +713,36 @@ impl LifecycleChecklistRepository for DieselLifecycleChecklistRepository {
         Ok(results.into_iter().map(Into::into).collect())
     }
 
+    async fn list_items_for_checklist_ids(
+        &self,
+        auth_token: &TenantAuthToken,
+        checklist_ids: &[Uuid],
+    ) -> Result<Vec<LifecycleChecklistItem>, AppError> {
+        use crate::schema::lifecycle_checklist_items;
+        use crate::schema::lifecycle_checklists;
+
+        if checklist_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let results = lifecycle_checklist_items::table
+            .inner_join(lifecycle_checklists::table)
+            .filter(lifecycle_checklists::workspace_id.eq(auth_token.workspace_id()))
+            .filter(lifecycle_checklist_items::checklist_id.eq_any(checklist_ids))
+            .order(lifecycle_checklist_items::display_order.asc())
+            .select(lifecycle_checklist_items::all_columns)
+            .load::<LifecycleChecklistItemEntity>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db list checklist items batch: {e}")))?;
+
+        Ok(results.into_iter().map(Into::into).collect())
+    }
+
     async fn update_checklist_item_status(
         &self,
         auth_token: &TenantAuthToken,
@@ -828,5 +858,27 @@ impl LifecycleChecklistRepository for DieselLifecycleChecklistRepository {
             .collect();
 
         Ok(responses)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::diesel_pool::DieselPools;
+
+    /// Empty input must return empty output — prevents SQL errors from empty eq_any().
+    #[tokio::test]
+    async fn test_list_items_for_checklist_ids_empty_input() {
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+        let pools = DieselPools::for_test(&test_db_url);
+        let repo = DieselLifecycleChecklistRepository::new(pools);
+        let auth_token =
+            crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4());
+
+        let result = repo.list_items_for_checklist_ids(&auth_token, &[]).await;
+        assert!(result.is_ok(), "Empty input should return Ok([]), got: {result:?}");
+        assert!(result.unwrap().is_empty());
     }
 }

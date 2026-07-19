@@ -54,7 +54,7 @@ impl EmployeeService {
             .get_salary_components_history_for_employments(workspace_id, &employment_ids)
             .await?;
 
-        // 4. Resolve employer names to avoid N+1 queries
+        // 4. Resolve employer names with a single batch query (no N+1)
         let mut employer_ids: Vec<Uuid> = employments
             .iter()
             .map(crate::models::employment::Employment::employer_id)
@@ -62,14 +62,13 @@ impl EmployeeService {
         employer_ids.sort();
         employer_ids.dedup();
 
-        let mut employer_names = std::collections::HashMap::new();
-        for emp_id in employer_ids {
-            if let Some(employer) = employer_repo.get_employer_by_id(auth_token, emp_id).await? {
-                employer_names.insert(emp_id, employer.name.clone());
-            }
-        }
+        let employers = employer_repo.get_employers_by_ids(auth_token, &employer_ids).await?;
+        let employer_names: std::collections::HashMap<Uuid, String> = employers
+            .into_iter()
+            .map(|e| (e.id, e.name.clone()))
+            .collect();
 
-        // 5. Resolve department names to avoid N+1 queries
+        // 5. Resolve department names with a single batch query (no N+1)
         let mut dept_ids: Vec<Uuid> = employments
             .iter()
             .filter_map(crate::models::employment::Employment::department_id)
@@ -77,16 +76,11 @@ impl EmployeeService {
         dept_ids.sort();
         dept_ids.dedup();
 
-        let mut department_names = std::collections::HashMap::new();
-        for d_id in dept_ids {
-            if let Some(dept) = self
-                .dept_repo
-                .get_department_by_id(auth_token, d_id)
-                .await?
-            {
-                department_names.insert(d_id, dept.name().to_string());
-            }
-        }
+        let departments = self.dept_repo.get_departments_by_ids(auth_token, &dept_ids).await?;
+        let department_names: std::collections::HashMap<Uuid, String> = departments
+            .into_iter()
+            .map(|d| (d.id(), d.name().to_string()))
+            .collect();
 
         // Map employments by ID for quick lookup
         let employments_map: std::collections::HashMap<

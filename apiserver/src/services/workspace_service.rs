@@ -694,6 +694,12 @@ mod tests {
         ) -> Result<(), AppError> {
             Ok(())
         }
+        async fn create_notifications_batch(
+            &self,
+            _notifications: &[crate::models::Notification],
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
     }
 
     struct MockTenantProvisioner;

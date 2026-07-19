@@ -40,6 +40,14 @@ pub trait LeaveAccrualLogRepository: Send + Sync {
         leave_type_id: Option<Uuid>,
     ) -> Result<Vec<LeaveHistoryLogItem>, AppError>;
 
+    async fn get_employment_leave_history_logs_batch(
+        &self,
+        workspace_id: Uuid,
+        employment_ids: &[Uuid],
+        year: i32,
+        leave_type_id: Option<Uuid>,
+    ) -> Result<Vec<LeaveHistoryLogItem>, AppError>;
+
     async fn update_accrual_amount(
         &self,
         log_id: Uuid,

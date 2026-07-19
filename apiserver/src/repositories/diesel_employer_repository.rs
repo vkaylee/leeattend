@@ -87,6 +87,31 @@ impl EmployerRepository for DieselEmployerRepository {
         Ok(result.map(Into::into))
     }
 
+    async fn get_employers_by_ids(
+        &self,
+        auth_token: &TenantAuthToken,
+        ids: &[Uuid],
+    ) -> Result<Vec<Employer>, AppError> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+        let workspace_id = auth_token.workspace_id();
+
+        let results = employers::table
+            .filter(employers::id.eq_any(ids))
+            .filter(employers::workspace_id.eq(workspace_id))
+            .filter(employers::deleted_at.is_null())
+            .load::<EmployerEntity>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(results.into_iter().map(Into::into).collect())
+    }
+
     async fn get_employers(
         &self,
         auth_token: &TenantAuthToken,
@@ -279,5 +304,18 @@ mod tests {
 
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselEmployerRepository::new(pools);
+    }
+
+    /// Empty input must return empty output before acquiring a tenant connection.
+    #[tokio::test]
+    async fn test_get_employers_by_ids_empty_input() {
+        let pools = DieselPools::for_test("postgres://invalid:invalid@localhost:12345/invalid_db");
+        let repo = DieselEmployerRepository::new(pools);
+        let auth_token = TenantAuthToken::system_override(Uuid::new_v4());
+
+        let result = repo.get_employers_by_ids(&auth_token, &[]).await;
+
+        assert!(result.is_ok(), "Empty input should return Ok([]), got: {result:?}");
+        assert!(result.unwrap().is_empty());
     }
 }

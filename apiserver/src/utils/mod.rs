@@ -2,6 +2,7 @@ pub mod batch_loader;
 pub mod bigdecimal_helpers;
 pub mod chrono_helpers;
 pub mod config;
+pub mod cookies;
 pub mod datetime;
 pub mod debug;
 pub mod excel_format_utils;

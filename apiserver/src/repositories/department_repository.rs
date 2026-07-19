@@ -25,6 +25,11 @@ pub trait DepartmentRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
     ) -> Result<Option<Department>, AppError>;
+    async fn get_departments_by_ids(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        ids: &[Uuid],
+    ) -> Result<Vec<Department>, AppError>;
     async fn get_department_by_name(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

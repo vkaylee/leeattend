@@ -66,4 +66,8 @@ pub trait UserRepository: Send + Sync {
         &self,
         notification: &crate::models::Notification,
     ) -> Result<(), AppError>;
+    async fn create_notifications_batch(
+        &self,
+        notifications: &[crate::models::Notification],
+    ) -> Result<(), AppError>;
 }

@@ -52,10 +52,15 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(row.map(|(id, amount)| ExistingAccrualLog {
-            id,
-            amount: Decimal::from_str(&amount.to_string()).unwrap_or(Decimal::ZERO),
-        }))
+        let row = row.map(|(id, amount)| -> Result<_, AppError> {
+            Ok(ExistingAccrualLog {
+                id,
+                amount: Decimal::from_str(&amount.to_string())
+                    .map_err(|e| AppError::Internal(format!("Decimal parse failed: {e}")))?,
+            })
+        }).transpose()?;
+
+        Ok(row)
     }
 
     async fn get_assignment_effective_from(
@@ -157,16 +162,93 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
         Ok(entities
             .into_iter()
-            .map(|row| LeaveHistoryLogItem {
-                id: row.0,
-                accrual_date: row.1,
-                amount: Decimal::from_str(&row.2.to_string()).unwrap_or(Decimal::ZERO),
-                leave_type_name: row.3,
-                notes: row.4,
-                created_at: row.5,
-                policy_assignment_id: row.6,
+            .map(|row| -> Result<_, AppError> {
+                Ok(LeaveHistoryLogItem {
+                    id: row.0,
+                    accrual_date: row.1,
+                    amount: Decimal::from_str(&row.2.to_string())
+                        .map_err(|e| AppError::Internal(format!("Decimal parse failed: {e}")))?,
+                    leave_type_name: row.3,
+                    notes: row.4,
+                    created_at: row.5,
+                    policy_assignment_id: row.6,
+                })
             })
-            .collect())
+            .collect::<Result<Vec<_>, AppError>>()?)
+    }
+
+    async fn get_employment_leave_history_logs_batch(
+        &self,
+        workspace_id: Uuid,
+        employment_ids: &[Uuid],
+        year: i32,
+        leave_type_id: Option<Uuid>,
+    ) -> Result<Vec<LeaveHistoryLogItem>, AppError> {
+        if employment_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let mut query = leave_accrual_logs::table
+            .inner_join(leave_types::table)
+            .inner_join(employments::table)
+            .filter(employments::workspace_id.eq(workspace_id))
+            .filter(leave_accrual_logs::employment_id.eq_any(employment_ids))
+            .into_boxed();
+
+        if let Some(lt_id) = leave_type_id {
+            query = query.filter(leave_accrual_logs::leave_type_id.eq(lt_id));
+        }
+
+        query = query.filter(
+            diesel::dsl::sql::<diesel::sql_types::Bool>("EXTRACT(YEAR FROM accrual_date) = ")
+                .bind::<diesel::sql_types::Double, _>(f64::from(year)),
+        );
+
+        let entities = query
+            .select((
+                leave_accrual_logs::id,
+                leave_accrual_logs::accrual_date,
+                leave_accrual_logs::amount,
+                leave_types::name,
+                leave_accrual_logs::notes,
+                leave_accrual_logs::created_at,
+                leave_accrual_logs::policy_assignment_id,
+            ))
+            .load::<(
+                Uuid,
+                NaiveDate,
+                bigdecimal::BigDecimal,
+                String,
+                Option<String>,
+                Option<DateTime<Utc>>,
+                Option<Uuid>,
+            )>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(entities
+            .into_iter()
+            .map(|row| -> Result<_, AppError> {
+                Ok(LeaveHistoryLogItem {
+                    id: row.0,
+                    accrual_date: row.1,
+                    amount: Decimal::from_str(&row.2.to_string())
+                        .map_err(|e| AppError::Internal(format!("Decimal parse failed: {e}")))?,
+                    leave_type_name: row.3,
+                    notes: row.4,
+                    created_at: row.5,
+                    policy_assignment_id: row.6,
+                })
+            })
+            .collect::<Result<Vec<_>, AppError>>()?)
     }
 
     async fn update_accrual_amount(
@@ -345,7 +427,8 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
             .await?;
 
         use rust_decimal::prelude::FromPrimitive;
-        let decimal_amount = rust_decimal::Decimal::from_f64(amount).unwrap_or(Decimal::ZERO);
+        let decimal_amount = rust_decimal::Decimal::from_f64(amount)
+            .ok_or_else(|| AppError::Internal("Invalid f64 for Decimal conversion".into()))?;
         let amount_bd = bigdecimal::BigDecimal::from_str(&decimal_amount.to_string())
             .map_err(|e| AppError::Internal(format!("BigDecimal conversion failed: {e}")))?;
         let year = accrual_date.year();
@@ -365,7 +448,8 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
                 if let Some((log_id, old_amount_bd)) = row {
                     let old_amount =
-                        Decimal::from_str(&old_amount_bd.to_string()).unwrap_or(Decimal::ZERO);
+                        Decimal::from_str(&old_amount_bd.to_string())
+                            .map_err(|e| AppError::Internal(format!("Decimal parse failed: {e}")))?;
                     if force && old_amount != decimal_amount {
                         let diff = decimal_amount - old_amount;
                         let diff_bd =
@@ -502,7 +586,8 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
                     use rust_decimal::prelude::FromPrimitive;
                     let decimal_amount =
-                        rust_decimal::Decimal::from_f64(*amount).unwrap_or(Decimal::ZERO);
+                        rust_decimal::Decimal::from_f64(*amount)
+                            .ok_or_else(|| AppError::Internal("Invalid f64 for Decimal conversion".into()))?;
                     let amount_bd = bigdecimal::BigDecimal::from_str(&decimal_amount.to_string())
                         .map_err(|e| {
                         AppError::Internal(format!("BigDecimal conversion failed: {e}"))
@@ -523,7 +608,8 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
                     if let Some((log_id, old_amount_bd)) = row {
                         let old_amount =
-                            Decimal::from_str(&old_amount_bd.to_string()).unwrap_or(Decimal::ZERO);
+                            Decimal::from_str(&old_amount_bd.to_string())
+                                .map_err(|e| AppError::Internal(format!("Decimal parse failed: {e}")))?;
                         if force && old_amount != decimal_amount {
                             let diff = decimal_amount - old_amount;
                             let diff_bd = bigdecimal::BigDecimal::from_str(&diff.to_string())
@@ -628,6 +714,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 mod tests {
     use super::*;
     use crate::diesel_pool::DieselPools;
+    use rust_decimal::prelude::FromPrimitive;
 
     #[tokio::test]
     async fn test_repo_initialization() {
@@ -702,5 +789,75 @@ mod tests {
             )
             .await;
         assert!(err.is_err());
+    }
+
+    // --- Decimal safety regression tests (Debt #2) ---
+    // Verify that from_f64(NaN/Infinity) and from_str(invalid) never silently zero out data
+
+    /// Empty input must return empty output before acquiring a DB connection.
+    #[tokio::test]
+    async fn test_get_employment_leave_history_logs_batch_empty_input() {
+        let pools = DieselPools::for_test("postgres://invalid:invalid@localhost:12345/invalid_db");
+        let repo = DieselLeaveAccrualLogRepository::new(pools);
+
+        let result = repo
+            .get_employment_leave_history_logs_batch(Uuid::new_v4(), &[], 2026, None)
+            .await;
+
+        assert!(
+            matches!(result, Ok(ref logs) if logs.is_empty()),
+            "Empty input should return Ok([])"
+        );
+    }
+
+    #[test]
+    fn test_decimal_from_f64_nan_returns_none() {
+        let result = Decimal::from_f64(f64::NAN);
+        assert!(result.is_none(), "from_f64(NaN) must return None, not silently default to zero");
+    }
+
+    #[test]
+    fn test_decimal_from_f64_infinity_returns_none() {
+        let result = Decimal::from_f64(f64::INFINITY);
+        assert!(result.is_none(), "from_f64(Infinity) must return None");
+    }
+
+    #[test]
+    fn test_decimal_from_f64_neg_infinity_returns_none() {
+        let result = Decimal::from_f64(f64::NEG_INFINITY);
+        assert!(result.is_none(), "from_f64(-Infinity) must return None");
+    }
+
+    #[test]
+    fn test_decimal_from_f64_valid_returns_some() {
+        let result = Decimal::from_f64(42.5);
+        assert!(result.is_some(), "from_f64(42.5) should return Some");
+        assert_eq!(result.unwrap(), Decimal::new(425, 1));
+    }
+
+    #[test]
+    fn test_decimal_from_str_invalid_returns_error() {
+        let result = Decimal::from_str("not_a_number");
+        assert!(result.is_err(), "from_str('not_a_number') must return Err, not silently default to zero");
+    }
+
+    #[test]
+    fn test_decimal_from_str_empty_returns_error() {
+        let result = Decimal::from_str("");
+        assert!(result.is_err(), "from_str('') must return Err");
+    }
+
+    #[test]
+    fn test_decimal_error_propagation_pattern() {
+        // Verify the pattern we use: .ok_or_else(|| AppError::Internal(...))?
+        let nan_result = Decimal::from_f64(f64::NAN)
+            .ok_or_else(|| AppError::Internal("Invalid f64 for Decimal conversion".into()));
+        assert!(nan_result.is_err());
+        match nan_result {
+            Err(AppError::Internal(msg)) => {
+                assert!(msg.contains("Invalid f64"), "Error message should describe the problem");
+            }
+            _ => panic!("Expected AppError::Internal"),
+        }
     }
 }

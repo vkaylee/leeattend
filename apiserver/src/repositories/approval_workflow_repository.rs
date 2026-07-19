@@ -84,6 +84,12 @@ pub trait ApprovalWorkflowRepository: Send + Sync {
         instance_id: Uuid,
     ) -> Result<Option<ApprovalWorkflowInstance>, AppError>;
 
+    async fn get_instances_by_ids(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        instance_ids: &[Uuid],
+    ) -> Result<Vec<ApprovalWorkflowInstance>, AppError>;
+
     async fn get_workflow_by_id(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
