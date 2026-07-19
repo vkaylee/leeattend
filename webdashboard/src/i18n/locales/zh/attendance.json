@@ -337,7 +337,17 @@
       "selected_employees": "已选员工 ({{count}})",
       "clear_all_employees": "取消全选",
       "cleared_selection": "已取消选择 {{count}} 人",
-      "undo": "撤销"
+      "undo": "撤销",
+      "bulk_select": "批量选择",
+      "bulk_picker_title": "选择员工",
+      "bulk_picker_subtitle": "按部门或单独选择",
+      "bulk_selected_count": "已选 {{count}} 人",
+      "select_whole_department": "选择整个部门",
+      "deselect_all": "取消全选",
+      "bulk_search_placeholder": "按姓名或工号搜索...",
+      "bulk_no_results": "没有符合搜索条件的员工。",
+      "bulk_loading_departments": "正在加载部门...",
+      "done": "完成"
     },
     "title": "排班系统",
     "subtitle": "管理灵活和固定的班次",

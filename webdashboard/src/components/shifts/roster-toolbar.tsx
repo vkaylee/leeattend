@@ -12,6 +12,7 @@ import {
   Trash2,
   Plus,
   Undo2,
+  Users,
   X,
 } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
@@ -21,6 +22,7 @@ import { format } from "date-fns";
 import { vi, enUS, zhCN, type Locale } from "date-fns/locale";
 
 import { EmployeeSearch } from "@/components/common/employee-search";
+import { BulkEmployeePickerModal } from "@/components/shifts/bulk-employee-picker-modal";
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { Typography } from "@/components/ui/typography";
@@ -241,33 +243,67 @@ function MonthViewControls({
     clearUndoTimer();
   }, [undoSnapshot, hook, clearUndoTimer]);
 
+  const [isBulkOpen, setIsBulkOpen] = useState(false);
+
+  const handleBulkCommit = useCallback(
+    (ids: string[], meta: Employee[]) => {
+      selectedMetaRef.current = meta;
+      hook.setSelectedEmployeeIds(ids);
+      hook.setSelectedEmployees(meta);
+    },
+    [hook],
+  );
+
   return (
     <>
-      <div className="w-full md:max-w-md">
-        <EmployeeSearch
-          clearOnEscape
-          data-testid="monthly-employee-search"
-          hideChips
-          multiple
-          onChange={(val) => {
-            const ids = Array.isArray(val) ? val : (val ? [val] : []);
-            const filteredMeta = selectedMetaRef.current.filter(e => ids.includes(e.id));
-            selectedMetaRef.current = filteredMeta;
-            hook.setSelectedEmployeeIds(ids);
-            hook.setSelectedEmployees(filteredMeta);
-          }}
-          onSelectEmployee={(emp) => {
-            if (!selectedMetaRef.current.some(e => e.id === emp.id)) {
-              selectedMetaRef.current = [...selectedMetaRef.current, emp];
-              hook.setSelectedEmployees(selectedMetaRef.current);
-            }
-          }}
-          departments={hook.departments}
-          placeholder={t("shifts.monthly.search_placeholder")}
-          value={hook.selectedEmployeeIds}
-          workspaceId={hook.wsId}
-        />
+      <div className="flex items-center gap-2 w-full md:max-w-2xl">
+        <div className="flex-1 min-w-0">
+          <EmployeeSearch
+            clearOnEscape
+            data-testid="monthly-employee-search"
+            hideChips
+            multiple
+            onChange={(val) => {
+              const ids = Array.isArray(val) ? val : (val ? [val] : []);
+              const filteredMeta = selectedMetaRef.current.filter(e => ids.includes(e.id));
+              selectedMetaRef.current = filteredMeta;
+              hook.setSelectedEmployeeIds(ids);
+              hook.setSelectedEmployees(filteredMeta);
+            }}
+            onSelectEmployee={(emp) => {
+              if (!selectedMetaRef.current.some(e => e.id === emp.id)) {
+                selectedMetaRef.current = [...selectedMetaRef.current, emp];
+                hook.setSelectedEmployees(selectedMetaRef.current);
+              }
+            }}
+            departments={hook.departments}
+            placeholder={t("shifts.monthly.search_placeholder")}
+            value={hook.selectedEmployeeIds}
+            workspaceId={hook.wsId}
+          />
+        </div>
+        <Button
+          className="flex h-[var(--ui-height-md)] shrink-0 items-center gap-2 rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 text-sm font-bold uppercase tracking-tight text-slate-600 dark:text-slate-300 hover:border-primary-200 dark:hover:border-primary-800 shadow-inner transition-all cursor-pointer"
+          data-testid="monthly-bulk-select"
+          onClick={() => { setIsBulkOpen(true); }}
+          type="button"
+          variant="ghost"
+        >
+          <Users size={16} />
+          <span className="hidden sm:inline">{t("shifts.monthly.bulk_select")}</span>
+        </Button>
       </div>
+      {isBulkOpen ? (
+        <BulkEmployeePickerModal
+          departments={hook.departments}
+          initialIds={hook.selectedEmployeeIds}
+          initialMeta={selectedEmployeesMeta ?? []}
+          isOpen={isBulkOpen}
+          onClose={() => { setIsBulkOpen(false); }}
+          onCommit={handleBulkCommit}
+          wsId={hook.wsId}
+        />
+      ) : null}
       {!!selectedEmployeesMeta && selectedEmployeesMeta.length > 0 && (
         <EmployeeChecklist employees={selectedEmployeesMeta} hook={hook} onClearAll={handleClearAll} />
       )}

@@ -344,7 +344,17 @@
       "selected_employees": "Selected employees ({{count}})",
       "clear_all_employees": "Clear all",
       "cleared_selection": "Cleared {{count}} employees",
-      "undo": "Undo"
+      "undo": "Undo",
+      "bulk_select": "Bulk select",
+      "bulk_picker_title": "Select employees",
+      "bulk_picker_subtitle": "Pick whole departments or individuals",
+      "bulk_selected_count": "{{count}} selected",
+      "select_whole_department": "Select whole department",
+      "deselect_all": "Deselect all",
+      "bulk_search_placeholder": "Search by name or code...",
+      "bulk_no_results": "No employees match your search.",
+      "bulk_loading_departments": "Loading departments...",
+      "done": "Done"
     },
     "title": "Scheduling System",
     "subtitle": "Manage flexible and fixed work shifts",

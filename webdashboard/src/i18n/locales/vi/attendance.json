@@ -344,7 +344,17 @@
       "selected_employees": "Nhân sự đang chọn ({{count}})",
       "clear_all_employees": "Bỏ chọn tất cả",
       "cleared_selection": "Đã bỏ chọn {{count}} người",
-      "undo": "Hoàn tác"
+      "undo": "Hoàn tác",
+      "bulk_select": "Chọn hàng loạt",
+      "bulk_picker_title": "Chọn nhân viên",
+      "bulk_picker_subtitle": "Chọn cả phòng ban hoặc từng người",
+      "bulk_selected_count": "Đã chọn {{count}}",
+      "select_whole_department": "Chọn cả phòng ban",
+      "deselect_all": "Bỏ chọn tất cả",
+      "bulk_search_placeholder": "Tìm theo tên hoặc mã...",
+      "bulk_no_results": "Không có nhân viên khớp với tìm kiếm.",
+      "bulk_loading_departments": "Đang tải phòng ban...",
+      "done": "Xong"
     },
     "title": "Hệ thống Lịch trình",
     "subtitle": "Quản lý ca làm việc linh hoạt và cố định",
