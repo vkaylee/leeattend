@@ -1,6 +1,8 @@
 import { ChevronRight, ChevronDown, Folder as FolderIcon, MoreVertical, Plus, Edit2, Trash2 } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
+import type { components } from "@/types/api-generated";
+
 import Button from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import type { components } from "@/types/api-generated";
 
 type DocumentFolderDto = components["schemas"]["DocumentFolderDto"];
 
@@ -46,8 +47,10 @@ export function FolderTree({
 
     // Build tree
     folders.forEach((f) => {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const node = map.get(f.id)!;
       if (f.parent_folder_id && map.has(f.parent_folder_id)) {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         map.get(f.parent_folder_id)!.children.push(node);
       } else {
         roots.push(node);

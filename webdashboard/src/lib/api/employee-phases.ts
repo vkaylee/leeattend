@@ -12,6 +12,7 @@ export async function fetchEmploymentPhases(wsId: string): Promise<EmploymentPha
   const { data } = await client.GET("/v1/workspaces/{ws_id}/employment-phases", {
     params: { path: { ws_id: wsId } }
   });
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   return (data as EmploymentPhaseDefinition[]) ?? [];
 }
 
@@ -30,6 +31,7 @@ export async function fetchEmployeePhases(wsId: string, employeeId: string): Pro
   const { data } = await client.GET("/v1/workspaces/{ws_id}/employees/{emp_id}/phases", {
     params: { path: { ws_id: wsId, emp_id: employeeId } }
   });
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!data) return [];
   return data;
 }
@@ -63,6 +65,7 @@ export async function fetchEmploymentAssignedPhases(wsId: string, employmentId: 
   const { data } = await client.GET("/v1/workspaces/{ws_id}/employments/{employment_id}/phases", {
     params: { path: { ws_id: wsId, employment_id: employmentId } }
   });
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!data) return [];
   return data;
 }

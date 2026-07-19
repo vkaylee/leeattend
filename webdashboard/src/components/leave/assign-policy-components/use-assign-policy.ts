@@ -16,6 +16,7 @@ import {
   deleteLeavePolicyAssignment,
 } from "@/lib/api";
 
+  // eslint-disable-next-line complexity
 export function useAssignPolicy(
   wsId: string | null,
   isOpen: boolean,

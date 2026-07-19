@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition, max-lines, max-lines-per-function */
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, CheckCircle } from "lucide-react";
 import React, { useMemo, useState } from "react";

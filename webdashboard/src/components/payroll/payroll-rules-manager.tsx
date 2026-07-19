@@ -258,6 +258,7 @@ interface RuleRowProps {
 
 import { type TFunction } from "i18next";
 
+  // eslint-disable-next-line complexity
 function getRuleSubtitle(rule: PayrollRuleDefinition, t: TFunction): string {
   const categoryLabel = rule.category === "statutory_deduction"
     ? t("payroll.statutory_rules.categories.statutory_deduction", "Statutory Deduction")
@@ -281,6 +282,7 @@ function getRuleSubtitle(rule: PayrollRuleDefinition, t: TFunction): string {
       if (config.base) {
         details += ` on ${config.base}`;
       }
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (config.cap_amount !== undefined && config.cap_amount !== null) {
         details += ` • Cap: ${config.cap_amount.toLocaleString()} ₫`;
       }

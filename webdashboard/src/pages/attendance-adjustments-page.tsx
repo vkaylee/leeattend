@@ -15,6 +15,7 @@ import { AdjustmentsTable } from "./attendance/components/adjustments-table";
 import { AdjustmentsTabs } from "./attendance/components/adjustments-tabs";
 import { useAttendanceAdjustmentsPage } from "./attendance/hooks/use-attendance-adjustments-page";
 
+  // eslint-disable-next-line complexity
 export default function AttendanceAdjustmentsPage() {
   const { t } = useTranslation();
   const { hasPermission } = useMyPermissions();

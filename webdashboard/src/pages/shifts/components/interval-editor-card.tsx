@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
+
 import type { IntervalDraft } from "../hooks/use-shift-editor";
 
 interface IntervalEditorCardProps {
@@ -72,9 +73,9 @@ export function IntervalEditorCard({
 interface IntervalDraftEditorProps {
   index: number;
   interval: IntervalDraft;
-  showRemove: boolean;
   onRemove: (key: string) => void;
   onUpdate: (key: string, patch: Partial<IntervalDraft>) => void;
+  showRemove: boolean;
 }
 
 function IntervalDraftEditor({
@@ -322,6 +323,7 @@ function GraceAndOtSection({
 }: {
   interval: IntervalDraft;
   onUpdate: (key: string, patch: Partial<IntervalDraft>) => void;
+  // eslint-disable-next-line max-lines
 }) {
   const { t } = useTranslation();
 

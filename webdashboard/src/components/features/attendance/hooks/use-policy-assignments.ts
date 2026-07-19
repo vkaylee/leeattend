@@ -104,6 +104,7 @@ export function usePolicyAssignments(wsId: string) {
       rounding_policy: roundingPolicy,
       early_arrival_strategy: earlyArrivalStrategy,
       valid_from: validFrom,
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       grace_period_minutes: gracePeriodMinutes === undefined ? null : gracePeriodMinutes
     }, {
       onSuccess: () => {

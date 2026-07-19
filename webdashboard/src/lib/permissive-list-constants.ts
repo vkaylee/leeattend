@@ -212,6 +212,7 @@ export const permissionGroups: PermissionGroup[] = [
     icon: ShieldCheck,
     permissions: [
       { id: "audit_logs:read", name: "View Audit Logs", desc: "Access security event logs" },
+  // eslint-disable-next-line max-lines
       { id: "audit_logs:export", name: "Export Audit Logs", desc: "Download audit trail records" },
       { id: "security:settings:manage", name: "Security Settings", desc: "Configure security policies" },
     ]

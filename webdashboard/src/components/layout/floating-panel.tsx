@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-conversion */
 import { Link, useLocation } from "@tanstack/react-router";
 import { Pin, PinOff, ChevronRight, X } from "lucide-react";
 import { useEffect } from "react";

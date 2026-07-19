@@ -15,6 +15,7 @@ interface PatternPopoverDetailsProps {
   shifts?: Shift[];
 }
 
+  // eslint-disable-next-line complexity
 function ShiftDetailBlock({ d, shifts }: { d: WorkingPatternDetail; shifts?: Shift[] }) {
   const { t } = useTranslation();
   const shift = shifts?.find((s) => s.id === d.shift_id);

@@ -45,6 +45,7 @@ import {
 beforeAll(() => {
   // Augment the URL API for the happy-dom test env (no-op stubs).
   URL.createObjectURL = () => "blob:mock";
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   URL.revokeObjectURL = () => {};
   if (!document.body) {
     document.body = document.createElement("body");

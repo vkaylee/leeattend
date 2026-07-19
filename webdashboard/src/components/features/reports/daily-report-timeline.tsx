@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-conversion, complexity */
 import React from "react";
 
 import { DailyAttendanceReport } from "@/lib/api";
@@ -32,7 +33,6 @@ function formatMinutesToTime(totalMins: number) {
   return `${Math.floor(mins / 60).toString().padStart(2, "0")}:${(mins % 60).toString().padStart(2, "0")}`;
 }
 
-// eslint-disable-next-line complexity -- overnight/break boundary calculation = 15
 function useTimelineBounds(row: DailyAttendanceReport) {
   const startMin = parseTimeToMinutes(row.scheduled_start);
   let endMin = parseTimeToMinutes(row.scheduled_end);

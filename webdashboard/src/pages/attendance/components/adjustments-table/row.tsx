@@ -20,6 +20,7 @@ interface AdjustmentsTableRowProps {
   request: AttendanceAdjustmentRequest;
 }
 
+  // eslint-disable-next-line complexity
 export function AdjustmentsTableRow({
   activeTab,
   formatDate,

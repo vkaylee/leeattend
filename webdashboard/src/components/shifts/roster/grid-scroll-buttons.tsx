@@ -5,10 +5,10 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 
 interface GridScrollButtonsProps {
-  showLeft: boolean;
-  showRight: boolean;
   onScrollLeft: () => void;
   onScrollRight: () => void;
+  showLeft: boolean;
+  showRight: boolean;
 }
 
 export const GridScrollButtons = memo(function GridScrollButtons({

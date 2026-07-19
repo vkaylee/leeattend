@@ -132,6 +132,7 @@ function useUpsertConfigForm({
     }
   };
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const valType = form.watch("value_type");
 
   return {

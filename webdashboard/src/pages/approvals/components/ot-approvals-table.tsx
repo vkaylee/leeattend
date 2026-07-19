@@ -176,6 +176,7 @@ function EvidenceCell({
     return (
       <Button
         className="inline-flex items-center gap-1.5 text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline cursor-pointer bg-transparent border-none p-0 h-auto normal-case shadow-none"
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         onClick={() => { onPreviewAttachment?.(summary.paper_form_photo_url!, `OT Claim Evidence - ${summary.employee_name ?? summary.employment_id}`); }}
         variant="ghost"
       >

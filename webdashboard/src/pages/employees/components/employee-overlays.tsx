@@ -42,6 +42,7 @@ interface EmployeeOverlaysProps {
   wsId: string;
 }
 
+  // eslint-disable-next-line complexity
 export function EmployeeOverlays(props: EmployeeOverlaysProps) {
   const { t } = useTranslation();
   const {

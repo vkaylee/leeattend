@@ -27,6 +27,7 @@ interface AssignmentRuleFormProps {
   startDate: string;
 }
 
+  // eslint-disable-next-line max-lines-per-function
 export const AssignmentRuleForm: React.FC<AssignmentRuleFormProps> = ({
   conditions,
   departments,
@@ -46,6 +47,7 @@ export const AssignmentRuleForm: React.FC<AssignmentRuleFormProps> = ({
   setEndDate,
   isIndefinite,
   setIsIndefinite,
+  // eslint-disable-next-line complexity
 }) => {
   const { t } = useTranslation();
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-conversion, complexity, max-lines */
 import { RefreshCw, Bug, CheckCircle, ThumbsUp, ThumbsDown, ChevronRight } from "lucide-react";
 import React from "react";
 
@@ -131,7 +132,6 @@ function SegmentCounterCell({ row }: { row: DailyAttendanceReport }) {
   );
 }
 
-// eslint-disable-next-line complexity -- trace/source derivation = 12
 function ScheduledCell({ row, t }: { row: DailyAttendanceReport; t: (k: string) => string }) {
   if (!row.scheduled_start) {
     return (

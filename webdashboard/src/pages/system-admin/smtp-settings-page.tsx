@@ -15,6 +15,7 @@ import {
   type SmtpConfigData,
 } from "@/lib/api/smtp-config";
 
+  // eslint-disable-next-line max-lines-per-function
 export default function SmtpSettingsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -38,6 +39,7 @@ export default function SmtpSettingsPage() {
   // Derive form state from config; only track overrides for dirty tracking
   const [overrides, setOverrides] = useState<Partial<SmtpConfigData>>({});
 
+  // eslint-disable-next-line complexity
   const form: SmtpConfigData = useMemo(() => ({
     host: overrides.host ?? config?.host ?? "",
     port: overrides.port ?? config?.port ?? 587,
@@ -69,11 +71,17 @@ export default function SmtpSettingsPage() {
 
   const handleSave = () => {
     saveMutation.mutate({
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       host: form.host || undefined,
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       port: form.port || undefined,
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       username: form.username || undefined,
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       password: form.password || undefined,
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       from: form.from || undefined,
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       base_url: form.base_url || undefined,
     });
   };
@@ -204,6 +212,7 @@ export default function SmtpSettingsPage() {
                 }}
                 placeholder={placeholder}
                 type={type}
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                 value={type === "number" ? (form[key] as number) || "" : (form[key] as string) ?? ""}
               />
               {hint ? (

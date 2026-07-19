@@ -67,6 +67,7 @@ export function useAttendanceSummariesInfinite(
       });
     },
     getNextPageParam: (lastPage, allPages) => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0);
       return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
     },

@@ -173,6 +173,114 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         Ok(map)
     }
 
+    async fn get_employee_balances_by_years(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_ids: &[Uuid],
+        years: &[i32],
+    ) -> Result<
+        std::collections::HashMap<i32, std::collections::HashMap<Uuid, Vec<EmployeeLeaveBalance>>>,
+        AppError,
+    > {
+        let workspace_id = auth_token.workspace_id();
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        // Initialize empty maps for all requested years upfront.
+        let mut outer: std::collections::HashMap<
+            i32,
+            std::collections::HashMap<Uuid, Vec<EmployeeLeaveBalance>>,
+        > = std::collections::HashMap::new();
+        for &year in years {
+            outer.insert(year, std::collections::HashMap::new());
+        }
+
+        if employee_ids.is_empty() || years.is_empty() {
+            return Ok(outer);
+        }
+
+        let sql = r#"
+            WITH leave_usage AS (
+                SELECT
+                    emp_usage.employee_id,
+                    lr.leave_type_id,
+                    EXTRACT(YEAR FROM lr.start_date)::INT as usage_year,
+                    SUM(
+                        (SELECT COUNT(*)
+                         FROM generate_series(lr.start_date, lr.end_date, '1 day'::interval) d
+                         WHERE EXTRACT(DOW FROM d) NOT IN (0, 6))
+                    )::INT as used_days
+                FROM leave_requests lr
+                JOIN employments emp_usage ON lr.employment_id = emp_usage.id
+                WHERE emp_usage.employee_id = ANY($1)
+                  AND emp_usage.workspace_id = $3
+                  AND lr.status IN ('approved', 'pre_approved')
+                  AND EXTRACT(YEAR FROM lr.start_date)::INT = ANY($2)
+                GROUP BY emp_usage.employee_id, lr.leave_type_id, EXTRACT(YEAR FROM lr.start_date)::INT
+            )
+            SELECT
+                emp.employee_id as "employee_id",
+                lb.leave_type_id as "leave_type_id",
+                lt.code as "leave_type_code",
+                lt.name as "leave_type_name",
+                lt.is_paid as "is_paid",
+                lb.entitlement as "entitlement",
+                lb.accrued_amount::FLOAT8 as "accrued_amount",
+                lb.carried_over as "carried_over",
+                lb.year as "balance_year",
+                COALESCE(lu.used_days, 0)::INT as "used",
+                (
+                    lb.entitlement + lb.accrued_amount + lb.carried_over
+                    - COALESCE(lu.used_days, 0)
+                )::FLOAT8 as "remaining"
+            FROM leave_balances lb
+            JOIN leave_types lt ON lb.leave_type_id = lt.id
+            JOIN employments emp ON lb.employment_id = emp.id
+            LEFT JOIN leave_usage lu ON lb.leave_type_id = lu.leave_type_id
+                AND emp.employee_id = lu.employee_id
+                AND lb.year = lu.usage_year
+            WHERE emp.employee_id = ANY($1)
+              AND lb.year = ANY($2)
+              AND emp.workspace_id = $3
+              AND emp.deleted_at IS NULL
+        "#;
+
+        let raw_balances = diesel::sql_query(sql)
+            .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(employee_ids)
+            .bind::<diesel::sql_types::Array<diesel::sql_types::Int4>, _>(years)
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+            .load::<crate::models::diesel::leave::EmployeeLeaveBalanceByYearsRaw>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        for raw in raw_balances {
+            let year = raw.balance_year;
+            let employee_id = raw.employee_id;
+            let balance: EmployeeLeaveBalance = raw.into();
+            outer
+                .entry(year)
+                .or_default()
+                .entry(employee_id)
+                .or_default()
+                .push(balance);
+        }
+
+        // Ensure empty vec for every employee_id in every year (even those with no balances).
+        for &year in years {
+            let year_map = outer.entry(year).or_default();
+            for &id in employee_ids {
+                year_map.entry(id).or_default();
+            }
+        }
+
+        Ok(outer)
+    }
+
     async fn get_workspace_balances(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

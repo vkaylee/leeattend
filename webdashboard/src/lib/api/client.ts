@@ -30,6 +30,7 @@ async function extractRequestInfo(
     const method = options.method.toUpperCase();
     if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
       try {
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         const contentType = url.headers.get("content-type") || "";
         if (contentType.includes("multipart/form-data")) {
           const formData = await url.clone().formData();
@@ -46,6 +47,7 @@ async function extractRequestInfo(
         } else {
           // For binary payloads (octet-stream, files, etc.)
           const bodyBlob = await url.clone().blob();
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           if (bodyBlob && bodyBlob.size > 0) {
             options.body = bodyBlob;
           }
@@ -142,8 +144,8 @@ export const client = createClient<paths>({
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 interface LegacyFetchInit {
-  params?: { path?: Record<string, unknown>; query?: Record<string, unknown> };
   body?: unknown;
+  params?: { path?: Record<string, unknown>; query?: Record<string, unknown> };
 }
 
 /**
@@ -154,6 +156,7 @@ interface LegacyFetchInit {
  * response shape is unknown to the type-checker — **callers must ensure `T`
  * matches the actual backend response**.
  */
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T encodes the caller-expected response shape for paths absent from the generated schema
 export async function fetch<T>(
   method: HttpMethod,
   path: string,

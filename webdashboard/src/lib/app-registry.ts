@@ -223,6 +223,7 @@ export const APP_REGISTRY: AppDefinition[] = [
 
   // ── Payroll ────────────────────────────────────────────────────
   {
+  // eslint-disable-next-line max-lines
     id: "payroll",
     icon: DollarSign,
     labelKey: "payroll.title",

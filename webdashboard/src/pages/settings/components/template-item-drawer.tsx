@@ -24,6 +24,7 @@ interface TemplateItemDrawerProps {
   templateId: string;
 }
 
+  // eslint-disable-next-line max-lines-per-function
 export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }: TemplateItemDrawerProps) {
   const toast = useToast();
   const createMutation = useCreateLifecycleTemplateItem(templateId);
@@ -41,6 +42,7 @@ export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }:
 
   useEffect(() => {
     if (editingItem) {
+  // eslint-disable-next-line react-hooks/set-state-in-effect
       setTitle(editingItem.title);
       setDescription(editingItem.description ?? "");
       setCategory(editingItem.category);

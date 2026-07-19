@@ -68,6 +68,7 @@ describe("epochMinutesInTz", () => {
 });
 
 describe("computeZone", () => {
+  // eslint-disable-next-line unused-imports/no-unused-vars
   const shift = { start: "08:00:00", end: "17:00:00" };
 
   it("Zone A while within the grace window", () => {

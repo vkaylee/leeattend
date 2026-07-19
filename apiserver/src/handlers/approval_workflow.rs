@@ -102,34 +102,7 @@ pub async fn create_workflow(
     ctx.require_permission(Permission::ApprovalWorkflowsManage)?;
 
     let workflow_id = crate::utils::id::new_id();
-    let workflow = ApprovalWorkflow {
-        id: workflow_id,
-        workspace_id: ctx.workspace_id,
-        entity_type: req.entity_type.clone(),
-        name: req.name.clone(),
-        description: req.description.clone(),
-        total_steps: i32::try_from(req.steps.len()).unwrap_or(0),
-        is_active: req.is_active,
-        created_by: Some(ctx.user_id),
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
-    };
-
-    let steps: Vec<crate::models::approval_workflow::ApprovalWorkflowStep> = req
-        .steps
-        .into_iter()
-        .map(|s| crate::models::approval_workflow::ApprovalWorkflowStep {
-            id: crate::utils::id::new_id(),
-            workflow_id,
-            step_order: s.step_order,
-            step_name: s.step_name,
-            approver_type: s.approver_type,
-            approver_config: s.approver_config,
-            action_required: s.action_required,
-            can_skip: s.can_skip,
-            created_at: chrono::Utc::now(),
-        })
-        .collect();
+    let (workflow, steps) = build_workflow_and_steps(ctx.workspace_id, ctx.user_id, workflow_id, req);
 
     let (created_wf, created_steps) = state
         .core()
@@ -137,17 +110,7 @@ pub async fn create_workflow(
         .create_workflow(&ctx.auth_token, workflow, steps)
         .await?;
 
-    let mut val = serde_json::to_value(&created_wf)
-        .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
-    if let serde_json::Value::Object(ref mut map) = val {
-        map.insert(
-            "steps".to_string(),
-            serde_json::to_value(&created_steps)
-                .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?,
-        );
-    }
-
-    Ok(Json(val))
+    Ok(Json(serialize_workflow_with_steps(&created_wf, &created_steps)?))
 }
 
 /// GET /workspaces/{ws_id}/approval-workflows/{id}
@@ -177,17 +140,7 @@ pub async fn get_workflow(
         .await?
         .ok_or_else(|| AppError::not_found(I18nKey::WorkflowNotFound))?;
 
-    let mut val = serde_json::to_value(&workflow)
-        .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
-    if let serde_json::Value::Object(ref mut map) = val {
-        map.insert(
-            "steps".to_string(),
-            serde_json::to_value(&steps)
-                .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?,
-        );
-    }
-
-    Ok(Json(val))
+    Ok(Json(serialize_workflow_with_steps(&workflow, &steps)?))
 }
 
 /// PUT /workspaces/{ws_id}/approval-workflows/{id}
@@ -212,34 +165,7 @@ pub async fn update_workflow(
     let (_, id) = params;
     ctx.require_permission(Permission::ApprovalWorkflowsManage)?;
 
-    let workflow = ApprovalWorkflow {
-        id,
-        workspace_id: ctx.workspace_id,
-        entity_type: req.entity_type.clone(),
-        name: req.name.clone(),
-        description: req.description.clone(),
-        total_steps: i32::try_from(req.steps.len()).unwrap_or(0),
-        is_active: req.is_active,
-        created_by: Some(ctx.user_id),
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
-    };
-
-    let steps: Vec<crate::models::approval_workflow::ApprovalWorkflowStep> = req
-        .steps
-        .into_iter()
-        .map(|s| crate::models::approval_workflow::ApprovalWorkflowStep {
-            id: crate::utils::id::new_id(),
-            workflow_id: id,
-            step_order: s.step_order,
-            step_name: s.step_name,
-            approver_type: s.approver_type,
-            approver_config: s.approver_config,
-            action_required: s.action_required,
-            can_skip: s.can_skip,
-            created_at: chrono::Utc::now(),
-        })
-        .collect();
+    let (workflow, steps) = build_workflow_and_steps(ctx.workspace_id, ctx.user_id, id, req);
 
     let (updated_wf, created_steps) = state
         .core()
@@ -247,17 +173,7 @@ pub async fn update_workflow(
         .update_workflow_definition(&ctx.auth_token, workflow, steps)
         .await?;
 
-    let mut val = serde_json::to_value(&updated_wf)
-        .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
-    if let serde_json::Value::Object(ref mut map) = val {
-        map.insert(
-            "steps".to_string(),
-            serde_json::to_value(&created_steps)
-                .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?,
-        );
-    }
-
-    Ok(Json(val))
+    Ok(Json(serialize_workflow_with_steps(&updated_wf, &created_steps)?))
 }
 
 /// DELETE /workspaces/{ws_id}/approval-workflows/{id}
@@ -424,4 +340,68 @@ pub async fn get_pending_tasks(
         page,
         limit,
     }))
+}
+
+// ── Shared helpers ───────────────────────────────────────────────────────────
+
+/// Build an `ApprovalWorkflow` struct and its `ApprovalWorkflowStep` vector
+/// from a `CreateWorkflowRequest`. Shared between `create_workflow` and
+/// `update_workflow` — the only difference is the caller-provided `workflow_id`.
+fn build_workflow_and_steps(
+    workspace_id: Uuid,
+    user_id: Uuid,
+    workflow_id: Uuid,
+    req: CreateWorkflowRequest,
+) -> (
+    crate::models::approval_workflow::ApprovalWorkflow,
+    Vec<crate::models::approval_workflow::ApprovalWorkflowStep>,
+) {
+    let workflow = crate::models::approval_workflow::ApprovalWorkflow {
+        id: workflow_id,
+        workspace_id,
+        entity_type: req.entity_type,
+        name: req.name,
+        description: req.description,
+        total_steps: i32::try_from(req.steps.len()).unwrap_or(0),
+        is_active: req.is_active,
+        created_by: Some(user_id),
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+
+    let steps: Vec<crate::models::approval_workflow::ApprovalWorkflowStep> = req
+        .steps
+        .into_iter()
+        .map(|s| crate::models::approval_workflow::ApprovalWorkflowStep {
+            id: crate::utils::id::new_id(),
+            workflow_id,
+            step_order: s.step_order,
+            step_name: s.step_name,
+            approver_type: s.approver_type,
+            approver_config: s.approver_config,
+            action_required: s.action_required,
+            can_skip: s.can_skip,
+            created_at: chrono::Utc::now(),
+        })
+        .collect();
+
+    (workflow, steps)
+}
+
+/// Serialize a workflow and its steps into a single JSON object with the
+/// steps embedded under the `"steps"` key.
+fn serialize_workflow_with_steps(
+    workflow: &impl serde::Serialize,
+    steps: &impl serde::Serialize,
+) -> Result<serde_json::Value, crate::errors::AppError> {
+    let mut val = serde_json::to_value(workflow)
+        .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
+    if let serde_json::Value::Object(ref mut map) = val {
+        map.insert(
+            "steps".to_string(),
+            serde_json::to_value(steps)
+                .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?,
+        );
+    }
+    Ok(val)
 }

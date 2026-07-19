@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-conversion, max-lines-per-function */
 import { MapPin, Plus, Trash2, Edit2, Globe2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";

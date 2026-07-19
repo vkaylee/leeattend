@@ -135,9 +135,9 @@ export function useShiftEditor(shiftId?: string) {
   useEffect(() => {
     if (isEditMode && editingShift) {
       setShiftName(editingShift.name);
-      setShiftSymbol((editingShift as Record<string, unknown>).report_symbol as string ?? "");
-      setLocationIdState((editingShift as Record<string, unknown>).location_id as string ?? null);
-      setEmployerIdState((editingShift as Record<string, unknown>).employer_id as string ?? null);
+      setShiftSymbol((editingShift as Record<string, unknown>).report_symbol as string | undefined ?? "");
+      setLocationIdState((editingShift as Record<string, unknown>).location_id as string | null | undefined ?? null);
+      setEmployerIdState((editingShift as Record<string, unknown>).employer_id as string | null | undefined ?? null);
       setIsCorrection(false);
       setCorrectionEffectiveDate(format(new Date(), 'yyyy-MM-dd'));
 
@@ -146,20 +146,20 @@ export function useShiftEditor(shiftId?: string) {
       if (intervals && intervals.length > 0) {
         setIntervalDrafts(intervals.map((iv: Record<string, unknown>) => ({
           key: nextIntervalKey(),
-          intervalName: (iv.interval_name as string) ?? "",
-          startTime: ((iv.start_time as string) ?? "08:00").substring(0, 5),
-          endTime: ((iv.end_time as string) ?? "17:00").substring(0, 5),
-          breakDuration: (iv.break_duration_minutes as number) ?? 60,
-          breakStart: ((iv.break_start as string) ?? "").substring(0, 5),
-          breakEnd: ((iv.break_end as string) ?? "").substring(0, 5),
-          isFixedBreak: !!(iv.break_start as string),
-          isAutoDeduct: (iv.is_break_auto_deduct as boolean) ?? true,
-          isBreakOvertime: (iv.break_is_overtime as boolean) ?? false,
-          gracePeriodMinutes: (iv.early_punch_in_grace_period_minutes as number) ?? 15,
-          allowEarlyOt: (iv.allow_early_ot as boolean) ?? false,
-          maxEarlyOtMinutes: (iv.max_early_ot_minutes as number) ?? null,
-          otAggregationMode: (iv.ot_aggregation_mode as "aggregate" | "per_segment") ?? "aggregate",
-          isNightShift: (iv.is_night_shift as boolean) ?? false,
+          intervalName: (iv.interval_name as string | undefined) ?? "",
+          startTime: ((iv.start_time as string | undefined) ?? "08:00").substring(0, 5),
+          endTime: ((iv.end_time as string | undefined) ?? "17:00").substring(0, 5),
+          breakDuration: (iv.break_duration_minutes as number | undefined) ?? 60,
+          breakStart: ((iv.break_start as string | undefined) ?? "").substring(0, 5),
+          breakEnd: ((iv.break_end as string | undefined) ?? "").substring(0, 5),
+          isFixedBreak: !!(iv.break_start as string | undefined),
+          isAutoDeduct: (iv.is_break_auto_deduct as boolean | undefined) ?? true,
+          isBreakOvertime: (iv.break_is_overtime as boolean | undefined) ?? false,
+          gracePeriodMinutes: (iv.early_punch_in_grace_period_minutes as number | undefined) ?? 15,
+          allowEarlyOt: (iv.allow_early_ot as boolean | undefined) ?? false,
+          maxEarlyOtMinutes: (iv.max_early_ot_minutes as number | null | undefined) ?? null,
+          otAggregationMode: (iv.ot_aggregation_mode as "aggregate" | "per_segment" | undefined) ?? "aggregate",
+          isNightShift: (iv.is_night_shift as boolean | undefined) ?? false,
         })));
       }
       setIsDirty(false);

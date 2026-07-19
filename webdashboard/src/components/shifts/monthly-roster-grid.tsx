@@ -1,13 +1,12 @@
-import { vi, enUS, zhCN, type Locale } from "date-fns/locale";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { vi, enUS, zhCN, type Locale } from "date-fns/locale";
 
 import { useShifts } from "@/pages/shifts/hooks/use-shifts";
 
 import { useMonthlyRoster } from "./hooks/use-monthly-roster";
-import { ShiftPickerModal } from "./shift-picker-modal";
 import { GridScrollButtons } from "./roster/grid-scroll-buttons";
-import { RosterGridTable } from "./roster/roster-grid-table";
 import {
   NoEmployeesState,
   NoResultsState,
@@ -15,6 +14,8 @@ import {
   RosterErrorState,
   RosterSkeleton,
 } from "./roster/roster-empty-states";
+import { RosterGridTable } from "./roster/roster-grid-table";
+import { ShiftPickerModal } from "./shift-picker-modal";
 
 const dateLocales: Partial<Record<string, Locale>> = {
   vi,
@@ -86,9 +87,9 @@ export function MonthlyRosterGrid({
     [],
   );
 
-  const handleScrollLeft = useCallback(() => scrollGrid("left"), [scrollGrid]);
+  const handleScrollLeft = useCallback(() => { scrollGrid("left"); }, [scrollGrid]);
   const handleScrollRight = useCallback(
-    () => scrollGrid("right"),
+    () => { scrollGrid("right"); },
     [scrollGrid],
   );
 
@@ -185,10 +186,10 @@ export function MonthlyRosterGrid({
 
       <div className="bg-white dark:bg-slate-900 rounded-[28px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden relative group/grid">
         <GridScrollButtons
-          showLeft={showLeftArrow}
-          showRight={showRightArrow}
           onScrollLeft={handleScrollLeft}
           onScrollRight={handleScrollRight}
+          showLeft={showLeftArrow}
+          showRight={showRightArrow}
         />
 
         {renderContent()}

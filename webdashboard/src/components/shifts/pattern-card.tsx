@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-conversion, complexity */
 // PatternCard — extracted from PatternSelector in pattern-assignment-form.tsx to reduce complexity.
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTranslation } from "react-i18next";

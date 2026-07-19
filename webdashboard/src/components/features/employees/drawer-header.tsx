@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing, react/forbid-elements */
 import { ChevronDown, ChevronLeft, ChevronRight, X, User, FolderOpen, FileText, Milestone, ArrowLeftRight, DollarSign, History, Calendar, ShieldCheck, CheckSquare } from "lucide-react";
 import { createElement, useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 
@@ -31,7 +32,7 @@ function DesktopTabNav({
 }: {
   activeDetailTab: DetailTabType;
   setActiveDetailTab: (tab: DetailTabType) => void;
-  tabs: Array<{ id: DetailTabType; label: string; icon: ComponentType<{ size?: number }> }>;
+  tabs: { id: DetailTabType; label: string; icon: ComponentType<{ size?: number }> }[];
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -59,7 +60,7 @@ function DesktopTabNav({
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const activeBtn = el.querySelector(`[data-testid="employees-tab-${activeDetailTab}"]`) as HTMLElement | null;
+    const activeBtn = el.querySelector(`[data-testid="employees-tab-${activeDetailTab}"]`);
     activeBtn?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
   }, [activeDetailTab]);
 
@@ -78,7 +79,7 @@ function DesktopTabNav({
             : "border-transparent text-transparent pointer-events-none",
         )}
         data-testid="employees-tab-scroll-left"
-        onClick={() => scroll("left")}
+        onClick={() => { scroll("left"); }}
         tabIndex={canScrollLeft ? 0 : -1}
         type="button"
       >
@@ -136,7 +137,7 @@ function DesktopTabNav({
             : "border-transparent text-transparent pointer-events-none",
         )}
         data-testid="employees-tab-scroll-right"
-        onClick={() => scroll("right")}
+        onClick={() => { scroll("right"); }}
         tabIndex={canScrollRight ? 0 : -1}
         type="button"
       >

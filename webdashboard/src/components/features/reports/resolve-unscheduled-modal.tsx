@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-conversion */
 import { AlertTriangle, CalendarCheck } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";

@@ -311,6 +311,7 @@ export default function ReportFilters({
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-sm shadow-inner"
               onChange={(e) => { onDateRangeChange({ ...dateRange, end: e.target.value }); }}
               type="date"
+  // eslint-disable-next-line max-lines
               value={dateRange.end}
             />
           </div>

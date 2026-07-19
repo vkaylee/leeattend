@@ -72,6 +72,7 @@ describe("useDailyDrawerQueries — Adjustment Map", () => {
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
+  // eslint-disable-next-line import-x/no-named-as-default-member
         React.createElement(QueryClientProvider, { client: queryClient }, children)
     );
 

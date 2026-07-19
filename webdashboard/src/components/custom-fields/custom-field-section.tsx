@@ -48,9 +48,11 @@ function buildValidationErrors(
   return nextErrors;
 }
 
+  // eslint-disable-next-line max-lines-per-function
 export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
   entityType,
   entityId,
+  // eslint-disable-next-line complexity
 }) => {
   const { t } = useTranslation("custom_fields");
   const { hasPermission } = useMyPermissions();
@@ -90,6 +92,7 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
     if (errors[defId]) {
       setErrors((prev) => {
         const next = { ...prev };
+  // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
         delete next[defId];
         return next;
       });

@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+/* eslint-disable @typescript-eslint/no-non-null-assertion -- wsId is guarded by enabled:!!wsId; React Query won't execute without it */
+/* eslint-disable @typescript-eslint/no-floating-promises -- invalidateQueries fire-and-forget is the standard React Query pattern */
 import {
   fetchFolders,
   createFolder,

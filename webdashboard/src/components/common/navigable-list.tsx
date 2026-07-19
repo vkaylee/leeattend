@@ -1,7 +1,7 @@
 import type { TFunction } from "i18next";
 
 import { ChevronRight, Search, Loader2 } from "lucide-react";
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -182,7 +182,7 @@ function renderTableRow<T>({
   );
 }
 
-const NavigableListTableContent = memo(function NavigableListTableContent<T>({
+function NavigableListTableContent<T>({
   isLoading,
   items,
   skeletonRows,
@@ -234,9 +234,9 @@ const NavigableListTableContent = memo(function NavigableListTableContent<T>({
       ) : null}
     </tbody>
   );
-});
+}
 
-const NavigableListTable = memo(function NavigableListTable<T>({
+function NavigableListTable<T>({
   colSpan,
   emptyMessage,
   fetchNextPage,
@@ -335,7 +335,7 @@ const NavigableListTable = memo(function NavigableListTable<T>({
       </div>
     </div>
   );
-});
+}
 
 function useNavigableListSticky({
   isFullPage,

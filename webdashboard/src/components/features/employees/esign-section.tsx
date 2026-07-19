@@ -1,15 +1,17 @@
-import React from "react";
 import type { UseFormRegister, FieldErrors } from "react-hook-form";
+
+import React from "react";
 
 import FormField from "@/components/ui/form-field";
 import { Typography } from "@/components/ui/typography";
+
 import type { ContractFormValues } from "./contract-form-schema";
 
 interface EsignSectionProps {
-  watchEnableEsign: boolean | undefined;
-  watchAuthType: string | undefined;
   errors: FieldErrors<ContractFormValues>;
   register: UseFormRegister<ContractFormValues>;
+  watchAuthType: string | undefined;
+  watchEnableEsign: boolean | undefined;
 }
 
 export function EsignSection({

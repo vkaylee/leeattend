@@ -17,9 +17,9 @@ E002,2026-01-28,90,Urgent order completion`;
 }
 
 interface CsvError {
-  line_number: number;
   employment_id: string;
   error_message: string;
+  line_number: number;
 }
 
 export function downloadCsvErrorReport(errors: CsvError[]): void {

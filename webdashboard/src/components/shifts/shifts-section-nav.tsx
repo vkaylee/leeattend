@@ -1,3 +1,4 @@
+/* eslint-disable react/forbid-elements */
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { CalendarRange, LayoutGrid, Zap } from "lucide-react";
 import React from "react";

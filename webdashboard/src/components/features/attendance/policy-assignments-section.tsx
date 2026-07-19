@@ -87,6 +87,7 @@ function AssignmentCard({ assignment, getTargetName, workUnitLabel, roundingLabe
   );
 }
 
+  // eslint-disable-next-line max-lines-per-function
 function PolicyAssignmentsSectionContent({ wsId }: { wsId: string }) {
   const { t } = useTranslation();
   

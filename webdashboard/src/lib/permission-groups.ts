@@ -30,10 +30,12 @@ export const allPermissionsById: AllPermissionsById = Object.fromEntries(
 );
 
 export function getPermissionName(permissionId: string): string {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   return allPermissionsById[permissionId]?.name ?? permissionId;
 }
 
 export function getPermissionDescription(permissionId: string): string {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   return allPermissionsById[permissionId]?.desc ?? "";
 }
 

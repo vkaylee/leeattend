@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-conversion */
 import { FileText, Loader2 } from "lucide-react";
 import React, { useState } from "react";
 

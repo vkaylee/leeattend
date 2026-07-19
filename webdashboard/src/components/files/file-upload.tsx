@@ -2,10 +2,11 @@ import { UploadCloud, X, AlertCircle } from "lucide-react";
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import type { components } from "@/types/api-generated";
+
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useFileUpload } from "@/hooks/use-file-upload";
-import type { components } from "@/types/api-generated";
 
 type FileCategory = components["schemas"]["FileCategory"];
 type FileOwnerType = components["schemas"]["FileOwnerType"];

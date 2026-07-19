@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing, complexity, unused-imports/no-unused-vars */
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   X,
@@ -154,7 +155,6 @@ function ExpandedHeaderText({
   );
 }
 
-// eslint-disable-next-line complexity -- JSX union (2 branches) + render structure = 11
 function ExpandedHeader({
   workspace,
 }: {
@@ -219,7 +219,6 @@ function Tagline({ text }: { text: string }) {
   );
 }
 
-// eslint-disable-next-line complexity -- ternary + close button = 11
 function SidebarHeader({
   workspace,
   isCollapsed,

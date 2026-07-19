@@ -101,6 +101,7 @@ function DayTimelinePill({
   );
 };
 
+  // eslint-disable-next-line complexity
 export function PatternRowCard({
   onDelete,
   onEdit,

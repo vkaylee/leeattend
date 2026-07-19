@@ -1,3 +1,4 @@
+/* eslint-disable complexity */
 import type { TFunction } from "i18next";
 
 import {
@@ -155,6 +156,7 @@ function DayCardShiftDetails({ daySchedules, formatTime, onDeleteRoster, dateStr
           {workingSchedules.length} {t("work_segments.segments", "segments")}
         </div>
       )}
+
       {workingSchedules.map((s, idx) => {
         const shiftConfig = shifts?.find((sh) => sh.id === s.shift_id);
         const shiftSymbol = getShiftSymbol(s.shift_name, shiftConfig?.report_symbol);

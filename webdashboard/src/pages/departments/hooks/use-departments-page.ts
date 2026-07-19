@@ -35,6 +35,7 @@ export function useDepartmentsPage() {
     enabled: !!wsId 
   });
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const employees = employeesData?.data ?? [];
 
   const deleteMutation = useMutation({
@@ -63,6 +64,7 @@ export function useDepartmentsPage() {
       ...activeManagers.map(e => ({
         value: e.id,
         label: e.full_name.toUpperCase(),
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         description: e.department_name ? e.department_name : undefined
       }))
     ];

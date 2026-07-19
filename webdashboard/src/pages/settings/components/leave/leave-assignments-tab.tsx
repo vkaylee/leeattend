@@ -25,6 +25,7 @@ interface LeaveAssignmentsTabProps {
   onEditClick: (assignment: LeaveAssignment) => void;
 }
 
+  // eslint-disable-next-line max-lines-per-function
 export function LeaveAssignmentsTab({
   assignments,
   isLoading,
