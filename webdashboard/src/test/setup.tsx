@@ -201,19 +201,30 @@ function bridgeWrite(key: string | null, value: string | null) {
   }
 }
 
-// Patch Storage.prototype so every setItem/removeItem/clear on localStorage is
-// bridged. Performed once at setup-file load (runs once per test file).
-// The original methods are .bind()'d to the Storage prototype so the
-// unbound-method lint rule is satisfied (it flags bare method references
-// captured in closures).
-const boundSetItem = Storage.prototype.setItem.bind(localStorage);
-const boundRemoveItem = Storage.prototype.removeItem.bind(localStorage);
-Storage.prototype.setItem = (key: string, value: string): void => {
-  boundSetItem(key, value);
+// Patch Storage.prototype.setItem/removeItem so localStorage writes are bridged
+// into the in-memory token store. Performed once at setup-file load (runs once
+// per test file). Happy DOM defines these on the prototype, so instance-level
+// patching does not take effect — the prototype is the only working seam here.
+//
+// Critical: call the original with the ACTUAL `this` (via .call), NOT a copy
+// bound to localStorage. The prototype is shared by BOTH localStorage and
+// sessionStorage; an earlier version bound the original to localStorage, which
+// silently redirected every sessionStorage write into localStorage while
+// getItem still read from sessionStorage — so sessionStorage writes vanished.
+//
+// bridgeWrite is called unconditionally but is a no-op for any key outside
+// BRIDGED_KEYS (the three localStorage-only auth keys), so sessionStorage
+// writes (chunkRetry, dismissed-version, …) never touch the token store.
+/* eslint-disable @typescript-eslint/unbound-method */
+const protoSetItem = Storage.prototype.setItem;
+const protoRemoveItem = Storage.prototype.removeItem;
+/* eslint-enable @typescript-eslint/unbound-method */
+Storage.prototype.setItem = function setItem(key: string, value: string): void {
+  protoSetItem.call(this, key, value);
   bridgeWrite(key, value);
 };
-Storage.prototype.removeItem = (key: string): void => {
-  boundRemoveItem(key);
+Storage.prototype.removeItem = function removeItem(key: string): void {
+  protoRemoveItem.call(this, key);
   bridgeWrite(key, null);
 };
 
