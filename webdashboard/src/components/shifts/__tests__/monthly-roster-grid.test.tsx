@@ -404,4 +404,62 @@ describe("MonthlyRosterGrid Filtering", () => {
     await user.click(checkbox);
     expect(screen.getByText("shifts.empty_state.title")).toBeInTheDocument();
   });
+
+  it("clears the whole selection with the clear-all button", async () => {
+    const user = userEvent.setup();
+    render(<StatefulGridWrapper />);
+
+    // Select two employees.
+    const searchInput = screen.getByTestId("mock-employee-search");
+    await user.type(searchInput, "emp-1,emp-2");
+
+    expect(screen.getAllByText("Alice Security").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Bob Patrol").length).toBeGreaterThanOrEqual(1);
+
+    // One click on "Clear all" wipes the whole selection.
+    await user.click(
+      screen.getByRole("button", { name: /shifts.monthly.clear_all_employees/ }),
+    );
+
+    // Grid reverts to empty state and the checklist is gone.
+    expect(screen.getByText("shifts.empty_state.title")).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: "Alice Security" })).not.toBeInTheDocument();
+  });
+
+  it("restores the cleared selection when undo is clicked", async () => {
+    const user = userEvent.setup();
+    render(<StatefulGridWrapper />);
+
+    const searchInput = screen.getByTestId("mock-employee-search");
+    await user.type(searchInput, "emp-1,emp-2");
+
+    await user.click(
+      screen.getByRole("button", { name: /shifts.monthly.clear_all_employees/ }),
+    );
+
+    // The undo pill reports how many were cleared.
+    expect(screen.getByText("shifts.monthly.cleared_selection_2")).toBeInTheDocument();
+
+    // Undo brings both employees back.
+    await user.click(screen.getByRole("button", { name: /shifts.monthly.undo/ }));
+
+    expect(screen.getByRole("checkbox", { name: "Alice Security" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Bob Patrol" })).toBeChecked();
+    // Pill disappears after restoring.
+    expect(screen.queryByText("shifts.monthly.cleared_selection_2")).not.toBeInTheDocument();
+  });
+
+  it("does not show an undo pill when clearing an already-empty selection", async () => {
+    const user = userEvent.setup();
+    render(<StatefulGridWrapper />);
+
+    // No employees selected → checklist and clear-all button are absent.
+    expect(
+      screen.queryByRole("button", { name: /shifts.monthly.clear_all_employees/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /shifts.monthly.undo/ })).not.toBeInTheDocument();
+
+    // Sanity: still on empty state.
+    expect(screen.getByText("shifts.empty_state.title")).toBeInTheDocument();
+  });
 });

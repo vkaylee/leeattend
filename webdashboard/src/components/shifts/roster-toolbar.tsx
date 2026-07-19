@@ -11,9 +11,10 @@ import {
   Sparkles,
   Trash2,
   Plus,
+  Undo2,
   X,
 } from "lucide-react";
-import { memo, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
@@ -204,6 +205,42 @@ function MonthViewControls({
   const selectedMetaRef = useRef<Employee[]>(selectedEmployeesMeta || []);
   useEffect(() => { selectedMetaRef.current = selectedEmployeesMeta || []; }, [selectedEmployeesMeta]);
 
+  // Snapshot of the last cleared selection, so a single "clear all" can be
+  // undone before the user starts building a new group. Auto-expires so the
+  // undo affordance doesn't linger.
+  const [undoSnapshot, setUndoSnapshot] = useState<{ ids: string[]; meta: Employee[] } | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearUndoTimer = useCallback(() => {
+    if (undoTimer.current) {
+      clearTimeout(undoTimer.current);
+      undoTimer.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearUndoTimer, [clearUndoTimer]);
+
+  const handleClearAll = useCallback(() => {
+    const ids = [...hook.selectedEmployeeIds];
+    const meta = [...selectedMetaRef.current];
+    if (ids.length === 0) return;
+    setUndoSnapshot({ ids, meta });
+    selectedMetaRef.current = [];
+    hook.setSelectedEmployeeIds([]);
+    hook.setSelectedEmployees([]);
+    clearUndoTimer();
+    undoTimer.current = setTimeout(() => { setUndoSnapshot(null); }, 6000);
+  }, [hook, clearUndoTimer]);
+
+  const handleUndo = useCallback(() => {
+    if (!undoSnapshot) return;
+    selectedMetaRef.current = undoSnapshot.meta;
+    hook.setSelectedEmployeeIds(undoSnapshot.ids);
+    hook.setSelectedEmployees(undoSnapshot.meta);
+    setUndoSnapshot(null);
+    clearUndoTimer();
+  }, [undoSnapshot, hook, clearUndoTimer]);
+
   return (
     <>
       <div className="w-full md:max-w-md">
@@ -232,7 +269,21 @@ function MonthViewControls({
         />
       </div>
       {!!selectedEmployeesMeta && selectedEmployeesMeta.length > 0 && (
-        <EmployeeChecklist employees={selectedEmployeesMeta} hook={hook} />
+        <EmployeeChecklist employees={selectedEmployeesMeta} hook={hook} onClearAll={handleClearAll} />
+      )}
+      {!!undoSnapshot && (
+        <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 bg-slate-800 dark:bg-slate-700 text-white rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300">
+          <span className="text-xs font-bold uppercase tracking-widest">
+            {t("shifts.monthly.cleared_selection", { count: undoSnapshot.ids.length })}
+          </span>
+          <Button
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[10px] font-extrabold uppercase tracking-widest transition-all active:scale-95 cursor-pointer"
+            onClick={handleUndo}
+            variant="ghost"
+          >
+            <Undo2 size={14} /> {t("shifts.monthly.undo")}
+          </Button>
+        </div>
       )}
     </>
   );
@@ -241,15 +292,27 @@ function MonthViewControls({
 function EmployeeChecklist({
   hook,
   employees,
+  onClearAll,
 }: {
   hook: ReturnType<typeof useShifts>;
   employees: Employee[];
+  onClearAll: () => void;
 }) {
   const { t } = useTranslation();
   return (
     <div className="flex flex-wrap gap-2.5 p-3.5 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200/50 animate-in fade-in slide-in-from-top-2 duration-300">
-      <div className="w-full text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
-        {t("shifts.monthly.selected_employees", { count: employees.length })}
+      <div className="w-full flex items-center justify-between mb-1">
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          {t("shifts.monthly.selected_employees", { count: employees.length })}
+        </span>
+        <Button
+          className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-all cursor-pointer"
+          onClick={onClearAll}
+          type="button"
+          variant="ghost"
+        >
+          <X size={12} /> {t("shifts.monthly.clear_all_employees")}
+        </Button>
       </div>
       {employees.map((emp) => (
         <label className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 shadow-sm hover:border-primary-500/50 cursor-pointer select-none transition-all" key={emp.id}>
