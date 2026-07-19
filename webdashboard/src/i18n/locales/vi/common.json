@@ -3,6 +3,7 @@
     "id": "ID",
     "new_version_banner": {
       "title": "Đã có phiên bản mới",
+      "subtitle": "Tải lại để cập nhật bản mới nhất.",
       "refresh": "Tải lại",
       "dismiss": "Bỏ qua"
     },
