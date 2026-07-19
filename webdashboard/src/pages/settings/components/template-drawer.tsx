@@ -31,6 +31,7 @@ export function TemplateDrawer({ isOpen, onClose, editingTemplate, activeTab }: 
 
   useEffect(() => {
     if (editingTemplate) {
+  // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(editingTemplate.name);
       setDescription(editingTemplate.description ?? "");
       setIsDefault(editingTemplate.is_default);

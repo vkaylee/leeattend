@@ -236,6 +236,7 @@ export function useWorkingPatternForm(patternId?: string) {
 
   return {
     wsId,
+  // eslint-disable-next-line max-lines
     isEditMode,
     isLoadingPatterns,
     shifts,

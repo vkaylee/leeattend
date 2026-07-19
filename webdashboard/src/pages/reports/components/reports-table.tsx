@@ -114,6 +114,7 @@ export function ReportsTable(props: ReportsTableProps) {
         maxHeightClass=""
         onKeyDownRef={keyDownRef}
         onSearchChange={setSearchQuery}
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         onSelect={(row) => { handleEmployeeClick(row.employee_id ?? "", row.employee_name, row.employment_id); }}
         resetDeps={[searchQuery, filterMode, specificMonth, dateRange]}
         rowIdPrefix="summary-row"

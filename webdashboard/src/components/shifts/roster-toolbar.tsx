@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-function, @typescript-eslint/prefer-nullish-coalescing, max-lines */
 import { 
   CalendarDays,
   Calendar as CalendarIcon,

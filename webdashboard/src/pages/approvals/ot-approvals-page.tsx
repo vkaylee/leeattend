@@ -47,6 +47,7 @@ function getPendingSummaries(
     });
 }
 
+  // eslint-disable-next-line max-lines-per-function
 export default function OtApprovalsPage() {
   const toast = useToast();
   const { t } = useTranslation(["common", "attendance"]);

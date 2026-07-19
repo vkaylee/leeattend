@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-conversion, complexity */
 /**
  * PriorityChain — visual timeline explaining how a work shift was resolved.
  *
@@ -134,6 +135,7 @@ export function PriorityChainVertical({ source, appliedRule, t }: PriorityChainV
 
       {/* Vertical tree */}
       <div className="space-y-1">
+
         {TIER_MAP.map((tier) => {
           const isApplied = tier.sources.includes(source);
           const isSkipped = !isApplied && tier.priority > effectiveAppliedPriority;

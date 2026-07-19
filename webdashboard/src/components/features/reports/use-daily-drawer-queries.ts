@@ -39,6 +39,7 @@ export function useDailyDrawerQueries({
                 page: 1,
                 limit: 100,
                 employeeIds: [employeeId],
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
                 employmentId: employmentId || undefined,
             }),
         enabled: isOpen && !!workspaceId && !!employeeId,
@@ -92,6 +93,7 @@ export function useDailyDrawerQueries({
             const empId = (request as Record<string, unknown>).employee_id as string | undefined;
             if (empId && empId !== request.employment_id) {
                 const empKey = `${empId}-${request.requested_date}`;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                 if (!map[empKey]) map[empKey] = request;
             }
         });

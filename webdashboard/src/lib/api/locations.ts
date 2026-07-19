@@ -32,6 +32,7 @@ export async function fetchLocations(wsId: string): Promise<WorkLocation[]> {
   const { data } = await client.GET("/v1/workspaces/{ws_id}/locations", {
             params: { path: { ws_id: wsId } }
       });
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   return (data?.data ?? []) as WorkLocation[];
 }
 

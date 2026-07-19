@@ -2,19 +2,20 @@ import { SearchX, ShieldAlert, Trash2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import type { SystemTenant } from "@/lib/api/system";
+
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
-import type { SystemTenant } from "@/lib/api/system";
 
 interface StaleTenantsModalProps {
-  isOpen: boolean;
-  isLoading: boolean;
   isCleaning: boolean;
-  staleTenants: SystemTenant[];
-  onClose: () => void;
-  onCleanOne: (id: string) => void;
+  isLoading: boolean;
+  isOpen: boolean;
   onCleanAll: () => void;
+  onCleanOne: (id: string) => void;
+  onClose: () => void;
+  staleTenants: SystemTenant[];
 }
 
 function StaleTenantsSkeleton() {

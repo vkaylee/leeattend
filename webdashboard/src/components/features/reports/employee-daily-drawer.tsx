@@ -47,6 +47,7 @@ interface EmployeeDailyDrawerHeaderProps {
     viewMode: "daily" | "raw";
 }
 
+  // eslint-disable-next-line complexity
 function EmployeeDailyDrawerHeader({
     viewMode,
     setViewMode,
@@ -321,6 +322,7 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                 resolveModalData={data.resolveModalData}
                 resolveUnscheduledMutationPending={data.resolveUnscheduledMutationPending}
                 setConfirmDialog={data.setConfirmDialog}
+  // eslint-disable-next-line max-lines
                 setConfirmModalData={data.setConfirmModalData}
                 setResolveModalData={data.setResolveModalData}
                 shifts={data.shifts}

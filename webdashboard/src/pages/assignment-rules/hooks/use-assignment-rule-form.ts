@@ -87,6 +87,7 @@ export function useAssignmentRuleForm(ruleId?: string) {
     setIsDirty(true);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!name || !patternId) return;

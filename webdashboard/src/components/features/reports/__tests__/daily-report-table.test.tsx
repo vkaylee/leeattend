@@ -379,6 +379,7 @@ describe("DailyReportTable", () => {
     });
 
     it("renders multi-segment data as separate rows without React key warnings", () => {
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
         const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
         render(
             <DailyReportTable
@@ -563,6 +564,7 @@ describe("DailyReportTable", () => {
     });
 
     it("handles mixed segment and non-segment data without errors", () => {
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
         const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
         render(
             <DailyReportTable

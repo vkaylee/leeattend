@@ -12,6 +12,7 @@ export const contractSchema = z.object({
   esign_auth_type: z.enum(["sms", "email", "smartca", "hsm"]).optional(),
   national_id: z.string().optional(),
   consent_privacy: z.boolean().optional(),
+  // eslint-disable-next-line complexity
 }).superRefine((data, ctx) => {
   if (data.contract_type !== "indefinite") {
     if (!data.end_date || data.end_date.trim() === "") {

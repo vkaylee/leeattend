@@ -7,6 +7,7 @@ interface HeaderActionsContextValue {
 
 const HeaderActionsContext = createContext<HeaderActionsContextValue>({
   actions: null,
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   setActions: () => {},
 });
 
@@ -20,6 +21,7 @@ export function HeaderActionsProvider({ children }: { children: React.ReactNode 
   );
 }
 
+  // eslint-disable-next-line react-refresh/only-export-components
 export function useHeaderActions(): HeaderActionsContextValue {
   return useContext(HeaderActionsContext);
 }

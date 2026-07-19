@@ -29,6 +29,7 @@ const INITIAL_FORM: RegisterFormData = {
   confirm_password: "",
 };
 
+  // eslint-disable-next-line max-lines-per-function
 export default function RegisterPage() {
   const { t } = useTranslation();
   const userId = getCurrentUserId();

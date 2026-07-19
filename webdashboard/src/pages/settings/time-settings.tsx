@@ -20,6 +20,7 @@ import { PageHeader, TabContent } from "./time-settings/components";
 import { useTimeSettingsRules, useBulkReprocess } from "./time-settings/hooks";
 import { ReprocessModal } from "./time-settings/reprocess-modal";
 
+  // eslint-disable-next-line complexity
 export default function TimeSettings() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();

@@ -5,8 +5,8 @@ import { useTranslation } from "react-i18next";
 import { Typography } from "@/components/ui/typography";
 
 interface CorrectionConfigCardProps {
-  isCorrection: boolean;
   correctionEffectiveDate: string;
+  isCorrection: boolean;
   onCorrectionChange: (checked: boolean) => void;
   onEffectiveDateChange: (date: string) => void;
 }

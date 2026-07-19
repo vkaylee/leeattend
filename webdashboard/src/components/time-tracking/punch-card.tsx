@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import { Clock, Layers } from "lucide-react";
 import { useTranslation } from "react-i18next";
 

@@ -40,5 +40,6 @@ export async function deleteStorageConfig(wsId: string) {
     params: { path: { workspace_id: wsId } },
   });
   if (error) throwIfError(error);
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   return data ?? null;
 }

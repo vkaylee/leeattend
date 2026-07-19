@@ -1,3 +1,4 @@
+/* eslint-disable react/forbid-elements */
 import { useQueries } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CalendarRange, Calendar, Save } from "lucide-react";

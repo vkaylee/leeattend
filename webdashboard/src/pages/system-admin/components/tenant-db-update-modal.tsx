@@ -1,20 +1,21 @@
 import { KeyRound, ShieldAlert } from "lucide-react";
 import React, { useState } from "react";
 
+import type { SystemTenant, TenantConnectionStats } from "@/lib/api/system";
+
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Typography } from "@/components/ui/typography";
-import type { SystemTenant, TenantConnectionStats } from "@/lib/api/system";
 
 interface TenantDbUpdateModalProps {
   isOpen: boolean;
   isPending: boolean;
   isStatsLoading: boolean;
-  selectedTenant: SystemTenant | null;
-  tenantStats: TenantConnectionStats | undefined;
   onClose: () => void;
   onSubmit: (id: string, url: string) => Promise<void>;
+  selectedTenant: SystemTenant | null;
+  tenantStats: TenantConnectionStats | undefined;
 }
 
 function renderConnectionTemplate(

@@ -22,6 +22,7 @@ interface RecordedLogsTableProps {
   logs: RawAttendanceLog[];
 }
 
+  // eslint-disable-next-line max-lines-per-function
 export function RecordedLogsTable({
   logs,
   isLoading,

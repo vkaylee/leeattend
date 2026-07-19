@@ -37,7 +37,7 @@ export interface SmartTableColumnMeta {
 
 declare module "@tanstack/react-table" {
   // augments @tanstack/react-table ColumnMeta using locally-defined SmartTableColumnMeta
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- module augmentation
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type, unused-imports/no-unused-vars -- module augmentation; TData/TValue required by interface contract
   interface ColumnMeta<TData extends RowData, TValue> extends SmartTableColumnMeta {}
 }
 
@@ -68,6 +68,7 @@ export interface SmartTableProps<T> {
   validateCell?: (rowId: string, columnId: string, value: unknown) => string | null | undefined;
 }
 
+// eslint-disable-next-line max-lines-per-function -- React Table integration requires substantial setup boilerplate
 export default function SmartTable<T>({
   data,
   columns,
@@ -120,8 +121,9 @@ export default function SmartTable<T>({
   const columnPinning = useMemo((): ColumnPinningState => {
     const left: string[] = [];
     const right: string[] = [];
+    // eslint-disable-next-line complexity -- pinning logic has inherent branching for left/right states
     columns.forEach((col, index) => {
-      const id = col.id || ("accessorKey" in col ? (col.accessorKey as string) : "") || "";
+      const id = (col.id ?? ("accessorKey" in col ? (col.accessorKey as string) : "")) || "";
       const sLC = stickyLeftColumns ?? 0;
       const sRC = stickyRightColumns ?? 0;
       if (col.meta?.sticky === "left" || (sLC > 0 && index < sLC)) {
@@ -135,6 +137,8 @@ export default function SmartTable<T>({
   }, [columns, stickyLeftColumns, stickyRightColumns]);
 
   // TanStack Table Instance
+   
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table useReactTable is the standard API
   const table = useReactTable({
     data,
     columns,
@@ -238,6 +242,7 @@ export default function SmartTable<T>({
     return {
       position: "sticky",
       [isPinned]: `${offset}px`,
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- isPinned is string | false
       zIndex: isPinned ? 2 : 1,
     };
   };

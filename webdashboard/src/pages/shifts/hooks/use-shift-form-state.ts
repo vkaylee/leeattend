@@ -79,6 +79,7 @@ export function useShiftFormState(wsId?: string) {
 
   useEffect(() => {
     if (initialEmployee && !selectedEmployee) {
+  // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedEmployeeState(initialEmployee);
     }
   }, [initialEmployee, selectedEmployee]);
@@ -88,6 +89,7 @@ export function useShiftFormState(wsId?: string) {
   useEffect(() => {
     if (viewMode === "week") {
       if (selectedEmployee) {
+  // eslint-disable-next-line react-hooks/set-state-in-effect
         setSelectedEmployeeIdsState([selectedEmployee.id]);
         setSelectedEmployeesState([selectedEmployee]);
       } else {
@@ -104,6 +106,7 @@ export function useShiftFormState(wsId?: string) {
         if (!selectedEmployee || !selectedEmployeeIds.includes(selectedEmployee.id)) {
           const match = selectedEmployees.find((e: Employee) => e.id === selectedEmployeeIds[0]);
           if (match) {
+  // eslint-disable-next-line react-hooks/set-state-in-effect
             setSelectedEmployeeState(match);
           }
         }

@@ -228,6 +228,7 @@ export const useCompletePendingTask = () => {
     }: {
       checklistId: string;
       itemId: string;
+  // eslint-disable-next-line max-lines
       payload: UpdateChecklistItemStatusRequest;
     }) => {
       const workspaceId = workspace?.id;

@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import type { TFunction } from "i18next";
 
 import { Calendar, CalendarDays, FileText, Info, Loader2, Moon, PlayCircle, Sun, Timer, X } from "lucide-react";

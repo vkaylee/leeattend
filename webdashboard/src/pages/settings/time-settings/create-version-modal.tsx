@@ -312,6 +312,7 @@ function ModalFooter({
         onClick={onClose}
         size="lg"
         variant="outline"
+  // eslint-disable-next-line max-lines
       >
         {t("common.cancel").toUpperCase()}
       </Button>

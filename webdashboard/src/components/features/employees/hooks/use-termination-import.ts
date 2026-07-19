@@ -14,6 +14,7 @@ import {
 import { fetchJobStatus } from "@/lib/api/leaves";
 import { logError } from "@/lib/logger";
 
+  // eslint-disable-next-line max-lines-per-function
 export function useTerminationImport(wsId: string, onClose: () => void) {
   const { t, i18n } = useTranslation("employees");
   const queryClient = useQueryClient();
@@ -71,6 +72,7 @@ export function useTerminationImport(wsId: string, onClose: () => void) {
           return;
         }
         if (statusRes.status === "failed") {
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
           setJobError(statusRes.error_message || "Đã xảy ra lỗi khi xử lý nghỉ việc.");
           setConfirming(false);
           setJobId(null);

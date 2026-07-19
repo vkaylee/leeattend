@@ -67,6 +67,7 @@ type GenericTFunction = (
 // i18next's public TFunction type does not structurally overlap the simplified
 // GenericTFunction signature used here, so this sanctioned `as unknown as`
 // bridges the two (coding-standard §10.1). Not a drift mask — kept deliberate.
+  // eslint-disable-next-line import-x/no-named-as-default-member
 const originalT = i18n.t.bind(i18n) as unknown as GenericTFunction;
 
 const mergeNsOption = (opts: unknown, ns: string): Record<string, unknown> | undefined => {

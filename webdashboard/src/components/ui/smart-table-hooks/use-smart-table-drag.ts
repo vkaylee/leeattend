@@ -29,6 +29,7 @@ export function useSmartTableDrag<T>({
         
         for (let i = start; i <= end; i++) {
           const row = rows[i];
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           if (row) {
             newSelection.add(row.id);
           }

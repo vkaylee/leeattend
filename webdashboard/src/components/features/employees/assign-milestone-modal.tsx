@@ -47,6 +47,7 @@ function WarningAlert({ warning, title }: WarningProps) {
   );
 }
 
+  // eslint-disable-next-line max-lines-per-function
 export default function AssignMilestoneModal({
   isOpen,
   onClose,

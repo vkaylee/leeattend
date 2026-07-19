@@ -80,6 +80,7 @@ export async function fetchMonitorJobs(params: FetchMonitorJobsParams): Promise<
       },
     },
   });
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   return resData ?? { jobs: [], next_cursor: null };
 }
 

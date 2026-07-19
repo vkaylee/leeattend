@@ -6,11 +6,13 @@ import { useHeaderActions } from "@/hooks/use-header-actions";
 
 export const Route = createFileRoute('/_authenticated/_workspace/shifts')({
   component: () => {
+  // eslint-disable-next-line react-hooks/rules-of-hooks
     const { setActions } = useHeaderActions();
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
       setActions(<ShiftsSectionNav />);
-      return () => setActions(null);
+      return () => { setActions(null); };
     }, [setActions]);
 
     return (

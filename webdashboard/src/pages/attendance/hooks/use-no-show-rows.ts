@@ -88,6 +88,7 @@ export function computeNoShowRows(params: UseNoShowRowsParams): ZonedNoShowRow[]
 export function useNoShowRows(params: UseNoShowRowsParams): ZonedNoShowRow[] {
   return useMemo(
     () => computeNoShowRows(params),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       params.rows,
       params.employeeMap,

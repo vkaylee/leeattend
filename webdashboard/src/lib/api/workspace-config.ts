@@ -36,9 +36,11 @@ export const workspaceConfigApi = {
         query: date ? { date } : undefined,
       },
     });
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     return resData ?? null;
   },
 
+  // eslint-disable-next-line complexity
   upsertConfig: async (workspaceId: string, payload: CreateConfigEntryRequest): Promise<WorkspaceConfigEntry> => {
     let value: ConfigValue;
     if (payload.value_bool !== undefined && payload.value_bool !== null) {

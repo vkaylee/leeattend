@@ -33,6 +33,7 @@ interface UseShiftDataProps {
   wsId: string;
 }
 
+  // eslint-disable-next-line complexity
 export function useShiftData({
   wsId,
   startOfWeek,
@@ -77,6 +78,7 @@ export function useShiftData({
   } = useAllEmployees(wsId, { enabled: !!wsId && viewMode === "month" });
 
   const selectedEmploymentIds = useMemo(() => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!employees || !selectedEmployeeIds || selectedEmployeeIds.length === 0) return [];
     return selectedEmployeeIds
       .map(id => employees.find(e => e.id === id)?.active_employment_id)

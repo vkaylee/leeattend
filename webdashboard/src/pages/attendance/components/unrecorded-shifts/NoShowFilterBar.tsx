@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-conversion, unicorn/filename-case */
 import {
   AlertTriangle,
   Building2,
@@ -13,18 +14,18 @@ import { cn } from "@/lib/utils";
 import { ShiftTypePicker } from "../shift-type-picker";
 
 interface NoShowFilterBarProps {
-  selectedDate: string;
-  today: string;
-  isViewingToday: boolean;
-  selectedDept: string;
   departments: string[];
-  selectedShiftTypes: string[];
-  onlyZoneB: boolean;
+  isViewingToday: boolean;
+  onClearFilters: () => void;
   onDateChange: (date: string) => void;
   onDeptChange: (dept: string) => void;
-  onShiftTypesChange: (types: string[]) => void;
+  onlyZoneB: boolean;
   onOnlyZoneBToggle: () => void;
-  onClearFilters: () => void;
+  onShiftTypesChange: (types: string[]) => void;
+  selectedDate: string;
+  selectedDept: string;
+  selectedShiftTypes: string[];
+  today: string;
 }
 
 /**
@@ -69,7 +70,7 @@ export function NoShowFilterBar({
             value={selectedDate}
           />
 
-          {isViewingToday && (
+          {!!isViewingToday && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold uppercase tracking-widest">
               <span className="relative flex size-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />

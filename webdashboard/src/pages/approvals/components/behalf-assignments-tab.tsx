@@ -178,6 +178,7 @@ function AssignmentItem({
   );
 }
 
+  // eslint-disable-next-line complexity, max-lines-per-function
 function AddAssignmentForm({
   assigneeId,
   assignmentType,

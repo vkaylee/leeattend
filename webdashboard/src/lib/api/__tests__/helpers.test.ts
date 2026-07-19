@@ -234,6 +234,7 @@ describe('forceRefreshToken failure path', () => {
   });
 
   it('returns false and logs when refresh fetch rejects (catch path)', async () => {
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const result = await forceRefreshToken();
     expect(result).toBe(false);

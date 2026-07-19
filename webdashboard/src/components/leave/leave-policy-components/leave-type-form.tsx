@@ -34,6 +34,7 @@ export function LeaveTypeForm({
   const isDuplicateCode =
     normalizedCode.length > 0 && existingCodes.includes(normalizedCode);
 
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isDuplicateCode) return;
@@ -59,6 +60,7 @@ export function LeaveTypeForm({
             value={formData.code}
           />
           {isDuplicateCode ? (
+  // eslint-disable-next-line react/forbid-elements
             <p className="mt-1.5 ml-1 text-[11px] font-semibold text-rose-500">
               {t(
                 "settings.leave.type_manager.create_error_duplicate_code",

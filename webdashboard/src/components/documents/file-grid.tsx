@@ -1,9 +1,10 @@
 import { FileIcon, FileText, Image as ImageIcon, FileArchive, FileCode, FileSpreadsheet, Download, Trash2 } from "lucide-react";
 import React from "react";
 
+import type { components } from "@/types/api-generated";
+
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import type { components } from "@/types/api-generated";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
 
@@ -30,6 +31,7 @@ function getFileIcon(mimeType: string) {
 }
 
 function formatBytes(bytes: number, decimals = 2) {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-conversion
   if (!+bytes) return '0 Bytes';
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;

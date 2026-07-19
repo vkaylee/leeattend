@@ -77,6 +77,7 @@ function WorkspaceSwitcherModal({ isOpen, onClose }: { isOpen: boolean; onClose:
 
 // ── AppShell ───────────────────────────────────────────────────────
 
+  // eslint-disable-next-line complexity
 export default function AppShell({ variant }: AppShellProps) {
   useTheme();
   useI18nSync();
@@ -135,6 +136,7 @@ export default function AppShell({ variant }: AppShellProps) {
           isOpen={isMobileOpen}
           onClose={() => { setMobileOpen(false); }}
           openSections={{ org: false, time: false, shifts: false, payroll: false, system: false, ess: false }}
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
           toggleSection={() => {}}
         />
       </div>

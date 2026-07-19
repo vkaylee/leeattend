@@ -10,6 +10,7 @@ import type { ZonedNoShowRow } from "../../hooks/use-no-show-rows";
  * i18n key + hint for a zone label. Kept alongside the icon/text so the row is
  * never distinguishable by color alone (WCAG 2.1 AA — multi-channel cues).
  */
+  // eslint-disable-next-line react-refresh/only-export-components
 export function zoneLabel(
   row: ZonedNoShowRow,
   t: (k: string, o?: Record<string, unknown>) => string,
@@ -34,6 +35,7 @@ export function zoneLabel(
 }
 
 /** Format "HH:MM:SS" → "HH:MM" safely. */
+  // eslint-disable-next-line react-refresh/only-export-components
 export function formatShiftTime(timeStr: string | null | undefined): string {
   if (!timeStr) return "—";
   try {

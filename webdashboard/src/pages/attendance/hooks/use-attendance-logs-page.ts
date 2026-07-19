@@ -174,7 +174,9 @@ export function useAttendanceLogsPage() {
   const { dismissMutation, resolveMutation } = useAttendanceMutations(wsId);
   const { getDeviceName } = useAttendanceDevices(wsId);
 
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   const getEmployeeName = useCallback((log: RawAttendanceLog) => log.employee_full_name ?? employeeMap.get(log.employee_id || log.employment_id)?.full_name ?? t("common.system"), [employeeMap, t]);
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   const getEmployeeID = useCallback((log: RawAttendanceLog) => log.employee_id_number ?? employeeMap.get(log.employee_id || log.employment_id)?.employee_id_number ?? "", [employeeMap]);
 
   const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({ hasNextPage, isFetchingNextPage, fetchNextPage: () => { void fetchNextPage(); } });

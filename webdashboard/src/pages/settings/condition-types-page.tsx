@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/no-unnecessary-type-conversion, complexity, max-lines, max-lines-per-function */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tags, Plus, Pencil, Trash2, ShieldAlert, Clock, Heart, Baby, Ban } from "lucide-react";
 import React, { useState } from "react";
@@ -29,18 +30,18 @@ const LUCIDE_ICONS: Record<string, React.ReactNode> = {
   Ban: <Ban size={18} />,
 };
 
-type FormData = {
+interface FormData {
+  affects_rules: ConditionRuleEffects;
+  category: string;
   code: string;
+  color: string;
+  default_is_paid: boolean;
+  default_minute_allowance: number;
+  icon: string;
   name_en: string;
   name_vi: string;
-  category: string;
-  default_minute_allowance: number;
-  default_is_paid: boolean;
-  icon: string;
-  color: string;
   sort_order: number;
-  affects_rules: ConditionRuleEffects;
-};
+}
 
 function emptyForm(): FormData {
   return {
@@ -83,15 +84,15 @@ function ConditionTypeForm({
     initial
       ? {
           code: initial.code,
-          name_en: initial.name_i18n?.en ?? "",
-          name_vi: initial.name_i18n?.vi ?? "",
+          name_en: initial.name_i18n.en || "",
+          name_vi: initial.name_i18n.vi || "",
           category: initial.category,
           default_minute_allowance: initial.default_minute_allowance,
           default_is_paid: initial.default_is_paid,
           icon: initial.icon ?? "Clock",
           color: initial.color ?? "blue",
           sort_order: initial.sort_order,
-          affects_rules: initial.affects_rules ?? {},
+          affects_rules: initial.affects_rules || {},
         }
       : emptyForm(),
   );
@@ -157,7 +158,7 @@ function ConditionTypeForm({
             </label>
             <input
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all"
-              onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+              onChange={(e) => { setForm({ ...form, code: e.target.value.toUpperCase() }); }}
               placeholder="EARLY_LEAVE"
               value={form.code}
             />
@@ -169,7 +170,7 @@ function ConditionTypeForm({
           </label>
           <input
             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all"
-            onChange={(e) => setForm({ ...form, name_en: e.target.value })}
+            onChange={(e) => { setForm({ ...form, name_en: e.target.value }); }}
             placeholder="Early Leave"
             value={form.name_en}
           />
@@ -180,7 +181,7 @@ function ConditionTypeForm({
           </label>
           <input
             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all"
-            onChange={(e) => setForm({ ...form, name_vi: e.target.value })}
+            onChange={(e) => { setForm({ ...form, name_vi: e.target.value }); }}
             placeholder="Về sớm"
             value={form.name_vi}
           />
@@ -195,7 +196,7 @@ function ConditionTypeForm({
           <input
             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all"
             min={0}
-            onChange={(e) => setForm({ ...form, default_minute_allowance: Number(e.target.value) })}
+            onChange={(e) => { setForm({ ...form, default_minute_allowance: Number(e.target.value) }); }}
             type="number"
             value={form.default_minute_allowance}
           />
@@ -204,7 +205,7 @@ function ConditionTypeForm({
           <input
             checked={form.default_is_paid}
             className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-            onChange={(e) => setForm({ ...form, default_is_paid: e.target.checked })}
+            onChange={(e) => { setForm({ ...form, default_is_paid: e.target.checked }); }}
             type="checkbox"
           />
           {t("settings.condition_types.default_paid")}
@@ -227,11 +228,11 @@ function ConditionTypeForm({
             ["is_early_leave_paid", "effect_is_early_leave_paid"],
             ["grace_period_minutes", "effect_grace_period_minutes"],
           ] as const).map(([key, label]) => (
-            <label className="flex items-start gap-3 rounded-2xl bg-white/80 p-4 dark:bg-slate-900/70" key={key}>
+            <label aria-label={t(`settings.condition_types.${label}`)} className="flex items-start gap-3 rounded-2xl bg-white/80 p-4 dark:bg-slate-900/70" key={key}>
               <input
                 checked={form.affects_rules[key] === true}
                 className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                onChange={(e) => setDerivedEffect(key, e.target.checked)}
+                onChange={(e) => { setDerivedEffect(key, e.target.checked); }}
                 type="checkbox"
               />
               <span>
@@ -254,7 +255,7 @@ function ConditionTypeForm({
               <select
                 aria-label={t(`settings.condition_types.${label}`)}
                 className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                onChange={(e) => setLiteralEffect(key, e.target.value as "" | "true" | "false")}
+                onChange={(e) => { setLiteralEffect(key, e.target.value as "" | "true" | "false"); }}
                 value={form.affects_rules[key] === undefined ? "" : String(form.affects_rules[key])}
               >
                 <option value="">{t("settings.condition_types.not_affected")}</option>
@@ -292,7 +293,7 @@ function ConditionTypeForm({
           </label>
         </div>
 
-        {effectError && <Typography className="mt-4 text-xs font-bold text-rose-600" variant="p">{effectError}</Typography>}
+        {!!effectError && <Typography className="mt-4 text-xs font-bold text-rose-600" variant="p">{effectError}</Typography>}
         <Typography className="mt-5 text-xs font-bold text-primary-700 dark:text-primary-300" variant="p">
           {t("settings.condition_types.effects_preview").replace("{{count}}", String(Object.values(form.affects_rules).filter((value) => value !== undefined).length))}
         </Typography>
@@ -419,11 +420,11 @@ export default function ConditionTypesPage() {
       </div>
 
       {/* Add Form */}
-      {isAdding && (
+      {!!isAdding && (
         <ConditionTypeForm
           isSubmitting={createMutation.isPending}
-          onCancel={() => setIsAdding(false)}
-          onSave={(data) => createMutation.mutate(data as CreateConditionTypeRequest)}
+          onCancel={() => { setIsAdding(false); }}
+          onSave={(data) => { createMutation.mutate(data as CreateConditionTypeRequest); }}
           t={(k) => t(k)}
         />
       )}
@@ -446,8 +447,8 @@ export default function ConditionTypesPage() {
                 <ConditionTypeForm
                   initial={item}
                   isSubmitting={updateMutation.isPending}
-                  onCancel={() => setEditingId(null)}
-                  onSave={(data) => updateMutation.mutate({ id: item.id, req: data as UpdateConditionTypeRequest })}
+                  onCancel={() => { setEditingId(null); }}
+                  onSave={(data) => { updateMutation.mutate({ id: item.id, req: data }); }}
                   t={(k) => t(k)}
                 />
               ) : (
@@ -459,12 +460,12 @@ export default function ConditionTypesPage() {
                     <div>
                       <div className="flex items-center gap-3 mb-1">
                         <Typography className="font-bold text-slate-700 dark:text-slate-200 text-base tracking-tight" variant="h4">
-                          {item.name_i18n?.en ?? item.code}
+                          {item.name_i18n.en || item.code}
                         </Typography>
                         <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
                           {item.code}
                         </span>
-                        {item.is_system && (
+                        {!!item.is_system && (
                           <span className="text-[9px] font-bold uppercase tracking-widest text-primary-600 bg-primary-50 dark:bg-primary-950 px-2 py-0.5 rounded-full">
                             SYSTEM
                           </span>

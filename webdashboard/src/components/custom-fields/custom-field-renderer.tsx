@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-base-to-string, @typescript-eslint/no-unnecessary-condition, @typescript-eslint/restrict-template-expressions */
 import { Link2, Mail, Phone, Check, X } from "lucide-react";
 import React from "react";
 

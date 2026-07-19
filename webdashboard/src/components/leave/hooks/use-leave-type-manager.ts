@@ -44,11 +44,13 @@ export function useLeaveTypeManager({ wsId }: UseLeaveTypeManagerProps) {
       // a RETIRED (soft-deleted) leave type, the error carries a structured
       // `retry` hint so the UI can offer to restore it instead of creating new.
       if (error instanceof ApiError && error.isConflict) {
-        const retry = error.errorBody?.error?.retry as
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- errorBody is unknown; cast needed to access .error
+        const body = error.errorBody as Record<string, unknown> | undefined;
+        const retryData = (body?.error as Record<string, unknown> | undefined)?.retry as
           | { reason: string; leave_type_id: string; name: string }
           | undefined;
-        if (retry?.reason === "retired_leave_type" && retry.leave_type_id) {
-          setRestoringType({ leave_type_id: retry.leave_type_id, name: retry.name });
+        if (retryData?.reason === "retired_leave_type" && retryData.leave_type_id) {
+          setRestoringType({ leave_type_id: retryData.leave_type_id, name: retryData.name });
           return;
         }
         toast.error(

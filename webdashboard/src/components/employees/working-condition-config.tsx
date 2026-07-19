@@ -41,7 +41,7 @@ function getIconForType(typeCode: string, catalogIcon?: string | null): React.Re
 function getDisplayName(typeDefs: ConditionTypeDefinition[], typeCode: string, i18nLang: string): string {
   const def = typeDefs.find(d => d.code === typeCode.toUpperCase());
   if (def?.name_i18n) {
-    return def.name_i18n[i18nLang] ?? def.name_i18n.en ?? typeCode;
+    return def.name_i18n[i18nLang] || def.name_i18n.en || typeCode;
   }
   return typeCode;
 }
@@ -57,11 +57,11 @@ interface Props {
 }
 
 interface CreateWorkingConditionData {
+  condition_type_id?: string | null;
   end_date: string | null;
   is_paid: boolean;
   start_date: string;
   type_: string;
-  condition_type_id?: string | null;
 }
 
 interface WorkingConditionFormProps {
@@ -73,15 +73,15 @@ interface WorkingConditionFormProps {
   isPaid: boolean;
   isSubmitting: boolean;
   onCancel: () => void;
+  setConditionTypeId: (val: string | null) => void;
   setEndDate: (val: string) => void;
   setIsPaid: (val: boolean) => void;
   setStartDate: (val: string) => void;
   setType: (val: string) => void;
-  setConditionTypeId: (val: string | null) => void;
   startDate: string;
   t: TFunction;
-  typeDefs: ConditionTypeDefinition[];
   type_: string;
+  typeDefs: ConditionTypeDefinition[];
 }
 
 function WorkingConditionForm({
@@ -123,7 +123,7 @@ function WorkingConditionForm({
           >
             {typeDefs.filter(d => d.is_active).map((def) => (
               <option key={def.code} value={def.code}>
-                {def.name_i18n?.en ?? def.code}
+                {def.name_i18n.en || def.code}
               </option>
             ))}
           </select>
@@ -234,6 +234,7 @@ export default function WorkingConditionConfig({ employeeId }: Props) {
   const { confirm, ConfirmationDialog } = useConfirm();
   const [isAdding, setIsAdding] = useState(false);
   const [type_, setType] = useState("");
+  // eslint-disable-next-line unused-imports/no-unused-vars
   const [conditionTypeId, setConditionTypeId] = useState<string | null>(null);
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState("");
@@ -251,7 +252,7 @@ export default function WorkingConditionConfig({ employeeId }: Props) {
 
   const { createMutation, handleDelete } = useWorkingConditionActions({ employeeId, queryClient, confirm, setIsAdding, t });
 
-  const currentLang = i18n.language?.split("-")[0] ?? "en";
+  const currentLang = i18n.language.split("-")[0];
 
   if (isLoading) return <div className="p-20 text-center"><div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>;
 
@@ -266,15 +267,15 @@ export default function WorkingConditionConfig({ employeeId }: Props) {
           isPaid={isPaid}
           isSubmitting={createMutation.isPending}
           onCancel={() => { setIsAdding(false); }}
+          setConditionTypeId={setConditionTypeId}
           setEndDate={setEndDate}
           setIsPaid={setIsPaid}
           setStartDate={setStartDate}
           setType={setType}
-          setConditionTypeId={setConditionTypeId}
           startDate={startDate}
           t={t}
-          typeDefs={typeDefs}
           type_={type_}
+          typeDefs={typeDefs}
         />
       ) : null}
 

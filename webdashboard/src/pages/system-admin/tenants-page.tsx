@@ -31,6 +31,7 @@ import { StaleTenantsModal } from "./components/stale-tenants-modal";
 import { TenantDbUpdateModal } from "./components/tenant-db-update-modal";
 import { TenantStatsModal } from "./components/tenant-stats-modal";
 
+  // eslint-disable-next-line max-lines-per-function
 export default function TenantsPage() {
   const { t } = useTranslation(["common", "system_roles"]);
   const queryClient = useQueryClient();
@@ -294,43 +295,43 @@ export default function TenantsPage() {
       />
 
       <TenantStatsModal
-        isOpen={statsModalOpen}
         isLoading={isStatsLoading}
-        selectedTenant={selectedTenant}
-        tenantStats={tenantStats}
+        isOpen={statsModalOpen}
         onClose={() => {
           setStatsModalOpen(false);
           setSelectedTenant(null);
         }}
+        selectedTenant={selectedTenant}
+        tenantStats={tenantStats}
       />
 
       <TenantDbUpdateModal
         isOpen={dbUpdateModalOpen}
         isPending={updateDbMutation.isPending}
         isStatsLoading={isStatsLoading}
-        selectedTenant={selectedTenant}
-        tenantStats={tenantStats}
         onClose={() => {
           setDbUpdateModalOpen(false);
           setSelectedTenant(null);
         }}
         onSubmit={handleUpdateDbSubmit}
+        selectedTenant={selectedTenant}
+        tenantStats={tenantStats}
       />
 
       <StaleTenantsModal
-        isOpen={staleModalOpen}
-        isLoading={isStaleLoading}
         isCleaning={cleanStaleMutation.isPending}
-        staleTenants={staleTenants}
-        onClose={() => {
-          setStaleModalOpen(false);
+        isLoading={isStaleLoading}
+        isOpen={staleModalOpen}
+        onCleanAll={() => {
+          void handleCleanAllStale();
         }}
         onCleanOne={(id) => {
           void handleCleanStale(id);
         }}
-        onCleanAll={() => {
-          void handleCleanAllStale();
+        onClose={() => {
+          setStaleModalOpen(false);
         }}
+        staleTenants={staleTenants}
       />
 
       <ConfirmationDialog />

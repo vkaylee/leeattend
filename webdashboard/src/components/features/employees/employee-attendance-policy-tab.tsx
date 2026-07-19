@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, ShieldCheck, Plus, Trash2, Clock, ArrowRight } from "lucide-react";
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
@@ -26,6 +26,7 @@ function formatRules(rules: { work_unit_minutes: number; rounding_policy: string
   return parts.join(" | ");
 }
 
+  // eslint-disable-next-line complexity, max-lines-per-function
 export default function EmployeeAttendancePolicyTab({ employeeId, wsId }: Props) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -59,7 +60,7 @@ export default function EmployeeAttendancePolicyTab({ employeeId, wsId }: Props)
         target_type: "USER",
         work_unit_minutes: defaultRules?.work_unit_minutes ?? 15,
         rounding_policy: defaultRules?.rounding_policy ?? "none",
-        early_arrival_strategy: (defaultRules?.early_arrival_strategy as "allow" | "block" | "clamp") ?? "block",
+        early_arrival_strategy: defaultRules?.early_arrival_strategy ?? "block",
         grace_period_minutes: defaultRules?.grace_period_minutes ?? null,
       }),
     onSuccess: () => {
@@ -106,10 +107,10 @@ export default function EmployeeAttendancePolicyTab({ employeeId, wsId }: Props)
           <Button
             className="flex items-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 active:scale-95"
             disabled={createMutation.isPending}
-            onClick={() => createMutation.mutate()}
+            onClick={() => { createMutation.mutate(); }}
             variant="ghost"
           >
-            {createMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+            {createMutation.isPending ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />}
             {t("common.add_new").toUpperCase()}
           </Button>
         )}
@@ -118,7 +119,7 @@ export default function EmployeeAttendancePolicyTab({ employeeId, wsId }: Props)
       {/* Default rules (read-only) */}
       <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] p-8">
         <div className="flex items-center gap-3 mb-4">
-          <Clock size={16} className="text-slate-400" />
+          <Clock className="text-slate-400" size={16} />
           <Typography className="text-[10px] font-bold text-slate-500 uppercase tracking-widest" variant="h4">
             {t("common.payroll.overtime_policies") ? "Default workspace rules" : "Default workspace rules"}
           </Typography>
@@ -135,7 +136,7 @@ export default function EmployeeAttendancePolicyTab({ employeeId, wsId }: Props)
       {/* Employee override */}
       <div className="space-y-4">
         <div className="flex items-center gap-3 px-2">
-          <ArrowRight size={14} className="text-primary-500" />
+          <ArrowRight className="text-primary-500" size={14} />
           <Typography className="text-[10px] font-bold text-primary-600 uppercase tracking-widest" variant="h4">
             Override
           </Typography>
@@ -156,11 +157,11 @@ export default function EmployeeAttendancePolicyTab({ employeeId, wsId }: Props)
                 <div className="text-sm font-mono text-slate-600 dark:text-slate-400 space-y-1 mt-3">
                   <div>Work unit: {employeeAssignment.rules.work_unit_minutes}min · Round: {employeeAssignment.rules.rounding_policy}</div>
                   {employeeAssignment.rules.grace_period_minutes != null && <div>Grace period: {employeeAssignment.rules.grace_period_minutes}m</div>}
-                  {employeeAssignment.rules.early_arrival_strategy && <div>Early arrival: {employeeAssignment.rules.early_arrival_strategy}</div>}
+                  {!!employeeAssignment.rules.early_arrival_strategy && <div>Early arrival: {employeeAssignment.rules.early_arrival_strategy}</div>}
                 </div>
-                {employeeAssignment.valid_from && (
+                {!!employeeAssignment.valid_from && (
                   <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-3">
-                    <Clock size={10} className="inline mr-1" />
+                    <Clock className="inline mr-1" size={10} />
                     {t("common.effective_date")}: {employeeAssignment.valid_from}
                   </div>
                 )}
@@ -171,7 +172,7 @@ export default function EmployeeAttendancePolicyTab({ employeeId, wsId }: Props)
                 onClick={handleDelete}
                 variant="ghost"
               >
-                {deleteMutation.isPending ? <Loader2 size={20} className="animate-spin" /> : <Trash2 size={20} />}
+                {deleteMutation.isPending ? <Loader2 className="animate-spin" size={20} /> : <Trash2 size={20} />}
               </Button>
             </div>
             <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 dark:bg-slate-800/50 -rotate-45 translate-x-12 -translate-y-12 opacity-50 transition-all group-hover:bg-primary-50 dark:group-hover:bg-primary-950/20" />

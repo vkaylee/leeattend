@@ -46,6 +46,7 @@ export default function EmployeeTerminationImportDialog({
       {importSuccess ? (
         <ImportSuccessState onClose={handleClose} successCount={successCount} />
       ) : jobError || confirming ? (
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         <ImportErrorState jobError={jobError} jobId={jobId} onBack={() => { setJobError?.(null); }} />
       ) : step === 1 ? (
         <ImportUploadStep

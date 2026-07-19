@@ -1,6 +1,8 @@
-import { format, isToday as isDateToday } from "date-fns";
 import type { Locale } from "date-fns/locale";
+
 import React, { memo } from "react";
+
+import { format, isToday as isDateToday } from "date-fns";
 
 import type { EmployeeSchedule, Shift } from "@/lib/api/types";
 
@@ -90,6 +92,7 @@ const RosterGridTable = memo(function RosterGridTable({
           {monthSchedules.map((empSchedule) => (
             <tr
               className="border-b border-slate-100 dark:border-slate-800 last:border-b-0 hover:bg-slate-50/30 dark:hover:bg-slate-850/10"
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
               key={empSchedule.employee_id ?? empSchedule.employment_id}
             >
               <td className="sticky left-0 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 px-4 py-3 font-bold text-xs text-slate-700 dark:text-slate-300 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)] min-w-[160px] truncate">
@@ -103,6 +106,7 @@ const RosterGridTable = memo(function RosterGridTable({
 
               {monthDays.map((day) => {
                 const dateStr = format(day, "yyyy-MM-dd");
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                 const cellKey = `${empSchedule.employee_id ?? ""}:${dateStr}`;
                 const isSelected = selectedCells.has(cellKey);
                 const daySchedules = empSchedule.schedules.filter(
@@ -113,6 +117,7 @@ const RosterGridTable = memo(function RosterGridTable({
                   <RosterCell
                     dateStr={dateStr}
                     daySchedules={daySchedules}
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                     employeeId={empSchedule.employee_id ?? ""}
                     isSelected={isSelected}
                     key={dateStr}

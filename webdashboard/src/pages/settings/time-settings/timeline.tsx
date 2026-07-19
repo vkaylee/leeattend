@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import { Calculator, CheckCircle2, Clock, History } from "lucide-react";
 import React from "react";
 

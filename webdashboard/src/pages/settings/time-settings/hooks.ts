@@ -91,8 +91,10 @@ export function useBulkReprocess(wsId: string, t: TFunction) {
           setShowReprocessConfirm(false);
           setPollingJobId(null);
         }, 0);
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       } else if (jobStatusQuery.data?.status === "failed") {
         setTimeout(() => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           toast.error("Process failed: " + (jobStatusQuery.data?.error ?? "Unknown error"));
           setShowReprocessConfirm(false);
           setPollingJobId(null);

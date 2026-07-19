@@ -7,13 +7,14 @@ import { Typography } from "@/components/ui/typography";
 import { downloadCsvTemplate } from "@/lib/csv-utils";
 import { cn } from "@/lib/utils";
 
+import type { UploadResult } from "./bulk-upload-types";
+
 import {
   ErrorDetailsTable,
   FileUploadZone,
   SuccessMessage,
   UploadSummary,
 } from "./bulk-upload-components";
-import type { UploadResult } from "./bulk-upload-types";
 
 interface BulkUploadDialogContentProps {
   error: string | null;
@@ -31,6 +32,7 @@ interface BulkUploadDialogContentProps {
 }
 
 export const BulkUploadDialogContent = memo(
+  // eslint-disable-next-line complexity
   function BulkUploadDialogContent({
     error,
     handleClose,

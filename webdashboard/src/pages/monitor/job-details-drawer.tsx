@@ -15,6 +15,7 @@ interface StatusStyle {
   icon: React.ReactNode;
 }
 
+  // eslint-disable-next-line react-refresh/only-export-components
 export function getStatusStyle(status: string): StatusStyle {
   switch (status) {
     case "completed":

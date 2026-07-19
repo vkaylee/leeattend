@@ -8,6 +8,7 @@ import { ReportsHeader } from "./reports/components/reports-header";
 import { ReportsTable } from "./reports/components/reports-table";
 import { useReportsPage } from "./reports/hooks/use-reports-page";
 
+  // eslint-disable-next-line complexity
 export default function ReportsPage() {
   const { t } = useTranslation();
   const {

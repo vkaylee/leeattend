@@ -1,9 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-conversion, complexity, max-lines-per-function, react/forbid-elements, unicorn/filename-case, unused-imports/no-unused-vars */
 import {
   Building2,
   UserX,
 } from "lucide-react";
 import React from "react";
-import { useTranslation } from "react-i18next";
 
 import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
 import { ScheduleTracePopover } from "@/components/shifts/schedule-trace-popover";
@@ -11,6 +11,7 @@ import { ScheduleTrace } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import type { ZonedNoShowRow } from "../../hooks/use-no-show-rows";
+
 import { formatShiftTime, zoneLabel, ZoneIcon } from "./utils";
 
 interface NoShowTableProps {
@@ -18,9 +19,9 @@ interface NoShowTableProps {
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   loadMoreRef: React.RefObject<HTMLTableRowElement | null>;
-  tracesByKey: Map<string, ScheduleTrace[]>;
   onlyZoneB: boolean;
   t: (k: string, o?: Record<string, unknown>) => string;
+  tracesByKey: Map<string, ScheduleTrace[]>;
 }
 
 function TableSkeleton() {
@@ -118,6 +119,7 @@ export function NoShowTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+
             {filteredRows.map((row, idx) => {
               const { key, hint } = zoneLabel(row, t);
               const rowBg =

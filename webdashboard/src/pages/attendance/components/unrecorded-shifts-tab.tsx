@@ -127,7 +127,7 @@ export function UnrecordedShiftsTab() {
   const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
     hasNextPage: hasNextPage ?? false,
     isFetchingNextPage,
-    fetchNextPage: () => { fetchNextPage(); },
+    fetchNextPage: () => { void fetchNextPage(); },
   });
 
   // Force re-render when live tick fires (zone labels update).

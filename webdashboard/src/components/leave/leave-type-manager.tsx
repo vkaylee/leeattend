@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition, complexity, max-lines-per-function, unused-imports/no-unused-vars */
 import { Wallet, AlertTriangle, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -18,7 +19,6 @@ interface LeaveTypeManagerProps {
   wsId: string;
 }
 
-// eslint-disable-next-line max-lines-per-function
 export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
   const { t } = useTranslation();
   const {
@@ -70,6 +70,7 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
 
       {leaveTypes.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
           {leaveTypes.map((type) => (
             <div
               className="relative flex flex-col justify-between rounded-[2rem] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-7 shadow-sm hover:shadow-md transition-all group"

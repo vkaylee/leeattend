@@ -1,3 +1,4 @@
+/* eslint-disable complexity */
 import {
   flexRender,
   type Table,
@@ -20,6 +21,7 @@ export function SmartTableHeader<T>({ table, getPinStyles }: SmartTableHeaderPro
     <thead className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-100 dark:border-slate-800 shadow-sm">
       {table.getHeaderGroups().map((headerGroup: HeaderGroup<T>) => (
         <tr key={headerGroup.id}>
+
           {headerGroup.headers.map((header: Header<T, unknown>) => {
             const isPinned = header.column.getIsPinned();
             const isLastPinnedLeft = isPinned === "left" && header.column.getIsLastColumn("left");

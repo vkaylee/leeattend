@@ -1,11 +1,12 @@
 import { Download, File as FileIcon, ExternalLink, Loader2 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 
+import type { components } from "@/types/api-generated";
+
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { fetch } from "@/lib/api/client";
 import { logError } from "@/lib/logger";
-import type { components } from "@/types/api-generated";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
 

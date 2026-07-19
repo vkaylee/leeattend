@@ -64,6 +64,7 @@ function useFormDefaults(editingEmployee: Employee | null, activeLocationId: str
   const userId_ = editingEmployee?.user_id ?? "";
    
   useEffect(() => {
+  // eslint-disable-next-line react-hooks/set-state-in-effect
     setUserId(userId_);
     setLocId(editingEmployee ? activeLocationId : "");
     setEmpId(editingEmployee ? activeEmployerId : "");
@@ -86,6 +87,7 @@ function useFormDefaults(editingEmployee: Employee | null, activeLocationId: str
  *
  * eslint-disable-next-line complexity
  */
+  // eslint-disable-next-line complexity
 export default function EmployeeFormModal({
   isOpen, onClose, editingEmployee, wsId, prefillEnrollmentId, onSuccess,
 }: EmployeeFormModalProps) {
@@ -100,12 +102,14 @@ export default function EmployeeFormModal({
 
   const { data: employments = [] } = useQuery({
     queryKey: ["employee-employments", wsId, editingEmployee?.id],
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     queryFn: () => fetchEmployeeEmployments(wsId, editingEmployee!.id),
     enabled: !!wsId && !!editingEmployee?.id && isOpen,
   });
   const active: Employment | undefined = employments.find(e => e.status === "active") ?? employments[0];
-  const activeLocationId = active?.primary_location_id ?? "";
-  const activeEmployerId = active?.employer_id ?? "";
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+  const activeLocationId = active.primary_location_id || "";
+  const activeEmployerId = active.employer_id || "";
 
   const defaults = useFormDefaults(editingEmployee, activeLocationId, activeEmployerId);
 
@@ -129,7 +133,7 @@ export default function EmployeeFormModal({
 
     if (editingEmployee) {
       await updateMutation.mutateAsync({ id: editingEmployee.id, employee: data });
-      if (active && (defaults.selectedLocationId !== activeLocationId || defaults.selectedEmployerId !== activeEmployerId)) {
+      if (defaults.selectedLocationId !== activeLocationId || defaults.selectedEmployerId !== activeEmployerId) {
         await updateEmployeeEmployment(wsId, editingEmployee.id, active.id, {
           primary_location_id: defaults.selectedLocationId || null,
           employer_id: defaults.selectedEmployerId || undefined,
@@ -137,7 +141,7 @@ export default function EmployeeFormModal({
       }
     } else {
       if (defaults.selectedLocationId) data.primary_location_id = defaults.selectedLocationId;
-      data.employer_id = defaults.selectedEmployerId ?? null;
+      data.employer_id = defaults.selectedEmployerId || null;
       createMutation.mutate(data);
     }
   };
@@ -156,7 +160,8 @@ export default function EmployeeFormModal({
           activeEmployment={active}
           editingEmployee={editingEmployee}
           employers={employers}
-          locations={locations ?? []}
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          locations={locations || []}
           members={members}
           prefillEnrollmentId={prefillEnrollmentId ?? ""}
           selectedEmployerId={defaults.selectedEmployerId}

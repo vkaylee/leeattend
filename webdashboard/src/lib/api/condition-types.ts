@@ -5,15 +5,15 @@ import { client } from "./client";
 export type ConditionEarlyArrivalStrategy = "Allow" | "Block" | "Clamp";
 
 /** Mirrors the validated JSONB contract accepted by the condition type API. */
-export type ConditionRuleEffects = {
+export interface ConditionRuleEffects {
+  allow_early_ot?: boolean;
   authorized_early_leave_minutes?: boolean;
-  is_early_leave_paid?: boolean;
+  early_arrival_strategy?: ConditionEarlyArrivalStrategy;
   grace_period_minutes?: boolean;
   is_break_auto_deduct?: boolean;
   is_break_overtime?: boolean;
-  allow_early_ot?: boolean;
-  early_arrival_strategy?: ConditionEarlyArrivalStrategy;
-};
+  is_early_leave_paid?: boolean;
+}
 
 // Re-export generated types with JSONB field overrides (OpenAPI doesn't type JSONB strongly)
 export type ConditionTypeDefinition = Omit<
@@ -40,6 +40,7 @@ export type UpdateConditionTypeRequest = Omit<
   affects_rules?: ConditionRuleEffects;
 };
 
+  // eslint-disable-next-line unused-imports/no-unused-vars
 const buildPath = (wsId: string, id?: string): string =>
   id
     ? `/workspaces/${wsId}/condition-types/${id}`
@@ -55,6 +56,7 @@ export async function fetchConditionTypes(
       query: activeOnly !== undefined ? { active_only: activeOnly } : undefined,
     },
   });
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   return (data as ConditionTypeDefinition[]) ?? [];
 }
 

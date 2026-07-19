@@ -20,6 +20,7 @@ interface AddPhotoDialogProps {
   summary: OtSummary | null;
 }
 
+  // eslint-disable-next-line complexity
 export function AddPhotoDialog({
   open,
   onOpenChange,

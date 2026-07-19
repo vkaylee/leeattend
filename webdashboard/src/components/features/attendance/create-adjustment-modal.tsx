@@ -107,6 +107,7 @@ function useCreateAdjustmentForm({ wsId, timezone, onClose }: CreateAdjustmentFo
   };
 }
 
+  // eslint-disable-next-line max-lines-per-function
 export function CreateAdjustmentModal({
   isOpen,
   onClose,
@@ -135,6 +136,7 @@ export function CreateAdjustmentModal({
   const behalfOptions = behalfEmployees
     .filter(emp => !!emp.active_employment_id)
     .map(emp => ({
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       value: emp.active_employment_id!,
       label: `${emp.full_name} (${emp.employee_id_number})`,
     }));

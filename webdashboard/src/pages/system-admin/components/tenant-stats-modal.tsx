@@ -1,17 +1,18 @@
 import { Activity, KeyRound, ShieldAlert } from "lucide-react";
 import React from "react";
 
+import type { SystemTenant, TenantConnectionStats } from "@/lib/api/system";
+
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
-import type { SystemTenant, TenantConnectionStats } from "@/lib/api/system";
 
 interface TenantStatsModalProps {
-  isOpen: boolean;
   isLoading: boolean;
+  isOpen: boolean;
+  onClose: () => void;
   selectedTenant: SystemTenant | null;
   tenantStats: TenantConnectionStats | undefined;
-  onClose: () => void;
 }
 
 function renderConnectionTemplate(
@@ -44,7 +45,7 @@ function StatsSkeleton() {
   );
 }
 
-function PoolUsersList({ users }: { users: Array<{ db_user?: string; pool_size?: number }> }) {
+function PoolUsersList({ users }: { users: { db_user?: string; pool_size?: number }[] }) {
   if (users.length === 0) {
     return (
       <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-sm text-slate-500 text-center">
@@ -83,6 +84,7 @@ function PoolUsersList({ users }: { users: Array<{ db_user?: string; pool_size?:
   );
 }
 
+  // eslint-disable-next-line complexity
 export function TenantStatsModal({
   isOpen,
   isLoading,
@@ -93,7 +95,7 @@ export function TenantStatsModal({
   const statsConfig = tenantStats
     ? (tenantStats.config.data ?? tenantStats.config.tenant ?? tenantStats.config)
     : undefined;
-  const poolUsers: Array<{ db_user?: string; pool_size?: number }> = statsConfig?.users ?? [];
+  const poolUsers: { db_user?: string; pool_size?: number }[] = statsConfig?.users ?? [];
   const rawConfigString = JSON.stringify(statsConfig, null, 2);
 
   return (

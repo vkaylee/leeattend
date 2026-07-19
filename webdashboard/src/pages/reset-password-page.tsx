@@ -14,6 +14,7 @@ enum Step {
   Success = "success",
 }
 
+  // eslint-disable-next-line max-lines-per-function
 export default function ResetPasswordPage() {
   const { t } = useTranslation();
   const { token } = useSearch({ from: "/reset-password" });

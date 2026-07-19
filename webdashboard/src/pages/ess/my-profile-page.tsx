@@ -11,6 +11,7 @@ import { ErrorState, Header, LoadingState } from "./components/profile-common";
 import { ProfileHero } from "./components/profile-hero";
 import { useMyProfilePage } from "./hooks/use-my-profile-page";
 
+  // eslint-disable-next-line complexity
 export default function MyProfilePage() {
   const {
     t,

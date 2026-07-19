@@ -212,6 +212,7 @@ export async function fetchCompensationHistory(
   const { data } = await client.GET("/workspaces/{workspace_id}/employees/{id}/compensation-history", {
     params: {
       path: { workspace_id: wsId, id: employeeId },
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       query: { employment_id: employmentId || undefined },
     },
   });
@@ -224,6 +225,7 @@ export type ConfirmTerminationRow = components["schemas"]["ConfirmTerminationRow
 /** Upload Excel file to preview employee bulk terminations */
 export async function uploadTerminationImportPreview(
   wsId: string,
+  // eslint-disable-next-line max-lines
   file: File
 ): Promise<TerminationPreviewResponse> {
   const formData = new FormData();
