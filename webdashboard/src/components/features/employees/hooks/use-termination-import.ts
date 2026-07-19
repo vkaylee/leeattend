@@ -146,7 +146,7 @@ export function useTerminationImport(wsId: string, onClose: () => void) {
         worksheet.addRow({
           row_number: r.row_number,
           employee_code: r.employee_code ?? "",
-          termination_date: (r as unknown as Record<string, unknown>).raw_termination_date ?? "",
+          termination_date: r.raw_termination_date ?? "",
           reason: r.reason,
         });
       });

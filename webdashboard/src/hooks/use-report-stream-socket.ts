@@ -37,15 +37,19 @@ export function useReportStreamSocket({
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   const connectRef = useRef<() => void>(() => {});
 
-  const handleAuthError = useCallback(() => {
+  const handleAuthError = useCallback(async () => {
     retryCountRef.current++;
-    void tryRefreshToken().then((ref) => {
+    try {
+      const ref = await tryRefreshToken();
       if (ref && shouldReconnectRef.current) connectRef.current();
-      else { 
-        clearAuthSession(); 
-        if (window.location.pathname !== ROUTES.LOGIN) window.location.href = ROUTES.LOGIN; 
+      else {
+        clearAuthSession();
+        if (window.location.pathname !== ROUTES.LOGIN) window.location.href = ROUTES.LOGIN;
       }
-    });
+    } catch {
+      clearAuthSession();
+      if (window.location.pathname !== ROUTES.LOGIN) window.location.href = ROUTES.LOGIN;
+    }
   }, [retryCountRef, shouldReconnectRef]);
 
   const scheduleReconnect = useCallback(() => {

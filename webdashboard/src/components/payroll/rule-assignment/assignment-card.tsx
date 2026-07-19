@@ -82,7 +82,7 @@ export function AssignmentCard({
     return assignment.assignee_id ? `${assignment.assignee_id.slice(0, 8)}…` : "Unknown";
   };
 
-  const overrideConfigObj = a.override_config && typeof a.override_config === "object" ? (a.override_config as Record<string, unknown>) : null;
+  const overrideConfigObj = a.override_config && typeof a.override_config === "object" ? (a.override_config as { rate?: unknown; amount?: unknown }) : null;
   const overrideRate = overrideConfigObj && 'rate' in overrideConfigObj && overrideConfigObj.rate != null ? Number(overrideConfigObj.rate) : null;
   const overrideAmount = overrideConfigObj && 'amount' in overrideConfigObj && overrideConfigObj.amount != null ? Number(overrideConfigObj.amount) : null;
 

@@ -70,11 +70,11 @@ export default function ImportPreviewStep({
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                   <TableRow key={row.employment_id ?? index}>
                     <TableCell className="font-mono text-[13px] font-bold tracking-tight">{row.employee_code}</TableCell>
-                    <TableCell className="font-medium">{(row as unknown as { full_name?: string }).full_name}</TableCell>
+                    <TableCell className="font-medium">{row.full_name}</TableCell>
                     <TableCell>{row.termination_date}</TableCell>
                     <TableCell className="max-w-[200px] truncate">{row.termination_reason}</TableCell>
                     <TableCell>
-                      {(row as unknown as Record<string, unknown>).prorated_leave_preview
+                      {row.prorated_leaves && row.prorated_leaves.length > 0
                         ? t("employees.bulk_termination.yes")
                         : t("employees.bulk_termination.no")}
                     </TableCell>

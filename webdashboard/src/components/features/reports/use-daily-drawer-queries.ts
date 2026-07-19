@@ -89,11 +89,12 @@ export function useDailyDrawerQueries({
         adjustments.forEach((request) => {
             const key = `${request.employment_id}-${request.requested_date}`;
             map[key] = request;
-            // Also index by employee_id if available (handles id mismatch between endpoints)
-            const empId = (request as Record<string, unknown>).employee_id as string | undefined;
+            // Also index by employee_id if available (handles id mismatch between endpoints).
+            // The API may include employee_id alongside employment_id even though the
+            // generated type doesn't declare it yet.
+            const empId = (request as { employee_id?: string }).employee_id;
             if (empId && empId !== request.employment_id) {
                 const empKey = `${empId}-${request.requested_date}`;
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                 if (!map[empKey]) map[empKey] = request;
             }
         });

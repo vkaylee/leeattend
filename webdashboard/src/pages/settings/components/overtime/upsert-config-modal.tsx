@@ -116,6 +116,8 @@ function useUpsertConfigForm({
           payload.value_bool = data.value === "true";
           break;
         case "json":
+          // JSON.parse returns any; the field expects a Record (validated by form).
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
           payload.value_json = JSON.parse(data.value) as Record<string, unknown>;
           break;
         case "text":

@@ -22,9 +22,13 @@ interface PercentageConfig { base: string; cap_amount?: number; rate: number }
 interface FixedConfig { amount: number }
 interface TieredConfig { base: string }
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 /** Narrow the unknown rule_config to PercentageConfig, defaulting missing fields. */
 function asPercentageConfig(raw: unknown): PercentageConfig {
-  const c = (raw ?? {}) as Record<string, unknown>;
+  const c = isObject(raw) ? raw : {};
   return {
     rate: typeof c.rate === "number" ? c.rate : 0,
     base: typeof c.base === "string" ? c.base : "gross",
@@ -34,13 +38,13 @@ function asPercentageConfig(raw: unknown): PercentageConfig {
 
 /** Narrow the unknown rule_config to FixedConfig, defaulting missing fields. */
 function asFixedConfig(raw: unknown): FixedConfig {
-  const c = (raw ?? {}) as Record<string, unknown>;
+  const c = isObject(raw) ? raw : {};
   return { amount: typeof c.amount === "number" ? c.amount : 0 };
 }
 
 /** Narrow the unknown rule_config to TieredConfig, defaulting missing fields. */
 function asTieredConfig(raw: unknown): TieredConfig {
-  const c = (raw ?? {}) as Record<string, unknown>;
+  const c = isObject(raw) ? raw : {};
   return { base: typeof c.base === "string" ? c.base : "taxable_income" };
 }
 

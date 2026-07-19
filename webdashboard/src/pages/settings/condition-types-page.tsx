@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/no-unnecessary-type-conversion, complexity, max-lines, max-lines-per-function */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tags, Plus, Pencil, Trash2, ShieldAlert, Clock, Heart, Baby, Ban } from "lucide-react";
 import React, { useState } from "react";

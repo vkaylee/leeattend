@@ -5,6 +5,32 @@ export interface AppErrorResponse {
   message?: string;
 }
 
+/** Structured retry hint returned on 409 Conflict for retired resources. */
+export interface ConflictRetryHint {
+  reason: string;
+  leave_type_id: string;
+  name: string;
+}
+
+/** Narrow an unknown error body to check for a conflict-retry payload. */
+export function parseConflictRetry(body: unknown): ConflictRetryHint | undefined {
+  // Step through the nested error shape with runtime type checks at each level.
+  // The API returns { error: { retry: { reason, leave_type_id, name } } } on
+  // 409 Conflict when a retired resource can be restored.
+  if (typeof body !== "object" || body === null) return undefined;
+  const b = body as Record<string, unknown>;
+  if (typeof b.error !== "object" || b.error === null) return undefined;
+  const err = b.error as Record<string, unknown>;
+  if (typeof err.retry !== "object" || err.retry === null) return undefined;
+  const retry = err.retry as Record<string, unknown>;
+  if (retry.reason !== "retired_leave_type" || typeof retry.leave_type_id !== "string") return undefined;
+  return {
+    reason: retry.reason,
+    leave_type_id: retry.leave_type_id,
+    name: typeof retry.name === "string" ? retry.name : "",
+  };
+}
+
 /**
  * Structured error class for API responses.
  * Provides properties for status codes, error codes, and the parsed response body.

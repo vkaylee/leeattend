@@ -115,7 +115,15 @@ export default function EmployeeFormModal({
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   useEffect(() => {
     if (isOpen && wsId) {
-      void fetchWorkspaceMembers(wsId).then(setMembers).catch(() => { /* empty */ });
+      const loadMembers = async () => {
+        try {
+          const data = await fetchWorkspaceMembers(wsId);
+          setMembers(data);
+        } catch {
+          /* empty */
+        }
+      };
+      void loadMembers();
     }
   }, [isOpen, wsId]);
 

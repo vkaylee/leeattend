@@ -26,7 +26,7 @@ export function AttendanceLogsHeader({ dateRange, setIsImportDialogOpen }: Atten
       <div className="flex items-center gap-3">
         <Link
           className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-primary-600 dark:text-primary-400 px-4 py-2 rounded-xl hover:bg-primary-50 dark:hover:bg-primary-950 transition-all font-bold text-[10px] uppercase tracking-widest shadow-sm"
-          search={{ from: dateRange.start, to: dateRange.end } as Record<string, unknown>}
+          search={{ from: dateRange.start, to: dateRange.end } as { from?: string; to?: string }}
           to="/reports"
         >
           <BarChart3 size={14} /> {t("attendance_logs.view_reports")}

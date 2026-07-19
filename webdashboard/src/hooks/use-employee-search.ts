@@ -71,11 +71,9 @@ export function useEmployeeSearch({
 
   useEffect(() => {
     if (selectedEmpData) {
-      void Promise.resolve().then(() => {
-        setSelectedMeta(prev => {
-          if (prev.some(m => m.id === selectedEmpData.id)) return prev;
-          return [...prev, selectedEmpData];
-        });
+      setSelectedMeta(prev => {
+        if (prev.some(m => m.id === selectedEmpData.id)) return prev;
+        return [...prev, selectedEmpData];
       });
     }
   }, [selectedEmpData]);
@@ -85,12 +83,10 @@ export function useEmployeeSearch({
     const found = employees.filter(emp => selectedIds.includes(emp.id));
     if (found.length === 0) return;
 
-    void Promise.resolve().then(() => {
-      setSelectedMeta(previous => {
-        const missing = found.filter(f => !previous.some(m => m.id === f.id));
-        if (missing.length === 0) return previous;
-        return [...previous, ...missing];
-      });
+    setSelectedMeta(previous => {
+      const missing = found.filter(f => !previous.some(m => m.id === f.id));
+      if (missing.length === 0) return previous;
+      return [...previous, ...missing];
     });
   }, [employees, selectedIds]);
 

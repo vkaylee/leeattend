@@ -617,7 +617,14 @@ impl LeaveService {
             .workspace_repo
             .get_admins_with_permissions(workspace_id, &["leave.approve", "leave.manage"])
             .await
-            .unwrap_or_default();
+            .unwrap_or_else(|e| {
+                tracing::error!(
+                    workspace_id = %workspace_id,
+                    error = %e,
+                    "Leave notification: get_admins_with_permissions failed — no admins will be notified"
+                );
+                Vec::new()
+            });
 
         for admin_id in admins {
             user_ids_to_notify.insert(admin_id);

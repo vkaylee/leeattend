@@ -298,20 +298,22 @@ export const DebugToolbar: React.FC = () => {
 
   useEffect(() => {
     if (isOpen && isEnabled && activeTab === "identity") {
-      debugApi.getUsers()
-        .then(res => {
+      const fetchUsers = async () => {
+        try {
+          const res = await debugApi.getUsers();
           if (Array.isArray(res)) {
             setDebugUsers(res as DebugUser[]);
           } else {
             console.warn("Debug users API did not return an array:", res);
             setDebugUsers([]);
           }
-        })
-        .catch((error: unknown) => {
+        } catch (error: unknown) {
           // eslint-disable-next-line no-console
           console.error("Failed to fetch debug users:", error);
           setDebugUsers([]);
-        });
+        }
+      };
+      void fetchUsers();
     }
   }, [isOpen, isEnabled, activeTab]);
 

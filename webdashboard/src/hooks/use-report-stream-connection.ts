@@ -66,11 +66,9 @@ export function useReportStreamConnection({
 
     if (!jobId) return;
 
-    void Promise.resolve().then(() => {
-      if (shouldReconnectRef.current) {
-        connect();
-      }
-    });
+    if (shouldReconnectRef.current) {
+      connect();
+    }
 
     return () => {
       disconnect();
