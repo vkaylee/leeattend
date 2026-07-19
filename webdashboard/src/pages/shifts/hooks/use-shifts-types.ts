@@ -46,7 +46,7 @@ export interface UseShiftsReturn {
   handleCopyPreviousMonth: () => Promise<void>;
   handleCopyPreviousWeek: () => Promise<unknown>;
   handleCreateShift: () => void;
-  handleMonthBulkAssign: (assignments: { employeeId: string; dates: string[] }[], shiftId: string | null) => Promise<void>;
+  handleMonthBulkAssign: (assignments: { employeeId: string; employmentId?: string; dates: string[] }[], shiftId: string | null, onRowStatus?: (employeeId: string, status: "saving" | "saved" | "error") => void) => Promise<void>;
   handleMonthDeleteRoster: (assignments: { employeeId: string; dates: string[] }[]) => Promise<void>;
   handleNavigateMonth: (direction: "prev" | "next") => void;
   handleNavigateWeek: (direction: "prev" | "next") => void;

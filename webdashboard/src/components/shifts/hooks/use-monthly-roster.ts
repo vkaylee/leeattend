@@ -29,6 +29,33 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
   const [isShiftPickerOpen, setIsShiftPickerOpen] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
+  // Per-employee-row write status for the bulk apply flow: a row flips to
+  // "saving" when its request starts, then "saved"/"error" when it settles.
+  // "saved" auto-expires so the success tick only flashes briefly.
+  const [rowStatus, setRowStatus] = useState<
+    Map<string, "saving" | "saved" | "error">
+  >(new Map());
+
+  const setRowStatusFor = React.useCallback(
+    (employeeId: string, status: "saving" | "saved" | "error") => {
+      setRowStatus((prev) => {
+        const next = new Map(prev);
+        next.set(employeeId, status);
+        return next;
+      });
+      if (status === "saved") {
+        window.setTimeout(() => {
+          setRowStatus((prev) => {
+            if (prev.get(employeeId) !== "saved") return prev;
+            const next = new Map(prev);
+            next.delete(employeeId);
+            return next;
+          });
+        }, 1500);
+      }
+    },
+    [],
+  );
 
   const selectedEmployeesMeta = useMemo(() => {
     const list = [...selectedEmployees];
@@ -82,35 +109,43 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
 
   const [dragStartCell, setDragStartCell] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [dragMode, setDragMode] = useState<"add" | "remove">("add");
   const [dragSnapshot, setDragSnapshot] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const handleGlobalMouseUp = () => {
+    const handleGlobalPointerUp = () => {
       setIsDragging(false);
       setDragStartCell(null);
     };
 
     if (isDragging) {
-      window.addEventListener("mouseup", handleGlobalMouseUp);
+      window.addEventListener("pointerup", handleGlobalPointerUp);
+      window.addEventListener("pointercancel", handleGlobalPointerUp);
       return () => {
-        window.removeEventListener("mouseup", handleGlobalMouseUp);
+        window.removeEventListener("pointerup", handleGlobalPointerUp);
+        window.removeEventListener("pointercancel", handleGlobalPointerUp);
       };
     }
   }, [isDragging]);
 
-  const handleCellMouseDown = (
+  const handleCellPointerDown = (
     employeeId: string,
     dateStr: string,
-    e: React.MouseEvent
+    e: React.PointerEvent
   ) => {
-    if (e.button !== 0) return; // Only left click
+    // Only primary button (left mouse / single touch / pen contact)
+    if (e.button !== 0) return;
     const key = `${employeeId}:${dateStr}`;
+    // Anchor cell decides the paint direction: dragging from a selected cell
+    // erases the whole rectangle, dragging from an empty cell paints it.
+    const mode: "add" | "remove" = selectedCells.has(key) ? "remove" : "add";
     setIsDragging(true);
     setDragStartCell(key);
+    setDragMode(mode);
 
     setSelectedCells((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) {
+      if (mode === "remove") {
         next.delete(key);
       } else {
         next.add(key);
@@ -120,7 +155,7 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
     });
   };
 
-  const handleCellMouseEnter = (employeeId: string, dateStr: string) => {
+  const handleCellPointerEnter = (employeeId: string, dateStr: string) => {
     if (!isDragging || !dragStartCell) return;
 
     const [startEmpId, startDateStr] = dragStartCell.split(":");
@@ -155,7 +190,12 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
         const empId = filteredSchedules[i].employee_id ?? "";
         for (let j = minDayIdx; j <= maxDayIdx; j++) {
           const dStr = format(monthDays[j], "yyyy-MM-dd");
-          next.add(`${empId}:${dStr}`);
+          const cellKey = `${empId}:${dStr}`;
+          if (dragMode === "remove") {
+            next.delete(cellKey);
+          } else {
+            next.add(cellKey);
+          }
         }
       }
       return next;
@@ -177,11 +217,15 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
         }
         return acc;
       }, {});
+      const employmentByEmployee = new Map(
+        filteredSchedules.map((s) => [s.employee_id ?? "", s.employment_id]),
+      );
       const assignments = Object.entries(groups).map(([employeeId, dates]) => ({
         employeeId,
+        employmentId: employmentByEmployee.get(employeeId),
         dates: dates ?? [],
       }));
-      await handleMonthBulkAssign(assignments, shiftId);
+      await handleMonthBulkAssign(assignments, shiftId, setRowStatusFor);
       setSelectedCells(new Set());
     } finally {
       setIsMutating(false);
@@ -274,10 +318,11 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
     combinedSchedules,
     filteredSchedules,
     isDragging,
-    handleCellMouseDown,
-    handleCellMouseEnter,
+    handleCellPointerDown,
+    handleCellPointerEnter,
     handleApplyShift,
     handleClearSelectedOverrides,
     handleCopyMonth,
+    rowStatus,
   };
 }

@@ -62,6 +62,13 @@ pub struct PaginatedShiftRosters {
 /// Upper bound on how far back a shift reassignment triggers recalculation.
 const MAX_ASSIGN_REPROCESS_DAYS: i64 = 90;
 
+/// Upper bound on how many roster items a single bulk-upsert request may carry.
+/// The DB write is a single multi-row upsert and attendance reprocessing is now
+/// enqueued (not run inline), so this no longer bounds request cost — it only
+/// rejects pathological payloads. A full year is 366 days, generous headroom for
+/// any single employee's selection.
+const MAX_ROSTER_BULK_ITEMS: usize = 366;
+
 /// Clamp a shift-assignment window to the range that actually needs attendance
 /// recalculation: nothing in the future (no punches yet) and no further back than
 /// [`MAX_ASSIGN_REPROCESS_DAYS`]. `end` is `None` for open-ended assignments.
@@ -615,7 +622,7 @@ pub async fn upsert_roster(
     path = "/workspaces/{workspace_id}/employees/{id}/rosters/bulk",
     request_body = BulkRosterRequest,
     responses(
-        (status = 200, description = "Bulk rosters created/updated")
+        (status = 202, description = "Bulk rosters saved; attendance reprocess enqueued")
     ),
     params(
         ("workspace_id" = Uuid, Path, description = "Workspace ID"),
@@ -630,6 +637,10 @@ pub async fn bulk_upsert_roster(
 ) -> AppResult<StatusCode> {
     let (_workspace_id, employee_id) = params;
     ctx.require_permission(Permission::RostersManage)?;
+
+    if req.items.len() > MAX_ROSTER_BULK_ITEMS {
+        return Err(AppError::validation(I18nKey::RosterBatchTooLarge));
+    }
 
     let emp = state
         .employees()
@@ -652,11 +663,36 @@ pub async fn bulk_upsert_roster(
         cache.invalidate(ctx.workspace_id).await;
     }
 
-    for date in dates {
-        reprocess_after_roster_change(&state, ctx.workspace_id, active_employment_id, date).await;
+    // The roster write above is durable; attendance recalculation is offloaded to
+    // the worker so the request returns immediately. The range is inclusive of every
+    // day between the earliest and latest selected date; reprocessing untouched days
+    // in between is idempotent. Best-effort: an enqueue failure must not fail the
+    // request — the roster is already persisted and can be re-driven via bulk reprocess.
+    if let (Some(&start_date), Some(&end_date)) = (dates.iter().min(), dates.iter().max()) {
+        match resolve_and_enqueue_reprocess(
+            &state,
+            &ctx,
+            active_employment_id,
+            start_date,
+            end_date,
+        )
+        .await
+        {
+            Ok(job_id) => tracing::info!(
+                job_id = %job_id,
+                employment_id = %active_employment_id,
+                start = %start_date,
+                end = %end_date,
+                "Enqueued attendance reprocess after bulk roster upsert"
+            ),
+            Err(e) => tracing::error!(
+                employment_id = %active_employment_id,
+                "Failed to enqueue reprocess after bulk roster upsert: {e}"
+            ),
+        }
     }
 
-    Ok(StatusCode::OK)
+    Ok(StatusCode::ACCEPTED)
 }
 
 #[utoipa::path(

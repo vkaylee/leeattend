@@ -16,15 +16,27 @@ interface RosterGridTableProps {
   isDragging: boolean;
   monthDays: Date[];
   monthSchedules: EmployeeSchedule[];
-  onCellMouseDown: (
+  onCellPointerDown: (
     employeeId: string,
     dateStr: string,
-    e: React.MouseEvent,
+    e: React.PointerEvent,
   ) => void;
-  onCellMouseEnter: (employeeId: string, dateStr: string) => void;
+  onCellPointerEnter: (employeeId: string, dateStr: string) => void;
+  rowStatus?: Map<string, "saving" | "saved" | "error">;
   selectedCells: Set<string>;
   shifts?: Shift[];
 }
+
+/** Resolve the roster cell coordinates from a DOM node, if any. */
+const cellCoordsFromNode = (
+  node: Element | null,
+): { dateStr: string; employeeId: string } | null => {
+  const cell = node?.closest<HTMLElement>("[data-employee-id][data-date]");
+  if (!cell) return null;
+  const { date, employeeId } = cell.dataset;
+  if (employeeId === undefined || date === undefined) return null;
+  return { dateStr: date, employeeId };
+};
 
 const RosterGridTable = memo(function RosterGridTable({
   containerRef,
@@ -33,14 +45,39 @@ const RosterGridTable = memo(function RosterGridTable({
   isDragging,
   monthDays,
   monthSchedules,
-  onCellMouseDown,
-  onCellMouseEnter,
+  onCellPointerDown,
+  onCellPointerEnter,
+  rowStatus,
   selectedCells,
   shifts,
 }: RosterGridTableProps) {
+  const handlePointerDown = (e: React.PointerEvent) => {
+    const coords = cellCoordsFromNode(e.target as Element);
+    if (!coords) return;
+    // Prevent native text selection / touch scroll while painting cells.
+    e.preventDefault();
+    onCellPointerDown(coords.employeeId, coords.dateStr, e);
+  };
+
+  // On touch, pointer events are captured by the origin cell, so subsequent
+  // pointermove events never surface as pointerenter on the cells the finger
+  // travels over. Hit-test the point under the pointer instead so drag-select
+  // works identically for mouse, touch, and pen.
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    const coords = cellCoordsFromNode(
+      document.elementFromPoint(e.clientX, e.clientY),
+    );
+    if (!coords) return;
+    e.preventDefault();
+    onCellPointerEnter(coords.employeeId, coords.dateStr);
+  };
+
   return (
     <div
-      className={`overflow-x-auto relative max-w-full roster-scrollbar ${isDragging ? "select-none" : ""}`}
+      className={`overflow-x-auto relative max-w-full roster-scrollbar ${isDragging ? "select-none touch-none" : ""}`}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
       ref={containerRef}
     >
       <table className="w-full border-collapse">
@@ -93,6 +130,8 @@ const RosterGridTable = memo(function RosterGridTable({
             const subtitle = [empSchedule.employee_id_number, empSchedule.department_name]
               .filter(Boolean)
               .join(" · ");
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            const status = rowStatus?.get(empSchedule.employee_id ?? "");
 
             return (
             <tr
@@ -133,9 +172,8 @@ const RosterGridTable = memo(function RosterGridTable({
                     employeeId={empSchedule.employee_id ?? ""}
                     isSelected={isSelected}
                     key={dateStr}
-                    onMouseDown={onCellMouseDown}
-                    onMouseEnter={onCellMouseEnter}
                     shifts={shifts}
+                    status={status}
                   />
                 );
               })}

@@ -450,6 +450,7 @@
       "update_roster_error": "Update roster error",
       "bulk_update_success": "Bulk roster updated.",
       "bulk_update_error": "Bulk update error",
+      "bulk_partial_failure": "{{count}} employee(s) could not be updated. Please retry.",
       "remove_override_success": "Override removed, reverted to default.",
       "remove_override_error": "Error removing roster",
       "create_shift_success": "Shift type \"{{name}}\" initialized.",

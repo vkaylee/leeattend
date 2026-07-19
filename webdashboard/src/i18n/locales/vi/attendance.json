@@ -450,6 +450,7 @@
       "update_roster_error": "Lỗi cập nhật lịch",
       "bulk_update_success": "Đã cập nhật lịch trực hàng loạt.",
       "bulk_update_error": "Lỗi cập nhật hàng loạt",
+      "bulk_partial_failure": "Không thể cập nhật {{count}} nhân viên. Vui lòng thử lại.",
       "remove_override_success": "Đã gỡ bỏ ghi đè, quay về lịch mặc định.",
       "remove_override_error": "Lỗi khi gỡ bỏ lịch",
       "create_shift_success": "Loại ca \"{{name}}\" đã được khởi tạo.",

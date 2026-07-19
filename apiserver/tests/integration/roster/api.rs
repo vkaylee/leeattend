@@ -54,7 +54,9 @@ async fn test_bulk_upsert_roster_api_smoke() {
         .await
         .unwrap();
 
-    assert_eq!(res.status(), StatusCode::OK);
+    // Roster write is synchronous; attendance reprocess is enqueued to the worker,
+    // so the handler returns 202 Accepted instead of 200 OK.
+    assert_eq!(res.status(), StatusCode::ACCEPTED);
 
     // 4. Verify via GET (handler returns no body, just status code)
     let get_res = client

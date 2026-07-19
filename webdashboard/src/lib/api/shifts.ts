@@ -1,6 +1,8 @@
 import type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster, CreateShiftRequest, UpdateShiftRequest } from "./types";
 
 import { client } from "./client";
+import { ApiError } from "./errors";
+import { apiFetch, TIMEOUT } from "./helpers";
 
 
 export async function fetchShifts(wsId: string): Promise<Shift[]> {
@@ -110,12 +112,19 @@ export async function bulkUpsertRoster(
   employeeId: string,
   items: (Omit<Partial<ShiftRoster>, "date"> & { date: string })[],
 ): Promise<void> {
-  await client.POST("/workspaces/{workspace_id}/employees/{id}/rosters/bulk", {
-    params: {
-      path: { workspace_id: wsId, id: employeeId },
+  // Bypass the openapi client here: bulk roster writes trigger per-day attendance
+  // reprocessing on the backend and can exceed the default 10s timeout for large
+  // selections. Use apiFetch directly with the long report-operation timeout.
+  const response = await apiFetch(
+    `/v1/workspaces/${wsId}/employees/${employeeId}/rosters/bulk`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items }),
+      timeout: TIMEOUT.REPORT_OPERATION,
     },
-    body: { items: items },
-  });
+  );
+  if (!response.ok) await ApiError.rejectResponse(response);
 }
 
 export async function deleteRoster(wsId: string, employeeId: string, date: string): Promise<void> {

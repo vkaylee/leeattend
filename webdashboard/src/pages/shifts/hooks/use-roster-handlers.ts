@@ -10,6 +10,11 @@ import type { AssignPatternRequest, Employee, EmployeeSchedule, EmployeeWorkingP
 
 import { useToast } from "@/components/ui/toast";
 import { fetchWorkspaceSchedules, bulkUpsertRoster, deleteRoster } from "@/lib/api";
+import { runPool } from "@/lib/async-pool";
+
+// Cap concurrent roster requests so large monthly selections (e.g. 20 employees)
+// don't fan out into a burst that exhausts the backend DB pool or trips rate limits.
+const ROSTER_REQUEST_CONCURRENCY = 4;
 
 interface UseRosterHandlersProps {
   allSchedules: EmployeeSchedule[] | undefined;
@@ -91,41 +96,79 @@ export function useRosterHandlers({
   };
 
   // Monthly handlers
+
+  // The monthly grid is backed by a single ["schedules", …, "monthly", …] query
+  // holding every selected employee's row. To refresh one row without refetching
+  // the whole month, fetch just that employment's schedules and splice the fresh
+  // `schedules` array into the cached row, preserving its display fields.
+  const monthStartStr = monthDays.length > 0 ? format(monthDays[0], 'yyyy-MM-dd') : null;
+  const monthEndStr = monthDays.length > 0 ? format(monthDays[monthDays.length - 1], 'yyyy-MM-dd') : null;
+
+  const refetchAndPatchRow = async (employmentId: string) => {
+    if (!monthStartStr || !monthEndStr) return;
+    const fresh = await fetchWorkspaceSchedules(wsId, monthStartStr, monthEndStr, [employmentId]);
+    const freshRow = fresh.find((s) => s.employment_id === employmentId) ?? fresh[0];
+    if (!freshRow) return;
+    queryClient.setQueriesData<EmployeeSchedule[]>(
+      { predicate: (q) => q.queryKey[0] === "schedules" && q.queryKey[3] === "monthly" },
+      (old) =>
+        old?.map((row) =>
+          row.employment_id === employmentId ? { ...row, schedules: freshRow.schedules } : row
+        ),
+    );
+  };
+
   const handleMonthBulkAssign = async (
-    assignments: { employeeId: string; dates: string[] }[],
-    shiftId: string | null
+    assignments: { employeeId: string; employmentId?: string; dates: string[] }[],
+    shiftId: string | null,
+    onRowStatus?: (employeeId: string, status: "saving" | "saved" | "error") => void,
   ) => {
-    try {
-      await Promise.all(
-        assignments.map(async ({ employeeId, dates }) => {
-          const items = dates.map(date => ({ date, shift_id: shiftId }));
-          await bulkUpsertRoster(wsId, employeeId, items);
-        })
-      );
+    const failures = await runPool(
+      assignments,
+      ROSTER_REQUEST_CONCURRENCY,
+      async ({ employeeId, employmentId, dates }) => {
+        const items = dates.map(date => ({ date, shift_id: shiftId }));
+        await bulkUpsertRoster(wsId, employeeId, items);
+        // Best-effort per-row refresh: a refetch failure must not mark the write
+        // (already durable) as failed, so swallow it and let the row stay stale.
+        if (employmentId) {
+          try {
+            await refetchAndPatchRow(employmentId);
+          } catch {
+            /* row will refresh on next full load */
+          }
+        }
+      },
+      {
+        onItemStart: ({ employeeId }) => { onRowStatus?.(employeeId, "saving"); },
+        onItemSettle: ({ employeeId }, _index, error) => {
+          onRowStatus?.(employeeId, error ? "error" : "saved");
+        },
+      },
+    );
+    void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+    if (failures.length > 0) {
+      toast.error(t("shifts.messages.bulk_partial_failure", { count: failures.length }));
+    } else {
       toast.success(t("shifts.messages.bulk_update_success"));
-      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
-      void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
   const handleMonthDeleteRoster = async (
     assignments: { employeeId: string; dates: string[] }[]
   ) => {
-    try {
-      await Promise.all(
-        assignments.map(async ({ employeeId, dates }) => {
-          await Promise.all(
-            dates.map(date => deleteRoster(wsId, employeeId, date))
-          );
-        })
-      );
+    const cells = assignments.flatMap(({ employeeId, dates }) =>
+      dates.map(date => ({ employeeId, date }))
+    );
+    const failures = await runPool(cells, ROSTER_REQUEST_CONCURRENCY, async ({ employeeId, date }) => {
+      await deleteRoster(wsId, employeeId, date);
+    });
+    void queryClient.invalidateQueries({ queryKey: ["schedules"] });
+    void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+    if (failures.length > 0) {
+      toast.error(t("shifts.messages.bulk_partial_failure", { count: failures.length }));
+    } else {
       toast.success(t("shifts.messages.remove_override_success"));
-      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
-      void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -138,11 +181,9 @@ export function useRosterHandlers({
       const prevSchedules = await fetchWorkspaceSchedules(wsId, prevStartStr, prevEndStr);
       const currentYearMonth = format(currentMonth, 'yyyy-MM');
       const monthDayStrings = new Set(monthDays.map(d => format(d, 'yyyy-MM-dd')));
-      
-      let copyCount = 0;
-      
-      await Promise.all(
-        prevSchedules.map(async (empSchedule) => {
+
+      const employeeEntries = prevSchedules
+        .map((empSchedule) => {
           const rosterEntries = empSchedule.schedules
             .filter((s: EffectiveSchedule) => s.source === "roster" && !!s.shift_id)
             .map((s: EffectiveSchedule) => {
@@ -153,20 +194,24 @@ export function useRosterHandlers({
               return null;
             })
             .filter((item): item is { date: string; shift_id: string | null } => item !== null);
-            
-          if (rosterEntries.length > 0) {
-            copyCount += rosterEntries.length;
-             await bulkUpsertRoster(wsId, empSchedule.employee_id, rosterEntries);
-          }
+          return { employeeId: empSchedule.employee_id, rosterEntries };
         })
-      );
-      
-      if (copyCount > 0) {
-        toast.success(t("shifts.messages.bulk_update_success"));
-        void queryClient.invalidateQueries({ queryKey: ["schedules"] });
-        void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
-      } else {
+        .filter(({ rosterEntries }) => rosterEntries.length > 0);
+
+      if (employeeEntries.length === 0) {
         toast.warning(t("shifts.messages.no_previous_data"));
+        return;
+      }
+
+      const failures = await runPool(employeeEntries, ROSTER_REQUEST_CONCURRENCY, async ({ employeeId, rosterEntries }) => {
+        await bulkUpsertRoster(wsId, employeeId, rosterEntries);
+      });
+      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+      if (failures.length > 0) {
+        toast.error(t("shifts.messages.bulk_partial_failure", { count: failures.length }));
+      } else {
+        toast.success(t("shifts.messages.bulk_update_success"));
       }
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : String(e));

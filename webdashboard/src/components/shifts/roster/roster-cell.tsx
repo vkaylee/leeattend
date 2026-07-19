@@ -10,36 +10,31 @@ interface RosterCellProps {
   daySchedules: import("@/lib/api/types").EffectiveSchedule[];
   employeeId: string;
   isSelected: boolean;
-  onMouseDown: (employeeId: string, dateStr: string, e: React.MouseEvent) => void;
-  onMouseEnter: (employeeId: string, dateStr: string) => void;
   shifts?: Shift[];
+  status?: "saving" | "saved" | "error";
 }
 
 const RosterCell = memo(function RosterCell({
   dateStr,
   employeeId,
   isSelected,
-  onMouseDown,
-  onMouseEnter,
   daySchedules,
   shifts,
+  status,
 }: RosterCellProps) {
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    onMouseDown(employeeId, dateStr, e);
-  };
-
-  const handleMouseEnter = () => {
-    onMouseEnter(employeeId, dateStr);
-  };
-
   const workingSchedules = daySchedules.filter((s) => s.shift_id);
   const hasShift = workingSchedules.length > 0;
   const isHoliday = daySchedules.some((s) => s.is_holiday);
   const holidayName = daySchedules.find((s) => s.holiday_name)?.holiday_name;
 
   const highestSource = getHighestPrioritySource(daySchedules);
-  const cellStyles = getCellStyles(highestSource, isSelected);
+  const statusStyles =
+    status === "saving"
+      ? " opacity-60 animate-pulse"
+      : status === "error"
+      ? " ring-1 ring-inset ring-rose-400 dark:ring-rose-500"
+      : "";
+  const cellStyles = getCellStyles(highestSource, isSelected) + statusStyles;
 
   const allTraces = daySchedules.flatMap((s) => s.traces ?? []);
   const hasTraces = allTraces.length > 0;
@@ -47,8 +42,8 @@ const RosterCell = memo(function RosterCell({
   return (
     <td
       className={cellStyles}
-      onMouseDown={handleMouseDown}
-      onMouseEnter={handleMouseEnter}
+      data-date={dateStr}
+      data-employee-id={employeeId}
     >
       <div className="py-2.5 px-1 min-h-[44px] flex flex-col justify-center items-center gap-1">
         {hasShift ? (
@@ -85,6 +80,12 @@ const RosterCell = memo(function RosterCell({
         )}
 
         <SourceIndicator source={highestSource} />
+
+        {status === "saved" ? (
+          <span className="absolute top-0.5 left-0.5 z-30 text-[9px] font-extrabold text-emerald-600 dark:text-emerald-400 animate-in fade-in">
+            ✓
+          </span>
+        ) : null}
 
         {isHoliday ? (
           <span

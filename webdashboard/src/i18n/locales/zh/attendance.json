@@ -443,6 +443,7 @@
       "update_roster_error": "更新排班表时出错",
       "bulk_update_success": "批量排班表已更新。",
       "bulk_update_error": "批量更新时出错",
+      "bulk_partial_failure": "{{count}} 名员工无法更新。请重试。",
       "remove_override_success": "已移除覆盖，恢复默认设置。",
       "remove_override_error": "移除排班表时出错",
       "create_shift_success": "班次类型 \"{{name}}\" 已初始化。",

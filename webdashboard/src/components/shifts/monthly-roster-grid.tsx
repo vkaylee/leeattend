@@ -58,9 +58,10 @@ export function MonthlyRosterGrid({
     selectedEmployeeIds,
     filteredSchedules,
     isDragging,
-    handleCellMouseDown,
-    handleCellMouseEnter,
+    handleCellPointerDown,
+    handleCellPointerEnter,
     handleApplyShift,
+    rowStatus,
   } = monthlyRoster;
 
   // ── Scroll arrow visibility ────────────────────────────────────────
@@ -164,8 +165,9 @@ export function MonthlyRosterGrid({
         isDragging={isDragging}
         monthDays={monthDays}
         monthSchedules={filteredSchedules}
-        onCellMouseDown={handleCellMouseDown}
-        onCellMouseEnter={handleCellMouseEnter}
+        onCellPointerDown={handleCellPointerDown}
+        onCellPointerEnter={handleCellPointerEnter}
+        rowStatus={rowStatus}
         selectedCells={selectedCells}
         shifts={shifts}
       />
