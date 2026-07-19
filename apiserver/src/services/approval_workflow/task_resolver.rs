@@ -147,13 +147,21 @@ impl ApprovalWorkflowService {
         all_tasks.sort_by_key(ApprovalWorkflowTask::id);
         all_tasks.dedup_by_key(|t| t.id());
 
+        // Batch-fetch all instance IDs to avoid N+1 per-task instance lookup
+        let instance_ids: Vec<Uuid> = all_tasks.iter().map(|t| t.instance_id()).collect();
+        let instances = self
+            .approval_workflow_repo
+            .get_instances_by_ids(auth_token, &instance_ids)
+            .await
+            .unwrap_or_default();
+        let instances_by_id: std::collections::HashMap<Uuid, _> = instances
+            .into_iter()
+            .map(|inst| (inst.id, inst))
+            .collect();
+
         let mut final_tasks = Vec::new();
         for task in all_tasks {
-            if let Ok(Some(instance)) = self
-                .approval_workflow_repo
-                .get_instance_by_id(auth_token, task.instance_id())
-                .await
-            {
+            if let Some(instance) = instances_by_id.get(&task.instance_id()) {
                 let beneficiary_user_id = self
                     .get_beneficiary_user_id_for_entity(
                         auth_token,

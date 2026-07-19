@@ -42,6 +42,13 @@ mod tests {
         ) -> Result<Option<crate::models::Employer>, AppError> {
             unimplemented!()
         }
+        async fn get_employers_by_ids(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _ids: &[Uuid],
+        ) -> Result<Vec<crate::models::Employer>, AppError> {
+            unimplemented!()
+        }
         async fn get_employers(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,

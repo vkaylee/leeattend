@@ -208,6 +208,18 @@ mod tests {
             Ok(state.instances.get(&instance_id).cloned())
         }
 
+        async fn get_instances_by_ids(
+            &self,
+            _auth_token: &TenantAuthToken,
+            instance_ids: &[Uuid],
+        ) -> Result<Vec<ApprovalWorkflowInstance>, AppError> {
+            let state = self.state.lock().unwrap();
+            Ok(instance_ids
+                .iter()
+                .filter_map(|id| state.instances.get(id).cloned())
+                .collect())
+        }
+
         async fn get_workflow_by_id(
             &self,
             _auth_token: &TenantAuthToken,
@@ -1104,6 +1116,17 @@ mod tests {
         ) -> Result<Option<crate::models::Department>, AppError> {
             let state = self.state.lock().unwrap();
             Ok(state.departments.get(&id).cloned())
+        }
+        async fn get_departments_by_ids(
+            &self,
+            _a: &TenantAuthToken,
+            ids: &[Uuid],
+        ) -> Result<Vec<crate::models::Department>, AppError> {
+            let state = self.state.lock().unwrap();
+            Ok(ids
+                .iter()
+                .filter_map(|id| state.departments.get(id).cloned())
+                .collect())
         }
         async fn create_department(
             &self,

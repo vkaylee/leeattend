@@ -1,6 +1,6 @@
 use axum::{
     extract::State,
-    http::{header::SET_COOKIE, HeaderMap, HeaderValue, StatusCode},
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Json, Response},
 };
 use chrono::Utc;
@@ -11,116 +11,12 @@ use crate::models::{
     AuthResponse, ChangePasswordRequest, ForgotPasswordRequest, LoginRequest, RefreshRequest,
     RegisterRequest, ResetPasswordRequest, UpdateUserRequest, User, UserResponse,
 };
+use crate::utils::cookies::{clear_auth_cookies, create_auth_cookies};
 use crate::utils::i18n::I18nKey;
+use crate::validators::{validate_email, validate_password};
 
 use crate::services::auth_service::AuthService;
 use crate::{AppState, UserId};
-
-// --- Password Validation ---
-
-const MIN_PASSWORD_LEN: usize = 8;
-const MAX_PASSWORD_LEN: usize = 128;
-
-fn validate_password(password: &str) -> AppResult<()> {
-    if password.len() < MIN_PASSWORD_LEN {
-        return Err(AppError::validation(I18nKey::PasswordTooShort));
-    }
-    if password.len() > MAX_PASSWORD_LEN {
-        return Err(AppError::validation(I18nKey::PasswordTooLong));
-    }
-
-    // Simple strength check: must have at least one digit or special char
-    if !password
-        .chars()
-        .any(|c| c.is_ascii_digit() || c.is_ascii_punctuation())
-    {
-        return Err(AppError::validation(I18nKey::PasswordComplexity));
-    }
-
-    Ok(())
-}
-
-fn validate_email(email: &str) -> AppResult<()> {
-    // Basic structural validation: local@domain.tld
-    let trimmed = email.trim();
-    if trimmed.is_empty() || trimmed.len() > 254 {
-        return Err(AppError::validation(I18nKey::InvalidEmailFormat));
-    }
-
-    let parts: Vec<&str> = trimmed.splitn(2, '@').collect();
-    if parts.len() != 2 {
-        return Err(AppError::validation(I18nKey::InvalidEmailFormat));
-    }
-
-    let (local, domain) = (parts[0], parts[1]);
-
-    // Local part must not be empty
-    if local.is_empty() || local.len() > 64 {
-        return Err(AppError::validation(I18nKey::InvalidEmailFormat));
-    }
-
-    // Domain must have at least one dot, no consecutive dots, no leading/trailing dots
-    if domain.is_empty()
-        || !domain.contains('.')
-        || domain.starts_with('.')
-        || domain.ends_with('.')
-        || domain.contains("..")
-    {
-        return Err(AppError::validation(I18nKey::InvalidEmailFormat));
-    }
-
-    Ok(())
-}
-
-// --- Cookie Helpers ---
-
-fn create_auth_cookies(access_token: &str, refresh_token: &str) -> HeaderMap {
-    let mut headers = HeaderMap::new();
-    let domain_attr = match std::env::var("COOKIE_DOMAIN") {
-        Ok(d) if !d.is_empty() => format!("Domain={d}; "),
-        _ => String::new(),
-    };
-
-    // access_token cookie
-    let access_cookie = format!(
-        "access_token={access_token}; {domain_attr}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=900"
-    );
-    // refresh_token cookie
-    let refresh_cookie = format!(
-        "refresh_token={refresh_token}; {domain_attr}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=2592000"
-    );
-
-    if let Ok(val) = HeaderValue::from_str(&access_cookie) {
-        headers.append(SET_COOKIE, val);
-    }
-    if let Ok(val) = HeaderValue::from_str(&refresh_cookie) {
-        headers.append(SET_COOKIE, val);
-    }
-
-    headers
-}
-
-fn clear_auth_cookies() -> HeaderMap {
-    let mut headers = HeaderMap::new();
-    let domain_attr = match std::env::var("COOKIE_DOMAIN") {
-        Ok(d) if !d.is_empty() => format!("Domain={d}; "),
-        _ => String::new(),
-    };
-
-    let access_cookie =
-        format!("access_token=; {domain_attr}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=0");
-    let refresh_cookie =
-        format!("refresh_token=; {domain_attr}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=0");
-
-    if let Ok(val) = HeaderValue::from_str(&access_cookie) {
-        headers.append(SET_COOKIE, val);
-    }
-    if let Ok(val) = HeaderValue::from_str(&refresh_cookie) {
-        headers.append(SET_COOKIE, val);
-    }
-
-    headers
-}
 
 // --- Auth Handlers ---
 
@@ -829,6 +725,7 @@ pub async fn reset_password(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axum::http::header::SET_COOKIE;
 
     // --- validate_password tests ---
 

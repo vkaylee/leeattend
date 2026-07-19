@@ -191,6 +191,50 @@ impl DepartmentRepository for DieselDepartmentRepository {
         Ok(entity.map(Into::into))
     }
 
+    async fn get_departments_by_ids(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        ids: &[Uuid],
+    ) -> Result<Vec<Department>, AppError> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+        let workspace_id = auth_token.workspace_id();
+
+        let results = departments::table
+            .filter(departments::id.eq_any(ids))
+            .filter(departments::workspace_id.eq(workspace_id))
+            .filter(departments::deleted_at.is_null())
+            .select((
+                departments::all_columns,
+                diesel::dsl::sql::<diesel::sql_types::BigInt>(ACTIVE_EMPLOYEE_COUNT_SQL),
+            ))
+            .load::<(DieselDepartment, i64)>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(results
+            .into_iter()
+            .map(|(d, count)| {
+                DepartmentWithCountEntity {
+                    id: d.id,
+                    workspace_id: d.workspace_id,
+                    name: d.name,
+                    description: d.description,
+                    manager_id: d.manager_id,
+                    created_at: d.created_at,
+                    updated_at: d.updated_at,
+                    active_employee_count: count,
+                }
+                .into()
+            })
+            .collect())
+    }
+
     async fn get_department_by_name(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -1103,6 +1147,12 @@ mod tests {
 
         let err = repo.get_department_by_id(&auth_token, Uuid::new_v4()).await;
         assert!(err.is_err());
+
+        let result = repo.get_departments_by_ids(&auth_token, &[]).await;
+        assert!(
+            matches!(result, Ok(ref departments) if departments.is_empty()),
+            "Empty input should return Ok([]), got: {result:?}"
+        );
 
         let err = repo.get_department_by_name(&auth_token, "Name").await;
         assert!(err.is_err());

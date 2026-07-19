@@ -52,6 +52,13 @@ impl DepartmentRepository for NopDepartmentRepo {
     ) -> Result<Option<Department>, AppError> {
         unimplemented!()
     }
+    async fn get_departments_by_ids(
+        &self,
+        _a: &crate::diesel_pool::TenantAuthToken,
+        _ids: &[Uuid],
+    ) -> Result<Vec<Department>, AppError> {
+        Ok(Vec::new())
+    }
     async fn get_department_by_name(
         &self,
         _a: &crate::diesel_pool::TenantAuthToken,
@@ -264,6 +271,9 @@ impl UserRepository for NopUserRepo {
         Ok(false)
     }
     async fn create_notification(&self, _n: &Notification) -> Result<(), AppError> {
+        Ok(())
+    }
+    async fn create_notifications_batch(&self, _notifications: &[Notification]) -> Result<(), AppError> {
         Ok(())
     }
 }

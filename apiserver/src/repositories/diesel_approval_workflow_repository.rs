@@ -397,6 +397,34 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         Ok(result)
     }
 
+    async fn get_instances_by_ids(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        instance_ids: &[Uuid],
+    ) -> Result<Vec<ApprovalWorkflowInstance>, AppError> {
+        if instance_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let results = approval_workflow_instances::table
+            .filter(approval_workflow_instances::id.eq_any(instance_ids))
+            .filter(approval_workflow_instances::workspace_id.eq(auth_token.workspace_id()))
+            .load::<ApprovalWorkflowInstance>(&mut *conn)
+            .await
+            .map_err(|e| {
+                AppError::Internal(format!(
+                    "Failed to get approval workflow instances by ids: {e}"
+                ))
+            })?;
+
+        Ok(results)
+    }
+
     async fn get_workflow_by_id(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -769,6 +797,12 @@ mod tests {
             .await;
 
         let _ = repo.get_steps(&auth_token, Uuid::new_v4()).await;
+
+        let empty_batch_result = repo.get_instances_by_ids(&auth_token, &[]).await;
+        assert!(
+            matches!(empty_batch_result, Ok(ref instances) if instances.is_empty()),
+            "Empty input should return Ok([]), got: {empty_batch_result:?}"
+        );
 
         let log = ApprovalActionLog {
             id: Uuid::new_v4(),

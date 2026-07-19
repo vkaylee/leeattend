@@ -120,14 +120,17 @@ impl LeaveService {
             )
             .await?;
 
-        let mut logs = Vec::new();
-        for emp in employments {
-            let emp_logs = self
-                .leave_accrual_log_repo
-                .get_employment_leave_history_logs(workspace_id, emp.id(), year, leave_type_id)
-                .await?;
-            logs.extend(emp_logs);
-        }
+        // Batch-fetch all leave history logs to avoid N+1
+        let employment_ids: Vec<Uuid> = employments.iter().map(|e| e.id()).collect();
+        let logs = self
+            .leave_accrual_log_repo
+            .get_employment_leave_history_logs_batch(
+                workspace_id,
+                &employment_ids,
+                year,
+                leave_type_id,
+            )
+            .await?;
 
         let requests = self
             .leave_request_repo
@@ -650,9 +653,10 @@ impl LeaveService {
         );
         let link = "/workspace/leaves".to_string();
 
-        // 4. Create notification records
-        for target_user_id in user_ids_to_notify {
-            let notification = crate::models::Notification {
+        // 4. Create notification records in batch to avoid N+1
+        let notifications: Vec<crate::models::Notification> = user_ids_to_notify
+            .iter()
+            .map(|&target_user_id| crate::models::Notification {
                 id: Uuid::new_v4(),
                 user_id: target_user_id,
                 r#type: "leave_conflict".to_string(),
@@ -661,10 +665,10 @@ impl LeaveService {
                 is_read: false,
                 link: Some(link.clone()),
                 created_at: Utc::now(),
-            };
+            })
+            .collect();
 
-            self.user_repo.create_notification(&notification).await?;
-        }
+        self.user_repo.create_notifications_batch(&notifications).await?;
 
         Ok(())
     }
@@ -1165,6 +1169,16 @@ mod tests {
             &self,
             _w: Uuid,
             _e: Uuid,
+            _y: i32,
+            _t: Option<Uuid>,
+        ) -> Result<Vec<LeaveHistoryLogItem>, AppError> {
+            Ok(self.history_logs.lock().unwrap().clone())
+        }
+
+        async fn get_employment_leave_history_logs_batch(
+            &self,
+            _w: Uuid,
+            _employment_ids: &[Uuid],
             _y: i32,
             _t: Option<Uuid>,
         ) -> Result<Vec<LeaveHistoryLogItem>, AppError> {
@@ -2263,11 +2277,11 @@ mod tests {
             .expect_get_admins_with_permissions()
             .returning(move |_, _| Box::pin(async move { Ok(vec![admin_user_id]) }));
 
-        // 6. Mock user repo: expects 2 create_notification calls (one for submitter, one for admin)
+        // 6. Mock user repo: expects create_notifications_batch (now batched instead of N+1 per-user calls)
         let mut user_repo = crate::repositories::user_repository::MockUserRepository::new();
         user_repo
-            .expect_create_notification()
-            .times(2)
+            .expect_create_notifications_batch()
+            .times(1)
             .returning(|_| Ok(()));
 
         let bal_repo =

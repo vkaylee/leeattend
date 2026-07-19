@@ -88,6 +88,7 @@ pub mod schema;
 pub mod services;
 pub mod state;
 pub mod utils;
+pub mod validators;
 pub mod worker;
 #[cfg(test)]
 mod workspace_id_guard;

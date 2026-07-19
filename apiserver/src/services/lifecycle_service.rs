@@ -2,7 +2,7 @@ use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
 use crate::models::{
     ChecklistItemStatus, ChecklistStatus, CreateLifecycleChecklistTemplateItemRequest,
-    CreateLifecycleChecklistTemplateRequest, LifecycleChecklistResponse,
+    CreateLifecycleChecklistTemplateRequest, LifecycleChecklistItem, LifecycleChecklistResponse,
     LifecycleChecklistTemplate, LifecycleChecklistTemplateItem, LifecycleChecklistType,
     PendingTaskResponse, UpdateLifecycleChecklistTemplateItemRequest,
     UpdateLifecycleChecklistTemplateRequest,
@@ -211,6 +211,86 @@ impl LifecycleService {
                 updated_at: Utc::now(),
             };
 
+        // Pre-resolve assignees that don't vary per item to avoid N+1 queries
+        let has_direct_manager = template_items
+            .iter()
+            .any(|it| matches!(it.assignee_type(), crate::models::ChecklistAssigneeType::DirectManager));
+        let has_hr_manager = template_items
+            .iter()
+            .any(|it| matches!(it.assignee_type(), crate::models::ChecklistAssigneeType::HrManager));
+        let has_it_admin = template_items
+            .iter()
+            .any(|it| matches!(it.assignee_type(), crate::models::ChecklistAssigneeType::ItAdmin));
+
+        // DirectManager: resolve once (all DirectManager items reference the same employment.manager_employment_id)
+        let direct_manager_user_id: Option<Uuid> = if has_direct_manager {
+            if let Some(mgr_emp_id) = employment.manager_employment_id() {
+                if let Ok(Some(mgr_emp)) = self
+                    .employment_repo
+                    .get_employment_by_id(&auth_token, mgr_emp_id)
+                    .await
+                {
+                    if let Ok(Some(mgr_employee)) = self
+                        .employee_repo
+                        .get_employee_by_id(mgr_emp.employee_id(), &auth_token)
+                        .await
+                    {
+                        mgr_employee.user_id()
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        // HrManager: resolve once (workspace-scoped, same result for all items)
+        let hr_manager_user_id: Option<Uuid> = if has_hr_manager {
+            let users = self
+                .workspace_repo
+                .get_users_with_permission(workspace_id, "manage_onboarding")
+                .await
+                .unwrap_or_default();
+            if let Some(&uid) = users.first() {
+                Some(uid)
+            } else {
+                self.workspace_repo
+                    .get_users_with_permission(workspace_id, "admin")
+                    .await
+                    .unwrap_or_default()
+                    .first()
+                    .copied()
+            }
+        } else {
+            None
+        };
+
+        // ItAdmin: resolve once (workspace-scoped, same result for all items)
+        let it_admin_user_id: Option<Uuid> = if has_it_admin {
+            let users = self
+                .workspace_repo
+                .get_users_with_permission(workspace_id, "manage_it")
+                .await
+                .unwrap_or_default();
+            if let Some(&uid) = users.first() {
+                Some(uid)
+            } else {
+                self.workspace_repo
+                    .get_users_with_permission(workspace_id, "admin")
+                    .await
+                    .unwrap_or_default()
+                    .first()
+                    .copied()
+            }
+        } else {
+            None
+        };
+
         let mut item_entities = Vec::new();
         for item in template_items {
             let due_date =
@@ -219,63 +299,9 @@ impl LifecycleService {
             let assignee_user_id = match item.assignee_type() {
                 crate::models::ChecklistAssigneeType::SpecificUser => item.assignee_user_id(),
                 crate::models::ChecklistAssigneeType::Employee => employee.user_id(),
-                crate::models::ChecklistAssigneeType::DirectManager => {
-                    if let Some(mgr_emp_id) = employment.manager_employment_id() {
-                        if let Ok(Some(mgr_emp)) = self
-                            .employment_repo
-                            .get_employment_by_id(&auth_token, mgr_emp_id)
-                            .await
-                        {
-                            if let Ok(Some(mgr_employee)) = self
-                                .employee_repo
-                                .get_employee_by_id(mgr_emp.employee_id(), &auth_token)
-                                .await
-                            {
-                                mgr_employee.user_id()
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
-                }
-                crate::models::ChecklistAssigneeType::HrManager => {
-                    if let Ok(users) = self
-                        .workspace_repo
-                        .get_users_with_permission(workspace_id, "manage_onboarding")
-                        .await
-                    {
-                        users.first().copied()
-                    } else if let Ok(users) = self
-                        .workspace_repo
-                        .get_users_with_permission(workspace_id, "admin")
-                        .await
-                    {
-                        users.first().copied()
-                    } else {
-                        None
-                    }
-                }
-                crate::models::ChecklistAssigneeType::ItAdmin => {
-                    if let Ok(users) = self
-                        .workspace_repo
-                        .get_users_with_permission(workspace_id, "manage_it")
-                        .await
-                    {
-                        users.first().copied()
-                    } else if let Ok(users) = self
-                        .workspace_repo
-                        .get_users_with_permission(workspace_id, "admin")
-                        .await
-                    {
-                        users.first().copied()
-                    } else {
-                        None
-                    }
-                }
+                crate::models::ChecklistAssigneeType::DirectManager => direct_manager_user_id,
+                crate::models::ChecklistAssigneeType::HrManager => hr_manager_user_id,
+                crate::models::ChecklistAssigneeType::ItAdmin => it_admin_user_id,
             };
 
             item_entities.push(
@@ -382,8 +408,24 @@ impl LifecycleService {
             .await?;
 
         let mut responses = Vec::new();
+        if checklists.is_empty() {
+            return Ok(responses);
+        }
+        let checklist_ids: Vec<Uuid> = checklists.iter().map(|cl| cl.id()).collect();
+        let all_items = self.repo.list_items_for_checklist_ids(&auth_token, &checklist_ids).await?;
+
+        // Group items by checklist_id for efficient lookup
+        let mut items_by_checklist: std::collections::HashMap<Uuid, Vec<LifecycleChecklistItem>> =
+            std::collections::HashMap::new();
+        for item in all_items {
+            items_by_checklist
+                .entry(item.checklist_id())
+                .or_default()
+                .push(item);
+        }
+
         for cl in checklists {
-            let items = self.repo.list_checklist_items(&auth_token, cl.id()).await?;
+            let items = items_by_checklist.remove(&cl.id()).unwrap_or_default();
             responses.push(LifecycleChecklistResponse {
                 id: cl.id(),
                 workspace_id: cl.workspace_id(),

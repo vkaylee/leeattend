@@ -140,6 +140,12 @@ pub trait LifecycleChecklistRepository: Send + Sync {
         checklist_id: Uuid,
     ) -> Result<Vec<LifecycleChecklistItem>, AppError>;
 
+    async fn list_items_for_checklist_ids(
+        &self,
+        auth_token: &TenantAuthToken,
+        checklist_ids: &[Uuid],
+    ) -> Result<Vec<LifecycleChecklistItem>, AppError>;
+
     async fn update_checklist_item_status(
         &self,
         auth_token: &TenantAuthToken,

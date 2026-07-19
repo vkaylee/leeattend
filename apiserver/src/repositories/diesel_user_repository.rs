@@ -605,6 +605,61 @@ impl UserRepository for DieselUserRepository {
 
         Ok(())
     }
+
+    async fn create_notifications_batch(
+        &self,
+        notifications: &[crate::models::Notification],
+    ) -> Result<(), AppError> {
+        if notifications.is_empty() {
+            return Ok(());
+        }
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        use crate::schema::notifications;
+
+        #[derive(diesel::Insertable)]
+        #[diesel(table_name = notifications)]
+        struct NewNotification<'a> {
+            id: Uuid,
+            user_id: Uuid,
+            #[diesel(column_name = "type_")]
+            type_val: &'a str,
+            title: &'a str,
+            content: &'a str,
+            is_read: bool,
+            link: Option<&'a str>,
+            created_at: chrono::DateTime<chrono::Utc>,
+        }
+
+        let rows: Vec<_> = notifications
+            .iter()
+            .map(|n| NewNotification {
+                id: n.id,
+                user_id: n.user_id,
+                type_val: &n.r#type,
+                title: &n.title,
+                content: &n.content,
+                is_read: n.is_read,
+                link: n.link.as_deref(),
+                created_at: n.created_at,
+            })
+            .collect();
+
+        diesel::insert_into(notifications::table)
+            .values(&rows)
+            .execute(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db batch create notifications: {e}")))?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -621,5 +676,18 @@ mod tests {
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselUserRepository::new(pools);
         // DI connection test passes if it compiles
+    }
+
+    /// Empty input must return Ok without executing any query.
+    #[tokio::test]
+    async fn test_create_notifications_batch_empty_input() {
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+        let pools = DieselPools::for_test(&test_db_url);
+        let repo = DieselUserRepository::new(pools);
+
+        let result = repo.create_notifications_batch(&[]).await;
+        assert!(result.is_ok(), "Empty input should return Ok(()), got: {result:?}");
     }
 }
