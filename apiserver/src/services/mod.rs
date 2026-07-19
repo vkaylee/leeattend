@@ -38,6 +38,8 @@ pub mod signature_service;
 pub mod template_service;
 pub mod tenant_provisioner;
 pub use tenant_provisioner::{DatabaseMigratorTrait, TenantMigrator, TenantProvisionerTrait};
+pub mod termination_service;
+pub use termination_service::TerminationService;
 pub mod econtract;
 pub mod time_tracking_service;
 pub mod working_pattern_service;

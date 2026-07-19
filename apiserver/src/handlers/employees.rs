@@ -13,7 +13,6 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json},
 };
-use chrono::Datelike;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -569,11 +568,6 @@ pub struct ConfirmTerminationResponse {
     )
 )]
 #[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
-#[allow(
-    clippy::cast_precision_loss,
-    clippy::cast_possible_truncation,
-    clippy::too_many_lines
-)]
 pub async fn import_termination_preview(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -602,338 +596,22 @@ pub async fn import_termination_preview(
     };
     let _ = tokio::fs::remove_file(&path).await;
 
-    let rows = crate::utils::file_parser::extract_mapped_rows(
+    let mapped_rows = crate::utils::file_parser::extract_mapped_rows(
         &file_bytes,
         &["employee_code", "termination_date", "termination_reason"],
     )?;
 
-    let mut valid_rows = Vec::new();
-    let mut invalid_rows = Vec::new();
+    let service = crate::services::TerminationService::new(
+        Arc::clone(state.employees().repo()),
+        Arc::clone(state.employees().employment_repo()),
+        Arc::clone(state.leaves().balance_repo()),
+    );
 
-    // 1. Initial parsing step to filter empty rows/bad dates, and gather all unique normalized employee codes.
-    const VALID_TERMINATION_REASONS: &[&str] = &[
-        "voluntary_resignation",
-        "involuntary_termination",
-        "end_of_contract",
-        "retirement",
-        "mutual_agreement",
-        "abandonment",
-        "death",
-        "other",
-    ];
-
-    struct ParsedRow {
-        row_number: usize,
-        raw_code: String,
-        normalized_code: String,
-        raw_date: String,
-        termination_date: chrono::NaiveDate,
-        termination_reason: String,
-        termination_notes: Option<String>,
-    }
-
-    let mut parsed_rows = Vec::new();
-    let mut normalized_codes = Vec::new();
-    let mut seen_codes = std::collections::HashSet::new();
-
-    for (line_number, mapped_row) in rows {
-        let raw_code = mapped_row.get("employee_code").cloned().unwrap_or_default();
-        let raw_date = mapped_row
-            .get("termination_date")
-            .cloned()
-            .unwrap_or_default();
-        let raw_reason = mapped_row
-            .get("termination_reason")
-            .cloned()
-            .unwrap_or_default();
-        let termination_notes = mapped_row
-            .get("termination_notes")
-            .cloned()
-            .filter(|s| !s.trim().is_empty());
-
-        if raw_code.trim().is_empty() {
-            invalid_rows.push(InvalidTerminationRow {
-                row_number: line_number,
-                employee_code: Some(raw_code),
-                raw_termination_date: Some(raw_date),
-                reason: crate::utils::i18n::translate(
-                    &crate::utils::i18n::get_locale(),
-                    "error.full_name_required",
-                ),
-            });
-            continue;
-        }
-
-        let Some(termination_date) = crate::utils::datetime::parse_date(&raw_date) else {
-            invalid_rows.push(InvalidTerminationRow {
-                row_number: line_number,
-                employee_code: Some(raw_code.clone()),
-                raw_termination_date: Some(raw_date.clone()),
-                reason: crate::utils::i18n::translate(
-                    &crate::utils::i18n::get_locale(),
-                    "error.invalid_date_format",
-                ),
-            });
-            continue;
-        };
-
-        let termination_reason = raw_reason.trim().to_lowercase();
-        if !VALID_TERMINATION_REASONS.contains(&termination_reason.as_str()) {
-            let locale = crate::utils::i18n::get_locale();
-            let reason = if locale == "vi" {
-                format!(
-                    "Lý do nghỉ việc không hợp lệ: '{}'. Các giá trị hợp lệ: {}",
-                    raw_reason,
-                    VALID_TERMINATION_REASONS.join(", ")
-                )
-            } else {
-                format!(
-                    "Invalid termination reason: '{}'. Valid values: {}",
-                    raw_reason,
-                    VALID_TERMINATION_REASONS.join(", ")
-                )
-            };
-            invalid_rows.push(InvalidTerminationRow {
-                row_number: line_number,
-                employee_code: Some(raw_code.clone()),
-                raw_termination_date: Some(raw_date.clone()),
-                reason,
-            });
-            continue;
-        }
-
-        let normalized_code = crate::utils::normalize_employee_id(&raw_code);
-        if !seen_codes.insert(normalized_code.clone()) {
-            let locale = crate::utils::i18n::get_locale();
-            let reason = if locale == "vi" {
-                "Mã nhân viên bị lặp lại trong tệp".to_string()
-            } else {
-                "Duplicate employee code in the file".to_string()
-            };
-            invalid_rows.push(InvalidTerminationRow {
-                row_number: line_number,
-                employee_code: Some(raw_code),
-                raw_termination_date: Some(raw_date),
-                reason,
-            });
-            continue;
-        }
-        normalized_codes.push(normalized_code.clone());
-
-        parsed_rows.push(ParsedRow {
-            row_number: line_number,
-            raw_code,
-            normalized_code,
-            raw_date,
-            termination_date,
-            termination_reason,
-            termination_notes,
-        });
-    }
-
-    // 2. Batch fetch Employees
-    let employees_list = state
-        .employees()
-        .repo()
-        .get_employees_by_id_numbers(&normalized_codes, &ctx.auth_token)
+    let preview = service
+        .build_preview(&ctx.auth_token, mapped_rows)
         .await?;
 
-    let employees_by_code: std::collections::HashMap<String, Employee> = employees_list
-        .into_iter()
-        .map(|emp| (emp.employee_id_number().to_string(), emp))
-        .collect();
-
-    let employee_ids: Vec<Uuid> = employees_by_code.values().map(Employee::id).collect();
-
-    // 3. Batch fetch Employments
-    let employments = state
-        .employees()
-        .employment_repo()
-        .get_employments_for_employees(&ctx.auth_token, &employee_ids)
-        .await?;
-
-    let mut employments_by_employee_id: std::collections::HashMap<
-        Uuid,
-        Vec<crate::models::employment::Employment>,
-    > = std::collections::HashMap::new();
-    for emp in employments {
-        employments_by_employee_id
-            .entry(emp.employee_id())
-            .or_default()
-            .push(emp);
-    }
-
-    // 4. Batch fetch Leave Balances
-    let years: std::collections::HashSet<i32> = parsed_rows
-        .iter()
-        .map(|r| r.termination_date.year())
-        .collect();
-
-    let mut balances_by_year_and_employee: std::collections::HashMap<
-        i32,
-        std::collections::HashMap<Uuid, Vec<crate::models::EmployeeLeaveBalance>>,
-    > = std::collections::HashMap::new();
-    for year in years {
-        let batch_balances = state
-            .leaves()
-            .balance_repo()
-            .get_employee_balances_batch(&ctx.auth_token, &employee_ids, year)
-            .await?;
-        balances_by_year_and_employee.insert(year, batch_balances);
-    }
-
-    // 5. Final loop in memory over the parsed rows to validate and build proration previews
-    for row in parsed_rows {
-        let Some(employee) = employees_by_code.get(&row.normalized_code) else {
-            invalid_rows.push(InvalidTerminationRow {
-                row_number: row.row_number,
-                employee_code: Some(row.raw_code.clone()),
-                raw_termination_date: Some(row.raw_date.clone()),
-                reason: crate::utils::i18n::translate(
-                    &crate::utils::i18n::get_locale(),
-                    "error.employee_not_found",
-                ),
-            });
-            continue;
-        };
-
-        let employee_employments = employments_by_employee_id
-            .get(&employee.id())
-            .cloned()
-            .unwrap_or_default();
-
-        // Accept any non-terminated employment (active, probation, onboarding, etc.).
-        // This is consistent with `terminate_employment` in lifecycle.rs which only
-        // blocks when status == "terminated". If multiple candidates exist, prefer
-        // the one with the latest start_date.
-        let mut warnings = Vec::new();
-        let active_employment = {
-            let mut candidates: Vec<_> = employee_employments
-                .clone()
-                .into_iter()
-                .filter(|emp| emp.status() != "terminated")
-                .collect();
-            candidates.sort_by(|a, b| b.start_date().cmp(&a.start_date()));
-            if candidates.len() > 1 {
-                let locale = crate::utils::i18n::get_locale();
-                let warning_msg = if locale == "vi" {
-                    format!("Tìm thấy {} hợp đồng chưa kết thúc. Đã tự động chọn hợp đồng mới nhất (bắt đầu ngày {}).", candidates.len(), candidates[0].start_date().format("%d/%m/%Y"))
-                } else {
-                    format!("Found {} non-terminated employments. Automatically selected the latest one (starting {}).", candidates.len(), candidates[0].start_date().format("%d/%m/%Y"))
-                };
-                warnings.push(warning_msg);
-            }
-            candidates.into_iter().next()
-        };
-
-        let Some(active_employment) = active_employment else {
-            let error_key = if employee_employments.is_empty() {
-                "error.no_active_employment"
-            } else {
-                "error.employee_already_terminated"
-            };
-            invalid_rows.push(InvalidTerminationRow {
-                row_number: row.row_number,
-                employee_code: Some(row.raw_code.clone()),
-                raw_termination_date: Some(row.raw_date.clone()),
-                reason: crate::utils::i18n::translate(
-                    &crate::utils::i18n::get_locale(),
-                    error_key,
-                ),
-            });
-            continue;
-        };
-
-        if row.termination_date < active_employment.start_date() {
-            let locale = crate::utils::i18n::get_locale();
-            let reason = if locale == "vi" {
-                format!(
-                    "Ngày nghỉ việc không được trước ngày bắt đầu làm việc ({})",
-                    active_employment.start_date().format("%d/%m/%Y")
-                )
-            } else {
-                format!(
-                    "Termination date cannot be before employment start date ({})",
-                    active_employment.start_date().format("%d/%m/%Y")
-                )
-            };
-            invalid_rows.push(InvalidTerminationRow {
-                row_number: row.row_number,
-                employee_code: Some(row.raw_code.clone()),
-                raw_termination_date: Some(row.raw_date.clone()),
-                reason,
-            });
-            continue;
-        }
-
-        // Calculate leave proration preview
-        let year = row.termination_date.year();
-        let Some(start_of_year) = chrono::NaiveDate::from_ymd_opt(year, 1, 1) else {
-            invalid_rows.push(InvalidTerminationRow {
-                row_number: row.row_number,
-                employee_code: Some(row.raw_code.clone()),
-                raw_termination_date: Some(row.raw_date.clone()),
-                reason: "Invalid start of year".to_string(),
-            });
-            continue;
-        };
-        let Some(end_of_year) = chrono::NaiveDate::from_ymd_opt(year, 12, 31) else {
-            invalid_rows.push(InvalidTerminationRow {
-                row_number: row.row_number,
-                employee_code: Some(row.raw_code.clone()),
-                raw_termination_date: Some(row.raw_date.clone()),
-                reason: "Invalid end of year".to_string(),
-            });
-            continue;
-        };
-
-        let eff_start = std::cmp::max(start_of_year, active_employment.start_date());
-        let days_worked = (row.termination_date - eff_start).num_days() + 1;
-        let total_days = (end_of_year - start_of_year).num_days() + 1;
-        let proration_fraction = days_worked as f64 / total_days as f64;
-
-        let balances = balances_by_year_and_employee
-            .get(&year)
-            .and_then(|m| m.get(&employee.id()))
-            .cloned()
-            .unwrap_or_default();
-
-        let mut prorated_leaves = Vec::new();
-        for emp_bal in balances {
-            let prorated_entitlement =
-                (f64::from(emp_bal.entitlement) * proration_fraction).round() as i32;
-
-            prorated_leaves.push(ProratedLeavePreview {
-                leave_type_id: emp_bal.leave_type_id,
-                leave_type_code: emp_bal.leave_type_code.clone(),
-                leave_type_name: emp_bal.leave_type_name.clone(),
-                old_entitlement: emp_bal.entitlement,
-                new_entitlement: prorated_entitlement,
-            });
-        }
-
-        valid_rows.push(ValidTerminationRow {
-            row_number: row.row_number,
-            employee_id: employee.id(),
-            employee_code: row.raw_code.clone(),
-            full_name: employee.full_name().to_string(),
-            start_date: active_employment.start_date(),
-            termination_date: row.termination_date,
-            employment_id: active_employment.id(),
-            prorated_leaves,
-            termination_reason: row.termination_reason,
-            termination_notes: row.termination_notes,
-            warnings,
-        });
-    }
-
-    let can_commit = !valid_rows.is_empty();
-
-    Ok(Json(TerminationPreviewResponse {
-        valid_rows,
-        invalid_rows,
-        can_commit,
-    }))
+    Ok(Json(preview))
 }
 
 #[utoipa::path(

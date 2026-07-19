@@ -22,6 +22,19 @@ pub trait LeaveBalanceRepository: Send + Sync {
         employee_ids: &[Uuid],
         year: i32,
     ) -> Result<std::collections::HashMap<Uuid, Vec<EmployeeLeaveBalance>>, AppError>;
+
+    /// Batch-fetch employee leave balances across multiple years in a single query.
+    /// Returns a map keyed by year, then by employee_id.
+    async fn get_employee_balances_by_years(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_ids: &[Uuid],
+        years: &[i32],
+    ) -> Result<
+        std::collections::HashMap<i32, std::collections::HashMap<Uuid, Vec<EmployeeLeaveBalance>>>,
+        AppError,
+    >;
+
     async fn get_workspace_balances(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

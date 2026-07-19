@@ -838,6 +838,26 @@ mod tests {
             }
             Ok(map)
         }
+        async fn get_employee_balances_by_years(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            employee_ids: &[Uuid],
+            years: &[i32],
+        ) -> Result<
+            std::collections::HashMap<i32, std::collections::HashMap<Uuid, Vec<EmployeeLeaveBalance>>>,
+            AppError,
+        > {
+            let balances = self.employee_balances.lock().unwrap().clone();
+            let mut outer = std::collections::HashMap::new();
+            for &year in years {
+                let mut inner = std::collections::HashMap::new();
+                for &id in employee_ids {
+                    inner.insert(id, balances.clone());
+                }
+                outer.insert(year, inner);
+            }
+            Ok(outer)
+        }
         async fn upsert_leave_balance(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
