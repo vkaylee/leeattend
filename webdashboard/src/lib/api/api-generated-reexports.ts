@@ -10,7 +10,7 @@
  * file), so there is NO migration needed on the consumer side.
  */
 
-import { components } from "@/types/api-generated";
+import type { components } from "@/types/api-generated";
 
 export type DeviceStatus = components["schemas"]["DeviceStatus"];
 export type AgentStatus = components["schemas"]["AgentStatus"];

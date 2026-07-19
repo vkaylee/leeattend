@@ -1,4 +1,4 @@
-import { components } from "@/types/api-generated";
+import type { components } from "@/types/api-generated";
 
 // Pure 1:1 schema aliases moved to ./api-generated-reexports.
 // Types.ts now only carries overrides (Omit/&), hand-written

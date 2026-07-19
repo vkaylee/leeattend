@@ -10,7 +10,7 @@ import { FileUpload } from "@/components/files/file-upload";
 import Button from "@/components/ui/button";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { client } from "@/lib/api/client";
-import { components } from "@/types/api-generated";
+import type { components } from "@/types/api-generated";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
 

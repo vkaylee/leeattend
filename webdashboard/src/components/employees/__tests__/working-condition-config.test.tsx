@@ -10,41 +10,40 @@ import { ToastProvider } from "@/components/ui/toast";
 import WorkingConditionConfig from "../working-condition-config";
 
 
-
-// Mock API
-const mockDelete = vi.fn().mockResolvedValue(undefined);
-vi.stubGlobal("fetch", vi.fn((url: string, options?: RequestInit) => {
-  let responseData: any = null;
-  if (options?.method === "DELETE") {
-    mockDelete("ws-1", "emp-1", "cond-1");
-    responseData = null;
-  } else if (options?.method === "POST") {
-    responseData = { id: "cond-2", type_: "REGULAR", start_date: "2026-01-01", is_paid: true };
-  } else {
-    // GET
-    responseData = {
-      data: [
-        {
-          id: "cond-1",
-          type_: "REGULAR",
-          minute_allowance: 60,
-          is_paid: true,
-          start_date: "2026-01-01"
-        }
-      ]
-    };
-  }
-
-  return Promise.resolve({
-    ok: true,
-    status: 200,
-    headers: new Headers({ "content-type": "application/json" }),
-    json: () => Promise.resolve(responseData),
-    text: () => Promise.resolve(responseData ? JSON.stringify(responseData) : ""),
-    clone: function() { return this; }
-  } as unknown as Response);
+// Mock useWorkingConditions hook
+const { mockDeleteFn } = vi.hoisted(() => ({
+  mockDeleteFn: vi.fn(),
 }));
 
+vi.mock("@/hooks/use-employees", () => ({
+  useWorkingConditions: () => ({
+    data: [
+      {
+        id: "cond-1",
+        type: "REGULAR",
+        minute_allowance: 60,
+        is_paid: true,
+        start_date: "2026-01-01",
+      },
+    ],
+    isLoading: false,
+  }),
+  useEmployeeContract: () => ({ data: null, isLoading: false }),
+}));
+
+// Mock the condition types API call (via useQuery)
+vi.mock("@/lib/api", async () => {
+  const actual = await vi.importActual("@/lib/api");
+  return {
+    ...actual as any,
+    fetchConditionTypes: vi.fn().mockResolvedValue([
+      { id: "ct-1", code: "REGULAR", name_i18n: { en: "Regular", vi: "Chính thức" }, category: "working_hours", is_system: true },
+    ]),
+    createWorkingCondition: vi.fn().mockResolvedValue({ id: "cond-2", type_: "REGULAR", start_date: "2026-01-01", is_paid: true }),
+    deleteWorkingCondition: mockDeleteFn,
+    getCurrentWorkspaceId: () => "ws-1",
+  };
+});
 
 // Mock translation
 vi.mock("react-i18next", () => ({
@@ -55,7 +54,11 @@ vi.mock("react-i18next", () => ({
       if (key === "common.confirm") return "Confirm";
       if (key === "employees.policies.types.regular") return "Regular";
       return key;
-    }
+    },
+    i18n: {
+      changeLanguage: () => Promise.resolve(),
+      language: "en",
+    },
   })
 }));
 
@@ -80,7 +83,6 @@ describe("WorkingConditionConfig", () => {
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
     localStorage.clear();
   });
 
@@ -110,7 +112,7 @@ describe("WorkingConditionConfig", () => {
     await user.click(confirmButton);
 
     await waitFor(() => {
-      expect(mockDelete).toHaveBeenCalledWith("ws-1", "emp-1", "cond-1");
+      expect(mockDeleteFn).toHaveBeenCalledWith("ws-1", "emp-1", "cond-1");
     });
   });
 });

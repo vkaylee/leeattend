@@ -5,7 +5,7 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { fetch } from "@/lib/api/client";
 import { logError } from "@/lib/logger";
-import { components } from "@/types/api-generated";
+import type { components } from "@/types/api-generated";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
 

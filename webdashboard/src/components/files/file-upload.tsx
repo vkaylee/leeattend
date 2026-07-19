@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useFileUpload } from "@/hooks/use-file-upload";
-import { components } from "@/types/api-generated";
+import type { components } from "@/types/api-generated";
 
 type FileCategory = components["schemas"]["FileCategory"];
 type FileOwnerType = components["schemas"]["FileOwnerType"];

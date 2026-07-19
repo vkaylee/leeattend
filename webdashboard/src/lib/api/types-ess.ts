@@ -1,4 +1,4 @@
-import { components } from "@/types/api-generated";
+import type { components } from "@/types/api-generated";
 
 // --- Employee Self-Service (ESS) Types ---
 export type MyProfileResponse = Omit<components["schemas"]["MyProfileResponse"], "profile"> & {

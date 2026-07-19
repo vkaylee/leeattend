@@ -1,0 +1,160 @@
+import React, { memo } from "react";
+
+import type { Shift } from "@/lib/api/types";
+
+import { ScheduleTracePopover } from "../schedule-trace-popover";
+import { getCellStyles, getHighestPrioritySource, getShiftSymbol } from "./roster-utils";
+
+interface RosterCellProps {
+  dateStr: string;
+  daySchedules: import("@/lib/api/types").EffectiveSchedule[];
+  employeeId: string;
+  isSelected: boolean;
+  onMouseDown: (employeeId: string, dateStr: string, e: React.MouseEvent) => void;
+  onMouseEnter: (employeeId: string, dateStr: string) => void;
+  shifts?: Shift[];
+}
+
+const RosterCell = memo(function RosterCell({
+  dateStr,
+  employeeId,
+  isSelected,
+  onMouseDown,
+  onMouseEnter,
+  daySchedules,
+  shifts,
+}: RosterCellProps) {
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onMouseDown(employeeId, dateStr, e);
+  };
+
+  const handleMouseEnter = () => {
+    onMouseEnter(employeeId, dateStr);
+  };
+
+  const workingSchedules = daySchedules.filter((s) => s.shift_id);
+  const hasShift = workingSchedules.length > 0;
+  const isHoliday = daySchedules.some((s) => s.is_holiday);
+  const holidayName = daySchedules.find((s) => s.holiday_name)?.holiday_name;
+
+  const highestSource = getHighestPrioritySource(daySchedules);
+  const cellStyles = getCellStyles(highestSource, isSelected);
+
+  const allTraces = daySchedules.flatMap((s) => s.traces ?? []);
+  const hasTraces = allTraces.length > 0;
+
+  return (
+    <td
+      className={cellStyles}
+      onMouseDown={handleMouseDown}
+      onMouseEnter={handleMouseEnter}
+    >
+      <div className="py-2.5 px-1 min-h-[44px] flex flex-col justify-center items-center gap-1">
+        {hasShift ? (
+          <div className="flex flex-col gap-1 items-center">
+            {workingSchedules.slice(0, 3).map((s, idx) => {
+              const shiftConfig = shifts?.find((sh) => sh.id === s.shift_id);
+              const shiftSymbol = getShiftSymbol(
+                s.shift_name,
+                shiftConfig?.report_symbol,
+              );
+              const shiftBgClass = s.source === "roster"
+                ? "bg-teal-100/60 dark:bg-teal-950/60 text-teal-800 dark:text-teal-200"
+                : "bg-slate-100/50 dark:bg-slate-800 text-slate-700 dark:text-slate-300";
+              return (
+                <span
+                  className={`text-[9px] font-extrabold tracking-tight px-1.5 py-0.5 rounded-md ${shiftBgClass}`}
+                  key={idx}
+                  title={`${s.shift_name ?? ""} (${s.start_time?.substring(0, 5) ?? ""} - ${s.end_time?.substring(0, 5) ?? ""})`}
+                >
+                  {shiftSymbol}
+                </span>
+              );
+            })}
+            {workingSchedules.length > 3 && (
+              <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500">
+                +{workingSchedules.length - 3} more
+              </span>
+            )}
+          </div>
+        ) : (
+          <span className="text-[10px] text-slate-350 dark:text-slate-600 font-bold">
+            —
+          </span>
+        )}
+
+        <SourceIndicator source={highestSource} />
+
+        {isHoliday ? (
+          <span
+            className="absolute top-1 left-1 text-[8px] bg-amber-100 dark:bg-amber-950 text-amber-600 rounded-full px-0.5 font-extrabold scale-90 border border-amber-200 dark:border-amber-900"
+            title={holidayName ?? "Lễ"}
+          >
+            🎉
+          </span>
+        ) : null}
+
+        {hasTraces && allTraces.length > 0 ? (
+          <div className="absolute top-0.5 right-0.5 z-30 opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity">
+            <ScheduleTracePopover
+              schedules={workingSchedules.map((s) => {
+                const shiftConfig = shifts?.find((sh) => sh.id === s.shift_id);
+                const shiftSymbol = getShiftSymbol(
+                  s.shift_name,
+                  shiftConfig?.report_symbol,
+                );
+                return {
+                  shiftName: s.shift_name,
+                  shiftSymbol,
+                  startTime: s.start_time,
+                  endTime: s.end_time,
+                };
+              })}
+              source={highestSource ?? "none"}
+              traces={allTraces}
+            />
+          </div>
+        ) : null}
+      </div>
+    </td>
+  );
+});
+RosterCell.displayName = "RosterCell";
+
+export { RosterCell };
+
+// ── Internal ──────────────────────────────────────────────────────────
+
+const SourceIndicator = memo(function SourceIndicator({
+  source,
+}: {
+  source?: string;
+}) {
+  switch (source) {
+    case "roster":
+      return (
+        <span className="absolute bottom-1 right-1 w-1 h-1 rounded-full bg-teal-500" />
+      );
+    case "pattern":
+      return (
+        <span className="absolute bottom-1 right-1 w-1 h-1 rounded-full bg-blue-500" />
+      );
+    case "assignment_rule":
+      return (
+        <span className="absolute bottom-1 right-1 w-1 h-1 rounded-full bg-violet-500" />
+      );
+    case "department_pattern":
+      return (
+        <span className="absolute bottom-1 right-1 w-1 h-1 rounded-full bg-slate-400" />
+      );
+    case "fixed":
+    case "department_fixed":
+      return (
+        <span className="absolute bottom-1 right-1 w-1 h-1 rounded-full bg-emerald-500" />
+      );
+    default:
+      return null;
+  }
+});
+SourceIndicator.displayName = "SourceIndicator";

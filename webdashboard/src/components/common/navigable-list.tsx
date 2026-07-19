@@ -1,7 +1,7 @@
 import type { TFunction } from "i18next";
 
 import { ChevronRight, Search, Loader2 } from "lucide-react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -49,7 +49,7 @@ interface NavigableListProps<T> {
   testIdPrefix?: string;
 }
 
-function NavigableListSkeleton({
+const NavigableListSkeleton = memo(function NavigableListSkeleton({
   skeletonRows,
   colSpan,
 }: {
@@ -67,9 +67,9 @@ function NavigableListSkeleton({
       ))}
     </>
   );
-}
+});
 
-function InfiniteScrollSentinel({
+const InfiniteScrollSentinel = memo(function InfiniteScrollSentinel({
   isFetchingNextPage,
   sentinelRef,
   colSpan,
@@ -90,7 +90,7 @@ function InfiniteScrollSentinel({
       </td>
     </tr>
   );
-}
+});
 
 interface TableContentProps<T> {
   colSpan: number;
@@ -182,7 +182,7 @@ function renderTableRow<T>({
   );
 }
 
-function NavigableListTableContent<T>({
+const NavigableListTableContent = memo(function NavigableListTableContent<T>({
   isLoading,
   items,
   skeletonRows,
@@ -234,9 +234,9 @@ function NavigableListTableContent<T>({
       ) : null}
     </tbody>
   );
-}
+});
 
-function NavigableListTable<T>({
+const NavigableListTable = memo(function NavigableListTable<T>({
   colSpan,
   emptyMessage,
   fetchNextPage,
@@ -335,7 +335,7 @@ function NavigableListTable<T>({
       </div>
     </div>
   );
-}
+});
 
 function useNavigableListSticky({
   isFullPage,

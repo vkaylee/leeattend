@@ -1,4 +1,4 @@
-import { components } from "@/types/api-generated";
+import type { components } from "@/types/api-generated";
 
 import type { TimeEntry } from "./types";
 

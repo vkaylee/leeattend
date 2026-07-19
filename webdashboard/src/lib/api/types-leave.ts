@@ -1,4 +1,4 @@
-import { components } from "@/types/api-generated";
+import type { components } from "@/types/api-generated";
 
 export type LeaveDurationType = 'full_day' | 'first_half' | 'second_half' | 'custom_hours';
 

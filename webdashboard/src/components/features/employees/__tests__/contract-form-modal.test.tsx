@@ -9,7 +9,8 @@ import type { EmployeeContract } from "@/lib/api";
 
 import { ToastProvider } from "@/components/ui/toast";
 
-import ContractFormModal, { contractSchema } from "../contract-form-modal";
+import ContractFormModal from "../contract-form-modal";
+import { contractSchema } from "../contract-form-schema";
 
 // Mock useEmployeeContracts hook
 const mockCreateMutateAsync = vi.fn();
@@ -21,6 +22,7 @@ vi.mock("@tanstack/react-query", async () => {
   return {
     ...actual,
     useQuery: (...args: any[]) => mockUseQuery(...args),
+    useQueries: (..._args: any[]) => [mockUseQuery(), mockUseQuery()],
   };
 });
 

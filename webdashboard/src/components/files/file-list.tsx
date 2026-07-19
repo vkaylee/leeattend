@@ -18,7 +18,7 @@ import { format } from "date-fns";
 import Button from "@/components/ui/button";
 import SmartTable from "@/components/ui/smart-table";
 import { formatBytes } from "@/lib/utils";
-import { components } from "@/types/api-generated";
+import type { components } from "@/types/api-generated";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
 

@@ -156,7 +156,7 @@ function ConditionTypeForm({
               {t("settings.condition_types.code")}
             </label>
             <input
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold uppercase focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all"
               onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
               placeholder="EARLY_LEAVE"
               value={form.code}

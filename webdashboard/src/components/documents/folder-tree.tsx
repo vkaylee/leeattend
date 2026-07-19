@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { components } from "@/types/api-generated";
+import type { components } from "@/types/api-generated";
 
 type DocumentFolderDto = components["schemas"]["DocumentFolderDto"];
 

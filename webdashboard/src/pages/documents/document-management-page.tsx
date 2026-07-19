@@ -5,7 +5,7 @@ import { FolderTree } from "@/components/documents/folder-tree";
 import PageHeader from "@/components/ui/page-header";
 import { useFolders } from "@/hooks/use-documents";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { components } from "@/types/api-generated";
+import type { components } from "@/types/api-generated";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
 

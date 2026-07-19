@@ -3,7 +3,7 @@ import React from "react";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { components } from "@/types/api-generated";
+import type { components } from "@/types/api-generated";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
 
