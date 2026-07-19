@@ -6,7 +6,7 @@ import { useForm, useWatch, type UseFormRegister, type FieldErrors } from "react
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { addMonths, addYears, format, subDays } from "date-fns";
 
-import type { CreateContractRequest, EmployeeContract } from "@/lib/api";
+import type { CreateContractRequest, EmployeeContract, Employment } from "@/lib/api";
 
 import Button from "@/components/ui/button";
 import FormField from "@/components/ui/form-field";
@@ -187,7 +187,7 @@ export default function ContractFormModal({ isOpen, onClose, editingContract, ws
     ],
   });
 
-  const activeEmployment = employments.find((e) => e.status === "active") ?? employments[0];
+  const activeEmployment: Employment | undefined = employments.find((e) => e.status === "active");
   const [overlapData, setOverlapData] = useState<CreateContractRequest | null>(null);
   const [isConfirmingOverlap, setIsConfirmingOverlap] = useState(false);
 
@@ -219,16 +219,16 @@ export default function ContractFormModal({ isOpen, onClose, editingContract, ws
     if (editingContract) {
       reset({ contract_type: editingContract.contract_type, status: editingContract.status, start_date: editingContract.start_date, end_date: editingContract.end_date ?? "", contract_number: editingContract.contract_number ?? "", notes: editingContract.notes ?? "" });
     } else {
-      reset({ contract_type: "probation", status: "active", start_date: activeEmployment.start_date || new Date().toISOString().split("T")[0], end_date: "", contract_number: "", notes: "", assign_phase_id: "" });
+      reset({ contract_type: "probation", status: "active", start_date: activeEmployment?.start_date ?? new Date().toISOString().split("T")[0], end_date: "", contract_number: "", notes: "", assign_phase_id: "" });
     }
-  }, [isOpen, editingContract, reset, activeEmployment.start_date]);
+  }, [isOpen, editingContract, reset, activeEmployment?.start_date]);
 
   const onSubmit = async (data: ContractFormValues) => {
     try {
       const payloadDate = isIndefinite ? null : (data.end_date ?? null);
       if (editingContract) { await updateContract.mutateAsync({ contractId: editingContract.id, data: { ...data, end_date: payloadDate } }); toast.success("Đã cập nhật hợp đồng thành công"); onClose(); return; }
       if (!data.assign_phase_id) { toast.error("Vui lòng chọn Cột mốc khởi đầu"); return; }
-      const payload: CreateContractRequest = { ...data, employment_id: activeEmployment.id, end_date: payloadDate, assign_phase_id: data.assign_phase_id ?? undefined };
+      const payload: CreateContractRequest = { ...data, employment_id: activeEmployment?.id ?? "", end_date: payloadDate, assign_phase_id: data.assign_phase_id ?? undefined };
       try { await createContract.mutateAsync(payload); toast.success("Đã tạo hợp đồng thành công"); onClose(); }
       catch (err: unknown) { const error = err as Error; if (error.message.includes("overlapping_contract_exists")) { setOverlapData(payload); setIsConfirmingOverlap(true); } else { toast.error(error.message || "Có lỗi xảy ra"); } }
     } catch { toast.error("Có lỗi xảy ra"); }

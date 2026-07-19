@@ -1,5 +1,5 @@
 
-/* eslint-disable complexity, max-lines-per-function, max-lines */
+/* eslint-disable max-lines-per-function, max-lines */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBlocker, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
@@ -135,31 +135,31 @@ export function useShiftEditor(shiftId?: string) {
   useEffect(() => {
     if (isEditMode && editingShift) {
       setShiftName(editingShift.name);
-      setShiftSymbol((editingShift as Record<string, unknown>).report_symbol as string | undefined ?? "");
-      setLocationIdState((editingShift as Record<string, unknown>).location_id as string | null | undefined ?? null);
-      setEmployerIdState((editingShift as Record<string, unknown>).employer_id as string | null | undefined ?? null);
+      setShiftSymbol(editingShift.report_symbol ?? "");
+      setLocationIdState(editingShift.location_id ?? null);
+      setEmployerIdState(editingShift.employer_id ?? null);
       setIsCorrection(false);
       setCorrectionEffectiveDate(format(new Date(), 'yyyy-MM-dd'));
 
       // Load intervals from shift — if present, use them; otherwise create default
-      const intervals = (editingShift as Record<string, unknown>).intervals as Record<string, unknown>[] | undefined;
+      const intervals = editingShift.intervals;
       if (intervals && intervals.length > 0) {
-        setIntervalDrafts(intervals.map((iv: Record<string, unknown>) => ({
+        setIntervalDrafts(intervals.map((iv) => ({
           key: nextIntervalKey(),
-          intervalName: (iv.interval_name as string | undefined) ?? "",
-          startTime: ((iv.start_time as string | undefined) ?? "08:00").substring(0, 5),
-          endTime: ((iv.end_time as string | undefined) ?? "17:00").substring(0, 5),
-          breakDuration: (iv.break_duration_minutes as number | undefined) ?? 60,
-          breakStart: ((iv.break_start as string | undefined) ?? "").substring(0, 5),
-          breakEnd: ((iv.break_end as string | undefined) ?? "").substring(0, 5),
-          isFixedBreak: !!(iv.break_start as string | undefined),
-          isAutoDeduct: (iv.is_break_auto_deduct as boolean | undefined) ?? true,
-          isBreakOvertime: (iv.break_is_overtime as boolean | undefined) ?? false,
-          gracePeriodMinutes: (iv.early_punch_in_grace_period_minutes as number | undefined) ?? 15,
-          allowEarlyOt: (iv.allow_early_ot as boolean | undefined) ?? false,
-          maxEarlyOtMinutes: (iv.max_early_ot_minutes as number | null | undefined) ?? null,
-          otAggregationMode: (iv.ot_aggregation_mode as "aggregate" | "per_segment" | undefined) ?? "aggregate",
-          isNightShift: (iv.is_night_shift as boolean | undefined) ?? false,
+          intervalName: iv.interval_name ?? "",
+          startTime: iv.start_time.substring(0, 5),
+          endTime: iv.end_time.substring(0, 5),
+          breakDuration: iv.break_duration_minutes,
+          breakStart: (iv.break_start ?? "").substring(0, 5),
+          breakEnd: (iv.break_end ?? "").substring(0, 5),
+          isFixedBreak: !!iv.break_start,
+          isAutoDeduct: iv.is_break_auto_deduct,
+          isBreakOvertime: iv.break_is_overtime,
+          gracePeriodMinutes: iv.early_punch_in_grace_period_minutes,
+          allowEarlyOt: iv.allow_early_ot,
+          maxEarlyOtMinutes: iv.max_early_ot_minutes ?? null,
+          otAggregationMode: iv.ot_aggregation_mode === "per_segment" ? "per_segment" : "aggregate",
+          isNightShift: iv.is_night_shift,
         })));
       }
       setIsDirty(false);

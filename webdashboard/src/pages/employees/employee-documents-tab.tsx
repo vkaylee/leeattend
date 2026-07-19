@@ -66,11 +66,11 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
       });
       if (error) throw error;
       
-      // Open Presigned URL in new tab to download
-      // @ts-ignore
-      if (data?.url) {
-        // @ts-ignore
-        window.open(data.url, "_blank");
+      // The generated client type for this endpoint omits the `url` field,
+      // but the runtime response includes a presigned download URL.
+      const downloadUrl = (data as { url?: string } | undefined)?.url;
+      if (downloadUrl) {
+        window.open(downloadUrl, "_blank");
       }
     } catch (err) {
       toast.error("Download failed. Please try again.");

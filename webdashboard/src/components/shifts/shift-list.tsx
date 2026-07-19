@@ -38,14 +38,14 @@ export function ShiftList({ shifts, onEdit, onDelete }: ShiftListProps) {
         <TableBody>
 
           {shifts?.map(shift => {
-            const firstInterval = (shift as Record<string, unknown>).intervals as Record<string, unknown>[] | undefined;
+            const firstInterval = shift.intervals;
             const iv = firstInterval?.[0];
-            const startTime = (iv?.start_time as string | undefined) ?? null;
-            const endTime = (iv?.end_time as string | undefined) ?? null;
-            const breakStart = (iv?.break_start as string | undefined) ?? null;
-            const breakEnd = (iv?.break_end as string | undefined) ?? null;
-            const breakDuration = (iv?.break_duration_minutes as number | undefined) ?? 0;
-            const isAutoDeduct = (iv?.is_break_auto_deduct as boolean | undefined) ?? true;
+            const startTime = iv?.start_time ?? null;
+            const endTime = iv?.end_time ?? null;
+            const breakStart = iv?.break_start ?? null;
+            const breakEnd = iv?.break_end ?? null;
+            const breakDuration = iv?.break_duration_minutes ?? 0;
+            const isAutoDeduct = iv?.is_break_auto_deduct ?? true;
             const hasFixedBreak = !!(breakStart && breakEnd);
 
             return (

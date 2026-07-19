@@ -140,8 +140,8 @@ function SmartTableCell<T>({
     try {
       // eslint-disable-next-line react-hooks/immutability -- intentional mutation to display error-overridden values
       cell.getValue = () => overrideValue as never;
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
+      // @ts-expect-error -- TanStack Table Cell type does not expose renderValue, but we
+      // need to override it to display error-highlighted cell values in validation mode.
       // eslint-disable-next-line react-hooks/immutability
       cell.renderValue = () => overrideValue;
     } catch (e) {

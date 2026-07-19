@@ -106,10 +106,9 @@ export default function EmployeeFormModal({
     queryFn: () => fetchEmployeeEmployments(wsId, editingEmployee!.id),
     enabled: !!wsId && !!editingEmployee?.id && isOpen,
   });
-  const active: Employment | undefined = employments.find(e => e.status === "active") ?? employments[0];
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-  const activeLocationId = active.primary_location_id || "";
-  const activeEmployerId = active.employer_id || "";
+  const active: Employment | undefined = employments.find(e => e.status === "active");
+  const activeLocationId = active?.primary_location_id ?? "";
+  const activeEmployerId = active?.employer_id ?? "";
 
   const defaults = useFormDefaults(editingEmployee, activeLocationId, activeEmployerId);
 
@@ -134,7 +133,7 @@ export default function EmployeeFormModal({
     if (editingEmployee) {
       await updateMutation.mutateAsync({ id: editingEmployee.id, employee: data });
       if (defaults.selectedLocationId !== activeLocationId || defaults.selectedEmployerId !== activeEmployerId) {
-        await updateEmployeeEmployment(wsId, editingEmployee.id, active.id, {
+        await updateEmployeeEmployment(wsId, editingEmployee.id, active?.id ?? "", {
           primary_location_id: defaults.selectedLocationId || null,
           employer_id: defaults.selectedEmployerId || undefined,
         });
