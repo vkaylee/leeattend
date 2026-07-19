@@ -55,25 +55,21 @@ function useEmployeeMutations(wsId: string, onClose: () => void, onSuccess?: () 
   return { createMutation, updateMutation };
 }
 
-function useFormDefaults(editingEmployee: Employee | null, activeLocationId: string, activeEmployerId: string) {
-  const [userId, setUserId] = useState(editingEmployee?.user_id ?? "");
-  const [locId, setLocId] = useState("");
-  const [empId, setEmpId] = useState("");
+import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 
-  const employeeId = editingEmployee?.id ?? null;
-  const userId_ = editingEmployee?.user_id ?? "";
-   
-  useEffect(() => {
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-    setUserId(userId_);
-    setLocId(editingEmployee ? activeLocationId : "");
-    setEmpId(editingEmployee ? activeEmployerId : "");
-  }, [employeeId, userId_, activeLocationId, activeEmployerId, editingEmployee]);
+function useFormDefaults(editingEmployee: Employee | null, activeLocationId: string, activeEmployerId: string) {
+  const externalUserId = editingEmployee?.user_id ?? "";
+  const externalLocId = editingEmployee ? activeLocationId : "";
+  const externalEmpId = editingEmployee ? activeEmployerId : "";
+
+  const [selectedUserId, setSelectedUserId] = useDerivedStateFrom(externalUserId);
+  const [selectedLocationId, setSelectedLocationId] = useDerivedStateFrom(externalLocId);
+  const [selectedEmployerId, setSelectedEmployerId] = useDerivedStateFrom(externalEmpId);
 
   return {
-    selectedUserId: userId, setSelectedUserId: setUserId,
-    selectedLocationId: locId, setSelectedLocationId: setLocId,
-    selectedEmployerId: empId, setSelectedEmployerId: setEmpId,
+    selectedUserId, setSelectedUserId,
+    selectedLocationId, setSelectedLocationId,
+    selectedEmployerId, setSelectedEmployerId,
   };
 }
 

@@ -1,5 +1,5 @@
 import { X, Menu } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Typography } from "@/components/ui/typography";
@@ -22,26 +22,54 @@ interface SheetProps {
   title?: string;
 }
 
+/**
+ * Tracks sheet visibility for animation purposes.
+ * Opens immediately when isOpen→true; delays hide by 500ms when isOpen→false
+ * to allow the exit transition to complete.
+ */
 function useSheetState(isOpen: boolean, onClose: () => void) {
   const [isVisible, setIsVisible] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Handle open: show immediately during render if isOpen changed to true
+  if (isOpen && !isVisible) {
+    // Sync during render — no additional render pass
+    setIsVisible(true);
+  }
+
+  // Handle close & body scroll: side effects only (no setState in useEffect)
   useEffect(() => {
     if (isOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
-      setIsVisible(true);
+      // Cancel any pending close timer when re-opening
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
       document.body.style.overflow = "hidden";
 
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === "Escape") onClose();
       };
-
       window.addEventListener("keydown", handleKeyDown);
-      return () => { window.removeEventListener("keydown", handleKeyDown); };
-    } 
+      return () => {
+        window.removeEventListener("keydown", handleKeyDown);
+        document.body.style.overflow = "unset";
+      };
+    }
 
-    const timer = setTimeout(() => { setIsVisible(false); }, 500); // Sync with duration-500
+    // isOpen became false — delay hide for exit animation
+    closeTimerRef.current = setTimeout(() => {
+      setIsVisible(false);
+      closeTimerRef.current = null;
+    }, 500);
     document.body.style.overflow = "unset";
-    return () => { clearTimeout(timer); };
+
+    return () => {
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+    };
   }, [isOpen, onClose]);
 
   return isVisible;

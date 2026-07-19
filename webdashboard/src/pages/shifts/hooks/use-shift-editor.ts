@@ -2,7 +2,7 @@
 /* eslint-disable max-lines-per-function, max-lines */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBlocker, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
@@ -13,6 +13,7 @@ import type { components } from "@/types/api-generated";
 type CreateIntervalRequest = components["schemas"]["CreateIntervalRequest"];
 
 import { useToast } from "@/components/ui/toast";
+import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 import {
   getCurrentWorkspaceId,
   fetchShifts,
@@ -38,6 +39,24 @@ export interface IntervalDraft {
   otAggregationMode: "aggregate" | "per_segment";
   startTime: string;
 }
+
+interface ShiftFormState {
+  correctionEffectiveDate: string;
+  employerId: string | null;
+  isCorrection: boolean;
+  locationId: string | null;
+  shiftName: string;
+  shiftSymbol: string;
+}
+
+const EMPTY_SHIFT_FORM: ShiftFormState = {
+  shiftName: "",
+  shiftSymbol: "",
+  isCorrection: false,
+  correctionEffectiveDate: format(new Date(), 'yyyy-MM-dd'),
+  locationId: null,
+  employerId: null,
+};
 
 let _intervalCounter = 0;
 function nextIntervalKey(): string {
@@ -74,26 +93,53 @@ export function useShiftEditor(shiftId?: string) {
 
   const isEditMode = !!shiftId;
 
-  // Form State — shift envelope only
-  const [shiftName, setShiftName] = useState("");
-  const [shiftSymbol, setShiftSymbol] = useState("");
-  const [isCorrection, setIsCorrection] = useState(false);
-  const [correctionEffectiveDate, setCorrectionEffectiveDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [locationId, setLocationIdState] = useState<string | null>(null);
-  const [employerId, setEmployerIdState] = useState<string | null>(null);
+  // Fetch all shifts to find editing shift — must come before useMemo that uses editingShift
+  const { data: shifts, isLoading: isLoadingShifts } = useQuery<Shift[]>({
+    queryKey: ["shifts", wsId],
+    queryFn: () => fetchShifts(wsId),
+    enabled: !!wsId && isEditMode,
+  });
+
+  const editingShift = shifts?.find((s) => s.id === shiftId) ?? null;
+
+  // Compute external shift form state — stabilized via useMemo.
+  // The editingShift reference only changes when the shift being edited changes.
+  const externalShiftForm = useMemo((): ShiftFormState => {
+    if (isEditMode && editingShift) {
+      return {
+        shiftName: editingShift.name,
+        shiftSymbol: editingShift.report_symbol ?? "",
+        locationId: editingShift.location_id ?? null,
+        employerId: editingShift.employer_id ?? null,
+        isCorrection: false,
+        correctionEffectiveDate: format(new Date(), 'yyyy-MM-dd'),
+      };
+    }
+    return EMPTY_SHIFT_FORM;
+  }, [isEditMode, editingShift]);
+
+  const [shiftForm, setShiftForm] = useDerivedStateFrom(externalShiftForm);
+
+  // Convenience accessors
+  const shiftName = shiftForm.shiftName;
+  const shiftSymbol = shiftForm.shiftSymbol;
+  const locationId = shiftForm.locationId;
+  const employerId = shiftForm.employerId;
+  const isCorrection = shiftForm.isCorrection;
+  const correctionEffectiveDate = shiftForm.correctionEffectiveDate;
 
   const setLocationId = (v: string | null) => {
-    setLocationIdState(v);
+    setShiftForm(prev => ({ ...prev, locationId: v }));
     setIsDirty(true);
   };
 
   const setEmployerId = (v: string | null) => {
-    setEmployerIdState(v);
+    setShiftForm(prev => ({ ...prev, employerId: v }));
     setIsDirty(true);
   };
 
   // Interval state — all time/break/policy lives here
-  const [intervalDrafts, setIntervalDrafts] = useState<IntervalDraft[]>([makeDefaultInterval()]);
+  // (initialized via useDerivedStateFrom from externalIntervals below)
 
   const addInterval = () => {
     setIntervalDrafts(prev => [...prev, makeDefaultInterval()]);
@@ -115,57 +161,37 @@ export function useShiftEditor(shiftId?: string) {
 
   const [isDirty, setIsDirty] = useState(false);
 
-  // Fetch all shifts to find editing shift
-  const { data: shifts, isLoading: isLoadingShifts } = useQuery<Shift[]>({
-    queryKey: ["shifts", wsId],
-    queryFn: () => fetchShifts(wsId),
-    enabled: !!wsId && isEditMode,
-  });
-
   const { data: workspaceRules } = useQuery({
     queryKey: ["attendance-rules", wsId],
     queryFn: () => (wsId ? fetchDefaultAttendanceRules(wsId) : Promise.reject(new Error("No workspace ID"))),
     enabled: !!wsId,
   });
 
-  const editingShift = shifts?.find((s) => s.id === shiftId) ?? null;
-
-  // Initialize form state when editingShift is loaded
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    if (isEditMode && editingShift) {
-      setShiftName(editingShift.name);
-      setShiftSymbol(editingShift.report_symbol ?? "");
-      setLocationIdState(editingShift.location_id ?? null);
-      setEmployerIdState(editingShift.employer_id ?? null);
-      setIsCorrection(false);
-      setCorrectionEffectiveDate(format(new Date(), 'yyyy-MM-dd'));
-
-      // Load intervals from shift — if present, use them; otherwise create default
-      const intervals = editingShift.intervals;
-      if (intervals && intervals.length > 0) {
-        setIntervalDrafts(intervals.map((iv) => ({
-          key: nextIntervalKey(),
-          intervalName: iv.interval_name ?? "",
-          startTime: iv.start_time.substring(0, 5),
-          endTime: iv.end_time.substring(0, 5),
-          breakDuration: iv.break_duration_minutes,
-          breakStart: (iv.break_start ?? "").substring(0, 5),
-          breakEnd: (iv.break_end ?? "").substring(0, 5),
-          isFixedBreak: !!iv.break_start,
-          isAutoDeduct: iv.is_break_auto_deduct,
-          isBreakOvertime: iv.break_is_overtime,
-          gracePeriodMinutes: iv.early_punch_in_grace_period_minutes,
-          allowEarlyOt: iv.allow_early_ot,
-          maxEarlyOtMinutes: iv.max_early_ot_minutes ?? null,
-          otAggregationMode: iv.ot_aggregation_mode === "per_segment" ? "per_segment" : "aggregate",
-          isNightShift: iv.is_night_shift,
-        })));
-      }
-      setIsDirty(false);
+  // Compute external intervals — stabilized via useMemo.
+  const externalIntervals = useMemo((): IntervalDraft[] => {
+    if (isEditMode && editingShift?.intervals?.length) {
+      return editingShift.intervals.map((iv) => ({
+        key: nextIntervalKey(),
+        intervalName: iv.interval_name ?? "",
+        startTime: iv.start_time.substring(0, 5),
+        endTime: iv.end_time.substring(0, 5),
+        breakDuration: iv.break_duration_minutes,
+        breakStart: (iv.break_start ?? "").substring(0, 5),
+        breakEnd: (iv.break_end ?? "").substring(0, 5),
+        isFixedBreak: !!iv.break_start,
+        isAutoDeduct: iv.is_break_auto_deduct,
+        isBreakOvertime: iv.break_is_overtime,
+        gracePeriodMinutes: iv.early_punch_in_grace_period_minutes,
+        allowEarlyOt: iv.allow_early_ot,
+        maxEarlyOtMinutes: iv.max_early_ot_minutes ?? null,
+        otAggregationMode: iv.ot_aggregation_mode === "per_segment" ? "per_segment" : "aggregate",
+        isNightShift: iv.is_night_shift,
+      }));
     }
-  }, [editingShift, isEditMode]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+    return [makeDefaultInterval()];
+  }, [isEditMode, editingShift]);
+
+  const [intervalDrafts, setIntervalDrafts] = useDerivedStateFrom(externalIntervals);
 
   // Mutations
   const createShiftMutation = useMutation<Shift, Error, CreateShiftRequest>({
@@ -256,9 +282,9 @@ export function useShiftEditor(shiftId?: string) {
     isEditMode,
     isLoadingShifts,
     shiftName,
-    setShiftName: (v: string) => { setShiftName(v); setIsDirty(true); },
+    setShiftName: (v: string) => { setShiftForm(prev => ({ ...prev, shiftName: v })); setIsDirty(true); },
     shiftSymbol,
-    setShiftSymbol: (v: string) => { setShiftSymbol(v); setIsDirty(true); },
+    setShiftSymbol: (v: string) => { setShiftForm(prev => ({ ...prev, shiftSymbol: v })); setIsDirty(true); },
     locationId,
     setLocationId,
     employerId,
@@ -276,8 +302,8 @@ export function useShiftEditor(shiftId?: string) {
     removeInterval,
     updateIntervalDraft,
     isCorrection,
-    setIsCorrection: (v: boolean) => { setIsCorrection(v); setIsDirty(true); },
+    setIsCorrection: (v: boolean) => { setShiftForm(prev => ({ ...prev, isCorrection: v })); setIsDirty(true); },
     correctionEffectiveDate,
-    setCorrectionEffectiveDate: (v: string) => { setCorrectionEffectiveDate(v); setIsDirty(true); },
+    setCorrectionEffectiveDate: (v: string) => { setShiftForm(prev => ({ ...prev, correctionEffectiveDate: v })); setIsDirty(true); },
   };
 }

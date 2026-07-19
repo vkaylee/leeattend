@@ -7,9 +7,9 @@ export interface AppErrorResponse {
 
 /** Structured retry hint returned on 409 Conflict for retired resources. */
 export interface ConflictRetryHint {
-  reason: string;
   leave_type_id: string;
   name: string;
+  reason: string;
 }
 
 /** Narrow an unknown error body to check for a conflict-retry payload. */

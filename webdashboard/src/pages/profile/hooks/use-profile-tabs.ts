@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
+import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 import { useProfile } from "@/hooks/use-profile";
 import { logError } from "@/lib/logger";
 
@@ -13,24 +14,14 @@ export function useProfileTabs() {
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<TabType>("profile");
 
-  const [formData, setFormData] = useState({
-    full_name: "", 
-    avatar_url: "", 
-    bio: "", 
-    preferred_language: "",
-  });
-
-  useEffect(() => {
-    if (user) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
-      setFormData({
-        full_name: user.full_name ?? "", 
-        avatar_url: user.avatar_url ?? "",
-        bio: user.bio ?? "", 
-        preferred_language: user.preferred_language ?? "",
-      });
-    }
-  }, [user]);
+  // Stabilize the external object so local form edits are not overwritten on rerender.
+  const externalFormData = useMemo(() => ({
+    full_name: user?.full_name ?? "",
+    avatar_url: user?.avatar_url ?? "",
+    bio: user?.bio ?? "",
+    preferred_language: user?.preferred_language ?? "",
+  }), [user]);
+  const [formData, setFormData] = useDerivedStateFrom(externalFormData);
 
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();

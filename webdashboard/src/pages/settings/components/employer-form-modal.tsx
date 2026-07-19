@@ -1,5 +1,5 @@
 import { Briefcase } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { Employer, CreateEmployerRequest, UpdateEmployerRequest } from "@/lib/api/types";
@@ -9,6 +9,7 @@ import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
+import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 
 export interface EmployerFormModalProps {
   editingEmployer: Employer | null;
@@ -42,31 +43,43 @@ export function EmployerFormModal({
 }: EmployerFormModalProps) {
   const { t } = useTranslation();
   const toast = useToast();
-  const [formData, setFormData] = useState(INITIAL_STATE);
 
-  // eslint-disable-next-line complexity
-  useEffect(() => {
-    if (isOpen) {
-      if (editingEmployer) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
-        setFormData({
-          name: editingEmployer.name,
-          tax_code: editingEmployer.tax_code ?? "",
-          legal_address: editingEmployer.legal_address ?? "",
-          business_type: editingEmployer.business_type ?? "",
-          registration_number: editingEmployer.registration_number ?? "",
-          phone: editingEmployer.phone ?? "",
-          email: editingEmployer.email ?? "",
-          website: editingEmployer.website ?? "",
-          incorporation_date: editingEmployer.incorporation_date ?? "",
-          country_code: editingEmployer.country_code ?? "",
-          currency_code: editingEmployer.currency_code ?? "VND",
-        });
-      } else {
-        setFormData(INITIAL_STATE);
-      }
+  // Compute external form data — stabilized via useMemo so reference only
+  // changes when isOpen or editingEmployer identity changes.
+  const externalFormData = useMemo(() => {
+    if (isOpen && editingEmployer) {
+      return {
+        name: editingEmployer.name,
+        tax_code: editingEmployer.tax_code ?? "",
+        legal_address: editingEmployer.legal_address ?? "",
+        business_type: editingEmployer.business_type ?? "",
+        registration_number: editingEmployer.registration_number ?? "",
+        phone: editingEmployer.phone ?? "",
+        email: editingEmployer.email ?? "",
+        website: editingEmployer.website ?? "",
+        incorporation_date: editingEmployer.incorporation_date ?? "",
+        country_code: editingEmployer.country_code ?? "",
+        currency_code: editingEmployer.currency_code ?? "VND",
+      };
     }
-  }, [isOpen, editingEmployer]);
+    return INITIAL_STATE;
+  }, [
+    isOpen,
+    editingEmployer?.id,
+    editingEmployer?.name,
+    editingEmployer?.tax_code,
+    editingEmployer?.legal_address,
+    editingEmployer?.business_type,
+    editingEmployer?.registration_number,
+    editingEmployer?.phone,
+    editingEmployer?.email,
+    editingEmployer?.website,
+    editingEmployer?.incorporation_date,
+    editingEmployer?.country_code,
+    editingEmployer?.currency_code,
+  ]);
+
+  const [formData, setFormData] = useDerivedStateFrom(externalFormData);
 
   const updateField = (key: keyof typeof formData, value: string) => {
     setFormData((prev) => ({ ...prev, [key]: value }));

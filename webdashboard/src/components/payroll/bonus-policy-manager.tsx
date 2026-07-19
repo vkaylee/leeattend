@@ -14,11 +14,10 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
+import { useBonusTiers, type TierInput } from "@/hooks/use-bonus-tiers";
 import { fetchIncentivePolicies, createIncentivePolicy, deleteIncentivePolicy, cloneIncentivePolicy } from "@/lib/api/payroll";
 import { IncentiveTier, PayrollIncentivePolicyResponse, RuleCondition } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
-
-import { useBonusTiers, type TierInput } from "@/hooks/use-bonus-tiers";
 
 interface BonusPolicyManagerProps {
   wsId: string;

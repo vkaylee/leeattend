@@ -2,7 +2,7 @@ import type { TFunction } from "i18next";
 
 import { useQuery } from "@tanstack/react-query";
 import { Download, Loader2, CheckCircle2, AlertCircle, FileSpreadsheet } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
@@ -296,9 +296,11 @@ function useExportDialog({ isOpen, wsId, startDate, endDate, reportType, employe
   const [totalBatches, setTotalBatches] = useState(0);
   const [useFallbackPolling, setUseFallbackPolling] = useState(false);
 
+  // Reset export state when dialog re-opens. This is a legitimate use of
+  // useEffect: the effect is responding to a modal-open event (a side effect),
+  // not deriving state from props.
   useEffect(() => {
     if (isOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
       setPhase("idle"); setJobId(null); setError(null); setTotalBatches(0); setUseFallbackPolling(false);
     }
   }, [isOpen]);
@@ -322,15 +324,27 @@ function useExportDialog({ isOpen, wsId, startDate, endDate, reportType, employe
     },
   });
 
-  const pollingStatusValue = pollingStatus?.status;
-  const pollingError = pollingStatus?.error;
+  // Derive phase from fallback polling — useMemo avoids setState-in-useEffect.
+  const pollingPhase = useMemo((): ExportPhase | null => {
+    if (!useFallbackPolling || !pollingStatus) return null;
+    if (pollingStatus.status === "completed") return "completed";
+    if (pollingStatus.status === "failed") return "failed";
+    return null;
+  }, [useFallbackPolling, pollingStatus]);
 
-  useEffect(() => {
-    if (!useFallbackPolling || !pollingStatus) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
-    if (pollingStatusValue === "completed" && phaseState !== "completed") { setPhase("completed"); }
-    else if (pollingStatusValue === "failed" && phaseState !== "failed") { setPhase("failed"); setError(pollingError ?? t("report_export.status.failed")); }
-  }, [pollingStatusValue, pollingError, useFallbackPolling, t, phaseState, pollingStatus]);
+  // Effective phase: polling result wins when fallback is active
+  const effectivePhase = pollingPhase ?? phase;
+
+  // Polling error message — derived via useMemo
+  const pollingErrorMessage = useMemo(() => {
+    if (useFallbackPolling && pollingStatus?.status === "failed") {
+      return pollingStatus.error ?? t("report_export.status.failed");
+    }
+    return null;
+  }, [useFallbackPolling, pollingStatus, t]);
+
+  // Effective error: polling error overrides local error when available
+  const effectiveError = pollingErrorMessage ?? error;
 
   const handleStartExport = async () => {
     setPhase("starting"); setError(null);
@@ -357,10 +371,10 @@ function useExportDialog({ isOpen, wsId, startDate, endDate, reportType, employe
     }
   };
 
-  const percentage = calcPercentage({ jobId, phase, useFallbackPolling, pollingProgress: pollingStatus?.progress.percentage, streamProgress });
+  const percentage = calcPercentage({ jobId, phase: effectivePhase, useFallbackPolling, pollingProgress: pollingStatus?.progress.percentage, streamProgress });
   const completedBatches = calcCompletedBatches(useFallbackPolling, pollingStatus?.progress.completed_batches, totalBatches, streamProgress);
 
-  return { t, phase, error, totalBatches, useFallbackPolling, percentage, completedBatches, handleStartExport, handleDownload };
+  return { t, phase: effectivePhase, error: effectiveError, totalBatches, useFallbackPolling, percentage, completedBatches, handleStartExport, handleDownload };
 }
 
 export default function ReportExportDialog({ isOpen, onClose, wsId, startDate, endDate, reportType, employeeIds }: ReportExportDialogProps) {

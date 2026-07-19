@@ -1,5 +1,5 @@
 import { ClipboardList, Plus, Pencil, Trash2 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 
 import type {
   LifecycleChecklistTemplate,
@@ -12,6 +12,7 @@ import PageHeader from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 import {
   useLifecycleTemplates,
   useUpdateLifecycleTemplate,
@@ -32,7 +33,6 @@ export default function LifecycleTemplatesPage() {
   const toast = useToast();
 
   const [activeTab, setActiveTab] = useState<ChecklistType>("onboarding");
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
   // Modals / Drawers State
   const [isTemplateDrawerOpen, setIsTemplateDrawerOpen] = useState(false);
@@ -43,29 +43,30 @@ export default function LifecycleTemplatesPage() {
 
   // Queries
   const { data: templates = [], isLoading: isTemplatesLoading } = useLifecycleTemplates();
-  const { data: items = [], isLoading: isItemsLoading } = useLifecycleTemplateItems(selectedTemplateId ?? "");
 
   // Mutations
   const updateTemplateMutation = useUpdateLifecycleTemplate();
   const deleteTemplateMutation = useDeleteLifecycleTemplate();
 
-  const deleteItemMutation = useDeleteLifecycleTemplateItem(selectedTemplateId ?? "");
-
   const filteredTemplates = templates.filter(
     (temp) => temp.checklist_type === activeTab
   );
 
-  // Set default selected template if none is selected or if active tab changed
-  useEffect(() => {
+  // Derive default selected template — useMemo computes the default.
+  const defaultTemplateId = useMemo(() => {
     if (filteredTemplates.length > 0) {
       const defaultTemp = filteredTemplates.find((t) => t.is_default) ?? filteredTemplates[0];
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelectedTemplateId(defaultTemp.id);
-    } else {
-      setSelectedTemplateId(null);
+      return defaultTemp.id;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, templates.length]);
+    return null;
+  }, [filteredTemplates]);
+
+  // Sync selectedTemplateId to default — useDerivedStateFrom handles the sync.
+  const [selectedTemplateId, setSelectedTemplateId] = useDerivedStateFrom(defaultTemplateId);
+
+  // Item queries depend on selectedTemplateId — declared after it.
+  const { data: items = [], isLoading: isItemsLoading } = useLifecycleTemplateItems(selectedTemplateId ?? "");
+  const deleteItemMutation = useDeleteLifecycleTemplateItem(selectedTemplateId ?? "");
 
   const activeTemplate = templates.find((t) => t.id === selectedTemplateId);
 

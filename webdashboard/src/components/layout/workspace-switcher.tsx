@@ -1,5 +1,5 @@
 import { Briefcase, Plus } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import CreateWorkspaceDialog from "@/components/features/workspaces/create-workspace-dialog";
@@ -17,25 +17,24 @@ import WorkspaceTransitionOverlay from "./workspace-transition-overlay";
 export default function WorkspaceSwitcher() {
   const { t } = useTranslation();
   const { workspaces, isLoading } = useWorkspaces();
-  const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [transitioningWorkspace, setTransitioningWorkspace] = useState<Workspace | null>(null);
 
-  useEffect(() => {
+  // Compute active workspace during render — no useEffect needed.
+  const activeWorkspace = useMemo(() => {
     if (workspaces.length > 0) {
       const currentId = getCurrentWorkspaceId();
       const current = workspaces.find((ws) => ws.id === currentId) ?? workspaces[0];
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
-      setActiveWorkspace(current);
       if (!currentId) setCurrentWorkspaceId(current.id);
+      return current;
     }
+    return null;
   }, [workspaces]);
 
   function handleSwitch(wsId: string) {
     if (wsId === "ADD_NEW") { setIsCreateOpen(true); return; }
     const ws = workspaces.find(w => w.id === wsId);
-    if (ws) { 
-      setActiveWorkspace(ws);
+    if (ws) {
       setCurrentWorkspaceId(ws.id);
       setTransitioningWorkspace(ws);
       setTimeout(() => {

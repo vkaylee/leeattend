@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
@@ -16,20 +16,21 @@ import { ROUTES } from "@/lib/routes";
 export default function WorkspaceGuard() {
   const { t } = useTranslation();
   const { workspaces, isLoading, isError } = useWorkspaces();
-  const [activeWsId, setActiveWsId] = useState(getCurrentWorkspaceId());
+  const storedId = getCurrentWorkspaceId();
 
-  
-
-  useEffect(() => {
+  // Compute the active workspace ID during render — no useEffect needed.
+  // If the stored ID is still valid, keep it; otherwise fall back to the first workspace.
+  const activeWsId = useMemo(() => {
     if (!isLoading && workspaces.length > 0) {
-      const isValid = workspaces.some((w) => w.id === activeWsId);
-      if (!activeWsId || !isValid) {
+      const isValid = storedId && workspaces.some((w) => w.id === storedId);
+      if (!storedId || !isValid) {
         setCurrentWorkspaceId(workspaces[0].id);
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
-        setActiveWsId(workspaces[0].id);
+        return workspaces[0].id;
       }
+      return storedId;
     }
-  }, [workspaces, activeWsId, isLoading]);
+    return storedId;
+  }, [workspaces, isLoading, storedId]);
 
   if (isLoading) {
     return (
@@ -64,12 +65,7 @@ export default function WorkspaceGuard() {
     return <Navigate replace to={ROUTES.ONBOARDING} />;
   }
 
-  // Nếu chưa có activeWsId nhưng có workspaces, ta render Outlet kèm theo giá trị vừa set
-  // Điều này tránh được việc reload trang
-  const currentWsId =
-    activeWsId ?? (workspaces.length > 0 ? workspaces[0].id : null);
-
-  if (!currentWsId) {
+  if (!activeWsId) {
     return <Navigate replace to={ROUTES.ONBOARDING} />;
   }
 
