@@ -24,6 +24,7 @@ function setDismissedVersion(hash: string): void {
 export function useVersionCheck() {
   const [hasNewVersion, setHasNewVersion] = useState(false);
   const latestServerHash = useRef<string | null>(null);
+  const pendingHash = useRef<string | null>(null);
 
   const check = useCallback(async () => {
     try {
@@ -36,11 +37,30 @@ export function useVersionCheck() {
       });
       const html = await res.text();
       const match = /<meta\s+name="build-version"\s+content="([^"]+)"/i.exec(html);
-      if (match && match[1] !== current) {
-        latestServerHash.current = match[1];
-        if (match[1] !== getDismissedVersion()) {
-          setHasNewVersion(true);
-        }
+      if (!match) return;
+
+      const serverHash = match[1];
+
+      // Server serves the build we're running — nothing new; clear any
+      // half-confirmed sighting.
+      if (serverHash === current) {
+        pendingHash.current = null;
+        return;
+      }
+
+      // A different hash appeared. Require the SAME new hash on two
+      // consecutive checks before trusting it, so a half-propagated deploy
+      // (one edge node briefly serving the new build, then flapping back to
+      // the old one) doesn't surface the banner prematurely.
+      if (pendingHash.current !== serverHash) {
+        pendingHash.current = serverHash;
+        return;
+      }
+
+      // Confirmed on two consecutive checks — the deploy looks stable.
+      latestServerHash.current = serverHash;
+      if (serverHash !== getDismissedVersion()) {
+        setHasNewVersion(true);
       }
     } catch {
       // network error — skip check
