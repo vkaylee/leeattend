@@ -20,6 +20,9 @@ const RATE_WINDOW_DAILY_SECS: usize = 86400;
 /// How often to poll for SMTP config changes.
 const CONFIG_RELOAD_INTERVAL: Duration = Duration::from_secs(60);
 
+/// Timeout for SMTP connect + send operations.
+const SMTP_TIMEOUT: Duration = Duration::from_secs(10);
+
 /// Serialisable SMTP config snapshot (DB ↔ Redis ↔ memory).
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 struct SmtpConfigData {
@@ -79,7 +82,7 @@ fn build_transport(
             return None;
         }
     };
-    builder = builder.port(port);
+    builder = builder.port(port).timeout(Some(SMTP_TIMEOUT));
 
     if let (Some(u), Some(p)) = (username, password) {
         builder = builder.credentials(Credentials::new(u.to_string(), p.to_string()));
@@ -481,7 +484,7 @@ mod tests {
                 base_url: "https://app.example.com".into(),
                 last_reload: Instant::now(),
             })),
-            redis_pool: Some(pool.clone()),
+            redis_pool: Some(pool),
             settings_repo: None,
         })
     }
@@ -644,15 +647,20 @@ mod tests {
         // Force reload by expiring the cache
         {
             let mut cfg = s.config.write().await;
-            cfg.last_reload = Instant::now() - CONFIG_RELOAD_INTERVAL - Duration::from_secs(1);
+            cfg.last_reload = Instant::now()
+                .checked_sub(CONFIG_RELOAD_INTERVAL)
+                .and_then(|t| t.checked_sub(Duration::from_secs(1)))
+                .unwrap_or(Instant::now());
         }
 
         // Trigger reload
         s.maybe_reload_config().await;
 
-        let cfg = s.config.read().await;
-        assert_eq!(cfg.from, "Reloaded <reload@test.com>");
-        assert_eq!(cfg.base_url, "https://reloaded.example.com");
+        {
+            let cfg = s.config.read().await;
+            assert_eq!(cfg.from, "Reloaded <reload@test.com>");
+            assert_eq!(cfg.base_url, "https://reloaded.example.com");
+        }
 
         // Cleanup
         let _: () = redis::cmd("DEL")
@@ -680,11 +688,13 @@ mod tests {
         // Cache still fresh — reload should be skipped
         s.maybe_reload_config().await;
 
-        let cfg = s.config.read().await;
-        assert_ne!(
-            cfg.from, "ShouldNotLoad <nope@t.com>",
-            "fresh cache must not reload"
-        );
+        {
+            let cfg = s.config.read().await;
+            assert_ne!(
+                cfg.from, "ShouldNotLoad <nope@t.com>",
+                "fresh cache must not reload"
+            );
+        }
 
         let _: () = redis::cmd("DEL")
             .arg("smtp:config")
