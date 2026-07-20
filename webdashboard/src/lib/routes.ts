@@ -56,12 +56,14 @@ export const ROUTES = {
   SYSTEM_ROLES: "/system/roles",
   SYSTEM_TENANTS: "/system/tenants",
   SYSTEM_DB_CLUSTERS: "/system/db-clusters",
+  SYSTEM_SMTP: "/system/smtp",
 
   // Employee Self-Service
   ESS_PROFILE: "/ess/profile",
   ESS_ATTENDANCE: "/ess/attendance",
   ESS_CLOCK: "/ess/clock",
   ESS_OT: "/ess/ot",
+  ESS_DOCUMENTS: "/ess/documents",
 
   // Workspace Settings (Unified Control Panel)
   SETTINGS: {

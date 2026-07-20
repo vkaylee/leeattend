@@ -28,7 +28,8 @@ import {
   ArrowLeftRight,
   DollarSign,
   Activity,
-  Zap
+  Zap,
+  Mail,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -150,6 +151,7 @@ export function useNavMenuItems(): NavMenuStructure {
         { to: ROUTES.SYSTEM_ROLES, icon: ShieldCheck, label: t("system_roles.title", "Platform Admins"), testId: "sidebar-link-system-roles", systemRoles: ["platform_admin"] },
         { to: ROUTES.SYSTEM_DB_CLUSTERS, icon: Server, label: t("db_clusters.title", "DB Clusters"), testId: "sidebar-link-system-db-clusters", systemRoles: ["platform_admin"] },
         { to: ROUTES.SYSTEM_TENANTS, icon: Database, label: t("system_admin.tenants.title"), testId: "sidebar-link-system-tenants", systemRoles: ["platform_admin"] },
+        { to: ROUTES.SYSTEM_SMTP, icon: Mail, label: t("smtp.title", "SMTP Settings"), testId: "sidebar-link-system-smtp", systemRoles: ["platform_admin"] },
       ],
     },
     {
@@ -161,6 +163,8 @@ export function useNavMenuItems(): NavMenuStructure {
         { to: ROUTES.ESS_PROFILE, icon: UserCircle, label: t("ess.profile.title"), testId: "sidebar-link-ess-profile", permissions: ["ess:profile"] },
         { to: ROUTES.ESS_ATTENDANCE, icon: History, label: t("ess.attendance.title"), testId: "sidebar-link-ess-attendance", permissions: ["ess:attendance"] },
         { to: ROUTES.ESS_CLOCK, icon: Clock, label: t("ess.clock.title"), testId: "sidebar-link-ess-clock", permissions: ["ess:clock"] },
+        { to: ROUTES.ESS_OT, icon: Timer, label: t("ess.ot.title", "My OT"), testId: "sidebar-link-ess-ot", permissions: ["ess:ot"] },
+        { to: ROUTES.ESS_DOCUMENTS, icon: Folder, label: t("ess.documents.title", "My Documents"), testId: "sidebar-link-ess-documents", permissions: ["ess:documents"] },
       ],
     },
   ];
