@@ -19,11 +19,7 @@ pub(super) struct EmploymentSelection {
     pub(super) groups: Vec<EmploymentGroup>,
 }
 
-fn overlaps_range(
-    employment: &Employment,
-    start_date: NaiveDate,
-    end_date: NaiveDate,
-) -> bool {
+fn overlaps_range(employment: &Employment, start_date: NaiveDate, end_date: NaiveDate) -> bool {
     employment.start_date() <= end_date
         && employment
             .end_date()
@@ -105,7 +101,8 @@ pub(super) fn select_report_employments(
         let Some(representative) = group.last() else {
             continue;
         };
-        let group_employment_ids: Vec<Uuid> = group.iter().map(|employment| employment.id()).collect();
+        let group_employment_ids: Vec<Uuid> =
+            group.iter().map(|employment| employment.id()).collect();
         employment_ids.extend(group_employment_ids.iter().copied());
         groups.push(EmploymentGroup {
             employee_id: first.employee_id(),
@@ -202,14 +199,8 @@ mod tests {
             employment(Uuid::new_v4(), employee_id, employer_b, date, None),
         ];
 
-        let selection = select_report_employments(
-            &employments,
-            &[employee_id],
-            date,
-            date,
-            None,
-        )
-        .unwrap();
+        let selection =
+            select_report_employments(&employments, &[employee_id], date, date, None).unwrap();
 
         assert_eq!(selection.groups.len(), 2);
     }

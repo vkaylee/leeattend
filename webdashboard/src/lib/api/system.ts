@@ -40,26 +40,12 @@ export async function fetchSystemHealth(): Promise<Record<string, unknown>> {
   return resData;
 }
 
-export interface SystemTenant {
-  created_at: string;
-  id: string;
-  pool_size: number;
-  updated_at: string;
-}
-
-export interface CreateTenantRequestPayload {
-  create_db: boolean;
-  db_name: string;
-  pool_size?: number;
-}
+export type SystemTenant = components["schemas"]["SystemTenantResponse"];
+export type CreateTenantRequestPayload = components["schemas"]["CreateTenantRequest"];
+export type TenantConnectionStats = components["schemas"]["TenantStatsResponse"];
 
 export async function fetchSystemTenants(): Promise<SystemTenant[]> {
   const { data: resData } = await fetch<SystemTenant[]>("GET", "/system/tenants", {});
-  return resData;
-}
-
-export async function fetchStaleTenants(): Promise<SystemTenant[]> {
-  const { data: resData } = await fetch<SystemTenant[]>("GET", "/system/tenants/stale", {});
   return resData;
 }
 
@@ -71,28 +57,6 @@ export async function deleteSystemTenant(tenantId: string): Promise<void> {
   await fire("DELETE", "/system/tenants/{tenant_id}", {
     params: { path: { tenant_id: tenantId } }
   });
-}
-
-export interface TenantConfig {
-  db_database?: string;
-  default_mode?: string;
-  users?: {
-    db_user?: string;
-    mode_type?: string;
-    pool_size?: number;
-  }[];
-}
-
-export interface TenantConnectionStats {
-  config: TenantConfig & {
-    data?: TenantConfig;
-    tenant?: TenantConfig;
-  };
-  connection: {
-    host: string;
-    port: string;
-    masked_db_url?: string | null;
-  };
 }
 
 export async function fetchSystemTenantStats(tenantId: string): Promise<TenantConnectionStats> {

@@ -4,6 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 
 #[test]
+#[allow(clippy::disallowed_methods)]
 fn handlers_must_use_member_context_for_workspace_id() {
     let handlers_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("src")
@@ -98,6 +99,7 @@ fn handlers_must_use_member_context_for_workspace_id() {
 }
 
 #[test]
+#[allow(clippy::disallowed_methods)]
 fn handler_functions_must_not_accept_workspace_id_param() {
     let handlers_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("src")

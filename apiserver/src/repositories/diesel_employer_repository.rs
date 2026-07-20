@@ -315,7 +315,10 @@ mod tests {
 
         let result = repo.get_employers_by_ids(&auth_token, &[]).await;
 
-        assert!(result.is_ok(), "Empty input should return Ok([]), got: {result:?}");
+        assert!(
+            result.is_ok(),
+            "Empty input should return Ok([]), got: {result:?}"
+        );
         assert!(result.unwrap().is_empty());
     }
 }

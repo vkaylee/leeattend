@@ -547,6 +547,10 @@ mod tests {
         ) -> Result<Vec<Uuid>, AppError> {
             Ok(vec![])
         }
+
+        async fn delete_workspace(&self, _workspace_id: Uuid) -> Result<(), AppError> {
+            Ok(())
+        }
     }
 
     struct MockUserRepo {

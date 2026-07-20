@@ -60,6 +60,7 @@ impl TerminationService {
     }
 
     /// Build a termination preview from already-parsed CSV mapped rows.
+    #[allow(clippy::too_many_lines)]
     pub async fn build_preview(
         &self,
         auth_token: &TenantAuthToken,
@@ -88,8 +89,7 @@ impl TerminationService {
             .map(|emp| (emp.employee_id_number().to_string(), emp))
             .collect();
 
-        let employee_ids: Vec<Uuid> =
-            employees_by_code.values().map(Employee::id).collect();
+        let employee_ids: Vec<Uuid> = employees_by_code.values().map(Employee::id).collect();
 
         // ── 3. Batch-fetch Employments ───────────────────────────────────
         let employments = self
@@ -447,7 +447,7 @@ mod tests {
             accrued_amount: 0.0,
             carried_over: 0,
             used: 0,
-            remaining: entitlement as f64,
+            remaining: f64::from(entitlement),
         }
     }
 
@@ -455,8 +455,7 @@ mod tests {
 
     #[test]
     fn parse_empty_rows() {
-        let (parsed, invalid, codes) =
-            TerminationService::parse_and_validate_rows(vec![]);
+        let (parsed, invalid, codes) = TerminationService::parse_and_validate_rows(vec![]);
         assert!(parsed.is_empty());
         assert!(invalid.is_empty());
         assert!(codes.is_empty());

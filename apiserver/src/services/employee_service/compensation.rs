@@ -62,10 +62,12 @@ impl EmployeeService {
         employer_ids.sort();
         employer_ids.dedup();
 
-        let employers = employer_repo.get_employers_by_ids(auth_token, &employer_ids).await?;
+        let employers = employer_repo
+            .get_employers_by_ids(auth_token, &employer_ids)
+            .await?;
         let employer_names: std::collections::HashMap<Uuid, String> = employers
             .into_iter()
-            .map(|e| (e.id, e.name.clone()))
+            .map(|e| (e.id, e.name))
             .collect();
 
         // 5. Resolve department names with a single batch query (no N+1)
@@ -76,7 +78,10 @@ impl EmployeeService {
         dept_ids.sort();
         dept_ids.dedup();
 
-        let departments = self.dept_repo.get_departments_by_ids(auth_token, &dept_ids).await?;
+        let departments = self
+            .dept_repo
+            .get_departments_by_ids(auth_token, &dept_ids)
+            .await?;
         let department_names: std::collections::HashMap<Uuid, String> = departments
             .into_iter()
             .map(|d| (d.id(), d.name().to_string()))

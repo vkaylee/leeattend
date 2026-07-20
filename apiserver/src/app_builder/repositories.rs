@@ -223,9 +223,9 @@ pub fn build_repositories(
     let error = Arc::new(
         crate::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
-    let condition_type = Arc::new(
-        crate::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
-    );
+    let condition_type = Arc::new(crate::repositories::DieselConditionTypeRepository::new(
+        diesel_pools.clone(),
+    ));
 
     Ok(Repositories {
         agent,

@@ -607,9 +607,7 @@ pub async fn import_termination_preview(
         Arc::clone(state.leaves().balance_repo()),
     );
 
-    let preview = service
-        .build_preview(&ctx.auth_token, mapped_rows)
-        .await?;
+    let preview = service.build_preview(&ctx.auth_token, mapped_rows).await?;
 
     Ok(Json(preview))
 }

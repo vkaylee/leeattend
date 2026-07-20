@@ -874,11 +874,13 @@ mod tests {
         });
         let pools = DieselPools::for_test(&test_db_url);
         let repo = DieselLifecycleChecklistRepository::new(pools);
-        let auth_token =
-            crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4());
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4());
 
         let result = repo.list_items_for_checklist_ids(&auth_token, &[]).await;
-        assert!(result.is_ok(), "Empty input should return Ok([]), got: {result:?}");
+        assert!(
+            result.is_ok(),
+            "Empty input should return Ok([]), got: {result:?}"
+        );
         assert!(result.unwrap().is_empty());
     }
 }

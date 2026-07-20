@@ -273,7 +273,10 @@ impl UserRepository for NopUserRepo {
     async fn create_notification(&self, _n: &Notification) -> Result<(), AppError> {
         Ok(())
     }
-    async fn create_notifications_batch(&self, _notifications: &[Notification]) -> Result<(), AppError> {
+    async fn create_notifications_batch(
+        &self,
+        _notifications: &[Notification],
+    ) -> Result<(), AppError> {
         Ok(())
     }
 }

@@ -408,7 +408,7 @@ impl ReportCoordinator {
                     // It's a report job, trigger merge
                     tracing::info!(parent_job_id = %parent_job_id, "Triggering merge job");
 
-                    let date_range = meta.date_range.clone().unwrap_or_else(|| {
+                    let date_range = meta.date_range.unwrap_or_else(|| {
                         let default_date = NaiveDate::from_ymd_opt(2000, 1, 1).unwrap_or_default();
                         DateRange {
                             start: default_date,

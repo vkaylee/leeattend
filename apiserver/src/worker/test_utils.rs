@@ -91,7 +91,8 @@ impl LeavePolicyRepository for DummyLeavePolicyRepository {
         &self,
         _workspace_id: uuid::Uuid,
         _code: &str,
-    ) -> Result<Option<crate::models::diesel::leave::LeaveTypeEntity>, crate::errors::AppError> {
+    ) -> Result<Option<crate::models::diesel::leave::LeaveTypeEntity>, crate::errors::AppError>
+    {
         unimplemented!()
     }
 

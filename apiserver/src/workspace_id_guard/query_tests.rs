@@ -9,6 +9,7 @@ use std::fs;
 use std::path::PathBuf;
 
 #[test]
+#[allow(clippy::disallowed_methods)]
 fn all_tenant_queries_must_include_workspace_id() {
     // Resolve the source directory relative to the test binary
     let src_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src");

@@ -25,18 +25,16 @@ export function CreateTenantModal({
   const { t } = useTranslation(["common", "system_roles"]);
   const toast = useToast();
 
-  const [dbName, setDbName] = useState("");
-  const [createDb, setCreateDb] = useState(true);
-  const [poolSize, setPoolSize] = useState("15");
+  const [name, setName] = useState("");
+  const [databaseUrl, setDatabaseUrl] = useState("");
 
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!dbName) return;
+    if (!name) return;
 
     const payload: CreateTenantRequestPayload = {
-      db_name: dbName,
-      create_db: createDb,
-      pool_size: poolSize ? parseInt(poolSize, 10) : undefined,
+      name,
+      database_url: databaseUrl || undefined,
     };
 
     try {
@@ -50,9 +48,8 @@ export function CreateTenantModal({
   };
 
   const resetForm = () => {
-    setDbName("");
-    setCreateDb(true);
-    setPoolSize("15");
+    setName("");
+    setDatabaseUrl("");
   };
 
   const handleClose = () => {
@@ -64,47 +61,35 @@ export function CreateTenantModal({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      subtitle="Provide database credentials to initialize a new connection pool for Supavisor."
+      subtitle="Create a new workspace tenant. Leave Database URL empty for automatic provisioning."
       title={t("system_admin.tenants.modal.create_title")}
     >
       <form onSubmit={(e) => { void handleSubmit(e); }}>
         <div className="grid gap-6 py-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="dbName">
-              {t("system_admin.tenants.modal.db_name_label")} <span className="text-red-500">*</span>
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="name">
+              {t("system_admin.tenants.modal.name_label", { defaultValue: "Workspace Name" })} <span className="text-red-500">*</span>
             </label>
             <input
               className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:text-white"
-              id="dbName"
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setDbName(e.target.value); }}
-              placeholder={t("system_admin.tenants.modal.db_name_placeholder")}
+              id="name"
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setName(e.target.value); }}
+              placeholder="My Workspace"
               required
-              value={dbName}
-            />
-          </div>
-          <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer select-none" htmlFor="createDb">
-              {t("system_admin.tenants.modal.create_db_label")}
-            </label>
-            <input
-              checked={createDb}
-              className="h-5 w-5 rounded border-slate-300 text-primary-600 focus:ring-primary-600 bg-white"
-              id="createDb"
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setCreateDb(e.target.checked); }}
-              type="checkbox"
+              value={name}
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="poolSize">
-              {t("system_admin.tenants.modal.pool_size_label")}
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="databaseUrl">
+              {t("system_admin.tenants.modal.database_url_label", { defaultValue: "Database URL (BYOD only)" })}
             </label>
             <input
               className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:text-white"
-              id="poolSize"
-              min="1"
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setPoolSize(e.target.value); }}
-              type="number"
-              value={poolSize}
+              id="databaseUrl"
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setDatabaseUrl(e.target.value); }}
+              placeholder="postgres://user:password@host:5432/db"
+              type="text"
+              value={databaseUrl}
             />
           </div>
         </div>
@@ -117,7 +102,7 @@ export function CreateTenantModal({
             {t("common.cancel", { defaultValue: "Cancel" })}
           </Button>
           <Button
-            disabled={isPending || !dbName}
+            disabled={isPending || !name}
             loading={isPending}
             type="submit"
             variant="primary"

@@ -23,7 +23,7 @@ impl ConditionTypeService {
 
     /// Validate condition type code format: uppercase alphanumeric with underscores, starts with letter.
     fn validate_code(code: &str) -> AppResult<()> {
-        let re = regex::Regex::new(r"^[A-Z][A-Z0-9_]*$").expect("valid regex");
+        let re = regex::Regex::new(r"^[A-Z][A-Z0-9_]*$").map_err(|e| AppError::Internal(format!("regex compile: {e}")))?;
         if !re.is_match(code) {
             return Err(AppError::validation_args(
                 I18nKey::Validation,
@@ -62,7 +62,7 @@ impl ConditionTypeService {
         }
 
         let effects: ConditionRuleEffects =
-            serde_json::from_value(affects_rules.clone()).map_err(|_| {
+            serde_json::from_value(affects_rules.clone()).map_err(|_e| {
                 AppError::validation_args(
                     I18nKey::Validation,
                     [(

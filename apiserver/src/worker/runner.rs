@@ -663,24 +663,20 @@ mod tests {
         assert_eq!(semaphore.available_permits(), 5);
 
         // Simulate acquiring permits
-        let permit1 = semaphore.try_acquire();
-        assert!(permit1.is_ok());
+        let _permit1 = semaphore.try_acquire().unwrap();
         assert_eq!(semaphore.available_permits(), 4);
 
-        let permit2 = semaphore.try_acquire();
-        assert!(permit2.is_ok());
+        let _permit2 = semaphore.try_acquire().unwrap();
         assert_eq!(semaphore.available_permits(), 3);
 
         // Can acquire up to 5
         let _p3 = semaphore.try_acquire();
         let _p4 = semaphore.try_acquire();
-        let permit5 = semaphore.try_acquire();
-        assert!(permit5.is_ok());
+        let _permit5 = semaphore.try_acquire().unwrap();
         assert_eq!(semaphore.available_permits(), 0);
 
         // Sixth should fail
-        let permit6 = semaphore.try_acquire();
-        assert!(permit6.is_err());
+        assert!(semaphore.try_acquire().is_err());
     }
 
     #[test]

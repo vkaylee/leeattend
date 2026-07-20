@@ -271,7 +271,7 @@ mod tests {
                 _key: &str,
                 _ttl: std::time::Duration,
             ) -> crate::errors::AppResult<String> {
-                Ok("".to_string())
+                Ok(String::new())
             }
             async fn presigned_put_url(
                 &self,
@@ -279,7 +279,7 @@ mod tests {
                 _content_type: &str,
                 _ttl: std::time::Duration,
             ) -> crate::errors::AppResult<String> {
-                Ok("".to_string())
+                Ok(String::new())
             }
             async fn head_object(
                 &self,

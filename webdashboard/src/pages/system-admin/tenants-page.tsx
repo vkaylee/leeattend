@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Eye, Server, SearchX } from "lucide-react";
+import { Plus, Trash2, Eye, Server } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -18,7 +18,6 @@ import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import {
   deleteSystemTenant,
-  fetchStaleTenants,
   fetchSystemTenants,
   fetchSystemTenantStats,
   updateTenantDatabase,
@@ -27,7 +26,6 @@ import {
 } from "@/lib/api/system";
 
 import { CreateTenantModal } from "./components/create-tenant-modal";
-import { StaleTenantsModal } from "./components/stale-tenants-modal";
 import { TenantDbUpdateModal } from "./components/tenant-db-update-modal";
 import { TenantStatsModal } from "./components/tenant-stats-modal";
 
@@ -42,7 +40,6 @@ export default function TenantsPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [statsModalOpen, setStatsModalOpen] = useState(false);
   const [dbUpdateModalOpen, setDbUpdateModalOpen] = useState(false);
-  const [staleModalOpen, setStaleModalOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<SystemTenant | null>(null);
 
   // ── Queries ───────────────────────────────────────────────────────────────
@@ -60,34 +57,12 @@ export default function TenantsPage() {
     enabled: !!selectedTenant && (statsModalOpen || dbUpdateModalOpen),
   });
 
-  const {
-    data: staleTenants = [],
-    isLoading: isStaleLoading,
-    refetch: refetchStale,
-  } = useQuery({
-    queryKey: ["system-tenants-stale"],
-    queryFn: fetchStaleTenants,
-    enabled: staleModalOpen,
-  });
-
   // ── Mutations ─────────────────────────────────────────────────────────────
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteSystemTenant(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["system-tenants"] });
       toast.success(t("system_admin.tenants.messages.delete_success"));
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  const cleanStaleMutation = useMutation({
-    mutationFn: (id: string) => deleteSystemTenant(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["system-tenants-stale"] });
-      void queryClient.invalidateQueries({ queryKey: ["system-tenants"] });
-      toast.success(t("system_admin.tenants.messages.clean_success"));
     },
     onError: (error) => {
       toast.error(error.message);
@@ -132,31 +107,6 @@ export default function TenantsPage() {
     setDbUpdateModalOpen(true);
   };
 
-  const handleCleanStale = async (id: string) => {
-    const isConfirmed = await confirm({
-      title: t("common.warning", { defaultValue: "Warning: Critical Action" }),
-      message: t("system_admin.tenants.stale_modal.confirm_clean"),
-      variant: "danger",
-    });
-    if (isConfirmed) {
-      cleanStaleMutation.mutate(id);
-    }
-  };
-
-  const handleCleanAllStale = async () => {
-    if (staleTenants.length === 0) return;
-    const isConfirmed = await confirm({
-      title: t("common.warning", { defaultValue: "Warning: Critical Action" }),
-      message: t("system_admin.tenants.stale_modal.confirm_clean_all"),
-      variant: "danger",
-    });
-    if (isConfirmed) {
-      for (const tenant of staleTenants) {
-        cleanStaleMutation.mutate(tenant.id);
-      }
-    }
-  };
-
   const handleUpdateDbSubmit = async (id: string, url: string) => {
     const isConfirmed = await confirm({
       title: t("common.warning", { defaultValue: "Warning: Critical Action" }),
@@ -181,16 +131,6 @@ export default function TenantsPage() {
         <div className="flex items-center gap-3">
           <Button
             onClick={() => {
-              setStaleModalOpen(true);
-              void refetchStale();
-            }}
-            variant="outline"
-          >
-            <SearchX className="w-4 h-4 mr-2" />
-            {t("system_admin.tenants.check_stale_btn")}
-          </Button>
-          <Button
-            onClick={() => {
               setCreateModalOpen(true);
             }}
             variant="ghost"
@@ -206,9 +146,10 @@ export default function TenantsPage() {
         <TableHeader>
           <TableRow>
             <TableHead>{t("system_admin.tenants.table.id")}</TableHead>
-            <TableHead>{t("system_admin.tenants.table.pool_size")}</TableHead>
+            <TableHead>{t("system_admin.tenants.table.name", { defaultValue: "Name" })}</TableHead>
+            <TableHead>{t("system_admin.tenants.table.byod", { defaultValue: "Type" })}</TableHead>
+            <TableHead>{t("system_admin.tenants.table.timezone", { defaultValue: "Timezone" })}</TableHead>
             <TableHead>{t("system_admin.tenants.table.created_at")}</TableHead>
-            <TableHead>{t("system_admin.tenants.table.updated_at")}</TableHead>
             <TableHead className="text-right">
               {t("system_admin.tenants.table.actions")}
             </TableHead>
@@ -217,7 +158,7 @@ export default function TenantsPage() {
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell className="text-center" colSpan={5}>
+              <TableCell className="text-center" colSpan={6}>
                 <div className="flex justify-center py-4">
                   <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
                 </div>
@@ -225,7 +166,7 @@ export default function TenantsPage() {
             </TableRow>
           ) : tenants.length === 0 ? (
             <TableRow>
-              <TableCell className="text-center text-slate-500" colSpan={5}>
+              <TableCell className="text-center text-slate-500" colSpan={6}>
                 No tenants found.
               </TableCell>
             </TableRow>
@@ -233,14 +174,15 @@ export default function TenantsPage() {
             tenants.map((tenant) => (
               <TableRow key={tenant.id}>
                 <TableCell className="font-mono text-xs">{tenant.id}</TableCell>
+                <TableCell className="text-sm font-medium">{tenant.name}</TableCell>
                 <TableCell>
-                  <StatusBadge variant="neutral">{tenant.pool_size}</StatusBadge>
+                  <StatusBadge variant={tenant.is_byod ? "success" : "neutral"}>
+                    {tenant.is_byod ? "BYOD" : "Standard"}
+                  </StatusBadge>
                 </TableCell>
+                <TableCell className="text-sm text-slate-500">{tenant.timezone}</TableCell>
                 <TableCell className="text-sm text-slate-500">
                   {new Date(tenant.created_at).toLocaleString()}
-                </TableCell>
-                <TableCell className="text-sm text-slate-500">
-                  {new Date(tenant.updated_at).toLocaleString()}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
@@ -316,22 +258,6 @@ export default function TenantsPage() {
         onSubmit={handleUpdateDbSubmit}
         selectedTenant={selectedTenant}
         tenantStats={tenantStats}
-      />
-
-      <StaleTenantsModal
-        isCleaning={cleanStaleMutation.isPending}
-        isLoading={isStaleLoading}
-        isOpen={staleModalOpen}
-        onCleanAll={() => {
-          void handleCleanAllStale();
-        }}
-        onCleanOne={(id) => {
-          void handleCleanStale(id);
-        }}
-        onClose={() => {
-          setStaleModalOpen(false);
-        }}
-        staleTenants={staleTenants}
       />
 
       <ConfirmationDialog />

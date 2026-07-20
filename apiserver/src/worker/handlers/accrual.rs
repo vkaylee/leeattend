@@ -206,7 +206,7 @@ mod tests {
         let mut employee_repo = crate::repositories::employee::MockEmployeeRepository::new();
         employee_repo
             .expect_get_employees_by_ids()
-            .withf(move |ids, _| ids == &[target_emp_id])
+            .withf(move |ids, _| ids == [target_emp_id])
             .times(1)
             .returning(|_, _| Ok(vec![]));
 

@@ -42,23 +42,22 @@ impl ReprocessAttendanceHandler {
 
         // Prefer the exact employment when the caller pinned one (e.g. shift
         // reassignment), otherwise fall back to the employee's active employment.
-        let active_employment_id = match payload.employment_id {
-            Some(id) => id,
-            None => {
-                let employee = deps
-                    .employee_repo
-                    .get_employee_by_id(payload.employee_id, &auth_token)
-                    .await
-                    .map_err(|e| e.to_string())?
-                    .ok_or_else(|| format!("Employee not found: {}", payload.employee_id))?;
+        let active_employment_id = if let Some(id) = payload.employment_id {
+            id
+        } else {
+            let employee = deps
+                .employee_repo
+                .get_employee_by_id(payload.employee_id, &auth_token)
+                .await
+                .map_err(|e| e.to_string())?
+                .ok_or_else(|| format!("Employee not found: {}", payload.employee_id))?;
 
-                employee.active_employment_id().ok_or_else(|| {
-                    format!(
-                        "No active employment found for employee: {}",
-                        payload.employee_id
-                    )
-                })?
-            }
+            employee.active_employment_id().ok_or_else(|| {
+                format!(
+                    "No active employment found for employee: {}",
+                    payload.employee_id
+                )
+            })?
         };
 
         // Initialize pairing service from shared deps
@@ -143,7 +142,7 @@ mod tests {
         emp_id: Uuid,
         employment_id: Uuid,
         ws_id: Uuid,
-        resolution: EmploymentResolution,
+        resolution: &EmploymentResolution,
     ) -> crate::worker::WorkerDeps {
         let mut time_entry_repo = MockTimeEntryRepository::new();
         time_entry_repo
@@ -240,7 +239,7 @@ mod tests {
         builder.daily_summary_repo = daily_summary_repo;
 
         let mut emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
-        match resolution {
+        match *resolution {
             EmploymentResolution::ViaActiveEmployee => {
                 emp_repo.expect_get_employee_by_id().returning(move |_, _| {
                     Ok(Some(
@@ -373,7 +372,7 @@ mod tests {
             emp_id,
             employment_id,
             ws_id,
-            EmploymentResolution::ViaActiveEmployee,
+            &EmploymentResolution::ViaActiveEmployee,
         );
         let job = reprocess_job(ws_id, emp_id, None);
 
@@ -395,7 +394,7 @@ mod tests {
         let mut queue = MockQueueRepository::new();
         queue.expect_get_job_metadata().returning(|_| Ok(None));
 
-        let deps = build_deps(emp_id, employment_id, ws_id, EmploymentResolution::Pinned);
+        let deps = build_deps(emp_id, employment_id, ws_id, &EmploymentResolution::Pinned);
         let job = reprocess_job(ws_id, emp_id, Some(employment_id));
 
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);

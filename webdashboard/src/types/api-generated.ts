@@ -940,6 +940,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/system/tenants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /system/tenants
+         *     List all tenants (workspaces).
+         */
+        get: operations["list_tenants"];
+        put?: never;
+        /**
+         * POST /system/tenants
+         *     Create a new tenant (workspace). If database_url is provided, sets up BYOD.
+         *     Otherwise auto-provisions a tenant database.
+         */
+        post: operations["create_tenant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/tenants/{tenant_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DELETE /system/tenants/{tenant_id}
+         *     Delete a tenant (workspace). Removes the workspace row — does NOT drop
+         *     the physical tenant database.
+         */
+        delete: operations["delete_tenant"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/tenants/{tenant_id}/database": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT /system/tenants/{tenant_id}/database
+         *     Update the custom BYOD database URL for a tenant.
+         *     The system DOES NOT copy data — ensure the target database is migrated.
+         */
+        put: operations["update_tenant_database"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/tenants/{tenant_id}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /system/tenants/{tenant_id}/stats
+         *     Get tenant connection details and stats.
+         */
+        get: operations["get_tenant_stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/system/users/{user_id}/roles": {
         parameters: {
             query?: never;
@@ -4941,11 +5028,8 @@ export interface components {
         /**
          * @description Workspace-scoped catalog entry defining a type of working condition.
          *
-         *     Each workspace gets 5 system types seeded by migration (EARLY_LEAVE,
-         *     BREASTFEEDING, MATERNITY, SICK, UNPAID) and can create custom types.
-         *     The `affects_rules` JSONB field describes which PolicyRules fields
-         *     this condition type modifies, enabling a data-driven resolver instead
-         *     of hardcoded string matching.
+         *     The `affects_rules` JSONB field follows [`ConditionRuleEffects`], enabling
+         *     a data-driven resolver instead of hardcoded string matching.
          */
         ConditionTypeDefinition: {
             affects_rules: unknown;
@@ -5118,6 +5202,8 @@ export interface components {
             agent_id: string;
             brand?: string | null;
             ip: string;
+            /** Format: uuid */
+            location_id?: string | null;
             /** Format: int32 */
             max_concurrent_workers?: number | null;
             name: string;
@@ -5417,6 +5503,10 @@ export interface components {
             secret_key: string;
             use_path_style: boolean;
         };
+        CreateTenantRequest: {
+            database_url?: string | null;
+            name: string;
+        };
         CreateUploadUrlRequest: {
             category: components["schemas"]["FileCategory"];
             /** Format: int64 */
@@ -5580,6 +5670,12 @@ export interface components {
             ip: string;
             is_enabled: boolean;
             last_status: string;
+            /**
+             * Format: uuid
+             * @description Optional work location, used only as a filter/quick-select hint for bulk
+             *     enrollment. Not the source of truth for enrollment.
+             */
+            location_id?: string | null;
             /** Format: int32 */
             max_concurrent_workers: number;
             name: string;
@@ -7509,6 +7605,15 @@ export interface components {
          * @enum {string}
          */
         SystemRoleType: "platform_admin" | "support" | "billing_admin";
+        SystemTenantResponse: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            is_byod: boolean;
+            name: string;
+            timezone: string;
+        };
         /**
          * @description Type of task to be processed by workers.
          * @enum {string}
@@ -7524,6 +7629,21 @@ export interface components {
         };
         TemplatePreviewResponse: {
             filled_content: string;
+        };
+        TenantConnectionInfo: {
+            host: string;
+            port: string;
+        };
+        TenantStatsResponse: {
+            connection: components["schemas"]["TenantConnectionInfo"];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            is_byod: boolean;
+            masked_db_url?: string | null;
+            name: string;
+            timezone: string;
         };
         TerminationPreviewResponse: {
             can_commit: boolean;
@@ -7716,6 +7836,8 @@ export interface components {
             brand?: string | null;
             ip?: string | null;
             is_enabled?: boolean | null;
+            /** Format: uuid */
+            location_id?: string | null;
             name?: string | null;
             password?: string | null;
             /** Format: int32 */
@@ -7911,6 +8033,9 @@ export interface components {
             region?: string | null;
             secret_key?: string | null;
             use_path_style?: boolean | null;
+        };
+        UpdateTenantDbRequest: {
+            database_url: string;
         };
         UpdateTimeEntryRequest: {
             entry_type?: string | null;
@@ -9894,6 +10019,119 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    list_tenants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of all tenants */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemTenantResponse"][];
+                };
+            };
+        };
+    };
+    create_tenant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTenantRequest"];
+            };
+        };
+        responses: {
+            /** @description Tenant created successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemTenantResponse"];
+                };
+            };
+        };
+    };
+    delete_tenant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant (Workspace) ID */
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tenant deleted successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_tenant_database: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant (Workspace) ID */
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTenantDbRequest"];
+            };
+        };
+        responses: {
+            /** @description Database URL updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_tenant_stats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant (Workspace) ID */
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tenant connection details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantStatsResponse"];
+                };
             };
         };
     };
@@ -14624,8 +14862,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Bulk rosters created/updated */
-            200: {
+            /** @description Bulk rosters saved; attendance reprocess enqueued */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };

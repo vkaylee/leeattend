@@ -475,7 +475,7 @@ mod tests {
                     ImportJobStatus::Failed => {
                         assert!(err_opt.is_some());
                     }
-                    _ => panic!("Unexpected status: {:?}", status),
+                    _ => panic!("Unexpected status: {status:?}"),
                 }
                 Ok(())
             });

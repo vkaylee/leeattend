@@ -48,19 +48,23 @@ fn empty_report_json(
     let page = page.unwrap_or(1);
     let limit = limit.unwrap_or(20);
     let json = if report_type == "daily" {
-        serde_json::to_value(crate::models::PaginatedResponse::<crate::models::DailyAttendanceReport> {
+        serde_json::to_value(crate::models::PaginatedResponse::<
+            crate::models::DailyAttendanceReport,
+        > {
             data: Vec::new(),
             total: 0,
             page,
             limit,
         })
     } else {
-        serde_json::to_value(crate::models::PaginatedResponse::<crate::models::AttendanceSummary> {
-            data: Vec::new(),
-            total: 0,
-            page,
-            limit,
-        })
+        serde_json::to_value(
+            crate::models::PaginatedResponse::<crate::models::AttendanceSummary> {
+                data: Vec::new(),
+                total: 0,
+                page,
+                limit,
+            },
+        )
     }
     .map_err(|e| AppError::from(e.to_string()))?;
     Ok(Json(json))
@@ -194,10 +198,7 @@ pub async fn get_attendance_report(
     let page = params.page;
     let limit = params.limit;
     let sort = params.sort.as_ref().and_then(|s| {
-        serde_json::from_value::<AttendanceReportSort>(serde_json::Value::String(
-            s.clone(),
-        ))
-        .ok()
+        serde_json::from_value::<AttendanceReportSort>(serde_json::Value::String(s.clone())).ok()
     });
 
     let requested_ids: Option<Vec<Uuid>> = params.employee_ids.as_ref().map(|s| {
@@ -231,7 +232,14 @@ pub async fn get_attendance_report(
 
     if report_type == "daily" {
         let service = state.reports().service();
-        let args = build_report_args(workspace_id, &params, start_date, end_date, employee_ids, None);
+        let args = build_report_args(
+            workspace_id,
+            &params,
+            start_date,
+            end_date,
+            employee_ids,
+            None,
+        );
         let report = if use_segments {
             service.get_segment_attendance_report(args).await?
         } else {
@@ -241,7 +249,14 @@ pub async fn get_attendance_report(
             serde_json::to_value(report).map_err(|e| AppError::from(e.to_string()))?,
         ))
     } else {
-        let args = build_report_args(workspace_id, &params, start_date, end_date, employee_ids, sort);
+        let args = build_report_args(
+            workspace_id,
+            &params,
+            start_date,
+            end_date,
+            employee_ids,
+            sort,
+        );
         let summary = state
             .reports()
             .service()

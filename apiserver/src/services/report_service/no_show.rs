@@ -296,7 +296,12 @@ mod tests {
     fn includes_absent_shift_overlapping_today_and_started() {
         // Shift 08:00-17:00 HCM on 2026-07-13, now = 14:00 HCM (07:00 UTC).
         // target_date = 2026-07-13 = today in HCM → shift has started → include.
-        let row = row_with("2026-07-13", "08:00:00", "17:00:00", AttendanceStatus::Absent);
+        let row = row_with(
+            "2026-07-13",
+            "08:00:00",
+            "17:00:00",
+            AttendanceStatus::Absent,
+        );
         let now = at_utc(2026, 7, 13, 7, 0); // 14:00 HCM
         assert!(should_include_in_no_show(
             &row,
@@ -309,7 +314,12 @@ mod tests {
     #[test]
     fn excludes_future_shift_on_today() {
         // Shift 18:00-22:00 HCM, now = 14:00 HCM → shift hasn't started yet.
-        let row = row_with("2026-07-13", "18:00:00", "22:00:00", AttendanceStatus::Absent);
+        let row = row_with(
+            "2026-07-13",
+            "18:00:00",
+            "22:00:00",
+            AttendanceStatus::Absent,
+        );
         let now = at_utc(2026, 7, 13, 7, 0); // 14:00 HCM
         assert!(!should_include_in_no_show(
             &row,
@@ -323,7 +333,12 @@ mod tests {
     fn includes_all_shifts_for_past_date() {
         // Past date: 2026-07-10. Even a "future" (relative to now's time-of-day)
         // shift is included because on a past date ALL shifts have started.
-        let row = row_with("2026-07-10", "18:00:00", "22:00:00", AttendanceStatus::Absent);
+        let row = row_with(
+            "2026-07-10",
+            "18:00:00",
+            "22:00:00",
+            AttendanceStatus::Absent,
+        );
         let now = at_utc(2026, 7, 13, 5, 0); // Now = 12:00 HCM on 07-13
         assert!(should_include_in_no_show(
             &row,
@@ -335,7 +350,12 @@ mod tests {
 
     #[test]
     fn excludes_present_employee() {
-        let row = row_with("2026-07-13", "08:00:00", "17:00:00", AttendanceStatus::Present);
+        let row = row_with(
+            "2026-07-13",
+            "08:00:00",
+            "17:00:00",
+            AttendanceStatus::Present,
+        );
         let now = at_utc(2026, 7, 13, 7, 0);
         assert!(!should_include_in_no_show(
             &row,
@@ -349,7 +369,12 @@ mod tests {
     fn excludes_shift_not_overlapping_target_day() {
         // Shift on 2026-07-13 08:00-17:00 HCM. target_date = 2026-07-12.
         // The shift is entirely outside the target day → exclude.
-        let row = row_with("2026-07-13", "08:00:00", "17:00:00", AttendanceStatus::Absent);
+        let row = row_with(
+            "2026-07-13",
+            "08:00:00",
+            "17:00:00",
+            AttendanceStatus::Absent,
+        );
         let now = at_utc(2026, 7, 12, 7, 0);
         assert!(!should_include_in_no_show(
             &row,
@@ -364,7 +389,12 @@ mod tests {
         // Night shift 22:00-06:00 on 2026-07-12 (anchored to 07-12).
         // target_date = 2026-07-13 (next day). The shift overlaps 07-13
         // (00:00-06:00) → include.
-        let row = row_with("2026-07-12", "22:00:00", "06:00:00", AttendanceStatus::Absent);
+        let row = row_with(
+            "2026-07-12",
+            "22:00:00",
+            "06:00:00",
+            AttendanceStatus::Absent,
+        );
         let now = at_utc(2026, 7, 13, 7, 0); // 14:00 HCM on 07-13
         assert!(should_include_in_no_show(
             &row,
@@ -377,7 +407,12 @@ mod tests {
     #[test]
     fn excludes_future_date() {
         // target_date = 2026-07-15, but today = 2026-07-13 → future → exclude.
-        let row = row_with("2026-07-13", "08:00:00", "17:00:00", AttendanceStatus::Absent);
+        let row = row_with(
+            "2026-07-13",
+            "08:00:00",
+            "17:00:00",
+            AttendanceStatus::Absent,
+        );
         let now = at_utc(2026, 7, 13, 7, 0);
         assert!(!should_include_in_no_show(
             &row,
@@ -392,7 +427,12 @@ mod tests {
         // Employee in Tokyo (+09), target_date = 2026-07-13 at now = 23:00 UTC.
         // In Tokyo: today is already 2026-07-14 08:00, so target_date 07-13 is a
         // past date for this employee → all shifts included (they all happened).
-        let row = row_with("2026-07-13", "08:00:00", "17:00:00", AttendanceStatus::Absent);
+        let row = row_with(
+            "2026-07-13",
+            "08:00:00",
+            "17:00:00",
+            AttendanceStatus::Absent,
+        );
         let now = at_utc(2026, 7, 13, 23, 0); // 2026-07-14 08:00 Tokyo
         assert!(should_include_in_no_show(
             &row,
@@ -404,7 +444,12 @@ mod tests {
 
     #[test]
     fn excludes_rows_without_shift_times() {
-        let mut row = row_with("2026-07-13", "08:00:00", "17:00:00", AttendanceStatus::Absent);
+        let mut row = row_with(
+            "2026-07-13",
+            "08:00:00",
+            "17:00:00",
+            AttendanceStatus::Absent,
+        );
         row.scheduled_start = None;
         let now = at_utc(2026, 7, 13, 7, 0);
         assert!(!should_include_in_no_show(
@@ -444,10 +489,7 @@ mod tests {
 
     #[test]
     fn day_start_utc_returns_midnight() {
-        let start = day_start_utc(
-            NaiveDate::from_ymd_opt(2026, 7, 13).unwrap(),
-            hcm(),
-        );
+        let start = day_start_utc(NaiveDate::from_ymd_opt(2026, 7, 13).unwrap(), hcm());
         // 00:00 HCM on 07-13 = 2026-07-12 17:00 UTC
         assert_eq!(start, Some(at_utc(2026, 7, 12, 17, 0)));
     }

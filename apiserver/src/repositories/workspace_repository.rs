@@ -184,4 +184,6 @@ pub trait WorkspaceRepository: Send + Sync {
         workspace_id: Uuid,
         permission: &str,
     ) -> Result<Vec<Uuid>, AppError>;
+
+    async fn delete_workspace(&self, workspace_id: Uuid) -> Result<(), AppError>;
 }

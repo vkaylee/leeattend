@@ -4,10 +4,11 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use uuid::Uuid;
 
-/// Full row including the encrypted template payload. This is the storage-layer
-/// type; the raw `template_encrypted` bytes must be decrypted via CryptoService
-/// only on the push path and NEVER serialized back to API clients. Use
-/// `BiometricTemplateInfo` for anything client-facing.
+/// Full row including the encrypted template payload.
+///
+/// This is the storage-layer type; the raw `template_encrypted` bytes must be
+/// decrypted via CryptoService only on the push path and NEVER serialized back
+/// to API clients. Use `BiometricTemplateInfo` for anything client-facing.
 #[derive(Debug, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = employee_biometric_templates)]
 #[diesel(check_for_backend(diesel::pg::Pg))]

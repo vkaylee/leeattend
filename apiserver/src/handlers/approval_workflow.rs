@@ -102,7 +102,8 @@ pub async fn create_workflow(
     ctx.require_permission(Permission::ApprovalWorkflowsManage)?;
 
     let workflow_id = crate::utils::id::new_id();
-    let (workflow, steps) = build_workflow_and_steps(ctx.workspace_id, ctx.user_id, workflow_id, req);
+    let (workflow, steps) =
+        build_workflow_and_steps(ctx.workspace_id, ctx.user_id, workflow_id, req);
 
     let (created_wf, created_steps) = state
         .core()
@@ -110,7 +111,10 @@ pub async fn create_workflow(
         .create_workflow(&ctx.auth_token, workflow, steps)
         .await?;
 
-    Ok(Json(serialize_workflow_with_steps(&created_wf, &created_steps)?))
+    Ok(Json(serialize_workflow_with_steps(
+        &created_wf,
+        &created_steps,
+    )?))
 }
 
 /// GET /workspaces/{ws_id}/approval-workflows/{id}
@@ -173,7 +177,10 @@ pub async fn update_workflow(
         .update_workflow_definition(&ctx.auth_token, workflow, steps)
         .await?;
 
-    Ok(Json(serialize_workflow_with_steps(&updated_wf, &created_steps)?))
+    Ok(Json(serialize_workflow_with_steps(
+        &updated_wf,
+        &created_steps,
+    )?))
 }
 
 /// DELETE /workspaces/{ws_id}/approval-workflows/{id}

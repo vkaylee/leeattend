@@ -227,11 +227,7 @@ impl AppError {
 
     /// Conflict that carries a structured `retry` hint for the frontend
     /// (e.g. a retired master/reference row the client can re-activate).
-    pub fn conflict_with_retry<I, K, V>(
-        key: I18nKey,
-        args: I,
-        retry: serde_json::Value,
-    ) -> Self
+    pub fn conflict_with_retry<I, K, V>(key: I18nKey, args: I, retry: serde_json::Value) -> Self
     where
         I: IntoIterator<Item = (K, V)>,
         K: Into<String>,

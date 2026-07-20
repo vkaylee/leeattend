@@ -52,13 +52,15 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let row = row.map(|(id, amount)| -> Result<_, AppError> {
-            Ok(ExistingAccrualLog {
-                id,
-                amount: Decimal::from_str(&amount.to_string())
-                    .map_err(|e| AppError::Internal(format!("Decimal parse failed: {e}")))?,
+        let row = row
+            .map(|(id, amount)| -> Result<_, AppError> {
+                Ok(ExistingAccrualLog {
+                    id,
+                    amount: Decimal::from_str(&amount.to_string())
+                        .map_err(|e| AppError::Internal(format!("Decimal parse failed: {e}")))?,
+                })
             })
-        }).transpose()?;
+            .transpose()?;
 
         Ok(row)
     }
@@ -447,9 +449,8 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                     .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
                 if let Some((log_id, old_amount_bd)) = row {
-                    let old_amount =
-                        Decimal::from_str(&old_amount_bd.to_string())
-                            .map_err(|e| AppError::Internal(format!("Decimal parse failed: {e}")))?;
+                    let old_amount = Decimal::from_str(&old_amount_bd.to_string())
+                        .map_err(|e| AppError::Internal(format!("Decimal parse failed: {e}")))?;
                     if force && old_amount != decimal_amount {
                         let diff = decimal_amount - old_amount;
                         let diff_bd =
@@ -586,8 +587,9 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
                     use rust_decimal::prelude::FromPrimitive;
                     let decimal_amount =
-                        rust_decimal::Decimal::from_f64(*amount)
-                            .ok_or_else(|| AppError::Internal("Invalid f64 for Decimal conversion".into()))?;
+                        rust_decimal::Decimal::from_f64(*amount).ok_or_else(|| {
+                            AppError::Internal("Invalid f64 for Decimal conversion".into())
+                        })?;
                     let amount_bd = bigdecimal::BigDecimal::from_str(&decimal_amount.to_string())
                         .map_err(|e| {
                         AppError::Internal(format!("BigDecimal conversion failed: {e}"))
@@ -608,8 +610,9 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
                     if let Some((log_id, old_amount_bd)) = row {
                         let old_amount =
-                            Decimal::from_str(&old_amount_bd.to_string())
-                                .map_err(|e| AppError::Internal(format!("Decimal parse failed: {e}")))?;
+                            Decimal::from_str(&old_amount_bd.to_string()).map_err(|e| {
+                                AppError::Internal(format!("Decimal parse failed: {e}"))
+                            })?;
                         if force && old_amount != decimal_amount {
                             let diff = decimal_amount - old_amount;
                             let diff_bd = bigdecimal::BigDecimal::from_str(&diff.to_string())
@@ -813,7 +816,10 @@ mod tests {
     #[test]
     fn test_decimal_from_f64_nan_returns_none() {
         let result = Decimal::from_f64(f64::NAN);
-        assert!(result.is_none(), "from_f64(NaN) must return None, not silently default to zero");
+        assert!(
+            result.is_none(),
+            "from_f64(NaN) must return None, not silently default to zero"
+        );
     }
 
     #[test]
@@ -838,7 +844,10 @@ mod tests {
     #[test]
     fn test_decimal_from_str_invalid_returns_error() {
         let result = Decimal::from_str("not_a_number");
-        assert!(result.is_err(), "from_str('not_a_number') must return Err, not silently default to zero");
+        assert!(
+            result.is_err(),
+            "from_str('not_a_number') must return Err, not silently default to zero"
+        );
     }
 
     #[test]
@@ -855,7 +864,10 @@ mod tests {
         assert!(nan_result.is_err());
         match nan_result {
             Err(AppError::Internal(msg)) => {
-                assert!(msg.contains("Invalid f64"), "Error message should describe the problem");
+                assert!(
+                    msg.contains("Invalid f64"),
+                    "Error message should describe the problem"
+                );
             }
             _ => panic!("Expected AppError::Internal"),
         }

@@ -207,8 +207,7 @@ fn test_grace_period_minutes_serde_default_when_missing() {
 
     let decoded: DailyAttendanceReport = serde_json::from_value(json_value).unwrap();
     assert_eq!(
-        decoded.grace_period_minutes,
-        None,
+        decoded.grace_period_minutes, None,
         "missing grace_period_minutes should default to None via #[serde(default)]"
     );
 }
@@ -231,10 +230,8 @@ fn test_shift_type_filter_includes_matching() {
         make_report_with_shift(false, true, Some("Morning Shift")),
         make_report_with_shift(false, true, Some("Night Shift")),
     ];
-    let filtered = super::daily::filter_by_shift_type(
-        rows,
-        Some(vec!["Morning Shift".to_string()]),
-    );
+    let filtered =
+        super::daily::filter_by_shift_type(rows, Some(vec!["Morning Shift".to_string()]));
     assert_eq!(filtered.len(), 1);
     assert_eq!(filtered[0].shift_name, Some("Morning Shift".to_string()));
 }
@@ -276,7 +273,10 @@ fn test_shift_type_filter_comma_separated_multiple() {
         Some(vec!["Morning Shift".to_string(), "Night Shift".to_string()]),
     );
     assert_eq!(filtered.len(), 2);
-    let names: Vec<_> = filtered.iter().filter_map(|r| r.shift_name.clone()).collect();
+    let names: Vec<_> = filtered
+        .iter()
+        .filter_map(|r| r.shift_name.clone())
+        .collect();
     assert!(names.contains(&"Morning Shift".to_string()));
     assert!(names.contains(&"Night Shift".to_string()));
 }
@@ -284,10 +284,8 @@ fn test_shift_type_filter_comma_separated_multiple() {
 #[test]
 fn test_shift_type_filter_handles_null_shift_name() {
     let rows = vec![make_report_with_shift(true, true, None)];
-    let filtered = super::daily::filter_by_shift_type(
-        rows,
-        Some(vec!["Morning Shift".to_string()]),
-    );
+    let filtered =
+        super::daily::filter_by_shift_type(rows, Some(vec!["Morning Shift".to_string()]));
     assert!(
         filtered.is_empty(),
         "rows with null shift_name are excluded by a shift filter"

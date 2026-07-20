@@ -109,9 +109,17 @@ pub fn generate(
         )?;
         worksheet.write_string_with_format(row, 7, format_time(report.scheduled_end), &time_fmt)?;
         worksheet.write_string_with_format(
-            row, 8, format_datetime(report.actual_punch_in, tz), &time_fmt)?;
+            row,
+            8,
+            format_datetime(report.actual_punch_in, tz),
+            &time_fmt,
+        )?;
         worksheet.write_string_with_format(
-            row, 9, format_datetime(report.actual_punch_out, tz), &time_fmt)?;
+            row,
+            9,
+            format_datetime(report.actual_punch_out, tz),
+            &time_fmt,
+        )?;
         worksheet.write_number(row, 10, report.computed_std_hours)?;
         worksheet.write_number(row, 11, report.computed_ot_hours)?;
         let ot_status_label = match report.ot_claim_status.as_deref() {

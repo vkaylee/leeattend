@@ -46,7 +46,7 @@ fn row_to_definition(row: CondTypeRow) -> ConditionTypeDefinition {
     )
 }
 
-const ALL_COLUMNS: (
+type AllColumns = (
     condition_type_definitions::id,
     condition_type_definitions::workspace_id,
     condition_type_definitions::code,
@@ -62,7 +62,9 @@ const ALL_COLUMNS: (
     condition_type_definitions::is_active,
     condition_type_definitions::created_at,
     condition_type_definitions::updated_at,
-) = (
+);
+
+const ALL_COLUMNS: AllColumns = (
     condition_type_definitions::id,
     condition_type_definitions::workspace_id,
     condition_type_definitions::code,
@@ -217,9 +219,23 @@ impl ConditionTypeRepository for DieselConditionTypeRepository {
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let (_id, ws_id, _code, name_i18n, category, min_allow, is_pd, affects, icon, color,
-             _is_sys, sort, _active, _created, _updated) =
-            existing.ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::NotFound))?;
+        let (
+            _id,
+            ws_id,
+            _code,
+            name_i18n,
+            category,
+            min_allow,
+            is_pd,
+            affects,
+            icon,
+            color,
+            _is_sys,
+            sort,
+            _active,
+            _created,
+            _updated,
+        ) = existing.ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::NotFound))?;
 
         let new_name = req.name_i18n.clone().unwrap_or(name_i18n);
         let new_category = req.category.clone().unwrap_or(category);
@@ -280,9 +296,8 @@ impl ConditionTypeRepository for DieselConditionTypeRepository {
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let (_found_id, is_system) = match definition {
-            Some(d) => d,
-            None => return Ok(()), // Not found — idempotent delete
+        let Some((_found_id, is_system)) = definition else {
+            return Ok(());
         };
 
         if is_system {

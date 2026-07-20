@@ -1,4 +1,4 @@
-import { KeyRound, ShieldAlert } from "lucide-react";
+import { Globe, ShieldAlert } from "lucide-react";
 import React, { useState } from "react";
 
 import type { SystemTenant, TenantConnectionStats } from "@/lib/api/system";
@@ -16,22 +16,6 @@ interface TenantDbUpdateModalProps {
   onSubmit: (id: string, url: string) => Promise<void>;
   selectedTenant: SystemTenant | null;
   tenantStats: TenantConnectionStats | undefined;
-}
-
-function renderConnectionTemplate(
-  stats: TenantConnectionStats | undefined,
-  tenantId: string,
-): string | null {
-  if (!stats) return null;
-  if (stats.connection.masked_db_url) {
-    return stats.connection.masked_db_url;
-  }
-  const config = stats.config.tenant ?? stats.config;
-  const dbUser = config.users?.[0]?.db_user ?? "user";
-  const dbName = config.db_database ?? "db";
-  const host = stats.connection.host;
-  const port = stats.connection.port;
-  return `postgres://${dbUser}.${tenantId}:***@${host}:${port}/${dbName}`;
 }
 
 export function TenantDbUpdateModal({
@@ -63,7 +47,7 @@ export function TenantDbUpdateModal({
       maxWidth="2xl"
       onClose={handleClose}
       subtitle="Update the custom BYOD database URL for this tenant."
-      title={`Update Database: ${selectedTenant?.id ?? ""}`}
+      title={`Update Database: ${selectedTenant?.name ?? selectedTenant?.id ?? ""}`}
     >
       <form onSubmit={(e) => { void handleSubmit(e); }}>
         <div className="grid gap-6 py-4">
@@ -74,7 +58,7 @@ export function TenantDbUpdateModal({
                 Critical Warning
               </Typography>
               <Typography variant="p">
-                This operation only updates the connection string in Supavisor and the system database.
+                This operation updates the connection URL for this tenant.
                 <strong> It DOES NOT copy or migrate data.</strong> You must ensure the target database
                 already contains the necessary schema and data for this tenant.
               </Typography>
@@ -83,12 +67,12 @@ export function TenantDbUpdateModal({
 
           <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
             <div className="flex items-center gap-2 mb-3">
-              <KeyRound className="w-4 h-4 text-primary-500" />
+              <Globe className="w-4 h-4 text-primary-500" />
               <Typography
                 className="text-sm font-semibold text-slate-800 dark:text-slate-200"
                 variant="h4"
               >
-                Current Connection URL
+                Current Database URL
               </Typography>
             </div>
             <div className="bg-slate-900 rounded-lg p-3 overflow-x-auto min-h-[44px] flex items-center">
@@ -96,8 +80,7 @@ export function TenantDbUpdateModal({
                 <Skeleton className="h-4 w-64 bg-slate-800" />
               ) : (
                 <code className="text-xs text-green-400 whitespace-nowrap">
-                  {renderConnectionTemplate(tenantStats, selectedTenant?.id ?? "tenant_id") ??
-                    "Not configured"}
+                  {tenantStats?.masked_db_url ?? "Not configured"}
                 </code>
               )}
             </div>

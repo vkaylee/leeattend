@@ -212,15 +212,24 @@ impl LifecycleService {
             };
 
         // Pre-resolve assignees that don't vary per item to avoid N+1 queries
-        let has_direct_manager = template_items
-            .iter()
-            .any(|it| matches!(it.assignee_type(), crate::models::ChecklistAssigneeType::DirectManager));
-        let has_hr_manager = template_items
-            .iter()
-            .any(|it| matches!(it.assignee_type(), crate::models::ChecklistAssigneeType::HrManager));
-        let has_it_admin = template_items
-            .iter()
-            .any(|it| matches!(it.assignee_type(), crate::models::ChecklistAssigneeType::ItAdmin));
+        let has_direct_manager = template_items.iter().any(|it| {
+            matches!(
+                it.assignee_type(),
+                crate::models::ChecklistAssigneeType::DirectManager
+            )
+        });
+        let has_hr_manager = template_items.iter().any(|it| {
+            matches!(
+                it.assignee_type(),
+                crate::models::ChecklistAssigneeType::HrManager
+            )
+        });
+        let has_it_admin = template_items.iter().any(|it| {
+            matches!(
+                it.assignee_type(),
+                crate::models::ChecklistAssigneeType::ItAdmin
+            )
+        });
 
         // DirectManager: resolve once (all DirectManager items reference the same employment.manager_employment_id)
         let direct_manager_user_id: Option<Uuid> = if has_direct_manager {
@@ -411,8 +420,11 @@ impl LifecycleService {
         if checklists.is_empty() {
             return Ok(responses);
         }
-        let checklist_ids: Vec<Uuid> = checklists.iter().map(|cl| cl.id()).collect();
-        let all_items = self.repo.list_items_for_checklist_ids(&auth_token, &checklist_ids).await?;
+        let checklist_ids: Vec<Uuid> = checklists.iter().map(crate::models::lifecycle_checklist::LifecycleChecklist::id).collect();
+        let all_items = self
+            .repo
+            .list_items_for_checklist_ids(&auth_token, &checklist_ids)
+            .await?;
 
         // Group items by checklist_id for efficient lookup
         let mut items_by_checklist: std::collections::HashMap<Uuid, Vec<LifecycleChecklistItem>> =

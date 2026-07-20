@@ -939,7 +939,6 @@ impl crate::services::approval_workflow::WorkflowCallbackHandler for AttendanceS
     }
 }
 
-
 #[cfg(test)]
 #[path = "attendance_summary_service_tests.rs"]
 mod tests;

@@ -1607,11 +1607,11 @@ mod tests {
             Some(NaiveTime::from_hms_opt(12, 0, 0).unwrap())
         );
         assert_eq!(seg.is_break_auto_deduct, Some(true));
-        assert_eq!(seg.allow_early_ot, true);
+        assert!(seg.allow_early_ot);
         assert_eq!(seg.max_early_ot_minutes, Some(120));
         assert_eq!(seg.early_punch_in_grace_period_minutes, 10);
         assert_eq!(seg.ot_aggregation_mode, "per_segment");
-        assert_eq!(seg.is_night_shift, false);
+        assert!(!seg.is_night_shift);
     }
 
     #[test]

@@ -20,7 +20,7 @@ use crate::services::attendance_summary_service::MockSummaryRecalculator;
 fn make_log(minutes: i32) -> LogEvent {
     let id = Uuid::new_v4();
     let punch_time = Utc.with_ymd_and_hms(2026, 6, 20, 0, 0, 0).unwrap()
-        + chrono::Duration::minutes(minutes as i64);
+        + chrono::Duration::minutes(i64::from(minutes));
     LogEvent {
         id,
         minutes,
@@ -378,7 +378,10 @@ fn test_overnight_break_before_midnight_still_splits() {
     assert_eq!(sessions[0].metadata().unwrap()["break_split"], "first_half");
     assert_eq!(sessions[1].start_minutes(), 1260);
     assert_eq!(sessions[1].end_minutes(), Some(1891));
-    assert_eq!(sessions[1].metadata().unwrap()["break_split"], "second_half");
+    assert_eq!(
+        sessions[1].metadata().unwrap()["break_split"],
+        "second_half"
+    );
 }
 
 #[test]
@@ -458,13 +461,7 @@ fn test_overnight_shift_multiple_checkout_punches() {
     assert_eq!(sessions[0].end_minutes(), Some(1826));
 
     let meta = sessions[0].metadata().unwrap();
-    let log_ids: Vec<String> = meta["log_ids"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|v| v.as_str().unwrap().to_string())
-        .collect();
-    assert_eq!(log_ids.len(), 3);
+    assert_eq!(meta["log_ids"].as_array().unwrap().len(), 3);
 }
 
 #[test]
@@ -559,10 +556,10 @@ fn test_shift_window_reproduces_4_session_bug_scenario() {
     // 07:22 = 442 min; three 15:06 = 906 min (within break gap region);
     // 16:45 = 1005 min.
     let logs = vec![
-        make_log(442), // 07:22 check-in
-        make_log(906), // 15:06 duplicate #1
-        make_log(906), // 15:06 duplicate #2
-        make_log(906), // 15:06 duplicate #3
+        make_log(442),  // 07:22 check-in
+        make_log(906),  // 15:06 duplicate #1
+        make_log(906),  // 15:06 duplicate #2
+        make_log(906),  // 15:06 duplicate #3
         make_log(1005), // 16:45 check-out
     ];
 
@@ -574,7 +571,10 @@ fn test_shift_window_reproduces_4_session_bug_scenario() {
         sessions.len(),
         2,
         "paired session count for the bug scenario must be exactly 2 (got {:?})",
-        sessions.iter().map(|s| (s.start_minutes(), s.end_minutes())).collect::<Vec<_>>()
+        sessions
+            .iter()
+            .map(|s| (s.start_minutes(), s.end_minutes()))
+            .collect::<Vec<_>>()
     );
 
     // Segment 1: 07:22 → 11:30
@@ -587,7 +587,10 @@ fn test_shift_window_reproduces_4_session_bug_scenario() {
 
     // Both segments are tagged as the shift-window break-split tier.
     assert_eq!(sessions[0].metadata().unwrap()["break_split"], "first_half");
-    assert_eq!(sessions[1].metadata().unwrap()["break_split"], "second_half");
+    assert_eq!(
+        sessions[1].metadata().unwrap()["break_split"],
+        "second_half"
+    );
 }
 
 /// The deduplication window in `build_log_events` is 5 seconds. Duplicate
@@ -1889,7 +1892,10 @@ fn test_missing_checkout_with_break_and_late_out() {
         2,
         "expected exactly 2 sessions, got {}: {:?}",
         sessions.len(),
-        sessions.iter().map(|s| (s.start_minutes(), s.end_minutes())).collect::<Vec<_>>()
+        sessions
+            .iter()
+            .map(|s| (s.start_minutes(), s.end_minutes()))
+            .collect::<Vec<_>>()
     );
 
     // Session 1: 07:13 → 11:30 (first half, break start)
@@ -1906,7 +1912,10 @@ fn test_missing_checkout_with_break_and_late_out() {
         "BUG: second session should end at 19:32 (1172 min), but end_minutes is {:?}",
         sessions[1].end_minutes()
     );
-    assert_eq!(sessions[1].metadata().unwrap()["break_split"], "second_half");
+    assert_eq!(
+        sessions[1].metadata().unwrap()["break_split"],
+        "second_half"
+    );
 
     // Verify session 2 has a non-None end_time (actual_punch_out in report)
     assert!(
@@ -1929,31 +1938,68 @@ fn test_full_pipeline_4_punches_with_late_out() {
     // Create raw logs simulating 4 punches:
     // 07:13, 11:46 (two close together), 19:32 ICT
     let log7_13 = RawAttendanceLog::new(
-        Uuid::new_v4(), workspace_id, employment_id,
-        tz.with_ymd_and_hms(2026, 6, 20, 7, 13, 0).unwrap().with_timezone(&Utc),
-        LogSource::Manual, None, None, 1, 1, Utc::now(),
+        Uuid::new_v4(),
+        workspace_id,
+        employment_id,
+        tz.with_ymd_and_hms(2026, 6, 20, 7, 13, 0)
+            .unwrap()
+            .with_timezone(&Utc),
+        LogSource::Manual,
+        None,
+        None,
+        1,
+        1,
+        Utc::now(),
     );
     let log11_46_a = RawAttendanceLog::new(
-        Uuid::new_v4(), workspace_id, employment_id,
-        tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 0).unwrap().with_timezone(&Utc),
-        LogSource::Manual, None, None, 1, 1, Utc::now(),
+        Uuid::new_v4(),
+        workspace_id,
+        employment_id,
+        tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 0)
+            .unwrap()
+            .with_timezone(&Utc),
+        LogSource::Manual,
+        None,
+        None,
+        1,
+        1,
+        Utc::now(),
     );
     let log11_46_b = RawAttendanceLog::new(
-        Uuid::new_v4(), workspace_id, employment_id,
-        tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 2).unwrap().with_timezone(&Utc),
-        LogSource::Manual, None, None, 1, 1, Utc::now(),
+        Uuid::new_v4(),
+        workspace_id,
+        employment_id,
+        tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 2)
+            .unwrap()
+            .with_timezone(&Utc),
+        LogSource::Manual,
+        None,
+        None,
+        1,
+        1,
+        Utc::now(),
     );
     let log19_32 = RawAttendanceLog::new(
-        Uuid::new_v4(), workspace_id, employment_id,
-        tz.with_ymd_and_hms(2026, 6, 20, 19, 32, 0).unwrap().with_timezone(&Utc),
-        LogSource::Manual, None, None, 1, 1, Utc::now(),
+        Uuid::new_v4(),
+        workspace_id,
+        employment_id,
+        tz.with_ymd_and_hms(2026, 6, 20, 19, 32, 0)
+            .unwrap()
+            .with_timezone(&Utc),
+        LogSource::Manual,
+        None,
+        None,
+        1,
+        1,
+        Utc::now(),
     );
 
     let raw_logs = vec![log7_13, log11_46_a, log11_46_b, log19_32];
 
     // Step 1: build_log_events (dedup by 5-second window)
     let log_events = context.build_log_events(&raw_logs).unwrap();
-    assert!(log_events.len() >= 3,
+    assert!(
+        log_events.len() >= 3,
         "expected at least 3 log events (07:13, merged 11:46, 19:32), got {}",
         log_events.len()
     );
@@ -1968,10 +2014,15 @@ fn test_full_pipeline_4_punches_with_late_out() {
     );
     let strategy = get_strategy();
     let sessions = strategy.pair(&log_events, Some(&shift));
-    assert_eq!(sessions.len(), 2,
+    assert_eq!(
+        sessions.len(),
+        2,
         "pairing must produce 2 sessions, got {}: {:?}",
         sessions.len(),
-        sessions.iter().map(|s| (s.start_minutes(), s.end_minutes())).collect::<Vec<_>>()
+        sessions
+            .iter()
+            .map(|s| (s.start_minutes(), s.end_minutes()))
+            .collect::<Vec<_>>()
     );
 
     // Step 3: build_time_entries (the full pipeline)
@@ -1980,7 +2031,9 @@ fn test_full_pipeline_4_punches_with_late_out() {
         .build_time_entries(workspace_id, employment_id, None, sessions, &traces)
         .unwrap();
 
-    assert_eq!(entries.len(), 2,
+    assert_eq!(
+        entries.len(),
+        2,
         "build_time_entries must produce 2 entries, got {}",
         entries.len()
     );
@@ -1988,14 +2041,19 @@ fn test_full_pipeline_4_punches_with_late_out() {
     // KEY CHECK: the LAST time entry must have a punch_out_time
     let first_entry = &entries[0];
     let last_entry = &entries[1];
-    assert!(last_entry.punch_out_time().is_some(),
+    assert!(
+        last_entry.punch_out_time().is_some(),
         "BUG: last entry punch_out_time is None — report will show no check-out!\n\
          First entry: {:?}→{:?}\n\
          Last entry: {:?}→{:?}",
         first_entry.punch_in_time().with_timezone(&tz).time(),
-        first_entry.punch_out_time().map(|t| t.with_timezone(&tz).time()),
+        first_entry
+            .punch_out_time()
+            .map(|t| t.with_timezone(&tz).time()),
         last_entry.punch_in_time().with_timezone(&tz).time(),
-        last_entry.punch_out_time().map(|t| t.with_timezone(&tz).time()),
+        last_entry
+            .punch_out_time()
+            .map(|t| t.with_timezone(&tz).time()),
     );
 
     // Verify the actual times match expectations
@@ -2007,8 +2065,8 @@ fn test_full_pipeline_4_punches_with_late_out() {
 fn make_log_with_seconds(minutes: i32, seconds: i32) -> LogEvent {
     let id = Uuid::new_v4();
     let punch_time = Utc.with_ymd_and_hms(2026, 6, 20, 0, 0, 0).unwrap()
-        + chrono::Duration::minutes(minutes as i64)
-        + chrono::Duration::seconds(seconds as i64);
+        + chrono::Duration::minutes(i64::from(minutes))
+        + chrono::Duration::seconds(i64::from(seconds));
     LogEvent {
         id,
         minutes,
@@ -2082,9 +2140,14 @@ fn make_effective_schedule(
         Some(NaiveTime::from_hms_opt(break_start_h, break_start_m, 0).unwrap()),
         Some(NaiveTime::from_hms_opt(break_end_h, break_end_m, 0).unwrap()),
         Some(true),
-        None, None, None, None,
+        None,
+        None,
+        None,
+        None,
         vec![],
-        false, false, None,
+        false,
+        false,
+        None,
     )
 }
 
@@ -2141,15 +2204,22 @@ async fn test_fetch_shift_config_falls_back_when_no_intervals() {
 
     // get_workspace_schedules → fallback path — returns schedule WITH break
     let sched = make_effective_schedule(
-        date, Some(shift_id),
-        7, 30,   // start 07:30
-        16, 30,  // end   16:30
-        11, 30,  // break_start 11:30
-        12, 30,  // break_end   12:30
+        date,
+        Some(shift_id),
+        7,
+        30, // start 07:30
+        16,
+        30, // end   16:30
+        11,
+        30, // break_start 11:30
+        12,
+        30, // break_end   12:30
     );
     let emp_sched = crate::models::EmployeeSchedule::new(
-        emp_id, emp_id,
-        "EMP001".to_string(), "Test Employee".to_string(),
+        emp_id,
+        emp_id,
+        "EMP001".to_string(),
+        "Test Employee".to_string(),
         vec![sched],
     );
     mock_roster
@@ -2171,7 +2241,11 @@ async fn test_fetch_shift_config_falls_back_when_no_intervals() {
     let auth_token = TenantAuthToken::system_override(ws_id);
 
     let result = crate::services::pairing::service_single::fetch_effective_shift_config(
-        &service, &auth_token, emp_id, date, &ctx,
+        &service,
+        &auth_token,
+        emp_id,
+        date,
+        &ctx,
     )
     .await
     .unwrap();
@@ -2189,17 +2263,23 @@ async fn test_fetch_shift_config_falls_back_when_no_intervals() {
 
     let config = got_config.unwrap();
     // Verify break awareness — 07:30 = 450 min, 16:30 = 990 min, break 11:30-12:30
-    assert_eq!(config.start_minutes(), 450,  "expected shift start 07:30");
-    assert_eq!(config.end_minutes(), 990,    "expected shift end 16:30");
+    assert_eq!(config.start_minutes(), 450, "expected shift start 07:30");
+    assert_eq!(config.end_minutes(), 990, "expected shift end 16:30");
     assert_eq!(
-        config.break_start_minutes(), Some(690),
+        config.break_start_minutes(),
+        Some(690),
         "expected break_start 11:30 — pairing will split correctly"
     );
     assert_eq!(
-        config.break_end_minutes(), Some(750),
+        config.break_end_minutes(),
+        Some(750),
         "expected break_end 12:30 — pairing will split correctly"
     );
-    assert_eq!(config.breaks().len(), 1, "should have exactly 1 break interval");
+    assert_eq!(
+        config.breaks().len(),
+        1,
+        "should have exactly 1 break interval"
+    );
 }
 
 /// Similar to above but also runs the pairing algorithm to verify the full pipeline
@@ -2245,12 +2325,12 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
         });
 
     // get_workspace_schedules → fallback path with break
-    let sched = make_effective_schedule(
-        date, Some(shift_id), 7, 30, 16, 30, 11, 30, 12, 30,
-    );
+    let sched = make_effective_schedule(date, Some(shift_id), 7, 30, 16, 30, 11, 30, 12, 30);
     let emp_sched = crate::models::EmployeeSchedule::new(
-        emp_id, emp_id,
-        "EMP001".to_string(), "Test Employee".to_string(),
+        emp_id,
+        emp_id,
+        "EMP001".to_string(),
+        "Test Employee".to_string(),
         vec![sched],
     );
     mock_roster
@@ -2276,7 +2356,8 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
             assert_eq!(eid, emp_id_captured);
             // KEY: must produce exactly 2 sessions with break split
             assert_eq!(
-                entries.len(), 2,
+                entries.len(),
+                2,
                 "expected 2 time entries (split on break), got {}",
                 entries.len()
             );
@@ -2287,16 +2368,20 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
                 last.punch_out_time().is_some(),
                 "BUG: second session has no punch_out_time — check-out missing!\n\
                  entries: {:?}",
-                entries.iter().map(|e| (
-                    e.punch_in_time().with_timezone(&tz).time(),
-                    e.punch_out_time().map(|t| t.with_timezone(&tz).time())
-                )).collect::<Vec<_>>()
+                entries
+                    .iter()
+                    .map(|e| (
+                        e.punch_in_time().with_timezone(&tz).time(),
+                        e.punch_out_time().map(|t| t.with_timezone(&tz).time())
+                    ))
+                    .collect::<Vec<_>>()
             );
 
             // Verify tier is shift_window (NOT anchor_first)
             let meta = last.generation_metadata().unwrap();
             assert_eq!(
-                meta["tier"], "shift_window",
+                meta["tier"],
+                "shift_window",
                 "BUG: pairing degraded to {} — break splitting never ran",
                 meta["tier"].as_str().unwrap_or("unknown")
             );
@@ -2312,24 +2397,60 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
             use crate::models::RawAttendanceLog;
             let logs = vec![
                 RawAttendanceLog::new(
-                    Uuid::new_v4(), ws_id, emp_id,
-                    tz.with_ymd_and_hms(2026, 6, 20, 7, 13, 0).unwrap().with_timezone(&Utc),
-                    LogSource::Manual, None, None, 1, 1, Utc::now(),
+                    Uuid::new_v4(),
+                    ws_id,
+                    emp_id,
+                    tz.with_ymd_and_hms(2026, 6, 20, 7, 13, 0)
+                        .unwrap()
+                        .with_timezone(&Utc),
+                    LogSource::Manual,
+                    None,
+                    None,
+                    1,
+                    1,
+                    Utc::now(),
                 ),
                 RawAttendanceLog::new(
-                    Uuid::new_v4(), ws_id, emp_id,
-                    tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 0).unwrap().with_timezone(&Utc),
-                    LogSource::Manual, None, None, 1, 1, Utc::now(),
+                    Uuid::new_v4(),
+                    ws_id,
+                    emp_id,
+                    tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 0)
+                        .unwrap()
+                        .with_timezone(&Utc),
+                    LogSource::Manual,
+                    None,
+                    None,
+                    1,
+                    1,
+                    Utc::now(),
                 ),
                 RawAttendanceLog::new(
-                    Uuid::new_v4(), ws_id, emp_id,
-                    tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 2).unwrap().with_timezone(&Utc),
-                    LogSource::Manual, None, None, 1, 1, Utc::now(),
+                    Uuid::new_v4(),
+                    ws_id,
+                    emp_id,
+                    tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 2)
+                        .unwrap()
+                        .with_timezone(&Utc),
+                    LogSource::Manual,
+                    None,
+                    None,
+                    1,
+                    1,
+                    Utc::now(),
                 ),
                 RawAttendanceLog::new(
-                    Uuid::new_v4(), ws_id, emp_id,
-                    tz.with_ymd_and_hms(2026, 6, 20, 19, 32, 0).unwrap().with_timezone(&Utc),
-                    LogSource::Manual, None, None, 1, 1, Utc::now(),
+                    Uuid::new_v4(),
+                    ws_id,
+                    emp_id,
+                    tz.with_ymd_and_hms(2026, 6, 20, 19, 32, 0)
+                        .unwrap()
+                        .with_timezone(&Utc),
+                    LogSource::Manual,
+                    None,
+                    None,
+                    1,
+                    1,
+                    Utc::now(),
                 ),
             ];
             Box::pin(async move { Ok(logs) })
@@ -2353,7 +2474,11 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
         .reprocess_daily_attendance(ws_id, emp_id, date, tz)
         .await;
 
-    assert!(result.is_ok(), "reprocess_daily_attendance failed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "reprocess_daily_attendance failed: {:?}",
+        result.err()
+    );
 }
 
 // =============================================================================
@@ -2400,7 +2525,8 @@ fn test_buffer_is_never_smaller_than_shift_window_default() {
     // Verify tier is shift_window, NOT anchor_first
     let meta = sessions[0].metadata().unwrap();
     assert_eq!(
-        meta["tier"], "shift_window",
+        meta["tier"],
+        "shift_window",
         "BUG: degraded to anchor_first — buffer={} didn't cover the early punch",
         shift.check_in_buffer_minutes().unwrap_or(0)
     );
@@ -2442,13 +2568,19 @@ fn test_buffer_exact_production_scenario() {
     assert_eq!(sessions.len(), 2);
 
     let meta0 = sessions[0].metadata().unwrap();
-    assert_eq!(meta0["tier"], "shift_window", "session 0 should be shift_window");
+    assert_eq!(
+        meta0["tier"], "shift_window",
+        "session 0 should be shift_window"
+    );
     assert_eq!(meta0["break_split"], "first_half");
     assert_eq!(sessions[0].start_minutes(), 433);
     assert_eq!(sessions[0].end_minutes(), Some(690));
 
     let meta1 = sessions[1].metadata().unwrap();
-    assert_eq!(meta1["tier"], "shift_window", "session 1 should be shift_window");
+    assert_eq!(
+        meta1["tier"], "shift_window",
+        "session 1 should be shift_window"
+    );
     assert_eq!(meta1["break_split"], "second_half");
     assert_eq!(sessions[1].start_minutes(), 750);
     assert_eq!(sessions[1].end_minutes(), Some(1172));
@@ -2467,21 +2599,25 @@ fn test_buffer_respects_larger_grace_period() {
     let strategy = get_strategy();
 
     let shift = PairingShiftConfig::new_with_breaks(
-        450,                                // 07:30
-        990,                                // 16:30
+        450, // 07:30
+        990, // 16:30
         vec![BreakInterval::new(690, 750)],
-        Some(180),                          // larger than default
+        Some(180), // larger than default
         None,
     );
 
     let logs = vec![
-        make_log(290),  // 04:50 — within 180-min window [270, 630] but NOT within 120-min [330, 570]
+        make_log(290), // 04:50 — within 180-min window [270, 630] but NOT within 120-min [330, 570]
         make_log(1172), // 19:32
     ];
 
     let sessions = strategy.pair(&logs, Some(&shift));
 
-    assert_eq!(sessions.len(), 2, "larger buffer should still find the early punch");
+    assert_eq!(
+        sessions.len(),
+        2,
+        "larger buffer should still find the early punch"
+    );
     assert_eq!(sessions[0].start_minutes(), 290);
 }
 
@@ -2491,17 +2627,15 @@ fn test_buffer_defaults_to_120_when_none() {
     let strategy = get_strategy();
 
     let shift = PairingShiftConfig::new_with_breaks(
-        450, 990,
+        450,
+        990,
         vec![BreakInterval::new(690, 750)],
-        None,   // no explicit buffer → 120 default
+        None, // no explicit buffer → 120 default
         None,
     );
 
     // 07:13 (433) is within 120-min window but outside a 15-min window
-    let logs = vec![
-        make_log(433),
-        make_log(1172),
-    ];
+    let logs = vec![make_log(433), make_log(1172)];
 
     let sessions = strategy.pair(&logs, Some(&shift));
     assert_eq!(sessions.len(), 2);

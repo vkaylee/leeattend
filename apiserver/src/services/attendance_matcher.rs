@@ -696,7 +696,8 @@ mod tests {
             ws_payroll_settings_history: Arc::new(vec![]),
             department_payroll_configs: HashMap::new(),
             overtime_data: Arc::new(
-                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default()),
+                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
+            ),
             active_contracts: vec![],
             active_assignments: vec![],
             active_employments: vec![],
@@ -869,7 +870,8 @@ mod tests {
             ws_payroll_settings_history: Arc::new(vec![]),
             department_payroll_configs: HashMap::new(),
             overtime_data: Arc::new(
-                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default()),
+                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
+            ),
             active_contracts: vec![],
             active_assignments: vec![],
             active_employments: vec![employment],
@@ -979,7 +981,8 @@ mod tests {
             ws_payroll_settings_history: Arc::new(vec![]),
             department_payroll_configs: HashMap::new(),
             overtime_data: Arc::new(
-                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default()),
+                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
+            ),
             active_contracts: vec![],
             active_assignments: vec![],
             active_employments: vec![],
@@ -1171,7 +1174,8 @@ mod tests {
             ws_payroll_settings_history: Arc::new(vec![]),
             department_payroll_configs: HashMap::new(),
             overtime_data: Arc::new(
-                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default()),
+                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
+            ),
             active_contracts: vec![],
             active_assignments: vec![],
             active_employments: vec![employment],
@@ -1569,7 +1573,8 @@ mod tests {
             ws_payroll_settings_history: Arc::new(vec![]),
             department_payroll_configs: HashMap::new(),
             overtime_data: Arc::new(
-                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default()),
+                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
+            ),
             active_contracts: vec![],
             active_assignments: vec![],
             active_employments: vec![employment],

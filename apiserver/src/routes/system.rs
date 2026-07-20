@@ -1,10 +1,11 @@
 use axum::{
-    routing::{delete, get, patch, post},
+    routing::{delete, get, patch, post, put},
     Router,
 };
 use std::sync::Arc;
 
 use crate::handlers::system_admin;
+use crate::handlers::system_tenants;
 use crate::AppState;
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -40,5 +41,22 @@ pub fn router() -> Router<Arc<AppState>> {
         .route(
             "/system/db-clusters/:id/status",
             patch(crate::handlers::system_db_clusters::update_db_cluster_status),
+        )
+        // System Tenants (Workspaces managed as tenants)
+        .route(
+            "/system/tenants",
+            get(system_tenants::list_tenants).post(system_tenants::create_tenant),
+        )
+        .route(
+            "/system/tenants/:tenant_id",
+            delete(system_tenants::delete_tenant),
+        )
+        .route(
+            "/system/tenants/:tenant_id/stats",
+            get(system_tenants::get_tenant_stats),
+        )
+        .route(
+            "/system/tenants/:tenant_id/database",
+            put(system_tenants::update_tenant_database),
         )
 }

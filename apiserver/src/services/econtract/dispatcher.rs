@@ -95,7 +95,7 @@ mod tests {
         assert!(url_opt.is_some());
         assert_eq!(
             url_opt.unwrap(),
-            format!("https://mock-provider.com/sign?env={}&signer=signer-1&redirect=https://redirect.com", env_id_str)
+            format!("https://mock-provider.com/sign?env={env_id_str}&signer=signer-1&redirect=https://redirect.com")
         );
 
         // 3. Test parse_webhook

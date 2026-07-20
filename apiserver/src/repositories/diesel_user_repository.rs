@@ -688,6 +688,9 @@ mod tests {
         let repo = DieselUserRepository::new(pools);
 
         let result = repo.create_notifications_batch(&[]).await;
-        assert!(result.is_ok(), "Empty input should return Ok(()), got: {result:?}");
+        assert!(
+            result.is_ok(),
+            "Empty input should return Ok(()), got: {result:?}"
+        );
     }
 }

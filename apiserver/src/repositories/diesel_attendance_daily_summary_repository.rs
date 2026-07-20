@@ -425,7 +425,8 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         employment_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), AttendanceDailySummary>, AppError> {
+    ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), AttendanceDailySummary>, AppError>
+    {
         if employment_ids.is_empty() {
             return Ok(std::collections::HashMap::new());
         }

@@ -1,7 +1,9 @@
 use crate::domain::permissions::Permission;
 use crate::errors::AppResult;
 use crate::handlers::common::MemberContext;
-use crate::models::{ConditionTypeDefinition, CreateConditionTypeRequest, UpdateConditionTypeRequest};
+use crate::models::{
+    ConditionTypeDefinition, CreateConditionTypeRequest, UpdateConditionTypeRequest,
+};
 use crate::AppState;
 use axum::{
     extract::{Path, Query, State},

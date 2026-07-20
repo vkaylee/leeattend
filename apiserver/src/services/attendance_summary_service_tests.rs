@@ -410,9 +410,7 @@ mod recalculate_daily_summary_leave_tests {
         // Mock fetch workspace timezone
         workspace_repo
             .expect_get_workspace_by_id()
-            .returning(move |_| {
-                Box::pin(async move { Ok(Some(test_workspace(workspace_id))) })
-            });
+            .returning(move |_| Box::pin(async move { Ok(Some(test_workspace(workspace_id))) }));
 
         // Mock is_holiday
         holiday_repo
@@ -579,9 +577,7 @@ mod recalculate_daily_summary_leave_tests {
 
         workspace_repo
             .expect_get_workspace_by_id()
-            .returning(move |_| {
-                Box::pin(async move { Ok(Some(test_workspace(workspace_id))) })
-            });
+            .returning(move |_| Box::pin(async move { Ok(Some(test_workspace(workspace_id))) }));
 
         // Mock is_holiday
         holiday_repo
@@ -742,9 +738,7 @@ mod recalculate_daily_summary_leave_tests {
 
         workspace_repo
             .expect_get_workspace_by_id()
-            .returning(move |_| {
-                Box::pin(async move { Ok(Some(test_workspace(workspace_id))) })
-            });
+            .returning(move |_| Box::pin(async move { Ok(Some(test_workspace(workspace_id))) }));
 
         // Mock is_holiday
         holiday_repo
@@ -906,9 +900,7 @@ mod recalculate_daily_summary_leave_tests {
 
         workspace_repo
             .expect_get_workspace_by_id()
-            .returning(move |_| {
-                Box::pin(async move { Ok(Some(test_workspace(workspace_id))) })
-            });
+            .returning(move |_| Box::pin(async move { Ok(Some(test_workspace(workspace_id))) }));
 
         // Mock is_holiday
         holiday_repo
@@ -1024,9 +1016,7 @@ mod recalculate_daily_summary_leave_tests {
 
         workspace_repo
             .expect_get_workspace_by_id()
-            .returning(move |_| {
-                Box::pin(async move { Ok(Some(test_workspace(workspace_id))) })
-            });
+            .returning(move |_| Box::pin(async move { Ok(Some(test_workspace(workspace_id))) }));
 
         // Mock is_holiday for the holiday check inside handle_holiday_leave_conflict
         holiday_repo

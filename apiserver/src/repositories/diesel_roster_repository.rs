@@ -180,10 +180,7 @@ impl RosterRepository for DieselRosterRepository {
             .collect();
 
         // 2a. Batch load employee contracts active in the range
-        let emp_ids: Vec<Uuid> = employees_entities
-            .iter()
-            .map(|(id, ..)| *id)
-            .collect();
+        let emp_ids: Vec<Uuid> = employees_entities.iter().map(|(id, ..)| *id).collect();
 
         let batch_contracts = crate::schema::employee_contracts::table
             .inner_join(crate::schema::employments::table)
@@ -306,12 +303,9 @@ impl RosterRepository for DieselRosterRepository {
         ) in employees_entities
         {
             let mut daily_schedules = Vec::new();
-            let Some((mut curr_date, effective_end)) = effective_employment_range(
-                start_date,
-                end_date,
-                employment_start,
-                employment_end,
-            ) else {
+            let Some((mut curr_date, effective_end)) =
+                effective_employment_range(start_date, end_date, employment_start, employment_end)
+            else {
                 continue;
             };
 
@@ -617,10 +611,7 @@ impl RosterRepository for DieselRosterRepository {
             return Ok((Vec::new(), total));
         }
 
-        let emp_ids: Vec<Uuid> = employees_entities
-            .iter()
-            .map(|(id, ..)| *id)
-            .collect();
+        let emp_ids: Vec<Uuid> = employees_entities.iter().map(|(id, ..)| *id).collect();
 
         // 3. Batch-load contracts
         let batch_contracts = crate::schema::employee_contracts::table
@@ -774,12 +765,9 @@ impl RosterRepository for DieselRosterRepository {
 
             // Resolve segments only while this temporal employment is effective.
             let mut all_segments = Vec::new();
-            let Some((mut curr_date, effective_end)) = effective_employment_range(
-                start_date,
-                end_date,
-                employment_start,
-                employment_end,
-            ) else {
+            let Some((mut curr_date, effective_end)) =
+                effective_employment_range(start_date, end_date, employment_start, employment_end)
+            else {
                 continue;
             };
             while curr_date <= effective_end {

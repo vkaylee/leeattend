@@ -15,7 +15,6 @@ import {
   revokeSystemRole,
   fetchSystemHealth,
   fetchSystemTenants,
-  fetchStaleTenants,
   createSystemTenant,
   deleteSystemTenant,
   fetchSystemTenantStats,
@@ -103,27 +102,25 @@ describe("system API (extended)", () => {
   });
 
   it("fetchSystemTenants: GET list (via fetch wrapper)", async () => {
-    const mock = [{ id: "t1", pool_size: 5, created_at: "", updated_at: "" }];
+    const mock = [{ id: "t1", name: "Test", is_byod: false, timezone: "UTC", created_at: "" }];
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
     const result = await fetchSystemTenants();
     expect(result).toEqual(mock);
     expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/system/tenants");
   });
 
-  it("fetchStaleTenants: GET stale list", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes([]));
-    const result = await fetchStaleTenants();
-    expect(result).toEqual([]);
-    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/system/tenants/stale");
+  it("fetchSystemTenants: ApiError on 403", async () => {
+    vi.mocked(apiFetch).mockResolvedValueOnce(errRes(403, "Forbidden", {}));
+    await expect(fetchSystemTenants()).rejects.toThrow();
   });
 
   it("createSystemTenant: POST (via fire wrapper)", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await createSystemTenant({ create_db: true, db_name: "tenant1" });
+    await createSystemTenant({ name: "Test Tenant" });
     const call = vi.mocked(apiFetch).mock.calls[0];
     expect((call[1] as RequestInit).method).toBe("POST");
     expect(call[0]).toContain("/system/tenants");
-    expect(JSON.parse((call[1] as RequestInit).body as string).db_name).toBe("tenant1");
+    expect(JSON.parse((call[1] as RequestInit).body as string).name).toBe("Test Tenant");
   });
 
   it("deleteSystemTenant: DELETE (via fire wrapper)", async () => {
@@ -136,8 +133,13 @@ describe("system API (extended)", () => {
 
   it("fetchSystemTenantStats: GET stats (via fetch wrapper)", async () => {
     const mock = {
-      config: { data: { db_database: "x", default_mode: "x", users: [] } },
-      connection: { host: "h", port: "1", masked_db_url: null },
+      id: "t1",
+      name: "Test",
+      is_byod: false,
+      timezone: "UTC",
+      created_at: "2024-01-01T00:00:00Z",
+      masked_db_url: null,
+      connection: { host: "h", port: "1" },
     };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
     const result = await fetchSystemTenantStats("t1");

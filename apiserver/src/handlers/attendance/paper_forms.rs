@@ -215,11 +215,10 @@ pub async fn bulk_upload_paper_ot(
     }
 
     // 6. Phase 3: Batch-fetch ALL summaries in ONE query
-    let (min_date, max_date) = summary_pairs
-        .iter()
-        .fold((summary_pairs[0].1, summary_pairs[0].1), |(min, max), (_, d)| {
-            (std::cmp::min(min, *d), std::cmp::max(max, *d))
-        });
+    let (min_date, max_date) = summary_pairs.iter().fold(
+        (summary_pairs[0].1, summary_pairs[0].1),
+        |(min, max), (_, d)| (std::cmp::min(min, *d), std::cmp::max(max, *d)),
+    );
     let all_employment_ids: Vec<Uuid> = {
         let mut ids: Vec<Uuid> = valid_parsed
             .iter()
@@ -233,7 +232,12 @@ pub async fn bulk_upload_paper_ot(
     let summaries_map = state
         .attendance()
         .attendance_daily_summary_repo()
-        .get_summaries_by_employments_batch(&ctx.auth_token, &all_employment_ids, min_date, max_date)
+        .get_summaries_by_employments_batch(
+            &ctx.auth_token,
+            &all_employment_ids,
+            min_date,
+            max_date,
+        )
         .await?;
 
     // 7. Phase 4: Process each row with in-memory data, persist via enter_paper_ot
@@ -345,8 +349,7 @@ fn parse_and_validate_csv_rows(
             return Err(AppError::validation(I18nKey::MaxRowsExceeded));
         }
 
-        let record =
-            result.map_err(|_e| AppError::validation(I18nKey::CsvParsingError))?;
+        let record = result.map_err(|_e| AppError::validation(I18nKey::CsvParsingError))?;
 
         let employee_id_str = record.get(0).unwrap_or("").trim().to_string();
         let date_str = record.get(1).unwrap_or("").trim();

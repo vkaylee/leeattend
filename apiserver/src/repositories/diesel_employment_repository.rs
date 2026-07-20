@@ -449,6 +449,9 @@ mod tests {
     #[test]
     fn test_bigdecimal_from_str_valid_returns_ok() {
         let result = BigDecimal::from_str("42.5");
-        assert!(result.is_ok(), "BigDecimal::from_str('42.5') should return Ok");
+        assert!(
+            result.is_ok(),
+            "BigDecimal::from_str('42.5') should return Ok"
+        );
     }
 }

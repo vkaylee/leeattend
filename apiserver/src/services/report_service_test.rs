@@ -17,9 +17,9 @@ mod tests {
     use uuid::Uuid;
 
     // Create manual mocks for the repositories
-    fn empty_condition_type_repo(
-    ) -> Arc<dyn crate::repositories::ConditionTypeRepository> {
-        let mut repo = crate::repositories::condition_type_repository::MockConditionTypeRepository::new();
+    fn empty_condition_type_repo() -> Arc<dyn crate::repositories::ConditionTypeRepository> {
+        let mut repo =
+            crate::repositories::condition_type_repository::MockConditionTypeRepository::new();
         repo.expect_list_condition_types()
             .returning(|_, _| Box::pin(async move { Ok(vec![]) }));
         Arc::new(repo)
@@ -288,6 +288,10 @@ mod tests {
             _permission: &str,
         ) -> Result<Vec<Uuid>, AppError> {
             Ok(vec![])
+        }
+
+        async fn delete_workspace(&self, _workspace_id: Uuid) -> Result<(), AppError> {
+            Ok(())
         }
     }
 
@@ -1263,7 +1267,8 @@ mod tests {
             _employment_ids: &[Uuid],
             _start_date: NaiveDate,
             _end_date: NaiveDate,
-        ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), AttendanceDailySummary>, AppError> {
+        ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), AttendanceDailySummary>, AppError>
+        {
             unimplemented!()
         }
         async fn get_summaries_paginated(
@@ -2370,7 +2375,8 @@ mod tests {
             _employment_ids: &[Uuid],
             _start_date: NaiveDate,
             _end_date: NaiveDate,
-        ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), AttendanceDailySummary>, AppError> {
+        ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), AttendanceDailySummary>, AppError>
+        {
             unimplemented!()
         }
         async fn get_summaries_paginated(

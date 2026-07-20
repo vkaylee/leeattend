@@ -366,8 +366,10 @@ mod tests {
             scope_id: Option<Uuid>,
             _target_date: NaiveDate,
         ) -> Result<Option<WorkspaceConfigEntry>, AppError> {
-            let entries = self.entries.lock().unwrap();
-            let entry = entries
+            let entry = self
+                .entries
+                .lock()
+                .unwrap()
                 .iter()
                 .find(|e| {
                     e.config_key() == config_key
@@ -384,8 +386,10 @@ mod tests {
             _workspace_id: Uuid,
             config_key: Option<&str>,
         ) -> Result<Vec<WorkspaceConfigEntry>, AppError> {
-            let entries = self.entries.lock().unwrap();
-            let filtered = entries
+            let filtered = self
+                .entries
+                .lock()
+                .unwrap()
                 .iter()
                 .filter(|e| {
                     if let Some(key) = config_key {
@@ -404,8 +408,7 @@ mod tests {
             _auth_token: &TenantAuthToken,
             entry_id: Uuid,
         ) -> Result<(), AppError> {
-            let mut entries = self.entries.lock().unwrap();
-            entries.retain(|e| e.id() != entry_id);
+            self.entries.lock().unwrap().retain(|e| e.id() != entry_id);
             Ok(())
         }
 
@@ -416,8 +419,7 @@ mod tests {
             scope_type: &str,
             config_key: &str,
         ) -> Result<(), AppError> {
-            let mut entries = self.entries.lock().unwrap();
-            entries.retain(|e| !(e.scope_type() == scope_type && e.config_key() == config_key));
+            self.entries.lock().unwrap().retain(|e| !(e.scope_type() == scope_type && e.config_key() == config_key));
             Ok(())
         }
     }
@@ -595,8 +597,11 @@ mod tests {
         repo.entries.lock().unwrap().push(entry);
 
         service.delete_entry(&token, entry_id).await.unwrap();
-        let entries = repo.entries.lock().unwrap();
-        assert!(entries.is_empty());
+        {
+            let entries = repo.entries.lock().unwrap();
+            assert!(entries.is_empty());
+            drop(entries);
+        }
     }
 
     #[tokio::test]

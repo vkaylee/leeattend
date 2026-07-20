@@ -268,6 +268,11 @@ use utoipa::OpenApi;
         crate::handlers::payroll_rules::delete_payroll_rule_tier,
 
         // Phase 6: Platform Admin & Infrastructure
+        crate::handlers::system_tenants::list_tenants,
+        crate::handlers::system_tenants::create_tenant,
+        crate::handlers::system_tenants::delete_tenant,
+        crate::handlers::system_tenants::get_tenant_stats,
+        crate::handlers::system_tenants::update_tenant_database,
         crate::handlers::system_admin::list_system_roles,
         crate::handlers::system_admin::get_user_system_roles,
         crate::handlers::system_admin::assign_system_role,
@@ -790,6 +795,13 @@ use utoipa::OpenApi;
             crate::handlers::payroll_rules::CreatePayrollRuleDefinitionRequest,
             crate::handlers::payroll_rules::CreatePayrollRuleTierRequest,
             crate::handlers::payroll_rules::AssignPayrollRuleRequest,
+
+            // System Tenants Schemas
+            crate::handlers::system_tenants::SystemTenantResponse,
+            crate::handlers::system_tenants::CreateTenantRequest,
+            crate::handlers::system_tenants::UpdateTenantDbRequest,
+            crate::handlers::system_tenants::TenantStatsResponse,
+            crate::handlers::system_tenants::TenantConnectionInfo,
 
             // Phase 6: Platform Admin & Infrastructure Schemas
             SystemDbCluster,

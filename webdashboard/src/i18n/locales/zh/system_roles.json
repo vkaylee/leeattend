@@ -90,43 +90,30 @@
   "system_admin": {
     "tenants": {
       "title": "租户管理",
-      "subtitle": "管理数据库和 Supavisor 连接池",
+      "subtitle": "管理工作区租户",
       "add_btn": "添加租户",
-      "check_stale_btn": "检查过期租户",
       "table": {
         "id": "租户 ID (UUID)",
-        "pool_size": "连接池大小",
+        "name": "名称",
+        "byod": "类型",
+        "timezone": "时区",
         "created_at": "创建时间",
-        "updated_at": "最后更新",
         "actions": "操作"
       },
       "modal": {
         "create_title": "创建新租户",
-        "db_name_label": "数据库名称",
-        "db_name_placeholder": "例: tenant_abc_db",
-        "create_db_label": "创建物理数据库",
-        "pool_size_label": "连接池大小 (可选)",
+        "name_label": "工作区名称",
+        "database_url_label": "数据库 URL (仅 BYOD)",
         "submit_btn": "创建",
         "creating": "创建中..."
       },
       "messages": {
         "create_success": "租户创建成功",
         "delete_success": "租户删除成功",
-        "update_db_success": "数据库 URL 更新成功",
-        "update_mode_success": "连接池模式更新成功",
-        "clean_success": "成功清理过期租户"
+        "update_db_success": "数据库 URL 更新成功"
       },
-      "stale_modal": {
-        "title": "过期租户配置",
-        "subtitle": "这些租户在 Supavisor 中已注册，但与任何活动工作空间都不对应。它们可以安全地被清理。",
-        "no_stale": "未发现过期租户配置。一切正常！",
-        "clean_all": "全部清理",
-        "confirm_clean": "您确定要从 Supavisor 中删除此过期租户配置吗？这只会删除路由项，不会影响任何物理数据库。",
-        "confirm_clean_all": "您确定要从 Supavisor 中删除所有过期租户配置吗？这只会删除路由项，不会影响任何物理数据库。",
-        "scanning": "正在扫描过期配置..."
-      },
-      "confirm_delete": "您确定要删除此租户吗？这将从 Supavisor 中删除其配置。",
-      "description": "管理租户的数据库连接和连接池"
+      "confirm_delete": "您确定要删除此租户吗？此操作将永久删除工作区。",
+      "description": "管理工作区租户及其数据库连接"
     }
   }
 }

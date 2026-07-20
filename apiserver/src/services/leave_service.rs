@@ -121,7 +121,7 @@ impl LeaveService {
             .await?;
 
         // Batch-fetch all leave history logs to avoid N+1
-        let employment_ids: Vec<Uuid> = employments.iter().map(|e| e.id()).collect();
+        let employment_ids: Vec<Uuid> = employments.iter().map(crate::models::employment::Employment::id).collect();
         let logs = self
             .leave_accrual_log_repo
             .get_employment_leave_history_logs_batch(
@@ -668,7 +668,9 @@ impl LeaveService {
             })
             .collect();
 
-        self.user_repo.create_notifications_batch(&notifications).await?;
+        self.user_repo
+            .create_notifications_batch(&notifications)
+            .await?;
 
         Ok(())
     }
@@ -855,7 +857,10 @@ mod tests {
             employee_ids: &[Uuid],
             years: &[i32],
         ) -> Result<
-            std::collections::HashMap<i32, std::collections::HashMap<Uuid, Vec<EmployeeLeaveBalance>>>,
+            std::collections::HashMap<
+                i32,
+                std::collections::HashMap<Uuid, Vec<EmployeeLeaveBalance>>,
+            >,
             AppError,
         > {
             let balances = self.employee_balances.lock().unwrap().clone();
@@ -1804,6 +1809,7 @@ mod tests {
             upserts.is_empty(),
             "Option B should not write roster overrides"
         );
+        drop(upserts);
     }
 
     #[tokio::test]
@@ -1837,6 +1843,7 @@ mod tests {
             upserts.is_empty(),
             "Option B should not write roster overrides"
         );
+        drop(upserts);
     }
 
     #[tokio::test]
@@ -1876,6 +1883,7 @@ mod tests {
             upserts.is_empty(),
             "Option B should not write roster overrides"
         );
+        drop(upserts);
     }
 
     #[tokio::test]
@@ -1915,6 +1923,7 @@ mod tests {
             upserts.is_empty(),
             "Option B should not write roster overrides"
         );
+        drop(upserts);
     }
     #[tokio::test]
     async fn test_approve_leave_request_custom_hours() {
@@ -1953,6 +1962,7 @@ mod tests {
             upserts.is_empty(),
             "Option B should not write roster overrides"
         );
+        drop(upserts);
     }
 
     #[tokio::test]

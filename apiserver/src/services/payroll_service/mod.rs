@@ -15,8 +15,8 @@ use crate::repositories::department_repository::DepartmentRepository;
 use crate::repositories::holiday_repository::HolidayRepository;
 use crate::repositories::leave_request_repository::LeaveRequestRepository;
 use crate::repositories::payroll_repository::PayrollRepository;
-use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::roster::RosterRepository;
+use crate::repositories::workspace_repository::WorkspaceRepository;
 
 use super::attendance_matcher::AttendanceMatcher;
 use super::financial_calculator::{
@@ -681,7 +681,7 @@ impl PayrollService {
         }
 
         let leave_breakdown = ctx.leave_breakdown;
-        let active_policies_with_tiers = ctx.active_policies_with_tiers.clone();
+        let active_policies_with_tiers = Arc::clone(&ctx.active_policies_with_tiers);
 
         // Phase 5: Incentives — delegated to FinancialCalculator
         let incentives = FinancialCalculator::calculate_incentives(
@@ -839,7 +839,9 @@ impl PayrollService {
         };
 
         let overtime_data = self.fetch_overtime_data(workspace_id).await;
-        let holidays_map = self.fetch_holidays(token, start_date, end_date, workspace_id).await;
+        let holidays_map = self
+            .fetch_holidays(token, start_date, end_date, workspace_id)
+            .await;
 
         let Ok(roster_data) = self.roster_provider.get_roster_data(workspace_id).await else {
             return empty_batch_response();
@@ -862,8 +864,9 @@ impl PayrollService {
                 None
             });
 
-        let active_policies_with_tiers =
-            self.fetch_incentive_policies_with_tiers(workspace_id, start_date, end_date).await;
+        let active_policies_with_tiers = self
+            .fetch_incentive_policies_with_tiers(workspace_id, start_date, end_date)
+            .await;
 
         let salary_base_groups = self
             .salary_base_repo
@@ -888,7 +891,7 @@ impl PayrollService {
             end_date,
             start_dt,
             end_dt,
-            token: token.clone(),
+            token: *token,
             condition_type_catalog: Arc::new(condition_type_catalog),
             overtime_data: Arc::new(overtime_data),
             holidays_map: Arc::new(holidays_map),
@@ -911,6 +914,7 @@ impl PayrollService {
     }
 
     /// Process a single chunk of employment IDs for batch payroll calculation.
+    #[allow(clippy::too_many_lines)]
     async fn process_payroll_chunk(
         &self,
         chunk_employment_ids: Vec<Uuid>,
@@ -981,12 +985,7 @@ impl PayrollService {
 
         let rosters = self
             .roster_repo
-            .get_employment_rosters_batch(
-                &d.token,
-                &chunk_employment_ids,
-                d.start_date,
-                d.end_date,
-            )
+            .get_employment_rosters_batch(&d.token, &chunk_employment_ids, d.start_date, d.end_date)
             .await;
 
         let conditions_res = self
@@ -1099,19 +1098,19 @@ impl PayrollService {
                 HashMap::new()
             });
 
-        let mut emp_configs_map: HashMap<Uuid, Vec<crate::models::EmployeePayrollConfig>> =
-            self.employee_repo
-                .get_employee_payroll_configs_batch(&d.token, &chunk_employment_ids)
-                .await
-                .unwrap_or_else(|e| {
-                    tracing::error!(
-                        workspace_id = %workspace_id,
-                        chunk_size = chunk_employment_ids.len(),
-                        error = %e,
-                        "Batch payroll: get_employee_payroll_configs_batch failed — returning empty"
-                    );
-                    HashMap::new()
-                });
+        let mut emp_configs_map: HashMap<Uuid, Vec<crate::models::EmployeePayrollConfig>> = self
+            .employee_repo
+            .get_employee_payroll_configs_batch(&d.token, &chunk_employment_ids)
+            .await
+            .unwrap_or_else(|e| {
+                tracing::error!(
+                    workspace_id = %workspace_id,
+                    chunk_size = chunk_employment_ids.len(),
+                    error = %e,
+                    "Batch payroll: get_employee_payroll_configs_batch failed — returning empty"
+                );
+                HashMap::new()
+            });
 
         let mut emp_to_location = HashMap::new();
         let mut emp_to_employments = HashMap::new();
@@ -1291,7 +1290,11 @@ impl PayrollService {
         end_date: NaiveDate,
         workspace_id: Uuid,
     ) -> HashMap<NaiveDate, crate::models::Holiday> {
-        match self.holiday_repo.get_holidays_in_range(token, start_date, end_date).await {
+        match self
+            .holiday_repo
+            .get_holidays_in_range(token, start_date, end_date)
+            .await
+        {
             Ok(map) => map,
             Err(e) => {
                 tracing::error!(workspace_id = %workspace_id, error = %e, "Failed to fetch holidays — proceeding empty");
@@ -1450,7 +1453,7 @@ impl PayrollService {
 /// Build PayrollContext values for a chunk of employments.
 /// Returns a tuple per employment: `(employment_id, Result<context, error_result>)`.
 /// Failures are pre-built `BatchCalculateResult` with `status: "error"`.
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 pub(crate) fn build_payroll_contexts(
     chunk_employment_ids: &[Uuid],
     employment_to_employee: &HashMap<Uuid, Uuid>,
@@ -1464,54 +1467,66 @@ pub(crate) fn build_payroll_contexts(
     batch_dept_payroll_configs: &HashMap<Uuid, Vec<crate::models::DepartmentPayrollConfig>>,
     emp_to_location: &HashMap<Uuid, Uuid>,
     emp_to_employments: &HashMap<Uuid, Vec<crate::models::employment::Employment>>,
-    salary_map: &mut HashMap<Uuid, Vec<(crate::models::EmployeeSalaryComponent, crate::models::SalaryComponentDefinition)>>,
-    leave_breakdowns_map: &mut HashMap<Uuid, crate::repositories::leave_request_repository::LeaveBreakdown>,
+    salary_map: &mut HashMap<
+        Uuid,
+        Vec<(
+            crate::models::EmployeeSalaryComponent,
+            crate::models::SalaryComponentDefinition,
+        )>,
+    >,
+    leave_breakdowns_map: &mut HashMap<
+        Uuid,
+        crate::repositories::leave_request_repository::LeaveBreakdown,
+    >,
     unpaid_holidays_map: &mut HashMap<Uuid, i64>,
     rule_assignments_map: &HashMap<Uuid, Vec<RuleAssignmentWithTiers>>,
     month_end_policies_map: &mut HashMap<Uuid, crate::models::AttendancePolicyVersion>,
     ot_base_component_ids: &std::collections::HashSet<Uuid>,
     contracts_map: &mut HashMap<Uuid, Vec<crate::models::contract::EmployeeContract>>,
-    assignments_map: &mut HashMap<Uuid, Vec<crate::models::employee_assignment::EmployeeAssignment>>,
+    assignments_map: &mut HashMap<
+        Uuid,
+        Vec<crate::models::employee_assignment::EmployeeAssignment>,
+    >,
     d: &Arc<ChunkSharedData>,
-) -> Vec<(Uuid, Result<PayrollContext, crate::models::BatchCalculateResult>)> {
-    let mut results: Vec<(Uuid, Result<PayrollContext, crate::models::BatchCalculateResult>)> = Vec::new();
+) -> Vec<(
+    Uuid,
+    Result<PayrollContext, crate::models::BatchCalculateResult>,
+)> {
+    let mut results: Vec<(
+        Uuid,
+        Result<PayrollContext, crate::models::BatchCalculateResult>,
+    )> = Vec::new();
     for employment_id in chunk_employment_ids {
-        let emp_id = match employment_to_employee.get(employment_id) {
-            Some(id) => *id,
-            None => {
-                results.push((
-                    *employment_id,
-                    Err(crate::models::BatchCalculateResult {
-                        employment_id: *employment_id,
-                        employee_id: Uuid::nil(),
-                        status: "error".to_string(),
-                        payslip: None,
-                        error_message: Some("Employment has no associated employee record".into()),
-                    }),
-                ));
-                continue;
-            }
+        let emp_id = if let Some(id) = employment_to_employee.get(employment_id) {
+            *id
+        } else {
+            results.push((
+                *employment_id,
+                Err(crate::models::BatchCalculateResult {
+                    employment_id: *employment_id,
+                    employee_id: Uuid::nil(),
+                    status: "error".to_string(),
+                    payslip: None,
+                    error_message: Some("Employment has no associated employee record".into()),
+                }),
+            ));
+            continue;
         };
-        let employee = match employees.remove(&emp_id) {
-            Some(e) => e,
-            None => {
-                results.push((
-                    *employment_id,
-                    Err(crate::models::BatchCalculateResult {
-                        employment_id: *employment_id,
-                        employee_id: emp_id,
-                        status: "error".to_string(),
-                        payslip: None,
-                        error_message: Some("Employee data not found in batch fetch results".into()),
-                    }),
-                ));
-                continue;
-            }
+        let Some(employee) = employees.remove(&emp_id) else {
+            results.push((
+                *employment_id,
+                Err(crate::models::BatchCalculateResult {
+                    employment_id: *employment_id,
+                    employee_id: emp_id,
+                    status: "error".to_string(),
+                    payslip: None,
+                    error_message: Some("Employee data not found in batch fetch results".into()),
+                }),
+            ));
+            continue;
         };
-        let daily_entries_map = build_daily_entries_map(
-            time_map.remove(employment_id).unwrap_or_default(),
-            &d.tz,
-        );
+        let daily_entries_map =
+            build_daily_entries_map(time_map.remove(employment_id).unwrap_or_default(), &d.tz);
 
         let payroll_roster_map = roster_map
             .remove(employment_id)
@@ -1520,16 +1535,13 @@ pub(crate) fn build_payroll_contexts(
             .map(|r| ((r.employment_id, r.date), r.shift_id))
             .collect();
 
-        let working_conditions =
-            conditions_map.remove(employment_id).unwrap_or_default();
+        let working_conditions = conditions_map.remove(employment_id).unwrap_or_default();
 
-        let attendance_policy = policies_map.remove(employment_id).map_or(
-            default_attendance_rules(),
-            |pv| pv.rules,
-        );
+        let attendance_policy = policies_map
+            .remove(employment_id)
+            .map_or_else(default_attendance_rules, |pv| pv.rules);
 
-        let emp_payroll_configs =
-            emp_configs_map.remove(employment_id).unwrap_or_default();
+        let emp_payroll_configs = emp_configs_map.remove(employment_id).unwrap_or_default();
 
         let all_dept_history = dept_map.remove(&emp_id).unwrap_or_default();
         let mut emp_dept_payroll_configs = HashMap::new();
@@ -1553,7 +1565,7 @@ pub(crate) fn build_payroll_contexts(
 
         let month_end_attendance_policy = month_end_policies_map
             .remove(employment_id)
-            .map_or(default_attendance_rules(), |pv| pv.rules);
+            .map_or_else(default_attendance_rules, |pv| pv.rules);
 
         let leave_breakdown = leave_breakdowns_map.remove(&emp_id).unwrap_or(
             crate::repositories::leave_request_repository::LeaveBreakdown {
@@ -1594,13 +1606,8 @@ pub(crate) fn build_payroll_contexts(
                 overtime_data: Arc::clone(&d.overtime_data),
                 ot_base_component_ids: ot_base_comp_ids,
                 active_contracts: contracts_map.remove(&emp_id).unwrap_or_default(),
-                active_assignments: assignments_map
-                    .remove(employment_id)
-                    .unwrap_or_default(),
-                active_employments: emp_to_employments
-                    .get(&emp_id)
-                    .cloned()
-                    .unwrap_or_default(),
+                active_assignments: assignments_map.remove(employment_id).unwrap_or_default(),
+                active_employments: emp_to_employments.get(&emp_id).cloned().unwrap_or_default(),
                 primary_location_id,
                 month_end_payroll_settings: Arc::clone(&d.month_end_payroll_settings),
                 month_end_attendance_policy,
@@ -1747,9 +1754,19 @@ mod tests {
     fn make_chunk_shared_data() -> Arc<ChunkSharedData> {
         Arc::new(ChunkSharedData {
             workspace: crate::models::Workspace::new(
-                Uuid::new_v4(), "Test".into(), "YYYY-MM-DD".into(), "HH:mm".into(),
-                "UTC".into(), "#000".into(), "en".into(), None, None, "split".into(),
-                Decimal::from(2), chrono::Utc::now(), None,
+                Uuid::new_v4(),
+                "Test".into(),
+                "YYYY-MM-DD".into(),
+                "HH:mm".into(),
+                "UTC".into(),
+                "#000".into(),
+                "en".into(),
+                None,
+                None,
+                "split".into(),
+                Decimal::from(2),
+                chrono::Utc::now(),
+                None,
             ),
             tz: chrono_tz::UTC,
             start_date: d(2026, 3, 1),
@@ -1758,10 +1775,12 @@ mod tests {
             end_dt: chrono::Utc::now(),
             token: crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()),
             condition_type_catalog: Arc::new(HashMap::new()),
-            overtime_data: Arc::new(crate::repositories::overtime_policy_repository::WorkspaceOvertimeData {
-                policies: HashMap::new(),
-                assignments: Vec::new(),
-            }),
+            overtime_data: Arc::new(
+                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData {
+                    policies: HashMap::new(),
+                    assignments: Vec::new(),
+                },
+            ),
             holidays_map: Arc::new(HashMap::new()),
             roster_data: Arc::new(crate::cache::RosterData {
                 shifts: HashMap::new(),
@@ -1816,7 +1835,11 @@ mod tests {
         match result {
             Err(error_result) => {
                 assert_eq!(error_result.status, "error");
-                assert!(error_result.error_message.as_ref().unwrap().contains("no associated employee"));
+                assert!(error_result
+                    .error_message
+                    .as_ref()
+                    .unwrap()
+                    .contains("no associated employee"));
                 assert_eq!(error_result.employment_id, employment_id);
                 assert!(error_result.payslip.is_none());
             }
@@ -1837,7 +1860,7 @@ mod tests {
 
         let results = build_payroll_contexts(
             &[employment_id],
-            &emp_to_employee, // mapping exists...
+            &emp_to_employee,    // mapping exists...
             &mut HashMap::new(), // ...but employee data doesn't
             &mut HashMap::new(),
             &mut HashMap::new(),
@@ -1866,7 +1889,11 @@ mod tests {
             Err(error_result) => {
                 assert_eq!(error_result.status, "error");
                 assert!(
-                    error_result.error_message.as_ref().unwrap().contains("not found in batch fetch"),
+                    error_result
+                        .error_message
+                        .as_ref()
+                        .unwrap()
+                        .contains("not found in batch fetch"),
                     "Expected 'not found in batch fetch', got: {:?}",
                     error_result.error_message
                 );

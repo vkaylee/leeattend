@@ -1362,6 +1362,23 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         let result: Vec<Uuid> = user_ids.into_iter().collect();
         Ok(result)
     }
+
+    async fn delete_workspace(&self, workspace_id: Uuid) -> Result<(), AppError> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        diesel::delete(workspaces::table.find(workspace_id))
+            .execute(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

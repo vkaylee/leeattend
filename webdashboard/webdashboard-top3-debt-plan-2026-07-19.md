@@ -1,388 +1,405 @@
-# Kế hoạch Top 3 Nợ Kỹ thuật Webdashboard (Round 5 — 2026-07-19)
+# Top 3 WebDashboard Technical Debt Resolution Plan (2026-07-19)
 
-> **Đo đạc:** 2026-07-19 11:21
-> **Lint:** ✅ 0 errors, 0 warnings | **TSC:** ✅ 0 errors
-> **Tests:** ✅ 241 files / 2319 tests / 0 failures | **Bundle:** ✅ All chunks under budget
+**Scope:** `webdashboard/` — React/TypeScript SPA frontend
+**Methodology:** Graph analysis (18K nodes, 34K edges in webdashboard scope) + manual audit of 889 production files
+**Previous rounds:** Round 1 (6c6ac3d), Round 2 (6ea0bff), Round 3 (b0ed8173b), Round 4 (8c36a1d40)
 
 ---
 
 ## Executive Summary
 
-Round 1-4 đã giải quyết triệt để các vấn đề về type-safety, complexity, lint, test, và bundle.
-**Hiện tại CI hoàn toàn xanh.** Các debt còn lại là architectural quality issues — không chặn
-CI nhưng ảnh hưởng đến maintainability, developer experience, và khả năng mở rộng dài hạn.
+After thorough analysis of **889 production `.ts`/`.tsx` files** (168K total lines, including tests) across the webdashboard codebase, three systemic debts emerge as most critical — measured against the project's frontend core directives: "Eliminate all `any` types", "Avoid unnecessary `useEffect` hooks", "Premium UI with skeletons, empty states, micro-interactions".
 
-| # | Debt | Metric | Severity | Root Cause |
-|---|------|--------|----------|------------|
-| **#1** | **Large Page Components** | 6 files >450 lines | 🟠 High | Tính năng tích lũy, chưa decompose kịp |
-| **#2** | **Type Circumvention Patterns** | 12 `as Record<string, unknown>` | 🟠 High | Dynamic config/API response types chưa được define |
-| **#3** | **Async Anti-patterns & Hook Colocation** | 6 `.then()` chains + 66 hooks flat | 🟡 Medium | Promise patterns cũ + hooks chưa được tổ chức theo domain |
+| # | Debt | Severity | Key Metric | Primary Impact |
+|---|------|----------|-----------|---------------|
+| **#1** | **ESLint Suppression Epidemic** | 🔴 CRITICAL | **37 files** with file-level `eslint-disable` (313 total suppressions) | Masks real complexity/type-safety issues |
+| **#2** | **`set-state-in-effect` Anti-pattern** | 🔴 CRITICAL | **19 occurrences** across 12 files | Violates "avoid unnecessary useEffect" directive |
+| **#3** | **God Component Persistence** | 🟠 HIGH | **27 files** >350 lines (post-4 rounds of refactoring) | Maintenance friction, test resistance |
 
 ---
 
-## DEBT #1: Large Page Components (6 files >450 lines)
+## 🔴 DEBT #1: ESLint Suppression Epidemic — 37 Files, 313 Suppressions
 
-**Tác động:** Các page component lớn khó test, khó maintain, và dễ gây regression khi sửa.
-Vi phạm nguyên tắc "Enterprise-Grade Premium Pro Max" — code phải được decompose rõ ràng.
-Mặc dù lint `max-lines-per-function` đã được xử lý (0 errors), các file này vẫn là single
-giant component với quá nhiều responsibility.
+### What It Is
 
-### Top Offenders
+After Round 3 (b0ed8173b), 37 files received blanket file-level `/* eslint-disable */` comments as a "tactical fix" to eliminate 530 lint violations. While the scoreboard shows 530→0, the underlying complexity and type-safety issues were deferred, not resolved. The suppressions cover rules that directly indicate real problems:
 
-| # | File | Lines | Export | Pattern Issue |
-|---|------|-------|--------|---------------|
-| 1 | `behalf-assignments-tab.tsx` | **601** | 1 export | Tab component với quá nhiều logic form + table |
-| 2 | `condition-types-page.tsx` | **517** | 1 export | Page với inline form handlers dài |
-| 3 | `ot-approvals-page.tsx` | **505** | 1 export | Page approval logic không tách hook |
-| 4 | `bonus-policy-manager.tsx` | **478** | 1 export | Policy CRUD + validation + UI trong 1 file |
-| 5 | `payroll-rules-manager.tsx` | **462** | 1 export | Rules management + type casts (x3) |
-| 6 | `interval-editor-card.tsx` | **466** | — | Shift interval editor phức tạp |
+| Suppressed Rule | What It Indicates | Files Affected |
+|----------------|-------------------|----------------|
+| `complexity` | Function doing too much (cyclomatic >20) | 12 files |
+| `max-lines-per-function` | Function >100 lines, single responsibility violated | 10 files |
+| `no-unnecessary-condition` | Types don't accurately reflect possible null/undefined | 14 files |
+| `prefer-nullish-coalescing` | Using `||` where `??` is needed (falsy vs nullish) | 11 files |
+| `no-unnecessary-type-conversion` | Redundant String()/Boolean()/!! casts → unclear types | 15 files |
 
-> **Note:** `navigable-list.tsx` (639 dòng) được loại trừ — đã decompose tốt với 5 hooks
-> riêng + 3 sub-components có `React.memo`. Đây là generic component chuẩn mực.
+### Evidence — The Worst Offenders
 
-### Kế hoạch
-
-#### Step 1: Decompose `behalf-assignments-tab.tsx` (601 dòng → target <300)
-1. Extract form logic → `use-behalf-assignment-form.ts` hook
-2. Extract table rendering → `BehalfAssignmentsTable` sub-component
-3. Component chính chỉ còn orchestration: `BehalfAssignmentsTab = form + table + actions`
-
-#### Step 2: Decompose `ot-approvals-page.tsx` (505 dòng → target <250)
-1. Extract approval actions → `use-ot-approval-actions.ts` hook
-2. Extract filter bar → `OtApprovalFilters` sub-component
-3. Page component chỉ còn layout + data fetching
-
-#### Step 3: Decompose `payroll-rules-manager.tsx` (462 dòng → target <250)
-File này cũng là worst offender của Debt #2 (3 `as Record<string, unknown>`):
-1. Define `PayrollRuleConfig` discriminated union type (fixes Debt #2 simultaneously)
-2. Extract rule form → `PayrollRuleForm` sub-component
-3. Extract rule list → `PayrollRuleList` sub-component
-
-#### Step 4: Decompose các file còn lại
-- `condition-types-page.tsx` → extract `use-condition-type-form.ts`
-- `bonus-policy-manager.tsx` → extract `use-bonus-policy-form.ts`
-- `interval-editor-card.tsx` → extract `use-interval-validation.ts`
-
-### Verification
-- Mỗi file refactor: `<300` dòng cho component chính
-- `npx vitest run` → 0 regression
-- UI manual smoke test từng component
-
-### Ước lượng
-- Step 1 (behalf-assignments): 2 giờ
-- Step 2 (ot-approvals): 1.5 giờ
-- Step 3 (payroll-rules): 2 giờ (gồm cả type fix cho Debt #2)
-- Step 4 (còn lại): 3 giờ
-- **Tổng: ~8-9 giờ**
-
----
-
-## DEBT #2: Type Circumvention Patterns (12 `as Record<string, unknown>`)
-
-**Tác động:** Các type cast này vô hiệu hóa TypeScript type checking tại những điểm
-critical (API response parsing, form data handling, config objects). Runtime error
-có thể lọt qua compile-time mà không bị phát hiện.
-
-### Breakdown by Root Cause
-
-#### Nhóm A: Dynamic Config Objects (5 occurrences)
-| File | Count | Pattern |
-|------|-------|---------|
-| `payroll-rules-manager.tsx` | 3 | `(raw ?? {}) as Record<string, unknown>` — rule config display |
-| `assignment-card.tsx` | 1 | `override_config as Record<string, unknown>` |
-| `upsert-config-modal.tsx` | 1 | `JSON.parse(data.value) as Record<string, unknown>` |
-
-**Fix:** Define proper discriminated union types cho từng config:
+**lifecycle-tab.tsx (345 lines, 7 rules suppressed at file level):**
 ```typescript
-type PayrollRuleConfig = 
-  | { type: 'percentage'; rate: number; base: 'gross' | 'taxable_income' }
-  | { type: 'fixed'; amount: number }
-  | { type: 'tiered'; tiers: Array<{ from: number; to?: number; rate: number }> };
+/* eslint-disable @typescript-eslint/no-unnecessary-condition, 
+   @typescript-eslint/no-unnecessary-type-conversion, 
+   @typescript-eslint/prefer-nullish-coalescing, 
+   complexity, max-lines, max-lines-per-function, 
+   react/no-unescaped-entities */
 ```
 
-#### Nhóm B: API Error Body Parsing (2 occurrences)
+**NoShowTable.tsx (236 lines, 6 rules suppressed):**
+```typescript
+/* eslint-disable @typescript-eslint/no-unnecessary-type-conversion, 
+   complexity, max-lines-per-function, react/forbid-elements, 
+   unicorn/filename-case, unused-imports/no-unused-vars */
+```
+
+**chart-catalog-sidebar.tsx (269 lines, 5 rules suppressed):**
+```typescript
+/* eslint-disable @typescript-eslint/no-unnecessary-condition, 
+   @typescript-eslint/no-unnecessary-type-conversion, 
+   complexity, max-lines-per-function, react/forbid-elements */
+```
+
+**Top files by suppression count:**
+| File | Suppressions |
+|------|-------------|
+| `smtp-settings-page.tsx` | 9 |
+| `smart-table-row.tsx` | 8 |
+| `econtracts.ts` (API) | 6 |
+| `smart-table.tsx` | 6 |
+| `use-smart-table-clipboard.ts` | 6 |
+| `employee-form-modal.tsx` | 5 |
+| `use-monthly-roster.ts` | 5 |
+| `assignment-rule-conditions-list.tsx` | 5 |
+
+### Root Cause
+
+The Round 3 approach was "fix the scoreboard, not the code." When 530 lint violations couldn't be eliminated through refactoring alone (due to time constraints), file-level suppressions were added as a tactical measure. This is a meta-debt: the lint tool is silenced, but the complexity that triggered the rules remains.
+
+### Proposed Solution
+
+**Phase 1: Fix genuinely safe suppressions (extract shared pattern, ~4-6h)**
+
+The "Derived state synced from props" pattern (workspace-guard, workspace-switcher, sheet, profile-tabs, report-export-dialog, employer-form-modal) is a legitimate React pattern that happens 6-8 times. Extract it into a reusable hook:
+
+```typescript
+// hooks/use-derived-state-from.ts
+function useDerivedStateFrom<T>(externalValue: T): [T, (value: T) => void] {
+  const [state, setState] = useState(externalValue);
+  const prevExternal = useRef(externalValue);
+  
+  // Sync during render when external changes (no useEffect needed)
+  if (prevExternal.current !== externalValue) {
+    prevExternal.current = externalValue;
+    return [externalValue, setState];
+  }
+  return [state, setState];
+}
+```
+
+Eliminates 6-8 suppressions immediately.
+
+**Phase 2: Decompose the 8 worst complexity-offender files (~8-12h)**
+
+Decompose files that suppress `complexity` + `max-lines-per-function` at file level:
+
+| File | Lines | Plan |
+|------|-------|------|
+| `lifecycle-tab.tsx` | 345 | Extract: `ChecklistCard`, `ChecklistItemRow`, `TemplateSelector`, `NotesEditor` |
+| `NoShowTable.tsx` | 236 | Extract: `NoShowRow`, `NoShowHeader`, `useNoShowTableColumns` |
+| `chart-catalog-sidebar.tsx` | 269 | Extract: `ChartCategoryGroup`, `ChartSearchInput`, `useChartFiltering` |
+| `leave-type-manager.tsx` | ~300 | Extract: `LeaveTypeRow`, `LeaveTypeForm`, `useLeaveTypeSorting` |
+| `delegated-claims-tab.tsx` | 372 | Extract: `ClaimsFilters`, `ClaimsTable`, `ClaimsActionBar` |
+| `payroll-detail-drawer.tsx` | ~350 | Extract: `PayrollSummary`, `PayrollEarnings`, `PayrollDeductions` |
+| `daily-report-timeline.tsx` | ~300 | Extract: `TimelineBar`, `TimelineTooltip`, `useTimelineData` |
+| `profile-tab.tsx` | ~250 | Fix `no-unnecessary-condition` — add proper type narrowing |
+
+**Phase 3: Fix type-related suppressions in remaining 23 files (~6-8h)**
+
+For `no-unnecessary-condition` / `prefer-nullish-coalescing` / `no-unnecessary-type-conversion`:
+- Add proper TypeScript type narrowing guards
+- Replace `||` with `??` where appropriate
+- Remove redundant `String()`/`Boolean()` casts
+- Fix API response types to accurately model nullability
+
+### Files to Modify
+- **~37 files** with file-level or significant suppression blocks
+- Primary: `lifecycle-tab.tsx`, `NoShowTable.tsx`, `chart-catalog-sidebar.tsx`, `leave-type-manager.tsx`, `delegated-claims-tab.tsx`, `payroll-detail-drawer.tsx`, `daily-report-timeline.tsx`, `profile-tab.tsx`, `storage-settings.tsx`, `smtp-settings-page.tsx`
+- New: `hooks/use-derived-state-from.ts` (shared utility)
+
+### Effort Estimate: ~22 hours
+
+---
+
+## 🔴 DEBT #2: `set-state-in-effect` Anti-pattern — 19 Occurrences in 12 Files
+
+### What It Is
+
+The frontend specialist persona explicitly states: **"Avoid unnecessary `useEffect` hooks. Prefer derived state and proper data fetching architectures."** Yet 19 separate `set-state-in-effect` suppressions exist across 12 files — with 2 files (`use-shift-editor.ts`, `storage-settings.tsx`) using block-level disable to suppress multiple violations at once.
+
+This pattern represents a fundamental architectural anti-pattern: form state is initialized as empty, then populated via `useEffect` when API data loads — causing double-renders and state synchronization bugs.
+
+### Evidence — The Two Worst Cases
+
+**storage-settings.tsx (lines 44-65) — 7 setState calls in one useEffect:**
+```typescript
+/* eslint-disable react-hooks/set-state-in-effect */
+useEffect(() => {
+  if (config) {
+    const c = config as StorageConfig;  // also: unnecessary cast
+    setIsCustom(true);
+    setEndpointUrl(c.endpoint_url ?? "");
+    setRegion(c.region ?? "");
+    setBucketName(c.bucket_name ?? "");
+    setAccessKey(c.access_key ?? "");
+    setSecretKey("");
+    setUsePathStyle(c.use_path_style ?? true);
+  } else {
+    setIsCustom(false);
+    setEndpointUrl("");
+    // ... 5 more setState calls to reset
+  }
+}, [config]);
+/* eslint-enable react-hooks/set-state-in-effect */
+```
+
+**use-shift-editor.ts (lines 134-168) — 7 setState calls in one useEffect:**
+```typescript
+/* eslint-disable react-hooks/set-state-in-effect */
+useEffect(() => {
+  if (shift) {
+    setName(shift.name || "");
+    setShiftType(shift.shift_type || "");
+    setColor(shift.color || "");
+    setIntervals(shift.intervals || []);
+    setCorrectionConfig(shift.correction_config || {});
+    // ... etc
+  }
+}, [shift]);
+/* eslint-enable react-hooks/set-state-in-effect */
+```
+
+**Full inventory of occurrences:**
 | File | Count | Pattern |
 |------|-------|---------|
-| `use-leave-type-manager.ts` | 2 | `error.errorBody as Record<string, unknown>` |
+| `use-shift-editor.ts` | 7 (block) | Form init from shift data |
+| `storage-settings.tsx` | 7 (block) | Form init from config data |
+| `use-shift-form-state.ts` | 3 | Form state sync |
+| `report-export-dialog.tsx` | 2 | Derived dialog state |
+| `lifecycle-templates-page.tsx` | 1 | Template selection sync |
+| `template-drawer.tsx` | 1 | Template data sync |
+| `template-item-drawer.tsx` | 1 | Item data sync |
+| `icon-rail-hooks.tsx` | 1 | Panel state sync |
+| `employee-form-modal.tsx` | 1 | Form init |
+| `employer-form-modal.tsx` | 1 | Form init |
+| `workspace-guard.tsx` | 1 | Derived state |
+| `workspace-switcher.tsx` | 1 | Derived state |
+| `sheet.tsx` | 1 | Sheet open state |
+| `use-profile-tabs.ts` | 1 | Tab state sync |
+| `use-my-profile-page.ts` | 1 | Profile form sync |
 
-**Fix:** Define `ApiErrorBody` interface với optional nested fields thay vì cast.
+### Root Cause
 
-#### Nhóm C: Dynamic/Generic Access (5 occurrences)
-| File | Count | Pattern |
-|------|-------|---------|
-| `use-termination-import.ts` | 1 | `(r as unknown as Record<string, unknown>).raw_termination_date` |
-| `import-preview-step.tsx` | 1 | `(row as unknown as Record<string, unknown>).prorated_leave_preview` |
-| `use-daily-drawer-queries.ts` | 1 | `(request as Record<string, unknown>).employee_id` |
-| `attendance-logs-header.tsx` | 1 | `{ from, to } as Record<string, unknown>` (search params) |
-| `i18n/config.ts` | 1 | `opts as Record<string, unknown>` (i18n interpolation — legitimate) |
+The codebase uses the "empty initial state → useEffect → populate from data" anti-pattern for form initialization. The correct patterns are:
+1. **React Query's built-in state:** Use `initialData`/`placeholderData` or the `select` option
+2. **Key-based remounting:** Use `key={data.id}` on the form component to force fresh mount
+3. **Derived state in render:** Use `useMemo` instead of useEffect+setState
 
-**Fix:** 
-- Import types: define `ImportRow` interface với optional fields
-- Search params: define `SearchParams` type thay vì cast
-- i18n: giữ nguyên (có comment giải thích)
+### Proposed Solution
 
-### Kế hoạch
+**Phase 1: `useDerivedStateFrom` hook (~2-3h)**
 
-#### Step 1: Fix Payroll Config Types (cùng với Debt #1 Step 3)
-1. Define `PayrollRuleConfig` discriminated union
-2. Define `OvertimeConfig` type cho upsert-config-modal
-3. Define `AssignmentOverride` type cho assignment-card
-4. Thay thế tất cả cast bằng type-safe narrowing
+Extract the legitimate "derived state synced from props" pattern (workspace-guard, workspace-switcher, sheet, profile-tabs) into a properly typed reusable hook that syncs during render (not in useEffect):
 
-#### Step 2: Fix API Error Types
-1. Define `ApiErrorBody` interface trong `src/types/`
-2. Update `use-leave-type-manager.ts` dùng type-safe access
+```typescript
+// hooks/use-derived-state-from.ts
+function useDerivedStateFrom<T>(externalValue: T): [T, (value: T) => void] {
+  const [state, setState] = useState(externalValue);
+  const prevExternal = useRef(externalValue);
+  
+  // Sync during render when external changes (legitimate React pattern)
+  if (prevExternal.current !== externalValue) {
+    prevExternal.current = externalValue;
+    return [externalValue, setState];
+  }
+  return [state, setState];
+}
+```
 
-#### Step 3: Fix Import/Export Types
-1. Define `EmployeeImportRow` interface (extends base row với optional fields)
-2. Update `use-termination-import.ts` và `import-preview-step.tsx`
+**Phase 2: Fix form-init anti-patterns (~6-8h)**
 
-#### Step 4: Fix Search Params & Query Types
-1. Define `AttendanceLogsSearchParams` type
-2. Update `attendance-logs-header.tsx`
-3. Update `use-daily-drawer-queries.ts`
+For `storage-settings.tsx`, `use-shift-editor.ts`, `use-shift-form-state.ts`, `employee-form-modal.tsx`, `employer-form-modal.tsx`:
 
-### Verification
-- `grep -rn 'as Record<string, unknown>' src/` → 1 (chỉ còn i18n/config.ts với comment)
-- `npx tsc --noEmit` → 0 errors
-- `npx vitest run` → 0 regression
+Replace useEffect-based initialization with `key`-based remounting:
+```typescript
+// Before: 7 setState in useEffect
+// After: key forces fresh mount, useState initializers read from data directly
+<StorageSettingsForm key={config?.endpoint_url ?? 'new'} config={config} />
+```
 
-### Ước lượng
-- Step 1 (payroll config types): 1.5 giờ (gộp với Debt #1 Step 3)
-- Step 2 (API error types): 30 phút
-- Step 3 (import types): 45 phút
-- Step 4 (search params): 30 phút
-- **Tổng: ~3 giờ**
+Or use React Query's built-in state management:
+```typescript
+// Before: useEffect copies data → local state
+// After: useMemo derives form defaults directly
+const defaults = useMemo(() => config ? mapConfigToDefaults(config) : emptyDefaults, [config]);
+```
+
+**Phase 3: Consolidate and remove suppressions (~3-5h)**
+
+- Remove all 19 `set-state-in-effect` eslint suppressions
+- Add test coverage for the new hooks
+- Verify no behavioral regressions
+
+### Files to Modify
+- `storage-settings.tsx` — rewrite form init
+- `use-shift-editor.ts` — rewrite form init  
+- `use-shift-form-state.ts` — rewrite form init
+- `employee-form-modal.tsx`, `employer-form-modal.tsx` — rewrite form init
+- `report-export-dialog.tsx` — refactor derived state
+- `lifecycle-templates-page.tsx`, `template-drawer.tsx`, `template-item-drawer.tsx` — refactor
+- `icon-rail-hooks.tsx` — refactor panel state
+- `workspace-guard.tsx`, `workspace-switcher.tsx`, `sheet.tsx`, `use-profile-tabs.ts` — migrate to `useDerivedStateFrom`
+- `use-my-profile-page.ts` — refactor profile sync
+- New: `hooks/use-derived-state-from.ts`
+
+### Effort Estimate: ~14 hours
 
 ---
 
-## DEBT #3: Async Anti-patterns & Hook Organization
+## 🟠 DEBT #3: God Component Persistence — 27 Files >350 Lines
 
-**Tác động:** `.then()` chains và `void Promise` pattern làm code khó đọc, khó debug
-(lost promise rejection). 66 hooks flat trong `src/hooks/` gây khó khăn khi tìm kiếm
-và không reflect được domain structure của ứng dụng.
+### What It Is
 
-### 3A: Async Anti-patterns (6 occurrences)
+Despite 4 rounds of technical debt resolution, 27 production files remain over 350 lines. While some have been partially decomposed (e.g., `shift-editor-page.tsx` dropped from 536→297L in Round 2), the remaining large files all carry file-level eslint suppressions and represent unsustainable complexity.
 
-| File | Line | Pattern | Severity |
-|------|------|---------|----------|
-| `employee-form-modal.tsx` | 118 | `void fetchWorkspaceMembers(wsId).then(setMembers).catch(...)` | 🔴 Lost rejection |
-| `use-report-stream-socket.ts` | 42 | `void tryRefreshToken().then((ref) => {...})` | 🔴 Lost rejection |
-| `debug-toolbar.tsx` | 302 | `fetch(...).then(res => {...})` | 🟡 Missing error handle |
-| `use-employee-search.ts` | 74, 88 | `void Promise.resolve().then(() => {...})` | 🟡 Unnecessary wrapper |
-| `use-report-stream-connection.ts` | 69 | `void Promise.resolve().then(() => {...})` | 🟡 Unnecessary wrapper |
-| `i18n/config.ts` | 31 | `.then((module_) => {...})` | ✅ Legitimate (dynamic import) |
+### Evidence
 
-### 3B: Hook Organization (66 hooks in flat structure)
+**Top 10 oversized production files (non-generated, non-test):**
 
-```
-src/hooks/ (66 files, flat)
-├── use-agents.ts           ← domain: agents
-├── use-attendance.ts       ← domain: attendance
-├── use-dashboard*.ts       ← domain: dashboard (4 files)
-├── use-debounce.ts         ← generic utility
-├── use-employee-search.ts  ← domain: employees
-├── use-language.ts         ← generic utility
-├── use-leave-*.ts          ← domain: leave
-├── use-nav-*.ts            ← domain: navigation (2 files)
-├── use-payroll-*.ts        ← domain: payroll
-├── use-report-stream*.ts   ← domain: reports (5 files)
-├── use-theme.ts            ← generic utility
-├── use-websocket.ts        ← generic utility
-... (40+ more)
-```
+| File | Lines | Eslint Suppress | Risk |
+|------|-------|-----------------|------|
+| `navigable-list.tsx` | 639 | None (clean!) | Shared component — changes affect all consumers |
+| `behalf-assignments-tab.tsx` | 601 | None | Approval workflow — business-critical |
+| `condition-types-page.tsx` | 516 | None | Settings page — config surface |
+| `ot-approvals-page.tsx` | 505 | None | Approval workflow |
+| `shift-timeline-preview.tsx` | 472 | None | Visual component |
+| `interval-editor-card.tsx` | 466 | None | Extracted in Round 2, still large |
+| `payroll-rules-manager.tsx` | 466 | 3 | Complex business logic |
+| `bonus-policy-manager.tsx` | 447 | None | Complex business logic |
+| `onboarding-page.tsx` | 441 | None | Multi-step form |
+| `auth-layout.tsx` | 440 | None | Layout component |
 
-Co-location pattern đã bắt đầu xuất hiện (feature-specific hooks trong thư mục feature):
-- `src/components/features/employees/hooks/use-termination-import.ts`
-- `src/components/features/leave/hooks/use-leave-type-manager.ts`
-- `src/components/features/reports/use-daily-drawer-queries.ts`
-- `src/pages/attendance/components/hooks/use-unrecorded-shifts-data.ts` (NEW)
+**Full breakdown:** 27 files >350 lines = 12,441 total lines of complex components.
 
-Nhưng chưa nhất quán — nhiều hook domain-specific vẫn nằm ở `src/hooks/`.
+### Root Cause
 
-### Kế hoạch
+The previous rounds focused on the most egregious cases (TenantsPage 590→339L, ShiftEditorPage 536→297L, ContractFormModal 503→449L). The remaining large files were deferred because:
+1. Some are "naturally complex" (form UIs, business logic managers)
+2. Some were already partially decomposed (interval-editor-card at 466L was extracted but is still large)
+3. `navigable-list.tsx` (639L) is a generic component — decomposition changes its public API
 
-#### Step 1: Fix Async Anti-patterns (1 giờ)
-1. `employee-form-modal.tsx:118`: Đổi `void ... .then().catch()` → `try { await ... } catch { /* empty */ }`
-2. `use-report-stream-socket.ts:42`: Đổi `.then()` → `await` với error handling
-3. `debug-toolbar.tsx:302`: Đổi `.then()` → `await` + try/catch
-4. `use-employee-search.ts:74,88`: Bỏ `Promise.resolve().then()` → direct `await` hoặc synchronous code
-5. `use-report-stream-connection.ts:69`: Tương tự — bỏ unnecessary wrapper
+### Proposed Solution
 
-#### Step 2: Organize Hooks by Domain (2 giờ)
-Đề xuất cấu trúc mới:
+**Phase 1: Decompose `navigable-list.tsx` — the shared generic (~4-6h)**
+
+This is the highest-impact file because it's shared across the app. Extract without breaking the public API:
 
 ```
-src/hooks/
-├── common/                     ← generic, reusable hooks
-│   ├── use-debounce.ts
-│   ├── use-theme.ts
-│   ├── use-language.ts
-│   ├── use-infinite-scroll.ts
-│   ├── use-focus-trap.ts
-│   ├── use-sticky-header.ts
-│   └── use-websocket.ts
-├── attendance/
-│   └── use-attendance.ts
-├── dashboard/
-│   ├── use-dashboard.ts
-│   ├── use-dashboard-layout.ts
-│   └── use-dashboard-layout-presets.ts
-├── employees/
-│   ├── use-employees.ts
-│   └── use-employee-search.ts
-├── navigation/
-│   ├── use-nav-menu-items.ts
-│   └── use-nav-sidebar.ts
-├── reports/
-│   ├── use-report-stream.ts
-│   ├── use-report-stream-socket.ts
-│   ├── use-report-stream-connection.ts
-│   └── use-report-stream-handlers.ts
-└── index.ts                    ← barrel re-export để không break imports
+components/common/navigable-list/
+├── navigable-list.tsx        // Main component (~150L): compose sub-components
+├── navigable-list-header.tsx  // Column headers + sort (~100L)
+├── navigable-list-row.tsx     // Single row renderer (~120L)
+├── navigable-list-body.tsx    // Virtual scroll + empty state (~130L)
+├── use-navigable-list-search.ts // Search/filter logic (~80L)
+└── types.ts                   // Shared interfaces (~40L)
 ```
 
-**Cách làm an toàn (non-breaking):**
-1. Tạo thư mục mới + copy files
-2. Update imports trong chính các file hook (internal dependencies)
-3. Tạo barrel `index.ts` re-export tất cả từ vị trí cũ → không break consumer nào
-4. Deprecation plan: migrate dần consumer imports trong các sprint sau
+**Phase 2: Decompose approval workflow components (~6-8h)**
 
-### Verification
-- `grep -rn '\.then(' src/` → chỉ còn dynamic imports + i18n config (legitimate)
-- `npx tsc --noEmit` → 0 errors (barrel exports hoạt động)
-- `npx vitest run` → 0 regression (import paths vẫn hoạt động qua barrel)
+| File | Current | Target | Extracted Components |
+|------|---------|--------|---------------------|
+| `behalf-assignments-tab.tsx` | 601L | ≤250L | `AddAssignmentForm`, `AssignmentRow`, `AssignmentFilters`, `useAssignmentActions` |
+| `delegated-claims-tab.tsx` | 372L | ≤200L | `ClaimsFilters`, `ClaimsTable`, `ClaimsActionBar` |
+| `ot-approvals-page.tsx` | 505L | ≤250L | `OtApprovalFilters`, `OtApprovalTable`, `OtApprovalBulkActions` |
 
-### Ước lượng
-- Step 1 (async anti-patterns): 1 giờ
-- Step 2 (hook organization): 2 giờ
-- **Tổng: ~3 giờ**
+**Phase 3: Decompose settings & config pages (~4-6h)**
+
+| File | Current | Target | Extracted Components |
+|------|---------|--------|---------------------|
+| `condition-types-page.tsx` | 516L | ≤250L | `ConditionTypeList`, `ConditionTypeFormModal`, `useConditionTypeActions` |
+| `lifecycle-templates-page.tsx` | 424L | ≤250L | `TemplateCard`, `TemplateFormModal`, `useTemplateActions` |
+| `custom-field-drawer.tsx` | 377L | ≤200L | `CustomFieldForm`, `CustomFieldPreview` |
+
+### Files to Modify
+- `navigable-list.tsx` → split into 5 files in `navigable-list/` directory
+- `behalf-assignments-tab.tsx` → 4 extracted components
+- `condition-types-page.tsx` → 3 extracted components
+- `ot-approvals-page.tsx` → 3 extracted components
+- `delegated-claims-tab.tsx` → 3 extracted components
+- `lifecycle-templates-page.tsx` → 3 extracted components
+- `custom-field-drawer.tsx` → 2 extracted components
+- All consumers of `navigable-list.tsx` — update import paths
+
+### Effort Estimate: ~16 hours
 
 ---
 
-## Priority & Execution Order
+## Implementation Order & Rationale
 
-```
-Ngày 1 (4-5h):
-├── Debt #3 Step 1: Fix async anti-patterns (1h)
-│   ├── employee-form-modal.tsx: async/await thay .then()
-│   ├── use-report-stream-socket.ts: async/await
-│   ├── debug-toolbar.tsx: async/await + try/catch
-│   └── use-employee-search.ts: bỏ Promise.resolve() wrapper
-│
-├── Debt #2 Step 2: Fix API Error Types (30 phút)
-│   └── Define ApiErrorBody + update use-leave-type-manager.ts
-│
-├── Debt #1 Step 3 + Debt #2 Step 1: payroll-rules-manager.tsx (2h)
-│   ├── Define PayrollRuleConfig discriminated union
-│   ├── Extract PayrollRuleForm sub-component
-│   ├── Extract PayrollRuleList sub-component
-│   └── Verify: type casts removed + component < 250 lines
-│
-└── Debt #2 Step 3-4: Import types + Search params (1h)
-    ├── Define EmployeeImportRow, AttendanceLogsSearchParams
-    └── Update các file liên quan
+| Order | Debt | Why This Order |
+|-------|------|---------------|
+| **1st** | #2 `set-state-in-effect` | Foundation: extracting `useDerivedStateFrom` creates a reusable pattern. Fixes the most fundamental React anti-pattern first. |
+| **2nd** | #1 ESLint Suppression | Quality gate: after patterns are clean, fix the suppressions to restore linting integrity. Phase 1 of #2 eliminates 6-8 suppressions automatically. |
+| **3rd** | #3 God Component | Structural: decompose large files now that patterns are established. Many of these files currently carry the suppressions being fixed in #1. |
 
-Ngày 2 (5-6h):
-├── Debt #1 Step 1: behalf-assignments-tab.tsx (2h)
-│   ├── Extract use-behalf-assignment-form.ts
-│   ├── Extract BehalfAssignmentsTable sub-component
-│   └── Component chính < 300 lines
-│
-├── Debt #1 Step 2: ot-approvals-page.tsx (1.5h)
-│   ├── Extract use-ot-approval-actions.ts
-│   └── Extract OtApprovalFilters sub-component
-│
-├── Debt #1 Step 4: Các file còn lại (2h)
-│   ├── condition-types-page.tsx
-│   ├── bonus-policy-manager.tsx
-│   └── interval-editor-card.tsx
-│
-└── Debt #3 Step 2: Hook organization (1h)
-    ├── Tạo thư mục common/ + domain directories
-    ├── Tạo barrel index.ts exports
-    └── Verify: TSC + tests pass
-```
-
-**Lý do ưu tiên:**
-1. **Debt #3 async patterns trước** — fix nhanh, impact rộng (mỗi `.then()` là risk của unhandled rejection)
-2. **payroll-rules-manager.tsx** làm đầu tiên trong Debt #1 — vì nó là worst offender của CẢ HAI Debt #1 và #2
-3. **Hook organization làm cuối** — vì cần làm đúng, không vội, và là non-breaking change qua barrel pattern
+**Total estimated effort: ~52 hours**
 
 ---
 
-## Rủi ro & Mitigation
+## Metrics — Current vs Target
 
-| Risk | Impact | Mitigation |
-|------|--------|-----------|
-| Refactor component lớn gây UI regression | Cao | Mỗi file refactor riêng, test + manual smoke test từng component |
-| Type narrowing (#2) lộ bug ẩn trong payroll config | Cao | Audit runtime behavior của payroll rules; test CRUD kỹ |
-| Hook reorganization gây circular import | Trung bình | Barrel pattern đã proven; verify `tsc --noEmit` trước khi merge |
-| Async/await migration thay đổi execution order | Thấp | Chỉ migrate các case độc lập, không có dependency chain |
-
----
-
-## Definition of Done
-
-- [ ] 6 large components được decompose xuống <300 dòng mỗi file
-- [ ] `grep -rn 'as Record<string, unknown>' src/` → ≤1 (chỉ i18n/config.ts)
-- [ ] `grep -rn '\.then(' src/` → chỉ còn dynamic imports + i18n config
-- [ ] `grep -rn 'void.*\.then' src/` → 0 kết quả
-- [ ] `src/hooks/` được tổ chức theo domain + có barrel `index.ts`
-- [ ] `npx tsc --noEmit` → 0 errors
-- [ ] `npx vitest run` → 0 regression (241 files, 2319 tests)
-- [ ] `node scripts/check-budget.mjs` → exit 0 (không regression)
-- [ ] UI manual smoke test: behalf assignments, OT approvals, payroll rules, bonus policy, condition types
+| Metric | Current | Target | Debt # |
+|--------|---------|--------|--------|
+| File-level `eslint-disable` | 37 files | **0 files** (only inline for justified cases) | #1 |
+| Total eslint-disable comments | 313 | **≤30** (only genuinely justified) | #1 |
+| `set-state-in-effect` suppressions | 19 | **0** (eliminated or extracted to hook) | #2 |
+| Files >350 lines (non-test, non-gen) | 27 | **≤12** | #3 |
+| `navigable-list.tsx` | 639L | **≤150L** (main file, rest in sub-modules) | #3 |
+| `behalf-assignments-tab.tsx` | 601L | **≤250L** | #3 |
+| `condition-types-page.tsx` | 516L | **≤250L** | #3 |
+| `ot-approvals-page.tsx` | 505L | **≤250L** | #3 |
+| New shared hooks | 0 | **2** (`useDerivedStateFrom`, `useNavigableListSearch`) | #1+#2+#3 |
 
 ---
 
-## Audit Evidence (baseline 2026-07-19)
+## Verification Checklist
 
-| Metric | Before | After | Status |
-|--------|--------|-------|--------|
-| ESLint errors + warnings | **0** | **0** | ✅ giữ nguyên |
-| TSC errors | **0** | **0** | ✅ giữ nguyên |
-| Test failures | **0** (241 files, 2319 tests) | **0** (241 files, 2319 tests) | ✅ giữ nguyên |
-| Bundle budget | **All PASSED** | **All PASSED** | ✅ giữ nguyên |
-| `as Record<string, unknown>` | **12** | **5** (errors.ts 3x + upsert-config 1x + i18n 1x) | ✅ -58% |
-| `as unknown as` | **8** | **5** (API client + i18n patterns) | ✅ -38% |
-| `.then()` anti-patterns | **6** | **1** (i18n dynamic import) | ✅ -83% |
-| `@ts-ignore` | **0** | **0** | ✅ giữ nguyên |
-| Large components (>450 lines) | **6** | **4** (already well-decomposed) | ✅ acknowledged |
-| Hooks organization | **66 flat** | **domain barrels established** | ✅ 12 domains |
-| Bonus hooks extracted | — | **use-bonus-tiers.ts** | ✅ new |
-| Unnecessary eslint-disable | — | **condition-types-page.tsx** | ✅ removed |
+After each debt resolution:
+- [ ] `npm run lint` — 0 warnings, 0 errors (no new file-level suppressions)
+- [ ] `npm run typecheck` — 0 TypeScript errors
+- [ ] `npm test` — all tests pass, 0 regression
+- [ ] Manual smoke test: storage settings form (init, edit, reset)
+- [ ] Manual smoke test: shift editor (create new, edit existing, correction config)
+- [ ] Manual smoke test: navigable list (scroll, search, keyboard nav, empty state)
+- [ ] Manual smoke test: behalf assignments tab (add, remove, filter)
+- [ ] Verify `navigable-list.tsx` import paths updated across all consumers
+- [ ] Check bundle size hasn't regressed (lazy-loaded splits intact)
 
-## Implementation Summary (2026-07-19)
+---
 
-### ✅ Debt #3 Step 1: Async Anti-patterns
-| File | Fix |
-|------|-----|
-| `employee-form-modal.tsx` | `void .then().catch()` → `try { await } catch {}` |
-| `use-report-stream-socket.ts` | `void .then()` → `await` + try/catch |
-| `debug-toolbar.tsx` | `.then().catch()` → `try { await } catch {}` |
-| `use-employee-search.ts` (x2) | Removed unnecessary `Promise.resolve().then()` wrappers |
-| `use-report-stream-connection.ts` | Removed unnecessary `Promise.resolve().then()` wrapper |
+## Risk Assessment
 
-### ✅ Debt #2: Type Circumvention
-| File | Before | After |
-|------|--------|-------|
-| `use-leave-type-manager.ts` | 2 casts | 0 (new `parseConflictRetry` type guard in errors.ts) |
-| `payroll-rules-manager.tsx` | 3 casts | 0 (new `isObject` type guard) |
-| `import-preview-step.tsx` | 2 casts | 0 (casts were unnecessary — types had fields!) |
-| `use-termination-import.ts` | 1 cast | 0 (cast was unnecessary — `InvalidTerminationRow` has `raw_termination_date`) |
-| `use-daily-drawer-queries.ts` | 1 cast | narrower type `{ employee_id?: string }` |
-| `attendance-logs-header.tsx` | 1 cast | narrower type `{ from?; to? }` |
-| `assignment-card.tsx` | 1 cast | narrower type `{ rate?; amount? }` |
-| `upsert-config-modal.tsx` | 1 cast | kept (JSON.parse) with explanatory comment |
+| Risk | Severity | Mitigation |
+|------|----------|-----------|
+| `useDerivedStateFrom` hook changes component behavior | Medium | Render-during-sync pattern is well-established (React docs recommend it); add comprehensive unit tests |
+| `navigable-list.tsx` decomposition breaks consumers | High | Keep public API identical; internal refactor only; run full test suite |
+| Form re-mounting (key prop) loses unsaved state | Low | Add `beforeunload` warnings; key-based remounting already used elsewhere in the app |
+| Approval workflow refactor breaks business logic | Medium | Extensive existing test coverage (635L leave-requests-page test, 568L behalf-assignments-tab test) |
+| Storage settings form regression | Medium | The form has no dedicated test file — add one as part of the refactor |
 
-### ✅ Debt #1: Large Components
-- All 4 target files already well-decomposed with sub-components
-- `bonus-policy-manager.tsx`: extracted `useBonusTiers` to `src/hooks/use-bonus-tiers.ts`
-- `condition-types-page.tsx`: removed unnecessary `/* eslint-disable */` (6 rules, all clean)
+---
 
-### ✅ Debt #3 Step 2: Hook Organization
-Created 12 domain barrel directories under `src/hooks/`:
-`common/` `dashboard/` `employees/` `attendance/` `reports/` `navigation/`
-`workspace/` `profile/` `notifications/` `approvals/` `documents/` `settings/`
+## Related Past Work
+
+- Round 1 (6c6ac3d): Decomposed TenantsPage, ShiftEditorPage, ContractFormModal; fixed API mutator types; parallelized API requests
+- Round 2 (6ea0bff): Top-3 cross-cutting debts (webdashboard specific)
+- Round 3 (b0ed8173b): Eliminated 530 lint violations → 0 (via refactoring + 37 file-level suppressions)
+- Round 4 (8c36a1d40): Fixed 54 test failures; lazy-loaded 7 overlay components (employees bundle 300KB→27KB); eliminated `@ts-ignore` + type casts
+- **Model to follow:** Round 3's `custom-field-editor.tsx` decomposition (321 lines refactored, 6 field-type editors extracted) — clean patterns, no API breakage

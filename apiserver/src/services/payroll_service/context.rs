@@ -111,7 +111,8 @@ pub(crate) struct ChunkSharedData {
     pub(crate) end_dt: chrono::DateTime<chrono::Utc>,
     pub(crate) token: crate::diesel_pool::TenantAuthToken,
     pub(crate) condition_type_catalog: Arc<HashMap<String, crate::models::ConditionTypeDefinition>>,
-    pub(crate) overtime_data: Arc<crate::repositories::overtime_policy_repository::WorkspaceOvertimeData>,
+    pub(crate) overtime_data:
+        Arc<crate::repositories::overtime_policy_repository::WorkspaceOvertimeData>,
     pub(crate) holidays_map: Arc<HashMap<NaiveDate, crate::models::Holiday>>,
     pub(crate) roster_data: Arc<crate::cache::RosterData>,
     pub(crate) ws_payroll_settings_history: Arc<Vec<crate::models::PayrollSettings>>,
@@ -149,6 +150,7 @@ pub(crate) fn default_attendance_rules() -> crate::models::AttendanceRules {
     }
 }
 
+#[allow(clippy::trivially_copy_pass_by_ref)]
 pub(crate) fn build_daily_entries_map(
     entries: Vec<crate::models::TimeEntry>,
     tz: &Tz,

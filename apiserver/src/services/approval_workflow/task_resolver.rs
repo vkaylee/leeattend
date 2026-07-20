@@ -148,16 +148,14 @@ impl ApprovalWorkflowService {
         all_tasks.dedup_by_key(|t| t.id());
 
         // Batch-fetch all instance IDs to avoid N+1 per-task instance lookup
-        let instance_ids: Vec<Uuid> = all_tasks.iter().map(|t| t.instance_id()).collect();
+        let instance_ids: Vec<Uuid> = all_tasks.iter().map(crate::models::approval_workflow::ApprovalWorkflowTask::instance_id).collect();
         let instances = self
             .approval_workflow_repo
             .get_instances_by_ids(auth_token, &instance_ids)
             .await
             .unwrap_or_default();
-        let instances_by_id: std::collections::HashMap<Uuid, _> = instances
-            .into_iter()
-            .map(|inst| (inst.id, inst))
-            .collect();
+        let instances_by_id: std::collections::HashMap<Uuid, _> =
+            instances.into_iter().map(|inst| (inst.id, inst)).collect();
 
         let mut final_tasks = Vec::new();
         for task in all_tasks {

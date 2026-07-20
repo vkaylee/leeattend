@@ -325,8 +325,8 @@ impl ReportService {
                 let coefficient = f64::from(work_unit_minutes) / 60.0;
                 total_std_units += std_units;
                 total_ot_units += ot_units;
-                computed_std_hours += f64::from(std_units) * coefficient;
-                computed_ot_hours += f64::from(ot_units) * coefficient;
+                computed_std_hours = f64::from(std_units).mul_add(coefficient, computed_std_hours);
+                computed_ot_hours = f64::from(ot_units).mul_add(coefficient, computed_ot_hours);
                 if *employment_id == group.representative_employment_id {
                     representative_work_unit_minutes = work_unit_minutes;
                 }

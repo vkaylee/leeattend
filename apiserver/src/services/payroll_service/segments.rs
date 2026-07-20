@@ -149,10 +149,12 @@ mod tests {
             emp_payroll_configs: Vec::new(),
             ws_payroll_settings_history: Arc::new(Vec::new()),
             department_payroll_configs: HashMap::new(),
-            overtime_data: Arc::new(crate::repositories::overtime_policy_repository::WorkspaceOvertimeData {
-                policies: HashMap::new(),
-                assignments: Vec::new(),
-            }),
+            overtime_data: Arc::new(
+                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData {
+                    policies: HashMap::new(),
+                    assignments: Vec::new(),
+                },
+            ),
             ot_base_component_ids: std::collections::HashSet::new(),
             active_contracts: Vec::new(),
             active_assignments: Vec::new(),

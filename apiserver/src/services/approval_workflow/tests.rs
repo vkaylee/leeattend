@@ -103,8 +103,7 @@ mod tests {
         ) -> Result<ApprovalWorkflow, AppError> {
             self.create_workflow_called
                 .store(true, std::sync::atomic::Ordering::SeqCst);
-            let mut state = self.state.lock().unwrap();
-            state.workflows.insert(workflow.id, workflow.clone());
+            self.state.lock().unwrap().workflows.insert(workflow.id, workflow.clone());
             Ok(workflow)
         }
 
@@ -145,8 +144,7 @@ mod tests {
             _auth_token: &TenantAuthToken,
             log: ApprovalActionLog,
         ) -> Result<ApprovalActionLog, AppError> {
-            let mut state = self.state.lock().unwrap();
-            state.action_logs.push(log.clone());
+            self.state.lock().unwrap().action_logs.push(log.clone());
             Ok(log)
         }
 
@@ -155,8 +153,10 @@ mod tests {
             _auth_token: &TenantAuthToken,
             entity_id: Uuid,
         ) -> Result<Vec<ApprovalActionLog>, AppError> {
-            let state = self.state.lock().unwrap();
-            Ok(state
+            Ok(self
+                .state
+                .lock()
+                .unwrap()
                 .action_logs
                 .iter()
                 .filter(|l| l.entity_id == entity_id)
@@ -169,8 +169,7 @@ mod tests {
             _auth_token: &TenantAuthToken,
             instance: ApprovalWorkflowInstance,
         ) -> Result<ApprovalWorkflowInstance, AppError> {
-            let mut state = self.state.lock().unwrap();
-            state.instances.insert(instance.id, instance.clone());
+            self.state.lock().unwrap().instances.insert(instance.id, instance.clone());
             Ok(instance)
         }
 
@@ -179,8 +178,7 @@ mod tests {
             _auth_token: &TenantAuthToken,
             instance: ApprovalWorkflowInstance,
         ) -> Result<ApprovalWorkflowInstance, AppError> {
-            let mut state = self.state.lock().unwrap();
-            state.instances.insert(instance.id, instance.clone());
+            self.state.lock().unwrap().instances.insert(instance.id, instance.clone());
             Ok(instance)
         }
 
@@ -190,8 +188,10 @@ mod tests {
             entity_type: &str,
             entity_id: Uuid,
         ) -> Result<Option<ApprovalWorkflowInstance>, AppError> {
-            let state = self.state.lock().unwrap();
-            let instance = state
+            let instance = self
+                .state
+                .lock()
+                .unwrap()
                 .instances
                 .values()
                 .find(|i| i.entity_type == entity_type && i.entity_id == entity_id)
@@ -225,8 +225,7 @@ mod tests {
             _auth_token: &TenantAuthToken,
             workflow_id: Uuid,
         ) -> Result<Option<ApprovalWorkflow>, AppError> {
-            let state = self.state.lock().unwrap();
-            Ok(state.workflows.get(&workflow_id).cloned())
+            Ok(self.state.lock().unwrap().workflows.get(&workflow_id).cloned())
         }
 
         async fn list_workflows(
@@ -237,8 +236,8 @@ mod tests {
             page: i64,
             limit: i64,
         ) -> Result<(Vec<ApprovalWorkflow>, i64), AppError> {
-            let state = self.state.lock().unwrap();
-            let mut list: Vec<ApprovalWorkflow> = state.workflows.values().cloned().collect();
+            let mut list: Vec<ApprovalWorkflow> =
+                self.state.lock().unwrap().workflows.values().cloned().collect();
             if let Some(et) = entity_type {
                 list.retain(|w| w.entity_type == et);
             }
@@ -258,8 +257,7 @@ mod tests {
             _auth_token: &TenantAuthToken,
             workflow: ApprovalWorkflow,
         ) -> Result<ApprovalWorkflow, AppError> {
-            let mut state = self.state.lock().unwrap();
-            state.workflows.insert(workflow.id, workflow.clone());
+            self.state.lock().unwrap().workflows.insert(workflow.id, workflow.clone());
             Ok(workflow)
         }
 
@@ -268,8 +266,7 @@ mod tests {
             _auth_token: &TenantAuthToken,
             workflow_id: Uuid,
         ) -> Result<(), AppError> {
-            let mut state = self.state.lock().unwrap();
-            state.workflows.remove(&workflow_id);
+            self.state.lock().unwrap().workflows.remove(&workflow_id);
             Ok(())
         }
 
@@ -278,8 +275,7 @@ mod tests {
             _auth_token: &TenantAuthToken,
             workflow_id: Uuid,
         ) -> Result<(), AppError> {
-            let mut state = self.state.lock().unwrap();
-            state.steps.remove(&workflow_id);
+            self.state.lock().unwrap().steps.remove(&workflow_id);
             Ok(())
         }
 
@@ -303,9 +299,11 @@ mod tests {
             _auth_token: &TenantAuthToken,
             tasks: Vec<ApprovalWorkflowTask>,
         ) -> Result<Vec<ApprovalWorkflowTask>, AppError> {
-            let mut state = self.state.lock().unwrap();
-            for task in &tasks {
-                state.tasks.insert(task.id(), task.clone());
+            {
+                let mut state = self.state.lock().unwrap();
+                for task in &tasks {
+                    state.tasks.insert(task.id(), task.clone());
+                }
             }
             Ok(tasks)
         }
@@ -315,8 +313,7 @@ mod tests {
             _auth_token: &TenantAuthToken,
             task: ApprovalWorkflowTask,
         ) -> Result<ApprovalWorkflowTask, AppError> {
-            let mut state = self.state.lock().unwrap();
-            state.tasks.insert(task.id(), task.clone());
+            self.state.lock().unwrap().tasks.insert(task.id(), task.clone());
             Ok(task)
         }
 
@@ -332,6 +329,7 @@ mod tests {
                     res.push(task.clone());
                 }
             }
+            drop(state);
             Ok(res)
         }
 
@@ -379,6 +377,7 @@ mod tests {
                     _ => {}
                 }
             }
+            drop(state);
             Ok(res)
         }
     }
@@ -394,8 +393,7 @@ mod tests {
             _a: &TenantAuthToken,
             e: WorkspaceConfigEntry,
         ) -> Result<WorkspaceConfigEntry, AppError> {
-            let mut state = self.state.lock().unwrap();
-            state.configs.insert(e.config_key().to_string(), e.clone());
+            self.state.lock().unwrap().configs.insert(e.config_key().to_string(), e.clone());
             Ok(e)
         }
         async fn get_effective_config(
@@ -429,8 +427,7 @@ mod tests {
             _scope: &str,
             config_key: &str,
         ) -> Result<(), AppError> {
-            let mut state = self.state.lock().unwrap();
-            state.configs.remove(config_key);
+            self.state.lock().unwrap().configs.remove(config_key);
             Ok(())
         }
     }
@@ -661,6 +658,10 @@ mod tests {
             _permission: &str,
         ) -> Result<Vec<Uuid>, AppError> {
             Ok(vec![])
+        }
+
+        async fn delete_workspace(&self, _workspace_id: Uuid) -> Result<(), AppError> {
+            Ok(())
         }
     }
 
@@ -1271,8 +1272,7 @@ mod tests {
             _a: &TenantAuthToken,
             r: &crate::models::LeaveRequest,
         ) -> Result<(), AppError> {
-            let mut state = self.state.lock().unwrap();
-            state.leave_requests.insert(r.id(), r.clone());
+            self.state.lock().unwrap().leave_requests.insert(r.id(), r.clone());
             Ok(())
         }
         async fn get_leave_request_by_id(
@@ -1290,8 +1290,7 @@ mod tests {
             s: LeaveStatus,
             _app: Option<Uuid>,
         ) -> Result<(), AppError> {
-            let mut state = self.state.lock().unwrap();
-            state.leave_statuses.insert(id, s);
+            self.state.lock().unwrap().leave_statuses.insert(id, s);
             Ok(())
         }
         async fn get_employee_leave_requests(
@@ -1465,8 +1464,7 @@ mod tests {
             r: crate::models::OvertimeRequest,
             _e: Vec<crate::models::OvertimeRequestEmployee>,
         ) -> Result<crate::models::OvertimeRequest, AppError> {
-            let mut state = self.state.lock().unwrap();
-            state.ot_requests.insert(r.id(), r.clone());
+            self.state.lock().unwrap().ot_requests.insert(r.id(), r.clone());
             Ok(r)
         }
         async fn update_request(
@@ -1474,8 +1472,7 @@ mod tests {
             _a: &TenantAuthToken,
             r: crate::models::OvertimeRequest,
         ) -> Result<crate::models::OvertimeRequest, AppError> {
-            let mut state = self.state.lock().unwrap();
-            state.ot_requests.insert(r.id(), r.clone());
+            self.state.lock().unwrap().ot_requests.insert(r.id(), r.clone());
             Ok(r)
         }
         async fn get_request(
@@ -1510,9 +1507,8 @@ mod tests {
             _page: i64,
             _limit: i64,
         ) -> Result<(Vec<crate::models::OvertimeRequest>, i64), AppError> {
-            let state = self.state.lock().unwrap();
             let list: Vec<crate::models::OvertimeRequest> =
-                state.ot_requests.values().cloned().collect();
+                self.state.lock().unwrap().ot_requests.values().cloned().collect();
             let total = list.len() as i64;
             Ok((list, total))
         }
@@ -1617,7 +1613,10 @@ mod tests {
             _employment_ids: &[Uuid],
             _start_date: NaiveDate,
             _end_date: NaiveDate,
-        ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), crate::models::AttendanceDailySummary>, AppError> {
+        ) -> Result<
+            std::collections::HashMap<(Uuid, NaiveDate), crate::models::AttendanceDailySummary>,
+            AppError,
+        > {
             Ok(std::collections::HashMap::new())
         }
 
@@ -1793,6 +1792,7 @@ mod tests {
 
         let lock = state.lock().unwrap();
         assert!(lock.workflows.contains_key(&created_wf.id));
+        drop(lock);
     }
 
     #[tokio::test]
@@ -2417,6 +2417,7 @@ mod tests {
                 *s.leave_statuses.get(&entity_id).unwrap(),
                 LeaveStatus::Rejected
             );
+            drop(s);
         }
 
         let instance_return = ApprovalWorkflowInstance {
@@ -2471,6 +2472,7 @@ mod tests {
                 *s.leave_statuses.get(&entity_id).unwrap(),
                 LeaveStatus::Pending
             );
+            drop(s);
         }
 
         let instance_reassign = ApprovalWorkflowInstance {
@@ -2642,6 +2644,7 @@ mod tests {
                 *s.leave_statuses.get(&entity_id).unwrap(),
                 LeaveStatus::Approved
             );
+            drop(s);
         }
     }
 
@@ -2724,6 +2727,7 @@ mod tests {
         let (called_id, called_status) = result_guard.as_ref().unwrap();
         assert_eq!(*called_id, entity_id);
         assert_eq!(called_status, "approved");
+        drop(result_guard);
     }
 
     struct MockCallbackHandler {
@@ -2741,6 +2745,7 @@ mod tests {
         ) -> Result<(), AppError> {
             let mut guard = self.called.lock().unwrap();
             *guard = Some((entity_id, status.to_string()));
+            drop(guard);
             Ok(())
         }
     }

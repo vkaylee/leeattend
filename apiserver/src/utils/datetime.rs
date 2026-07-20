@@ -123,7 +123,6 @@ pub fn parse_date(s: &str) -> Option<chrono::NaiveDate> {
         }
     }
 
-
     // Split on 'T' first to remove any ISO time portion (e.g. 2026-05-29T13:45:00Z)
     let base_part = s.split('T').next().unwrap_or(s).trim();
 
@@ -360,17 +359,42 @@ mod tests {
 
     #[test]
     fn test_parse_date_formats() {
-        assert_eq!(parse_date("2026-06-26"), Some(chrono::NaiveDate::from_ymd_opt(2026, 6, 26).unwrap()));
-        assert_eq!(parse_date("26-06-2026"), Some(chrono::NaiveDate::from_ymd_opt(2026, 6, 26).unwrap()));
-        assert_eq!(parse_date("26/06/2026"), Some(chrono::NaiveDate::from_ymd_opt(2026, 6, 26).unwrap()));
+        assert_eq!(
+            parse_date("2026-06-26"),
+            Some(chrono::NaiveDate::from_ymd_opt(2026, 6, 26).unwrap())
+        );
+        assert_eq!(
+            parse_date("26-06-2026"),
+            Some(chrono::NaiveDate::from_ymd_opt(2026, 6, 26).unwrap())
+        );
+        assert_eq!(
+            parse_date("26/06/2026"),
+            Some(chrono::NaiveDate::from_ymd_opt(2026, 6, 26).unwrap())
+        );
         // Excel serial date tests
-        assert_eq!(parse_date("46199"), Some(chrono::NaiveDate::from_ymd_opt(2026, 6, 26).unwrap()));
-        assert_eq!(parse_date("46199.0"), Some(chrono::NaiveDate::from_ymd_opt(2026, 6, 26).unwrap()));
-        assert_eq!(parse_date("1"), Some(chrono::NaiveDate::from_ymd_opt(1900, 1, 1).unwrap()));
-        assert_eq!(parse_date("59"), Some(chrono::NaiveDate::from_ymd_opt(1900, 2, 28).unwrap()));
-        assert_eq!(parse_date("60"), Some(chrono::NaiveDate::from_ymd_opt(1900, 2, 28).unwrap()));
-        assert_eq!(parse_date("61"), Some(chrono::NaiveDate::from_ymd_opt(1900, 3, 1).unwrap()));
+        assert_eq!(
+            parse_date("46199"),
+            Some(chrono::NaiveDate::from_ymd_opt(2026, 6, 26).unwrap())
+        );
+        assert_eq!(
+            parse_date("46199.0"),
+            Some(chrono::NaiveDate::from_ymd_opt(2026, 6, 26).unwrap())
+        );
+        assert_eq!(
+            parse_date("1"),
+            Some(chrono::NaiveDate::from_ymd_opt(1900, 1, 1).unwrap())
+        );
+        assert_eq!(
+            parse_date("59"),
+            Some(chrono::NaiveDate::from_ymd_opt(1900, 2, 28).unwrap())
+        );
+        assert_eq!(
+            parse_date("60"),
+            Some(chrono::NaiveDate::from_ymd_opt(1900, 2, 28).unwrap())
+        );
+        assert_eq!(
+            parse_date("61"),
+            Some(chrono::NaiveDate::from_ymd_opt(1900, 3, 1).unwrap())
+        );
     }
 }
-
-

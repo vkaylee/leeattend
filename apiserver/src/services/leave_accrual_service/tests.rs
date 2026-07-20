@@ -491,7 +491,7 @@ async fn test_process_workspace_accruals_with_target_employees() {
 
     mock_emp_repo
         .expect_get_employees_by_ids()
-        .withf(move |ids, _| ids == &[target_emp_id])
+        .withf(move |ids, _| ids == [target_emp_id])
         .times(1)
         .returning(|_, _| Ok(vec![]));
 

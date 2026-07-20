@@ -90,43 +90,30 @@
   "system_admin": {
     "tenants": {
       "title": "Tenants Management",
-      "subtitle": "Manage databases and Supavisor connection pools",
+      "subtitle": "Manage workspace tenants",
       "add_btn": "Add Tenant",
-      "check_stale_btn": "Check Stale Tenants",
       "table": {
         "id": "Tenant ID (UUID)",
-        "pool_size": "Pool Size",
+        "name": "Name",
+        "byod": "Type",
+        "timezone": "Timezone",
         "created_at": "Created At",
-        "updated_at": "Last Updated",
         "actions": "Actions"
       },
       "modal": {
         "create_title": "Create New Tenant",
-        "db_name_label": "Database Name",
-        "db_name_placeholder": "Ex: tenant_abc_db",
-        "create_db_label": "Create physical database",
-        "pool_size_label": "Pool Size (Optional)",
+        "name_label": "Workspace Name",
+        "database_url_label": "Database URL (BYOD only)",
         "submit_btn": "Create",
         "creating": "Creating..."
       },
       "messages": {
         "create_success": "Tenant created successfully",
         "delete_success": "Tenant deleted successfully",
-        "update_db_success": "Database URL updated successfully",
-        "update_mode_success": "Pool mode updated successfully",
-        "clean_success": "Stale tenant cleaned up successfully"
+        "update_db_success": "Database URL updated successfully"
       },
-      "stale_modal": {
-        "title": "Stale Tenant Configurations",
-        "subtitle": "These tenants are registered in Supavisor but do not correspond to any active workspace. They can be safely cleaned up.",
-        "no_stale": "No stale tenant configurations found. Everything is clean!",
-        "clean_all": "Clean Up All",
-        "confirm_clean": "Are you sure you want to remove this stale tenant configuration from Supavisor? This only removes the routing entry and does not affect any physical database.",
-        "confirm_clean_all": "Are you sure you want to remove all stale tenant configurations from Supavisor? This only removes routing entries and does not affect any physical databases.",
-        "scanning": "Scanning for stale configurations..."
-      },
-      "confirm_delete": "Are you sure you want to delete this tenant? This will remove its configuration from Supavisor.",
-      "description": "Manage database connections and pools of tenants"
+      "confirm_delete": "Are you sure you want to delete this tenant? This will permanently remove the workspace.",
+      "description": "Manage workspace tenants and their database connections"
     }
   }
 }

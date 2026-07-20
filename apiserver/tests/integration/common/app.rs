@@ -651,8 +651,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         ),
     );
     let scan_service = apiserver::services::storage::ScanProvider::build();
-    let condition_type_repo: Arc<dyn apiserver::repositories::ConditionTypeRepository> =
-        Arc::new(apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()));
+    let condition_type_repo: Arc<dyn apiserver::repositories::ConditionTypeRepository> = Arc::new(
+        apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+    );
     let condition_type_service = Arc::new(apiserver::services::ConditionTypeService::new(
         condition_type_repo.clone(),
     ));
@@ -1375,8 +1376,9 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
         ),
     );
     let scan_service = apiserver::services::storage::ScanProvider::build();
-    let condition_type_repo: Arc<dyn apiserver::repositories::ConditionTypeRepository> =
-        Arc::new(apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()));
+    let condition_type_repo: Arc<dyn apiserver::repositories::ConditionTypeRepository> = Arc::new(
+        apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+    );
     let condition_type_service = Arc::new(apiserver::services::ConditionTypeService::new(
         condition_type_repo.clone(),
     ));
@@ -2148,8 +2150,9 @@ pub async fn setup_app_tower_internal_extended(
         ),
     );
     let scan_service = apiserver::services::storage::ScanProvider::build();
-    let condition_type_repo: Arc<dyn apiserver::repositories::ConditionTypeRepository> =
-        Arc::new(apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()));
+    let condition_type_repo: Arc<dyn apiserver::repositories::ConditionTypeRepository> = Arc::new(
+        apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+    );
     let condition_type_service = Arc::new(apiserver::services::ConditionTypeService::new(
         condition_type_repo.clone(),
     ));

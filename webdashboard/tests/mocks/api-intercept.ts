@@ -210,10 +210,11 @@ export async function setupApiMocks(page: Page) {
     if (pathname === '/api/system/tenants') {
       return fulfill([
         {
-          id: "tenant-mock-1",
-          pool_size: 10,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+          name: "Mock Tenant Workspace",
+          is_byod: false,
+          timezone: "UTC",
+          created_at: new Date().toISOString()
         }
       ]);
     }

@@ -660,6 +660,7 @@ mod tests {
             let cfg = s.config.read().await;
             assert_eq!(cfg.from, "Reloaded <reload@test.com>");
             assert_eq!(cfg.base_url, "https://reloaded.example.com");
+            drop(cfg);
         }
 
         // Cleanup
@@ -694,6 +695,7 @@ mod tests {
                 cfg.from, "ShouldNotLoad <nope@t.com>",
                 "fresh cache must not reload"
             );
+            drop(cfg);
         }
 
         let _: () = redis::cmd("DEL")
