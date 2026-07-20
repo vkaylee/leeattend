@@ -50,10 +50,10 @@ export default function ReportsPage() {
     ? filteredData.filter(row => row.employee_id === selectedEmployee.id)
     : [];
 
-  const clickedEmployments = clickedEmployeeSummaryRows.map(row => ({
+  const clickedEmployers = clickedEmployeeSummaryRows.map(row => ({
     employeeIdNumber: row.employee_id_number,
-    employerName: row.employer_name ?? "Default Employer",
-    employmentId: row.employment_id,
+    employerId: row.employer_id,
+    employerName: row.employer_name ?? t("common.employer"),
   }));
 
   if (!wsId) {
@@ -105,10 +105,10 @@ export default function ReportsPage() {
         dateRange={dateRange}
         employeeId={selectedEmployee?.id ?? ""}
         employeeName={selectedEmployee?.name ?? ""}
-        employmentId={selectedEmployee?.employmentId ?? ""}
-        employments={clickedEmployments}
+        employerId={selectedEmployee?.employerId}
+        employers={clickedEmployers}
         isOpen={!!selectedEmployee}
-        key={selectedEmployee?.id ?? "closed"}
+        key={selectedEmployee ? `${selectedEmployee.id}:${selectedEmployee.employerId ?? "none"}` : "closed"}
         onClose={handleDrawerClose}
         workspaceId={wsId}
       />

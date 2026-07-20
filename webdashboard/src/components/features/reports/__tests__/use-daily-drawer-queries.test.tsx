@@ -76,6 +76,49 @@ describe("useDailyDrawerQueries — Adjustment Map", () => {
         React.createElement(QueryClientProvider, { client: queryClient }, children)
     );
 
+    it("queries daily rows by employee and employer group", async () => {
+        renderHook(
+            () => useDailyDrawerQueries({ ...defaultProps, employerId: "employer-1" }),
+            { wrapper }
+        );
+
+        await waitFor(() => {
+            expect(mockFetchAttendanceReport).toHaveBeenCalled();
+        });
+
+        expect(mockFetchAttendanceReport).toHaveBeenCalledWith(expect.objectContaining({
+            employeeIds: ["emp-1"],
+            employerId: "employer-1",
+        }));
+        expect(mockFetchAttendanceReport.mock.calls[0][0]).not.toHaveProperty("employmentId");
+    });
+
+    it("combines totals from adjacent temporal employment rows", async () => {
+        mockFetchAttendanceReport.mockResolvedValue({
+            data: [
+                { computed_std_hours: 8, computed_ot_hours: 1, employment_id: "old-employment" },
+                { computed_std_hours: 7.5, computed_ot_hours: 0.5, employment_id: "new-employment" },
+            ],
+            total: 1,
+        });
+
+        const { result } = renderHook(
+            () => useDailyDrawerQueries({ ...defaultProps, employerId: "employer-1" }),
+            { wrapper }
+        );
+
+        await waitFor(() => {
+            expect(result.current.reportData).toHaveLength(2);
+        });
+
+        expect(result.current.reportData.map(row => row.employment_id)).toEqual([
+            "old-employment",
+            "new-employment",
+        ]);
+        expect(result.current.totalStdHours).toBe("15.5");
+        expect(result.current.totalOtHours).toBe("1.5");
+    });
+
     it("indexes adjustments by employment_id", async () => {
         mockFetchWorkspaceAttendanceAdjustments.mockResolvedValue({
             data: [

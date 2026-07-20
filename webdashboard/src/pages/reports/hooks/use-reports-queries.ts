@@ -56,11 +56,9 @@ export function useReportsQueries({
         employerId: selectedEmployerId,
       }) as Promise<PaginatedResponse<AttendanceSummary>>;
     },
-    getNextPageParam: (lastPage, allPages) => {
-      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
-      const total = lastPage.total || 0;
-      if (totalLoaded >= total) return undefined;
-      return allPages.length + 1;
+    getNextPageParam: (lastPage) => {
+      if (lastPage.page * lastPage.limit >= lastPage.total) return undefined;
+      return lastPage.page + 1;
     },
     initialPageParam: 1,
     enabled: !!wsId,

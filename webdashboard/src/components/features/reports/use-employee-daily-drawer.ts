@@ -12,25 +12,31 @@ import { useDailyDrawerModalState, createIsoFromLocal } from "./use-daily-drawer
 interface UseEmployeeDailyDrawerProps {
     dateRange: { start: string; end: string };
     employeeId: string;
-    employmentId?: string;
+    employerId?: string;
     isOpen: boolean;
     workspaceId: string;
 }
 
 export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
-    const { isOpen, workspaceId, employeeId, dateRange, employmentId } = props;
+    const { isOpen, workspaceId, employeeId, dateRange, employerId } = props;
     const [viewMode, setViewMode] = useState<"daily" | "raw">("daily");
-    const [selectedEmploymentId, setSelectedEmploymentId] = useState<string | undefined>(employmentId);
+    const [selectedEmployerId, setSelectedEmployerId] = useState<string | undefined>(employerId);
 
-    const [prevEmployeeId, setPrevEmployeeId] = useState<string | null>(null);
-    const [prevIsOpen, setPrevIsOpen] = useState<boolean>(false);
+    const [previousSelection, setPreviousSelection] = useState<{
+        employeeId: string;
+        employerId?: string;
+        isOpen: boolean;
+    } | null>(null);
 
-    if (employeeId !== prevEmployeeId || isOpen !== prevIsOpen) {
-        setPrevEmployeeId(employeeId);
-        setPrevIsOpen(isOpen);
+    if (
+        employeeId !== previousSelection?.employeeId
+        || employerId !== previousSelection?.employerId
+        || isOpen !== previousSelection?.isOpen
+    ) {
+        setPreviousSelection({ employeeId, employerId, isOpen });
         if (isOpen) {
             setViewMode("daily");
-            setSelectedEmploymentId(employmentId);
+            setSelectedEmployerId(employerId);
         }
     }
 
@@ -55,7 +61,7 @@ export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
         isLoading, reportData, adjustmentMap, shifts, rawLogsData, rawLogsLoading,
         hasNextPage, isFetchingNextPage, fetchNextPage, totalStdHours, totalOtHours,
     } = useDailyDrawerQueries({
-        workspaceId, employeeId, dateRange, isOpen, viewMode, employmentId: selectedEmploymentId,
+        workspaceId, employeeId, dateRange, isOpen, viewMode, employerId: selectedEmployerId,
     });
 
     const toggleExpandRow = (rowKey: string) => {
@@ -141,7 +147,7 @@ export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
     };
 
     return {
-        selectedEmploymentId, setSelectedEmploymentId,
+        selectedEmployerId, setSelectedEmployerId,
         viewMode, setViewMode, expandedDebugRows, toggleExpandRow, reprocessingRow, confirmingRow,
         confirmDialog, setConfirmDialog, confirmModalData, setConfirmModalData, resolveModalData, setResolveModalData,
         reportData, isLoading, rawLogsData, rawLogsLoading, hasNextPage, isFetchingNextPage, fetchNextPage,

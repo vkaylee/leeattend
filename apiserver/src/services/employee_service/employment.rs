@@ -33,30 +33,27 @@ impl EmployeeService {
     ) -> Result<Employment, AppError> {
         let _workspace_id = auth_token.workspace_id();
 
-        // 1. Conflict check for primary employment
-        if req.employment_type == "primary" {
-            let existing = self
-                .employment_repo
-                .list_employee_employments(auth_token, req.employee_id)
-                .await?;
+        let existing = self
+            .employment_repo
+            .list_employee_employments(auth_token, req.employee_id)
+            .await?;
 
-            for emp in existing {
-                if emp.employment_type() == "primary"
-                    && dates_overlap(
-                        req.start_date,
-                        req.end_date,
-                        emp.start_date(),
-                        emp.end_date(),
-                    )
-                {
-                    return Err(AppError::conflict(
-                        crate::utils::i18n::I18nKey::OverlappingEmployment,
-                    ));
-                }
+        for employment in existing {
+            if employment.employer_id() == req.employer_id
+                && dates_overlap(
+                    req.start_date,
+                    req.end_date,
+                    employment.start_date(),
+                    employment.end_date(),
+                )
+            {
+                return Err(AppError::conflict(
+                    crate::utils::i18n::I18nKey::OverlappingEmployment,
+                ));
             }
         }
 
-        // 2. Delegate to repo
+        // Delegate to repo
         self.employment_repo
             .create_employment(auth_token, req)
             .await
@@ -77,33 +74,33 @@ impl EmployeeService {
             .await?
             .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmploymentNotFound))?;
 
-        let target_type = req
-            .employment_type
-            .as_deref()
-            .unwrap_or_else(|| current_emp.employment_type());
+        let target_employer_id = req.employer_id.unwrap_or_else(|| current_emp.employer_id());
         let target_start = req.start_date.unwrap_or_else(|| current_emp.start_date());
         let target_end = match &req.end_date {
             Some(opt_d) => *opt_d,
             None => current_emp.end_date(),
         };
 
-        if target_type == "primary" {
-            let existing = self
-                .employment_repo
-                .list_employee_employments(auth_token, current_emp.employee_id())
-                .await?;
+        let existing = self
+            .employment_repo
+            .list_employee_employments(auth_token, current_emp.employee_id())
+            .await?;
 
-            for emp in existing {
-                if emp.id() == employment_id {
-                    continue;
-                }
-                if emp.employment_type() == "primary"
-                    && dates_overlap(target_start, target_end, emp.start_date(), emp.end_date())
-                {
-                    return Err(AppError::conflict(
-                        crate::utils::i18n::I18nKey::OverlappingEmployment,
-                    ));
-                }
+        for employment in existing {
+            if employment.id() == employment_id {
+                continue;
+            }
+            if employment.employer_id() == target_employer_id
+                && dates_overlap(
+                    target_start,
+                    target_end,
+                    employment.start_date(),
+                    employment.end_date(),
+                )
+            {
+                return Err(AppError::conflict(
+                    crate::utils::i18n::I18nKey::OverlappingEmployment,
+                ));
             }
         }
 

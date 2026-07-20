@@ -14,6 +14,7 @@ use crate::repositories::{
 
 pub mod absences;
 pub mod daily;
+mod employment_selection;
 pub mod no_show;
 pub mod summary;
 

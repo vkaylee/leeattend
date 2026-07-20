@@ -60,7 +60,7 @@ export function useReportsFilters() {
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null);
   const [selectedEmployerId, setSelectedEmployerId] = useState<string | null>(null);
-  const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string; employmentId?: string } | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<{ employerId?: string; id: string; name: string } | null>(null);
   const [sortBy, setSortBy] = useState<AttendanceReportSort | undefined>(undefined);
   const [employeeStatus, setEmployeeStatus] = useState<string>("active");
 

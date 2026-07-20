@@ -19,7 +19,7 @@ interface ReportsTableProps {
   filterMode: FilterMode;
   handleDateRangeChange: (range: { end: string; start: string }) => void;
   handleDepartmentChange: (id: string | null) => void;
-  handleEmployeeClick: (employeeId: string, employeeName: string, employmentId?: string) => void;
+  handleEmployeeClick: (employeeId: string, employeeName: string, employerId?: string) => void;
   handleEmployerChange: (id: string | null) => void;
   handleFilterModeChange: (mode: FilterMode) => void;
   handleSort: (field: "leave_days" | "name" | "ot_hours" | "total_hours" | "work_hours") => void;
@@ -109,13 +109,13 @@ export function ReportsTable(props: ReportsTableProps) {
         headerSlot={<div className="flex items-center gap-3 shrink-0"><ReportsStats quickStats={quickStats} /></div>}
         isFetchingNextPage={isFetchingNextPage}
         isLoading={isLoading}
-        itemKey={(row) => row.employment_id}
+        itemKey={(row) => `${row.employee_id}:${row.employer_id ?? "none"}`}
         items={filteredData}
         maxHeightClass=""
         onKeyDownRef={keyDownRef}
         onSearchChange={setSearchQuery}
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        onSelect={(row) => { handleEmployeeClick(row.employee_id ?? "", row.employee_name, row.employment_id); }}
+        onSelect={(row) => { handleEmployeeClick(row.employee_id ?? "", row.employee_name, row.employer_id); }}
         resetDeps={[searchQuery, filterMode, specificMonth, dateRange]}
         rowIdPrefix="summary-row"
         searchInputRef={searchInputRef}

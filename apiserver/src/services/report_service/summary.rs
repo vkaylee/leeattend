@@ -130,64 +130,23 @@ impl ReportService {
             .get_employments_for_employees(&auth_token, &emp_ids)
             .await?;
 
-        // Filter employments by employer_id / employment_id if provided
         let employments: Vec<_> = employments
             .into_iter()
-            .filter(|emp| {
-                if let Some(employer_id) = args.employer_id {
-                    if emp.employer_id() != employer_id {
-                        return false;
-                    }
-                }
-                if let Some(employment_id) = args.employment_id {
-                    if emp.id() != employment_id {
-                        return false;
-                    }
-                }
-                true
-            })
+            .filter(|emp| args.employment_id.is_none_or(|id| emp.id() == id))
             .collect();
+        let selection = super::employment_selection::select_report_employments(
+            &employments,
+            &emp_ids,
+            args.start_date,
+            args.end_date,
+            args.employer_id,
+        )?;
+        let paginated_employment_ids = selection.employment_ids.clone();
 
         // Map employment_id -> employee_id
         let mut employment_to_employee = std::collections::HashMap::new();
         for emp in &employments {
             employment_to_employee.insert(emp.id(), emp.employee_id());
-        }
-
-        let mut paginated_employment_ids = Vec::new();
-        for &employee_id in &emp_ids {
-            let mut emp_employments: Vec<_> = employments
-                .iter()
-                .filter(|e| e.employee_id() == employee_id)
-                .collect();
-
-            if emp_employments.is_empty() {
-                continue;
-            }
-
-            let overlapping: Vec<_> = emp_employments
-                .iter()
-                .filter(|emp| {
-                    emp.start_date() <= args.end_date
-                        && emp.end_date().is_none_or(|end| end >= args.start_date)
-                })
-                .collect();
-
-            if overlapping.is_empty() {
-                // Fallback to the latest employment
-                emp_employments.sort_by(|a, b| {
-                    b.start_date()
-                        .cmp(&a.start_date())
-                        .then_with(|| b.id().cmp(&a.id()))
-                });
-                if let Some(latest) = emp_employments.first() {
-                    paginated_employment_ids.push(latest.id());
-                }
-            } else {
-                for emp in overlapping {
-                    paginated_employment_ids.push(emp.id());
-                }
-            }
         }
 
         let (schedules, _) = self
@@ -347,46 +306,50 @@ impl ReportService {
 
         let mut results = Vec::new();
 
-        for &employment_id in &paginated_employment_ids {
-            let employee_id = employment_to_employee
-                .get(&employment_id)
-                .copied()
-                .unwrap_or_else(Uuid::nil);
-
-            let Some(emp_info) = employee_map.get(&employee_id) else {
+        for group in &selection.groups {
+            let Some(emp_info) = employee_map.get(&group.employee_id) else {
                 continue;
             };
 
-            let (std, ot, work_unit_minutes) = employee_totals
-                .get(&employment_id)
-                .copied()
-                .unwrap_or((0, 0, 30));
+            let mut total_std_units = 0;
+            let mut total_ot_units = 0;
+            let mut computed_std_hours = 0.0;
+            let mut computed_ot_hours = 0.0;
+            let mut representative_work_unit_minutes = 30;
 
-            let coeff = f64::from(work_unit_minutes) / 60.0;
-
-            let employer_id = employments
-                .iter()
-                .find(|e| e.id() == employment_id)
-                .map(crate::models::Employment::employer_id);
-
-            let employer_name = employer_id.and_then(|id| employer_name_map.get(&id).cloned());
+            for employment_id in &group.employment_ids {
+                let (std_units, ot_units, work_unit_minutes) = employee_totals
+                    .get(employment_id)
+                    .copied()
+                    .unwrap_or((0, 0, 30));
+                let coefficient = f64::from(work_unit_minutes) / 60.0;
+                total_std_units += std_units;
+                total_ot_units += ot_units;
+                computed_std_hours += f64::from(std_units) * coefficient;
+                computed_ot_hours += f64::from(ot_units) * coefficient;
+                if *employment_id == group.representative_employment_id {
+                    representative_work_unit_minutes = work_unit_minutes;
+                }
+            }
 
             results.push(AttendanceSummary {
-                employment_id,
-                employee_id,
+                employment_id: group.representative_employment_id,
+                employee_id: group.employee_id,
                 employee_name: emp_info.full_name.clone(),
                 employee_id_number: emp_info.employee_id_number.clone(),
-                total_std_units: std,
-                total_ot_units: ot,
-                total_leave_days: leave_data.get(&employee_id).copied().unwrap_or(0),
+                total_std_units,
+                total_ot_units,
+                total_leave_days: leave_data.get(&group.employee_id).copied().unwrap_or(0),
                 unit_type: crate::models::enums::TimekeepingUnit::DAY,
-                unit_coefficient_hours: coeff,
-                computed_std_hours: f64::from(std) * coeff,
-                computed_ot_hours: f64::from(ot) * coeff,
-                employer_id,
-                employer_name,
+                unit_coefficient_hours: f64::from(representative_work_unit_minutes) / 60.0,
+                computed_std_hours,
+                computed_ot_hours,
+                employer_id: Some(group.employer_id),
+                employer_name: employer_name_map.get(&group.employer_id).cloned(),
             });
         }
+
+        let logical_total = results.len();
 
         if let Some(s) = &args.sort {
             match s {
@@ -438,7 +401,11 @@ impl ReportService {
 
         Ok(PaginatedResponse {
             data: results,
-            total: usize::try_from(total_employees).unwrap_or(0),
+            total: if is_computed_sort {
+                logical_total
+            } else {
+                usize::try_from(total_employees).unwrap_or(0)
+            },
             page,
             limit,
         })

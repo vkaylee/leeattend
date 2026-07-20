@@ -213,8 +213,8 @@ async fn test_attendance_report_resigned_employee_filtering() {
         })
         .await
         .expect("Failed to get report");
-    // Both employees must be active in January
-    assert_eq!(range_jan.data.len(), 62);
+    // emp1 contributes 31 days; emp2 contributes only the 15 days before termination.
+    assert_eq!(range_jan.data.len(), 46);
 
     // Case 2: Report date range is [2026-02-01, 2026-02-28], status filter is "active"
     // emp2 resigned on 2026-01-15 (before the start of range), so emp2 must be excluded!
@@ -239,7 +239,7 @@ async fn test_attendance_report_resigned_employee_filtering() {
     assert_eq!(range_feb_active.data.len(), 28);
 
     // Case 3: Report date range is [2026-02-01, 2026-02-28], status filter is "all"
-    // Both employees must be included regardless of resignation (28 days * 2 employees = 56)
+    // The terminated employee is selectable, but their employment is not effective in February.
     let range_feb_all = report_service
         .get_daily_attendance_report(apiserver::services::report_service::AttendanceReportArgs {
             workspace_id,
@@ -257,10 +257,9 @@ async fn test_attendance_report_resigned_employee_filtering() {
         })
         .await
         .expect("Failed to get report");
-    assert_eq!(range_feb_all.data.len(), 56);
+    assert_eq!(range_feb_all.data.len(), 28);
 
-    // Case 4: Report date range is [2026-02-01, 2026-02-28], status filter is "terminated"
-    // Only emp2 (terminated) should show up (28 days * 1 employee = 28)
+    // Case 4: The terminated employee is selected, but has no effective employment in February.
     let range_feb_terminated = report_service
         .get_daily_attendance_report(apiserver::services::report_service::AttendanceReportArgs {
             workspace_id,
@@ -278,7 +277,7 @@ async fn test_attendance_report_resigned_employee_filtering() {
         })
         .await
         .expect("Failed to get report");
-    assert_eq!(range_feb_terminated.data.len(), 28);
+    assert_eq!(range_feb_terminated.data.len(), 0);
 }
 
 #[tokio::test]

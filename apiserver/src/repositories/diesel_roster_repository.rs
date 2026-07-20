@@ -23,6 +23,17 @@ impl DieselRosterRepository {
     }
 }
 
+fn effective_employment_range(
+    report_start: NaiveDate,
+    report_end: NaiveDate,
+    employment_start: NaiveDate,
+    employment_end: Option<NaiveDate>,
+) -> Option<(NaiveDate, NaiveDate)> {
+    let effective_start = std::cmp::max(report_start, employment_start);
+    let effective_end = employment_end.map_or(report_end, |date| std::cmp::min(report_end, date));
+    (effective_start <= effective_end).then_some((effective_start, effective_end))
+}
+
 #[allow(clippy::too_many_lines)]
 #[async_trait]
 impl RosterRepository for DieselRosterRepository {
@@ -116,6 +127,8 @@ impl RosterRepository for DieselRosterRepository {
                 crate::schema::employees::tags,
                 crate::schema::employments::primary_location_id,
                 crate::schema::employees::id,
+                crate::schema::employments::start_date,
+                crate::schema::employments::end_date,
             ))
             .load::<(
                 Uuid,
@@ -124,6 +137,8 @@ impl RosterRepository for DieselRosterRepository {
                 Option<Vec<Option<String>>>,
                 Option<Uuid>,
                 Uuid,
+                NaiveDate,
+                Option<NaiveDate>,
             )>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -135,24 +150,39 @@ impl RosterRepository for DieselRosterRepository {
             Option<Vec<String>>,
             Option<Uuid>,
             Uuid,
+            NaiveDate,
+            Option<NaiveDate>,
         )> = employees_entities_raw
             .into_iter()
-            .map(|(emp_id, name, num, tags, primary_loc, employee_id)| {
-                (
+            .map(
+                |(
                     emp_id,
                     name,
                     num,
-                    tags.map(|v| v.into_iter().flatten().collect()),
+                    tags,
                     primary_loc,
                     employee_id,
-                )
-            })
+                    employment_start,
+                    employment_end,
+                )| {
+                    (
+                        emp_id,
+                        name,
+                        num,
+                        tags.map(|v| v.into_iter().flatten().collect()),
+                        primary_loc,
+                        employee_id,
+                        employment_start,
+                        employment_end,
+                    )
+                },
+            )
             .collect();
 
         // 2a. Batch load employee contracts active in the range
         let emp_ids: Vec<Uuid> = employees_entities
             .iter()
-            .map(|(id, _, _, _, _, _)| *id)
+            .map(|(id, ..)| *id)
             .collect();
 
         let batch_contracts = crate::schema::employee_contracts::table
@@ -264,13 +294,28 @@ impl RosterRepository for DieselRosterRepository {
         // 5. Build Result
         let mut result = Vec::new();
 
-        for (emp_id, emp_full_name, emp_id_number, emp_tags, primary_loc, employee_id) in
-            employees_entities
+        for (
+            emp_id,
+            emp_full_name,
+            emp_id_number,
+            emp_tags,
+            primary_loc,
+            employee_id,
+            employment_start,
+            employment_end,
+        ) in employees_entities
         {
             let mut daily_schedules = Vec::new();
-            let mut curr_date = start_date;
+            let Some((mut curr_date, effective_end)) = effective_employment_range(
+                start_date,
+                end_date,
+                employment_start,
+                employment_end,
+            ) else {
+                continue;
+            };
 
-            while curr_date <= end_date {
+            while curr_date <= effective_end {
                 // Find active contract on curr_date
                 let active_contract = contracts_by_employment.get(&emp_id).and_then(|contracts| {
                     contracts
@@ -469,7 +514,6 @@ impl RosterRepository for DieselRosterRepository {
         let mut query = crate::schema::employments::table
             .inner_join(crate::schema::employees::table)
             .filter(crate::schema::employees::workspace_id.eq(workspace_id))
-            .filter(crate::schema::employments::status.eq("active"))
             .filter(crate::schema::employments::deleted_at.is_null())
             .filter(crate::schema::employments::start_date.le(end_date))
             .filter(
@@ -487,7 +531,6 @@ impl RosterRepository for DieselRosterRepository {
         let mut count_query = crate::schema::employments::table
             .inner_join(crate::schema::employees::table)
             .filter(crate::schema::employees::workspace_id.eq(workspace_id))
-            .filter(crate::schema::employments::status.eq("active"))
             .filter(crate::schema::employments::deleted_at.is_null())
             .into_boxed();
         if let Some(eids) = employment_ids {
@@ -518,6 +561,8 @@ impl RosterRepository for DieselRosterRepository {
                 crate::schema::employees::tags,
                 crate::schema::employments::primary_location_id,
                 crate::schema::employees::id,
+                crate::schema::employments::start_date,
+                crate::schema::employments::end_date,
             ))
             .load::<(
                 Uuid,
@@ -526,6 +571,8 @@ impl RosterRepository for DieselRosterRepository {
                 Option<Vec<Option<String>>>,
                 Option<Uuid>,
                 Uuid,
+                NaiveDate,
+                Option<NaiveDate>,
             )>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -537,18 +584,33 @@ impl RosterRepository for DieselRosterRepository {
             Option<Vec<String>>,
             Option<Uuid>,
             Uuid,
+            NaiveDate,
+            Option<NaiveDate>,
         )> = employees_entities_raw
             .into_iter()
-            .map(|(emp_id, name, num, tags, primary_loc, employee_id)| {
-                (
+            .map(
+                |(
                     emp_id,
                     name,
                     num,
-                    tags.map(|v| v.into_iter().flatten().collect()),
+                    tags,
                     primary_loc,
                     employee_id,
-                )
-            })
+                    employment_start,
+                    employment_end,
+                )| {
+                    (
+                        emp_id,
+                        name,
+                        num,
+                        tags.map(|v| v.into_iter().flatten().collect()),
+                        primary_loc,
+                        employee_id,
+                        employment_start,
+                        employment_end,
+                    )
+                },
+            )
             .collect();
 
         if employees_entities.is_empty() {
@@ -557,7 +619,7 @@ impl RosterRepository for DieselRosterRepository {
 
         let emp_ids: Vec<Uuid> = employees_entities
             .iter()
-            .map(|(id, _, _, _, _, _)| *id)
+            .map(|(id, ..)| *id)
             .collect();
 
         // 3. Batch-load contracts
@@ -670,8 +732,16 @@ impl RosterRepository for DieselRosterRepository {
         // 7. Build EmployeeSegments via resolve_work_segments_from_data
         let mut result = Vec::new();
 
-        for (emp_id, emp_full_name, emp_id_number, emp_tags, primary_loc, employee_id) in
-            employees_entities
+        for (
+            emp_id,
+            emp_full_name,
+            emp_id_number,
+            emp_tags,
+            primary_loc,
+            employee_id,
+            employment_start,
+            employment_end,
+        ) in employees_entities
         {
             // Active employer
             let active_employer_id = contracts_by_employment
@@ -702,10 +772,17 @@ impl RosterRepository for DieselRosterRepository {
                 .map(|a| a.host_location_id)
                 .or(primary_loc);
 
-            // Resolve segments per-date
+            // Resolve segments only while this temporal employment is effective.
             let mut all_segments = Vec::new();
-            let mut curr_date = start_date;
-            while curr_date <= end_date {
+            let Some((mut curr_date, effective_end)) = effective_employment_range(
+                start_date,
+                end_date,
+                employment_start,
+                employment_end,
+            ) else {
+                continue;
+            };
+            while curr_date <= effective_end {
                 let segments =
                     crate::repositories::roster::shift_resolution::resolve_work_segments_from_data(
                         &roster_data,
@@ -1458,6 +1535,44 @@ impl RosterRepository for DieselRosterRepository {
 mod tests {
     use super::*;
     use crate::diesel_pool::DieselPools;
+
+    #[test]
+    fn employment_range_is_clipped_to_report_window() {
+        let report_start = NaiveDate::from_ymd_opt(2026, 7, 1).unwrap();
+        let report_end = NaiveDate::from_ymd_opt(2026, 7, 31).unwrap();
+
+        assert_eq!(
+            effective_employment_range(
+                report_start,
+                report_end,
+                NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
+                Some(NaiveDate::from_ymd_opt(2026, 7, 14).unwrap()),
+            ),
+            Some((report_start, NaiveDate::from_ymd_opt(2026, 7, 14).unwrap()))
+        );
+        assert_eq!(
+            effective_employment_range(
+                report_start,
+                report_end,
+                NaiveDate::from_ymd_opt(2026, 7, 15).unwrap(),
+                None,
+            ),
+            Some((NaiveDate::from_ymd_opt(2026, 7, 15).unwrap(), report_end))
+        );
+    }
+
+    #[test]
+    fn employment_range_outside_report_window_is_empty() {
+        assert_eq!(
+            effective_employment_range(
+                NaiveDate::from_ymd_opt(2026, 7, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2026, 7, 31).unwrap(),
+                NaiveDate::from_ymd_opt(2026, 8, 1).unwrap(),
+                None,
+            ),
+            None
+        );
+    }
 
     #[tokio::test]
     async fn test_repo_initialization() {

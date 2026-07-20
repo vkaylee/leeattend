@@ -209,51 +209,14 @@ impl ReportService {
                     .get_employments_for_employees(&auth_token, &emp_ids)
                     .await?;
 
-                // Filter by employer_id if provided
-                let employments: Vec<_> = if let Some(employer_id) = args.employer_id {
-                    employments
-                        .into_iter()
-                        .filter(|emp| emp.employer_id() == employer_id)
-                        .collect()
-                } else {
-                    employments
-                };
-
-                let mut paginated_employment_ids = Vec::new();
-                for &employee_id in &emp_ids {
-                    let mut emp_employments: Vec<_> = employments
-                        .iter()
-                        .filter(|e| e.employee_id() == employee_id)
-                        .collect();
-
-                    if emp_employments.is_empty() {
-                        continue;
-                    }
-
-                    let overlapping: Vec<_> = emp_employments
-                        .iter()
-                        .filter(|emp| {
-                            emp.start_date() <= args.end_date
-                                && emp.end_date().is_none_or(|end| end >= args.start_date)
-                        })
-                        .collect();
-
-                    if overlapping.is_empty() {
-                        // Fallback to the latest employment
-                        emp_employments.sort_by(|a, b| {
-                            b.start_date()
-                                .cmp(&a.start_date())
-                                .then_with(|| b.id().cmp(&a.id()))
-                        });
-                        if let Some(latest) = emp_employments.first() {
-                            paginated_employment_ids.push(latest.id());
-                        }
-                    } else {
-                        for emp in overlapping {
-                            paginated_employment_ids.push(emp.id());
-                        }
-                    }
-                }
+                let selection = super::employment_selection::select_report_employments(
+                    &employments,
+                    &emp_ids,
+                    args.start_date,
+                    args.end_date,
+                    args.employer_id,
+                )?;
+                let paginated_employment_ids = selection.employment_ids;
 
                 (
                     paginated_employees,
@@ -642,45 +605,14 @@ impl ReportService {
                     .employment_repo
                     .get_employments_for_employees(&auth_token, &emp_ids)
                     .await?;
-                let employments: Vec<_> = if let Some(employer_id) = args.employer_id {
-                    employments
-                        .into_iter()
-                        .filter(|emp| emp.employer_id() == employer_id)
-                        .collect()
-                } else {
-                    employments
-                };
-                let mut paginated_employment_ids = Vec::new();
-                for &employee_id in &emp_ids {
-                    let mut emp_employments: Vec<_> = employments
-                        .iter()
-                        .filter(|e| e.employee_id() == employee_id)
-                        .collect();
-                    if emp_employments.is_empty() {
-                        continue;
-                    }
-                    let overlapping: Vec<_> = emp_employments
-                        .iter()
-                        .filter(|emp| {
-                            emp.start_date() <= args.end_date
-                                && emp.end_date().is_none_or(|end| end >= args.start_date)
-                        })
-                        .collect();
-                    if overlapping.is_empty() {
-                        emp_employments.sort_by(|a, b| {
-                            b.start_date()
-                                .cmp(&a.start_date())
-                                .then_with(|| b.id().cmp(&a.id()))
-                        });
-                        if let Some(latest) = emp_employments.first() {
-                            paginated_employment_ids.push(latest.id());
-                        }
-                    } else {
-                        for emp in overlapping {
-                            paginated_employment_ids.push(emp.id());
-                        }
-                    }
-                }
+                let selection = super::employment_selection::select_report_employments(
+                    &employments,
+                    &emp_ids,
+                    args.start_date,
+                    args.end_date,
+                    args.employer_id,
+                )?;
+                let paginated_employment_ids = selection.employment_ids;
                 (
                     paginated_employees,
                     total_employees,

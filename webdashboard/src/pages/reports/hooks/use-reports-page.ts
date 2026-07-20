@@ -26,7 +26,7 @@ export interface UseReportsPageReturn {
   handleDateRangeChange: (newRange: { end: string; start: string }) => void;
   handleDepartmentChange: (departmentId: string | null) => void;
   handleDrawerClose: () => void;
-  handleEmployeeClick: (employeeId: string, employeeName: string) => void;
+  handleEmployeeClick: (employeeId: string, employeeName: string, employerId?: string) => void;
   handleEmployerChange: (employerId: string | null) => void;
   handleFilterModeChange: (mode: FilterMode) => void;
   handleSort: (field: "leave_days" | "name" | "ot_hours" | "total_hours" | "work_hours") => void;
@@ -40,13 +40,13 @@ export interface UseReportsPageReturn {
   searchInputRef: React.RefObject<HTMLInputElement | null>;
   searchQuery: string;
   selectedDepartmentId: string | null;
-  selectedEmployee: { id: string; name: string; employmentId?: string } | null;
+  selectedEmployee: { employerId?: string; id: string; name: string } | null;
   selectedEmployerId: string | null;
   setEmployeeStatus: (v: string) => void;
   setIsExportDialogOpen: (v: boolean) => void;
   setSearchQuery: (v: string) => void;
   setSelectedDepartmentId: (v: string | null) => void;
-  setSelectedEmployee: (v: { id: string; name: string } | null) => void;
+  setSelectedEmployee: (v: { employerId?: string; id: string; name: string } | null) => void;
   setSortBy: (v: AttendanceReportSort | undefined) => void;
   sortBy: AttendanceReportSort | undefined;
   specificMonth: { month: number; year: number };

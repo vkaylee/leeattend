@@ -34,7 +34,7 @@ fn make_req(
 }
 
 #[tokio::test]
-async fn test_create_overlapping_primary_employments_fails() {
+async fn test_same_employer_overlap_fails_across_employment_types() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 
@@ -88,7 +88,7 @@ async fn test_create_overlapping_primary_employments_fails() {
         "status": "active",
         "start_date": "2026-06-01",
         "end_date": "2026-12-31",
-        "employment_type": "primary",
+        "employment_type": "contractor",
         "job_title": "Tech Lead"
     });
 
@@ -107,10 +107,41 @@ async fn test_create_overlapping_primary_employments_fails() {
     assert_eq!(
         res2.status(),
         StatusCode::CONFLICT,
-        "Should return conflict (409) for overlapping primary employment"
+        "Should return conflict (409) for overlapping employment with the same employer"
     );
 
-    // 3. Create non-overlapping primary employment (2026-07-01 to open-ended)
+    // 3. The same dates for a different employer remain valid.
+    let second_employer_id = Uuid::new_v4();
+    crate::test_execute!(
+        &_test_db.diesel_pools.api,
+        "INSERT INTO employers (id, workspace_id, name, tax_code, legal_address, created_at, updated_at) VALUES ($1, $2, 'Second Test Employer', 'MST-2', 'Addr', NOW(), NOW())",
+        diesel::sql_types::Uuid,
+        second_employer_id,
+        diesel::sql_types::Uuid,
+        ws_id
+    );
+    let different_employer_payload = json!({
+        "employee_id": emp_id.to_string(),
+        "employer_id": second_employer_id.to_string(),
+        "status": "active",
+        "start_date": "2026-06-01",
+        "end_date": "2026-12-31",
+        "employment_type": "contractor"
+    });
+    let different_employer_response = app
+        .clone()
+        .oneshot(make_req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/employments"),
+            ws_id,
+            user_id,
+            Some(different_employer_payload),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(different_employer_response.status(), StatusCode::CREATED);
+
+    // 4. Create non-overlapping primary employment (2026-07-01 to open-ended)
     let payload_3 = json!({
         "employee_id": emp_id.to_string(),
         "employer_id": employer_id.to_string(),
@@ -145,7 +176,7 @@ async fn test_create_overlapping_primary_employments_fails() {
     let created3: serde_json::Value = serde_json::from_slice(&body3).unwrap();
     let emp3_id = created3["id"].as_str().unwrap().to_string();
 
-    // 4. Try updating the non-overlapping employment start_date to overlap (2026-06-15)
+    // 5. Try updating the non-overlapping employment start_date to overlap (2026-06-15)
     let update_payload = json!({
         "start_date": "2026-06-15"
     });

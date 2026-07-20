@@ -27,19 +27,19 @@ interface EmployeeDailyDrawerProps {
     dateRange: { start: string; end: string };
     employeeId: string;
     employeeName: string;
-    employmentId?: string;
-    employments?: { employmentId: string; employerName: string; employeeIdNumber?: string }[];
+    employerId?: string;
+    employers?: { employerId?: string; employerName: string; employeeIdNumber?: string }[];
     isOpen: boolean;
     onClose: () => void;
     workspaceId: string;
 }
 
 interface EmployeeDailyDrawerHeaderProps {
-    employments?: { employmentId: string; employerName: string; employeeIdNumber?: string }[];
+    employers?: { employerId?: string; employerName: string; employeeIdNumber?: string }[];
     isLoading: boolean;
-    onEmploymentChange: (id: string) => void;
+    onEmployerChange: (id: string | undefined) => void;
     reportData: DailyAttendanceReport[];
-    selectedEmploymentId?: string;
+    selectedEmployerId?: string;
     setViewMode: (mode: "daily" | "raw") => void;
     t: TFunction;
     totalOtHours: string | number;
@@ -56,13 +56,13 @@ function EmployeeDailyDrawerHeader({
     totalStdHours,
     totalOtHours,
     t,
-    employments = [],
-    selectedEmploymentId = "",
-    onEmploymentChange,
+    employers = [],
+    selectedEmployerId = "",
+    onEmployerChange,
 }: EmployeeDailyDrawerHeaderProps) {
     return (
         <>
-            {employments.length > 1 && (
+            {employers.length > 1 && (
                 <div className="mr-4">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -72,7 +72,7 @@ function EmployeeDailyDrawerHeader({
                             >
                                 <Briefcase className="text-primary-500" size={12} />
                                 <span>
-                                    {employments.find(e => e.employmentId === selectedEmploymentId)?.employerName ?? t("common.employer")}
+                                    {employers.find(e => e.employerId === selectedEmployerId)?.employerName ?? t("common.employer")}
                                 </span>
                                 <ChevronDown className="opacity-50" size={12} />
                             </Button>
@@ -82,20 +82,20 @@ function EmployeeDailyDrawerHeader({
                             className="w-64 p-2 rounded-2xl shadow-premium border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/95 backdrop-blur-xl"
                             sideOffset={8}
                         >
-                            {employments.map((emp) => (
+                            {employers.map((employer) => (
                                 <Button
                                     className={`w-full justify-start text-left px-3 py-2 rounded-xl text-xs font-bold transition-all h-auto mb-1 ${
-                                        selectedEmploymentId === emp.employmentId
+                                        selectedEmployerId === employer.employerId
                                             ? "bg-primary-50 dark:bg-primary-950/30 text-primary-600 dark:text-primary-400"
                                             : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                                     }`}
-                                    key={emp.employmentId}
-                                    onClick={() => { onEmploymentChange(emp.employmentId); }}
+                                    key={employer.employerId ?? "none"}
+                                    onClick={() => { onEmployerChange(employer.employerId); }}
                                     variant="ghost"
                                 >
                                     <div className="flex flex-col">
-                                        <span>{emp.employerName}</span>
-                                        {!!emp.employeeIdNumber && <span className="text-[9px] text-slate-400 font-mono mt-0.5">{emp.employeeIdNumber}</span>}
+                                        <span>{employer.employerName}</span>
+                                        {!!employer.employeeIdNumber && <span className="text-[9px] text-slate-400 font-mono mt-0.5">{employer.employeeIdNumber}</span>}
                                     </div>
                                 </Button>
                             ))}
@@ -262,11 +262,11 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                 contentClassName="!overflow-hidden"
                 headerExtra={
                     <EmployeeDailyDrawerHeader
-                        employments={props.employments}
+                        employers={props.employers}
                         isLoading={data.isLoading}
-                        onEmploymentChange={data.setSelectedEmploymentId}
+                        onEmployerChange={data.setSelectedEmployerId}
                         reportData={data.reportData}
-                        selectedEmploymentId={data.selectedEmploymentId}
+                        selectedEmployerId={data.selectedEmployerId}
                         setViewMode={data.setViewMode}
                         t={t}
                         totalOtHours={data.totalOtHours}

@@ -111,6 +111,139 @@ async fn test_get_workspace_attendance_summary() {
 }
 
 #[tokio::test]
+async fn test_reports_group_adjacent_temporal_employments_by_employer() {
+    let (address, test_db) = spawn_app().await;
+    let pool = test_db.diesel_pools.clone();
+    let factory = crate::common::factory::TestFactory::new(pool.clone());
+    let client = reqwest::Client::new();
+
+    let user_id = factory.user().create().await;
+    let workspace_id = factory.workspace().create_with_owner(user_id).await;
+    let auth_token = factory.auth().create_token(user_id);
+    let report_end = Utc::now().date_naive();
+    let transfer_date = report_end - chrono::Duration::days(1);
+    let report_start = transfer_date - chrono::Duration::days(1);
+
+    let employee_id = factory
+        .employee()
+        .with_workspace(workspace_id)
+        .with_full_name("Temporal Report Employee")
+        .with_employee_id_number("TEMP-REPORT")
+        .create()
+        .await;
+
+    let old_employment_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE workspace_id = $1 AND employee_id = $2 LIMIT 1",
+        diesel::sql_types::Uuid,
+        workspace_id,
+        diesel::sql_types::Uuid,
+        employee_id
+    );
+    let employer_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT employer_id AS id FROM employments WHERE id = $1",
+        diesel::sql_types::Uuid,
+        old_employment_id
+    );
+
+    crate::test_execute!(
+        &pool.api,
+        "UPDATE employments SET end_date = $1 WHERE id = $2",
+        diesel::sql_types::Nullable<diesel::sql_types::Date>,
+        Some(transfer_date - chrono::Duration::days(1)),
+        diesel::sql_types::Uuid,
+        old_employment_id
+    );
+
+    let new_employment_id = uuid::Uuid::new_v4();
+    crate::test_execute!(
+        &pool.api,
+        "INSERT INTO employments (id, workspace_id, employee_id, employer_id, status, start_date, employment_type, created_at, updated_at) VALUES ($1, $2, $3, $4, 'active', $5, 'full_time', NOW(), NOW())",
+        diesel::sql_types::Uuid,
+        new_employment_id,
+        diesel::sql_types::Uuid,
+        workspace_id,
+        diesel::sql_types::Uuid,
+        employee_id,
+        diesel::sql_types::Uuid,
+        employer_id,
+        diesel::sql_types::Date,
+        transfer_date
+    );
+
+    let shift_id = factory
+        .shift()
+        .with_workspace(workspace_id)
+        .with_name("Temporal Report Shift")
+        .create()
+        .await;
+    crate::test_execute!(
+        &pool.api,
+        "INSERT INTO employee_shifts (employment_id, shift_id, start_date, end_date) VALUES ($1, $2, $3, $4), ($5, $2, $6, NULL)",
+        diesel::sql_types::Uuid,
+        old_employment_id,
+        diesel::sql_types::Uuid,
+        shift_id,
+        diesel::sql_types::Date,
+        report_start,
+        diesel::sql_types::Nullable<diesel::sql_types::Date>,
+        Some(transfer_date - chrono::Duration::days(1)),
+        diesel::sql_types::Uuid,
+        new_employment_id,
+        diesel::sql_types::Date,
+        transfer_date
+    );
+
+    let summary_response = client
+        .get(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/reports/attendance?type=summary&start_date={report_start}&end_date={report_end}"
+        ))
+        .header("Authorization", format!("Bearer {auth_token}"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(summary_response.status(), StatusCode::OK);
+    let summary_body: serde_json::Value = summary_response.json().await.unwrap();
+    let summary_rows = summary_body["data"].as_array().unwrap();
+    assert_eq!(
+        summary_rows.len(),
+        1,
+        "temporal history for one employer must be grouped"
+    );
+    assert_eq!(summary_rows[0]["employee_id"], employee_id.to_string());
+    assert_eq!(summary_rows[0]["employer_id"], employer_id.to_string());
+
+    let daily_response = client
+        .get(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/reports/attendance?type=daily&start_date={report_start}&end_date={report_end}&employee_ids={employee_id}&employer_id={employer_id}"
+        ))
+        .header("Authorization", format!("Bearer {auth_token}"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(daily_response.status(), StatusCode::OK);
+    let daily_body: serde_json::Value = daily_response.json().await.unwrap();
+    let daily_rows = daily_body["data"].as_array().unwrap();
+    assert_eq!(
+        daily_rows.len(),
+        3,
+        "each report date must be emitted exactly once"
+    );
+
+    for row in daily_rows {
+        let date =
+            chrono::NaiveDate::parse_from_str(row["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
+        let row_employment_id = row["employment_id"].as_str().unwrap();
+        if date < transfer_date {
+            assert_eq!(row_employment_id, old_employment_id.to_string());
+        } else {
+            assert_eq!(row_employment_id, new_employment_id.to_string());
+        }
+    }
+}
+
+#[tokio::test]
 async fn test_get_workspace_attendance_summary_computed_sorting() {
     let (address, test_db) = spawn_app().await;
     let pool = test_db.diesel_pools.clone();
@@ -503,7 +636,7 @@ async fn test_get_workspace_attendance_summary_sorting_and_filtering() {
         diesel::sql_types::Date, today
     );
 
-    // Create non-overlapping employee to trigger fallback latest employment code block in summary.rs
+    // Create an employee whose employments are outside the requested day.
     let emp_non_overlap = factory
         .employee()
         .with_workspace(workspace_id)
@@ -525,7 +658,7 @@ async fn test_get_workspace_attendance_summary_sorting_and_filtering() {
         emp_non_overlap
     );
 
-    // Insert a second past employment for the same employee so that sort_by compares them
+    // Insert a second past employment; neither record should create a row for today.
     let default_employer_id: uuid::Uuid = crate::test_query_scalar_uuid!(
         &pool.api,
         "SELECT id FROM employers WHERE workspace_id = $1 LIMIT 1",
@@ -640,6 +773,6 @@ async fn test_get_workspace_attendance_summary_sorting_and_filtering() {
         assert_eq!(res_sort.status(), StatusCode::OK);
         let body: serde_json::Value = res_sort.json().await.unwrap();
         let data = body["data"].as_array().unwrap();
-        assert_eq!(data.len(), 3);
+        assert_eq!(data.len(), 2);
     }
 }

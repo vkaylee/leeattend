@@ -9,7 +9,7 @@ interface UseReportsHandlersProps {
   setDateRange: (range: { start: string; end: string }) => void;
   setFilterMode: (mode: FilterMode) => void;
   setSelectedDepartmentId: (id: string | null) => void;
-  setSelectedEmployee: (v: { id: string; name: string; employmentId?: string } | null) => void;
+  setSelectedEmployee: (v: { employerId?: string; id: string; name: string } | null) => void;
   setSelectedEmployerId: (id: string | null) => void;
   setSortBy: (v: AttendanceReportSort | undefined) => void;
   setSpecificMonth: (val: { month: number; year: number }) => void;
@@ -72,8 +72,8 @@ export function useReportsHandlers({
     }
   };
 
-  const handleEmployeeClick = (employeeId: string, employeeName: string, employmentId?: string) => {
-    setSelectedEmployee({ id: employeeId, name: employeeName, employmentId });
+  const handleEmployeeClick = (employeeId: string, employeeName: string, employerId?: string) => {
+    setSelectedEmployee({ id: employeeId, name: employeeName, employerId });
   };
 
   const handleDrawerClose = () => {
