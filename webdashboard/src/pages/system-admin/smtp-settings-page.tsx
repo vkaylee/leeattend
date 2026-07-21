@@ -294,11 +294,11 @@ export default function SmtpSettingsPage() {
 
         {/* HTTP API section */}
         <div className="border-t border-slate-100 dark:border-slate-800 pt-5 mt-2">
-          <button
-            className="flex items-center gap-2 w-full text-left font-semibold text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+          <Button
+            className="flex items-center gap-2 w-full !text-left font-semibold !h-auto !px-0 !py-0 !rounded-none !tracking-normal !normal-case"
             data-testid="smtp-http-api-toggle"
             onClick={() => setShowHttpApi((p) => !p)}
-            type="button"
+            variant="ghost"
           >
             <Globe className="w-4 h-4" />
             <Typography variant="h3">
@@ -309,7 +309,7 @@ export default function SmtpSettingsPage() {
                 showHttpApi ? "rotate-180" : ""
               }`}
             />
-          </button>
+          </Button>
           <Typography className="text-sm text-slate-400 dark:text-slate-500 mt-1 ml-6" variant="p">
             {t("smtp.http_api_desc", "Use a REST API to send emails instead of SMTP. Required on platforms that block outbound SMTP (Railway, Fly.io, etc.). Supports any transactional email provider.")}
           </Typography>

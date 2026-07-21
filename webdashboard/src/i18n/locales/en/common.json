@@ -1242,6 +1242,9 @@
         "request_success": "Overtime request created successfully",
         "request_title": "Request Overtime",
         "attachment": "Attachment (PDF ONLY)"
+      },
+      "documents": {
+        "title": "My Documents"
       }
     },
     "columns": "Columns",
@@ -1848,7 +1851,19 @@
     "base_url_hint": "Used in password reset links",
     "verified_badge": "Verified",
     "untested_badge": "Untested — send a test email to verify",
-    "untested_reminder": "You haven't tested this configuration yet. We strongly recommend sending a test email before relying on this for password resets."
+    "untested_reminder": "You haven't tested this configuration yet. We strongly recommend sending a test email before relying on this for password resets.",
+    "http_api_section": "HTTP API (Alternative)",
+    "http_api_desc": "Use a REST API to send emails instead of SMTP. Required on platforms that block outbound SMTP (Railway, Fly.io, etc.). Supports any transactional email provider.",
+    "http_api_url": "API URL",
+    "http_api_auth_header": "Auth Header",
+    "http_api_auth_value": "Auth Value",
+    "http_api_success_field": "Success Field",
+    "http_api_success_value": "Success Value",
+    "http_api_body_template": "JSON Body Template",
+    "fill_default": "Fill Default Template",
+    "fill_default_title": "Reset to Default Template?",
+    "fill_default_warning": "This will reset ALL HTTP API fields to standard default values (Mailtrap-compatible). Any custom configuration will be lost. Continue?",
+    "fill_default_confirm": "Apply Default"
   },
   "hide_details": "Hide details",
   "show_details": "Show details",

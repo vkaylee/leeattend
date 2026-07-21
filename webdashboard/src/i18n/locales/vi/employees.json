@@ -92,6 +92,9 @@
       "active_status": "Active",
       "system_ot_suffix": "(System OT)",
       "claim_btn": "Claim OT"
+    },
+    "documents": {
+      "title": "Tài liệu của tôi"
     }
   },
   "members": {

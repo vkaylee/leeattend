@@ -1210,6 +1210,9 @@
         "request_success": "Overtime request created successfully",
         "request_title": "Request Overtime",
         "attachment": "Attachment (PDF ONLY)"
+      },
+      "documents": {
+        "title": "Tài liệu của tôi"
       }
     },
     "columns": "Cột",
@@ -1848,7 +1851,19 @@
     "base_url_hint": "Dùng trong liên kết đặt lại mật khẩu",
     "verified_badge": "Đã xác minh",
     "untested_badge": "Chưa kiểm tra — gửi email thử để xác minh",
-    "untested_reminder": "Bạn chưa kiểm tra cấu hình này. Chúng tôi khuyên bạn nên gửi email thử trước khi dùng để đặt lại mật khẩu."
+    "untested_reminder": "Bạn chưa kiểm tra cấu hình này. Chúng tôi khuyên bạn nên gửi email thử trước khi dùng để đặt lại mật khẩu.",
+    "http_api_section": "HTTP API (Thay thế)",
+    "http_api_desc": "Dùng REST API để gửi email thay cho SMTP. Bắt buộc trên nền tảng chặn cổng SMTP ra ngoài (Railway, Fly.io, v.v.). Hỗ trợ mọi nhà cung cấp email giao dịch.",
+    "http_api_url": "URL API",
+    "http_api_auth_header": "Auth Header",
+    "http_api_auth_value": "Auth Value",
+    "http_api_success_field": "Trường thành công",
+    "http_api_success_value": "Giá trị thành công",
+    "http_api_body_template": "Mẫu JSON Body",
+    "fill_default": "Điền mẫu mặc định",
+    "fill_default_title": "Đặt lại về mẫu mặc định?",
+    "fill_default_warning": "Thao tác này sẽ đặt lại TẤT CẢ các trường HTTP API về giá trị mặc định (tương thích Mailtrap). Mọi cấu hình tùy chỉnh sẽ bị mất. Tiếp tục?",
+    "fill_default_confirm": "Áp dụng mặc định"
   },
   "hide_details": "Ẩn chi tiết",
   "show_details": "Hiện chi tiết",

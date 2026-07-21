@@ -1242,6 +1242,9 @@
         "request_success": "Overtime request created successfully",
         "request_title": "Request Overtime",
         "attachment": "Attachment (PDF ONLY)"
+      },
+      "documents": {
+        "title": "我的文档"
       }
     },
     "columns": "列",
@@ -1848,7 +1851,19 @@
     "base_url_hint": "用于密码重置链接",
     "verified_badge": "已验证",
     "untested_badge": "未测试 — 发送测试邮件以验证",
-    "untested_reminder": "您尚未测试此配置。我们强烈建议在用于密码重置之前发送测试邮件。"
+    "untested_reminder": "您尚未测试此配置。我们强烈建议在用于密码重置之前发送测试邮件。",
+    "http_api_section": "HTTP API（替代）",
+    "http_api_desc": "使用 REST API 发送电子邮件而非 SMTP。在阻止出站 SMTP 端口的平台（Railway、Fly.io 等）上必须使用。支持任何事务性邮件提供商。",
+    "http_api_url": "API URL",
+    "http_api_auth_header": "认证头",
+    "http_api_auth_value": "认证值",
+    "http_api_success_field": "成功字段",
+    "http_api_success_value": "成功值",
+    "http_api_body_template": "JSON 正文模板",
+    "fill_default": "填写默认模板",
+    "fill_default_title": "重置为默认模板？",
+    "fill_default_warning": "此操作将重置所有 HTTP API 字段为标准默认值（兼容 Mailtrap）。所有自定义配置将丢失。继续？",
+    "fill_default_confirm": "应用默认"
   },
   "hide_details": "隐藏详情",
   "show_details": "显示详情",

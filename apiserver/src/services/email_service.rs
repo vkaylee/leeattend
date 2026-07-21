@@ -3,6 +3,7 @@ use crate::queue::RedisPool;
 use crate::repositories::system_settings_repository::SystemSettingsRepository;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
+use std::fmt::Write as _;
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tokio::sync::RwLock;
@@ -158,7 +159,9 @@ fn resolve_template(
                 '\n' => out.push_str("\\n"),
                 '\r' => out.push_str("\\r"),
                 '\t' => out.push_str("\\t"),
-                c if c.is_control() => out.push_str(&format!("\\u{:04x}", c as u32)),
+                c if c.is_control() => {
+                    let _ = write!(out, "\\u{:04x}", c as u32);
+                }
                 c => out.push(c),
             }
         }
@@ -195,7 +198,7 @@ impl EmailService {
         let http_client = reqwest::Client::builder()
             .timeout(SMTP_TIMEOUT)
             .build()
-            .expect("reqwest::Client::builder infallible with valid config");
+            .unwrap_or_else(|_| reqwest::Client::new());
         Self {
             config: Arc::new(RwLock::new(EmailConfig::default_config())),
             redis_pool,
@@ -240,7 +243,9 @@ impl EmailService {
 
     async fn load_from_redis(&self) -> Option<SmtpConfigData> {
         let redis = self.redis_pool.as_ref()?;
-        let fields: &[&str] = &["host", "port", "username", "password", "from", "base_url", "http_api"];
+        let fields: &[&str] = &[
+            "host", "port", "username", "password", "from", "base_url", "http_api",
+        ];
         let mut conn = redis.conn();
         let values: Vec<Option<String>> = redis::cmd("HMGET")
             .arg("smtp:config")
@@ -333,7 +338,12 @@ impl EmailService {
         let new_transport = if use_http {
             None // Not building SMTP transport when HTTP is configured
         } else {
-            build_transport(c.host.as_deref(), c.port, c.username.as_deref(), c.password.as_deref())
+            build_transport(
+                c.host.as_deref(),
+                c.port,
+                c.username.as_deref(),
+                c.password.as_deref(),
+            )
         };
 
         let mut cfg = self.config.write().await;
@@ -483,10 +493,9 @@ impl EmailService {
         if let (Some(ref field), Some(ref expected)) =
             (&http_config.success_field, &http_config.success_value)
         {
-            let resp_json: serde_json::Value =
-                response.json().await.map_err(|e| {
-                    AppError::Internal(format!("Failed to parse email API response: {e}"))
-                })?;
+            let resp_json: serde_json::Value = response.json().await.map_err(|e| {
+                AppError::Internal(format!("Failed to parse email API response: {e}"))
+            })?;
             let actual = resp_json.get(field);
             if actual != Some(expected) {
                 error!(
@@ -601,7 +610,8 @@ impl EmailService {
         if transport.is_none() && http_config.is_none() {
             return Err(AppError::Internal(
                 "Email is not configured. Insert a 'smtp' record into system_settings \
-                 with either SMTP host/port or an 'http_api' block.".into(),
+                 with either SMTP host/port or an 'http_api' block."
+                    .into(),
             ));
         }
 
@@ -628,7 +638,11 @@ impl EmailService {
         }
 
         // SMTP path (transport guaranteed Some by the check above)
-        let transport = transport.unwrap();
+        let Some(transport) = transport else {
+            return Err(AppError::Internal(
+                "Email is not configured. Insert a 'smtp' record into system_settings.".into(),
+            ));
+        };
         let email = Message::builder()
             .from(
                 from.parse()
