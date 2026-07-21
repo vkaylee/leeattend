@@ -34,6 +34,8 @@ function TabContent({ state }: { state: AttendanceLogsState }) {
     getEmployeeName,
     isFetchingNextPage,
     isLoading,
+    hasNextPage,
+    fetchNextPage,
     loadMoreRef,
     allRecordedLogs,
     allStagingLogs,
@@ -67,11 +69,13 @@ function TabContent({ state }: { state: AttendanceLogsState }) {
           wsId={wsId}
         />
         <RecordedLogsTable
+          fetchNextPage={() => { void fetchNextPage(); }}
           formatDate={formatDate}
           formatTime={formatTime}
           getDeviceName={getDeviceName}
           getEmployeeID={getEmployeeID}
           getEmployeeName={getEmployeeName}
+          hasNextPage={hasNextPage}
           isFetchingNextPage={isFetchingNextPage}
           isLoading={isLoading}
           loadMoreRef={loadMoreRef}

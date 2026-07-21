@@ -6,9 +6,10 @@ import { EmployeeSearch } from "@/components/common/employee-search";
 import { MonthYearPicker } from "@/components/common/month-year-picker";
 import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
-import { cn } from "@/lib/utils";
+import ResponsiveToolbar from "@/components/ui/responsive-toolbar";
 
 import type { Department } from "@/lib/api/types";
+import { cn } from "@/lib/utils";
 
 import type { FilterMode } from "../hooks/use-attendance-logs-page";
 
@@ -33,7 +34,7 @@ function DateFilterButtons({ filterMode, handleFilterModeChange, specificMonth, 
   const prevMonth = prev.getMonth() + 1; const prevYear = prev.getFullYear();
   const modeLabel = (mode: string) => mode === "this_month" ? `Tháng ${curMonth}/${curYear}` : `Tháng ${prevMonth}/${prevYear}`;
   return (
-    <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-2xl p-1 shadow-inner border border-slate-200 dark:border-slate-700/50">
+    <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-700/50 rounded-2xl p-1 shadow-inner border border-slate-200 dark:border-slate-700/50">
       {(["this_month", "last_month"] as const).map((mode) => (
         <Button className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === mode ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200")} key={mode} onClick={() => { handleFilterModeChange(mode); }} type="button" variant="ghost">{modeLabel(mode)}</Button>
       ))}
@@ -67,16 +68,26 @@ export function AttendanceLogsFilters(props: AttendanceLogsFiltersProps) {
   const { t } = useTranslation();
   const { dateRange, setDateRange, employeeId, setEmployeeId, filterMode, handleFilterModeChange, handleSpecificMonthChange, specificMonth, wsId, departments } = props;
 
-  return (
-    <>
-      <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-sm p-2 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-        <DateFilterButtons filterMode={filterMode} handleFilterModeChange={handleFilterModeChange} handleSpecificMonthChange={handleSpecificMonthChange} specificMonth={specificMonth} />
-        <div className="flex-1 max-w-md flex items-center gap-3 px-2">
-          <div className="flex-1"><EmployeeSearch clearOnEscape data-testid="employee-search" departments={departments} keyboardShortcut={["/", "Enter"]} onChange={(value) => { setEmployeeId((Array.isArray(value) ? value[0] : value) || "all"); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} value={employeeId === "all" ? "" : employeeId} workspaceId={wsId ?? ""} /></div>
-          {employeeId !== "all" && (<Button className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl transition-all" onClick={() => { setEmployeeId("all"); }} type="button" variant="ghost"><Users size={18} /></Button>)}
-        </div>
+  const employeeSearch = (
+    <div className="flex w-full items-center gap-3">
+      <div className="min-w-0 flex-1">
+        <EmployeeSearch clearOnEscape data-testid="employee-search" departments={departments} keyboardShortcut={["/", "Enter"]} onChange={(value) => { setEmployeeId((Array.isArray(value) ? value[0] : value) || "all"); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} value={employeeId === "all" ? "" : employeeId} workspaceId={wsId ?? ""} />
       </div>
-      {filterMode === "custom" && <CustomRangeFilter dateRange={dateRange} setDateRange={setDateRange} />}
-    </>
+      {employeeId !== "all" && (<Button className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl transition-all" onClick={() => { setEmployeeId("all"); }} type="button" variant="ghost"><Users size={18} /></Button>)}
+    </div>
+  );
+
+  return (
+    <ResponsiveToolbar
+      className="rounded-[2rem] border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+      filterCount={(filterMode !== "this_month" ? 1 : 0) + (employeeId !== "all" ? 1 : 0)}
+      searchSlot={employeeSearch}
+    >
+      <div className="space-y-4">
+        <DateFilterButtons filterMode={filterMode} handleFilterModeChange={handleFilterModeChange} handleSpecificMonthChange={handleSpecificMonthChange} specificMonth={specificMonth} />
+        <div className="lg:hidden">{employeeSearch}</div>
+        {filterMode === "custom" ? <CustomRangeFilter dateRange={dateRange} setDateRange={setDateRange} /> : null}
+      </div>
+    </ResponsiveToolbar>
   );
 }

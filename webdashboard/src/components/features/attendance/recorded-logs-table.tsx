@@ -4,18 +4,21 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import InfiniteScrollSentinel from '@/components/common/infinite-scroll-sentinel';
-import SmartTable from '@/components/ui/smart-table';
+import ResponsiveTable from '@/components/ui/responsive-table';
 import StatusBadge from '@/components/ui/status-badge';
 import { useToast } from "@/components/ui/toast";
+import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 import { RawAttendanceLog } from '@/lib/api/types';
 import { logError } from "@/lib/logger";
 
 interface RecordedLogsTableProps {
+  fetchNextPage: () => void;
   formatDate: (date: string | null | undefined) => string;
   formatTime: (date: string | null | undefined) => string;
   getDeviceName: (deviceId?: string | null) => string;
   getEmployeeID: (log: RawAttendanceLog) => string;
   getEmployeeName: (log: RawAttendanceLog) => string;
+  hasNextPage?: boolean;
   isFetchingNextPage: boolean;
   isLoading: boolean;
   loadMoreRef: React.RefObject<HTMLTableRowElement | null>;
@@ -25,8 +28,10 @@ interface RecordedLogsTableProps {
   // eslint-disable-next-line max-lines-per-function
 export function RecordedLogsTable({
   logs,
+  fetchNextPage,
   isLoading,
   isFetchingNextPage,
+  hasNextPage,
   loadMoreRef,
   getEmployeeName,
   getEmployeeID,
@@ -157,24 +162,63 @@ export function RecordedLogsTable({
 
   // Footer sentinel row for Infinite Scroll
   const footerRow = useMemo(() => (
-    <InfiniteScrollSentinel 
-      colSpan={4} 
-      isFetchingNextPage={isFetchingNextPage} 
-      sentinelRef={loadMoreRef} 
+    <InfiniteScrollSentinel
+      colSpan={4}
+      isFetchingNextPage={isFetchingNextPage}
+      sentinelRef={loadMoreRef}
     />
   ), [isFetchingNextPage, loadMoreRef]);
+  const mobileLoadMoreRef = useInfiniteScroll<HTMLDivElement>({
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  });
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden h-[600px] flex flex-col p-6">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl lg:rounded-[2.5rem] border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden lg:h-[600px] flex flex-col p-3 lg:p-6">
       <div className="flex-1 min-h-0">
-        <SmartTable<RawAttendanceLog>
+        <ResponsiveTable<RawAttendanceLog>
           columns={columns}
           contextMenuItems={contextMenuItems}
           data={logs}
-          emptyMessage={t("attendance_logs.messages.no_data")}
+          emptyState={{
+            icon: <Clock className="h-10 w-10" />,
+            title: t("attendance_logs.messages.no_data"),
+          }}
           footerRow={footerRow}
+          getCardKey={(log) => log.id}
           getRowId={(log) => log.id}
           isLoading={isLoading}
+          mobileFooter={(
+            <div className="flex min-h-10 items-center justify-center" ref={mobileLoadMoreRef}>
+              {isFetchingNextPage ? <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{t("common.loading")}</span> : null}
+            </div>
+          )}
+          renderCard={(log) => {
+            const deviceName = log.device_name ?? (log.source === "Device" ? getDeviceName(log.device_id) : "");
+            return (
+              <article className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary-100 bg-primary-50 text-primary-600 dark:border-primary-800 dark:bg-primary-950 dark:text-primary-400">
+                    <Clock size={18} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-bold uppercase tracking-tight text-slate-800 dark:text-slate-100">{formatDate(log.punch_time)}</div>
+                    <div className="mt-1 font-mono text-xs font-bold text-slate-500 dark:text-slate-400">{formatTime(log.punch_time)}</div>
+                  </div>
+                  <StatusBadge variant="success">{t("attendance_logs.status.recorded")}</StatusBadge>
+                </div>
+                <div className="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800">
+                  <div className="text-sm font-bold uppercase tracking-tight text-slate-800 dark:text-slate-100">{getEmployeeName(log)}</div>
+                  <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-primary-600 dark:text-primary-400">{getEmployeeID(log) || t("common.system")}</div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{log.source}</span>
+                    {!!deviceName && <span className="truncate text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">{deviceName}</span>}
+                  </div>
+                </div>
+              </article>
+            );
+          }}
         />
       </div>
     </div>

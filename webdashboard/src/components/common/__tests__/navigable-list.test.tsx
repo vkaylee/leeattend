@@ -101,6 +101,20 @@ describe("NavigableList", () => {
         expect(screen.queryByText("hidden")).toBeNull();
     });
 
+    it("renders opt-in mobile cards without removing the desktop table", () => {
+        const { container } = render(
+            <NavigableList
+                {...defaultProps}
+                renderMobileCard={(item) => <article>{item.name} mobile card</article>}
+            />
+        );
+
+        expect(screen.getByText("Alpha mobile card")).toBeDefined();
+        expect(screen.getByText("Alpha")).toBeDefined();
+        expect(container.querySelector(".hidden.lg\\:block table")).toBeDefined();
+        expect(container.querySelector(".lg\\:hidden")).toBeDefined();
+    });
+
     // ── Search ─────────────────────────────────────────────────
 
     it("renders search box when onSearchChange is provided", () => {

@@ -32,9 +32,11 @@ interface NavigableListProps<T> {
   itemKey: (item: T) => string;
   items: T[];
   maxHeightClass?: string;
+  mobileBreakpoint?: "md" | "lg" | "xl";
   onKeyDownRef?: React.RefObject<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null | undefined>;
   onSearchChange?: (val: string) => void;
   onSelect: (item: T) => void;
+  renderMobileCard?: (item: T, index: number) => React.ReactNode;
   resetDeps?: unknown[];
   rowIdPrefix?: string;
   searchInputRef?: React.RefObject<HTMLInputElement | null>;
@@ -91,6 +93,75 @@ const InfiniteScrollSentinel = memo(function InfiniteScrollSentinel({
     </tr>
   );
 });
+
+const MOBILE_VISIBILITY = {
+  md: { cards: "md:hidden", table: "hidden md:block" },
+  lg: { cards: "lg:hidden", table: "hidden lg:block" },
+  xl: { cards: "xl:hidden", table: "hidden xl:block" },
+} as const;
+
+function NavigableListMobileSkeleton({ rows }: { rows: number }) {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: rows }).map((_, index) => (
+        <div className="animate-pulse rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900" key={index}>
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-11 w-11 rounded-xl bg-slate-200 dark:bg-slate-800" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-2/3 bg-slate-200 dark:bg-slate-800" />
+              <Skeleton className="h-3 w-1/3 bg-slate-200 dark:bg-slate-800" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function NavigableListMobileCards<T>({
+  emptyMessage,
+  isFetchingNextPage,
+  isLoading,
+  itemKey,
+  items,
+  loadMoreRef,
+  renderMobileCard,
+  skeletonRows,
+  t,
+}: {
+  emptyMessage?: string;
+  isFetchingNextPage: boolean;
+  isLoading: boolean;
+  itemKey: (item: T) => string;
+  items: T[];
+  loadMoreRef: React.Ref<HTMLDivElement>;
+  renderMobileCard: (item: T, index: number) => React.ReactNode;
+  skeletonRows: number;
+  t: TFunction;
+}) {
+  if (isLoading && items.length === 0) {
+    return <NavigableListMobileSkeleton rows={skeletonRows} />;
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-20 text-center text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:border-slate-800 dark:bg-slate-900">
+        {emptyMessage ?? t("common.no_data")}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {items.map((item, index) => (
+        <React.Fragment key={itemKey(item)}>{renderMobileCard(item, index)}</React.Fragment>
+      ))}
+      <div className="flex min-h-10 items-center justify-center" ref={loadMoreRef}>
+        {isFetchingNextPage ? <Loader2 className="animate-spin text-slate-400" size={18} /> : null}
+      </div>
+    </div>
+  );
+}
 
 interface TableContentProps<T> {
   colSpan: number;
@@ -166,7 +237,7 @@ function renderTableRow<T>({
       tabIndex={-1}
     >
       {visibleColumns.map((col, colIdx) => (
-        <td className="px-8 py-5 relative" key={col.key}>
+        <td className={cn("px-8 py-5 relative", col.cellClassName)} key={col.key}>
           {showActiveBar && isSelected && colIdx === 0 ? (
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500" />
           ) : null}
@@ -248,7 +319,10 @@ function NavigableListTable<T>({
   listNav,
   loadMoreRef,
   maxHeightClass,
+  mobileBreakpoint,
+  mobileLoadMoreRef,
   onSelect,
+  renderMobileCard,
   rowIdPrefix,
   selectedKey,
   showActiveBar,
@@ -274,7 +348,10 @@ function NavigableListTable<T>({
   };
   loadMoreRef: React.Ref<HTMLTableRowElement>;
   maxHeightClass: string;
+  mobileBreakpoint: "md" | "lg" | "xl";
+  mobileLoadMoreRef: React.Ref<HTMLDivElement>;
   onSelect: (item: T) => void;
+  renderMobileCard?: (item: T, index: number) => React.ReactNode;
   rowIdPrefix: string;
   selectedKey?: string | null;
   showActiveBar: boolean;
@@ -285,7 +362,8 @@ function NavigableListTable<T>({
   testIdPrefix?: string;
   visibleColumns: NavigableListColumn<T>[];
 }) {
-  return (
+  const visibility = MOBILE_VISIBILITY[mobileBreakpoint];
+  const table = (
     <div className={cn("bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-sm", isFullPage ? "overflow-x-clip" : "overflow-hidden")}>
       <div className={cn(isFullPage ? "" : "overflow-auto", maxHeightClass)}>
         <table className="w-full text-left border-collapse">
@@ -334,6 +412,27 @@ function NavigableListTable<T>({
         </table>
       </div>
     </div>
+  );
+
+  if (!renderMobileCard) return table;
+
+  return (
+    <>
+      <div className={visibility.table}>{table}</div>
+      <div className={visibility.cards}>
+        <NavigableListMobileCards
+          emptyMessage={emptyMessage}
+          isFetchingNextPage={isFetchingNextPage ?? false}
+          isLoading={isLoading}
+          itemKey={itemKey}
+          items={items}
+          loadMoreRef={mobileLoadMoreRef}
+          renderMobileCard={renderMobileCard}
+          skeletonRows={skeletonRows}
+          t={t}
+        />
+      </div>
+    </>
   );
 }
 
@@ -405,8 +504,13 @@ function useNavigableListInitialization<T>({
     isFetchingNextPage: isFetchingNextPage ?? false,
     fetchNextPage: fetchNextPage ?? (() => { /* empty */ }),
   });
+  const mobileLoadMoreRef = useInfiniteScroll<HTMLDivElement>({
+    hasNextPage: hasNextPage ?? false,
+    isFetchingNextPage: isFetchingNextPage ?? false,
+    fetchNextPage: fetchNextPage ?? (() => { /* empty */ }),
+  });
 
-  return { listNav, loadMoreRef };
+  return { listNav, loadMoreRef, mobileLoadMoreRef };
 }
 
 function useNavigableListCalculations<T>({
@@ -560,13 +664,15 @@ export default function NavigableList<T>({
   fetchNextPage,
   className,
   maxHeightClass = "max-h-[60vh]",
+  mobileBreakpoint = "lg",
   headerSlot,
   onKeyDownRef,
+  renderMobileCard,
   smartHeader = false,
   testIdPrefix,
 }: NavigableListProps<T>) {
   const { t } = useTranslation();
-  const { listNav, loadMoreRef } = useNavigableListInitialization({
+  const { listNav, loadMoreRef, mobileLoadMoreRef } = useNavigableListInitialization({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -623,7 +729,10 @@ export default function NavigableList<T>({
         listNav={listNav}
         loadMoreRef={loadMoreRef}
         maxHeightClass={maxHeightClass}
+        mobileBreakpoint={mobileBreakpoint}
+        mobileLoadMoreRef={mobileLoadMoreRef}
         onSelect={onSelect}
+        renderMobileCard={renderMobileCard}
         rowIdPrefix={rowIdPrefix}
         selectedKey={selectedKey}
         showActiveBar={showActiveBar}

@@ -54,7 +54,7 @@ function FilterModeSelector({
   const modeLabel = (mode: string) => mode === "this_month" ? `THÁNG ${curMonth}/${curYear}` : `THÁNG ${prevMonth}/${prevYear}`;
 
   return (
-    <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200 dark:border-slate-700/50">
+    <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-700/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200 dark:border-slate-700/50">
       {(["this_month", "last_month"] as const).map(mode => (
         <Button
           className={cn(
@@ -123,7 +123,7 @@ function StatusFilterSelector({
 }) {
   const options = ["active", "terminated", "all"] as const;
   return (
-    <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200 dark:border-slate-700/50">
+    <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-700/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200 dark:border-slate-700/50">
       {options.map(status => (
         <Button
           className={cn(
@@ -204,7 +204,7 @@ function EmployerFilterSelector({
   const selectedEmployer = employers.find(emp => emp.id === selectedEmployerId);
 
   return (
-    <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200 dark:border-slate-700/50">
+    <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-700/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200 dark:border-slate-700/50">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
