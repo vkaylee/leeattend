@@ -34,17 +34,19 @@ pub enum TaskType {
     BulkTermination,
 }
 
-/// Job priority level. Controls which Redis queue the job is routed to.
-/// Workers dequeue high-priority jobs before low-priority ones.
+/// Job priority controls which Redis queue the job is routed to.
+/// Dequeue order: High → Normal (via BLPOP), with weighted fairness
+/// ensuring Low gets at least every Nth slot (see `LOW_QUEUE_WEIGHT`).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum JobPriority {
-    /// Reports — user is actively waiting for results
+    /// Reports — user is actively waiting. Routes to `queue:high`.
     High,
-    /// Default priority for most jobs
+    /// Default priority for most jobs (reprocess, accrual, merge, payroll).
+    /// Routes to `queue:normal`.
     #[default]
     Normal,
-    /// Background tasks like log ingestion — can wait
+    /// Background tasks like log ingestion, housekeeping. Routes to `queue:low`.
     Low,
 }
 

@@ -3,13 +3,24 @@
 //! Uses Redis LIST (`worker:jobs`) for job distribution via BLPOP,
 //! HASH for batch result storage, and STRING keys for metadata/counters.
 //!
+//! Priority routing:
+//! - `High` → `worker:jobs:high`
+//! - `Normal` → `worker:jobs:normal`
+//! - `Low` → `worker:jobs:low`
+//!
+//! Dequeue uses weighted fairness: every `LOW_QUEUE_WEIGHT`-th call tries
+//! `queue:low` first via non-blocking LPOP, ensuring low-priority jobs are
+//! never starved by continuous high/normal traffic.
+//!
 //! Key patterns:
-//! - `worker:jobs` — main job queue (LIST)
+//! - `worker:jobs:{high,normal,low}` — priority queues (LIST)
 //! - `report:meta:{job_id}` — job metadata (STRING, JSON)
 //! - `report:results:{job_id}` — batch results (HASH, `batch_NNNNN` → JSON)
 //! - `report:counter:{job_id}` — completed batch counter (STRING, atomic INCR)
 //! - `report:merge_triggered:{job_id}` — merge dedup flag (STRING, SETNX)
 //! - `report:dlq` — dead letter queue for failed jobs (LIST)
+
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use redis::AsyncCommands;
 use tracing::{debug, error};
@@ -17,10 +28,17 @@ use uuid::Uuid;
 
 use crate::queue::{Job, JobMetadata, JobPriority, JobStatus, RedisPool, ReportType, TaskType};
 
-/// High-priority queue key (reports, merge, accrual).
+/// High-priority queue key (reports — user is actively waiting).
 pub const QUEUE_HIGH: &str = "worker:jobs:high";
-/// Low-priority queue key (log ingestion, background tasks).
+/// Normal-priority queue key (default for most jobs: reprocess, accrual, merge, payroll).
+pub const QUEUE_NORMAL: &str = "worker:jobs:normal";
+/// Low-priority queue key (log ingestion, nightly housekeeping, expired contracts).
 pub const QUEUE_LOW: &str = "worker:jobs:low";
+
+/// Weight for low-priority dequeue fairness.
+/// Every Nth dequeue attempt will try the low queue first via non-blocking LPOP.
+/// N=10 means low-priority gets at least ~9% of worker capacity.
+pub const LOW_QUEUE_WEIGHT: u64 = 10;
 pub const META_PREFIX: &str = "report:meta:";
 pub const RESULTS_PREFIX: &str = "report:results:";
 pub const COUNTER_PREFIX: &str = "report:counter:";
@@ -39,6 +57,10 @@ const STATS_TTL_SECS: i64 = 604_800; // 7 days retention
 pub struct JobQueue {
     pool: RedisPool,
     namespace: String,
+    /// Shared dequeue counter for weighted fairness across all workers.
+    /// Each `dequeue_job` call increments this; every `LOW_QUEUE_WEIGHT`-th
+    /// call attempts a non-blocking LPOP from the low queue first.
+    dequeue_counter: AtomicU64,
 }
 
 impl JobQueue {
@@ -47,6 +69,7 @@ impl JobQueue {
         Self {
             pool,
             namespace: String::new(),
+            dequeue_counter: AtomicU64::new(0),
         }
     }
 
@@ -55,6 +78,7 @@ impl JobQueue {
         Self {
             pool,
             namespace: namespace.to_string(),
+            dequeue_counter: AtomicU64::new(0),
         }
     }
 
@@ -64,6 +88,15 @@ impl JobQueue {
             QUEUE_HIGH.to_string()
         } else {
             format!("{}:{}", self.namespace, QUEUE_HIGH)
+        }
+    }
+
+    /// Get the normal priority queue key.
+    pub fn queue_normal(&self) -> String {
+        if self.namespace.is_empty() {
+            QUEUE_NORMAL.to_string()
+        } else {
+            format!("{}:{}", self.namespace, QUEUE_NORMAL)
         }
     }
 
@@ -99,10 +132,7 @@ impl JobQueue {
                     e.to_string(),
                 ))
             })?;
-            let key = match job.priority {
-                JobPriority::Low => self.queue_low(),
-                _ => self.queue_high(),
-            };
+            let key = self.priority_queue_key(&job.priority);
             tracing::debug!(job_id = %job.job_id, queue = key, "Pushing job to queue");
             let _: () = conn.rpush(key, json).await?;
         }
@@ -120,16 +150,26 @@ impl JobQueue {
                 e.to_string(),
             ))
         })?;
-        let key = match job.priority {
-            JobPriority::Low => self.queue_low(),
-            _ => self.queue_high(),
-        };
+        let key = self.priority_queue_key(&job.priority);
         let _: () = conn.rpush(key, json).await?;
         Ok(())
     }
 
+    /// Map a priority to its Redis queue key.
+    fn priority_queue_key(&self, priority: &JobPriority) -> String {
+        match priority {
+            JobPriority::High => self.queue_high(),
+            JobPriority::Normal => self.queue_normal(),
+            JobPriority::Low => self.queue_low(),
+        }
+    }
+
     /// Blocking dequeue with timeout (for workers).
     /// Uses BLPOP for efficient waiting without polling.
+    ///
+    /// Priority order: High → Normal, with weighted fairness for Low.
+    /// Every `LOW_QUEUE_WEIGHT`-th dequeue attempt tries a non-blocking
+    /// LPOP from the low queue first, preventing starvation.
     ///
     /// # Arguments
     /// * `timeout_secs` - Maximum seconds to wait for a job (must be finite, positive)
@@ -153,15 +193,44 @@ impl JobQueue {
         #[allow(clippy::cast_possible_truncation)]
         let timeout_int = timeout_secs.round() as i64;
 
+        // Weighted fairness: every LOW_QUEUE_WEIGHT-th dequeue attempts
+        // a non-blocking LPOP from the low queue first.
+        // Uses wrapping_add so overflow doesn't panic; modulo still correct.
+        let ticket = self.dequeue_counter.fetch_add(1, Ordering::Relaxed);
+        let is_low_turn = ticket.wrapping_add(1).is_multiple_of(LOW_QUEUE_WEIGHT);
+
         // Use dedicated blocking connection to avoid head-of-line blocking.
         // BLPOP blocks for up to timeout_secs; using the shared conn() would
         // stall all concurrent HSET/PUBLISH/GET operations from other workers.
         let mut conn = self.pool.blocking_conn();
 
-        // Use redis::cmd instead of blpop method to ensure correct type serialization
-        // BLPOP checks keys left-to-right: high-priority queue is checked first
+        if is_low_turn {
+            // Non-blocking LPOP from low queue — gives low-priority a
+            // guaranteed chance even when high/normal are constantly busy.
+            let low_result: Option<(String, String)> = redis::cmd("LPOP")
+                .arg(self.queue_low())
+                .query_async(&mut conn)
+                .await?;
+
+            if let Some((_, json)) = low_result {
+                let job: Job = serde_json::from_str(&json).map_err(|e| {
+                    redis::RedisError::from((
+                        redis::ErrorKind::TypeError,
+                        "JSON parse error",
+                        e.to_string(),
+                    ))
+                })?;
+                return Ok(Some(job));
+            }
+            // Low queue empty — fall through to standard BLPOP below.
+        }
+
+        // BLPOP checks keys left-to-right: High → Normal → Low.
+        // Low is included as the last fallback so it still gets served
+        // when high/normal are idle, and on non-low-turn calls.
         let result: Option<(String, String)> = redis::cmd("BLPOP")
             .arg(self.queue_high())
+            .arg(self.queue_normal())
             .arg(self.queue_low())
             .arg(timeout_int)
             .query_async(&mut conn)
@@ -450,12 +519,13 @@ impl JobQueue {
         Ok(())
     }
 
-    /// Get queue length (pending jobs count across both priority queues).
+    /// Get queue length (pending jobs count across all three priority queues).
     pub async fn queue_length(&self) -> Result<usize, redis::RedisError> {
         let mut conn = self.pool.conn();
         let high: usize = conn.llen(self.queue_high()).await?;
+        let normal: usize = conn.llen(self.queue_normal()).await?;
         let low: usize = conn.llen(self.queue_low()).await?;
-        Ok(high + low)
+        Ok(high + normal + low)
     }
 
     /// Clean up all data for a job (metadata, counter, results).
