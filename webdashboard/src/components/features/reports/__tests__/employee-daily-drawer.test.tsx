@@ -148,8 +148,9 @@ describe("EmployeeDailyDrawer", () => {
     it("shows total regular and overtime hours summary", async () => {
         renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
 
-        // Wait for data to load
-        await screen.findByText(/08:00 — 17:00/i);
+        // Wait for data to load (desktop + mobile both render)
+        const shiftTexts = await screen.findAllByText(/08:00 — 17:00/i);
+        expect(shiftTexts.length).toBeGreaterThan(0);
 
         // computed_std_hours=8.0 -> 8h
         const stdElements = await screen.findAllByText("8h");
@@ -167,8 +168,9 @@ describe("EmployeeDailyDrawer", () => {
     it("fetches data and renders the drawer content when opened", async () => {
         renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
 
-        // Header should contain the name
-        expect(await screen.findByText("John Doe")).toBeDefined();
+        // Header should contain the name (desktop + mobile both render)
+        const names = await screen.findAllByText("John Doe");
+        expect(names.length).toBeGreaterThan(0);
 
         // Check if API was called
         await waitFor(() => {
@@ -184,8 +186,8 @@ describe("EmployeeDailyDrawer", () => {
         });
 
         // Wait for the table row to render
-        const shiftText = await screen.findByText(/08:00 — 17:00/i);
-        expect(shiftText).toBeDefined();
+        const shiftTexts = await screen.findAllByText(/08:00 — 17:00/i);
+        expect(shiftTexts.length).toBeGreaterThan(0);
 
         // Verify that the sheet panel has the correct width constraints to prevent resizing
         const sheetPanel = screen.getByTestId("sheet-panel");
@@ -197,7 +199,7 @@ describe("EmployeeDailyDrawer", () => {
         renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
 
         // Wait for data to load
-        await screen.findByText(/08:00 — 17:00/i);
+        await screen.findAllByText(/08:00 — 17:00/i);
 
         // Click reprocess button (has title reports.reprocess.tooltip)
         const reprocessBtns = await screen.findAllByTitle("reports.reprocess.tooltip");
@@ -226,7 +228,7 @@ describe("EmployeeDailyDrawer", () => {
         renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
 
         // Wait for data to load
-        await screen.findByText(/08:00 — 17:00/i);
+        await screen.findAllByText(/08:00 — 17:00/i);
 
         // Open the reprocess modal
         const reprocessBtns = await screen.findAllByTitle("reports.reprocess.tooltip");
@@ -252,7 +254,7 @@ describe("EmployeeDailyDrawer", () => {
         renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
 
         // Wait for data to load
-        await screen.findByText(/08:00 — 17:00/i);
+        await screen.findAllByText(/08:00 — 17:00/i);
 
         // Assuming existing logic, the confirm button has title "common.attendance_confirm"
         const confirmBtns = await screen.findAllByTitle("common.attendance_confirm");
@@ -280,7 +282,7 @@ describe("EmployeeDailyDrawer", () => {
         renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
 
         // Wait for data to load
-        await screen.findByText(/08:00 — 17:00/i);
+        await screen.findAllByText(/08:00 — 17:00/i);
 
         // Find the OT approve button
         const approveButton = await screen.findByTitle("reports.ot_approve.approve");
@@ -320,7 +322,7 @@ describe("EmployeeDailyDrawer", () => {
         renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
 
         // Wait for daily report data to load
-        await screen.findByText(/08:00 — 17:00/i);
+        await screen.findAllByText(/08:00 — 17:00/i);
 
         // Find the "View Raw Logs" toggle button
         const rawLogsToggle = await screen.findByRole("button", { name: /View Raw Logs|reports.view_raw_logs/i });
@@ -372,7 +374,7 @@ describe("EmployeeDailyDrawer", () => {
         const user = userEvent.setup();
         renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
 
-        await screen.findByText(/08:00 — 17:00/i);
+        await screen.findAllByText(/08:00 — 17:00/i);
 
         // Switch to raw logs view
         const rawLogsToggle = await screen.findByRole("button", { name: /View Raw Logs|reports.view_raw_logs/i });
@@ -483,7 +485,7 @@ describe("EmployeeDailyDrawer", () => {
         renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
 
         // Wait for content to render
-        await screen.findByText(/08:00 — 17:00/i);
+        await screen.findAllByText(/08:00 — 17:00/i);
 
         // Find the content wrapper that has the ref
         const sheetPanel = screen.getByTestId("sheet-panel");
@@ -527,9 +529,9 @@ describe("EmployeeDailyDrawer", () => {
         // Wait for data to load
         await screen.findByText("John Doe");
 
-        // Find and click the unscheduled badge
-        const badge = await screen.findByTitle("reports.status.unscheduled_tooltip");
-        await user.click(badge);
+        // Find and click the unscheduled badge (desktop + mobile both render)
+        const badges = await screen.findAllByTitle("reports.status.unscheduled_tooltip");
+        await user.click(badges[0]);
 
         // The resolve modal should open
         expect(await screen.findByText("reports.unscheduled.resolve_title")).toBeInTheDocument();
@@ -559,8 +561,9 @@ describe("EmployeeDailyDrawer", () => {
         renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
 
         // Wait for data + click badge
-        await screen.findByText("John Doe");
-        const badge = await screen.findByTitle("reports.status.unscheduled_tooltip");
+        const names = await screen.findAllByText("John Doe");
+        expect(names.length).toBeGreaterThan(0);
+        const badge = (await screen.findAllByTitle("reports.status.unscheduled_tooltip"))[0];
         await user.click(badge);
 
         // Wait for modal

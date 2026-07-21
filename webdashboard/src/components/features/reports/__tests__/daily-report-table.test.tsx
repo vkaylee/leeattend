@@ -92,18 +92,19 @@ describe("DailyReportTable", () => {
 
     it("renders the table headers correctly", () => {
         render(<DailyReportTable {...defaultProps} />);
-        expect(screen.getByText("common.date")).toBeInTheDocument();
-        expect(screen.getByText("common.employee")).toBeInTheDocument();
-        expect(screen.getByText("reports.table.scheduled")).toBeInTheDocument();
-        expect(screen.getByText("reports.table.std_hours")).toBeInTheDocument();
+        // Desktop + mobile both render → use getAllByText for data in both views
+        expect(screen.getAllByText("common.date")[0]).toBeInTheDocument();
+        expect(screen.getAllByText("common.employee")[0]).toBeInTheDocument();
+        expect(screen.getAllByText("reports.table.scheduled")[0]).toBeInTheDocument();
+        expect(screen.getAllByText("reports.table.std_hours")[0]).toBeInTheDocument();
     });
 
     it("renders employee data rows with high-density spacing classes", () => {
         render(<DailyReportTable {...defaultProps} />);
 
-        // Check if the data is rendered
-        expect(screen.getByText("John Doe")).toBeInTheDocument();
-        expect(screen.getByText("Jane Smith")).toBeInTheDocument();
+        // Check if the data is rendered (desktop + mobile both render these)
+        expect(screen.getAllByText("John Doe")[0]).toBeInTheDocument();
+        expect(screen.getAllByText("Jane Smith")[0]).toBeInTheDocument();
 
         // The high-density UI classes applied in Phase 1 should group rows tightly
         const cells = screen.getAllByRole("cell");
@@ -128,8 +129,7 @@ describe("DailyReportTable", () => {
     it("renders action buttons in icon-only compact layout", () => {
         render(<DailyReportTable {...defaultProps} />);
 
-        // The Confirm button should be present as a button with a title attribute for tooltip
-        // We check if it has the title "common.attendance_confirm" (since we mocked t)
+        // Desktop confirm buttons with title
         const confirmButtons = screen.getAllByTitle("common.attendance_confirm");
         expect(confirmButtons.length).toBeGreaterThan(0);
 
@@ -140,7 +140,7 @@ describe("DailyReportTable", () => {
     it("triggers callbacks when action buttons are clicked", () => {
         render(<DailyReportTable {...defaultProps} />);
 
-        // Find the Confirm button for John Doe
+        // Find the Confirm button for John Doe (desktop view)
         const confirmButtons = screen.getAllByTitle("common.attendance_confirm");
         fireEvent.click(confirmButtons[0]);
         expect(defaultProps.onConfirmClick).toHaveBeenCalledWith(mockData[0], undefined);
@@ -154,31 +154,32 @@ describe("DailyReportTable", () => {
     it("hides employee name column when hideEmployeeName is true", () => {
         render(<DailyReportTable {...defaultProps} hideEmployeeName />);
 
-        // Employee header should be gone
+        // Employee header should be gone from both views
         expect(screen.queryByText("common.employee")).not.toBeInTheDocument();
 
-        // Employee names should not be rendered in cells
+        // Employee names should not be rendered in any cell
         expect(screen.queryByText("John Doe")).not.toBeInTheDocument();
         expect(screen.queryByText("Jane Smith")).not.toBeInTheDocument();
 
         // But dates and other columns still work
-        expect(screen.getByText("common.date")).toBeInTheDocument();
-        expect(screen.getByText("reports.table.scheduled")).toBeInTheDocument();
+        expect(screen.getAllByText("common.date")[0]).toBeInTheDocument();
+        expect(screen.getAllByText("reports.table.scheduled")[0]).toBeInTheDocument();
     });
 
     it("shows employee name column by default (hideEmployeeName=false)", () => {
         render(<DailyReportTable {...defaultProps} hideEmployeeName={false} />);
 
-        expect(screen.getByText("common.employee")).toBeInTheDocument();
-        expect(screen.getByText("John Doe")).toBeInTheDocument();
-        expect(screen.getByText("Jane Smith")).toBeInTheDocument();
+        expect(screen.getAllByText("common.employee")[0]).toBeInTheDocument();
+        expect(screen.getAllByText("John Doe")[0]).toBeInTheDocument();
+        expect(screen.getAllByText("Jane Smith")[0]).toBeInTheDocument();
     });
     it("uses flex-1 min-h-0 for dynamic height instead of hardcoded max-h", () => {
         render(<DailyReportTable {...defaultProps} />);
 
-        // The outer scrollable container should use flex-1 and min-h-0
-        const table = screen.getByRole("table");
-        const outerDiv = table.parentElement;
+        // The outer scrollable container should use flex-1 and min-h-0 on the outer div
+        const tables = screen.getAllByRole("table");
+        // The desktop table is inside ResponsiveTable wrapper → its grandparent is the outer scroll container
+        const outerDiv = tables[0].closest(".overflow-auto.flex-1.min-h-0");
         expect(outerDiv).not.toBeNull();
         expect(outerDiv!.className).toContain("flex-1");
         expect(outerDiv!.className).toContain("min-h-0");
@@ -198,9 +199,9 @@ describe("DailyReportTable", () => {
         ];
         render(<DailyReportTable {...defaultProps} data={dataWithUnscheduled} />);
 
-        const badge = screen.getByTitle("reports.status.unscheduled_tooltip");
-        expect(badge).toBeInTheDocument();
-        expect(badge.textContent).toContain("reports.status.unscheduled");
+        const badges = screen.getAllByTitle("reports.status.unscheduled_tooltip");
+        expect(badges[0]).toBeInTheDocument();
+        expect(badges[0].textContent).toContain("reports.status.unscheduled");
     });
 
     it("calls onResolveUnscheduled when unscheduled badge is clicked", () => {
@@ -219,8 +220,8 @@ describe("DailyReportTable", () => {
             />
         );
 
-        const badge = screen.getByTitle("reports.status.unscheduled_tooltip");
-        fireEvent.click(badge);
+        const badges = screen.getAllByTitle("reports.status.unscheduled_tooltip");
+        fireEvent.click(badges[0]);
         expect(onResolve).toHaveBeenCalledWith(dataWithUnscheduled[0]);
     });
 
@@ -367,13 +368,13 @@ describe("DailyReportTable", () => {
 
     it("renders segment type and segment number columns in header", () => {
         render(<DailyReportTable {...defaultProps} />);
-        expect(screen.getByText("reports.table.segment_type")).toBeInTheDocument();
-        expect(screen.getByText("reports.table.segment_number")).toBeInTheDocument();
+        expect(screen.getAllByText("reports.table.segment_type")[0]).toBeInTheDocument();
+        expect(screen.getAllByText("reports.table.segment_number")[0]).toBeInTheDocument();
     });
 
     it("renders Scheduled header instead of Shift", () => {
         render(<DailyReportTable {...defaultProps} />);
-        expect(screen.getByText("reports.table.scheduled")).toBeInTheDocument();
+        expect(screen.getAllByText("reports.table.scheduled")[0]).toBeInTheDocument();
         // "Shift" header should no longer exist
         expect(screen.queryByText("common.shift")).not.toBeInTheDocument();
     });
@@ -388,9 +389,9 @@ describe("DailyReportTable", () => {
                 hideEmployeeName
             />
         );
-        // Both segment rows should be rendered
-        expect(screen.getByText(/08:00 — 12:00/)).toBeInTheDocument();
-        expect(screen.getByText(/13:00 — 17:00/)).toBeInTheDocument();
+        // Both segment rows should be rendered (desktop + mobile both render)
+        expect(screen.getAllByText(/08:00 — 12:00/)[0]).toBeInTheDocument();
+        expect(screen.getAllByText(/13:00 — 17:00/)[0]).toBeInTheDocument();
         // No React duplicate key warnings
         const keyWarnings = consoleSpy.mock.calls.filter(
             call => typeof call[0] === "string" && call[0].includes("same key")
@@ -408,8 +409,8 @@ describe("DailyReportTable", () => {
             />
         );
         // work_segments.segment_type.work and work_segments.segment_type.standby
-        expect(screen.getByText("work_segments.segment_type.work")).toBeInTheDocument();
-        expect(screen.getByText("work_segments.segment_type.standby")).toBeInTheDocument();
+        expect(screen.getAllByText("work_segments.segment_type.work")[0]).toBeInTheDocument();
+        expect(screen.getAllByText("work_segments.segment_type.standby")[0]).toBeInTheDocument();
     });
 
     it("renders segment counter for multi-segment rows", () => {
@@ -420,12 +421,12 @@ describe("DailyReportTable", () => {
                 hideEmployeeName
             />
         );
-        // First segment: "1/2", second segment: "2/2"
-        expect(screen.getByText("1")).toBeInTheDocument();
-        expect(screen.getByText("2")).toBeInTheDocument();
-        // Both should have the denominator
+        // Both "1" and "2" appear in desktop table counter and may appear in mobile too
+        expect(screen.getAllByText("1")[0]).toBeInTheDocument();
+        expect(screen.getAllByText("2")[0]).toBeInTheDocument();
+        // Denominator should appear in desktop rows
         const denominators = screen.getAllByText(/\/2/);
-        expect(denominators).toHaveLength(2);
+        expect(denominators.length).toBeGreaterThanOrEqual(2);
     });
 
     it("shows muted dash for segment type and counter on non-segment data", () => {
@@ -467,7 +468,7 @@ describe("DailyReportTable", () => {
                 hideEmployeeName
             />
         );
-        // All dash indicators should appear (two per row: segment type + counter)
+        // Dash indicators appear for segment type + counter in desktop table
         const dashes = screen.getAllByText("—");
         expect(dashes.length).toBeGreaterThanOrEqual(2);
     });
@@ -511,7 +512,7 @@ describe("DailyReportTable", () => {
                 hideEmployeeName
             />
         );
-        // Break info should appear: "common.break: 60m"
+        // Break info should appear: "common.break: 60m" on desktop table
         expect(screen.getByText(/common.break: 60m/)).toBeInTheDocument();
     });
 
@@ -536,8 +537,8 @@ describe("DailyReportTable", () => {
             />
         );
         const rows = screen.getAllByRole("row");
-        // Skip header row
-        const dataRows = rows.slice(1);
+        // Skip header rows (desktop header + possible mobile header)
+        const dataRows = rows.filter(r => r.className.includes("transition-all group"));
         // First segment row should have top border accent class
         expect(dataRows[0].className).toContain("border-t-2");
         expect(dataRows[0].className).toContain("border-l-2");
@@ -554,12 +555,12 @@ describe("DailyReportTable", () => {
                 hideEmployeeName={false}
             />
         );
-        // Both rows show employee_name "John Doe"
+        // Both rows show employee_name "John Doe" (desktop + mobile)
         const nameCells = screen.getAllByText("John Doe");
-        expect(nameCells).toHaveLength(2);
-        // First occurrence should have the default bold color
+        expect(nameCells.length).toBeGreaterThanOrEqual(2);
+        // First occurrence in desktop should have the default bold color
         expect(nameCells[0].className).toContain("text-slate-700");
-        // Second occurrence (non-first in group) should be muted
+        // Second occurrence (non-first in group) in desktop should be muted
         expect(nameCells[1].className).toContain("text-slate-300");
     });
 
@@ -572,12 +573,12 @@ describe("DailyReportTable", () => {
                 data={mixedSegmentAndRegularData}
             />
         );
-        // Segment rows
-        expect(screen.getByText(/08:00 — 12:00/)).toBeInTheDocument();
-        expect(screen.getByText(/13:00 — 17:00/)).toBeInTheDocument();
+        // Segment rows (desktop + mobile both render)
+        expect(screen.getAllByText(/08:00 — 12:00/)[0]).toBeInTheDocument();
+        expect(screen.getAllByText(/13:00 — 17:00/)[0]).toBeInTheDocument();
         // Non-segment row
-        expect(screen.getByText(/08:00 — 17:00/)).toBeInTheDocument();
-        // Should have 4 total data rows (3 visible + header)
+        expect(screen.getAllByText(/08:00 — 17:00/)[0]).toBeInTheDocument();
+        // Should have data rows (desktop only)
         const rows = screen.getAllByRole("row");
         expect(rows.length).toBeGreaterThanOrEqual(4);
 
@@ -597,9 +598,11 @@ describe("DailyReportTable", () => {
                 isLoading
             />
         );
-        // Skeleton rows should have 13 <td> elements (isDebugMode=true, hideEmployeeName=false)
-        const skeletonRows = screen.getAllByRole("row").slice(1); // skip header
-        skeletonRows.forEach(row => {
+        // Skeleton rows in desktop table should have 13 <td> elements
+        const rows = screen.getAllByRole("row");
+        const tableHeaderRows = rows.filter(r => r.tagName === "TH" || r.closest("thead"));
+        const dataRows = rows.filter(r => !tableHeaderRows.includes(r) && r.querySelector("td"));
+        dataRows.slice(0, 5).forEach(row => {
             expect(row.children.length).toBe(13);
         });
     });
@@ -613,8 +616,10 @@ describe("DailyReportTable", () => {
             />
         );
         // Skeleton rows with hideEmployeeName=true, isDebugMode=false → 11 columns
-        const skeletonRows = screen.getAllByRole("row").slice(1);
-        skeletonRows.forEach(row => {
+        const rows = screen.getAllByRole("row");
+        const tableHeaderRows = rows.filter(r => r.tagName === "TH" || r.closest("thead"));
+        const dataRows = rows.filter(r => !tableHeaderRows.includes(r) && r.querySelector("td"));
+        dataRows.slice(0, 5).forEach(row => {
             expect(row.children.length).toBe(11);
         });
     });
@@ -629,8 +634,11 @@ describe("DailyReportTable", () => {
                 onToggleExpandRow={toggleSpy}
             />
         );
-        // Click first segment expand button (first button with ChevronRight)
-        const chevronButtons = screen.getAllByRole("button").filter((_, idx) => idx < 2);
+        // Click first desktop expand button (buttons within table rows)
+        const buttons = screen.getAllByRole("button");
+        // Find a chevron button in the desktop view
+        const chevronButtons = buttons.filter(b => b.querySelector(".lucide-chevron-right"));
+        expect(chevronButtons.length).toBeGreaterThan(0);
         fireEvent.click(chevronButtons[0]);
         // Should be called with segmentKey containing segment_id
         expect(toggleSpy).toHaveBeenCalledWith(
@@ -646,8 +654,8 @@ describe("DailyReportTable", () => {
                 hideEmployeeName
             />
         );
-        expect(screen.getByText("Ca sáng")).toBeInTheDocument();
-        expect(screen.getByText("Ca chiều")).toBeInTheDocument();
+        expect(screen.getAllByText("Ca sáng")[0]).toBeInTheDocument();
+        expect(screen.getAllByText("Ca chiều")[0]).toBeInTheDocument();
     });
 });
 

@@ -248,8 +248,9 @@ describe("AttendanceLogsPage", () => {
     const unknownTab = screen.getByText(/attendance_logs.tabs.unknown/i);
     await user.click(unknownTab);
 
-    // Should show the staging log
-    expect(await screen.findByText("UNKNOWN-42")).toBeDefined();
+    // Should show the staging log (desktop + mobile both render)
+    const unknownIds = await screen.findAllByText("UNKNOWN-42");
+    expect(unknownIds.length).toBeGreaterThan(0);
 
     // Floating badge should now show amber variant with staging counts
     const badge = document.querySelector('.fixed.z-50');
@@ -269,7 +270,8 @@ describe("AttendanceLogsPage", () => {
     const unknownTab = screen.getByText(/attendance_logs.tabs.unknown/i);
     await user.click(unknownTab);
 
-    // Should show empty state message
-    expect(await screen.findByText(/No unidentified logs|attendance_logs.messages.no_unknown_logs/i)).toBeDefined();
+    // Should show empty state message (desktop + mobile both render)
+    const emptyMessages = await screen.findAllByText(/No unidentified logs|attendance_logs.messages.no_unknown_logs/i);
+    expect(emptyMessages.length).toBeGreaterThan(0);
   });
 });

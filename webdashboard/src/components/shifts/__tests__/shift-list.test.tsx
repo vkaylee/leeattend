@@ -75,22 +75,23 @@ describe("ShiftList Component", () => {
   it("renders shifts list with correct layout", () => {
     render(<ShiftList onDelete={onDelete} onEdit={onEdit} shifts={mockShifts} />);
 
+    // Desktop + mobile both render, so use getAllByText for data that appears in both
     expect(screen.getByText("shifts.directory_title")).toBeInTheDocument();
-    expect(screen.getByText("TOTAL: 2")).toBeInTheDocument();
+    expect(screen.getAllByText("TOTAL: 2")[0]).toBeInTheDocument();
 
-    // Check Morning Shift Row
-    expect(screen.getByText("Morning Shift")).toBeInTheDocument();
-    expect(screen.getByText("08:00")).toBeInTheDocument();
-    expect(screen.getByText("17:00")).toBeInTheDocument();
-    expect(screen.getByText("12:00")).toBeInTheDocument();
-    expect(screen.getByText("13:00")).toBeInTheDocument();
-    expect(screen.getByText("shifts.auto_deduct")).toBeInTheDocument();
+    // Check Morning Shift Row (desktop + mobile both render)
+    expect(screen.getAllByText("Morning Shift")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("08:00")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("17:00")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("12:00")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("13:00")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("shifts.auto_deduct")[0]).toBeInTheDocument();
 
     // Check Night Shift Row (with break duration minutes only)
-    expect(screen.getByText("Night Shift")).toBeInTheDocument();
-    expect(screen.getByText("22:00")).toBeInTheDocument();
-    expect(screen.getByText("06:00")).toBeInTheDocument();
-    expect(screen.getByText("30 common.minutes")).toBeInTheDocument();
+    expect(screen.getAllByText("Night Shift")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("22:00")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("06:00")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("30 common.minutes")[0]).toBeInTheDocument();
   });
 
   it("calls onEdit when edit button is clicked", async () => {
@@ -116,7 +117,8 @@ describe("ShiftList Component", () => {
   it("renders empty state message when shifts is empty", () => {
     render(<ShiftList onDelete={onDelete} onEdit={onEdit} shifts={[]} />);
 
-    expect(screen.getByText("shifts.messages.no_shifts")).toBeInTheDocument();
-    expect(screen.getByText("shifts.directory_title is empty")).toBeInTheDocument();
+    // Both desktop and mobile render the empty state text
+    expect(screen.getAllByText("shifts.messages.no_shifts")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("shifts.directory_title is empty")[0]).toBeInTheDocument();
   });
 });
