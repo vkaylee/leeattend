@@ -1,4 +1,5 @@
-use crate::errors::AppError;
+use crate::errors::{AppError, AppResult};
+use crate::utils::i18n::I18nKey;
 
 use crate::repositories::overtime_policy_repository::OvertimePolicyRepositoryTrait;
 use chrono::NaiveDate;
@@ -27,8 +28,7 @@ use super::PolicyResolverService;
 pub mod context;
 pub mod segments;
 use context::{
-    build_daily_entries_map, default_attendance_rules, empty_batch_response, month_boundaries,
-    ChunkSharedData,
+    build_daily_entries_map, default_attendance_rules, month_boundaries, ChunkSharedData,
 };
 
 pub use context::{DirectRosterDataProvider, PayrollContext, RosterDataProvider, SegmentSnapshot};
@@ -812,55 +812,83 @@ impl PayrollService {
         workspace_id: Uuid,
         year: i32,
         month: u32,
-    ) -> crate::models::BatchCalculatePayrollResponse {
+    ) -> AppResult<crate::models::BatchCalculatePayrollResponse> {
+        // ── 0. Input validation ──────────────────────────────────────
+        if employment_ids.is_empty() {
+            return Err(AppError::validation(I18nKey::Validation));
+        }
+        const MAX_BATCH_EMPLOYEES: usize = 500;
+        if employment_ids.len() > MAX_BATCH_EMPLOYEES {
+            return Err(AppError::validation_args(
+                I18nKey::Validation,
+                vec![(
+                    "details",
+                    format!(
+                        "Batch size {} exceeds maximum {MAX_BATCH_EMPLOYEES}",
+                        employment_ids.len()
+                    ),
+                )],
+            ));
+        }
+
+        // Deduplicate but preserve order for deterministic results
+        let mut seen = std::collections::HashSet::new();
+        let mut deduped_ids = Vec::with_capacity(employment_ids.len());
+        for id in employment_ids {
+            if seen.insert(id) {
+                deduped_ids.push(id);
+            }
+        }
+        let employment_ids = deduped_ids;
+
         // ── Phase 1: Workspace-level pre-fetch ──────────────────────
-        let Ok(Some(workspace)) = self.workspace_repo.get_workspace_by_id(workspace_id).await
-        else {
-            return empty_batch_response();
-        };
+        let workspace = self
+            .workspace_repo
+            .get_workspace_by_id(workspace_id)
+            .await?
+            .ok_or_else(|| AppError::not_found(I18nKey::WorkspaceNotFound))?;
         let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
 
-        let (start_date, end_date) = month_boundaries(year, month);
-        let start_dt = local_to_utc(&tz, start_date, 0, 0, 0).unwrap_or_default();
-        let end_dt = local_to_utc(&tz, end_date, 23, 59, 59).unwrap_or_default();
+        let (start_date, end_date) = month_boundaries(year, month)?;
+        let start_dt = local_to_utc(&tz, start_date, 0, 0, 0)
+            .map_err(|e| AppError::Internal(format!("Failed to convert start date to UTC: {e}")))?;
+        let end_dt = local_to_utc(&tz, end_date, 23, 59, 59)
+            .map_err(|e| AppError::Internal(format!("Failed to convert end date to UTC: {e}")))?;
         let token = &crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
 
-        let condition_type_catalog = match PolicyResolverService::load_condition_type_catalog(
+        let condition_type_catalog = PolicyResolverService::load_condition_type_catalog(
             self.condition_type_repo.as_ref(),
             workspace_id,
         )
         .await
-        {
-            Ok(catalog) => catalog,
-            Err(e) => {
-                tracing::error!(workspace_id = %workspace_id, error = %e, "Failed to fetch condition type catalog");
-                return empty_batch_response();
-            }
-        };
+        .map_err(|e| AppError::Internal(format!("Failed to fetch condition type catalog: {e}")))?;
 
         let overtime_data = self.fetch_overtime_data(workspace_id).await;
         let holidays_map = self
             .fetch_holidays(token, start_date, end_date, workspace_id)
             .await;
 
-        let Ok(roster_data) = self.roster_provider.get_roster_data(workspace_id).await else {
-            return empty_batch_response();
-        };
+        let roster_data = self
+            .roster_provider
+            .get_roster_data(workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to fetch roster data: {e}")))?;
 
-        let Ok(ws_payroll_settings_history) = self
+        let ws_payroll_settings_history = self
             .payroll_repo
             .get_payroll_settings_history(workspace_id)
             .await
-        else {
-            return empty_batch_response();
-        };
+            .map_err(|e| {
+                AppError::Internal(format!("Failed to fetch payroll settings history: {e}"))
+            })?;
 
+        // month-end payroll settings are optional — absence just means no OT cap
         let month_end_payroll_settings = self
             .payroll_repo
             .get_payroll_settings_at(workspace_id, end_date)
             .await
             .unwrap_or_else(|e| {
-                tracing::error!(workspace_id = %workspace_id, error = %e, "Failed to fetch month end payroll settings");
+                tracing::warn!(workspace_id = %workspace_id, error = %e, "Failed to fetch month end payroll settings, continuing without OT cap");
                 None
             });
 
@@ -873,12 +901,12 @@ impl PayrollService {
             .get_groups(workspace_id)
             .await
             .unwrap_or_else(|e| {
-                tracing::error!(
+                tracing::warn!(
                     workspace_id = %workspace_id,
                     year = year,
                     month = month,
                     error = %e,
-                    "calculate_batch_payslips: get_groups failed — returning empty"
+                    "calculate_batch_payslips: get_groups failed — continuing without salary base groups"
                 );
                 Vec::new()
             });
@@ -910,7 +938,7 @@ impl PayrollService {
             results.extend(chunk_results);
         }
 
-        crate::models::BatchCalculatePayrollResponse { results }
+        Ok(crate::models::BatchCalculatePayrollResponse { results })
     }
 
     /// Process a single chunk of employment IDs for batch payroll calculation.
@@ -939,7 +967,7 @@ impl PayrollService {
                     workspace_id = %workspace_id,
                     chunk_size = chunk_employment_ids.len(),
                     error = %e,
-                    "Batch payroll: get_employments_by_ids failed — returning empty"
+                    "Batch payroll: get_employments_by_ids failed — chunk will have per-item errors"
                 );
                 Vec::new()
             });
@@ -1041,11 +1069,45 @@ impl PayrollService {
                     workspace_id = %workspace_id,
                     chunk_size = chunk_employment_ids.len(),
                     error = %e,
-                    "Batch payroll: get_employees_by_ids failed — dropping entire chunk"
+                    "Batch payroll: get_employees_by_ids failed — marking all chunk employments as errors"
                 );
-                return Vec::new();
+                let mut error_results = Vec::with_capacity(chunk_employment_ids.len());
+                for &employment_id in &chunk_employment_ids {
+                    let emp_id = employment_to_employee
+                        .get(&employment_id)
+                        .copied()
+                        .unwrap_or(Uuid::nil());
+                    error_results.push(crate::models::BatchCalculateResult {
+                        employment_id,
+                        employee_id: emp_id,
+                        status: "error".to_string(),
+                        payslip: None,
+                        error_message: Some(format!("Failed to fetch employee data: {e}")),
+                    });
+                }
+                return error_results;
             }
         };
+
+        // Ensure every employment_id in the chunk has a mapping.
+        // If employment lookup failed for some IDs, create error results.
+        let mut pre_errors = Vec::new();
+        for &employment_id in &chunk_employment_ids {
+            if !employment_to_employee.contains_key(&employment_id) {
+                pre_errors.push(crate::models::BatchCalculateResult {
+                    employment_id,
+                    employee_id: Uuid::nil(),
+                    status: "error".to_string(),
+                    payslip: None,
+                    error_message: Some("Employment not found in workspace".to_string()),
+                });
+            }
+        }
+        // Remove employment_ids with errors from further processing
+        let chunk_employment_ids: Vec<Uuid> = chunk_employment_ids
+            .into_iter()
+            .filter(|id| employment_to_employee.contains_key(id))
+            .collect();
 
         let mut salary_map = salary_histories.unwrap_or_default();
         let mut dept_map = dept_histories.unwrap_or_default();
@@ -1089,11 +1151,11 @@ impl PayrollService {
             .get_department_payroll_configs_batch(&d.token, &batch_dept_ids)
             .await
             .unwrap_or_else(|e| {
-                tracing::error!(
+                tracing::warn!(
                     workspace_id = %workspace_id,
                     dept_count = batch_dept_ids.len(),
                     error = %e,
-                    "Batch payroll: get_department_payroll_configs_batch failed — returning empty"
+                    "Batch payroll: get_department_payroll_configs_batch failed — continuing without department configs"
                 );
                 HashMap::new()
             });
@@ -1103,11 +1165,11 @@ impl PayrollService {
             .get_employee_payroll_configs_batch(&d.token, &chunk_employment_ids)
             .await
             .unwrap_or_else(|e| {
-                tracing::error!(
+                tracing::warn!(
                     workspace_id = %workspace_id,
                     chunk_size = chunk_employment_ids.len(),
                     error = %e,
-                    "Batch payroll: get_employee_payroll_configs_batch failed — returning empty"
+                    "Batch payroll: get_employee_payroll_configs_batch failed — continuing without employee configs"
                 );
                 HashMap::new()
             });
@@ -1143,11 +1205,11 @@ impl PayrollService {
             )
             .await
             .unwrap_or_else(|e| {
-                tracing::error!(
+                tracing::warn!(
                     workspace_id = %workspace_id,
                     employee_count = chunk_employee_ids.len(),
                     error = %e,
-                    "Batch payroll: get_approved_leave_breakdowns_batch failed — returning empty"
+                    "Batch payroll: get_approved_leave_breakdowns_batch failed — continuing without leave data"
                 );
                 HashMap::new()
             });
@@ -1162,11 +1224,11 @@ impl PayrollService {
             )
             .await
             .unwrap_or_else(|e| {
-                tracing::error!(
+                tracing::warn!(
                     workspace_id = %workspace_id,
                     employee_count = chunk_employee_ids.len(),
                     error = %e,
-                    "Batch payroll: get_unpaid_holiday_days_without_leave_batch failed — returning empty"
+                    "Batch payroll: get_unpaid_holiday_days_without_leave_batch failed — continuing without unpaid holiday data"
                 );
                 HashMap::new()
             });
@@ -1221,7 +1283,9 @@ impl PayrollService {
             d,
         );
 
-        let mut results: Vec<crate::models::BatchCalculateResult> = Vec::new();
+        let mut results: Vec<crate::models::BatchCalculateResult> =
+            Vec::with_capacity(chunk_employment_ids.len() + pre_errors.len());
+        results.extend(pre_errors);
         let mut ok_contexts: Vec<(Uuid, PayrollContext)> = Vec::new();
 
         for (employment_id, result) in context_results {

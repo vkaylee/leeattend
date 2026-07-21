@@ -125,20 +125,30 @@ pub(crate) struct ChunkSharedData {
 // Helper functions
 // ---------------------------------------------------------------------------
 
+#[allow(dead_code)]
 pub(crate) fn empty_batch_response() -> crate::models::BatchCalculatePayrollResponse {
     crate::models::BatchCalculatePayrollResponse { results: vec![] }
 }
 
-pub(crate) fn month_boundaries(year: i32, month: u32) -> (NaiveDate, NaiveDate) {
-    let start_date = NaiveDate::from_ymd_opt(year, month, 1).unwrap_or_default();
+pub(crate) fn month_boundaries(
+    year: i32,
+    month: u32,
+) -> Result<(NaiveDate, NaiveDate), crate::errors::AppError> {
+    let start_date = NaiveDate::from_ymd_opt(year, month, 1).ok_or_else(|| {
+        crate::errors::AppError::validation(crate::utils::i18n::I18nKey::InvalidYearMonth)
+    })?;
     let next_month_date = if month == 12 {
         NaiveDate::from_ymd_opt(year + 1, 1, 1)
     } else {
         NaiveDate::from_ymd_opt(year, month + 1, 1)
     }
-    .unwrap_or_default();
-    let end_date = next_month_date.pred_opt().unwrap_or_default();
-    (start_date, end_date)
+    .ok_or_else(|| {
+        crate::errors::AppError::validation(crate::utils::i18n::I18nKey::InvalidYearMonth)
+    })?;
+    let end_date = next_month_date.pred_opt().ok_or_else(|| {
+        crate::errors::AppError::validation(crate::utils::i18n::I18nKey::InvalidYearMonth)
+    })?;
+    Ok((start_date, end_date))
 }
 
 pub(crate) fn default_attendance_rules() -> crate::models::AttendanceRules {
