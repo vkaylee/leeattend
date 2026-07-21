@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Mail, Save, Send, CheckCircle, XCircle, Loader2, ShieldCheck, AlertTriangle, ChevronDown, Globe } from "lucide-react";
-import { useMemo, useState, useEffect } from "react";
+import { Mail, Save, Send, CheckCircle, XCircle, Loader2, ShieldCheck, AlertTriangle, ChevronDown, Globe, Sparkles } from "lucide-react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 import PageHeader from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
@@ -30,6 +31,18 @@ export default function SmtpSettingsPage() {
   const [dirty, setDirty] = useState(false);
   const [testEmail, setTestEmail] = useState("");
   const [showHttpApi, setShowHttpApi] = useState(false);
+  const [showDefaultConfirm, setShowDefaultConfirm] = useState(false);
+
+  const DEFAULT_HTTP_API_TEMPLATE = JSON.stringify(
+    {
+      from: { email: "{{from_email}}", name: "{{from_name}}" },
+      to: [{ email: "{{to}}" }],
+      subject: "{{subject}}",
+      text: "{{body}}",
+    },
+    null,
+    2,
+  );
   const [testResult, setTestResult] = useState<{
     success: boolean;
     message: string;
@@ -64,6 +77,20 @@ export default function SmtpSettingsPage() {
       body_template: httpOverrides.body_template ?? src?.body_template ?? "",
     };
   }, [config, overrides, httpOverrides]);
+
+  const handleFillDefault = useCallback(() => {
+    setShowDefaultConfirm(false);
+    // Use functional update to avoid depending on httpForm
+    setHttpOverrides((prev) => ({
+      url: prev.url || "https://send.api.mailtrap.io/api/send",
+      auth_header: prev.auth_header || "Api-Token",
+      auth_value: prev.auth_value || "{{password}}",
+      success_field: prev.success_field || "success",
+      success_value: prev.success_field ? (prev.success_value ?? true) : true,
+      body_template: DEFAULT_HTTP_API_TEMPLATE,
+    }));
+    setDirty(true);
+  }, [DEFAULT_HTTP_API_TEMPLATE]);
 
   // Auto-expand when config already has http_api
   useEffect(() => {
@@ -281,6 +308,17 @@ export default function SmtpSettingsPage() {
             {t("smtp.http_api_desc", "Use a REST API to send emails instead of SMTP. Required on platforms that block outbound SMTP (Railway, Fly.io, etc.). Supports any transactional email provider.")}
           </Typography>
 
+          <div className="flex justify-end mt-2">
+            <Button
+              onClick={() => setShowDefaultConfirm(true)}
+              size="sm"
+              variant="ghost"
+            >
+              <Sparkles className="w-3.5 h-3.5 mr-1" />
+              {t("smtp.fill_default", "Fill Default Template")}
+            </Button>
+          </div>
+
           {showHttpApi ? (
             <div className="ml-6 mt-4 grid gap-4 sm:grid-cols-2 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="space-y-1.5 sm:col-span-2">
@@ -475,6 +513,20 @@ export default function SmtpSettingsPage() {
           </div>
         ) : null}
       </div>
+
+      {/* Default template confirm dialog */}
+      <ConfirmDialog
+        confirmLabel={t("smtp.fill_default_confirm", "Apply Default")}
+        isOpen={showDefaultConfirm}
+        message={t(
+          "smtp.fill_default_warning",
+          "This will fill any empty fields with standard default values (Mailtrap-compatible). Fields you've already configured will be kept unchanged. Continue?",
+        )}
+        onClose={() => setShowDefaultConfirm(false)}
+        onConfirm={handleFillDefault}
+        title={t("smtp.fill_default_title", "Fill Default Template?")}
+        variant="warning"
+      />
     </div>
   );
 }
