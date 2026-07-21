@@ -186,6 +186,7 @@ describe("SmtpSettingsPage", () => {
         password: undefined,
         from: undefined,
         base_url: undefined,
+        http_api: null,
       });
       expect(mockToast.success).toHaveBeenCalled();
       expect(mockInvalidate).toHaveBeenCalledWith({ queryKey: ["smtp-config"] });

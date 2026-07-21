@@ -32,28 +32,65 @@ struct SmtpConfigData {
     password: Option<String>,
     from: Option<String>,
     base_url: Option<String>,
+    /// Optional HTTP API config for sending email via REST instead of SMTP.
+    /// When present, HTTP takes priority over SMTP (useful on platforms that
+    /// block outbound SMTP ports, like Railway).
+    #[serde(default)]
+    http_api: Option<HttpApiConfig>,
+}
+
+/// HTTP-based email sending adapter — provider-agnostic.
+/// User configures the URL, auth, and JSON body template with `{{variables}}`.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct HttpApiConfig {
+    /// Full URL of the email API endpoint (e.g. https://send.api.mailtrap.io/api/send).
+    url: String,
+    /// Optional auth header name (e.g. "Api-Token", "Authorization").
+    #[serde(default)]
+    auth_header: Option<String>,
+    /// Optional auth header value. Supports `{{username}}` and `{{password}}`
+    /// placeholders, resolved at config reload time.
+    #[serde(default)]
+    auth_value: Option<String>,
+    /// Optional JSON field in the response to check for success (e.g. "success").
+    #[serde(default)]
+    success_field: Option<String>,
+    /// Optional expected value for success_field (e.g. true).
+    #[serde(default)]
+    success_value: Option<serde_json::Value>,
+    /// JSON body template with `{{from_name}}`, `{{from_email}}`, `{{to}}`,
+    /// `{{subject}}`, `{{body}}` placeholders.
+    body_template: String,
 }
 
 // ── Hot-swappable SMTP config ─────────────────────────────────────────────
 
-/// All SMTP-related runtime state that can be hot-reloaded from Redis.
-struct SmtpConfig {
+/// All email runtime state that can be hot-reloaded from Redis.
+struct EmailConfig {
     transport: Option<SmtpTransport>,
+    /// Pre-resolved HTTP API config (auth_value placeholders already substituted).
+    http_config: Option<HttpApiConfig>,
     from: String,
     base_url: String,
     last_reload: Instant,
+    /// Cached for auth_value template resolution at reload time.
+    username: Option<String>,
+    password: Option<String>,
 }
 
-impl SmtpConfig {
-    /// Bootstrap with no SMTP transport — will be populated on first reload from DB.
+impl EmailConfig {
+    /// Bootstrap with no transport — will be populated on first reload from DB.
     fn default_config() -> Self {
         Self {
             transport: None,
+            http_config: None,
             from: "LeeAttend <noreply@leeattend.com>".into(),
             base_url: "http://localhost:8080".into(),
             last_reload: Instant::now()
                 .checked_sub(CONFIG_RELOAD_INTERVAL)
                 .unwrap_or_else(Instant::now), // eager-load eligible
+            username: None,
+            password: None,
         }
     }
 }
@@ -91,14 +128,61 @@ fn build_transport(
     Some(builder.build())
 }
 
+/// Parse "Name <email>" or plain "email" into (name, email).
+fn parse_from_address(from: &str) -> (String, String) {
+    if let Some(open) = from.rfind('<') {
+        if let Some(close) = from.rfind('>') {
+            let name = from[..open].trim().trim_matches('"').to_string();
+            let email = from[open + 1..close].trim().to_string();
+            return (name, email);
+        }
+    }
+    (String::new(), from.trim().to_string())
+}
+
+/// Replace `{{variables}}` in a JSON body template, JSON-escaping each value.
+fn resolve_template(
+    template: &str,
+    from_name: &str,
+    from_email: &str,
+    to: &str,
+    subject: &str,
+    body: &str,
+) -> String {
+    let escape = |s: &str| -> String {
+        let mut out = String::with_capacity(s.len() + 2);
+        for ch in s.chars() {
+            match ch {
+                '"' => out.push_str("\\\""),
+                '\\' => out.push_str("\\\\"),
+                '\n' => out.push_str("\\n"),
+                '\r' => out.push_str("\\r"),
+                '\t' => out.push_str("\\t"),
+                c if c.is_control() => out.push_str(&format!("\\u{:04x}", c as u32)),
+                c => out.push(c),
+            }
+        }
+        out
+    };
+
+    template
+        .replace("{{from_name}}", &escape(from_name))
+        .replace("{{from_email}}", &escape(from_email))
+        .replace("{{to}}", &escape(to))
+        .replace("{{subject}}", &escape(subject))
+        .replace("{{body}}", &escape(body))
+}
+
 // ── EmailService ──────────────────────────────────────────────────────────
 
 pub struct EmailService {
     /// Hot-swappable config; read-locked for sends, write-locked on reload.
-    config: Arc<RwLock<SmtpConfig>>,
+    config: Arc<RwLock<EmailConfig>>,
     redis_pool: Option<RedisPool>,
     /// DB-backed system settings (source of truth) — optional for dev/test.
     settings_repo: Option<Arc<dyn SystemSettingsRepository>>,
+    /// Shared HTTP client with connection pooling (10s timeout).
+    http_client: reqwest::Client,
 }
 
 impl EmailService {
@@ -108,10 +192,15 @@ impl EmailService {
     ) -> Self {
         // `last_reload` is set in the past so the first send will trigger
         // an eager load from DB (or Redis cache).
+        let http_client = reqwest::Client::builder()
+            .timeout(SMTP_TIMEOUT)
+            .build()
+            .expect("reqwest::Client::builder infallible with valid config");
         Self {
-            config: Arc::new(RwLock::new(SmtpConfig::default_config())),
+            config: Arc::new(RwLock::new(EmailConfig::default_config())),
             redis_pool,
             settings_repo,
+            http_client,
         }
     }
 
@@ -151,7 +240,7 @@ impl EmailService {
 
     async fn load_from_redis(&self) -> Option<SmtpConfigData> {
         let redis = self.redis_pool.as_ref()?;
-        let fields: &[&str] = &["host", "port", "username", "password", "from", "base_url"];
+        let fields: &[&str] = &["host", "port", "username", "password", "from", "base_url", "http_api"];
         let mut conn = redis.conn();
         let values: Vec<Option<String>> = redis::cmd("HMGET")
             .arg("smtp:config")
@@ -165,6 +254,10 @@ impl EmailService {
             return None;
         }
 
+        let http_api = values[6]
+            .as_ref()
+            .and_then(|json_str| serde_json::from_str(json_str).ok());
+
         Some(SmtpConfigData {
             host: values[0].clone(),
             port: values[1].as_ref().and_then(|p| p.parse().ok()),
@@ -172,6 +265,7 @@ impl EmailService {
             password: values[3].clone(),
             from: values[4].clone(),
             base_url: values[5].clone(),
+            http_api,
         })
     }
 
@@ -193,6 +287,7 @@ impl EmailService {
             return;
         };
         let mut conn = redis.conn();
+        let http_api_json = serde_json::to_string(&config.http_api).unwrap_or_default();
         let _: () = redis::cmd("HSET")
             .arg("smtp:config")
             .arg("host")
@@ -207,6 +302,8 @@ impl EmailService {
             .arg(config.from.as_deref().unwrap_or(""))
             .arg("base_url")
             .arg(config.base_url.as_deref().unwrap_or(""))
+            .arg("http_api")
+            .arg(&http_api_json)
             .query_async(&mut conn)
             .await
             .map_err(|e| warn!("Failed to write smtp:config to Redis cache: {e}"))
@@ -214,14 +311,36 @@ impl EmailService {
     }
 
     async fn apply_config(&self, c: SmtpConfigData) {
-        let new_transport = build_transport(
-            c.host.as_deref(),
-            c.port,
-            c.username.as_deref(),
-            c.password.as_deref(),
-        );
+        let use_http = c.http_api.is_some();
+        let http_url = c.http_api.as_ref().map(|a| a.url.clone());
+
+        // Resolve auth_value placeholders at reload time (once, not per send).
+        let resolved_http_config = c.http_api.map(|cfg| {
+            let mut resolved = cfg;
+            if let Some(ref auth_val) = resolved.auth_value {
+                let mut v = auth_val.clone();
+                if let Some(ref u) = c.username {
+                    v = v.replace("{{username}}", u);
+                }
+                if let Some(ref p) = c.password {
+                    v = v.replace("{{password}}", p);
+                }
+                resolved.auth_value = Some(v);
+            }
+            resolved
+        });
+
+        let new_transport = if use_http {
+            None // Not building SMTP transport when HTTP is configured
+        } else {
+            build_transport(c.host.as_deref(), c.port, c.username.as_deref(), c.password.as_deref())
+        };
+
         let mut cfg = self.config.write().await;
         cfg.transport = new_transport;
+        cfg.http_config = resolved_http_config;
+        cfg.username = c.username;
+        cfg.password = c.password;
         cfg.last_reload = Instant::now();
         if let Some(f) = c.from {
             cfg.from = f;
@@ -230,10 +349,17 @@ impl EmailService {
             cfg.base_url = b;
         }
         drop(cfg);
-        info!(
-            "SMTP config reloaded (host={:?}, port={:?})",
-            c.host, c.port
-        );
+        if use_http {
+            info!(
+                "Email HTTP API config reloaded (url={})",
+                http_url.as_deref().unwrap_or_default()
+            );
+        } else {
+            info!(
+                "SMTP config reloaded (host={:?}, port={:?})",
+                c.host, c.port
+            );
+        }
     }
 
     // ── Rate limiting ────────────────────────────────────────────────
@@ -307,6 +433,74 @@ impl EmailService {
         true
     }
 
+    // ── HTTP send path ─────────────────────────────────────────────────
+
+    /// Send an email via the configured HTTP API (provider-agnostic).
+    async fn send_via_http(
+        &self,
+        http_config: &HttpApiConfig,
+        from: &str,
+        to_email: &str,
+        subject: &str,
+        body: &str,
+    ) -> AppResult<()> {
+        let (from_name, from_email) = parse_from_address(from);
+        let request_body = resolve_template(
+            &http_config.body_template,
+            &from_name,
+            &from_email,
+            to_email,
+            subject,
+            body,
+        );
+
+        let mut req = self
+            .http_client
+            .post(&http_config.url)
+            .header("Content-Type", "application/json");
+
+        if let (Some(ref header), Some(ref value)) =
+            (&http_config.auth_header, &http_config.auth_value)
+        {
+            req = req.header(header.as_str(), value.as_str());
+        }
+
+        let response = req.body(request_body).send().await.map_err(|e| {
+            error!("HTTP email API request failed: {e}");
+            AppError::Internal(format!("Failed to send email via HTTP API: {e}"))
+        })?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let resp_body = response.text().await.unwrap_or_default();
+            error!("HTTP email API returned {status}: {resp_body}");
+            return Err(AppError::Internal(format!(
+                "Email API returned HTTP {status}: {resp_body}"
+            )));
+        }
+
+        // Validate success_field/success_value if configured
+        if let (Some(ref field), Some(ref expected)) =
+            (&http_config.success_field, &http_config.success_value)
+        {
+            let resp_json: serde_json::Value =
+                response.json().await.map_err(|e| {
+                    AppError::Internal(format!("Failed to parse email API response: {e}"))
+                })?;
+            let actual = resp_json.get(field);
+            if actual != Some(expected) {
+                error!(
+                    "Email API success check failed: field={field}, expected={expected:?}, got={actual:?}"
+                );
+                return Err(AppError::Internal(format!(
+                    "Email API indicated failure: field '{field}' was {actual:?}, expected {expected:?}"
+                )));
+            }
+        }
+
+        Ok(())
+    }
+
     // ── Send ─────────────────────────────────────────────────────────
 
     pub async fn send_password_reset(&self, to_email: &str, token: &str) -> AppResult<()> {
@@ -319,10 +513,11 @@ impl EmailService {
         }
 
         // Snapshot config under read lock
-        let (transport, from, base_url) = {
+        let (transport, http_config, from, base_url) = {
             let cfg = self.config.read().await;
             (
                 cfg.transport.clone(),
+                cfg.http_config.clone(),
                 cfg.from.clone(),
                 cfg.base_url.clone(),
             )
@@ -334,7 +529,14 @@ impl EmailService {
             "Hello,\n\nWe received a request to reset your password. Click the link below to set a new password:\n\n{reset_url}\n\nThis link is valid for 15 minutes.\n\nIf you did not request a password reset, please ignore this email.\n\nRegards,\nLeeAttend Team"
         );
 
-        if let Some(transport) = &transport {
+        if let Some(ref http_cfg) = http_config {
+            self.send_via_http(http_cfg, &from, to_email, subject, &body)
+                .await?;
+            info!(
+                "Password reset email sent via HTTP API to {}",
+                crate::utils::masking::mask_email(to_email)
+            );
+        } else if let Some(transport) = &transport {
             let email =
                 Message::builder()
                     .from(from.parse().map_err(|e| {
@@ -372,8 +574,9 @@ impl EmailService {
 
     // ── Test SMTP connectivity ──────────────────────────────────────────
 
-    /// Send a test email to verify SMTP is configured correctly.
-    /// Bypasses rate limiting. Returns the SMTP host used on success.
+    /// Send a test email to verify email configuration is correct.
+    /// Bypasses rate limiting. Uses HTTP API if configured, SMTP otherwise.
+    /// Returns a human-readable success message.
     pub async fn send_test_email(&self, to_email: &str) -> AppResult<String> {
         // Force-reload config (skip cache TTL)
         {
@@ -384,24 +587,27 @@ impl EmailService {
         }
         self.maybe_reload_config().await;
 
-        let (transport, from, base_url) = {
+        let (transport, http_config, from, base_url) = {
             let cfg = self.config.read().await;
             (
                 cfg.transport.clone(),
+                cfg.http_config.clone(),
                 cfg.from.clone(),
                 cfg.base_url.clone(),
             )
         };
 
-        let transport = transport.ok_or_else(|| {
-            AppError::Internal(
-                "SMTP is not configured. Insert a 'smtp' record into system_settings.".into(),
-            )
-        })?;
+        // Require at least one transport method
+        if transport.is_none() && http_config.is_none() {
+            return Err(AppError::Internal(
+                "Email is not configured. Insert a 'smtp' record into system_settings \
+                 with either SMTP host/port or an 'http_api' block.".into(),
+            ));
+        }
 
-        let subject = "LeeAttend — SMTP Test Email";
+        let subject = "LeeAttend — Email Test";
         let body = format!(
-            "Hello,\n\nThis is a test email from LeeAttend to confirm your SMTP configuration is working correctly.\n\n\
+            "Hello,\n\nThis is a test email from LeeAttend to confirm your email configuration is working correctly.\n\n\
              Sent at: {}\n\
              App URL: {base_url}\n\n\
              If you received this, your email setup is ready.\n\n\
@@ -409,6 +615,20 @@ impl EmailService {
             chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
         );
 
+        if let Some(ref http_cfg) = http_config {
+            self.send_via_http(http_cfg, &from, to_email, subject, &body)
+                .await?;
+            info!(
+                "Test email sent via HTTP API to {}",
+                crate::utils::masking::mask_email(to_email)
+            );
+            return Ok(format!(
+                "Test email sent via HTTP API. Check {to_email} for the message."
+            ));
+        }
+
+        // SMTP path (transport guaranteed Some by the check above)
+        let transport = transport.unwrap();
         let email = Message::builder()
             .from(
                 from.parse()
@@ -461,14 +681,18 @@ mod tests {
             None
         };
         EmailService {
-            config: Arc::new(RwLock::new(SmtpConfig {
+            config: Arc::new(RwLock::new(EmailConfig {
                 transport,
+                http_config: None,
                 from: "Test <test@leeattend.com>".into(),
                 base_url: "https://app.example.com".into(),
                 last_reload: Instant::now(),
+                username: None,
+                password: None,
             })),
             redis_pool: None,
             settings_repo: None,
+            http_client: reqwest::Client::new(),
         }
     }
 
@@ -478,14 +702,18 @@ mod tests {
             .ok()?;
         let pool = RedisPool::new(&url).await.ok()?;
         Some(EmailService {
-            config: Arc::new(RwLock::new(SmtpConfig {
+            config: Arc::new(RwLock::new(EmailConfig {
                 transport: None,
+                http_config: None,
                 from: "Test <test@leeattend.com>".into(),
                 base_url: "https://app.example.com".into(),
                 last_reload: Instant::now(),
+                username: None,
+                password: None,
             })),
             redis_pool: Some(pool),
             settings_repo: None,
+            http_client: reqwest::Client::new(),
         })
     }
 
@@ -506,14 +734,18 @@ mod tests {
     #[tokio::test]
     async fn send_password_reset_preserves_url_format() {
         let s = EmailService {
-            config: Arc::new(RwLock::new(SmtpConfig {
+            config: Arc::new(RwLock::new(EmailConfig {
                 transport: None,
+                http_config: None,
                 from: "F <f@t.com>".into(),
                 base_url: "https://my.app".into(),
                 last_reload: Instant::now(),
+                username: None,
+                password: None,
             })),
             redis_pool: None,
             settings_repo: None,
+            http_client: reqwest::Client::new(),
         };
         assert!(s.send_password_reset("a@b.com", "s3cret").await.is_ok());
     }
@@ -718,17 +950,17 @@ mod tests {
     // ── send_test_email tests ──────────────────────────────────────
 
     #[tokio::test]
-    async fn send_test_email_fails_with_no_smtp_configured() {
+    async fn send_test_email_fails_with_no_email_configured() {
         let s = test_service(false);
         let result = s.send_test_email("admin@test.com").await;
         assert!(
             result.is_err(),
-            "Test email must fail when SMTP is not configured"
+            "Test email must fail when no email transport is configured"
         );
         let msg = result.unwrap_err().to_string();
         assert!(
-            msg.contains("SMTP is not configured") || msg.contains("system_settings"),
-            "Error should mention missing SMTP config, got: {msg}"
+            msg.contains("http_api") || msg.contains("system_settings"),
+            "Error should mention missing config options, got: {msg}"
         );
     }
 
@@ -757,8 +989,195 @@ mod tests {
 
         let msg = result.unwrap_err().to_string();
         assert!(
-            msg.contains("SMTP is not configured"),
+            msg.contains("http_api") || msg.contains("Email is not configured"),
             "Test email should bypass rate limit, got: {msg}"
         );
+    }
+
+    // ── HTTP adapter tests ──────────────────────────────────────────
+
+    #[test]
+    fn test_parse_from_address_with_name() {
+        let (name, email) = parse_from_address("LeeAttend <noreply@leeattend.com>");
+        assert_eq!(name, "LeeAttend");
+        assert_eq!(email, "noreply@leeattend.com");
+    }
+
+    #[test]
+    fn test_parse_from_address_bare_email() {
+        let (name, email) = parse_from_address("test@example.com");
+        assert_eq!(name, "");
+        assert_eq!(email, "test@example.com");
+    }
+
+    #[test]
+    fn test_parse_from_address_with_quotes() {
+        let (name, email) = parse_from_address("\"The Team\" <team@ex.com>");
+        assert_eq!(name, "The Team");
+        assert_eq!(email, "team@ex.com");
+    }
+
+    #[test]
+    fn test_resolve_template_basic() {
+        let tmpl = r#"{"from":{"email":"{{from_email}}","name":"{{from_name}}"},"to":[{"email":"{{to}}"}],"subject":"{{subject}}","text":"{{body}}"}"#;
+        let result = resolve_template(tmpl, "Lee", "lee@x.com", "u@x.com", "Hi", "Hello world");
+        assert!(result.contains(r#""email":"lee@x.com""#));
+        assert!(result.contains(r#""name":"Lee""#));
+        assert!(result.contains(r#""email":"u@x.com""#));
+        assert!(result.contains(r#""subject":"Hi""#));
+        assert!(result.contains(r#""text":"Hello world""#));
+    }
+
+    #[test]
+    fn test_resolve_template_escapes_quotes() {
+        let tmpl = r#"{"text":"{{body}}"}"#;
+        let result = resolve_template(tmpl, "", "", "", "", "She said \"hello\"");
+        assert!(result.contains(r#""text":"She said \"hello\"""#));
+    }
+
+    #[test]
+    fn test_resolve_template_escapes_newlines() {
+        let tmpl = r#"{"text":"{{body}}"}"#;
+        let result = resolve_template(tmpl, "", "", "", "", "line1\nline2");
+        assert!(result.contains(r#""text":"line1\nline2""#));
+    }
+
+    #[test]
+    fn test_resolve_template_escapes_backslash() {
+        let tmpl = r#"{"text":"{{body}}"}"#;
+        let result = resolve_template(tmpl, "", "", "", "", "path\\to\\file");
+        assert!(result.contains(r#""text":"path\\to\\file""#));
+    }
+
+    #[test]
+    fn test_httpapi_config_deserialization() {
+        let json = serde_json::json!({
+            "url": "https://send.api.example.com/api/send",
+            "auth_header": "Authorization",
+            "auth_value": "Bearer {{password}}",
+            "success_field": "success",
+            "success_value": true,
+            "body_template": "{\"from\":{\"email\":\"{{from_email}}\"}}",
+        });
+        let cfg: HttpApiConfig = serde_json::from_value(json).unwrap();
+        assert_eq!(cfg.url, "https://send.api.example.com/api/send");
+        assert_eq!(cfg.auth_header.unwrap(), "Authorization");
+        assert_eq!(cfg.auth_value.unwrap(), "Bearer {{password}}");
+        assert_eq!(cfg.success_field.unwrap(), "success");
+        assert_eq!(cfg.success_value.unwrap(), serde_json::Value::Bool(true));
+        assert!(cfg.body_template.contains("{{from_email}}"));
+    }
+
+    #[test]
+    fn test_httpapi_config_minimal() {
+        // Only url and body_template are required
+        let json = serde_json::json!({
+            "url": "https://send.api.example.com/api/send",
+            "body_template": "{\"text\":\"{{body}}\"}",
+        });
+        let cfg: HttpApiConfig = serde_json::from_value(json).unwrap();
+        assert_eq!(cfg.url, "https://send.api.example.com/api/send");
+        assert!(cfg.auth_header.is_none());
+        assert!(cfg.success_field.is_none());
+    }
+
+    #[test]
+    fn test_smtp_config_data_with_http_api() {
+        let json = serde_json::json!({
+            "host": "smtp.example.com",
+            "port": 587,
+            "username": "api",
+            "password": "secret",
+            "http_api": {
+                "url": "https://send.api.example.com/api/send",
+                "auth_header": "Api-Token",
+                "auth_value": "{{password}}",
+                "body_template": "{\"text\":\"{{body}}\"}"
+            }
+        });
+        let cfg: SmtpConfigData = serde_json::from_value(json).unwrap();
+        assert_eq!(cfg.host.unwrap(), "smtp.example.com");
+        assert!(cfg.http_api.is_some());
+        assert_eq!(
+            cfg.http_api.as_ref().unwrap().url,
+            "https://send.api.example.com/api/send"
+        );
+    }
+
+    #[test]
+    fn test_smtp_config_data_without_http_api() {
+        let json = serde_json::json!({
+            "host": "smtp.example.com",
+            "port": 587
+        });
+        let cfg: SmtpConfigData = serde_json::from_value(json).unwrap();
+        assert_eq!(cfg.host.unwrap(), "smtp.example.com");
+        assert!(cfg.http_api.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_http_config_roundtrip_via_redis() {
+        let Some(s) = test_service_with_redis().await else {
+            return;
+        };
+        let conn = s.redis_pool.as_ref().unwrap().conn();
+
+        // Seed Redis with config including http_api
+        let _: () = redis::cmd("HSET")
+            .arg("smtp:config")
+            .arg("http_api")
+            .arg(r#"{"url":"https://api.example.com/send","body_template":"{\"text\":\"{{body}}\"}"}"#)
+            .query_async(&mut conn.clone())
+            .await
+            .unwrap();
+
+        let loaded = s.load_from_redis().await;
+        assert!(loaded.is_some(), "should load config");
+        let loaded = loaded.unwrap();
+        assert!(
+            loaded.http_api.is_some(),
+            "http_api must be deserialized from Redis"
+        );
+
+        // Cleanup
+        let _: () = redis::cmd("DEL")
+            .arg("smtp:config")
+            .query_async(&mut conn.clone())
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_no_http_api_field_redis_backwards_compat() {
+        let Some(s) = test_service_with_redis().await else {
+            return;
+        };
+        let conn = s.redis_pool.as_ref().unwrap().conn();
+
+        // Redis without http_api field (legacy deployment)
+        let _: () = redis::cmd("HSET")
+            .arg("smtp:config")
+            .arg("host")
+            .arg("smtp.example.com")
+            .arg("port")
+            .arg("587")
+            .query_async(&mut conn.clone())
+            .await
+            .unwrap();
+
+        let loaded = s.load_from_redis().await;
+        assert!(loaded.is_some(), "should load legacy config");
+        let loaded = loaded.unwrap();
+        assert!(
+            loaded.http_api.is_none(),
+            "http_api must be None for legacy Redis configs"
+        );
+
+        // Cleanup
+        let _: () = redis::cmd("DEL")
+            .arg("smtp:config")
+            .query_async(&mut conn.clone())
+            .await
+            .unwrap();
     }
 }

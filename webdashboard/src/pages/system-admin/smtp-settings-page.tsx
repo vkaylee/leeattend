@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Mail, Save, Send, CheckCircle, XCircle, Loader2, ShieldCheck, AlertTriangle } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Mail, Save, Send, CheckCircle, XCircle, Loader2, ShieldCheck, AlertTriangle, ChevronDown, Globe } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
   fetchSmtpConfig,
   saveSmtpConfig,
   testSmtp,
+  type HttpApiConfig,
   type SmtpConfigData,
 } from "@/lib/api/smtp-config";
 
@@ -28,6 +29,7 @@ export default function SmtpSettingsPage() {
 
   const [dirty, setDirty] = useState(false);
   const [testEmail, setTestEmail] = useState("");
+  const [showHttpApi, setShowHttpApi] = useState(false);
   const [testResult, setTestResult] = useState<{
     success: boolean;
     message: string;
@@ -38,6 +40,7 @@ export default function SmtpSettingsPage() {
 
   // Derive form state from config; only track overrides for dirty tracking
   const [overrides, setOverrides] = useState<Partial<SmtpConfigData>>({});
+  const [httpOverrides, setHttpOverrides] = useState<Partial<HttpApiConfig>>({});
 
   // eslint-disable-next-line complexity
   const form: SmtpConfigData = useMemo(() => ({
@@ -47,7 +50,27 @@ export default function SmtpSettingsPage() {
     password: overrides.password ?? config?.password ?? "",
     from: overrides.from ?? config?.from ?? "",
     base_url: overrides.base_url ?? config?.base_url ?? "",
+    http_api: config?.http_api ?? undefined,
   }), [config, overrides]);
+
+  const httpForm: HttpApiConfig = useMemo(() => {
+    const src = overrides.http_api ?? config?.http_api;
+    return {
+      url: httpOverrides.url ?? src?.url ?? "",
+      auth_header: httpOverrides.auth_header ?? src?.auth_header ?? "",
+      auth_value: httpOverrides.auth_value ?? src?.auth_value ?? "",
+      success_field: httpOverrides.success_field ?? src?.success_field ?? "",
+      success_value: httpOverrides.success_value ?? src?.success_value ?? true,
+      body_template: httpOverrides.body_template ?? src?.body_template ?? "",
+    };
+  }, [config, overrides, httpOverrides]);
+
+  // Auto-expand when config already has http_api
+  useEffect(() => {
+    if (config?.http_api && !dirty) {
+      setShowHttpApi(true);
+    }
+  }, [config?.http_api, dirty]);
 
   const updateField = (field: keyof SmtpConfigData, value: string | number) => {
     setOverrides((prev) => ({ ...prev, [field]: value }));
@@ -70,7 +93,7 @@ export default function SmtpSettingsPage() {
   });
 
   const handleSave = () => {
-    saveMutation.mutate({
+    const payload: SmtpConfigData = {
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       host: form.host || undefined,
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
@@ -83,7 +106,21 @@ export default function SmtpSettingsPage() {
       from: form.from || undefined,
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       base_url: form.base_url || undefined,
-    });
+    };
+    // Include http_api if URL is filled
+    if (httpForm.url.trim()) {
+      payload.http_api = {
+        url: httpForm.url.trim(),
+        auth_header: httpForm.auth_header || undefined,
+        auth_value: httpForm.auth_value || undefined,
+        success_field: httpForm.success_field || undefined,
+        success_value: httpForm.success_field ? (httpForm.success_value ?? true) : undefined,
+        body_template: httpForm.body_template.trim(),
+      };
+    } else {
+      payload.http_api = null;
+    }
+    saveMutation.mutate(payload);
   };
 
   const handleTest = async () => {
@@ -220,6 +257,141 @@ export default function SmtpSettingsPage() {
               ) : null}
             </div>
           ))}
+        </div>
+
+        {/* HTTP API section */}
+        <div className="border-t border-slate-100 dark:border-slate-800 pt-5 mt-2">
+          <button
+            className="flex items-center gap-2 w-full text-left font-semibold text-slate-700 dark:text-slate-200 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+            data-testid="smtp-http-api-toggle"
+            onClick={() => setShowHttpApi((p) => !p)}
+            type="button"
+          >
+            <Globe className="w-4 h-4" />
+            <Typography variant="h3">
+              {t("smtp.http_api_section", "HTTP API (Alternative)")}
+            </Typography>
+            <ChevronDown
+              className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                showHttpApi ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+          <Typography className="text-sm text-slate-400 dark:text-slate-500 mt-1 ml-6" variant="p">
+            {t("smtp.http_api_desc", "Use a REST API to send emails instead of SMTP. Required on platforms that block outbound SMTP (Railway, Fly.io, etc.). Supports any transactional email provider.")}
+          </Typography>
+
+          {showHttpApi ? (
+            <div className="ml-6 mt-4 grid gap-4 sm:grid-cols-2 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  {t("smtp.http_api_url", "API URL")} *
+                </label>
+                <input
+                  className="block w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition-all text-sm placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                  data-testid="smtp-http-api-url"
+                  onChange={(e) => {
+                    setHttpOverrides((p) => ({ ...p, url: e.target.value }));
+                    setDirty(true);
+                  }}
+                  placeholder="https://send.api.mailtrap.io/api/send"
+                  type="text"
+                  value={httpForm.url}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  {t("smtp.http_api_auth_header", "Auth Header")}
+                </label>
+                <input
+                  className="block w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition-all text-sm placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                  data-testid="smtp-http-api-auth-header"
+                  onChange={(e) => {
+                    setHttpOverrides((p) => ({ ...p, auth_header: e.target.value }));
+                    setDirty(true);
+                  }}
+                  placeholder="Authorization"
+                  type="text"
+                  value={httpForm.auth_header}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  {t("smtp.http_api_auth_value", "Auth Value")}
+                </label>
+                <input
+                  className="block w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition-all text-sm placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                  data-testid="smtp-http-api-auth-value"
+                  onChange={(e) => {
+                    setHttpOverrides((p) => ({ ...p, auth_value: e.target.value }));
+                    setDirty(true);
+                  }}
+                  placeholder={'Bearer {{password}}'}
+                  type="text"
+                  value={httpForm.auth_value}
+                />
+                <Typography className="text-[11px] text-slate-400 dark:text-slate-500" variant="p">
+                  {"{{username}} and {{password}} are replaced with SMTP credentials"}
+                </Typography>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  {t("smtp.http_api_success_field", "Success Field")}
+                </label>
+                <input
+                  className="block w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition-all text-sm placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                  data-testid="smtp-http-api-success-field"
+                  onChange={(e) => {
+                    setHttpOverrides((p) => ({ ...p, success_field: e.target.value }));
+                    setDirty(true);
+                  }}
+                  placeholder="success"
+                  type="text"
+                  value={httpForm.success_field}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  {t("smtp.http_api_success_value", "Success Value")}
+                </label>
+                <input
+                  className="block w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition-all text-sm placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                  data-testid="smtp-http-api-success-value"
+                  onChange={(e) => {
+                    setHttpOverrides((p) => ({ ...p, success_value: e.target.value === "false" ? false : e.target.value === "true" ? true : e.target.value }));
+                    setDirty(true);
+                  }}
+                  placeholder="true"
+                  type="text"
+                  value={typeof httpForm.success_value === "boolean" ? String(httpForm.success_value) : String(httpForm.success_value ?? "")}
+                />
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  {t("smtp.http_api_body_template", "JSON Body Template")} *
+                </label>
+                <textarea
+                  className="block w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition-all text-sm font-mono placeholder:text-slate-300 dark:placeholder:text-slate-600 resize-y"
+                  data-testid="smtp-http-api-body-template"
+                  onChange={(e) => {
+                    setHttpOverrides((p) => ({ ...p, body_template: e.target.value }));
+                    setDirty(true);
+                  }}
+                  placeholder={'{"from":{"email":"{{from_email}}","name":"{{from_name}}"},"to":[{"email":"{{to}}"}],"subject":"{{subject}}","text":"{{body}}"}'}
+                  rows={6}
+                  value={httpForm.body_template}
+                />
+                <Typography className="text-[11px] text-slate-400 dark:text-slate-500" variant="p">
+                  {"Variables: {{from_name}}, {{from_email}}, {{to}}, {{subject}}, {{body}}"}
+                </Typography>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex justify-end pt-2">

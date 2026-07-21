@@ -1,10 +1,20 @@
 import { ApiError } from "./errors";
 import { apiFetch, TIMEOUT } from "./helpers";
 
+export interface HttpApiConfig {
+  url: string;
+  auth_header?: string;
+  auth_value?: string;
+  success_field?: string;
+  success_value?: unknown;
+  body_template: string;
+}
+
 export interface SmtpConfigData {
   base_url?: string;
   from?: string;
   host?: string;
+  http_api?: HttpApiConfig | null;
   password?: string;
   port?: number;
   username?: string;
