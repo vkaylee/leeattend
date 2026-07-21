@@ -51,6 +51,13 @@ export default function SmtpSettingsPage() {
   // Track verification status: null = untested, Date = last successful test
   const [verifiedAt, setVerifiedAt] = useState<Date | null>(null);
 
+  // Restore verifiedAt from config on load
+  useEffect(() => {
+    if (config?.last_verified_at) {
+      setVerifiedAt(new Date(config.last_verified_at));
+    }
+  }, [config?.last_verified_at]);
+
   // Derive form state from config; only track overrides for dirty tracking
   const [overrides, setOverrides] = useState<Partial<SmtpConfigData>>({});
   const [httpOverrides, setHttpOverrides] = useState<Partial<HttpApiConfig>>({});

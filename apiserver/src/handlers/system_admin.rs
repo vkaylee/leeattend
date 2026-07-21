@@ -510,10 +510,20 @@ pub async fn test_smtp(
 
     let email_service = state.core().email_service();
     match email_service.send_test_email(&req.to_email).await {
-        Ok(msg) => Ok(Json(SmtpTestResponse {
-            success: true,
-            message: msg,
-        })),
+        Ok(msg) => {
+            // Persist verification timestamp in system_settings.smtp JSON
+            let repo = state.infra().system_settings_repo();
+            if let Ok(Some(mut config)) = repo.get("smtp").await {
+                config["last_verified_at"] =
+                    serde_json::Value::String(chrono::Utc::now().to_rfc3339());
+                let _ = repo.set("smtp", &config).await;
+            }
+
+            Ok(Json(SmtpTestResponse {
+                success: true,
+                message: msg,
+            }))
+        }
         Err(e) => Ok(Json(SmtpTestResponse {
             success: false,
             message: e.to_string(),

@@ -15,6 +15,7 @@ export interface SmtpConfigData {
   from?: string;
   host?: string;
   http_api?: HttpApiConfig | null;
+  last_verified_at?: string;
   password?: string;
   port?: number;
   username?: string;
