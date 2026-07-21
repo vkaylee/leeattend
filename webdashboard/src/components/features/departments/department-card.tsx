@@ -35,7 +35,7 @@ export function DepartmentCard({ dept, employees, onEdit, onConfig, deleteMutati
   return (
     <>
       <div 
-        className="cursor-pointer text-left bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-10 rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 hover:scale-[1.02] transition-all group relative overflow-hidden flex flex-col focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+        className="cursor-pointer text-left bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-2xl sm:rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 hover:scale-[1.02] transition-all group relative overflow-hidden flex flex-col focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
         onClick={(e) => {
           if ((e.target as HTMLElement).closest("[data-actions-menu]")) {
             return;

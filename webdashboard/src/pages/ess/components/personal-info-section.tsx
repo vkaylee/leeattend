@@ -31,7 +31,7 @@ export function PersonalInfoSection({
 
   return (
     <form
-      className="max-w-5xl bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm p-12 space-y-12 animate-in fade-in duration-500"
+      className="max-w-5xl bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm p-6 sm:p-12 space-y-12 animate-in fade-in duration-500"
       onSubmit={(e) => {
         void handleSubmit(e);
       }}

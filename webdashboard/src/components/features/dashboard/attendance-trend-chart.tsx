@@ -136,7 +136,7 @@ export default function AttendanceTrendChart() {
     const hasData = chartData.length > 0 && chartData.some((d) => d.present > 0 || d.late > 0 || d.absent > 0 || d.on_leave > 0);
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
                     <div className="bg-emerald-50 dark:bg-emerald-950 w-12 h-12 rounded-[1rem] flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-inner border border-emerald-100 dark:border-emerald-800">

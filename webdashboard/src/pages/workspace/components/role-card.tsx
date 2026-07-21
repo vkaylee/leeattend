@@ -22,7 +22,7 @@ export function RoleCard({ role, activeMenu, setActiveMenu, onEdit, onDelete }: 
   const { t } = useTranslation();
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-black/20 transition-all duration-300 group">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[2rem] border border-slate-100 dark:border-slate-800 p-5 sm:p-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-black/20 transition-all duration-300 group">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-4">
           <RoleIcon role={role} />

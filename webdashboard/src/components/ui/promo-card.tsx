@@ -45,7 +45,7 @@ const PromoCard = memo(function PromoCard({
   return (
     <div
       className={cn(
-        "rounded-[3rem] p-10 sm:p-14 text-white relative overflow-hidden group shadow-2xl",
+        "rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 lg:p-14 text-white relative overflow-hidden group shadow-2xl",
         isDark
           ? "bg-slate-900 shadow-slate-200 dark:shadow-black/40"
           : "bg-primary-600 shadow-primary-900/20",

@@ -213,7 +213,7 @@ export default function EContractsPage() {
         selectedType={selectedType}
       />
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-sm overflow-hidden relative min-h-[400px]">
+      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] shadow-sm overflow-hidden relative min-h-[400px]">
         <EContractsTable
           contracts={filteredContracts}
           isLoading={isPageLoading}

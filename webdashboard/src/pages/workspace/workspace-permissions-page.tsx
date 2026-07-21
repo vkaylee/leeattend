@@ -46,7 +46,7 @@ export default function WorkspacePermissionsPage() {
         setHiddenRoleIds={setHiddenRoleIds}
       />
       
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
         <PermissionsMatrix
           canScrollLeft={canScrollLeft}
           canScrollRight={canScrollRight}

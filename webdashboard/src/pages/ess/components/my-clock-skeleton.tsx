@@ -11,7 +11,7 @@ export function MyClockSkeleton() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* PunchCard Skeleton */}
-        <div className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[40px] p-10 flex flex-col items-center justify-between min-h-[460px]">
+        <div className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl sm:rounded-[40px] p-6 sm:p-10 flex flex-col items-center justify-between min-h-[460px]">
           <div className="w-24 h-24 rounded-[2rem] bg-slate-200 dark:bg-slate-800 mb-8" />
           <div className="space-y-3 w-full items-center flex flex-col mb-10">
             <div className="h-6 w-48 bg-slate-200 dark:bg-slate-800 rounded-xl" />
@@ -22,7 +22,7 @@ export function MyClockSkeleton() {
         </div>
 
         {/* HistoryTable Skeleton */}
-        <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[40px] overflow-hidden flex flex-col">
+        <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl sm:rounded-[40px] overflow-hidden flex flex-col">
           <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 flex items-center">
             <div className="w-5 h-5 bg-slate-200 dark:bg-slate-800 rounded-lg mr-3" />
             <div className="h-4 w-40 bg-slate-200 dark:bg-slate-800 rounded-lg" />

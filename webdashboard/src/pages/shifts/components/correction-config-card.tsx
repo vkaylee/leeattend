@@ -20,7 +20,7 @@ export function CorrectionConfigCard({
   const { t } = useTranslation();
 
   return (
-    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/60 rounded-[2.5rem] p-10 shadow-sm space-y-6">
+    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/60 rounded-2xl sm:rounded-[2.5rem] p-5 sm:p-10 shadow-sm space-y-6">
       <div className="flex items-center gap-3">
         <div className="bg-amber-100 dark:bg-amber-900 p-2.5 rounded-2xl text-amber-600 dark:text-amber-300">
           <Zap size={18} />

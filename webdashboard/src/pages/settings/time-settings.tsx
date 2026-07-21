@@ -49,15 +49,15 @@ export default function TimeSettings() {
   if (isLoadingWs || isLoadingRules || isLoadingVersions) {
     return (
       <div className="space-y-6">
-        <Skeleton className="h-[200px] w-full rounded-[2.5rem]" />
-        <Skeleton className="h-[400px] w-full rounded-[2.5rem]" />
+        <Skeleton className="h-[200px] w-full rounded-2xl sm:rounded-[2.5rem]" />
+        <Skeleton className="h-[400px] w-full rounded-2xl sm:rounded-[2.5rem]" />
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center min-h-[300px] text-center space-y-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center min-h-[300px] text-center space-y-4">
         <div className="w-16 h-16 rounded-full bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center text-rose-50 border border-rose-100 dark:border-rose-900/50">
           <Clock className="w-8 h-8 text-rose-500" />
         </div>
@@ -83,7 +83,7 @@ export default function TimeSettings() {
 
   if (!workspace || !rules) {
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center min-h-[300px] text-center space-y-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center min-h-[300px] text-center space-y-4">
         <div className="w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center text-amber-500 border border-amber-100 dark:border-amber-900/50">
           <Clock className="w-8 h-8 text-amber-500" />
         </div>

@@ -44,7 +44,7 @@ export default function EContractsEnvelopesTab({
         setEnvFilterStatus={setEnvFilterStatus}
       />
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-sm">
         {isLoading ? (
           <div className="p-8 text-center text-xs text-slate-500 animate-pulse">Loading envelopes...</div>
         ) : filteredEnvelopes.length === 0 ? (

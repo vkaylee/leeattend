@@ -48,7 +48,7 @@ export function AdjustmentsTable(props: AdjustmentsTableProps) {
   } = props;
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700">
+    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl sm:rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <AdjustmentsTableHeader setStatusFilter={setStatusFilter} statusFilter={statusFilter} />

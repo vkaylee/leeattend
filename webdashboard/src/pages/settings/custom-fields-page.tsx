@@ -133,7 +133,7 @@ export default function CustomFieldsPage() {
       {/* Main Content Area */}
       <div className="animate-in slide-in-from-bottom-4 duration-500">
         {isLoading ? (
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-10 rounded-[2.5rem] shadow-sm animate-pulse h-80" />
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-2xl sm:rounded-[2.5rem] shadow-sm animate-pulse h-80" />
         ) : fields.length === 0 ? (
           <EmptyState
             description={t("no_fields")}

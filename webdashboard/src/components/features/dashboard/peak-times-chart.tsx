@@ -45,7 +45,7 @@ export default function PeakTimesChart() {
         chartData.some((d) => d.check_in > 0 || d.check_out > 0);
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
             <ChartHeader />
 
             {isLoading ? (

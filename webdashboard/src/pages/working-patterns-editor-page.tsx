@@ -115,8 +115,8 @@ export default function WorkingPatternsEditorPage() {
       <div className="p-12 space-y-8 animate-pulse max-w-7xl mx-auto">
         <div className="h-10 w-64 bg-slate-200 dark:bg-slate-800 rounded-full" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          <div className="h-96 bg-slate-200 dark:bg-slate-800 rounded-[2.5rem]" />
-          <div className="lg:col-span-2 h-[30rem] bg-slate-200 dark:bg-slate-800 rounded-[2.5rem]" />
+          <div className="h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl sm:rounded-[2.5rem]" />
+          <div className="lg:col-span-2 h-[30rem] bg-slate-200 dark:bg-slate-800 rounded-2xl sm:rounded-[2.5rem]" />
         </div>
       </div>
     );
@@ -197,7 +197,7 @@ export default function WorkingPatternsEditorPage() {
         />
 
         {/* Right Column: Interactive Schedule Grid */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm flex flex-col">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-10 shadow-sm flex flex-col">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-50 dark:border-slate-800 pb-6 mb-6">
             <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2.5" variant="h3">
               <Clock className="text-primary-500" size={16} />

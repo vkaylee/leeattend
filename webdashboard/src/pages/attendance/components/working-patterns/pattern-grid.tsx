@@ -35,7 +35,7 @@ export function PatternGrid({
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
         {Array.from({ length: 3 }).map((_, index) => (
           <div
-            className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-10 rounded-[2.5rem] shadow-sm animate-pulse h-80"
+            className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-2xl sm:rounded-[2.5rem] shadow-sm animate-pulse h-80"
             key={index}
           />
         ))}

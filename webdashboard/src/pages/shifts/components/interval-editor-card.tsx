@@ -23,7 +23,7 @@ export function IntervalEditorCard({
   const { t } = useTranslation();
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm space-y-6">
+    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] p-5 sm:p-10 shadow-sm space-y-6">
       <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/80 pb-4">
         <Typography
           className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]"

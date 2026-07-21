@@ -56,7 +56,7 @@ export default function AssignmentRulesPage({ hideHeaderTitle }: { hideHeaderTit
         rules={rules}
       />
 
-      <div className="p-8 bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-900 rounded-[2.5rem] flex gap-6 shadow-inner animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      <div className="p-6 sm:p-8 bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-900 rounded-2xl sm:rounded-[2.5rem] flex gap-6 shadow-inner animate-in fade-in slide-in-from-bottom-4 duration-1000">
         <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm dark:shadow-black/10 border border-blue-100 dark:border-blue-900 shrink-0">
           <AlertCircle size={24} />
         </div>

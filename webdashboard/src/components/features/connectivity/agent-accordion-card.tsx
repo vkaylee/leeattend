@@ -113,7 +113,7 @@ function AgentHeader({
 
   return (
     <div
-      className="flex items-center gap-6 p-8 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
+      className="flex items-center gap-6 p-5 sm:p-8 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
       data-testid={`agent-header-${agent.id}`}
       onClick={onToggleExpand}
       onKeyDown={(e) => {
@@ -237,7 +237,7 @@ export default function AgentAccordionCard({
   return (
     <div
       className={cn(
-        "bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden transition-all shadow-sm",
+        "bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden transition-all shadow-sm",
         "hover:shadow-lg hover:shadow-primary-100/20",
         !agent.is_active && "opacity-50 grayscale"
       )}

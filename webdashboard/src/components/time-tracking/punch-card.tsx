@@ -33,7 +33,7 @@ export function PunchCard({
   const { formatTime } = useDateTimeFormatter();
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[40px] p-10 shadow-2xl shadow-slate-200 dark:shadow-black/40 flex flex-col items-center text-center relative overflow-hidden group">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl sm:rounded-[40px] p-6 sm:p-10 shadow-2xl shadow-slate-200 dark:shadow-black/40 flex flex-col items-center text-center relative overflow-hidden group">
       <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
         <Clock className="-rotate-12" size={120} />
       </div>

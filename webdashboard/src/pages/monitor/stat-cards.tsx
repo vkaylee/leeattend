@@ -111,7 +111,7 @@ function StatCard({
   value: number;
 }) {
   return (
-    <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-black/10 hover:shadow-xl dark:hover:shadow-black/20 transition-all group relative overflow-hidden">
+    <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-black/10 hover:shadow-xl dark:hover:shadow-black/20 transition-all group relative overflow-hidden">
       <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mb-4 border", color)}>
         <Icon size={22} />
       </div>

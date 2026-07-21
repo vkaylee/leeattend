@@ -113,7 +113,7 @@ export function HolidayTable({ holidays, isLoading, leaveTypes, onDelete, onEdit
 
     if (isLoading) {
         return (
-            <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
                 <div className="p-12 text-center text-slate-400 text-sm font-bold uppercase tracking-widest animate-pulse">
                     {t("common.loading")}
                 </div>
@@ -123,7 +123,7 @@ export function HolidayTable({ holidays, isLoading, leaveTypes, onDelete, onEdit
 
     if (holidays.length === 0) {
         return (
-            <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
                 <div className="p-12 text-center">
                     <CalendarDays className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                     <Typography className="text-slate-400 text-sm font-medium" variant="p">

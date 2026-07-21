@@ -112,7 +112,7 @@ function OvertimePolicySkeleton() {
       </div>
       <div className="grid grid-cols-1 gap-4">
         {[1, 2].map((i) => (
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-6 shadow-sm space-y-4" key={i}>
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] p-6 shadow-sm space-y-4" key={i}>
             <div className="flex items-center gap-4">
               <Skeleton className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-800" />
               <div className="space-y-2">
@@ -185,7 +185,7 @@ export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerPro
         ))}
 
         {policies.length === 0 && !isCreating ? (
-          <div className='flex flex-col items-center justify-center py-12 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-700'>
+          <div className='flex flex-col items-center justify-center py-12 bg-slate-50 dark:bg-slate-800 rounded-2xl sm:rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-700'>
              <AlertCircle className='text-slate-300 dark:text-slate-600 mb-4' size={48} />
              <Typography className='text-slate-500 dark:text-slate-400 font-medium' variant="p">{t('payroll.no_overtime_policies')}</Typography>
              <Button className='mt-4 text-primary-600 dark:text-primary-400 font-bold hover:underline' onClick={() => { setIsCreating(true); }} variant="ghost">{t('payroll.create_first_policy')}</Button>

@@ -94,7 +94,7 @@ export default function RecruitmentSourceChart() {
 
     if (isLoading) {
         return (
-            <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm animate-pulse">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm animate-pulse">
                 <div className="h-4 w-40 bg-slate-200 dark:bg-slate-700 rounded-full mb-8" />
                 <div className="h-64 bg-slate-100 dark:bg-slate-800 rounded-3xl" />
             </div>
@@ -105,7 +105,7 @@ export default function RecruitmentSourceChart() {
 
     if (chartData.length === 0) {
         return (
-            <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
                 <RecruitmentHeader t={t} />
                 <div className="flex items-center justify-center h-64 text-slate-400">
                     {t("common.no_data")}
@@ -115,7 +115,7 @@ export default function RecruitmentSourceChart() {
     }
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
             <RecruitmentHeader t={t} />
 
             <div className="flex flex-col lg:flex-row items-center gap-4">

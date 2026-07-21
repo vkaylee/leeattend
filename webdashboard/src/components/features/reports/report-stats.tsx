@@ -32,7 +32,7 @@ export default function ReportStats({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 px-2">
-      <div className="bg-slate-900 p-10 rounded-[3rem] border border-slate-800 shadow-2xl shadow-slate-900/20 overflow-hidden relative group hover:scale-[1.02] transition-all duration-500">
+      <div className="bg-slate-900 p-6 sm:p-10 rounded-3xl sm:rounded-[3rem] border border-slate-800 shadow-2xl shadow-slate-900/20 overflow-hidden relative group hover:scale-[1.02] transition-all duration-500">
         <div className="bg-primary-50 dark:bg-primary-950/20 w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 text-primary-400 shadow-inner border border-white/5 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
           <FileBarChart size={32} />
         </div>
@@ -46,7 +46,7 @@ export default function ReportStats({
         <FileBarChart className="absolute -right-8 -bottom-8 w-40 h-44 text-white opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
       </div>
 
-      <div className="bg-gradient-to-br from-orange-900 to-orange-950 p-10 rounded-[3rem] border border-orange-800 shadow-2xl shadow-orange-900/20 overflow-hidden relative group hover:scale-[1.02] transition-all duration-500">
+      <div className="bg-gradient-to-br from-orange-900 to-orange-950 p-6 sm:p-10 rounded-3xl sm:rounded-[3rem] border border-orange-800 shadow-2xl shadow-orange-900/20 overflow-hidden relative group hover:scale-[1.02] transition-all duration-500">
         <div className="bg-orange-800/30 w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 text-orange-400 shadow-inner border border-orange-700/30 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
           <Clock size={32} />
         </div>
@@ -60,7 +60,7 @@ export default function ReportStats({
         <Clock className="absolute -right-8 -bottom-8 w-40 h-44 text-orange-400 opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
       </div>
 
-      <div className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-900/5 overflow-hidden relative group hover:scale-[1.02] transition-all duration-500">
+      <div className="bg-white dark:bg-slate-900 p-6 sm:p-10 rounded-3xl sm:rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-900/5 overflow-hidden relative group hover:scale-[1.02] transition-all duration-500">
         <div className="bg-primary-50 dark:bg-primary-950 w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 text-primary-600 dark:text-primary-400 shadow-inner border border-primary-100 dark:border-primary-800 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
           <Users2 size={32} />
         </div>

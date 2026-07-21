@@ -117,7 +117,7 @@ export default function MyClockPage() {
 
 function EmptyState({ t }: { t: TFunction }) {
   return (
-    <div className="py-24 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center max-w-lg mx-auto mt-10">
+    <div className="py-24 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center max-w-lg mx-auto mt-10">
       <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm dark:shadow-black/10 mb-6 border border-slate-100 dark:border-slate-800 text-slate-350 dark:text-slate-650">
         <UserX size={32} />
       </div>

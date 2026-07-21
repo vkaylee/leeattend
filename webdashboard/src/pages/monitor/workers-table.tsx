@@ -15,7 +15,7 @@ interface WorkersTableProps {
 
 export function WorkersTable({ t, workers }: WorkersTableProps) {
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm dark:shadow-black/10">
+    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-sm dark:shadow-black/10">
       <div className="p-6 border-b border-slate-100 dark:border-slate-800">
         <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h4">
           {t("monitor.worker_list")}

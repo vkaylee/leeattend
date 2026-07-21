@@ -77,7 +77,7 @@ function ProgressOverlay({
 
   return (
     <div className="fixed inset-0 bg-slate-950/90 dark:bg-slate-950/95 backdrop-blur-md flex items-center justify-center z-50 animate-in fade-in duration-500">
-      <div className="w-full max-w-md p-8 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-premium-2xl border border-white/10 dark:border-slate-800/50 text-center space-y-8 animate-in zoom-in-95 duration-500 relative overflow-hidden">
+      <div className="w-full max-w-md p-6 sm:p-8 bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[2.5rem] shadow-premium-2xl border border-white/10 dark:border-slate-800/50 text-center space-y-8 animate-in zoom-in-95 duration-500 relative overflow-hidden">
         {/* Top glowing background blob inside loader card */}
         <div className="absolute top-[-20%] left-[-20%] w-[140%] h-[140%] bg-primary-500/10 rounded-full blur-[80px] pointer-events-none" />
 

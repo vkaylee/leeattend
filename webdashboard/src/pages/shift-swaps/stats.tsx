@@ -51,7 +51,7 @@ export function ShiftSwapStats({
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in slide-in-from-bottom-4 duration-500 delay-100">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 animate-in slide-in-from-bottom-4 duration-500 delay-100">
       {statItems.map((stat) => (
         <StatCard
           activeTab={activeTab}
@@ -90,7 +90,7 @@ function StatCard({
   return (
     <div
       className={cn(
-        "bg-white dark:bg-slate-900 p-5 rounded-[2rem] border shadow-sm cursor-pointer hover:shadow-md transition-all group",
+        "bg-white dark:bg-slate-900 p-5 rounded-2xl sm:rounded-[2rem] border shadow-sm cursor-pointer hover:shadow-md transition-all group",
         isActive
           ? `border-${colorBase}-300 dark:border-${colorBase}-700 ring-2 ring-${colorBase}-100 dark:ring-${colorBase}-900`
           : "border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700"

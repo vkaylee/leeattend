@@ -68,7 +68,7 @@ export function OtQuotaWidget({ quota, isLoading }: { quota?: ExtendedQuota | nu
   const { t } = useTranslation();
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-8 shadow-sm">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-6 sm:p-8 shadow-sm">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
           <AlertTriangle className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />

@@ -31,7 +31,7 @@ export const AssignmentRulesTable: React.FC<AssignmentRulesTableProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] overflow-hidden shadow-sm dark:shadow-black/10 animate-in slide-in-from-bottom-8 duration-700">
+    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl sm:rounded-[3rem] overflow-hidden shadow-sm dark:shadow-black/10 animate-in slide-in-from-bottom-8 duration-700">
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">

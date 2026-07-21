@@ -14,7 +14,7 @@ export const SecurityTab: React.FC = () => {
   const { t } = useTranslation();
 
   return (
-    <div className="max-w-5xl bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm p-12 space-y-12 animate-in fade-in duration-500">
+    <div className="max-w-5xl bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm p-6 sm:p-12 space-y-12 animate-in fade-in duration-500">
       <div className="flex items-center gap-5">
         <div className="w-14 h-14 rounded-2xl bg-orange-50 dark:bg-orange-950 flex items-center justify-center text-orange-600 dark:text-orange-300 shadow-inner border border-orange-100/50">
           <ShieldCheck size={28} />

@@ -23,7 +23,7 @@ export const PersonalizationTab: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-5xl bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm p-12 space-y-12 animate-in fade-in duration-500">
+    <div className="max-w-5xl bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm p-6 sm:p-12 space-y-12 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
         <div className="flex items-center gap-5">
           <div className="w-14 h-14 rounded-2xl bg-pink-50 flex items-center justify-center text-pink-600 shadow-inner border border-pink-100/50">
@@ -87,7 +87,7 @@ export const PersonalizationTab: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="p-10 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-inner">
+        <div className="p-6 sm:p-10 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] shadow-inner">
           <Typography className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed italic uppercase tracking-tight opacity-80" variant="p">
             {t("profile.personalization.note")}
           </Typography>

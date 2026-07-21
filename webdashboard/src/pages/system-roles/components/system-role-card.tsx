@@ -41,7 +41,7 @@ export function SystemRoleCard({ isRevoking, onAssign, onRevoke, role }: SystemR
   const Icon = (roleIcons[role.name] as React.ElementType | undefined) ?? Shield;
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-black/20 transition-all duration-300 group flex flex-col">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[2rem] border border-slate-100 dark:border-slate-800 p-5 sm:p-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-black/20 transition-all duration-300 group flex flex-col">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center border bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border-blue-200/50 dark:border-blue-500/20">

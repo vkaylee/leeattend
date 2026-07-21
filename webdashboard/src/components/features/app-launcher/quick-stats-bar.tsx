@@ -26,7 +26,7 @@ export default function QuickStatsBar() {
   // Skeleton state
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {Array.from({ length: 5 }).map((_, i) => (
           <div className="flex items-center gap-3 p-4 rounded-2xl bg-card border border-slate-100 dark:border-slate-800" key={i}>
             <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
@@ -84,7 +84,7 @@ export default function QuickStatsBar() {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
       {items.map((item) => (
         <div
           className="flex items-center gap-3 p-4 rounded-2xl bg-card border border-slate-100 dark:border-slate-800 hover:shadow-md transition-shadow"

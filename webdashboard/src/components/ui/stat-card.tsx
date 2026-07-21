@@ -46,7 +46,7 @@ const StatCard = memo(function StatCard({
     return (
       <div
         className={cn(
-          "bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4 sm:gap-6 group hover:shadow-2xl hover:shadow-primary-100/10 transition-all",
+          "bg-white dark:bg-slate-900 p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4 sm:gap-6 group hover:shadow-2xl hover:shadow-primary-100/10 transition-all",
           className,
         )}
       >
@@ -80,7 +80,7 @@ const StatCard = memo(function StatCard({
   return (
     <div
       className={cn(
-        "bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 transition-all group relative overflow-hidden",
+        "bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 transition-all group relative overflow-hidden",
         className,
       )}
     >

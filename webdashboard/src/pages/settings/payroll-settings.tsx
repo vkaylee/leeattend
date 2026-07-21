@@ -105,7 +105,7 @@ export default function PayrollSettings() {
       </div>
 
       {/* Card Container holding Level-2 tabs and Panel Content */}
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
         {/* Level-2 Sub-tabs header */}
         <div className="border-b border-slate-100 dark:border-slate-800/60 px-8 pt-6 bg-slate-50/50 dark:bg-slate-900/50">
           <Tabs onValueChange={(tabId) => { setActiveTab(tabId as TabType); }} value={activeTab}>

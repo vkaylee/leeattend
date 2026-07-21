@@ -29,7 +29,7 @@ export default function CompensationHistoryTab({
 
   if (isLoading) {
     return (
-      <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] shadow-sm animate-pulse h-96" />
+      <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-8 rounded-2xl sm:rounded-[2.5rem] shadow-sm animate-pulse h-96" />
     );
   }
 

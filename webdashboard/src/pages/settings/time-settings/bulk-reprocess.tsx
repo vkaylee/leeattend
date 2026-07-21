@@ -25,7 +25,7 @@ export function BulkReprocessSection({
   t,
 }: BulkReprocessSectionProps) {
   return (
-    <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-10 mt-8">
+    <div className="bg-white dark:bg-slate-900 p-6 sm:p-10 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-10 mt-8">
       <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-6">
         <div className="flex items-center gap-3">
           <RefreshCw className="w-6 h-6 text-orange-500" />

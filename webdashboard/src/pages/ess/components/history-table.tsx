@@ -13,7 +13,7 @@ export function HistoryTable({ entries }: HistoryTableProps) {
   const { t } = useTranslation();
 
   return (
-    <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[40px] overflow-hidden shadow-sm flex flex-col">
+    <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl sm:rounded-[40px] overflow-hidden shadow-sm flex flex-col">
       <div className="px-8 py-6 border-b border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <History className="w-5 h-5 text-primary-500" />

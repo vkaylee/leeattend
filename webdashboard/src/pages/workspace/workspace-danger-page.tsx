@@ -24,7 +24,7 @@ export default function WorkspaceDangerPage() {
         title={t('danger.title', { defaultValue: 'Danger Zone' })}
       />
       
-      <div className="bg-rose-50 dark:bg-rose-950/20 p-8 rounded-[2.5rem] border border-rose-200 dark:border-rose-900/50 space-y-6">
+      <div className="bg-rose-50 dark:bg-rose-950/20 p-6 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-rose-200 dark:border-rose-900/50 space-y-6">
         <div className="flex items-center gap-4 border-b border-rose-100 dark:border-rose-900/50 pb-6">
           <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center text-rose-500 shadow-sm">
             <AlertTriangle size={24} />

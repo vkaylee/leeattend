@@ -210,7 +210,7 @@ function BonusPolicyForm({
   };
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] p-10 border border-slate-200 dark:border-slate-700 shadow-inner animate-in slide-in-from-top-4 duration-500 space-y-10">
+    <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-10 border border-slate-200 dark:border-slate-700 shadow-inner animate-in slide-in-from-top-4 duration-500 space-y-10">
       <BonusPolicyInputs baseAmount={baseAmount} effectiveFrom={effectiveFrom} name={name} setBaseAmount={setBaseAmount} setEffectiveFrom={setEffectiveFrom} setName={setName} />
 
       <div className="space-y-6">
@@ -289,7 +289,7 @@ function BonusPolicyCard({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] p-5 sm:p-8 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
         <div className="flex items-center gap-6">
           <div className="w-16 h-16 rounded-[1.5rem] bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-inner border border-primary-100 dark:border-primary-800/50">
@@ -434,7 +434,7 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
         ))}
 
         {!isLoading && policies.length === 0 && !isCreating ? (
-          <div className="py-24 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[3rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
+          <div className="py-24 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl sm:rounded-[3rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
             <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><Sparkles className="text-slate-200 dark:text-slate-700" size={32} /></div>
             <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200" variant="h3">{t("payroll.incentives.no_policies", { defaultValue: "NO INCENTIVE POLICIES" })}</Typography>
             <Typography className="text-slate-500 dark:text-slate-400 text-sm mt-1 uppercase font-bold tracking-widest opacity-50" variant="p">Configure your first bonus rule to reward diligent staff</Typography>

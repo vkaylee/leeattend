@@ -124,7 +124,7 @@ export default function EmployeeLifecycleTab({ employmentId }: EmployeeLifecycle
   const availableTemplates = templates.filter(t => t.is_active);
 
   if (isLoading) {
-    return <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] shadow-sm animate-pulse h-96" />;
+    return <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-8 rounded-2xl sm:rounded-[2.5rem] shadow-sm animate-pulse h-96" />;
   }
 
   return (
@@ -186,7 +186,7 @@ export default function EmployeeLifecycleTab({ employmentId }: EmployeeLifecycle
           )}
 
           {!!activeChecklist && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-sm p-6 space-y-6">
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] shadow-sm p-5 sm:p-6 space-y-6">
               {/* Header Info */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-50 dark:border-slate-800/60 pb-6">
                 <div className="space-y-1">

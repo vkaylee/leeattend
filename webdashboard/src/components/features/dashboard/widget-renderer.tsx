@@ -52,7 +52,7 @@ const chartMap: Partial<Record<WidgetId, React.LazyExoticComponent<React.Compone
 
 function ChartSkeleton() {
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm animate-pulse">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm animate-pulse">
             <div className="h-4 w-40 bg-slate-200 dark:bg-slate-700 rounded-full mb-8" />
             <div className="h-64 bg-slate-100 dark:bg-slate-800 rounded-3xl" />
         </div>

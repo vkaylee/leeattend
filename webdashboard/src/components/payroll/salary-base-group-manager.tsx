@@ -259,7 +259,7 @@ export default function SalaryBaseGroupManager({ wsId }: { wsId: string }) {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div className="bg-white dark:bg-slate-800/50 rounded-[2.5rem] border border-slate-200 dark:border-slate-700 p-6 space-y-4" key={i}>
+            <div className="bg-white dark:bg-slate-800/50 rounded-2xl sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-700 p-5 sm:p-6 space-y-4" key={i}>
               <div className="space-y-3">
                 <Skeleton className="h-6 w-3/4 bg-slate-200 dark:bg-slate-800 rounded-lg" />
                 <Skeleton className="h-4 w-full bg-slate-200/50 dark:bg-slate-800/50 rounded-md" />

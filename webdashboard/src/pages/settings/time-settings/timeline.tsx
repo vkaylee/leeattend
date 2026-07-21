@@ -17,7 +17,7 @@ interface AttendanceVersionTimelineProps {
 
 export function AttendanceVersionTimeline({ t, versions }: AttendanceVersionTimelineProps) {
   return (
-    <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-8">
+    <div className="bg-white dark:bg-slate-900 p-6 sm:p-10 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-8">
       <TimelineHeader count={versions.length} t={t} />
 
       {versions.length === 0 ? (

@@ -33,8 +33,8 @@ export default function GeneralSettings() {
   if (isLoadingWs) {
     return (
       <div className="space-y-6">
-        <Skeleton className="h-[200px] w-full rounded-[2.5rem]" />
-        <Skeleton className="h-[400px] w-full rounded-[2.5rem]" />
+        <Skeleton className="h-[200px] w-full rounded-2xl sm:rounded-[2.5rem]" />
+        <Skeleton className="h-[400px] w-full rounded-2xl sm:rounded-[2.5rem]" />
       </div>
     );
   }
@@ -109,7 +109,7 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
 
       <div className="animate-in slide-in-from-bottom-4 duration-500">
         {activeTab === "localization" ? (
-          <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-10">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-10 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-10">
             <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-800 pb-6"><Globe className="w-6 h-6 text-primary-500" /><Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h2">{t("common.workspace_settings.general_config")}</Typography></div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div className="space-y-3">
@@ -133,7 +133,7 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
         ) : null}
 
         {activeTab === "appearance" ? (
-          <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-10">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-10 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-10">
             {/* Branding Section */}
             <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-800 pb-6">
               <Building2 className="w-6 h-6 text-indigo-500" />

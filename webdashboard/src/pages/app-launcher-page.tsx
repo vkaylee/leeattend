@@ -74,7 +74,7 @@ export default function AppLauncherPage() {
     return (
       <div className="space-y-8 animate-in fade-in duration-500" data-testid="launcher-skeleton">
         {/* Stats skeleton */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {Array.from({ length: 5 }).map((_, i) => (
             <div className="flex items-center gap-3 p-4 rounded-2xl bg-card border border-slate-100 dark:border-slate-800" key={i}>
               <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
@@ -88,7 +88,7 @@ export default function AppLauncherPage() {
         {/* Cards skeleton */}
         <div>
           <Skeleton className="h-5 w-32 mb-4" />
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <Skeleton className="h-32 rounded-2xl" key={i} />
             ))}
@@ -125,7 +125,7 @@ export default function AppLauncherPage() {
           <Typography className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-4" variant="p">
             {t("appLauncher.quickAccess", "📌 Quick Access")}
           </Typography>
-          <StaggerChildren className="grid grid-cols-2 md:grid-cols-3 gap-4" delay={50}>
+          <StaggerChildren className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4" delay={50}>
             {quickAccessApps.map((app) => (
               <AppCard app={app} key={app.id} onNavigate={recordAccess} />
             ))}
@@ -153,7 +153,7 @@ export default function AppLauncherPage() {
 
               {/* App grid */}
               <StaggerChildren
-                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
                 delay={30}
               >
                 {apps.map((app) => (

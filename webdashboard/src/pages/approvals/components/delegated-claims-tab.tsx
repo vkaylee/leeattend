@@ -164,7 +164,7 @@ export function DelegatedClaimsTab({
 
   if (!isFetchingNextPage && claimableRows.length === 0) {
     return (
-      <div className="py-40 text-center flex flex-col items-center border-4 border-dashed border-slate-50 dark:border-slate-800 m-8 rounded-[3rem] bg-slate-50 dark:bg-slate-800/30">
+      <div className="py-40 text-center flex flex-col items-center border-4 border-dashed border-slate-50 dark:border-slate-800 mx-2 sm:m-8 rounded-3xl sm:rounded-[3rem] bg-slate-50 dark:bg-slate-800/30">
         <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-xl border border-slate-100 dark:border-slate-800 mb-8">
           <CheckCircle className="text-emerald-200" size={40} />
         </div>

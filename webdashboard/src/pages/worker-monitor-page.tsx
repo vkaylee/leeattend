@@ -65,7 +65,7 @@ export default function WorkerMonitorPage() {
       <WorkersTable t={t} workers={workers} />
 
       {jobTypeStats.length > 0 ? (
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-6 shadow-sm dark:shadow-black/10">
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] p-5 sm:p-6 shadow-sm dark:shadow-black/10">
           <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight mb-4" variant="h4">
             {t("monitor.jobs_by_type", { defaultValue: "Breakdown by Type" })}
           </Typography>

@@ -209,8 +209,8 @@ export default function LifecycleTemplatesPage() {
 
       {isTemplatesLoading ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-[2.5rem] shadow-sm animate-pulse h-96" />
-          <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-[2.5rem] shadow-sm animate-pulse h-96" />
+          <div className="lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 sm:p-6 rounded-2xl sm:rounded-[2.5rem] shadow-sm animate-pulse h-96" />
+          <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 sm:p-6 rounded-2xl sm:rounded-[2.5rem] shadow-sm animate-pulse h-96" />
         </div>
       ) : filteredTemplates.length === 0 ? (
         <EmptyState
@@ -324,13 +324,13 @@ export default function LifecycleTemplatesPage() {
             </div>
 
             {isItemsLoading ? (
-              <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] shadow-sm animate-pulse h-80" />
+              <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-8 rounded-2xl sm:rounded-[2.5rem] shadow-sm animate-pulse h-80" />
             ) : !activeTemplate ? (
-              <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-12 rounded-[2.5rem] text-center text-slate-400">
+              <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 sm:p-12 rounded-2xl sm:rounded-[2.5rem] text-center text-slate-400">
                 Select a template to view and manage its checklist items.
               </div>
             ) : items.length === 0 ? (
-              <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-16 text-center space-y-4">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-8 sm:p-16 text-center space-y-4">
                 <Typography className="text-slate-500 font-semibold" variant="h4">
                   No items in this checklist template.
                 </Typography>
@@ -347,7 +347,7 @@ export default function LifecycleTemplatesPage() {
                 </Button>
               </div>
             ) : (
-              <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm p-4 space-y-3">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm p-4 space-y-3">
                 {items
                   .sort((a, b) => a.display_order - b.display_order)
                   .map((item) => (

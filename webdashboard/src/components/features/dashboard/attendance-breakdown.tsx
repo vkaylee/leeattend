@@ -19,7 +19,7 @@ interface AttendanceBreakdownProps {
 
 export function AttendanceBreakdown({ donutData, hasDonutData, t }: AttendanceBreakdownProps) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
       <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-8" variant="h2">
         {t("dashboard.hr.attendance_breakdown")}
       </Typography>

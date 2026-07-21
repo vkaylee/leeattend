@@ -62,7 +62,7 @@ export default function AssignmentRuleEditorPage() {
     return (
       <div className="p-12 space-y-8 animate-pulse max-w-4xl mx-auto">
         <div className="h-10 w-64 bg-slate-200 dark:bg-slate-800 rounded-full" />
-        <div className="h-96 bg-slate-200 dark:bg-slate-800 rounded-[2.5rem]" />
+        <div className="h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl sm:rounded-[2.5rem]" />
       </div>
     );
   }
@@ -117,7 +117,7 @@ export default function AssignmentRuleEditorPage() {
       </div>
 
       {/* Form Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-10 shadow-sm">
         <AssignmentRuleForm
           conditions={conditions}
           departments={departments}

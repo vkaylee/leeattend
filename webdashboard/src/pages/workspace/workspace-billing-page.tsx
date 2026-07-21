@@ -13,7 +13,7 @@ export default function WorkspaceBillingPage() {
         title={t('billing.title', { defaultValue: 'Billing & Subscription' })}
       />
       
-      <div className="bg-slate-50 dark:bg-slate-800/50 p-16 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center">
+      <div className="bg-slate-50 dark:bg-slate-800/50 p-8 sm:p-16 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center">
         <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-3xl flex items-center justify-center text-emerald-500 shadow-xl mb-6">
           <CreditCard size={40} />
         </div>

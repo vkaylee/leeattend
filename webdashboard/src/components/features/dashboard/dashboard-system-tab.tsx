@@ -28,7 +28,7 @@ export function DashboardSystemTab({ agents, devices, onlineAgents, activeDevice
           { label: "total_devices", value: devices.length, icon: Cpu, color: "bg-blue-50 dark:bg-blue-950 text-blue-600 border-blue-100" },
           { label: "active_devices", value: activeDevices, icon: ShieldCheck, color: "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800" }
         ].map((stat, index) => (
-          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 transition-all group relative overflow-hidden" key={index}>
+          <div className="bg-white dark:bg-slate-900 p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 transition-all group relative overflow-hidden" key={index}>
             <div className={`${stat.color} w-14 sm:w-16 h-14 sm:h-16 rounded-[1.5rem] flex items-center justify-center mb-6 sm:mb-8 group-hover:scale-110 group-hover:rotate-3 transition-all shadow-inner border`}><stat.icon size={28} /></div>
             <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-2" variant="p">{t(`dashboard.system.${stat.label}`)}</Typography>
             <Typography className="text-4xl sm:text-5xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter" variant="p">{isLoading ? "..." : stat.value}</Typography>
@@ -45,7 +45,7 @@ export function DashboardSystemTab({ agents, devices, onlineAgents, activeDevice
           </div>
           <div className="space-y-4">
             {agents.map((agent) => (
-              <div className="bg-white dark:bg-slate-900 p-6 px-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex items-center justify-between hover:shadow-2xl hover:shadow-primary-100/10 transition-all group relative overflow-hidden" key={agent.agent_id}>
+              <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 sm:px-8 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex items-center justify-between hover:shadow-2xl hover:shadow-primary-100/10 transition-all group relative overflow-hidden" key={agent.agent_id}>
                 <div className="flex items-center gap-6">
                   <div className="bg-slate-50 dark:bg-slate-800 p-5 rounded-[1.5rem] text-slate-500 dark:text-slate-400 group-hover:bg-primary-50 dark:group-hover:bg-primary-950 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-all border border-slate-100 dark:border-slate-800 shadow-inner">
                     <Monitor size={28} />
@@ -66,7 +66,7 @@ export function DashboardSystemTab({ agents, devices, onlineAgents, activeDevice
 
         <section className="space-y-8">
           <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-[0.3em] uppercase px-4" variant="h2">{t("dashboard.system.quick_actions")}</Typography>
-          <div className="bg-slate-900 rounded-[3rem] p-10 sm:p-14 text-white relative overflow-hidden shadow-2xl shadow-slate-200 dark:shadow-black/40 group">
+          <div className="bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 lg:p-14 text-white relative overflow-hidden shadow-2xl shadow-slate-200 dark:shadow-black/40 group">
             <div className="relative z-10">
               <Typography className="text-3xl sm:text-4xl font-bold mb-6 tracking-tighter uppercase leading-[1.1]" variant="h3">{t("dashboard.system.device_management")}</Typography>
               <Typography className="text-slate-500 dark:text-slate-400 mb-8 sm:mb-12 text-base sm:text-lg leading-relaxed max-w-sm font-bold uppercase tracking-tight opacity-80" variant="p">{t("dashboard.system.device_management_desc")}</Typography>

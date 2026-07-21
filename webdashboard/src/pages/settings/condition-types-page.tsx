@@ -139,7 +139,7 @@ function ConditionTypeForm({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 rounded-[2.5rem] p-8 shadow-xl mb-8">
+    <div className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 shadow-xl mb-8">
       <div className="flex items-center gap-3 mb-8 text-primary-700 dark:text-primary-300">
         <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center shadow-inner">
           <Plus size={16} />
