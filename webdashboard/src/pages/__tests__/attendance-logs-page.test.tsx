@@ -205,7 +205,7 @@ describe("AttendanceLogsPage", () => {
     });
 
     // Floating badge should show loaded count (2) and total (5)
-    const badge = document.querySelector('.fixed.bottom-6');
+    const badge = document.querySelector('.fixed.z-50');
     expect(badge).toBeDefined();
     expect(badge?.textContent).toContain("2");
     expect(badge?.textContent).toContain("5");
@@ -249,7 +249,7 @@ describe("AttendanceLogsPage", () => {
     expect(await screen.findByText("UNKNOWN-42")).toBeDefined();
 
     // Floating badge should now show amber variant with staging counts
-    const badge = document.querySelector('.fixed.bottom-6');
+    const badge = document.querySelector('.fixed.z-50');
     expect(badge).toBeDefined();
     expect(badge?.textContent).toContain("1");
     expect(badge?.textContent).toContain("3");

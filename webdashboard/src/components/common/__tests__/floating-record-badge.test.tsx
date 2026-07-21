@@ -38,11 +38,12 @@ describe("FloatingRecordBadge", () => {
         expect(container.textContent).toContain("records");
     });
 
-    it("uses fixed bottom-6 positioning", () => {
+    it("uses fixed bottom positioning with mobile offset for bottom nav", () => {
         const { container } = render(<FloatingRecordBadge loaded={1} total={1} />);
         const wrapper = container.firstChild as HTMLElement;
         expect(wrapper.className).toContain("fixed");
-        expect(wrapper.className).toContain("bottom-6");
+        expect(wrapper.className).toContain("bottom-22");
+        expect(wrapper.className).toContain("md:bottom-6");
     });
 
     it("renders default variant with slate/primary colors", () => {

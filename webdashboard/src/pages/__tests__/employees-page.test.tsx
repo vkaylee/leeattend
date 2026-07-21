@@ -236,7 +236,7 @@ describe("EmployeesPage", () => {
         renderPage();
         await screen.findByText("Alice Nguyen");
 
-        const badge = document.querySelector(".fixed.bottom-6");
+        const badge = document.querySelector(".fixed.z-50");
         expect(badge).toBeDefined();
         expect(badge?.textContent).toContain("1");
         expect(badge?.textContent).toContain("10");

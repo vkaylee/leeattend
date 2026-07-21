@@ -23,7 +23,7 @@ const FloatingRecordBadge = memo(function FloatingRecordBadge({
     const displayLabel = label ?? t("common.records");
 
     return (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="fixed bottom-22 md:bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div
                 className={cn(
                     "inline-flex items-center gap-2 backdrop-blur-lg rounded-full px-5 py-2.5 shadow-2xl shadow-black/10",
