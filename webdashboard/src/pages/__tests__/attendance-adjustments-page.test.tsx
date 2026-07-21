@@ -166,8 +166,9 @@ describe("AttendanceAdjustmentsPage", () => {
 
   it("renders list of adjustment requests", async () => {
     renderWithProviders(<AttendanceAdjustmentsPage />);
-    expect(await screen.findByText(/John Doe/i)).toBeDefined();
-    expect(screen.getByText(/Forgot to punch/i)).toBeDefined();
+    // ResponsiveTable renders both desktop and mobile views, so use findAllByText
+    expect((await screen.findAllByText(/John Doe/i)).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Forgot to punch/i).length).toBeGreaterThan(0);
   });
 
   it("handles approve action", async () => {
@@ -179,9 +180,10 @@ describe("AttendanceAdjustmentsPage", () => {
     vi.mocked(api.approveAttendanceAdjustment).mockResolvedValue(undefined);
 
     renderWithProviders(<AttendanceAdjustmentsPage />);
-    
-    const approveButton = await screen.findByTitle(/common.approve/i);
-    await user.click(approveButton);
+
+    // ResponsiveTable renders both desktop and mobile views, so use findAllByTitle
+    const approveButtons = await screen.findAllByTitle(/common.approve/i);
+    await user.click(approveButtons[0]);
 
     await waitFor(() => {
       expect(api.approveAttendanceAdjustment).toHaveBeenCalledWith("test-ws-id", "adj-1", { status: "approved" });

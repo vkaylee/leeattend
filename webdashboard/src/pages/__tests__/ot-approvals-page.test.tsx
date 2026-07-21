@@ -227,12 +227,13 @@ describe("OtApprovalsPage", () => {
     renderPage();
     await user.click(screen.getByText("ot_approvals.tabs.post_ot"));
 
-    expect(screen.getByText("EMP-001")).toBeInTheDocument();
+    // ResponsiveTable renders both desktop table and mobile cards, so use getAllByText
+    expect(screen.getAllByText("EMP-001").length).toBeGreaterThan(0);
     expect(screen.getAllByText("120m").length).toBeGreaterThan(0);
-    expect(screen.getByText('"Project deadline"')).toBeInTheDocument();
-    
-    expect(screen.getByText("EMP-002")).toBeInTheDocument();
-    expect(screen.getByText('"Covering shift"')).toBeInTheDocument();
+    expect(screen.getAllByText('"Project deadline"').length).toBeGreaterThan(0);
+
+    expect(screen.getAllByText("EMP-002").length).toBeGreaterThan(0);
+    expect(screen.getAllByText('"Covering shift"').length).toBeGreaterThan(0);
   });
 
   it("calls approveOt and refetch when approve button is clicked", async () => {
@@ -277,18 +278,18 @@ describe("OtApprovalsPage", () => {
     const user = userEvent.setup();
     renderPage();
     await user.click(screen.getByText("ot_approvals.tabs.post_ot"));
-    
-    // Initially both should be visible
-    expect(screen.getByText("EMP-001")).toBeInTheDocument();
-    expect(screen.getByText("EMP-002")).toBeInTheDocument();
-    
+
+    // Initially both should be visible (ResponsiveTable renders both desktop and mobile)
+    expect(screen.getAllByText("EMP-001").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("EMP-002").length).toBeGreaterThan(0);
+
     // Click paper_form filter
     const paperFilter = screen.getByText("approvals.filter.paper_forms");
     await user.click(paperFilter);
-    
+
     // Only EMP-002 (paper_form) should be visible
     expect(screen.queryByText("EMP-001")).not.toBeInTheDocument();
-    expect(screen.getByText("EMP-002")).toBeInTheDocument();
+    expect(screen.getAllByText("EMP-002").length).toBeGreaterThan(0);
   });
   
   it("shows empty state when no pending summaries", async () => {

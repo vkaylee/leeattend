@@ -92,7 +92,7 @@ describe('PayrollPage', () => {
       </QueryClientProvider>
     );
 
-    expect(await screen.findByText('John Doe')).toBeDefined();
+    expect((await screen.findAllByText('John Doe'))[0]).toBeDefined();
   });
 
   it('shows detail drawer when an employee is clicked', async () => {
@@ -147,8 +147,8 @@ describe('PayrollPage', () => {
       </QueryClientProvider>
     );
 
-    const employeeText = await screen.findByText('John Doe');
-    const employeeRow = employeeText.closest('tr');
+    const employeeTexts = await screen.findAllByText('John Doe');
+    const employeeRow = employeeTexts.map((el) => el.closest('tr')).find(Boolean);
     fireEvent.click(employeeRow!);
 
     expect((await screen.findAllByText(/Lịch sử phiếu lương/i))[0]).toBeDefined();

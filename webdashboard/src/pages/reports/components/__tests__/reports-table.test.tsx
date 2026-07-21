@@ -61,13 +61,21 @@ describe("ReportsTable", () => {
     expect(filters).toBeInTheDocument();
     expect(list).toBeInTheDocument();
 
-    // Verify they share the same parent
-    expect(filters.parentElement).toBe(list.parentElement);
+    // With ResponsiveToolbar, filters are wrapped in multiple toolbar layers
+    // Navigate up to find the toolbar wrapper (div.flex.w-full.items-center.gap-2)
+    let toolbarWrapper = filters.parentElement;
+    while (toolbarWrapper && !toolbarWrapper.className.includes("w-full")) {
+      toolbarWrapper = toolbarWrapper.parentElement;
+    }
 
-    // Verify the parent is a flex-col container
-    const parent = filters.parentElement;
-    expect(parent?.className).toContain("flex");
-    expect(parent?.className).toContain("flex-col");
-    expect(parent?.className).toContain("gap-6");
+    // The toolbar wrapper and NavigableList should share the same parent (flex-col container)
+    const listParent = list.parentElement;
+    expect(toolbarWrapper?.parentElement).toBe(listParent);
+
+    // Verify the grandparent is a flex-col container
+    const grandparent = toolbarWrapper?.parentElement;
+    expect(grandparent?.className).toContain("flex");
+    expect(grandparent?.className).toContain("flex-col");
+    expect(grandparent?.className).toContain("gap-6");
   });
 });

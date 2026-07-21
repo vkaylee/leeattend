@@ -189,15 +189,17 @@ describe("ShiftSwapsPage", () => {
 
   it("renders swap table with data", async () => {
     renderPage();
-    expect(await screen.findByText("Alice Johnson")).toBeInTheDocument();
-    expect(screen.getByText("Bob Williams")).toBeInTheDocument();
-    expect(screen.getByText("Family event")).toBeInTheDocument();
+    // ResponsiveTable renders both desktop and mobile views
+    expect((await screen.findAllByText("Alice Johnson")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Bob Williams").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Family event").length).toBeGreaterThan(0);
   });
 
   it("shows empty state when no swaps", async () => {
     vi.mocked(shiftSwapsApi.fetchShiftSwaps).mockResolvedValue([]);
     renderPage();
-    expect(await screen.findByText("No swap requests found")).toBeInTheDocument();
+    // ResponsiveTable renders both desktop and mobile empty states
+    expect((await screen.findAllByText("No swap requests found")).length).toBeGreaterThan(0);
   });
 
   it("renders status tabs", async () => {
@@ -250,9 +252,10 @@ describe("ShiftSwapsPage", () => {
   it("shows approve/reject buttons on hover for pending_admin items", async () => {
     renderPage();
     // Action buttons exist in DOM (hidden via CSS opacity)
+    // ResponsiveTable renders both desktop and mobile views
     await waitFor(() => {
-      const approveButton = screen.getByTitle("Approve");
-      expect(approveButton).toBeInTheDocument();
+      const approveButtons = screen.getAllByTitle("Approve");
+      expect(approveButtons.length).toBeGreaterThan(0);
     });
   });
 
@@ -260,8 +263,9 @@ describe("ShiftSwapsPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    const approveButton = await screen.findByTitle("Approve");
-    await user.click(approveButton);
+    // ResponsiveTable renders both desktop and mobile views
+    const approveButtons = await screen.findAllByTitle("Approve");
+    await user.click(approveButtons[0]);
 
     await waitFor(() => {
       expect(shiftSwapsApi.approveShiftSwap).toHaveBeenCalledWith(
@@ -276,8 +280,9 @@ describe("ShiftSwapsPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    const rejectButton = await screen.findByTitle("Reject");
-    await user.click(rejectButton);
+    // ResponsiveTable renders both desktop and mobile views
+    const rejectButtons = await screen.findAllByTitle("Reject");
+    await user.click(rejectButtons[0]);
 
     await waitFor(() => {
       expect(shiftSwapsApi.approveShiftSwap).toHaveBeenCalledWith(

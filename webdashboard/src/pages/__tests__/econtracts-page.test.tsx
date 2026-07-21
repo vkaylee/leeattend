@@ -148,50 +148,51 @@ describe("EContractsPage Component - Registry", () => {
   it("renders page title and contracts table list", async () => {
     renderPage();
     expect(screen.getByText("Centralized Contract Registry")).toBeInTheDocument();
-    await screen.findByText("CON-1001");
-    expect(screen.getByText("CON-1002")).toBeInTheDocument();
-    expect(screen.getByText("John Doe")).toBeInTheDocument();
-    expect(screen.getByText("Jane Smith")).toBeInTheDocument();
+    // ResponsiveTable renders both desktop and mobile views
+    expect((await screen.findAllByText("CON-1001")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("CON-1002").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("John Doe").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Jane Smith").length).toBeGreaterThan(0);
   });
 
   it("filters contracts list by search query", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("CON-1001");
+    await screen.findAllByText("CON-1001");
 
     const searchInput = screen.getByPlaceholderText("Search employee, ID or contract...");
     await user.type(searchInput, "Jane");
 
     expect(screen.queryByText("John Doe")).not.toBeInTheDocument();
-    expect(screen.getByText("Jane Smith")).toBeInTheDocument();
+    expect(screen.getAllByText("Jane Smith").length).toBeGreaterThan(0);
   });
 
   it("filters contracts list by type select", async () => {
     renderPage();
-    await screen.findByText("CON-1001");
+    await screen.findAllByText("CON-1001");
 
     const typeSelect = screen.getByDisplayValue("ALL TYPES");
     fireEvent.change(typeSelect, { target: { value: "probation" } });
 
     expect(screen.queryByText("John Doe")).not.toBeInTheDocument();
-    expect(screen.getByText("Jane Smith")).toBeInTheDocument();
+    expect(screen.getAllByText("Jane Smith").length).toBeGreaterThan(0);
   });
 
   it("filters contracts list by status select", async () => {
     renderPage();
-    await screen.findByText("CON-1001");
+    await screen.findAllByText("CON-1001");
 
     const statusSelect = screen.getByDisplayValue("ALL STATUS");
     fireEvent.change(statusSelect, { target: { value: "draft" } });
 
     expect(screen.queryByText("John Doe")).not.toBeInTheDocument();
-    expect(screen.getByText("Jane Smith")).toBeInTheDocument();
+    expect(screen.getAllByText("Jane Smith").length).toBeGreaterThan(0);
   });
 
   it("renders empty state when no contracts match the filters", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("CON-1001");
+    await screen.findAllByText("CON-1001");
 
     const searchInput = screen.getByPlaceholderText("Search employee, ID or contract...");
     await user.type(searchInput, "NoMatch");
@@ -200,13 +201,13 @@ describe("EContractsPage Component - Registry", () => {
     const clearBtn = await screen.findByText("CLEAR FILTERS");
     await user.click(clearBtn);
 
-    await screen.findByText("CON-1001");
+    expect((await screen.findAllByText("CON-1001")).length).toBeGreaterThan(0);
   });
 
   it("opens SelectEmployeeModal and selects employee to sign new contract", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("CON-1001");
+    await screen.findAllByText("CON-1001");
 
     const signBtn = screen.getByRole("button", { name: /SIGN CONTRACT/i });
     await user.click(signBtn);
@@ -227,7 +228,7 @@ describe("EContractsPage Component - Registry", () => {
   it("opens SelectEmployeeModal and searches for employee", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("CON-1001");
+    await screen.findAllByText("CON-1001");
 
     const signBtn = screen.getByRole("button", { name: /SIGN CONTRACT/i });
     await user.click(signBtn);
@@ -243,7 +244,7 @@ describe("EContractsPage Component - Registry", () => {
   it("opens edit contract modal on clicking Edit", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("CON-1001");
+    await screen.findAllByText("CON-1001");
 
     const editBtns = screen.getAllByRole("button");
     // Find button with Pencil icon (which will be mapped in button structure)
@@ -260,7 +261,7 @@ describe("EContractsPage Component - Registry", () => {
     const user = userEvent.setup();
     mockConfirm.mockResolvedValueOnce(true);
     renderPage();
-    await screen.findByText("CON-1001");
+    await screen.findAllByText("CON-1001");
 
     const deleteBtns = screen.getAllByRole("button");
     const deleteBtn = deleteBtns.find((btn: HTMLElement) => btn.innerHTML.includes("trash2"));

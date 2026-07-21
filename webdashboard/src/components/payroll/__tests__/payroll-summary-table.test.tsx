@@ -99,9 +99,10 @@ describe("PayrollSummaryTable", () => {
         />
     );
 
-    expect(screen.getByText("John Doe")).toBeDefined();
-    expect(screen.getByText("Jane Smith")).toBeDefined();
-    expect(screen.getByText("10.500.000")).toBeDefined(); // Net pay for John
+    // ResponsiveTable renders both desktop and mobile views
+    expect(screen.getAllByText("John Doe").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Jane Smith").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("10.500.000").length).toBeGreaterThan(0); // Net pay for John
   });
 
   it("filters employees based on search term", () => {
@@ -120,7 +121,8 @@ describe("PayrollSummaryTable", () => {
     );
 
     expect(screen.queryByText("John Doe")).toBeNull();
-    expect(screen.getByText("Jane Smith")).toBeDefined();
+    // ResponsiveTable renders both desktop and mobile views
+    expect(screen.getAllByText("Jane Smith").length).toBeGreaterThan(0);
   });
 
   it("calls onToggleSelect when checkbox is clicked", () => {
@@ -158,7 +160,9 @@ describe("PayrollSummaryTable", () => {
         />
     );
 
-    fireEvent.click(screen.getByText("John Doe"));
+    // ResponsiveTable renders both desktop and mobile views, click the first one
+    const johnDoeElements = screen.getAllByText("John Doe");
+    fireEvent.click(johnDoeElements[0]);
     expect(onViewDetail).toHaveBeenCalledWith(mockEmployees[0]);
   });
 

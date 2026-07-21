@@ -124,7 +124,7 @@ describe("Pagination Integration Tests", () => {
       renderWithProviders(<PayrollPage />);
 
       // Component should extract .data and work with array methods
-      expect(await screen.findByText("John Doe")).toBeInTheDocument();
+      expect((await screen.findAllByText("John Doe")).length).toBeGreaterThan(0);
     });
 
     it("should handle empty paginated response in PayrollPage", () => {
@@ -197,8 +197,8 @@ describe("Pagination Integration Tests", () => {
       }).not.toThrow();
 
       // Both employees should be rendered
-      expect(await screen.findByText("Alice")).toBeInTheDocument();
-      expect(await screen.findByText("Bob")).toBeInTheDocument();
+      expect((await screen.findAllByText("Alice")).length).toBeGreaterThan(0);
+      expect((await screen.findAllByText("Bob")).length).toBeGreaterThan(0);
     });
 
     it("should handle paginated response with pagination metadata", async () => {
@@ -226,7 +226,7 @@ describe("Pagination Integration Tests", () => {
 
       // Should handle all 50 items from first page
       await waitFor(() => {
-        expect(screen.getByText("Employee 0")).toBeInTheDocument();
+        expect(screen.getAllByText("Employee 0").length).toBeGreaterThan(0);
       });
     });
   });

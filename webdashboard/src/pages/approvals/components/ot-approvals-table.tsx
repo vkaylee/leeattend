@@ -1,9 +1,116 @@
-import { CheckCircle, XCircle, Paperclip, Plus, AlertTriangle } from "lucide-react";
+import { CheckCircle, XCircle, Paperclip, Plus, AlertTriangle, Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
 import Button from "@/components/ui/button";
+import ResponsiveTable from "@/components/ui/responsive-table";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+
+function OtApprovalMobileCard({
+  handleApprove,
+  isProcessing,
+  onAddPhoto,
+  onPreviewAttachment,
+  summary,
+}: {
+  handleApprove: (summary: OtSummary, approved: boolean) => Promise<void>;
+  isProcessing: boolean;
+  onAddPhoto?: (summary: OtSummary) => void;
+  onPreviewAttachment?: (fileUrl: string, title: string) => void;
+  summary: OtSummary;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-all active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900">
+      {/* Header: Employee and date */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-bold uppercase tracking-tight text-slate-800 dark:text-slate-100">
+            {summary.employee_name ?? summary.employment_id}
+          </div>
+          {!!summary.employee_id_number && (
+            <div className="mt-1 font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              {summary.employee_id_number}
+            </div>
+          )}
+        </div>
+        <div className="inline-flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-1.5 shadow-inner dark:border-slate-800 dark:bg-slate-800">
+          <Clock className="text-primary-600 dark:text-primary-400" size={12} />
+          <span className="text-xs font-bold uppercase tracking-tighter text-slate-700 dark:text-slate-200">
+            {summary.date}
+          </span>
+        </div>
+      </div>
+
+      {/* OT details */}
+      <div className="mt-4 space-y-3 border-t border-slate-100 pt-4 dark:border-slate-800">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <SourceBadge enteredVia={summary.entered_via} />
+            <EvidenceCell
+              onAddPhoto={onAddPhoto}
+              onPreviewAttachment={onPreviewAttachment}
+              summary={summary}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
+            <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+              {t("ot_approvals.table.system")}
+            </div>
+            <div className="mt-1 font-mono text-sm font-bold text-slate-700 dark:text-slate-200">
+              {summary.system_detected_ot_minutes}m
+            </div>
+          </div>
+          <div className="rounded-xl bg-amber-50 p-3 dark:bg-amber-950/30">
+            <div className="text-[9px] font-bold uppercase tracking-wider text-amber-500">
+              {t("ot_approvals.table.claimed")}
+            </div>
+            <div className="mt-1 font-mono text-sm font-bold text-amber-600 dark:text-amber-300">
+              {summary.claimed_ot_minutes}m
+            </div>
+          </div>
+        </div>
+
+        {/* Reason */}
+        {!!summary.ot_reason && (
+          <div className="text-xs font-bold uppercase tracking-tight leading-relaxed text-slate-500 opacity-70 italic line-clamp-2 dark:text-slate-400">
+            &quot;{summary.ot_reason}&quot;
+          </div>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
+        <Button
+          className="h-auto w-auto p-2 rounded-full hover:bg-emerald-50 dark:bg-emerald-950 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:text-emerald-300 transition-all disabled:opacity-50 shadow-none"
+          disabled={isProcessing}
+          icon={<CheckCircle className="w-5 h-5" />}
+          onClick={() => {
+            void handleApprove(summary, true);
+          }}
+          size="icon"
+          title={t("ot_approvals.actions.approve")}
+          variant="ghost"
+        />
+        <Button
+          className="h-auto w-auto p-2 rounded-full hover:bg-rose-50 dark:bg-rose-950 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 transition-all disabled:opacity-50 shadow-none"
+          disabled={isProcessing}
+          icon={<XCircle className="w-5 h-5" />}
+          onClick={() => {
+            void handleApprove(summary, false);
+          }}
+          size="icon"
+          title={t("ot_approvals.actions.reject")}
+          variant="ghost"
+        />
+      </div>
+    </div>
+  );
+}
 
 export interface OtSummary {
   claimed_ot_minutes: number;
@@ -48,112 +155,132 @@ export function OtApprovalsTable({
   });
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left border-collapse">
-        <thead>
-          <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-            <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
-              {t("ot_approvals.table.date")}
-            </th>
-            <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
-              {t("ot_approvals.table.employee")}
-            </th>
-            <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
-              {t("ot_approvals.table.source")}
-            </th>
-            <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">
-              {t("ot_approvals.table.system")}
-            </th>
-            <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">
-              {t("ot_approvals.table.claimed")}
-            </th>
-            <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
-              {t("ot_approvals.table.evidence", { defaultValue: "Evidence" })}
-            </th>
-            <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
-              {t("ot_approvals.table.reason")}
-            </th>
-            <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-right">
-              {t("ot_approvals.table.actions")}
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-          {pendingSummaries.map((summary) => (
-            <tr
-              className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group"
-              key={summary.id}
-            >
-              <td className="px-8 py-6 font-bold text-slate-700 dark:text-slate-200">
-                {summary.date}
-              </td>
-              <td className="px-8 py-6">
-                <div className="flex flex-col">
-                  <span className="font-bold text-sm text-slate-800 dark:text-slate-200">
-                    {summary.employee_name ?? summary.employment_id}
-                  </span>
-                  {!!summary.employee_id_number && (
-                    <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-tight">
-                      {summary.employee_id_number}
-                    </span>
-                  )}
-                </div>
-              </td>
-              <td className="px-8 py-6">
-                <SourceBadge enteredVia={summary.entered_via} />
-              </td>
-              <td className="px-8 py-6 text-center text-sm font-mono text-slate-500 dark:text-slate-400">
-                {summary.system_detected_ot_minutes}m
-              </td>
-              <td className="px-8 py-6 text-center text-sm font-bold font-mono text-amber-600 dark:text-amber-300">
-                {summary.claimed_ot_minutes}m
-              </td>
-              <td className="px-8 py-6">
-                <EvidenceCell 
-                  onAddPhoto={onAddPhoto} 
-                  onPreviewAttachment={onPreviewAttachment} 
-                  summary={summary}
-                />
-              </td>
-              <td className="px-8 py-6 text-sm text-slate-600 dark:text-slate-300 italic">
-                &quot;{summary.ot_reason}&quot;
-              </td>
-              <td className="px-8 py-6 text-right">
-                <div className="flex items-center justify-end gap-2">
-                  <Button
-                    className="h-auto w-auto p-2 rounded-full hover:bg-emerald-50 dark:bg-emerald-950 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:text-emerald-300 transition-all disabled:opacity-50 shadow-none"
-                    disabled={isProcessing}
-                    icon={<CheckCircle className="w-5 h-5" />}
-                    onClick={() => {
-                      void handleApprove(summary, true);
-                    }}
-                    size="icon"
-                    title={t("ot_approvals.actions.approve")}
-                    variant="ghost"
-                  />
-                  <Button
-                    className="h-auto w-auto p-2 rounded-full hover:bg-rose-50 dark:bg-rose-950 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 transition-all disabled:opacity-50 shadow-none"
-                    disabled={isProcessing}
-                    icon={<XCircle className="w-5 h-5" />}
-                    onClick={() => {
-                      void handleApprove(summary, false);
-                    }}
-                    size="icon"
-                    title={t("ot_approvals.actions.reject")}
-                    variant="ghost"
-                  />
-                </div>
-              </td>
-            </tr>
-          ))}
-          <InfiniteScrollSentinel
-            colSpan={8}
-            isFetchingNextPage={isFetchingNextPage}
-            sentinelRef={loadMoreRef}
-          />
-        </tbody>
-      </table>
-    </div>
+    <ResponsiveTable
+      data={pendingSummaries}
+      emptyState={{
+        icon: <Clock className="w-20 h-20" />,
+        title: t("ot_approvals.empty_state.title"),
+      }}
+      getCardKey={(summary) => summary.id}
+      isLoading={false}
+      renderCard={(summary) => (
+        <OtApprovalMobileCard
+          handleApprove={handleApprove}
+          isProcessing={isProcessing}
+          onAddPhoto={onAddPhoto}
+          onPreviewAttachment={onPreviewAttachment}
+          summary={summary}
+        />
+      )}
+      renderDesktopTable={() => (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+                  {t("ot_approvals.table.date")}
+                </th>
+                <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+                  {t("ot_approvals.table.employee")}
+                </th>
+                <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+                  {t("ot_approvals.table.source")}
+                </th>
+                <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">
+                  {t("ot_approvals.table.system")}
+                </th>
+                <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">
+                  {t("ot_approvals.table.claimed")}
+                </th>
+                <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+                  {t("ot_approvals.table.evidence", { defaultValue: "Evidence" })}
+                </th>
+                <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+                  {t("ot_approvals.table.reason")}
+                </th>
+                <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-right">
+                  {t("ot_approvals.table.actions")}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+              {pendingSummaries.map((summary) => (
+                <tr
+                  className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group"
+                  key={summary.id}
+                >
+                  <td className="px-8 py-6 font-bold text-slate-700 dark:text-slate-200">
+                    {summary.date}
+                  </td>
+                  <td className="px-8 py-6">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-sm text-slate-800 dark:text-slate-200">
+                        {summary.employee_name ?? summary.employment_id}
+                      </span>
+                      {!!summary.employee_id_number && (
+                        <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-tight">
+                          {summary.employee_id_number}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-8 py-6">
+                    <SourceBadge enteredVia={summary.entered_via} />
+                  </td>
+                  <td className="px-8 py-6 text-center text-sm font-mono text-slate-500 dark:text-slate-400">
+                    {summary.system_detected_ot_minutes}m
+                  </td>
+                  <td className="px-8 py-6 text-center text-sm font-bold font-mono text-amber-600 dark:text-amber-300">
+                    {summary.claimed_ot_minutes}m
+                  </td>
+                  <td className="px-8 py-6">
+                    <EvidenceCell
+                      onAddPhoto={onAddPhoto}
+                      onPreviewAttachment={onPreviewAttachment}
+                      summary={summary}
+                    />
+                  </td>
+                  <td className="px-8 py-6 text-sm text-slate-600 dark:text-slate-300 italic">
+                    &quot;{summary.ot_reason}&quot;
+                  </td>
+                  <td className="px-8 py-6 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        className="h-auto w-auto p-2 rounded-full hover:bg-emerald-50 dark:bg-emerald-950 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:text-emerald-300 transition-all disabled:opacity-50 shadow-none"
+                        disabled={isProcessing}
+                        icon={<CheckCircle className="w-5 h-5" />}
+                        onClick={() => {
+                          void handleApprove(summary, true);
+                        }}
+                        size="icon"
+                        title={t("ot_approvals.actions.approve")}
+                        variant="ghost"
+                      />
+                      <Button
+                        className="h-auto w-auto p-2 rounded-full hover:bg-rose-50 dark:bg-rose-950 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 transition-all disabled:opacity-50 shadow-none"
+                        disabled={isProcessing}
+                        icon={<XCircle className="w-5 h-5" />}
+                        onClick={() => {
+                          void handleApprove(summary, false);
+                        }}
+                        size="icon"
+                        title={t("ot_approvals.actions.reject")}
+                        variant="ghost"
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              <InfiniteScrollSentinel
+                colSpan={8}
+                isFetchingNextPage={isFetchingNextPage}
+                sentinelRef={loadMoreRef}
+              />
+            </tbody>
+          </table>
+        </div>
+      )}
+    />
   );
 }
 

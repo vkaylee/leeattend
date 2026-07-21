@@ -116,7 +116,8 @@ describe("ReportsPage", () => {
 
   it("renders report table and defaults to last month", async () => {
     renderWithProviders(<ReportsPage />);
-    expect(await screen.findByText(/John Doe/i, {}, { timeout: 30000 })).toBeDefined();
+    // ResponsiveTable renders both desktop and mobile views
+    expect((await screen.findAllByText(/John Doe/i, {}, { timeout: 30000 })).length).toBeGreaterThan(0);
     const [lastMonthButton] = await screen.findAllByText(/\d+\/\d+/);
     expect(lastMonthButton).toBeDefined();
   });
@@ -199,7 +200,8 @@ describe("ReportsPage", () => {
 
   it("shows unit values in tooltips instead of visible text", async () => {
     renderWithProviders(<ReportsPage />);
-    await screen.findByText(/John Doe/i);
+    // ResponsiveTable renders both desktop and mobile views
+    await screen.findAllByText(/John Doe/i);
 
     // Units should NOT be visible as text
     expect(screen.queryByText("440 U")).toBeNull();
@@ -216,7 +218,7 @@ describe("ReportsPage", () => {
   it("opens slide-over drawer when clicking an employee row", async () => {
     const user = userEvent.setup();
 
- 
+
     const mockDailyRow = {
       employee_id: "emp-1",
       employee_name: "John Doe",
@@ -240,7 +242,7 @@ describe("ReportsPage", () => {
         if (type === "daily") {
           return Promise.resolve({ data: [mockDailyRow], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<DailyAttendanceReport>);
         }
- 
+
         return Promise.resolve({
           data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0, computed_std_hours: 800, computed_ot_hours: 100 }],
           total: 1,
@@ -251,8 +253,9 @@ describe("ReportsPage", () => {
     );
 
     renderWithProviders(<ReportsPage />);
-    const employeeRow = await screen.findByText(/John Doe/i);
-    await user.click(employeeRow);
+    // ResponsiveTable renders both desktop and mobile views
+    const employeeRows = await screen.findAllByText(/John Doe/i);
+    await user.click(employeeRows[0]);
 
     const sheetPanel = await screen.findByTestId("sheet-panel");
     expect(sheetPanel).toBeDefined();
@@ -272,7 +275,8 @@ describe("ReportsPage", () => {
 
   it("renders a search input that exists and is functional", async () => {
     renderWithProviders(<ReportsPage />);
-    await screen.findByText(/John Doe/i);
+    // ResponsiveTable renders both desktop and mobile views
+    await screen.findAllByText(/John Doe/i);
 
     // Search input should exist
     const searchInput = screen.getByRole("textbox");
@@ -284,7 +288,8 @@ describe("ReportsPage", () => {
   it("triggers searchEmployees API on search input with debounce", async () => {
     const user = userEvent.setup();
     renderWithProviders(<ReportsPage />);
-    await screen.findByText(/John Doe/i);
+    // ResponsiveTable renders both desktop and mobile views
+    await screen.findAllByText(/John Doe/i);
 
     const searchInput = screen.getByRole("textbox");
     await user.type(searchInput, "John");
@@ -321,7 +326,8 @@ describe("ReportsPage", () => {
     });
 
     renderWithProviders(<ReportsPage />);
-    const employeeRow = await screen.findByText(/John Doe/i);
+    // ResponsiveTable renders both desktop and mobile views
+    const employeeRows = await screen.findAllByText(/John Doe/i);
 
     // Type into search
     const searchInput = screen.getByRole("textbox");
@@ -335,7 +341,7 @@ describe("ReportsPage", () => {
     expect((searchInput as HTMLInputElement).selectionEnd).toBe(4); // length of "Test"
 
     // Open drawer
-    await user.click(employeeRow);
+    await user.click(employeeRows[0]);
     const sheetPanel = await screen.findByTestId("sheet-panel");
     expect(sheetPanel).toBeInTheDocument();
 
@@ -387,7 +393,8 @@ describe("ReportsPage", () => {
     });
 
     renderWithProviders(<ReportsPage />);
-    await screen.findByText(/John Doe/i);
+    // ResponsiveTable renders both desktop and mobile views
+    await screen.findAllByText(/John Doe/i);
 
     // Get search input and focus it
     const searchInput = screen.getByRole("textbox");
@@ -405,7 +412,7 @@ describe("ReportsPage", () => {
     // We should see the daily report data because the drawer is open
     const rawLogsToggle = await screen.findByRole("button", { name: /Nhật ký thô|View Raw Logs|reports.view_raw_logs/i });
     expect(rawLogsToggle).toBeInTheDocument();
- 
+
     await waitFor(() => {
       expect(api.searchEmployees).toHaveBeenCalled();
     }, { timeout: 2000 });
@@ -435,7 +442,8 @@ describe("ReportsPage", () => {
     });
 
     renderWithProviders(<ReportsPage />);
-    await screen.findByText(/John Doe/i);
+    // ResponsiveTable renders both desktop and mobile views
+    await screen.findAllByText(/John Doe/i);
 
     // Get search input and focus it
     const searchInput = screen.getByRole("textbox");
@@ -504,8 +512,9 @@ describe("ReportsPage", () => {
     });
 
     renderWithProviders(<ReportsPage />);
-    await screen.findByText(/John Doe/i);
-    await screen.findByText(/Jane Smith/i);
+    // ResponsiveTable renders both desktop and mobile views
+    await screen.findAllByText(/John Doe/i);
+    await screen.findAllByText(/Jane Smith/i);
 
     // Get search input and focus it
     const searchInput = screen.getByRole("textbox");
@@ -543,7 +552,7 @@ describe("ReportsPage", () => {
   });
 
   it("displays an empty state when no data is returned", async () => {
- 
+
     vi.mocked(api.fetchAttendanceReport).mockImplementation(() => {
       return Promise.resolve({ data: [], total: 0, page: 1, limit: 50 } as unknown as PaginatedResponse<AttendanceSummary>);
     });
@@ -552,8 +561,9 @@ describe("ReportsPage", () => {
 
     // The Reports.messages.no_data localized string or empty graphic should appear
     // We could search for the text or the svg icon class
-    const emptyStateTitle = await screen.findByText(/NO DATA|Không có dữ liệu/i);
-    expect(emptyStateTitle).toBeInTheDocument();
+    // ResponsiveTable renders both desktop and mobile views
+    const emptyStateTitles = await screen.findAllByText(/NO DATA|Không có dữ liệu/i);
+    expect(emptyStateTitles.length).toBeGreaterThan(0);
   });
 
   it("renders cross-navigation link to raw logs with preserved date range", async () => {
@@ -615,14 +625,16 @@ describe("ReportsPage", () => {
     const user = userEvent.setup();
     void i18n.changeLanguage("en");
     renderWithProviders(<ReportsPage />);
-    await screen.findByText(/John Doe/i);
+    // ResponsiveTable renders both desktop and mobile views
+    await screen.findAllByText(/John Doe/i);
 
  
     // Find the OT Hours column header — text is "Overtime" (en) inside a flex div with SVG icon
- 
-    const otHeaderText = screen.getByText((content, element) => {
+    // ResponsiveTable renders both desktop and mobile views, so pick the one inside a <th>
+    const otHeaderTexts = screen.getAllByText((content, element) => {
       return element?.tagName.toLowerCase() === "div" && /Overtime|Tăng ca/i.test(content);
     });
+    const otHeaderText = otHeaderTexts.find((el) => el.closest("th")) ?? otHeaderTexts[0];
     const otClickTarget = otHeaderText.closest("th") ?? otHeaderText;
 
     // Clear mock calls so we only see calls triggered by the click
@@ -654,7 +666,8 @@ describe("ReportsPage", () => {
     const user = userEvent.setup();
     void i18n.changeLanguage("en");
     renderWithProviders(<ReportsPage />);
-    await screen.findByText(/John Doe/i);
+    // ResponsiveTable renders both desktop and mobile views
+    await screen.findAllByText(/John Doe/i);
 
     // Total hours = 800 std + 100 ot = 900
     expect(screen.getByTitle("480 total units")).toBeInTheDocument();
@@ -662,9 +675,11 @@ describe("ReportsPage", () => {
 
  
     // Find the Total Hours column header
-    const totalHeader = screen.getByText((content, element) => {
+    // ResponsiveTable renders both desktop and mobile views, so pick the one inside a <th>
+    const totalHeaders = screen.getAllByText((content, element) => {
       return element?.tagName.toLowerCase() === "div" && /Total Hours|Tổng giờ công/i.test(content);
     });
+    const totalHeader = totalHeaders.find((el) => el.closest("th")) ?? totalHeaders[0];
     const totalClickTarget = totalHeader.closest("th") ?? totalHeader;
 
  

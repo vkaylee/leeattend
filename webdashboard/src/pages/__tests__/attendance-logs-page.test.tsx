@@ -122,7 +122,8 @@ describe("AttendanceLogsPage", () => {
 
   it("renders the page and logs", async () => {
     renderWithProviders(<AttendanceLogsPage />);
-    expect(await screen.findByText(/John Doe/i)).toBeDefined();
+    // ResponsiveTable renders both desktop and mobile views, so use findAllByText
+    expect((await screen.findAllByText(/John Doe/i)).length).toBeGreaterThan(0);
   });
 
   it("renders cross-navigation link with preserved date range", async () => {
@@ -156,9 +157,9 @@ describe("AttendanceLogsPage", () => {
 
     renderWithProviders(<AttendanceLogsPage />);
 
-    // Check for the new empty state text
-    const emptyStateTitle = await screen.findByText("attendance_logs.messages.no_data");
-    expect(emptyStateTitle).toBeDefined();
+    // Check for the new empty state text - ResponsiveTable renders both desktop and mobile empty states
+    const emptyStateTitles = await screen.findAllByText("attendance_logs.messages.no_data");
+    expect(emptyStateTitles.length).toBeGreaterThan(0);
   });
 
   it("uses PAGE_SIZE of 20 for infinite scroll", async () => {
@@ -176,7 +177,8 @@ describe("AttendanceLogsPage", () => {
 
   it("does not render pagination prev/next buttons", async () => {
     renderWithProviders(<AttendanceLogsPage />);
-    await screen.findByText(/John Doe/i);
+    // ResponsiveTable renders both desktop and mobile views, so use findAllByText
+    await screen.findAllByText(/John Doe/i);
 
     // Old pagination buttons should NOT exist
     expect(screen.queryByText(/common.pagination.prev/i)).toBeNull();
@@ -226,7 +228,7 @@ describe("AttendanceLogsPage", () => {
   });
 
   it("renders unknown tab with staging data and floating amber badge", async () => {
- 
+
     const user = userEvent.setup();
 
     vi.mocked(api.fetchStagingLogs).mockResolvedValue({
@@ -239,7 +241,8 @@ describe("AttendanceLogsPage", () => {
     } as unknown as StagingLogsResponse);
 
     renderWithProviders(<AttendanceLogsPage />);
-    await screen.findByText(/John Doe/i);
+    // ResponsiveTable renders both desktop and mobile views, so use findAllByText
+    await screen.findAllByText(/John Doe/i);
 
     // Switch to unknown tab
     const unknownTab = screen.getByText(/attendance_logs.tabs.unknown/i);
@@ -259,7 +262,8 @@ describe("AttendanceLogsPage", () => {
     const user = userEvent.setup();
 
     renderWithProviders(<AttendanceLogsPage />);
-    await screen.findByText(/John Doe/i);
+    // ResponsiveTable renders both desktop and mobile views, so use findAllByText
+    await screen.findAllByText(/John Doe/i);
 
     // Switch to unknown tab
     const unknownTab = screen.getByText(/attendance_logs.tabs.unknown/i);

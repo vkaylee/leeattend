@@ -83,10 +83,11 @@ describe("MembersPage", () => {
   it("renders members list with owner and admin", async () => {
     renderWithProviders(<MembersPage />);
 
-    expect(await screen.findByText(/Workspace Owner/i, {}, { timeout: 30000 })).toBeDefined();
+    // ResponsiveTable renders both desktop and mobile views
+    expect((await screen.findAllByText(/Workspace Owner/i, {}, { timeout: 30000 })).length).toBeGreaterThan(0);
     expect((await screen.findAllByText(/OWNER/i)).length).toBeGreaterThan(0);
-    expect(await screen.findByText(/Admin User/i)).toBeDefined();
- 
+    expect((await screen.findAllByText(/Admin User/i)).length).toBeGreaterThan(0);
+
     expect((await screen.findAllByText(/ADMIN/i)).length).toBeGreaterThan(0);
   });
 
@@ -120,7 +121,8 @@ describe("MembersPage", () => {
 
     renderWithProviders(<MembersPage />);
 
-    await screen.findByText(/Admin User/i, {}, { timeout: 30000 });
+    // ResponsiveTable renders both desktop and mobile views
+    await screen.findAllByText(/Admin User/i, {}, { timeout: 30000 });
 
     // Owner doesn't have a remove button, so the first one found is for the Admin User
     const removeBtns = await screen.findAllByTitle(/Remove Member|Xóa thành viên/i);
@@ -132,7 +134,7 @@ describe("MembersPage", () => {
 
     await waitFor(() => {
       expect(api.removeWorkspaceMember).toHaveBeenCalledWith("test-ws-id", "user-2");
- 
+
     });
   });
 
@@ -145,10 +147,12 @@ describe("MembersPage", () => {
 
     renderWithProviders(<MembersPage />);
 
-    await screen.findByText(/Admin User/i, {}, { timeout: 30000 });
+    // ResponsiveTable renders both desktop and mobile views
+    await screen.findAllByText(/Admin User/i, {}, { timeout: 30000 });
 
     // Instead of relying on global button indices, find the specific row for the Admin User
-    const adminRow = (await screen.findByText(/Admin User/i)).closest('tr');
+    const adminUserElements = await screen.findAllByText(/Admin User/i);
+    const adminRow = adminUserElements[0].closest('tr');
     if (!adminRow) throw new Error("Could not find Admin User row");
 
     // "Manage Roles" should be the button with the UserCog icon / role management title

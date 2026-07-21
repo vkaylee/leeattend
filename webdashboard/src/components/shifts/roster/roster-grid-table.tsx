@@ -83,7 +83,7 @@ const RosterGridTable = memo(function RosterGridTable({
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/50">
-            <th className="sticky left-0 bg-slate-50 dark:bg-slate-850 border-r border-slate-100 dark:border-slate-800 px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 z-20 min-w-[160px] shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
+            <th className="sticky left-0 bg-slate-50 dark:bg-slate-850 border-r border-slate-100 dark:border-slate-800 px-3 sm:px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 z-20 min-w-[140px] sm:min-w-[160px] shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
               {employeesLabel}
             </th>
             {monthDays.map((day) => {
@@ -95,7 +95,7 @@ const RosterGridTable = memo(function RosterGridTable({
 
               return (
                 <th
-                  className={`px-2 py-2 border-r border-slate-100 dark:border-slate-800 text-center min-w-[45px] ${
+                  className={`px-1.5 sm:px-2 py-2 border-r border-slate-100 dark:border-slate-800 text-center min-w-[40px] sm:min-w-[45px] ${
                     isToday
                       ? "bg-primary-50/50 dark:bg-primary-950/20"
                       : isWe
@@ -105,14 +105,14 @@ const RosterGridTable = memo(function RosterGridTable({
                   key={dateStr}
                 >
                   <div
-                    className={`text-[10px] font-bold uppercase tracking-tighter ${isToday ? "text-primary-600 dark:text-primary-400" : "text-slate-400 dark:text-slate-500"}`}
+                    className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-tighter ${isToday ? "text-primary-600 dark:text-primary-400" : "text-slate-400 dark:text-slate-500"}`}
                   >
                     {dayName}
                   </div>
                   <div
-                    className={`text-sm font-extrabold mt-0.5 ${
+                    className={`text-xs sm:text-sm font-extrabold mt-0.5 ${
                       isToday
-                        ? "text-primary-600 dark:text-primary-400 bg-primary-100 dark:bg-primary-900/60 rounded-full w-6 h-6 flex items-center justify-center mx-auto"
+                        ? "text-primary-600 dark:text-primary-400 bg-primary-100 dark:bg-primary-900/60 rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center mx-auto"
                         : isWe
                         ? "text-amber-600 dark:text-amber-500"
                         : "text-slate-600 dark:text-slate-300"
@@ -139,15 +139,15 @@ const RosterGridTable = memo(function RosterGridTable({
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
               key={empSchedule.employee_id ?? empSchedule.employment_id}
             >
-              <td className="sticky left-0 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 px-4 py-3 font-bold text-xs text-slate-700 dark:text-slate-300 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)] min-w-[200px]">
+              <td className="sticky left-0 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 px-3 sm:px-4 py-3 font-bold text-xs text-slate-700 dark:text-slate-300 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)] min-w-[140px] sm:min-w-[200px]">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-extrabold text-slate-600 dark:text-slate-400">
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[9px] sm:text-[10px] font-extrabold text-slate-600 dark:text-slate-400">
                     {empSchedule.full_name.substring(0, 2).toUpperCase()}
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="truncate leading-tight">{empSchedule.full_name}</span>
+                    <span className="truncate leading-tight text-[11px] sm:text-xs">{empSchedule.full_name}</span>
                     {!!subtitle && (
-                      <span className="truncate text-[10px] font-medium text-slate-400 dark:text-slate-500 leading-tight">
+                      <span className="truncate text-[9px] sm:text-[10px] font-medium text-slate-400 dark:text-slate-500 leading-tight">
                         {subtitle}
                       </span>
                     )}

@@ -194,8 +194,9 @@ describe("LeaveRequestsPage", () => {
 
     renderPage(queryClient);
 
-    expect(await screen.findByText("John Doe")).toBeDefined();
-    expect(screen.getByText(/vacation/i)).toBeDefined();
+    // ResponsiveTable renders both desktop and mobile views
+    expect((await screen.findAllByText("John Doe")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/vacation/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Chờ duyệt/i).length).toBeGreaterThan(0);
   });
 
@@ -249,7 +250,7 @@ describe("LeaveRequestsPage", () => {
   }, 30000);
 
   it("handles approve/reject actions", async () => {
- 
+
     const user = userEvent.setup();
     vi.mocked(api.fetchWorkspaceLeaveRequests).mockResolvedValue({
       data: [
@@ -263,15 +264,16 @@ describe("LeaveRequestsPage", () => {
 
     renderPage(queryClient);
 
-    const approveButton = await screen.findByTitle(/phê duyệt/i);
-    await user.click(approveButton);
+    // ResponsiveTable renders both desktop and mobile views, so use findAllByTitle
+    const approveButtons = await screen.findAllByTitle(/phê duyệt/i);
+    await user.click(approveButtons[0]);
 
     await waitFor(() => {
       expect(api.approveLeaveRequest).toHaveBeenCalledWith("test-ws-id", "req-1", { status: "approved" });
     });
 
-    const rejectButton = await screen.findByTitle(/từ chối/i);
-    await user.click(rejectButton);
+    const rejectButtons = await screen.findAllByTitle(/từ chối/i);
+    await user.click(rejectButtons[0]);
 
     await waitFor(() => {
       expect(api.approveLeaveRequest).toHaveBeenCalledWith("test-ws-id", "req-1", { status: "rejected" });
@@ -523,10 +525,10 @@ describe("LeaveRequestsPage", () => {
 
       renderPage(queryClient);
 
-      // Wait for the request to render
-      expect(await screen.findByText("John Doe")).toBeDefined();
+      // Wait for the request to render (ResponsiveTable renders both desktop and mobile)
+      expect((await screen.findAllByText("John Doe")).length).toBeGreaterThan(0);
       // The badge should show "Sáng" (i18n key: leave_requests.duration.first_half)
-      expect(screen.getByText(/Sáng/i)).toBeDefined();
+      expect(screen.getAllByText(/Sáng/i).length).toBeGreaterThan(0);
     });
 
  
@@ -542,10 +544,11 @@ describe("LeaveRequestsPage", () => {
 
       renderPage(queryClient);
 
-      expect(await screen.findByText("John Doe")).toBeDefined();
+      // ResponsiveTable renders both desktop and mobile views
+      expect((await screen.findAllByText("John Doe")).length).toBeGreaterThan(0);
       // The badge should show the time range "09:00–12:00"
-      expect(screen.getByText(/09:00/)).toBeDefined();
-      expect(screen.getByText(/12:00/)).toBeDefined();
+      expect(screen.getAllByText(/09:00/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/12:00/).length).toBeGreaterThan(0);
     });
 
  
@@ -561,7 +564,8 @@ describe("LeaveRequestsPage", () => {
 
       renderPage(queryClient);
 
-      expect(await screen.findByText("John Doe")).toBeDefined();
+      // ResponsiveTable renders both desktop and mobile views
+      expect((await screen.findAllByText("John Doe")).length).toBeGreaterThan(0);
       // For full_day, the duration badge (with Sun/Moon/Timer icons) should NOT appear in the table
       // The time cell only shows date range, no "Sáng"/"Chiều" labels inside a badge span
       const timeCells = document.querySelectorAll("td");

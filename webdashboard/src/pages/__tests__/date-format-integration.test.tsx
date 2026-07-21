@@ -89,16 +89,16 @@ describe("Date Format Integration", () => {
 
   it("renders dates in DD/MM/YYYY format when workspace setting is DD/MM/YYYY", async () => {
     vi.mocked(api.fetchEmployees).mockResolvedValue({
- 
+
       data: [{ id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", workspace_id: "ws-1", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", tags: [] }],
       total: 1,
       page: 1,
       limit: 50,
     });
     vi.mocked(api.fetchWorkspace).mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC" } as unknown as never);
- 
+
     vi.mocked(api.fetchRawAttendanceLogs).mockResolvedValue({
- 
+
       data: [{ id: "l-1", punch_time: "2026-01-15T08:00:00Z", device_id: "dev-1", source: "device", employee_id: "emp-1" }],
       total: 1,
       page: 1,
@@ -107,21 +107,23 @@ describe("Date Format Integration", () => {
 
     renderWithProviders(<AttendanceLogsPage />);
 
-    expect(await screen.findByText(/15\/01\/2026/)).toBeInTheDocument();
+    // ResponsiveTable renders both desktop and mobile views, so use findAllByText
+    const dateElements = await screen.findAllByText(/15\/01\/2026/);
+    expect(dateElements.length).toBeGreaterThan(0);
   });
 
   it("renders dates in YYYY-MM-DD format when workspace setting is YYYY-MM-DD", async () => {
     vi.mocked(api.fetchEmployees).mockResolvedValue({
- 
+
       data: [{ id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", workspace_id: "ws-1", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", tags: [] }],
       total: 1,
       page: 1,
       limit: 50,
     });
     vi.mocked(api.fetchWorkspace).mockResolvedValue({ date_format: "YYYY-MM-DD", timezone: "UTC" } as unknown as never);
- 
+
     vi.mocked(api.fetchRawAttendanceLogs).mockResolvedValue({
- 
+
       data: [{ id: "l-1", punch_time: "2026-01-15T08:00:00Z", device_id: "dev-1", source: "device", employee_id: "emp-1" }],
       total: 1,
       page: 1,
@@ -130,7 +132,9 @@ describe("Date Format Integration", () => {
 
     renderWithProviders(<AttendanceLogsPage />);
 
-    expect(await screen.findByText(/2026-01-15/)).toBeInTheDocument();
+    // ResponsiveTable renders both desktop and mobile views, so use findAllByText
+    const dateElements = await screen.findAllByText(/2026-01-15/);
+    expect(dateElements.length).toBeGreaterThan(0);
   });
 
   it("renders month/year correctly in PayrollPage", async () => {
