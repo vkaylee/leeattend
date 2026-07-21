@@ -15,32 +15,18 @@ import { cn } from "@/lib/utils";
 
 import Button from "../ui/button";
 import Modal from "../ui/modal";
+import BottomDrawer from "./bottom-drawer";
+import BottomNav from "./bottom-nav";
 import FloatingPanel from "./floating-panel";
 import IconRail from "./icon-rail";
 import Navbar from "./navbar";
-import Sidebar from "./sidebar";
 import WorkspaceSwitcher from "./workspace-switcher";
+import { useNotifications } from "@/hooks/use-notifications";
 
 // ── Types ──────────────────────────────────────────────────────────
 
 export interface AppShellProps {
   variant?: "workspace" | "infra";
-}
-
-// ── Mobile Sidebar Overlay ─────────────────────────────────────────
-
-function SidebarOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  if (!isOpen) return null;
-  return (
-    <div
-      className="fixed inset-0 bg-slate-900/50 dark:bg-slate-950/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-500"
-      onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === "Escape" || e.key === "Enter" || e.key === " ") onClose();
-      }}
-      role="presentation"
-    />
-  );
 }
 
 // ── Workspace Switcher Modal ───────────────────────────────────────
@@ -88,17 +74,18 @@ export default function AppShell({ variant }: AppShellProps) {
   const {
     isPinned,
     activeGroup,
-    isMobileOpen,
+    isBottomDrawerOpen,
     togglePin,
     setActiveGroup,
     handleGroupHover,
     handlePanelEnter,
     handlePanelLeave,
-    setMobileOpen,
+    setBottomDrawerOpen,
     pathActiveGroup,
   } = useNavSidebar(location.pathname);
 
   const { workspaces } = useWorkspaces();
+  const { unreadCount } = useNotifications();
   const currentWsId = getCurrentWorkspaceId();
   const currentWorkspace = workspaces.find((ws) => ws.id === currentWsId);
 
@@ -118,29 +105,12 @@ export default function AppShell({ variant }: AppShellProps) {
     if (!isPinned) {
       setActiveGroup(null);
     }
-    // Also close mobile sidebar if open
-    setMobileOpen(false);
   };
 
 
   return (
     <HeaderActionsProvider>
     <div className="flex min-h-screen bg-background text-foreground font-sans relative overflow-x-hidden">
-      {/* Mobile overlay */}
-      <SidebarOverlay isOpen={isMobileOpen} onClose={() => { setMobileOpen(false); }} />
-
-      {/* Mobile sidebar — wrapped in lg:hidden so only visible on small screens */}
-      <div className="lg:hidden">
-        <Sidebar
-          isCollapsed={false}
-          isOpen={isMobileOpen}
-          onClose={() => { setMobileOpen(false); }}
-          openSections={{ org: false, time: false, shifts: false, payroll: false, system: false, ess: false }}
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-          toggleSection={() => {}}
-        />
-      </div>
-
       {/* Desktop: Icon Rail */}
       <IconRail
         activeGroup={activeGroup ?? pathActiveGroup}
@@ -174,13 +144,13 @@ export default function AppShell({ variant }: AppShellProps) {
       >
         <Navbar
           currentWorkspaceName={currentWorkspace?.name ?? "Workspace"}
-          onOpenSidebar={() => { setMobileOpen(true); }}
         />
 
         <main
           className={cn(
             "flex-1 relative scroll-smooth",
             isOrgChart ? "overflow-hidden p-0" : "overflow-y-auto p-4 md:p-6 lg:p-8",
+            "pb-20 md:pb-0", // Bottom nav clearance on mobile
           )}
         >
           <div
@@ -196,6 +166,19 @@ export default function AppShell({ variant }: AppShellProps) {
           </div>
         </main>
       </div>
+
+      {/* Mobile: Bottom Navigation Bar */}
+      <BottomNav
+        activeGroup={activeGroup ?? pathActiveGroup}
+        onMoreClick={() => { setBottomDrawerOpen(true); }}
+        unreadCount={unreadCount}
+      />
+
+      {/* Mobile: Bottom Sheet Drawer */}
+      <BottomDrawer
+        isOpen={isBottomDrawerOpen}
+        onClose={() => { setBottomDrawerOpen(false); }}
+      />
 
       {/* Workspace switcher modal (workspace variant only) */}
       {variant === "workspace" && (

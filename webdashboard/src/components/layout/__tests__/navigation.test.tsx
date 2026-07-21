@@ -89,7 +89,6 @@ vi.mock('../notifications-popover', () => ({
 }));
 
 import Navbar from '../navbar';
-import Sidebar from '../sidebar';
 
 const createTestQueryClient = () =>
   new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
@@ -119,52 +118,21 @@ describe('Navigation Layout Consistency', () => {
     activePermissions.add("payroll:read");
   });
 
-  describe('Sidebar', () => {
-    it('should not contain the logout button anymore', () => {
-      renderWithProviders(
-        <Sidebar
-          isCollapsed={false}
-          isOpen={true}
-          onClose={vi.fn()}
-          openSections={{}}
-          toggleSection={vi.fn()}
-        />
-      );
-
-      expect(screen.queryByText(/common\.logout/i)).not.toBeInTheDocument();
-      expect(screen.queryByTestId('user-menu-logout')).not.toBeInTheDocument();
-    });
-  });
-
   describe('Navbar', () => {
     it('renders workspace name in breadcrumbs', () => {
       renderWithProviders(
         <Navbar
           currentWorkspaceName="Test Workspace"
-          onOpenSidebar={vi.fn()}
         />
       );
 
       expect(screen.getByText('Test Workspace')).toBeInTheDocument();
     });
 
-    it('has a hamburger button for mobile sidebar', () => {
-      renderWithProviders(
-        <Navbar
-          currentWorkspaceName="Test Workspace"
-          onOpenSidebar={vi.fn()}
-        />
-      );
-
-      const buttons = screen.getAllByRole('button');
-      expect(buttons.length).toBeGreaterThanOrEqual(1);
-    });
-
     it('renders page name from current path', () => {
       renderWithProviders(
         <Navbar
           currentWorkspaceName="Test Workspace"
-          onOpenSidebar={vi.fn()}
         />
       );
 
@@ -177,53 +145,12 @@ describe('Navigation Layout Consistency', () => {
       const { container } = renderWithProviders(
         <Navbar
           currentWorkspaceName="Test Workspace"
-          onOpenSidebar={vi.fn()}
         />
       );
 
       const header = container.querySelector('header');
       expect(header).toBeInTheDocument();
       expect(header!.className).toContain('h-14');
-    });
-  });
-
-  describe('Sidebar Permissions Gating', () => {
-    const renderSidebar = () =>
-      renderWithProviders(
-        <Sidebar
-          isCollapsed={false}
-          isOpen={true}
-          onClose={vi.fn()}
-          openSections={{ time: true }}
-          toggleSection={vi.fn()}
-        />
-      );
-
-    it('shows Leave Requests menu item when user has leave:requests:read', () => {
-      activePermissions.clear();
-      activePermissions.add("leave:requests:read");
-      renderSidebar();
-      expect(screen.getByTestId('sidebar-link-leave-requests')).toBeInTheDocument();
-    });
-
-    it('shows Leave Requests menu item when user has leave:requests:submit_on_behalf', () => {
-      activePermissions.clear();
-      activePermissions.add("leave:requests:submit_on_behalf");
-      renderSidebar();
-      expect(screen.getByTestId('sidebar-link-leave-requests')).toBeInTheDocument();
-    });
-
-    it('shows Leave Requests menu item when user has leave:requests:approve', () => {
-      activePermissions.clear();
-      activePermissions.add("leave:requests:approve");
-      renderSidebar();
-      expect(screen.getByTestId('sidebar-link-leave-requests')).toBeInTheDocument();
-    });
-
-    it('hides Leave Requests menu item when user has none of these permissions', () => {
-      activePermissions.clear();
-      renderSidebar();
-      expect(screen.queryByTestId('sidebar-link-leave-requests')).not.toBeInTheDocument();
     });
   });
 });

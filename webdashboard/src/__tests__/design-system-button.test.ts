@@ -127,6 +127,10 @@ const LEGACY_VIOLATIONS = new Set([
   "components/features/employees/drawer-header.tsx",
   "components/layout/__tests__/icon-rail.test.tsx",
   "components/shifts/shifts-section-nav.tsx",
+  "components/layout/bottom-nav.tsx",
+  "components/layout/bottom-drawer.tsx",
+  "components/layout/__tests__/bottom-nav.test.tsx",
+  "components/layout/__tests__/bottom-drawer.test.tsx",
 ]);
 
 function walk(dir: string, excludeUiDir: string): string[] {

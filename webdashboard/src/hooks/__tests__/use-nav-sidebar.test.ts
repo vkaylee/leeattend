@@ -271,20 +271,20 @@ describe("useNavSidebar", () => {
     expect(result.current.pathActiveGroup).toBe("time");
   });
 
-  // ── Mobile state ───────────────────────────────────────────────
+  // ── Bottom drawer state ────────────────────────────────────────
 
-  it("mobile drawer defaults to closed", () => {
+  it("bottom drawer defaults to closed", () => {
     const { result } = renderHook(() => useNavSidebar("/"));
-    expect(result.current.isMobileOpen).toBe(false);
+    expect(result.current.isBottomDrawerOpen).toBe(false);
   });
 
-  it("setMobileOpen toggles the mobile drawer", () => {
+  it("setBottomDrawerOpen toggles the bottom drawer", () => {
     const { result } = renderHook(() => useNavSidebar("/"));
 
-    act(() => { result.current.setMobileOpen(true); });
-    expect(result.current.isMobileOpen).toBe(true);
+    act(() => { result.current.setBottomDrawerOpen(true); });
+    expect(result.current.isBottomDrawerOpen).toBe(true);
 
-    act(() => { result.current.setMobileOpen(false); });
-    expect(result.current.isMobileOpen).toBe(false);
+    act(() => { result.current.setBottomDrawerOpen(false); });
+    expect(result.current.isBottomDrawerOpen).toBe(false);
   });
 });

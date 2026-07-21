@@ -1,5 +1,5 @@
 import { useLocation } from "@tanstack/react-router";
-import { Menu, ChevronRight as BreadcrumbSeparator } from "lucide-react";
+import { ChevronRight as BreadcrumbSeparator } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -9,10 +9,9 @@ import { ROUTES } from "@/lib/routes";
 
 interface NavbarProps {
   currentWorkspaceName: string;
-  onOpenSidebar: () => void;
 }
 
-export default function Navbar({ currentWorkspaceName, onOpenSidebar }: NavbarProps) {
+export default function Navbar({ currentWorkspaceName }: NavbarProps) {
   const { t } = useTranslation(["common", "dashboard", "employees", "leave", "payroll", "settings"]);
   const location = useLocation();
   const { actions } = useHeaderActions();
@@ -50,15 +49,6 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar }: NavbarPr
 
   return (
     <header className="h-14 border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl flex items-center px-4 lg:px-6 gap-4 flex-shrink-0 z-30 sticky top-0 shadow-sm">
-      {/* Mobile hamburger */}
-      <Button
-        className="lg:hidden p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl active:scale-90 transition-all border border-slate-100 dark:border-slate-700 shadow-sm"
-        onClick={onOpenSidebar}
-        variant="ghost"
-      >
-        <Menu size={18} />
-      </Button>
-
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-3 flex-1 min-w-0">
         <span className="hidden sm:inline text-slate-400 dark:text-slate-500 font-bold uppercase text-[10px] tracking-[0.25em] opacity-60 truncate">

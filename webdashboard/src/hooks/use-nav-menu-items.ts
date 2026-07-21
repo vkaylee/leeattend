@@ -35,6 +35,7 @@ import { useTranslation } from "react-i18next";
 
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useProfile } from "@/hooks/use-profile";
+import { getCurrentWorkspaceId } from "@/lib/api";
 import { ROUTES } from "@/lib/routes";
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -183,6 +184,16 @@ export function useFilteredMenuItems(): NavMenuStructure {
   const { hasAnyPermission } = useMyPermissions();
   const { user } = useProfile();
 
+  // When there is no active workspace but the user has system-level roles
+  // (e.g. platform_admin, support), we are in a cross-workspace / infra
+  // context. Workspace-scoped permissions are not available — skip the
+  // permission check so the icon rail isn't stripped bare. Sub-items are
+  // still filtered by systemRoles at the item level below, and routes
+  // retain their own guards.
+  const hasSystemRoles = (user?.system_roles?.length ?? 0) > 0;
+  const wsId = getCurrentWorkspaceId();
+  const isSystemContext = !wsId && hasSystemRoles;
+
   const filteredGroups = groups
     .map((group) => {
       const filteredItems = group.items.filter((item) => {
@@ -190,6 +201,9 @@ export function useFilteredMenuItems(): NavMenuStructure {
         if (item.systemRoles && item.systemRoles.length > 0) {
           return item.systemRoles.some((role) => user?.system_roles?.includes(role));
         }
+        // System context: keep the item (no workspace-scoped permissions to
+        // check against). Navigate is still gated by route-level guards.
+        if (isSystemContext) return true;
         // Permission check
         const permissions = item.permissions;
         return !permissions || permissions.length === 0 || hasAnyPermission(...permissions);

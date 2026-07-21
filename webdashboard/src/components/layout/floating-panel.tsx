@@ -116,11 +116,11 @@ export default function FloatingPanel({
       ref={containerRef}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0 min-h-[56px]">
-        <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate" variant="h2">
+      <div className="relative flex items-center px-4 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0 min-h-[56px] group/header">
+        <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate pr-14" variant="h2">
           {currentGroup.label}
         </Typography>
-        <div className="flex items-center gap-1">
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity duration-200">
           {/* Pin toggle */}
           <Button
             aria-label={isPinned ? t("common.collapse", "Unpin") : t("common.expand", "Pin")}

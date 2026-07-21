@@ -15,16 +15,16 @@ export interface NavSidebarState {
   handlePanelEnter: () => void;
   /** Call when mouse leaves the floating panel while not pinned. */
   handlePanelLeave: () => void;
-  /** Whether the mobile drawer is open. */
-  isMobileOpen: boolean;
+  /** Whether the bottom drawer (mobile "More" menu) is open. */
+  isBottomDrawerOpen: boolean;
   /** Whether the floating panel is pinned (locked open). Persisted in localStorage. */
   isPinned: boolean;
   /** The auto-detected active group from the current path. */
   pathActiveGroup: NavGroup | null;
   /** Set the active group (for explicit click — bypasses debounce, blocks hover-close). */
   setActiveGroup: (group: NavGroup | null) => void;
-  /** Open/close the mobile drawer. */
-  setMobileOpen: (open: boolean) => void;
+  /** Open/close the bottom drawer. */
+  setBottomDrawerOpen: (open: boolean) => void;
   /** Toggle pin state. */
   togglePin: () => void;
 }
@@ -44,7 +44,7 @@ function getInitialPinned(): boolean {
 export function useNavSidebar(locationPathname: string): NavSidebarState {
   const [isPinned, setIsPinned] = useState(getInitialPinned);
   const [activeGroup, setActiveGroupState] = useState<NavGroup | null>(null);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isBottomDrawerOpen, setIsBottomDrawerOpen] = useState(false);
 
   // Debounce refs
   const hoverOpenRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -124,9 +124,9 @@ export function useNavSidebar(locationPathname: string): NavSidebarState {
     // handleGroupHover(null) when the mouse leaves the rail entirely.
   }, []);
 
-  // ── Mobile open setter ───────────────────────────────────────
-  const setMobileOpen = useCallback((open: boolean) => {
-    setIsMobileOpen(open);
+  // ── Bottom drawer state ──────────────────────────────────────
+  const setBottomDrawerOpen = useCallback((open: boolean) => {
+    setIsBottomDrawerOpen(open);
   }, []);
 
   // Track pathname at timer set time — stale timers from before
@@ -144,13 +144,13 @@ export function useNavSidebar(locationPathname: string): NavSidebarState {
   return {
     isPinned,
     activeGroup,
-    isMobileOpen,
+    isBottomDrawerOpen,
     togglePin,
     setActiveGroup,
     handleGroupHover,
     handlePanelEnter,
     handlePanelLeave,
-    setMobileOpen,
+    setBottomDrawerOpen,
     pathActiveGroup,
   };
 }
