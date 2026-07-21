@@ -440,3 +440,41 @@ async fn test_smtp_test_validates_email() {
         .unwrap();
     assert_eq!(res.status(), StatusCode::BAD_REQUEST);
 }
+
+#[tokio::test]
+async fn test_smtp_test_persists_last_verified_at() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let admin_id = factory.user().create().await;
+    assign_system_role(&factory.diesel_pools, admin_id, "platform_admin").await;
+
+    // Dev mode — test will fail but last_verified_at should NOT be written on failure
+    let res = app
+        .clone()
+        .oneshot(make_req(
+            "POST",
+            "/api/v1/system/smtp/test",
+            admin_id,
+            Some(json!({ "to_email": "test@example.com" })),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = body_json(res).await;
+    assert_eq!(body["success"], false);
+
+    // Verify last_verified_at was NOT written on failure
+    let config: serde_json::Value = app
+        .clone()
+        .oneshot(make_req("GET", "/api/v1/system/smtp/config", admin_id, None))
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(
+        config.get("last_verified_at").is_none(),
+        "last_verified_at must not be written on test failure"
+    );
+}
