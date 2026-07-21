@@ -80,15 +80,14 @@ export default function SmtpSettingsPage() {
 
   const handleFillDefault = useCallback(() => {
     setShowDefaultConfirm(false);
-    // Use functional update to avoid depending on httpForm
-    setHttpOverrides((prev) => ({
-      url: prev.url || "https://send.api.mailtrap.io/api/send",
-      auth_header: prev.auth_header || "Api-Token",
-      auth_value: prev.auth_value || "{{password}}",
-      success_field: prev.success_field || "success",
-      success_value: prev.success_field ? (prev.success_value ?? true) : true,
+    setHttpOverrides({
+      url: "https://send.api.mailtrap.io/api/send",
+      auth_header: "Api-Token",
+      auth_value: "{{password}}",
+      success_field: "success",
+      success_value: true,
       body_template: DEFAULT_HTTP_API_TEMPLATE,
-    }));
+    });
     setDirty(true);
   }, [DEFAULT_HTTP_API_TEMPLATE]);
 
@@ -520,11 +519,11 @@ export default function SmtpSettingsPage() {
         isOpen={showDefaultConfirm}
         message={t(
           "smtp.fill_default_warning",
-          "This will fill any empty fields with standard default values (Mailtrap-compatible). Fields you've already configured will be kept unchanged. Continue?",
+          "This will reset ALL HTTP API fields to standard default values (Mailtrap-compatible). Any custom configuration will be lost. Continue?",
         )}
         onClose={() => setShowDefaultConfirm(false)}
         onConfirm={handleFillDefault}
-        title={t("smtp.fill_default_title", "Fill Default Template?")}
+        title={t("smtp.fill_default_title", "Reset to Default Template?")}
         variant="warning"
       />
     </div>
