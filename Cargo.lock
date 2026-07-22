@@ -3942,9 +3942,9 @@ checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
 name = "rustzk"
-version = "1.0.2"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e168212c292a74d602ca6792cfca11c49fd76ebb9aa694f1e4352c6561ad2d7b"
+checksum = "796c516a82cc05df6c0b8b7953266ce0080294fb7c9710c344a7aea4898797b9"
 dependencies = [
  "bitflags",
  "byteorder",
