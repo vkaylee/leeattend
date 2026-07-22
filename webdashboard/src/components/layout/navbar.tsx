@@ -3,7 +3,6 @@ import { ChevronRight as BreadcrumbSeparator } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import Button from "@/components/ui/button";
 import { useHeaderActions } from "@/hooks/use-header-actions";
 import { ROUTES } from "@/lib/routes";
 

@@ -1,12 +1,11 @@
-import { Clock, CalendarDays, User, MapPin, ChevronRight, RefreshCw, CheckCircle, Bug } from "lucide-react";
+import { CalendarDays, RefreshCw, CheckCircle, Bug } from "lucide-react";
 import React from "react";
-
-import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
 
 import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
+import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { formatHours, getUnitTypeI18nKey, buildWorkUnitsTooltip } from "@/lib/utils/attendance";
+import { formatHours } from "@/lib/utils/attendance";
 
 import { DailyReportTableRow } from "./daily-report-table-row";
 import { ReportOtStatusBadge } from "./report-ot-status-badge";

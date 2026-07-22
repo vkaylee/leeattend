@@ -4,18 +4,18 @@
 // fire one request per employee all at once and overwhelm the backend.
 
 export interface PoolResult<T> {
-  item: T;
   error: unknown;
+  item: T;
 }
 
 export interface PoolCallbacks<T> {
-  /** Called just before `worker(item)` starts. */
-  onItemStart?: (item: T, index: number) => void;
   /**
    * Called after `worker(item)` settles, in both success and failure paths.
    * `error` is `undefined` on success, otherwise the thrown value.
    */
   onItemSettle?: (item: T, index: number, error: unknown) => void;
+  /** Called just before `worker(item)` starts. */
+  onItemStart?: (item: T, index: number) => void;
 }
 
 /**

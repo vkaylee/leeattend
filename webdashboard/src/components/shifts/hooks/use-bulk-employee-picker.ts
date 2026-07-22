@@ -31,23 +31,23 @@ async function fetchAllDeptEmployees(
 }
 
 export interface UseBulkEmployeePickerOptions {
-  wsId: string;
-  isOpen: boolean;
   initialIds: string[];
   initialMeta: Employee[];
+  isOpen: boolean;
+  wsId: string;
 }
 
 export interface UseBulkEmployeePickerReturn {
+  deptEmployees: Map<string, Employee[]>;
+  deselectAll: () => void;
   draftIds: Set<string>;
   draftMeta: Employee[];
   expandedDepts: Set<string>;
-  deptEmployees: Map<string, Employee[]>;
   isDeptLoading: (departmentId: string) => boolean;
-  toggleExpand: (departmentId: string) => void;
+  selectedInDept: (departmentId: string) => number;
   toggleDepartment: (departmentId: string, checked: boolean) => Promise<void>;
   toggleEmployee: (employee: Employee) => void;
-  deselectAll: () => void;
-  selectedInDept: (departmentId: string) => number;
+  toggleExpand: (departmentId: string) => void;
 }
 
 export function useBulkEmployeePicker({

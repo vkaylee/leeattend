@@ -192,7 +192,7 @@ function HolidayMobileCard({
             </div>
 
             {/* Description */}
-            {h.description && (
+            {!!h.description && (
                 <div className="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         {t("holidays.table.description")}
@@ -201,7 +201,7 @@ function HolidayMobileCard({
                         {h.description}
                     </div>
                 </div>
-            )}
+              )}
 
             {/* Actions */}
             <div className="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">

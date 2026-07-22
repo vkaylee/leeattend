@@ -33,7 +33,7 @@ interface UseShiftDataProps {
   wsId: string;
 }
 
-  // eslint-disable-next-line complexity
+   
 export function useShiftData({
   wsId,
   startOfWeek,

@@ -1,4 +1,4 @@
-import { AlertCircle, Eye, FileText, Search, Calendar, Hash } from "lucide-react";
+import { AlertCircle, Eye, FileText, Search, Calendar } from "lucide-react";
 import React, { useState } from "react";
 
 import Button from "@/components/ui/button";

@@ -81,7 +81,7 @@ function ShiftMobileCard({
             </div>
           ) : (
             <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-              <Clock size={12} className="text-slate-300 dark:text-slate-600" />
+              <Clock className="text-slate-300 dark:text-slate-600" size={12} />
               {breakDuration} {t("common.minutes")}
             </span>
           )}

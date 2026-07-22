@@ -113,7 +113,7 @@ function CustomFieldMobileCard({
         <Button
           className="hover:text-rose-600 dark:hover:text-rose-400"
           icon={<Trash2 size={14} />}
-          onClick={() => void onDelete(field)}
+          onClick={() => { onDelete(field); }}
           size="icon"
           variant="outline"
         />

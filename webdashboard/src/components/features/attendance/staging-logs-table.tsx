@@ -2,6 +2,8 @@ import { AlertTriangle, Check, Link2, UserPlus, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { Department } from '@/lib/api/types';
+
 import { EmployeeSearch } from '@/components/common/employee-search';
 import InfiniteScrollSentinel from '@/components/common/infinite-scroll-sentinel';
 import { TableSkeleton } from '@/components/common/table-skeleton';
@@ -10,7 +12,6 @@ import ResponsiveTable from '@/components/ui/responsive-table';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Typography } from "@/components/ui/typography";
 import { StagingLog } from '@/lib/api/attendance';
-import type { Department } from '@/lib/api/types';
 
 interface StagingLogsTableProps {
   departments?: Department[];

@@ -128,12 +128,12 @@ function DepartmentFilterButton({ departments, onChange, selectedIds }: Departme
       <DropdownMenuTrigger asChild>
         <Button
           aria-label={t('common.filter_by_department', { defaultValue: 'Filter by department' })}
-          data-testid="employee-dept-filter"
           className={`relative flex h-[var(--ui-height-md)] shrink-0 items-center gap-2 rounded-2xl border px-4 text-sm font-bold uppercase tracking-tight shadow-inner transition-all ${
             activeCount > 0
               ? 'border-primary-500 dark:border-primary-500 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400'
               : 'border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:border-primary-200 dark:hover:border-primary-800'
           }`}
+          data-testid="employee-dept-filter"
           type="button"
           variant="ghost"
         >

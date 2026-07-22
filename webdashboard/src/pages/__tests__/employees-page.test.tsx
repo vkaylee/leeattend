@@ -160,7 +160,7 @@ describe("EmployeesPage", () => {
 
     it("renders department column header", async () => {
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
         // ResponsiveTable renders both desktop and mobile views
         expect(screen.getAllByText("common.department").length).toBeGreaterThan(0);
     });
@@ -188,7 +188,7 @@ describe("EmployeesPage", () => {
             limit: 20,
         });
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
         // ResponsiveTable renders both desktop and mobile views
         expect(screen.getAllByText("—").length).toBeGreaterThan(0);
     });
@@ -222,7 +222,7 @@ describe("EmployeesPage", () => {
 
     it("does not render pagination controls", async () => {
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         // PaginationControls should be gone
         expect(screen.queryByText(/common.pagination.prev/i)).toBeNull();
@@ -240,7 +240,7 @@ describe("EmployeesPage", () => {
         });
 
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         const badge = document.querySelector(".fixed.z-50");
         expect(badge).toBeDefined();
@@ -255,7 +255,7 @@ describe("EmployeesPage", () => {
     it("triggers searchEmployees API on search input with debounce", async () => {
         const user = userEvent.setup();
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         const searchInput = screen.getByTestId("employee-search");
         await user.type(searchInput, "Bob");
@@ -293,7 +293,7 @@ describe("EmployeesPage", () => {
     it("opens add-employee modal when clicking the add button", async () => {
         const user = userEvent.setup();
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         const addButton = await screen.findByTestId("add-employee-btn");
         await user.click(addButton);
@@ -347,7 +347,7 @@ describe("EmployeesPage", () => {
     it("sends sort_by=name and sort_dir=asc when clicking Name header", async () => {
         const user = userEvent.setup();
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
  
         vi.mocked(api.searchEmployees).mockClear();
@@ -364,7 +364,7 @@ describe("EmployeesPage", () => {
     it("toggles sort_dir to desc when clicking the same header twice", async () => {
         const user = userEvent.setup();
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         await user.click(findHeaderByText("employees.table.name"));
 
@@ -388,7 +388,7 @@ describe("EmployeesPage", () => {
 
     it("renders status filter button in Status column header", async () => {
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         const filterButton = screen.getByTestId("status-filter-btn");
         expect(filterButton).toBeDefined();
@@ -397,7 +397,7 @@ describe("EmployeesPage", () => {
     it("opens status filter popover and shows status options", async () => {
         const user = userEvent.setup();
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         const filterButton = screen.getByTestId("status-filter-btn");
         await user.click(filterButton);
@@ -412,7 +412,7 @@ describe("EmployeesPage", () => {
     it("sends status=terminated when selecting the terminated option", async () => {
         const user = userEvent.setup();
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         // Open status filter popover
         await user.click(screen.getByTestId("status-filter-btn"));
@@ -432,7 +432,7 @@ describe("EmployeesPage", () => {
     it("removes status filter and resets to active when clicking the status chip X", async () => {
         const user = userEvent.setup();
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         // Select terminated via popover
         await user.click(screen.getByTestId("status-filter-btn"));
@@ -458,7 +458,7 @@ describe("EmployeesPage", () => {
     it("sends sort_by=department when clicking Department header", async () => {
         const user = userEvent.setup();
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
  
         vi.mocked(api.searchEmployees).mockClear();
@@ -486,7 +486,7 @@ describe("EmployeesPage", () => {
  
         vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         const filterButton = screen.getByTestId("dept-filter-btn");
         expect(filterButton).toBeDefined();
@@ -497,7 +497,7 @@ describe("EmployeesPage", () => {
  
         vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         const filterButton = screen.getByTestId("dept-filter-btn");
         await user.click(filterButton);
@@ -515,7 +515,7 @@ describe("EmployeesPage", () => {
  
         vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         // Open filter popover
         const filterButton = screen.getByTestId("dept-filter-btn");
@@ -539,7 +539,7 @@ describe("EmployeesPage", () => {
  
         vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         // Open filter popover
         await user.click(screen.getByTestId("dept-filter-btn"));
@@ -562,7 +562,7 @@ describe("EmployeesPage", () => {
  
         vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         // Select one department via popover
         await user.click(screen.getByTestId("dept-filter-btn"));
@@ -594,7 +594,7 @@ describe("EmployeesPage", () => {
  
         vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         // Select two departments
         await user.click(screen.getByTestId("dept-filter-btn"));
@@ -614,7 +614,7 @@ describe("EmployeesPage", () => {
  
         vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         expect(screen.queryByTestId("active-filter-chips")).toBeNull();
     });
@@ -624,7 +624,7 @@ describe("EmployeesPage", () => {
  
         vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         // Select two departments
         await user.click(screen.getByTestId("dept-filter-btn"));
@@ -644,7 +644,7 @@ describe("EmployeesPage", () => {
  
         vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         // Select a department
         await user.click(screen.getByTestId("dept-filter-btn"));
@@ -676,7 +676,7 @@ describe("EmployeesPage", () => {
  
         vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         // Open popover without any active filter
         await user.click(screen.getByTestId("dept-filter-btn"));
@@ -692,7 +692,7 @@ describe("EmployeesPage", () => {
  
         vi.mocked(api.fetchDepartments).mockResolvedValue([]);
         renderPage();
-        (await screen.findAllByText("Alice Nguyen"))[0];
+        void (await screen.findAllByText("Alice Nguyen"))[0];
 
         await user.click(screen.getByTestId("dept-filter-btn"));
 

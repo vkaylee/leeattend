@@ -10,8 +10,7 @@ import Button from "@/components/ui/button";
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useLanguage } from "@/hooks/use-language";
-import { useFilteredMenuItems } from "@/hooks/use-nav-menu-items";
-import { getActiveNavGroup } from "@/hooks/use-nav-menu-items";
+import { useFilteredMenuItems, getActiveNavGroup } from "@/hooks/use-nav-menu-items";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -135,16 +134,21 @@ export default function BottomDrawer({ isOpen, onClose }: BottomDrawerProps) {
   return createPortal(
     <div className="fixed inset-0 z-[1000] flex items-end">
       {/* Backdrop */}
-      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- Backdrop click-to-close; keyboard handled by Escape in useBottomSheetState */}
+      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div
+        aria-hidden="true"
         className={cn(
           "fixed inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm transition-opacity duration-300",
           isOpen ? "opacity-100" : "opacity-0",
         )}
         onClick={onClose}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClose(); }}
+        role="button"
+        tabIndex={0}
       />
 
-      {/* Panel */}
+      {/* Panel — role="dialog" is interactive */}
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events */}
       <div
         aria-label={t("common.settings.navigation", "Navigation")}
         aria-modal="true"
@@ -155,9 +159,12 @@ export default function BottomDrawer({ isOpen, onClose }: BottomDrawerProps) {
         )}
         data-testid="bottom-drawer"
         onClick={(e) => { e.stopPropagation(); }}
+        // eslint-disable-next-line react-hooks/immutability -- ref callback merging multiple refs is standard React pattern
         ref={(node) => {
           // Merge refs for focus trap and swipe detection
+          // eslint-disable-next-line react-hooks/immutability
           (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+          // eslint-disable-next-line react-hooks/immutability
           (panelRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
         }}
         role="dialog"
@@ -210,7 +217,7 @@ function DrawerSection({
   onClose,
 }: {
   activeGroup: NavGroup | null;
-  group: { items: Array<{ icon?: React.ElementType; label: string; testId: string; to: string; exact?: boolean }>; label: string; section: string; sectionIcon: React.ElementType };
+  group: { items: { icon?: React.ElementType; label: string; testId: string; to: string; exact?: boolean }[]; label: string; section: string; sectionIcon: React.ElementType };
   onClose: () => void;
 }) {
   const location = useLocation();

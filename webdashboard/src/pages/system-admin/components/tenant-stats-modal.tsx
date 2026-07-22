@@ -1,4 +1,4 @@
-import { Building2, Globe, KeyRound } from "lucide-react";
+import { Building2, Globe } from "lucide-react";
 import React from "react";
 
 import type { SystemTenant, TenantConnectionStats } from "@/lib/api/system";
@@ -104,7 +104,7 @@ export function TenantStatsModal({
                     <span className="text-slate-500">Port</span>
                     <p className="font-mono text-xs text-slate-800 dark:text-slate-200">{tenantStats.connection.port}</p>
                   </div>
-                  {tenantStats.masked_db_url && (
+                  {!!tenantStats.masked_db_url && (
                     <div className="col-span-2">
                       <span className="text-slate-500">Database URL</span>
                       <div className="bg-slate-900 rounded-lg p-3 mt-1 overflow-x-auto">

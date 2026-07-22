@@ -8,6 +8,7 @@ import { Typography } from "@/components/ui/typography";
 import { HeaderActionsProvider } from "@/hooks/use-header-actions";
 import { useI18nSync } from "@/hooks/use-i18n-sync";
 import { useNavSidebar } from "@/hooks/use-nav-sidebar";
+import { useNotifications } from "@/hooks/use-notifications";
 import { useTheme } from "@/hooks/use-theme";
 import { useWorkspaces } from "@/hooks/use-workspace";
 import { getCurrentWorkspaceId } from "@/lib/api";
@@ -21,7 +22,6 @@ import FloatingPanel from "./floating-panel";
 import IconRail from "./icon-rail";
 import Navbar from "./navbar";
 import WorkspaceSwitcher from "./workspace-switcher";
-import { useNotifications } from "@/hooks/use-notifications";
 
 // ── Types ──────────────────────────────────────────────────────────
 

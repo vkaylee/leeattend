@@ -29,8 +29,7 @@ function useElementRect(el: HTMLElement | null, active: boolean): DOMRect | null
     const next = el.getBoundingClientRect();
     const previous = snapshotRef.current;
     if (
-      previous
-      && previous.x === next.x
+      previous?.x === next.x
       && previous.y === next.y
       && previous.width === next.width
       && previous.height === next.height

@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+
 import {
   User,
   Check,
@@ -10,11 +12,9 @@ import {
 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
 
 import PaginationControls from "@/components/common/pagination-controls";
 import ResponsiveTable from "@/components/ui/responsive-table";
-import SmartTable from "@/components/ui/smart-table";
 import { useToast } from "@/components/ui/toast";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { Employee, Payslip } from "@/lib/api/types";
@@ -61,14 +61,14 @@ function PayrollMobileCard({
           : "border-slate-100 dark:border-slate-800"
       )}
       onClick={onViewDetail}
-      role="button"
-      tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           onViewDetail();
         }
       }}
+      role="button"
+      tabIndex={0}
     >
       {/* Header: Employee info + checkbox */}
       <div className="flex items-start gap-3">
@@ -152,7 +152,7 @@ function PayrollMobileCard({
       </div>
 
       {/* Status badge */}
-      {payslip && (
+      {!!payslip && (
         <div className="mt-4 flex justify-end border-t border-slate-100 pt-4 dark:border-slate-800">
           <span
             className={cn(

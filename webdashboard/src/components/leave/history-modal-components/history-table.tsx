@@ -87,7 +87,7 @@ export function HistoryTable({ history, isLoading, formatDate, t }: HistoryTable
             </thead>
             <tbody>
               {history.map((item) => (
-                <tr key={item.id} className="border-t border-slate-50 dark:border-slate-800">
+                <tr className="border-t border-slate-50 dark:border-slate-800" key={item.id}>
                   <td className="px-6 py-5 font-mono text-xs font-bold uppercase text-slate-500 dark:text-slate-400">{formatDate(item.date)}</td>
                   <td className="px-6 py-5 text-center">
                     <span className={cn("rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest", getTransactionColor(item.transaction_type))}>

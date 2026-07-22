@@ -88,7 +88,7 @@ function MemberMobileCard({
       {/* Roles */}
       <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 dark:border-slate-800">
         <div className="flex flex-wrap items-center gap-2">
-          {primaryRole && (
+          {!!primaryRole && (
             <span
               className={cn(
                 "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border shadow-sm",
@@ -133,7 +133,7 @@ function MemberMobileCard({
           <PermissionGate permission="members:remove">
             <Button
               className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90"
-              onClick={() => onRemoveMember(member.user_id)}
+              onClick={() => { onRemoveMember(member.user_id); }}
               title={t("members.table.remove_member")}
               variant="ghost"
             >

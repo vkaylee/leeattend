@@ -2,9 +2,8 @@ import React, { useState, useEffect, useMemo } from "react";
 
 import { format } from "date-fns";
 
-import { useShifts } from "@/pages/shifts/hooks/use-shifts";
-
 import { orderSchedulesBySelection } from "@/components/shifts/roster/roster-utils";
+import { useShifts } from "@/pages/shifts/hooks/use-shifts";
 
 interface UseMonthlyRosterProps {
   hook: ReturnType<typeof useShifts>;
@@ -186,7 +185,7 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
     setSelectedCells(() => {
       const next = new Set(dragSnapshot);
       for (let i = minEmpIdx; i <= maxEmpIdx; i++) {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+   
         const empId = filteredSchedules[i].employee_id ?? "";
         for (let j = minDayIdx; j <= maxDayIdx; j++) {
           const dStr = format(monthDays[j], "yyyy-MM-dd");
@@ -276,7 +275,7 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
       const activeEl = document.activeElement;
       if (
         activeEl &&
-  // eslint-disable-next-line max-lines
+   
         (activeEl.tagName === "INPUT" ||
           activeEl.tagName === "TEXTAREA" ||
           activeEl.getAttribute("contenteditable") === "true")

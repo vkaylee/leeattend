@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
 
-import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { AttendanceDailySummary, AttendanceEntry } from "@/lib/api/types";

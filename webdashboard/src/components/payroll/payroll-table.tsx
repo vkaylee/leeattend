@@ -1,4 +1,4 @@
-import { History, Calendar, ChevronDown, FileText, ChevronRight } from "lucide-react";
+import { History, Calendar, ChevronDown, FileText } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -214,8 +214,8 @@ export default function PayrollTable({
             canReadSensitive={canReadSensitive}
             formatMonthYear={formatMonthYear}
             isExpanded={expandedId === slip.id}
-            setIsModalOpen={setIsModalOpen}
             setExpandedId={setExpandedId}
+            setIsModalOpen={setIsModalOpen}
             setSelectedPayslip={setSelectedPayslip}
             slip={slip}
             t={t}

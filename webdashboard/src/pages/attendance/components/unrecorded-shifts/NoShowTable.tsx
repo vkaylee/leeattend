@@ -6,8 +6,8 @@ import {
 import React from "react";
 
 import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
-import ResponsiveTable from "@/components/ui/responsive-table";
 import { ScheduleTracePopover } from "@/components/shifts/schedule-trace-popover";
+import ResponsiveTable from "@/components/ui/responsive-table";
 import { ScheduleTrace } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -156,7 +156,7 @@ export function NoShowTable({
                 <div>
                   <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{columns.department}</div>
                   <div className="mt-1 flex items-center gap-1.5">
-                    <Building2 size={10} className="text-blue-500" />
+                    <Building2 className="text-blue-500" size={10} />
                     <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">
                       {row.department_name}
                     </span>
@@ -316,7 +316,7 @@ export function NoShowTable({
                     </tr>
                   );
                 })}
-                {hasNextPage && (
+                {!!hasNextPage && (
                   <InfiniteScrollSentinel
                     colSpan={7}
                     isFetchingNextPage={!!isFetchingNextPage}

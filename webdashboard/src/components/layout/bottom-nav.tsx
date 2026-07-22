@@ -4,8 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
 
-import { useFilteredMenuItems } from "@/hooks/use-nav-menu-items";
-import { getActiveNavGroup } from "@/hooks/use-nav-menu-items";
+import { useFilteredMenuItems, getActiveNavGroup } from "@/hooks/use-nav-menu-items";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +14,7 @@ interface BottomNavProps {
   unreadCount?: number;
 }
 
-export default function BottomNav({ activeGroup, onMoreClick, unreadCount }: BottomNavProps) {
+export default function BottomNav({ activeGroup, onMoreClick, unreadCount: _unreadCount }: BottomNavProps) {
   const { t } = useTranslation();
   const location = useLocation();
   const { groups } = useFilteredMenuItems();
@@ -149,9 +148,7 @@ function BottomNavItem({
       )}>
         {label}
       </span>
-      {isActive && (
-        <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 rounded-b-full bg-primary-500 dark:bg-primary-400" />
-      )}
+      {!!isActive && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 rounded-b-full bg-primary-500 dark:bg-primary-400" />}
     </Link>
   );
 }

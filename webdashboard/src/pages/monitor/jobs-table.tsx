@@ -4,7 +4,6 @@ import React, { useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { TFunction } from "i18next";
 
-import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import { Typography } from "@/components/ui/typography";
 import { useDebounce } from "@/hooks/use-debounce";

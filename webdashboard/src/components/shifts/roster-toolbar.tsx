@@ -261,6 +261,7 @@ function MonthViewControls({
           <EmployeeSearch
             clearOnEscape
             data-testid="monthly-employee-search"
+            departments={hook.departments}
             hideChips
             multiple
             onChange={(val) => {
@@ -276,7 +277,6 @@ function MonthViewControls({
                 hook.setSelectedEmployees(selectedMetaRef.current);
               }
             }}
-            departments={hook.departments}
             placeholder={t("shifts.monthly.search_placeholder")}
             value={hook.selectedEmployeeIds}
             workspaceId={hook.wsId}
@@ -385,10 +385,10 @@ function WeekViewControls({ hook }: { hook: ReturnType<typeof useShifts> }) {
         <EmployeeSearch
           clearOnEscape
           data-testid="employee-select"
+          departments={hook.departments}
           keyboardShortcut={["/", "Enter"]}
           onChange={(id) => { if (!id) hook.setSelectedEmployee(null); }}
           onSelectEmployee={(emp) => { hook.setSelectedEmployee(emp); }}
-          departments={hook.departments}
           placeholder={t("shifts.empty_state.title")}
           value={hook.selectedEmployee?.id ?? ""}
           workspaceId={hook.wsId}

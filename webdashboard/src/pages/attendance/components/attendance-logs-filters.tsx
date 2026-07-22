@@ -2,13 +2,13 @@ import { Calendar, CalendarRange, Users } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import type { Department } from "@/lib/api/types";
+
 import { EmployeeSearch } from "@/components/common/employee-search";
 import { MonthYearPicker } from "@/components/common/month-year-picker";
 import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import ResponsiveToolbar from "@/components/ui/responsive-toolbar";
-
-import type { Department } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 import type { FilterMode } from "../hooks/use-attendance-logs-page";

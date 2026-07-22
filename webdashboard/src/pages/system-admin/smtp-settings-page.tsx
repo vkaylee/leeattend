@@ -297,7 +297,7 @@ export default function SmtpSettingsPage() {
           <Button
             className="flex items-center gap-2 w-full !text-left font-semibold !h-auto !px-0 !py-0 !rounded-none !tracking-normal !normal-case"
             data-testid="smtp-http-api-toggle"
-            onClick={() => setShowHttpApi((p) => !p)}
+            onClick={() => { setShowHttpApi((p) => !p); }}
             variant="ghost"
           >
             <Globe className="w-4 h-4" />
@@ -316,7 +316,7 @@ export default function SmtpSettingsPage() {
 
           <div className="flex justify-end mt-2">
             <Button
-              onClick={() => setShowDefaultConfirm(true)}
+              onClick={() => { setShowDefaultConfirm(true); }}
               size="sm"
               variant="ghost"
             >
@@ -528,7 +528,7 @@ export default function SmtpSettingsPage() {
           "smtp.fill_default_warning",
           "This will reset ALL HTTP API fields to standard default values (Mailtrap-compatible). Any custom configuration will be lost. Continue?",
         )}
-        onClose={() => setShowDefaultConfirm(false)}
+        onClose={() => { setShowDefaultConfirm(false); }}
         onConfirm={handleFillDefault}
         title={t("smtp.fill_default_title", "Reset to Default Template?")}
         variant="warning"
