@@ -81,6 +81,17 @@ describe("performance budget", () => {
 
   it("build-version meta tag is injected into index.html", () => {
     const html = readFileSync(resolve(__dirname, "../../../dist/index.html"), "utf-8");
-    expect(html).toMatch(/<meta\s+name="build-version"\s+content="[a-zA-Z0-9]+"\s*\/>/);
+    expect(html).toMatch(/<meta\s+name="build-version"\s+content="[a-zA-Z0-9-]+"\s*\/>/);
+  });
+
+  it("version manifest is emitted with the same build id as index.html", () => {
+    const html = readFileSync(resolve(__dirname, "../../../dist/index.html"), "utf-8");
+    const match = /<meta\s+name="build-version"\s+content="([a-zA-Z0-9-]+)"\s*\/>/.exec(html);
+    expect(match).not.toBeNull();
+
+    const manifest = JSON.parse(
+      readFileSync(resolve(__dirname, "../../../dist/version.json"), "utf-8"),
+    ) as { buildId?: string };
+    expect(manifest.buildId).toBe(match![1]);
   });
 });

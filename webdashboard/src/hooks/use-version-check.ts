@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
 const DISMISSED_VERSION_KEY = "dismissedVersion";
+const RELOAD_ATTEMPT_KEY = "versionReloadAttempt";
+const RELOAD_ATTEMPT_TTL_MS = 10 * 60 * 1000;
 
 declare const __BUILD_HASH__: string;
 
@@ -21,6 +23,46 @@ function setDismissedVersion(hash: string): void {
   }
 }
 
+interface ReloadAttempt {
+  buildId: string;
+  attemptedAt: number;
+}
+
+function getReloadAttempt(): ReloadAttempt | null {
+  try {
+    const raw = sessionStorage.getItem(RELOAD_ATTEMPT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<ReloadAttempt>;
+    if (typeof parsed.buildId !== "string" || typeof parsed.attemptedAt !== "number") {
+      sessionStorage.removeItem(RELOAD_ATTEMPT_KEY);
+      return null;
+    }
+    if (Date.now() - parsed.attemptedAt > RELOAD_ATTEMPT_TTL_MS) {
+      sessionStorage.removeItem(RELOAD_ATTEMPT_KEY);
+      return null;
+    }
+    return parsed as ReloadAttempt;
+  } catch {
+    return null;
+  }
+}
+
+function setReloadAttempt(buildId: string): void {
+  try {
+    sessionStorage.setItem(RELOAD_ATTEMPT_KEY, JSON.stringify({ buildId, attemptedAt: Date.now() }));
+  } catch {
+    // sessionStorage unavailable; the reload still works without persistence.
+  }
+}
+
+function clearReloadAttempt(): void {
+  try {
+    sessionStorage.removeItem(RELOAD_ATTEMPT_KEY);
+  } catch {
+    // sessionStorage unavailable.
+  }
+}
+
 export function useVersionCheck() {
   const [hasNewVersion, setHasNewVersion] = useState(false);
   const latestServerHash = useRef<string | null>(null);
@@ -31,20 +73,30 @@ export function useVersionCheck() {
       const current = __BUILD_HASH__;
       if (!current) return;
 
-      const res = await fetch(`/?_v=${Date.now()}`, {
+      const res = await fetch(`/version.json?_v=${Date.now()}`, {
         method: "GET",
+        cache: "no-store",
         headers: { "Cache-Control": "no-cache" },
       });
-      const html = await res.text();
-      const match = /<meta\s+name="build-version"\s+content="([^"]+)"/i.exec(html);
-      if (!match) return;
-
-      const serverHash = match[1];
+      if (!res.ok) return;
+      const manifest = await res.json() as { buildId?: unknown };
+      if (typeof manifest.buildId !== "string" || manifest.buildId.length === 0) return;
+      const serverHash = manifest.buildId;
 
       // Server serves the build we're running — nothing new; clear any
       // half-confirmed sighting.
       if (serverHash === current) {
         pendingHash.current = null;
+        latestServerHash.current = null;
+        clearReloadAttempt();
+        setHasNewVersion(false);
+        return;
+      }
+
+      const reloadAttempt = getReloadAttempt();
+      if (reloadAttempt?.buildId === serverHash) {
+        pendingHash.current = null;
+        setHasNewVersion(false);
         return;
       }
 
@@ -101,5 +153,14 @@ export function useVersionCheck() {
     setHasNewVersion(false);
   }, []);
 
-  return { hasNewVersion, dismiss };
+  const refresh = useCallback(() => {
+    const targetBuildId = latestServerHash.current;
+    if (!targetBuildId) return;
+    setReloadAttempt(targetBuildId);
+    const url = new URL(window.location.href);
+    url.searchParams.set("_build", targetBuildId);
+    window.location.replace(url.toString());
+  }, []);
+
+  return { hasNewVersion, dismiss, refresh };
 }

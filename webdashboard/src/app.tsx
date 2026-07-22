@@ -59,14 +59,14 @@ const queryClient = new QueryClient({
 const router = createAppRouter(queryClient);
 
 function AppContent() {
-  const { hasNewVersion, dismiss } = useVersionCheck();
+  const { hasNewVersion, dismiss, refresh } = useVersionCheck();
 
   return (
     <>
       {hasNewVersion ? (
         <NewVersionBanner
           onDismiss={dismiss}
-          onRefresh={() => { window.location.reload(); }}
+          onRefresh={refresh}
         />
       ) : null}
       <RouterProvider router={router} />

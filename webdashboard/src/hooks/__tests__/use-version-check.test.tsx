@@ -4,12 +4,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { useVersionCheck } from "../use-version-check";
 
-function htmlWith(hash: string) {
+function manifestWith(hash: string) {
   return {
-    text: () =>
-      Promise.resolve(
-        `<html><head><meta name="build-version" content="${hash}" /></head></html>`,
-      ),
+    ok: true,
+    json: () => Promise.resolve({ buildId: hash }),
   } as unknown as never;
 }
 
@@ -43,7 +41,7 @@ describe("useVersionCheck", () => {
   });
 
   it("returns hasNewVersion=false when versions match", async () => {
-    vi.mocked(globalThis.fetch).mockResolvedValue(htmlWith("abc123"));
+    vi.mocked(globalThis.fetch).mockResolvedValue(manifestWith("abc123"));
 
     const { result } = renderHook(() => useVersionCheck());
 
@@ -53,7 +51,7 @@ describe("useVersionCheck", () => {
   });
 
   it("does NOT show the banner on a single sighting of a new version", async () => {
-    vi.mocked(globalThis.fetch).mockResolvedValue(htmlWith("def456"));
+    vi.mocked(globalThis.fetch).mockResolvedValue(manifestWith("def456"));
 
     const { result } = renderHook(() => useVersionCheck());
 
@@ -63,7 +61,7 @@ describe("useVersionCheck", () => {
   });
 
   it("shows the banner after two consecutive checks confirm the same new hash", async () => {
-    vi.mocked(globalThis.fetch).mockResolvedValue(htmlWith("def456"));
+    vi.mocked(globalThis.fetch).mockResolvedValue(manifestWith("def456"));
 
     const { result } = renderHook(() => useVersionCheck());
 
@@ -74,12 +72,40 @@ describe("useVersionCheck", () => {
     });
   });
 
+  it("does not re-show a build that was already attempted during edge convergence", async () => {
+    sessionStorage.setItem(
+      "versionReloadAttempt",
+      JSON.stringify({ buildId: "def456", attemptedAt: Date.now() }),
+    );
+    vi.mocked(globalThis.fetch).mockResolvedValue(manifestWith("def456"));
+
+    const { result } = renderHook(() => useVersionCheck());
+    await flush();
+    await fireCheck();
+
+    expect(result.current.hasNewVersion).toBe(false);
+  });
+
+  it("hides an active banner when the manifest converges back to the running build", async () => {
+    const fetchFunction = vi.mocked(globalThis.fetch);
+    fetchFunction.mockResolvedValue(manifestWith("def456"));
+    const { result } = renderHook(() => useVersionCheck());
+    await flush();
+    await fireCheck();
+    await waitFor(() => { expect(result.current.hasNewVersion).toBe(true); });
+
+    fetchFunction.mockResolvedValue(manifestWith("abc123"));
+    await fireCheck();
+
+    expect(result.current.hasNewVersion).toBe(false);
+  });
+
   it("does NOT confirm if the new hash flaps back to the current one", async () => {
     const fetchFunction = vi.mocked(globalThis.fetch);
-    fetchFunction.mockResolvedValueOnce(htmlWith("def456")); // #1 mount → pending
-    fetchFunction.mockResolvedValueOnce(htmlWith("abc123")); // #2 → flap back, clears pending
-    fetchFunction.mockResolvedValueOnce(htmlWith("def456")); // #3 → pending again
-    fetchFunction.mockResolvedValue(htmlWith("def456")); // #4+ → confirm
+    fetchFunction.mockResolvedValueOnce(manifestWith("def456")); // #1 mount → pending
+    fetchFunction.mockResolvedValueOnce(manifestWith("abc123")); // #2 → flap back, clears pending
+    fetchFunction.mockResolvedValueOnce(manifestWith("def456")); // #3 → pending again
+    fetchFunction.mockResolvedValue(manifestWith("def456")); // #4+ → confirm
 
     const { result } = renderHook(() => useVersionCheck());
 
@@ -95,7 +121,7 @@ describe("useVersionCheck", () => {
   });
 
   it("calls dismiss to reset hasNewVersion to false", async () => {
-    vi.mocked(globalThis.fetch).mockResolvedValue(htmlWith("def456"));
+    vi.mocked(globalThis.fetch).mockResolvedValue(manifestWith("def456"));
 
     const { result } = renderHook(() => useVersionCheck());
 
@@ -112,7 +138,7 @@ describe("useVersionCheck", () => {
   });
 
   it("does not re-show the banner for a version already dismissed", async () => {
-    vi.mocked(globalThis.fetch).mockResolvedValue(htmlWith("def456"));
+    vi.mocked(globalThis.fetch).mockResolvedValue(manifestWith("def456"));
 
     const { result } = renderHook(() => useVersionCheck());
 
@@ -134,7 +160,7 @@ describe("useVersionCheck", () => {
   });
 
   it("stays dismissed across a fresh mount (reload) for the same version", async () => {
-    vi.mocked(globalThis.fetch).mockResolvedValue(htmlWith("def456"));
+    vi.mocked(globalThis.fetch).mockResolvedValue(manifestWith("def456"));
 
     // First mount: banner shows, user dismisses.
     const first = renderHook(() => useVersionCheck());
@@ -162,7 +188,7 @@ describe("useVersionCheck", () => {
 
   it("re-shows the banner when a newer version is deployed after dismiss", async () => {
     const fetchFunction = vi.mocked(globalThis.fetch);
-    fetchFunction.mockResolvedValue(htmlWith("def456"));
+    fetchFunction.mockResolvedValue(manifestWith("def456"));
 
     const { result } = renderHook(() => useVersionCheck());
 
@@ -179,7 +205,7 @@ describe("useVersionCheck", () => {
 
     // A newer deploy ships an even newer hash — banner must return after it is
     // confirmed on two consecutive checks.
-    fetchFunction.mockResolvedValue(htmlWith("ghi789"));
+    fetchFunction.mockResolvedValue(manifestWith("ghi789"));
 
     await fireCheck(); // pending = ghi789
     await fireCheck(); // confirmed
@@ -190,7 +216,7 @@ describe("useVersionCheck", () => {
 
   it("fetches with cache-busting query param", async () => {
     const fetchFunction = vi.mocked(globalThis.fetch);
-    fetchFunction.mockResolvedValue(htmlWith("abc123"));
+    fetchFunction.mockResolvedValue(manifestWith("abc123"));
 
     renderHook(() => useVersionCheck());
 
@@ -199,12 +225,12 @@ describe("useVersionCheck", () => {
     });
 
     const url = fetchFunction.mock.calls[0][0];
-    expect(url).toMatch(/\/\?_v=\d+/);
+    expect(url).toMatch(/\/version\.json\?_v=\d+/);
   });
 
   it("sends no-cache header", async () => {
     const fetchFunction = vi.mocked(globalThis.fetch);
-    fetchFunction.mockResolvedValue(htmlWith("abc123"));
+    fetchFunction.mockResolvedValue(manifestWith("abc123"));
 
     renderHook(() => useVersionCheck());
 
@@ -214,6 +240,7 @@ describe("useVersionCheck", () => {
 
     const options = fetchFunction.mock.calls[0][1]!;
     expect(options.headers).toMatchObject({ "Cache-Control": "no-cache" });
+    expect(options.cache).toBe("no-store");
   });
 
   it("does not throw on fetch failure", async () => {

@@ -16,8 +16,12 @@ import { defineConfig, ConfigEnv, Plugin } from "vite";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function getBuildHash(): string {
+  const configuredBuildId = process.env.LEEATTEND_BUILD_ID?.trim();
+  if (configuredBuildId) return configuredBuildId;
+
   try {
-    return execSync("git rev-parse --short HEAD", { encoding: "utf-8" }).trim();
+    const commit = execSync("git rev-parse --short HEAD", { encoding: "utf-8" }).trim();
+    return `${commit}-${Date.now().toString(36)}`;
   } catch {
     return Date.now().toString(36);
   }
@@ -39,6 +43,13 @@ function buildVersionPlugin(): Plugin {
           __BUILD_HASH__: JSON.stringify(buildHash),
         },
       };
+    },
+    generateBundle() {
+      this.emitFile({
+        type: "asset",
+        fileName: "version.json",
+        source: `${JSON.stringify({ buildId: buildHash })}\n`,
+      });
     },
   };
 }

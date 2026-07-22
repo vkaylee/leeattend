@@ -68,7 +68,8 @@ describe("Cloudflare Pages _headers", () => {
     const joined = cacheControl!.join(", ");
     expect(joined).toContain("no-cache");
     expect(joined).toContain("must-revalidate");
-    expect(joined).toContain("private");
+    expect(joined).toContain("no-store");
+    expect(joined).toContain("max-age=0");
   });
 
   it("should set no-cache on /index.html for direct requests", () => {
@@ -81,7 +82,21 @@ describe("Cloudflare Pages _headers", () => {
     const joined = cacheControl!.join(", ");
     expect(joined).toContain("no-cache");
     expect(joined).toContain("must-revalidate");
-    expect(joined).toContain("private");
+    expect(joined).toContain("no-store");
+    expect(joined).toContain("max-age=0");
+  });
+
+  it("should never cache the deployment version manifest", () => {
+    const versionHeaders = rules.get("/version.json");
+    expect(versionHeaders, 'Missing "/version.json" path rule in _headers').toBeDefined();
+
+    const cacheControl = versionHeaders!.get("Cache-Control");
+    expect(cacheControl, 'Missing Cache-Control header for "/version.json"').toBeDefined();
+    const joined = cacheControl!.join(", ");
+    expect(joined).toContain("no-store");
+    expect(joined).toContain("no-cache");
+    expect(joined).toContain("must-revalidate");
+    expect(joined).toContain("max-age=0");
   });
 
   it("should set immutable long-lived cache on /assets/* for hashed build artifacts", () => {
