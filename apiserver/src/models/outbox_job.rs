@@ -2,6 +2,16 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct WorkflowCompletedPayload {
+    pub entity_type: String,
+    pub entity_id: Uuid,
+    pub final_status: String,
+    pub actor_user_id: Uuid,
+    #[serde(rename = "_trace_context")]
+    pub trace_context: Option<serde_json::Value>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct OutboxJob {
     id: Uuid,

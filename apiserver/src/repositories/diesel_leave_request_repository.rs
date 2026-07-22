@@ -1025,6 +1025,36 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
         Ok(result)
     }
+
+    async fn get_leave_requests_by_ids(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        ids: &[Uuid],
+    ) -> Result<Vec<LeaveRequest>, AppError> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let workspace_id = auth_token.workspace_id();
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let entities = leave_requests::table
+            .inner_join(employments::table)
+            .filter(leave_requests::id.eq_any(ids))
+            .filter(employments::workspace_id.eq(workspace_id))
+            .select(LeaveRequestEntity::as_select())
+            .load::<LeaveRequestEntity>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(entities.into_iter().map(Into::into).collect())
+    }
 }
 
 #[cfg(test)]

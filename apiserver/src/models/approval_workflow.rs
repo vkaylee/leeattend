@@ -8,6 +8,38 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ApprovalAction {
+    Approve,
+    Reject,
+    Return,
+    Reassign,
+    Skip,
+}
+
+impl ApprovalAction {
+    pub fn parse_value(s: &str) -> Option<Self> {
+        match s {
+            "approve" | "approved" => Some(Self::Approve),
+            "reject" | "rejected" => Some(Self::Reject),
+            "return" | "returned" => Some(Self::Return),
+            "reassign" => Some(Self::Reassign),
+            "skip" | "skipped" => Some(Self::Skip),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Approve => "approved",
+            Self::Reject => "rejected",
+            Self::Return => "returned",
+            Self::Reassign => "reassigned",
+            Self::Skip => "skipped",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct CreateWorkflowRequest {
     pub entity_type: String,

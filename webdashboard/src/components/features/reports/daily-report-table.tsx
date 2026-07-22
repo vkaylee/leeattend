@@ -291,6 +291,7 @@ export default function DailyReportTable({
       <ResponsiveTable<DailyAttendanceReport>
         data={data}
         emptyState={{
+          icon: <CalendarDays className="h-8 w-8" />,
           title: t("reports.messages.no_data"),
         }}
         getCardKey={(row) => `${row.employee_id}-${row.date}-${row.segment_id ?? row.sort_order ?? '0'}`}

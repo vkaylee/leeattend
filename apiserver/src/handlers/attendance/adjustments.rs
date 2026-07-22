@@ -138,8 +138,8 @@ pub async fn approve_attendance_adjustment(
 
     if let Some(instance) = opt_instance {
         let action = match req.status {
-            AdjustmentStatus::Approved => "approve".to_string(),
-            AdjustmentStatus::Rejected => "reject".to_string(),
+            AdjustmentStatus::Approved => crate::models::ApprovalAction::Approve,
+            AdjustmentStatus::Rejected => crate::models::ApprovalAction::Reject,
             AdjustmentStatus::Pending => {
                 return Err(crate::errors::AppError::validation_args(
                     I18nKey::Validation,

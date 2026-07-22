@@ -164,11 +164,15 @@ export const createMockToastContext = (): ToastContextType => ({
 
 export function createMockTenantConnectionStats(overrides?: Partial<TenantConnectionStats>): TenantConnectionStats {
   return {
-    config: {},
     connection: {
       host: "localhost",
       port: "5432",
     },
+    created_at: new Date().toISOString(),
+    id: "tenant-123",
+    is_byod: false,
+    name: "Test Tenant",
+    timezone: "UTC",
     ...overrides,
   };
 }

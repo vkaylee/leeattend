@@ -121,6 +121,7 @@ export default function AppShell({ variant }: AppShellProps) {
         onTogglePin={togglePin}
         workspaceLogoUrl={currentWorkspace?.logo_url ?? undefined}
         workspaceName={currentWorkspace?.name ?? "LeeAttend"}
+        workspaceTagline={currentWorkspace?.tagline ?? undefined}
       />
 
       {/* Desktop: Floating Panel */}

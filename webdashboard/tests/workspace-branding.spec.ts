@@ -42,10 +42,7 @@ test.describe('Workspace Branding', () => {
     // Wait for mutation to complete by checking button state
     await expect(saveBtn).toBeEnabled({ timeout: 10000 });
 
-    // Wait for a bit for React Query to propagate changes
-    await page.waitForTimeout(2000);
-
-    // Verify in Sidebar — logo may be hidden (collapsed sidebar) but should be in DOM
+    // Verify in Sidebar — branding remains in the DOM when the rail is compact.
     const logo = page.getByTestId('sidebar-workspace-logo');
     await expect(logo).toBeAttached({ timeout: 10000 });
     await expect(logo).toHaveCSS('background-image', new RegExp(testLogoUrl));

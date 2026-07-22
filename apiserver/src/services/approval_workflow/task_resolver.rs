@@ -71,39 +71,20 @@ impl ApprovalWorkflowService {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         user_id: Uuid,
     ) -> Vec<Uuid> {
-        let mut delegators = Vec::new();
-        if let Ok(entries) = self
-            .workspace_config_repo
-            .list_entries(auth_token, auth_token.workspace_id(), None)
+        let today = Utc::now().date_naive();
+        self.workspace_config_repo
+            .get_effective_delegations(auth_token, auth_token.workspace_id(), user_id, today)
             .await
-        {
-            for entry in entries {
-                if entry.config_key().starts_with("delegation:") {
-                    if let Some(val_text) = entry.value_text() {
-                        if val_text == user_id.to_string() {
-                            if let Some(uuid_str) = entry.config_key().strip_prefix("delegation:") {
-                                if let Ok(delegator_uuid) = Uuid::parse_str(uuid_str) {
-                                    let today = Utc::now().date_naive();
-                                    let is_effective = entry.effective_from() <= today
-                                        && entry.effective_to().is_none_or(|to| to >= today);
-                                    if is_effective {
-                                        delegators.push(delegator_uuid);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        delegators
+            .unwrap_or_default()
     }
 
     pub async fn get_pending_tasks_for_user(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         user_id: Uuid,
-    ) -> AppResult<Vec<ApprovalWorkflowTask>> {
+        page: i64,
+        limit: i64,
+    ) -> AppResult<(Vec<ApprovalWorkflowTask>, i64)> {
         let workspace_id = auth_token.workspace_id();
 
         // 1. Resolve context for the main user
@@ -115,7 +96,7 @@ impl ApprovalWorkflowService {
         let delegators = self.get_delegators_for_user(auth_token, user_id).await;
 
         // 3. Fetch pending tasks for the main user
-        let mut all_tasks = self
+        let (mut all_tasks, _) = self
             .approval_workflow_repo
             .get_pending_tasks_for_user(
                 auth_token,
@@ -123,6 +104,8 @@ impl ApprovalWorkflowService {
                 user_ctx.role_ids,
                 user_ctx.permissions,
                 user_ctx.managed_dept_ids,
+                1,
+                i64::MAX,
             )
             .await?;
 
@@ -131,7 +114,7 @@ impl ApprovalWorkflowService {
             let del_ctx = self
                 .resolve_user_approval_context(auth_token, workspace_id, delegator_id)
                 .await?;
-            let del_tasks = self
+            let (del_tasks, _) = self
                 .approval_workflow_repo
                 .get_pending_tasks_for_user(
                     auth_token,
@@ -139,6 +122,8 @@ impl ApprovalWorkflowService {
                     del_ctx.role_ids,
                     del_ctx.permissions,
                     del_ctx.managed_dept_ids,
+                    1,
+                    i64::MAX,
                 )
                 .await?;
             all_tasks.extend(del_tasks);
@@ -148,7 +133,10 @@ impl ApprovalWorkflowService {
         all_tasks.dedup_by_key(|t| t.id());
 
         // Batch-fetch all instance IDs to avoid N+1 per-task instance lookup
-        let instance_ids: Vec<Uuid> = all_tasks.iter().map(crate::models::approval_workflow::ApprovalWorkflowTask::instance_id).collect();
+        let instance_ids: Vec<Uuid> = all_tasks
+            .iter()
+            .map(crate::models::approval_workflow::ApprovalWorkflowTask::instance_id)
+            .collect();
         let instances = self
             .approval_workflow_repo
             .get_instances_by_ids(auth_token, &instance_ids)
@@ -157,16 +145,19 @@ impl ApprovalWorkflowService {
         let instances_by_id: std::collections::HashMap<Uuid, _> =
             instances.into_iter().map(|inst| (inst.id, inst)).collect();
 
+        // Batch-resolve beneficiaries to avoid N+1 queries
+        let instances_vec: Vec<_> = instances_by_id.values().cloned().collect();
+        let beneficiaries_map = self
+            .resolve_beneficiaries_batch(auth_token, &instances_vec)
+            .await;
+
         let mut final_tasks = Vec::new();
         for task in all_tasks {
             if let Some(instance) = instances_by_id.get(&task.instance_id()) {
-                let beneficiary_user_id = self
-                    .get_beneficiary_user_id_for_entity(
-                        auth_token,
-                        &instance.entity_type,
-                        instance.entity_id,
-                    )
-                    .await;
+                let beneficiary_user_id = beneficiaries_map
+                    .get(&(instance.entity_type.clone(), instance.entity_id))
+                    .copied()
+                    .flatten();
 
                 let is_self_approving = beneficiary_user_id
                     .is_some_and(|b_id| b_id == user_id || delegators.contains(&b_id));
@@ -178,7 +169,22 @@ impl ApprovalWorkflowService {
             }
         }
 
-        Ok(final_tasks)
+        // Apply pagination
+        let total = i64::try_from(final_tasks.len()).unwrap_or(i64::MAX);
+        let limit_usize = usize::try_from(limit).unwrap_or(usize::MAX);
+        let offset =
+            usize::try_from(page.saturating_sub(1).saturating_mul(limit)).unwrap_or(usize::MAX);
+        let paginated_tasks = if offset >= final_tasks.len() {
+            Vec::new()
+        } else {
+            final_tasks
+                .into_iter()
+                .skip(offset)
+                .take(limit_usize)
+                .collect()
+        };
+
+        Ok((paginated_tasks, total))
     }
 
     pub(crate) async fn spawn_tasks_for_step(

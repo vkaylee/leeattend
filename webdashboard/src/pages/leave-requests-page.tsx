@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-conversion, complexity, max-lines-per-function */
 import { useQuery } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
 import { CheckCircle2, Clock, Filter, MessageSquare, Moon, Paperclip, Plus, ShieldCheck, Sun, Timer, Upload, XCircle } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
@@ -51,7 +52,7 @@ function LeaveRequestMobileCard({
   onApprove: (id: string, status: string) => void;
   onPreviewAttachment?: (fileUrl: string, title: string) => void;
   request: LeaveRequest;
-  t: (key: string, defaultValue?: string) => string;
+  t: TFunction;
 }) {
   const { workspace } = useWorkspace();
   const wsId = workspace?.id ?? "";

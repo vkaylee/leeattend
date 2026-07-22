@@ -492,4 +492,36 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         Ok(rows)
     }
+
+    async fn get_summaries_by_ids(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        ids: &[Uuid],
+    ) -> Result<Vec<AttendanceDailySummary>, AppError> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let workspace_id = auth_token.workspace_id();
+        use crate::schema::attendance_daily_summaries::dsl as ads;
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
+
+        use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
+
+        let rows = ads::attendance_daily_summaries
+            .filter(ads::workspace_id.eq(workspace_id))
+            .filter(ads::id.eq_any(ids))
+            .select(AttendanceDailySummaryEntity::as_select())
+            .load::<AttendanceDailySummaryEntity>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
+    }
 }

@@ -1,9 +1,6 @@
 use super::ApprovalWorkflowService;
 use crate::errors::{AppError, AppResult};
-use crate::models::{
-    ApprovalActionLog, ApprovalWorkflowInstance, ApprovalWorkflowTask, ApproverActionInfo,
-    WorkflowInstanceStepSnapshot,
-};
+use crate::models::{ApprovalAction, ApprovalWorkflowInstance, WorkflowInstanceStepSnapshot};
 use crate::utils::i18n::I18nKey;
 use chrono::Utc;
 use serde_json::json;
@@ -94,15 +91,142 @@ impl ApprovalWorkflowService {
         info
     }
 
-    pub async fn get_beneficiary_user_id_for_entity(
+    #[allow(clippy::too_many_lines)]
+    pub async fn resolve_beneficiaries_batch(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        entity_type: &str,
-        entity_id: Uuid,
-    ) -> Option<Uuid> {
-        self.resolve_beneficiary_info(auth_token, entity_type, entity_id)
-            .await
-            .user_id
+        instances: &[crate::models::ApprovalWorkflowInstance],
+    ) -> std::collections::HashMap<(String, Uuid), Option<Uuid>> {
+        use std::collections::HashMap;
+
+        let mut result: HashMap<(String, Uuid), Option<Uuid>> = HashMap::new();
+
+        // Group instances by entity_type
+        let mut leave_request_ids = Vec::new();
+        let mut ot_request_ids = Vec::new();
+        let mut ot_claim_ids = Vec::new();
+
+        for instance in instances {
+            match instance.entity_type.as_str() {
+                "leave_request" => leave_request_ids.push(instance.entity_id),
+                "ot_request" => ot_request_ids.push(instance.entity_id),
+                "ot_claim" => ot_claim_ids.push(instance.entity_id),
+                _ => {}
+            }
+        }
+
+        // Batch fetch leave requests
+        if !leave_request_ids.is_empty() {
+            if let Ok(requests) = self
+                .leave_request_repo
+                .get_leave_requests_by_ids(auth_token, &leave_request_ids)
+                .await
+            {
+                let employment_ids: Vec<Uuid> = requests
+                    .iter()
+                    .map(crate::models::leave::LeaveRequest::employment_id)
+                    .collect();
+                if let Ok(employments) = self
+                    .employment_repo
+                    .get_employments_by_ids(auth_token, &employment_ids)
+                    .await
+                {
+                    let employee_ids: Vec<Uuid> = employments
+                        .iter()
+                        .map(crate::models::employment::Employment::employee_id)
+                        .collect();
+                    if let Ok(employees) = self
+                        .employee_repo
+                        .get_employees_by_ids(&employee_ids, auth_token)
+                        .await
+                    {
+                        let emp_to_user: HashMap<Uuid, Uuid> = employees
+                            .iter()
+                            .filter_map(|e| e.user_id().map(|uid| (e.id(), uid)))
+                            .collect();
+                        let employment_to_emp: HashMap<Uuid, Uuid> = employments
+                            .iter()
+                            .map(|e| (e.id(), e.employee_id()))
+                            .collect();
+
+                        for req in requests {
+                            if let Some(emp_id) = employment_to_emp.get(&req.employment_id()) {
+                                if let Some(user_id) = emp_to_user.get(emp_id) {
+                                    result.insert(
+                                        ("leave_request".to_string(), req.id()),
+                                        Some(*user_id),
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Batch fetch overtime requests
+        if !ot_request_ids.is_empty() {
+            if let Ok(requests) = self
+                .overtime_request_repo
+                .get_requests_by_ids(auth_token, &ot_request_ids)
+                .await
+            {
+                for req in requests {
+                    result.insert(
+                        ("ot_request".to_string(), req.id()),
+                        Some(req.requested_by_user_id()),
+                    );
+                }
+            }
+        }
+
+        // Batch fetch attendance daily summaries (ot_claim)
+        if !ot_claim_ids.is_empty() {
+            if let Ok(summaries) = self
+                .daily_summary_repo
+                .get_summaries_by_ids(auth_token, &ot_claim_ids)
+                .await
+            {
+                let employment_ids: Vec<Uuid> = summaries.iter().map(|s| s.employment_id).collect();
+                if let Ok(employments) = self
+                    .employment_repo
+                    .get_employments_by_ids(auth_token, &employment_ids)
+                    .await
+                {
+                    let employee_ids: Vec<Uuid> = employments
+                        .iter()
+                        .map(crate::models::employment::Employment::employee_id)
+                        .collect();
+                    if let Ok(employees) = self
+                        .employee_repo
+                        .get_employees_by_ids(&employee_ids, auth_token)
+                        .await
+                    {
+                        let emp_to_user: HashMap<Uuid, Uuid> = employees
+                            .iter()
+                            .filter_map(|e| e.user_id().map(|uid| (e.id(), uid)))
+                            .collect();
+                        let employment_to_emp: HashMap<Uuid, Uuid> = employments
+                            .iter()
+                            .map(|e| (e.id(), e.employee_id()))
+                            .collect();
+
+                        for summary in summaries {
+                            if let Some(emp_id) = employment_to_emp.get(&summary.employment_id) {
+                                if let Some(user_id) = emp_to_user.get(emp_id) {
+                                    result.insert(
+                                        ("ot_claim".to_string(), summary.id),
+                                        Some(*user_id),
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        result
     }
 
     #[allow(clippy::too_many_lines)]
@@ -249,13 +373,14 @@ impl ApprovalWorkflowService {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         user_id: Uuid,
         instance_id: Uuid,
-        action: String,
+        action: ApprovalAction,
         note: Option<String>,
         new_approver_user_id: Option<Uuid>,
     ) -> AppResult<ApprovalWorkflowInstance> {
         let workspace_id = auth_token.workspace_id();
 
-        let mut instance = self
+        // 1. Authorization checks (BEFORE transaction)
+        let instance = self
             .approval_workflow_repo
             .get_instance_by_id(auth_token, instance_id)
             .await?
@@ -271,7 +396,7 @@ impl ApprovalWorkflowService {
             ));
         }
 
-        let mut steps: Vec<WorkflowInstanceStepSnapshot> =
+        let steps: Vec<WorkflowInstanceStepSnapshot> =
             serde_json::from_value(instance.steps_snapshot.clone())
                 .map_err(|e| AppError::Internal(format!("Failed to parse steps snapshot: {e}")))?;
 
@@ -298,7 +423,9 @@ impl ApprovalWorkflowService {
             .await?;
         let is_admin = admins.contains(&user_id);
 
-        let user_pending_tasks = self.get_pending_tasks_for_user(auth_token, user_id).await?;
+        let (user_pending_tasks, _) = self
+            .get_pending_tasks_for_user(auth_token, user_id, 1, i64::MAX)
+            .await?;
 
         let matching_task = active_tasks
             .iter()
@@ -313,221 +440,114 @@ impl ApprovalWorkflowService {
             return Err(AppError::forbidden(I18nKey::Forbidden));
         }
 
-        let db_action = match action.as_str() {
-            "approve" | "approved" => Some("approved".to_string()),
-            "reject" | "rejected" => Some("rejected".to_string()),
-            "return" | "returned" => Some("returned".to_string()),
-            "skip" | "skipped" => Some("skipped".to_string()),
-            _ => None,
-        };
-
-        if let Some(db_act) = db_action {
-            let log_entry = ApprovalActionLog {
-                id: Uuid::new_v4(),
-                workspace_id,
-                entity_type: instance.entity_type.clone(),
-                entity_id: instance.entity_id,
-                step_order: current_step_order,
-                step_name: Some(steps[current_step_idx].step_name.clone()),
-                acted_by_user_id: user_id,
-                action: db_act,
-                note: note.clone(),
-                acted_at: Utc::now(),
-            };
-            self.log_action(auth_token, log_entry).await?;
+        // 2. Validation checks (BEFORE transaction)
+        if action == ApprovalAction::Skip && !steps[current_step_idx].can_skip {
+            return Err(AppError::validation_args(
+                I18nKey::Validation,
+                vec![("details", "This step cannot be skipped".to_string())],
+            ));
         }
 
-        steps[current_step_idx]
-            .approvers_acted
-            .push(ApproverActionInfo {
-                user_id,
-                action: action.clone(),
-                note: note.clone(),
-                acted_at: Utc::now(),
-            });
+        if action == ApprovalAction::Reassign {
+            let target_uid = new_approver_user_id.ok_or_else(|| {
+                AppError::validation_args(
+                    I18nKey::Validation,
+                    vec![(
+                        "details",
+                        "new_approver_user_id is required for reassignment".to_string(),
+                    )],
+                )
+            })?;
 
-        match action.as_str() {
-            "reassign" => {
-                let target_uid = new_approver_user_id.ok_or_else(|| {
-                    AppError::validation_args(
-                        I18nKey::Validation,
-                        vec![(
-                            "details",
-                            "new_approver_user_id is required for reassignment".to_string(),
-                        )],
-                    )
-                })?;
-
-                for mut task in active_tasks {
-                    if task.step_order() == current_step_order {
-                        task.cancel();
-                        self.approval_workflow_repo
-                            .update_task(auth_token, task)
-                            .await?;
-                    }
-                }
-
-                let reassigned_task = ApprovalWorkflowTask::new(
-                    instance_id,
-                    current_step_order,
-                    "specific_user".to_string(),
-                    Some(target_uid),
-                    None,
-                );
-                self.approval_workflow_repo
-                    .create_tasks(auth_token, vec![reassigned_task])
-                    .await?;
-
-                steps[current_step_idx].resolved_approver_ids = vec![target_uid];
-            }
-            "reject" => {
-                steps[current_step_idx].status = "rejected".to_string();
-                instance.status = "rejected".to_string();
-
-                for mut task in active_tasks {
-                    if task.step_order() == current_step_order {
-                        if let Some(mt) = matching_task.as_ref() {
-                            if task.id() == mt.id() {
-                                task.complete(user_id);
-                            } else {
-                                task.cancel();
-                            }
-                        } else {
-                            task.cancel();
-                        }
-                        self.approval_workflow_repo
-                            .update_task(auth_token, task)
-                            .await?;
-                    }
-                }
-            }
-            "return" => {
-                steps[current_step_idx].status = "returned".to_string();
-                instance.status = "returned".to_string();
-
-                for mut task in active_tasks {
-                    if task.step_order() == current_step_order {
-                        if let Some(mt) = matching_task.as_ref() {
-                            if task.id() == mt.id() {
-                                task.complete(user_id);
-                            } else {
-                                task.cancel();
-                            }
-                        } else {
-                            task.cancel();
-                        }
-                        self.approval_workflow_repo
-                            .update_task(auth_token, task)
-                            .await?;
-                    }
-                }
-            }
-            "approve" => {
-                let consensus_mode = &steps[current_step_idx].consensus_mode;
-
-                if let Some(mt) = matching_task.as_ref() {
-                    let mut task_to_update = mt.clone();
-                    task_to_update.complete(user_id);
-                    self.approval_workflow_repo
-                        .update_task(auth_token, task_to_update)
-                        .await?;
-                }
-
-                let step_approved = if is_admin {
-                    for mut task in active_tasks {
-                        if task.step_order() == current_step_order {
-                            task.cancel();
-                            self.approval_workflow_repo
-                                .update_task(auth_token, task)
-                                .await?;
-                        }
-                    }
-                    true
-                } else if consensus_mode == "any" {
-                    for mut task in active_tasks {
-                        if task.step_order() == current_step_order {
-                            if let Some(mt) = matching_task.as_ref() {
-                                if task.id() != mt.id() {
-                                    task.cancel();
-                                    self.approval_workflow_repo
-                                        .update_task(auth_token, task)
-                                        .await?;
-                                }
-                            }
-                        }
-                    }
-                    true
-                } else {
-                    let remaining_active_tasks = self
-                        .approval_workflow_repo
-                        .get_active_tasks_for_instance(auth_token, instance_id)
-                        .await?;
-                    let has_remaining_for_step = remaining_active_tasks
-                        .iter()
-                        .any(|t| t.step_order() == current_step_order);
-                    !has_remaining_for_step
-                };
-
-                if step_approved {
-                    steps[current_step_idx].status = "approved".to_string();
-
-                    let next_step = steps
-                        .iter_mut()
-                        .filter(|s| s.step_order > current_step_order)
-                        .min_by_key(|s| s.step_order);
-
-                    if let Some(next) = next_step {
-                        instance.current_step_order = next.step_order;
-                        next.status = "pending".to_string();
-
-                        let beneficiary_employee_id = self
-                            .resolve_beneficiary_info(
-                                auth_token,
-                                &instance.entity_type,
-                                instance.entity_id,
-                            )
-                            .await
-                            .employee_id
-                            .unwrap_or(Uuid::nil());
-
-                        self.spawn_tasks_for_step(
-                            auth_token,
-                            instance.id,
-                            next.step_order,
-                            &next.approver_type,
-                            &next.approver_config,
-                            beneficiary_employee_id,
-                        )
-                        .await?;
-                    } else {
-                        instance.status = "approved".to_string();
-                    }
-                }
-            }
-            _ => {
+            let (members, _) = self
+                .workspace_repo
+                .get_workspace_members(workspace_id, 1, i64::MAX)
+                .await?;
+            if !members.iter().any(|m| m.user_id() == target_uid) {
                 return Err(AppError::validation_args(
                     I18nKey::Validation,
-                    vec![("details", format!("Invalid action: {action}"))],
-                ))
+                    vec![(
+                        "details",
+                        "Reassign target user is not a workspace member".to_string(),
+                    )],
+                ));
             }
         }
 
-        instance.steps_snapshot =
-            serde_json::to_value(&steps).map_err(|e| AppError::Internal(e.to_string()))?;
-        instance.updated_at = Utc::now();
-
-        let updated_instance = self
+        // 3. Call transactional method (atomic: audit log + task updates + instance update)
+        let matching_task_id = matching_task
+            .as_ref()
+            .map(crate::models::approval_workflow::ApprovalWorkflowTask::id);
+        let (updated_instance, outbox_payload) = self
             .approval_workflow_repo
-            .update_instance(auth_token, instance)
+            .apply_approval_action_transactional(
+                auth_token,
+                instance_id,
+                user_id,
+                action,
+                note,
+                new_approver_user_id,
+                is_admin,
+                matching_task_id,
+            )
             .await?;
 
-        if updated_instance.status != "pending" {
-            let entity_id = updated_instance.entity_id;
-            let entity_type = &updated_instance.entity_type;
-            if let Some(handler) = self.handlers.get(entity_type) {
-                handler
-                    .on_workflow_completed(auth_token, entity_id, &updated_instance.status, user_id)
+        // 4. Post-transaction: spawn tasks for next step if we advanced
+        let updated_steps: Vec<WorkflowInstanceStepSnapshot> =
+            serde_json::from_value(updated_instance.steps_snapshot.clone())
+                .map_err(|e| AppError::Internal(format!("Failed to parse updated steps: {e}")))?;
+
+        if updated_instance.current_step_order > current_step_order {
+            // We advanced to a new step - spawn tasks for it
+            if let Some(next_step) = updated_steps
+                .iter()
+                .find(|s| s.step_order == updated_instance.current_step_order)
+            {
+                let beneficiary_employee_id = self
+                    .resolve_beneficiary_info(
+                        auth_token,
+                        &updated_instance.entity_type,
+                        updated_instance.entity_id,
+                    )
+                    .await
+                    .employee_id
+                    .unwrap_or(Uuid::nil());
+
+                self.spawn_tasks_for_step(
+                    auth_token,
+                    updated_instance.id,
+                    next_step.step_order,
+                    &next_step.approver_type,
+                    &next_step.approver_config,
+                    beneficiary_employee_id,
+                )
+                .await?;
+            }
+        }
+
+        // 5. Create outbox job if workflow completed, or call callback directly if no outbox
+        if let Some(payload) = outbox_payload {
+            if let Some(outbox_service) = &self.outbox_service {
+                let job_id = Uuid::new_v4();
+                let payload_json = serde_json::to_value(&payload).map_err(|e| {
+                    AppError::Internal(format!("Failed to serialize outbox payload: {e}"))
+                })?;
+
+                outbox_service
+                    .create_job(workspace_id, job_id, "WorkflowCompleted", payload_json)
                     .await?;
+            } else {
+                // Fallback: call callback directly (for tests and simple cases)
+                if let Some(handler) = self.handlers.get(&payload.entity_type) {
+                    handler
+                        .on_workflow_completed(
+                            auth_token,
+                            payload.entity_id,
+                            &payload.final_status,
+                            payload.actor_user_id,
+                        )
+                        .await?;
+                }
             }
         }
 

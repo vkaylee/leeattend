@@ -1,5 +1,5 @@
 import { Download, Loader2 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
@@ -90,17 +90,11 @@ export function UnrecordedShiftsTab() {
   const [selectedDept, setSelectedDept] = useState<string>("__all__");
   const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>([]);
   const [employeeIds, setEmployeeIds] = useState<string[]>([]);
-  const [onlyZoneB, setOnlyZoneB] = useState(false);
-  const [liveTick, setLiveTick] = useState(0);
+  // The operational default is the action queue: employees who are already
+  // beyond their configured grace period. HR can opt out to inspect Zone A.
+  const [onlyZoneB, setOnlyZoneB] = useState(true);
 
-  // Live 1-second tick for Zone A countdown / Zone B elapsed — only when
-  // viewing today (past dates are all Zone C, no re-render needed).
   const isViewingToday = selectedDate === today;
-  useEffect(() => {
-    if (!isViewingToday) return;
-    const id = setInterval(() => { setLiveTick((n) => n + 1); }, 1000);
-    return () => { clearInterval(id); };
-  }, [isViewingToday]);
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const {
@@ -130,10 +124,6 @@ export function UnrecordedShiftsTab() {
     fetchNextPage: () => { void fetchNextPage(); },
   });
 
-  // Force re-render when live tick fires (zone labels update).
-  const _liveTick = liveTick;
-  void _liveTick;
-
   // ── Export ─────────────────────────────────────────────────────────────
   const { exportFn: handleExport, isExporting } = useNoShowExport({
     wsId: wsId ?? "",
@@ -149,7 +139,7 @@ export function UnrecordedShiftsTab() {
     setSelectedDept("__all__");
     setSelectedShiftTypes([]);
     setEmployeeIds([]);
-    setOnlyZoneB(false);
+    setOnlyZoneB(true);
   };
 
   // ── Render ─────────────────────────────────────────────────────────────

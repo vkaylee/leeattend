@@ -4,13 +4,16 @@ use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 use uuid::Uuid;
 
+use crate::models::WorkflowCompletedPayload;
 use crate::services::report_coordinator::CreateJobRequest;
 use crate::services::OutboxJobService;
 use crate::services::ReportCoordinator;
+use crate::worker::handlers::WorkflowCompletedHandler;
 
 pub struct OutboxSweepScheduler {
     outbox_service: Arc<OutboxJobService>,
     coordinator: Arc<ReportCoordinator>,
+    workflow_handler: Option<Arc<WorkflowCompletedHandler>>,
 }
 
 impl OutboxSweepScheduler {
@@ -18,7 +21,14 @@ impl OutboxSweepScheduler {
         Self {
             outbox_service,
             coordinator,
+            workflow_handler: None,
         }
+    }
+
+    #[must_use]
+    pub fn with_workflow_handler(mut self, handler: Arc<WorkflowCompletedHandler>) -> Self {
+        self.workflow_handler = Some(handler);
+        self
     }
 
     pub fn start(self, cancel_token: CancellationToken) -> tokio::task::JoinHandle<()> {
@@ -42,10 +52,8 @@ impl OutboxSweepScheduler {
     }
 
     async fn sweep(&self) -> Result<(), crate::errors::AppError> {
-        // Consider jobs older than 5 minutes as stuck
         let older_than = chrono::Utc::now() - chrono::Duration::minutes(5);
 
-        // Fetch stuck pending/running jobs globally across all tenants
         let stuck_jobs = self
             .outbox_service
             .get_all_stuck_jobs(older_than, 10)
@@ -62,50 +70,81 @@ impl OutboxSweepScheduler {
             );
 
             if job.job_type() == "AttendanceReport" {
-                // Deserialize payload
-                #[derive(serde::Deserialize)]
-                struct OutboxPayload {
-                    request: CreateJobRequest,
-                    requester_id: Uuid,
-                }
+                self.process_attendance_report(ws_id, &job).await;
+            } else if job.job_type() == "WorkflowCompleted" {
+                self.process_workflow_completed(ws_id, &job).await;
+            }
+        }
 
-                match serde_json::from_value::<OutboxPayload>(job.payload().clone()) {
-                    Ok(outbox_payload) => {
-                        // Re-enqueue
-                        if let Err(e) = self
-                            .coordinator
-                            .enqueue_report_job_internal(
-                                ws_id,
-                                outbox_payload.requester_id,
-                                job.id(),
-                                outbox_payload.request,
-                            )
-                            .await
-                        {
-                            error!(
-                                job_id = %job.id(),
-                                error = ?e,
-                                "Failed to re-enqueue report job"
-                            );
-                            // Revert status or update error message
-                            let _ = self
-                                .outbox_service
-                                .update_job_status(
-                                    ws_id,
-                                    job.id(),
-                                    "failed",
-                                    Some(format!("Re-enqueue failed: {e}")),
-                                )
-                                .await;
-                        } else {
-                            info!(job_id = %job.id(), "Successfully re-enqueued report job");
-                        }
-                    }
-                    Err(e) => {
+        Ok(())
+    }
+
+    async fn process_attendance_report(&self, ws_id: Uuid, job: &crate::models::OutboxJob) {
+        #[derive(serde::Deserialize)]
+        struct OutboxPayload {
+            request: CreateJobRequest,
+            requester_id: Uuid,
+        }
+
+        match serde_json::from_value::<OutboxPayload>(job.payload().clone()) {
+            Ok(outbox_payload) => {
+                if let Err(e) = self
+                    .coordinator
+                    .enqueue_report_job_internal(
+                        ws_id,
+                        outbox_payload.requester_id,
+                        job.id(),
+                        outbox_payload.request,
+                    )
+                    .await
+                {
+                    error!(
+                        job_id = %job.id(),
+                        error = ?e,
+                        "Failed to re-enqueue report job"
+                    );
+                    let _ = self
+                        .outbox_service
+                        .update_job_status(
+                            ws_id,
+                            job.id(),
+                            "failed",
+                            Some(format!("Re-enqueue failed: {e}")),
+                        )
+                        .await;
+                } else {
+                    info!(job_id = %job.id(), "Successfully re-enqueued report job");
+                }
+            }
+            Err(e) => {
+                error!(
+                    job_id = %job.id(),
+                    error = ?e,
+                    "Failed to deserialize outbox payload for AttendanceReport"
+                );
+                let _ = self
+                    .outbox_service
+                    .update_job_status(
+                        ws_id,
+                        job.id(),
+                        "failed",
+                        Some("Invalid job payload".to_string()),
+                    )
+                    .await;
+            }
+        }
+    }
+
+    async fn process_workflow_completed(&self, ws_id: Uuid, job: &crate::models::OutboxJob) {
+        if let Some(handler) = &self.workflow_handler {
+            match serde_json::from_value::<WorkflowCompletedPayload>(job.payload().clone()) {
+                Ok(payload) => {
+                    let auth_token = crate::diesel_pool::TenantAuthToken::system_override(ws_id);
+                    if let Err(e) = handler.handle(&auth_token, &payload).await {
                         error!(
                             job_id = %job.id(),
                             error = ?e,
-                            "Failed to deserialize outbox payload for AttendanceReport"
+                            "Failed to process workflow completed callback"
                         );
                         let _ = self
                             .outbox_service
@@ -113,15 +152,40 @@ impl OutboxSweepScheduler {
                                 ws_id,
                                 job.id(),
                                 "failed",
-                                Some("Invalid job payload".to_string()),
+                                Some(format!("Callback failed: {e}")),
                             )
+                            .await;
+                    } else {
+                        info!(job_id = %job.id(), "Successfully processed workflow completed callback");
+                        let _ = self
+                            .outbox_service
+                            .update_job_status(ws_id, job.id(), "completed", None)
                             .await;
                     }
                 }
+                Err(e) => {
+                    error!(
+                        job_id = %job.id(),
+                        error = ?e,
+                        "Failed to deserialize outbox payload for WorkflowCompleted"
+                    );
+                    let _ = self
+                        .outbox_service
+                        .update_job_status(
+                            ws_id,
+                            job.id(),
+                            "failed",
+                            Some("Invalid job payload".to_string()),
+                        )
+                        .await;
+                }
             }
+        } else {
+            error!(
+                job_id = %job.id(),
+                "No workflow handler registered for WorkflowCompleted jobs"
+            );
         }
-
-        Ok(())
     }
 }
 

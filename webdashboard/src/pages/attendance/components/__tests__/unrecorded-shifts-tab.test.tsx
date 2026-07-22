@@ -79,6 +79,9 @@ vi.mock("react-i18next", () => ({
 function makeRow(
   overrides: Partial<DailyAttendanceReport> = {},
 ): DailyAttendanceReport {
+  const now = new Date();
+  const currentDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
   return {
     actual_punch_in: null,
     actual_punch_out: null,
@@ -87,17 +90,17 @@ function makeRow(
     break_start: null,
     computed_ot_hours: 0,
     computed_std_hours: 0,
-    date: "2026-07-10",
+    date: currentDate,
     employee_id: "emp-1",
     employee_name: "Employee One",
     employment_id: "employment-1",
     is_break_auto_deduct: false,
     is_holiday: false,
     ot_work_units: 0,
-    scheduled_end: "17:00:00",
-    scheduled_start: "08:00:00",
+    scheduled_end: "23:59:00",
+    scheduled_start: "00:00:00",
     shift_name: "Morning Shift",
-    grace_period_minutes: 15,
+    grace_period_minutes: 0,
     status: "absent",
     std_work_units: 0,
     unit_coefficient_hours: 1,
@@ -237,7 +240,7 @@ describe("UnrecordedShiftsTab", () => {
 
     renderTab();
 
-    expect((await screen.findAllByText("unrecorded_shifts.empty")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/unrecorded_shifts\.empty/)).length).toBeGreaterThan(0);
   });
 
   it("shows the empty state when the report returns no rows at all", async () => {
@@ -250,7 +253,7 @@ describe("UnrecordedShiftsTab", () => {
 
     renderTab();
 
-    expect((await screen.findAllByText("unrecorded_shifts.empty")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/unrecorded_shifts\.empty/)).length).toBeGreaterThan(0);
   });
 
   // ── Pagination configuration ────────────────────────────────────────────
@@ -429,7 +432,7 @@ describe("UnrecordedShiftsTab", () => {
           data: (args.page as number) === 1 ? page1Rows : page2Rows,
           total: 4,
           page: args.page as number,
-          limit: 30,
+          limit: 2,
         }) as never,
     );
 
@@ -474,7 +477,7 @@ describe("UnrecordedShiftsTab", () => {
           data: (args.page as number) === 1 ? page1Rows : page2Rows,
           total: 4,
           page: args.page as number,
-          limit: 30,
+          limit: 2,
         }) as never,
     );
 
@@ -603,14 +606,14 @@ describe("UnrecordedShiftsTab", () => {
           // Block the drain until we explicitly release it.
           return page2Blocking.then(() => ({
             data: page2Rows,
-            total: 2,
+            total: 60,
             page: 2,
             limit: 30,
           })) as never;
         }
         return Promise.resolve({
           data: page1Rows,
-          total: 2,
+          total: 60,
           page: 1,
           limit: 30,
         }) as never;

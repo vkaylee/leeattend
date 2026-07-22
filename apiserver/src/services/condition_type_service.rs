@@ -23,7 +23,8 @@ impl ConditionTypeService {
 
     /// Validate condition type code format: uppercase alphanumeric with underscores, starts with letter.
     fn validate_code(code: &str) -> AppResult<()> {
-        let re = regex::Regex::new(r"^[A-Z][A-Z0-9_]*$").map_err(|e| AppError::Internal(format!("regex compile: {e}")))?;
+        let re = regex::Regex::new(r"^[A-Z][A-Z0-9_]*$")
+            .map_err(|e| AppError::Internal(format!("regex compile: {e}")))?;
         if !re.is_match(code) {
             return Err(AppError::validation_args(
                 I18nKey::Validation,

@@ -1,3 +1,4 @@
+import { Inbox } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -128,6 +129,7 @@ export function AttendanceTable({
     <ResponsiveTable<AttendanceEntry>
       data={entries}
       emptyState={{
+        icon: <Inbox className="h-8 w-8" />,
         title: t("ess.attendance.no_data"),
       }}
       getCardKey={(entry) => entry.id}

@@ -100,6 +100,7 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
         <ResponsiveTable<WorkspaceConfigEntry>
           data={otConfigs}
           emptyState={{
+            icon: <Key className="h-8 w-8" />,
             title: t("common.no_data"),
           }}
           getCardKey={(cfg) => cfg.id}

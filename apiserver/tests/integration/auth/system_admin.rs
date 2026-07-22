@@ -393,8 +393,8 @@ async fn test_smtp_test_endpoint_dev_mode() {
         body["message"]
             .as_str()
             .unwrap_or("")
-            .contains("SMTP is not configured"),
-        "Should report missing SMTP config, got: {}",
+            .contains("Email is not configured"),
+        "Should report missing email config, got: {}",
         body["message"]
     );
 }
@@ -465,14 +465,17 @@ async fn test_smtp_test_persists_last_verified_at() {
     assert_eq!(body["success"], false);
 
     // Verify last_verified_at was NOT written on failure
-    let config: serde_json::Value = app
+    let config_res = app
         .clone()
-        .oneshot(make_req("GET", "/api/v1/system/smtp/config", admin_id, None))
-        .await
-        .unwrap()
-        .json()
+        .oneshot(make_req(
+            "GET",
+            "/api/v1/system/smtp/config",
+            admin_id,
+            None,
+        ))
         .await
         .unwrap();
+    let config = body_json(config_res).await;
     assert!(
         config.get("last_verified_at").is_none(),
         "last_verified_at must not be written on test failure"

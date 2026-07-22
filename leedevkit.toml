@@ -1,5 +1,5 @@
 [devkit]
-version = "0.2.0"
+version = "0.3.17"
 install = "per-project"
 source = "release"
 

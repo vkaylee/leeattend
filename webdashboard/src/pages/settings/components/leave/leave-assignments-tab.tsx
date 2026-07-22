@@ -89,6 +89,7 @@ export function LeaveAssignmentsTab({
       <ResponsiveTable<LeaveAssignment>
         data={assignments}
         emptyState={{
+          icon: <Users className="h-8 w-8" />,
           title: t("settings.leave.messages.no_assignments"),
         }}
         getCardKey={(a) => a.id}

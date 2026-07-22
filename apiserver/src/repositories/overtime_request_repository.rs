@@ -46,4 +46,10 @@ pub trait OvertimeRequestRepository: Send + Sync {
         page: i64,
         limit: i64,
     ) -> Result<(Vec<OvertimeRequest>, i64), AppError>;
+
+    async fn get_requests_by_ids(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        ids: &[Uuid],
+    ) -> Result<Vec<OvertimeRequest>, AppError>;
 }

@@ -3,8 +3,8 @@ use crate::{
     errors::{AppError, AppResult},
     handlers::common::MemberContext,
     models::{
-        ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowTask, CreateWorkflowRequest,
-        PaginatedResponse,
+        ApprovalAction, ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowTask,
+        CreateWorkflowRequest, PaginatedResponse,
     },
     utils::i18n::I18nKey,
     AppState,
@@ -249,6 +249,13 @@ pub async fn process_approval(
         .await?
         .ok_or_else(|| AppError::not_found(I18nKey::WorkflowInstanceNotFound))?;
 
+    let action = ApprovalAction::parse_value(&req.action).ok_or_else(|| {
+        AppError::validation_args(
+            I18nKey::Validation,
+            vec![("details", format!("Invalid action: {}", req.action))],
+        )
+    })?;
+
     state
         .core()
         .approval_workflow_service()
@@ -256,7 +263,7 @@ pub async fn process_approval(
             &ctx.auth_token,
             ctx.user_id,
             instance.id,
-            req.action,
+            action,
             req.note,
             req.new_approver_user_id,
         )
@@ -325,25 +332,15 @@ pub async fn get_pending_tasks(
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(50).clamp(1, 3000);
 
-    let mut tasks = state
+    let (tasks, total) = state
         .core()
         .approval_workflow_service()
-        .get_pending_tasks_for_user(&ctx.auth_token, ctx.user_id)
+        .get_pending_tasks_for_user(&ctx.auth_token, ctx.user_id, page, limit)
         .await?;
 
-    let total = tasks.len();
-    let offset = usize::try_from((page - 1) * limit).unwrap_or(0);
-    let paginated_tasks = if offset >= total {
-        Vec::new()
-    } else {
-        tasks
-            .drain(offset..std::cmp::min(offset + usize::try_from(limit).unwrap_or(0), total))
-            .collect()
-    };
-
     Ok(Json(PaginatedResponse {
-        data: paginated_tasks,
-        total,
+        data: tasks,
+        total: total.try_into().unwrap_or(0),
         page,
         limit,
     }))

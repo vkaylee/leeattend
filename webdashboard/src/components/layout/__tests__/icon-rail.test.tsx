@@ -102,6 +102,25 @@ describe("IconRail", () => {
     expect(screen.getByTestId("nav-rail-logo")).toBeInTheDocument();
   });
 
+  it("renders workspace branding in the compact rail DOM", () => {
+    const logoUrl = "https://example.com/workspace-logo.svg";
+    const tagline = "Premium HR Management";
+
+    render(
+      <IconRail
+        {...defaultProps}
+        workspaceLogoUrl={logoUrl}
+        workspaceTagline={tagline}
+      />,
+      { wrapper: Wrapper },
+    );
+
+    expect(screen.getByTestId("sidebar-workspace-logo")).toHaveStyle({
+      backgroundImage: `url(${logoUrl})`,
+    });
+    expect(screen.getByTestId("sidebar-workspace-tagline")).toHaveTextContent(tagline);
+  });
+
   it("renders all 8 group icons (dashboard + settings + 6 groups)", () => {
     render(<IconRail {...defaultProps} />, { wrapper: Wrapper });
 

@@ -1,7 +1,7 @@
 use crate::errors::AppError;
 use crate::models::{
-    ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowInstance, ApprovalWorkflowStep,
-    ApprovalWorkflowTask,
+    ApprovalAction, ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowInstance,
+    ApprovalWorkflowStep, ApprovalWorkflowTask, WorkflowCompletedPayload,
 };
 use crate::repositories::ApprovalWorkflowRepository;
 use crate::schema::{
@@ -10,6 +10,7 @@ use crate::schema::{
 };
 use crate::utils::i18n::I18nKey;
 use async_trait::async_trait;
+use chrono::Utc;
 use diesel::prelude::*;
 use diesel_async::{AsyncConnection, RunQueryDsl};
 use uuid::Uuid;
@@ -714,7 +715,9 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         role_ids: Vec<Uuid>,
         permissions: Vec<String>,
         managed_dept_ids: Vec<Uuid>,
-    ) -> Result<Vec<ApprovalWorkflowTask>, AppError> {
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<ApprovalWorkflowTask>, i64), AppError> {
         let mut conn = self
             .diesel_pools
             .tenant_transaction_conn(auth_token)
@@ -724,7 +727,7 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
             .eq("specific_user")
             .and(approval_workflow_tasks::assignee_target_id.eq(user_id));
 
-        let result = approval_workflow_tasks::table
+        let base_filter = approval_workflow_tasks::table
             .filter(approval_workflow_tasks::status.eq("pending"))
             .filter(
                 approval_workflow_tasks::instance_id.eq_any(
@@ -746,14 +749,332 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
                     .or(approval_workflow_tasks::assignee_type
                         .eq("department_manager")
                         .and(approval_workflow_tasks::assignee_target_id.eq_any(managed_dept_ids))),
-            )
+            );
+
+        let total: i64 = base_filter
+            .clone()
+            .count()
+            .get_result(&mut *conn)
+            .await
+            .map_err(|e| {
+                AppError::Internal(format!("Failed to count pending tasks for user: {e}"))
+            })?;
+
+        let result = base_filter
+            .order(approval_workflow_tasks::created_at.desc())
+            .limit(limit)
+            .offset((page - 1) * limit)
             .load::<ApprovalWorkflowTask>(&mut *conn)
             .await
             .map_err(|e| {
                 AppError::Internal(format!("Failed to get pending tasks for user: {e}"))
             })?;
 
-        Ok(result)
+        Ok((result, total))
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn apply_approval_action_transactional(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        instance_id: Uuid,
+        user_id: Uuid,
+        action: ApprovalAction,
+        note: Option<String>,
+        new_approver_user_id: Option<Uuid>,
+        is_admin: bool,
+        matching_task_id: Option<Uuid>,
+    ) -> Result<(ApprovalWorkflowInstance, Option<WorkflowCompletedPayload>), AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        conn.transaction::<_, AppError, _>(|conn| {
+            Box::pin(async move {
+                // 1. SELECT ... FOR UPDATE on instance
+                let mut instance = approval_workflow_instances::table
+                    .filter(approval_workflow_instances::id.eq(instance_id))
+                    .filter(approval_workflow_instances::workspace_id.eq(auth_token.workspace_id()))
+                    .for_update()
+                    .first::<ApprovalWorkflowInstance>(&mut *conn)
+                    .await
+                    .map_err(|e| match e {
+                        diesel::result::Error::NotFound => {
+                            AppError::not_found(I18nKey::WorkflowInstanceNotFound)
+                        }
+                        _ => AppError::Internal(format!("Failed to lock instance: {e}")),
+                    })?;
+
+                // 2. Re-check status
+                if instance.status != "pending" {
+                    return Err(AppError::validation_args(
+                        I18nKey::Validation,
+                        vec![(
+                            "details",
+                            format!("Workflow instance is already {}", instance.status),
+                        )],
+                    ));
+                }
+
+                // 3. Parse steps snapshot
+                let mut steps: Vec<crate::models::WorkflowInstanceStepSnapshot> =
+                    serde_json::from_value(instance.steps_snapshot.clone()).map_err(|e| {
+                        AppError::Internal(format!("Failed to parse steps snapshot: {e}"))
+                    })?;
+
+                let current_step_idx = steps
+                    .iter()
+                    .position(|s| s.step_order == instance.current_step_order)
+                    .ok_or_else(|| {
+                        AppError::Internal(format!(
+                            "Current step not found in snapshot: {}",
+                            instance.current_step_order
+                        ))
+                    })?;
+
+                let current_step_order = instance.current_step_order;
+
+                // 4. Load active tasks in transaction
+                let active_tasks = approval_workflow_tasks::table
+                    .filter(approval_workflow_tasks::instance_id.eq(instance_id))
+                    .filter(approval_workflow_tasks::status.eq("pending"))
+                    .load::<ApprovalWorkflowTask>(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("Failed to load active tasks: {e}")))?;
+
+                // 5. Insert audit log
+                let log_entry = ApprovalActionLog {
+                    id: Uuid::new_v4(),
+                    workspace_id: auth_token.workspace_id(),
+                    entity_type: instance.entity_type.clone(),
+                    entity_id: instance.entity_id,
+                    step_order: current_step_order,
+                    step_name: Some(steps[current_step_idx].step_name.clone()),
+                    acted_by_user_id: user_id,
+                    action: action.as_str().to_string(),
+                    note: note.clone(),
+                    acted_at: Utc::now(),
+                };
+                diesel::insert_into(approval_action_log::table)
+                    .values(&log_entry)
+                    .execute(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("Failed to insert audit log: {e}")))?;
+
+                // 6. Update approvers_acted in snapshot
+                steps[current_step_idx]
+                    .approvers_acted
+                    .push(crate::models::ApproverActionInfo {
+                        user_id,
+                        action: action.as_str().to_string(),
+                        note: note.clone(),
+                        acted_at: Utc::now(),
+                    });
+
+                // 7. Process action
+                match action {
+                    ApprovalAction::Reassign => {
+                        let target_uid = new_approver_user_id.unwrap_or(Uuid::nil());
+
+                        for mut task in active_tasks {
+                            if task.step_order() == current_step_order {
+                                task.cancel();
+                                diesel::update(
+                                    approval_workflow_tasks::table
+                                        .filter(approval_workflow_tasks::id.eq(task.id())),
+                                )
+                                .set(&task)
+                                .execute(&mut *conn)
+                                .await
+                                .map_err(|e| {
+                                    AppError::Internal(format!("Failed to cancel task: {e}"))
+                                })?;
+                            }
+                        }
+
+                        let reassigned_task = ApprovalWorkflowTask::new(
+                            instance_id,
+                            current_step_order,
+                            "specific_user".to_string(),
+                            Some(target_uid),
+                            None,
+                        );
+                        diesel::insert_into(approval_workflow_tasks::table)
+                            .values(&reassigned_task)
+                            .execute(&mut *conn)
+                            .await
+                            .map_err(|e| {
+                                AppError::Internal(format!("Failed to create reassigned task: {e}"))
+                            })?;
+
+                        steps[current_step_idx].resolved_approver_ids = vec![target_uid];
+                    }
+                    ApprovalAction::Reject | ApprovalAction::Return => {
+                        let new_status = if action == ApprovalAction::Reject {
+                            "rejected"
+                        } else {
+                            "returned"
+                        };
+                        steps[current_step_idx].status = new_status.to_string();
+                        instance.status = new_status.to_string();
+
+                        for mut task in active_tasks {
+                            if task.step_order() == current_step_order {
+                                if let Some(mt_id) = matching_task_id {
+                                    if task.id() == mt_id {
+                                        task.complete(user_id);
+                                    } else {
+                                        task.cancel();
+                                    }
+                                } else {
+                                    task.cancel();
+                                }
+                                diesel::update(
+                                    approval_workflow_tasks::table
+                                        .filter(approval_workflow_tasks::id.eq(task.id())),
+                                )
+                                .set(&task)
+                                .execute(&mut *conn)
+                                .await
+                                .map_err(|e| {
+                                    AppError::Internal(format!("Failed to update task: {e}"))
+                                })?;
+                            }
+                        }
+                    }
+                    ApprovalAction::Approve | ApprovalAction::Skip => {
+                        let consensus_mode = &steps[current_step_idx].consensus_mode;
+
+                        if let Some(mt_id) = matching_task_id {
+                            if let Some(mt) = active_tasks.iter().find(|t| t.id() == mt_id) {
+                                let mut task_to_update = mt.clone();
+                                task_to_update.complete(user_id);
+                                diesel::update(
+                                    approval_workflow_tasks::table.filter(
+                                        approval_workflow_tasks::id.eq(task_to_update.id()),
+                                    ),
+                                )
+                                .set(&task_to_update)
+                                .execute(&mut *conn)
+                                .await
+                                .map_err(|e| {
+                                    AppError::Internal(format!("Failed to complete task: {e}"))
+                                })?;
+                            }
+                        }
+
+                        let step_approved = if is_admin {
+                            for mut task in active_tasks {
+                                if task.step_order() == current_step_order {
+                                    task.cancel();
+                                    diesel::update(
+                                        approval_workflow_tasks::table
+                                            .filter(approval_workflow_tasks::id.eq(task.id())),
+                                    )
+                                    .set(&task)
+                                    .execute(&mut *conn)
+                                    .await
+                                    .map_err(|e| {
+                                        AppError::Internal(format!("Failed to cancel task: {e}"))
+                                    })?;
+                                }
+                            }
+                            true
+                        } else if consensus_mode == "any" {
+                            for mut task in active_tasks {
+                                if task.step_order() == current_step_order {
+                                    if let Some(mt_id) = matching_task_id {
+                                        if task.id() != mt_id {
+                                            task.cancel();
+                                            diesel::update(
+                                                approval_workflow_tasks::table.filter(
+                                                    approval_workflow_tasks::id.eq(task.id()),
+                                                ),
+                                            )
+                                            .set(&task)
+                                            .execute(&mut *conn)
+                                            .await
+                                            .map_err(
+                                                |e| {
+                                                    AppError::Internal(format!(
+                                                        "Failed to cancel task: {e}"
+                                                    ))
+                                                },
+                                            )?;
+                                        }
+                                    }
+                                }
+                            }
+                            true
+                        } else {
+                            // consensus_mode == "all" — check if any pending tasks remain for this step
+                            let remaining: i64 = approval_workflow_tasks::table
+                                .filter(approval_workflow_tasks::instance_id.eq(instance_id))
+                                .filter(approval_workflow_tasks::step_order.eq(current_step_order))
+                                .filter(approval_workflow_tasks::status.eq("pending"))
+                                .count()
+                                .get_result(&mut *conn)
+                                .await
+                                .map_err(|e| {
+                                    AppError::Internal(format!(
+                                        "Failed to count remaining tasks: {e}"
+                                    ))
+                                })?;
+                            remaining == 0
+                        };
+
+                        if step_approved {
+                            steps[current_step_idx].status = "approved".to_string();
+
+                            let next_step = steps
+                                .iter_mut()
+                                .filter(|s| s.step_order > current_step_order)
+                                .min_by_key(|s| s.step_order);
+
+                            if let Some(next) = next_step {
+                                instance.current_step_order = next.step_order;
+                                next.status = "pending".to_string();
+                                // Note: spawn_tasks_for_step will be called outside transaction
+                                // For now, we just update the snapshot
+                            } else {
+                                instance.status = "approved".to_string();
+                            }
+                        }
+                    }
+                }
+
+                // 8. Update instance snapshot/status
+                instance.steps_snapshot = serde_json::to_value(&steps)
+                    .map_err(|e| AppError::Internal(format!("Failed to serialize steps: {e}")))?;
+                instance.updated_at = Utc::now();
+
+                let updated_instance = diesel::update(
+                    approval_workflow_instances::table
+                        .filter(approval_workflow_instances::id.eq(instance_id)),
+                )
+                .set(&instance)
+                .get_result::<ApprovalWorkflowInstance>(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("Failed to update instance: {e}")))?;
+
+                // 9. If workflow completed, create outbox payload
+                let outbox_payload = if updated_instance.status == "pending" {
+                    None
+                } else {
+                    Some(WorkflowCompletedPayload {
+                        entity_type: updated_instance.entity_type.clone(),
+                        entity_id: updated_instance.entity_id,
+                        final_status: updated_instance.status.clone(),
+                        actor_user_id: user_id,
+                        trace_context: None,
+                    })
+                };
+
+                Ok((updated_instance, outbox_payload))
+            })
+        })
+        .await
     }
 }
 

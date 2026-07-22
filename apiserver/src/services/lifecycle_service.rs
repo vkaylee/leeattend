@@ -420,7 +420,10 @@ impl LifecycleService {
         if checklists.is_empty() {
             return Ok(responses);
         }
-        let checklist_ids: Vec<Uuid> = checklists.iter().map(crate::models::lifecycle_checklist::LifecycleChecklist::id).collect();
+        let checklist_ids: Vec<Uuid> = checklists
+            .iter()
+            .map(crate::models::lifecycle_checklist::LifecycleChecklist::id)
+            .collect();
         let all_items = self
             .repo
             .list_items_for_checklist_ids(&auth_token, &checklist_ids)

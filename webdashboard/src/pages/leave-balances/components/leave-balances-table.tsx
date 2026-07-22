@@ -119,6 +119,7 @@ export const LeaveBalancesTable: React.FC<LeaveBalancesTableProps> = ({
     <ResponsiveTable<WorkspaceLeaveBalance>
       data={balances}
       emptyState={{
+        icon: <History className="h-8 w-8" />,
         title: t("attendance_logs.messages.no_data"),
       }}
       getCardKey={(balance) => `${balance.employee_id}-${balance.leave_type_id}`}

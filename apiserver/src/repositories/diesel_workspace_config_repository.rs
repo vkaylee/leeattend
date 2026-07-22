@@ -166,6 +166,47 @@ impl WorkspaceConfigRepository for DieselWorkspaceConfigRepository {
 
         Ok(())
     }
+
+    async fn get_effective_delegations(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workspace_id: Uuid,
+        delegate_user_id: Uuid,
+        effective_date: NaiveDate,
+    ) -> Result<Vec<Uuid>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let delegate_user_id_str = delegate_user_id.to_string();
+
+        let entries = workspace_config_entries::table
+            .filter(workspace_config_entries::workspace_id.eq(workspace_id))
+            .filter(workspace_config_entries::config_key.like("delegation:%"))
+            .filter(workspace_config_entries::value_text.eq(&delegate_user_id_str))
+            .filter(workspace_config_entries::effective_from.le(effective_date))
+            .filter(
+                workspace_config_entries::effective_to
+                    .is_null()
+                    .or(workspace_config_entries::effective_to.ge(effective_date)),
+            )
+            .select(workspace_config_entries::config_key)
+            .load::<String>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to get effective delegations: {e}")))?;
+
+        let delegator_ids: Vec<Uuid> = entries
+            .into_iter()
+            .filter_map(|config_key| {
+                config_key
+                    .strip_prefix("delegation:")
+                    .and_then(|uuid_str| Uuid::parse_str(uuid_str).ok())
+            })
+            .collect();
+
+        Ok(delegator_ids)
+    }
 }
 
 #[cfg(test)]

@@ -225,6 +225,14 @@ mod tests {
         ) -> Result<(Vec<OvertimeRequest>, i64), AppError> {
             Ok((vec![], 0))
         }
+
+        async fn get_requests_by_ids(
+            &self,
+            _auth_token: &TenantAuthToken,
+            _ids: &[Uuid],
+        ) -> Result<Vec<OvertimeRequest>, AppError> {
+            unimplemented!()
+        }
     }
 
     #[tokio::test]

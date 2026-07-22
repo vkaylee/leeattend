@@ -1,7 +1,7 @@
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::diesel_pool::TenantAuthToken;
-use apiserver::models::{ApprovalWorkflow, ApprovalWorkflowStep};
+use apiserver::models::{ApprovalAction, ApprovalWorkflow, ApprovalWorkflowStep};
 use uuid::Uuid;
 
 #[tokio::test]
@@ -93,7 +93,7 @@ async fn test_service_submit_and_approve_fallback() {
             &auth_token,
             user_id,
             instance.id,
-            "approve".to_string(),
+            ApprovalAction::Approve,
             Some("approved by service test".to_string()),
             None,
         )
@@ -131,7 +131,7 @@ async fn test_service_submit_and_reject_fallback() {
             &auth_token,
             user_id,
             instance.id,
-            "reject".to_string(),
+            ApprovalAction::Reject,
             Some("rejected by service test".to_string()),
             None,
         )

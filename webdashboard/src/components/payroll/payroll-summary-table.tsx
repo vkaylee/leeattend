@@ -5,10 +5,12 @@ import {
   TrendingUp,
   Gift,
   Wallet,
-  AlertCircle
+  AlertCircle,
+  CheckCircle2
 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 import PaginationControls from "@/components/common/pagination-controls";
 import ResponsiveTable from "@/components/ui/responsive-table";
@@ -38,7 +40,7 @@ function PayrollMobileCard({
   onSelect: () => void;
   onViewDetail: () => void;
   payslip?: Payslip;
-  t: (key: string, defaultValue?: string) => string;
+  t: TFunction;
 }) {
   const formatCurrency = (amount: string) => {
     if (!canReadSensitive) return "***";

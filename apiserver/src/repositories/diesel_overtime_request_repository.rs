@@ -220,6 +220,34 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
 
         Ok((results, total))
     }
+
+    async fn get_requests_by_ids(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        ids: &[Uuid],
+    ) -> Result<Vec<OvertimeRequest>, AppError> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let workspace_id = auth_token.workspace_id();
+
+        let results = overtime_requests::table
+            .filter(overtime_requests::id.eq_any(ids))
+            .filter(overtime_requests::workspace_id.eq(workspace_id))
+            .load::<OvertimeRequest>(&mut *conn)
+            .await
+            .map_err(|e| {
+                AppError::Internal(format!("Failed to get overtime requests by ids: {e}"))
+            })?;
+
+        Ok(results)
+    }
 }
 
 #[cfg(test)]

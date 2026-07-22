@@ -14,6 +14,14 @@ import {
 import { useNoShowRows, type ZonedNoShowRow } from "../../hooks/use-no-show-rows";
 
 const EMPLOYEE_PAGE_SIZE = 30;
+const LIVE_REPORT_REFRESH_INTERVAL_MS = 30_000;
+
+function getTodayIso(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
 
 export interface UseUnrecordedShiftsDataParams {
   employeeIds: string[];
@@ -37,6 +45,16 @@ export interface UseUnrecordedShiftsDataResult {
   tracesByKey: Map<string, ScheduleTrace[]>;
   workspaceTimezone: string;
   wsId: string | null;
+}
+
+export function getNextNoShowPageParam(
+  lastPage: PaginatedResponse<DailyAttendanceReport>,
+  loadedPageCount: number,
+): number | undefined {
+  if (lastPage.limit <= 0 || lastPage.total <= 0) return undefined;
+
+  const totalCandidatePages = Math.ceil(lastPage.total / lastPage.limit);
+  return loadedPageCount >= totalCandidatePages ? undefined : loadedPageCount + 1;
 }
 
 export function useUnrecordedShiftsData({
@@ -76,14 +94,13 @@ export function useUnrecordedShiftsData({
         shiftType: selectedShiftTypes.length > 0 ? selectedShiftTypes : undefined,
       })),
     initialPageParam: 1,
-    getNextPageParam: (lastPage, allPages) => {
-      const loadedEmployees = new Set(
-        allPages.flatMap((p) => p.data.map((r) => r.employment_id)),
-      ).size;
-      return loadedEmployees >= lastPage.total ? undefined : allPages.length + 1;
-    },
+    getNextPageParam: (lastPage, allPages) =>
+      getNextNoShowPageParam(lastPage, allPages.length),
     enabled: !!wsId,
-    staleTime: 2 * 60 * 1000,
+    refetchInterval:
+      selectedDate === getTodayIso() ? LIVE_REPORT_REFRESH_INTERVAL_MS : false,
+    refetchIntervalInBackground: false,
+    staleTime: LIVE_REPORT_REFRESH_INTERVAL_MS,
   });
 
   const { employees, isLoading: isEmpLoading } = useAllEmployees(wsId);
@@ -130,11 +147,11 @@ export function useUnrecordedShiftsData({
     if (selectedDept !== "__all__") {
       rows = rows.filter((r) => r.department_name === selectedDept);
     }
-    if (onlyZoneB) {
+    if (onlyZoneB && selectedDate === getTodayIso()) {
       rows = rows.filter((r) => r.zone === "b");
     }
     return rows;
-  }, [absentRows, selectedDept, onlyZoneB]);
+  }, [absentRows, selectedDate, selectedDept, onlyZoneB]);
 
   const tracesByKey = useMemo(() => {
     const map = new Map<string, ScheduleTrace[]>();

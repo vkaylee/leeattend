@@ -43,4 +43,12 @@ pub trait WorkspaceConfigRepository: Send + Sync {
         scope_type: &str,
         config_key: &str,
     ) -> Result<(), AppError>;
+
+    async fn get_effective_delegations(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workspace_id: Uuid,
+        delegate_user_id: Uuid,
+        effective_date: NaiveDate,
+    ) -> Result<Vec<Uuid>, AppError>;
 }

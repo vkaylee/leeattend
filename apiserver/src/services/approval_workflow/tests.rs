@@ -103,7 +103,11 @@ mod tests {
         ) -> Result<ApprovalWorkflow, AppError> {
             self.create_workflow_called
                 .store(true, std::sync::atomic::Ordering::SeqCst);
-            self.state.lock().unwrap().workflows.insert(workflow.id, workflow.clone());
+            self.state
+                .lock()
+                .unwrap()
+                .workflows
+                .insert(workflow.id, workflow.clone());
             Ok(workflow)
         }
 
@@ -169,7 +173,11 @@ mod tests {
             _auth_token: &TenantAuthToken,
             instance: ApprovalWorkflowInstance,
         ) -> Result<ApprovalWorkflowInstance, AppError> {
-            self.state.lock().unwrap().instances.insert(instance.id, instance.clone());
+            self.state
+                .lock()
+                .unwrap()
+                .instances
+                .insert(instance.id, instance.clone());
             Ok(instance)
         }
 
@@ -178,7 +186,11 @@ mod tests {
             _auth_token: &TenantAuthToken,
             instance: ApprovalWorkflowInstance,
         ) -> Result<ApprovalWorkflowInstance, AppError> {
-            self.state.lock().unwrap().instances.insert(instance.id, instance.clone());
+            self.state
+                .lock()
+                .unwrap()
+                .instances
+                .insert(instance.id, instance.clone());
             Ok(instance)
         }
 
@@ -225,7 +237,13 @@ mod tests {
             _auth_token: &TenantAuthToken,
             workflow_id: Uuid,
         ) -> Result<Option<ApprovalWorkflow>, AppError> {
-            Ok(self.state.lock().unwrap().workflows.get(&workflow_id).cloned())
+            Ok(self
+                .state
+                .lock()
+                .unwrap()
+                .workflows
+                .get(&workflow_id)
+                .cloned())
         }
 
         async fn list_workflows(
@@ -236,8 +254,14 @@ mod tests {
             page: i64,
             limit: i64,
         ) -> Result<(Vec<ApprovalWorkflow>, i64), AppError> {
-            let mut list: Vec<ApprovalWorkflow> =
-                self.state.lock().unwrap().workflows.values().cloned().collect();
+            let mut list: Vec<ApprovalWorkflow> = self
+                .state
+                .lock()
+                .unwrap()
+                .workflows
+                .values()
+                .cloned()
+                .collect();
             if let Some(et) = entity_type {
                 list.retain(|w| w.entity_type == et);
             }
@@ -257,7 +281,11 @@ mod tests {
             _auth_token: &TenantAuthToken,
             workflow: ApprovalWorkflow,
         ) -> Result<ApprovalWorkflow, AppError> {
-            self.state.lock().unwrap().workflows.insert(workflow.id, workflow.clone());
+            self.state
+                .lock()
+                .unwrap()
+                .workflows
+                .insert(workflow.id, workflow.clone());
             Ok(workflow)
         }
 
@@ -313,7 +341,11 @@ mod tests {
             _auth_token: &TenantAuthToken,
             task: ApprovalWorkflowTask,
         ) -> Result<ApprovalWorkflowTask, AppError> {
-            self.state.lock().unwrap().tasks.insert(task.id(), task.clone());
+            self.state
+                .lock()
+                .unwrap()
+                .tasks
+                .insert(task.id(), task.clone());
             Ok(task)
         }
 
@@ -340,7 +372,9 @@ mod tests {
             role_ids: Vec<Uuid>,
             permissions: Vec<String>,
             managed_dept_ids: Vec<Uuid>,
-        ) -> Result<Vec<ApprovalWorkflowTask>, AppError> {
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<ApprovalWorkflowTask>, i64), AppError> {
             let state = self.state.lock().unwrap();
             let mut res = Vec::new();
             for task in state.tasks.values() {
@@ -377,8 +411,204 @@ mod tests {
                     _ => {}
                 }
             }
+            let total = res.len() as i64;
             drop(state);
-            Ok(res)
+            Ok((res, total))
+        }
+
+        async fn apply_approval_action_transactional(
+            &self,
+            _auth_token: &TenantAuthToken,
+            instance_id: Uuid,
+            user_id: Uuid,
+            action: crate::models::ApprovalAction,
+            note: Option<String>,
+            new_approver_user_id: Option<Uuid>,
+            is_admin: bool,
+            matching_task_id: Option<Uuid>,
+        ) -> Result<
+            (
+                ApprovalWorkflowInstance,
+                Option<crate::models::WorkflowCompletedPayload>,
+            ),
+            AppError,
+        > {
+            let mut state = self.state.lock().unwrap();
+
+            let mut instance = state.instances.get(&instance_id).cloned().ok_or_else(|| {
+                AppError::not_found(crate::utils::i18n::I18nKey::WorkflowInstanceNotFound)
+            })?;
+
+            let mut steps: Vec<WorkflowInstanceStepSnapshot> =
+                serde_json::from_value(instance.steps_snapshot.clone()).unwrap();
+
+            let current_step_idx = steps
+                .iter()
+                .position(|s| s.step_order == instance.current_step_order)
+                .unwrap();
+
+            let current_step_order = instance.current_step_order;
+
+            // Collect active tasks
+            let active_tasks: Vec<ApprovalWorkflowTask> = state
+                .tasks
+                .values()
+                .filter(|t| t.instance_id() == instance_id && t.status() == "pending")
+                .cloned()
+                .collect();
+
+            // Insert audit log
+            let log_entry = ApprovalActionLog {
+                id: Uuid::new_v4(),
+                workspace_id: instance.workspace_id,
+                entity_type: instance.entity_type.clone(),
+                entity_id: instance.entity_id,
+                step_order: current_step_order,
+                step_name: Some(steps[current_step_idx].step_name.clone()),
+                acted_by_user_id: user_id,
+                action: action.as_str().to_string(),
+                note: note.clone(),
+                acted_at: Utc::now(),
+            };
+            state.action_logs.push(log_entry);
+
+            // Update approvers_acted
+            steps[current_step_idx]
+                .approvers_acted
+                .push(crate::models::ApproverActionInfo {
+                    user_id,
+                    action: action.as_str().to_string(),
+                    note: note.clone(),
+                    acted_at: Utc::now(),
+                });
+
+            match action {
+                crate::models::ApprovalAction::Reassign => {
+                    let target_uid = new_approver_user_id.unwrap_or(Uuid::nil());
+
+                    for mut task in active_tasks {
+                        if task.step_order() == current_step_order {
+                            task.cancel();
+                            state.tasks.insert(task.id(), task);
+                        }
+                    }
+
+                    let reassigned_task = ApprovalWorkflowTask::new(
+                        instance_id,
+                        current_step_order,
+                        "specific_user".to_string(),
+                        Some(target_uid),
+                        None,
+                    );
+                    state.tasks.insert(reassigned_task.id(), reassigned_task);
+
+                    steps[current_step_idx].resolved_approver_ids = vec![target_uid];
+                }
+                crate::models::ApprovalAction::Reject | crate::models::ApprovalAction::Return => {
+                    let new_status = if action == crate::models::ApprovalAction::Reject {
+                        "rejected"
+                    } else {
+                        "returned"
+                    };
+                    steps[current_step_idx].status = new_status.to_string();
+                    instance.status = new_status.to_string();
+
+                    for mut task in active_tasks {
+                        if task.step_order() == current_step_order {
+                            if let Some(mt_id) = matching_task_id {
+                                if task.id() == mt_id {
+                                    task.complete(user_id);
+                                } else {
+                                    task.cancel();
+                                }
+                            } else {
+                                task.cancel();
+                            }
+                            state.tasks.insert(task.id(), task);
+                        }
+                    }
+                }
+                crate::models::ApprovalAction::Approve | crate::models::ApprovalAction::Skip => {
+                    let consensus_mode = &steps[current_step_idx].consensus_mode;
+
+                    if let Some(mt_id) = matching_task_id {
+                        if let Some(mt) = active_tasks.iter().find(|t| t.id() == mt_id) {
+                            let mut task_to_update = mt.clone();
+                            task_to_update.complete(user_id);
+                            state.tasks.insert(task_to_update.id(), task_to_update);
+                        }
+                    }
+
+                    let step_approved = if is_admin {
+                        for mut task in active_tasks {
+                            if task.step_order() == current_step_order {
+                                task.cancel();
+                                state.tasks.insert(task.id(), task);
+                            }
+                        }
+                        true
+                    } else if consensus_mode == "any" {
+                        for mut task in active_tasks {
+                            if task.step_order() == current_step_order {
+                                if let Some(mt_id) = matching_task_id {
+                                    if task.id() != mt_id {
+                                        task.cancel();
+                                        state.tasks.insert(task.id(), task);
+                                    }
+                                }
+                            }
+                        }
+                        true
+                    } else {
+                        // consensus_mode == "all"
+                        let remaining: i64 = state
+                            .tasks
+                            .values()
+                            .filter(|t| {
+                                t.instance_id() == instance_id
+                                    && t.step_order() == current_step_order
+                                    && t.status() == "pending"
+                            })
+                            .count() as i64;
+                        remaining == 0
+                    };
+
+                    if step_approved {
+                        steps[current_step_idx].status = "approved".to_string();
+
+                        let next_step = steps
+                            .iter_mut()
+                            .filter(|s| s.step_order > current_step_order)
+                            .min_by_key(|s| s.step_order);
+
+                        if let Some(next) = next_step {
+                            instance.current_step_order = next.step_order;
+                            next.status = "pending".to_string();
+                        } else {
+                            instance.status = "approved".to_string();
+                        }
+                    }
+                }
+            }
+
+            instance.steps_snapshot = serde_json::to_value(&steps).unwrap();
+            instance.updated_at = Utc::now();
+
+            state.instances.insert(instance.id, instance.clone());
+
+            let outbox_payload = if instance.status != "pending" {
+                Some(crate::models::WorkflowCompletedPayload {
+                    entity_type: instance.entity_type.clone(),
+                    entity_id: instance.entity_id,
+                    final_status: instance.status.clone(),
+                    actor_user_id: user_id,
+                    trace_context: None,
+                })
+            } else {
+                None
+            };
+
+            Ok((instance, outbox_payload))
         }
     }
 
@@ -393,7 +623,11 @@ mod tests {
             _a: &TenantAuthToken,
             e: WorkspaceConfigEntry,
         ) -> Result<WorkspaceConfigEntry, AppError> {
-            self.state.lock().unwrap().configs.insert(e.config_key().to_string(), e.clone());
+            self.state
+                .lock()
+                .unwrap()
+                .configs
+                .insert(e.config_key().to_string(), e.clone());
             Ok(e)
         }
         async fn get_effective_config(
@@ -429,6 +663,39 @@ mod tests {
         ) -> Result<(), AppError> {
             self.state.lock().unwrap().configs.remove(config_key);
             Ok(())
+        }
+        async fn get_effective_delegations(
+            &self,
+            _a: &TenantAuthToken,
+            _w: Uuid,
+            delegate_user_id: Uuid,
+            effective_date: NaiveDate,
+        ) -> Result<Vec<Uuid>, AppError> {
+            let state = self.state.lock().unwrap();
+            let delegate_user_id_str = delegate_user_id.to_string();
+            let mut delegator_ids = Vec::new();
+
+            for (config_key, entry) in &state.configs {
+                if config_key.starts_with("delegation:") {
+                    if let Some(val_text) = entry.value_text() {
+                        if val_text == delegate_user_id_str {
+                            if let Some(uuid_str) = config_key.strip_prefix("delegation:") {
+                                if let Ok(delegator_uuid) = Uuid::parse_str(uuid_str) {
+                                    let is_effective = entry.effective_from() <= effective_date
+                                        && entry
+                                            .effective_to()
+                                            .is_none_or(|to| to >= effective_date);
+                                    if is_effective {
+                                        delegator_ids.push(delegator_uuid);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Ok(delegator_ids)
         }
     }
 
@@ -1272,7 +1539,11 @@ mod tests {
             _a: &TenantAuthToken,
             r: &crate::models::LeaveRequest,
         ) -> Result<(), AppError> {
-            self.state.lock().unwrap().leave_requests.insert(r.id(), r.clone());
+            self.state
+                .lock()
+                .unwrap()
+                .leave_requests
+                .insert(r.id(), r.clone());
             Ok(())
         }
         async fn get_leave_request_by_id(
@@ -1450,6 +1721,21 @@ mod tests {
         ) -> Result<std::collections::HashMap<Uuid, i64>, AppError> {
             Ok(std::collections::HashMap::new())
         }
+        async fn get_leave_requests_by_ids(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _ids: &[Uuid],
+        ) -> Result<Vec<LeaveRequest>, AppError> {
+            Ok(self
+                .state
+                .lock()
+                .unwrap()
+                .leave_requests
+                .values()
+                .filter(|lr| _ids.contains(&lr.id()))
+                .cloned()
+                .collect())
+        }
     }
 
     struct MockOvertimeRequestRepository {
@@ -1464,7 +1750,11 @@ mod tests {
             r: crate::models::OvertimeRequest,
             _e: Vec<crate::models::OvertimeRequestEmployee>,
         ) -> Result<crate::models::OvertimeRequest, AppError> {
-            self.state.lock().unwrap().ot_requests.insert(r.id(), r.clone());
+            self.state
+                .lock()
+                .unwrap()
+                .ot_requests
+                .insert(r.id(), r.clone());
             Ok(r)
         }
         async fn update_request(
@@ -1472,7 +1762,11 @@ mod tests {
             _a: &TenantAuthToken,
             r: crate::models::OvertimeRequest,
         ) -> Result<crate::models::OvertimeRequest, AppError> {
-            self.state.lock().unwrap().ot_requests.insert(r.id(), r.clone());
+            self.state
+                .lock()
+                .unwrap()
+                .ot_requests
+                .insert(r.id(), r.clone());
             Ok(r)
         }
         async fn get_request(
@@ -1507,10 +1801,32 @@ mod tests {
             _page: i64,
             _limit: i64,
         ) -> Result<(Vec<crate::models::OvertimeRequest>, i64), AppError> {
-            let list: Vec<crate::models::OvertimeRequest> =
-                self.state.lock().unwrap().ot_requests.values().cloned().collect();
+            let list: Vec<crate::models::OvertimeRequest> = self
+                .state
+                .lock()
+                .unwrap()
+                .ot_requests
+                .values()
+                .cloned()
+                .collect();
             let total = list.len() as i64;
             Ok((list, total))
+        }
+
+        async fn get_requests_by_ids(
+            &self,
+            _auth_token: &TenantAuthToken,
+            ids: &[Uuid],
+        ) -> Result<Vec<crate::models::OvertimeRequest>, AppError> {
+            Ok(self
+                .state
+                .lock()
+                .unwrap()
+                .ot_requests
+                .values()
+                .filter(|r| ids.contains(&r.id()))
+                .cloned()
+                .collect())
         }
     }
 
@@ -1642,6 +1958,14 @@ mod tests {
         ) -> Result<Vec<NaiveDate>, AppError> {
             Ok(vec![])
         }
+
+        async fn get_summaries_by_ids(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _ids: &[Uuid],
+        ) -> Result<Vec<crate::models::AttendanceDailySummary>, AppError> {
+            Ok(vec![])
+        }
     }
 
     struct TestLeaveWorkflowCallbackHandler {
@@ -1695,7 +2019,14 @@ mod tests {
             Arc::new(MockEmployeeRepo {
                 state: state.clone(),
             }),
-            Arc::new(crate::repositories::employment_repository::MockEmploymentRepository::new()),
+            {
+                let mut mock_emp_repo =
+                    crate::repositories::employment_repository::MockEmploymentRepository::new();
+                mock_emp_repo
+                    .expect_get_employments_by_ids()
+                    .returning(|_, _| Ok(vec![]));
+                Arc::new(mock_emp_repo)
+            },
             Arc::new(MockDepartmentRepo {
                 state: state.clone(),
             }),
@@ -1898,10 +2229,10 @@ mod tests {
 
         // 1. Verify manager (the beneficiary) cannot see the pending task
         let manager_tasks = service
-            .get_pending_tasks_for_user(&token, employee_user_id)
+            .get_pending_tasks_for_user(&token, employee_user_id, 1, i64::MAX)
             .await
             .unwrap();
-        assert!(manager_tasks.is_empty());
+        assert!(manager_tasks.0.is_empty());
 
         // 2. But the task is actually created and assigned to the department manager (dept_id)
         let active_tasks = state
@@ -1922,7 +2253,7 @@ mod tests {
                 &token,
                 admin_user_id,
                 instance.id,
-                "approve".to_string(),
+                crate::models::ApprovalAction::Approve,
                 None,
                 None,
             )
@@ -2069,11 +2400,11 @@ mod tests {
         );
 
         let admin_tasks = service
-            .get_pending_tasks_for_user(&token, admin_user_id)
+            .get_pending_tasks_for_user(&token, admin_user_id, 1, i64::MAX)
             .await
             .unwrap();
-        assert_eq!(admin_tasks.len(), 1);
-        assert_eq!(admin_tasks[0].assignee_target_id(), Some(admin_user_id));
+        assert_eq!(admin_tasks.0.len(), 1);
+        assert_eq!(admin_tasks.0[0].assignee_target_id(), Some(admin_user_id));
     }
 
     #[tokio::test]
@@ -2141,19 +2472,22 @@ mod tests {
         assert_eq!(steps_snapshot.len(), 1);
 
         let manager_tasks = service
-            .get_pending_tasks_for_user(&token, manager_user_id)
+            .get_pending_tasks_for_user(&token, manager_user_id, 1, i64::MAX)
             .await
             .unwrap();
-        assert_eq!(manager_tasks.len(), 1);
-        assert_eq!(manager_tasks[0].assignee_target_id(), Some(manager_user_id));
+        assert_eq!(manager_tasks.0.len(), 1);
+        assert_eq!(
+            manager_tasks.0[0].assignee_target_id(),
+            Some(manager_user_id)
+        );
 
         let delegated_tasks = service
-            .get_pending_tasks_for_user(&token, delegated_user_id)
+            .get_pending_tasks_for_user(&token, delegated_user_id, 1, i64::MAX)
             .await
             .unwrap();
-        assert_eq!(delegated_tasks.len(), 1);
+        assert_eq!(delegated_tasks.0.len(), 1);
         assert_eq!(
-            delegated_tasks[0].assignee_target_id(),
+            delegated_tasks.0[0].assignee_target_id(),
             Some(manager_user_id)
         );
     }
@@ -2227,7 +2561,7 @@ mod tests {
                 &token,
                 user_a,
                 instance_all_id,
-                "approve".to_string(),
+                crate::models::ApprovalAction::Approve,
                 None,
                 None,
             )
@@ -2245,7 +2579,7 @@ mod tests {
                 &token,
                 user_b,
                 instance_all_id,
-                "approve".to_string(),
+                crate::models::ApprovalAction::Approve,
                 None,
                 None,
             )
@@ -2328,7 +2662,7 @@ mod tests {
                 &token,
                 user_a,
                 instance_any_id,
-                "approve".to_string(),
+                crate::models::ApprovalAction::Approve,
                 None,
                 None,
             )
@@ -2398,7 +2732,7 @@ mod tests {
                 &token,
                 user_a,
                 instance_reject.id,
-                "reject".to_string(),
+                crate::models::ApprovalAction::Reject,
                 Some("Not allowed".to_string()),
                 None,
             )
@@ -2453,7 +2787,7 @@ mod tests {
                 &token,
                 user_a,
                 instance_return.id,
-                "return".to_string(),
+                crate::models::ApprovalAction::Return,
                 Some("Please correct date".to_string()),
                 None,
             )
@@ -2503,6 +2837,15 @@ mod tests {
             s.instances
                 .insert(instance_reassign.id, instance_reassign.clone());
             s.tasks.insert(task_reassign.id(), task_reassign);
+            // Add reassigned user to workspace members for validation
+            s.members.push(crate::models::WorkspaceMemberDetail::new(
+                ws_id,
+                user_reassigned,
+                Uuid::new_v4(),
+                "reassigned@example.com".to_string(),
+                Some("Reassigned User".to_string()),
+                None,
+            ));
         }
 
         let res_reassign = service
@@ -2510,7 +2853,7 @@ mod tests {
                 &token,
                 user_a,
                 instance_reassign.id,
-                "reassign".to_string(),
+                crate::models::ApprovalAction::Reassign,
                 Some("Delegating to B".to_string()),
                 Some(user_reassigned),
             )
@@ -2605,7 +2948,7 @@ mod tests {
                 &token,
                 user_a,
                 instance.id,
-                "approve".to_string(),
+                crate::models::ApprovalAction::Approve,
                 None,
                 None,
             )
@@ -2625,7 +2968,7 @@ mod tests {
                 &token,
                 user_b,
                 instance.id,
-                "approve".to_string(),
+                crate::models::ApprovalAction::Approve,
                 None,
                 None,
             )
@@ -2713,7 +3056,7 @@ mod tests {
                 &token,
                 user_id,
                 instance.id,
-                "approve".to_string(),
+                crate::models::ApprovalAction::Approve,
                 None,
                 None,
             )

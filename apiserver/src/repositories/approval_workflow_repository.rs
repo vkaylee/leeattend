@@ -1,7 +1,7 @@
 use crate::errors::AppError;
 use crate::models::{
-    ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowInstance, ApprovalWorkflowStep,
-    ApprovalWorkflowTask,
+    ApprovalAction, ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowInstance,
+    ApprovalWorkflowStep, ApprovalWorkflowTask,
 };
 use async_trait::async_trait;
 use uuid::Uuid;
@@ -154,5 +154,25 @@ pub trait ApprovalWorkflowRepository: Send + Sync {
         role_ids: Vec<Uuid>,
         permissions: Vec<String>,
         managed_dept_ids: Vec<Uuid>,
-    ) -> Result<Vec<ApprovalWorkflowTask>, AppError>;
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<ApprovalWorkflowTask>, i64), AppError>;
+
+    async fn apply_approval_action_transactional(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        instance_id: Uuid,
+        user_id: Uuid,
+        action: ApprovalAction,
+        note: Option<String>,
+        new_approver_user_id: Option<Uuid>,
+        is_admin: bool,
+        matching_task_id: Option<Uuid>,
+    ) -> Result<
+        (
+            ApprovalWorkflowInstance,
+            Option<crate::models::WorkflowCompletedPayload>,
+        ),
+        AppError,
+    >;
 }

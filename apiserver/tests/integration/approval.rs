@@ -614,8 +614,8 @@ async fn test_approval_workflow_repository_direct() {
         .unwrap();
     assert_eq!(active_tasks.len(), 0);
 
-    let pending_tasks = repo
-        .get_pending_tasks_for_user(&auth_token, user_id, vec![], vec![], vec![])
+    let (pending_tasks, _) = repo
+        .get_pending_tasks_for_user(&auth_token, user_id, vec![], vec![], vec![], 1, 100)
         .await
         .unwrap();
     assert_eq!(pending_tasks.len(), 0);
@@ -881,21 +881,23 @@ async fn test_approval_workflow_repository_edge_cases() {
         .unwrap();
 
     // Check query by role
-    let tasks = repo
-        .get_pending_tasks_for_user(&auth_token, user_id, vec![role_id], vec![], vec![])
+    let (tasks, _) = repo
+        .get_pending_tasks_for_user(&auth_token, user_id, vec![role_id], vec![], vec![], 1, 100)
         .await
         .unwrap();
     assert_eq!(tasks.len(), 1);
     assert_eq!(tasks[0].assignee_type(), "role");
 
     // Check query by permission
-    let tasks = repo
+    let (tasks, _) = repo
         .get_pending_tasks_for_user(
             &auth_token,
             user_id,
             vec![],
             vec!["approve_overtime".to_string()],
             vec![],
+            1,
+            100,
         )
         .await
         .unwrap();
@@ -903,8 +905,8 @@ async fn test_approval_workflow_repository_edge_cases() {
     assert_eq!(tasks[0].assignee_type(), "permission");
 
     // Check query by department_manager
-    let tasks = repo
-        .get_pending_tasks_for_user(&auth_token, user_id, vec![], vec![], vec![dept_id])
+    let (tasks, _) = repo
+        .get_pending_tasks_for_user(&auth_token, user_id, vec![], vec![], vec![dept_id], 1, 100)
         .await
         .unwrap();
     assert_eq!(tasks.len(), 1);

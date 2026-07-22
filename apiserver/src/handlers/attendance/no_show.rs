@@ -27,6 +27,15 @@ pub struct NoShowQuery {
     pub shift_type: Option<String>,
 }
 
+fn parse_employee_ids(value: &str) -> AppResult<Vec<Uuid>> {
+    value
+        .split(',')
+        .map(str::trim)
+        .filter(|id| !id.is_empty())
+        .map(|id| Uuid::parse_str(id).map_err(|_error| AppError::validation(I18nKey::Validation)))
+        .collect()
+}
+
 /// No-show report handler.
 ///
 /// Employees on a shift overlapping `date` who have not punched in yet (status
@@ -64,11 +73,11 @@ pub async fn get_no_show_report(
         .parse::<chrono::NaiveDate>()
         .map_err(|_e| AppError::validation(I18nKey::InvalidDateFormat))?;
 
-    let employee_ids = params.employee_ids.as_ref().map(|s| {
-        s.split(',')
-            .filter_map(|id| Uuid::parse_str(id).ok())
-            .collect::<Vec<Uuid>>()
-    });
+    let employee_ids = params
+        .employee_ids
+        .as_ref()
+        .map(|value| parse_employee_ids(value))
+        .transpose()?;
 
     let report = state
         .reports()
@@ -87,4 +96,37 @@ pub async fn get_no_show_report(
     Ok(Json(
         serde_json::to_value(report).map_err(|e| AppError::from(e.to_string()))?,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_employee_ids;
+    use uuid::Uuid;
+
+    #[test]
+    fn parses_trimmed_employee_ids() {
+        let first = Uuid::new_v4();
+        let second = Uuid::new_v4();
+
+        let parsed = parse_employee_ids(&format!(" {first}, {second} ")).unwrap();
+
+        assert_eq!(parsed, vec![first, second]);
+    }
+
+    #[test]
+    fn rejects_an_invalid_employee_id_without_dropping_it_silently() {
+        let valid = Uuid::new_v4();
+
+        assert!(parse_employee_ids(&format!("{valid},not-a-uuid")).is_err());
+    }
+
+    #[test]
+    fn ignores_empty_csv_segments() {
+        let valid = Uuid::new_v4();
+
+        assert_eq!(
+            parse_employee_ids(&format!(",,{valid},,")).unwrap(),
+            vec![valid]
+        );
+    }
 }

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { DailyAttendanceReport } from "@/lib/api";
 import type { NoShowRow } from "@/lib/excel-no-show";
@@ -37,10 +37,15 @@ export interface UseNoShowRowsParams {
   workspaceTimezone: string;
 }
 
+const ZONE_REFRESH_INTERVAL_MS = 30_000;
+
 /** Pure core of the enrichment + zone computation. Shared by the reactive hook
  *  (table render) and the imperative export handler so both never disagree —
  *  the hook simply memoises this. */
-export function computeNoShowRows(params: UseNoShowRowsParams): ZonedNoShowRow[] {
+export function computeNoShowRows(
+  params: UseNoShowRowsParams,
+  referenceTime = new Date(),
+): ZonedNoShowRow[] {
   const { rows, employeeMap, viewingDate, workspaceTimezone } = params;
   const today = getTodayIso();
   const pastDate = isViewingPastDate(viewingDate, today);
@@ -69,7 +74,7 @@ export function computeNoShowRows(params: UseNoShowRowsParams): ZonedNoShowRow[]
           scheduledStart: row.scheduled_start,
           scheduledEnd: row.scheduled_end,
           graceMinutes: row.grace_period_minutes,
-          referenceTime: new Date(), // Always "now" — the date picker filters what we see
+          referenceTime,
           shiftDate,
           tz: empTz,
         } satisfies ComputeZoneInput);
@@ -86,14 +91,25 @@ export function computeNoShowRows(params: UseNoShowRowsParams): ZonedNoShowRow[]
 }
 
 export function useNoShowRows(params: UseNoShowRowsParams): ZonedNoShowRow[] {
+  const [referenceTime, setReferenceTime] = useState(() => new Date());
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setReferenceTime(new Date());
+    }, ZONE_REFRESH_INTERVAL_MS);
+
+    return () => { window.clearInterval(intervalId); };
+  }, []);
+
   return useMemo(
-    () => computeNoShowRows(params),
+    () => computeNoShowRows(params, referenceTime),
   // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       params.rows,
       params.employeeMap,
       params.viewingDate,
       params.workspaceTimezone,
+      referenceTime,
     ],
   );
 }

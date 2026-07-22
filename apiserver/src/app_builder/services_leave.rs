@@ -18,7 +18,7 @@ pub struct LeaveServices {
 pub fn build_leave_services(
     redis_pool: &Option<RedisPool>,
     repos: &Repositories,
-    _core: &CoreServices,
+    core: &CoreServices,
     attendance: &AttendanceServices,
 ) -> Result<LeaveServices, Box<dyn std::error::Error>> {
     let cache_repo = redis_pool.clone().map(|r| {
@@ -104,7 +104,8 @@ pub fn build_leave_services(
             repos.overtime_request.clone(),
             repos.attendance_daily_summary.clone(),
         )
-        .with_handlers(workflow_handlers),
+        .with_handlers(workflow_handlers)
+        .with_outbox_service(Arc::clone(&core.outbox)),
     );
 
     Ok(LeaveServices {

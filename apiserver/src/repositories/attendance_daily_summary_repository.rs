@@ -111,4 +111,10 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<NaiveDate>, AppError>;
+
+    async fn get_summaries_by_ids(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        ids: &[Uuid],
+    ) -> Result<Vec<AttendanceDailySummary>, AppError>;
 }

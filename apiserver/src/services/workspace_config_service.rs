@@ -419,8 +419,21 @@ mod tests {
             scope_type: &str,
             config_key: &str,
         ) -> Result<(), AppError> {
-            self.entries.lock().unwrap().retain(|e| !(e.scope_type() == scope_type && e.config_key() == config_key));
+            self.entries
+                .lock()
+                .unwrap()
+                .retain(|e| !(e.scope_type() == scope_type && e.config_key() == config_key));
             Ok(())
+        }
+
+        async fn get_effective_delegations(
+            &self,
+            _auth_token: &TenantAuthToken,
+            _workspace_id: Uuid,
+            _delegate_user_id: Uuid,
+            _effective_date: NaiveDate,
+        ) -> Result<Vec<Uuid>, AppError> {
+            Ok(vec![])
         }
     }
 

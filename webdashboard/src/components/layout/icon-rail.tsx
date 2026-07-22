@@ -27,6 +27,7 @@ interface IconRailProps {
   onTogglePin: () => void;
   workspaceLogoUrl?: string;
   workspaceName?: string;
+  workspaceTagline?: string;
 }
 
 const SHARED_ICON_CLASSES = "flex items-center justify-center w-full h-11 rounded-xl transition-all duration-200 group relative border-0";
@@ -42,6 +43,7 @@ export default function IconRail({
   onTogglePin,
   workspaceName,
   workspaceLogoUrl,
+  workspaceTagline,
   onClickWorkspaceSwitcher,
 }: IconRailProps) {
   const { t } = useTranslation();
@@ -78,12 +80,23 @@ export default function IconRail({
         type="button"
       >
         {workspaceLogoUrl ? (
-          <div className="w-8 h-8 bg-contain bg-no-repeat bg-center drop-shadow-sm" role="img" style={{ backgroundImage: `url(${workspaceLogoUrl})` }} />
+          <div
+            aria-label={`${workspaceName ?? "LeeAttend"} logo`}
+            className="w-8 h-8 bg-contain bg-no-repeat bg-center drop-shadow-sm"
+            data-testid="sidebar-workspace-logo"
+            role="img"
+            style={{ backgroundImage: `url(${workspaceLogoUrl})` }}
+          />
         ) : (
           <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-primary-600 to-primary-400 shadow-lg shadow-primary-200 dark:shadow-primary-900/20 flex items-center justify-center text-white font-black text-sm tracking-tighter italic">
             {workspaceName?.charAt(0).toUpperCase() ?? "L"}
           </div>
         )}
+        {workspaceTagline ? (
+          <span className="sr-only" data-testid="sidebar-workspace-tagline">
+            {workspaceTagline}
+          </span>
+        ) : null}
       </button>
 
       <div className="h-px bg-slate-100 dark:bg-slate-800 mx-3 shrink-0" />

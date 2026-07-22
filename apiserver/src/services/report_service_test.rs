@@ -1177,6 +1177,13 @@ mod tests {
         ) -> Result<std::collections::HashMap<Uuid, i64>, AppError> {
             Ok(std::collections::HashMap::new())
         }
+        async fn get_leave_requests_by_ids(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _ids: &[Uuid],
+        ) -> Result<Vec<LeaveRequest>, AppError> {
+            unimplemented!()
+        }
     }
 
     struct DummyDailySummaryRepo;
@@ -1291,6 +1298,13 @@ mod tests {
             _en: NaiveDate,
         ) -> Result<Vec<NaiveDate>, AppError> {
             Ok(vec![])
+        }
+        async fn get_summaries_by_ids(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _ids: &[Uuid],
+        ) -> Result<Vec<AttendanceDailySummary>, AppError> {
+            unimplemented!()
         }
     }
 
@@ -2400,6 +2414,13 @@ mod tests {
         ) -> Result<Vec<NaiveDate>, AppError> {
             Ok(vec![])
         }
+        async fn get_summaries_by_ids(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _ids: &[Uuid],
+        ) -> Result<Vec<AttendanceDailySummary>, AppError> {
+            unimplemented!()
+        }
     }
 
     struct EmptyLeaveRepo;
@@ -2580,6 +2601,13 @@ mod tests {
             _end_date: NaiveDate,
         ) -> Result<std::collections::HashMap<Uuid, i64>, AppError> {
             Ok(std::collections::HashMap::new())
+        }
+        async fn get_leave_requests_by_ids(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _ids: &[Uuid],
+        ) -> Result<Vec<LeaveRequest>, AppError> {
+            unimplemented!()
         }
     }
 

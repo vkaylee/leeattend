@@ -108,13 +108,12 @@ impl ReportService {
             out
         };
 
-        // `total` reflects the post-filter count so the FE pager stops once
-        // all matching rows have been served.
-        let total = filtered.len();
-
         Ok(PaginatedResponse {
             data: filtered,
-            total,
+            // Pagination is employee-centric in the underlying daily report.
+            // Preserve that candidate total so callers continue scanning every
+            // employee page even when an intermediate page has zero no-shows.
+            total: daily.total,
             page: daily.page,
             limit: daily.limit,
         })

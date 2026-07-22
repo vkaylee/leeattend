@@ -15,6 +15,7 @@ pub mod payroll_report;
 pub mod reprocess_attendance;
 pub mod sync_hire_date;
 pub mod utils;
+pub mod workflow_completed;
 
 pub use accrual::AccrualHandler;
 pub use attendance::AttendanceHandler;
@@ -30,3 +31,4 @@ pub use merge::MergeHandler;
 pub use payroll_report::PayrollReportHandler;
 pub use reprocess_attendance::ReprocessAttendanceHandler;
 pub use sync_hire_date::SyncHireDateHandler;
+pub use workflow_completed::WorkflowCompletedHandler;

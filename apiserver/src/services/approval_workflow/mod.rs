@@ -4,6 +4,7 @@ use crate::repositories::{
     overtime_request_repository::OvertimeRequestRepository, ApprovalWorkflowRepository,
     EmployeeRepository, EmploymentRepository, WorkspaceConfigRepository, WorkspaceRepository,
 };
+use crate::services::OutboxJobService;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -36,6 +37,7 @@ pub struct ApprovalWorkflowService {
     pub(crate) overtime_request_repo: Arc<dyn OvertimeRequestRepository>,
     pub(crate) daily_summary_repo: Arc<dyn crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository>,
     pub(crate) handlers: std::collections::HashMap<String, Arc<dyn WorkflowCallbackHandler>>,
+    pub(crate) outbox_service: Option<Arc<OutboxJobService>>,
 }
 
 impl ApprovalWorkflowService {
@@ -62,6 +64,7 @@ impl ApprovalWorkflowService {
             overtime_request_repo,
             daily_summary_repo,
             handlers: std::collections::HashMap::new(),
+            outbox_service: None,
         }
     }
 
@@ -71,6 +74,12 @@ impl ApprovalWorkflowService {
         handlers: std::collections::HashMap<String, Arc<dyn WorkflowCallbackHandler>>,
     ) -> Self {
         self.handlers = handlers;
+        self
+    }
+
+    #[must_use]
+    pub fn with_outbox_service(mut self, outbox_service: Arc<OutboxJobService>) -> Self {
+        self.outbox_service = Some(outbox_service);
         self
     }
 }

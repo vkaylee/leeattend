@@ -121,7 +121,10 @@ impl LeaveService {
             .await?;
 
         // Batch-fetch all leave history logs to avoid N+1
-        let employment_ids: Vec<Uuid> = employments.iter().map(crate::models::employment::Employment::id).collect();
+        let employment_ids: Vec<Uuid> = employments
+            .iter()
+            .map(crate::models::employment::Employment::id)
+            .collect();
         let logs = self
             .leave_accrual_log_repo
             .get_employment_leave_history_logs_batch(
@@ -1069,6 +1072,13 @@ mod tests {
             _end_date: NaiveDate,
         ) -> Result<std::collections::HashMap<Uuid, i64>, AppError> {
             Ok(std::collections::HashMap::new())
+        }
+        async fn get_leave_requests_by_ids(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _ids: &[Uuid],
+        ) -> Result<Vec<LeaveRequest>, AppError> {
+            unimplemented!()
         }
     }
 
