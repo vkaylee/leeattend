@@ -497,6 +497,43 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         Ok(())
     }
 
+    async fn bulk_cancel_leave_requests(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        ids: &[Uuid],
+    ) -> Result<u64, AppError> {
+        if ids.is_empty() {
+            return Ok(0);
+        }
+
+        let workspace_id = auth_token.workspace_id();
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let affected = diesel::update(leave_requests::table)
+            .filter(leave_requests::id.eq_any(ids))
+            .filter(diesel::dsl::exists(
+                employments::table
+                    .filter(employments::id.eq(leave_requests::employment_id))
+                    .filter(employments::workspace_id.eq(workspace_id)),
+            ))
+            .set((
+                leave_requests::status.eq(LeaveStatus::Cancelled),
+                leave_requests::updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut *conn)
+            .await
+            .map_err(AppError::from)?;
+
+        let affected_u64 = u64::try_from(affected).unwrap_or(0);
+        Ok(affected_u64)
+    }
+
     async fn get_employee_leave_history_requests(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

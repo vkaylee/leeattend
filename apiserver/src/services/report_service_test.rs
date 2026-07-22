@@ -1085,6 +1085,13 @@ mod tests {
         ) -> Result<(), AppError> {
             unimplemented!()
         }
+        async fn bulk_cancel_leave_requests(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _ids: &[Uuid],
+        ) -> Result<u64, AppError> {
+            Ok(0)
+        }
         async fn get_employee_leave_history_requests(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -2509,6 +2516,13 @@ mod tests {
             _i: Uuid,
         ) -> Result<(), AppError> {
             unimplemented!()
+        }
+        async fn bulk_cancel_leave_requests(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _ids: &[Uuid],
+        ) -> Result<u64, AppError> {
+            Ok(0)
         }
         async fn get_employee_leave_history_requests(
             &self,

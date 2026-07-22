@@ -579,12 +579,12 @@ impl LeaveService {
         if policy == "auto_cancel"
             && (req.status() == LeaveStatus::Approved || req.status() == LeaveStatus::PreApproved)
         {
-            // Cancel conflicting leave requests
-            for old_req in &conflicting_leaves {
-                self.leave_request_repo
-                    .cancel_leave_request(&auth_token, old_req.id())
-                    .await?;
-            }
+            // Cancel conflicting leave requests in bulk (single UPDATE with IN clause)
+            let conflicting_ids: Vec<Uuid> =
+                conflicting_leaves.iter().map(LeaveRequest::id).collect();
+            self.leave_request_repo
+                .bulk_cancel_leave_requests(&auth_token, &conflicting_ids)
+                .await?;
             // If there's a shift conflict, we still notify because we can't cancel the shift
             if !conflicting_shifts.is_empty() {
                 self.send_conflict_notifications(workspace_id, req, Vec::new(), conflicting_shifts)
@@ -1003,6 +1003,13 @@ mod tests {
             _i: Uuid,
         ) -> Result<(), AppError> {
             unimplemented!()
+        }
+        async fn bulk_cancel_leave_requests(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _ids: &[Uuid],
+        ) -> Result<u64, AppError> {
+            Ok(0)
         }
         async fn get_unpaid_holiday_days_without_leave(
             &self,
@@ -2097,12 +2104,12 @@ mod tests {
                 Box::pin(async move { Ok(val) })
             });
 
-        // Expect cancel call on conflicting request
+        // Expect bulk cancel call with the conflicting request ID
         req_repo
-            .expect_cancel_leave_request()
-            .withf(move |_, &id| id == conflicting_req_id)
+            .expect_bulk_cancel_leave_requests()
+            .withf(move |_, ids| ids.len() == 1 && ids[0] == conflicting_req_id)
             .times(1)
-            .returning(|_, _| Box::pin(async move { Ok(()) }));
+            .returning(|_, _| Box::pin(async move { Ok(1) }));
 
         // 3. Mock roster repo: returns no roster conflicts
         let mut ros_repo = crate::repositories::roster::MockRosterRepository::new();
@@ -2255,6 +2262,7 @@ mod tests {
 
         // Expect NO cancel calls because status is Pending and policy is notify
         req_repo.expect_cancel_leave_request().never();
+        req_repo.expect_bulk_cancel_leave_requests().never();
 
         // 3. Mock roster repo: returns no roster conflicts
         let mut ros_repo = crate::repositories::roster::MockRosterRepository::new();

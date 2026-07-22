@@ -78,6 +78,12 @@ pub trait LeaveRequestRepository: Send + Sync {
         id: Uuid,
     ) -> Result<(), AppError>;
 
+    async fn bulk_cancel_leave_requests(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        ids: &[Uuid],
+    ) -> Result<u64, AppError>;
+
     async fn get_employee_leave_history_requests(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

@@ -1626,6 +1626,13 @@ mod tests {
         ) -> Result<(), AppError> {
             Ok(())
         }
+        async fn bulk_cancel_leave_requests(
+            &self,
+            _a: &TenantAuthToken,
+            _ids: &[Uuid],
+        ) -> Result<u64, AppError> {
+            Ok(0)
+        }
         async fn get_employee_leave_history_requests(
             &self,
             _a: &TenantAuthToken,
