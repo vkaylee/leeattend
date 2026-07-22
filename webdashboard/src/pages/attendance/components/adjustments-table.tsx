@@ -17,6 +17,36 @@ import { AdjustmentsTableHeader } from "./adjustments-table/header";
 import { AdjustmentsTableLoading } from "./adjustments-table/loading-state";
 import { AdjustmentsTableRow } from "./adjustments-table/row";
 
+function AttachmentList({
+  fileIds,
+  onPreviewAttachment,
+  wsId,
+}: {
+  fileIds: (string | null)[];
+  onPreviewAttachment?: (fileUrl: string, title: string) => void;
+  wsId: string;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {fileIds.map((fileId, index) => {
+        if (!fileId) return null;
+        return (
+          <Button
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-750 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900/50 transition-colors cursor-pointer"
+            icon={<Paperclip className="w-3 h-3" />}
+            key={fileId}
+            onClick={() => { onPreviewAttachment?.(`/api/v1/workspaces/${wsId}/files/${fileId}/download`, `Adjustment Attachment #${index + 1}`); }}
+            type="button"
+          >
+            Doc #{index + 1}
+          </Button>
+        );
+      })}
+    </div>
+  );
+}
+
+// eslint-disable-next-line complexity -- remaining branches are JSX conditional rendering + status badge variant switch
 function AdjustmentMobileCard({
   activeTab,
   canApprove,
@@ -84,22 +114,7 @@ function AdjustmentMobileCard({
 
         {/* Attachments */}
         {!!request.attachment_file_ids && request.attachment_file_ids.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {request.attachment_file_ids.map((fileId, index) => {
-              if (!fileId) return null;
-              return (
-                <Button
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-750 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900/50 transition-colors cursor-pointer"
-                  icon={<Paperclip className="w-3 h-3" />}
-                  key={fileId}
-                  onClick={() => { onPreviewAttachment?.(`/api/v1/workspaces/${wsId}/files/${fileId}/download`, `Adjustment Attachment #${index + 1}`); }}
-                  type="button"
-                >
-                  Doc #{index + 1}
-                </Button>
-              );
-            })}
-          </div>
+          <AttachmentList fileIds={request.attachment_file_ids} onPreviewAttachment={onPreviewAttachment} wsId={wsId} />
         )}
       </div>
 

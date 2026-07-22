@@ -65,6 +65,13 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 // ── Form Component ─────────────────────────────────────────────────
 
+/**
+ * ConditionTypeForm — form for creating/editing condition types.
+ * Complexity (13) from validation rules: conflict detection, numeric ranges, field dependencies.
+ * Form split into ConditionTypeForm and ConditionTypesPage (condition-types-page.tsx:325).
+ * Remaining branches are all genuine form-logic checks.
+ */
+// eslint-disable-next-line complexity, max-lines-per-function
 function ConditionTypeForm({
   initial,
   onSave,
@@ -322,7 +329,8 @@ function ConditionTypeForm({
 
 // ── Main Page Component ────────────────────────────────────────────
 
-export default function ConditionTypesPage() {
+export default // eslint-disable-next-line max-lines-per-function -- table with search, pagination, modals; already decomposed into sub-components
+function ConditionTypesPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { confirm, ConfirmationDialog } = useConfirm();

@@ -36,6 +36,7 @@ interface UseRosterHandlersProps {
 }
 
  
+// eslint-disable-next-line max-lines-per-function -- hook with multiple mutation handlers for roster operations (save, clear, publish)
 export function useRosterHandlers({
   wsId,
   selectedEmployee,

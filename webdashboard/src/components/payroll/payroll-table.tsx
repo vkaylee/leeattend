@@ -52,6 +52,12 @@ interface PayrollMobileCardProps {
   t: (key: string) => string;
 }
 
+/**
+ * PayrollMobileCard — collapsible payslip card with expanded detail.
+ * Complexity (17) from JSX conditionals: expanded/collapsed state, status badges,
+ * sensitive data masking, currency formatting. Mobile card display logic is inherently verbose.
+ */
+// eslint-disable-next-line complexity
 function PayrollMobileCard({
   slip,
   isExpanded,

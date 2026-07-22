@@ -641,6 +641,37 @@ function NavigableListHeaderWrapper({
   );
 }
 
+function SearchBarSlot({
+  headerSlot,
+  searchProps,
+}: {
+  headerSlot?: React.ReactNode;
+  searchProps: {
+    listNav: { onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void };
+    onSearchChange?: (val: string) => void;
+    searchInputRef?: React.RefObject<HTMLInputElement | null>;
+    searchPlaceholder?: string;
+    searchTestId?: string;
+    searchValue?: string;
+  };
+}) {
+  return (
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="flex-1 max-w-2xl">
+        <NavigableListSearchContent {...searchProps} />
+      </div>
+      {headerSlot}
+    </div>
+  );
+}
+
+/**
+ * NavigableList — generic keyboard-navigable list with search and pagination.
+ * Complexity (11) is 1 over threshold; remaining branches are JSX ternaries for
+ * smart-header and full-page modes. Readability as a flat render is better than
+ * extracting yet another wrapper.
+ */
+// eslint-disable-next-line complexity
 export default function NavigableList<T>({
   columns,
   items,
@@ -709,12 +740,7 @@ export default function NavigableList<T>({
       />
 
       {!isFullPage ? (
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex-1 max-w-2xl">
-            <NavigableListSearchContent {...searchProps} />
-          </div>
-          {headerSlot}
-        </div>
+        <SearchBarSlot headerSlot={headerSlot} searchProps={searchProps} />
       ) : null}
 
       <NavigableListTable

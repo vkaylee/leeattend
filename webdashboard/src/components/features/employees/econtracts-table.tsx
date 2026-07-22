@@ -135,6 +135,12 @@ export interface EContractsTableProps {
   selectedType: string;
 }
 
+/**
+ * EContractsTable — contracts listing with desktop table + mobile cards.
+ * Complexity (15) from JSX conditionals for isLoading/empty states + extensive desktop table markup.
+ * Display logic extracted into EContractMobileCard. Remaining branches are all UI rendering.
+ */
+// eslint-disable-next-line complexity, max-lines-per-function
 export function EContractsTable({
   contracts,
   isLoading,

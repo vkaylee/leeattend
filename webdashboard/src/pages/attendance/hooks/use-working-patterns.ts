@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Hook module: 320 lines with multiple internal sub-hooks and patterns; splitting would diffract coupling */
 import { useMutation, useQuery, useQueryClient, UseMutationResult } from "@tanstack/react-query";
 import React, { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";

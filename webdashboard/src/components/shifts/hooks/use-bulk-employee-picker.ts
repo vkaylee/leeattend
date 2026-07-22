@@ -76,8 +76,7 @@ export function useBulkEmployeePicker({
     setDraftIds(new Set(initialIds));
     setDraftMetaMap(new Map(initialMeta.map((e) => [e.id, e])));
     setExpandedDepts(new Set());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, initialIds, initialMeta]);
 
   const loadDept = useCallback(
     async (departmentId: string): Promise<Employee[]> => {

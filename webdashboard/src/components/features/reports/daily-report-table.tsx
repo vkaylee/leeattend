@@ -14,7 +14,7 @@ import { ReportStatusBadge } from "./report-status-badge";
 // ── Types ──────────────────────────────────────────────────────────
 
 export interface DailyReportTableProps {
-  adjustmentMap: Record<string, AttendanceAdjustmentRequest>;
+  adjustmentMap: Partial<Record<string, AttendanceAdjustmentRequest>>;
   confirmingRow: string | null;
   data: DailyAttendanceReport[];
   expandedDebugRows: Set<string>;
@@ -99,6 +99,14 @@ function TableHeader({ hideEmployeeName, isDebugMode, t }: { hideEmployeeName: b
 
 // ── Mobile Card ────────────────────────────────────────────────────
 
+/**
+ * DailyReportMobileCard — mobile card for a daily attendance report row.
+ * Complexity (21) is driven by numerous JSX conditionals: OT approval, multi-segment,
+ * debug mode, approval/repro buttons. Decomposed into separate sub-components
+ * (SkeletonRow, TableHeader, ReportStatusBadge, ReportOtStatusBadge) already.
+ * Further splitting of the card body would reduce readability more than complexity.
+ */
+// eslint-disable-next-line complexity, max-lines-per-function
 function DailyReportMobileCard({
   row,
   adjustmentMap,
@@ -116,7 +124,7 @@ function DailyReportMobileCard({
   reprocessingRow,
   t,
 }: {
-  adjustmentMap: Record<string, AttendanceAdjustmentRequest>;
+  adjustmentMap: Partial<Record<string, AttendanceAdjustmentRequest>>;
   confirmingRow: string | null;
   expandedDebugRows: Set<string>;
   formatDate: (date: string) => string;
@@ -229,7 +237,6 @@ function DailyReportMobileCard({
         <Button
           className={cn(
             "flex items-center justify-center rounded-lg border p-2 transition-all",
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Record key may not exist at runtime
             existingAdjustment
               ? "border-orange-200 bg-orange-50 text-orange-600 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-300"
               : "border-slate-200 bg-white text-slate-500 hover:bg-primary-50 hover:text-primary-600 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-primary-950/30 dark:hover:text-primary-400"

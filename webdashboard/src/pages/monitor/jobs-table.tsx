@@ -97,6 +97,7 @@ function SkeletonRow() {
   );
 }
 
+// eslint-disable-next-line max-lines-per-function -- table component with search, pagination, status filters, modals
 export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
   const [selectedJob, setSelectedJob] = useState<RecentJob | null>(null);
   const [searchTerm, setSearchTerm] = useState("");

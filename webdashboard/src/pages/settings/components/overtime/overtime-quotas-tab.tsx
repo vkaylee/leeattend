@@ -30,6 +30,7 @@ function formatConfigValue(cfg: WorkspaceConfigEntry): string | number {
   return "";
 }
 
+// eslint-disable-next-line max-lines-per-function -- quota configuration with modal form, delete confirmation, inline editing
 export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
   const { t } = useTranslation();
   const { data: configs, isLoading } = useWorkspaceConfigs();

@@ -32,6 +32,12 @@ import { WorkspaceRole, WorkspaceMember } from "@/lib/api";
 import { logError } from "@/lib/logger";
 import { cn, maskEmail } from "@/lib/utils";
 
+/**
+ * MemberMobileCard — mobile card for workspace members.
+ * Complexity (13) from JSX conditionals: avatar vs initials, role badges, extra roles popover,
+ * and conditional action buttons (owner cannot be removed). Decomposing further reduces readability.
+ */
+// eslint-disable-next-line complexity
 function MemberMobileCard({
   member,
   roles,

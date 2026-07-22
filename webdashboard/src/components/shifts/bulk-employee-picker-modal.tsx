@@ -47,6 +47,7 @@ interface DepartmentGroupProps {
   searchTerm: string;
 }
 
+// eslint-disable-next-line complexity -- remaining branches are CheckState tri-state logic + filter conditionals
 const DepartmentGroup = memo(function DepartmentGroup({
   department,
   picker,

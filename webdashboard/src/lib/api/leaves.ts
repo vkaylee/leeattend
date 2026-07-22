@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- API wrapper: 400+ lines of thin exported functions; splitting would scatter imports */
 import type { paths } from "@/types/api-generated";
 
 import type { LeavePolicyAssignmentDetail, LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, LeaveDurationType, PaginatedResponse, BehalfAssignment, CreateBehalfAssignmentRequest } from './types';

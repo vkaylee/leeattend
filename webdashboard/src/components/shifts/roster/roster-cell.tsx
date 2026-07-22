@@ -46,38 +46,7 @@ const RosterCell = memo(function RosterCell({
       data-employee-id={employeeId}
     >
       <div className="py-2.5 px-1 min-h-[44px] flex flex-col justify-center items-center gap-1">
-        {hasShift ? (
-          <div className="flex flex-col gap-1 items-center">
-            {workingSchedules.slice(0, 3).map((s, idx) => {
-              const shiftConfig = shifts?.find((sh) => sh.id === s.shift_id);
-              const shiftSymbol = getShiftSymbol(
-                s.shift_name,
-                shiftConfig?.report_symbol,
-              );
-              const shiftBgClass = s.source === "roster"
-                ? "bg-teal-100/60 dark:bg-teal-950/60 text-teal-800 dark:text-teal-200"
-                : "bg-slate-100/50 dark:bg-slate-800 text-slate-700 dark:text-slate-300";
-              return (
-                <span
-                  className={`text-[9px] font-extrabold tracking-tight px-1.5 py-0.5 rounded-md ${shiftBgClass}`}
-                  key={idx}
-                  title={`${s.shift_name ?? ""} (${s.start_time?.substring(0, 5) ?? ""} - ${s.end_time?.substring(0, 5) ?? ""})`}
-                >
-                  {shiftSymbol}
-                </span>
-              );
-            })}
-            {workingSchedules.length > 3 && (
-              <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500">
-                +{workingSchedules.length - 3} more
-              </span>
-            )}
-          </div>
-        ) : (
-          <span className="text-[10px] text-slate-350 dark:text-slate-600 font-bold">
-            —
-          </span>
-        )}
+        <ShiftContent hasShift={hasShift} shifts={shifts} workingSchedules={workingSchedules} />
 
         <SourceIndicator source={highestSource} />
 
@@ -96,26 +65,8 @@ const RosterCell = memo(function RosterCell({
           </span>
         ) : null}
 
-        {hasTraces && allTraces.length > 0 ? (
-          <div className="absolute top-0.5 right-0.5 z-30 opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity">
-            <ScheduleTracePopover
-              schedules={workingSchedules.map((s) => {
-                const shiftConfig = shifts?.find((sh) => sh.id === s.shift_id);
-                const shiftSymbol = getShiftSymbol(
-                  s.shift_name,
-                  shiftConfig?.report_symbol,
-                );
-                return {
-                  shiftName: s.shift_name,
-                  shiftSymbol,
-                  startTime: s.start_time,
-                  endTime: s.end_time,
-                };
-              })}
-              source={highestSource ?? "none"}
-              traces={allTraces}
-            />
-          </div>
+        {hasTraces ? (
+          <TracePopoverOverlay schedules={workingSchedules} shifts={shifts} source={highestSource ?? "none"} traces={allTraces} />
         ) : null}
       </div>
     </td>
@@ -126,6 +77,67 @@ RosterCell.displayName = "RosterCell";
 export { RosterCell };
 
 // ── Internal ──────────────────────────────────────────────────────────
+
+function ShiftContent({
+  hasShift,
+  shifts,
+  workingSchedules,
+}: {
+  hasShift: boolean;
+  shifts: Shift[] | undefined;
+  workingSchedules: import("@/lib/api/types").EffectiveSchedule[];
+}) {
+  if (!hasShift) return <span className="text-[10px] text-slate-350 dark:text-slate-600 font-bold">—</span>;
+  return (
+    <div className="flex flex-col gap-1 items-center">
+      {workingSchedules.slice(0, 3).map((s, idx) => {
+        const shiftConfig = shifts?.find((sh) => sh.id === s.shift_id);
+        const shiftSymbol = getShiftSymbol(s.shift_name, shiftConfig?.report_symbol);
+        const shiftBgClass = s.source === "roster"
+          ? "bg-teal-100/60 dark:bg-teal-950/60 text-teal-800 dark:text-teal-200"
+          : "bg-slate-100/50 dark:bg-slate-800 text-slate-700 dark:text-slate-300";
+        return (
+          <span
+            className={`text-[9px] font-extrabold tracking-tight px-1.5 py-0.5 rounded-md ${shiftBgClass}`}
+            key={idx}
+            title={`${s.shift_name ?? ""} (${s.start_time?.substring(0, 5) ?? ""} - ${s.end_time?.substring(0, 5) ?? ""})`}
+          >
+            {shiftSymbol}
+          </span>
+        );
+      })}
+      {workingSchedules.length > 3 ? (
+        <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500">+{workingSchedules.length - 3} more</span>
+      ) : null}
+    </div>
+  );
+}
+
+function TracePopoverOverlay({
+  schedules,
+  shifts,
+  source,
+  traces,
+}: {
+  schedules: import("@/lib/api/types").EffectiveSchedule[];
+  shifts: Shift[] | undefined;
+  source: string;
+  traces: import("@/lib/api/types").ScheduleTrace[];
+}) {
+  return (
+    <div className="absolute top-0.5 right-0.5 z-30 opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity">
+      <ScheduleTracePopover
+        schedules={schedules.map((s) => {
+          const shiftConfig = shifts?.find((sh) => sh.id === s.shift_id);
+          const shiftSymbol = getShiftSymbol(s.shift_name, shiftConfig?.report_symbol);
+          return { shiftName: s.shift_name, shiftSymbol, startTime: s.start_time, endTime: s.end_time };
+        })}
+        source={source}
+        traces={traces}
+      />
+    </div>
+  );
+}
 
 const SourceIndicator = memo(function SourceIndicator({
   source,

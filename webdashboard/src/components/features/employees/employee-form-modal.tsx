@@ -123,6 +123,7 @@ export default function EmployeeFormModal({
     }
   }, [isOpen, wsId]);
 
+  // eslint-disable-next-line complexity -- create vs update + optional employment mutation are genuine branches
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);

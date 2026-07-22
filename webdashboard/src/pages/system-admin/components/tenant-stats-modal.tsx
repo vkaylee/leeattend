@@ -28,6 +28,92 @@ function StatsSkeleton() {
   );
 }
 
+function WorkspaceInfoCard({ tenant }: { tenant: SystemTenant }) {
+  return (
+    <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+      <div className="flex items-center gap-2 mb-3">
+        <Building2 className="w-4 h-4 text-primary-500" />
+        <Typography className="text-sm font-semibold text-slate-800 dark:text-slate-200" variant="h4">
+          Workspace Information
+        </Typography>
+      </div>
+      <div className="grid grid-cols-2 gap-4 text-sm">
+        <div>
+          <span className="text-slate-500">Name</span>
+          <Typography className="font-medium text-slate-800 dark:text-slate-200" variant="p">{tenant.name}</Typography>
+        </div>
+        <div>
+          <span className="text-slate-500">ID</span>
+          <Typography className="font-mono text-xs text-slate-800 dark:text-slate-200" variant="p">{tenant.id}</Typography>
+        </div>
+        <div>
+          <span className="text-slate-500">Type</span>
+          <Typography variant="p">
+            <StatusBadge variant={tenant.is_byod ? "success" : "neutral"}>
+              {tenant.is_byod ? "BYOD" : "Standard"}
+            </StatusBadge>
+          </Typography>
+        </div>
+        <div>
+          <span className="text-slate-500">Timezone</span>
+          <Typography className="font-medium text-slate-800 dark:text-slate-200" variant="p">{tenant.timezone}</Typography>
+        </div>
+        <div>
+          <span className="text-slate-500">Created</span>
+          <Typography className="font-medium text-slate-800 dark:text-slate-200" variant="p">
+            {new Date(tenant.created_at).toLocaleString()}
+          </Typography>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConnectionDetailsCard({ stats }: { stats: TenantConnectionStats | undefined }) {
+  return (
+    <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+      <div className="flex items-center gap-2 mb-3">
+        <Globe className="w-4 h-4 text-blue-500" />
+        <Typography className="text-sm font-semibold text-slate-800 dark:text-slate-200" variant="h4">
+          Connection Details
+        </Typography>
+      </div>
+      {stats ? (
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="text-slate-500">Host</span>
+            <Typography className="font-mono text-xs text-slate-800 dark:text-slate-200" variant="p">{stats.connection.host}</Typography>
+          </div>
+          <div>
+            <span className="text-slate-500">Port</span>
+            <Typography className="font-mono text-xs text-slate-800 dark:text-slate-200" variant="p">{stats.connection.port}</Typography>
+          </div>
+          {stats.masked_db_url ? (
+            <div className="col-span-2">
+              <span className="text-slate-500">Database URL</span>
+              <div className="bg-slate-900 rounded-lg p-3 mt-1 overflow-x-auto">
+                <code className="text-xs text-green-400 whitespace-nowrap">
+                  {stats.masked_db_url}
+                </code>
+              </div>
+            </div>
+          ) : (
+            <div className="col-span-2">
+              <Typography className="text-xs text-slate-500" variant="p">
+                Standard tenant — database URL is not exposed.
+              </Typography>
+            </div>
+          )}
+        </div>
+      ) : (
+        <Typography className="text-xs text-slate-500" variant="p">
+          Connection details not available.
+        </Typography>
+      )}
+    </div>
+  );
+}
+
 export function TenantStatsModal({
   isOpen,
   isLoading,
@@ -48,86 +134,8 @@ export function TenantStatsModal({
           <StatsSkeleton />
         ) : selectedTenant ? (
           <>
-            {/* Workspace Info Card */}
-            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-2 mb-3">
-                <Building2 className="w-4 h-4 text-primary-500" />
-                <Typography className="text-sm font-semibold text-slate-800 dark:text-slate-200" variant="h4">
-                  Workspace Information
-                </Typography>
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-slate-500">Name</span>
-                  <Typography className="font-medium text-slate-800 dark:text-slate-200" variant="p">{selectedTenant.name}</Typography>
-                </div>
-                <div>
-                  <span className="text-slate-500">ID</span>
-                  <Typography className="font-mono text-xs text-slate-800 dark:text-slate-200" variant="p">{selectedTenant.id}</Typography>
-                </div>
-                <div>
-                  <span className="text-slate-500">Type</span>
-                  <Typography variant="p">
-                    <StatusBadge variant={selectedTenant.is_byod ? "success" : "neutral"}>
-                      {selectedTenant.is_byod ? "BYOD" : "Standard"}
-                    </StatusBadge>
-                  </Typography>
-                </div>
-                <div>
-                  <span className="text-slate-500">Timezone</span>
-                  <Typography className="font-medium text-slate-800 dark:text-slate-200" variant="p">{selectedTenant.timezone}</Typography>
-                </div>
-                <div>
-                  <span className="text-slate-500">Created</span>
-                  <Typography className="font-medium text-slate-800 dark:text-slate-200" variant="p">
-                    {new Date(selectedTenant.created_at).toLocaleString()}
-                  </Typography>
-                </div>
-              </div>
-            </div>
-
-            {/* Connection Info Card */}
-            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-2 mb-3">
-                <Globe className="w-4 h-4 text-blue-500" />
-                <Typography className="text-sm font-semibold text-slate-800 dark:text-slate-200" variant="h4">
-                  Connection Details
-                </Typography>
-              </div>
-              {tenantStats ? (
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-slate-500">Host</span>
-                    <Typography className="font-mono text-xs text-slate-800 dark:text-slate-200" variant="p">{tenantStats.connection.host}</Typography>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Port</span>
-                    <Typography className="font-mono text-xs text-slate-800 dark:text-slate-200" variant="p">{tenantStats.connection.port}</Typography>
-                  </div>
-                  {!!tenantStats.masked_db_url && (
-                    <div className="col-span-2">
-                      <span className="text-slate-500">Database URL</span>
-                      <div className="bg-slate-900 rounded-lg p-3 mt-1 overflow-x-auto">
-                        <code className="text-xs text-green-400 whitespace-nowrap">
-                          {tenantStats.masked_db_url}
-                        </code>
-                      </div>
-                    </div>
-                  )}
-                  {!tenantStats.masked_db_url && (
-                    <div className="col-span-2">
-                      <Typography className="text-xs text-slate-500" variant="p">
-                        Standard tenant — database URL is not exposed.
-                      </Typography>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <Typography className="text-xs text-slate-500" variant="p">
-                  Connection details not available.
-                </Typography>
-              )}
-            </div>
+            <WorkspaceInfoCard tenant={selectedTenant} />
+            <ConnectionDetailsCard stats={tenantStats} />
           </>
         ) : (
           <div className="text-center py-8 text-slate-500">

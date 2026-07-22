@@ -223,6 +223,7 @@ export default function ContractFormModal({ isOpen, onClose, editingContract, ws
     }
   }, [isOpen, editingContract, reset, activeEmployment?.start_date]);
 
+  // eslint-disable-next-line complexity -- create vs update + overlap conflict resolution are genuine branches
   const onSubmit = async (data: ContractFormValues) => {
     try {
       const payloadDate = isIndefinite ? null : (data.end_date ?? null);

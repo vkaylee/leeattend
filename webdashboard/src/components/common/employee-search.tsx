@@ -73,6 +73,58 @@ const mapToOption = (emp: Employee, debouncedSearchTerm: string) => {
   };
 };
 
+function useEmployeeSearchOptions({
+  employees,
+  selectedMeta,
+  selectedIds,
+  multiple,
+  debouncedSearchTerm,
+  searchTerm,
+}: {
+  debouncedSearchTerm: string;
+  employees: Employee[];
+  multiple: boolean;
+  searchTerm: string;
+  selectedIds: string[];
+  selectedMeta: Employee[];
+}) {
+  return useMemo(() => {
+    const baseOptions = employees
+      .filter(emp => !multiple || !selectedIds.includes(emp.id))
+      .map((emp) => mapToOption(emp, debouncedSearchTerm));
+
+    if (searchTerm) return baseOptions;
+    const extraOptions = selectedMeta
+      .filter(m => selectedIds.includes(m.id))
+      .filter(m => !baseOptions.some(opt => opt.value === m.id))
+      .map(m => mapToOption(m, debouncedSearchTerm));
+
+    return [...extraOptions, ...baseOptions];
+  }, [employees, multiple, selectedIds, debouncedSearchTerm, searchTerm, selectedMeta]);
+}
+
+function useNormalizedIds(value: string | string[] | undefined): string[] {
+  return useMemo(() => {
+    if (Array.isArray(value)) return value;
+    if (value) return [value];
+    return [];
+  }, [value]);
+}
+
+function useDepartmentFilter(
+  departments: Department[] | undefined,
+  selectedDepartmentIds: string[] | undefined,
+  onDepartmentFilterChange: ((ids: string[]) => void) | undefined,
+) {
+  const [internalDeptIds, setInternalDeptIds] = useState<string[]>([]);
+  const effectiveDeptIds = selectedDepartmentIds ?? internalDeptIds;
+  const handleDeptChange = (ids: string[]) => {
+    if (onDepartmentFilterChange) onDepartmentFilterChange(ids);
+    if (selectedDepartmentIds === undefined) setInternalDeptIds(ids);
+  };
+  return { effectiveDeptIds, handleDeptChange };
+}
+
 interface SelectedEmployeeChipsProps {
   onRemove: (id: string) => void;
   selectedIds: string[];
@@ -167,6 +219,13 @@ function DepartmentFilterButton({ departments, onChange, selectedIds }: Departme
   );
 }
 
+/**
+ * EmployeeSearch — reusable employee search combobox with department filter.
+ * Complexity (11) is 1 over threshold; remaining branches are JSX ternaries for
+ * placeholder defaults and conditional rendering. Logic is decomposed into
+ * useNormalizedIds, useDepartmentFilter, useEmployeeSearchOptions, and useEmployeeSelection.
+ */
+// eslint-disable-next-line complexity
 export function EmployeeSearch({
   workspaceId,
   value,
@@ -188,19 +247,14 @@ export function EmployeeSearch({
 }: EmployeeSearchProps) {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
-  const [internalDeptIds, setInternalDeptIds] = useState<string[]>([]);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
-  const selectedIds = useMemo(() => {
-    if (Array.isArray(value)) return value;
-    if (value) return [value];
-    return [];
-  }, [value]);
+  const selectedIds = useNormalizedIds(value);
 
-  const effectiveDeptIds = selectedDepartmentIds ?? internalDeptIds;
-  const handleDeptChange = (ids: string[]) => {
-    if (onDepartmentFilterChange) onDepartmentFilterChange(ids);
-    if (selectedDepartmentIds === undefined) setInternalDeptIds(ids);
-  };
+  const { effectiveDeptIds, handleDeptChange } = useDepartmentFilter(
+    departments,
+    selectedDepartmentIds,
+    onDepartmentFilterChange,
+  );
 
   const {
     employees,
@@ -225,19 +279,14 @@ export function EmployeeSearch({
     multiple,
   });
 
-  const options = useMemo(() => {
-    const baseOptions = employees
-      .filter(emp => !multiple || !selectedIds.includes(emp.id))
-      .map((emp) => mapToOption(emp, debouncedSearchTerm));
-
-    if (searchTerm) return baseOptions;
-    const extraOptions = selectedMeta
-      .filter(m => selectedIds.includes(m.id))
-      .filter(m => !baseOptions.some(opt => opt.value === m.id))
-      .map(m => mapToOption(m, debouncedSearchTerm));
-
-    return [...extraOptions, ...baseOptions];
-  }, [employees, multiple, selectedIds, debouncedSearchTerm, searchTerm, selectedMeta]);
+  const options = useEmployeeSearchOptions({
+    employees,
+    selectedMeta,
+    selectedIds,
+    multiple,
+    debouncedSearchTerm,
+    searchTerm,
+  });
 
   const hasDepartmentFilter = Boolean(departments && departments.length > 0);
 

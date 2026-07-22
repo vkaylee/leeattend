@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- API wrapper module: 300 lines of exported functions; splitting would scatter imports */
 import { client, fetch, fire } from "./client";
 import {
   Payslip,

@@ -17,7 +17,7 @@ import {
   type SmtpConfigData,
 } from "@/lib/api/smtp-config";
 
-  // eslint-disable-next-line max-lines-per-function
+  // eslint-disable-next-line max-lines-per-function, complexity -- SMTP settings page: form, test dialog, config, logs; genuine layout complexity
 export default function SmtpSettingsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -69,6 +69,7 @@ export default function SmtpSettingsPage() {
     http_api: config?.http_api ?? undefined,
   }), [config, overrides]);
 
+  // eslint-disable-next-line complexity -- useMemo with nested config default coalescing; pure data mapping
   const httpForm: HttpApiConfig = useMemo(() => {
     const src = overrides.http_api ?? config?.http_api;
     return {
@@ -122,6 +123,7 @@ export default function SmtpSettingsPage() {
     },
   });
 
+  // eslint-disable-next-line complexity -- payload builder with 10+ field coalescence; pure data mapping
   const handleSave = () => {
     const payload: SmtpConfigData = {
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing

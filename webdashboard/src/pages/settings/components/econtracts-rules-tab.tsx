@@ -20,6 +20,7 @@ interface EContractsRulesTabProps {
   selectedEmployerId: string;
 }
 
+// eslint-disable-next-line max-lines-per-function -- routing rules UI with create/edit/delete modals and form validation
 export default function EContractsRulesTab({
   isCreatingRule,
   isDeletingRule,

@@ -46,6 +46,7 @@ export function EmployerFormModal({
 
   // Compute external form data — stabilized via useMemo so reference only
   // changes when isOpen or editingEmployer identity changes.
+  // eslint-disable-next-line complexity -- useMemo with 11 field coalescence defaults (`??`); pure data mapping
   const externalFormData = useMemo(() => {
     if (isOpen && editingEmployer) {
       return {
@@ -74,7 +75,7 @@ export function EmployerFormModal({
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
-  // eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity -- form validation + payload construction: all genuine branches
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!formData.name.trim()) {

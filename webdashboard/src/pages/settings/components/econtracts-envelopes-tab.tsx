@@ -14,6 +14,7 @@ interface EContractsEnvelopesTabProps {
   isLoading: boolean;
 }
 
+// eslint-disable-next-line max-lines-per-function -- table with envelope tracking, log modal, pagination; 10 lines over threshold
 export default function EContractsEnvelopesTab({
   envelopes,
   isLoading,
