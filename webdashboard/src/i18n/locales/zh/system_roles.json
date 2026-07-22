@@ -98,7 +98,8 @@
         "byod": "类型",
         "timezone": "时区",
         "created_at": "创建时间",
-        "actions": "操作"
+        "actions": "操作",
+        "empty": "未找到租户。"
       },
       "modal": {
         "create_title": "创建新租户",

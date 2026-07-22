@@ -1,8 +1,7 @@
 import { Loader2, Info } from "lucide-react";
 import React from "react";
 
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Typography } from "@/components/ui/typography";
+import ResponsiveTable from "@/components/ui/responsive-table";
 import { cn } from "@/lib/utils";
 
 interface HistoryItem {
@@ -30,49 +29,83 @@ const getTransactionColor = (type: string) => {
   }
 };
 
-export function HistoryTable({ history, isLoading, formatDate, t }: HistoryTableProps) {
-  if (isLoading) {
-    return <div className="p-20 text-center"><Loader2 className="animate-spin w-10 h-10 text-primary-600 dark:text-primary-400 mx-auto" /></div>;
-  }
-
-  if (history.length === 0) {
-    return (
-      <div className="py-20 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
-        <Info className="text-slate-200 dark:text-slate-700 mb-4" size={32} />
-        <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest" variant="p">{t("leave_balances.history.no_history")}</Typography>
-      </div>
-    );
-  }
-
+function HistoryMobileCard({ item, formatDate }: { formatDate: (date: string) => string; item: HistoryItem; }) {
   return (
-    <Table className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <TableHeader>
-        <TableRow>
-          <TableHead className="px-6 py-4">{t("common.date")}</TableHead>
-          <TableHead className="px-6 py-4 text-center">{t("common.type")}</TableHead>
-          <TableHead className="px-6 py-4 text-right">{t("common.total")}</TableHead>
-          <TableHead className="px-6 py-4">{t("common.reason")}</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {history.map((item) => (
-          <TableRow key={item.id}>
-            <TableCell className="px-6 py-5 text-xs font-bold text-slate-500 dark:text-slate-400 font-mono uppercase">{formatDate(item.date)}</TableCell>
-            <TableCell className="px-6 py-5 text-center">
-              <span className={cn("px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border", getTransactionColor(item.transaction_type))}>
-                {item.transaction_type}
-              </span>
-            </TableCell>
-            <TableCell className={cn("px-6 py-5 text-right font-bold text-sm font-mono tracking-tighter", item.amount > 0 ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300")}>
-              {item.amount > 0 ? "+" : ""}{item.amount}
-            </TableCell>
-            <TableCell className="px-6 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter max-w-[200px] truncate" title={item.reason ?? ""}>
-              {item.reason ?? "-"}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-start justify-between gap-3">
+        <span className="rounded-xl bg-slate-50 px-3 py-1.5 font-mono text-xs font-bold uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          {formatDate(item.date)}
+        </span>
+        <span className={cn("rounded-full border px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest", getTransactionColor(item.transaction_type))}>
+          {item.transaction_type}
+        </span>
+      </div>
+
+      <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Amount</span>
+        <span className={cn("font-mono text-sm font-bold", item.amount > 0 ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300")}>
+          {item.amount > 0 ? "+" : ""}{item.amount}
+        </span>
+      </div>
+
+      {item.reason ? (
+        <div className="mt-2 truncate rounded-lg bg-slate-50 px-3 py-1.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400" title={item.reason}>
+          {item.reason}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
+export function HistoryTable({ history, isLoading, formatDate, t }: HistoryTableProps) {
+  if (isLoading) {
+    return <div className="p-20 text-center"><Loader2 className="mx-auto h-10 w-10 animate-spin text-primary-600 dark:text-primary-400" /></div>;
+  }
+
+  return (
+    <ResponsiveTable<HistoryItem>
+      data={history}
+      emptyState={{
+        icon: <Info className="h-10 w-10" />,
+        title: t("leave_balances.history.no_history"),
+      }}
+      getCardKey={(item) => item.id}
+      isLoading={isLoading}
+      renderCard={(item) => (
+        <HistoryMobileCard formatDate={formatDate} item={item} />
+      )}
+      renderDesktopTable={() => (
+        <div className="overflow-hidden">
+          <table className="w-full border-collapse text-left">
+            <thead>
+              <tr>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t("common.date")}</th>
+                <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t("common.type")}</th>
+                <th className="px-6 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t("common.total")}</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t("common.reason")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map((item) => (
+                <tr key={item.id} className="border-t border-slate-50 dark:border-slate-800">
+                  <td className="px-6 py-5 font-mono text-xs font-bold uppercase text-slate-500 dark:text-slate-400">{formatDate(item.date)}</td>
+                  <td className="px-6 py-5 text-center">
+                    <span className={cn("rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest", getTransactionColor(item.transaction_type))}>
+                      {item.transaction_type}
+                    </span>
+                  </td>
+                  <td className={cn("px-6 py-5 text-right font-mono text-sm font-bold tracking-tighter", item.amount > 0 ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300")}>
+                    {item.amount > 0 ? "+" : ""}{item.amount}
+                  </td>
+                  <td className="max-w-[200px] truncate px-6 py-5 text-[10px] font-bold uppercase tracking-tighter text-slate-500 dark:text-slate-400" title={item.reason ?? ""}>
+                    {item.reason ?? "-"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    />
+  );
+}

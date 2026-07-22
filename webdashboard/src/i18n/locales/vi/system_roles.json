@@ -98,7 +98,8 @@
         "byod": "Loại",
         "timezone": "Múi giờ",
         "created_at": "Ngày tạo",
-        "actions": "Thao tác"
+        "actions": "Thao tác",
+        "empty": "Không tìm thấy tenants."
       },
       "modal": {
         "create_title": "Tạo Tenant mới",

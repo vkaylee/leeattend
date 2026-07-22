@@ -276,7 +276,7 @@ describe("EContractsSettingsPage Component", () => {
 
     // Verify rules table is rendered
     await waitFor(() => {
-      expect(screen.getByText("VN")).toBeInTheDocument();
+      expect(screen.getAllByText("VN")[0]).toBeInTheDocument();
     });
 
     // 1. Open and cancel rule modal using CANCEL button
@@ -334,7 +334,7 @@ describe("EContractsSettingsPage Component", () => {
     await user.click(rulesTabTrigger);
 
     await waitFor(() => {
-      expect(screen.getByText("VN")).toBeInTheDocument();
+      expect(screen.getAllByText("VN")[0]).toBeInTheDocument();
     });
 
     const deleteBtn = screen.getAllByLabelText("Delete rule")[0];
@@ -357,7 +357,7 @@ describe("EContractsSettingsPage Component", () => {
 
     // Verify envelope table renders
     await waitFor(() => {
-      expect(screen.getByText("VNPT-ENV-887192")).toBeInTheDocument();
+      expect(screen.getAllByText("VNPT-ENV-887192")[0]).toBeInTheDocument();
     });
 
     // Test Search filter
@@ -367,7 +367,7 @@ describe("EContractsSettingsPage Component", () => {
 
     // Clear search
     await user.clear(searchInput);
-    expect(screen.getByText("VNPT-ENV-887192")).toBeInTheDocument();
+    expect(screen.getAllByText("VNPT-ENV-887192")[0]).toBeInTheDocument();
 
     // Test select filters
     const providerFilter = screen.getByLabelText("Filter by Provider") as HTMLSelectElement;
@@ -379,8 +379,8 @@ describe("EContractsSettingsPage Component", () => {
     expect(statusFilter.value).toBe("completed");
 
     // Open Webhook logs modal
-    const logsBtn = screen.getByText("WEBHOOK LOGS");
-    await user.click(logsBtn);
+    const logsBtns = screen.getAllByText("WEBHOOK LOGS");
+    await user.click(logsBtns[0]);
 
     // Verify audit logs are displayed
     expect(screen.getByText("Webhooks & Audit Trail")).toBeInTheDocument();
@@ -392,7 +392,8 @@ describe("EContractsSettingsPage Component", () => {
     expect(screen.queryByText("Webhooks & Audit Trail")).toBeNull();
 
     // Open logs modal again
-    await user.click(logsBtn);
+    const logsBtnsAgain = screen.getAllByText("WEBHOOK LOGS");
+    await user.click(logsBtnsAgain[0]);
 
     // Close logs modal using standard close dialog icon
     const closeDialogIconBtn = screen.getByRole("button", { name: /Close dialog/i });
@@ -510,9 +511,9 @@ describe("EContractsSettingsPage Component", () => {
 
     // Verify all 3 envelopes with different statuses are rendered
     await waitFor(() => {
-      expect(screen.getByText("VNPT-ENV-887192")).toBeInTheDocument(); // completed
-      expect(screen.getByText("VNPT-ENV-887193")).toBeInTheDocument(); // sent
-      expect(screen.getByText("HSM-ENV-998822")).toBeInTheDocument(); // draft (fallback badge class)
+      expect(screen.getAllByText("VNPT-ENV-887192")[0]).toBeInTheDocument(); // completed
+      expect(screen.getAllByText("VNPT-ENV-887193")[0]).toBeInTheDocument(); // sent
+      expect(screen.getAllByText("HSM-ENV-998822")[0]).toBeInTheDocument(); // draft (fallback badge class)
     });
 
     // Click Webhook logs for the second envelope (has null metadata)

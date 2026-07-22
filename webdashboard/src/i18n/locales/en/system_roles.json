@@ -98,7 +98,8 @@
         "byod": "Type",
         "timezone": "Timezone",
         "created_at": "Created At",
-        "actions": "Actions"
+        "actions": "Actions",
+        "empty": "No tenants found."
       },
       "modal": {
         "create_title": "Create New Tenant",

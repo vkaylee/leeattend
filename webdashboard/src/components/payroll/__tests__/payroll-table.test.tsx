@@ -82,9 +82,10 @@ describe("PayrollTable", () => {
       />
     );
 
-    expect(screen.getByTestId("payslip-card-slip-1")).toBeDefined();
-    expect(screen.getByText(/10[.,]500[.,]000/)).toBeDefined();
-    expect(screen.getByText(/ĐÃ CHỐT/i)).toBeDefined();
+    // ResponsiveTable renders both desktop and mobile views
+    expect(screen.getAllByTestId("payslip-card-slip-1").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/10[.,]500[.,]000/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/ĐÃ CHỐT/i).length).toBeGreaterThan(0);
   });
 
   it("expands card to show segments when clicked", () => {
@@ -97,14 +98,14 @@ describe("PayrollTable", () => {
       />
     );
 
-    // Click toggle summary bar
-    const toggleButton = screen.getByTestId("toggle-card-slip-1");
-    fireEvent.click(toggleButton);
+    // Click toggle summary bar - use getAllByTestId because ResponsiveTable renders both views
+    const toggleButtons = screen.getAllByTestId("toggle-card-slip-1");
+    fireEvent.click(toggleButtons[0]);
 
     // Now segments should be visible
-    expect(screen.getByText(/Dòng lương/i)).toBeDefined();
-    expect(screen.getByText(/Salary Change/i)).toBeDefined();
-    expect(screen.getAllByText(/12[.,]000[.,]000/)[0]).toBeDefined();
+    expect(screen.getAllByText(/Dòng lương/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Salary Change/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/12[.,]000[.,]000/).length).toBeGreaterThan(0);
   });
 
   it("shows pending adjustments indicator when adjustments are present", () => {
@@ -121,15 +122,17 @@ describe("PayrollTable", () => {
       <PayrollTable adjustments={mockAdjustments as unknown as never} employee={null}
         isLoading={false}
         onResolveAdjustments={vi.fn()}
- 
+
         payslips={mockPayslips}
         workspace={null}
       />
     );
 
     // Card needs to be expanded to see the banner in the new UI
-    fireEvent.click(screen.getByTestId("toggle-card-slip-1"));
+    const toggleButtons = screen.getAllByTestId("toggle-card-slip-1");
+    fireEvent.click(toggleButtons[0]);
 
+    // pending-adj-banner is only in desktop view (PayslipCard), not in mobile card
     expect(screen.getByTestId("pending-adj-banner-slip-1")).toBeDefined();
   });
 });

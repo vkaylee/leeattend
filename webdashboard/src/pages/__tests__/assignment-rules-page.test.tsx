@@ -175,29 +175,30 @@ describe("AssignmentRulesPage", () => {
 
   it("renders rules table with data", async () => {
     renderPage();
-    expect(await screen.findByText("Day Shift Engineers")).toBeInTheDocument();
-    expect(screen.getByText("Default Ops Schedule")).toBeInTheDocument();
+    // ResponsiveTable renders both desktop and mobile views
+    expect((await screen.findAllByText("Day Shift Engineers")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Default Ops Schedule").length).toBeGreaterThan(0);
   });
 
   it("renders priority badges", async () => {
     renderPage();
-    expect(await screen.findByText("P1")).toBeInTheDocument();
-    expect(screen.getByText("P2")).toBeInTheDocument();
+    expect((await screen.findAllByText("P1")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("P2").length).toBeGreaterThan(0);
   });
 
   it("renders pattern badges for each rule", async () => {
     renderPage();
-    expect(await screen.findByText("STANDARD 5-DAY")).toBeInTheDocument();
-    expect(screen.getByText("ROTATING 3-SHIFT")).toBeInTheDocument();
+    expect((await screen.findAllByText("STANDARD 5-DAY")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("ROTATING 3-SHIFT").length).toBeGreaterThan(0);
   });
 
   it("renders condition badges (department + tags)", async () => {
     renderPage();
-    // Department condition for rule-1
-    expect(await screen.findByText("ENGINEERING")).toBeInTheDocument();
+    // Department condition for rule-1 — ResponsiveTable renders both views
+    expect((await screen.findAllByText("ENGINEERING")).length).toBeGreaterThan(0);
     // Tags for rule-2
-    expect(screen.getByText("#OPS")).toBeInTheDocument();
-    expect(screen.getByText("#FLOOR")).toBeInTheDocument();
+    expect(screen.getAllByText("#OPS").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("#FLOOR").length).toBeGreaterThan(0);
   });
 
   it("renders info box", async () => {
@@ -209,13 +210,14 @@ describe("AssignmentRulesPage", () => {
   it("shows empty state when no rules", async () => {
     vi.mocked(api.fetchAssignmentRules).mockResolvedValue([]);
     renderPage();
-    expect(await screen.findByText("No rules yet")).toBeInTheDocument();
+    // ResponsiveTable renders both desktop and mobile empty states
+    expect((await screen.findAllByText("No rules yet")).length).toBeGreaterThan(0);
   });
 
   it("does not crash and handles API fetch error gracefully", async () => {
     vi.mocked(api.fetchAssignmentRules).mockRejectedValue(new Error("Network Error"));
     renderPage();
-    expect(await screen.findByText("No rules yet")).toBeInTheDocument();
+    expect((await screen.findAllByText("No rules yet")).length).toBeGreaterThan(0);
   });
 
   // ── Navigation Tests ───────────────────────────────────────────
@@ -234,7 +236,9 @@ describe("AssignmentRulesPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await screen.findByText("Day Shift Engineers");
+    // ResponsiveTable renders both views
+    const names = await screen.findAllByText("Day Shift Engineers");
+    expect(names.length).toBeGreaterThan(0);
     const editBtns = screen.getAllByTitle("Edit");
     await user.click(editBtns[0]);
 
@@ -247,7 +251,9 @@ describe("AssignmentRulesPage", () => {
     const user = userEvent.setup();
 
     renderPage();
-    await screen.findByText("Day Shift Engineers");
+    // ResponsiveTable renders both views
+    const names = await screen.findAllByText("Day Shift Engineers");
+    expect(names.length).toBeGreaterThan(0);
 
     const deleteBtns = screen.getAllByTitle("Delete");
     await user.click(deleteBtns[0]);
@@ -264,7 +270,9 @@ describe("AssignmentRulesPage", () => {
     const user = userEvent.setup();
 
     renderPage();
-    await screen.findByText("Day Shift Engineers");
+    // ResponsiveTable renders both views
+    const names = await screen.findAllByText("Day Shift Engineers");
+    expect(names.length).toBeGreaterThan(0);
 
     const deleteBtns = screen.getAllByTitle("Delete");
     await user.click(deleteBtns[0]);

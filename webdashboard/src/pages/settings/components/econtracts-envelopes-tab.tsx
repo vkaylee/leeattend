@@ -1,10 +1,11 @@
-import { AlertCircle, Eye, FileText, Search } from "lucide-react";
+import { AlertCircle, Eye, FileText, Search, Calendar, Hash } from "lucide-react";
 import React, { useState } from "react";
 
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import EmptyState from "@/components/ui/empty-state";
 import Modal from "@/components/ui/modal";
+import ResponsiveTable from "@/components/ui/responsive-table";
 import { EContractEnvelope } from "@/lib/api/econtracts";
 import { cn } from "@/lib/utils";
 
@@ -54,69 +55,121 @@ export default function EContractsEnvelopesTab({
             title="No Envelopes Found"
           />
         ) : (
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/10">
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
-                  External ID
-                </th>
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
-                  Provider
-                </th>
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
-                  Status
-                </th>
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
-                  Date Generated
-                </th>
-                <th className="px-8 py-5 border-b border-slate-50 dark:border-slate-800"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredEnvelopes.map((env) => (
-                <tr
-                  className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors"
-                  key={env.id}
-                >
-                  <td className="px-8 py-6 text-xs font-mono font-bold text-slate-800 dark:text-slate-200">
-                    {env.external_envelope_id}
-                  </td>
-                  <td className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-350">
-                    {env.provider_type}
-                  </td>
-                  <td className="px-8 py-6">
-                    <span
-                      className={cn(
-                        "text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border shadow-sm",
-                        env.status === "completed"
-                          ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                          : env.status === "sent"
-                          ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
-                          : "bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800/50 dark:text-slate-400 dark:border-slate-750"
-                      )}
-                    >
-                      {env.status}
-                    </span>
-                  </td>
-                  <td className="px-8 py-6 text-xs font-mono text-slate-500 dark:text-slate-400">
+          <ResponsiveTable<EContractEnvelope>
+            data={filteredEnvelopes}
+            getCardKey={(env) => env.id}
+            isLoading={false}
+            renderCard={(env) => (
+              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                {/* Header: External ID + Status */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-mono text-xs font-bold text-slate-800 dark:text-slate-200">
+                      {env.external_envelope_id}
+                    </div>
+                    <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      {env.provider_type}
+                    </div>
+                  </div>
+                  <span
+                    className={cn(
+                      "shrink-0 text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border shadow-sm",
+                      env.status === "completed"
+                        ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                        : env.status === "sent"
+                        ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                        : "bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800/50 dark:text-slate-400 dark:border-slate-750"
+                    )}
+                  >
+                    {env.status}
+                  </span>
+                </div>
+
+                {/* Detail */}
+                <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
+                  <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                  <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
                     {new Date(env.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-8 py-6 text-right">
-                    <Button
-                      className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-primary-600 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-50 transition-colors"
-                      onClick={() => {
-                        setSelectedEnvelopeForLog(env);
-                      }}
-                      size="sm"
-                      variant="ghost"
+                  </span>
+                </div>
+
+                {/* Actions */}
+                <div className="mt-4 flex items-center justify-end border-t border-slate-100 pt-4 dark:border-slate-800">
+                  <Button
+                    className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-primary-600 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-50 transition-colors"
+                    onClick={() => { setSelectedEnvelopeForLog(env); }}
+                    size="sm"
+                    variant="ghost"
+                  >
+                    <Eye className="mr-1" size={12} /> WEBHOOK LOGS
+                  </Button>
+                </div>
+              </div>
+            )}
+            renderDesktopTable={() => (
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-800/10">
+                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
+                      External ID
+                    </th>
+                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
+                      Provider
+                    </th>
+                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
+                      Status
+                    </th>
+                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
+                      Date Generated
+                    </th>
+                    <th className="px-8 py-5 border-b border-slate-50 dark:border-slate-800"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredEnvelopes.map((env) => (
+                    <tr
+                      className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors"
+                      key={env.id}
                     >
-                      <Eye className="mr-1" size={12} /> WEBHOOK LOGS
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      <td className="px-8 py-6 text-xs font-mono font-bold text-slate-800 dark:text-slate-200">
+                        {env.external_envelope_id}
+                      </td>
+                      <td className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-350">
+                        {env.provider_type}
+                      </td>
+                      <td className="px-8 py-6">
+                        <span
+                          className={cn(
+                            "text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border shadow-sm",
+                            env.status === "completed"
+                              ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                              : env.status === "sent"
+                              ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                              : "bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800/50 dark:text-slate-400 dark:border-slate-750"
+                          )}
+                        >
+                          {env.status}
+                        </span>
+                      </td>
+                      <td className="px-8 py-6 text-xs font-mono text-slate-500 dark:text-slate-400">
+                        {new Date(env.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-8 py-6 text-right">
+                        <Button
+                          className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-primary-600 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-50 transition-colors"
+                          onClick={() => { setSelectedEnvelopeForLog(env); }}
+                          size="sm"
+                          variant="ghost"
+                        >
+                          <Eye className="mr-1" size={12} /> WEBHOOK LOGS
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          />
         )}
       </div>
 

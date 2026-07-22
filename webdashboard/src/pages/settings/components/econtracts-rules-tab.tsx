@@ -1,4 +1,4 @@
-import { Globe, Layers, Plus, Trash2 } from "lucide-react";
+import { Globe, Layers, Plus, Trash2, Target, Hash, Route } from "lucide-react";
 import React, { useState } from "react";
 
 import Button from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Combobox } from "@/components/ui/combobox";
 import EmptyState from "@/components/ui/empty-state";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
+import ResponsiveTable from "@/components/ui/responsive-table";
 import { Typography } from "@/components/ui/typography";
 import { EContractRoutingRule } from "@/lib/api/econtracts";
 
@@ -69,64 +70,117 @@ export default function EContractsRulesTab({
             title="No Precedence Rules Found"
           />
         ) : (
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/10">
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
-                  Signer Country
-                </th>
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
-                  Signing Auth
-                </th>
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
-                  Routed Provider
-                </th>
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800 text-center">
-                  Priority
-                </th>
-                <th className="px-8 py-5 border-b border-slate-50 dark:border-slate-800"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {employerRules
-                .sort((a, b) => b.priority - a.priority)
-                .map((rule) => (
-                  <tr
-                    className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors"
-                    key={rule.id}
-                  >
-                    <td className="px-8 py-6 text-xs font-mono font-bold text-slate-700 dark:text-slate-200">
-                      {rule.signer_country}
-                    </td>
-                    <td className="px-8 py-6 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+          <ResponsiveTable<EContractRoutingRule>
+            data={employerRules.sort((a, b) => b.priority - a.priority)}
+            getCardKey={(rule) => rule.id}
+            isLoading={false}
+            renderCard={(rule) => (
+              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                {/* Header: Country + Provider */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      {rule.signer_country} → {rule.target_provider_type?.toUpperCase()}
+                    </div>
+                    <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       {rule.signing_method}
-                    </td>
-                    <td className="px-8 py-6 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                    </div>
+                  </div>
+                  <span className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-700 shadow-sm dark:bg-slate-800 dark:text-slate-300">
+                    P{rule.priority}
+                  </span>
+                </div>
+
+                {/* Detail grid */}
+                <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Route className="h-3.5 w-3.5 text-slate-400" />
+                    <span className="text-xs font-medium uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                      {rule.signer_country}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Target className="h-3.5 w-3.5 text-slate-400" />
+                    <span className="text-xs font-medium uppercase tracking-wider text-slate-600 dark:text-slate-400">
                       {rule.target_provider_type}
-                    </td>
-                    <td className="px-8 py-6 text-center text-xs font-bold text-slate-800 dark:text-slate-200">
-                      <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg shadow-sm">
-                        {rule.priority}
-                      </span>
-                    </td>
-                    <td className="px-8 py-6 text-right">
-                      <Button
-                        aria-label="Delete rule"
-                        className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-955/40 p-2 rounded-xl transition-colors h-auto w-auto shadow-none border-none animate-none"
-                        loading={isDeletingRule}
-                        onClick={() => {
-                          onDeleteRule(rule.id);
-                        }}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    </td>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="mt-4 flex items-center justify-end border-t border-slate-100 pt-4 dark:border-slate-800">
+                  <Button
+                    aria-label="Delete rule"
+                    className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-955/40 p-2 rounded-xl h-auto w-auto"
+                    loading={isDeletingRule}
+                    onClick={() => { onDeleteRule(rule.id); }}
+                    size="sm"
+                    variant="ghost"
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
+              </div>
+            )}
+            renderDesktopTable={() => (
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-800/10">
+                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
+                      Signer Country
+                    </th>
+                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
+                      Signing Auth
+                    </th>
+                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
+                      Routed Provider
+                    </th>
+                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800 text-center">
+                      Priority
+                    </th>
+                    <th className="px-8 py-5 border-b border-slate-50 dark:border-slate-800"></th>
                   </tr>
-                ))}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {employerRules
+                    .sort((a, b) => b.priority - a.priority)
+                    .map((rule) => (
+                      <tr
+                        className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors"
+                        key={rule.id}
+                      >
+                        <td className="px-8 py-6 text-xs font-mono font-bold text-slate-700 dark:text-slate-200">
+                          {rule.signer_country}
+                        </td>
+                        <td className="px-8 py-6 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                          {rule.signing_method}
+                        </td>
+                        <td className="px-8 py-6 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                          {rule.target_provider_type}
+                        </td>
+                        <td className="px-8 py-6 text-center text-xs font-bold text-slate-800 dark:text-slate-200">
+                          <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg shadow-sm">
+                            {rule.priority}
+                          </span>
+                        </td>
+                        <td className="px-8 py-6 text-right">
+                          <Button
+                            aria-label="Delete rule"
+                            className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-955/40 p-2 rounded-xl transition-colors h-auto w-auto shadow-none border-none animate-none"
+                            loading={isDeletingRule}
+                            onClick={() => { onDeleteRule(rule.id); }}
+                            size="sm"
+                            variant="ghost"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            )}
+          />
         )}
       </div>
 

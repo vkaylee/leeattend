@@ -159,14 +159,14 @@ describe("UnrecordedShiftsTab", () => {
 
     renderTab();
 
-    expect(await screen.findByText("Alice")).toBeInTheDocument();
-    expect(screen.getByText("Bob")).toBeInTheDocument();
+    expect((await screen.findAllByText("Alice")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Bob").length).toBeGreaterThan(0);
     // Department resolved from employeeMap (emp-1 → Engineering). The name
     // appears in both the table cell and the department-filter dropdown, so
     // assert on the collection rather than a single element.
     expect(screen.getAllByText("Engineering").length).toBeGreaterThanOrEqual(1);
     // Employee code badge resolved from employeeMap
-    expect(screen.getByText("EMP001")).toBeInTheDocument();
+    expect(screen.getAllByText("EMP001").length).toBeGreaterThan(0);
   });
 
   it("renders the Shift Type column with the shift_name value", async () => {
@@ -183,9 +183,9 @@ describe("UnrecordedShiftsTab", () => {
     renderTab();
 
     // Header
-    expect(await screen.findByText("unrecorded_shifts.columns.shift_type")).toBeInTheDocument();
+    expect((await screen.findAllByText("unrecorded_shifts.columns.shift_type")).length).toBeGreaterThan(0);
     // Row with a shift name shows it
-    expect(screen.getByText("Morning Shift")).toBeInTheDocument();
+    expect(screen.getAllByText("Morning Shift").length).toBeGreaterThan(0);
     // Row with null shift name renders an em-dash
     const dashes = screen.getAllByText("—");
     expect(dashes.length).toBeGreaterThanOrEqual(1);
@@ -206,7 +206,7 @@ describe("UnrecordedShiftsTab", () => {
 
     renderTab();
 
-    expect(await screen.findByText("Absent Alice")).toBeInTheDocument();
+    expect((await screen.findAllByText("Absent Alice")).length).toBeGreaterThan(0);
     expect(screen.queryByText("Present Bob")).not.toBeInTheDocument();
     expect(screen.queryByText("Late Carol")).not.toBeInTheDocument();
     expect(screen.queryByText("Off Dave")).not.toBeInTheDocument();
@@ -237,7 +237,7 @@ describe("UnrecordedShiftsTab", () => {
 
     renderTab();
 
-    expect(await screen.findByText("unrecorded_shifts.empty")).toBeInTheDocument();
+    expect((await screen.findAllByText("unrecorded_shifts.empty")).length).toBeGreaterThan(0);
   });
 
   it("shows the empty state when the report returns no rows at all", async () => {
@@ -250,7 +250,7 @@ describe("UnrecordedShiftsTab", () => {
 
     renderTab();
 
-    expect(await screen.findByText("unrecorded_shifts.empty")).toBeInTheDocument();
+    expect((await screen.findAllByText("unrecorded_shifts.empty")).length).toBeGreaterThan(0);
   });
 
   // ── Pagination configuration ────────────────────────────────────────────
@@ -307,7 +307,7 @@ describe("UnrecordedShiftsTab", () => {
     renderTab();
 
     // First page renders immediately.
-    expect(await screen.findByText("Employee 1")).toBeInTheDocument();
+    expect((await screen.findAllByText("Employee 1")).length).toBeGreaterThan(0);
 
     // The eager-drain effect fetches the remaining page in the background.
     await waitFor(() => {
@@ -318,7 +318,7 @@ describe("UnrecordedShiftsTab", () => {
     );
 
     // Page 2 rows are appended to the table.
-    expect(await screen.findByText("Employee 31")).toBeInTheDocument();
+    expect((await screen.findAllByText("Employee 31")).length).toBeGreaterThan(0);
   });
 
   it("does not fetch a second page when all rows fit in the first page", async () => {
@@ -333,7 +333,7 @@ describe("UnrecordedShiftsTab", () => {
 
     renderTab();
 
-    expect(await screen.findByText("Only One")).toBeInTheDocument();
+    expect((await screen.findAllByText("Only One")).length).toBeGreaterThan(0);
 
     // Give the observer a chance to fire; it must NOT trigger another fetch.
     await waitFor(() => {
@@ -360,8 +360,8 @@ describe("UnrecordedShiftsTab", () => {
 
     renderTab();
 
-    expect(await screen.findByText("Eng Worker")).toBeInTheDocument();
-    expect(screen.getByText("HR Worker")).toBeInTheDocument();
+    expect((await screen.findAllByText("Eng Worker")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("HR Worker").length).toBeGreaterThan(0);
 
     // Select "HR" from the department filter dropdown.
     const deptSelect = document.getElementById("unrecorded-dept-filter") as HTMLSelectElement;
@@ -372,7 +372,7 @@ describe("UnrecordedShiftsTab", () => {
     await waitFor(() => {
       expect(screen.queryByText("Eng Worker")).not.toBeInTheDocument();
     });
-    expect(screen.getByText("HR Worker")).toBeInTheDocument();
+    expect(screen.getAllByText("HR Worker").length).toBeGreaterThan(0);
   });
 
   // ── Export ───────────────────────────────────────────────────────────────
@@ -389,7 +389,7 @@ describe("UnrecordedShiftsTab", () => {
     } as never);
 
     renderTab();
-    expect(await screen.findByText("Alice")).toBeInTheDocument();
+    expect((await screen.findAllByText("Alice")).length).toBeGreaterThan(0);
 
     const exportBtn = document.getElementById("unrecorded-export-btn") as HTMLButtonElement;
     expect(exportBtn).not.toBeDisabled();
@@ -434,7 +434,7 @@ describe("UnrecordedShiftsTab", () => {
     );
 
     renderTab();
-    expect(await screen.findByText("Alice")).toBeInTheDocument();
+    expect((await screen.findAllByText("Alice")).length).toBeGreaterThan(0);
 
     const exportBtn = document.getElementById("unrecorded-export-btn") as HTMLButtonElement;
     expect(exportBtn).not.toBeDisabled();
@@ -479,7 +479,7 @@ describe("UnrecordedShiftsTab", () => {
     );
 
     renderTab();
-    expect(await screen.findByText("Eng Alice")).toBeInTheDocument();
+    expect((await screen.findAllByText("Eng Alice")).length).toBeGreaterThan(0);
 
     // Select "HR" from the department filter dropdown.
     const deptSelect = document.getElementById("unrecorded-dept-filter") as HTMLSelectElement;
@@ -534,7 +534,7 @@ describe("UnrecordedShiftsTab", () => {
     );
 
     renderTab();
-    expect(await screen.findByText("Employee 1")).toBeInTheDocument();
+    expect((await screen.findAllByText("Employee 1")).length).toBeGreaterThan(0);
 
     const exportBtn = document.getElementById("unrecorded-export-btn") as HTMLButtonElement;
     // Badge shows the full total once the eager drain completes.
@@ -565,7 +565,7 @@ describe("UnrecordedShiftsTab", () => {
     } as never);
 
     renderTab();
-    expect(await screen.findByText("Alice")).toBeInTheDocument();
+    expect((await screen.findAllByText("Alice")).length).toBeGreaterThan(0);
 
     const exportBtn = document.getElementById("unrecorded-export-btn") as HTMLButtonElement;
     exportBtn.click();
@@ -619,7 +619,7 @@ describe("UnrecordedShiftsTab", () => {
 
     renderTab();
     // Page 1 resolves immediately → table shows Alice.
-    expect(await screen.findByText("Alice")).toBeInTheDocument();
+    expect((await screen.findAllByText("Alice")).length).toBeGreaterThan(0);
 
     const exportBtn = document.getElementById("unrecorded-export-btn") as HTMLButtonElement;
     expect(exportBtn).not.toBeDisabled();

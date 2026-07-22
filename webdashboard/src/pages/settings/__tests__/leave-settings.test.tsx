@@ -160,17 +160,17 @@ describe("LeaveSettings Page", () => {
     const assignTab = screen.getByRole("button", { name: /Policy Assignments/i });
     fireEvent.click(assignTab);
 
-    // Wait for data to load
-    expect(await screen.findByText("General Vacation")).toBeDefined();
-    expect(screen.getByText("Dept Policy")).toBeDefined();
-    expect(screen.getByText("Employee Policy")).toBeDefined();
-    expect(screen.getByText("workspace")).toBeDefined();
-    expect(screen.getByText("department")).toBeDefined();
-    expect(screen.getByText("employee")).toBeDefined();
+    // Wait for data to load — use getAllByText since ResponsiveTable renders both mobile+desktop
+    expect(await screen.findAllByText("General Vacation"));
+    expect(screen.getAllByText("Dept Policy")[0]).toBeDefined();
+    expect(screen.getAllByText("Employee Policy")[0]).toBeDefined();
+    expect(screen.getAllByText("workspace")[0]).toBeDefined();
+    expect(screen.getAllByText("department")[0]).toBeDefined();
+    expect(screen.getAllByText("employee")[0]).toBeDefined();
 
     // Verify resolved department and employee names
-    expect(screen.getByText("Engineering")).toBeDefined();
-    expect(screen.getByText("Alice Smith")).toBeDefined();
+    expect(screen.getAllByText("Engineering")[0]).toBeDefined();
+    expect(screen.getAllByText("Alice Smith")[0]).toBeDefined();
   });
 
   it("allows deleting a policy assignment after confirming", async () => {
@@ -186,7 +186,7 @@ describe("LeaveSettings Page", () => {
     fireEvent.click(assignTab);
 
     // Verify first assignment is rendered
-    expect(await screen.findByText("General Vacation")).toBeDefined();
+    expect(await screen.findAllByText("General Vacation"));
 
     // Find and click the delete button for General Vacation (assign-1)
     const deleteButtons = screen.getAllByRole("button", { name: /Delete/i });
@@ -216,7 +216,7 @@ describe("LeaveSettings Page", () => {
     fireEvent.click(assignTab);
 
     // Wait for data to load
-    expect(await screen.findByText("General Vacation")).toBeDefined();
+    expect(await screen.findAllByText("General Vacation"));
 
     // Find and click the edit button for General Vacation (assign-1)
     const editButtons = screen.getAllByRole("button", { name: /Edit/i });

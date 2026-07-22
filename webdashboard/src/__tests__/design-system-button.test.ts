@@ -68,7 +68,6 @@ const LEGACY_VIOLATIONS = new Set([
   "components/time-tracking/adjustment-request-modal.tsx",
   "components/time-tracking/hold-to-punch-button.tsx",
   "components/time-tracking/punch-card.tsx",
-  "components/time-tracking/time-entry-row.tsx",
   "hooks/__tests__/use-confirm.test.tsx",
   "pages/__tests__/working-patterns-page.test.tsx",
   "pages/approvals/components/pre-ot-approvals-tab.tsx",

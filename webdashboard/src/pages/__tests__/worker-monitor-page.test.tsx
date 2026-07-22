@@ -189,21 +189,22 @@ describe("WorkerMonitorPage", () => {
     // --- Workers Table ---
     it("renders worker table with worker entries", () => {
         renderPage();
-        expect(screen.getByText("worker-pod-1")).toBeInTheDocument();
-        expect(screen.getByText("worker-pod-2")).toBeInTheDocument();
-        expect(screen.getByText("LeaveAccrual")).toBeInTheDocument();
+        // ResponsiveTable renders both desktop and mobile views
+        expect(screen.getAllByText("worker-pod-1").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("worker-pod-2").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("LeaveAccrual").length).toBeGreaterThan(0);
     });
 
     it("shows processing and idle status badges", () => {
         renderPage();
-        expect(screen.getByText("PROCESSING")).toBeInTheDocument();
-        expect(screen.getByText("IDLE")).toBeInTheDocument();
+        expect(screen.getAllByText("PROCESSING").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("IDLE").length).toBeGreaterThan(0);
     });
 
     it("renders truncated worker IDs", () => {
         renderPage();
-        expect(screen.getByText("aabbccdd...")).toBeInTheDocument();
-        expect(screen.getByText("eeffaabb...")).toBeInTheDocument();
+        expect(screen.getAllByText("aabbccdd...").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("eeffaabb...").length).toBeGreaterThan(0);
     });
 
     // --- Recent Jobs Table ---
@@ -214,9 +215,10 @@ describe("WorkerMonitorPage", () => {
 
     it("renders recent jobs with truncated IDs", () => {
         renderPage();
-        expect(screen.getByText("job-1111…")).toBeInTheDocument();
-        expect(screen.getByText("job-aaaa…")).toBeInTheDocument();
-        expect(screen.getByText("job-ffff…")).toBeInTheDocument();
+        // ResponsiveTable renders both desktop and mobile views
+        expect(screen.getAllByText("job-1111…").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("job-aaaa…").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("job-ffff…").length).toBeGreaterThan(0);
     });
 
     it("shows color-coded status badges for jobs", () => {
@@ -228,18 +230,19 @@ describe("WorkerMonitorPage", () => {
 
     it("shows batch progress for each job", () => {
         renderPage();
-        expect(screen.getByText("4/4")).toBeInTheDocument(); // completed job
-        expect(screen.getByText("1/3")).toBeInTheDocument(); // processing job
+        // ResponsiveTable renders both desktop and mobile views
+        expect(screen.getAllByText("4/4").length).toBeGreaterThan(0); // completed job
+        expect(screen.getAllByText("1/3").length).toBeGreaterThan(0); // processing job
     });
 
     it("shows failed batch count when present", () => {
         renderPage();
-        expect(screen.getByText("(1 failed)")).toBeInTheDocument();
+        expect(screen.getAllByText("(1 failed)").length).toBeGreaterThan(0);
     });
 
     it("displays error messages for failed jobs", () => {
         renderPage();
-        expect(screen.getByText("DB connection timeout")).toBeInTheDocument();
+        expect(screen.getAllByText("DB connection timeout").length).toBeGreaterThan(0);
     });
 
     it("shows dash for jobs without errors", () => {
@@ -262,13 +265,18 @@ describe("WorkerMonitorPage", () => {
     // --- Job Details Drawer / Sheet ---
     it("opens details drawer on clicking a job row", async () => {
         renderPage();
-        
-        // Find a job row and click it
-        const row = screen.getByText("job-1111…").closest("tr");
-        expect(row).toBeInTheDocument();
-        
-        if (row) {
-            fireEvent.click(row);
+
+        // ResponsiveTable renders both views; use getAllByText
+        const rows = screen.getAllByText("job-1111…");
+        expect(rows.length).toBeGreaterThan(0);
+
+        // Click the desktop table row (tr) which is the clickable element
+        const tableRow = rows[0].closest("tr");
+        if (tableRow) {
+            fireEvent.click(tableRow);
+        } else {
+            // Mobile card — click the card div
+            fireEvent.click(rows[0].closest('[role="button"]') || rows[0]);
         }
         
         // Drawer should display job details

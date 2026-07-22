@@ -11,6 +11,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import EmptyState from "@/components/ui/empty-state";
 import PageHeader from "@/components/ui/page-header";
+import ResponsiveTable from "@/components/ui/responsive-table";
 
 import { useDepartmentsPage } from "./departments/hooks/use-departments-page";
 
@@ -150,78 +151,163 @@ export default function DepartmentsPage() {
           ))}
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-sm animate-in fade-in duration-500">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/10">
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">{t("departments.columns.name")}</th>
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">{t("departments.columns.desc")}</th>
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">{t("departments.columns.manager")}</th>
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800 text-center">{t("departments.columns.employees")}</th>
-                <th className="px-8 py-5 border-b border-slate-50 dark:border-slate-800 text-right"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredDepartments.map((dept) => {
-                const manager = employees.find((e) => e.id === dept.manager_id);
-                return (
-                  <tr
-                    className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/10 cursor-pointer transition-colors group"
-                    key={dept.id}
-                    onClick={() => { setSelectedDeptForDetail(dept); }}
-                  >
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950/50 flex items-center justify-center text-primary-500 dark:text-primary-400 shadow-inner group-hover:scale-110 transition-transform">
-                          <Building2 size={16} />
-                        </div>
-                        <span className="font-bold text-slate-800 dark:text-slate-200 text-xs uppercase tracking-tight">
-                          {dept.name}
-                        </span>
+        <ResponsiveTable<typeof filteredDepartments[number]>
+          data={filteredDepartments}
+          emptyState={{
+            icon: <Building2 className="h-10 w-10" />,
+            title: t("departments.messages.no_results"),
+          }}
+          getCardKey={(dept) => dept.id}
+          renderCard={(dept) => {
+            const manager = employees.find((e) => e.id === dept.manager_id);
+            return (
+              <div
+                className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                data-testid={`dept-card-${dept.id}`}
+                onClick={() => { setSelectedDeptForDetail(dept); }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedDeptForDetail(dept); } }}
+                role="button"
+                tabIndex={0}
+              >
+                {/* Header */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 dark:bg-primary-950/50 text-primary-500 dark:text-primary-400 shadow-inner">
+                      <Building2 size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-bold uppercase tracking-tight text-slate-800 dark:text-slate-100">
+                        {dept.name}
                       </div>
-                    </td>
-                    <td className="px-8 py-6 max-w-xs truncate text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-tight opacity-65 leading-relaxed italic">
-                      {dept.description || t("common.no_description")}
-                    </td>
-                    <td className="px-8 py-6 text-slate-600 dark:text-slate-300 text-xs font-bold uppercase tracking-tight">
+                      <div className="mt-0.5 truncate text-[10px] font-semibold italic text-slate-400 opacity-70 dark:text-slate-500">
+                        {dept.description || t("common.no_description")}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Detail grid */}
+                <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
+                  <div>
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{t("departments.columns.manager")}</div>
+                    <div className="mt-1 text-xs font-bold uppercase tracking-tight text-slate-600 dark:text-slate-300">
                       {manager ? manager.full_name : t("departments.not_assigned").toUpperCase()}
-                    </td>
-                    <td className="px-8 py-6 text-center text-slate-700 dark:text-slate-300 text-xs font-bold">
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{t("departments.columns.employees")}</div>
+                    <div className="mt-1 text-xs font-bold text-slate-700 dark:text-slate-300">
                       {dept.active_employee_count}
-                    </td>
-                    <td className="px-8 py-6 text-right" onClick={(e) => { e.stopPropagation(); }}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            aria-label={t("departments.columns.actions")}
-                            className="hover:text-primary-600 dark:hover:text-primary-400"
-                            icon={<MoreHorizontal size={18} />}
-                            size="icon"
-                            variant="outline"
-                          />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => { setEditingDept(dept); setIsConfigModalOpen(true); }}>
-                            <Calculator className="mr-2 h-4 w-4" />
-                            {t("payroll.settings.title")}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => { setEditingDept(dept); setIsModalOpen(true); }}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            {t("common.edit")}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-rose-600 dark:text-rose-400" onClick={() => { void handleDelete(dept.id); }}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            {t("common.delete")}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="mt-4 flex items-center justify-end gap-1 border-t border-slate-100 pt-4 dark:border-slate-800">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        aria-label={t("departments.columns.actions")}
+                        className="hover:text-primary-600 dark:hover:text-primary-400"
+                        icon={<MoreHorizontal size={18} />}
+                        size="icon"
+                        variant="outline"
+                      />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingDept(dept); setIsConfigModalOpen(true); }}>
+                        <Calculator className="mr-2 h-4 w-4" />
+                        {t("payroll.settings.title")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingDept(dept); setIsModalOpen(true); }}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        {t("common.edit")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-rose-600 dark:text-rose-400" onClick={(e) => { e.stopPropagation(); void handleDelete(dept.id); }}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {t("common.delete")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            );
+          }}
+          renderDesktopTable={() => (
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-sm animate-in fade-in duration-500">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-800/10">
+                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">{t("departments.columns.name")}</th>
+                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">{t("departments.columns.desc")}</th>
+                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">{t("departments.columns.manager")}</th>
+                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800 text-center">{t("departments.columns.employees")}</th>
+                    <th className="px-8 py-5 border-b border-slate-50 dark:border-slate-800 text-right"></th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody>
+                  {filteredDepartments.map((dept) => {
+                    const manager = employees.find((e) => e.id === dept.manager_id);
+                    return (
+                      <tr
+                        className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/10 cursor-pointer transition-colors group"
+                        key={dept.id}
+                        onClick={() => { setSelectedDeptForDetail(dept); }}
+                      >
+                        <td className="px-8 py-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950/50 flex items-center justify-center text-primary-500 dark:text-primary-400 shadow-inner group-hover:scale-110 transition-transform">
+                              <Building2 size={16} />
+                            </div>
+                            <span className="font-bold text-slate-800 dark:text-slate-200 text-xs uppercase tracking-tight">
+                              {dept.name}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 max-w-xs truncate text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-tight opacity-65 leading-relaxed italic">
+                          {dept.description || t("common.no_description")}
+                        </td>
+                        <td className="px-8 py-6 text-slate-600 dark:text-slate-300 text-xs font-bold uppercase tracking-tight">
+                          {manager ? manager.full_name : t("departments.not_assigned").toUpperCase()}
+                        </td>
+                        <td className="px-8 py-6 text-center text-slate-700 dark:text-slate-300 text-xs font-bold">
+                          {dept.active_employee_count}
+                        </td>
+                        <td className="px-8 py-6 text-right" onClick={(e) => { e.stopPropagation(); }}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                aria-label={t("departments.columns.actions")}
+                                className="hover:text-primary-600 dark:hover:text-primary-400"
+                                icon={<MoreHorizontal size={18} />}
+                                size="icon"
+                                variant="outline"
+                              />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => { setEditingDept(dept); setIsConfigModalOpen(true); }}>
+                                <Calculator className="mr-2 h-4 w-4" />
+                                {t("payroll.settings.title")}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { setEditingDept(dept); setIsModalOpen(true); }}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                {t("common.edit")}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-rose-600 dark:text-rose-400" onClick={() => { void handleDelete(dept.id); }}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                {t("common.delete")}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        />
       )}
 
       {/* Slide-over Detail Drawer */}

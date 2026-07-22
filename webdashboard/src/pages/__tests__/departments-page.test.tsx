@@ -102,9 +102,9 @@ describe("DepartmentsPage", () => {
 
   it("renders departments list", async () => {
     renderWithProviders(<DepartmentsPage />);
-    expect(await screen.findByText("Engineering")).toBeDefined();
-    expect(screen.getByText("Tech stuff")).toBeDefined();
-    expect(screen.getByText("Manager One")).toBeDefined();
+    expect((await screen.findAllByText("Engineering"))[0]).toBeDefined();
+    expect(screen.getAllByText("Tech stuff")[0]).toBeDefined();
+    expect(screen.getAllByText("Manager One")[0]).toBeDefined();
   });
 
   it("handles creating a new department", async () => {
@@ -139,13 +139,13 @@ describe("DepartmentsPage", () => {
     renderWithProviders(<DepartmentsPage />);
     
     // Wait for data to load
-    await screen.findByText("Engineering");
+    await screen.findAllByText("Engineering");
 
     // Open actions dropdown menu and click Edit
-    const actionsButton = await screen.findByRole("button", { name: /departments.columns.actions/i });
-    await user.click(actionsButton);
-    const editButton = await screen.findByText(/common.edit/i);
-    await user.click(editButton);
+    const actionsButtons = await screen.findAllByRole("button", { name: /departments.columns.actions/i });
+    await user.click(actionsButtons[0]);
+    const editButtons = await screen.findAllByText(/common.edit/i);
+    await user.click(editButtons[0]);
 
     const nameInput = await screen.findByLabelText(/departments.form.name_label/i);
     await user.clear(nameInput);
@@ -167,13 +167,13 @@ describe("DepartmentsPage", () => {
 
     renderWithProviders(<DepartmentsPage />);
 
-    await screen.findByText("Engineering");
+    await screen.findAllByText("Engineering");
     
     // Open actions dropdown menu and click Delete
-    const actionsButton = await screen.findByRole("button", { name: /departments.columns.actions/i });
-    await user.click(actionsButton);
-    const deleteButton = await screen.findByText(/common.delete/i);
-    await user.click(deleteButton);
+    const actionsButtons = await screen.findAllByRole("button", { name: /departments.columns.actions/i });
+    await user.click(actionsButtons[0]);
+    const deleteButtons = await screen.findAllByText(/common.delete/i);
+    await user.click(deleteButtons[0]);
 
     // Confirm the useConfirm modal
     const confirmModalButton = await screen.findByRole("button", { name: "Confirm" });
@@ -189,13 +189,13 @@ describe("DepartmentsPage", () => {
     renderWithProviders(<DepartmentsPage />);
     
     // Wait for departments to load
-    await screen.findByText("Engineering");
+    await screen.findAllByText("Engineering");
     
     // Open edit modal via actions dropdown
-    const actionsButton = await screen.findByRole("button", { name: /departments.columns.actions/i });
-    await user.click(actionsButton);
-    const editButton = await screen.findByText(/common.edit/i);
-    await user.click(editButton);
+    const actionsButtons = await screen.findAllByRole("button", { name: /departments.columns.actions/i });
+    await user.click(actionsButtons[0]);
+    const editButtons = await screen.findAllByText(/common.edit/i);
+    await user.click(editButtons[0]);
     
     // Find the hidden select element used for the combobox
     // The Combobox is mocked in setup.tsx to render a select with the exact data-testid

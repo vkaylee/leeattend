@@ -6,6 +6,7 @@ import {
 import React from "react";
 
 import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
+import ResponsiveTable from "@/components/ui/responsive-table";
 import { ScheduleTracePopover } from "@/components/shifts/schedule-trace-popover";
 import { ScheduleTrace } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -91,146 +92,242 @@ export function NoShowTable({
 
   return (
     <div className="rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
-              <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                {columns.zone}
-              </th>
-              <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                {columns.employee_code}
-              </th>
-              <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                {columns.employee_name}
-              </th>
-              <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                {columns.department}
-              </th>
-              <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                {columns.shift_type}
-              </th>
-              <th className="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                {columns.shift_in}
-              </th>
-              <th className="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                {columns.shift_out}
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-
-            {filteredRows.map((row, idx) => {
-              const { key, hint } = zoneLabel(row, t);
-              const rowBg =
-                row.zone === "b"
-                  ? "bg-amber-50/60 dark:bg-amber-950/25 border-l-2 border-l-amber-400 dark:border-l-amber-500"
-                  : row.zone === "a"
-                    ? "bg-slate-50/60 dark:bg-slate-800/40"
-                    : "bg-rose-50/40 dark:bg-rose-950/15";
-              const chip =
-                row.zone === "b"
-                  ? "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300"
-                  : row.zone === "a"
-                    ? "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-                    : "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300";
-              return (
-                <tr
-                  className={cn(
-                    "transition-colors group",
-                    rowBg,
-                    row.zone !== "b" && "hover:bg-rose-50/40 dark:hover:bg-rose-950/20",
-                    idx % 2 === 0 ? "" : "bg-opacity-50",
-                  )}
-                  key={`${row.employment_id}-${row.date}`}
-                >
-                  {/* Zone — never color-only: icon + text + aria-label */}
-                  <td className="px-5 py-3.5">
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest",
-                        chip,
-                      )}
-                    >
-                      <ZoneIcon zone={row.zone} />
-                      <span>{key}</span>
-                      {!!hint && <span className="opacity-70 normal-case tracking-normal">· {hint}</span>}
-                      <span className="sr-only">
-                        {key}{hint ? `, ${hint}` : ""}
-                      </span>
-                    </span>
-                  </td>
-
-                  {/* Employee Code */}
-                  <td className="px-5 py-3.5">
-                    <span className="font-mono font-bold text-[10px] text-primary-600 dark:text-primary-400 uppercase tracking-tight bg-primary-50 dark:bg-primary-950 px-2 py-1 rounded-lg border border-primary-100 dark:border-primary-800">
-                      {row.employee_id_number}
-                    </span>
-                  </td>
-
-                  {/* Name */}
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center shrink-0">
-                        <UserX className="text-rose-500 dark:text-rose-400" size={14} />
-                      </div>
-                      <span className="font-bold text-sm text-slate-800 dark:text-slate-100 tracking-tight">
-                        {row.employee_name}
-                      </span>
+      <ResponsiveTable<ZonedNoShowRow>
+        data={filteredRows}
+        getCardKey={(row) => `${row.employment_id}-${row.date}`}
+        isLoading={false}
+        mobileFooter={
+          hasNextPage ? (
+            <InfiniteScrollSentinel
+              colSpan={7}
+              isFetchingNextPage={!!isFetchingNextPage}
+              sentinelRef={loadMoreRef}
+            />
+          ) : undefined
+        }
+        renderCard={(row) => {
+          const { key, hint } = zoneLabel(row, t);
+          const chipBg =
+            row.zone === "b"
+              ? "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300"
+              : row.zone === "a"
+                ? "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                : "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300";
+          const rowBg =
+            row.zone === "b"
+              ? "border-l-amber-400 dark:border-l-amber-500"
+              : row.zone === "a"
+                ? ""
+                : "border-l-rose-400 dark:border-l-rose-500";
+          return (
+            <div className={cn(
+              "rounded-2xl border bg-white p-5 shadow-sm dark:bg-slate-900 border-slate-100 dark:border-slate-800",
+              row.zone !== "a" && "border-l-4",
+              rowBg,
+              row.zone === "b" && "bg-amber-50/60 dark:bg-amber-950/25",
+              row.zone === "c" && "bg-rose-50/40 dark:bg-rose-950/15",
+            )}>
+              {/* Header: Zone + Employee code */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 dark:bg-rose-900/40">
+                    <UserX className="text-rose-500 dark:text-rose-400" size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold text-slate-800 dark:text-slate-100 tracking-tight">
+                      {row.employee_name}
                     </div>
-                  </td>
+                    <div className="mt-0.5 font-mono text-[10px] font-bold uppercase tracking-tight text-primary-600 dark:text-primary-400">
+                      {row.employee_id_number}
+                    </div>
+                  </div>
+                </div>
+                <span className={cn(
+                  "inline-flex shrink-0 items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest",
+                  chipBg,
+                )}>
+                  <ZoneIcon zone={row.zone} />
+                  <span>{key}</span>
+                </span>
+              </div>
 
-                  {/* Department */}
-                  <td className="px-5 py-3.5">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-blue-100 dark:border-blue-800">
-                      <Building2 size={10} />
+              {/* Detail grid */}
+              <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
+                <div>
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{columns.department}</div>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <Building2 size={10} className="text-blue-500" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">
                       {row.department_name}
                     </span>
-                  </td>
-
-                  {/* Shift */}
-                  <td className="px-5 py-3.5">
-                    <div className="relative flex items-center gap-1 w-fit">
-                      <span className="font-bold text-slate-700 dark:text-slate-200 text-xs tracking-tight">
-                        {row.shift_name ?? "—"}
-                      </span>
-                      <ScheduleTracePopover
-                        endTime={row.scheduled_end}
-                        shiftName={row.shift_name}
-                        shiftSymbol={row.shift_symbol}
-                        source="system"
-                        startTime={row.scheduled_start}
-                        traces={tracesByKey.get(`${row.employment_id}-${row.date}`) ?? []}
-                      />
-                    </div>
-                  </td>
-
-                  {/* Shift In */}
-                  <td className="px-5 py-3.5 text-center">
-                    <span className="font-mono font-bold text-sm text-slate-700 dark:text-slate-200 tabular-nums bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg">
-                      {formatShiftTime(row.scheduled_start)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{columns.shift_type}</div>
+                  <div className="mt-1 flex items-center gap-1">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200 tracking-tight">
+                      {row.shift_name ?? "—"}
                     </span>
-                  </td>
+                    <ScheduleTracePopover
+                      endTime={row.scheduled_end}
+                      shiftName={row.shift_name}
+                      shiftSymbol={row.shift_symbol}
+                      source="system"
+                      startTime={row.scheduled_start}
+                      traces={tracesByKey.get(`${row.employment_id}-${row.date}`) ?? []}
+                    />
+                  </div>
+                </div>
+              </div>
 
-                  {/* Shift Out */}
-                  <td className="px-5 py-3.5 text-center">
-                    <span className="font-mono font-bold text-sm text-slate-700 dark:text-slate-200 tabular-nums bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg">
-                      {formatShiftTime(row.scheduled_end)}
-                    </span>
-                  </td>
+              {/* Shift times */}
+              <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
+                <div>
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{columns.shift_in}</div>
+                  <div className="mt-1 font-mono text-sm font-bold tabular-nums text-slate-700 dark:text-slate-200">
+                    {formatShiftTime(row.scheduled_start)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{columns.shift_out}</div>
+                  <div className="mt-1 font-mono text-sm font-bold tabular-nums text-slate-700 dark:text-slate-200">
+                    {formatShiftTime(row.scheduled_end)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }}
+        renderDesktopTable={() => (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                    {columns.zone}
+                  </th>
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                    {columns.employee_code}
+                  </th>
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                    {columns.employee_name}
+                  </th>
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                    {columns.department}
+                  </th>
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                    {columns.shift_type}
+                  </th>
+                  <th className="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                    {columns.shift_in}
+                  </th>
+                  <th className="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                    {columns.shift_out}
+                  </th>
                 </tr>
-              );
-            })}
-            {!!hasNextPage && (
-              <InfiniteScrollSentinel
-                colSpan={7}
-                isFetchingNextPage={!!isFetchingNextPage}
-                sentinelRef={loadMoreRef}
-              />
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {filteredRows.map((row, idx) => {
+                  const { key, hint } = zoneLabel(row, t);
+                  const rowBg =
+                    row.zone === "b"
+                      ? "bg-amber-50/60 dark:bg-amber-950/25 border-l-2 border-l-amber-400 dark:border-l-amber-500"
+                      : row.zone === "a"
+                        ? "bg-slate-50/60 dark:bg-slate-800/40"
+                        : "bg-rose-50/40 dark:bg-rose-950/15";
+                  const chip =
+                    row.zone === "b"
+                      ? "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300"
+                      : row.zone === "a"
+                        ? "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                        : "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300";
+                  return (
+                    <tr
+                      className={cn(
+                        "transition-colors group",
+                        rowBg,
+                        row.zone !== "b" && "hover:bg-rose-50/40 dark:hover:bg-rose-950/20",
+                        idx % 2 === 0 ? "" : "bg-opacity-50",
+                      )}
+                      key={`${row.employment_id}-${row.date}`}
+                    >
+                      {/* Zone — never color-only: icon + text + aria-label */}
+                      <td className="px-5 py-3.5">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest",
+                            chip,
+                          )}
+                        >
+                          <ZoneIcon zone={row.zone} />
+                          <span>{key}</span>
+                          {!!hint && <span className="opacity-70 normal-case tracking-normal">· {hint}</span>}
+                          <span className="sr-only">
+                            {key}{hint ? `, ${hint}` : ""}
+                          </span>
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className="font-mono font-bold text-[10px] text-primary-600 dark:text-primary-400 uppercase tracking-tight bg-primary-50 dark:bg-primary-950 px-2 py-1 rounded-lg border border-primary-100 dark:border-primary-800">
+                          {row.employee_id_number}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center shrink-0">
+                            <UserX className="text-rose-500 dark:text-rose-400" size={14} />
+                          </div>
+                          <span className="font-bold text-sm text-slate-800 dark:text-slate-100 tracking-tight">
+                            {row.employee_name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-blue-100 dark:border-blue-800">
+                          <Building2 size={10} />
+                          {row.department_name}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="relative flex items-center gap-1 w-fit">
+                          <span className="font-bold text-slate-700 dark:text-slate-200 text-xs tracking-tight">
+                            {row.shift_name ?? "—"}
+                          </span>
+                          <ScheduleTracePopover
+                            endTime={row.scheduled_end}
+                            shiftName={row.shift_name}
+                            shiftSymbol={row.shift_symbol}
+                            source="system"
+                            startTime={row.scheduled_start}
+                            traces={tracesByKey.get(`${row.employment_id}-${row.date}`) ?? []}
+                          />
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-center">
+                        <span className="font-mono font-bold text-sm text-slate-700 dark:text-slate-200 tabular-nums bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg">
+                          {formatShiftTime(row.scheduled_start)}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-center">
+                        <span className="font-mono font-bold text-sm text-slate-700 dark:text-slate-200 tabular-nums bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg">
+                          {formatShiftTime(row.scheduled_end)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {hasNextPage && (
+                  <InfiniteScrollSentinel
+                    colSpan={7}
+                    isFetchingNextPage={!!isFetchingNextPage}
+                    sentinelRef={loadMoreRef}
+                  />
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      />
     </div>
   );
 }

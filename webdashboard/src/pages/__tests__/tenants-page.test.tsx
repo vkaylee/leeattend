@@ -91,10 +91,10 @@ describe("TenantsPage", () => {
   it("renders the tenant table with correct columns", async () => {
     renderPage();
 
-    expect(await screen.findByText("Workspace Alpha")).toBeInTheDocument();
-    expect(screen.getByText("BYOD Corp")).toBeInTheDocument();
-    expect(screen.getByText("Standard")).toBeInTheDocument();
-    expect(screen.getByText("BYOD")).toBeInTheDocument();
+    expect((await screen.findAllByText("Workspace Alpha"))[0]).toBeInTheDocument();
+    expect(screen.getAllByText("BYOD Corp")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Standard")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("BYOD")[0]).toBeInTheDocument();
   });
 
   it("opens create modal and submits", async () => {
@@ -155,7 +155,7 @@ describe("TenantsPage", () => {
     mockConfirm.mockResolvedValueOnce(true);
     renderPage();
 
-    await screen.findByText("Workspace Alpha");
+    await screen.findAllByText("Workspace Alpha");
     const deleteBtns = screen.getAllByRole("button", { name: "" }).filter(
       (btn) => btn.querySelector("svg.text-red-500")
     );
