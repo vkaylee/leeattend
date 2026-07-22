@@ -28,6 +28,60 @@ class InitHandler(HandlerBase):
 
     # ── public API ──
 
+    def handle_post_update_sync(self) -> None:
+        """Lightweight sync after update: only sync rules and create symlinks.
+
+        Unlike handle_init(), this skips heavy operations like:
+        - Downloading devkit (already done by update)
+        - Setting up venv (already exists)
+        - Installing skills (handled separately)
+
+        This is safe to call after update and won't hang on network/subprocess.
+        """
+        from _devkit_config import get_devkit_root
+
+        root = Path.cwd()
+        config_toml = root / "leedevkit.toml"
+        cfg = _load_toml(config_toml) if config_toml.exists() else {}
+
+        try:
+            devkit = get_devkit_root()
+        except FileNotFoundError:
+            log_warn("DevKit not found, skipping post-update sync")
+            return
+
+        # Sync rules from devkit → project
+        ai_cfg = cfg.get("ai", {})
+        rules_rel = ai_cfg.get("rules_dir", ".agent/rules")
+        project_rules = root / rules_rel
+        devkit_rules = devkit / ".agent" / "rules"
+        if devkit_rules.exists():
+            project_rules.mkdir(parents=True, exist_ok=True)
+            copied = 0
+            for rule_file in sorted(devkit_rules.glob("*.md")):
+                target = project_rules / rule_file.name
+                if not target.exists():
+                    target.write_text(rule_file.read_text())
+                    copied += 1
+            if copied:
+                log_success(f"Synced {copied} new rulebook(s) to {rules_rel}/")
+
+        # Create .agent/rules symlink if rules_dir is custom
+        default_rules_rel = ".agent/rules"
+        if rules_rel != default_rules_rel and project_rules.exists():
+            default_rules = root / default_rules_rel
+            self._ensure_rules_symlink(default_rules, project_rules, rules_rel)
+
+        # Sync overrides.yaml if missing
+        override_manifest = ai_cfg.get("override_manifest", ".agent/overrides.yaml")
+        override_path = root / override_manifest
+        if not override_path.exists():
+            devkit_override = devkit / ".agent" / "overrides.yaml"
+            if devkit_override.exists():
+                override_path.parent.mkdir(parents=True, exist_ok=True)
+                override_path.write_text(devkit_override.read_text())
+                log_success(f"Created {override_manifest}")
+
     def handle_init(self, force: bool = False) -> None:
         """Set up project with per-project devkit install.
 
@@ -63,8 +117,12 @@ class InitHandler(HandlerBase):
         # ── Step 1: Ensure .leedevkit/ exists with correct version ──
         leedevkit_dir = root / ".leedevkit"
         installed_version = self._read_installed_version(leedevkit_dir)
+        requested_version = str(devkit_version).lstrip("v")
+        version_matches = installed_version == requested_version
+        if devkit_version == "latest" and installed_version is not None:
+            version_matches = True
 
-        if force or not leedevkit_dir.exists() or installed_version != devkit_version:
+        if force or not leedevkit_dir.exists() or not version_matches:
             log_info(f"Installing devkit {devkit_version} into .leedevkit/ ...")
             self._install_devkit(root, leedevkit_dir, devkit_version, force=force)
         else:
@@ -134,6 +192,15 @@ class InitHandler(HandlerBase):
             if copied:
                 log_success(f"Populated {rules_rel}/ with {copied} rulebook(s)")
 
+        # ── Step 3b: Create .agent/rules symlink if rules_dir is custom ──
+        # CLAUDE.md template hardcodes .agent/rules/, so we create a symlink
+        # when the project uses a custom rules_dir (e.g., .attendagent/rules).
+        # This ensures AI agents can find rulebooks regardless of config.
+        default_rules_rel = ".agent/rules"
+        if rules_rel != default_rules_rel and project_rules.exists():
+            default_rules = root / default_rules_rel
+            self._ensure_rules_symlink(default_rules, project_rules, rules_rel)
+
         # Copy overrides.yaml if project doesn't have one
         override_manifest = ai_cfg.get("override_manifest", ".agent/overrides.yaml")
         override_path = root / override_manifest
@@ -153,6 +220,14 @@ class InitHandler(HandlerBase):
             "# Delegates to .leedevkit/bin/leedevkit (per-project install)\n"
             f'exec "{wrapper_target}" "$@"\n'
         )
+        # If leedevkit is a symlink (e.g. in the devkit repo itself, where
+        # leedevkit → bin/leedevkit), remove it so we create a real file
+        # instead of following the symlink and overwriting the real entry point.
+        if wrapper.is_symlink():
+            wrapper.unlink()
+        elif wrapper.exists() and not wrapper.is_file():
+            log_warn("⚠️  ./leedevkit exists but is not a file — skipping wrapper")
+            return
         wrapper.write_text(wrapper_content)
         wrapper.chmod(0o755)
         log_success("Created ./leedevkit → .leedevkit/bin/leedevkit")
@@ -199,6 +274,47 @@ class InitHandler(HandlerBase):
                     legacy.append((item.name, target))
         return legacy
 
+    def _ensure_rules_symlink(
+        self, default_rules: Path, project_rules: Path, rules_rel: str
+    ) -> None:
+        """Ensure .agent/rules symlink points to the custom rules directory.
+
+        Creates or repairs symlink so CLAUDE.md's hardcoded .agent/rules/ paths
+        work even when project uses a custom rules_dir (e.g., .attendagent/rules).
+
+        Behavior:
+          - If default_rules is a broken symlink → remove and recreate
+          - If default_rules is a valid symlink to wrong target → remove and recreate
+          - If default_rules is a real directory → skip (user may have created it manually)
+          - If default_rules doesn't exist → create symlink
+        """
+        # Check if it's a symlink (valid or broken)
+        if default_rules.is_symlink():
+            try:
+                current_target = default_rules.resolve()
+                expected_target = project_rules.resolve()
+                if current_target == expected_target:
+                    # Symlink is correct
+                    return
+                # Symlink points to wrong target → remove and recreate
+                log_warn("⚠️  .agent/rules symlink points to wrong target, fixing...")
+                default_rules.unlink()
+            except OSError:
+                # Broken symlink → remove and recreate
+                log_warn("⚠️  .agent/rules symlink is broken, fixing...")
+                default_rules.unlink()
+        elif default_rules.exists():
+            # It's a real directory, not a symlink → don't touch it
+            # User may have created it manually or it's from an old init
+            return
+
+        # Create symlink
+        default_rules.parent.mkdir(parents=True, exist_ok=True)
+        default_rules.symlink_to(project_rules.resolve())
+        log_success(
+            f"Created symlink .agent/rules → {rules_rel} (for CLAUDE.md compatibility)"
+        )
+
     def _read_installed_version(self, leedevkit_dir: Path) -> str | None:
         """Read the version installed in .leedevkit/, or None if not installed."""
         version_file = leedevkit_dir / "VERSION"
@@ -231,10 +347,8 @@ class InitHandler(HandlerBase):
         # Strategy 2: GitHub release tarball
         ver = version.lstrip("v") if version else version
         if ver and version != "latest":
-            url = (
-                f"https://github.com/vkaylee/leedevkit/archive/refs/tags/"
-                f"{version}.tar.gz"
-            )
+            tag = version if version.startswith("v") else f"v{version}"
+            url = f"https://github.com/vkaylee/leedevkit/archive/refs/tags/{tag}.tar.gz"
             log_info(f"Downloading {url} ...")
             try:
                 download_and_extract_tarball(url, target_dir)
@@ -257,6 +371,15 @@ class InitHandler(HandlerBase):
     def _extract_from_source(self, source_root: Path, target_dir: Path) -> None:
         """Copy devkit artifacts from a source directory into target_dir."""
         import shutil as _shutil
+
+        source_root = source_root.resolve()
+        target_dir = target_dir.resolve()
+        if source_root == target_dir:
+            raise RuntimeError(
+                "Cannot install devkit from the target directory itself. "
+                "Set DEVKIT_LOCAL_PATH to a separate checkout or ensure the "
+                "requested release exists."
+            )
 
         target_dir.mkdir(parents=True, exist_ok=True)
         # Copy immutable artifacts

@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import tarfile
-from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -42,6 +40,7 @@ class TestDownloadAndExtract:
 
         def fake_urlretrieve(url, filename):
             import shutil
+
             shutil.copy(str(tarball_path), str(filename))
 
         monkeypatch.setattr("_download.urllib.request.urlretrieve", fake_urlretrieve)
@@ -69,6 +68,7 @@ class TestDownloadAndExtract:
 
         def fake_urlretrieve(url, filename):
             import shutil
+
             shutil.copy(str(tarball_path), str(filename))
 
         monkeypatch.setattr("_download.urllib.request.urlretrieve", fake_urlretrieve)
@@ -97,6 +97,7 @@ class TestDownloadAndExtract:
 
         def fake_urlretrieve(url, filename):
             import shutil
+
             shutil.copy(str(tarball_path), str(filename))
 
         monkeypatch.setattr("_download.urllib.request.urlretrieve", fake_urlretrieve)
@@ -153,9 +154,172 @@ class TestHandleUpdateRollback:
         backup.mkdir()
         (backup / "OLD").write_text("old-backup")
 
-        monkeypatch.setattr("_update_handler.download_and_extract_tarball", fake_download)
+        monkeypatch.setattr(
+            "_update_handler.download_and_extract_tarball", fake_download
+        )
 
         handle_update(target="v0.2.0")
 
         # Successful update
         assert (root / "VERSION").read_text() == "0.2.0"
+
+
+class TestUpdateVersionPin:
+    """Test version pinning in leedevkit.toml after update."""
+
+    def test_updates_version_in_toml(self, tmp_path, monkeypatch):
+        """After successful update, version in leedevkit.toml is updated."""
+        from _update_handler import handle_update
+
+        # Setup project structure
+        project_root = tmp_path / "project"
+        project_root.mkdir()
+        toml_file = project_root / "leedevkit.toml"
+        toml_file.write_text('[devkit]\nversion = "0.1.0"\n')
+
+        devkit_root = project_root / ".leedevkit"
+        devkit_root.mkdir()
+        (devkit_root / "VERSION").write_text("0.1.0")
+
+        monkeypatch.setattr("_update_handler._devkit_root", lambda: devkit_root)
+
+        def fake_download(url, target_dir):
+            target_dir.mkdir(parents=True, exist_ok=True)
+            (target_dir / "VERSION").write_text("0.3.6")
+
+        monkeypatch.setattr(
+            "_update_handler.download_and_extract_tarball", fake_download
+        )
+
+        handle_update(target="v0.3.6")
+
+        # Version in toml should be updated
+        assert 'version = "0.3.6"' in toml_file.read_text()
+
+    def test_no_crash_if_toml_missing(self, tmp_path, monkeypatch):
+        """Update succeeds even if leedevkit.toml doesn't exist."""
+        from _update_handler import handle_update
+
+        project_root = tmp_path / "project"
+        project_root.mkdir()
+
+        devkit_root = project_root / ".leedevkit"
+        devkit_root.mkdir()
+        (devkit_root / "VERSION").write_text("0.1.0")
+
+        monkeypatch.setattr("_update_handler._devkit_root", lambda: devkit_root)
+
+        def fake_download(url, target_dir):
+            target_dir.mkdir(parents=True, exist_ok=True)
+            (target_dir / "VERSION").write_text("0.3.6")
+
+        monkeypatch.setattr(
+            "_update_handler.download_and_extract_tarball", fake_download
+        )
+
+        # Should not raise
+        handle_update(target="v0.3.6")
+        assert (devkit_root / "VERSION").read_text() == "0.3.6"
+
+    def test_no_crash_if_no_devkit_section(self, tmp_path, monkeypatch):
+        """Update succeeds even if leedevkit.toml has no [devkit] section."""
+        from _update_handler import handle_update
+
+        project_root = tmp_path / "project"
+        project_root.mkdir()
+        toml_file = project_root / "leedevkit.toml"
+        toml_file.write_text('[project]\nname = "test"\n')
+
+        devkit_root = project_root / ".leedevkit"
+        devkit_root.mkdir()
+        (devkit_root / "VERSION").write_text("0.1.0")
+
+        monkeypatch.setattr("_update_handler._devkit_root", lambda: devkit_root)
+
+        def fake_download(url, target_dir):
+            target_dir.mkdir(parents=True, exist_ok=True)
+            (target_dir / "VERSION").write_text("0.3.6")
+
+        monkeypatch.setattr(
+            "_update_handler.download_and_extract_tarball", fake_download
+        )
+
+        # Should not raise
+        handle_update(target="v0.3.6")
+        # Toml should remain unchanged
+        assert "[project]" in toml_file.read_text()
+
+
+class TestAutoSyncAfterUpdate:
+    """Test automatic sync after successful update."""
+
+    def test_sync_called_after_update(self, tmp_path, monkeypatch, capsys):
+        """After successful update, sync is automatically called."""
+        from _update_handler import handle_update
+
+        project_root = tmp_path / "project"
+        project_root.mkdir()
+        toml_file = project_root / "leedevkit.toml"
+        toml_file.write_text('[devkit]\nversion = "0.1.0"\n')
+
+        devkit_root = project_root / ".leedevkit"
+        devkit_root.mkdir()
+        (devkit_root / "VERSION").write_text("0.1.0")
+        (devkit_root / "scripts").mkdir()
+        (devkit_root / "scripts" / "_orchestrator.py").write_text("# stub")
+
+        monkeypatch.setattr("_update_handler._devkit_root", lambda: devkit_root)
+
+        def fake_download(url, target_dir):
+            target_dir.mkdir(parents=True, exist_ok=True)
+            (target_dir / "VERSION").write_text("0.3.7")
+            (target_dir / "scripts").mkdir()
+            (target_dir / "scripts" / "_orchestrator.py").write_text("# stub")
+
+        monkeypatch.setattr(
+            "_update_handler.download_and_extract_tarball", fake_download
+        )
+
+        handle_update(target="v0.3.7")
+
+        captured = capsys.readouterr()
+        combined = captured.out + captured.err
+        assert "syncing rules" in combined.lower()
+        assert "sync complete" in combined.lower()
+
+    def test_update_succeeds_even_if_sync_fails(self, tmp_path, monkeypatch, capsys):
+        """Update succeeds even if post-update sync fails."""
+        from _update_handler import handle_update
+
+        project_root = tmp_path / "project"
+        project_root.mkdir()
+
+        devkit_root = project_root / ".leedevkit"
+        devkit_root.mkdir()
+        (devkit_root / "VERSION").write_text("0.1.0")
+
+        monkeypatch.setattr("_update_handler._devkit_root", lambda: devkit_root)
+
+        def fake_download(url, target_dir):
+            target_dir.mkdir(parents=True, exist_ok=True)
+            (target_dir / "VERSION").write_text("0.3.7")
+
+        monkeypatch.setattr(
+            "_update_handler.download_and_extract_tarball", fake_download
+        )
+
+        # Mock sync to fail
+        def failing_sync(*args, **kwargs):
+            raise RuntimeError("sync failed")
+
+        monkeypatch.setattr(
+            "_init_handler.InitHandler.handle_post_update_sync", failing_sync
+        )
+
+        # Should not raise
+        handle_update(target="v0.3.7")
+
+        captured = capsys.readouterr()
+        combined = captured.out + captured.err
+        assert "post-update sync failed" in combined.lower()
+        assert "0.3.7" in (devkit_root / "VERSION").read_text()

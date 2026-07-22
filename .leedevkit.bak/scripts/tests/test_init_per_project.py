@@ -52,7 +52,7 @@ def _make_devkit_source(tmp_path: Path, version: str = "0.1.0") -> Path:
     python3.chmod(0o755)
     # ensure-venv.sh creates the venv and outputs the Python path
     (scripts / "_ensure-venv.sh").write_text(
-        '#!/bin/bash\n'
+        "#!/bin/bash\n"
         'VENV="$(dirname "$(dirname "$0")")/.venv"\n'
         'mkdir -p "$VENV/bin"\n'
         'touch "$VENV/bin/python3"\n'
@@ -137,6 +137,96 @@ class TestDevKitRootPriority:
 
 
 class TestHandleInitFromSource:
+    @pytest.mark.parametrize("configured_version", ["v0.3.14", "latest"])
+    def test_equivalent_version_does_not_reinstall(
+        self, tmp_path, monkeypatch, configured_version
+    ):
+        """A prefixed or latest pin must not reinstall an existing release."""
+        project = _make_project(tmp_path / "project", version=configured_version)
+        source = _make_devkit_source(tmp_path / "source", version="0.3.14")
+        target = project / ".leedevkit"
+        import shutil
+
+        shutil.copytree(source, target)
+        monkeypatch.chdir(project)
+        import _devkit_config
+
+        _devkit_config._DEVKIT_ROOT = None
+        with (
+            patch("_orchestrator.Orchestrator.register_traps", return_value=None),
+            patch("_init_handler.InitHandler._install_devkit") as install,
+        ):
+            from _orchestrator import Orchestrator
+
+            Orchestrator().handle_init(force=False)
+
+        install.assert_not_called()
+
+    def test_unprefixed_version_downloads_v_tag(self, tmp_path, monkeypatch):
+        """Config versions without ``v`` still resolve GitHub's v-prefixed tag."""
+        project = _make_project(tmp_path / "project", version="0.3.11")
+        target = project / ".leedevkit"
+        requested_urls = []
+
+        def fake_download(url, destination):
+            requested_urls.append(url)
+            destination.mkdir(parents=True)
+            (destination / "VERSION").write_text("0.3.11")
+
+        monkeypatch.setenv("DEVKIT_LOCAL_PATH", "")
+        monkeypatch.setattr("_init_handler.download_and_extract_tarball", fake_download)
+
+        from _init_handler import InitHandler
+
+        InitHandler(None)._install_devkit(project, target, "0.3.11", force=False)
+
+        assert requested_urls == [
+            "https://github.com/vkaylee/leedevkit/archive/refs/tags/v0.3.11.tar.gz"
+        ]
+
+    def test_extract_rejects_copying_target_onto_itself(self, tmp_path):
+        """A failed download must not delete a project's existing devkit."""
+        target = _make_devkit_source(tmp_path)
+        orchestrator = target / "scripts" / "_orchestrator.py"
+
+        from _init_handler import InitHandler
+
+        with pytest.raises(RuntimeError, match="target directory itself"):
+            InitHandler(None)._extract_from_source(target, target)
+
+        assert orchestrator.exists()
+
+    def test_failed_download_does_not_destroy_running_install(
+        self, tmp_path, monkeypatch
+    ):
+        """Exercise the original 404 → fallback failure through _install_devkit."""
+        project = _make_project(tmp_path / "project", version="0.3.11")
+        target = _make_devkit_source(project, version="0.3.14")
+        orchestrator = target / "scripts" / "_orchestrator.py"
+
+        import _init_handler
+
+        monkeypatch.setenv("DEVKIT_LOCAL_PATH", "")
+        monkeypatch.setattr(
+            _init_handler,
+            "__file__",
+            str(target / "scripts" / "_init_handler.py"),
+        )
+
+        def fail_download(_url, _destination):
+            raise OSError("simulated 404")
+
+        monkeypatch.setattr(
+            _init_handler, "download_and_extract_tarball", fail_download
+        )
+
+        with pytest.raises(RuntimeError, match="target directory itself"):
+            _init_handler.InitHandler(None)._install_devkit(
+                project, target, "0.3.11", force=False
+            )
+
+        assert orchestrator.read_text() == "# orchestrator stub\n"
+
     def test_installs_devkit_into_leedevkit_dir(self, tmp_path, monkeypatch):
         """Init copies devkit artifacts from source into .leedevkit/."""
         project = _make_project(tmp_path / "project")
@@ -515,3 +605,158 @@ class TestLegacySymlinkDetection:
         assert (agent_dir / "scripts").is_symlink()
         # Verify custom rule was preserved
         assert (agent_dir / "rules" / "my-rule.md").exists()
+
+
+# ---------------------------------------------------------------------------
+# Tests: custom rules_dir symlink (CLAUDE.md compatibility)
+# ---------------------------------------------------------------------------
+
+
+class TestCustomRulesDirSymlink:
+    def test_creates_symlink_when_rules_dir_is_custom(self, tmp_path, monkeypatch):
+        """When rules_dir is custom (e.g., .attendagent/rules), create .agent/rules symlink."""
+        project = _make_project(tmp_path / "project")
+        # Configure custom rules_dir
+        (project / "leedevkit.toml").write_text(
+            '[devkit]\nversion = "0.1.0"\n[project]\nname = "test"\n'
+            '[ai]\nrules_dir = ".attendagent/rules"\n'
+        )
+        source = _make_devkit_source(tmp_path / "source")
+        monkeypatch.setenv("DEVKIT_LOCAL_PATH", str(source))
+        monkeypatch.chdir(project)
+        import _devkit_config
+
+        _devkit_config._DEVKIT_ROOT = None
+        with patch("_orchestrator.Orchestrator.register_traps", return_value=None):
+            from _orchestrator import Orchestrator
+
+            orch = Orchestrator()
+            orch.handle_init(force=False)
+        # Verify custom rules_dir has files
+        custom_rules = project / ".attendagent" / "rules"
+        assert custom_rules.exists()
+        assert (custom_rules / "coding-standards.md").exists()
+        # Verify .agent/rules symlink exists and points to custom rules
+        default_rules = project / ".agent" / "rules"
+        assert default_rules.is_symlink()
+        assert default_rules.resolve() == custom_rules.resolve()
+        # Verify symlink is accessible
+        assert (default_rules / "coding-standards.md").exists()
+
+    def test_fixes_broken_symlink(self, tmp_path, monkeypatch):
+        """If .agent/rules symlink is broken, init fixes it."""
+        project = _make_project(tmp_path / "project")
+        (project / "leedevkit.toml").write_text(
+            '[devkit]\nversion = "0.1.0"\n[project]\nname = "test"\n'
+            '[ai]\nrules_dir = ".attendagent/rules"\n'
+        )
+        source = _make_devkit_source(tmp_path / "source")
+        # Create broken symlink
+        agent_dir = project / ".agent"
+        agent_dir.mkdir(parents=True)
+        broken_target = tmp_path / "nonexistent"
+        (agent_dir / "rules").symlink_to(broken_target)
+        assert (agent_dir / "rules").is_symlink()
+        assert not (agent_dir / "rules").exists()  # broken
+        monkeypatch.setenv("DEVKIT_LOCAL_PATH", str(source))
+        monkeypatch.chdir(project)
+        import _devkit_config
+
+        _devkit_config._DEVKIT_ROOT = None
+        with patch("_orchestrator.Orchestrator.register_traps", return_value=None):
+            from _orchestrator import Orchestrator
+
+            orch = Orchestrator()
+            orch.handle_init(force=False)
+        # Verify symlink is fixed
+        default_rules = project / ".agent" / "rules"
+        custom_rules = project / ".attendagent" / "rules"
+        assert default_rules.is_symlink()
+        assert default_rules.resolve() == custom_rules.resolve()
+        assert (default_rules / "coding-standards.md").exists()
+
+    def test_fixes_wrong_target_symlink(self, tmp_path, monkeypatch):
+        """If .agent/rules symlink points to wrong target, init fixes it."""
+        project = _make_project(tmp_path / "project")
+        (project / "leedevkit.toml").write_text(
+            '[devkit]\nversion = "0.1.0"\n[project]\nname = "test"\n'
+            '[ai]\nrules_dir = ".attendagent/rules"\n'
+        )
+        source = _make_devkit_source(tmp_path / "source")
+        # Create symlink pointing to wrong target
+        agent_dir = project / ".agent"
+        agent_dir.mkdir(parents=True)
+        wrong_target = tmp_path / "wrong-location"
+        wrong_target.mkdir()
+        (agent_dir / "rules").symlink_to(wrong_target)
+        monkeypatch.setenv("DEVKIT_LOCAL_PATH", str(source))
+        monkeypatch.chdir(project)
+        import _devkit_config
+
+        _devkit_config._DEVKIT_ROOT = None
+        with patch("_orchestrator.Orchestrator.register_traps", return_value=None):
+            from _orchestrator import Orchestrator
+
+            orch = Orchestrator()
+            orch.handle_init(force=False)
+        # Verify symlink is fixed
+        default_rules = project / ".agent" / "rules"
+        custom_rules = project / ".attendagent" / "rules"
+        assert default_rules.is_symlink()
+        assert default_rules.resolve() == custom_rules.resolve()
+
+    def test_preserves_real_directory(self, tmp_path, monkeypatch):
+        """If .agent/rules is a real directory (not symlink), don't touch it."""
+        project = _make_project(tmp_path / "project")
+        (project / "leedevkit.toml").write_text(
+            '[devkit]\nversion = "0.1.0"\n[project]\nname = "test"\n'
+            '[ai]\nrules_dir = ".attendagent/rules"\n'
+        )
+        source = _make_devkit_source(tmp_path / "source")
+        # Create real directory at .agent/rules
+        agent_dir = project / ".agent"
+        agent_dir.mkdir(parents=True)
+        real_rules = agent_dir / "rules"
+        real_rules.mkdir()
+        (real_rules / "custom-rule.md").write_text("# Custom\n")
+        monkeypatch.setenv("DEVKIT_LOCAL_PATH", str(source))
+        monkeypatch.chdir(project)
+        import _devkit_config
+
+        _devkit_config._DEVKIT_ROOT = None
+        with patch("_orchestrator.Orchestrator.register_traps", return_value=None):
+            from _orchestrator import Orchestrator
+
+            orch = Orchestrator()
+            orch.handle_init(force=False)
+        # Verify real directory is preserved
+        default_rules = project / ".agent" / "rules"
+        assert not default_rules.is_symlink()
+        assert default_rules.is_dir()
+        assert (default_rules / "custom-rule.md").exists()
+        assert (default_rules / "custom-rule.md").read_text() == "# Custom\n"
+
+    def test_no_symlink_when_rules_dir_is_default(self, tmp_path, monkeypatch):
+        """When rules_dir is .agent/rules (default), no symlink is created."""
+        project = _make_project(tmp_path / "project")
+        # Use default rules_dir
+        (project / "leedevkit.toml").write_text(
+            '[devkit]\nversion = "0.1.0"\n[project]\nname = "test"\n'
+            '[ai]\nrules_dir = ".agent/rules"\n'
+        )
+        source = _make_devkit_source(tmp_path / "source")
+        monkeypatch.setenv("DEVKIT_LOCAL_PATH", str(source))
+        monkeypatch.chdir(project)
+        import _devkit_config
+
+        _devkit_config._DEVKIT_ROOT = None
+        with patch("_orchestrator.Orchestrator.register_traps", return_value=None):
+            from _orchestrator import Orchestrator
+
+            orch = Orchestrator()
+            orch.handle_init(force=False)
+        # Verify .agent/rules is a real directory, not symlink
+        default_rules = project / ".agent" / "rules"
+        assert not default_rules.is_symlink()
+        assert default_rules.is_dir()
+        assert (default_rules / "coding-standards.md").exists()
