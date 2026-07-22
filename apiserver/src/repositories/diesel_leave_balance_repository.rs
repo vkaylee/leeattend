@@ -85,7 +85,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
             .load::<crate::models::diesel::leave::EmployeeLeaveBalanceRaw>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(balances.into_iter().map(Into::into).collect())
     }
@@ -154,7 +154,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
             .load::<crate::models::diesel::leave::EmployeeLeaveBalanceBatchRaw>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let mut map = std::collections::HashMap::new();
         for raw in raw_balances {
@@ -256,7 +256,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
             .load::<crate::models::diesel::leave::EmployeeLeaveBalanceByYearsRaw>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         for raw in raw_balances {
             let year = raw.balance_year;
@@ -491,7 +491,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }

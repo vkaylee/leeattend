@@ -54,7 +54,7 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
             .values(&new_entity)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -84,7 +84,7 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entry.map(Into::into))
     }
@@ -122,7 +122,7 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
             .set(&update_model)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }

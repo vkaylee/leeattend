@@ -62,7 +62,7 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
             .returning(AssignmentRuleEntity::as_returning())
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map_err(AppError::from)
             .map(Into::into)
     }
 
@@ -88,7 +88,7 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
             .select(AssignmentRuleEntity::as_select())
             .load::<AssignmentRuleEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map_err(AppError::from)
             .map(|rows| rows.into_iter().map(Into::into).collect())
     }
 
@@ -115,7 +115,7 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
             .select(AssignmentRuleEntity::as_select())
             .load::<AssignmentRuleEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map_err(AppError::from)
             .map(|rows| rows.into_iter().map(Into::into).collect())
     }
 
@@ -160,7 +160,7 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
             .returning(AssignmentRuleEntity::as_returning())
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map_err(AppError::from)
             .map(Into::into)
     }
 
@@ -185,7 +185,7 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
         )
         .execute(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(())
     }

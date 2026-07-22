@@ -265,7 +265,7 @@ impl RosterRepository for DieselRosterRepository {
             .filter(crate::schema::holidays::date.le(end_date))
             .load::<crate::models::diesel::holiday::HolidayEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let holidays_map: HashMap<NaiveDate, crate::models::Holiday> = holiday_entities
             .into_iter()
@@ -281,7 +281,7 @@ impl RosterRepository for DieselRosterRepository {
             .select(crate::schema::shift_rosters::all_columns)
             .load::<crate::models::diesel::roster::ShiftRosterEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let mut roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>> = HashMap::new();
         for r in rosters_entities {
@@ -697,7 +697,7 @@ impl RosterRepository for DieselRosterRepository {
             .filter(crate::schema::holidays::date.le(end_date))
             .load::<crate::models::diesel::holiday::HolidayEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let holidays_map: HashMap<NaiveDate, crate::models::Holiday> = holiday_entities
             .into_iter()
@@ -713,7 +713,7 @@ impl RosterRepository for DieselRosterRepository {
             .select(crate::schema::shift_rosters::all_columns)
             .load::<crate::models::diesel::roster::ShiftRosterEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let mut roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>> = HashMap::new();
         for r in rosters_entities {
@@ -1006,7 +1006,7 @@ impl RosterRepository for DieselRosterRepository {
             .select(crate::schema::shift_rosters::all_columns)
             .load::<crate::models::diesel::roster::ShiftRosterEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let data: Vec<ShiftRoster> = rosters.into_iter().map(Into::into).collect();
         let total = if page.is_some() || limit.is_some() {
@@ -1043,7 +1043,7 @@ impl RosterRepository for DieselRosterRepository {
             .select(crate::schema::shift_rosters::all_columns)
             .load::<crate::models::diesel::roster::ShiftRosterEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let mut map: std::collections::HashMap<Uuid, Vec<ShiftRoster>> =
             std::collections::HashMap::new();
@@ -1101,7 +1101,7 @@ impl RosterRepository for DieselRosterRepository {
             ))
             .get_result::<crate::models::diesel::roster::ShiftRosterEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(result.into())
     }
@@ -1162,7 +1162,7 @@ impl RosterRepository for DieselRosterRepository {
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -1225,7 +1225,7 @@ impl RosterRepository for DieselRosterRepository {
             .first::<Option<Uuid>>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         if let Some(shift) = roster_shift {
             traces.push(ScheduleTrace {
@@ -1286,7 +1286,7 @@ impl RosterRepository for DieselRosterRepository {
                 .first::<(Option<Uuid>, Uuid)>(&mut *conn)
                 .await
                 .optional()
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
 
         if let Some((shift_id, pattern_id)) = pattern_info {
             traces.push(ScheduleTrace {
@@ -1424,7 +1424,7 @@ impl RosterRepository for DieselRosterRepository {
                             .first::<Option<Uuid>>(&mut *conn)
                             .await
                             .optional()
-                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                            .map_err(AppError::from)?;
 
                     if let Some(s) = shift_id {
                         return Ok((s, traces));
@@ -1451,7 +1451,7 @@ impl RosterRepository for DieselRosterRepository {
             .first::<Uuid>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         if let Some(shift) = employee_shift {
             traces.push(ScheduleTrace {
@@ -1504,7 +1504,7 @@ impl RosterRepository for DieselRosterRepository {
         )
         .execute(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(())
     }

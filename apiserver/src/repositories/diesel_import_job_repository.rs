@@ -53,7 +53,7 @@ impl ImportJobRepository for DieselImportJobRepository {
             .values(&entity)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -83,7 +83,7 @@ impl ImportJobRepository for DieselImportJobRepository {
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -115,7 +115,7 @@ impl ImportJobRepository for DieselImportJobRepository {
                 ))
                 .execute(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
         }
 
         Ok(())
@@ -138,7 +138,7 @@ impl ImportJobRepository for DieselImportJobRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(row.map(Into::into))
     }
@@ -217,7 +217,7 @@ impl ImportJobRepository for DieselImportJobRepository {
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }

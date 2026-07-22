@@ -50,7 +50,7 @@ impl AttendanceLogErrorRepository for DieselAttendanceLogErrorRepository {
             .values(&entity)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -93,7 +93,7 @@ impl AttendanceLogErrorRepository for DieselAttendanceLogErrorRepository {
             .do_nothing()
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(rows_affected > 0)
     }

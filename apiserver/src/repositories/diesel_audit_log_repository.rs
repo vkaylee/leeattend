@@ -37,7 +37,7 @@ impl AuditLogRepository for DieselAuditLogRepository {
             .values(&entity)
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(inserted.into())
     }
@@ -86,7 +86,7 @@ impl AuditLogRepository for DieselAuditLogRepository {
             .count()
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let logs_result = query
             .order(audit_logs::created_at.desc())
@@ -94,7 +94,7 @@ impl AuditLogRepository for DieselAuditLogRepository {
             .offset(offset)
             .load::<AuditLogEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok((logs_result.into_iter().map(Into::into).collect(), count))
     }

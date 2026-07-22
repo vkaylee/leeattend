@@ -125,7 +125,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .values(&new_dept)
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let entity = departments::table
             .filter(departments::id.eq(result.id))
@@ -137,7 +137,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             ))
             .first::<(DieselDepartment, i64)>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let entity = DepartmentWithCountEntity {
             id: entity.0.id,
@@ -175,7 +175,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .first::<(DieselDepartment, i64)>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let entity = entity.map(|(d, count)| DepartmentWithCountEntity {
             id: d.id,
@@ -215,7 +215,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             ))
             .load::<(DieselDepartment, i64)>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(results
             .into_iter()
@@ -302,7 +302,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .select((departments::id, departments::name))
             .load::<IdNameOnly>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let mut map = std::collections::HashMap::new();
         for r in results {
@@ -341,7 +341,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
                 .values(chunk)
                 .execute(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
         }
 
         Ok(())
@@ -371,7 +371,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .set(&update_model)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let entity = departments::table
             .filter(departments::id.eq(id))
@@ -383,7 +383,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             ))
             .first::<(DieselDepartment, i64)>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let entity = DepartmentWithCountEntity {
             id: entity.0.id,
@@ -416,7 +416,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .set(departments::deleted_at.eq(Utc::now()))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -453,7 +453,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .offset((page - 1) * limit)
             .load::<(DieselDepartment, i64)>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let data = results
             .into_iter()
@@ -502,7 +502,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
                         .order(employments::start_date.asc())
                         .load::<EmploymentEntity>(conn)
                         .await
-                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        .map_err(AppError::from)?;
 
                     let active_idx = segments.iter().position(|s| {
                         s.start_date <= effective_date
@@ -528,7 +528,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
                             ))
                             .execute(conn)
                             .await
-                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                            .map_err(AppError::from)?;
 
                         target_id
                     } else {
@@ -542,7 +542,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
                             ))
                             .execute(conn)
                             .await
-                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                            .map_err(AppError::from)?;
 
                         let new_emp_id = Uuid::new_v4();
                         let active_seg = &segments[active_idx];
@@ -569,7 +569,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
                             .values(&new_seg)
                             .execute(conn)
                             .await
-                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                            .map_err(AppError::from)?;
 
                         new_emp_id
                     };
@@ -583,7 +583,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
                                 ))
                                 .execute(conn)
                                 .await
-                                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                                .map_err(AppError::from)?;
                         } else {
                             break;
                         }
@@ -720,7 +720,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(result.map(Into::into))
     }
@@ -826,7 +826,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
                 .first::<crate::models::WorkspaceConfigEntry>(&mut *conn)
                 .await
                 .optional()
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
 
             if let Some(entry) = existing {
                 first_id = entry.id();
@@ -840,7 +840,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
                 ))
                 .execute(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
             } else {
                 let id = Uuid::new_v4();
                 if key == "payroll.fixed_std_days" {
@@ -867,7 +867,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
                     .values(&entry)
                     .execute(&mut *conn)
                     .await
-                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                    .map_err(AppError::from)?;
             }
         }
 
@@ -916,7 +916,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .filter(workspace_config_entries::effective_from.le(date))
             .load::<crate::models::WorkspaceConfigEntry>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         if entries.is_empty() {
             return Ok(None);
@@ -991,7 +991,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .filter(workspace_config_entries::scope_id.eq(department_id))
             .load::<crate::models::WorkspaceConfigEntry>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let mut dates: Vec<chrono::NaiveDate> = entries
             .iter()
@@ -1055,7 +1055,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .filter(workspace_config_entries::scope_id.eq_any(department_ids))
             .load::<crate::models::WorkspaceConfigEntry>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let mut department_entries: std::collections::HashMap<
             Uuid,

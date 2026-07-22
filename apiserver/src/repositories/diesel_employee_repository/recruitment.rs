@@ -45,7 +45,7 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -66,7 +66,7 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
             .values(&entity)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -125,7 +125,7 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(result.map(Into::into))
     }
@@ -172,7 +172,7 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
             .get_result(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(result.map(Into::into))
     }
@@ -196,7 +196,7 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
             .filter(recruitment_sources::workspace_id.eq(workspace_id))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(affected as u64)
     }
@@ -255,7 +255,7 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
             .get_result::<CountRow>(&mut *conn)
             .await
             .map(|r| r.count)
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         // 2. Tenure distribution
         let tenure_rows: Vec<TenureRow> =

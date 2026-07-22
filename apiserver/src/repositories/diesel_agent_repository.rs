@@ -131,7 +131,7 @@ impl AgentRepository for DieselAgentRepository {
             .order(authorized_agents::created_at.desc())
             .load::<AuthorizedAgentEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(agents.into_iter().map(Into::into).collect())
     }
@@ -173,7 +173,7 @@ impl AgentRepository for DieselAgentRepository {
             .values(&agent)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -198,7 +198,7 @@ impl AgentRepository for DieselAgentRepository {
             .count()
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(count > 0)
     }
@@ -217,7 +217,7 @@ impl AgentRepository for DieselAgentRepository {
             .order(devices::created_at.desc())
             .load::<DeviceEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(devices_result.into_iter().map(Into::into).collect())
     }
@@ -238,7 +238,7 @@ impl AgentRepository for DieselAgentRepository {
             .order(devices::created_at.desc())
             .load::<DeviceEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(devices_result.into_iter().map(Into::into).collect())
     }
@@ -280,7 +280,7 @@ impl AgentRepository for DieselAgentRepository {
             .values(&device)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -301,7 +301,7 @@ impl AgentRepository for DieselAgentRepository {
             .first::<DeviceEntity>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(device.map(Into::into))
     }
@@ -344,7 +344,7 @@ impl AgentRepository for DieselAgentRepository {
                 .filter(devices::workspace_id.eq(auth_token.workspace_id()))
                 .first(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
             update_model.password = existing;
         }
 
@@ -356,7 +356,7 @@ impl AgentRepository for DieselAgentRepository {
         .set(&update_model)
         .execute(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -378,7 +378,7 @@ impl AgentRepository for DieselAgentRepository {
             .first::<String>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(agent_id)
     }
@@ -400,7 +400,7 @@ impl AgentRepository for DieselAgentRepository {
         )
         .execute(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(affected as u64)
     }
@@ -427,7 +427,7 @@ impl AgentRepository for DieselAgentRepository {
         .set(authorized_agents::is_trusted.eq(Some(is_trusted)))
         .execute(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(affected as u64)
     }
@@ -451,7 +451,7 @@ impl AgentRepository for DieselAgentRepository {
             .first::<AuthorizedAgentEntity>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(agent.map(Into::into))
     }
@@ -477,7 +477,7 @@ impl AgentRepository for DieselAgentRepository {
         .set(authorized_agents::is_active.eq(false))
         .execute(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(affected as u64)
     }

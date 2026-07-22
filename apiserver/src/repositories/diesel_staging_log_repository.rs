@@ -68,7 +68,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
         ))
         .get_result(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         if exists {
             return Ok(false);
@@ -78,7 +78,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
             .values(&entity)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(rows_affected > 0)
     }
@@ -179,7 +179,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
             .set(attendance_staging_logs::status.eq(status))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(rows_affected > 0)
     }
@@ -199,7 +199,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
             .count()
             .get_result::<i64>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(count)
     }
@@ -247,7 +247,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
                     .order(attendance_staging_logs::punch_time.asc())
                     .load::<AttendanceStagingLogEntity>(&mut *conn)
                     .await
-                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                    .map_err(AppError::from)?;
 
                 if staged_logs.is_empty() {
                     return Ok(0);
@@ -277,7 +277,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
                     .on_conflict_do_nothing()
                     .execute(&mut *conn)
                     .await
-                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                    .map_err(AppError::from)?;
 
                 let staged_ids: Vec<_> = staged_logs.iter().map(|staged| staged.id).collect();
 
@@ -288,7 +288,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
                 .set(attendance_staging_logs::status.eq("processed"))
                 .execute(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
 
                 Ok(inserted_rows as u64)
             })

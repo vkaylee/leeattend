@@ -63,7 +63,7 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
                 .first::<crate::models::WorkspaceConfigEntry>(&mut *conn)
                 .await
                 .optional()
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
 
             if let Some(entry) = existing {
                 first_id = entry.id();
@@ -77,7 +77,7 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
                 ))
                 .execute(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
             } else {
                 let id = Uuid::new_v4();
                 if key == "payroll.fixed_std_days" {
@@ -104,7 +104,7 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
                     .values(&entry)
                     .execute(&mut *conn)
                     .await
-                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                    .map_err(AppError::from)?;
             }
         }
 
@@ -146,7 +146,7 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
             .filter(workspace_config_entries::effective_from.le(date))
             .load::<crate::models::WorkspaceConfigEntry>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         if entries.is_empty() {
             return Ok(None);
@@ -213,7 +213,7 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
             )
             .load::<crate::models::WorkspaceConfigEntry>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let mut dates: Vec<chrono::NaiveDate> = entries
             .iter()
@@ -277,7 +277,7 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
             .filter(workspace_config_entries::scope_id.eq_any(employment_ids))
             .load::<crate::models::WorkspaceConfigEntry>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let mut employment_entries: std::collections::HashMap<
             Uuid,

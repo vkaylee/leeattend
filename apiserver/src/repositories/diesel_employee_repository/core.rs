@@ -48,7 +48,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             .get_result(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(emp.map(Into::into))
     }
@@ -74,7 +74,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             .get_result(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(emp.map(Into::into))
     }
@@ -242,27 +242,27 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                 .bind::<Array<UuidType>, _>(ids)
                 .get_result(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+                .map_err(AppError::from)?,
             (true, None) => diesel::sql_query(&count_sql)
                 .bind::<UuidType, _>(workspace_id)
                 .bind::<Nullable<Text>, _>(count_search_param)
                 .bind::<Nullable<Array<UuidType>>, _>(dept_ids)
                 .get_result(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+                .map_err(AppError::from)?,
             (false, Some(ids)) => diesel::sql_query(&count_sql)
                 .bind::<UuidType, _>(workspace_id)
                 .bind::<Nullable<Array<UuidType>>, _>(dept_ids)
                 .bind::<Array<UuidType>, _>(ids)
                 .get_result(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+                .map_err(AppError::from)?,
             (false, None) => diesel::sql_query(&count_sql)
                 .bind::<UuidType, _>(workspace_id)
                 .bind::<Nullable<Array<UuidType>>, _>(dept_ids)
                 .get_result(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+                .map_err(AppError::from)?,
         };
 
         let total = total_row.count;
@@ -498,7 +498,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             .count()
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         if total == 0 {
             return Ok((vec![], 0));
@@ -690,7 +690,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                             .set(employees::user_id.eq(None::<Uuid>))
                             .execute(&mut *conn)
                             .await
-                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                            .map_err(AppError::from)?;
                     }
                 }
 
@@ -720,7 +720,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                     .get_result(&mut *conn)
                     .await
                     .optional()
-                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                    .map_err(AppError::from)?;
 
                 if req.recruitment_source_id.is_some() {
                     diesel::update(employees::table)
@@ -732,7 +732,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                         ))
                         .execute(&mut *conn)
                         .await
-                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        .map_err(AppError::from)?;
                 }
 
                 Ok(result.map(Into::into))
@@ -1086,7 +1086,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             .set(employees::deleted_at.eq(Some(chrono::Utc::now())))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(affected as u64)
     }
@@ -1209,7 +1209,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                             .execute(&mut *conn)
                             .await;
                         tracing::debug!("insert res={:?}", res);
-                        res.map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        res.map_err(AppError::from)?;
                     }
                 }
 
@@ -1380,7 +1380,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(result)
     }
@@ -1563,7 +1563,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(hq_id)
     }

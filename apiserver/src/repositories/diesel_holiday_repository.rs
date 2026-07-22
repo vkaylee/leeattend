@@ -129,7 +129,7 @@ impl HolidayRepository for DieselHolidayRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entity.map(Into::into))
     }
@@ -170,7 +170,7 @@ impl HolidayRepository for DieselHolidayRepository {
             .values(&new_holiday)
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(result.into())
     }
@@ -216,7 +216,7 @@ impl HolidayRepository for DieselHolidayRepository {
             .get_result(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(result.map(Into::into))
     }
@@ -241,7 +241,7 @@ impl HolidayRepository for DieselHolidayRepository {
             .set(holidays::deleted_at.eq(Utc::now()))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(affected > 0)
     }
@@ -307,7 +307,7 @@ impl HolidayRepository for DieselHolidayRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entity.map(Into::into))
     }

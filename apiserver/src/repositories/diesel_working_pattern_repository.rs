@@ -363,7 +363,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                 .values(&assignment_records)
                 .execute(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
         }
 
         Ok(BulkAssignResponse {

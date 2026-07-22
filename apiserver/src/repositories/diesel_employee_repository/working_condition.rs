@@ -128,7 +128,7 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -162,7 +162,7 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
             )
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(affected > 0)
     }

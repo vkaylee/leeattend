@@ -164,7 +164,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
             .values(&entity)
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(result.into())
     }
@@ -189,7 +189,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entity.map(Into::into))
     }
@@ -328,7 +328,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -449,7 +449,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         ))
         .get_result(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(exists)
     }
@@ -482,7 +482,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         ))
         .get_result(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(exists)
     }
@@ -513,7 +513,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         ))
         .first::<(i64, i64, i64, i64, i64, i64, i64)>(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         let entity = SwapStatsEntity {
             pending_target: result.0,

@@ -44,7 +44,7 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         if let Some(mut entity) = result {
             if let Some(crypto) = &self.crypto_service {
@@ -174,7 +174,7 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
             ))
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         if let Some(crypto) = &self.crypto_service {
             if let Some(ref enc_nat_id) = result.national_id {
@@ -262,7 +262,7 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
                         .set(employee_emergency_contacts::is_primary.eq(false))
                         .execute(&mut *conn)
                         .await
-                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        .map_err(AppError::from)?;
                 }
 
                 let result: EmployeeEmergencyContactEntity =
@@ -277,7 +277,7 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
                         ))
                         .get_result(&mut *conn)
                         .await
-                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        .map_err(AppError::from)?;
 
                 Ok(result.into())
             })
@@ -310,7 +310,7 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(affected as u64)
     }
@@ -357,7 +357,7 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
             .values(&entity)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }

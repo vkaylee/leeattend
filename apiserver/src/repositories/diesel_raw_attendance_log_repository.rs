@@ -60,7 +60,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .do_nothing()
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(rows_affected > 0)
     }
@@ -84,7 +84,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(res.map(Into::into))
     }
@@ -109,7 +109,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(res.map(Into::into))
     }
@@ -169,7 +169,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .offset(p_offset)
             .load::<(RawAttendanceLogEntity, String, String, Option<String>)>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(results
             .into_iter()
@@ -229,7 +229,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .count()
             .get_result::<i64>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(count)
     }
@@ -279,7 +279,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .do_nothing()
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(rows_affected)
     }
@@ -308,7 +308,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         ))
         .get_result::<bool>(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(duplicate_exists)
     }
@@ -336,7 +336,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .order(raw_attendance_logs::punch_time.asc())
             .load::<RawAttendanceLogEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(results.into_iter().map(Into::into).collect())
     }

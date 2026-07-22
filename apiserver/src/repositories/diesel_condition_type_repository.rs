@@ -108,7 +108,7 @@ impl ConditionTypeRepository for DieselConditionTypeRepository {
         let rows = query
             .load::<CondTypeRow>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(rows.into_iter().map(row_to_definition).collect())
     }
@@ -131,7 +131,7 @@ impl ConditionTypeRepository for DieselConditionTypeRepository {
             .first::<CondTypeRow>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(row.map(row_to_definition))
     }
@@ -154,7 +154,7 @@ impl ConditionTypeRepository for DieselConditionTypeRepository {
             .first::<CondTypeRow>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(row.map(row_to_definition))
     }
@@ -191,7 +191,7 @@ impl ConditionTypeRepository for DieselConditionTypeRepository {
             .returning(ALL_COLUMNS)
             .get_result::<CondTypeRow>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(row_to_definition(row))
     }
@@ -217,7 +217,7 @@ impl ConditionTypeRepository for DieselConditionTypeRepository {
             .first::<CondTypeRow>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let (
             _id,
@@ -268,7 +268,7 @@ impl ConditionTypeRepository for DieselConditionTypeRepository {
         .returning(ALL_COLUMNS)
         .get_result::<CondTypeRow>(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(row_to_definition(row))
     }
@@ -294,7 +294,7 @@ impl ConditionTypeRepository for DieselConditionTypeRepository {
             .first::<(Uuid, bool)>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let Some((_found_id, is_system)) = definition else {
             return Ok(());
@@ -314,7 +314,7 @@ impl ConditionTypeRepository for DieselConditionTypeRepository {
         )
         .execute(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(())
     }

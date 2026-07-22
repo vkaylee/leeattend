@@ -46,7 +46,7 @@ impl UserRepository for DieselUserRepository {
             .values(&entity)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -88,7 +88,7 @@ impl UserRepository for DieselUserRepository {
                         .count()
                         .get_result::<i64>(&mut *conn)
                         .await
-                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        .map_err(AppError::from)?;
 
                     let is_first = count == 0;
 
@@ -96,7 +96,7 @@ impl UserRepository for DieselUserRepository {
                         .values(&entity)
                         .execute(&mut *conn)
                         .await
-                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        .map_err(AppError::from)?;
 
                     if is_first {
                         let role_id_opt: Option<Uuid> = system_roles::table
@@ -105,7 +105,7 @@ impl UserRepository for DieselUserRepository {
                             .first::<Uuid>(&mut *conn)
                             .await
                             .optional()
-                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                            .map_err(AppError::from)?;
 
                         if let Some(role_id) = role_id_opt {
                             diesel::insert_into(user_system_roles::table)
@@ -115,7 +115,7 @@ impl UserRepository for DieselUserRepository {
                                 ))
                                 .execute(&mut *conn)
                                 .await
-                                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                                .map_err(AppError::from)?;
                         } else {
                             return Err(AppError::Internal("platform_admin role not found".into()));
                         }
@@ -142,7 +142,7 @@ impl UserRepository for DieselUserRepository {
             .count()
             .get_result::<i64>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(count)
     }
@@ -162,7 +162,7 @@ impl UserRepository for DieselUserRepository {
             .first::<Uuid>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let Some(role_id) = role_id_opt else {
             return Err(AppError::Internal("platform_admin role not found".into()));
@@ -175,7 +175,7 @@ impl UserRepository for DieselUserRepository {
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -195,7 +195,7 @@ impl UserRepository for DieselUserRepository {
             .first::<UserEntity>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entity.map(Into::into))
     }
@@ -215,7 +215,7 @@ impl UserRepository for DieselUserRepository {
             .first::<UserEntity>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entity.map(Into::into))
     }
@@ -238,7 +238,7 @@ impl UserRepository for DieselUserRepository {
             .select(UserEntity::as_select())
             .load::<UserEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -260,7 +260,7 @@ impl UserRepository for DieselUserRepository {
             .set(users::password_hash.eq(password_hash))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -280,7 +280,7 @@ impl UserRepository for DieselUserRepository {
             .select(system_roles::name)
             .load::<String>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(roles)
     }
@@ -308,7 +308,7 @@ impl UserRepository for DieselUserRepository {
             ))
             .get_result::<UserEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entity.into())
     }
@@ -329,7 +329,7 @@ impl UserRepository for DieselUserRepository {
             .order(users::created_at.desc())
             .load::<UserEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -353,7 +353,7 @@ impl UserRepository for DieselUserRepository {
             .first::<crate::models::diesel::core::DashboardPreferenceEntity>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entity.map(Into::into))
     }
@@ -399,7 +399,7 @@ impl UserRepository for DieselUserRepository {
             ))
             .get_result::<crate::models::diesel::core::DashboardPreferenceEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
             return Ok(entity.into());
         }
         // Insert new
@@ -422,7 +422,7 @@ impl UserRepository for DieselUserRepository {
             ))
             .get_result::<crate::models::diesel::core::DashboardPreferenceEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
         return Ok(entity.into());
     }
 
@@ -454,7 +454,7 @@ impl UserRepository for DieselUserRepository {
             .limit(limit)
             .load::<crate::models::diesel::core::NotificationEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -475,7 +475,7 @@ impl UserRepository for DieselUserRepository {
             .count()
             .get_result::<i64>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(count)
     }
@@ -502,7 +502,7 @@ impl UserRepository for DieselUserRepository {
         .set(notifications::is_read.eq(true))
         .execute(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -521,7 +521,7 @@ impl UserRepository for DieselUserRepository {
             .set(notifications::is_read.eq(true))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -601,7 +601,7 @@ impl UserRepository for DieselUserRepository {
             .values(&new_notification)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }

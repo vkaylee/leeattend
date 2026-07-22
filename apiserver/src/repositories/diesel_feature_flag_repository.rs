@@ -36,7 +36,7 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
             .select(FeatureFlagEntity::as_select())
             .load::<FeatureFlagEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map_err(AppError::from)
             .map(|rows| rows.into_iter().map(Into::into).collect())
     }
 
@@ -58,7 +58,7 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
             .first::<FeatureFlagEntity>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map_err(AppError::from)
             .map(|r| r.map(Into::into))
     }
 
@@ -80,7 +80,7 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
             .first::<FeatureFlagEntity>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map_err(AppError::from)
             .map(|r| r.map(Into::into))
     }
 
@@ -102,7 +102,7 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
             .first::<bool>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(enabled.unwrap_or(false))
     }
@@ -138,7 +138,7 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
             .returning(FeatureFlagEntity::as_returning())
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map_err(AppError::from)
             .map(Into::into)
     }
 
@@ -171,7 +171,7 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
             .get_result(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map_err(AppError::from)
             .map(|r| r.map(Into::into))
     }
 
@@ -189,7 +189,7 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
         )
         .execute(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))
+        .map_err(AppError::from)
         .map(|count| count > 0)
     }
 
@@ -232,7 +232,7 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
             .returning(FeatureFlagEntity::as_returning())
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map_err(AppError::from)
             .map(Into::into)
     }
 }

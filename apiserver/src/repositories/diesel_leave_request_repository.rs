@@ -77,7 +77,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -104,7 +104,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .first::<LeaveRequestEntity>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entity.map(Into::into))
     }
@@ -139,7 +139,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -166,7 +166,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .select(LeaveRequestEntity::as_select())
             .load::<LeaveRequestEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -199,7 +199,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .select(LeaveRequestEntity::as_select())
             .load::<LeaveRequestEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -319,7 +319,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             ))
             .load::<(String, i64)>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         // Step 2: Count paid holidays in the period to subtract from total
         let paid_holiday_count: i64 = holidays::table
@@ -343,7 +343,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .count()
             .get_result::<i64>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let mut breakdown = LeaveBreakdown {
             total_days: 0.0,
@@ -394,7 +394,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .first::<Option<Uuid>>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
+            .map_err(AppError::from)?
             .flatten();
 
         Ok(dept_id)
@@ -419,7 +419,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .select((leave_types::code, leave_types::name))
             .load::<(String, String)>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(rows)
     }
@@ -460,7 +460,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .first::<(Uuid, Uuid, String)>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(row)
     }
@@ -492,7 +492,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -589,7 +589,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .get_result::<i64>(&mut *conn)
             .await
             .map(|c| c > 0)
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(exists)
     }
@@ -615,7 +615,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .first::<String>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(name)
     }
@@ -657,7 +657,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .count()
             .get_result::<i64>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(count)
     }
@@ -698,7 +698,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             ))
             .load::<(Uuid, i64)>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(rows.into_iter().collect())
     }
@@ -887,7 +887,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             ))
             .load::<(Uuid, String, i64)>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         // Step 2: Get paid holidays count intersecting with any approved leave per employee
         let holiday_rows = holidays::table
@@ -1051,7 +1051,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .select(LeaveRequestEntity::as_select())
             .load::<LeaveRequestEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }

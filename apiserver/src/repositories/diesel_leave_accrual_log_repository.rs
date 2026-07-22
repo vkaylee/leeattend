@@ -50,7 +50,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
             .first::<(Uuid, bigdecimal::BigDecimal)>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let row = row
             .map(|(id, amount)| -> Result<_, AppError> {
@@ -85,7 +85,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
             .select(leave_policy_assignments::effective_from)
             .first::<NaiveDate>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(date)
     }
@@ -104,7 +104,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
             .select(workspaces::timezone)
             .first::<String>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(tz)
     }
@@ -283,7 +283,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
             ))
             .get_result::<LeaveAccrualLogEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entity.into())
     }
@@ -327,7 +327,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
             .get_result::<LeaveAccrualLogEntity>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(res.map(Into::into))
     }
@@ -373,7 +373,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -407,7 +407,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -446,7 +446,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                     .first::<(Uuid, bigdecimal::BigDecimal)>(&mut *conn)
                     .await
                     .optional()
-                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                    .map_err(AppError::from)?;
 
                 if let Some((log_id, old_amount_bd)) = row {
                     let old_amount = Decimal::from_str(&old_amount_bd.to_string())
@@ -471,7 +471,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                             ))
                             .get_result::<LeaveAccrualLogEntity>(&mut *conn)
                             .await
-                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                            .map_err(AppError::from)?;
 
                         diesel::update(leave_balances::table)
                             .filter(leave_balances::employment_id.eq(employment_id))
@@ -484,7 +484,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                             ))
                             .execute(&mut *conn)
                             .await
-                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                            .map_err(AppError::from)?;
 
                         return Ok(Some(entity.into()));
                     }
@@ -510,7 +510,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                         .get_result::<LeaveAccrualLogEntity>(&mut *conn)
                         .await
                         .optional()
-                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        .map_err(AppError::from)?;
 
                     if entity.is_some() {
                         diesel::insert_into(leave_balances::table)
@@ -536,7 +536,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                             ))
                             .execute(&mut *conn)
                             .await
-                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                            .map_err(AppError::from)?;
                     }
 
                     Ok(entity.map(Into::into))
@@ -606,7 +606,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                         .first::<(Uuid, bigdecimal::BigDecimal)>(&mut *conn)
                         .await
                         .optional()
-                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        .map_err(AppError::from)?;
 
                     if let Some((log_id, old_amount_bd)) = row {
                         let old_amount =
@@ -633,7 +633,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                                 ))
                                 .get_result::<LeaveAccrualLogEntity>(&mut *conn)
                                 .await
-                                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                                .map_err(AppError::from)?;
 
                             diesel::update(leave_balances::table)
                                 .filter(leave_balances::employment_id.eq(active_emp_id))
@@ -646,7 +646,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                                 ))
                                 .execute(&mut *conn)
                                 .await
-                                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                                .map_err(AppError::from)?;
 
                             all_logs.push(entity.into());
                         }
@@ -673,7 +673,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                             .get_result::<LeaveAccrualLogEntity>(&mut *conn)
                             .await
                             .optional()
-                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                            .map_err(AppError::from)?;
 
                         if let Some(e) = entity {
                             diesel::insert_into(leave_balances::table)
@@ -699,7 +699,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                                 ))
                                 .execute(&mut *conn)
                                 .await
-                                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                                .map_err(AppError::from)?;
 
                             all_logs.push(e.into());
                         }

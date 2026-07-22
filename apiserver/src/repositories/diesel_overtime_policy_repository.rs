@@ -48,7 +48,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             .returning(OvertimePolicyEntity::as_returning())
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map_err(AppError::from)
             .map(Into::into)
     }
 
@@ -106,7 +106,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         if let Some(p) = policy {
             let rules: Vec<OvertimeRuleEntity> = overtime_rules::table
@@ -152,7 +152,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             .returning(OvertimeRuleEntity::as_returning())
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map_err(AppError::from)
             .map(Into::into)
     }
 
@@ -186,7 +186,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         if let Some(policy_id) = emp_policy {
             return Ok(Some(policy_id));
@@ -221,7 +221,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         if let Some(policy_id) = dept_policy {
             return Ok(Some(policy_id));
@@ -242,7 +242,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(ws_policy)
     }
@@ -273,7 +273,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }

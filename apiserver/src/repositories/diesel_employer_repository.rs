@@ -59,7 +59,7 @@ impl EmployerRepository for DieselEmployerRepository {
             .values(&new_employer)
             .get_result::<EmployerEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(result.into())
     }
@@ -82,7 +82,7 @@ impl EmployerRepository for DieselEmployerRepository {
             .first::<EmployerEntity>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(result.map(Into::into))
     }
@@ -107,7 +107,7 @@ impl EmployerRepository for DieselEmployerRepository {
             .filter(employers::deleted_at.is_null())
             .load::<EmployerEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(results.into_iter().map(Into::into).collect())
     }
@@ -140,7 +140,7 @@ impl EmployerRepository for DieselEmployerRepository {
             .offset((page - 1) * limit)
             .load::<EmployerEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok((results.into_iter().map(Into::into).collect(), total))
     }
@@ -163,7 +163,7 @@ impl EmployerRepository for DieselEmployerRepository {
             .filter(employers::deleted_at.is_null())
             .first::<EmployerEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         if let Some(name) = data.name {
             existing.name = name;
@@ -184,7 +184,7 @@ impl EmployerRepository for DieselEmployerRepository {
                 .set(employers::parent_id.eq(None::<Uuid>))
                 .execute(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
             }
             existing.parent_id = parent_opt;
         }
@@ -198,7 +198,7 @@ impl EmployerRepository for DieselEmployerRepository {
                 .set(employers::relationship_type.eq(None::<String>))
                 .execute(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
             }
             existing.relationship_type = rel_opt;
         }
@@ -236,7 +236,7 @@ impl EmployerRepository for DieselEmployerRepository {
         .set(&existing)
         .get_result::<EmployerEntity>(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(result.into())
     }
@@ -260,7 +260,7 @@ impl EmployerRepository for DieselEmployerRepository {
         .set(employers::deleted_at.eq(Some(Utc::now())))
         .execute(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -286,7 +286,7 @@ impl EmployerRepository for DieselEmployerRepository {
             .count()
             .get_result::<i64>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(count)
     }

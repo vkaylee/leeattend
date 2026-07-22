@@ -56,7 +56,7 @@ impl ShiftRepository for DieselShiftRepository {
             .values(&new_shift)
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         // Insert intervals for this shift — at least 1 required
         if req.intervals.is_empty() {
@@ -115,7 +115,7 @@ impl ShiftRepository for DieselShiftRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entity.map(Into::into))
     }
@@ -163,7 +163,7 @@ impl ShiftRepository for DieselShiftRepository {
                 .count()
                 .get_result::<i64>(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?
+                .map_err(AppError::from)?
         } else {
             0
         };
@@ -239,7 +239,7 @@ impl ShiftRepository for DieselShiftRepository {
             ))
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         // Replace intervals: delete old, insert new
         diesel::delete(
@@ -308,7 +308,7 @@ impl ShiftRepository for DieselShiftRepository {
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -344,7 +344,7 @@ impl ShiftRepository for DieselShiftRepository {
             .values(&new_assignment)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -379,7 +379,7 @@ impl ShiftRepository for DieselShiftRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entity.map(Into::into))
     }
@@ -414,7 +414,7 @@ impl ShiftRepository for DieselShiftRepository {
                 .bind::<diesel::sql_types::Date, _>(effective_date)
                 .execute(conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
 
                 diesel::sql_query(
                     "INSERT INTO employee_shifts (employment_id, shift_id, start_date, end_date)
@@ -428,7 +428,7 @@ impl ShiftRepository for DieselShiftRepository {
                 .bind::<diesel::sql_types::Date, _>(yesterday)
                 .execute(conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
 
                 Ok(())
             })

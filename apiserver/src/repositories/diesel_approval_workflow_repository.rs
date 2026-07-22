@@ -68,7 +68,7 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
                 .count()
                 .get_result(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
             if count == 0 {
                 return Err(AppError::forbidden(I18nKey::TenantMismatch));
             }
@@ -628,7 +628,7 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
                 .count()
                 .get_result(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
             if count == 0 {
                 return Err(AppError::forbidden(I18nKey::TenantMismatch));
             }

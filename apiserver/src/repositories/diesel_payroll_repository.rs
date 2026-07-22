@@ -59,7 +59,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .filter(payroll_incentive_policies::deleted_at.is_null())
             .load::<PayrollIncentivePolicyEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -89,7 +89,7 @@ impl PayrollRepository for DieselPayrollRepository {
             )
             .load::<PayrollIncentivePolicyEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -111,7 +111,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .order(payroll_incentive_tiers::priority.asc())
             .load::<IncentiveTierEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -203,7 +203,7 @@ impl PayrollRepository for DieselPayrollRepository {
         .set(payroll_incentive_policies::deleted_at.eq(Some(Utc::now())))
         .execute(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -240,7 +240,7 @@ impl PayrollRepository for DieselPayrollRepository {
                         .filter(payroll_incentive_tiers::policy_id.eq(policy_id))
                         .load::<crate::models::diesel::payroll::IncentiveTierEntity>(&mut *conn)
                         .await
-                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        .map_err(AppError::from)?;
 
                     // 2. Insert new policy
                     let new_policy_id = crate::utils::id::new_id();
@@ -264,7 +264,7 @@ impl PayrollRepository for DieselPayrollRepository {
                         .values(&new_policy_entity)
                         .execute(&mut *conn)
                         .await
-                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        .map_err(AppError::from)?;
 
                     // 3. Insert tiers
                     let new_tiers: Vec<_> = original_tiers
@@ -283,7 +283,7 @@ impl PayrollRepository for DieselPayrollRepository {
                             .values(&new_tiers)
                             .execute(&mut *conn)
                             .await
-                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                            .map_err(AppError::from)?;
                     }
 
                     Ok((new_policy_entity, new_tiers))
@@ -321,7 +321,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .values(&entity)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -342,7 +342,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .filter(payslip_incentives::payslip_id.eq(payslip_id))
             .load::<PayslipIncentiveEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities
             .into_iter()
@@ -381,7 +381,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .values(&entity)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -403,7 +403,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .select(PayslipRuleEvaluationEntity::as_select())
             .load::<PayslipRuleEvaluationEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -434,7 +434,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .filter(workspace_config_entries::effective_from.le(date))
             .load::<crate::models::WorkspaceConfigEntry>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         if entries.is_empty() {
             return Ok(None);
@@ -484,7 +484,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .filter(workspace_config_entries::scope_type.eq("workspace"))
             .load::<crate::models::WorkspaceConfigEntry>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         if entries.is_empty() {
             return Ok(Vec::new());
@@ -599,7 +599,7 @@ impl PayrollRepository for DieselPayrollRepository {
                     .first::<crate::models::WorkspaceConfigEntry>(&mut *conn)
                     .await
                     .optional()
-                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                    .map_err(AppError::from)?;
 
                 if let Some(entry) = existing {
                     diesel::update(
@@ -616,7 +616,7 @@ impl PayrollRepository for DieselPayrollRepository {
                     ))
                     .execute(&mut *conn)
                     .await
-                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                    .map_err(AppError::from)?;
                 } else {
                     let id = Uuid::new_v4();
                     let entry = crate::models::WorkspaceConfigEntry::new(
@@ -640,7 +640,7 @@ impl PayrollRepository for DieselPayrollRepository {
                         .values(&entry)
                         .execute(&mut *conn)
                         .await
-                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        .map_err(AppError::from)?;
                 }
             } else {
                 diesel::delete(
@@ -653,7 +653,7 @@ impl PayrollRepository for DieselPayrollRepository {
                 )
                 .execute(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
             }
         }
 
@@ -681,7 +681,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .select(SalaryComponentDefinitionEntity::as_select())
             .load::<SalaryComponentDefinitionEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -718,7 +718,7 @@ impl PayrollRepository for DieselPayrollRepository {
                         .values(&entity)
                         .get_result::<SalaryComponentDefinitionEntity>(&mut *conn)
                         .await
-                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        .map_err(AppError::from)?;
 
                     if let Some(base_group_ids) = base_group_ids {
                         if !base_group_ids.is_empty() {
@@ -760,7 +760,7 @@ impl PayrollRepository for DieselPayrollRepository {
                                 .do_nothing()
                                 .execute(&mut *conn)
                                 .await
-                                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                                .map_err(AppError::from)?;
                         }
                     }
 
@@ -801,7 +801,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .values(&entity)
             .get_result::<EmployeeSalaryComponentEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(result.into())
     }
@@ -925,7 +925,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .values(&entity)
             .get_result::<PayslipEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(result.into())
     }
@@ -950,7 +950,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .order(payslips::period_start.desc())
             .load::<PayslipEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -975,7 +975,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .order(payslips::created_at.desc())
             .load::<PayslipEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -1182,7 +1182,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .values(&entity)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -1203,7 +1203,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .filter(payslip_segments::payslip_id.eq(payslip_id))
             .load::<PayslipSegmentEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -1422,7 +1422,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .bind::<diesel::sql_types::Date, _>(end_date)
             .load::<ResolvedRow>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(rows
             .into_iter()
@@ -1454,7 +1454,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .order(payroll_rule_tiers::tier_order.asc())
             .load::<PayrollRuleTierEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -1481,7 +1481,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .filter(workspace_config_entries::effective_from.le(date))
             .load::<crate::models::WorkspaceConfigEntry>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         if entries.is_empty() {
             return Ok(None);
@@ -1585,7 +1585,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .bind::<diesel::sql_types::Date, _>(end_date)
             .load::<RawAssignmentRow>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let mut result = std::collections::HashMap::new();
 
@@ -1686,7 +1686,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .order(payroll_rule_tiers::tier_order.asc())
             .load::<PayrollRuleTierEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let mut map = std::collections::HashMap::new();
         for &def_id in rule_definition_ids {

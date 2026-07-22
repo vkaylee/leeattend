@@ -76,7 +76,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .values(&new_entry)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -101,7 +101,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entry.map(Into::into))
     }
@@ -128,7 +128,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entry.map(Into::into))
     }
@@ -163,7 +163,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entry.map(Into::into))
     }
@@ -196,7 +196,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .set(&update_model)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -220,7 +220,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .filter(time_entries::workspace_id.eq(workspace_id))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -295,7 +295,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .offset(filter.offset())
             .load::<(TimeEntryEntity, String, String)>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(results
             .into_iter()
@@ -359,7 +359,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .count()
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(count)
     }

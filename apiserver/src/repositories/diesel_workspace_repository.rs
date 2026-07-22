@@ -102,7 +102,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .first::<WorkspaceEntity>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entity.map(Into::into))
     }
@@ -438,7 +438,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .do_nothing()
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -467,7 +467,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         .set(workspace_members::role_id.eq(role_id))
         .execute(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -490,7 +490,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         )
         .execute(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -518,7 +518,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .first::<Uuid>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(role_id)
     }
@@ -633,7 +633,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             )
             .load::<MemberExtraRoleEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -659,7 +659,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             )
             .load::<MemberExtraRoleEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -687,7 +687,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .select(workspace_member_extra_permissions::permission)
             .load::<String>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(permissions)
     }
@@ -764,7 +764,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 ))
                 .get_result(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
 
         Ok(crate::models::MemberExtraPermission::new(
             entity.id,
@@ -798,7 +798,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         )
         .execute(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(affected as u64)
     }
@@ -833,7 +833,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .values(&new_role)
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entity.into())
     }
@@ -859,7 +859,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         )
         .execute(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(affected as u64)
     }
@@ -941,7 +941,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             ))
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entity.into())
     }
@@ -991,7 +991,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         .get_result(&mut *conn)
         .await
         .optional()
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(result.map(Into::into))
     }
@@ -1018,7 +1018,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         )
         .execute(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(affected as u64)
     }
@@ -1080,7 +1080,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         ))
         .get_result(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(result)
     }
@@ -1149,7 +1149,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .select(workspace_role_permissions::permission_name)
             .load::<String>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(permissions)
     }
@@ -1219,7 +1219,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .set(&update)
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         if let Some(ref new_tz) = update.timezone {
             let mut tenant_conn = crate::diesel_pool::TransactionConn(
@@ -1260,7 +1260,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         let is_global: bool = diesel::select(diesel::dsl::exists(query))
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(is_global)
     }
@@ -1282,7 +1282,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .set(workspaces::custom_db_url_encrypted.eq(encrypted_url))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -1375,7 +1375,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         diesel::delete(workspaces::table.find(workspace_id))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }

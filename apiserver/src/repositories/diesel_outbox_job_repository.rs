@@ -52,7 +52,7 @@ impl OutboxJobRepository for DieselOutboxJobRepository {
             .values(&new_job)
             .get_result::<OutboxJobEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(result.into())
     }
@@ -82,7 +82,7 @@ impl OutboxJobRepository for DieselOutboxJobRepository {
         ))
         .execute(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -105,7 +105,7 @@ impl OutboxJobRepository for DieselOutboxJobRepository {
             .limit(limit)
             .load::<OutboxJobEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(results.into_iter().map(Into::into).collect())
     }
@@ -134,7 +134,7 @@ impl OutboxJobRepository for DieselOutboxJobRepository {
             .limit(limit)
             .load::<OutboxJobEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(results.into_iter().map(Into::into).collect())
     }
@@ -156,7 +156,7 @@ impl OutboxJobRepository for DieselOutboxJobRepository {
             .select(WorkspaceEntity::as_select())
             .load::<WorkspaceEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let mut futures = Vec::new();
         for ws in workspaces {

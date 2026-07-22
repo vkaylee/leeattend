@@ -48,7 +48,7 @@ impl SessionRepository for DieselSessionRepository {
             .values(&entity)
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -70,7 +70,7 @@ impl SessionRepository for DieselSessionRepository {
             .first::<SessionEntity>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(session)
     }
@@ -92,7 +92,7 @@ impl SessionRepository for DieselSessionRepository {
             .set(sessions::token.eq(new_token))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -110,7 +110,7 @@ impl SessionRepository for DieselSessionRepository {
             .set(sessions::revoked_at.eq(Utc::now()))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -128,7 +128,7 @@ impl SessionRepository for DieselSessionRepository {
             .set(sessions::revoked_at.eq(Utc::now()))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }

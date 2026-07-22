@@ -59,7 +59,7 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
             .returning(BehalfAssignmentEntity::as_returning())
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map_err(AppError::from)
             .map(Into::into)
     }
 
@@ -77,7 +77,7 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
             .filter(behalf_assignments::workspace_id.eq(workspace_id))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(affected as u64)
     }
@@ -107,7 +107,7 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
             .count()
             .get_result::<i64>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let mut query = behalf_assignments::table
             .filter(behalf_assignments::workspace_id.eq(workspace_id))
@@ -240,7 +240,7 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let mut query = behalf_assignments::table
             .filter(behalf_assignments::workspace_id.eq(workspace_id))
@@ -272,7 +272,7 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
             .count()
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(count > 0)
     }

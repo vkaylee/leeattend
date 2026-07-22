@@ -46,7 +46,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             .order(leave_types::name.asc())
             .load::<LeaveTypeEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -167,7 +167,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             .first(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         if in_balances.is_some() {
             return Err(AppError::conflict_args(
@@ -184,7 +184,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         .set(leave_types::deleted_at.eq(Utc::now()))
         .execute(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(affected as u64)
     }
@@ -212,7 +212,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             .first::<LeaveTypeEntity>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map_err(AppError::from)
     }
 
     async fn restore_leave_type(
@@ -279,7 +279,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             .values(&entity)
             .get_result::<LeavePolicyDefinitionEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(result.into())
     }
@@ -302,7 +302,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             .order(leave_policy_definitions::created_at.desc())
             .load::<LeavePolicyDefinitionEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -341,7 +341,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         ))
         .get_result::<LeavePolicyDefinitionEntity>(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .map_err(AppError::from)?;
 
         Ok(result.into())
     }
@@ -559,7 +559,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             .first::<(LeavePolicyDefinitionEntity, Uuid, String)>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         if let Some((def, assignment_id, code)) = employee_result {
             return Ok(Some((def.into(), assignment_id, code)));
@@ -593,7 +593,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                 .first::<(LeavePolicyDefinitionEntity, Uuid, String)>(&mut *conn)
                 .await
                 .optional()
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(AppError::from)?;
 
             if let Some((def, assignment_id, code)) = dept_result {
                 return Ok(Some((def.into(), assignment_id, code)));
@@ -625,7 +625,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             .first::<(LeavePolicyDefinitionEntity, Uuid, String)>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         if let Some((def, assignment_id, code)) = workspace_result {
             return Ok(Some((def.into(), assignment_id, code)));
@@ -710,7 +710,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             ))
             .load::<(LeavePolicyAssignmentEntity, String, String)>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(results
             .into_iter()
@@ -850,7 +850,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             .first::<Uuid>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(result)
     }
@@ -871,7 +871,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             .first::<String>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(result.unwrap_or_else(|| "Leave".to_string()))
     }

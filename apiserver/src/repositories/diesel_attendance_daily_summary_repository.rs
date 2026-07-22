@@ -127,7 +127,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -167,7 +167,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(rows)
     }
@@ -204,7 +204,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             ))
             .execute(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(rows)
     }
@@ -264,7 +264,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .get_result::<AttendanceDailySummaryEntity>(&mut *conn)
             .await
             .map(Into::into)
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map_err(AppError::from)
     }
 
     async fn get_batch_ot_statuses(
@@ -292,7 +292,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .select((ads::employment_id, ads::date, ads::ot_status))
             .load::<(Uuid, NaiveDate, OtStatus)>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(rows
             .into_iter()
@@ -343,7 +343,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .load::<AttendanceDailySummaryEntity>(&mut *conn)
             .await
             .map(|list| list.into_iter().map(Into::into).collect())
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map_err(AppError::from)
     }
 
     async fn get_summaries_paginated(
@@ -385,7 +385,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .select(diesel::dsl::count_star())
             .first(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         // Fetch page
         let mut data_query = ads::attendance_daily_summaries
@@ -411,7 +411,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .load::<AttendanceDailySummaryEntity>(&mut *conn)
             .await
             .map(|list| list.into_iter().map(Into::into).collect::<Vec<_>>())
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         let total_usize = usize::try_from(total)
             .map_err(|e| AppError::Internal(format!("Invalid total count: {e}")))?;
@@ -450,7 +450,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .filter(ads::date.le(end_date))
             .load::<AttendanceDailySummaryEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(rows
             .into_iter()
@@ -488,7 +488,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .distinct()
             .load::<NaiveDate>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(rows)
     }
@@ -520,7 +520,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .select(AttendanceDailySummaryEntity::as_select())
             .load::<AttendanceDailySummaryEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(AppError::from)?;
 
         Ok(rows.into_iter().map(Into::into).collect())
     }
