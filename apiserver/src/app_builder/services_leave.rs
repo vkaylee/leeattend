@@ -2,6 +2,7 @@
 use super::repositories::Repositories;
 use super::services_attendance::AttendanceServices;
 use super::services_core::CoreServices;
+use crate::diesel_pool::DieselPools;
 use crate::queue::RedisPool;
 use std::sync::Arc;
 
@@ -16,6 +17,7 @@ pub struct LeaveServices {
 }
 
 pub fn build_leave_services(
+    diesel_pools: &DieselPools,
     redis_pool: &Option<RedisPool>,
     repos: &Repositories,
     core: &CoreServices,
@@ -25,18 +27,21 @@ pub fn build_leave_services(
         Arc::new(crate::cache::RedisCache::new(r)) as Arc<dyn crate::repositories::CacheRepository>
     });
 
-    let leave = Arc::new(crate::services::leave_service::LeaveService::new(
-        Arc::clone(&repos.leave_balance),
-        Arc::clone(&repos.leave_request),
-        Arc::clone(&repos.employee),
-        Arc::clone(&repos.employment),
-        Arc::clone(&repos.roster),
-        Arc::clone(&repos.leave_accrual_log),
-        Arc::clone(&repos.workspace_config),
-        Arc::clone(&repos.user),
-        Arc::clone(&repos.workspace),
-        cache_repo,
-    ));
+    let leave = Arc::new(
+        crate::services::leave_service::LeaveService::new(
+            Arc::clone(&repos.leave_balance),
+            Arc::clone(&repos.leave_request),
+            Arc::clone(&repos.employee),
+            Arc::clone(&repos.employment),
+            Arc::clone(&repos.roster),
+            Arc::clone(&repos.leave_accrual_log),
+            Arc::clone(&repos.workspace_config),
+            Arc::clone(&repos.user),
+            Arc::clone(&repos.workspace),
+            cache_repo,
+        )
+        .with_diesel_pools(diesel_pools.clone()),
+    );
 
     let shift_swap = Arc::new(crate::services::shift_swap_service::ShiftSwapService::new(
         Arc::clone(&repos.shift_swap),

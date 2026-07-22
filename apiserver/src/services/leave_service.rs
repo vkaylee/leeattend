@@ -18,7 +18,16 @@ use crate::repositories::workspace_config_repository::WorkspaceConfigRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::EmployeeRepository;
 use crate::repositories::UserRepository;
+use diesel_async::AsyncConnection;
 use rust_decimal::prelude::ToPrimitive;
+
+/// Pre-transaction conflict detection result used by submit_leave_request
+/// to separate detection (read-only) from atomic write handling.
+struct ConflictInfo {
+    conflicting_leaves: Vec<LeaveRequest>,
+    conflicting_shifts: Vec<crate::models::ShiftRoster>,
+    should_auto_cancel: bool,
+}
 
 pub struct LeaveService {
     leave_balance_repo: Arc<dyn LeaveBalanceRepository>,
@@ -33,6 +42,7 @@ pub struct LeaveService {
     workspace_repo: Arc<dyn WorkspaceRepository>,
     config_cache: Option<crate::cache::ConfigCache>,
     cache: Option<Arc<dyn crate::repositories::CacheRepository>>,
+    diesel_pools: Option<crate::diesel_pool::DieselPools>,
 }
 
 impl LeaveService {
@@ -66,7 +76,15 @@ impl LeaveService {
             workspace_repo,
             config_cache,
             cache,
+            diesel_pools: None,
         }
+    }
+
+    /// Inject DieselPools for methods that need manual transaction control.
+    #[must_use]
+    pub fn with_diesel_pools(mut self, pools: crate::diesel_pool::DieselPools) -> Self {
+        self.diesel_pools = Some(pools);
+        self
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -335,12 +353,55 @@ impl LeaveService {
             attachment_file_ids,
         );
 
-        self.leave_request_repo
-            .create_leave_request(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                &request,
-            )
+        // =============================================================
+        // Phase 1: Detect conflicts (read-only, no transaction needed)
+        // =============================================================
+        let conflict_info = self
+            .detect_conflicts(workspace_id, employee_id, &request)
             .await?;
+
+        // =============================================================
+        // Phase 2: Transaction-wrapped critical writes
+        // (create_leave_request + auto-cancel conflicts must be atomic)
+        // =============================================================
+        if let Some(ref pools) = self.diesel_pools {
+            let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
+            let mut conn = pools.tenant_transaction_conn(&auth_token).await?;
+            let request = request.clone();
+            let repo = Arc::clone(&self.leave_request_repo);
+            let auth_token_clone = auth_token;
+            let conflicting_ids: Vec<Uuid> = conflict_info
+                .conflicting_leaves
+                .iter()
+                .map(LeaveRequest::id)
+                .collect();
+            let should_cancel = conflict_info.should_auto_cancel;
+
+            conn.transaction::<_, AppError, _>(|pg_conn| {
+                let req = request.clone();
+                let repo = Arc::clone(&repo);
+                let auth = auth_token_clone;
+                let ids = conflicting_ids.clone();
+                let cancel = should_cancel;
+                Box::pin(async move {
+                    repo.create_leave_request_tx(pg_conn, &auth, &req).await?;
+                    if cancel && !ids.is_empty() {
+                        repo.bulk_cancel_leave_requests_tx(pg_conn, &auth, &ids)
+                            .await?;
+                    }
+                    Ok(())
+                })
+            })
+            .await?;
+        } else {
+            // Fallback: no DieselPools injected — use separate non-transactional calls
+            self.leave_request_repo
+                .create_leave_request(
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    &request,
+                )
+                .await?;
+        }
 
         // Invalidate cached employee leaves since we added a new request
         if let Some(ref cache) = self.cache {
@@ -353,8 +414,9 @@ impl LeaveService {
             self.apply_leave_to_roster(workspace_id, &request).await?;
         }
 
-        // Check conflicts (handles auto-cancel and notifications)
-        self.check_and_handle_conflicts(workspace_id, &request)
+        // Phase 3: Handle non-cancel conflict actions (notifications for shift
+        // conflicts, or full notify policy path)
+        self.handle_conflict_post_tx(workspace_id, &request, &conflict_info)
             .await?;
 
         Ok(request)
@@ -468,11 +530,172 @@ impl LeaveService {
             .await
     }
 
+    /// Detect conflicts for a leave request (read-only, no transaction needed).
+    /// Returns conflict info used by both the transaction phase and post-tx notification phase.
+    #[allow(clippy::too_many_lines)]
+    async fn detect_conflicts(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        req: &LeaveRequest,
+    ) -> Result<ConflictInfo, AppError> {
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
+
+        // Fetch other leave requests of the employee
+        let other_requests = self
+            .get_employee_leave_requests_cached(&auth_token, employee_id)
+            .await?;
+
+        let mut conflicting_leaves = Vec::new();
+        for r in other_requests {
+            if r.id() == req.id() {
+                continue;
+            }
+            if (r.status() == LeaveStatus::Approved || r.status() == LeaveStatus::PreApproved)
+                && r.start_date() <= req.end_date()
+                && r.end_date() >= req.start_date()
+            {
+                conflicting_leaves.push(r);
+            }
+        }
+
+        // Fetch rosters for the date range
+        let (rosters, _) = self
+            .roster_repo
+            .get_employment_rosters(
+                &auth_token,
+                req.employment_id(),
+                req.start_date(),
+                req.end_date(),
+                None,
+                None,
+            )
+            .await?;
+
+        let mut conflicting_shifts = Vec::new();
+        for roster in rosters {
+            if roster.shift_id.is_some() {
+                conflicting_shifts.push(roster);
+            }
+        }
+
+        if conflicting_leaves.is_empty() && conflicting_shifts.is_empty() {
+            return Ok(ConflictInfo {
+                conflicting_leaves: Vec::new(),
+                conflicting_shifts: Vec::new(),
+                should_auto_cancel: false,
+            });
+        }
+
+        // Get workspace conflict policy
+        let config_entry = if let Some(ref cache) = self.config_cache {
+            match cache
+                .get_effective_config(
+                    &auth_token,
+                    workspace_id,
+                    "leave.conflict_policy",
+                    "workspace",
+                    None,
+                    req.start_date(),
+                )
+                .await
+            {
+                Ok(entry) => entry,
+                Err(e) => {
+                    tracing::warn!(error = %e, "detect_conflicts: config cache miss, falling back to DB");
+                    self.workspace_config_repo
+                        .get_effective_config(
+                            &auth_token,
+                            workspace_id,
+                            "leave.conflict_policy",
+                            "workspace",
+                            None,
+                            req.start_date(),
+                        )
+                        .await?
+                }
+            }
+        } else {
+            self.workspace_config_repo
+                .get_effective_config(
+                    &auth_token,
+                    workspace_id,
+                    "leave.conflict_policy",
+                    "workspace",
+                    None,
+                    req.start_date(),
+                )
+                .await?
+        };
+
+        let policy = config_entry
+            .and_then(|entry| entry.value_text().map(ToString::to_string))
+            .unwrap_or_else(|| "notify".to_string());
+
+        let should_auto_cancel = policy == "auto_cancel"
+            && (req.status() == LeaveStatus::Approved || req.status() == LeaveStatus::PreApproved);
+
+        Ok(ConflictInfo {
+            conflicting_leaves,
+            conflicting_shifts,
+            should_auto_cancel,
+        })
+    }
+
+    /// Post-transaction conflict handling: notifications for shift conflicts
+    /// or full notify policy path (after the leave request is already committed).
+    async fn handle_conflict_post_tx(
+        &self,
+        workspace_id: Uuid,
+        req: &LeaveRequest,
+        info: &ConflictInfo,
+    ) -> Result<(), AppError> {
+        if info.conflicting_leaves.is_empty() && info.conflicting_shifts.is_empty() {
+            return Ok(());
+        }
+
+        if info.should_auto_cancel {
+            // Leaves were already cancelled in the transaction.
+            // If there's a shift conflict, we still notify because we can't cancel the shift.
+            if !info.conflicting_shifts.is_empty() {
+                self.send_conflict_notifications(
+                    workspace_id,
+                    req,
+                    Vec::new(),
+                    info.conflicting_shifts.clone(),
+                )
+                .await?;
+            }
+        } else {
+            // Policy is notify, or request is Pending: send notifications
+            self.send_conflict_notifications(
+                workspace_id,
+                req,
+                info.conflicting_leaves.clone(),
+                info.conflicting_shifts.clone(),
+            )
+            .await?;
+        }
+
+        Ok(())
+    }
+
     #[allow(clippy::too_many_lines)]
     async fn check_and_handle_conflicts(
         &self,
         workspace_id: Uuid,
         req: &LeaveRequest,
+    ) -> Result<(), AppError> {
+        self.check_and_handle_conflicts_inner(workspace_id, req, None)
+            .await
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn check_and_handle_conflicts_inner(
+        &self,
+        workspace_id: Uuid,
+        req: &LeaveRequest,
+        tx_conn: Option<&mut crate::diesel_pool::TransactionConn>,
     ) -> Result<(), AppError> {
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
 
@@ -582,9 +805,15 @@ impl LeaveService {
             // Cancel conflicting leave requests in bulk (single UPDATE with IN clause)
             let conflicting_ids: Vec<Uuid> =
                 conflicting_leaves.iter().map(LeaveRequest::id).collect();
-            self.leave_request_repo
-                .bulk_cancel_leave_requests(&auth_token, &conflicting_ids)
-                .await?;
+            if let Some(conn) = tx_conn {
+                self.leave_request_repo
+                    .bulk_cancel_leave_requests_tx(conn, &auth_token, &conflicting_ids)
+                    .await?;
+            } else {
+                self.leave_request_repo
+                    .bulk_cancel_leave_requests(&auth_token, &conflicting_ids)
+                    .await?;
+            }
             // If there's a shift conflict, we still notify because we can't cancel the shift
             if !conflicting_shifts.is_empty() {
                 self.send_conflict_notifications(workspace_id, req, Vec::new(), conflicting_shifts)
@@ -1010,6 +1239,22 @@ mod tests {
             _ids: &[Uuid],
         ) -> Result<u64, AppError> {
             Ok(0)
+        }
+        async fn create_leave_request_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            __r: &LeaveRequest,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn bulk_cancel_leave_requests_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _ids: &[Uuid],
+        ) -> Result<u64, AppError> {
+            unimplemented!()
         }
         async fn get_unpaid_holiday_days_without_leave(
             &self,

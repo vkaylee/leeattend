@@ -64,7 +64,7 @@ pub async fn build_services(
     .await?;
     let (attendance, log_worker_handle) =
         build_attendance_services(diesel_pools, redis_pool, crypto_service, repos).await?;
-    let leave = build_leave_services(redis_pool, repos, &core, &attendance)?;
+    let leave = build_leave_services(diesel_pools, redis_pool, repos, &core, &attendance)?;
 
     let roster_provider: Arc<dyn crate::services::payroll_service::RosterDataProvider> = Arc::new(
         crate::services::payroll_service::DirectRosterDataProvider(Arc::clone(&repos.roster)),

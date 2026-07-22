@@ -39,6 +39,17 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
+        self.create_leave_request_tx(&mut conn, auth_token, request)
+            .await
+    }
+
+    async fn create_leave_request_tx(
+        &self,
+        conn: &mut diesel_async::AsyncPgConnection,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        request: &LeaveRequest,
+    ) -> Result<(), AppError> {
+        let workspace_id = auth_token.workspace_id();
 
         // Check if employment exists and belongs to the workspace of this tenant
         let employment_exists = employments::table
@@ -46,7 +57,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .filter(employments::workspace_id.eq(workspace_id))
             .filter(employments::deleted_at.is_null())
             .select(employments::id)
-            .first::<Uuid>(&mut *conn)
+            .first::<Uuid>(conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
@@ -75,7 +86,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                 leave_requests::updated_at.eq(request.updated_at()),
                 leave_requests::attachment_file_ids.eq(request.attachment_file_ids()),
             ))
-            .execute(&mut *conn)
+            .execute(conn)
             .await
             .map_err(AppError::from)?;
 
@@ -502,11 +513,6 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         ids: &[Uuid],
     ) -> Result<u64, AppError> {
-        if ids.is_empty() {
-            return Ok(0);
-        }
-
-        let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
@@ -514,7 +520,21 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
+        self.bulk_cancel_leave_requests_tx(&mut conn, auth_token, ids)
+            .await
+    }
 
+    async fn bulk_cancel_leave_requests_tx(
+        &self,
+        conn: &mut diesel_async::AsyncPgConnection,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        ids: &[Uuid],
+    ) -> Result<u64, AppError> {
+        if ids.is_empty() {
+            return Ok(0);
+        }
+
+        let workspace_id = auth_token.workspace_id();
         let affected = diesel::update(leave_requests::table)
             .filter(leave_requests::id.eq_any(ids))
             .filter(diesel::dsl::exists(
@@ -526,12 +546,11 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                 leave_requests::status.eq(LeaveStatus::Cancelled),
                 leave_requests::updated_at.eq(Utc::now()),
             ))
-            .execute(&mut *conn)
+            .execute(conn)
             .await
             .map_err(AppError::from)?;
 
-        let affected_u64 = u64::try_from(affected).unwrap_or(0);
-        Ok(affected_u64)
+        Ok(u64::try_from(affected).unwrap_or(0))
     }
 
     async fn get_employee_leave_history_requests(

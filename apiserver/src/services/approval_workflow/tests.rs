@@ -1633,6 +1633,22 @@ mod tests {
         ) -> Result<u64, AppError> {
             Ok(0)
         }
+        async fn create_leave_request_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _a: &TenantAuthToken,
+            __r: &crate::models::LeaveRequest,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn bulk_cancel_leave_requests_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _a: &TenantAuthToken,
+            _ids: &[Uuid],
+        ) -> Result<u64, AppError> {
+            unimplemented!()
+        }
         async fn get_employee_leave_history_requests(
             &self,
             _a: &TenantAuthToken,

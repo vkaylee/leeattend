@@ -84,6 +84,22 @@ pub trait LeaveRequestRepository: Send + Sync {
         ids: &[Uuid],
     ) -> Result<u64, AppError>;
 
+    /// Create a leave request within an existing connection/transaction.
+    async fn create_leave_request_tx(
+        &self,
+        conn: &mut diesel_async::AsyncPgConnection,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        request: &LeaveRequest,
+    ) -> Result<(), AppError>;
+
+    /// Bulk cancel leave requests within an existing connection/transaction.
+    async fn bulk_cancel_leave_requests_tx(
+        &self,
+        conn: &mut diesel_async::AsyncPgConnection,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        ids: &[Uuid],
+    ) -> Result<u64, AppError>;
+
     async fn get_employee_leave_history_requests(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
