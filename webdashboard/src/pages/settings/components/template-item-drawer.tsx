@@ -25,13 +25,6 @@ interface TemplateItemDrawerProps {
   templateId: string;
 }
 
-  // eslint-disable-next-line max-lines-per-function
-export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }: TemplateItemDrawerProps) {
-  const toast = useToast();
-  const createMutation = useCreateLifecycleTemplateItem(templateId);
-  const updateMutation = useUpdateLifecycleTemplateItem(templateId);
-  const { members } = useWorkspaceMembers();
-
   interface ItemFormState {
     assigneeType: ChecklistAssigneeType;
     assigneeUserId: string;
@@ -53,6 +46,13 @@ export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }:
     dueDaysOffset: "0",
     displayOrder: "0",
   };
+
+  // eslint-disable-next-line max-lines-per-function
+export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }: TemplateItemDrawerProps) {
+  const toast = useToast();
+  const createMutation = useCreateLifecycleTemplateItem(templateId);
+  const updateMutation = useUpdateLifecycleTemplateItem(templateId);
+  const { members } = useWorkspaceMembers();
 
   // Compute external form values — stabilized via useMemo.
   const externalForm = useMemo((): ItemFormState => {

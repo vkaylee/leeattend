@@ -450,7 +450,7 @@ describe("MonthlyRosterGrid Filtering", () => {
   });
 
   it("does not show an undo pill when clearing an already-empty selection", async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     render(<StatefulGridWrapper />);
 
     // No employees selected → checklist and clear-all button are absent.

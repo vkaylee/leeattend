@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ErrorBoundary } from "@/components/common/error-boundary";
+import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyPermissions } from "@/hooks/use-permissions";
@@ -153,7 +154,7 @@ function PayrollMobileCard({
           </div>
 
           {/* Action button */}
-          <button
+          <Button
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-600 transition-colors active:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:active:bg-slate-700"
             data-testid={`mobile-view-payslip-${slip.id}`}
             onClick={(e) => {
@@ -165,7 +166,7 @@ function PayrollMobileCard({
           >
             <FileText size={14} />
             {t("payroll.document.official_payslip")}
-          </button>
+          </Button>
         </div>
       ) : null}
     </div>

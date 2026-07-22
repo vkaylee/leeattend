@@ -453,13 +453,13 @@ export default function LeaveRequestsPage() {
                       t={t}
                     />
                   ))}
-                  {!!hasNextPage && (
+                  {hasNextPage ? (
                     <InfiniteScrollSentinel
                       colSpan={tableHeaders.length}
                       isFetchingNextPage={isFetchingNextPage}
                       sentinelRef={loadMoreRef}
                     />
-                  )}
+                  ) : null}
                 </ApprovalListLayout>
               )}
             />

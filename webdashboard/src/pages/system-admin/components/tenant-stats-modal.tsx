@@ -59,29 +59,29 @@ export function TenantStatsModal({
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-slate-500">Name</span>
-                  <p className="font-medium text-slate-800 dark:text-slate-200">{selectedTenant.name}</p>
+                  <Typography className="font-medium text-slate-800 dark:text-slate-200" variant="p">{selectedTenant.name}</Typography>
                 </div>
                 <div>
                   <span className="text-slate-500">ID</span>
-                  <p className="font-mono text-xs text-slate-800 dark:text-slate-200">{selectedTenant.id}</p>
+                  <Typography className="font-mono text-xs text-slate-800 dark:text-slate-200" variant="p">{selectedTenant.id}</Typography>
                 </div>
                 <div>
                   <span className="text-slate-500">Type</span>
-                  <p>
+                  <Typography variant="p">
                     <StatusBadge variant={selectedTenant.is_byod ? "success" : "neutral"}>
                       {selectedTenant.is_byod ? "BYOD" : "Standard"}
                     </StatusBadge>
-                  </p>
+                  </Typography>
                 </div>
                 <div>
                   <span className="text-slate-500">Timezone</span>
-                  <p className="font-medium text-slate-800 dark:text-slate-200">{selectedTenant.timezone}</p>
+                  <Typography className="font-medium text-slate-800 dark:text-slate-200" variant="p">{selectedTenant.timezone}</Typography>
                 </div>
                 <div>
                   <span className="text-slate-500">Created</span>
-                  <p className="font-medium text-slate-800 dark:text-slate-200">
+                  <Typography className="font-medium text-slate-800 dark:text-slate-200" variant="p">
                     {new Date(selectedTenant.created_at).toLocaleString()}
-                  </p>
+                  </Typography>
                 </div>
               </div>
             </div>
@@ -98,11 +98,11 @@ export function TenantStatsModal({
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-slate-500">Host</span>
-                    <p className="font-mono text-xs text-slate-800 dark:text-slate-200">{tenantStats.connection.host}</p>
+                    <Typography className="font-mono text-xs text-slate-800 dark:text-slate-200" variant="p">{tenantStats.connection.host}</Typography>
                   </div>
                   <div>
                     <span className="text-slate-500">Port</span>
-                    <p className="font-mono text-xs text-slate-800 dark:text-slate-200">{tenantStats.connection.port}</p>
+                    <Typography className="font-mono text-xs text-slate-800 dark:text-slate-200" variant="p">{tenantStats.connection.port}</Typography>
                   </div>
                   {!!tenantStats.masked_db_url && (
                     <div className="col-span-2">

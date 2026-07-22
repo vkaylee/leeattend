@@ -80,7 +80,7 @@ export default function EContractsRulesTab({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                      {rule.signer_country} → {rule.target_provider_type?.toUpperCase()}
+                      {rule.signer_country} → {rule.target_provider_type.toUpperCase()}
                     </div>
                     <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       {rule.signing_method}

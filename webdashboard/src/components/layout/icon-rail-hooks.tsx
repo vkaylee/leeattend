@@ -3,6 +3,8 @@
 import { useCallback, useRef, useSyncExternalStore, useState } from "react";
 import { createPortal } from "react-dom";
 
+function _noop() { /* no-op */ }
+
 // ── Shared: observe element rect without reading ref.current in render ──
 
 // Stores the latest element in render-state via a callback ref, so we never
@@ -44,7 +46,7 @@ function useElementRect(el: HTMLElement | null, active: boolean): DOMRect | null
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
       if (!el || !active) {
-        return () => {};
+        return _noop;
       }
       const measure = () => { onStoreChange(); };
       const ro = new ResizeObserver(measure);

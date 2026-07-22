@@ -2,6 +2,7 @@ import { Clock, History } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import ResponsiveTable from "@/components/ui/responsive-table";
+import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { AttendanceEntry } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -55,9 +56,9 @@ export function HistoryTable({ entries }: HistoryTableProps) {
       <div className="flex items-center justify-between border-b border-slate-50 bg-slate-50 px-8 py-6 dark:border-slate-800 dark:bg-slate-800/30">
         <div className="flex items-center gap-3">
           <History className="h-5 w-5 text-primary-500" />
-          <h3 className="text-xs font-bold uppercase tracking-widest text-slate-800 dark:text-slate-100">
+          <Typography className="text-xs font-bold uppercase tracking-widest text-slate-800 dark:text-slate-100" variant="h3">
             {t("ess.clock.recent_history")}
-          </h3>
+          </Typography>
         </div>
       </div>
 

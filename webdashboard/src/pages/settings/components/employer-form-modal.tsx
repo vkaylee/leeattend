@@ -65,18 +65,7 @@ export function EmployerFormModal({
     return INITIAL_STATE;
   }, [
     isOpen,
-    editingEmployer?.id,
-    editingEmployer?.name,
-    editingEmployer?.tax_code,
-    editingEmployer?.legal_address,
-    editingEmployer?.business_type,
-    editingEmployer?.registration_number,
-    editingEmployer?.phone,
-    editingEmployer?.email,
-    editingEmployer?.website,
-    editingEmployer?.incorporation_date,
-    editingEmployer?.country_code,
-    editingEmployer?.currency_code,
+    editingEmployer,
   ]);
 
   const [formData, setFormData] = useDerivedStateFrom(externalFormData);

@@ -5,6 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { TFunction } from "i18next";
 
 import ResponsiveTable from "@/components/ui/responsive-table";
+import { Typography } from "@/components/ui/typography";
 import { WorkerHeartbeat } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -65,12 +66,12 @@ export function WorkersTable({ t, workers }: WorkersTableProps) {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-[2.5rem] dark:shadow-black/10">
       <div className="border-b border-slate-100 p-6 dark:border-slate-800">
-        <h4 className="text-lg font-bold uppercase tracking-tight text-slate-700 dark:text-slate-200">
+        <Typography className="text-lg font-bold uppercase tracking-tight text-slate-700 dark:text-slate-200" variant="h4">
           {t("monitor.worker_list")}
-        </h4>
-        <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 opacity-60 dark:text-slate-400">
+        </Typography>
+        <Typography className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 opacity-60 dark:text-slate-400" variant="p">
           {t("monitor.worker_list_subtitle")}
-        </p>
+        </Typography>
       </div>
 
       <ResponsiveTable<WorkerHeartbeat>

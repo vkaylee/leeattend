@@ -91,7 +91,7 @@ function ConditionTypeForm({
           icon: initial.icon ?? "Clock",
           color: initial.color ?? "blue",
           sort_order: initial.sort_order,
-          affects_rules: initial.affects_rules || {},
+          affects_rules: initial.affects_rules,
         }
       : emptyForm(),
   );
@@ -419,14 +419,14 @@ export default function ConditionTypesPage() {
       </div>
 
       {/* Add Form */}
-      {!!isAdding && (
+      {isAdding ? (
         <ConditionTypeForm
           isSubmitting={createMutation.isPending}
           onCancel={() => { setIsAdding(false); }}
           onSave={(data) => { createMutation.mutate(data as CreateConditionTypeRequest); }}
           t={(k) => t(k)}
         />
-      )}
+      ) : null}
 
       {/* Type Cards */}
       <div className="grid grid-cols-1 gap-4">
@@ -464,11 +464,11 @@ export default function ConditionTypesPage() {
                         <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
                           {item.code}
                         </span>
-                        {!!item.is_system && (
+                        {item.is_system ? (
                           <span className="text-[9px] font-bold uppercase tracking-widest text-primary-600 bg-primary-50 dark:bg-primary-950 px-2 py-0.5 rounded-full">
                             SYSTEM
                           </span>
-                        )}
+                        ) : null}
                         <span className={cn(
                           "px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest border",
                           item.default_is_paid

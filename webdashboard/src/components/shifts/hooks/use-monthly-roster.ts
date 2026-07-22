@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 
 import { format } from "date-fns";
 
@@ -35,7 +35,7 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
     Map<string, "saving" | "saved" | "error">
   >(new Map());
 
-  const setRowStatusFor = React.useCallback(
+  const setRowStatusFor = useCallback(
     (employeeId: string, status: "saving" | "saved" | "error") => {
       setRowStatus((prev) => {
         const next = new Map(prev);
@@ -186,7 +186,7 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
       const next = new Set(dragSnapshot);
       for (let i = minEmpIdx; i <= maxEmpIdx; i++) {
    
-        const empId = filteredSchedules[i].employee_id ?? "";
+        const empId = filteredSchedules[i].employee_id;
         for (let j = minDayIdx; j <= maxDayIdx; j++) {
           const dStr = format(monthDays[j], "yyyy-MM-dd");
           const cellKey = `${empId}:${dStr}`;
@@ -217,7 +217,7 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
         return acc;
       }, {});
       const employmentByEmployee = new Map(
-        filteredSchedules.map((s) => [s.employee_id ?? "", s.employment_id]),
+        filteredSchedules.map((s) => [s.employee_id, s.employment_id]),
       );
       const assignments = Object.entries(groups).map(([employeeId, dates]) => ({
         employeeId,

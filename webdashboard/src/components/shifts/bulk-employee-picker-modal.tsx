@@ -195,6 +195,7 @@ export function BulkEmployeePickerModal({
   const { draftIds, draftMeta, deselectAll } = picker;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset form state on close
     if (!isOpen) setSearchTerm("");
   }, [isOpen]);
 

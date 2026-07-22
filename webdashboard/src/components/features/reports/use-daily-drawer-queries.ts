@@ -94,6 +94,7 @@ export function useDailyDrawerQueries({
             const empId = (request as { employee_id?: string }).employee_id;
             if (empId && empId !== request.employment_id) {
                 const empKey = `${empId}-${request.requested_date}`;
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Record indexed access without noUncheckedIndexedAccess
                 if (!map[empKey]) map[empKey] = request;
             }
         });

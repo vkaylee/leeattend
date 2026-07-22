@@ -30,7 +30,9 @@ export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
 
     if (
         employeeId !== previousSelection?.employeeId
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- previousSelection can be null
         || employerId !== previousSelection?.employerId
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- previousSelection can be null
         || isOpen !== previousSelection?.isOpen
     ) {
         setPreviousSelection({ employeeId, employerId, isOpen });

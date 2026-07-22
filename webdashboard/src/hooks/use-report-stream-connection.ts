@@ -66,6 +66,7 @@ export function useReportStreamConnection({
 
     if (!jobId) return;
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ref may be mutated elsewhere
     if (shouldReconnectRef.current) {
       connect();
     }

@@ -72,6 +72,7 @@ export function useBulkEmployeePicker({
   // cancelling always reverts to what was live before opening.
   useEffect(() => {
     if (!isOpen) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraftIds(new Set(initialIds));
     setDraftMetaMap(new Map(initialMeta.map((e) => [e.id, e])));
     setExpandedDepts(new Set());

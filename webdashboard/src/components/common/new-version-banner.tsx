@@ -2,6 +2,9 @@ import { Sparkles, RefreshCw, X } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
+import { Typography } from "@/components/ui/typography";
+
 interface NewVersionBannerProps {
   onDismiss: () => void;
   onRefresh: () => void;
@@ -36,31 +39,31 @@ export function NewVersionBanner({ onRefresh, onDismiss }: NewVersionBannerProps
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="truncate text-sm font-bold text-slate-800 dark:text-slate-100">
+          <Typography className="truncate text-sm font-bold text-slate-800 dark:text-slate-100" variant="p">
             {t("common.new_version_banner.title")}
-          </p>
-          <p className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">
+          </Typography>
+          <Typography className="truncate text-xs font-medium text-slate-500 dark:text-slate-400" variant="p">
             {t("common.new_version_banner.subtitle")}
-          </p>
+          </Typography>
         </div>
 
-        <button
+        <Button
           className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl bg-primary-600 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-primary-200 transition-all hover:bg-primary-700 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:shadow-black/30"
           onClick={handleRefresh}
           type="button"
         >
           <RefreshCw className="h-3.5 w-3.5" />
           {t("common.new_version_banner.refresh")}
-        </button>
+        </Button>
 
-        <button
+        <Button
           aria-label={t("common.new_version_banner.dismiss")}
           className="inline-flex shrink-0 items-center justify-center rounded-xl p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
           onClick={handleDismiss}
           type="button"
         >
           <X className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
     </div>
   );

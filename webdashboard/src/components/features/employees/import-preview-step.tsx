@@ -74,7 +74,7 @@ export default function ImportPreviewStep({
                     <TableCell>{row.termination_date}</TableCell>
                     <TableCell className="max-w-[200px] truncate">{row.termination_reason}</TableCell>
                     <TableCell>
-                      {row.prorated_leaves && row.prorated_leaves.length > 0
+                      {row.prorated_leaves.length > 0
                         ? t("employees.bulk_termination.yes")
                         : t("employees.bulk_termination.no")}
                     </TableCell>

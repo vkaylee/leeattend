@@ -159,7 +159,7 @@ export function EmployeeTable(props: EmployeeTableProps) {
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t("employees.table.status")}</label>
-              <Combobox onChange={(value) => { setFilterStatus(value ?? "active"); }} options={statusOptions} value={filterStatus} />
+              <Combobox onChange={(value) => { setFilterStatus(value !== "" ? value : "active"); }} options={statusOptions} value={filterStatus} />
             </div>
             <CustomFieldsFilterPopover customFieldFilters={customFieldFilters} setCustomFieldFilters={setCustomFieldFilters} />
           </div>

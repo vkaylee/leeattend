@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
 
+import Button from "@/components/ui/button";
 import { useFilteredMenuItems, getActiveNavGroup } from "@/hooks/use-nav-menu-items";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
@@ -87,7 +88,7 @@ export default function BottomNav({ activeGroup, onMoreClick, unreadCount: _unre
         ) : null}
 
         {/* More */}
-        <button
+        <Button
           className="flex flex-col items-center justify-center flex-1 h-full relative transition-transform active:scale-95"
           data-testid="bottom-nav-more"
           onClick={onMoreClick}
@@ -102,7 +103,7 @@ export default function BottomNav({ activeGroup, onMoreClick, unreadCount: _unre
           <span className="text-[10px] font-bold mt-1 text-slate-400 dark:text-slate-500">
             {t("common.more", "More")}
           </span>
-        </button>
+        </Button>
       </div>
     </nav>
   );
@@ -148,7 +149,7 @@ function BottomNavItem({
       )}>
         {label}
       </span>
-      {!!isActive && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 rounded-b-full bg-primary-500 dark:bg-primary-400" />}
+      {isActive ? <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 rounded-b-full bg-primary-500 dark:bg-primary-400" /> : null}
     </Link>
   );
 }

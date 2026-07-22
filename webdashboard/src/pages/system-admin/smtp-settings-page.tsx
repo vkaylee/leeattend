@@ -49,14 +49,10 @@ export default function SmtpSettingsPage() {
   } | null>(null);
   const [testing, setTesting] = useState(false);
   // Track verification status: null = untested, Date = last successful test
-  const [verifiedAt, setVerifiedAt] = useState<Date | null>(null);
-
-  // Restore verifiedAt from config on load
-  useEffect(() => {
-    if (config?.last_verified_at) {
-      setVerifiedAt(new Date(config.last_verified_at));
-    }
-  }, [config?.last_verified_at]);
+  // Derive initial verifiedAt from config; subsequent updates happen in handlers.
+  const [verifiedAt, setVerifiedAt] = useState<Date | null>(() =>
+    config?.last_verified_at ? new Date(config.last_verified_at) : null,
+  );
 
   // Derive form state from config; only track overrides for dirty tracking
   const [overrides, setOverrides] = useState<Partial<SmtpConfigData>>({});
@@ -101,6 +97,7 @@ export default function SmtpSettingsPage() {
   // Auto-expand when config already has http_api
   useEffect(() => {
     if (config?.http_api && !dirty) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowHttpApi(true);
     }
   }, [config?.http_api, dirty]);
@@ -144,9 +141,9 @@ export default function SmtpSettingsPage() {
     if (httpForm.url.trim()) {
       payload.http_api = {
         url: httpForm.url.trim(),
-        auth_header: httpForm.auth_header || undefined,
-        auth_value: httpForm.auth_value || undefined,
-        success_field: httpForm.success_field || undefined,
+        auth_header: httpForm.auth_header ?? undefined,
+        auth_value: httpForm.auth_value ?? undefined,
+        success_field: httpForm.success_field ?? undefined,
         success_value: httpForm.success_field ? (httpForm.success_value ?? true) : undefined,
         body_template: httpForm.body_template.trim(),
       };
@@ -411,7 +408,7 @@ export default function SmtpSettingsPage() {
                   }}
                   placeholder="true"
                   type="text"
-                  value={typeof httpForm.success_value === "boolean" ? String(httpForm.success_value) : String(httpForm.success_value ?? "")}
+                  value={typeof httpForm.success_value === "boolean" ? String(httpForm.success_value) : typeof httpForm.success_value === "string" ? httpForm.success_value : ""}
                 />
               </div>
 

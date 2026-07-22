@@ -69,7 +69,7 @@ export function useReportStreamSocket({
     
     const isAuthErr = event.code === 1006 && retryCountRef.current === 0 && statusRef.current === "connecting";
     if (isAuthErr) {
-      handleAuthError();
+      void handleAuthError();
       return;
     }
     

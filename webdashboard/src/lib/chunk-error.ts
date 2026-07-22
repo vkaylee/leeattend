@@ -6,7 +6,7 @@
 export function isChunkLoadError(reason: Error | undefined): boolean {
   if (!reason) return false;
   if (reason.name === "ChunkLoadError") return true;
-  const message = reason.message ?? "";
+  const message = reason.message;
   return (
     /Loading chunk [\d]+ failed/i.test(message) ||
     /Loading CSS chunk [\w-]+ failed/i.test(message) ||

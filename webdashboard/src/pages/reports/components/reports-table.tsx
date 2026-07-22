@@ -175,11 +175,10 @@ export function ReportsTable(props: ReportsTableProps) {
         maxHeightClass=""
         onKeyDownRef={keyDownRef}
         onSearchChange={setSearchQuery}
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        onSelect={(row) => { handleEmployeeClick(row.employee_id ?? "", row.employee_name, row.employer_id); }}
+        onSelect={(row) => { handleEmployeeClick(row.employee_id, row.employee_name, row.employer_id); }}
         renderMobileCard={(row) => (
           <ReportMobileCard
-            onSelect={() => { handleEmployeeClick(row.employee_id ?? "", row.employee_name, row.employer_id); }}
+            onSelect={() => { handleEmployeeClick(row.employee_id, row.employee_name, row.employer_id); }}
             row={row}
             t={t}
           />

@@ -108,6 +108,7 @@ export function useRosterHandlers({
     if (!monthStartStr || !monthEndStr) return;
     const fresh = await fetchWorkspaceSchedules(wsId, monthStartStr, monthEndStr, [employmentId]);
     const freshRow = fresh.find((s) => s.employment_id === employmentId) ?? fresh[0];
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- .find() can return undefined at runtime without noUncheckedIndexedAccess
     if (!freshRow) return;
     queryClient.setQueriesData<EmployeeSchedule[]>(
       { predicate: (q) => q.queryKey[0] === "schedules" && q.queryKey[3] === "monthly" },

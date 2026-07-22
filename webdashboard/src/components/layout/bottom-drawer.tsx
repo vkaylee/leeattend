@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
 
 import Button from "@/components/ui/button";
+import { Typography } from "@/components/ui/typography";
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useLanguage } from "@/hooks/use-language";
@@ -134,7 +135,6 @@ export default function BottomDrawer({ isOpen, onClose }: BottomDrawerProps) {
   return createPortal(
     <div className="fixed inset-0 z-[1000] flex items-end">
       {/* Backdrop */}
-      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div
         aria-hidden="true"
         className={cn(
@@ -159,13 +159,9 @@ export default function BottomDrawer({ isOpen, onClose }: BottomDrawerProps) {
         )}
         data-testid="bottom-drawer"
         onClick={(e) => { e.stopPropagation(); }}
-        // eslint-disable-next-line react-hooks/immutability -- ref callback merging multiple refs is standard React pattern
         ref={(node) => {
-          // Merge refs for focus trap and swipe detection
-          // eslint-disable-next-line react-hooks/immutability
-          (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-          // eslint-disable-next-line react-hooks/immutability
-          (panelRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+          containerRef.current = node;
+          panelRef.current = node;
         }}
         role="dialog"
       >
@@ -176,9 +172,9 @@ export default function BottomDrawer({ isOpen, onClose }: BottomDrawerProps) {
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
-          <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest">
+          <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest" variant="h2">
             {t("common.settings.navigation", "Navigation")}
-          </h2>
+          </Typography>
           <Button
             aria-label={t("common.close")}
             className="h-8 w-8 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -213,7 +209,7 @@ export default function BottomDrawer({ isOpen, onClose }: BottomDrawerProps) {
 
 function DrawerSection({
   group,
-  activeGroup,
+  activeGroup: _activeGroup,
   onClose,
 }: {
   activeGroup: NavGroup | null;
@@ -298,7 +294,7 @@ function DrawerUtilityRow({ onClose }: { onClose: () => void }) {
     <div className="shrink-0 border-t border-slate-100 dark:border-slate-800 px-4 py-3 pb-safe">
       <div className="flex items-center justify-between gap-2">
         {/* Theme toggle */}
-        <button
+        <Button
           aria-label={t(`common.theme.${mode}`, mode)}
           className="flex items-center gap-2 px-4 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex-1"
           data-testid="bottom-drawer-theme-toggle"
@@ -307,10 +303,10 @@ function DrawerUtilityRow({ onClose }: { onClose: () => void }) {
         >
           <ThemeIcon className="h-4 w-4" />
           <span className="text-xs font-bold">{t(`common.theme.${mode}`, mode)}</span>
-        </button>
+        </Button>
 
         {/* Language toggle */}
-        <button
+        <Button
           aria-label={t("appLauncher.language", "Language") + ": " + currentOption.nativeName}
           className="flex items-center gap-2 px-4 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex-1"
           data-testid="bottom-drawer-lang-toggle"
@@ -321,10 +317,10 @@ function DrawerUtilityRow({ onClose }: { onClose: () => void }) {
             {currentLanguage.toUpperCase()}
           </span>
           <span className="text-xs font-bold truncate">{currentOption.nativeName}</span>
-        </button>
+        </Button>
 
         {/* Logout */}
-        <button
+        <Button
           aria-label={t("common.logout")}
           className="flex items-center gap-2 px-4 py-3 rounded-2xl text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors flex-1"
           data-testid="bottom-drawer-logout"
@@ -333,7 +329,7 @@ function DrawerUtilityRow({ onClose }: { onClose: () => void }) {
         >
           <LogOut className="h-4 w-4" />
           <span className="text-xs font-bold">{t("common.logout")}</span>
-        </button>
+        </Button>
       </div>
     </div>
   );

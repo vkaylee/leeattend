@@ -229,6 +229,7 @@ function DailyReportMobileCard({
         <Button
           className={cn(
             "flex items-center justify-center rounded-lg border p-2 transition-all",
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Record key may not exist at runtime
             existingAdjustment
               ? "border-orange-200 bg-orange-50 text-orange-600 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-300"
               : "border-slate-200 bg-white text-slate-500 hover:bg-primary-50 hover:text-primary-600 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-primary-950/30 dark:hover:text-primary-400"

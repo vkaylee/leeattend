@@ -102,18 +102,6 @@ function AttendanceMobileCard({
   );
 }
 
-function SkeletonRow() {
-  return (
-    <tr className="animate-pulse border-b border-slate-50 dark:border-slate-800">
-      <td className="px-10 py-6"><div className="h-14 w-14 rounded-2xl bg-slate-200 dark:bg-slate-800" /></td>
-      <td className="px-8 py-6"><div className="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded mx-auto" /></td>
-      <td className="px-8 py-6"><div className="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded mx-auto" /></td>
-      <td className="px-8 py-6"><div className="h-6 w-20 bg-slate-200 dark:bg-slate-800 rounded-xl mx-auto" /></td>
-      <td className="px-8 py-6"><div className="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded mx-auto" /></td>
-      <td className="px-10 py-6"><div className="h-6 w-24 bg-slate-200 dark:bg-slate-800 rounded-full ml-auto" /></td>
-    </tr>
-  );
-}
 
 export function AttendanceTable({
   entries,

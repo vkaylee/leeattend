@@ -74,6 +74,7 @@ export function useEmployeeSearch({
 
   useEffect(() => {
     if (selectedEmpData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedMeta(prev => {
         if (prev.some(m => m.id === selectedEmpData.id)) return prev;
         return [...prev, selectedEmpData];
@@ -86,6 +87,7 @@ export function useEmployeeSearch({
     const found = employees.filter(emp => selectedIds.includes(emp.id));
     if (found.length === 0) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedMeta(previous => {
       const missing = found.filter(f => !previous.some(m => m.id === f.id));
       if (missing.length === 0) return previous;

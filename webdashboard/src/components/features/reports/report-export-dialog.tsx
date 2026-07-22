@@ -296,11 +296,10 @@ function useExportDialog({ isOpen, wsId, startDate, endDate, reportType, employe
   const [totalBatches, setTotalBatches] = useState(0);
   const [useFallbackPolling, setUseFallbackPolling] = useState(false);
 
-  // Reset export state when dialog re-opens. This is a legitimate use of
-  // useEffect: the effect is responding to a modal-open event (a side effect),
-  // not deriving state from props.
+  // Reset export state when dialog re-opens.
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPhase("idle"); setJobId(null); setError(null); setTotalBatches(0); setUseFallbackPolling(false);
     }
   }, [isOpen]);
