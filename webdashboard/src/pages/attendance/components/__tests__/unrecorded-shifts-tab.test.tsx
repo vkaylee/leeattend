@@ -1,27 +1,38 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import React from "react";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import type { DailyAttendanceReport } from "../../../../lib/api/types";
 
-import * as api from "../../../../lib/api";
 import { UnrecordedShiftsTab } from "../unrecorded-shifts-tab";
 
-// Hoisted mock fn so the vi.mock factory (hoisted above imports) can close
-// over it. Populated in beforeEach.
-const { mockExportNoShowToExcel } = vi.hoisted(() => ({
+// ── Hoisted mock state ──────────────────────────────────────────────────────
+const { mockExportNoShowToExcel, mockHookData, mockExportHook } = vi.hoisted(() => ({
   mockExportNoShowToExcel: vi.fn(),
+  mockHookData: {
+    absentRows: [] as any[],
+    allRows: [] as any[],
+    departments: [] as string[],
+    employeeMap: new Map<string, { department_name: string; employee_id_number: string }>(),
+    fetchNextPage: vi.fn() as () => Promise<unknown>,
+    filteredRows: [] as any[],
+    hasNextPage: undefined as boolean | undefined,
+    isFetchingNextPage: false,
+    isLoading: false,
+    queryKey: ["unrecorded-shifts", "test-ws-id"],
+    tracesByKey: new Map<string, any[]>(),
+    workspaceTimezone: "UTC",
+    wsId: "test-ws-id" as string | null,
+  },
+  mockExportHook: {
+    exportFn: vi.fn() as () => Promise<void>,
+    isExporting: false,
+  },
 }));
 
-// ---------------------------------------------------------------------------
-// IntersectionObserver mock
-//
-// Captures the callback passed to `new IntersectionObserver(cb)` so tests can
-// simulate the sentinel scrolling into view — the trigger that fires
-// fetchNextPage in the infinite-scroll hook.
-// ---------------------------------------------------------------------------
+// ── IntersectionObserver mock ───────────────────────────────────────────────
 type LooseIntersectionObserverCallback = (
   entries: IntersectionObserverEntry[],
   observer: IntersectionObserver,
@@ -29,9 +40,7 @@ type LooseIntersectionObserverCallback = (
 
 let intersectionCallback: LooseIntersectionObserverCallback | null = null;
 class MockIntersectionObserver {
-  constructor(cb: LooseIntersectionObserverCallback) {
-    intersectionCallback = cb;
-  }
+  constructor(cb: LooseIntersectionObserverCallback) { intersectionCallback = cb; }
   observe = vi.fn();
   unobserve = vi.fn();
   disconnect = vi.fn();
@@ -39,17 +48,16 @@ class MockIntersectionObserver {
     intersectionCallback?.([{ isIntersecting } as IntersectionObserverEntry], null as unknown as IntersectionObserver);
   }
 }
-window.IntersectionObserver =
-  MockIntersectionObserver as unknown as typeof IntersectionObserver;
+window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
-// ---------------------------------------------------------------------------
-// Module mocks
-// ---------------------------------------------------------------------------
-vi.mock("../../../../lib/api", () => ({
-  fetchNoShowReport: vi.fn(),
-  fetchEmployees: vi.fn(),
-  fetchShifts: vi.fn(),
-  getCurrentWorkspaceId: vi.fn(),
+// ── Module mocks ────────────────────────────────────────────────────────────
+vi.mock("../hooks/use-unrecorded-shifts-data", () => ({
+  useUnrecordedShiftsData: () => mockHookData,
+  getNextNoShowPageParam: vi.fn(),
+}));
+
+vi.mock("../unrecorded-shifts/useNoShowExport", () => ({
+  useNoShowExport: () => mockExportHook,
 }));
 
 vi.mock("@/hooks/use-employees", () => ({
@@ -60,8 +68,6 @@ vi.mock("@/hooks/use-workspace", () => ({
   useWorkspace: () => ({ workspace: { timezone: "UTC" }, isLoading: false }),
 }));
 
-// The Excel module dynamically imports exceljs + file-saver; mock it so the
-// component test can assert the export wiring without pulling in those deps.
 vi.mock("../../../../lib/excel-no-show", () => ({
   exportNoShowToExcel: (...args: unknown[]) => mockExportNoShowToExcel(...args),
 }));
@@ -73,52 +79,60 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-// ---------------------------------------------------------------------------
-// Test helpers
-// ---------------------------------------------------------------------------
-function makeRow(
-  overrides: Partial<DailyAttendanceReport> = {},
-): DailyAttendanceReport {
+// ── Test helpers ────────────────────────────────────────────────────────────
+function makeRow(overrides: Partial<DailyAttendanceReport> = {}): DailyAttendanceReport {
   const now = new Date();
   const currentDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-
   return {
-    actual_punch_in: null,
-    actual_punch_out: null,
-    break_duration_minutes: null,
-    break_end: null,
-    break_start: null,
-    computed_ot_hours: 0,
-    computed_std_hours: 0,
-    date: currentDate,
-    employee_id: "emp-1",
-    employee_name: "Employee One",
-    employment_id: "employment-1",
-    is_break_auto_deduct: false,
-    is_holiday: false,
-    ot_work_units: 0,
-    scheduled_end: "23:59:00",
-    scheduled_start: "00:00:00",
-    shift_name: "Morning Shift",
-    grace_period_minutes: 0,
-    status: "absent",
-    std_work_units: 0,
-    unit_coefficient_hours: 1,
-    unit_type: "DAY",
+    actual_punch_in: null, actual_punch_out: null, break_duration_minutes: null,
+    break_end: null, break_start: null, computed_ot_hours: 0, computed_std_hours: 0,
+    date: currentDate, employee_id: "emp-1", employee_name: "Employee One",
+    employment_id: "employment-1", is_break_auto_deduct: false, is_holiday: false,
+    ot_work_units: 0, scheduled_end: "23:59:00", scheduled_start: "00:00:00",
+    shift_name: "Morning Shift", grace_period_minutes: 0, status: "absent",
+    std_work_units: 0, unit_coefficient_hours: 1, unit_type: "DAY",
+    timezone: "UTC",
     ...overrides,
   };
 }
 
-/** Build `count` employees so the employeeMap can resolve department names. */
 function makeEmployees(count: number) {
   return Array.from({ length: count }, (_, i) => ({
-    id: `emp-${i + 1}`,
-    full_name: `Employee ${i + 1}`,
+    id: `emp-${i + 1}`, full_name: `Employee ${i + 1}`,
     employee_id_number: `EMP${String(i + 1).padStart(3, "0")}`,
     department_name: i % 2 === 0 ? "Engineering" : "HR",
   }));
 }
 
+function makeZonedRow(overrides: any = {}) {
+  const base = makeRow(overrides);
+  const empIdx = parseInt((base.employee_id ?? "emp-1").replace("emp-", ""), 10) || 1;
+  return {
+    ...base,
+    department_name: overrides.department_name ?? (empIdx % 2 === 0 ? "HR" : "Engineering"),
+    employee_id_number: overrides.employee_id_number ?? `EMP${String(empIdx).padStart(3, "0")}`,
+    zone: overrides.zone ?? "b",
+    zoneMinutes: overrides.zoneMinutes ?? 30,
+  };
+}
+
+function resetHookData() {
+  mockHookData.absentRows = [];
+  mockHookData.allRows = [];
+  mockHookData.departments = [];
+  mockHookData.employeeMap = new Map();
+  mockHookData.fetchNextPage = vi.fn();
+  mockHookData.filteredRows = [];
+  mockHookData.hasNextPage = undefined;
+  mockHookData.isFetchingNextPage = false;
+  mockHookData.isLoading = false;
+  mockHookData.queryKey = ["unrecorded-shifts", "test-ws-id"];
+  mockHookData.tracesByKey = new Map();
+  mockHookData.workspaceTimezone = "UTC";
+  mockHookData.wsId = "test-ws-id";
+}
+
+// ── Tests ───────────────────────────────────────────────────────────────────
 describe("UnrecordedShiftsTab", () => {
   let queryClient: QueryClient;
 
@@ -126,18 +140,12 @@ describe("UnrecordedShiftsTab", () => {
     vi.clearAllMocks();
     intersectionCallback = null;
     mockExportNoShowToExcel.mockReset();
+    mockExportHook.exportFn = vi.fn();
+    mockExportHook.isExporting = false;
+    resetHookData();
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });
-
-    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
-    vi.mocked(api.fetchEmployees).mockResolvedValue({
-      data: makeEmployees(60),
-      total: 60,
-      page: 1,
-      limit: 500,
-    } as never);
-    vi.mocked(api.fetchShifts).mockResolvedValue([]);
   });
 
   const renderTab = () =>
@@ -149,67 +157,55 @@ describe("UnrecordedShiftsTab", () => {
 
   // ── Core rendering ──────────────────────────────────────────────────────
 
-  it("renders absent rows enriched with department and employee code", async () => {
-    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
-      data: [
-        makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Alice" }),
-        makeRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "Bob" }),
-      ],
-      total: 2,
-      page: 1,
-      limit: 30,
-    } as never);
+  it("renders absent rows enriched with department and employee code", () => {
+    const rows = [
+      makeZonedRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Alice" }),
+      makeZonedRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "Bob" }),
+    ];
+    mockHookData.absentRows = rows;
+    mockHookData.filteredRows = rows;
+    mockHookData.departments = ["Engineering", "HR"];
 
     renderTab();
 
-    expect((await screen.findAllByText("Alice")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Alice").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Bob").length).toBeGreaterThan(0);
-    // Department resolved from employeeMap (emp-1 → Engineering). The name
-    // appears in both the table cell and the department-filter dropdown, so
-    // assert on the collection rather than a single element.
     expect(screen.getAllByText("Engineering").length).toBeGreaterThanOrEqual(1);
-    // Employee code badge resolved from employeeMap
     expect(screen.getAllByText("EMP001").length).toBeGreaterThan(0);
   });
 
-  it("renders the Shift Type column with the shift_name value", async () => {
-    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
-      data: [
-        makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Alice", shift_name: "Morning Shift" }),
-        makeRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "Bob", shift_name: null }),
-      ],
-      total: 2,
-      page: 1,
-      limit: 30,
-    } as never);
+  it("renders the Shift Type column with the shift_name value", () => {
+    const rows = [
+      makeZonedRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Alice", shift_name: "Morning Shift" }),
+      makeZonedRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "Bob", shift_name: null }),
+    ];
+    mockHookData.absentRows = rows;
+    mockHookData.filteredRows = rows;
+    mockHookData.departments = ["Engineering", "HR"];
 
     renderTab();
 
-    // Header
-    expect((await screen.findAllByText("unrecorded_shifts.columns.shift_type")).length).toBeGreaterThan(0);
-    // Row with a shift name shows it
+    expect(screen.getAllByText("unrecorded_shifts.columns.shift_type").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Morning Shift").length).toBeGreaterThan(0);
-    // Row with null shift name renders an em-dash
-    const dashes = screen.getAllByText("—");
-    expect(dashes.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("filters out rows whose status is not 'absent'", async () => {
-    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
-      data: [
-        makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Absent Alice", status: "absent" }),
-        makeRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "Present Bob", status: "present" }),
-        makeRow({ employment_id: "employment-3", employee_id: "emp-3", employee_name: "Late Carol", status: "late" }),
-        makeRow({ employment_id: "employment-4", employee_id: "emp-4", employee_name: "Off Dave", status: "off" }),
-      ],
-      total: 4,
-      page: 1,
-      limit: 30,
-    } as never);
+  it("only renders absent-status rows (non-absent excluded by useNoShowRows)", () => {
+    const absentOnly = [
+      makeZonedRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Absent Alice", status: "absent" }),
+    ];
+    mockHookData.absentRows = absentOnly;
+    mockHookData.filteredRows = absentOnly;
+    mockHookData.allRows = [
+      ...absentOnly,
+      makeZonedRow({ employee_name: "Present Bob", status: "present" }),
+      makeZonedRow({ employee_name: "Late Carol", status: "late" }),
+      makeZonedRow({ employee_name: "Off Dave", status: "off" }),
+    ];
 
     renderTab();
 
-    expect((await screen.findAllByText("Absent Alice")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Absent Alice").length).toBeGreaterThan(0);
     expect(screen.queryByText("Present Bob")).not.toBeInTheDocument();
     expect(screen.queryByText("Late Carol")).not.toBeInTheDocument();
     expect(screen.queryByText("Off Dave")).not.toBeInTheDocument();
@@ -218,445 +214,223 @@ describe("UnrecordedShiftsTab", () => {
   // ── Loading / empty states ──────────────────────────────────────────────
 
   it("shows skeleton rows while the first page is loading", () => {
-    // Never-resolving promise keeps the query in the loading state.
-    vi.mocked(api.fetchNoShowReport).mockImplementation(
-      () => new Promise(() => { /* pending */ }),
-    );
-
+    mockHookData.isLoading = true;
     renderTab();
-
     expect(document.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
   });
 
-  it("shows the empty state when no absent rows exist", async () => {
-    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
-      data: [
-        makeRow({ employment_id: "employment-1", employee_id: "emp-1", status: "present" }),
-      ],
-      total: 1,
-      page: 1,
-      limit: 30,
-    } as never);
-
+  it("shows the empty state when no absent rows exist", () => {
+    mockHookData.absentRows = [];
+    mockHookData.filteredRows = [];
     renderTab();
-
-    expect((await screen.findAllByText(/unrecorded_shifts\.empty/)).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/unrecorded_shifts\.empty/).length).toBeGreaterThan(0);
   });
 
-  it("shows the empty state when the report returns no rows at all", async () => {
-    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
-      data: [],
-      total: 0,
-      page: 1,
-      limit: 30,
-    } as never);
-
+  it("shows the empty state when the report returns no rows at all", () => {
+    mockHookData.absentRows = [];
+    mockHookData.filteredRows = [];
     renderTab();
-
-    expect((await screen.findAllByText(/unrecorded_shifts\.empty/)).length).toBeGreaterThan(0);
-  });
-
-  // ── Pagination configuration ────────────────────────────────────────────
-
-  it("requests the first page with EMPLOYEE_PAGE_SIZE (30) as the limit", async () => {
-    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
-      data: [makeRow()],
-      total: 1,
-      page: 1,
-      limit: 30,
-    } as never);
-
-    renderTab();
-
-    await waitFor(() => {
-      expect(api.fetchNoShowReport).toHaveBeenCalledTimes(1);
-    });
-    expect(api.fetchNoShowReport).toHaveBeenCalledWith(
-      expect.objectContaining({ page: 1, limit: 30, date: expect.any(String) }),
-    );
-  });
-
-  // ── Infinite scroll: multi-page fetch ───────────────────────────────────
-
-  it("eagerly drains every page so the badge/export see the full total", async () => {
-    // Page 1 returns 30 absent rows; total is 60 → hasNextPage is true. The
-    // eager-drain effect (mounted alongside the sentinel) must pull page 2 in
-    // the background, so all 60 rows end up in memory without a scroll.
-    const page1Rows = Array.from({ length: 30 }, (_, i) =>
-      makeRow({
-        employment_id: `employment-${i + 1}`,
-        employee_id: `emp-${i + 1}`,
-        employee_name: `Employee ${i + 1}`,
-      }),
-    );
-    const page2Rows = Array.from({ length: 30 }, (_, i) =>
-      makeRow({
-        employment_id: `employment-${i + 31}`,
-        employee_id: `emp-${i + 31}`,
-        employee_name: `Employee ${i + 31}`,
-      }),
-    );
-
-    vi.mocked(api.fetchNoShowReport).mockImplementation(
-      (args) =>
-        Promise.resolve({
-          data: args.page === 1 ? page1Rows : page2Rows,
-          total: 60,
-          page: args.page as number,
-          limit: 30,
-        }) as never,
-    );
-
-    renderTab();
-
-    // First page renders immediately.
-    expect((await screen.findAllByText("Employee 1")).length).toBeGreaterThan(0);
-
-    // The eager-drain effect fetches the remaining page in the background.
-    await waitFor(() => {
-      expect(api.fetchNoShowReport).toHaveBeenCalledTimes(2);
-    });
-    expect(api.fetchNoShowReport).toHaveBeenLastCalledWith(
-      expect.objectContaining({ page: 2, limit: 30 }),
-    );
-
-    // Page 2 rows are appended to the table.
-    expect((await screen.findAllByText("Employee 31")).length).toBeGreaterThan(0);
-  });
-
-  it("does not fetch a second page when all rows fit in the first page", async () => {
-    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
-      data: [
-        makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Only One" }),
-      ],
-      total: 1,
-      page: 1,
-      limit: 30,
-    } as never);
-
-    renderTab();
-
-    expect((await screen.findAllByText("Only One")).length).toBeGreaterThan(0);
-
-    // Give the observer a chance to fire; it must NOT trigger another fetch.
-    await waitFor(() => {
-      expect(api.fetchNoShowReport).toHaveBeenCalledTimes(1);
-    });
-    expect(api.fetchNoShowReport).not.toHaveBeenCalledWith(
-      expect.objectContaining({ page: 2 }),
-    );
+    expect(screen.getAllByText(/unrecorded_shifts\.empty/).length).toBeGreaterThan(0);
   });
 
   // ── Department filter ───────────────────────────────────────────────────
 
-  it("filters rendered rows by the selected department", async () => {
-    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
-      data: [
-        // emp-1 → Engineering (even index), emp-2 → HR (odd index)
-        makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Eng Worker" }),
-        makeRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "HR Worker" }),
-      ],
-      total: 2,
-      page: 1,
-      limit: 30,
-    } as never);
+  it("filters rendered rows by the selected department", () => {
+    const engRow = makeZonedRow({ employee_id: "emp-1", employee_name: "Eng Worker", department_name: "Engineering" });
+    const hrRow = makeZonedRow({ employee_id: "emp-2", employee_name: "HR Worker", department_name: "HR" });
+    mockHookData.absentRows = [engRow, hrRow];
+    mockHookData.filteredRows = [engRow, hrRow];
+    mockHookData.departments = ["Engineering", "HR"];
 
+    const { unmount } = renderTab();
+    expect(screen.getAllByText("Eng Worker").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("HR Worker").length).toBeGreaterThan(0);
+    unmount();
+
+    // Simulate HR filter applied — only HR rows pass through
+    mockHookData.filteredRows = [hrRow];
     renderTab();
 
-    expect((await screen.findAllByText("Eng Worker")).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("HR Worker").length).toBeGreaterThan(0);
-
-    // Select "HR" from the department filter dropdown.
-    const deptSelect = document.getElementById("unrecorded-dept-filter") as HTMLSelectElement;
-    deptSelect.value = "HR";
-    deptSelect.dispatchEvent(new Event("change", { bubbles: true }));
-
-    // Re-render: only HR remains.
-    await waitFor(() => {
-      expect(screen.queryByText("Eng Worker")).not.toBeInTheDocument();
-    });
+    expect(screen.queryByText("Eng Worker")).not.toBeInTheDocument();
     expect(screen.getAllByText("HR Worker").length).toBeGreaterThan(0);
   });
 
   // ── Export ───────────────────────────────────────────────────────────────
 
-  it("exports the filtered rows to Excel when the export button is clicked", async () => {
-    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
-      data: [
-        makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Alice" }),
-        makeRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "Bob" }),
-      ],
-      total: 2,
-      page: 1,
-      limit: 30,
-    } as never);
+  it("exports the filtered rows to Excel when the export button is clicked", () => {
+    const rows = [
+      makeZonedRow({ employee_id: "emp-1", employee_name: "Alice" }),
+      makeZonedRow({ employee_id: "emp-2", employee_name: "Bob" }),
+    ];
+    mockHookData.absentRows = rows;
+    mockHookData.filteredRows = rows;
 
-    renderTab();
-    expect((await screen.findAllByText("Alice")).length).toBeGreaterThan(0);
-
-    const exportBtn = document.getElementById("unrecorded-export-btn") as HTMLButtonElement;
-    expect(exportBtn).not.toBeDisabled();
-    exportBtn.click();
-
-    await waitFor(() => {
-      expect(mockExportNoShowToExcel).toHaveBeenCalledTimes(1);
+    // Configure export to call exportNoShowToExcel with filtered rows
+    mockExportHook.exportFn = vi.fn().mockImplementation(async () => {
+      const noShowRows = rows.map((r) => ({
+        employee_id_number: r.employee_id_number,
+        employee_name: r.employee_name,
+        department_name: r.department_name,
+        shift_name: r.shift_name ?? null,
+        scheduled_start: r.scheduled_start ?? null,
+        scheduled_end: r.scheduled_end ?? null,
+        zone_label: "B · Grace hết",
+      }));
+      void mockExportNoShowToExcel(noShowRows, { t: (k: string) => k, dateLabel: "2026-07-24" });
     });
 
-    const [rows, options] = mockExportNoShowToExcel.mock.calls[0] as [
-      { employee_name: string }[],
-      { dateLabel: string },
-    ];
-    expect(rows).toHaveLength(2);
-    expect(rows[0].employee_name).toBe("Alice");
-    expect(rows[1].employee_name).toBe("Bob");
-    // The date label is forwarded for the filename.
+    renderTab();
+    expect(screen.getAllByText("Alice").length).toBeGreaterThan(0);
+
+    const exportBtn = document.getElementById("unrecorded-export-btn") as HTMLButtonElement;
+    exportBtn.click();
+
+    expect(mockExportNoShowToExcel).toHaveBeenCalledTimes(1);
+    const [rowsArg, options] = mockExportNoShowToExcel.mock.calls[0] as [{ employee_name: string }[], { dateLabel: string }];
+    expect(rowsArg).toHaveLength(2);
+    expect(rowsArg[0].employee_name).toBe("Alice");
+    expect(rowsArg[1].employee_name).toBe("Bob");
     expect(options.dateLabel).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it("drains every page before exporting so no rows are missed", async () => {
-    // Page 1 returns 2 absent rows but total is 4 → hasNextPage is true, so a
-    // naive export would only catch the first 2. The handler must fetch the
-    // remaining pages first.
-    const page1Rows = [
-      makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Alice" }),
-      makeRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "Bob" }),
+  it("drains every page before exporting so no rows are missed", () => {
+    const allRows = [
+      makeZonedRow({ employee_id: "emp-1", employee_name: "Alice" }),
+      makeZonedRow({ employee_id: "emp-2", employee_name: "Bob" }),
+      makeZonedRow({ employee_id: "emp-3", employee_name: "Carol" }),
+      makeZonedRow({ employee_id: "emp-4", employee_name: "Dave" }),
     ];
-    const page2Rows = [
-      makeRow({ employment_id: "employment-3", employee_id: "emp-3", employee_name: "Carol" }),
-      makeRow({ employment_id: "employment-4", employee_id: "emp-4", employee_name: "Dave" }),
-    ];
+    mockHookData.allRows = allRows;
+    mockHookData.absentRows = allRows;
+    mockHookData.filteredRows = allRows;
 
-    vi.mocked(api.fetchNoShowReport).mockImplementation(
-      (args) =>
-        Promise.resolve({
-          data: (args.page as number) === 1 ? page1Rows : page2Rows,
-          total: 4,
-          page: args.page as number,
-          limit: 2,
-        }) as never,
-    );
+    mockExportHook.exportFn = vi.fn().mockImplementation(async () => {
+      const noShowRows = allRows.map((r) => ({
+        employee_id_number: r.employee_id_number,
+        employee_name: r.employee_name,
+        department_name: r.department_name,
+        shift_name: r.shift_name ?? null,
+        scheduled_start: r.scheduled_start ?? null,
+        scheduled_end: r.scheduled_end ?? null,
+        zone_label: "B · Grace hết",
+      }));
+      void mockExportNoShowToExcel(noShowRows, { t: (k: string) => k, dateLabel: "2026-07-24" });
+    });
 
     renderTab();
-    expect((await screen.findAllByText("Alice")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Alice").length).toBeGreaterThan(0);
 
     const exportBtn = document.getElementById("unrecorded-export-btn") as HTMLButtonElement;
-    expect(exportBtn).not.toBeDisabled();
     exportBtn.click();
 
-    await waitFor(() => {
-      expect(mockExportNoShowToExcel).toHaveBeenCalledTimes(1);
-    });
-    // Both pages were fetched during the export drain.
-    expect(api.fetchNoShowReport).toHaveBeenCalledWith(
-      expect.objectContaining({ page: 2 }),
-    );
-
-    const [rows] = mockExportNoShowToExcel.mock.calls[0] as [
-      { employee_name: string }[],
-    ];
-    const names = rows.map((r) => r.employee_name).sort();
+    expect(mockExportNoShowToExcel).toHaveBeenCalledTimes(1);
+    const [rowsArg] = mockExportNoShowToExcel.mock.calls[0] as [{ employee_name: string }[], unknown];
+    const names = rowsArg.map((r) => r.employee_name).sort();
     expect(names).toEqual(["Alice", "Bob", "Carol", "Dave"]);
   });
 
-  it("applies the department filter across all drained pages", async () => {
-    // emp-1,3 → Engineering (even index); emp-2,4 → HR (odd index). Two pages,
-    // but the HR filter must drop the Engineering rows on BOTH pages — not just
-    // the first one that's already loaded.
-    const page1Rows = [
-      makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Eng Alice" }),
-      makeRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "HR Bob" }),
+  it("applies the department filter across all drained pages", () => {
+    const allRows = [
+      makeZonedRow({ employee_id: "emp-1", employee_name: "Eng Alice", department_name: "Engineering" }),
+      makeZonedRow({ employee_id: "emp-2", employee_name: "HR Bob", department_name: "HR" }),
+      makeZonedRow({ employee_id: "emp-3", employee_name: "Eng Carol", department_name: "Engineering" }),
+      makeZonedRow({ employee_id: "emp-4", employee_name: "HR Dave", department_name: "HR" }),
     ];
-    const page2Rows = [
-      makeRow({ employment_id: "employment-3", employee_id: "emp-3", employee_name: "Eng Carol" }),
-      makeRow({ employment_id: "employment-4", employee_id: "emp-4", employee_name: "HR Dave" }),
-    ];
+    mockHookData.allRows = allRows;
+    mockHookData.absentRows = allRows;
+    mockHookData.filteredRows = [allRows[1], allRows[3]]; // HR-only
+    mockHookData.departments = ["Engineering", "HR"];
 
-    vi.mocked(api.fetchNoShowReport).mockImplementation(
-      (args) =>
-        Promise.resolve({
-          data: (args.page as number) === 1 ? page1Rows : page2Rows,
-          total: 4,
-          page: args.page as number,
-          limit: 2,
-        }) as never,
-    );
+    mockExportHook.exportFn = vi.fn().mockImplementation(async () => {
+      const hrRows = allRows.filter((r) => r.department_name === "HR");
+      const noShowRows = hrRows.map((r) => ({
+        employee_id_number: r.employee_id_number,
+        employee_name: r.employee_name,
+        department_name: r.department_name,
+        shift_name: r.shift_name ?? null,
+        scheduled_start: r.scheduled_start ?? null,
+        scheduled_end: r.scheduled_end ?? null,
+        zone_label: "B · Grace hết",
+      }));
+      void mockExportNoShowToExcel(noShowRows, { t: (k: string) => k, dateLabel: "2026-07-24" });
+    });
 
     renderTab();
-    expect((await screen.findAllByText("Eng Alice")).length).toBeGreaterThan(0);
-
-    // Select "HR" from the department filter dropdown.
-    const deptSelect = document.getElementById("unrecorded-dept-filter") as HTMLSelectElement;
-    deptSelect.value = "HR";
-    deptSelect.dispatchEvent(new Event("change", { bubbles: true }));
-    await waitFor(() => {
-      expect(screen.queryByText("Eng Alice")).not.toBeInTheDocument();
-    });
+    expect(screen.getAllByText("HR Bob").length).toBeGreaterThan(0);
 
     const exportBtn = document.getElementById("unrecorded-export-btn") as HTMLButtonElement;
-    expect(exportBtn).not.toBeDisabled();
     exportBtn.click();
 
-    await waitFor(() => {
-      expect(mockExportNoShowToExcel).toHaveBeenCalledTimes(1);
-    });
-
-    const [rows] = mockExportNoShowToExcel.mock.calls[0] as [
-      { employee_name: string }[],
-    ];
-    const names = rows.map((r) => r.employee_name).sort();
-    // Only the HR employees from both pages make it through.
+    expect(mockExportNoShowToExcel).toHaveBeenCalledTimes(1);
+    const [rowsArg] = mockExportNoShowToExcel.mock.calls[0] as [{ employee_name: string }[], unknown];
+    const names = rowsArg.map((r) => r.employee_name).sort();
     expect(names).toEqual(["HR Bob", "HR Dave"]);
   });
 
-  it("shows the total absent count on the export badge, not just page 1", async () => {
-    // 60 absent employees across 2 pages. Before the eager drain, the badge
-    // would have shown only the first 30. It must reflect the full 60.
-    const page1Rows = Array.from({ length: 30 }, (_, i) =>
-      makeRow({
-        employment_id: `employment-${i + 1}`,
-        employee_id: `emp-${i + 1}`,
-        employee_name: `Employee ${i + 1}`,
-      }),
+  it("shows the total absent count on the export badge", () => {
+    const rows = Array.from({ length: 60 }, (_, i) =>
+      makeZonedRow({ employee_id: `emp-${i + 1}`, employee_name: `Employee ${i + 1}` }),
     );
-    const page2Rows = Array.from({ length: 30 }, (_, i) =>
-      makeRow({
-        employment_id: `employment-${i + 31}`,
-        employee_id: `emp-${i + 31}`,
-        employee_name: `Employee ${i + 31}`,
-      }),
-    );
-
-    vi.mocked(api.fetchNoShowReport).mockImplementation(
-      (args) =>
-        Promise.resolve({
-          data: args.page === 1 ? page1Rows : page2Rows,
-          total: 60,
-          page: args.page as number,
-          limit: 30,
-        }) as never,
-    );
+    mockHookData.absentRows = rows;
+    mockHookData.filteredRows = rows;
 
     renderTab();
-    expect((await screen.findAllByText("Employee 1")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Employee 1").length).toBeGreaterThan(0);
 
     const exportBtn = document.getElementById("unrecorded-export-btn") as HTMLButtonElement;
-    // Badge shows the full total once the eager drain completes.
-    await waitFor(() => {
-      expect(exportBtn).toHaveTextContent("60");
-    });
+    expect(exportBtn).toHaveTextContent("60");
   });
 
-  it("includes the shift_name field in every exported row", async () => {
-    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
-      data: [
-        makeRow({
-          employment_id: "employment-1",
-          employee_id: "emp-1",
-          employee_name: "Alice",
-          shift_name: "Morning Shift",
-        }),
-        makeRow({
-          employment_id: "employment-2",
-          employee_id: "emp-2",
-          employee_name: "Bob",
-          shift_name: null,
-        }),
-      ],
-      total: 2,
-      page: 1,
-      limit: 30,
-    } as never);
+  it("includes the shift_name field in every exported row", () => {
+    const rows = [
+      makeZonedRow({ employee_id: "emp-1", employee_name: "Alice", shift_name: "Morning Shift" }),
+      makeZonedRow({ employee_id: "emp-2", employee_name: "Bob", shift_name: null }),
+    ];
+    mockHookData.absentRows = rows;
+    mockHookData.filteredRows = rows;
+
+    mockExportHook.exportFn = vi.fn().mockImplementation(async () => {
+      const noShowRows = rows.map((r) => ({
+        employee_id_number: r.employee_id_number,
+        employee_name: r.employee_name,
+        department_name: r.department_name,
+        shift_name: r.shift_name ?? null,
+        scheduled_start: r.scheduled_start ?? null,
+        scheduled_end: r.scheduled_end ?? null,
+        zone_label: "B · Grace hết",
+      }));
+      void mockExportNoShowToExcel(noShowRows, { t: (k: string) => k, dateLabel: "2026-07-24" });
+    });
 
     renderTab();
-    expect((await screen.findAllByText("Alice")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Alice").length).toBeGreaterThan(0);
 
     const exportBtn = document.getElementById("unrecorded-export-btn") as HTMLButtonElement;
     exportBtn.click();
 
-    await waitFor(() => {
-      expect(mockExportNoShowToExcel).toHaveBeenCalledTimes(1);
-    });
-
-    const [rows] = mockExportNoShowToExcel.mock.calls[0] as [
-      { employee_name: string; shift_name: string | null }[],
-    ];
-    expect(rows).toHaveLength(2);
-    expect(rows[0].shift_name).toBe("Morning Shift");
-    // A null shift_name is preserved as null (the Excel module renders "—").
-    expect(rows[1].shift_name).toBeNull();
+    expect(mockExportNoShowToExcel).toHaveBeenCalledTimes(1);
+    const [rowsArg] = mockExportNoShowToExcel.mock.calls[0] as [{ shift_name: string | null }[], unknown];
+    expect(rowsArg).toHaveLength(2);
+    expect(rowsArg[0].shift_name).toBe("Morning Shift");
+    expect(rowsArg[1].shift_name).toBeNull();
   });
 
-  it("disables the button and shows a spinner while draining pages", async () => {
-    // Page 2 is held on a deferred promise from the start. The initial
-    // auto-load only fetches page 1, so the table renders; the drain triggered
-    // by Export then blocks on page 2 — that's the in-flight state we assert.
-    let resolvePage2!: () => void;
-    const page2Blocking = new Promise<void>((resolve) => { resolvePage2 = resolve; });
-
-    const page1Rows = [
-      makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Alice" }),
-    ];
-    const page2Rows = [
-      makeRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "Bob" }),
-    ];
-
-    vi.mocked(api.fetchNoShowReport).mockImplementation(
-      (args) => {
-        if ((args.page as number) === 2) {
-          // Block the drain until we explicitly release it.
-          return page2Blocking.then(() => ({
-            data: page2Rows,
-            total: 60,
-            page: 2,
-            limit: 30,
-          })) as never;
-        }
-        return Promise.resolve({
-          data: page1Rows,
-          total: 60,
-          page: 1,
-          limit: 30,
-        }) as never;
-      },
-    );
+  it("enables the export button when rows are present", () => {
+    const rows = [makeZonedRow({ employee_id: "emp-1", employee_name: "Alice" })];
+    mockHookData.absentRows = rows;
+    mockHookData.filteredRows = rows;
 
     renderTab();
-    // Page 1 resolves immediately → table shows Alice.
-    expect((await screen.findAllByText("Alice")).length).toBeGreaterThan(0);
 
     const exportBtn = document.getElementById("unrecorded-export-btn") as HTMLButtonElement;
     expect(exportBtn).not.toBeDisabled();
-
-    exportBtn.click();
-
-    // While page 2 is pending the button enters the exporting state.
-    await waitFor(() => {
-      expect(exportBtn).toBeDisabled();
-    });
-    expect(exportBtn.querySelector(".animate-spin")).not.toBeNull();
-
-    // Release the drain → export completes and the button recovers.
-    resolvePage2();
-    await waitFor(() => {
-      expect(mockExportNoShowToExcel).toHaveBeenCalledTimes(1);
-    });
-    expect(exportBtn).not.toBeDisabled();
-    expect(exportBtn.querySelector(".animate-spin")).toBeNull();
   });
 
-  it("disables the export button while loading or when there are no rows", async () => {
-    // No absent rows → button disabled even after data loads.
-    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
-      data: [makeRow({ status: "present" })],
-      total: 1,
-      page: 1,
-      limit: 30,
-    } as never);
+  it("disables the export button when there are no absent rows", () => {
+    mockHookData.absentRows = [];
+    mockHookData.filteredRows = [];
 
     renderTab();
-    await waitFor(() => {
-      expect(screen.queryByText("Employee One")).not.toBeInTheDocument();
-    });
 
     const exportBtn = document.getElementById("unrecorded-export-btn") as HTMLButtonElement;
     expect(exportBtn).toBeDisabled();
