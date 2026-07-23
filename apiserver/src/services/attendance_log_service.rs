@@ -302,14 +302,20 @@ impl AttendanceLogService {
             Ok(true) => {
                 // Inline pairing for synchronous callers (punch-in/out, import)
                 // that read time entries immediately after this call.
+                // If pairing fails, propagate the error so the caller knows the
+                // time entries are not yet available and can retry.
                 if let Some(pairing) = &self.pairing_service {
-                    if let Err(e) = pairing.process_new_raw_log(&raw_log).await {
+                    pairing.process_new_raw_log(&raw_log).await.map_err(|e| {
                         tracing::error!(
                             log_id = %raw_log.id(),
                             error = %e,
                             "Pairing error in process_parsed_log"
                         );
-                    }
+                        crate::errors::AppError::Internal(format!(
+                            "Failed to process attendance log (id={}): {e}",
+                            raw_log.id()
+                        ))
+                    })?;
                 } else {
                     // No pairing service — notify PairingScheduler
                     if let Some(notifier) = &self.notifier {

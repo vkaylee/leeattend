@@ -366,8 +366,9 @@ mod tests {
 
         let ws = Uuid::new_v4();
         let emp = Uuid::new_v4();
-        // 14:00 local → always ≥ Overnight_CUTOFF_HOUR (12)
-        let punch = Utc::now().with_timezone(&Utc);
+        // Use a fixed UTC time that is always afternoon in Asia/Ho_Chi_Minh (UTC+7):
+        // 07:00 UTC = 14:00 local  →  always >= OVERNIGHT_CUTOFF_HOUR (12).
+        let punch = Utc.with_ymd_and_hms(2025, 6, 15, 7, 0, 0).unwrap();
 
         notifier.notify(ws, emp, punch);
         scheduler.sweep().await.unwrap();

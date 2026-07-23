@@ -323,7 +323,14 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                         self.start_index.unwrap_or(0),
                         self.end_index.unwrap_or(0)
                     );
-                    let _ = q.store_import_error(self.job.id, &field, &final_msg).await;
+                    if let Err(e) = q.store_import_error(self.job.id, &field, &final_msg).await {
+                        tracing::error!(
+                            job_id = %self.job.id,
+                            field = %field,
+                            error = %e,
+                            "Failed to persist import error — original error may be lost"
+                        );
+                    }
                 }
             }
 
@@ -331,9 +338,16 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
             let remainder = (processed_rows + skipped_rows) % 10;
             if remainder > 0 {
                 if let Some(ref q) = self.queue_repo {
-                    let _ = q
+                    if let Err(e) = q
                         .increment_progress(self.job.id, u32::try_from(remainder).unwrap_or(0))
-                        .await;
+                        .await
+                    {
+                        tracing::warn!(
+                            job_id = %self.job.id,
+                            error = %e,
+                            "Failed to update import progress"
+                        );
+                    }
                 }
             }
 

@@ -147,12 +147,13 @@ async fn test_leave_types_returns_breakdown_with_data() {
         ws_id
     );
 
-    // Create approved leave requests this month (keep within current month)
+    // Create approved leave requests this month (non-overlapping dates to satisfy
+    // the leave_requests_no_overlap_active exclusion constraint).
     factory
         .leave_request()
         .with_employee(emp_id)
         .with_leave_type(vacation_type_id)
-        .with_dates(today - Duration::days(1), today)
+        .with_dates(today - Duration::days(1), today - Duration::days(1))
         .with_status(LeaveStatus::Approved)
         .create()
         .await;

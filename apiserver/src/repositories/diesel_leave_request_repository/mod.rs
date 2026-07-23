@@ -69,6 +69,18 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .await
     }
 
+    async fn update_leave_request_status_tx(
+        &self,
+        conn: &mut diesel_async::AsyncPgConnection,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+        status: LeaveStatus,
+        approved_by: Option<Uuid>,
+    ) -> Result<(), AppError> {
+        self.update_leave_request_status_tx_impl(conn, auth_token, id, status, approved_by)
+            .await
+    }
+
     async fn get_employee_leave_requests(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

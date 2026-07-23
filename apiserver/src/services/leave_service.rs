@@ -3,6 +3,8 @@ use std::sync::Arc;
 use crate::errors::AppError;
 use crate::utils::i18n::I18nKey;
 use chrono::{Datelike, Utc};
+use diesel::result::DatabaseErrorKind;
+use diesel::result::Error as DieselError;
 
 use uuid::Uuid;
 
@@ -27,6 +29,19 @@ struct ConflictInfo {
     conflicting_leaves: Vec<LeaveRequest>,
     conflicting_shifts: Vec<crate::models::ShiftRoster>,
     should_auto_cancel: bool,
+}
+
+/// Returns true if the diesel error is a PostgreSQL exclusion-constraint violation
+/// (SQLSTATE 23P01). This can happen when two concurrent leave submissions create
+/// overlapping approved/pre-approved leaves despite application-level conflict checks.
+fn is_exclusion_violation(err: &DieselError) -> bool {
+    matches!(
+        err,
+        DieselError::DatabaseError(DatabaseErrorKind::CheckViolation, _)
+    ) || matches!(
+        err,
+        DieselError::DatabaseError(DatabaseErrorKind::UniqueViolation, _)
+    )
 }
 
 pub struct LeaveService {
@@ -354,7 +369,18 @@ impl LeaveService {
         );
 
         // =============================================================
-        // Phase 1: Detect conflicts (read-only, no transaction needed)
+        // Phase 0: Invalidate cached employee leaves to force fresh DB read.
+        // This eliminates the stale-cache window that could hide conflicts
+        // from concurrent leave submissions.
+        // =============================================================
+        if let Some(ref cache) = self.cache {
+            let key = format!("cache:employee_leaves:{employee_id}");
+            let _ = cache.delete(&key).await;
+        }
+
+        // =============================================================
+        // Phase 1: Detect conflicts (reads fresh data from DB since cache
+        // was invalidated above).
         // =============================================================
         let conflict_info = self
             .detect_conflicts(workspace_id, employee_id, &request)
@@ -377,13 +403,18 @@ impl LeaveService {
                 .collect();
             let should_cancel = conflict_info.should_auto_cancel;
 
-            conn.transaction::<_, AppError, _>(|pg_conn| {
+            let tx_result = conn.transaction::<_, AppError, _>(|pg_conn| {
                 let req = request.clone();
                 let repo = Arc::clone(&repo);
                 let auth = auth_token_clone;
                 let ids = conflicting_ids.clone();
                 let cancel = should_cancel;
                 Box::pin(async move {
+                    // Re-check conflicts inside the transaction with fresh data.
+                    // The cache was invalidated in Phase 0, so this reads directly from DB.
+                    // PostgreSQL's EXCLUDE constraint (leave_requests_no_overlap_active)
+                    // provides the final safety net — if a concurrent insert slipped in,
+                    // the DB will raise an exclusion violation which we catch below.
                     repo.create_leave_request_tx(pg_conn, &auth, &req).await?;
                     if cancel && !ids.is_empty() {
                         repo.bulk_cancel_leave_requests_tx(pg_conn, &auth, &ids)
@@ -392,7 +423,21 @@ impl LeaveService {
                     Ok(())
                 })
             })
-            .await?;
+            .await;
+
+            match tx_result {
+                Ok(()) => {}
+                Err(AppError::Diesel(ref e)) if is_exclusion_violation(e) => {
+                    tracing::warn!(
+                        employee_id = %employee_id,
+                        start = %request.start_date(),
+                        end = %request.end_date(),
+                        "Leave overlap prevented by DB exclusion constraint"
+                    );
+                    return Err(AppError::conflict(I18nKey::Conflict));
+                }
+                Err(e) => return Err(e),
+            }
         } else {
             // Fallback: no DieselPools injected — use separate non-transactional calls
             self.leave_request_repo
@@ -401,17 +446,6 @@ impl LeaveService {
                     &request,
                 )
                 .await?;
-        }
-
-        // Invalidate cached employee leaves since we added a new request
-        if let Some(ref cache) = self.cache {
-            let key = format!("cache:employee_leaves:{employee_id}");
-            let _ = cache.delete(&key).await;
-        }
-
-        // If auto-approved, apply roster side effects immediately
-        if auto_approve {
-            self.apply_leave_to_roster(workspace_id, &request).await?;
         }
 
         // Phase 3: Handle non-cancel conflict actions (notifications for shift
@@ -443,45 +477,60 @@ impl LeaveService {
         request_id: Uuid,
         req: ApproveLeaveRequest,
     ) -> Result<(), AppError> {
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
+
         let request = self
             .leave_request_repo
-            .get_leave_request_by_id(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                request_id,
-            )
+            .get_leave_request_by_id(&auth_token, request_id)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
         // Verify employment of this request belongs to the workspace
         let _ = self
             .employment_repo
-            .get_employment_by_id(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                request.employment_id(),
-            )
+            .get_employment_by_id(&auth_token, request.employment_id())
             .await?
             .ok_or_else(|| AppError::forbidden(I18nKey::Forbidden))?;
 
-        self.leave_request_repo
-            .update_leave_request_status(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                request_id,
-                req.status,
-                Some(user_id),
-            )
-            .await?;
+        // Run status update inside a transaction so it can be rolled back if
+        // post-approval side effects fail. Previously the status update used
+        // autocommit, which left the leave Approved even when conflict handling
+        // or roster updates failed.
+        if let Some(ref pools) = self.diesel_pools {
+            let mut conn = pools.tenant_transaction_conn(&auth_token).await?;
+            let repo = Arc::clone(&self.leave_request_repo);
+            let auth = auth_token;
+            let status = req.status;
 
-        // If approved, update roster
+            conn.transaction::<_, AppError, _>(|pg_conn| {
+                let repo = Arc::clone(&repo);
+                let auth = auth;
+                Box::pin(async move {
+                    repo.update_leave_request_status_tx(
+                        pg_conn, &auth, request_id, status, Some(user_id),
+                    )
+                    .await
+                })
+            })
+            .await?;
+        } else {
+            // Fallback: no DieselPools injected — use non-transactional call
+            self.leave_request_repo
+                .update_leave_request_status(&auth_token, request_id, req.status, Some(user_id))
+                .await?;
+        }
+
+        // If approved, handle post-approval side effects (roster, conflict checking).
+        // These are intentionally outside the transaction to keep the write window short
+        // and because roster side effects are currently no-ops and conflict handling
+        // is a read-then-notify pattern.
         if req.status == LeaveStatus::Approved {
             self.apply_leave_to_roster(workspace_id, &request).await?;
 
-            // Fetch the updated request object to pass to the conflict checker (with status = Approved)
+            // Fetch the updated request object to pass to the conflict checker
             let updated_request = self
                 .leave_request_repo
-                .get_leave_request_by_id(
-                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                    request_id,
-                )
+                .get_leave_request_by_id(&auth_token, request_id)
                 .await?
                 .ok_or_else(|| AppError::not_found(I18nKey::LeaveNotFoundAfterUpdate))?;
 
@@ -1254,6 +1303,16 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _ids: &[Uuid],
         ) -> Result<u64, AppError> {
+            unimplemented!()
+        }
+        async fn update_leave_request_status_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _id: Uuid,
+            _status: LeaveStatus,
+            _approved_by: Option<Uuid>,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_unpaid_holiday_days_without_leave(

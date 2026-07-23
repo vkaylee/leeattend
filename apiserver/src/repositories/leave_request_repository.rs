@@ -100,6 +100,17 @@ pub trait LeaveRequestRepository: Send + Sync {
         ids: &[Uuid],
     ) -> Result<u64, AppError>;
 
+    /// Update leave request status within an existing connection/transaction.
+    /// Used by approve_leave_request to keep status update + side effects atomic.
+    async fn update_leave_request_status_tx(
+        &self,
+        conn: &mut diesel_async::AsyncPgConnection,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+        status: LeaveStatus,
+        approved_by: Option<Uuid>,
+    ) -> Result<(), AppError>;
+
     async fn get_employee_leave_history_requests(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

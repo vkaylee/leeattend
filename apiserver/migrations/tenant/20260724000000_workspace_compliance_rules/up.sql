@@ -40,7 +40,18 @@ CREATE TRIGGER trg_updated_at
     BEFORE UPDATE ON public.workspace_compliance_rules
     FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
 
--- Seed default compliance rules for all existing workspaces
-INSERT INTO public.workspace_compliance_rules (workspace_id)
-SELECT id FROM public.workspaces
-ON CONFLICT (workspace_id) DO NOTHING;
+-- Seed default compliance rules for all existing workspaces.
+-- The public.workspaces table only exists in the system database, not in
+-- individual tenant databases. Wrap in a conditional to make this safe
+-- for both tenant and system migration contexts.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'workspaces'
+    ) THEN
+        INSERT INTO public.workspace_compliance_rules (workspace_id)
+        SELECT id FROM public.workspaces
+        ON CONFLICT (workspace_id) DO NOTHING;
+    END IF;
+END $$;

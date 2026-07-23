@@ -875,8 +875,10 @@ async fn test_leave_reversal_custom_threshold() {
     );
 
     // Create system leave (NULL user) and user leave (non-NULL user)
+    // Use different dates to avoid the leave_requests_no_overlap_active exclusion constraint.
     let sys_leave = Uuid::new_v4();
     let user_leave = Uuid::new_v4();
+    let tomorrow = today + chrono::Duration::days(1);
 
     crate::test_execute!(&pool.api,
         "INSERT INTO leave_requests (id, employment_id, leave_type_id, start_date, end_date, status, requested_by_user_id)
@@ -893,7 +895,7 @@ async fn test_leave_reversal_custom_threshold() {
         diesel::sql_types::Uuid, user_leave,
         diesel::sql_types::Uuid, emp_employment_id,
         diesel::sql_types::Uuid, vacation_id,
-        diesel::sql_types::Date, today,
+        diesel::sql_types::Date, tomorrow,
         diesel::sql_types::Uuid, user_id
     );
 

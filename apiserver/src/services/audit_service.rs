@@ -57,7 +57,13 @@ impl AuditHelper {
         );
 
         if let Err(e) = args.repo.create_log(&log).await {
-            tracing::error!("Failed to create audit log: {}", e);
+            tracing::error!(
+                error = %e,
+                action = ?args.action,
+                workspace_id = %args.workspace_id,
+                actor_id = ?args.actor_id,
+                "Failed to persist audit log — audit trail may have a gap"
+            );
         }
     }
 }

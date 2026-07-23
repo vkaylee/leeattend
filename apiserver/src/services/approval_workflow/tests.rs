@@ -1759,6 +1759,16 @@ mod tests {
                 .cloned()
                 .collect())
         }
+        async fn update_leave_request_status_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _id: Uuid,
+            _status: LeaveStatus,
+            _approved_by: Option<Uuid>,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
     }
 
     struct MockOvertimeRequestRepository {

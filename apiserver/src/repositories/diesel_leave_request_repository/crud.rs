@@ -110,6 +110,35 @@ impl DieselLeaveRequestRepository {
         Ok(())
     }
 
+    pub(super) async fn update_leave_request_status_tx_impl(
+        &self,
+        conn: &mut diesel_async::AsyncPgConnection,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+        status: LeaveStatus,
+        approved_by: Option<Uuid>,
+    ) -> Result<(), AppError> {
+        let workspace_id = auth_token.workspace_id();
+
+        diesel::update(leave_requests::table)
+            .filter(leave_requests::id.eq(id))
+            .filter(diesel::dsl::exists(
+                employments::table
+                    .filter(employments::id.eq(leave_requests::employment_id))
+                    .filter(employments::workspace_id.eq(workspace_id)),
+            ))
+            .set((
+                leave_requests::status.eq(status),
+                leave_requests::approved_by_user_id.eq(approved_by),
+                leave_requests::updated_at.eq(Utc::now()),
+            ))
+            .execute(conn)
+            .await
+            .map_err(AppError::from)?;
+
+        Ok(())
+    }
+
     pub(super) async fn cancel_leave_request_impl(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

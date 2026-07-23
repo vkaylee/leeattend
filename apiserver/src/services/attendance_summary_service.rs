@@ -364,11 +364,15 @@ impl AttendanceSummaryService {
                             )
                             .await
                         {
-                            tracing::warn!(
+                            // CRITICAL: If holiday leave reversal fails, the employee
+                            // is charged leave AND counted as working (double penalty).
+                            // Surface this as an error so operators can investigate.
+                            tracing::error!(
                                 error = %e,
                                 employee_id = %employee_id,
                                 date = %curr_date,
-                                "Failed to reverse holiday leave in batch recalculation"
+                                holiday = %hol.name(),
+                                "CRITICAL: Failed to reverse holiday leave — employee may be double-charged"
                             );
                         }
                     }
@@ -671,11 +675,11 @@ impl AttendanceSummaryService {
                     )
                     .await
                 {
-                    tracing::warn!(
+                    tracing::error!(
                         error = %e,
                         employee_id = %employee_id,
                         date = %date,
-                        "Failed to reverse holiday leave — continuing with summary calculation"
+                        "CRITICAL: Failed to reverse holiday leave — employee may be double-charged"
                     );
                 }
             }
