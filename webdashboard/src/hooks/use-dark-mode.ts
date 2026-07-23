@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 const STORAGE_KEY = 'theme_mode';
@@ -64,5 +64,5 @@ export function useDarkMode() {
     return () => { window.removeEventListener('storage', handleStorage); };
   }, []);
 
-  return { mode, resolved, setMode, isDark: resolved === 'dark' };
+  return useMemo(() => ({ mode, resolved, setMode, isDark: resolved === 'dark' }), [mode, resolved, setMode]);
 }

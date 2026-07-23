@@ -129,16 +129,19 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
         routeFileIgnorePattern: '.test.tsx',
       }),
       react({
-        babel: mode === 'production' && !isTest ? {
+        babel: {
           plugins: [
-            [
-              'react-remove-properties',
-              {
-                properties: ['data-debug-context', 'data-testid'],
-              },
-            ],
+            ['babel-plugin-react-compiler', { target: '19' }],
+            ...(mode === 'production' && !isTest ? [
+              [
+                'react-remove-properties',
+                {
+                  properties: ['data-debug-context', 'data-testid'],
+                },
+              ],
+            ] : []),
           ],
-        } : undefined
+        }
       }),
       ...(process.env.ANALYZE === 'true' ? [visualizer({
         filename: 'dist/stats.html',

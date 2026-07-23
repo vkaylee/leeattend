@@ -4,9 +4,11 @@ import React from "react";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
+import { useRowMeta } from "@/hooks/reports/use-row-meta";
 import { DailyAttendanceReport, AttendanceAdjustmentRequest, ScheduleTrace } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { formatHours, getUnitTypeI18nKey, buildWorkUnitsTooltip } from "@/lib/utils/attendance";
+import { getDerivedSource, SEGMENT_TYPE_COLORS } from "@/lib/report-row-utils";
 
 import { ScheduleTracePopover } from "../../shifts/schedule-trace-popover";
 import { DailyReportTimeline, TimeEntry } from "./daily-report-timeline";
@@ -71,34 +73,6 @@ function DailyReportTableRowExpanded({
     </tr>
   );
 }
-
-function getDerivedSource(appliedRule?: ScheduleTrace): string {
-  if (!appliedRule) return "system";
-  switch (appliedRule.priority) {
-    case 100:
-      return "roster";
-    case 80:
-      return "pattern";
-    case 60:
-      return "rules";
-    case 40:
-      return "department_pattern";
-    case 20:
-      return "fixed";
-    case 10:
-      return "department_fixed";
-    default:
-      return "system";
-  }
-}
-
-const SEGMENT_TYPE_COLORS: Record<string, string> = {
-  work: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-800",
-  standby: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-300 dark:border-orange-800",
-  on_call: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800",
-  training: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800",
-  travel: "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-950/30 dark:text-slate-300 dark:border-slate-800",
-};
 
 function SegmentTypeCell({ row, t }: { row: DailyAttendanceReport; t: (k: string) => string }) {
   if (!row.segment_type) {
@@ -386,25 +360,6 @@ function RowCells({
       )}
     </>
   );
-}
-
-function useRowMeta(row: DailyAttendanceReport, props: {
-  adjustmentMap: Partial<Record<string, AttendanceAdjustmentRequest>>;
-  confirmingRow: string | null;
-  expandedDebugRows: Set<string>;
-  reprocessingRow: string | null;
-}) {
-  const segmentKey = `${row.employee_id}-${row.date}-${row.segment_id ?? row.sort_order ?? '0'}`;
-  const dayKey = `${row.employment_id}-${row.date}`;
-  const dayKeyEmployee = `${row.employee_id}-${row.date}`;
-  const isReprocessing = props.reprocessingRow === dayKeyEmployee;
-  const isConfirming = props.confirmingRow === dayKeyEmployee;
-  const isExpanded = props.expandedDebugRows.has(segmentKey);
-  const metadata = row.generation_metadata as { time_entries?: TimeEntry[] } | undefined;
-  const timeEntries = metadata?.time_entries ?? [];
-  const workEntries = timeEntries.filter((e) => e.entry_type === "work");
-  const hasMultipleSessions = (row.is_break_auto_deduct === true) ? workEntries.length > 2 : workEntries.length > 1;
-  return { segmentKey, dayKey, isReprocessing, isConfirming, isExpanded, existingAdjustment: props.adjustmentMap[dayKey], timeEntries, hasMultipleSessions };
 }
 
 export function DailyReportTableRow(props: DailyReportTableRowProps) {

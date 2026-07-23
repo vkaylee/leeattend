@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 
 interface DebugState {
   impersonateId: string | null;
@@ -48,25 +48,27 @@ export const DebugProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [mockDate]);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     setImpersonateId(null);
     setMockDate(null);
     setIsEnabled(false);
-  };
+  }, []);
 
   // Only enable in development mode
   const isDevelopment = import.meta.env.DEV;
 
+  const value = useMemo<DebugContextType>(() => ({
+    isEnabled: isDevelopment && isEnabled,
+    impersonateId,
+    mockDate,
+    setIsEnabled,
+    setImpersonateId,
+    setMockDate,
+    reset
+  }), [isDevelopment, isEnabled, impersonateId, mockDate, reset]);
+
   return (
-    <DebugContext.Provider value={{ 
-      isEnabled: isDevelopment && isEnabled, 
-      impersonateId, 
-      mockDate, 
-      setIsEnabled, 
-      setImpersonateId, 
-      setMockDate, 
-      reset 
-    }}>
+    <DebugContext.Provider value={value}>
       {children}
     </DebugContext.Provider>
   );

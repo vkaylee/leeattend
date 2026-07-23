@@ -7,6 +7,15 @@ import Button from "@/components/ui/button";
 import { useWorkingPatterns } from "../../../hooks/use-working-patterns";
 import { PatternModals } from "../modals";
 
+// Mock TanStack Query — BulkAssignModal calls useQuery for pattern preview
+vi.mock("@tanstack/react-query", async () => {
+  const actual = await vi.importActual("@tanstack/react-query");
+  return {
+    ...actual,
+    useQuery: vi.fn().mockReturnValue({ data: undefined, isLoading: false, isError: false }),
+  };
+});
+
 // Mock child components
 vi.mock("@/components/ui/modal", () => ({
   default: ({ isOpen, onClose, children, title }: any) => (
@@ -144,8 +153,8 @@ describe("PatternModals", () => {
     render(<PatternModals hook={{ ...mockHook, isBulkModalOpen: true, selectedPatternId: "pattern-1", selectedEmployeeIds: ["emp-1"] } as unknown as ReturnType<typeof useWorkingPatterns>} />);
     expect(screen.getByText("patterns.bulk_assign_btn")).toBeInTheDocument();
 
-    // Select pattern
-    fireEvent.click(screen.getByText("Standard"));
+    // Select pattern (may match both button label and preview title)
+    fireEvent.click(screen.getAllByText("Standard")[0]);
     expect(mockHook.setSelectedPatternId).toHaveBeenCalledWith("pattern-1");
 
     // Change start date

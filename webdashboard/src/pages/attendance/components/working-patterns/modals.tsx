@@ -8,7 +8,7 @@ import {
   X,
   RefreshCw,
 } from "lucide-react";
-import React, { useMemo } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { useQuery } from "@tanstack/react-query";
@@ -21,16 +21,9 @@ import FormField, { INPUT_BASE, LABEL_BASE } from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { PatternMatrixPreview } from "@/components/ui/pattern-matrix-preview";
 import { Typography } from "@/components/ui/typography";
+import { usePatternCompliance } from "@/hooks/attendance/use-pattern-compliance";
 import { fetchPatternDetails } from "@/lib/api";
 import { Shift, WorkingPatternDetail } from "@/lib/api/types";
-import {
-  checkRestHours,
-  checkShiftOverlap,
-  checkWeeklyHours,
-  computeWeeklyTotal,
-  type ComplianceIssue,
-  type ShiftTimeBlock,
-} from "@/lib/utils/shift-compliance-utils";
 import { cn } from "@/lib/utils";
 
 import { useWorkingPatterns } from "../../hooks/use-working-patterns";
@@ -261,76 +254,7 @@ function BulkAssignModal({ hook }: PatternModalsProps) {
   });
 
   // Compute client-side compliance issues from preview details
-  const complianceIssues = useMemo<ComplianceIssue[]>(() => {
-    if (!previewDetails?.length || !shifts?.length) return [];
-
-    const issues: ComplianceIssue[] = [];
-
-    // Group by schedule_day
-    const byDay = new Map<number, WorkingPatternDetail[]>();
-    for (const d of previewDetails) {
-      if (!d.shift_id) continue;
-      const list = byDay.get(d.schedule_day) || [];
-      list.push(d);
-      byDay.set(d.schedule_day, list);
-    }
-
-    // Build shift time blocks per day
-    const allBlocks: ShiftTimeBlock[] = [];
-    for (const [day, dayDetails] of byDay) {
-      const dayBlocks: ShiftTimeBlock[] = [];
-      for (const d of dayDetails) {
-        const shift = shifts.find((s) => s.id === d.shift_id);
-        const iv = shift?.intervals?.[0];
-        if (!iv?.start_time || !iv?.end_time) continue;
-        dayBlocks.push({
-          shiftId: d.shift_id ?? "",
-          shiftName: shift?.name ?? "",
-          start: iv.start_time,
-          end: iv.end_time,
-          day,
-        });
-        allBlocks.push({
-          shiftId: d.shift_id ?? "",
-          shiftName: shift?.name ?? "",
-          start: iv.start_time,
-          end: iv.end_time,
-          day,
-        });
-      }
-
-      // Check overlap within this day
-      if (dayBlocks.length > 1) {
-        const overlaps = checkShiftOverlap(dayBlocks);
-        issues.push(...overlaps);
-      }
-    }
-
-    // Check rest hours (all blocks sorted by start across the cycle)
-    if (allBlocks.length > 1) {
-      const restViolations = checkRestHours(allBlocks);
-      issues.push(...restViolations);
-    }
-
-    // Check weekly hours
-    const weeklyTotal = computeWeeklyTotal(
-      previewDetails
-        .filter((d) => d.shift_id)
-        .map((d) => ({
-          scheduleDay: d.schedule_day,
-          shiftId: d.shift_id ?? "",
-        })),
-      shifts.map((s) => ({
-        id: s.id,
-        name: s.name,
-        intervals: s.intervals,
-      })),
-    );
-    const hoursIssue = checkWeeklyHours(weeklyTotal);
-    if (hoursIssue) issues.push(hoursIssue);
-
-    return issues;
-  }, [previewDetails, shifts]);
+  const complianceIssues = usePatternCompliance(previewDetails, shifts);
 
   const hasConflicts = complianceIssues.length > 0;
 

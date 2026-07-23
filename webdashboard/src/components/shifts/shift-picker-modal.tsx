@@ -11,58 +11,13 @@ import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Shift } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { readFrequentShifts, writeFrequentShift, getTopFrequentIds } from "@/lib/frequent-shifts-storage";
+import type { FrequentMap } from "@/lib/frequent-shifts-storage";
 import { isNightShift, isSplitShift, shiftMatchesQuery } from "./shift-utils";
-
-// ── Constants ────────────────────────────────────────────────────────
-
-const FREQUENT_SHIFTS_KEY = "leeattend_frequent_shifts";
-const FREQUENT_TOP_COUNT = 3;
 
 // ── Types ────────────────────────────────────────────────────────────
 
 type FilterChip = "all" | "frequent" | "night" | "single" | "split";
-
-interface FrequentMap {
-  [shiftId: string]: number;
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────
-
-function readFrequentShifts(): FrequentMap {
-  try {
-    const raw = localStorage.getItem(FREQUENT_SHIFTS_KEY);
-    if (!raw) return {};
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== "object" || parsed === null) return {};
-    const obj = parsed as Record<string, unknown>;
-    const result: FrequentMap = {};
-    for (const [k, v] of Object.entries(obj)) {
-      if (typeof k === "string" && typeof v === "number" && v > 0) {
-        result[k] = v;
-      }
-    }
-    return result;
-  } catch {
-    return {};
-  }
-}
-
-function writeFrequentShift(shiftId: string): void {
-  try {
-    const map = readFrequentShifts();
-    map[shiftId] = (map[shiftId] ?? 0) + 1;
-    localStorage.setItem(FREQUENT_SHIFTS_KEY, JSON.stringify(map));
-  } catch {
-    // localStorage may be unavailable; silently ignore.
-  }
-}
-
-function getTopFrequentIds(map: FrequentMap): string[] {
-  return Object.entries(map)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, FREQUENT_TOP_COUNT)
-    .map(([id]) => id);
-}
 
 // ── Color badge helpers ──────────────────────────────────────────────
 

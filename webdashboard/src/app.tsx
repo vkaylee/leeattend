@@ -39,6 +39,7 @@ const queryClient = new QueryClient({
       retry: 1,
       staleTime: 1000 * 60 * 5, // 5 minutes
       gcTime: 1000 * 60 * 10,   // GC inactive cache after 10 minutes
+      refetchOnWindowFocus: false, // dashboard use case: window focus should not trigger refetch storms
     },
   },
   queryCache: new QueryCache({

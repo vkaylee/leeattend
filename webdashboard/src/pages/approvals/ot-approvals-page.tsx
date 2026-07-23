@@ -19,6 +19,7 @@ import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { fetchEmployees } from "@/lib/api";
 import { logError } from "@/lib/logger";
+import { invalidateAttendanceQueries } from "@/lib/utils/query-invalidation";
 
 import type { OtSummary } from "./components/ot-approvals-table";
 
@@ -186,9 +187,7 @@ export default function OtApprovalsPage() {
       toast.success(
         approved ? "Overtime approved successfully" : "Overtime rejected successfully"
       );
-      void queryClient.invalidateQueries({ queryKey: ["attendance"] });
-      void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
-      void queryClient.invalidateQueries({ queryKey: ["attendance-report-delegated"] });
+      invalidateAttendanceQueries(queryClient);
     } catch (e) {
       logError(e, { component: "OtApprovalsPage" });
       toast.error("Action failed");
@@ -222,8 +221,7 @@ export default function OtApprovalsPage() {
         employeeId={photoTargetSummary ? employmentToEmployeeMap.get(photoTargetSummary.employment_id) : undefined}
         onOpenChange={(open) => { if (!open) setPhotoTargetSummary(null); }}
         onSuccess={() => {
-          void queryClient.invalidateQueries({ queryKey: ["attendance"] });
-          void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
+          invalidateAttendanceQueries(queryClient);
         }}
         open={!!photoTargetSummary}
         summary={photoTargetSummary}
@@ -232,8 +230,7 @@ export default function OtApprovalsPage() {
       <BulkUploadOtDialog
         onOpenChange={setBulkUploadDialogOpen}
         onSuccess={() => {
-          void queryClient.invalidateQueries({ queryKey: ["attendance"] });
-          void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
+          invalidateAttendanceQueries(queryClient);
         }}
         open={bulkUploadDialogOpen}
       />
