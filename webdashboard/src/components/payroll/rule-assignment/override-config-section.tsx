@@ -27,7 +27,6 @@ function OverrideConfigToggle({
   const { t } = useTranslation();
   return (
     <>
-      {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
       <label
       className={cn(
         "flex items-center gap-4 p-5 rounded-2xl cursor-pointer transition-all border-2 active:scale-[0.98]",

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/no-unnecessary-type-conversion, complexity, max-lines-per-function, react/forbid-elements */
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -196,7 +195,7 @@ export default function ChartCatalogSidebar({
                             : "border-slate-300 dark:border-slate-600",
                         )}
                       >
-                        {!!isVisible && (
+                        {isVisible && (
                           <svg
                             className="w-2.5 h-2.5 text-white"
                             fill="none"
@@ -211,7 +210,7 @@ export default function ChartCatalogSidebar({
                         )}
                       </span>
 
-                      {!collapsed && !!Icon && <Icon className="shrink-0" size={15} />}
+                      {!collapsed && Icon && <Icon className="shrink-0" size={15} />}
 
                       {!collapsed && (
                         <span className="flex-1 text-left text-xs font-medium truncate">

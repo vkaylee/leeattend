@@ -10,7 +10,7 @@ export interface ConfigValue {
   Bool?: boolean;
   Decimal?: number;
   Int?: number;
-  Json?: Record<string, unknown> | null;
+  Json?: unknown;
   Text?: string;
 }
 

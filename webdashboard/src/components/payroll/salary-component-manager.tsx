@@ -91,7 +91,6 @@ export default function SalaryComponentManager({ wsId }: Props) {
               {baseGroupsData?.groups.filter(g => g.slug !== "gross").map(group => {
                 const isSelected = formData.base_group_ids?.includes(group.id);
                 return (
-                  // eslint-disable-next-line jsx-a11y/label-has-associated-control
                   <label className={cn("flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all group/check border-2 shadow-sm active:scale-[0.98]", isSelected ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800 shadow-md" : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:bg-white dark:hover:bg-slate-900 shadow-inner")} htmlFor={`group-${group.id}`} key={group.id}>
                     <input 
                       checked={isSelected} 

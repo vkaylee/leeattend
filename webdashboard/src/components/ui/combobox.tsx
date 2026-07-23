@@ -1,4 +1,3 @@
-/* eslint-disable jsx-a11y/no-autofocus */
 import * as Popover from "@radix-ui/react-popover";
 import { Search, Check, ChevronDown, Loader2 } from "lucide-react";
 import React, { useState, useEffect } from "react";

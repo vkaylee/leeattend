@@ -18,16 +18,14 @@ export function parseConflictRetry(body: unknown): ConflictRetryHint | undefined
   // The API returns { error: { retry: { reason, leave_type_id, name } } } on
   // 409 Conflict when a retired resource can be restored.
   if (typeof body !== "object" || body === null) return undefined;
-  const b = body as Record<string, unknown>;
+  const b = body as { error?: { retry?: Partial<ConflictRetryHint> } };
   if (typeof b.error !== "object" || b.error === null) return undefined;
-  const err = b.error as Record<string, unknown>;
-  if (typeof err.retry !== "object" || err.retry === null) return undefined;
-  const retry = err.retry as Record<string, unknown>;
-  if (retry.reason !== "retired_leave_type" || typeof retry.leave_type_id !== "string") return undefined;
+  if (typeof b.error.retry !== "object" || b.error.retry === null) return undefined;
+  if (b.error.retry.reason !== "retired_leave_type" || typeof b.error.retry.leave_type_id !== "string") return undefined;
   return {
-    reason: retry.reason,
-    leave_type_id: retry.leave_type_id,
-    name: typeof retry.name === "string" ? retry.name : "",
+    reason: b.error.retry.reason,
+    leave_type_id: b.error.retry.leave_type_id,
+    name: typeof b.error.retry.name === "string" ? b.error.retry.name : "",
   };
 }
 

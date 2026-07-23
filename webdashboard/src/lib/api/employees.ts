@@ -14,6 +14,7 @@ import type {
  
 export type { Employment } from "./types";
 
+import { ApiError } from "./errors";
 import { client } from "./client";
 import { apiFetch } from "./helpers";
 
@@ -222,21 +223,21 @@ export async function fetchCompensationHistory(
 export type TerminationPreviewResponse = components["schemas"]["TerminationPreviewResponse"];
 export type ConfirmTerminationRow = components["schemas"]["ConfirmTerminationRow"];
 
-/** Upload Excel file to preview employee bulk terminations */
+/** Upload Excel file to preview employee bulk terminations.
+ *  Uses apiFetch directly because multipart/FormData is not modeled in the
+ *  generated OpenAPI types. */
 export async function uploadTerminationImportPreview(
   wsId: string,
-  // eslint-disable-next-line max-lines
   file: File
 ): Promise<TerminationPreviewResponse> {
   const formData = new FormData();
   formData.append("file", file);
-  const { data } = await client.POST("/workspaces/{workspace_id}/employees/import-termination/preview", {
-    params: {
-      path: { workspace_id: wsId },
-    },
-    body: formData as never,
+  const res = await apiFetch(`/v1/workspaces/${wsId}/employees/import-termination/preview`, {
+    method: "POST",
+    body: formData,
   });
-  return data;
+  if (!res.ok) await ApiError.rejectResponse(res);
+  return res.json();
 }
 
 /** Confirm employee bulk terminations */

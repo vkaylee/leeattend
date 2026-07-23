@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition, complexity, max-lines-per-function, unused-imports/no-unused-vars */
 import { Wallet, AlertTriangle, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
-import React, { useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
@@ -128,17 +127,17 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
                   >
                     {type.is_paid ? t("settings.leave.type_manager.paid", "Paid") : t("settings.leave.type_manager.unpaid", "Unpaid")}
                   </span>
-                  {!!type.policy_config?.approval_required && (
+                  {type.policy_config?.approval_required && (
                     <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-100 dark:border-blue-800">
                       {t("settings.leave.fields.approval", "Approval")}
                     </span>
                   )}
-                  {!!type.policy_config?.requires_document && (
+                  {type.policy_config?.requires_document && (
                     <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-100 dark:border-purple-800">
                       {t("settings.leave.fields.document", "Document")}
                     </span>
                   )}
-                  {!!type.policy_config?.allow_negative_balance && (
+                  {type.policy_config?.allow_negative_balance && (
                     <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-100 dark:border-rose-800">
                       {t("settings.leave.type_manager.negative_balance", "Negative Balance")}
                     </span>
@@ -173,9 +172,7 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
         <AddLeaveTypeModal
           existingCodes={leaveTypes.map((lt) => lt.code.toLowerCase())}
           isSaving={isCreating}
-          onClose={() => {
-            setIsAddingType(false);
-          }}
+          onClose={() => setIsAddingType(false)}
           onSave={createLeaveType}
         />
       ) : null}
@@ -184,94 +181,129 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
         <EditLeaveTypeModal
           isSaving={isUpdating}
           leaveType={editingType}
-          onClose={() => {
-            setEditingType(null);
-          }}
-           
-          onSave={(config) => {
-            updateLeaveType(editingType.id, config);
-          }}
+          onClose={() => setEditingType(null)}
+          onSave={(config) => updateLeaveType(editingType.id, config)}
         />
       ) : null}
 
-      {deletingType ? (
-        <Modal
-          isOpen={true}
-          onClose={() => {
-            setDeletingType(null);
-          }}
-          title={t("settings.leave.type_manager.confirm_delete_title", "Confirm Delete")}
-        >
-          <div className="p-8">
-            <Typography className="text-sm" variant="p">
-              {t("settings.leave.type_manager.confirm_delete_msg", "Are you sure you want to delete \"" + deletingType.name + "\"?", { name: deletingType.name })}
-            </Typography>
-            <div className="mt-8 flex justify-end gap-3">
-              <Button
-                className="px-6 py-2 text-xs text-slate-400 dark:text-slate-500 hover:bg-transparent"
-                onClick={() => {
-                  setDeletingType(null);
-                }}
-                variant="ghost"
-              >
-                {t("common.cancel", "Cancel")}
-              </Button>
-              <Button
-                className="text-[10px] px-6 py-2.5 h-auto rounded-xl"
-                disabled={isDeleting}
-                onClick={() => {
-                  triggerDelete(deletingType.id);
-                }}
-                variant="destructive"
-              >
-                {t("settings.leave.type_manager.delete_btn", "Delete")}
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      ) : null}
+      <ConfirmDeleteModal
+        isDeleting={isDeleting}
+        name={deletingType?.name ?? ""}
+        onCancel={() => setDeletingType(null)}
+        onConfirm={() => { if (deletingType) triggerDelete(deletingType.id); }}
+        open={deletingType !== null}
+        t={t}
+      />
 
-      {restoringType ? (
-        <Modal
-          isOpen={true}
-          onClose={() => {
-            setRestoringType(null);
-          }}
-          title={t("settings.leave.type_manager.restore_dialog_title", "Restore Leave Type")}
-        >
-          <div className="p-8">
-            <Typography className="text-sm" variant="p">
-              {t(
-                "settings.leave.type_manager.restore_dialog_msg",
-                "A leave type with this code was retired. Restore \"{{name}}\" instead of creating a new one?",
-                { name: restoringType.name },
-              )}
-            </Typography>
-            <div className="mt-8 flex justify-end gap-3">
-              <Button
-                className="px-6 py-2 text-xs text-slate-400 dark:text-slate-500 hover:bg-transparent"
-                onClick={() => {
-                  setRestoringType(null);
-                }}
-                variant="ghost"
-              >
-                {t("common.cancel", "Cancel")}
-              </Button>
-              <Button
-                className="text-[10px] px-6 py-2.5 h-auto rounded-xl"
-                disabled={isRestoring}
-                onClick={() => {
-                  triggerRestore(restoringType.leave_type_id);
-                }}
-                variant="primary"
-              >
-                {t("settings.leave.type_manager.restore_btn", "Restore")}
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      ) : null}
+      <RestoreTypeModal
+        isRestoring={isRestoring}
+        name={restoringType?.name ?? ""}
+        onCancel={() => setRestoringType(null)}
+        onConfirm={() => { if (restoringType) triggerRestore(restoringType.leave_type_id); }}
+        open={restoringType !== null}
+        t={t}
+      />
     </div>
+  );
+}
+
+function ConfirmDeleteModal({
+  open,
+  name,
+  isDeleting,
+  onCancel,
+  onConfirm,
+  t,
+}: {
+  open: boolean;
+  name: string;
+  isDeleting: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  if (!open) return null;
+  return (
+    <Modal
+      isOpen={true}
+      onClose={onCancel}
+      title={t("settings.leave.type_manager.confirm_delete_title", "Confirm Delete")}
+    >
+      <div className="p-8">
+        <Typography className="text-sm" variant="p">
+          {t("settings.leave.type_manager.confirm_delete_msg", "Are you sure you want to delete \"{{name}}\"?", { name })}
+        </Typography>
+        <div className="mt-8 flex justify-end gap-3">
+          <Button
+            className="px-6 py-2 text-xs text-slate-400 dark:text-slate-500 hover:bg-transparent"
+            onClick={onCancel}
+            variant="ghost"
+          >
+            {t("common.cancel", "Cancel")}
+          </Button>
+          <Button
+            className="text-[10px] px-6 py-2.5 h-auto rounded-xl"
+            disabled={isDeleting}
+            onClick={onConfirm}
+            variant="destructive"
+          >
+            {t("settings.leave.type_manager.delete_btn", "Delete")}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function RestoreTypeModal({
+  open,
+  name,
+  isRestoring,
+  onCancel,
+  onConfirm,
+  t,
+}: {
+  open: boolean;
+  name: string;
+  isRestoring: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  if (!open) return null;
+  return (
+    <Modal
+      isOpen={true}
+      onClose={onCancel}
+      title={t("settings.leave.type_manager.restore_dialog_title", "Restore Leave Type")}
+    >
+      <div className="p-8">
+        <Typography className="text-sm" variant="p">
+          {t(
+            "settings.leave.type_manager.restore_dialog_msg",
+            "A leave type with this code was retired. Restore \"{{name}}\" instead of creating a new one?",
+            { name },
+          )}
+        </Typography>
+        <div className="mt-8 flex justify-end gap-3">
+          <Button
+            className="px-6 py-2 text-xs text-slate-400 dark:text-slate-500 hover:bg-transparent"
+            onClick={onCancel}
+            variant="ghost"
+          >
+            {t("common.cancel", "Cancel")}
+          </Button>
+          <Button
+            className="text-[10px] px-6 py-2.5 h-auto rounded-xl"
+            disabled={isRestoring}
+            onClick={onConfirm}
+            variant="primary"
+          >
+            {t("settings.leave.type_manager.restore_btn", "Restore")}
+          </Button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 

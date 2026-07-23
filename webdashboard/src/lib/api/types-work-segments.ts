@@ -1,18 +1,53 @@
 // ── Work Segments ──────────────────────────────────────────────────────────
 
+/** Metadata written by the generation pipeline (auto-scheduling/recalculation run). */
+export interface WorkSegmentGenerationMetadata {
+  generated_at?: string;
+  generator?: 'auto_scheduler' | 'recalculation' | 'roster_sync' | 'pattern_match';
+  rule_version?: string;
+  source_run_id?: string;
+}
+
+/** Structured detail about the source that produced this segment. */
+export interface WorkSegmentSourceDetail {
+  adjusted_by?: string;
+  adjustment_reason?: string;
+  pattern_id?: string;
+  roster_id?: string;
+  rule_id?: string;
+  shift_id?: string;
+}
+
+/** Override config for break behavior on a specific day/segment. */
+export interface BreakConfigOverride {
+  break_duration_minutes?: number;
+  break_end?: string;
+  break_is_overtime?: boolean;
+  break_start?: string;
+  enabled: boolean;
+}
+
+/** Override config for overtime behavior on a specific day/segment. */
+export interface OtConfigOverride {
+  enabled: boolean;
+  max_minutes?: number;
+  multiplier?: number;
+  threshold_hours?: number;
+}
+
 export interface WorkSegment {
-  break_config_override?: Record<string, unknown> | null;
+  break_config_override?: BreakConfigOverride | null;
   compensation_rate: number;
   created_at: string;
   date: string;
   employment_id: string;
   gap_compensation_before: 'unpaid' | 'standby' | 'break';
   gap_compensation_rate_before: number;
-  generation_metadata: Record<string, unknown>;
+  generation_metadata: WorkSegmentGenerationMetadata;
   id: string;
   interval_id?: string | null;
   notes?: string | null;
-  ot_config_override?: Record<string, unknown> | null;
+  ot_config_override?: OtConfigOverride | null;
   scheduled_end: string;
   scheduled_start: string;
   segment_status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
@@ -20,13 +55,13 @@ export interface WorkSegment {
   shift_id: string;
   sort_order: number;
   source: 'roster' | 'pattern' | 'rule' | 'fixed' | 'manual' | 'auto';
-  source_detail: Record<string, unknown>;
+  source_detail: WorkSegmentSourceDetail;
   updated_at: string;
   workspace_id: string;
 }
 
 export interface CreateWorkSegmentRequest {
-  break_config_override?: Record<string, unknown> | null;
+  break_config_override?: BreakConfigOverride | null;
   compensation_rate?: number;
   date: string;
   employment_id: string;
@@ -34,7 +69,7 @@ export interface CreateWorkSegmentRequest {
   gap_compensation_rate_before?: number;
   interval_id?: string | null;
   notes?: string | null;
-  ot_config_override?: Record<string, unknown> | null;
+  ot_config_override?: OtConfigOverride | null;
   scheduled_end: string;
   scheduled_start: string;
   segment_status?: string;
@@ -42,17 +77,17 @@ export interface CreateWorkSegmentRequest {
   shift_id: string;
   sort_order?: number;
   source?: string;
-  source_detail?: Record<string, unknown>;
+  source_detail?: WorkSegmentSourceDetail;
 }
 
 export interface UpdateWorkSegmentRequest {
-  break_config_override?: Record<string, unknown> | null;
+  break_config_override?: BreakConfigOverride | null;
   compensation_rate?: number | null;
   gap_compensation_before?: string | null;
   gap_compensation_rate_before?: number | null;
   interval_id?: string | null;
   notes?: string | null;
-  ot_config_override?: Record<string, unknown> | null;
+  ot_config_override?: OtConfigOverride | null;
   scheduled_end?: string | null;
   scheduled_start?: string | null;
   segment_status?: string | null;
@@ -60,7 +95,7 @@ export interface UpdateWorkSegmentRequest {
   shift_id?: string | null;
   sort_order?: number | null;
   source?: string | null;
-  source_detail?: Record<string, unknown> | null;
+  source_detail?: WorkSegmentSourceDetail | null;
 }
 
 export interface BulkCreateWorkSegmentsRequest {

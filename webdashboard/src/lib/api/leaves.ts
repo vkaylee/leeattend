@@ -26,7 +26,7 @@ export async function submitLeaveRequest(
     params: {
       path: { ws_id: wsId },
     },
-    body: data,
+    body: data as never,
   });
   return resData;
 }
@@ -74,7 +74,7 @@ export async function approveLeaveRequest(
     params: {
       path: { ws_id: wsId, id: requestId },
     },
-    body: data,
+    body: data as never,
   });
 }
 
@@ -131,7 +131,7 @@ export async function adjustLeaveBalance(
     params: {
       path: { ws_id: wsId, id: employeeId },
     },
-    body: data,
+    body: data as never,
   });
 }
 
@@ -193,7 +193,7 @@ export async function createLeaveType(
     params: {
       path: { workspace_id: wsId },
     },
-    body: data,
+    body: data as never,
   });
   return resData;
 }
@@ -239,7 +239,7 @@ export async function assignLeavePolicy(
     params: {
       path: { ws_id: wsId },
     },
-    body: data,
+    body: data as never,
   });
 }
 
@@ -268,7 +268,7 @@ export async function triggerAccrualRun(
     params: {
       path: { ws_id: wsId },
     },
-    body: data,
+    body: data as never,
   });
   return resData;
 }

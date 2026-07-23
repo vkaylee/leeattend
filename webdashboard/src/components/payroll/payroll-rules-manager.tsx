@@ -261,7 +261,6 @@ function PayrollRuleForm({
           { key: "is_mandatory", label: t("payroll.statutory_rules.mandatory_rule"), desc: t("payroll.statutory_rules.mandatory_rule_desc"), icon: CheckCircle2 }
         ].map(field => (
           <React.Fragment key={field.key}>
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- dynamic id */}
             <label className={cn("flex items-center gap-6 p-8 rounded-[2rem] cursor-pointer transition-all group/check border-2 shadow-sm active:scale-[0.98]", 
               (formData as Record<string, boolean>)[field.key] ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800 shadow-xl shadow-primary-900/5" : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:bg-white dark:hover:bg-slate-900 hover:border-slate-100 dark:border-slate-800 shadow-inner"
             )} htmlFor={`rule-${field.key}`}>

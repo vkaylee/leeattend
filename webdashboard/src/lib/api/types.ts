@@ -90,7 +90,7 @@ export interface CreateConfigEntryRequest {
   value_bool?: boolean | null;
   value_decimal?: number | null;
   value_int?: number | null;
-  value_json?: Record<string, unknown> | null;
+  value_json?: unknown;
   value_text?: string | null;
 }
 

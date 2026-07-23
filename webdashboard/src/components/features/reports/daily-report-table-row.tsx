@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-conversion, complexity, max-lines */
+// eslint-disable-next-line complexity -- table cell rendering handles many states
 import { RefreshCw, Bug, CheckCircle, ThumbsUp, ThumbsDown, ChevronRight } from "lucide-react";
 import React from "react";
 
@@ -45,7 +45,7 @@ function DailyReportTableRowExpanded({
           {/* Visual Timeline Component */}
           <DailyReportTimeline formatTime={formatTime} row={row} t={t} />
 
-          {!!isDebugMode && (
+          {isDebugMode && (
             <div className="mt-8 border-t border-slate-100 dark:border-slate-800 pt-6">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/10 flex items-center justify-center text-amber-500 shadow-inner border border-amber-500/20">
@@ -118,7 +118,7 @@ function SegmentTypeCell({ row, t }: { row: DailyAttendanceReport; t: (k: string
 }
 
 function SegmentCounterCell({ row }: { row: DailyAttendanceReport }) {
-  const hasSegmentData = !!row.segment_type;
+  const hasSegmentData = row.segment_type !== null && row.segment_type !== undefined;
   const isMultiSegment = (row.segment_count ?? 1) > 1;
   if (!hasSegmentData || !isMultiSegment) {
     return (
@@ -148,7 +148,7 @@ function ScheduledCell({ row, t }: { row: DailyAttendanceReport; t: (k: string) 
   const appliedRule = traces.find((tr) => tr.status === "applied");
   const derivedSource = getDerivedSource(appliedRule);
 
-  const hasSegmentData = !!row.segment_type;
+  const hasSegmentData = row.segment_type !== null && row.segment_type !== undefined;
 
   return (
     <div className="flex flex-col gap-1">
@@ -323,7 +323,7 @@ function PunchTimeCell({
         <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">
           {formatTime(time)}
         </div>
-        {side === "in" && !!hasMultipleSessions && (
+        {side === "in" && hasMultipleSessions && (
           <span
             className="text-[8px] bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider scale-90 cursor-help"
             title={timeEntries.map((e, i) => `Session ${i + 1}: ${formatTime(e.punch_in_time)} - ${e.punch_out_time ? formatTime(e.punch_out_time) : "---"} (${e.entry_type})`).join("\n")}
@@ -377,7 +377,7 @@ function RowCells({
       </td>
       <td className="px-4 py-2.5 text-right"><OtCell onApproveOt={onApproveOt} row={row} t={t} /></td>
       <td className="px-4 py-2.5 text-center"><ReportStatusBadge onResolveUnscheduled={onResolveUnscheduled} row={row} status={row.status} t={t} /></td>
-      {!!isDebugMode && (
+      {isDebugMode && (
         <td className="px-4 py-2.5 text-center">
           <Button className={cn("p-1.5 rounded-lg transition-all shadow-sm border h-auto", isExpanded ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-white text-amber-600 border-slate-100 hover:bg-amber-50")} onClick={() => { onToggleExpandRow(segmentKey); }} variant="ghost">
             <Bug size={16} />

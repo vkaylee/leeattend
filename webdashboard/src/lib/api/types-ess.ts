@@ -19,9 +19,20 @@ export interface UpdateProfileRequest {
 // --- Approval Workflows ---
 export type ApproverType = "department_manager" | "role" | "permission" | "specific_user";
 
+/** Configuration for the approver in a workflow step.
+ *  Shape depends on approver_type:
+ *  - department_manager / role / permission → `{ role_id?: string; permission_key?: string }`
+ *  - specific_user → `{ user_id: string }`
+ */
+export interface ApproverConfig {
+  permission_key?: string;
+  role_id?: string;
+  user_id?: string;
+}
+
 export interface ApprovalWorkflowStep {
   action_required: "approve" | "review" | "acknowledge";
-  approver_config: Record<string, unknown>;
+  approver_config: ApproverConfig;
   approver_type: ApproverType;
   can_skip: boolean;
   created_at: string;

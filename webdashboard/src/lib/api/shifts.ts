@@ -1,4 +1,4 @@
-import type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster, CreateShiftRequest, UpdateShiftRequest } from "./types";
+import type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster, CreateShiftRequest, UpdateShiftRequest, UpsertRosterRequest } from "./types";
 
 import { client } from "./client";
 import { ApiError } from "./errors";
@@ -97,12 +97,12 @@ export const fetchEmployeeRosters = async (
   return data.data;
 }
 
-export async function upsertRoster(wsId: string, employeeId: string, data: Record<string, unknown>): Promise<ShiftRoster> {
+export async function upsertRoster(wsId: string, employeeId: string, data: Omit<UpsertRosterRequest, 'employment_id'>): Promise<ShiftRoster> {
   const { data: result } = await client.POST("/workspaces/{workspace_id}/employees/{id}/rosters", {
     params: {
       path: { workspace_id: wsId, id: employeeId },
     },
-    body: data as never,
+    body: { ...data, employment_id: employeeId },
   });
   return result;
 }

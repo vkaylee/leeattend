@@ -5,7 +5,7 @@ import {
   PayrollSettings,
   UpdatePayrollSettingsRequest,
   SalaryComponentDefinition,
-  EmployeeSalaryComponent, 
+  EmployeeSalaryComponent,
   EmployeeSalaryComponentDetail,
   CreateSalaryComponentRequest,
   CreatePayrollRuleDefinitionRequest,
@@ -18,7 +18,13 @@ import {
   PayrollRuleDefinition,
   PayrollRuleTier,
   BatchCalculateResult,
-  ConfigRecord
+  ConfigRecord,
+  CreateOvertimePolicyRequest,
+  EmployeePayrollConfig,
+  DepartmentPayrollConfig,
+  SetEmployeePayrollConfigRequest,
+  SetDepartmentPayrollConfigRequest,
+  UpsertRosterRequest,
 } from "./types";
 
 export async function fetchIncentivePolicies(wsId: string): Promise<PayrollIncentivePolicyResponse[]> {
@@ -181,7 +187,7 @@ export async function fetchOvertimePolicy(wsId: string, policyId: string): Promi
   return resData;
 }
 
-export async function createOvertimePolicy(wsId: string, data: Record<string, unknown>): Promise<OvertimePolicy> {
+export async function createOvertimePolicy(wsId: string, data: CreateOvertimePolicyRequest): Promise<OvertimePolicy> {
   const { data: resData } = await fetch<OvertimePolicy>("POST", "/workspaces/{ws_id}/overtime/policies", {
     params: { path: { ws_id: wsId } },
     body: data,
@@ -197,25 +203,25 @@ export async function addOvertimeRule(wsId: string, policyId: string, data: { da
   return resData;
 }
 
-export async function setEmployeePayrollConfig(wsId: string, employeeId: string, data: { effective_date: string; hours_per_day: string; std_working_days: string } & Record<string, unknown>): Promise<Record<string, unknown>> {
+export async function setEmployeePayrollConfig(wsId: string, employeeId: string, data: SetEmployeePayrollConfigRequest): Promise<EmployeePayrollConfig> {
   const { data: resData } = await client.POST("/workspaces/{ws_id}/employees/{id}/payroll-config", {
     params: { path: { ws_id: wsId, id: employeeId } },
-    body: data
+    body: data,
   });
   return resData;
 }
 
-export async function fetchDepartmentPayrollConfigs(wsId: string, deptId: string): Promise<Record<string, unknown>> {
-  const { data: resData } = await fetch<Record<string, unknown>>("GET", "/workspaces/{ws_id}/departments/{id}/payroll-config", {
+export async function fetchDepartmentPayrollConfigs(wsId: string, deptId: string): Promise<DepartmentPayrollConfig[]> {
+  const { data: resData } = await client.GET("/workspaces/{ws_id}/departments/{id}/payroll-config", {
     params: { path: { ws_id: wsId, id: deptId } },
   });
   return resData;
 }
 
-export async function setDepartmentPayrollConfig(wsId: string, deptId: string, data: { effective_date: string; hours_per_day: string; std_working_days: string } & Record<string, unknown>): Promise<Record<string, unknown>> {
+export async function setDepartmentPayrollConfig(wsId: string, deptId: string, data: SetDepartmentPayrollConfigRequest): Promise<DepartmentPayrollConfig> {
   const { data: resData } = await client.POST("/workspaces/{ws_id}/departments/{id}/payroll-config", {
     params: { path: { ws_id: wsId, id: deptId } },
-    body: data
+    body: data,
   });
   return resData;
 }

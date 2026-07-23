@@ -1,15 +1,16 @@
-import type { 
-  ApproverType, 
-  ApprovalWorkflow, 
-  CreateWorkflowRequest, 
-  ApprovalActionLog 
+import type {
+  ApproverType,
+  ApprovalWorkflow,
+  CreateWorkflowRequest,
+  ApprovalActionLog,
+  ApproverConfig,
 } from './types';
 
 import { client } from './client';
 
 export interface WorkflowStepRequest {
   action_required: string;
-  approver_config: Record<string, unknown>;
+  approver_config: ApproverConfig;
   approver_type: ApproverType;
   can_skip: boolean;
   step_name: string;

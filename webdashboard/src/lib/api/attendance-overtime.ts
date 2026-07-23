@@ -1,4 +1,6 @@
+import { ApiError } from "./errors";
 import { client } from "./client";
+import { apiFetch } from "./helpers";
 import {
   AttendanceDailySummary,
   PaginatedResponse,
@@ -92,21 +94,29 @@ export async function bulkUploadPaperOt(
   const formData = new FormData();
   formData.append("file", file);
 
-  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/paper-forms/overtime/bulk", {
-    params: { path: { ws_id: wsId } },
-    body: formData as never
+  const res = await apiFetch(`/v1/workspaces/${wsId}/attendance/paper-forms/overtime/bulk`, {
+    method: "POST",
+    body: formData,
   });
-  return resData;
+  if (!res.ok) await ApiError.rejectResponse(res);
+  return res.json();
 }
 
 // --- Staging Logs (Unknown Users) ---
+
+/** Raw device data captured at punch time (varies by device firmware). */
+export interface StagingLogRawData {
+  device_serial?: string;
+  punch_mode?: 'face' | 'fingerprint' | 'card' | 'pin';
+  verification_score?: number;
+}
 
 export interface StagingLog {
   created_at: string;
   device_id: string | null;
   id: string;
   punch_time: string;
-  raw_data: Record<string, unknown> | null;
+  raw_data: StagingLogRawData | null;
   raw_user_id: string;
   status: string;
   workspace_id: string;
@@ -130,7 +140,7 @@ export async function fetchStagingLogs(
       query: { page, limit },
     },
   } as never);
-  return resData;
+  return resData as StagingLogsResponse;
 }
 
 export async function resolveStagingLog(

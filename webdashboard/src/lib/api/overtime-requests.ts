@@ -2,7 +2,15 @@ import type { ApprovalActionLog, BehalfAssignment, CreateBehalfAssignmentRequest
 
 import { client, fetch, fire } from './client';
 
-
+export interface OvertimeRequestQueryParams {
+  consent?: string;
+  department_id?: string;
+  employee_id?: string;
+  limit?: number;
+  page?: number;
+  planned_date?: string;
+  status?: OtRequestStatus;
+}
 
 export type OtRequestStatus = 
   | 'draft' 
@@ -28,6 +36,14 @@ export interface OvertimeRequestEmployee {
   id: string;
 }
 
+export interface OvertimeQuotaWarning {
+  employee_id: string;
+  limit: number;
+  message: string;
+  type: 'daily' | 'monthly' | 'yearly';
+  used: number;
+}
+
 export interface OvertimeRequest {
   attachment_file_ids?: string[] | null;
   created_at: string;
@@ -39,7 +55,7 @@ export interface OvertimeRequest {
   planned_end_time?: string;
   planned_minutes: number;
   planned_start_time?: string;
-  quota_warning?: Record<string, unknown> | null;
+  quota_warning?: OvertimeQuotaWarning | null;
   reason: string;
   requested_by_user_id: string;
   status: OtRequestStatus;

@@ -75,19 +75,16 @@ export async function uploadAttendance(
   const formData = new FormData();
   formData.append("file", file);
 
-  if (endpoint === "/employees/upload") {
-    const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/employees/upload", {
-      params: { path: { ws_id: wsId } },
-      body: formData as never,
-    });
-    return resData as { job_id: string };
-  } else {
-    const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/upload", {
-      params: { path: { ws_id: wsId } },
-      body: formData as never,
-    });
-    return resData as { job_id: string };
-  }
+  const url = endpoint === "/employees/upload"
+    ? `/v1/workspaces/${wsId}/employees/upload`
+    : `/v1/workspaces/${wsId}/attendance/upload`;
+
+  const res = await apiFetch(url, {
+    method: "POST",
+    body: formData,
+  });
+  if (!res.ok) await ApiError.rejectResponse(res);
+  return res.json();
 }
 
 export async function fetchLatestImportJob(
