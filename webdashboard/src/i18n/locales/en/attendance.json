@@ -518,6 +518,18 @@
       "empty_state": "No version history available for this shift.",
       "loading": "Loading version history..."
     },
+    "picker": {
+      "search_placeholder": "Search by shift name, symbol, or time (e.g., Morning, 08:00)...",
+      "filter_all": "All Shifts",
+      "filter_frequent": "Frequently Used",
+      "filter_night": "Night Shifts",
+      "filter_split": "Split Shifts",
+      "filter_single": "Single Block",
+      "no_results_title": "No shifts found",
+      "no_results_desc": "Try adjusting your search terms or filters.",
+      "clear_search": "Clear search",
+      "frequent_section_title": "Frequently Used"
+    },
     "label": "Shifts & Roster"
   },
   "approvals": {

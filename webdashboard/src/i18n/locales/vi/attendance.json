@@ -518,6 +518,18 @@
       "empty_state": "Không có lịch sử phiên bản cho ca làm việc này.",
       "loading": "Đang tải lịch sử phiên bản..."
     },
+    "picker": {
+      "search_placeholder": "Tìm theo tên ca, ký hiệu hoặc giờ làm (VD: Ca Sáng, 08:00)...",
+      "filter_all": "Tất cả ca",
+      "filter_frequent": "Thường dùng",
+      "filter_night": "Ca đêm",
+      "filter_split": "Ca gãy",
+      "filter_single": "Ca đơn",
+      "no_results_title": "Không tìm thấy ca phù hợp",
+      "no_results_desc": "Thử điều chỉnh từ khóa tìm kiếm hoặc bộ lọc.",
+      "clear_search": "Xóa tìm kiếm",
+      "frequent_section_title": "Thường dùng"
+    },
     "label": "Ca làm & Lịch trực"
   },
   "approvals": {
