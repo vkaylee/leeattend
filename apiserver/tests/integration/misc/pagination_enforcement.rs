@@ -121,6 +121,8 @@ const GET_LIST_WHITELIST: &[&str] = &[
     "get_pending_signatures",
     "list_file_versions_handler",
     "list_files_by_owner_handler",
+    // Shift version history (bounded audit trail, typically < 50 versions)
+    "get_shift_versions",
 ];
 
 fn visit_dirs(dir: &Path, files: &mut Vec<PathBuf>) -> std::io::Result<()> {

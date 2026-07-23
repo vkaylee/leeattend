@@ -451,7 +451,9 @@
       "global_scope": "Global / Shared",
       "select_location": "Select work location",
       "employer": "Employer Subsidiary Scope",
-      "select_employer": "Select employer"
+      "select_employer": "Select employer",
+      "change_reason_label": "Reason for adjustment",
+      "change_reason_placeholder": "Enter reason for changing this shift..."
     },
     "messages": {
       "assign_success": "Shift assigned to employee successfully.",
@@ -499,6 +501,22 @@
       "lowest_priority": "No Shift (Day Off)",
       "hierarchy_explanation": "Tiers are evaluated top-down. First match wins — higher tiers override lower ones.",
       "tier_subsumed_note": "Dynamic Rules (P3) handle department, tag, location, and employer conditions — no separate Dept Pattern / Dept Default tiers needed."
+    },
+    "revisions": {
+      "title": "Version History",
+      "subtitle": "Revision history for {{name}}",
+      "active_version": "Active",
+      "badge_create": "Create",
+      "badge_revision": "Revision",
+      "badge_correction": "Correction",
+      "effective_range": "{{from}} — {{to}}",
+      "effective_present": "Present",
+      "change_reason_label": "Reason for change",
+      "show_diff": "Show changes",
+      "hide_diff": "Hide changes",
+      "no_changes": "No changes in this interval",
+      "empty_state": "No version history available for this shift.",
+      "loading": "Loading version history..."
     },
     "label": "Shifts & Roster"
   },

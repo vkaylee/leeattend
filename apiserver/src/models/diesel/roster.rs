@@ -1,7 +1,7 @@
 use crate::models::shift::{EmployeeShift, Shift, ShiftRoster};
 use crate::models::shift_swap::{ShiftSwapRequest, ShiftSwapStatus};
 use crate::schema::{
-    employee_shifts, shift_default_intervals, shift_rosters, shift_swap_requests,
+    employee_shifts, shift_audit_log, shift_default_intervals, shift_rosters, shift_swap_requests,
     shift_templates, shift_versions, shifts,
 };
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
@@ -38,6 +38,21 @@ pub struct ShiftVersionEntity {
     pub change_reason: Option<String>,
     pub superseded_by: Option<Uuid>,
     pub created_by: Uuid,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Queryable, Selectable, Insertable, Serialize, Deserialize, Clone)]
+#[diesel(table_name = shift_audit_log)]
+pub struct ShiftAuditLogEntity {
+    pub id: Uuid,
+    pub template_id: Uuid,
+    pub version_id: Uuid,
+    pub action: String,
+    pub change_type: String,
+    pub changed_by: Uuid,
+    pub change_reason: Option<String>,
+    pub old_values: Option<serde_json::Value>,
+    pub new_values: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
 }
 

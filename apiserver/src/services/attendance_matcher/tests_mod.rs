@@ -944,11 +944,10 @@ async fn test_process_segment_attendance_with_overtime_pay() {
         Some(chrono::Utc::now()),
     )];
 
-    let overtime_data =
-        crate::repositories::overtime_policy_repository::WorkspaceOvertimeData {
-            policies,
-            assignments,
-        };
+    let overtime_data = crate::repositories::overtime_policy_repository::WorkspaceOvertimeData {
+        policies,
+        assignments,
+    };
 
     let ctx = PayrollContext {
         employee_id,

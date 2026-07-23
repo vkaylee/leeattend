@@ -7,12 +7,12 @@ use uuid::Uuid;
 use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
 use crate::models::diesel::roster::{
-    ShiftDefaultIntervalEntity, ShiftTemplateEntity, ShiftVersionEntity,
+    ShiftAuditLogEntity, ShiftDefaultIntervalEntity, ShiftTemplateEntity, ShiftVersionEntity,
 };
-use crate::models::shift::Shift;
+use crate::models::shift::{Shift, ShiftVersionHistoryItem};
 use crate::repositories::shift_repository::ShiftRepository;
 use crate::schema::{
-    employee_shifts, shift_default_intervals, shift_templates, shift_versions,
+    employee_shifts, shift_audit_log, shift_default_intervals, shift_templates, shift_versions,
 };
 
 pub struct DieselShiftRepository {
@@ -29,16 +29,16 @@ impl DieselShiftRepository {
 
 fn shift_from(current_version: &ShiftVersionEntity, template: &ShiftTemplateEntity) -> Shift {
     Shift::new(
-        template.id,                          // id = template_id (stable identity)
+        template.id, // id = template_id (stable identity)
         current_version.workspace_id,
         current_version.name.clone(),
         current_version.report_symbol.clone(),
-        true,                                 // is_active = true (resolved from current)
-        None,                                 // parent_shift_id (deprecated)
+        true, // is_active = true (resolved from current)
+        None, // parent_shift_id (deprecated)
         current_version.location_id,
         current_version.employer_id,
         current_version.created_at,
-        current_version.created_at,           // updated_at ≈ created_at (immutable)
+        current_version.created_at, // updated_at ≈ created_at (immutable)
     )
 }
 
@@ -48,12 +48,10 @@ impl ShiftRepository for DieselShiftRepository {
     async fn create_shift(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
+        actor_id: Uuid,
         req: &crate::models::CreateShiftRequest,
     ) -> Result<Shift, AppError> {
         let workspace_id = auth_token.0;
-        let now = Utc::now();
-        let template_id = Uuid::new_v4();
-        let version_id = Uuid::new_v4();
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -63,86 +61,117 @@ impl ShiftRepository for DieselShiftRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        // 1. Create template (without current_version_id — version doesn't exist yet)
-        let template = ShiftTemplateEntity {
-            id: template_id,
-            workspace_id,
-            name: req.name.clone(),
-            current_version_id: None,
-            created_at: now,
-        };
-        diesel::insert_into(shift_templates::table)
-            .values(&template)
-            .execute(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
+        conn.transaction::<_, AppError, _>(|conn| {
+            Box::pin(async move {
+                let now = Utc::now();
+                let template_id = Uuid::new_v4();
+                let version_id = Uuid::new_v4();
 
-        // 2. Create version (change_type = 'create')
-        let version = ShiftVersionEntity {
-            id: version_id,
-            template_id,
-            workspace_id,
-            version_number: 1,
-            name: req.name.clone(),
-            report_symbol: req.report_symbol.clone(),
-            location_id: req.location_id,
-            employer_id: req.employer_id,
-            effective_from: now.date_naive(),
-            effective_to: None,
-            change_type: "create".to_string(),
-            change_reason: None,
-            superseded_by: None,
-            created_by: Uuid::nil(),
-            created_at: now,
-        };
-        diesel::insert_into(shift_versions::table)
-            .values(&version)
-            .execute(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
+                // 1. Create template (without current_version_id yet)
+                let template = ShiftTemplateEntity {
+                    id: template_id,
+                    workspace_id,
+                    name: req.name.clone(),
+                    current_version_id: None,
+                    created_at: now,
+                };
+                diesel::insert_into(shift_templates::table)
+                    .values(&template)
+                    .execute(conn)
+                    .await
+                    .map_err(AppError::from)?;
 
-        // 3. Link current version on template
-        diesel::update(shift_templates::table.filter(shift_templates::id.eq(template_id)))
-            .set(shift_templates::current_version_id.eq(version_id))
-            .execute(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
+                // 2. Create version (change_type = 'create')
+                let version = ShiftVersionEntity {
+                    id: version_id,
+                    template_id,
+                    workspace_id,
+                    version_number: 1,
+                    name: req.name.clone(),
+                    report_symbol: req.report_symbol.clone(),
+                    location_id: req.location_id,
+                    employer_id: req.employer_id,
+                    effective_from: now.date_naive(),
+                    effective_to: None,
+                    change_type: "create".to_string(),
+                    change_reason: None,
+                    superseded_by: None,
+                    created_by: actor_id,
+                    created_at: now,
+                };
+                diesel::insert_into(shift_versions::table)
+                    .values(&version)
+                    .execute(conn)
+                    .await
+                    .map_err(AppError::from)?;
 
-        // 4. Insert intervals
-        if req.intervals.is_empty() {
-            return Err(AppError::validation(
-                crate::utils::i18n::I18nKey::Validation,
-            ));
-        }
-        for (i, iv) in req.intervals.iter().enumerate() {
-            let interval = ShiftDefaultIntervalEntity {
-                id: Uuid::new_v4(),
-                version_id,
-                sort_order: i32::try_from(i).unwrap_or(0),
-                interval_name: iv.interval_name.clone(),
-                start_time: iv.start_time,
-                end_time: iv.end_time,
-                break_duration_minutes: iv.break_duration_minutes,
-                break_start: iv.break_start,
-                break_end: iv.break_end,
-                is_break_auto_deduct: iv.is_break_auto_deduct,
-                break_is_overtime: iv.break_is_overtime,
-                early_punch_in_grace_period_minutes: iv.early_punch_in_grace_period_minutes,
-                allow_early_ot: iv.allow_early_ot,
-                max_early_ot_minutes: iv.max_early_ot_minutes,
-                ot_aggregation_mode: iv.ot_aggregation_mode.clone(),
-                is_night_shift: iv.is_night_shift,
-                created_at: Some(now),
-                updated_at: Some(now),
-            };
-            diesel::insert_into(shift_default_intervals::table)
-                .values(&interval)
-                .execute(&mut *conn)
-                .await
-                .map_err(|e| AppError::Internal(format!("db insert interval: {e}")))?;
-        }
+                // 3. Link current version on template
+                diesel::update(shift_templates::table.filter(shift_templates::id.eq(template_id)))
+                    .set(shift_templates::current_version_id.eq(version_id))
+                    .execute(conn)
+                    .await
+                    .map_err(AppError::from)?;
 
-        Ok(shift_from(&version, &template))
+                // 4. Insert intervals
+                if req.intervals.is_empty() {
+                    return Err(AppError::validation(
+                        crate::utils::i18n::I18nKey::Validation,
+                    ));
+                }
+                for (i, iv) in req.intervals.iter().enumerate() {
+                    let interval = ShiftDefaultIntervalEntity {
+                        id: Uuid::new_v4(),
+                        version_id,
+                        sort_order: i32::try_from(i).unwrap_or(0),
+                        interval_name: iv.interval_name.clone(),
+                        start_time: iv.start_time,
+                        end_time: iv.end_time,
+                        break_duration_minutes: iv.break_duration_minutes,
+                        break_start: iv.break_start,
+                        break_end: iv.break_end,
+                        is_break_auto_deduct: iv.is_break_auto_deduct,
+                        break_is_overtime: iv.break_is_overtime,
+                        early_punch_in_grace_period_minutes: iv.early_punch_in_grace_period_minutes,
+                        allow_early_ot: iv.allow_early_ot,
+                        max_early_ot_minutes: iv.max_early_ot_minutes,
+                        ot_aggregation_mode: iv.ot_aggregation_mode.clone(),
+                        is_night_shift: iv.is_night_shift,
+                        created_at: Some(now),
+                        updated_at: Some(now),
+                    };
+                    diesel::insert_into(shift_default_intervals::table)
+                        .values(&interval)
+                        .execute(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db insert interval: {e}")))?;
+                }
+
+                // 5. Insert audit log for creation
+                let audit = ShiftAuditLogEntity {
+                    id: Uuid::new_v4(),
+                    template_id,
+                    version_id,
+                    action: "create".to_string(),
+                    change_type: "create".to_string(),
+                    changed_by: actor_id,
+                    change_reason: None,
+                    old_values: None,
+                    new_values: Some(serde_json::json!({
+                        "version": &version,
+                        "intervals_count": req.intervals.len(),
+                    })),
+                    created_at: now,
+                };
+                diesel::insert_into(shift_audit_log::table)
+                    .values(&audit)
+                    .execute(conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db insert audit: {e}")))?;
+
+                Ok(shift_from(&version, &template))
+            })
+        })
+        .await
     }
 
     // ── get_shift_by_id (reads current version via template) ─────────────────────
@@ -239,7 +268,10 @@ impl ShiftRepository for DieselShiftRepository {
             )
             .filter(shift_templates::workspace_id.eq(workspace_id))
             .filter(shift_versions::effective_to.is_null())
-            .select((ShiftTemplateEntity::as_select(), ShiftVersionEntity::as_select()))
+            .select((
+                ShiftTemplateEntity::as_select(),
+                ShiftVersionEntity::as_select(),
+            ))
             .order(shift_versions::name.asc())
             .into_boxed();
 
@@ -276,10 +308,7 @@ impl ShiftRepository for DieselShiftRepository {
             i64::try_from(rows.len()).unwrap_or(0)
         };
 
-        let shifts: Vec<Shift> = rows
-            .iter()
-            .map(|(t, v)| shift_from(v, t))
-            .collect();
+        let shifts: Vec<Shift> = rows.iter().map(|(t, v)| shift_from(v, t)).collect();
 
         Ok((shifts, final_total))
     }
@@ -312,10 +341,9 @@ impl ShiftRepository for DieselShiftRepository {
                 // 1. Get current version + template for context
                 let (template, current_version): (ShiftTemplateEntity, ShiftVersionEntity) =
                     shift_templates::table
-                        .inner_join(
-                            shift_versions::table.on(shift_templates::current_version_id
-                                .eq(shift_versions::id.nullable())),
-                        )
+                        .inner_join(shift_versions::table.on(
+                            shift_templates::current_version_id.eq(shift_versions::id.nullable()),
+                        ))
                         .filter(shift_templates::id.eq(template_id))
                         .filter(shift_templates::workspace_id.eq(workspace_id))
                         .first::<(ShiftTemplateEntity, ShiftVersionEntity)>(conn)
@@ -331,14 +359,16 @@ impl ShiftRepository for DieselShiftRepository {
                     "revise" => effective_date.pred_opt().unwrap_or(effective_date),
                     _ => effective_date, // correction: keep same effective_from
                 };
-                diesel::update(shift_versions::table.filter(shift_versions::id.eq(current_version.id)))
-                    .set((
-                        shift_versions::effective_to.eq(close_date),
-                        shift_versions::superseded_by.eq(new_version_id),
-                    ))
-                    .execute(conn)
-                    .await
-                    .map_err(AppError::from)?;
+                diesel::update(
+                    shift_versions::table.filter(shift_versions::id.eq(current_version.id)),
+                )
+                .set((
+                    shift_versions::effective_to.eq(close_date),
+                    shift_versions::superseded_by.eq(new_version_id),
+                ))
+                .execute(conn)
+                .await
+                .map_err(AppError::from)?;
 
                 // 3. Create new version
                 let new_version = ShiftVersionEntity {
@@ -353,7 +383,7 @@ impl ShiftRepository for DieselShiftRepository {
                     effective_from: effective_date,
                     effective_to: None,
                     change_type: change_type.to_string(),
-                    change_reason,
+                    change_reason: change_reason.clone(),
                     superseded_by: None,
                     created_by,
                     created_at: now,
@@ -365,16 +395,14 @@ impl ShiftRepository for DieselShiftRepository {
                     .map_err(AppError::from)?;
 
                 // 4. Update template's current_version_id + name
-                diesel::update(
-                    shift_templates::table.filter(shift_templates::id.eq(template_id)),
-                )
-                .set((
-                    shift_templates::current_version_id.eq(new_version_id),
-                    shift_templates::name.eq(&req.name),
-                ))
-                .execute(conn)
-                .await
-                .map_err(AppError::from)?;
+                diesel::update(shift_templates::table.filter(shift_templates::id.eq(template_id)))
+                    .set((
+                        shift_templates::current_version_id.eq(new_version_id),
+                        shift_templates::name.eq(&req.name),
+                    ))
+                    .execute(conn)
+                    .await
+                    .map_err(AppError::from)?;
 
                 // 5. Insert new intervals (delete old: intervals are immutable per version)
                 if req.intervals.is_empty() {
@@ -409,6 +437,49 @@ impl ShiftRepository for DieselShiftRepository {
                         .await
                         .map_err(|e| AppError::Internal(format!("db insert interval: {e}")))?;
                 }
+
+                // 6. Insert audit log for version change
+                let old_snapshot = serde_json::json!({
+                    "version": {
+                        "id": current_version.id,
+                        "version_number": current_version.version_number,
+                        "name": current_version.name,
+                        "report_symbol": current_version.report_symbol,
+                        "location_id": current_version.location_id,
+                        "employer_id": current_version.employer_id,
+                        "effective_from": current_version.effective_from,
+                        "effective_to": current_version.effective_to,
+                    }
+                });
+                let new_snapshot = serde_json::json!({
+                    "version": {
+                        "id": new_version_id,
+                        "version_number": new_version_number,
+                        "name": req.name,
+                        "report_symbol": req.report_symbol,
+                        "location_id": req.location_id,
+                        "employer_id": req.employer_id,
+                        "effective_from": effective_date,
+                    },
+                    "intervals_count": req.intervals.len(),
+                });
+                let audit = ShiftAuditLogEntity {
+                    id: Uuid::new_v4(),
+                    template_id,
+                    version_id: new_version_id,
+                    action: "update".to_string(),
+                    change_type: change_type.to_string(),
+                    changed_by: created_by,
+                    change_reason: change_reason.clone(),
+                    old_values: Some(old_snapshot),
+                    new_values: Some(new_snapshot),
+                    created_at: now,
+                };
+                diesel::insert_into(shift_audit_log::table)
+                    .values(&audit)
+                    .execute(conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db insert audit: {e}")))?;
 
                 let updated_template = ShiftTemplateEntity {
                     current_version_id: Some(new_version_id),
@@ -522,8 +593,7 @@ impl ShiftRepository for DieselShiftRepository {
 
         let result: Option<(ShiftTemplateEntity, ShiftVersionEntity)> = shift_templates::table
             .inner_join(
-                employee_shifts::table
-                    .on(shift_templates::id.eq(employee_shifts::template_id)),
+                employee_shifts::table.on(shift_templates::id.eq(employee_shifts::template_id)),
             )
             .inner_join(
                 shift_versions::table
@@ -538,13 +608,100 @@ impl ShiftRepository for DieselShiftRepository {
                     .or(employee_shifts::end_date.ge(date)),
             )
             .order(employee_shifts::created_at.desc())
-            .select((ShiftTemplateEntity::as_select(), ShiftVersionEntity::as_select()))
+            .select((
+                ShiftTemplateEntity::as_select(),
+                ShiftVersionEntity::as_select(),
+            ))
             .first::<(ShiftTemplateEntity, ShiftVersionEntity)>(&mut *conn)
             .await
             .optional()
             .map_err(AppError::from)?;
 
         Ok(result.map(|(t, v)| shift_from(&v, &t)))
+    }
+
+    // ── get_shift_versions ───────────────────────────────────────────────────────
+    async fn get_shift_versions(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        template_id: Uuid,
+    ) -> Result<Vec<ShiftVersionHistoryItem>, AppError> {
+        let workspace_id = auth_token.0;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        // Verify template exists in workspace
+        let _template: ShiftTemplateEntity = shift_templates::table
+            .filter(shift_templates::id.eq(template_id))
+            .filter(shift_templates::workspace_id.eq(workspace_id))
+            .first::<ShiftTemplateEntity>(&mut *conn)
+            .await
+            .optional()
+            .map_err(AppError::from)?
+            .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::ShiftNotFound))?;
+
+        // Fetch all versions for this template, ordered newest first
+        let versions: Vec<ShiftVersionEntity> = shift_versions::table
+            .filter(shift_versions::template_id.eq(template_id))
+            .filter(shift_versions::workspace_id.eq(workspace_id))
+            .order(shift_versions::version_number.desc())
+            .load::<ShiftVersionEntity>(&mut *conn)
+            .await
+            .map_err(AppError::from)?;
+
+        // Batch-fetch all intervals for these versions (zero N+1)
+        let version_ids: Vec<Uuid> = versions.iter().map(|v| v.id).collect();
+        let all_intervals: Vec<ShiftDefaultIntervalEntity> = if version_ids.is_empty() {
+            vec![]
+        } else {
+            shift_default_intervals::table
+                .filter(shift_default_intervals::version_id.eq_any(&version_ids))
+                .order(shift_default_intervals::sort_order.asc())
+                .load::<ShiftDefaultIntervalEntity>(&mut *conn)
+                .await
+                .map_err(AppError::from)?
+        };
+
+        // Group intervals by version_id
+        let mut intervals_by_version: std::collections::HashMap<
+            Uuid,
+            Vec<ShiftDefaultIntervalEntity>,
+        > = std::collections::HashMap::new();
+        for iv in all_intervals {
+            intervals_by_version
+                .entry(iv.version_id)
+                .or_default()
+                .push(iv);
+        }
+
+        // Build response items
+        let items: Vec<ShiftVersionHistoryItem> = versions
+            .into_iter()
+            .map(|v| ShiftVersionHistoryItem {
+                id: v.id,
+                template_id: v.template_id,
+                version_number: v.version_number,
+                name: v.name,
+                report_symbol: v.report_symbol,
+                location_id: v.location_id,
+                employer_id: v.employer_id,
+                effective_from: v.effective_from,
+                effective_to: v.effective_to,
+                change_type: v.change_type,
+                change_reason: v.change_reason,
+                superseded_by: v.superseded_by,
+                created_by: v.created_by,
+                created_at: v.created_at,
+                intervals: intervals_by_version.remove(&v.id).unwrap_or_default(),
+            })
+            .collect();
+
+        Ok(items)
     }
 }
 

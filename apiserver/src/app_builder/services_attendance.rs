@@ -78,12 +78,11 @@ pub async fn build_attendance_services(
         raw_log_repo: Arc::clone(&repos.raw_log),
         staging_repo: Arc::clone(&repos.staging),
         error_repo: Arc::clone(&repos.error),
-        pairing_service: Some(Arc::clone(&pairing) as Arc<dyn crate::services::pairing::PairingProcessor>),
+        pairing_service: Some(
+            Arc::clone(&pairing) as Arc<dyn crate::services::pairing::PairingProcessor>
+        ),
     };
-    let attendance = AttendanceLogService::new(
-        deps,
-        notifier.clone(),
-    );
+    let attendance = AttendanceLogService::new(deps, notifier.clone());
     let attendance = Arc::new(attendance);
 
     let import = Arc::new(

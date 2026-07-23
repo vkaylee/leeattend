@@ -108,8 +108,7 @@ impl AttendanceMatcher {
             } else if let Some(holiday) = args.ctx.holidays_map.get(&current_date) {
                 // Paid holiday with no attendance → auto-credit standard day
                 if holiday.is_paid() {
-                    segment_std_units +=
-                        Self::credit_paid_holiday(holiday, args.seg_units_per_day);
+                    segment_std_units += Self::credit_paid_holiday(holiday, args.seg_units_per_day);
                 }
             }
 

@@ -1,5 +1,5 @@
 /* eslint-disable complexity */
-import { ChevronRight, Clock, Zap, Pencil, Trash2 } from "lucide-react";
+import { ChevronRight, Clock, History, Zap, Pencil, Trash2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -16,6 +16,7 @@ import { Shift } from "../../lib/api";
 interface ShiftListProps {
   onDelete?: (shift: Shift) => void;
   onEdit: (shift: Shift) => void;
+  onViewHistory?: (shift: Shift) => void;
   shifts: Shift[] | undefined;
 }
 
@@ -25,9 +26,11 @@ function ShiftMobileCard({
   shift,
   onDelete,
   onEdit,
+  onViewHistory,
 }: {
   onDelete?: (shift: Shift) => void;
   onEdit: (shift: Shift) => void;
+  onViewHistory?: (shift: Shift) => void;
   shift: Shift;
 }) {
   const { t } = useTranslation();
@@ -90,6 +93,16 @@ function ShiftMobileCard({
 
       {/* Actions */}
       <div className="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
+        {onViewHistory ? (
+          <Button
+            className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:bg-amber-50 hover:text-amber-600 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-amber-950/30 dark:hover:text-amber-400"
+            onClick={() => { onViewHistory(shift); }}
+            title={t("shifts.revisions.title")}
+            variant="ghost"
+          >
+            <History size={16} />
+          </Button>
+        ) : null}
         <Button
           className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:bg-primary-50 hover:text-primary-600 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-primary-950/30 dark:hover:text-primary-400"
           onClick={() => { onEdit(shift); }}
@@ -115,7 +128,7 @@ function ShiftMobileCard({
 
 // ── Component ──────────────────────────────────────────────────────
 
-export function ShiftList({ shifts, onEdit, onDelete }: ShiftListProps) {
+export function ShiftList({ shifts, onEdit, onDelete, onViewHistory }: ShiftListProps) {
   const { t } = useTranslation();
   const { formatTime } = useDateTimeFormatter();
 
@@ -137,6 +150,7 @@ export function ShiftList({ shifts, onEdit, onDelete }: ShiftListProps) {
           <ShiftMobileCard
             onDelete={onDelete}
             onEdit={onEdit}
+            onViewHistory={onViewHistory}
             shift={shift}
           />
         )}
@@ -202,6 +216,9 @@ export function ShiftList({ shifts, onEdit, onDelete }: ShiftListProps) {
                     </TableCell>
                     <TableCell className="px-8 py-6 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                        {onViewHistory ? (
+                          <Button className="p-2.5 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { onViewHistory(shift); }} title={t("shifts.revisions.title")} variant="ghost"><History size={18} /></Button>
+                        ) : null}
                         <Button className="p-2.5 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { onEdit(shift); }} title={t("common.edit")} variant="ghost"><Pencil size={18} /></Button>
                         {!!onDelete && <Button className="p-2.5 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { onDelete(shift); }} title={t("common.delete")} variant="ghost"><Trash2 size={18} /></Button>}
                       </div>

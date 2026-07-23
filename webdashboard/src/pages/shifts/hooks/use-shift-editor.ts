@@ -41,6 +41,7 @@ export interface IntervalDraft {
 }
 
 interface ShiftFormState {
+  changeReason: string;
   correctionEffectiveDate: string;
   employerId: string | null;
   isCorrection: boolean;
@@ -52,6 +53,7 @@ interface ShiftFormState {
 const EMPTY_SHIFT_FORM: ShiftFormState = {
   shiftName: "",
   shiftSymbol: "",
+  changeReason: "",
   isCorrection: false,
   correctionEffectiveDate: format(new Date(), 'yyyy-MM-dd'),
   locationId: null,
@@ -127,6 +129,7 @@ export function useShiftEditor(shiftId?: string) {
   const employerId = shiftForm.employerId;
   const isCorrection = shiftForm.isCorrection;
   const correctionEffectiveDate = shiftForm.correctionEffectiveDate;
+  const changeReason = shiftForm.changeReason;
 
   const setLocationId = (v: string | null) => {
     setShiftForm(prev => ({ ...prev, locationId: v }));
@@ -265,6 +268,7 @@ export function useShiftEditor(shiftId?: string) {
         ...payload,
         is_correction: isCorrection,
         effective_date: isCorrection ? undefined : correctionEffectiveDate,
+        change_reason: changeReason || undefined,
       };
       updateShiftMutation.mutate({ id: shiftId, data: updatePayload });
     } else {
@@ -305,5 +309,7 @@ export function useShiftEditor(shiftId?: string) {
     setIsCorrection: (v: boolean) => { setShiftForm(prev => ({ ...prev, isCorrection: v })); setIsDirty(true); },
     correctionEffectiveDate,
     setCorrectionEffectiveDate: (v: string) => { setShiftForm(prev => ({ ...prev, correctionEffectiveDate: v })); setIsDirty(true); },
+    changeReason,
+    setChangeReason: (v: string) => { setShiftForm(prev => ({ ...prev, changeReason: v })); setIsDirty(true); },
   };
 }

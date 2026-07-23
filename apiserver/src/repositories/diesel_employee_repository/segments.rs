@@ -43,8 +43,11 @@ impl DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let search_sql =
-            build_employee_search_sql(options.search_query(), options.sort_by(), options.sort_dir());
+        let search_sql = build_employee_search_sql(
+            options.search_query(),
+            options.sort_by(),
+            options.sort_dir(),
+        );
 
         let filter_sql = if let Some(ids) = options.filter_ids() {
             if ids.is_empty() {

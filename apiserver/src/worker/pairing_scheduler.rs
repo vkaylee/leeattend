@@ -75,7 +75,10 @@ impl PairingNotifier {
 }
 
 /// Create a paired (notifier, receiver) connected by an unbounded mpsc channel.
-pub fn pairing_channel() -> (PairingNotifier, mpsc::UnboundedReceiver<PairingNotification>) {
+pub fn pairing_channel() -> (
+    PairingNotifier,
+    mpsc::UnboundedReceiver<PairingNotification>,
+) {
     let (tx, rx) = mpsc::unbounded_channel();
     (PairingNotifier { tx }, rx)
 }
@@ -324,8 +327,7 @@ mod tests {
         spy: Arc<SpyPairingProcessor>,
         tz: Tz,
     ) -> (PairingScheduler, PairingNotifier) {
-        let mut emp_repo =
-            crate::repositories::employee::MockEmployeeRepository::new();
+        let mut emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
         emp_repo
             .expect_get_employee_timezone_fallback()
             .returning(move |_, _| Ok(tz));
@@ -351,7 +353,10 @@ mod tests {
 
         scheduler.sweep().await.unwrap();
 
-        assert!(spy.take_calls().is_empty(), "no calls when channel is empty");
+        assert!(
+            spy.take_calls().is_empty(),
+            "no calls when channel is empty"
+        );
     }
 
     #[tokio::test]
@@ -429,14 +434,17 @@ mod tests {
         scheduler.sweep().await.unwrap();
 
         let calls = spy.take_calls();
-        assert_eq!(calls.len(), 2, "two different employees → two reprocess calls");
+        assert_eq!(
+            calls.len(),
+            2,
+            "two different employees → two reprocess calls"
+        );
     }
 
     #[tokio::test]
     async fn test_overnight_punch_triggers_previous_date() {
         let spy = Arc::new(SpyPairingProcessor::new());
-        let (mut scheduler, notifier) =
-            make_scheduler(spy.clone(), Asia::Ho_Chi_Minh);
+        let (mut scheduler, notifier) = make_scheduler(spy.clone(), Asia::Ho_Chi_Minh);
 
         let ws = Uuid::new_v4();
         let emp = Uuid::new_v4();
@@ -444,8 +452,7 @@ mod tests {
         // Punch at 03:00 local time (Ho Chi Minh = UTC+7 → 20:00 UTC previous day)
         // 03:00 +07 = 20:00 UTC on the day before
         let today_local = chrono::Local::now().date_naive();
-        let early_morning_local =
-            today_local.and_hms_opt(3, 0, 0).unwrap();
+        let early_morning_local = today_local.and_hms_opt(3, 0, 0).unwrap();
         let early_morning_utc = Asia::Ho_Chi_Minh
             .from_local_datetime(&early_morning_local)
             .unwrap()
@@ -465,8 +472,7 @@ mod tests {
     #[tokio::test]
     async fn test_different_local_dates_from_same_employee() {
         let spy = Arc::new(SpyPairingProcessor::new());
-        let (mut scheduler, notifier) =
-            make_scheduler(spy.clone(), Asia::Ho_Chi_Minh);
+        let (mut scheduler, notifier) = make_scheduler(spy.clone(), Asia::Ho_Chi_Minh);
 
         let ws = Uuid::new_v4();
         let emp = Uuid::new_v4();

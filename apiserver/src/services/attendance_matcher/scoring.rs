@@ -34,10 +34,11 @@ fn compute_ot_pay_for_entry(
     work_unit_minutes: i32,
     policy_cache: &mut HashMap<Uuid, Vec<crate::models::OvertimeRule>>,
 ) -> Decimal {
-    if let Some(policy_id) =
-        ctx.overtime_data
-            .resolve_policy_for_employee(employee_id, current_date, &ctx.all_dept_history)
-    {
+    if let Some(policy_id) = ctx.overtime_data.resolve_policy_for_employee(
+        employee_id,
+        current_date,
+        &ctx.all_dept_history,
+    ) {
         let rules = if let Some(r) = policy_cache.get(&policy_id) {
             r.clone()
         } else {
@@ -62,8 +63,7 @@ fn compute_ot_pay_for_entry(
         // Early OT: punched in before shift start
         if punch_in < shift_start {
             let ot_end = std::cmp::min(punch_out, shift_start);
-            let daily_splits =
-                OvertimeEngine::split_interval_by_day(&punch_in, &ot_end, &ctx.tz);
+            let daily_splits = OvertimeEngine::split_interval_by_day(&punch_in, &ot_end, &ctx.tz);
             for (date, intervals) in daily_splits {
                 let day_is_holiday = ctx.holidays_map.contains_key(&date);
                 total_ot_pay += OvertimeEngine::calculate_overtime_pay_from_times(
@@ -206,9 +206,7 @@ impl AttendanceMatcher {
             if holiday.is_credit_on_work() {
                 std_extra += seg_units_per_day.to_i32().unwrap_or(0);
             }
-            let multiplier = holiday
-                .ot_multiplier()
-                .unwrap_or_else(|| Decimal::from(3));
+            let multiplier = holiday.ot_multiplier().unwrap_or_else(|| Decimal::from(3));
             if multiplier > Decimal::ONE {
                 let worked_fraction = Decimal::from(std_u) / seg_units_per_day;
                 holiday_premium += worked_fraction * daily_rate * (multiplier - Decimal::ONE);
@@ -247,7 +245,13 @@ impl AttendanceMatcher {
             is_holiday,
         );
 
-        (std_u + std_extra, ot_u, ot_pay_delta, holiday_premium, is_violation)
+        (
+            std_u + std_extra,
+            ot_u,
+            ot_pay_delta,
+            holiday_premium,
+            is_violation,
+        )
     }
 
     /// Process all entries for a single calendar day — filter work/break
@@ -318,9 +322,7 @@ impl AttendanceMatcher {
                         let prev_end = if shift_idx > 0 {
                             day_shifts.get(shift_idx - 1).and_then(|(_, prev_i)| {
                                 ctx.tz
-                                    .from_local_datetime(
-                                        &current_date.and_time(prev_i.end_time),
-                                    )
+                                    .from_local_datetime(&current_date.and_time(prev_i.end_time))
                                     .single()
                             })
                         } else {
@@ -377,7 +379,13 @@ impl AttendanceMatcher {
             }
         }
 
-        (day_std, day_ot, day_ot_pay, day_holiday_premium, day_violations)
+        (
+            day_std,
+            day_ot,
+            day_ot_pay,
+            day_holiday_premium,
+            day_violations,
+        )
     }
 
     /// Auto-credit standard units for a paid holiday with no attendance.

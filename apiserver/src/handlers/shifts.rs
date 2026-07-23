@@ -13,7 +13,7 @@ use crate::handlers::common::MemberContext;
 use crate::models::{
     AssignShiftRequest, AssignmentHistory, BulkRosterRequest, CreateRosterRequest,
     CreateShiftRequest, EmployeeSchedule, PaginatedResponse, PaginationParams, Shift, ShiftRoster,
-    UpdateShiftRequest,
+    ShiftVersionHistoryItem, UpdateShiftRequest,
 };
 use crate::utils::i18n::I18nKey;
 use crate::AppState;
@@ -243,7 +243,7 @@ pub async fn create_shift(
     let shift = state
         .shifts()
         .service()
-        .create_shift(workspace_id, &req)
+        .create_shift(workspace_id, ctx.user_id, &req)
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
@@ -276,7 +276,7 @@ pub async fn update_shift(
     let shift = state
         .shifts()
         .service()
-        .update_shift(ctx.workspace_id, shift_id, req)
+        .update_shift(ctx.workspace_id, shift_id, ctx.user_id, req)
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
@@ -284,6 +284,32 @@ pub async fn update_shift(
     }
 
     Ok(Json(shift))
+}
+
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/shifts/{shift_id}/versions",
+    responses(
+        (status = 200, description = "Shift version history", body = Vec<ShiftVersionHistoryItem>)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("shift_id" = Uuid, Path, description = "Shift template ID")
+    )
+)]
+pub async fn get_shift_versions(
+    State(state): State<Arc<AppState>>,
+    Path(params): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
+) -> AppResult<Json<Vec<ShiftVersionHistoryItem>>> {
+    let (_workspace_id, shift_id) = params;
+    ctx.require_permission(Permission::ShiftsRead)?;
+    let versions = state
+        .shifts()
+        .service()
+        .get_shift_versions(ctx.workspace_id, shift_id)
+        .await?;
+    Ok(Json(versions))
 }
 
 #[utoipa::path(

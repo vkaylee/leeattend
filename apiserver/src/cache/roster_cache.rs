@@ -148,8 +148,8 @@ pub async fn build_roster_data(
 
     use crate::schema::{
         assignment_rules, employee_shifts, employee_working_patterns, employees, employments,
-        shift_default_intervals, shift_templates, shift_versions,
-        working_pattern_details, working_patterns,
+        shift_default_intervals, shift_templates, shift_versions, working_pattern_details,
+        working_patterns,
     };
 
     // 1. Shift Templates + Current Versions
@@ -160,7 +160,7 @@ pub async fn build_roster_data(
         )
         .filter(shift_templates::workspace_id.eq(workspace_id))
         .select((
-            shift_templates::id,          // template_id (stable key)
+            shift_templates::id, // template_id (stable key)
             shift_versions::name,
             shift_versions::report_symbol,
         ))
@@ -275,26 +275,27 @@ pub async fn build_roster_data(
 
     // 9. Shift Default Intervals — template intervals for current versions
     //     Join through shift_versions to get template_id for the HashMap key.
-    let interval_rows: Vec<(crate::models::diesel::roster::ShiftDefaultIntervalEntity, Uuid)> =
-        shift_default_intervals::table
-            .inner_join(
-                shift_versions::table
-                    .on(shift_default_intervals::version_id.eq(shift_versions::id)),
-            )
-            .inner_join(
-                shift_templates::table
-                    .on(shift_versions::template_id.eq(shift_templates::id)),
-            )
-            .filter(shift_templates::workspace_id.eq(workspace_id))
-            .filter(shift_versions::effective_to.is_null())
-            .order(shift_default_intervals::sort_order.asc())
-            .select((
-                crate::models::diesel::roster::ShiftDefaultIntervalEntity::as_select(),
-                shift_versions::template_id,
-            ))
-            .load::<(crate::models::diesel::roster::ShiftDefaultIntervalEntity, Uuid)>(&mut conn)
-            .await
-            .map_err(|e| format!("shift_intervals: {e}"))?;
+    let interval_rows: Vec<(
+        crate::models::diesel::roster::ShiftDefaultIntervalEntity,
+        Uuid,
+    )> = shift_default_intervals::table
+        .inner_join(
+            shift_versions::table.on(shift_default_intervals::version_id.eq(shift_versions::id)),
+        )
+        .inner_join(shift_templates::table.on(shift_versions::template_id.eq(shift_templates::id)))
+        .filter(shift_templates::workspace_id.eq(workspace_id))
+        .filter(shift_versions::effective_to.is_null())
+        .order(shift_default_intervals::sort_order.asc())
+        .select((
+            crate::models::diesel::roster::ShiftDefaultIntervalEntity::as_select(),
+            shift_versions::template_id,
+        ))
+        .load::<(
+            crate::models::diesel::roster::ShiftDefaultIntervalEntity,
+            Uuid,
+        )>(&mut conn)
+        .await
+        .map_err(|e| format!("shift_intervals: {e}"))?;
 
     // Transform rows into lookup structures
     let shifts_map: HashMap<Uuid, RosterShift> = shift_rows
@@ -357,9 +358,10 @@ pub async fn build_roster_data(
 
     let mut shift_intervals: HashMap<Uuid, Vec<RosterInterval>> = HashMap::new();
     for (interval_entity, template_id) in interval_rows {
-        let is_night_shift = interval_entity.is_night_shift || interval_entity.end_time < interval_entity.start_time;
+        let is_night_shift =
+            interval_entity.is_night_shift || interval_entity.end_time < interval_entity.start_time;
         shift_intervals
-            .entry(template_id)    // Key by stable template_id
+            .entry(template_id) // Key by stable template_id
             .or_default()
             .push(RosterInterval {
                 interval_id: interval_entity.id,
@@ -372,7 +374,8 @@ pub async fn build_roster_data(
                 break_end: interval_entity.break_end,
                 is_break_auto_deduct: interval_entity.is_break_auto_deduct,
                 break_is_overtime: interval_entity.break_is_overtime,
-                early_punch_in_grace_period_minutes: interval_entity.early_punch_in_grace_period_minutes,
+                early_punch_in_grace_period_minutes: interval_entity
+                    .early_punch_in_grace_period_minutes,
                 allow_early_ot: interval_entity.allow_early_ot,
                 max_early_ot_minutes: interval_entity.max_early_ot_minutes,
                 ot_aggregation_mode: interval_entity.ot_aggregation_mode,

@@ -28,6 +28,7 @@ export type WorkspaceLeaveBalance = components["schemas"]["WorkspaceLeaveBalance
 export type Holiday = components["schemas"]["Holiday"];
 export type CreateShiftRequest = components["schemas"]["CreateShiftRequest"];
 export type UpdateShiftRequest = components["schemas"]["UpdateShiftRequest"];
+export type ShiftVersionHistoryItem = components["schemas"]["ShiftVersionHistoryItem"];
 export type PayrollSettings = components["schemas"]["PayrollSettings"];
 export type UpdatePayrollSettingsRequest = components["schemas"]["UpdatePayrollSettingsRequest"];
 export type SalaryComponentDefinition = components["schemas"]["SalaryComponentDefinition"];

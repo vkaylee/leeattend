@@ -3,7 +3,7 @@ use chrono::NaiveDate;
 use uuid::Uuid;
 
 use crate::errors::AppError;
-use crate::models::Shift;
+use crate::models::{Shift, ShiftVersionHistoryItem};
 
 /// Trait for shift template + version operations (Enterprise SCD Type-2).
 ///
@@ -18,6 +18,7 @@ pub trait ShiftRepository: Send + Sync {
     async fn create_shift(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
+        actor_id: Uuid,
         req: &crate::models::CreateShiftRequest,
     ) -> Result<Shift, AppError>;
 
@@ -78,4 +79,12 @@ pub trait ShiftRepository: Send + Sync {
         employment_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<Shift>, AppError>;
+
+    /// Get all versions of a shift template ordered by version_number DESC,
+    /// including their intervals.
+    async fn get_shift_versions(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        template_id: Uuid,
+    ) -> Result<Vec<ShiftVersionHistoryItem>, AppError>;
 }

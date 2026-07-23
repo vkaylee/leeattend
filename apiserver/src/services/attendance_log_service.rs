@@ -55,10 +55,7 @@ pub struct ProcessLogArgs<'a> {
 }
 
 impl AttendanceLogService {
-    pub fn new(
-        deps: AttendanceLogServiceDeps,
-        notifier: Option<Arc<PairingNotifier>>,
-    ) -> Self {
+    pub fn new(deps: AttendanceLogServiceDeps, notifier: Option<Arc<PairingNotifier>>) -> Self {
         Self {
             employee_repo: deps.employee_repo,
             raw_log_repo: deps.raw_log_repo,
@@ -250,11 +247,7 @@ impl AttendanceLogService {
                 // Notify PairingScheduler (fire-and-forget) — pairing is deferred
                 // to a background batch sweep to avoid advisory-lock contention.
                 if let Some(notifier) = &self.notifier {
-                    notifier.notify(
-                        args.workspace_id,
-                        active_employment_id,
-                        punch_time,
-                    );
+                    notifier.notify(args.workspace_id, active_employment_id, punch_time);
                 }
                 Ok(true)
             }

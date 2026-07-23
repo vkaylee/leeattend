@@ -18,6 +18,10 @@ pub fn router() -> Router<Arc<AppState>> {
             put(handlers::update_shift),
         )
         .route(
+            "/workspaces/:ws_id/shifts/:shift_id/versions",
+            get(handlers::get_shift_versions),
+        )
+        .route(
             "/workspaces/:ws_id/shifts/assign",
             post(handlers::assign_shift),
         )

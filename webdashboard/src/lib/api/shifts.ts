@@ -1,4 +1,4 @@
-import type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster, CreateShiftRequest, UpdateShiftRequest, UpsertRosterRequest } from "./types";
+import type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster, CreateShiftRequest, UpdateShiftRequest, UpsertRosterRequest, ShiftVersionHistoryItem } from "./types";
 
 import { client } from "./client";
 import { ApiError } from "./errors";
@@ -133,4 +133,19 @@ export async function deleteRoster(wsId: string, employeeId: string, date: strin
       path: { workspace_id: wsId, id: employeeId, date },
     },
   });
+}
+
+/**
+ * Fetch version history for a shift template.
+ */
+export async function getShiftVersions(
+  wsId: string,
+  shiftId: string,
+): Promise<ShiftVersionHistoryItem[]> {
+  const { data } = await client.GET("/workspaces/{workspace_id}/shifts/{shift_id}/versions", {
+    params: {
+      path: { workspace_id: wsId, shift_id: shiftId },
+    },
+  });
+  return data ?? [];
 }

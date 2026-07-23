@@ -486,8 +486,10 @@ async fn test_concurrent_reprocess_does_not_double_insert_sessions() {
     crate::test_execute!(
         &diesel_pools.api,
         "UPDATE shift_templates SET current_version_id = $1 WHERE id = $2",
-        diesel::sql_types::Uuid, shift_id,
-        diesel::sql_types::Uuid, template_id
+        diesel::sql_types::Uuid,
+        shift_id,
+        diesel::sql_types::Uuid,
+        template_id
     );
     crate::test_execute!(
         &diesel_pools.api,

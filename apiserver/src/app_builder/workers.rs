@@ -5,8 +5,8 @@ use super::AppWorkers;
 use crate::diesel_pool::DieselPools;
 use crate::queue::RedisPool;
 use crate::services::ReportCoordinator;
-use crate::worker::{HousekeepingScheduler, JobWorker, PairingScheduler, WorkerConfig};
 use crate::worker::pairing_scheduler::{PairingNotification, PairingNotifier};
+use crate::worker::{HousekeepingScheduler, JobWorker, PairingScheduler, WorkerConfig};
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -88,8 +88,7 @@ pub fn build_workers(
         Arc::clone(&services.pairing),
         Arc::clone(&repos.employee),
     );
-    let pairing_scheduler_handle =
-        Some(pairing_scheduler.start(worker_cancel_token.clone()));
+    let pairing_scheduler_handle = Some(pairing_scheduler.start(worker_cancel_token.clone()));
 
     (
         coordinator,

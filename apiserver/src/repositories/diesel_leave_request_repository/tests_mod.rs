@@ -7,9 +7,8 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_leave_request_repository_errors() {
-    let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-        "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
-    });
+    let test_db_url = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
     let pools = DieselPools::for_test(&test_db_url);
     let repo = DieselLeaveRequestRepository::new(pools);
     let ws_id = Uuid::new_v4();
@@ -380,15 +379,9 @@ async fn test_leave_request_repository_flow() {
         )
         .await
         .unwrap();
-    assert!(
-        approved_dates.contains(&(employee_id, NaiveDate::from_ymd_opt(2023, 1, 15).unwrap()))
-    );
-    assert!(
-        approved_dates.contains(&(employee_id, NaiveDate::from_ymd_opt(2023, 1, 16).unwrap()))
-    );
-    assert!(
-        approved_dates.contains(&(employee_id, NaiveDate::from_ymd_opt(2023, 1, 20).unwrap()))
-    );
+    assert!(approved_dates.contains(&(employee_id, NaiveDate::from_ymd_opt(2023, 1, 15).unwrap())));
+    assert!(approved_dates.contains(&(employee_id, NaiveDate::from_ymd_opt(2023, 1, 16).unwrap())));
+    assert!(approved_dates.contains(&(employee_id, NaiveDate::from_ymd_opt(2023, 1, 20).unwrap())));
 
     let periods = repo
         .get_approved_leave_periods(

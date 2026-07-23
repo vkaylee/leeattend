@@ -14,7 +14,7 @@ pub mod scheduler;
 pub use deps::WorkerDeps;
 pub use file_scan_scheduler::FileScanScheduler;
 pub use outbox_sweep::OutboxSweepScheduler;
-pub use pairing_scheduler::{PairingNotifier, PairingScheduler, pairing_channel};
+pub use pairing_scheduler::{pairing_channel, PairingNotifier, PairingScheduler};
 pub use runner::{JobWorker, WorkerConfig};
 pub use scheduler::HousekeepingScheduler;
 

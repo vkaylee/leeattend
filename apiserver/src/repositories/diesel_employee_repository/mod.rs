@@ -1,12 +1,12 @@
 // Submodules
 pub mod assignments;
 mod crud;
-mod lookup;
-mod search;
-mod segments;
 mod ess;
+mod lookup;
 mod payroll;
 mod recruitment;
+mod search;
+mod segments;
 pub mod working_condition;
 
 pub use assignments::*;
@@ -54,7 +54,8 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id_number: &str,
     ) -> Result<Option<Employee>, AppError> {
-        self.find_by_number_impl(auth_token, employee_id_number).await
+        self.find_by_number_impl(auth_token, employee_id_number)
+            .await
     }
 
     async fn get_employee_by_id(
@@ -70,7 +71,8 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         id_number: &str,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<Employee>, AppError> {
-        self.get_employee_by_id_number_impl(id_number, auth_token).await
+        self.get_employee_by_id_number_impl(id_number, auth_token)
+            .await
     }
 
     async fn get_employees_by_ids(
@@ -86,7 +88,8 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         id_numbers: &[String],
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<Employee>, AppError> {
-        self.get_employees_by_id_numbers_impl(id_numbers, auth_token).await
+        self.get_employees_by_id_numbers_impl(id_numbers, auth_token)
+            .await
     }
 
     async fn get_all_employees(
@@ -109,7 +112,8 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         filter_ids: Option<&Vec<Uuid>>,
     ) -> Result<Vec<Uuid>, AppError> {
-        self.get_active_employee_ids_impl(auth_token, filter_ids).await
+        self.get_active_employee_ids_impl(auth_token, filter_ids)
+            .await
     }
 
     async fn get_paginated_employee_ids(
@@ -125,7 +129,8 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
     ) -> Result<std::collections::HashMap<Uuid, (Option<Uuid>, String)>, AppError> {
-        self.get_employee_departments_at_impl(auth_token, date).await
+        self.get_employee_departments_at_impl(auth_token, date)
+            .await
     }
 
     async fn update_employee(
@@ -143,7 +148,8 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         req: &UpdateEmployeeRequest,
     ) -> Result<Option<Employee>, AppError> {
-        self.update_employee_transactional_impl(id, auth_token, req).await
+        self.update_employee_transactional_impl(id, auth_token, req)
+            .await
     }
 
     async fn create_employee(&self, employee: &Employee) -> Result<(), AppError> {
@@ -161,9 +167,15 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         department_id: Option<Uuid>,
     ) -> Result<(), AppError> {
         self.create_employee_transactional_impl(
-            auth_token, employee, hire_date, recruitment_source_id,
-            employer_id, primary_location_id, department_id,
-        ).await
+            auth_token,
+            employee,
+            hire_date,
+            recruitment_source_id,
+            employer_id,
+            primary_location_id,
+            department_id,
+        )
+        .await
     }
 
     async fn create_employee_skip_duplicates(&self, employee: &Employee) -> Result<bool, AppError> {
@@ -179,7 +191,15 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         primary_location_id: Option<Uuid>,
         department_id: Option<Uuid>,
     ) -> Result<Option<Employee>, AppError> {
-        self.rehire_employee_impl(auth_token, employee_id, hire_date, employer_id, primary_location_id, department_id).await
+        self.rehire_employee_impl(
+            auth_token,
+            employee_id,
+            hire_date,
+            employer_id,
+            primary_location_id,
+            department_id,
+        )
+        .await
     }
 
     async fn delete_employee(
@@ -195,7 +215,8 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         id_numbers: &[String],
     ) -> Result<Vec<String>, AppError> {
-        self.get_existing_employee_ids_by_numbers_impl(auth_token, id_numbers).await
+        self.get_existing_employee_ids_by_numbers_impl(auth_token, id_numbers)
+            .await
     }
 
     async fn get_employee_ids_by_numbers(
@@ -203,7 +224,8 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         id_numbers: &[String],
     ) -> Result<std::collections::HashMap<String, Uuid>, AppError> {
-        self.get_employee_ids_by_numbers_impl(auth_token, id_numbers).await
+        self.get_employee_ids_by_numbers_impl(auth_token, id_numbers)
+            .await
     }
 
     async fn bulk_create_employees_skip_duplicates(
@@ -211,7 +233,8 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employees: &[Employee],
     ) -> Result<(), AppError> {
-        self.bulk_create_employees_skip_duplicates_impl(auth_token, employees).await
+        self.bulk_create_employees_skip_duplicates_impl(auth_token, employees)
+            .await
     }
 
     async fn get_managed_departments(
@@ -227,7 +250,8 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         user_id: Uuid,
     ) -> Result<Option<Uuid>, AppError> {
-        self.get_employee_id_by_user_id_impl(auth_token, user_id).await
+        self.get_employee_id_by_user_id_impl(auth_token, user_id)
+            .await
     }
 
     async fn get_employee_timezone_fallback(
@@ -235,7 +259,8 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
     ) -> Result<chrono_tz::Tz, AppError> {
-        self.get_employee_timezone_fallback_impl(auth_token, employee_id).await
+        self.get_employee_timezone_fallback_impl(auth_token, employee_id)
+            .await
     }
 
     async fn get_employee_timezone_at_date(
@@ -244,7 +269,8 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         employee_id: Uuid,
         tentative_date: chrono::NaiveDate,
     ) -> Result<chrono_tz::Tz, AppError> {
-        self.get_employee_timezone_at_date_impl(auth_token, employee_id, tentative_date).await
+        self.get_employee_timezone_at_date_impl(auth_token, employee_id, tentative_date)
+            .await
     }
 
     async fn get_headquarters_location_id(

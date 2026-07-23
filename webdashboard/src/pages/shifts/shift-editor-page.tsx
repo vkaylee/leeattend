@@ -1,8 +1,8 @@
 /* eslint-disable max-lines-per-function */
 import { useQueries } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Save } from "lucide-react";
-import React from "react";
+import { ArrowLeft, History, Save } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ShiftTimelinePreview } from "@/components/shifts/shift-timeline-preview";
@@ -14,6 +14,7 @@ import { fetchLocations, fetchEmployers } from "@/lib/api";
 
 import { CorrectionConfigCard } from "./components/correction-config-card";
 import { IntervalEditorCard } from "./components/interval-editor-card";
+import { ShiftRevisionHistoryDialog } from "@/components/shifts/shift-revision-history-dialog";
 import { useShiftEditor } from "./hooks/use-shift-editor";
 
   // eslint-disable-next-line complexity
@@ -45,6 +46,8 @@ export default function ShiftEditorPage() {
     setIsCorrection,
     correctionEffectiveDate,
     setCorrectionEffectiveDate,
+    changeReason,
+    setChangeReason,
   } = useShiftEditor(shiftId);
 
   // Parallel fetch — locations and employers are independent
@@ -70,6 +73,8 @@ export default function ShiftEditorPage() {
       </div>
     );
   }
+
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   if (isEditMode && isLoadingShifts) {
     return (
@@ -123,6 +128,18 @@ export default function ShiftEditorPage() {
           </div>
         </div>
         <div className="flex items-center gap-4">
+          {isEditMode && shiftId ? (
+            <Button
+              data-testid="shift-history-btn"
+              onClick={() => { setHistoryOpen(true); }}
+              size="lg"
+              type="button"
+              variant="outline"
+            >
+              <History size={16} />
+              {t("shifts.revisions.title", "Version History")}
+            </Button>
+          ) : null}
           <Button
             data-testid="shift-cancel-btn"
             onClick={navBack}
@@ -265,8 +282,10 @@ export default function ShiftEditorPage() {
           {/* Card 3: Correction Config (Only in Edit Mode) */}
           {isEditMode ? (
             <CorrectionConfigCard
+              changeReason={changeReason}
               correctionEffectiveDate={correctionEffectiveDate}
               isCorrection={isCorrection}
+              onChangeReasonChange={setChangeReason}
               onCorrectionChange={setIsCorrection}
               onEffectiveDateChange={setCorrectionEffectiveDate}
             />
@@ -293,6 +312,17 @@ export default function ShiftEditorPage() {
         title={t("common.warning", "Cảnh báo")}
         variant="warning"
       />
+
+      {/* Version History Dialog */}
+      {shiftId ? (
+        <ShiftRevisionHistoryDialog
+          isOpen={historyOpen}
+          onClose={() => { setHistoryOpen(false); }}
+          shiftId={shiftId}
+          shiftName={shiftName}
+          wsId={wsId}
+        />
+      ) : null}
     </form>
   );
 }

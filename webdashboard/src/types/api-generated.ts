@@ -3298,6 +3298,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{workspace_id}/shifts/{shift_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_shift_versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{workspace_id}/time/history/{employee_id}": {
         parameters: {
             query?: never;
@@ -7363,7 +7379,10 @@ export interface components {
             /** Format: uuid */
             workspace_id: string;
         };
-        /** @description Diesel entity for `shift_default_intervals`. */
+        /**
+         * @description Diesel entity for `shift_default_intervals`.
+         *     FK changed from `shift_id` (→ shifts.id) to `version_id` (→ shift_versions.id).
+         */
         ShiftDefaultIntervalEntity: {
             allow_early_ot: boolean;
             /** Format: int32 */
@@ -7384,13 +7403,13 @@ export interface components {
             /** Format: int32 */
             max_early_ot_minutes?: number | null;
             ot_aggregation_mode: string;
-            /** Format: uuid */
-            shift_id: string;
             /** Format: int32 */
             sort_order: number;
             start_time: string;
             /** Format: date-time */
             updated_at?: string | null;
+            /** Format: uuid */
+            version_id: string;
         };
         ShiftRoster: {
             /** Format: date-time */
@@ -7466,6 +7485,34 @@ export interface components {
         };
         /** @enum {string} */
         ShiftSwapStatus: "pending_target" | "pending_admin" | "approved" | "rejected" | "cancelled";
+        /** @description Version history item returned by GET /shifts/:id/versions. */
+        ShiftVersionHistoryItem: {
+            change_reason?: string | null;
+            change_type: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            created_by: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            /** Format: uuid */
+            employer_id?: string | null;
+            /** Format: uuid */
+            id: string;
+            intervals: components["schemas"]["ShiftDefaultIntervalEntity"][];
+            /** Format: uuid */
+            location_id?: string | null;
+            name: string;
+            report_symbol?: string | null;
+            /** Format: uuid */
+            superseded_by?: string | null;
+            /** Format: uuid */
+            template_id: string;
+            /** Format: int32 */
+            version_number: number;
+        };
         SignDocumentPayload: {
             ip_address?: string | null;
             signature_image_base64: string;
@@ -7998,6 +8045,8 @@ export interface components {
             permissions: string[];
         };
         UpdateShiftRequest: {
+            /** @description Reason for this version change (audit trail). */
+            change_reason?: string | null;
             /**
              * Format: date
              * @description Effective date for the new version. If not provided, defaults to today.
@@ -15470,6 +15519,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Shift"];
+                };
+            };
+        };
+    };
+    get_shift_versions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Shift template ID */
+                shift_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Shift version history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftVersionHistoryItem"][];
                 };
             };
         };

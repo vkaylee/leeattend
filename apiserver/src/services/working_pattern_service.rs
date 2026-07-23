@@ -413,6 +413,7 @@ mod tests {
         async fn create_shift(
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
+            _actor_id: Uuid,
             req: &crate::models::CreateShiftRequest,
         ) -> Result<Shift, AppError> {
             Ok(Shift::new(
@@ -506,6 +507,13 @@ mod tests {
             _d: NaiveDate,
         ) -> Result<Option<Shift>, AppError> {
             Ok(None)
+        }
+        async fn get_shift_versions(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _template_id: Uuid,
+        ) -> Result<Vec<crate::models::ShiftVersionHistoryItem>, AppError> {
+            Ok(vec![])
         }
     }
 

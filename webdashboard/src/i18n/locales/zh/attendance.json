@@ -444,7 +444,9 @@
       "global_scope": "全局 / 共享",
       "select_location": "选择工作地点",
       "employer": "雇主子公司范围",
-      "select_employer": "选择雇主"
+      "select_employer": "选择雇主",
+      "change_reason_label": "调整原因",
+      "change_reason_placeholder": "请输入变更此班次的原因..."
     },
     "messages": {
       "assign_success": "员工班次分配成功。",
@@ -492,6 +494,22 @@
       "lowest_priority": "无班次 (休息日)",
       "hierarchy_explanation": "各层级从上到下评估。首个匹配的层级胜出 — 高层级覆盖低层级。",
       "tier_subsumed_note": "动态规则 (P3) 处理部门、标签、地点和雇主条件 — 无需单独的部门模式/部门默认层级。"
+    },
+    "revisions": {
+      "title": "版本历史",
+      "subtitle": "{{name}} 的修订历史",
+      "active_version": "当前版本",
+      "badge_create": "创建",
+      "badge_revision": "修订",
+      "badge_correction": "更正",
+      "effective_range": "{{from}} — {{to}}",
+      "effective_present": "至今",
+      "change_reason_label": "变更原因",
+      "show_diff": "显示变更",
+      "hide_diff": "隐藏变更",
+      "no_changes": "此时间段无变更",
+      "empty_state": "此班次没有版本历史记录。",
+      "loading": "正在加载版本历史..."
     },
     "label": "排班与日历"
   },

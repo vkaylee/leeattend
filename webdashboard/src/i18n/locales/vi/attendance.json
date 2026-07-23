@@ -451,7 +451,9 @@
       "global_scope": "Toàn cục / Dùng chung",
       "select_location": "Chọn địa điểm làm việc",
       "employer": "Pháp nhân / Công ty Scope",
-      "select_employer": "Chọn pháp nhân trực thuộc"
+      "select_employer": "Chọn pháp nhân trực thuộc",
+      "change_reason_label": "Lý do điều chỉnh",
+      "change_reason_placeholder": "Nhập lý do thay đổi ca làm việc..."
     },
     "messages": {
       "assign_success": "Đã gán ca làm việc cho nhân viên thành công.",
@@ -499,6 +501,22 @@
       "lowest_priority": "Không có ca (Ngày nghỉ)",
       "hierarchy_explanation": "Các tầng được đánh giá từ trên xuống. Tầng khớp đầu tiên thắng — tầng cao hơn ghi đè tầng thấp hơn.",
       "tier_subsumed_note": "Quy tắc động (P3) xử lý điều kiện phòng ban, nhãn, địa điểm, và nhà tuyển dụng — không cần tầng Chu kỳ phòng ban / Mặc định phòng ban riêng."
+    },
+    "revisions": {
+      "title": "Lịch sử phiên bản",
+      "subtitle": "Lịch sử chỉnh sửa của {{name}}",
+      "active_version": "Hiện hành",
+      "badge_create": "Tạo mới",
+      "badge_revision": "Điều chỉnh",
+      "badge_correction": "Hiệu chỉnh",
+      "effective_range": "{{from}} — {{to}}",
+      "effective_present": "Hiện tại",
+      "change_reason_label": "Lý do thay đổi",
+      "show_diff": "Xem thay đổi",
+      "hide_diff": "Ẩn thay đổi",
+      "no_changes": "Không có thay đổi trong khung giờ này",
+      "empty_state": "Không có lịch sử phiên bản cho ca làm việc này.",
+      "loading": "Đang tải lịch sử phiên bản..."
     },
     "label": "Ca làm & Lịch trực"
   },

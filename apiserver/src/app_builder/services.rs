@@ -64,7 +64,8 @@ pub async fn build_services(
     )
     .await?;
     let attendance =
-        build_attendance_services(diesel_pools, redis_pool, crypto_service, repos, notifier).await?;
+        build_attendance_services(diesel_pools, redis_pool, crypto_service, repos, notifier)
+            .await?;
     let leave = build_leave_services(diesel_pools, redis_pool, repos, &core, &attendance)?;
 
     let roster_provider: Arc<dyn crate::services::payroll_service::RosterDataProvider> = Arc::new(
@@ -93,39 +94,38 @@ pub async fn build_services(
     ));
 
     Ok(Services {
-            lifecycle: core.lifecycle,
-            employee: core.employee,
-            outbox: core.outbox,
-            time_tracking: attendance.time_tracking,
-            attendance_summary: attendance.attendance_summary,
-            report: attendance.report,
-            pairing: attendance.pairing,
-            adjustment: attendance.adjustment,
-            auth: core.auth,
-            email: core.email,
-            shift: core.shift,
-            tenant_provisioner: core.tenant_provisioner,
-            workspace: core.workspace,
-            leave: leave.leave,
-            shift_swap: leave.shift_swap,
-            holiday_leave: leave.holiday_leave,
-            leave_accrual: leave.leave_accrual,
-            overtime_request: leave.overtime_request,
-            workspace_config: leave.workspace_config,
-            approval_workflow: leave.approval_workflow,
-            location: core.location,
-            employer: core.employer,
-            custom_field: core.custom_field,
-            payroll,
-            recruitment: core.recruitment,
-            storage_resolver: core.storage_resolver,
-            file: core.file,
-            signature: core.signature,
-            scan: core.scan,
-            agent: core.agent,
-            attendance: attendance.attendance,
-            import: attendance.import,
-            condition_type: core.condition_type,
-        },
-    )
+        lifecycle: core.lifecycle,
+        employee: core.employee,
+        outbox: core.outbox,
+        time_tracking: attendance.time_tracking,
+        attendance_summary: attendance.attendance_summary,
+        report: attendance.report,
+        pairing: attendance.pairing,
+        adjustment: attendance.adjustment,
+        auth: core.auth,
+        email: core.email,
+        shift: core.shift,
+        tenant_provisioner: core.tenant_provisioner,
+        workspace: core.workspace,
+        leave: leave.leave,
+        shift_swap: leave.shift_swap,
+        holiday_leave: leave.holiday_leave,
+        leave_accrual: leave.leave_accrual,
+        overtime_request: leave.overtime_request,
+        workspace_config: leave.workspace_config,
+        approval_workflow: leave.approval_workflow,
+        location: core.location,
+        employer: core.employer,
+        custom_field: core.custom_field,
+        payroll,
+        recruitment: core.recruitment,
+        storage_resolver: core.storage_resolver,
+        file: core.file,
+        signature: core.signature,
+        scan: core.scan,
+        agent: core.agent,
+        attendance: attendance.attendance,
+        import: attendance.import,
+        condition_type: core.condition_type,
+    })
 }

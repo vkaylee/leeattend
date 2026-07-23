@@ -5,15 +5,19 @@ import { useTranslation } from "react-i18next";
 import { Typography } from "@/components/ui/typography";
 
 interface CorrectionConfigCardProps {
+  changeReason: string;
   correctionEffectiveDate: string;
   isCorrection: boolean;
+  onChangeReasonChange: (reason: string) => void;
   onCorrectionChange: (checked: boolean) => void;
   onEffectiveDateChange: (date: string) => void;
 }
 
 export function CorrectionConfigCard({
+  changeReason,
   isCorrection,
   correctionEffectiveDate,
+  onChangeReasonChange,
   onCorrectionChange,
   onEffectiveDateChange,
 }: CorrectionConfigCardProps) {
@@ -89,6 +93,24 @@ export function CorrectionConfigCard({
           </Typography>
         </div>
       ) : null}
+
+      {/* Change Reason — always visible in edit mode */}
+      <div className="space-y-2 pt-2">
+        <label
+          className="text-[10px] font-bold text-amber-750 dark:text-amber-400 uppercase tracking-widest block"
+          htmlFor="correction_change_reason_input"
+        >
+          {t("shifts.modal.change_reason_label", "Lý do điều chỉnh")}
+        </label>
+        <textarea
+          className="w-full bg-white dark:bg-slate-900 border border-amber-250 dark:border-amber-900 rounded-2xl px-5 py-3.5 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-amber-500 transition-all outline-none resize-none"
+          id="correction_change_reason_input"
+          onChange={(e) => { onChangeReasonChange(e.target.value); }}
+          placeholder={t("shifts.modal.change_reason_placeholder", "Nhập lý do thay đổi ca làm việc...")}
+          rows={3}
+          value={changeReason}
+        />
+      </div>
     </div>
   );
 }

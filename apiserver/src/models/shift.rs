@@ -179,6 +179,29 @@ pub struct UpdateShiftRequest {
     pub is_correction: bool,
     /// Effective date for the new version. If not provided, defaults to today.
     pub effective_date: Option<NaiveDate>,
+    /// Reason for this version change (audit trail).
+    #[serde(default)]
+    pub change_reason: Option<String>,
+}
+
+/// Version history item returned by GET /shifts/:id/versions.
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct ShiftVersionHistoryItem {
+    pub id: Uuid,
+    pub template_id: Uuid,
+    pub version_number: i32,
+    pub name: String,
+    pub report_symbol: Option<String>,
+    pub location_id: Option<Uuid>,
+    pub employer_id: Option<Uuid>,
+    pub effective_from: NaiveDate,
+    pub effective_to: Option<NaiveDate>,
+    pub change_type: String,
+    pub change_reason: Option<String>,
+    pub superseded_by: Option<Uuid>,
+    pub created_by: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub intervals: Vec<ShiftDefaultIntervalEntity>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]

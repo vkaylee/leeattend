@@ -288,7 +288,9 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
                 requester_shift_name: s
                     .requester_template_id
                     .and_then(|id| shift_map.get(&id).cloned()),
-                target_shift_name: s.target_template_id.and_then(|id| shift_map.get(&id).cloned()),
+                target_shift_name: s
+                    .target_template_id
+                    .and_then(|id| shift_map.get(&id).cloned()),
             })
             .map(Into::into)
             .collect())
@@ -417,7 +419,9 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
                 requester_shift_name: s
                     .requester_template_id
                     .and_then(|id| shift_map.get(&id).cloned()),
-                target_shift_name: s.target_template_id.and_then(|id| shift_map.get(&id).cloned()),
+                target_shift_name: s
+                    .target_template_id
+                    .and_then(|id| shift_map.get(&id).cloned()),
             })
             .map(Into::into)
             .collect())
