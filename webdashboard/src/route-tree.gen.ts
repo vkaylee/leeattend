@@ -211,7 +211,11 @@ const AuthenticatedWorkspaceNotificationsRoute =
     id: "/notifications",
     path: "/notifications",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/notifications.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceMembersRoute =
   AuthenticatedWorkspaceMembersRouteImport.update({
     id: "/members",

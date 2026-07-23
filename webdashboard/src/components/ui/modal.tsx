@@ -1,6 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { useEffect } from "react";
+import { memo, useCallback, useEffect } from "react";
 
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
@@ -28,7 +28,7 @@ const maxWidthMap = {
   "4xl": "max-w-4xl",
 };
 
-export default function Modal({
+const Modal = memo(function Modal({
   backdropClassName,
   children,
   className,
@@ -51,8 +51,12 @@ export default function Modal({
     };
   }, [isOpen]);
 
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (!open) onClose();
+  }, [onClose]);
+
   return (
-    <Dialog.Root onOpenChange={(open) => { if (!open) onClose(); }} open={isOpen}>
+    <Dialog.Root onOpenChange={handleOpenChange} open={isOpen}>
       <Dialog.Portal>
         <Dialog.Overlay
           className={cn(
@@ -121,4 +125,8 @@ export default function Modal({
       </Dialog.Portal>
     </Dialog.Root>
   );
-}
+});
+
+Modal.displayName = "Modal";
+
+export default Modal;

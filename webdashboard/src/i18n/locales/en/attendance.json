@@ -545,6 +545,19 @@
       "filter_all_locations": "All Locations",
       "filter_all_employers": "All Employers"
     },
+    "compliance": {
+      "warning_title": "Compliance Warning",
+      "override_reason_label": "Override Reason",
+      "override_reason_placeholder": "Enter the reason for overriding this compliance warning...",
+      "confirm_override": "Confirm Override",
+      "cancel": "Cancel",
+      "violation_overlap": "Shift overlap detected. The employee already has another shift at this time.",
+      "violation_rest_period": "Insufficient rest period ({{gap}}h gap, {{required}}h required).",
+      "violation_weekly_hours": "Weekly working hours exceeded ({{current}}h / {{limit}}h limit).",
+      "violation_monthly_ot": "Monthly overtime exceeded ({{current}}h OT / {{limit}}h limit).",
+      "badge_warning": "Compliance Warning",
+      "badge_violation": "Compliance Violation"
+    },
     "label": "Shifts & Roster"
   },
   "approvals": {

@@ -7,7 +7,7 @@ import {
   type Header,
 } from "@tanstack/react-table";
 import { ChevronUp, ChevronDown } from "lucide-react";
-import React from "react";
+import React, { memo } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -16,7 +16,7 @@ export interface SmartTableHeaderProps<T> {
   table: Table<T>;
 }
 
-export function SmartTableHeader<T>({ table, getPinStyles }: SmartTableHeaderProps<T>) {
+function SmartTableHeaderInner<T>({ table, getPinStyles }: SmartTableHeaderProps<T>) {
   return (
     <thead className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-100 dark:border-slate-800 shadow-sm">
       {table.getHeaderGroups().map((headerGroup: HeaderGroup<T>) => (
@@ -81,3 +81,5 @@ export function SmartTableHeader<T>({ table, getPinStyles }: SmartTableHeaderPro
     </thead>
   );
 }
+
+export const SmartTableHeader = memo(SmartTableHeaderInner) as typeof SmartTableHeaderInner;

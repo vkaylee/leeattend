@@ -1,6 +1,6 @@
 import * as Popover from '@radix-ui/react-popover';
 import { ChevronDown, Check, Globe } from 'lucide-react';
-import { useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 
 import { useLanguage, type SupportedLanguage } from '@/hooks/use-language';
 import { cn } from '@/lib/utils';
@@ -25,14 +25,14 @@ const flagMap: Record<SupportedLanguage, React.ComponentType<{ className?: strin
  * - Dropdown with all supported languages
  * - Syncs to server on change
  */
-export function LanguageSwitcher({ compact = false, className }: LanguageSwitcherProps) {
+export const LanguageSwitcher = memo(function LanguageSwitcher({ compact = false, className }: LanguageSwitcherProps) {
   const [open, setOpen] = useState(false);
   const { currentOption, languages, changeLanguage } = useLanguage();
 
-  const handleSelect = async (code: SupportedLanguage) => {
+  const handleSelect = useCallback(async (code: SupportedLanguage) => {
     await changeLanguage(code);
     setOpen(false);
-  };
+  }, [changeLanguage]);
 
   const CurrentFlag = flagMap[currentOption.code];
 
@@ -113,6 +113,8 @@ export function LanguageSwitcher({ compact = false, className }: LanguageSwitche
       </Popover.Portal>
     </Popover.Root>
   );
-}
+});
+
+LanguageSwitcher.displayName = "LanguageSwitcher";
 
 export default LanguageSwitcher;

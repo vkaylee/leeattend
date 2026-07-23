@@ -1,5 +1,5 @@
 import { AlertTriangle, Clock, Gauge } from "lucide-react";
-import React from "react";
+import React, { memo } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -45,7 +45,7 @@ const TYPE_LABELS: Record<ComplianceBadgeType, string> = {
   hours: "hours",
 };
 
-export function ComplianceAlertBadge({
+export const ComplianceAlertBadge = memo(function ComplianceAlertBadge({
   type,
   message,
   variant = "badge",
@@ -87,4 +87,6 @@ export function ComplianceAlertBadge({
       <span className="truncate max-w-[14rem]">{message}</span>
     </div>
   );
-}
+});
+
+ComplianceAlertBadge.displayName = "ComplianceAlertBadge";

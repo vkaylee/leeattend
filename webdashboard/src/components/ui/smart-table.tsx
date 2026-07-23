@@ -10,14 +10,8 @@ import {
   type Row,
   type RowData,
 } from "@tanstack/react-table";
-import React, { useState, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 import { useSmartTableClipboard } from "./smart-table-hooks/use-smart-table-clipboard";
@@ -25,6 +19,7 @@ import { useSmartTableDrag } from "./smart-table-hooks/use-smart-table-drag";
 import { useSmartTableKeyboard } from "./smart-table-hooks/use-smart-table-keyboard";
 import { SmartTableHeader } from "./smart-table/smart-table-header";
 import { SmartTableRow } from "./smart-table/smart-table-row";
+import SmartTableContextMenu from "./smart-table/smart-table-context-menu";
 
 export interface SmartTableColumnMeta {
   cellClassName?: string;
@@ -104,7 +99,7 @@ export default function SmartTable<T>({
     return selection;
   }, [selectedRowIds, data, getRowId]);
 
-  const handleRowSelectionChange = (
+  const handleRowSelectionChange = useCallback((
     updaterOrValue: RowSelectionState | ((old: RowSelectionState) => RowSelectionState)
   ) => {
     if (!onSelectionChange) return;
@@ -116,7 +111,7 @@ export default function SmartTable<T>({
       }
     });
     onSelectionChange(nextSelectedSet);
-  };
+  }, [onSelectionChange, rowSelection]);
 
   const columnPinning = useMemo((): ColumnPinningState => {
     const left: string[] = [];
@@ -224,7 +219,7 @@ export default function SmartTable<T>({
     row: T;
   } | null>(null);
 
-  const handleRowContextMenu = (row: T, e: React.MouseEvent) => {
+  const handleRowContextMenu = useCallback((row: T, e: React.MouseEvent) => {
     if (!contextMenuItems) return;
     e.preventDefault();
     setContextMenu({
@@ -232,10 +227,10 @@ export default function SmartTable<T>({
       y: e.clientY,
       row,
     });
-  };
+  }, [contextMenuItems]);
 
   // Dynamic pin placement inline styles helper
-  const getPinStyles = (column: Column<T>): React.CSSProperties => {
+  const getPinStyles = useCallback((column: Column<T>): React.CSSProperties => {
     const isPinned = column.getIsPinned();
     if (!isPinned) return {};
     const offset = column.getStart(isPinned);
@@ -245,7 +240,7 @@ export default function SmartTable<T>({
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- isPinned is string | false
       zIndex: isPinned ? 2 : 1,
     };
-  };
+  }, []);
 
   return (
     /* eslint-disable-next-line jsx-a11y/no-static-element-interactions */
@@ -310,46 +305,12 @@ export default function SmartTable<T>({
         </table>
       </div>
 
-      {/* Portal Context Menu invisible trigger */}
-      {!!contextMenu && (
-        <DropdownMenu
-          onOpenChange={(open: boolean) => {
-            if (!open) setContextMenu(null);
-          }}
-          open={!!contextMenu}
-        >
-          <DropdownMenuTrigger asChild>
-            <div
-              style={{
-                position: "fixed",
-                left: contextMenu.x,
-                top: contextMenu.y,
-                width: 1,
-                height: 1,
-              }}
-            />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl p-1.5">
-            {contextMenuItems?.(contextMenu.row).map((item: ContextMenuItem, idx: number) => (
-              <DropdownMenuItem
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 text-xs font-bold uppercase tracking-tight rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800",
-                  item.disabled && "opacity-50 pointer-events-none"
-                )}
-                disabled={item.disabled}
-                key={idx}
-                onClick={() => {
-                  item.onClick();
-                  setContextMenu(null);
-                }}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
+      {/* Context Menu */}
+      <SmartTableContextMenu
+        contextMenu={contextMenu}
+        contextMenuItems={contextMenuItems}
+        setContextMenu={setContextMenu}
+      />
     </div>
   );
 }

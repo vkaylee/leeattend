@@ -1,5 +1,5 @@
 import { AlertTriangle, Info, Trash2 } from 'lucide-react';
-import React from 'react';
+import React, { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Button from './button';
@@ -17,7 +17,7 @@ export interface ConfirmDialogProps {
   variant?: 'danger' | 'warning' | 'info';
 }
 
-export default function ConfirmDialog({
+const ConfirmDialog = memo(function ConfirmDialog({
   isOpen,
   onClose,
   onConfirm,
@@ -30,17 +30,17 @@ export default function ConfirmDialog({
 }: ConfirmDialogProps) {
   const { t } = useTranslation();
 
-  const handleConfirm = async () => {
+  const handleConfirm = useCallback(async () => {
     await onConfirm();
-  };
+  }, [onConfirm]);
 
-  const getIcon = () => {
+  const getIcon = useCallback(() => {
     switch (variant) {
       case 'danger': return <Trash2 size={24} />;
       case 'warning': return <AlertTriangle size={24} />;
       case 'info': return <Info size={24} />;
     }
-  };
+  }, [variant]);
 
   return (
     <Modal
@@ -54,7 +54,7 @@ export default function ConfirmDialog({
         <div className="text-slate-600 dark:text-slate-300 text-sm font-medium">
           {message}
         </div>
-        
+
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
           <Button
             disabled={isLoading}
@@ -74,4 +74,8 @@ export default function ConfirmDialog({
       </div>
     </Modal>
   );
-}
+});
+
+ConfirmDialog.displayName = "ConfirmDialog";
+
+export default ConfirmDialog;

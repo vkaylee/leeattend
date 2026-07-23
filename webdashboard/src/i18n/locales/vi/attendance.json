@@ -545,6 +545,19 @@
       "filter_all_locations": "Tất cả địa điểm",
       "filter_all_employers": "Tất cả công ty"
     },
+    "compliance": {
+      "warning_title": "Cảnh báo tuân thủ",
+      "override_reason_label": "Lý do ghi đè",
+      "override_reason_placeholder": "Nhập lý do ghi đè cảnh báo tuân thủ...",
+      "confirm_override": "Xác nhận ghi đè",
+      "cancel": "Hủy",
+      "violation_overlap": "Phát hiện trùng lặp ca làm việc. Nhân viên đã có ca khác vào thời gian này.",
+      "violation_rest_period": "Thời gian nghỉ giữa ca không đủ (cách {{gap}} giờ, yêu cầu {{required}} giờ).",
+      "violation_weekly_hours": "Tổng giờ làm trong tuần vượt quá giới hạn ({{current}}h / {{limit}}h).",
+      "violation_monthly_ot": "Giờ tăng ca trong tháng vượt quá giới hạn ({{current}}h OT / {{limit}}h).",
+      "badge_warning": "Cảnh báo tuân thủ",
+      "badge_violation": "Vi phạm tuân thủ"
+    },
     "label": "Ca làm & Lịch trực"
   },
   "approvals": {

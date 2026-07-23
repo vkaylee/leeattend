@@ -4,7 +4,7 @@ import {
   type Column,
   type Cell,
 } from "@tanstack/react-table";
-import React, { useEffect, useRef } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -18,7 +18,7 @@ interface CellEditControlProps {
   setEditValue: (val: unknown) => void;
 }
 
-function CellEditControl({
+const CellEditControl = memo(function CellEditControl({
   editType,
   editValue,
   setEditValue,
@@ -36,12 +36,20 @@ function CellEditControl({
     }
   }, [editType]);
 
+  const handleSelectChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setEditValue(e.target.value);
+  }, [setEditValue]);
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditValue(e.target.value);
+  }, [setEditValue]);
+
   if (editType === "select") {
     return (
       <select
         className="w-full h-full bg-white dark:bg-slate-800 text-sm border-none outline-none ring-2 ring-primary-500 rounded px-2 py-1.5 focus:ring-primary-500"
         onBlur={onBlur}
-        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setEditValue(e.target.value); }}
+        onChange={handleSelectChange}
         ref={selectRef}
         value={editValue as string}
       >
@@ -56,17 +64,17 @@ function CellEditControl({
     <input
       className="w-full h-full bg-white dark:bg-slate-800 text-sm border-none outline-none ring-2 ring-primary-500 rounded px-2 py-1.5 focus:ring-primary-500 font-medium"
       onBlur={onBlur}
-      onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setEditValue(e.target.value); }}
+      onChange={handleInputChange}
       ref={inputRef}
       type={editType === "number" ? "number" : "text"}
       value={(editValue as string | undefined) ?? ""}
     />
   );
-}
+});
 
 // ── CellErrorTooltip ────────────────────────────────────────────────────────
 
-function CellErrorTooltip({ cellError, rowId, columnId }: { cellError: string; rowId: string; columnId: string }) {
+const CellErrorTooltip = memo(function CellErrorTooltip({ cellError, rowId, columnId }: { cellError: string; rowId: string; columnId: string }) {
   return (
     <>
       <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 animate-pulse pointer-events-none" />
@@ -80,7 +88,7 @@ function CellErrorTooltip({ cellError, rowId, columnId }: { cellError: string; r
       </div>
     </>
   );
-}
+});
 
 // ── SmartTableCell ──────────────────────────────────────────────────────────
 
@@ -105,7 +113,7 @@ interface SmartTableCellProps<T> {
 }
 
 // eslint-disable-next-line complexity -- table cell rendering inherently handles pinned/editing/error/focus/drag states
-function SmartTableCell<T>({
+function SmartTableCellInner<T>({
   cell,
   cellError,
   cellRefs,
@@ -133,6 +141,31 @@ function SmartTableCell<T>({
   const meta = cell.column.columnDef.meta;
   const hasError = !!cellError;
 
+  // Stable callbacks to avoid re-renders in memoized children
+  const handleClick = useCallback(() => {
+    setFocusedCell({ rowIndex, colIndex });
+  }, [setFocusedCell, rowIndex, colIndex]);
+
+  const handleDoubleClick = useCallback(() => {
+    if (meta?.editable) {
+      startCellEdit(rowIndex, colIndex, row.getValue(cell.column.id));
+    }
+  }, [meta?.editable, startCellEdit, rowIndex, colIndex, row, cell.column.id]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    handleCellKeyDown({ column: cell.column, e, colIndex, row, rowIndex });
+  }, [handleCellKeyDown, cell.column, colIndex, row, rowIndex]);
+
+  const cellRefCallback = useCallback((el: HTMLTableCellElement | null) => {
+    const key = `${rowIndex}-${colIndex}`;
+    // eslint-disable-next-line react-hooks/immutability, @typescript-eslint/no-unnecessary-condition -- ref-based keyboard nav requires mutable storage; .current is always initialized
+    if (cellRefs.current) cellRefs.current[key] = el;
+  }, [cellRefs, rowIndex, colIndex]);
+
+  const handleEditBlur = useCallback(() => {
+    saveCellEdit(rowIndex, colIndex, cell.column, row);
+  }, [saveCellEdit, rowIndex, colIndex, cell.column, row]);
+
   // Override cell value with local overridden value on validation error
   if (hasError) {
     const errorKey = `${row.id}-${cell.column.id}`;
@@ -149,7 +182,7 @@ function SmartTableCell<T>({
     }
   }
 
-  const cellClass = cn(
+  const cellClass = useMemo(() => cn(
     "group relative px-6 py-4 text-sm font-medium text-slate-700 dark:text-slate-200 border-r border-slate-100 dark:border-slate-800 last:border-r-0 truncate outline-none",
     isPinned && "bg-white dark:bg-slate-900 group-hover/row:bg-slate-50/50 dark:group-hover/row:bg-slate-800/30",
     isCellFocused && (hasError ? "ring-2 ring-rose-500 ring-inset z-10" : "ring-2 ring-primary-500 ring-inset z-10"),
@@ -158,26 +191,16 @@ function SmartTableCell<T>({
     isFirstPinnedRight && "border-l border-l-slate-200 dark:border-l-slate-700 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]",
     hasError && "border border-rose-500 bg-rose-50/20 dark:bg-rose-950/25 focus-visible:ring-rose-500",
     meta?.cellClassName,
-  );
+  ), [isPinned, isCellFocused, isCellEditing, isLastPinnedLeft, isFirstPinnedRight, hasError, meta?.cellClassName]);
 
   return (
     <td
       className={cellClass}
       key={cell.id}
-      onClick={() => { setFocusedCell({ rowIndex, colIndex }); }}
-      onDoubleClick={() => {
-        if (meta?.editable) {
-          startCellEdit(rowIndex, colIndex, row.getValue(cell.column.id));
-        }
-      }}
-      onKeyDown={(e: React.KeyboardEvent) => {
-        handleCellKeyDown({ column: cell.column, e, colIndex, row, rowIndex });
-      }}
-      ref={(el: HTMLTableCellElement | null) => {
-        const key = `${rowIndex}-${colIndex}`;
-        // eslint-disable-next-line react-hooks/immutability, @typescript-eslint/no-unnecessary-condition -- ref-based keyboard nav requires mutable storage; .current is always initialized
-        if (cellRefs.current) cellRefs.current[key] = el;
-      }}
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
+      onKeyDown={handleKeyDown}
+      ref={cellRefCallback}
       style={{ width: cell.column.getSize(), ...getPinStyles(cell.column) }}
       tabIndex={isCellFocused ? 0 : -1}
     >
@@ -187,7 +210,7 @@ function SmartTableCell<T>({
             editOptions={meta?.editOptions}
             editType={meta?.editType}
             editValue={editValue}
-            onBlur={() => { saveCellEdit(rowIndex, colIndex, cell.column, row); }}
+            onBlur={handleEditBlur}
             setEditValue={setEditValue}
           />
         )
@@ -197,6 +220,9 @@ function SmartTableCell<T>({
     </td>
   );
 }
+
+// Cast needed because React.memo drops the generic type parameter
+const SmartTableCell = memo(SmartTableCellInner) as typeof SmartTableCellInner;
 
 // ── SmartTableRow ────────────────────────────────────────────────────────────
 
@@ -226,8 +252,7 @@ export interface SmartTableRowProps<T> {
   startCellEdit: (rowIndex: number, colIndex: number, value: unknown) => void;
 }
 
- 
-export function SmartTableRow<T>(props: SmartTableRowProps<T>) {
+function SmartTableRowInner<T>(props: SmartTableRowProps<T>) {
   const {
     row, rowIndex, selectedRowIds, isDragging, dragStartRow, dragCurrentRow,
     onRowClick, handleRowContextMenu, handleRowMouseDown, handleRowMouseEnter,
@@ -237,12 +262,33 @@ export function SmartTableRow<T>(props: SmartTableRowProps<T>) {
   } = props;
 
   const isSelected = selectedRowIds?.has(row.id) ?? false;
-  const isDraggingRange =
-    isDragging &&
-    dragStartRow !== null &&
-    dragCurrentRow !== null &&
-    rowIndex >= Math.min(dragStartRow, dragCurrentRow) &&
-    rowIndex <= Math.max(dragStartRow, dragCurrentRow);
+  const isDraggingRange = useMemo(
+    () =>
+      isDragging &&
+      dragStartRow !== null &&
+      dragCurrentRow !== null &&
+      rowIndex >= Math.min(dragStartRow, dragCurrentRow) &&
+      rowIndex <= Math.max(dragStartRow, dragCurrentRow),
+    [isDragging, dragStartRow, dragCurrentRow, rowIndex],
+  );
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("button") || target.closest("select") || target.closest("input") || target.closest("[role='button']")) return;
+    onRowClick?.(row.original, e);
+  }, [onRowClick, row.original]);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    handleRowContextMenu(row.original, e);
+  }, [handleRowContextMenu, row.original]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    handleRowMouseDown(rowIndex, e);
+  }, [handleRowMouseDown, rowIndex]);
+
+  const handleMouseEnter = useCallback(() => {
+    handleRowMouseEnter(rowIndex);
+  }, [handleRowMouseEnter, rowIndex]);
 
   return (
     <tr
@@ -251,14 +297,10 @@ export function SmartTableRow<T>(props: SmartTableRowProps<T>) {
         isSelected && "bg-primary-50/20 dark:bg-primary-950/10",
         isDraggingRange && "bg-primary-50/30 dark:bg-primary-950/20 outline outline-2 outline-primary-300 dark:outline-primary-800 outline-offset-[-2px] z-10 relative",
       )}
-      onClick={(e: React.MouseEvent) => {
-        const target = e.target as HTMLElement;
-        if (target.closest("button") || target.closest("select") || target.closest("input") || target.closest("[role='button']")) return;
-        onRowClick?.(row.original, e);
-      }}
-      onContextMenu={(e: React.MouseEvent) => { handleRowContextMenu(row.original, e); }}
-      onMouseDown={(e: React.MouseEvent) => { handleRowMouseDown(rowIndex, e); }}
-      onMouseEnter={() => { handleRowMouseEnter(rowIndex); }}
+      onClick={handleClick}
+      onContextMenu={handleContextMenu}
+      onMouseDown={handleMouseDown}
+      onMouseEnter={handleMouseEnter}
     >
       {row.getVisibleCells().map((cell: Cell<T, unknown>, colIndex: number) => {
         const errorKey = `${row.id}-${cell.column.id}`;
@@ -287,3 +329,5 @@ export function SmartTableRow<T>(props: SmartTableRowProps<T>) {
     </tr>
   );
 }
+
+export const SmartTableRow = memo(SmartTableRowInner) as typeof SmartTableRowInner;

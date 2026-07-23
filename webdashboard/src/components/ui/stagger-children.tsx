@@ -1,4 +1,4 @@
-import React, { Children, useMemo } from "react";
+import React, { Children, memo, useMemo } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -26,7 +26,7 @@ interface StaggerChildrenProps {
  *   <StatCard ... />  // delay: 160ms
  * </StaggerChildren>
  */
-export default function StaggerChildren({
+const StaggerChildren = memo(function StaggerChildren({
   delay = 60,
   duration = 500,
   className,
@@ -50,4 +50,8 @@ export default function StaggerChildren({
       ))}
     </div>
   );
-}
+});
+
+StaggerChildren.displayName = "StaggerChildren";
+
+export default StaggerChildren;

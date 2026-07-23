@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useCallback } from "react";
 
 import {
   DropdownMenu,
@@ -16,14 +16,16 @@ interface Props<T> {
   setContextMenu: (v: null) => void;
 }
 
-export default function SmartTableContextMenu<T>({ contextMenu, contextMenuItems, setContextMenu }: Props<T>) {
+function SmartTableContextMenuInner<T>({ contextMenu, contextMenuItems, setContextMenu }: Props<T>) {
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (!open) setContextMenu(null);
+  }, [setContextMenu]);
+
   if (!contextMenu) return null;
 
   return (
     <DropdownMenu
-      onOpenChange={(open: boolean) => {
-        if (!open) setContextMenu(null);
-      }}
+      onOpenChange={handleOpenChange}
       open
     >
       <DropdownMenuTrigger asChild>
@@ -59,3 +61,7 @@ export default function SmartTableContextMenu<T>({ contextMenu, contextMenuItems
     </DropdownMenu>
   );
 }
+
+const SmartTableContextMenu = memo(SmartTableContextMenuInner) as typeof SmartTableContextMenuInner;
+
+export default SmartTableContextMenu;

@@ -4,6 +4,7 @@
  * does not yet support. */
 import { Link } from "@tanstack/react-router";
 import { Bell, LogOut, Moon, Pin, PinOff, Sun, UserCircle } from "lucide-react";
+import React, { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
@@ -35,7 +36,7 @@ const ACTIVE_CLASSES = "text-primary-600 dark:text-primary-400 bg-primary-50 dar
 const IDLE_CLASSES = "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900";
 
 // eslint-disable-next-line complexity
-export default function IconRail({
+const IconRail = memo(function IconRail({
   activeGroup,
   isPinned,
   onClickGroup,
@@ -53,18 +54,25 @@ export default function IconRail({
   const { currentLanguage, changeLanguage, currentOption } = useLanguage();
   const { unreadCount } = useNotifications();
 
-  const cycleTheme = () => {
+  const cycleTheme = useCallback(() => {
     const modes: ("light" | "system" | "dark")[] = ["light", "system", "dark"];
     setMode(modes[(modes.indexOf(mode) + 1) % 3]);
-  };
+  }, [mode, setMode]);
+
   const ThemeIcon = mode === "dark" ? Moon : Sun;
   const langLabel = currentLanguage.toUpperCase();
   const langTooltip = currentOption.nativeName;
 
-  const cycleLanguage = () => {
+  const cycleLanguage = useCallback(() => {
     const codes: ("en" | "vi" | "zh")[] = ['vi', 'en', 'zh'];
     void changeLanguage(codes[(codes.indexOf(currentLanguage) + 1) % codes.length]);
-  };
+  }, [currentLanguage, changeLanguage]);
+
+  const handleDashboardClick = useCallback(() => { onClickGroup("dashboard"); }, [onClickGroup]);
+  const handleDashboardHover = useCallback((h: boolean) => { onHoverGroup(h ? "dashboard" : null); }, [onHoverGroup]);
+  const handleSettingsClick = useCallback(() => { onClickGroup("settings"); }, [onClickGroup]);
+  const handleSettingsHover = useCallback((h: boolean) => { onHoverGroup(h ? "settings" : null); }, [onHoverGroup]);
+  const handleLogout = useCallback(() => { localStorage.clear(); window.location.href = ROUTES.LOGIN; }, []);
 
   return (
     <nav
@@ -103,10 +111,10 @@ export default function IconRail({
 
       <div className="flex-1 overflow-y-auto custom-scrollbar py-3 space-y-1 px-1.5" role="list">
         <MenuLink group="dashboard" icon={dashboard.icon} isActive={activeGroup === "dashboard"} label={dashboard.label}
-          onClick={() => { onClickGroup("dashboard"); }} onHover={(h) => { onHoverGroup(h ? "dashboard" : null); }}
+          onClick={handleDashboardClick} onHover={handleDashboardHover}
           testId="nav-rail-group-dashboard" to={ROUTES.HOME} />
         <MenuLink group="settings" icon={settings.icon} isActive={activeGroup === "settings"} label={settings.label}
-          onClick={() => { onClickGroup("settings"); }} onHover={(h) => { onHoverGroup(h ? "settings" : null); }}
+          onClick={handleSettingsClick} onHover={handleSettingsHover}
           testId="nav-rail-group-settings" to={settings.to} />
         {groups.map((g) => (
           <MenuLink group={g.section as NavGroup} icon={g.sectionIcon} isActive={activeGroup === g.section} key={g.section} label={g.label}
@@ -135,11 +143,15 @@ export default function IconRail({
             {user?.full_name ? user.full_name.charAt(0).toUpperCase() : <UserCircle className="h-4 w-4" />}
           </div>
         </IconTooltipLink>
-        <IconLogoutButton onLogout={() => { localStorage.clear(); window.location.href = ROUTES.LOGIN; }} />
+        <IconLogoutButton onLogout={handleLogout} />
       </div>
     </nav>
   );
-}
+});
+
+IconRail.displayName = "IconRail";
+
+export default IconRail;
 
 // ── Menu link (router Link or plain button depending on group) ──────────
 
@@ -154,22 +166,21 @@ interface MenuLinkProps {
   to?: string;
 }
 
-function MenuLink({ group, icon: Icon, isActive, label, onClick, onHover, testId, to }: MenuLinkProps) {
+const MenuLink = memo(function MenuLink({ group, icon: Icon, isActive, label, onClick, onHover, testId, to }: MenuLinkProps) {
   const { el, hovered, setHovered, refCb } = useTooltipTarget<HTMLAnchorElement | HTMLButtonElement>();
   const cls = cn(SHARED_ICON_CLASSES, isActive ? ACTIVE_CLASSES : IDLE_CLASSES);
   const indicator = isActive ? <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 rounded-r-full bg-primary-500 dark:bg-primary-400" /> : null;
   const inner = <>{indicator}{Icon ? <Icon className="h-4 w-4" /> : null}</>;
 
-  const handlers = {
-    onBlur: () => { setHovered(false); },
-    onFocus: () => { setHovered(true); },
-    onMouseEnter: () => { setHovered(true); onHover(true); },
-    onMouseLeave: () => { setHovered(false); onHover(false); },
-  } as const;
+  const handleBlur = useCallback(() => { setHovered(false); }, [setHovered]);
+  const handleFocus = useCallback(() => { setHovered(true); }, [setHovered]);
+  const handleMouseEnter = useCallback(() => { setHovered(true); onHover(true); }, [setHovered, onHover]);
+  const handleMouseLeave = useCallback(() => { setHovered(false); onHover(false); }, [setHovered, onHover]);
 
   if (to && (group === "dashboard" || group === "settings")) {
     return (
-      <Link {...handlers} aria-label={label} className={cls} data-testid={testId} ref={refCb} to={to as "/"}>
+      <Link aria-label={label} className={cls} data-testid={testId} onBlur={handleBlur} onFocus={handleFocus}
+        onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} ref={refCb} to={to as "/"}>
         {inner}
         <TooltipPortal el={el} hovered={hovered} label={label} />
       </Link>
@@ -177,16 +188,17 @@ function MenuLink({ group, icon: Icon, isActive, label, onClick, onHover, testId
   }
 
   return (
-    <button {...handlers} aria-label={label} className={cls} data-testid={testId} onClick={onClick} ref={refCb} type="button">
+    <button aria-label={label} className={cls} data-testid={testId} onClick={onClick} ref={refCb} type="button"
+      onBlur={handleBlur} onFocus={handleFocus} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
       {inner}
       <TooltipPortal el={el} hovered={hovered} label={label} />
     </button>
   );
-}
+});
 
 // ── Icon tooltip button pattern ─────────────────────────────────────────
 
-function IconTooltipButton({
+const IconTooltipButton = memo(function IconTooltipButton({
   icon: Icon, active, onClick, label, "data-testid": testId,
 }: {
   active?: boolean;
@@ -196,17 +208,21 @@ function IconTooltipButton({
   onClick: () => void;
 }) {
   const { el, hovered, setHovered, refCb } = useTooltipTarget<HTMLButtonElement>();
+  const handleBlur = useCallback(() => { setHovered(false); }, [setHovered]);
+  const handleFocus = useCallback(() => { setHovered(true); }, [setHovered]);
+  const handleMouseEnter = useCallback(() => { setHovered(true); }, [setHovered]);
+  const handleMouseLeave = useCallback(() => { setHovered(false); }, [setHovered]);
   return (
     <>
       <button
         aria-label={label}
         className={cn(SHARED_ICON_CLASSES, active ? ACTIVE_CLASSES : IDLE_CLASSES)}
         data-testid={testId}
-        onBlur={() => { setHovered(false); }}
+        onBlur={handleBlur}
         onClick={onClick}
-        onFocus={() => { setHovered(true); }}
-        onMouseEnter={() => { setHovered(true); }}
-        onMouseLeave={() => { setHovered(false); }}
+        onFocus={handleFocus}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         ref={refCb}
         type="button"
       >
@@ -215,9 +231,9 @@ function IconTooltipButton({
       <TooltipPortal el={el} hovered={hovered} label={label} />
     </>
   );
-}
+});
 
-function IconTooltipLink({
+const IconTooltipLink = memo(function IconTooltipLink({
   to, "aria-label": ariaLabel, children, "data-testid": testId,
 }: {
   "aria-label": string;
@@ -226,15 +242,19 @@ function IconTooltipLink({
   to: string;
 }) {
   const { el, hovered, setHovered, refCb } = useTooltipTarget<HTMLAnchorElement>();
+  const handleBlur = useCallback(() => { setHovered(false); }, [setHovered]);
+  const handleFocus = useCallback(() => { setHovered(true); }, [setHovered]);
+  const handleMouseEnter = useCallback(() => { setHovered(true); }, [setHovered]);
+  const handleMouseLeave = useCallback(() => { setHovered(false); }, [setHovered]);
   return (
     <Link
       aria-label={ariaLabel}
       className={cn(SHARED_ICON_CLASSES, IDLE_CLASSES)}
       data-testid={testId}
-      onBlur={() => { setHovered(false); }}
-      onFocus={() => { setHovered(true); }}
-      onMouseEnter={() => { setHovered(true); }}
-      onMouseLeave={() => { setHovered(false); }}
+      onBlur={handleBlur}
+      onFocus={handleFocus}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       ref={refCb}
       to={to}
     >
@@ -242,22 +262,26 @@ function IconTooltipLink({
       <TooltipPortal el={el} hovered={hovered} label={ariaLabel} />
     </Link>
   );
-}
+});
 
-function IconLanguageButton({ langLabel, onClick, tooltip }: { langLabel: string; onClick: () => void; tooltip: string }) {
+const IconLanguageButton = memo(function IconLanguageButton({ langLabel, onClick, tooltip }: { langLabel: string; onClick: () => void; tooltip: string }) {
   const { t } = useTranslation();
   const { el, hovered, setHovered, refCb } = useTooltipTarget<HTMLButtonElement>();
+  const handleBlur = useCallback(() => { setHovered(false); }, [setHovered]);
+  const handleFocus = useCallback(() => { setHovered(true); }, [setHovered]);
+  const handleMouseEnter = useCallback(() => { setHovered(true); }, [setHovered]);
+  const handleMouseLeave = useCallback(() => { setHovered(false); }, [setHovered]);
   return (
     <>
       <button
         aria-label={t("appLauncher.language", "Language") + ": " + tooltip}
         className={cn(SHARED_ICON_CLASSES, IDLE_CLASSES)}
         data-testid="nav-rail-lang-toggle"
-        onBlur={() => { setHovered(false); }}
+        onBlur={handleBlur}
         onClick={onClick}
-        onFocus={() => { setHovered(true); }}
-        onMouseEnter={() => { setHovered(true); }}
-        onMouseLeave={() => { setHovered(false); }}
+        onFocus={handleFocus}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         ref={refCb}
         type="button"
       >
@@ -266,22 +290,26 @@ function IconLanguageButton({ langLabel, onClick, tooltip }: { langLabel: string
       <TooltipPortal el={el} hovered={hovered} label={tooltip} />
     </>
   );
-}
+});
 
-function IconLogoutButton({ onLogout }: { onLogout: () => void }) {
+const IconLogoutButton = memo(function IconLogoutButton({ onLogout }: { onLogout: () => void }) {
   const { t } = useTranslation();
   const { el, hovered, setHovered, refCb } = useTooltipTarget<HTMLButtonElement>();
+  const handleBlur = useCallback(() => { setHovered(false); }, [setHovered]);
+  const handleFocus = useCallback(() => { setHovered(true); }, [setHovered]);
+  const handleMouseEnter = useCallback(() => { setHovered(true); }, [setHovered]);
+  const handleMouseLeave = useCallback(() => { setHovered(false); }, [setHovered]);
   return (
     <>
       <button
         aria-label={t("common.logout")}
         className="flex items-center justify-center w-full h-11 rounded-xl transition-all duration-200 group relative border-0 text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30"
         data-testid="nav-rail-logout"
-        onBlur={() => { setHovered(false); }}
+        onBlur={handleBlur}
         onClick={onLogout}
-        onFocus={() => { setHovered(true); }}
-        onMouseEnter={() => { setHovered(true); }}
-        onMouseLeave={() => { setHovered(false); }}
+        onFocus={handleFocus}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         ref={refCb}
         type="button"
       >
@@ -290,4 +318,4 @@ function IconLogoutButton({ onLogout }: { onLogout: () => void }) {
       <TooltipPortal el={el} hovered={hovered} label={t("common.logout")} />
     </>
   );
-}
+});
