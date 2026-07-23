@@ -69,6 +69,11 @@ pub const ALLOWLIST: &[(&str, &str, &str)] = &[
         "employee_salary_components",
         "joined with scd.workspace_id filter",
     ),
+    (
+        "salary_components.rs",
+        "employee_salary_components",
+        "joined with scd.workspace_id filter",
+    ),
     // Import service: uses job_id which is workspace-scoped
     (
         "attendance_import_service.rs",
