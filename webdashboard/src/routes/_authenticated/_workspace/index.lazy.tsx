@@ -1,6 +1,7 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 import { Suspense, lazy } from "react";
 
+import { ErrorBoundary } from "@/components/common/error-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
 import DashboardPage from "@/pages/dashboard-page";
 
@@ -43,14 +44,16 @@ function IndexPage() {
     }
   })();
 
-  if (useLegacyDashboard) {
-    return <DashboardPage />;
-  }
-
   return (
-    <Suspense fallback={<AppLauncherFallback />}>
-      <AppLauncherPage />
-    </Suspense>
+    <ErrorBoundary variant="full">
+      {useLegacyDashboard ? (
+        <DashboardPage />
+      ) : (
+        <Suspense fallback={<AppLauncherFallback />}>
+          <AppLauncherPage />
+        </Suspense>
+      )}
+    </ErrorBoundary>
   );
 }
 

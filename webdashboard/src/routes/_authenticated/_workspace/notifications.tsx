@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { formatDistanceToNow, type Locale } from "date-fns";
 import { enUS, vi } from "date-fns/locale";
 
+import { ErrorBoundary } from "@/components/common/error-boundary";
 import Button from "@/components/ui/button";
 import PageHeader from "@/components/ui/page-header";
 import { Typography } from "@/components/ui/typography";
@@ -184,13 +185,13 @@ NotificationsList.displayName = "NotificationsList";
 
 export function NotificationsPage() {
   const { t, i18n } = useTranslation();
-  const { 
-    notifications, 
-    isLoading, 
-    hasNextPage, 
-    fetchNextPage, 
-    isFetchingNextPage, 
-    markAsRead, 
+  const {
+    notifications,
+    isLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    markAsRead,
     markAllAsRead,
     isMarkingAllAsRead
   } = useNotifications(30);
@@ -198,8 +199,9 @@ export function NotificationsPage() {
   const currentLocale = i18n.language === "vi" ? vi : enUS;
 
   return (
-    <div className="animate-in fade-in duration-700 space-y-6 pb-20">
-      <PageHeader
+    <ErrorBoundary variant="full">
+      <div className="animate-in fade-in duration-700 space-y-6 pb-20">
+        <PageHeader
         actions={
           notifications.length > 0 ? (
             <Button 
@@ -232,5 +234,6 @@ export function NotificationsPage() {
         />
       </div>
     </div>
+    </ErrorBoundary>
   );
 }
