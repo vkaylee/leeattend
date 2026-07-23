@@ -581,8 +581,10 @@ impl ShiftBuilder {
         let employment_id: Uuid = crate::test_query_scalar_uuid!(
             &pool.api,
             "SELECT id FROM employments WHERE employee_id = $1 AND workspace_id = $2 LIMIT 1",
-            diesel::sql_types::Uuid, employee_id,
-            diesel::sql_types::Uuid, ws_id
+            diesel::sql_types::Uuid,
+            employee_id,
+            diesel::sql_types::Uuid,
+            ws_id
         );
         crate::test_execute!(
             &pool.api,
