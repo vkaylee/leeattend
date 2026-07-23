@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 import { useDateTimeFormatter } from "../../hooks/use-datetime";
 import { Shift } from "../../lib/api";
+import { isNightShift, shiftMatchesQuery } from "./shift-utils";
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -22,21 +23,6 @@ interface ShiftListProps {
   onEdit: (shift: Shift) => void;
   onViewHistory?: (shift: Shift) => void;
   shifts: Shift[] | undefined;
-}
-
-// ── Helpers ────────────────────────────────────────────────────────
-
-function isNightShift(shift: Shift): boolean {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (shift as any).intervals?.some?.((iv: { is_night_shift?: boolean }) => iv.is_night_shift === true) ?? false;
-}
-
-function shiftMatchesQuery(shift: Shift, query: string): boolean {
-  const q = query.toLowerCase().trim();
-  if (!q) return true;
-  if (shift.name.toLowerCase().includes(q)) return true;
-  if (shift.report_symbol?.toLowerCase().includes(q)) return true;
-  return false;
 }
 
 // ── Filter chip definitions ────────────────────────────────────────

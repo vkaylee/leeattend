@@ -528,7 +528,11 @@
       "no_results_title": "Không tìm thấy ca phù hợp",
       "no_results_desc": "Thử điều chỉnh từ khóa tìm kiếm hoặc bộ lọc.",
       "clear_search": "Xóa tìm kiếm",
-      "frequent_section_title": "Thường dùng"
+      "frequent_section_title": "Thường dùng",
+      "filter_location": "Lọc theo địa điểm",
+      "filter_employer": "Lọc theo công ty",
+      "filter_all_locations": "Tất cả địa điểm",
+      "filter_all_employers": "Tất cả công ty"
     },
     "label": "Ca làm & Lịch trực"
   },

@@ -528,7 +528,11 @@
       "no_results_title": "No shifts found",
       "no_results_desc": "Try adjusting your search terms or filters.",
       "clear_search": "Clear search",
-      "frequent_section_title": "Frequently Used"
+      "frequent_section_title": "Frequently Used",
+      "filter_location": "Filter by location",
+      "filter_employer": "Filter by employer",
+      "filter_all_locations": "All Locations",
+      "filter_all_employers": "All Employers"
     },
     "label": "Shifts & Roster"
   },

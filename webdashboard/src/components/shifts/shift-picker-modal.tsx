@@ -11,6 +11,7 @@ import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Shift } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { isNightShift, isSplitShift, shiftMatchesQuery } from "./shift-utils";
 
 // ── Constants ────────────────────────────────────────────────────────
 
@@ -61,36 +62,6 @@ function getTopFrequentIds(map: FrequentMap): string[] {
     .sort(([, a], [, b]) => b - a)
     .slice(0, FREQUENT_TOP_COUNT)
     .map(([id]) => id);
-}
-
-/** Check whether any interval of a shift is a night shift. */
-function isNightShift(shift: Shift): boolean {
-  const typed = shift as ShiftWithIntervals;
-  return typed.intervals?.some((iv) => iv.is_night_shift === true) ?? false;
-}
-
-/** Check whether a shift is a split/multi-block shift (> 1 interval). */
-function isSplitShift(shift: Shift): boolean {
-  const typed = shift as ShiftWithIntervals;
-  return (typed.intervals?.length ?? 0) > 1;
-}
-
-/** Returns true when the query matches the shift name, report symbol, or any interval time. */
-function shiftMatchesQuery(shift: Shift, query: string): boolean {
-  const q = query.toLowerCase().trim();
-  if (!q) return true;
-
-  if (shift.name.toLowerCase().includes(q)) return true;
-  if (shift.report_symbol?.toLowerCase().includes(q)) return true;
-
-  const typed = shift as ShiftWithIntervals;
-  const intervals = typed.intervals ?? [];
-  for (const iv of intervals) {
-    if (iv.start_time?.includes(q)) return true;
-    if (iv.end_time?.includes(q)) return true;
-  }
-
-  return false;
 }
 
 // ── Color badge helpers ──────────────────────────────────────────────
@@ -191,6 +162,8 @@ export function ShiftPickerModal({
   const [searchQuery, setSearchQuery] = useState("");
   const [activeChip, setActiveChip] = useState<FilterChip>("all");
   const [frequentMap, setFrequentMap] = useState<FrequentMap>({});
+  const [selectedLocationId, setSelectedLocationId] = useState<string>("");
+  const [selectedEmployerId, setSelectedEmployerId] = useState<string>("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Reset state on open, and auto-focus search input
@@ -198,6 +171,8 @@ export function ShiftPickerModal({
     if (isOpen) {
       setSearchQuery("");
       setActiveChip("all");
+      setSelectedLocationId("");
+      setSelectedEmployerId("");
       setFrequentMap(readFrequentShifts());
       // Small delay for modal animation to finish before focusing
       const timer = setTimeout(() => {
@@ -209,6 +184,14 @@ export function ShiftPickerModal({
 
   // ── Frequent shift IDs ───────────────────────────────────────────
   const frequentIds = useMemo(() => getTopFrequentIds(frequentMap), [frequentMap]);
+
+  // ── Unique location/employer IDs across all shifts ──────────────
+  const { locationIds, employerIds } = useMemo(() => {
+    const all = shifts ?? [];
+    const locIds = [...new Set(all.map((s) => s.location_id).filter(Boolean))] as string[];
+    const empIds = [...new Set(all.map((s) => s.employer_id).filter(Boolean))] as string[];
+    return { locationIds: locIds, employerIds: empIds };
+  }, [shifts]);
 
   // ── Derived: filtered + grouped shifts ───────────────────────────
   const { filtered, hasFrequent } = useMemo(() => {
@@ -239,14 +222,23 @@ export function ShiftPickerModal({
         break;
     }
 
+    // Step 2.5: apply location/employer scope filters
+    let scopeFiltered = chipFiltered;
+    if (selectedLocationId) {
+      scopeFiltered = scopeFiltered.filter((s) => s.location_id === selectedLocationId);
+    }
+    if (selectedEmployerId) {
+      scopeFiltered = scopeFiltered.filter((s) => s.employer_id === selectedEmployerId);
+    }
+
     // Step 3: separate frequent from rest (only when "all" chip is active and no search)
-    const isDefault = activeChip === "all" && !searchQuery.trim();
-    const frequent = isDefault ? chipFiltered.filter((s) => frequentIds.includes(s.id)) : [];
-    const rest = isDefault ? chipFiltered.filter((s) => !frequentIds.includes(s.id)) : chipFiltered;
+    const isDefault = activeChip === "all" && !searchQuery.trim() && !selectedLocationId && !selectedEmployerId;
+    const frequent = isDefault ? scopeFiltered.filter((s) => frequentIds.includes(s.id)) : [];
+    const rest = isDefault ? scopeFiltered.filter((s) => !frequentIds.includes(s.id)) : scopeFiltered;
     const hasFreq = frequent.length > 0;
 
-    return { filtered: chipFiltered, frequentShifts: frequent, restShifts: rest, hasFrequent: hasFreq };
-  }, [shifts, searchQuery, activeChip, frequentIds]);
+    return { filtered: scopeFiltered, frequentShifts: frequent, restShifts: rest, hasFrequent: hasFreq };
+  }, [shifts, searchQuery, activeChip, frequentIds, selectedLocationId, selectedEmployerId]);
 
   // ── Handlers ─────────────────────────────────────────────────────
   const handleSelect = useCallback((shiftId: string | null) => {
@@ -260,6 +252,8 @@ export function ShiftPickerModal({
   const handleClearSearch = useCallback(() => {
     setSearchQuery("");
     setActiveChip("all");
+    setSelectedLocationId("");
+    setSelectedEmployerId("");
     searchInputRef.current?.focus();
   }, []);
 
@@ -335,6 +329,48 @@ export function ShiftPickerModal({
             </button>
           ))}
         </div>
+
+        {/* ── Location / Employer Scope Filters ─────────────────────── */}
+        {(locationIds.length > 0 || employerIds.length > 0) && (
+          <div className="flex gap-2 flex-wrap">
+            {locationIds.length > 0 && (
+              <select
+                aria-label={t("shifts.picker.filter_location")}
+                className="px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider
+                  bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400
+                  border-2 border-slate-200 dark:border-slate-700
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50
+                  hover:border-primary-300 dark:hover:border-primary-700
+                  transition-all duration-200 cursor-pointer"
+                onChange={(e) => { setSelectedLocationId(e.target.value); }}
+                value={selectedLocationId}
+              >
+                <option value="">{t("shifts.picker.filter_all_locations")}</option>
+                {locationIds.map((id) => (
+                  <option key={id} value={id}>{id}</option>
+                ))}
+              </select>
+            )}
+            {employerIds.length > 0 && (
+              <select
+                aria-label={t("shifts.picker.filter_employer")}
+                className="px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider
+                  bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400
+                  border-2 border-slate-200 dark:border-slate-700
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50
+                  hover:border-primary-300 dark:hover:border-primary-700
+                  transition-all duration-200 cursor-pointer"
+                onChange={(e) => { setSelectedEmployerId(e.target.value); }}
+                value={selectedEmployerId}
+              >
+                <option value="">{t("shifts.picker.filter_all_employers")}</option>
+                {employerIds.map((id) => (
+                  <option key={id} value={id}>{id}</option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
 
         {/* ── Shift List ───────────────────────────────────────────── */}
         {filtered.length === 0 ? (
