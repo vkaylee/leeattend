@@ -407,7 +407,7 @@ impl HolidayRepository for DieselHolidayRepository {
                             .map(|r| crate::models::diesel::roster::ShiftRosterEntity {
                                 id: r.id,
                                 employment_id: r.employment_id,
-                                shift_id: r.shift_id,
+                                template_id: r.shift_id,
                                 date: r.date,
                                 status: Some(r.status.clone()),
                                 notes: r.notes.clone(),

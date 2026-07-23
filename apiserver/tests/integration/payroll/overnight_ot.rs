@@ -76,7 +76,7 @@ async fn test_overnight_ot_payroll_calculation() {
     // Assign shift for Jan 5 (night of Jan 5 -> morning Jan 6)
     crate::test_execute!(
         &pool.api,
-        "INSERT INTO employee_shifts (employment_id, shift_id, start_date) VALUES ($1, $2, $3)",
+        "INSERT INTO employee_shifts (employment_id, template_id, start_date) VALUES ($1, $2, $3)",
         diesel::sql_types::Uuid,
         employment_id,
         diesel::sql_types::Uuid,

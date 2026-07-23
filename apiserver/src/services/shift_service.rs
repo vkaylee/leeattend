@@ -26,8 +26,6 @@ impl ShiftService {
             .create_shift(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                 req,
-                true, // is_active
-                None, // parent_shift_id
             )
             .await
     }
@@ -52,78 +50,74 @@ impl ShiftService {
             .await
     }
 
+    /// Update a shift template by creating a new version.
+    ///
+    /// Two modes:
+    /// - **Correction** (`is_correction=true` or no effective_date):
+    ///   Fixes data errors. Keeps same `effective_from` as the current version.
+    ///   The old version is superseded but its effective range stays intact.
+    /// - **Revision** (`is_correction=false` with effective_date):
+    ///   Scheduled change. Uses `effective_date` as new `effective_from`.
+    ///   The old version's `effective_to` is set to `effective_date - 1`.
     #[tracing::instrument(skip_all, err)]
     pub async fn update_shift(
         &self,
         workspace_id: Uuid,
-        shift_id: Uuid,
+        template_id: Uuid,
         req: UpdateShiftRequest,
     ) -> Result<Shift, AppError> {
+        // Verify the template exists
         let old_shift = self
             .repo
             .get_shift_by_id(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                shift_id,
+                template_id,
             )
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::ShiftNotFound))?;
 
+        // Determine change type and effective date
         let has_envelope_changes = old_shift.name() != req.name
             || old_shift.report_symbol().map(String::from) != req.report_symbol
             || old_shift.location_id() != req.location_id
             || old_shift.employer_id() != req.employer_id;
         let has_interval_changes = !req.intervals.is_empty();
 
-        if req.is_correction || (!has_envelope_changes && !has_interval_changes) {
-            // Direct update
+        if !has_envelope_changes && !has_interval_changes {
+            // Nothing changed — return current shift as-is
+            return Ok(old_shift);
+        }
+
+        if req.is_correction {
+            // Correction: keep same effective_from, supersede current version
+            let effective_from = old_shift.created_at().date_naive(); // fallback to original
             self.repo
-                .update_shift_direct(
+                .create_new_version(
                     &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                    shift_id,
+                    template_id,
                     &req,
+                    "correct",
+                    effective_from,
+                    Uuid::nil(), // TODO: pass actual user ID from context
+                    Some(req.name.clone()), // reason
                 )
                 .await
         } else {
-            // Create new version
+            // Revision: new effective_from = effective_date or today
             let effective_date = req
                 .effective_date
                 .unwrap_or_else(|| Local::now().date_naive());
-
-            let new_shift = self
-                .repo
-                .create_shift(
-                    &crate::diesel_pool::TenantAuthToken::system_override(old_shift.workspace_id()),
-                    &crate::models::CreateShiftRequest {
-                        name: req.name,
-                        report_symbol: req.report_symbol,
-                        location_id: req.location_id,
-                        employer_id: req.employer_id,
-                        intervals: req.intervals.clone(),
-                    },
-                    true,
-                    Some(shift_id),
-                )
-                .await?;
-
-            // 2. Archive old version
             self.repo
-                .archive_shift(
+                .create_new_version(
                     &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                    shift_id,
-                )
-                .await?;
-
-            // 3. Migrate assignments
-            self.repo
-                .update_assignments_to_new_version(
-                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                    shift_id,
-                    new_shift.id(),
+                    template_id,
+                    &req,
+                    "revise",
                     effective_date,
+                    Uuid::nil(), // TODO: pass actual user ID from context
+                    Some(req.name.clone()),
                 )
-                .await?;
-
-            Ok(new_shift)
+                .await
         }
     }
 
@@ -132,7 +126,7 @@ impl ShiftService {
         &self,
         workspace_id: Uuid,
         employment_id: Uuid,
-        shift_id: Uuid,
+        template_id: Uuid,
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
     ) -> Result<(), AppError> {
@@ -141,7 +135,7 @@ impl ShiftService {
             .assign_employment_shift(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                 employment_id,
-                shift_id,
+                template_id,
                 start_date,
                 end_date,
             )
@@ -169,9 +163,9 @@ mod tests {
     use std::sync::Mutex;
     use uuid::Uuid;
 
-    fn dummy_shift() -> Shift {
+    fn dummy_shift(template_id: Uuid) -> Shift {
         Shift::new(
-            Uuid::new_v4(),
+            template_id,
             Uuid::new_v4(),
             "Morning".into(),
             None,
@@ -185,19 +179,25 @@ mod tests {
     }
 
     struct MockShiftRepo {
-        shift: Mutex<Option<Shift>>,
+        shift: Mutex<Option<(Uuid, Shift)>>, // (template_id, shift)
         created: Mutex<bool>,
         archived: Mutex<bool>,
-        migrations_applied: Mutex<bool>,
+        new_version_created: Mutex<bool>,
+        /// Records the change_type passed to create_new_version
+        last_change_type: Mutex<Option<String>>,
+        /// Records the effective_date passed to create_new_version
+        last_effective_date: Mutex<Option<NaiveDate>>,
     }
 
     impl MockShiftRepo {
-        fn new(shift: Option<Shift>) -> Self {
+        fn new(template_id: Option<Uuid>, shift: Option<Shift>) -> Self {
             Self {
-                shift: Mutex::new(shift),
+                shift: Mutex::new(template_id.zip(shift)),
                 created: Mutex::new(false),
                 archived: Mutex::new(false),
-                migrations_applied: Mutex::new(false),
+                new_version_created: Mutex::new(false),
+                last_change_type: Mutex::new(None),
+                last_effective_date: Mutex::new(None),
             }
         }
     }
@@ -208,8 +208,6 @@ mod tests {
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
             req: &CreateShiftRequest,
-            _is_active: bool,
-            parent: Option<Uuid>,
         ) -> Result<Shift, AppError> {
             *self.created.lock().unwrap() = true;
             Ok(Shift::new(
@@ -218,7 +216,7 @@ mod tests {
                 req.name.clone(),
                 req.report_symbol.clone(),
                 true,
-                parent,
+                None,
                 req.location_id,
                 req.employer_id,
                 Utc::now(),
@@ -229,9 +227,9 @@ mod tests {
         async fn get_shift_by_id(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _id: Uuid,
+            _template_id: Uuid,
         ) -> Result<Option<Shift>, AppError> {
-            Ok(self.shift.lock().unwrap().clone())
+            Ok(self.shift.lock().unwrap().as_ref().map(|(_, s)| s.clone()))
         }
 
         async fn get_workspace_shifts(
@@ -246,33 +244,45 @@ mod tests {
                 .shift
                 .lock()
                 .unwrap()
-                .clone()
-                .map(|s| vec![s])
+                .as_ref()
+                .map(|(_, s)| vec![s.clone()])
                 .unwrap_or_default();
             let total = shifts.len() as i64;
             Ok((shifts, total))
         }
 
-        async fn update_shift_direct(
+        async fn create_new_version(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _id: Uuid,
+            _template_id: Uuid,
             req: &UpdateShiftRequest,
+            change_type: &str,
+            effective_date: NaiveDate,
+            _created_by: Uuid,
+            _change_reason: Option<String>,
         ) -> Result<Shift, AppError> {
-            let mut s = self
-                .shift
-                .lock()
-                .unwrap()
-                .clone()
-                .unwrap_or_else(dummy_shift);
-            s.set_name(req.name.clone());
-            Ok(s)
+            *self.new_version_created.lock().unwrap() = true;
+            *self.last_change_type.lock().unwrap() = Some(change_type.to_string());
+            *self.last_effective_date.lock().unwrap() = Some(effective_date);
+            let (tid, _) = self.shift.lock().unwrap().clone().unwrap_or((Uuid::new_v4(), dummy_shift(Uuid::new_v4())));
+            Ok(Shift::new(
+                tid,
+                Uuid::new_v4(),
+                req.name.clone(),
+                req.report_symbol.clone(),
+                true,
+                None,
+                req.location_id,
+                req.employer_id,
+                Utc::now(),
+                Utc::now(),
+            ))
         }
 
         async fn archive_shift(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _id: Uuid,
+            _template_id: Uuid,
         ) -> Result<(), AppError> {
             *self.archived.lock().unwrap() = true;
             Ok(())
@@ -282,7 +292,7 @@ mod tests {
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
-            _s: Uuid,
+            _t: Uuid,
             _sd: NaiveDate,
             _ed: Option<NaiveDate>,
         ) -> Result<(), AppError> {
@@ -295,23 +305,14 @@ mod tests {
             _e: Uuid,
             _d: NaiveDate,
         ) -> Result<Option<Shift>, AppError> {
-            Ok(self.shift.lock().unwrap().clone())
-        }
-
-        async fn update_assignments_to_new_version(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _o: Uuid,
-            _n: Uuid,
-            _d: NaiveDate,
-        ) -> Result<(), AppError> {
-            *self.migrations_applied.lock().unwrap() = true;
-            Ok(())
+            Ok(self.shift.lock().unwrap().as_ref().map(|(_, s)| s.clone()))
         }
     }
 
-    fn build_service(shift: Option<Shift>) -> (ShiftService, std::sync::Arc<MockShiftRepo>) {
-        let repo = std::sync::Arc::new(MockShiftRepo::new(shift));
+    fn build_service(shift: Option<(Uuid, Shift)>) -> (ShiftService, std::sync::Arc<MockShiftRepo>) {
+        let tid = shift.as_ref().map(|s| s.0);
+        let s = shift.map(|s| s.1);
+        let repo = std::sync::Arc::new(MockShiftRepo::new(tid, s));
         (ShiftService::new(repo.clone()), repo)
     }
 
@@ -339,7 +340,7 @@ mod tests {
         }
     }
 
-    // ── create_shift ────────────────────────────────────────────────────────
+    // ── create_shift ──────────────────────────────────────────────────────────
 
     #[tokio::test]
     async fn test_create_shift_success() {
@@ -350,7 +351,7 @@ mod tests {
         assert!(*repo.created.lock().unwrap());
     }
 
-    // ── get_workspace_shifts ─────────────────────────────────────────────────
+    // ── get_workspace_shifts ───────────────────────────────────────────────────
 
     #[tokio::test]
     async fn test_get_workspace_shifts_empty() {
@@ -365,7 +366,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_workspace_shifts_with_data() {
-        let (svc, _) = build_service(Some(dummy_shift()));
+        let tid = Uuid::new_v4();
+        let (svc, _) = build_service(Some((tid, dummy_shift(tid))));
         let (result, total) = svc
             .get_workspace_shifts(Uuid::new_v4(), None, None, None, None)
             .await
@@ -374,11 +376,12 @@ mod tests {
         assert_eq!(total, 1);
     }
 
-    // ── update_shift (is_correction = true) ─────────────────────────────────
+    // ── update_shift (correction) ──────────────────────────────────────────────
 
     #[tokio::test]
     async fn test_update_shift_correction_path() {
-        let (svc, _) = build_service(Some(dummy_shift()));
+        let tid = Uuid::new_v4();
+        let (svc, repo) = build_service(Some((tid, dummy_shift(tid))));
         let req = UpdateShiftRequest {
             name: "Updated Morning".into(),
             report_symbol: None,
@@ -403,10 +406,11 @@ mod tests {
             effective_date: None,
         };
         let result = svc
-            .update_shift(Uuid::new_v4(), Uuid::new_v4(), req)
+            .update_shift(Uuid::new_v4(), tid, req)
             .await
             .unwrap();
         assert_eq!(result.name(), "Updated Morning");
+        assert!(*repo.new_version_created.lock().unwrap());
     }
 
     #[tokio::test]
@@ -444,14 +448,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_shift_new_version_when_time_changed() {
-        let original = dummy_shift();
-        let (svc, repo) = build_service(Some(original));
+        let tid = Uuid::new_v4();
+        let (svc, repo) = build_service(Some((tid, dummy_shift(tid))));
         let req = UpdateShiftRequest {
             name: "Morning V2".into(),
             report_symbol: None,
             location_id: None,
             employer_id: None,
-            // Different time → triggers new version creation
             intervals: vec![crate::models::CreateIntervalRequest {
                 interval_name: None,
                 start_time: NaiveTime::from_hms_opt(7, 30, 0).unwrap(),
@@ -471,17 +474,14 @@ mod tests {
             effective_date: Some(NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()),
         };
         let result = svc
-            .update_shift(Uuid::new_v4(), Uuid::new_v4(), req)
+            .update_shift(Uuid::new_v4(), tid, req)
             .await
             .unwrap();
-        // New version created, name comes from req
         assert_eq!(result.name(), "Morning V2");
-        // archive and migrate called
-        assert!(*repo.archived.lock().unwrap());
-        assert!(*repo.migrations_applied.lock().unwrap());
+        assert!(*repo.new_version_created.lock().unwrap());
     }
 
-    // ── assign_shift ─────────────────────────────────────────────────────────
+    // ── assign_shift ───────────────────────────────────────────────────────────
 
     #[tokio::test]
     async fn test_assign_shift_success() {
@@ -496,5 +496,143 @@ mod tests {
             )
             .await;
         assert!(result.is_ok());
+    }
+
+    // ── New: Versioning semantics tests ───────────────────────────────────────────
+
+    #[tokio::test]
+    async fn test_correction_sends_change_type_correct() {
+        let tid = Uuid::new_v4();
+        let (svc, repo) = build_service(Some((tid, dummy_shift(tid))));
+        let req = UpdateShiftRequest {
+            name: "Morning (fixed typo)".into(),
+            report_symbol: None,
+            location_id: None,
+            employer_id: None,
+            intervals: vec![crate::models::CreateIntervalRequest {
+                interval_name: None,
+                start_time: NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+                end_time: NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+                break_duration_minutes: 60,
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: true,
+                break_is_overtime: false,
+                early_punch_in_grace_period_minutes: 0,
+                allow_early_ot: false,
+                max_early_ot_minutes: None,
+                ot_aggregation_mode: "aggregate".to_string(),
+                is_night_shift: false,
+            }],
+            is_correction: true,
+            effective_date: None,
+        };
+        let result = svc.update_shift(Uuid::new_v4(), tid, req).await.unwrap();
+        assert_eq!(result.name(), "Morning (fixed typo)");
+        assert_eq!(
+            repo.last_change_type.lock().unwrap().as_deref(),
+            Some("correct"),
+            "Correction must use change_type='correct'"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_revision_sends_change_type_revise_with_effective_date() {
+        let tid = Uuid::new_v4();
+        let (svc, repo) = build_service(Some((tid, dummy_shift(tid))));
+        let effective = NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
+        let req = UpdateShiftRequest {
+            name: "Morning V2".into(),
+            report_symbol: None,
+            location_id: None,
+            employer_id: None,
+            intervals: vec![crate::models::CreateIntervalRequest {
+                interval_name: None,
+                start_time: NaiveTime::from_hms_opt(7, 30, 0).unwrap(),
+                end_time: NaiveTime::from_hms_opt(16, 30, 0).unwrap(),
+                break_duration_minutes: 45,
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: true,
+                break_is_overtime: false,
+                early_punch_in_grace_period_minutes: 0,
+                allow_early_ot: false,
+                max_early_ot_minutes: None,
+                ot_aggregation_mode: "aggregate".to_string(),
+                is_night_shift: false,
+            }],
+            is_correction: false,
+            effective_date: Some(effective),
+        };
+        let result = svc.update_shift(Uuid::new_v4(), tid, req).await.unwrap();
+        assert_eq!(result.name(), "Morning V2");
+        assert_eq!(
+            repo.last_change_type.lock().unwrap().as_deref(),
+            Some("revise"),
+            "Revision must use change_type='revise'"
+        );
+        assert_eq!(
+            *repo.last_effective_date.lock().unwrap(),
+            Some(effective),
+            "Revision must use the user-provided effective_date"
+        );
+    }
+
+    /// No changes at all (same name, no intervals) → return current shift, no DB write.
+    #[tokio::test]
+    async fn test_update_shift_no_changes_returns_current() {
+        let tid = Uuid::new_v4();
+        let original = dummy_shift(tid);
+        let (svc, repo) = build_service(Some((tid, original.clone())));
+        // Same name, empty intervals → no changes
+        let req = UpdateShiftRequest {
+            name: original.name().to_string(),
+            report_symbol: original.report_symbol().map(String::from),
+            location_id: original.location_id(),
+            employer_id: original.employer_id(),
+            intervals: vec![],  // empty = no interval changes
+            is_correction: false,
+            effective_date: None,
+        };
+        let result = svc.update_shift(Uuid::new_v4(), tid, req).await.unwrap();
+        assert_eq!(result.name(), original.name());
+        assert!(!*repo.new_version_created.lock().unwrap(),
+            "No-change update must NOT create a new version");
+    }
+
+    /// Template ID is preserved across version changes (stable identity).
+    #[tokio::test]
+    async fn test_template_id_stable_across_versions() {
+        let tid = Uuid::new_v4();
+        let (svc, _repo) = build_service(Some((tid, dummy_shift(tid))));
+        let req = UpdateShiftRequest {
+            name: "Morning V3".into(),
+            report_symbol: None,
+            location_id: None,
+            employer_id: None,
+            intervals: vec![crate::models::CreateIntervalRequest {
+                interval_name: None,
+                start_time: NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+                end_time: NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+                break_duration_minutes: 60,
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: true,
+                break_is_overtime: false,
+                early_punch_in_grace_period_minutes: 0,
+                allow_early_ot: false,
+                max_early_ot_minutes: None,
+                ot_aggregation_mode: "aggregate".to_string(),
+                is_night_shift: false,
+            }],
+            is_correction: false,
+            effective_date: Some(NaiveDate::from_ymd_opt(2026, 6, 1).unwrap()),
+        };
+        let result = svc.update_shift(Uuid::new_v4(), tid, req).await.unwrap();
+        // The template_id (shift.id()) must remain `tid` — stable identity
+        assert_eq!(result.id(), tid,
+            "template_id must be stable across version changes");
+        assert_eq!(result.name(), "Morning V3",
+            "name must reflect the new version");
     }
 }

@@ -93,12 +93,12 @@ impl DieselRosterRepository {
                     es.id,
                     emp.employee_id,
                     'fixed'::assignment_history_type as assignment_type,
-                    s.name as shift_name,
+                    st.name as shift_name,
                     TO_CHAR(es.start_date, 'YYYY-MM-DD') ||
                     CASE WHEN es.end_date IS NULL THEN ' -> ∞' ELSE ' -> ' || TO_CHAR(es.end_date, 'YYYY-MM-DD') END as date_range,
                     es.created_at
                 FROM employee_shifts es
-                JOIN shifts s ON es.shift_id = s.id
+                JOIN shift_templates st ON es.template_id = st.id
                 JOIN employments emp ON es.employment_id = emp.id
                 WHERE emp.workspace_id = $1
 
@@ -125,11 +125,11 @@ impl DieselRosterRepository {
                     sr.id,
                     emp.employee_id,
                     'roster'::assignment_history_type as assignment_type,
-                    CASE WHEN sr.shift_id IS NULL THEN 'OFF' ELSE s.name END as shift_name,
+                    CASE WHEN sr.template_id IS NULL THEN 'OFF' ELSE st.name END as shift_name,
                     TO_CHAR(sr.date, 'YYYY-MM-DD') as date_range,
                     sr.created_at
                 FROM shift_rosters sr
-                LEFT JOIN shifts s ON sr.shift_id = s.id
+                LEFT JOIN shift_templates st ON sr.template_id = st.id
                 JOIN employments emp ON sr.employment_id = emp.id
                 WHERE emp.workspace_id = $1
             ) as history
@@ -288,7 +288,7 @@ impl DieselRosterRepository {
             ))
             .do_update()
             .set((
-                crate::schema::shift_rosters::shift_id.eq(entity.shift_id),
+                crate::schema::shift_rosters::template_id.eq(entity.template_id),
                 crate::schema::shift_rosters::status.eq(entity.status.clone()),
                 crate::schema::shift_rosters::notes.eq(entity.notes.clone()),
                 crate::schema::shift_rosters::updated_at.eq(Utc::now()),
@@ -335,7 +335,7 @@ impl DieselRosterRepository {
             .map(|item| ShiftRosterEntity {
                 id: crate::utils::id::new_id(),
                 employment_id,
-                shift_id: item.shift_id,
+                template_id: item.shift_id,
                 date: item.date,
                 status: Some("confirmed".to_string()),
                 notes: item.notes,
@@ -349,7 +349,7 @@ impl DieselRosterRepository {
             .on_conflict((shift_rosters::employment_id, shift_rosters::date))
             .do_update()
             .set((
-                shift_rosters::shift_id.eq(diesel::dsl::sql("EXCLUDED.shift_id")),
+                shift_rosters::template_id.eq(diesel::dsl::sql("EXCLUDED.template_id")),
                 shift_rosters::status.eq(diesel::dsl::sql("EXCLUDED.status")),
                 shift_rosters::notes.eq(diesel::dsl::sql("EXCLUDED.notes")),
                 shift_rosters::updated_at.eq(Utc::now()),

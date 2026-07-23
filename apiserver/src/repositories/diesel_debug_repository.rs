@@ -124,6 +124,7 @@ impl DebugRepository for DieselDebugRepository {
                             "DELETE FROM time_entries WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM raw_attendance_logs WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM shift_rosters WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
+                            "DELETE FROM work_segments WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM employee_shifts WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM payslip_incentives WHERE payslip_id IN (SELECT id FROM payslips WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1))",
                             "DELETE FROM payslip_rule_evaluations WHERE payslip_id IN (SELECT id FROM payslips WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1))",
@@ -158,6 +159,7 @@ impl DebugRepository for DieselDebugRepository {
                             "DELETE FROM raw_attendance_logs WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM attendance_import_jobs WHERE workspace_id = $1",
                             "DELETE FROM shift_rosters WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
+                            "DELETE FROM work_segments WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM employee_shifts WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM employee_working_patterns WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM payslip_incentives WHERE payslip_id IN (SELECT id FROM payslips WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1))",
@@ -178,10 +180,15 @@ impl DebugRepository for DieselDebugRepository {
                             "DELETE FROM employments WHERE workspace_id = $1",
                             "DELETE FROM employees WHERE workspace_id = $1",
                             "DELETE FROM assignment_rules WHERE workspace_id = $1",
+                            "DELETE FROM working_pattern_details WHERE pattern_id IN (SELECT id FROM working_patterns WHERE workspace_id = $1)",
                             "DELETE FROM working_patterns WHERE workspace_id = $1",
                             "DELETE FROM leave_policy_definitions WHERE workspace_id = $1",
                             "DELETE FROM salary_component_definitions WHERE workspace_id = $1",
-                            "DELETE FROM shifts WHERE workspace_id = $1",
+                            "UPDATE shift_versions SET superseded_by = NULL WHERE template_id IN (SELECT id FROM shift_templates WHERE workspace_id = $1)",
+                            "DELETE FROM shift_audit_log WHERE template_id IN (SELECT id FROM shift_templates WHERE workspace_id = $1)",
+                            "DELETE FROM shift_default_intervals WHERE version_id IN (SELECT id FROM shift_versions WHERE template_id IN (SELECT id FROM shift_templates WHERE workspace_id = $1))",
+                            "DELETE FROM shift_versions WHERE workspace_id = $1",
+                            "DELETE FROM shift_templates WHERE workspace_id = $1",
                             "DELETE FROM departments WHERE workspace_id = $1",
                         ];
 
@@ -214,17 +221,37 @@ impl DebugRepository for DieselDebugRepository {
                         .await
                         .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
 
-                        let _shift_morning: IdRow = diesel::sql_query("INSERT INTO shifts (workspace_id, name) VALUES ($1, 'Morning Shift') RETURNING id"
+                        let now = chrono::Utc::now();
+                        let today = now.date_naive();
+                        let shift_morning_tpl: IdRow = diesel::sql_query("INSERT INTO shift_templates (workspace_id, name, created_at) VALUES ($1, 'Morning Shift', $2) RETURNING id"
                         )
                         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                        .bind::<diesel::sql_types::Timestamptz, _>(now)
                         .get_result(conn)
                         .await
                         .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
 
-                        // Default interval for the seed shift
-                        diesel::sql_query("INSERT INTO shift_default_intervals (shift_id, sort_order, start_time, end_time) VALUES ($1, 0, '08:00:00', '17:00:00')"
+                        let shift_morning_ver: IdRow = diesel::sql_query("INSERT INTO shift_versions (template_id, workspace_id, version_number, name, effective_from, change_type, created_by, created_at) VALUES ($1, $2, 1, 'Morning Shift', $3, 'create', '00000000-0000-0000-0000-000000000000', $4) RETURNING id"
                         )
-                        .bind::<diesel::sql_types::Uuid, _>(_shift_morning.id)
+                        .bind::<diesel::sql_types::Uuid, _>(shift_morning_tpl.id)
+                        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                        .bind::<diesel::sql_types::Date, _>(today)
+                        .bind::<diesel::sql_types::Timestamptz, _>(now)
+                        .get_result(conn)
+                        .await
+                        .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
+
+                        diesel::sql_query("UPDATE shift_templates SET current_version_id = $1 WHERE id = $2"
+                        )
+                        .bind::<diesel::sql_types::Uuid, _>(shift_morning_ver.id)
+                        .bind::<diesel::sql_types::Uuid, _>(shift_morning_tpl.id)
+                        .execute(conn)
+                        .await
+                        .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
+
+                        diesel::sql_query("INSERT INTO shift_default_intervals (version_id, sort_order, start_time, end_time) VALUES ($1, 0, '08:00:00', '17:00:00')"
+                        )
+                        .bind::<diesel::sql_types::Uuid, _>(shift_morning_ver.id)
                         .execute(conn)
                         .await
                         .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;

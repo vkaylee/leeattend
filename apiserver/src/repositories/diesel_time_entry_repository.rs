@@ -69,7 +69,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             entry_type: entry.entry_type().to_string(),
             is_break_overtime: entry.is_break_overtime(),
             note: entry.note().map(String::from),
-            shift_id: entry.shift_id(),
+            template_id: entry.shift_id(),
         };
 
         diesel::insert_into(time_entries::table)
@@ -507,7 +507,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
                             id: entry.id(),
                             workspace_id: entry.workspace_id(),
                             employment_id: entry.employment_id(),
-                            shift_id: entry.shift_id(),
+                            template_id: entry.shift_id(),
                             punch_in_time: entry.punch_in_time(),
                             punch_out_time: entry.punch_out_time(),
                             duration_minutes: entry.duration_minutes(),

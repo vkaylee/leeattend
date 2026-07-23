@@ -1,28 +1,34 @@
 use async_trait::async_trait;
 use chrono::NaiveDate;
-
 use uuid::Uuid;
 
 use crate::errors::AppError;
 use crate::models::Shift;
 
+/// Trait for shift template + version operations (Enterprise SCD Type-2).
+///
+/// All consumer FKs reference `shift_templates.id` (stable).
+/// Version resolution is handled at read time via `current_version_id` (denormalized)
+/// or by effective-date range queries for historical lookups.
 #[async_trait]
 #[cfg_attr(test, mockall::automock)]
 pub trait ShiftRepository: Send + Sync {
+    /// Create a new shift template with its first version.
+    /// Returns the domain Shift populated from the new version.
     async fn create_shift(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         req: &crate::models::CreateShiftRequest,
-        is_active: bool,
-        parent_shift_id: Option<Uuid>,
     ) -> Result<Shift, AppError>;
 
+    /// Get a shift by its template UUID (resolves the current version).
     async fn get_shift_by_id(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        id: Uuid,
+        template_id: Uuid,
     ) -> Result<Option<Shift>, AppError>;
 
+    /// List current versions of all active shift templates in the workspace.
     async fn get_workspace_shifts(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -32,40 +38,44 @@ pub trait ShiftRepository: Send + Sync {
         limit: Option<i64>,
     ) -> Result<(Vec<Shift>, i64), AppError>;
 
-    async fn update_shift_direct(
+    /// Create a new version for an existing template.
+    ///
+    /// - `change_type = "correct"`: correction — keeps same `effective_from`, supersedes current version
+    /// - `change_type = "revise"`: revision — uses `effective_date` as new `effective_from`, closes current version
+    async fn create_new_version(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        id: Uuid,
+        template_id: Uuid,
         req: &crate::models::UpdateShiftRequest,
+        change_type: &str,
+        effective_date: NaiveDate,
+        created_by: Uuid,
+        change_reason: Option<String>,
     ) -> Result<Shift, AppError>;
 
+    /// Soft-delete a template by expiring its current version.
     async fn archive_shift(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        id: Uuid,
+        template_id: Uuid,
     ) -> Result<(), AppError>;
 
+    /// Assign a shift template to an employment with date range.
+    /// Stable FK — template_id never changes across versions.
     async fn assign_employment_shift(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employment_id: Uuid,
-        shift_id: Uuid,
+        template_id: Uuid,
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
     ) -> Result<(), AppError>;
 
+    /// Get the active shift template for an employment on a given date.
     async fn get_employment_active_shift(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employment_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<Shift>, AppError>;
-
-    async fn update_assignments_to_new_version(
-        &self,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        old_shift_id: Uuid,
-        new_shift_id: Uuid,
-        effective_date: NaiveDate,
-    ) -> Result<(), AppError>;
 }

@@ -186,7 +186,7 @@ pub async fn get_shifts(
                             .map(
                                 |iv| crate::models::diesel::roster::ShiftDefaultIntervalEntity {
                                     id: iv.interval_id,
-                                    shift_id: shift.id(),
+                                    version_id: Uuid::nil(), // resolved from cache, version_id not stored in cache
                                     sort_order: iv.sort_order,
                                     interval_name: iv.interval_name.clone(),
                                     start_time: iv.start_time,

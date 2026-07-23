@@ -32,13 +32,22 @@ async fn test_punch_in_grace_period_enforcement_smoke() {
     let test_date = NaiveDate::from_ymd_opt(2026, 1, 10).unwrap();
     let shift_start = NaiveTime::from_hms_opt(9, 0, 0).unwrap();
 
-    let shift_id = factory
+    let template_id = factory
         .shift()
         .with_workspace(ws_id)
         .with_times(shift_start, NaiveTime::from_hms_opt(17, 0, 0).unwrap())
         .with_grace_period(5) // 5 mins grace -> earliest is 08:55
         .assign_to_employee(employee_id, test_date)
         .await;
+
+    // Resolve the version_id for interval-level updates (template_id ≠ version_id
+    // in the new SCD Type-2 model)
+    let version_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM shift_versions WHERE template_id = $1 AND effective_to IS NULL",
+        diesel::sql_types::Uuid,
+        template_id
+    );
 
     let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
         &factory.diesel_pools.api,
@@ -72,32 +81,32 @@ async fn test_punch_in_grace_period_enforcement_smoke() {
 
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "UPDATE shift_default_intervals SET start_time = $1, end_time = $2 WHERE shift_id = $3",
+        "UPDATE shift_default_intervals SET start_time = $1, end_time = $2 WHERE version_id = $3",
         diesel::sql_types::Time,
         test_start,
         diesel::sql_types::Time,
         NaiveTime::from_hms_opt(23, 59, 59).unwrap(),
         diesel::sql_types::Uuid,
-        shift_id
+        version_id
     );
 
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "UPDATE employee_shifts SET start_date = $1 WHERE shift_id = $2",
+        "UPDATE employee_shifts SET start_date = $1 WHERE template_id = $2",
         diesel::sql_types::Date,
         test_date,
         diesel::sql_types::Uuid,
-        shift_id
+        template_id
     );
 
     // Now set up for the fail case
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "UPDATE employee_shifts SET start_date = $1 WHERE shift_id = $2",
+        "UPDATE employee_shifts SET start_date = $1 WHERE template_id = $2",
         diesel::sql_types::Date,
         today,
         diesel::sql_types::Uuid,
-        shift_id
+        template_id
     );
 
     // Set start_time to now + 4 hours (definitely in future, so grace period prevents punch in)
@@ -105,11 +114,11 @@ async fn test_punch_in_grace_period_enforcement_smoke() {
 
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "UPDATE shift_default_intervals SET start_time = $1 WHERE shift_id = $2",
+        "UPDATE shift_default_intervals SET start_time = $1 WHERE version_id = $2",
         diesel::sql_types::Time,
         test_start_time,
         diesel::sql_types::Uuid,
-        shift_id
+        version_id
     );
 
     let req = Request::builder()
@@ -149,9 +158,9 @@ async fn test_punch_in_grace_period_enforcement_smoke() {
     // Now update shift to have a large grace period (6 hours)
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "UPDATE shift_default_intervals SET early_punch_in_grace_period_minutes = 360 WHERE shift_id = $1",
+        "UPDATE shift_default_intervals SET early_punch_in_grace_period_minutes = 360 WHERE version_id = $1",
         diesel::sql_types::Uuid,
-        shift_id
+        version_id
     );
 
     let req2 = Request::builder()

@@ -248,7 +248,7 @@ async fn test_assignment_rules_and_rule_patterns() {
 
     // Add pattern details (Monday = shift, Tuesday = off)
     crate::test_execute!(&pool.api,
-        "INSERT INTO working_pattern_details (pattern_id, schedule_day, shift_id) VALUES ($1, 1, $2), ($1, 2, NULL)",
+        "INSERT INTO working_pattern_details (pattern_id, schedule_day, template_id) VALUES ($1, 1, $2), ($1, 2, NULL)",
         diesel::sql_types::Uuid, pattern_id,
         diesel::sql_types::Uuid, shift_id
     );

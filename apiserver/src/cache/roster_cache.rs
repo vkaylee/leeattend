@@ -148,13 +148,23 @@ pub async fn build_roster_data(
 
     use crate::schema::{
         assignment_rules, employee_shifts, employee_working_patterns, employees, employments,
-        shift_default_intervals, shifts, working_pattern_details, working_patterns,
+        shift_default_intervals, shift_templates, shift_versions,
+        working_pattern_details, working_patterns,
     };
 
-    // 1. Shifts
-    let shift_rows = shifts::table
-        .filter(shifts::workspace_id.eq(workspace_id))
-        .load::<crate::models::diesel::roster::ShiftEntity>(&mut conn)
+    // 1. Shift Templates + Current Versions
+    let shift_rows: Vec<(Uuid, String, Option<String>)> = shift_templates::table
+        .inner_join(
+            shift_versions::table
+                .on(shift_templates::current_version_id.eq(shift_versions::id.nullable())),
+        )
+        .filter(shift_templates::workspace_id.eq(workspace_id))
+        .select((
+            shift_templates::id,          // template_id (stable key)
+            shift_versions::name,
+            shift_versions::report_symbol,
+        ))
+        .load::<(Uuid, String, Option<String>)>(&mut conn)
         .await
         .map_err(|e| format!("shifts: {e}"))?;
 
@@ -186,7 +196,7 @@ pub async fn build_roster_data(
             employee_working_patterns::start_date,
             employee_working_patterns::end_date,
             working_pattern_details::schedule_day,
-            working_pattern_details::shift_id,
+            working_pattern_details::template_id,
             working_patterns::pattern_type,
             working_patterns::cycle_length_days,
             employee_working_patterns::anchor_date,
@@ -233,7 +243,7 @@ pub async fn build_roster_data(
         .select((
             working_pattern_details::pattern_id,
             working_pattern_details::schedule_day,
-            working_pattern_details::shift_id,
+            working_pattern_details::template_id,
         ))
         .load::<(Uuid, i32, Option<Uuid>)>(&mut conn)
         .await
@@ -263,30 +273,38 @@ pub async fn build_roster_data(
         .await
         .map_err(|e| format!("dept_history: {e}"))?;
 
-    // 9. Shift Default Intervals — template intervals per shift
-    let interval_rows: Vec<crate::models::diesel::roster::ShiftDefaultIntervalEntity> =
+    // 9. Shift Default Intervals — template intervals for current versions
+    //     Join through shift_versions to get template_id for the HashMap key.
+    let interval_rows: Vec<(crate::models::diesel::roster::ShiftDefaultIntervalEntity, Uuid)> =
         shift_default_intervals::table
-            .filter(
-                shift_default_intervals::shift_id.eq_any(
-                    shifts::table
-                        .filter(shifts::workspace_id.eq(workspace_id))
-                        .select(shifts::id),
-                ),
+            .inner_join(
+                shift_versions::table
+                    .on(shift_default_intervals::version_id.eq(shift_versions::id)),
             )
+            .inner_join(
+                shift_templates::table
+                    .on(shift_versions::template_id.eq(shift_templates::id)),
+            )
+            .filter(shift_templates::workspace_id.eq(workspace_id))
+            .filter(shift_versions::effective_to.is_null())
             .order(shift_default_intervals::sort_order.asc())
-            .load::<crate::models::diesel::roster::ShiftDefaultIntervalEntity>(&mut conn)
+            .select((
+                crate::models::diesel::roster::ShiftDefaultIntervalEntity::as_select(),
+                shift_versions::template_id,
+            ))
+            .load::<(crate::models::diesel::roster::ShiftDefaultIntervalEntity, Uuid)>(&mut conn)
             .await
             .map_err(|e| format!("shift_intervals: {e}"))?;
 
     // Transform rows into lookup structures
     let shifts_map: HashMap<Uuid, RosterShift> = shift_rows
         .into_iter()
-        .map(|r| {
+        .map(|(template_id, name, report_symbol)| {
             (
-                r.id,
+                template_id,
                 RosterShift {
-                    name: r.name,
-                    report_symbol: r.report_symbol,
+                    name,
+                    report_symbol,
                 },
             )
         })
@@ -298,7 +316,7 @@ pub async fn build_roster_data(
             .entry(r.employment_id)
             .or_default()
             .push(RosterFixedAssignment {
-                shift_id: r.shift_id,
+                shift_id: r.template_id,
                 start_date: r.start_date,
                 end_date: r.end_date,
             });
@@ -338,26 +356,26 @@ pub async fn build_roster_data(
     }
 
     let mut shift_intervals: HashMap<Uuid, Vec<RosterInterval>> = HashMap::new();
-    for r in interval_rows {
-        let is_night_shift = r.is_night_shift || r.end_time < r.start_time;
+    for (interval_entity, template_id) in interval_rows {
+        let is_night_shift = interval_entity.is_night_shift || interval_entity.end_time < interval_entity.start_time;
         shift_intervals
-            .entry(r.shift_id)
+            .entry(template_id)    // Key by stable template_id
             .or_default()
             .push(RosterInterval {
-                interval_id: r.id,
-                sort_order: r.sort_order,
-                interval_name: r.interval_name,
-                start_time: r.start_time,
-                end_time: r.end_time,
-                break_duration_minutes: r.break_duration_minutes,
-                break_start: r.break_start,
-                break_end: r.break_end,
-                is_break_auto_deduct: r.is_break_auto_deduct,
-                break_is_overtime: r.break_is_overtime,
-                early_punch_in_grace_period_minutes: r.early_punch_in_grace_period_minutes,
-                allow_early_ot: r.allow_early_ot,
-                max_early_ot_minutes: r.max_early_ot_minutes,
-                ot_aggregation_mode: r.ot_aggregation_mode,
+                interval_id: interval_entity.id,
+                sort_order: interval_entity.sort_order,
+                interval_name: interval_entity.interval_name,
+                start_time: interval_entity.start_time,
+                end_time: interval_entity.end_time,
+                break_duration_minutes: interval_entity.break_duration_minutes,
+                break_start: interval_entity.break_start,
+                break_end: interval_entity.break_end,
+                is_break_auto_deduct: interval_entity.is_break_auto_deduct,
+                break_is_overtime: interval_entity.break_is_overtime,
+                early_punch_in_grace_period_minutes: interval_entity.early_punch_in_grace_period_minutes,
+                allow_early_ot: interval_entity.allow_early_ot,
+                max_early_ot_minutes: interval_entity.max_early_ot_minutes,
+                ot_aggregation_mode: interval_entity.ot_aggregation_mode,
                 is_night_shift,
             });
     }

@@ -18,7 +18,7 @@ pub struct TimeEntryEntity {
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
     pub is_break_overtime: bool,
-    pub shift_id: Option<Uuid>,
+    pub template_id: Option<Uuid>,
     pub generation_metadata: Option<Value>,
     pub workspace_id: Uuid,
     pub employment_id: Uuid,
@@ -30,7 +30,7 @@ impl From<TimeEntryEntity> for TimeEntry {
             val.id,
             val.employment_id,
             val.workspace_id,
-            val.shift_id,
+            val.template_id,
             None,
             val.punch_in_time,
             val.punch_out_time,
@@ -56,7 +56,7 @@ pub struct NewTimeEntryEntity {
     pub entry_type: String,
     pub is_break_overtime: bool,
     pub note: Option<String>,
-    pub shift_id: Option<Uuid>,
+    pub template_id: Option<Uuid>,
 }
 
 #[derive(Debug, AsChangeset)]

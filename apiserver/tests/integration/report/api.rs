@@ -180,7 +180,7 @@ async fn test_reports_group_adjacent_temporal_employments_by_employer() {
         .await;
     crate::test_execute!(
         &pool.api,
-        "INSERT INTO employee_shifts (employment_id, shift_id, start_date, end_date) VALUES ($1, $2, $3, $4), ($5, $2, $6, NULL)",
+        "INSERT INTO employee_shifts (employment_id, template_id, start_date, end_date) VALUES ($1, $2, $3, $4), ($5, $2, $6, NULL)",
         diesel::sql_types::Uuid,
         old_employment_id,
         diesel::sql_types::Uuid,

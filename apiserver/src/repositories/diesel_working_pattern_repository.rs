@@ -77,7 +77,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                             (
                                 working_pattern_details::pattern_id.eq(pattern_entity.id),
                                 working_pattern_details::schedule_day.eq(schedule_day),
-                                working_pattern_details::shift_id.eq(shift_id),
+                                working_pattern_details::template_id.eq(shift_id),
                             )
                         })
                         .collect();
@@ -154,7 +154,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                             (
                                 working_pattern_details::pattern_id.eq(pattern_id),
                                 working_pattern_details::schedule_day.eq(schedule_day),
-                                working_pattern_details::shift_id.eq(shift_id),
+                                working_pattern_details::template_id.eq(shift_id),
                             )
                         })
                         .collect();

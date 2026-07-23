@@ -641,7 +641,7 @@ async fn test_attendance_trend_includes_present_and_late() {
     );
 
     crate::test_execute!(&_db.diesel_pools.api,
-        "INSERT INTO shift_rosters (employment_id, shift_id, date, status, id) VALUES ($1, $2, $3, 'confirmed', $4)",
+        "INSERT INTO shift_rosters (employment_id, template_id, date, status, id) VALUES ($1, $2, $3, 'confirmed', $4)",
         diesel::sql_types::Uuid, emp_employment_id,
         diesel::sql_types::Uuid, shift_id,
         diesel::sql_types::Date, today,
@@ -981,7 +981,7 @@ async fn test_workspace_stats_detects_late_today() {
     );
 
     crate::test_execute!(&pool.api,
-        "INSERT INTO shift_rosters (employment_id, shift_id, date, status) VALUES ($1, $2, $3, 'confirmed')",
+        "INSERT INTO shift_rosters (employment_id, template_id, date, status) VALUES ($1, $2, $3, 'confirmed')",
         diesel::sql_types::Uuid, emp_employment_id,
         diesel::sql_types::Uuid, shift_id,
         diesel::sql_types::Date, local_today

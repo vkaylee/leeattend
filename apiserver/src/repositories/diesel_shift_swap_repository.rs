@@ -24,9 +24,9 @@ pub struct ShiftSwapRequestWithNamesEntity {
     #[diesel(sql_type = diesel::sql_types::Date)]
     pub swap_date: NaiveDate,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
-    pub requester_shift_id: Option<Uuid>,
+    pub requester_template_id: Option<Uuid>,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
-    pub target_shift_id: Option<Uuid>,
+    pub target_template_id: Option<Uuid>,
     #[diesel(sql_type = diesel::sql_types::Text)]
     pub status: String,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
@@ -65,8 +65,8 @@ impl From<ShiftSwapRequestWithNamesEntity> for ShiftSwapRequestWithNames {
             entity.requester_id,
             entity.target_id,
             entity.swap_date,
-            entity.requester_shift_id,
-            entity.target_shift_id,
+            entity.requester_template_id,
+            entity.target_template_id,
             status,
             entity.reason,
             entity.requested_by_user_id,
@@ -144,8 +144,8 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
             requester_id: request.requester_id(),
             target_id: request.target_id(),
             swap_date: request.swap_date(),
-            requester_shift_id: request.requester_shift_id(),
-            target_shift_id: request.target_shift_id(),
+            requester_template_id: request.requester_shift_id(),
+            target_template_id: request.target_shift_id(),
             status: match request.status() {
                 ShiftSwapStatus::PendingTarget => "pending_target".to_string(),
                 ShiftSwapStatus::PendingAdmin => "pending_admin".to_string(),
@@ -237,10 +237,10 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         for s in &swaps {
             employee_ids.insert(s.requester_id);
             employee_ids.insert(s.target_id);
-            if let Some(id) = s.requester_shift_id {
+            if let Some(id) = s.requester_template_id {
                 shift_ids.insert(id);
             }
-            if let Some(id) = s.target_shift_id {
+            if let Some(id) = s.target_template_id {
                 shift_ids.insert(id);
             }
         }
@@ -275,8 +275,8 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
                 requester_id: s.requester_id,
                 target_id: s.target_id,
                 swap_date: s.swap_date,
-                requester_shift_id: s.requester_shift_id,
-                target_shift_id: s.target_shift_id,
+                requester_template_id: s.requester_template_id,
+                target_template_id: s.target_template_id,
                 status: s.status,
                 reason: s.reason,
                 requested_by_user_id: s.requested_by_user_id,
@@ -286,9 +286,9 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
                 requester_name: emp_map.get(&s.requester_id).cloned(),
                 target_name: emp_map.get(&s.target_id).cloned(),
                 requester_shift_name: s
-                    .requester_shift_id
+                    .requester_template_id
                     .and_then(|id| shift_map.get(&id).cloned()),
-                target_shift_name: s.target_shift_id.and_then(|id| shift_map.get(&id).cloned()),
+                target_shift_name: s.target_template_id.and_then(|id| shift_map.get(&id).cloned()),
             })
             .map(Into::into)
             .collect())
@@ -366,10 +366,10 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         for s in &swaps {
             employee_ids.insert(s.requester_id);
             employee_ids.insert(s.target_id);
-            if let Some(id) = s.requester_shift_id {
+            if let Some(id) = s.requester_template_id {
                 shift_ids.insert(id);
             }
-            if let Some(id) = s.target_shift_id {
+            if let Some(id) = s.target_template_id {
                 shift_ids.insert(id);
             }
         }
@@ -404,8 +404,8 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
                 requester_id: s.requester_id,
                 target_id: s.target_id,
                 swap_date: s.swap_date,
-                requester_shift_id: s.requester_shift_id,
-                target_shift_id: s.target_shift_id,
+                requester_template_id: s.requester_template_id,
+                target_template_id: s.target_template_id,
                 status: s.status,
                 reason: s.reason,
                 requested_by_user_id: s.requested_by_user_id,
@@ -415,9 +415,9 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
                 requester_name: emp_map.get(&s.requester_id).cloned(),
                 target_name: emp_map.get(&s.target_id).cloned(),
                 requester_shift_name: s
-                    .requester_shift_id
+                    .requester_template_id
                     .and_then(|id| shift_map.get(&id).cloned()),
-                target_shift_name: s.target_shift_id.and_then(|id| shift_map.get(&id).cloned()),
+                target_shift_name: s.target_template_id.and_then(|id| shift_map.get(&id).cloned()),
             })
             .map(Into::into)
             .collect())

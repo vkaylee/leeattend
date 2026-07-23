@@ -1,12 +1,47 @@
 use crate::models::shift::{EmployeeShift, Shift, ShiftRoster};
 use crate::models::shift_swap::{ShiftSwapRequest, ShiftSwapStatus};
 use crate::schema::{
-    employee_shifts, shift_default_intervals, shift_rosters, shift_swap_requests, shifts,
+    employee_shifts, shift_default_intervals, shift_rosters, shift_swap_requests,
+    shift_templates, shift_versions, shifts,
 };
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+// ── New entities (Enterprise SCD Type-2) ───────────────────────────────────────
+
+#[derive(Debug, Queryable, Selectable, Insertable, Serialize, Deserialize, Clone)]
+#[diesel(table_name = shift_templates)]
+pub struct ShiftTemplateEntity {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub name: String,
+    pub current_version_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Queryable, Selectable, Insertable, Serialize, Deserialize, Clone)]
+#[diesel(table_name = shift_versions)]
+pub struct ShiftVersionEntity {
+    pub id: Uuid,
+    pub template_id: Uuid,
+    pub workspace_id: Uuid,
+    pub version_number: i32,
+    pub name: String,
+    pub report_symbol: Option<String>,
+    pub location_id: Option<Uuid>,
+    pub employer_id: Option<Uuid>,
+    pub effective_from: NaiveDate,
+    pub effective_to: Option<NaiveDate>,
+    pub change_type: String,
+    pub change_reason: Option<String>,
+    pub superseded_by: Option<Uuid>,
+    pub created_by: Uuid,
+    pub created_at: DateTime<Utc>,
+}
+
+// ── Legacy entity (kept during transition, will be removed) ──────────────────────
 
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, Serialize, Deserialize, Clone)]
 #[diesel(table_name = shifts)]
@@ -45,7 +80,7 @@ impl From<ShiftEntity> for Shift {
 #[diesel(table_name = shift_rosters)]
 pub struct ShiftRosterEntity {
     pub id: Uuid,
-    pub shift_id: Option<Uuid>,
+    pub template_id: Option<Uuid>,
     pub date: NaiveDate,
     pub status: Option<String>,
     pub notes: Option<String>,
@@ -59,7 +94,7 @@ impl From<ShiftRosterEntity> for ShiftRoster {
         Self {
             id: entity.id,
             employment_id: entity.employment_id,
-            shift_id: entity.shift_id,
+            shift_id: entity.template_id,
             date: entity.date,
             status: entity.status.unwrap_or_else(|| "scheduled".to_string()),
             notes: entity.notes,
@@ -74,7 +109,7 @@ impl From<ShiftRoster> for ShiftRosterEntity {
         Self {
             id: model.id,
             employment_id: model.employment_id,
-            shift_id: model.shift_id,
+            template_id: model.shift_id,
             date: model.date,
             status: Some(model.status),
             notes: model.notes,
@@ -88,7 +123,7 @@ impl From<ShiftRoster> for ShiftRosterEntity {
 #[diesel(table_name = employee_shifts)]
 pub struct EmployeeShiftEntity {
     pub id: Uuid,
-    pub shift_id: Uuid,
+    pub template_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: Option<NaiveDate>,
     pub created_at: Option<DateTime<Utc>>,
@@ -101,7 +136,7 @@ impl From<EmployeeShiftEntity> for EmployeeShift {
         Self {
             id: entity.id,
             employment_id: entity.employment_id,
-            shift_id: entity.shift_id,
+            shift_id: entity.template_id,
             start_date: entity.start_date,
             end_date: entity.end_date,
             created_at: entity.created_at.unwrap_or_else(Utc::now),
@@ -118,8 +153,8 @@ pub struct ShiftSwapRequestEntity {
     pub requester_id: Uuid,
     pub target_id: Uuid,
     pub swap_date: NaiveDate,
-    pub requester_shift_id: Option<Uuid>,
-    pub target_shift_id: Option<Uuid>,
+    pub requester_template_id: Option<Uuid>,
+    pub target_template_id: Option<Uuid>,
     pub status: String,
     pub reason: Option<String>,
     pub requested_by_user_id: Option<Uuid>,
@@ -143,8 +178,8 @@ impl From<ShiftSwapRequestEntity> for ShiftSwapRequest {
             entity.requester_id,
             entity.target_id,
             entity.swap_date,
-            entity.requester_shift_id,
-            entity.target_shift_id,
+            entity.requester_template_id,
+            entity.target_template_id,
             status,
             entity.reason,
             entity.requested_by_user_id,
@@ -188,6 +223,7 @@ impl ToSql<AssignmentHistoryTypeSql, Pg> for AssignmentHistoryType {
 }
 
 /// Diesel entity for `shift_default_intervals`.
+/// FK changed from `shift_id` (→ shifts.id) to `version_id` (→ shift_versions.id).
 #[derive(
     Debug, Clone, Queryable, Selectable, Insertable, Serialize, Deserialize, utoipa::ToSchema,
 )]
@@ -195,7 +231,7 @@ impl ToSql<AssignmentHistoryTypeSql, Pg> for AssignmentHistoryType {
 #[allow(clippy::struct_excessive_bools)]
 pub struct ShiftDefaultIntervalEntity {
     pub id: Uuid,
-    pub shift_id: Uuid,
+    pub version_id: Uuid,
     pub sort_order: i32,
     pub interval_name: Option<String>,
     pub start_time: NaiveTime,

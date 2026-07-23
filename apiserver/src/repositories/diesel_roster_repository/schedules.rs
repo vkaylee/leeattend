@@ -258,7 +258,7 @@ impl DieselRosterRepository {
 
         let mut roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>> = HashMap::new();
         for r in rosters_entities {
-            roster_map.insert((r.employment_id, r.date), r.shift_id);
+            roster_map.insert((r.employment_id, r.date), r.template_id);
         }
 
         // 5. Build Result

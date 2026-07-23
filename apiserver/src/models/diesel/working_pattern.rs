@@ -41,7 +41,7 @@ pub struct WorkingPatternDetailEntity {
     pub id: Uuid,
     pub pattern_id: Uuid,
     pub schedule_day: i32,
-    pub shift_id: Option<Uuid>,
+    pub template_id: Option<Uuid>,
 }
 
 impl From<WorkingPatternDetailEntity> for WorkingPatternDetail {
@@ -50,7 +50,7 @@ impl From<WorkingPatternDetailEntity> for WorkingPatternDetail {
             id: entity.id,
             pattern_id: entity.pattern_id,
             schedule_day: entity.schedule_day,
-            shift_id: entity.shift_id,
+            shift_id: entity.template_id,
         }
     }
 }

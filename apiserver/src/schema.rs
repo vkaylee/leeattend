@@ -1105,7 +1105,7 @@ diesel::table! {
 diesel::table! {
     employee_shifts (id) {
         id -> Uuid,
-        shift_id -> Uuid,
+        template_id -> Uuid,
         start_date -> Date,
         end_date -> Nullable<Date>,
         created_at -> Nullable<Timestamptz>,
@@ -1812,7 +1812,7 @@ diesel::table! {
 diesel::table! {
     shift_rosters (id) {
         id -> Uuid,
-        shift_id -> Nullable<Uuid>,
+        template_id -> Nullable<Uuid>,
         date -> Date,
         #[max_length = 20]
         status -> Nullable<Varchar>,
@@ -1830,8 +1830,8 @@ diesel::table! {
         requester_id -> Uuid,
         target_id -> Uuid,
         swap_date -> Date,
-        requester_shift_id -> Nullable<Uuid>,
-        target_shift_id -> Nullable<Uuid>,
+        requester_template_id -> Nullable<Uuid>,
+        target_template_id -> Nullable<Uuid>,
         #[max_length = 20]
         status -> Varchar,
         reason -> Nullable<Text>,
@@ -1856,6 +1856,57 @@ diesel::table! {
         report_symbol -> Nullable<Varchar>,
         location_id -> Nullable<Uuid>,
         employer_id -> Nullable<Uuid>,
+    }
+}
+
+diesel::table! {
+    shift_templates (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        #[max_length = 100]
+        name -> Varchar,
+        current_version_id -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    shift_versions (id) {
+        id -> Uuid,
+        template_id -> Uuid,
+        workspace_id -> Uuid,
+        version_number -> Int4,
+        #[max_length = 100]
+        name -> Varchar,
+        #[max_length = 10]
+        report_symbol -> Nullable<Varchar>,
+        location_id -> Nullable<Uuid>,
+        employer_id -> Nullable<Uuid>,
+        effective_from -> Date,
+        effective_to -> Nullable<Date>,
+        #[max_length = 20]
+        change_type -> Varchar,
+        change_reason -> Nullable<Text>,
+        superseded_by -> Nullable<Uuid>,
+        created_by -> Uuid,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    shift_audit_log (id) {
+        id -> Uuid,
+        template_id -> Uuid,
+        version_id -> Uuid,
+        #[max_length = 20]
+        action -> Varchar,
+        #[max_length = 20]
+        change_type -> Varchar,
+        changed_by -> Uuid,
+        change_reason -> Nullable<Text>,
+        old_values -> Nullable<Jsonb>,
+        new_values -> Nullable<Jsonb>,
+        created_at -> Timestamptz,
     }
 }
 
@@ -1976,7 +2027,7 @@ diesel::table! {
         created_at -> Nullable<Timestamptz>,
         updated_at -> Nullable<Timestamptz>,
         is_break_overtime -> Bool,
-        shift_id -> Nullable<Uuid>,
+        template_id -> Nullable<Uuid>,
         generation_metadata -> Nullable<Jsonb>,
         workspace_id -> Uuid,
         employment_id -> Uuid,
@@ -1986,7 +2037,7 @@ diesel::table! {
 diesel::table! {
     shift_default_intervals (id) {
         id -> Uuid,
-        shift_id -> Uuid,
+        version_id -> Uuid,
         sort_order -> Int4,
         #[max_length = 100]
         interval_name -> Nullable<Varchar>,
@@ -2017,7 +2068,7 @@ diesel::table! {
         workspace_id -> Uuid,
         employment_id -> Uuid,
         date -> Date,
-        shift_id -> Uuid,
+        template_id -> Uuid,
         interval_id -> Nullable<Uuid>,
         sort_order -> Int4,
         scheduled_start -> Time,
@@ -2104,7 +2155,7 @@ diesel::table! {
         id -> Uuid,
         pattern_id -> Uuid,
         schedule_day -> Int4,
-        shift_id -> Nullable<Uuid>,
+        template_id -> Nullable<Uuid>,
     }
 }
 
@@ -2308,7 +2359,7 @@ diesel::joinable!(employee_profiles -> employees (employee_id));
 diesel::joinable!(employee_salary_components -> employments (employment_id));
 diesel::joinable!(employee_salary_components -> salary_component_definitions (component_definition_id));
 diesel::joinable!(employee_shifts -> employments (employment_id));
-diesel::joinable!(employee_shifts -> shifts (shift_id));
+diesel::joinable!(employee_shifts -> shift_templates (template_id));
 diesel::joinable!(employee_working_patterns -> employments (employment_id));
 diesel::joinable!(employee_working_patterns -> working_patterns (pattern_id));
 diesel::joinable!(employments -> departments (department_id));
@@ -2355,22 +2406,25 @@ diesel::joinable!(salary_component_base_members -> salary_component_definitions 
 diesel::joinable!(salary_component_definitions -> payroll_rule_definitions (linked_rule_id));
 diesel::joinable!(sessions -> users (user_id));
 diesel::joinable!(shift_rosters -> employments (employment_id));
-diesel::joinable!(shift_rosters -> shifts (shift_id));
+diesel::joinable!(shift_rosters -> shift_templates (template_id));
 diesel::joinable!(shifts -> employers (employer_id));
 diesel::joinable!(shifts -> work_locations (location_id));
+diesel::joinable!(shift_versions -> shift_templates (template_id));
+diesel::joinable!(shift_audit_log -> shift_templates (template_id));
+diesel::joinable!(shift_audit_log -> shift_versions (version_id));
 diesel::joinable!(storage_configs -> workspaces (workspace_id));
 diesel::joinable!(system_audit_logs -> users (actor_id));
-diesel::joinable!(shift_default_intervals -> shifts (shift_id));
+diesel::joinable!(shift_default_intervals -> shift_versions (version_id));
 diesel::joinable!(time_entries -> employments (employment_id));
-diesel::joinable!(time_entries -> shifts (shift_id));
+diesel::joinable!(time_entries -> shift_templates (template_id));
 diesel::joinable!(work_segments -> employments (employment_id));
 diesel::joinable!(work_segments -> shift_default_intervals (interval_id));
-diesel::joinable!(work_segments -> shifts (shift_id));
+diesel::joinable!(work_segments -> shift_templates (template_id));
 diesel::joinable!(user_system_roles -> system_roles (role_id));
 diesel::joinable!(users -> system_files (avatar_file_id));
 diesel::joinable!(working_conditions -> condition_type_definitions (condition_type_id));
 diesel::joinable!(working_conditions -> employments (employment_id));
-diesel::joinable!(working_pattern_details -> shifts (shift_id));
+diesel::joinable!(working_pattern_details -> shift_templates (template_id));
 diesel::joinable!(working_pattern_details -> working_patterns (pattern_id));
 diesel::joinable!(workspace_member_extra_permissions -> users (user_id));
 diesel::joinable!(workspace_member_extra_permissions -> workspaces (workspace_id));
@@ -2493,9 +2547,12 @@ diesel::allow_tables_to_appear_in_same_query!(
     salary_component_base_members,
     salary_component_definitions,
     sessions,
+    shift_audit_log,
     shift_default_intervals,
     shift_rosters,
     shift_swap_requests,
+    shift_templates,
+    shift_versions,
     shifts,
     storage_configs,
     system_audit_logs,

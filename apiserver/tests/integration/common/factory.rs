@@ -518,17 +518,45 @@ impl ShiftBuilder {
     pub async fn create(self) -> Uuid {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
             let ws_id = self.workspace_id.expect("Workspace ID is required for Shift");
-            let shift_id: Uuid = crate::test_query_scalar_uuid!(
+            let now = chrono::Utc::now();
+            let today = now.date_naive();
+
+            let name = self.name.clone();
+
+            // 1. Create shift_templates row (returns template_id as stable identity)
+            let template_id: Uuid = crate::test_query_scalar_uuid!(
                 &self.diesel_pools.api,
-                "INSERT INTO shifts (workspace_id, name) VALUES ($1, $2) RETURNING id",
+                "INSERT INTO shift_templates (workspace_id, name, created_at) VALUES ($1, $2, $3) RETURNING id",
                 diesel::sql_types::Uuid, ws_id,
-                diesel::sql_types::Text, self.name
+                diesel::sql_types::Text, name.clone(),
+                diesel::sql_types::Timestamptz, now
             );
-            // Insert default interval with time/break/policy data
+
+            // 2. Create first version
+            let version_id: Uuid = crate::test_query_scalar_uuid!(
+                &self.diesel_pools.api,
+                "INSERT INTO shift_versions (template_id, workspace_id, version_number, name, effective_from, change_type, created_by, created_at) VALUES ($1, $2, 1, $3, $4, 'create', $5, $6) RETURNING id",
+                diesel::sql_types::Uuid, template_id,
+                diesel::sql_types::Uuid, ws_id,
+                diesel::sql_types::Text, name,
+                diesel::sql_types::Date, today,
+                diesel::sql_types::Uuid, Uuid::nil(),
+                diesel::sql_types::Timestamptz, now
+            );
+
+            // 3. Link current version on template
             crate::test_execute!(
                 &self.diesel_pools.api,
-                "INSERT INTO shift_default_intervals (shift_id, sort_order, start_time, end_time, break_duration_minutes, break_is_overtime, early_punch_in_grace_period_minutes, allow_early_ot) VALUES ($1, 0, $2, $3, $4, $5, $6, $7)",
-                diesel::sql_types::Uuid, shift_id,
+                "UPDATE shift_templates SET current_version_id = $1 WHERE id = $2",
+                diesel::sql_types::Uuid, version_id,
+                diesel::sql_types::Uuid, template_id
+            );
+
+            // 4. Insert default interval
+            crate::test_execute!(
+                &self.diesel_pools.api,
+                "INSERT INTO shift_default_intervals (version_id, sort_order, start_time, end_time, break_duration_minutes, break_is_overtime, early_punch_in_grace_period_minutes, allow_early_ot) VALUES ($1, 0, $2, $3, $4, $5, $6, $7)",
+                diesel::sql_types::Uuid, version_id,
                 diesel::sql_types::Time, self.start_time,
                 diesel::sql_types::Time, self.end_time,
                 diesel::sql_types::Integer, self.break_duration_minutes,
@@ -536,7 +564,7 @@ impl ShiftBuilder {
                 diesel::sql_types::Integer, self.early_punch_in_grace_period_minutes,
                 diesel::sql_types::Bool, self.allow_early_ot
             );
-            shift_id
+            template_id
         }).await.expect("Shift creation timed out")
     }
 
@@ -549,26 +577,21 @@ impl ShiftBuilder {
         let ws_id = self
             .workspace_id
             .expect("Workspace ID is required to assign shift");
-        let shift_id = self.create().await;
+        let template_id = self.create().await;
         let employment_id: Uuid = crate::test_query_scalar_uuid!(
             &pool.api,
             "SELECT id FROM employments WHERE employee_id = $1 AND workspace_id = $2 LIMIT 1",
-            diesel::sql_types::Uuid,
-            employee_id,
-            diesel::sql_types::Uuid,
-            ws_id
+            diesel::sql_types::Uuid, employee_id,
+            diesel::sql_types::Uuid, ws_id
         );
         crate::test_execute!(
             &pool.api,
-            "INSERT INTO employee_shifts (employment_id, shift_id, start_date) VALUES ($1, $2, $3)",
-            diesel::sql_types::Uuid,
-            employment_id,
-            diesel::sql_types::Uuid,
-            shift_id,
-            diesel::sql_types::Date,
-            start_date
+            "INSERT INTO employee_shifts (employment_id, template_id, start_date) VALUES ($1, $2, $3)",
+            diesel::sql_types::Uuid, employment_id,
+            diesel::sql_types::Uuid, template_id,
+            diesel::sql_types::Date, start_date
         );
-        shift_id
+        template_id
     }
 }
 

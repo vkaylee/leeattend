@@ -63,7 +63,7 @@ impl DieselRosterRepository {
             .filter(crate::schema::shift_rosters::employment_id.eq(actual_employment_id))
             .filter(crate::schema::shift_rosters::date.eq(date))
             .filter(crate::schema::employments::workspace_id.eq(workspace_id))
-            .select(crate::schema::shift_rosters::shift_id)
+            .select(crate::schema::shift_rosters::template_id)
             .first::<Option<Uuid>>(&mut *conn)
             .await
             .optional()
@@ -122,7 +122,7 @@ impl DieselRosterRepository {
                 .filter(crate::schema::employments::workspace_id.eq(workspace_id))
                 .order(crate::schema::employee_working_patterns::created_at.desc())
                 .select((
-                    crate::schema::working_pattern_details::shift_id,
+                    crate::schema::working_pattern_details::template_id,
                     crate::schema::employee_working_patterns::pattern_id,
                 ))
                 .first::<(Option<Uuid>, Uuid)>(&mut *conn)
@@ -262,7 +262,7 @@ impl DieselRosterRepository {
                                     .eq(rule.pattern_id()),
                             )
                             .filter(crate::schema::working_pattern_details::schedule_day.eq(dow))
-                            .select(crate::schema::working_pattern_details::shift_id)
+                            .select(crate::schema::working_pattern_details::template_id)
                             .first::<Option<Uuid>>(&mut *conn)
                             .await
                             .optional()
@@ -289,7 +289,7 @@ impl DieselRosterRepository {
             )
             .filter(crate::schema::employments::workspace_id.eq(workspace_id))
             .order(crate::schema::employee_shifts::created_at.desc())
-            .select(crate::schema::employee_shifts::shift_id)
+            .select(crate::schema::employee_shifts::template_id)
             .first::<Uuid>(&mut *conn)
             .await
             .optional()

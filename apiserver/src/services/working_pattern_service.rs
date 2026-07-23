@@ -414,8 +414,6 @@ mod tests {
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
             req: &crate::models::CreateShiftRequest,
-            _a: bool,
-            _p: Option<Uuid>,
         ) -> Result<Shift, AppError> {
             Ok(Shift::new(
                 Uuid::new_v4(),
@@ -423,7 +421,7 @@ mod tests {
                 req.name.clone(),
                 None,
                 true,
-                _p,
+                None,
                 req.location_id,
                 req.employer_id,
                 Utc::now(),
@@ -472,11 +470,15 @@ mod tests {
             );
             Ok((vec![s1, s2], 2))
         }
-        async fn update_shift_direct(
+        async fn create_new_version(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _id: Uuid,
-            _r: &crate::models::UpdateShiftRequest,
+            _template_id: Uuid,
+            _req: &crate::models::UpdateShiftRequest,
+            _change_type: &str,
+            _effective_date: NaiveDate,
+            _created_by: Uuid,
+            _change_reason: Option<String>,
         ) -> Result<Shift, AppError> {
             unimplemented!()
         }
@@ -504,15 +506,6 @@ mod tests {
             _d: NaiveDate,
         ) -> Result<Option<Shift>, AppError> {
             Ok(None)
-        }
-        async fn update_assignments_to_new_version(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _o: Uuid,
-            _n: Uuid,
-            _d: NaiveDate,
-        ) -> Result<(), AppError> {
-            Ok(())
         }
     }
 

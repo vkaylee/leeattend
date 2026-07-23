@@ -460,18 +460,39 @@ async fn test_concurrent_reprocess_does_not_double_insert_sessions() {
     // 1. Create a shift 07:30-16:30 with break 11:30-12:30.
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
+    let now = chrono::Utc::now();
+    let today = now.date_naive();
+
+    // Create shift template
+    let template_id: Uuid = crate::test_query_scalar_uuid!(
+        &diesel_pools.api,
+        "INSERT INTO shift_templates (workspace_id, name, created_at) VALUES ($1, $2, $3) RETURNING id",
+        diesel::sql_types::Uuid, ws_id,
+        diesel::sql_types::Text, "0730-1630 with break",
+        diesel::sql_types::Timestamptz, now
+    );
+    // Create first version
     let shift_id: Uuid = crate::test_query_scalar_uuid!(
         &diesel_pools.api,
-        "INSERT INTO shifts (workspace_id, name) VALUES ($1, $2) RETURNING id",
-        diesel::sql_types::Uuid,
-        ws_id,
-        diesel::sql_types::Text,
-        "0730-1630 with break"
+        "INSERT INTO shift_versions (template_id, workspace_id, version_number, name, effective_from, change_type, created_by, created_at) VALUES ($1, $2, 1, $3, $4, 'create', $5, $6) RETURNING id",
+        diesel::sql_types::Uuid, template_id,
+        diesel::sql_types::Uuid, ws_id,
+        diesel::sql_types::Text, "0730-1630 with break",
+        diesel::sql_types::Date, today,
+        diesel::sql_types::Uuid, Uuid::nil(),
+        diesel::sql_types::Timestamptz, now
+    );
+    // Link current version
+    crate::test_execute!(
+        &diesel_pools.api,
+        "UPDATE shift_templates SET current_version_id = $1 WHERE id = $2",
+        diesel::sql_types::Uuid, shift_id,
+        diesel::sql_types::Uuid, template_id
     );
     crate::test_execute!(
         &diesel_pools.api,
         "INSERT INTO shift_default_intervals \
-            (shift_id, sort_order, start_time, end_time, \
+            (version_id, sort_order, start_time, end_time, \
              break_duration_minutes, break_start, break_end, \
              is_break_auto_deduct, break_is_overtime, \
              early_punch_in_grace_period_minutes, allow_early_ot) \
@@ -501,11 +522,11 @@ async fn test_concurrent_reprocess_does_not_double_insert_sessions() {
     let employment_id_for_assign = emp_employment_id;
     crate::test_execute!(
         &diesel_pools.api,
-        "INSERT INTO employee_shifts (employment_id, shift_id, start_date) VALUES ($1, $2, $3)",
+        "INSERT INTO employee_shifts (employment_id, template_id, start_date) VALUES ($1, $2, $3)",
         diesel::sql_types::Uuid,
         employment_id_for_assign,
         diesel::sql_types::Uuid,
-        shift_id,
+        template_id,
         diesel::sql_types::Date,
         base_date
     );

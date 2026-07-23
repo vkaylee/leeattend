@@ -77,7 +77,7 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
     // Assign shift to employee for Jan 5
     crate::test_execute!(
         &pool.api,
-        "INSERT INTO employee_shifts (employment_id, shift_id, start_date) VALUES ($1, $2, $3)",
+        "INSERT INTO employee_shifts (employment_id, template_id, start_date) VALUES ($1, $2, $3)",
         diesel::sql_types::Uuid,
         employment_id,
         diesel::sql_types::Uuid,
@@ -251,7 +251,7 @@ async fn test_grace_period_nonzero_shift_overrides() {
 
     crate::test_execute!(
         &pool.api,
-        "INSERT INTO employee_shifts (employment_id, shift_id, start_date) VALUES ($1, $2, $3)",
+        "INSERT INTO employee_shifts (employment_id, template_id, start_date) VALUES ($1, $2, $3)",
         diesel::sql_types::Uuid,
         employment_id,
         diesel::sql_types::Uuid,
