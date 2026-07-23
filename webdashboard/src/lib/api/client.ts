@@ -30,8 +30,7 @@ async function extractRequestInfo(
     const method = options.method.toUpperCase();
     if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
       try {
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-        const contentType = url.headers.get("content-type") || "";
+        const contentType = url.headers.get("content-type") ?? "";
         if (contentType.includes("multipart/form-data")) {
           const formData = await url.clone().formData();
           options.body = formData;

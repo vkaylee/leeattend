@@ -195,8 +195,7 @@ export function HireDatesSection({
 }) {
     const sortedEmployments = [...employments].sort((a, b) => a.start_date.localeCompare(b.start_date));
     const originalHireDate = sortedEmployments[0]?.start_date ?? "";
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-    const activeOrLatestEmployment = employments.find(e => e.status === "active") || sortedEmployments[sortedEmployments.length - 1];
+    const activeOrLatestEmployment = employments.find(e => e.status === "active") ?? sortedEmployments[sortedEmployments.length - 1];
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const hireDate = activeOrLatestEmployment?.start_date ?? "";
 

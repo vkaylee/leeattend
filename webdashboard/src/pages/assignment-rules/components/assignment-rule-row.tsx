@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import { Pencil, Trash2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";

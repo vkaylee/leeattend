@@ -213,7 +213,7 @@ export async function fetchCompensationHistory(
   const { data } = await client.GET("/workspaces/{workspace_id}/employees/{id}/compensation-history", {
     params: {
       path: { workspace_id: wsId, id: employeeId },
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+      // || intentional: empty-string employment_id from form inputs must be coerced to undefined
       query: { employment_id: employmentId || undefined },
     },
   });

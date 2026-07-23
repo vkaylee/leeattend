@@ -10,6 +10,8 @@ import { useWorkspace } from "@/hooks/use-workspace";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
 
+const noop = () => undefined;
+
 export function DocumentManagementPage() {
   const { workspace } = useWorkspace();
   const { data: folders = [] } = useFolders(workspace?.id);
@@ -35,12 +37,9 @@ export function DocumentManagementPage() {
         <div className="flex-1 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 overflow-y-auto shadow-sm">
           <FileGrid
             files={files}
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-            onDeleteFile={() => {}}
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-            onDownloadFile={() => {}}
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-            onViewFile={() => {}}
+            onDeleteFile={noop}
+            onDownloadFile={noop}
+            onViewFile={noop}
           />
         </div>
       </div>

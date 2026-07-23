@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/prefer-nullish-coalescing, react/forbid-elements */
+/* eslint-disable react/forbid-elements */
 import { ChevronDown, ChevronLeft, ChevronRight, X, User, FolderOpen, FileText, Milestone, ArrowLeftRight, DollarSign, History, Calendar, ShieldCheck, CheckSquare } from "lucide-react";
 import { createElement, useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 
@@ -166,7 +166,7 @@ export default function DrawerHeader({
         { id: "attendance-policy" as DetailTabType, label: t("employees.details.special_policies"), icon: ShieldCheck },
         { id: "lifecycle" as DetailTabType, label: "Checklist", icon: CheckSquare }
     ];
-    const activeTabObj = tabs.find(tab => tab.id === activeDetailTab) || tabs[0];
+    const activeTabObj = tabs.find(tab => tab.id === activeDetailTab) ?? tabs[0];
 
     return (
         <div className="sticky top-0 z-20 p-10 border-b border-slate-50 dark:border-slate-800 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm shadow-sm">

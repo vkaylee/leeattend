@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-nullish-coalescing, complexity */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition, complexity */
 import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { 
@@ -122,7 +122,7 @@ export default function PayrollDetailDrawer({
 
   if (!employee) return null;
 
-  const activeEmployment = employments.find(emp => emp.id === employee.active_employment_id) || employments[0];
+  const activeEmployment = employments.find(emp => emp.id === employee.active_employment_id) ?? employments[0];
   const hireDate = activeEmployment?.start_date ?? "—";
 
   return (

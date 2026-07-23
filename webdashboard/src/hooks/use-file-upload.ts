@@ -54,8 +54,7 @@ export function useFileUpload({
         });
 
         if (error) {
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-            throw new Error((error as { message?: string }).message || t('errors.upload_failed'));
+            throw new Error((error as { message?: string }).message ?? t('errors.upload_failed'));
         }
         
         setProgress(100);
@@ -84,8 +83,8 @@ export function useFileUpload({
         } catch (err) {
           // TODO(blocking: backend-schema): presigned-error shape differs from generated.
           throw new Error(
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-nullish-coalescing
-            (err as { message?: string })?.message || t("errors.presigned_url_failed"),
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            (err as { message?: string })?.message ?? t("errors.presigned_url_failed"),
           );
         }
 

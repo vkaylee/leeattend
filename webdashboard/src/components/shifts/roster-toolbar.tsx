@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-empty-function, @typescript-eslint/prefer-nullish-coalescing, max-lines */
+/* eslint-disable max-lines */
 import { 
   CalendarDays,
   Calendar as CalendarIcon,
@@ -29,6 +29,8 @@ import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Employee, Shift } from "@/lib/api/types";
 import { useShifts } from "@/pages/shifts/hooks/use-shifts";
+
+const noop = () => undefined;
 
 const dateLocales: Partial<Record<string, Locale>> = {
   vi: vi,
@@ -86,7 +88,7 @@ const RosterActionBar = memo(function RosterActionBar({
                 onClick={() => { onApplyShift(shift.id); }}
                 variant="ghost"
               >
-                {shift.report_symbol || shift.name.substring(0, 2).toUpperCase()}
+                {shift.report_symbol ?? shift.name.substring(0, 2).toUpperCase()}
               </Button>
             ))}
           </div>
@@ -204,8 +206,8 @@ function MonthViewControls({
   selectedEmployeesMeta?: Employee[];
 }) {
   const { t } = useTranslation();
-  const selectedMetaRef = useRef<Employee[]>(selectedEmployeesMeta || []);
-  useEffect(() => { selectedMetaRef.current = selectedEmployeesMeta || []; }, [selectedEmployeesMeta]);
+  const selectedMetaRef = useRef<Employee[]>(selectedEmployeesMeta ?? []);
+  useEffect(() => { selectedMetaRef.current = selectedEmployeesMeta ?? []; }, [selectedEmployeesMeta]);
 
   // Snapshot of the last cleared selection, so a single "clear all" can be
   // undone before the user starts building a new group. Auto-expires so the
@@ -464,10 +466,10 @@ function MonthOverlay({
       cancelLabel={t("common.cancel")}
       clearLabel={t("shifts.monthly.clear_month")}
       isMutating={isMutating ?? false}
-      onApplyShift={onApplyShift ?? (() => {})}
-      onAssignSelected={onAssignSelected ?? (() => {})}
-      onCancel={onCancelSelection ?? (() => {})}
-      onClearOverrides={onClearOverrides ?? (() => {})}
+      onApplyShift={onApplyShift ?? noop}
+      onAssignSelected={onAssignSelected ?? noop}
+      onCancel={onCancelSelection ?? noop}
+      onClearOverrides={onClearOverrides ?? noop}
       selectedCount={selectedCells.size}
       selectedLabel={t("shifts.monthly.cells_selected", { count: selectedCells.size })}
       shifts={hook.shifts}

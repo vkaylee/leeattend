@@ -3,13 +3,13 @@ import { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
-import { 
-  fetchPolicyAssignments, 
-  upsertPolicyAssignment, 
-  deletePolicyAssignment, 
-  fetchDepartments, 
+import {
+  fetchPolicyAssignments,
+  upsertPolicyAssignment,
+  deletePolicyAssignment,
+  fetchDepartments,
   fetchEmployees,
-  Employee, 
+  Employee,
   UpsertPolicyAssignmentRequest,
   PolicyAssignmentResponse
 } from "@/lib/api";
@@ -34,21 +34,21 @@ export function usePolicyAssignments(wsId: string) {
   const [gracePeriodMinutes, setGracePeriodMinutes] = useState<number | undefined>(undefined);
 
   // Queries
-  const { data: assignments = [], isLoading: isLoadingAssignments } = useQuery<PolicyAssignmentResponse[]>({ 
-    queryKey: ["attendance-policy-assignments", wsId], 
-    queryFn: () => fetchPolicyAssignments(wsId) 
+  const { data: assignments = [], isLoading: isLoadingAssignments } = useQuery<PolicyAssignmentResponse[]>({
+    queryKey: ["attendance-policy-assignments", wsId],
+    queryFn: () => fetchPolicyAssignments(wsId)
   });
-  
-  const { data: departments = [] } = useQuery({ 
-    queryKey: ["departments", wsId], 
-    queryFn: () => fetchDepartments(wsId) 
+
+  const { data: departments = [] } = useQuery({
+    queryKey: ["departments", wsId],
+    queryFn: () => fetchDepartments(wsId)
   });
-  
-  const { data: employeesResponse } = useQuery({ 
-    queryKey: ["employees", wsId], 
-    queryFn: () => fetchEmployees(wsId, 1, 1000) 
+
+  const { data: employeesResponse } = useQuery({
+    queryKey: ["employees", wsId],
+    queryFn: () => fetchEmployees(wsId, 1, 1000)
   });
-  
+
   const employees = useMemo(() => employeesResponse?.data ?? [], [employeesResponse]);
 
   // Mutations
@@ -69,25 +69,25 @@ export function usePolicyAssignments(wsId: string) {
   });
 
   // Derived state & helpers
-  const filteredAssignments = useMemo(() => 
+  const filteredAssignments = useMemo(() =>
     assignments.filter(a => activeFilter === "ALL" || a.target_type === activeFilter),
     [assignments, activeFilter]
   );
-  
+
   const deptMap = useMemo(() => new Map(departments.map(d => [d.id, d.name])), [departments]);
   const empMap = useMemo(() => new Map(employees.map((e: Employee) => [e.id, e.full_name])), [employees]);
-  
-  const getTargetName = useCallback((type: string, id: string) => 
+
+  const getTargetName = useCallback((type: string, id: string) =>
     type === "GROUP" ? deptMap.get(id) ?? "Unknown Department" : empMap.get(id) ?? "Unknown Employee",
     [deptMap, empMap]
   );
 
-  const workUnitLabel = useCallback((v: number) => 
+  const workUnitLabel = useCallback((v: number) =>
     t(`common.workspace_settings.work_unit_options.${v}min`, { defaultValue: `${v} min` }),
     [t]
   );
 
-  const roundingLabel = useCallback((v: string) => 
+  const roundingLabel = useCallback((v: string) =>
     t(`common.workspace_settings.rounding_options.${v}`, { defaultValue: v }),
     [t]
   );
@@ -104,8 +104,7 @@ export function usePolicyAssignments(wsId: string) {
       rounding_policy: roundingPolicy,
       early_arrival_strategy: earlyArrivalStrategy,
       valid_from: validFrom,
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-      grace_period_minutes: gracePeriodMinutes === undefined ? null : gracePeriodMinutes
+      grace_period_minutes: gracePeriodMinutes ?? null
     }, {
       onSuccess: () => {
         setIsDrawerOpen(false);

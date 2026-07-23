@@ -87,8 +87,8 @@ function CellErrorTooltip({ cellError, rowId, columnId }: { cellError: string; r
 interface SmartTableCellProps<T> {
   cell: Cell<T, unknown>;
   cellError?: string;
-  // eslint-disable-next-line @typescript-eslint/no-deprecated -- RefObject doesn't support mutable .current
-  cellRefs: React.MutableRefObject<Record<string, HTMLTableCellElement | null>>;
+  // RefObject.current is mutable in React 19 types — no need for MutableRefObject
+  cellRefs: React.RefObject<Record<string, HTMLTableCellElement | null>>;
   colIndex: number;
   editingCell: { rowIndex: number; colIndex: number } | null;
   editValue: unknown;
@@ -202,8 +202,8 @@ function SmartTableCell<T>({
 
 export interface SmartTableRowProps<T> {
   cellErrors: Record<string, string>;
-  // eslint-disable-next-line @typescript-eslint/no-deprecated -- RefObject doesn't support mutable .current needed for cell ref map
-  cellRefs: React.MutableRefObject<Record<string, HTMLTableCellElement | null>>;
+  // RefObject.current is mutable in React 19 types — no need for MutableRefObject
+  cellRefs: React.RefObject<Record<string, HTMLTableCellElement | null>>;
   dragCurrentRow: number | null;
   dragStartRow: number | null;
   editingCell: { rowIndex: number; colIndex: number } | null;

@@ -8,7 +8,7 @@ import type { ContractStatus, ContractType, EmployeeContract } from "@/lib/api";
 
 import PermissionGate from "@/components/common/permission-gate";
 import Button from "@/components/ui/button";
-import { fetchEContractEnvelopes, EContractEnvelope } from "@/lib/api/econtracts";
+import { EContractEnvelope } from "@/lib/api/econtracts";
 import { fetchEmployers } from "@/lib/api/employers";
 import { cn } from "@/lib/utils";
 import { useEmployeeContracts } from "@/pages/employees/hooks/use-employee-contracts";
@@ -33,16 +33,12 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
   const [selectedEnvelope, setSelectedEnvelope] = useState<EContractEnvelope | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  // e-signature backend not yet wired — employers are fetched for future use
+  // but envelopes are always empty for now.
   const { data: employers = [] } = useQuery({
     queryKey: ["employers", wsId],
     queryFn: () => fetchEmployers(wsId),
     enabled: !!wsId,
-  });
-
-  const { data: envelopes = [] } = useQuery({
-    queryKey: ["econtract-envelopes", wsId],
-    queryFn: () => fetchEContractEnvelopes(wsId, employers),
-    enabled: !!wsId && employers.length > 0,
   });
 
   if (isLoading) {
@@ -114,7 +110,8 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
         ) : (
           <div className="relative pl-12 space-y-8 before:absolute before:left-[11px] before:top-4 before:bottom-4 before:w-px before:bg-slate-100 dark:before:bg-slate-700">
             {contracts.map((contract: EmployeeContract, index: number) => {
-              const envelope = envelopes.find((env: EContractEnvelope) => env.contract_id === contract.id);
+              // Envelopes disabled until e-signature backend is wired
+              const envelope = null;
               return (
                 <div className="relative animate-in slide-in-from-left duration-500" key={contract.id}>
                   <div className={cn("absolute -left-[3.15rem] top-1 w-6 h-6 rounded-full border-4 border-white dark:border-slate-900 shadow-xl ring-4 z-10", index === 0 && contract.status === "active" ? 'bg-emerald-50 dark:bg-emerald-950 ring-emerald-50 dark:ring-emerald-900/30 animate-pulse' : 'bg-primary-600 ring-primary-50 dark:ring-primary-900/30')}></div>

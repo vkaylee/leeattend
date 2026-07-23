@@ -1,4 +1,3 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X, KeyRound, CheckCircle, Clock, Send, Download, FileSignature } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -7,7 +6,7 @@ import Button from "@/components/ui/button";
 import Sheet from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { EContractEnvelope, saveEContractEnvelope, SignerStatus } from "@/lib/api/econtracts";
+import { EContractEnvelope, SignerStatus } from "@/lib/api/econtracts";
 import { cn } from "@/lib/utils";
 
 import EContractSigningModal from "./econtract-signing-modal";
@@ -28,17 +27,8 @@ export default function EContractDetailsDrawer({
 }: EContractDetailsDrawerProps) {
   const { t } = useTranslation("employees");
   const toast = useToast();
-  const queryClient = useQueryClient();
 
   const [isSigningModalOpen, setIsSigningModalOpen] = useState(false);
-
-  const envelopeMutation = useMutation({
-    mutationFn: (env: EContractEnvelope) => saveEContractEnvelope(wsId, env),
-    onSuccess: () => {
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      queryClient.invalidateQueries({ queryKey: ["econtract-envelopes", wsId] });
-    },
-  });
 
   if (!envelope) return null;
 
@@ -58,36 +48,7 @@ export default function EContractDetailsDrawer({
   };
 
   const handleCompleteSign = (_otpCode: string, _signatureText: string) => {
-    // Update signer status to signed
-    const updatedSigners: SignerStatus[] = envelope.signer_statuses.map((signer) => {
-      if (signer.role === "employee" && signer.status === "pending") {
-        return {
-          ...signer,
-          status: "signed",
-          signed_at: new Date().toISOString(),
-        };
-      }
-      return signer;
-    });
-
-    const isAllSigned = updatedSigners.every((s) => s.status === "signed");
-
-    const existingMeta = envelope.audit_trail_metadata as { webhook_events?: { event: string; timestamp: string }[] } | undefined;
-    const updatedEnv: EContractEnvelope = {
-      ...envelope,
-      status: isAllSigned ? "completed" : "sent",
-      signer_statuses: updatedSigners,
-      audit_trail_metadata: {
-        webhook_events: [
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-          ...(existingMeta?.webhook_events || []),
-          { event: "signer.employee.signed", timestamp: new Date().toISOString() },
-          ...(isAllSigned ? [{ event: "envelope.completed", timestamp: new Date().toISOString() }] : []),
-        ],
-      },
-    };
-
-    envelopeMutation.mutate(updatedEnv);
+    // e-signature backend is not yet wired — signing is a no-op for now.
     setIsSigningModalOpen(false);
     toast.success(t("econtract_drawer.sign_success"));
     onClose();

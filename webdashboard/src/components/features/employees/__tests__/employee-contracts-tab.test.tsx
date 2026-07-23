@@ -5,7 +5,6 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
 import { ToastProvider } from "@/components/ui/toast";
-import { fetchEContractEnvelopes } from "@/lib/api/econtracts";
 import { fetchEmployers } from "@/lib/api/employers";
 import { useEmployeeContracts } from "@/pages/employees/hooks/use-employee-contracts";
 
@@ -25,10 +24,6 @@ vi.mock("@/pages/employees/hooks/use-employee-contracts", () => ({
 
 vi.mock("@/lib/api/employers", () => ({
   fetchEmployers: vi.fn(),
-}));
-
-vi.mock("@/lib/api/econtracts", () => ({
-  fetchEContractEnvelopes: vi.fn(),
 }));
 
 vi.mock("@/hooks/use-permissions", () => ({
@@ -107,19 +102,6 @@ const mockEmployers = [
   { id: "employer-1", name: "Mock Employer" }
 ];
 
-const mockEnvelopes = [
-  {
-    id: "env-1",
-    contract_id: "contract-1",
-    employer_id: "employer-1",
-    provider_type: "smartca",
-    external_envelope_id: "VNPT-ENV-887192",
-    status: "sent" as const,
-    signer_statuses: [],
-    created_at: "2025-01-01T07:00:00Z",
-  },
-];
-
 describe("EmployeeContractsTab Component", () => {
   let queryClient: QueryClient;
 
@@ -145,7 +127,6 @@ describe("EmployeeContractsTab Component", () => {
     });
 
     (fetchEmployers as Mock).mockResolvedValue(mockEmployers);
-    (fetchEContractEnvelopes as Mock).mockResolvedValue(mockEnvelopes);
   });
 
   const renderTab = () => {
@@ -177,7 +158,7 @@ describe("EmployeeContractsTab Component", () => {
     expect(screen.getByText(/Chưa có hợp đồng/i)).toBeInTheDocument();
   });
 
-  it("renders contracts list and e-sign pending status badge", async () => {
+  it("renders contracts list with contract metadata", async () => {
     (useEmployeeContracts as Mock).mockReturnValue({
       contracts: mockContracts,
       isLoading: false,
@@ -192,11 +173,8 @@ describe("EmployeeContractsTab Component", () => {
     // Verify contract metadata renders
     expect(screen.getByText("HD-001", { exact: false })).toBeInTheDocument();
 
-    // Verify e-sign details badge is rendered
-    await waitFor(() => {
-      expect(screen.getByText(/e-Sign: sent/i)).toBeInTheDocument();
-      expect(screen.getByText(/e-Sign Details/i)).toBeInTheDocument();
-    });
+    // e-sign badges are disabled until backend is wired
+    expect(screen.queryByText(/e-Sign:/i)).toBeNull();
   });
 
   it("opens edit modal and triggers delete mutation when clicked", async () => {
@@ -232,37 +210,6 @@ describe("EmployeeContractsTab Component", () => {
     if (deleteBtn) {
       fireEvent.click(deleteBtn);
       expect(mockDelete).toHaveBeenCalledWith("contract-1");
-    }
-  });
-
-  it("opens details drawer when clicking e-Sign Details button and closes it", async () => {
-    (useEmployeeContracts as Mock).mockReturnValue({
-      contracts: mockContracts,
-      isLoading: false,
-      isError: false,
-      createContract: { mutate: vi.fn(), isPending: false },
-      updateContract: { mutate: vi.fn(), isPending: false },
-      deleteContract: { mutate: vi.fn(), isPending: false },
-    });
-
-    const { container } = renderTab();
-
-    await waitFor(() => {
-      expect(screen.getByText(/e-Sign Details/i)).toBeInTheDocument();
-    });
-
-    const detailsBtn = screen.getByText(/e-Sign Details/i);
-    fireEvent.click(detailsBtn);
-
-    // EContractDetailsDrawer should open showing audit title
-    await waitFor(() => {
-      expect(screen.getByText("Chi tiết Ký số (e-Sign Audit)")).toBeInTheDocument();
-    });
-
-    // Close the drawer by clicking close
-    const closeBtn = container.querySelector("button[aria-label='Close drawer']") || screen.getByRole("button", { name: /close/i });
-    if (closeBtn) {
-      fireEvent.click(closeBtn);
     }
   });
 

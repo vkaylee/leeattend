@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Mail, Save, Send, CheckCircle, XCircle, Loader2, ShieldCheck, AlertTriangle, ChevronDown, Globe, Sparkles } from "lucide-react";
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
@@ -30,7 +30,8 @@ export default function SmtpSettingsPage() {
 
   const [dirty, setDirty] = useState(false);
   const [testEmail, setTestEmail] = useState("");
-  const [showHttpApi, setShowHttpApi] = useState(false);
+  // Initialize from config if it already has http_api; UI auto-expands.
+  const [showHttpApi, setShowHttpApi] = useState(() => !!config?.http_api);
   const [showDefaultConfirm, setShowDefaultConfirm] = useState(false);
 
   const DEFAULT_HTTP_API_TEMPLATE = JSON.stringify(
@@ -58,29 +59,47 @@ export default function SmtpSettingsPage() {
   const [overrides, setOverrides] = useState<Partial<SmtpConfigData>>({});
   const [httpOverrides, setHttpOverrides] = useState<Partial<HttpApiConfig>>({});
 
-  // eslint-disable-next-line complexity
-  const form: SmtpConfigData = useMemo(() => ({
-    host: overrides.host ?? config?.host ?? "",
-    port: overrides.port ?? config?.port ?? 587,
-    username: overrides.username ?? config?.username ?? "",
-    password: overrides.password ?? config?.password ?? "",
-    from: overrides.from ?? config?.from ?? "",
-    base_url: overrides.base_url ?? config?.base_url ?? "",
-    http_api: config?.http_api ?? undefined,
-  }), [config, overrides]);
+  // ── Derived form state from config + overrides ──
 
-  // eslint-disable-next-line complexity -- useMemo with nested config default coalescing; pure data mapping
-  const httpForm: HttpApiConfig = useMemo(() => {
-    const src = overrides.http_api ?? config?.http_api;
+  /**
+   * Merged SMTP config form. Avoids per-field coalescing boilerplate by
+   * spreading the priority chain: overrides → config → defaults.
+   */
+  function buildForm(cfg: SmtpConfigData | null | undefined, ov: Partial<SmtpConfigData>): SmtpConfigData {
     return {
-      url: httpOverrides.url ?? src?.url ?? "",
-      auth_header: httpOverrides.auth_header ?? src?.auth_header ?? "",
-      auth_value: httpOverrides.auth_value ?? src?.auth_value ?? "",
-      success_field: httpOverrides.success_field ?? src?.success_field ?? "",
-      success_value: httpOverrides.success_value ?? src?.success_value ?? true,
-      body_template: httpOverrides.body_template ?? src?.body_template ?? "",
+      host: ov.host ?? cfg?.host ?? "",
+      port: ov.port ?? cfg?.port ?? 587,
+      username: ov.username ?? cfg?.username ?? "",
+      password: ov.password ?? cfg?.password ?? "",
+      from: ov.from ?? cfg?.from ?? "",
+      base_url: ov.base_url ?? cfg?.base_url ?? "",
+      http_api: cfg?.http_api ?? undefined,
     };
-  }, [config, overrides, httpOverrides]);
+  }
+
+  const form: SmtpConfigData = useMemo(() => buildForm(config, overrides), [config, overrides]);
+
+  /** Merged HTTP API config form. Priority: httpOverrides → config.http_api → defaults. */
+  function buildHttpForm(
+    cfg: SmtpConfigData | null | undefined,
+    ov: Partial<SmtpConfigData>,
+    hov: Partial<HttpApiConfig>,
+  ): HttpApiConfig {
+    const src = ov.http_api ?? cfg?.http_api;
+    return {
+      url: hov.url ?? src?.url ?? "",
+      auth_header: hov.auth_header ?? src?.auth_header ?? "",
+      auth_value: hov.auth_value ?? src?.auth_value ?? "",
+      success_field: hov.success_field ?? src?.success_field ?? "",
+      success_value: hov.success_value ?? src?.success_value ?? true,
+      body_template: hov.body_template ?? src?.body_template ?? "",
+    };
+  }
+
+  const httpForm: HttpApiConfig = useMemo(
+    () => buildHttpForm(config, overrides, httpOverrides),
+    [config, overrides, httpOverrides],
+  );
 
   const handleFillDefault = useCallback(() => {
     setShowDefaultConfirm(false);
@@ -95,13 +114,7 @@ export default function SmtpSettingsPage() {
     setDirty(true);
   }, [DEFAULT_HTTP_API_TEMPLATE]);
 
-  // Auto-expand when config already has http_api
-  useEffect(() => {
-    if (config?.http_api && !dirty) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setShowHttpApi(true);
-    }
-  }, [config?.http_api, dirty]);
+  // ── Handlers ──
 
   const updateField = (field: keyof SmtpConfigData, value: string | number) => {
     setOverrides((prev) => ({ ...prev, [field]: value }));
@@ -123,35 +136,35 @@ export default function SmtpSettingsPage() {
     },
   });
 
-  // eslint-disable-next-line complexity -- payload builder with 10+ field coalescence; pure data mapping
-  const handleSave = () => {
+  /** Build save payload from current form state. Pure function — no side effects. */
+  function buildSavePayload(smtp: SmtpConfigData, http: HttpApiConfig): SmtpConfigData {
     const payload: SmtpConfigData = {
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-      host: form.host || undefined,
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-      port: form.port || undefined,
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-      username: form.username || undefined,
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-      password: form.password || undefined,
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-      from: form.from || undefined,
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-      base_url: form.base_url || undefined,
+      host: smtp.host || undefined,
+      port: smtp.port || undefined,
+      username: smtp.username || undefined,
+      password: smtp.password || undefined,
+      from: smtp.from || undefined,
+      base_url: smtp.base_url || undefined,
     };
     // Include http_api if URL is filled
-    if (httpForm.url.trim()) {
+    if (http.url.trim()) {
       payload.http_api = {
-        url: httpForm.url.trim(),
-        auth_header: httpForm.auth_header ?? undefined,
-        auth_value: httpForm.auth_value ?? undefined,
-        success_field: httpForm.success_field ?? undefined,
-        success_value: httpForm.success_field ? (httpForm.success_value ?? true) : undefined,
-        body_template: httpForm.body_template.trim(),
+        url: http.url.trim(),
+        auth_header: http.auth_header || undefined,
+        auth_value: http.auth_value || undefined,
+        success_field: http.success_field || undefined,
+        success_value: http.success_field ? (http.success_value ?? true) : undefined,
+        body_template: http.body_template.trim(),
       };
     } else {
       payload.http_api = null;
     }
+    return payload;
+  }
+
+  // eslint-disable-next-line complexity -- payload builder with 10+ field coalescence; pure data mapping
+  const handleSave = () => {
+    const payload = buildSavePayload(form, httpForm);
     saveMutation.mutate(payload);
   };
 
@@ -281,8 +294,7 @@ export default function SmtpSettingsPage() {
                 }}
                 placeholder={placeholder}
                 type={type}
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                value={type === "number" ? (form[key] as number) || "" : (form[key] as string) ?? ""}
+                value={String(form[key] ?? "")}
               />
               {hint ? (
                 <Typography className="text-[11px] text-slate-400 dark:text-slate-500" variant="p">{hint}</Typography>

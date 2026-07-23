@@ -70,8 +70,7 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
     queryFn: () => fetchEmployeeEmployments(wsId, empIdToUse),
     enabled: !!wsId && !!empIdToUse && isOpen,
   });
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-  const activeEmployment = employments.find(e => e.status === "active") || employments[0];
+  const activeEmployment = employments.find(e => e.status === "active") ?? employments[0];
 
   if (leaveTypes.length > 0 && !leaveTypeId) {
     setLeaveTypeId(leaveTypes[0].id);

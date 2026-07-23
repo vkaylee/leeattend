@@ -58,8 +58,7 @@ export function useEmployeeDetail({ isOpen, wsId, employee }: UseEmployeeDetailP
         queryFn: () => employee ? fetchEmployeeEmployments(wsId, employee.id) : Promise.resolve([]),
         queryKey: ["employee-employments", wsId, employee?.id],
     });
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-    const activeEmployment = employments.find((e: Employment) => e.status === "active") || employments[0];
+    const activeEmployment = employments.find((e: Employment) => e.status === "active") ?? employments[0];
 
     const linkedUser = members?.find((m: WorkspaceMember) => m.user_id === employee?.user_id);
 

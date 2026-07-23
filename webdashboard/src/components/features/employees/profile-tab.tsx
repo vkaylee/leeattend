@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/no-unnecessary-type-conversion, @typescript-eslint/prefer-nullish-coalescing, complexity */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/no-unnecessary-type-conversion, complexity */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Pencil, RotateCcw, Trash2, UserPlus } from "lucide-react";
 import React, { useState } from "react";
@@ -125,7 +125,7 @@ export default function ProfileTab({
         queryFn: () => fetchEmployeeEmployments(wsId, employee.id),
         enabled: !!wsId && !!employee.id,
     });
-    const activeEmployment = employments.find(e => e.status === "active") || employments[0];
+    const activeEmployment = employments.find(e => e.status === "active") ?? employments[0];
     const terminatedEmployment = employments.find(e => e.status === "terminated");
     const activeLocationId = activeEmployment?.primary_location_id ?? "";
 

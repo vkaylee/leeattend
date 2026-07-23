@@ -20,15 +20,9 @@ export const AssignmentRuleConditionsList: React.FC<AssignmentRuleConditionsList
 }) => {
   const { t } = useTranslation();
 
-  const hasConditions = 
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-    conditions.department_id || 
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-    conditions.employer_id || 
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-    conditions.location_id || 
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-    (conditions.tags && conditions.tags.length > 0) || 
+  const hasConditions =
+    (conditions.department_id ?? conditions.employer_id ?? conditions.location_id) ||
+    (conditions.tags && conditions.tags.length > 0) ||
     (conditions.employee_id_numbers && conditions.employee_id_numbers.length > 0);
 
   if (!hasConditions) {
