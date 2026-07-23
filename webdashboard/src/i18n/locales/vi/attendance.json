@@ -270,7 +270,18 @@
     },
     "validation_pattern_required": "Vui lòng chọn mẫu lịch.",
     "validation_employees_required": "Vui lòng chọn ít nhất một nhân viên.",
-    "bulk_assign_submit": "Xác nhận gán"
+    "bulk_assign_submit": "Xác nhận gán",
+    "timeline": {
+      "shift_duration": "{{hours}}h",
+      "break_label": "Nghỉ",
+      "off_day": "OFF"
+    },
+    "conflicts": {
+      "overlap": "Trùng ca: {{shiftA}} & {{shiftB}}",
+      "insufficient_rest": "Nghỉ thiếu giờ (<12h)",
+      "rest_warning": "Chỉ {{hours}}h nghỉ giữa ca",
+      "weekly_hours_exceeded": "{{total}}h/tuần vượt giới hạn {{limit}}h"
+    }
   },
   "rules": {
     "title": "Quy tắc gán tự động",

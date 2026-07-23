@@ -1,17 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, Edit, Trash2 } from "lucide-react";
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverAnchor } from "@/components/ui/popover";
+import { PatternMatrixPreview } from "@/components/ui/pattern-matrix-preview";
 import StatusBadge from "@/components/ui/status-badge";
 import { Typography } from "@/components/ui/typography";
 import { getCurrentWorkspaceId, fetchPatternDetails } from "@/lib/api";
 import { Shift, WorkingPattern, WorkingPatternDetail } from "@/lib/api/types";
-import { cn } from "@/lib/utils";
-
-import { PatternPopoverDetails } from "./pattern-popover-details";
 
 interface PatternRowCardProps {
   expandedPatternId: string | null;
@@ -22,84 +19,6 @@ interface PatternRowCardProps {
   patternDetails?: WorkingPatternDetail[];
   shifts?: Shift[];
 }
-
-function DayTimelinePill({
-  dayName,
-  dayDetails,
-  shifts,
-}: {
-  dayName: string;
-  dayDetails: WorkingPatternDetail[];
-  shifts?: Shift[];
-}) {
-  const { t } = useTranslation();
-  const assignedDetails = dayDetails.filter((d) => d.shift_id);
-  const hasShifts = assignedDetails.length > 0;
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <Popover modal={false} onOpenChange={setIsOpen} open={isOpen}>
-      <PopoverAnchor asChild>
-        <Button
-          aria-label={`${dayName}: ${hasShifts ? assignedDetails.map((d) => shifts?.find((s) => s.id === d.shift_id)?.name ?? "").join(", ") : t("status_off")}`}
-          className={cn(
-            "flex flex-col items-center justify-between min-w-[8rem] h-14 p-2 rounded-xl border transition-all text-left outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 font-normal normal-case active:scale-95",
-            hasShifts
-              ? "bg-primary-50/50 dark:bg-primary-950/20 border-primary-100 dark:border-primary-800/50 hover:border-primary-300 dark:hover:border-primary-700 text-slate-700 dark:text-slate-200"
-              : "bg-slate-50/50 dark:bg-slate-800/20 border-slate-100 dark:border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-300 dark:hover:border-slate-700 text-slate-500 dark:text-slate-400"
-          )}
-          onBlur={() => { setIsOpen(false); }}
-          onFocus={() => { setIsOpen(true); }}
-          onMouseEnter={() => { setIsOpen(true); }}
-          onMouseLeave={() => { setIsOpen(false); }}
-          size="sm"
-          variant="ghost"
-        >
-          <span
-            className={cn(
-              "text-[8px] font-bold uppercase tracking-wider",
-              hasShifts
-                ? "text-primary-600 dark:text-primary-400"
-                : "text-slate-400 dark:text-slate-500"
-            )}
-          >
-            {dayName}
-          </span>
-          <div className="flex items-center justify-center w-full">
-            {hasShifts ? (
-              <div className="flex flex-col gap-0.5 items-center w-full">
-                {assignedDetails.map((d, i) => {
-                  const shiftName = shifts?.find((s) => s.id === d.shift_id)?.name ?? "—";
-                  // take first 12 characters for compact view
-                  const shortName = shiftName.length > 12 ? shiftName.substring(0, 12) + "." : shiftName;
-                  return (
-                    <span
-                      className="text-[9px] font-bold text-slate-700 dark:text-slate-200 truncate max-w-[7.5rem] uppercase text-center"
-                      key={i}
-                    >
-                      {shortName}
-                    </span>
-                  );
-                })}
-              </div>
-            ) : (
-              <span className="text-[8px] font-semibold text-slate-300 dark:text-slate-600 uppercase italic">
-                {t("status_off")}
-              </span>
-            )}
-          </div>
-        </Button>
-      </PopoverAnchor>
-      <PopoverContent
-        className="w-64 p-4 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 pointer-events-none animate-in fade-in zoom-in-95 duration-200"
-        side="top"
-        sideOffset={8}
-      >
-        <PatternPopoverDetails dayDetails={dayDetails} dayName={dayName} shifts={shifts} />
-      </PopoverContent>
-    </Popover>
-  );
-};
 
   // eslint-disable-next-line complexity
 export function PatternRowCard({
@@ -117,27 +36,8 @@ export function PatternRowCard({
     enabled: !!wsId && !!pattern.id,
   });
 
-  const daysOfWeekShort = [
-    t("days.sunday_short"),
-    t("days.monday_short"),
-    t("days.tuesday_short"),
-    t("days.wednesday_short"),
-    t("days.thursday_short"),
-    t("days.friday_short"),
-    t("days.saturday_short"),
-  ];
-
   const isRotation = pattern.pattern_type === "rotation";
   const cycleLength = pattern.cycle_length_days ?? 7;
-  const detailRows = isRotation
-    ? Array.from({ length: cycleLength }, (_, i) => ({
-        day: t("patterns.form.day_index", { index: i + 1 }),
-        index: i,
-      }))
-    : daysOfWeekShort.map((day, index) => ({
-        day,
-        index,
-      }));
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] p-6 shadow-sm hover:shadow-md hover:border-slate-200 dark:hover:border-slate-700 transition-all flex flex-col gap-4 group relative overflow-hidden">
@@ -196,27 +96,16 @@ export function PatternRowCard({
       {/* Divider */}
       <div className="border-t border-slate-100 dark:border-slate-800/60 w-full" />
 
-      {/* Row 2: Timeline */}
-      <div className="w-full flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-thin scrollbar-thumb-slate-100 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent">
-        {isLoadingDetails ? (
-          <div className="flex gap-1.5">
-            {Array.from({ length: Math.min(cycleLength, 7) }).map((_, i) => (
-              <div
-                className="w-32 h-14 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-xl animate-pulse flex-shrink-0"
-                key={i}
-              />
-            ))}
-          </div>
-        ) : (
-          detailRows.map(({ day, index }) => (
-            <DayTimelinePill
-              dayDetails={details?.filter((d) => d.schedule_day === index) ?? []}
-              dayName={day}
-              key={index}
-              shifts={shifts}
-            />
-          ))
-        )}
+      {/* Row 2: Visual Matrix Preview */}
+      <div className="w-full">
+        <PatternMatrixPreview
+          cycleLength={cycleLength}
+          details={details}
+          isLoading={isLoadingDetails}
+          patternType={isRotation ? "rotation" : "weekly"}
+          shifts={shifts}
+          variant="row"
+        />
       </div>
     </div>
   );

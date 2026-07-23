@@ -270,7 +270,18 @@
     },
     "validation_pattern_required": "Please select a pattern.",
     "validation_employees_required": "Please select at least one employee.",
-    "bulk_assign_submit": "Confirm Assign"
+    "bulk_assign_submit": "Confirm Assign",
+    "timeline": {
+      "shift_duration": "{{hours}}h",
+      "break_label": "Break",
+      "off_day": "OFF"
+    },
+    "conflicts": {
+      "overlap": "Overlap: {{shiftA}} & {{shiftB}}",
+      "insufficient_rest": "Insufficient Rest (<12h)",
+      "rest_warning": "Only {{hours}}h rest between shifts",
+      "weekly_hours_exceeded": "{{total}}h/week exceeds {{limit}}h limit"
+    }
   },
   "rules": {
     "title": "Auto-assign Rules",

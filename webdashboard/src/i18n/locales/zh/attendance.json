@@ -263,7 +263,18 @@
     },
     "validation_pattern_required": "请选择一个模式。",
     "validation_employees_required": "请选择至少一名员工。",
-    "bulk_assign_submit": "确认分配"
+    "bulk_assign_submit": "确认分配",
+    "timeline": {
+      "shift_duration": "{{hours}}h",
+      "break_label": "休息",
+      "off_day": "休息"
+    },
+    "conflicts": {
+      "overlap": "班次重叠：{{shiftA}} & {{shiftB}}",
+      "insufficient_rest": "休息不足（<12小时）",
+      "rest_warning": "班次之间仅{{hours}}小时休息",
+      "weekly_hours_exceeded": "每周{{total}}小时超过{{limit}}小时限制"
+    }
   },
   "rules": {
     "title": "自动分配规则",

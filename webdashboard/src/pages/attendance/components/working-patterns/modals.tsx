@@ -8,16 +8,29 @@ import {
   X,
   RefreshCw,
 } from "lucide-react";
-import React from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+
+import { useQuery } from "@tanstack/react-query";
 
 import { EmployeeSearch } from "@/components/common/employee-search";
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
+import { ComplianceAlertBadge } from "@/components/ui/compliance-alert-badge";
 import FormField, { INPUT_BASE, LABEL_BASE } from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
+import { PatternMatrixPreview } from "@/components/ui/pattern-matrix-preview";
 import { Typography } from "@/components/ui/typography";
-import { Shift } from "@/lib/api/types";
+import { fetchPatternDetails } from "@/lib/api";
+import { Shift, WorkingPatternDetail } from "@/lib/api/types";
+import {
+  checkRestHours,
+  checkShiftOverlap,
+  checkWeeklyHours,
+  computeWeeklyTotal,
+  type ComplianceIssue,
+  type ShiftTimeBlock,
+} from "@/lib/utils/shift-compliance-utils";
 import { cn } from "@/lib/utils";
 
 import { useWorkingPatterns } from "../../hooks/use-working-patterns";
@@ -234,10 +247,92 @@ function BulkAssignModal({ hook }: PatternModalsProps) {
     assignAnchorDate,
     setAssignAnchorDate,
     departments,
+    shifts,
   } = hook;
 
   const selectedPattern = patterns.find((p) => p.id === selectedPatternId);
   const isRotation = selectedPattern?.pattern_type === "rotation";
+
+  // Fetch pattern details for visual preview
+  const { data: previewDetails } = useQuery<WorkingPatternDetail[]>({
+    queryKey: ["pattern-preview", wsId, selectedPatternId],
+    queryFn: () => fetchPatternDetails(wsId, selectedPatternId),
+    enabled: !!wsId && !!selectedPatternId,
+  });
+
+  // Compute client-side compliance issues from preview details
+  const complianceIssues = useMemo<ComplianceIssue[]>(() => {
+    if (!previewDetails?.length || !shifts?.length) return [];
+
+    const issues: ComplianceIssue[] = [];
+
+    // Group by schedule_day
+    const byDay = new Map<number, WorkingPatternDetail[]>();
+    for (const d of previewDetails) {
+      if (!d.shift_id) continue;
+      const list = byDay.get(d.schedule_day) || [];
+      list.push(d);
+      byDay.set(d.schedule_day, list);
+    }
+
+    // Build shift time blocks per day
+    const allBlocks: ShiftTimeBlock[] = [];
+    for (const [day, dayDetails] of byDay) {
+      const dayBlocks: ShiftTimeBlock[] = [];
+      for (const d of dayDetails) {
+        const shift = shifts.find((s) => s.id === d.shift_id);
+        const iv = shift?.intervals?.[0];
+        if (!iv?.start_time || !iv?.end_time) continue;
+        dayBlocks.push({
+          shiftId: d.shift_id ?? "",
+          shiftName: shift?.name ?? "",
+          start: iv.start_time,
+          end: iv.end_time,
+          day,
+        });
+        allBlocks.push({
+          shiftId: d.shift_id ?? "",
+          shiftName: shift?.name ?? "",
+          start: iv.start_time,
+          end: iv.end_time,
+          day,
+        });
+      }
+
+      // Check overlap within this day
+      if (dayBlocks.length > 1) {
+        const overlaps = checkShiftOverlap(dayBlocks);
+        issues.push(...overlaps);
+      }
+    }
+
+    // Check rest hours (all blocks sorted by start across the cycle)
+    if (allBlocks.length > 1) {
+      const restViolations = checkRestHours(allBlocks);
+      issues.push(...restViolations);
+    }
+
+    // Check weekly hours
+    const weeklyTotal = computeWeeklyTotal(
+      previewDetails
+        .filter((d) => d.shift_id)
+        .map((d) => ({
+          scheduleDay: d.schedule_day,
+          shiftId: d.shift_id ?? "",
+        })),
+      shifts.map((s) => ({
+        id: s.id,
+        name: s.name,
+        intervals: s.intervals,
+      })),
+    );
+    const hoursIssue = checkWeeklyHours(weeklyTotal);
+    if (hoursIssue) issues.push(hoursIssue);
+
+    return issues;
+  }, [previewDetails, shifts]);
+
+  const hasConflicts = complianceIssues.length > 0;
 
   return (
     <Modal icon={<Users size={24} />} isOpen={isBulkModalOpen} maxWidth="2xl" onClose={() => { setIsBulkModalOpen(false); }} subtitle={t("patterns.modal.bulk_subtitle")} title={t("patterns.bulk_assign_btn")}>
@@ -288,6 +383,69 @@ function BulkAssignModal({ hook }: PatternModalsProps) {
             ) : null}
           </div>
         </div>
+
+        {/* Live pattern preview with compliance alerts */}
+        {selectedPatternId && (
+          <div className="space-y-4 px-1 animate-in fade-in slide-in-from-top-2 duration-300">
+            {/* Compliance badges */}
+            {hasConflicts && (
+              <div className="flex flex-wrap gap-2">
+                {complianceIssues.map((issue, i) => {
+                  let badgeType: "overlap" | "rest" | "hours" = "overlap";
+                  let msg = "";
+                  if (issue.type === "overlap") {
+                    badgeType = "overlap";
+                    msg = t("patterns.conflicts.overlap", {
+                      shiftA: issue.shiftA,
+                      shiftB: issue.shiftB,
+                    });
+                  } else if (issue.type === "rest") {
+                    badgeType = "rest";
+                    msg = t("patterns.conflicts.rest_warning", {
+                      hours: issue.restHours,
+                    });
+                  } else if (issue.type === "hours") {
+                    badgeType = "hours";
+                    msg = t("patterns.conflicts.weekly_hours_exceeded", {
+                      total: Math.round(issue.totalMinutes / 60),
+                      limit: Math.round(issue.limitMinutes / 60),
+                    });
+                  }
+                  return (
+                    <ComplianceAlertBadge
+                      key={i}
+                      message={msg}
+                      type={badgeType}
+                      variant="badge"
+                    />
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Matrix preview */}
+            <div className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl p-4 border border-slate-100 dark:border-slate-700/50">
+              <div className="flex items-center gap-2 mb-3">
+                <CalendarDays
+                  className="text-primary-500 dark:text-primary-400"
+                  size={14}
+                />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  {selectedPattern?.name}
+                </span>
+              </div>
+              <PatternMatrixPreview
+                cycleLength={selectedPattern?.cycle_length_days ?? 7}
+                details={previewDetails}
+                isLoading={!previewDetails}
+                patternType={isRotation ? "rotation" : "weekly"}
+                shifts={shifts}
+                variant="modal"
+              />
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4 px-1">
           <label className={LABEL_BASE}>{t("patterns.form.select_employees_label").toUpperCase()}</label>
           <EmployeeSearch className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 rounded-[2rem] p-8 shadow-inner" departments={departments} multiple={true} onChange={(v) => { setSelectedEmployeeIds(v as string[]); }} value={selectedEmployeeIds} workspaceId={wsId} />
