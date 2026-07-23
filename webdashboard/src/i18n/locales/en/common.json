@@ -1872,6 +1872,9 @@
   "shifts": {
     "rules": {
       "subtitle": "Manage recurring schedule templates and automated shift routing rules"
+    },
+    "monthly": {
+      "copy": "Copy"
     }
   },
   "appLauncher": {

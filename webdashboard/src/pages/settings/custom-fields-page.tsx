@@ -1,5 +1,5 @@
  
-/* eslint-disable max-lines-per-function */
+/* eslint-disable max-lines-per-function -- settings page with search, pagination, CRUD modals; already decomposed into field-type editors */
 import { Braces, Pencil, Plus, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";

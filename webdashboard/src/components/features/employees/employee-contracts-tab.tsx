@@ -123,6 +123,7 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
                           <span className={cn("text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border shadow-sm", getStatusColor(contract.status))}>
                             {contract.status === "active" ? t("employees.table.active").toUpperCase() : contract.status.toUpperCase()}
                           </span>
+                          {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- envelope may not exist for all contracts */}
                           {!!envelope && (
                             <span
                               className={cn(
@@ -168,6 +169,7 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
                       </div>
                     </div>
 
+                    {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- envelope may not exist for all contracts */}
                     {!!envelope && (
                       <div className="mt-4 flex justify-end relative z-10">
                         <Button

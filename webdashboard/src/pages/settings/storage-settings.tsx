@@ -57,6 +57,7 @@ export function StorageSettings() {
   // changes when config identity changes (React Query cache is stable).
   const externalForm = useMemo((): FormState => {
     if (config) {
+      /* eslint-disable @typescript-eslint/no-unnecessary-condition -- config fields may be null at runtime despite non-null TS types */
       return {
         isCustom: true,
         endpointUrl: config.endpoint_url ?? "",
@@ -66,6 +67,7 @@ export function StorageSettings() {
         secretKey: "", // Always blank for masked secret
         usePathStyle: config.use_path_style ?? true,
       };
+      /* eslint-enable @typescript-eslint/no-unnecessary-condition */
     }
     return EMPTY_FORM;
   }, [config]);

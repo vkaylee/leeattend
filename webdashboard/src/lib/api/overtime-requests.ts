@@ -10,6 +10,7 @@ export interface OvertimeRequestQueryParams {
   page?: number;
   planned_date?: string;
   status?: OtRequestStatus;
+  [key: string]: unknown;
 }
 
 export type OtRequestStatus = 
@@ -103,7 +104,7 @@ export interface QuotaSummary {
 }
 
 export const overtimeRequestsApi = {
-  listRequests: async (workspaceId: string, params?: Record<string, unknown>): Promise<PaginatedResponse<OvertimeRequest>> => {
+  listRequests: async (workspaceId: string, params?: OvertimeRequestQueryParams): Promise<PaginatedResponse<OvertimeRequest>> => {
     const { data } = await fetch<PaginatedResponse<OvertimeRequest>>("GET", "/v1/workspaces/{ws_id}/overtime/requests", {
       params: {
         path: { ws_id: workspaceId },

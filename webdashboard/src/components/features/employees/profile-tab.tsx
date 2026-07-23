@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/no-unnecessary-type-conversion, complexity */
+/* eslint-disable complexity, @typescript-eslint/no-unnecessary-condition -- multi-section profile tab with 5 defensive optional chains on API data */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Pencil, RotateCcw, Trash2, UserPlus } from "lucide-react";
 import React, { useState } from "react";
@@ -226,7 +226,7 @@ export default function ProfileTab({
                 <CustomFieldSection entityId={activeEmployment.id} entityType="employment" />
             )}
 
-            {!!isEditTerminationModalOpen && !!terminatedEmployment && (
+            {isEditTerminationModalOpen && terminatedEmployment ? (
                 <EditTerminationModal
                     currentEndDate={terminatedEmployment.end_date ?? null}
                     employeeId={employee.id}
@@ -235,9 +235,9 @@ export default function ProfileTab({
                     onClose={() => { setIsEditTerminationModalOpen(false); }}
                     wsId={wsId}
                 />
-              )}
+              ) : null}
 
-            {!!isUndoTerminationModalOpen && !!terminatedEmployment && (
+            {isUndoTerminationModalOpen && terminatedEmployment ? (
                 <UndoTerminationModal
                     employeeId={employee.id}
                     employmentId={terminatedEmployment.id}
@@ -253,7 +253,7 @@ export default function ProfileTab({
                     }}
                     wsId={wsId}
                 />
-              )}
+              ) : null}
         </div>
     );
 }

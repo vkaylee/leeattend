@@ -120,20 +120,20 @@ function ChecklistItemRow({
             <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
               {formatChecklistType(item.category)}
             </span>
-            {item.is_required && (
+            {!!item.is_required && (
               <span className="bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
                 Required
               </span>
             )}
           </div>
 
-          {item.description && (
+          {!!item.description && (
             <Typography className="text-xs text-slate-400 dark:text-slate-500" variant="p">
               {item.description}
             </Typography>
           )}
 
-          {item.due_date && (
+          {!!item.due_date && (
             <div className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
               <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
               <span>Due: {new Date(item.due_date).toLocaleDateString()}</span>
@@ -141,7 +141,7 @@ function ChecklistItemRow({
           )}
 
           {/* Item Notes Display */}
-          {item.notes && !isEditingNotes && (
+          {!!item.notes && !isEditingNotes && (
             <div className="bg-slate-50 dark:bg-slate-800/30 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 flex items-start gap-2 mt-2">
               <FileText className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
               <div className="text-xs text-slate-500 dark:text-slate-400 italic">
@@ -150,7 +150,7 @@ function ChecklistItemRow({
             </div>
           )}
 
-          {isEditingNotes && (
+          {!!isEditingNotes && (
             <div className="space-y-2 mt-2">
               <FormField
                 label="Notes"
@@ -206,7 +206,9 @@ export default function EmployeeLifecycleTab({ employmentId }: EmployeeLifecycle
 
   // Mutations
   const createChecklistMutation = useCreateLifecycleChecklist(employmentId ?? "");
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- checklist/employment may be null during loading
   const activeChecklistId = userSelectedChecklistId ?? checklists[0]?.id ?? null;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- checklist/employment may be null during loading
   const updateItemStatusMutation = useUpdateLifecycleChecklistItem(activeChecklistId ?? "", employmentId ?? "");
 
   // Active checklist details
@@ -298,6 +300,7 @@ export default function EmployeeLifecycleTab({ employmentId }: EmployeeLifecycle
     );
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- activeChecklist may be null before data loads despite isLoading guard
   const sortedItems = activeChecklist?.items
     ? [...activeChecklist.items].sort((a: LifecycleChecklistItem, b: LifecycleChecklistItem) => a.display_order - b.display_order)
     : [];
@@ -360,7 +363,8 @@ export default function EmployeeLifecycleTab({ employmentId }: EmployeeLifecycle
             </div>
           )}
 
-          {activeChecklist && (
+          {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- activeChecklist may be null before data loads */}
+          {!!activeChecklist && (
             <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] shadow-sm p-5 sm:p-6 space-y-6">
               <ChecklistHeader checklist={activeChecklist} />
 

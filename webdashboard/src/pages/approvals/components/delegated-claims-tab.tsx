@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition, max-lines, max-lines-per-function */
+/* eslint-disable max-lines, max-lines-per-function -- multi-tab claims page with filters, table, inline actions; already partially decomposed */
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, CheckCircle } from "lucide-react";
 import React, { useMemo, useState } from "react";
@@ -68,7 +68,7 @@ export function DelegatedClaimsTab({
       }) as Promise<PaginatedResponse<DailyAttendanceReport>>;
     },
     getNextPageParam: (lastPage, allPages) => {
-      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0);
+      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
       return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
     },
     initialPageParam: 1,

@@ -42,6 +42,7 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
 
       if (error) {
         toast.error("Failed to load documents");
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- error shape is unknown at runtime
         throw new Error((error as { message?: string })?.message || "Failed to load documents");
       }
 

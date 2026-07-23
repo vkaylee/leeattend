@@ -1,5 +1,5 @@
 /* eslint-disable max-lines -- API wrapper module: 300 lines of exported functions; splitting would scatter imports */
-import { client, fetch, fire } from "./client";
+import { client, fetch } from "./client";
 import {
   Payslip,
   PayrollSettings,
@@ -25,6 +25,7 @@ import {
   SetEmployeePayrollConfigRequest,
   SetDepartmentPayrollConfigRequest,
   UpsertRosterRequest,
+  IncentiveTier,
 } from "./types";
 
 export async function fetchIncentivePolicies(wsId: string): Promise<PayrollIncentivePolicyResponse[]> {
@@ -34,8 +35,8 @@ export async function fetchIncentivePolicies(wsId: string): Promise<PayrollIncen
   return resData;
 }
 
-export async function createIncentivePolicy(wsId: string, data: { base_amount: number; effective_from: string; name: string; payout_type: string; tiers: Record<string, unknown>[] }): Promise<void> {
-  await fire("POST", "/workspaces/{ws_id}/payroll/incentive-policies", {
+export async function createIncentivePolicy(wsId: string, data: { base_amount: number; effective_from: string; name: string; payout_type: string; tiers: Omit<IncentiveTier, 'id' | 'policy_id'>[] }): Promise<void> {
+  await client.POST("/workspaces/{ws_id}/payroll/incentive-policies", {
     params: { path: { ws_id: wsId } },
     body: data,
   });

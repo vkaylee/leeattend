@@ -86,6 +86,7 @@ export async function fetchDeviceInfo(id: string): Promise<DeviceInfo> {
   const { data: resData } = await client.GET("/devices/{id}/info", {
     params: { path: { id } },
   });
+  // Cast required: generated schema returns {} but backend returns DeviceInfo — schema gap
   return resData as DeviceInfo;
 }
 

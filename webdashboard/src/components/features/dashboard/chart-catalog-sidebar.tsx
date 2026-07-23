@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition -- CHART_METADATA Record lookup may return undefined for runtime widget IDs */
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -74,6 +75,7 @@ export default function ChartCatalogSidebar({
       grouped[cat] = allWidgets
         .filter((w) => {
           const meta = CHART_METADATA[w.id];
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- chart id may not exist in metadata map
           if (meta?.category !== cat) return false;
           if (!query) return true;
           const label = t(w.labelKey).toLowerCase();

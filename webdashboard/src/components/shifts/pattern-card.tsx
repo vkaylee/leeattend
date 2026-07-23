@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-conversion, complexity */
 // PatternCard — extracted from PatternSelector in pattern-assignment-form.tsx to reduce complexity.
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -31,6 +30,7 @@ function getDayShiftInfo(
   return shifts?.find((s) => s.id === dayDetail.shift_id);
 }
 
+// eslint-disable-next-line complexity -- day-pill renderer with 3 conditional styling branches; presentation-only
 function renderDayPill(shiftInfo: Shift | undefined | null, label: string, t: (k: string) => string) {
   const isOff = !shiftInfo;
   const dayLabel = label;
@@ -55,6 +55,7 @@ function renderDayPill(shiftInfo: Shift | undefined | null, label: string, t: (k
   );
 }
 
+// eslint-disable-next-line complexity -- card with status badges, rotation/cycle summary, expand toggle; presentation-only branching
 export function PatternCard({
   details,
   isLoadingDetails,
@@ -97,12 +98,12 @@ export function PatternCard({
       role="button"
       tabIndex={0}
     >
-      {!!isSelected && (
+      {isSelected ? (
         <div className="absolute top-4 right-4 w-2 h-2 bg-primary-600 dark:bg-primary-400 rounded-full flex items-center justify-center">
           <span className="absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75 animate-ping" />
           <span className="relative inline-flex rounded-full h-1 w-1 bg-primary-600" />
         </div>
-      )}
+      ) : null}
 
       <div className="flex items-start justify-between gap-4 w-full">
         <div className="space-y-1.5 max-w-[75%] sm:max-w-[80%]">
@@ -184,7 +185,7 @@ export function PatternCard({
         </div>
       )}
 
-      {!!isLongRotation && !!isExpanded && (
+      {isLongRotation && isExpanded ? (
         <div
           className="pt-4 border-t border-slate-150 dark:border-slate-850/80 animate-in slide-in-from-top-2 duration-300 w-full"
           onClick={(e) => { e.stopPropagation(); }}
@@ -198,7 +199,7 @@ export function PatternCard({
             )}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

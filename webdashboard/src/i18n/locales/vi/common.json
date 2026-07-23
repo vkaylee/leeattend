@@ -1872,6 +1872,9 @@
   "shifts": {
     "rules": {
       "subtitle": "Quản lý lịch mẫu và các thiết lập tự động hóa phân ca"
+    },
+    "monthly": {
+      "copy": "Sao chép"
     }
   },
   "appLauncher": {

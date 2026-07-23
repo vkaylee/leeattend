@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition -- leave type config fields may be null at runtime */
 import { Wallet, AlertTriangle, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";

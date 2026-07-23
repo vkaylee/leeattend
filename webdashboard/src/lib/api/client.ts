@@ -144,7 +144,7 @@ type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 interface LegacyFetchInit {
   body?: unknown;
-  params?: { path?: Record<string, unknown>; query?: Record<string, unknown> };
+  params?: { path?: Record<string, string | number | undefined>; query?: Record<string, unknown> };
 }
 
 /**

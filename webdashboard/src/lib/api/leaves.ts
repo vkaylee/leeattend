@@ -187,7 +187,7 @@ export async function fetchLeaveTypes(wsId: string): Promise<LeaveType[]> {
 
 export async function createLeaveType(
   wsId: string,
-  data: { code: string; is_paid: boolean; name: string; policy_config?: Record<string, unknown> }
+  data: { code: string; is_paid: boolean; name: string; policy_config?: LeaveTypeConfig }
 ): Promise<LeaveType> {
   const { data: resData } = await client.POST("/workspaces/{workspace_id}/leave/types", {
     params: {

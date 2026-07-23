@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import { Calculator, CheckCircle2, Clock, History } from "lucide-react";
 import React from "react";
 
@@ -187,6 +186,7 @@ function TimelineItemGrid({
           )}
           variant="p"
         >
+          {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- version data may have null grace period at runtime */}
           {version.grace_period_minutes != null ? `${version.grace_period_minutes}m` : "15m"}
         </Typography>
       </div>

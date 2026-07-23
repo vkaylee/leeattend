@@ -19,7 +19,9 @@ export function parseConflictRetry(body: unknown): ConflictRetryHint | undefined
   // 409 Conflict when a retired resource can be restored.
   if (typeof body !== "object" || body === null) return undefined;
   const b = body as { error?: { retry?: Partial<ConflictRetryHint> } };
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive runtime narrowing on cast object
   if (typeof b.error !== "object" || b.error === null) return undefined;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive runtime narrowing on cast object
   if (typeof b.error.retry !== "object" || b.error.retry === null) return undefined;
   if (b.error.retry.reason !== "retired_leave_type" || typeof b.error.retry.leave_type_id !== "string") return undefined;
   return {

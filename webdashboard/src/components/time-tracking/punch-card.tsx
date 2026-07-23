@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition -- punch segments have nullable fields at runtime that TS types don't reflect */
 import { Clock, Layers } from "lucide-react";
 import { useTranslation } from "react-i18next";
 

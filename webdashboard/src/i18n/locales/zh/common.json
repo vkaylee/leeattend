@@ -1896,6 +1896,9 @@
   "shifts": {
     "rules": {
       "subtitle": "管理周期性排班模板和自动排班规则"
+    },
+    "monthly": {
+      "copy": "复制"
     }
   }
 }
