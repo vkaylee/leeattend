@@ -190,7 +190,7 @@ pub const ALLOWLIST: &[(&str, &str, &str)] = &[
     ),
     // Employee search/filter count query (dynamic where_clause contains workspace_id filter)
     (
-        "core.rs",
+        "segments.rs",
         "employees",
         "where_clause is constructed dynamically with workspace_id filter",
     ),
