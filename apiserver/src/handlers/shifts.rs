@@ -11,9 +11,9 @@ use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
-    AssignShiftRequest, AssignmentHistory, BulkRosterRequest, CreateRosterRequest,
-    CreateShiftRequest, EmployeeSchedule, PaginatedResponse, PaginationParams, Shift, ShiftRoster,
-    ShiftVersionHistoryItem, UpdateShiftRequest,
+    AssignShiftRequest, AssignmentHistory, BulkRosterRequest, ComplianceCheckRequest,
+    CreateRosterRequest, CreateShiftRequest, EmployeeSchedule, PaginatedResponse, PaginationParams,
+    Shift, ShiftRoster, ShiftVersionHistoryItem, UpdateShiftRequest,
 };
 use crate::utils::i18n::I18nKey;
 use crate::AppState;
@@ -68,6 +68,21 @@ const MAX_ASSIGN_REPROCESS_DAYS: i64 = 90;
 /// rejects pathological payloads. A full year is 366 days, generous headroom for
 /// any single employee's selection.
 const MAX_ROSTER_BULK_ITEMS: usize = 366;
+
+/// Expand a date range (start..=end) into a Vec<NaiveDate> for compliance checks.
+/// If end is None, returns just the start date.
+fn expand_date_range(start: NaiveDate, end: Option<NaiveDate>) -> Vec<NaiveDate> {
+    let end = end.unwrap_or(start);
+    let mut dates = Vec::new();
+    let mut current = start;
+    while current <= end {
+        dates.push(current);
+        current += chrono::Duration::days(1);
+    }
+    // Safety cap: don't expand beyond a reasonable window
+    dates.truncate(MAX_ROSTER_BULK_ITEMS);
+    dates
+}
 
 /// Clamp a shift-assignment window to the range that actually needs attendance
 /// recalculation: nothing in the future (no punches yet) and no further back than
@@ -328,6 +343,21 @@ pub async fn assign_shift(
     ctx: MemberContext,
     Json(req): Json<AssignShiftRequest>,
 ) -> AppResult<StatusCode> {
+    // Compliance check: expand date range and validate before persisting
+    let dates = expand_date_range(req.start_date, req.end_date);
+    let compliance_req = ComplianceCheckRequest {
+        employment_id: req.employment_id,
+        shift_id: req.shift_id,
+        dates,
+        allow_warnings: req.allow_warnings,
+        override_reason: req.override_reason.clone(),
+    };
+    state
+        .shifts()
+        .compliance()
+        .validate_assignments(ctx.workspace_id, &ctx.auth_token, &compliance_req)
+        .await?;
+
     state
         .shifts()
         .service()
@@ -617,6 +647,22 @@ pub async fn upsert_roster(
         .active_employment_id()
         .ok_or_else(|| AppError::validation(I18nKey::NoActiveEmployment))?;
 
+    // Compliance check: only if a shift is being assigned
+    if let Some(shift_id) = req.shift_id {
+        let compliance_req = ComplianceCheckRequest {
+            employment_id: active_employment_id,
+            shift_id,
+            dates: vec![req.date],
+            allow_warnings: req.allow_warnings,
+            override_reason: req.override_reason.clone(),
+        };
+        state
+            .shifts()
+            .compliance()
+            .validate_assignments(ctx.workspace_id, &ctx.auth_token, &compliance_req)
+            .await?;
+    }
+
     let roster = ShiftRoster {
         id: crate::utils::id::new_id(),
         employment_id: active_employment_id,
@@ -677,6 +723,29 @@ pub async fn bulk_upsert_roster(
     let active_employment_id = emp
         .active_employment_id()
         .ok_or_else(|| AppError::validation(I18nKey::NoActiveEmployment))?;
+
+    // Compliance check: validate each shift_id across its assigned dates
+    let mut shift_dates: std::collections::HashMap<Uuid, Vec<NaiveDate>> =
+        std::collections::HashMap::new();
+    for item in &req.items {
+        if let Some(sid) = item.shift_id {
+            shift_dates.entry(sid).or_default().push(item.date);
+        }
+    }
+    for (shift_id, dates) in &shift_dates {
+        let compliance_req = ComplianceCheckRequest {
+            employment_id: active_employment_id,
+            shift_id: *shift_id,
+            dates: dates.clone(),
+            allow_warnings: req.allow_warnings,
+            override_reason: req.override_reason.clone(),
+        };
+        state
+            .shifts()
+            .compliance()
+            .validate_assignments(ctx.workspace_id, &ctx.auth_token, &compliance_req)
+            .await?;
+    }
 
     let dates: Vec<NaiveDate> = req.items.iter().map(|i| i.date).collect();
     state

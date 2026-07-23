@@ -2198,6 +2198,20 @@ diesel::table! {
 }
 
 diesel::table! {
+    workspace_compliance_rules (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        min_rest_period_hours -> Int4,
+        max_weekly_hours -> Int4,
+        max_monthly_ot_hours -> Int4,
+        allow_manager_override -> Bool,
+        is_enabled -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     workspace_member_extra_permissions (id) {
         id -> Uuid,
         workspace_id -> Uuid,
@@ -2568,6 +2582,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     working_pattern_details,
     work_segments,
     working_patterns,
+    workspace_compliance_rules,
     workspace_config_entries,
     workspace_member_extra_permissions,
     workspace_members,

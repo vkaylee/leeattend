@@ -19,6 +19,12 @@ pub struct AssignShiftRequest {
     pub shift_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: Option<NaiveDate>,
+    /// If true, soft compliance warnings are accepted without override reason
+    #[serde(default)]
+    pub allow_warnings: bool,
+    /// Manager-provided reason to override soft compliance violations
+    #[serde(default)]
+    pub override_reason: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -222,6 +228,12 @@ pub struct CreateRosterRequest {
     pub shift_id: Option<Uuid>,
     pub date: NaiveDate,
     pub notes: Option<String>,
+    /// If true, soft compliance warnings are accepted
+    #[serde(default)]
+    pub allow_warnings: bool,
+    /// Manager-provided override reason
+    #[serde(default)]
+    pub override_reason: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, utoipa::ToSchema)]
@@ -234,6 +246,15 @@ pub struct RosterItem {
 #[derive(Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct BulkRosterRequest {
     pub items: Vec<RosterItem>,
+    /// Employment ID for bulk roster operations
+    #[serde(default)]
+    pub employment_id: Option<Uuid>,
+    /// If true, soft compliance warnings are accepted
+    #[serde(default)]
+    pub allow_warnings: bool,
+    /// Manager-provided override reason
+    #[serde(default)]
+    pub override_reason: Option<String>,
 }
 
 #[cfg(test)]
@@ -368,6 +389,9 @@ mod tests {
                     notes: Some("Holiday".to_string()),
                 },
             ],
+            employment_id: None,
+            allow_warnings: false,
+            override_reason: None,
         };
         let json = serde_json::to_string(&req).unwrap();
         let back: BulkRosterRequest = serde_json::from_str(&json).unwrap();

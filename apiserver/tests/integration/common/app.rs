@@ -188,6 +188,15 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let shift_repo: Arc<dyn apiserver::repositories::shift_repository::ShiftRepository> = Arc::new(
         apiserver::repositories::DieselShiftRepository::new(diesel_pools.clone()),
     );
+    let compliance_repo: Arc<dyn apiserver::repositories::ComplianceRepository> = Arc::new(
+        apiserver::repositories::DieselComplianceRepository::new(diesel_pools.clone()),
+    );
+    let compliance_service = Arc::new(
+        apiserver::services::compliance_validation_service::ComplianceValidationService::new(
+            compliance_repo.clone(),
+            roster_repo.clone(),
+        ),
+    );
     let holiday_repo: Arc<dyn apiserver::repositories::holiday_repository::HolidayRepository> =
         Arc::new(apiserver::repositories::DieselHolidayRepository::new(
             diesel_pools.clone(),
@@ -710,6 +719,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             shift_swap_repo.clone(),
             assignment_rule_repo.clone(),
             working_pattern_repo.clone(),
+            compliance_service.clone(),
         ),
         apiserver::LeaveState::new(
             leave_service,
@@ -884,6 +894,15 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
     let shift_repo: Arc<dyn apiserver::repositories::shift_repository::ShiftRepository> = Arc::new(
         apiserver::repositories::DieselShiftRepository::new(diesel_pools.clone()),
     );
+    let compliance_repo: Arc<dyn apiserver::repositories::ComplianceRepository> = Arc::new(
+        apiserver::repositories::DieselComplianceRepository::new(diesel_pools.clone()),
+    );
+    let compliance_service = Arc::new(
+        apiserver::services::compliance_validation_service::ComplianceValidationService::new(
+            compliance_repo.clone(),
+            roster_repo.clone(),
+        ),
+    );
     let holiday_repo: Arc<dyn apiserver::repositories::holiday_repository::HolidayRepository> =
         Arc::new(apiserver::repositories::DieselHolidayRepository::new(
             diesel_pools.clone(),
@@ -1430,6 +1449,7 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
             shift_swap_repo.clone(),
             assignment_rule_repo.clone(),
             working_pattern_repo.clone(),
+            compliance_service.clone(),
         ),
         apiserver::LeaveState::new(
             leave_service,
@@ -1636,6 +1656,15 @@ pub async fn setup_app_tower_internal_extended(
     );
     let shift_repo: Arc<dyn apiserver::repositories::shift_repository::ShiftRepository> = Arc::new(
         apiserver::repositories::DieselShiftRepository::new(diesel_pools.clone()),
+    );
+    let compliance_repo: Arc<dyn apiserver::repositories::ComplianceRepository> = Arc::new(
+        apiserver::repositories::DieselComplianceRepository::new(diesel_pools.clone()),
+    );
+    let compliance_service = Arc::new(
+        apiserver::services::compliance_validation_service::ComplianceValidationService::new(
+            compliance_repo.clone(),
+            roster_repo.clone(),
+        ),
     );
     let holiday_repo: Arc<dyn apiserver::repositories::holiday_repository::HolidayRepository> =
         Arc::new(apiserver::repositories::DieselHolidayRepository::new(
@@ -2203,6 +2232,7 @@ pub async fn setup_app_tower_internal_extended(
             shift_swap_repo.clone(),
             assignment_rule_repo.clone(),
             working_pattern_repo.clone(),
+            compliance_service.clone(),
         ),
         apiserver::LeaveState::new(
             leave_service,

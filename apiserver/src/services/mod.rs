@@ -7,6 +7,7 @@ pub mod attendance_matcher;
 pub mod attendance_utils;
 pub mod audit_service;
 pub mod auth_service;
+pub mod compliance_validation_service;
 pub mod condition_type_service;
 pub mod custom_field_service;
 pub mod email_service;

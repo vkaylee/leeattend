@@ -25,6 +25,8 @@ pub struct CoreServices {
     pub tenant_provisioner: Arc<dyn crate::services::tenant_provisioner::TenantProvisionerTrait>,
     pub shift: Arc<crate::services::shift_service::ShiftService>,
     pub condition_type: Arc<crate::services::ConditionTypeService>,
+    pub compliance:
+        Arc<crate::services::compliance_validation_service::ComplianceValidationService>,
 }
 
 fn build_auth_and_people_services(
@@ -145,6 +147,13 @@ pub async fn build_core_services(
         repos.condition_type.clone(),
     ));
 
+    let compliance = Arc::new(
+        crate::services::compliance_validation_service::ComplianceValidationService::new(
+            repos.compliance.clone(),
+            repos.roster.clone(),
+        ),
+    );
+
     Ok(CoreServices {
         lifecycle,
         employee,
@@ -164,5 +173,6 @@ pub async fn build_core_services(
         tenant_provisioner,
         shift,
         condition_type,
+        compliance,
     })
 }

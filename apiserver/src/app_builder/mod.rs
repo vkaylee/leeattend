@@ -136,6 +136,7 @@ impl AppState {
                 repos.shift_swap,
                 repos.assignment_rule,
                 repos.working_pattern,
+                services.compliance,
             ),
             crate::LeaveState::new(
                 services.leave,

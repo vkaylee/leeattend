@@ -41,6 +41,9 @@ async fn test_bulk_upsert_roster_api_smoke() {
             shift_id: Some(shift_id),
             notes: None,
         }],
+        employment_id: None,
+        allow_warnings: false,
+        override_reason: None,
     };
 
     // 3. Send Request

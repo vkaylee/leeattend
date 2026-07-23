@@ -227,6 +227,7 @@ pub struct ShiftState {
     assignment_rule_repo: Arc<dyn AssignmentRuleRepository>,
     working_pattern_repo:
         Arc<dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait>,
+    compliance: Arc<crate::services::compliance_validation_service::ComplianceValidationService>,
 }
 
 impl ShiftState {
@@ -240,6 +241,9 @@ impl ShiftState {
         working_pattern_repo: Arc<
             dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait,
         >,
+        compliance: Arc<
+            crate::services::compliance_validation_service::ComplianceValidationService,
+        >,
     ) -> Self {
         Self {
             service,
@@ -249,6 +253,7 @@ impl ShiftState {
             swap_repo,
             assignment_rule_repo,
             working_pattern_repo,
+            compliance,
         }
     }
 
@@ -281,6 +286,12 @@ impl ShiftState {
     ) -> &Arc<dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait>
     {
         &self.working_pattern_repo
+    }
+
+    pub fn compliance(
+        &self,
+    ) -> &Arc<crate::services::compliance_validation_service::ComplianceValidationService> {
+        &self.compliance
     }
 }
 

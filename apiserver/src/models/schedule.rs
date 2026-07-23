@@ -60,6 +60,12 @@ pub struct AssignPatternRequest {
     pub start_date: NaiveDate,
     pub end_date: Option<NaiveDate>,
     pub anchor_date: Option<NaiveDate>,
+    /// If true, soft compliance warnings are accepted
+    #[serde(default)]
+    pub allow_warnings: bool,
+    /// Manager-provided override reason
+    #[serde(default)]
+    pub override_reason: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, utoipa::ToSchema)]
@@ -69,6 +75,12 @@ pub struct BulkAssignPatternRequest {
     pub start_date: NaiveDate,
     pub end_date: Option<NaiveDate>,
     pub anchor_date: Option<NaiveDate>,
+    /// If true, soft compliance warnings are accepted
+    #[serde(default)]
+    pub allow_warnings: bool,
+    /// Manager-provided override reason
+    #[serde(default)]
+    pub override_reason: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]

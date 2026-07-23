@@ -7,6 +7,7 @@ pub mod attendance_policy;
 pub mod audit_log;
 pub mod behalf_assignment;
 pub mod biometric_template;
+pub mod compliance;
 pub mod core;
 pub mod custom_field;
 pub mod department;

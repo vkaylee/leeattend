@@ -45,6 +45,8 @@ pub struct Services {
     pub attendance: Arc<crate::services::AttendanceLogService>,
     pub import: Arc<crate::services::attendance_import_service::AttendanceImportService>,
     pub condition_type: Arc<crate::services::ConditionTypeService>,
+    pub compliance:
+        Arc<crate::services::compliance_validation_service::ComplianceValidationService>,
 }
 
 pub async fn build_services(
@@ -127,5 +129,6 @@ pub async fn build_services(
         attendance: attendance.attendance,
         import: attendance.import,
         condition_type: core.condition_type,
+        compliance: core.compliance,
     })
 }

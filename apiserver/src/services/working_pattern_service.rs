@@ -719,6 +719,8 @@ mod tests {
             start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             end_date: None,
             anchor_date: None,
+            allow_warnings: false,
+            override_reason: None,
         };
         let result = assign_pattern(repo, Uuid::new_v4(), Uuid::new_v4(), req)
             .await
@@ -735,6 +737,8 @@ mod tests {
             start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             end_date: None,
             anchor_date: None,
+            allow_warnings: false,
+            override_reason: None,
         };
         let result = bulk_assign_pattern(repo, Uuid::new_v4(), req)
             .await

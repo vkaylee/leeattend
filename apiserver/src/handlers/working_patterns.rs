@@ -4,15 +4,17 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use chrono::NaiveDate;
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::domain::permissions::Permission;
-use crate::errors::AppResult;
+use crate::errors::{AppError, AppResult};
+use crate::utils::i18n::I18nKey;
 use crate::{
     handlers::common::MemberContext,
     models::{
-        AssignPatternRequest, BulkAssignPatternRequest, BulkAssignResponse,
+        AssignPatternRequest, BulkAssignPatternRequest, BulkAssignResponse, ComplianceCheckRequest,
         CreateWorkingPatternRequest, EmployeeWorkingPattern, WorkingPattern, WorkingPatternDetail,
     },
     services::working_pattern_service as service,
@@ -120,6 +122,30 @@ pub async fn assign_pattern(
 ) -> AppResult<Json<EmployeeWorkingPattern>> {
     let (_ws_id, employment_id) = params;
     ctx.require_permission(Permission::PatternsAssign)?;
+
+    // Compliance check: expand pattern dates and validate each shift_id group
+    if let Err(e) = check_pattern_compliance(
+        &state,
+        &ctx,
+        req.pattern_id,
+        employment_id,
+        req.start_date,
+        req.end_date,
+        req.allow_warnings,
+        req.override_reason.as_deref(),
+    )
+    .await
+    {
+        // Only propagate compliance errors; other errors (like DB) are unexpected
+        if matches!(e, AppError::Validation(_) | AppError::Conflict(_, _)) {
+            return Err(e);
+        }
+        tracing::warn!(
+            employment_id = %employment_id,
+            "Pattern compliance check failed: {e}"
+        );
+    }
+
     let assignment = service::assign_pattern(
         Arc::clone(state.shifts().working_pattern_repo()),
         ctx.workspace_id,
@@ -152,6 +178,34 @@ pub async fn bulk_assign_pattern(
     Json(req): Json<BulkAssignPatternRequest>,
 ) -> AppResult<Json<BulkAssignResponse>> {
     ctx.require_permission(Permission::PatternsAssign)?;
+
+    // Compliance check for bulk assignment: validate each employment against pattern
+    if req.employment_ids.len() <= 10 {
+        // Only check compliance for small batches to avoid N+1
+        for &employment_id in &req.employment_ids {
+            if let Err(e) = check_pattern_compliance(
+                &state,
+                &ctx,
+                req.pattern_id,
+                employment_id,
+                req.start_date,
+                req.end_date,
+                req.allow_warnings,
+                req.override_reason.as_deref(),
+            )
+            .await
+            {
+                if matches!(e, AppError::Validation(_) | AppError::Conflict(_, _)) {
+                    return Err(e);
+                }
+                tracing::warn!(
+                    employment_id = %employment_id,
+                    "Bulk pattern compliance check failed: {e}"
+                );
+            }
+        }
+    }
+
     let result = service::bulk_assign_pattern(
         Arc::clone(state.shifts().working_pattern_repo()),
         ctx.workspace_id,
@@ -259,4 +313,95 @@ pub async fn update_pattern(
     }
 
     Ok(Json(pattern))
+}
+
+// ---------------------------------------------------------------------------
+// Helper: pattern compliance check
+// ---------------------------------------------------------------------------
+
+/// Expands a pattern's date range and validates each (shift_id, dates[]) group
+/// against the workspace compliance rules.
+async fn check_pattern_compliance(
+    state: &Arc<AppState>,
+    ctx: &MemberContext,
+    pattern_id: Uuid,
+    employment_id: Uuid,
+    start_date: NaiveDate,
+    end_date: Option<NaiveDate>,
+    allow_warnings: bool,
+    override_reason: Option<&str>,
+) -> AppResult<()> {
+    // Get pattern details to know shift_id per schedule_day
+    let details = state
+        .shifts()
+        .working_pattern_repo()
+        .get_pattern_details(ctx.workspace_id, pattern_id)
+        .await?;
+
+    // Only validate days that have a shift assigned (skip day-off slots)
+    let shift_day_map: std::collections::HashMap<i32, Uuid> = details
+        .iter()
+        .filter_map(|d| d.shift_id.map(|sid| (d.schedule_day, sid)))
+        .collect();
+
+    if shift_day_map.is_empty() {
+        return Ok(()); // All days off — nothing to validate
+    }
+
+    // Find the pattern to get cycle_length_days
+    let patterns = state
+        .shifts()
+        .working_pattern_repo()
+        .get_patterns(ctx.workspace_id)
+        .await?;
+    let pattern = patterns
+        .iter()
+        .find(|p| p.id == pattern_id)
+        .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
+
+    // Expand dates
+    let actual_end = end_date.unwrap_or(start_date + chrono::Duration::days(90));
+    let mut current = start_date;
+    let mut dates = Vec::new();
+    while current <= actual_end {
+        dates.push(current);
+        current += chrono::Duration::days(1);
+    }
+    dates.truncate(366); // Safety cap
+
+    // Compute which schedule_day each date maps to
+    let cycle_days = pattern.cycle_length_days.unwrap_or(7);
+    let anchor = start_date;
+
+    // Group dates by shift_id
+    let mut shift_dates: std::collections::HashMap<Uuid, Vec<NaiveDate>> =
+        std::collections::HashMap::new();
+    for date in &dates {
+        let days_since_anchor = (*date - anchor).num_days();
+        let normalized =
+            ((days_since_anchor % cycle_days as i64) + cycle_days as i64) % cycle_days as i64;
+        let schedule_day = (normalized as i32) + 1; // 1-indexed
+
+        if let Some(&shift_id) = shift_day_map.get(&schedule_day) {
+            shift_dates.entry(shift_id).or_default().push(*date);
+        }
+    }
+
+    // Validate each shift_id group
+    for (shift_id, dates) in &shift_dates {
+        let compliance_req = ComplianceCheckRequest {
+            employment_id,
+            shift_id: *shift_id,
+            dates: dates.clone(),
+            allow_warnings,
+            override_reason: override_reason.map(String::from),
+        };
+        state
+            .shifts()
+            .compliance()
+            .validate_assignments(ctx.workspace_id, &ctx.auth_token, &compliance_req)
+            .await?;
+    }
+
+    Ok(())
 }

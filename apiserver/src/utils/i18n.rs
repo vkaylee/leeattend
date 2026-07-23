@@ -188,6 +188,12 @@ i18n_table! {
     LeaveNotFoundAfterUpdate => "error.leave_not_found_after_update" => ("Not found after status update", "Không tìm thấy sau khi cập nhật trạng thái", "更新状态后未找到资源"),
     ResetTokenInvalid => "error.reset_token_invalid" => ("This reset link is invalid or has expired.", "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.", "该密码重置链接无效或已过期。"),
     ResetTokenExpired => "error.reset_token_expired" => ("This reset link has expired.", "Liên kết đặt lại mật khẩu đã hết hạn.", "该密码重置链接已过期。"),
+    // Compliance & Rest-Period Validation
+    ShiftOverlapDetected => "error.shift_overlap_detected" => ("Shift overlap detected. The employee is already assigned to another shift at this time.", "Phát hiện trùng lặp ca làm việc. Nhân viên đã được phân công vào một ca khác vào thời gian này.", "检测到班次重叠。员工在该时间段已被分配到另一个班次。"),
+    InsufficientRestPeriod => "error.insufficient_rest_period" => ("Insufficient rest period between shifts. Minimum required rest is {min_hours}h.", "Thời gian nghỉ giữa các ca không đủ. Yêu cầu nghỉ tối thiểu {min_hours} giờ.", "班次间休息时间不足。最低要求休息 {min_hours} 小时。"),
+    WeeklyHoursExceeded => "error.weekly_hours_exceeded" => ("Weekly working hours exceeded. Current: {current}h, limit: {limit}h.", "Tổng giờ làm việc trong tuần vượt quá giới hạn. Hiện tại: {current}h, giới hạn: {limit}h.", "每周工作时间超标。当前：{current}h，限制：{limit}h。"),
+    MonthlyOTExceeded => "error.monthly_ot_exceeded" => ("Monthly overtime hours exceeded. Current: {current} OT hours, limit: {limit}h.", "Giờ tăng ca trong tháng vượt quá giới hạn. Hiện tại: {current} giờ, giới hạn: {limit}h.", "每月加班时间超标。当前：{current} 小时，限制：{limit}h。"),
+    ComplianceOverrideRequired => "error.compliance_override_required" => ("Compliance override reason is required to proceed with this assignment.", "Cần cung cấp lý do ghi đè tuân thủ để tiếp tục phân công này.", "需要提供合规性覆盖理由才能继续本次分配。"),
 }
 
 // ---------------------------------------------------------------------------
