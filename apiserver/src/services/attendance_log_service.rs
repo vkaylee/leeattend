@@ -12,8 +12,9 @@ use crate::repositories::raw_attendance_log_repository::RawAttendanceLogReposito
 use crate::repositories::staging_log_repository::StagingLogRepository;
 use crate::repositories::EmployeeRepository;
 use crate::services::pairing::PairingProcessor;
-use crate::services::{agent_log_buffer, AgentLogBuffer, AgentLogEntry};
+use crate::services::AgentLogEntry;
 use crate::utils::datetime::parse_datetime_with_tz;
+use crate::worker::pairing_scheduler::PairingNotifier;
 
 #[derive(Clone)]
 pub struct AttendanceLogService {
@@ -21,16 +22,13 @@ pub struct AttendanceLogService {
     raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
     staging_repo: Arc<dyn StagingLogRepository>,
     error_repo: Arc<dyn AttendanceLogErrorRepository>,
-    pairing_service: Arc<dyn PairingProcessor>,
-    #[allow(dead_code)] // Held to keep mpsc Sender alive — dropping closes the worker channel
-    log_buffer: Arc<AgentLogBuffer>,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct AttendanceLogServiceConfig {
-    pub buffer_capacity: usize,
-    pub batch_size: usize,
-    pub flush_interval_ms: u64,
+    /// Fire-and-forget notifications to the PairingScheduler after each INSERT.
+    /// `None` in tests or when the scheduler is not configured.
+    notifier: Option<Arc<PairingNotifier>>,
+    /// Inline pairing for synchronous callers (punch-in/out, import).
+    /// When set, `process_parsed_log` calls `process_new_raw_log` inline.
+    /// `process_log` always uses deferred pairing via `PairingScheduler`.
+    pairing_service: Option<Arc<dyn PairingProcessor>>,
 }
 
 pub struct AttendanceLogServiceDeps {
@@ -38,6 +36,10 @@ pub struct AttendanceLogServiceDeps {
     pub raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
     pub staging_repo: Arc<dyn StagingLogRepository>,
     pub error_repo: Arc<dyn AttendanceLogErrorRepository>,
+    /// When set, `process_parsed_log` triggers inline pairing (needed by
+    /// punch-in/out handlers that read the time entry immediately after).
+    /// `process_log` always uses deferred pairing via `PairingScheduler`.
+    pub pairing_service: Option<Arc<dyn PairingProcessor>>,
 }
 
 pub struct ProcessLogArgs<'a> {
@@ -54,38 +56,17 @@ pub struct ProcessLogArgs<'a> {
 
 impl AttendanceLogService {
     pub fn new(
-        pairing_service: Arc<dyn PairingProcessor>,
-        config: AttendanceLogServiceConfig,
         deps: AttendanceLogServiceDeps,
-    ) -> (Self, tokio::task::JoinHandle<()>) {
-        let (log_buffer, log_receiver) = AgentLogBuffer::new(config.buffer_capacity);
-        let log_buffer = Arc::new(log_buffer);
-
-        let pairing_clone = Arc::clone(&pairing_service);
-        let employee_repo_clone = Arc::clone(&deps.employee_repo);
-        let raw_log_repo_clone = Arc::clone(&deps.raw_log_repo);
-        let worker_handle = tokio::spawn(async move {
-            agent_log_buffer::run_log_worker(
-                employee_repo_clone,
-                raw_log_repo_clone,
-                pairing_clone,
-                log_receiver,
-                config.batch_size,
-                config.flush_interval_ms,
-            )
-            .await;
-        });
-
-        let service = Self {
+        notifier: Option<Arc<PairingNotifier>>,
+    ) -> Self {
+        Self {
             employee_repo: deps.employee_repo,
             raw_log_repo: deps.raw_log_repo,
             staging_repo: deps.staging_repo,
             error_repo: deps.error_repo,
-            pairing_service,
-            log_buffer,
-        };
-
-        (service, worker_handle)
+            notifier,
+            pairing_service: deps.pairing_service,
+        }
     }
 
     /// Extract punch/status from raw_data JSON, defaulting to -1.
@@ -122,29 +103,6 @@ impl AttendanceLogService {
             hasher.update("|");
         }
         format!("{:x}", hasher.finalize())
-    }
-
-    /// Process agent log synchronously to ensure ACK reflects actual parsing/DB result.
-    /// Returns Ok(()) for ALL cases except database connection errors.
-    /// Unknown users and validation errors are swallowed with 200 OK to prevent agent retries.
-    #[tracing::instrument(skip_all, err)]
-    pub async fn ingest_agent_log(
-        &self,
-        entry: AgentLogEntry,
-    ) -> Result<(), crate::errors::AppError> {
-        self.process_log(ProcessLogArgs {
-            workspace_id: entry.workspace_id,
-            employee_id_number: &entry.employee_id_number,
-            punch_time_raw: &entry.punch_time_raw,
-            source: LogSource::Device,
-            device_id: entry.device_id,
-            raw_data: entry.raw_data,
-            timezone: &entry.timezone,
-            date_fmt: Some(&entry.date_fmt),
-            time_fmt: Some(&entry.time_fmt),
-        })
-        .await
-        .map(|_| ()) // Convert Result<bool, AppError> to Result<(), AppError>
     }
 
     /// Processes a single attendance log entry from any source (Agent or Import).
@@ -289,10 +247,14 @@ impl AttendanceLogService {
                     *raw_log.source()
                 );
 
-                // 5. Trigger Pairing Logic
-                if let Err(e) = self.pairing_service.process_new_raw_log(&raw_log).await {
-                    error!("Pairing error for log {}: {:?}", raw_log.id(), e);
-                    // We return Ok(true) because the log WAS saved, pairing is secondary/async-ish
+                // Notify PairingScheduler (fire-and-forget) — pairing is deferred
+                // to a background batch sweep to avoid advisory-lock contention.
+                if let Some(notifier) = &self.notifier {
+                    notifier.notify(
+                        args.workspace_id,
+                        active_employment_id,
+                        punch_time,
+                    );
                 }
                 Ok(true)
             }
@@ -345,12 +307,21 @@ impl AttendanceLogService {
             .await
         {
             Ok(true) => {
-                if let Err(e) = self.pairing_service.process_new_raw_log(&raw_log).await {
-                    tracing::error!(
-                        log_id = %raw_log.id(),
-                        error = %e,
-                        "Pairing error in process_parsed_log"
-                    );
+                // Inline pairing for synchronous callers (punch-in/out, import)
+                // that read time entries immediately after this call.
+                if let Some(pairing) = &self.pairing_service {
+                    if let Err(e) = pairing.process_new_raw_log(&raw_log).await {
+                        tracing::error!(
+                            log_id = %raw_log.id(),
+                            error = %e,
+                            "Pairing error in process_parsed_log"
+                        );
+                    }
+                } else {
+                    // No pairing service — notify PairingScheduler
+                    if let Some(notifier) = &self.notifier {
+                        notifier.notify(workspace_id, employee_id, punch_time);
+                    }
                 }
                 Ok(true)
             }

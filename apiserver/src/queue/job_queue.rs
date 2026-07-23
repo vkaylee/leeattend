@@ -207,12 +207,14 @@ impl JobQueue {
         if is_low_turn {
             // Non-blocking LPOP from low queue — gives low-priority a
             // guaranteed chance even when high/normal are constantly busy.
-            let low_result: Option<(String, String)> = redis::cmd("LPOP")
+            // LPOP returns a single bulk-string (the value), unlike BLPOP
+            // which returns an array [key, value].
+            let low_result: Option<String> = redis::cmd("LPOP")
                 .arg(self.queue_low())
                 .query_async(&mut conn)
                 .await?;
 
-            if let Some((_, json)) = low_result {
+            if let Some(json) = low_result {
                 let job: Job = serde_json::from_str(&json).map_err(|e| {
                     redis::RedisError::from((
                         redis::ErrorKind::TypeError,

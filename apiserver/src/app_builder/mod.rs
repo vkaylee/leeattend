@@ -18,11 +18,11 @@ use self::services::build_services;
 use self::workers::build_workers;
 
 pub struct AppWorkers {
-    pub log_worker_handle: JoinHandle<()>,
     pub job_worker_handle: Option<JoinHandle<()>>,
     pub scheduler_handle: Option<JoinHandle<()>>,
     pub outbox_sweep_handle: Option<JoinHandle<()>>,
     pub file_scan_scheduler_handle: Option<JoinHandle<()>>,
+    pub pairing_scheduler_handle: Option<JoinHandle<()>>,
     pub job_worker_token: CancellationToken,
 }
 
@@ -72,12 +72,20 @@ impl AppState {
         );
 
         let repos = build_repositories(&diesel_pools, &crypto_service)?;
-        let (services, log_worker_handle) = build_services(
+
+        // Create pairing notification channel: process_log sends lightweight
+        // notifications after each INSERT; PairingScheduler drains them every
+        // 2 s and calls reprocess_daily_attendance once per (emp, date) group.
+        let (pairing_notifier, pairing_rx) = crate::worker::pairing_scheduler::pairing_channel();
+        let pairing_notifier = Some(Arc::new(pairing_notifier));
+
+        let services = build_services(
             &diesel_pools,
             &redis_pool,
             &crypto_service,
             &agent_manager,
             &repos,
+            &pairing_notifier,
         )
         .await?;
 
@@ -90,8 +98,9 @@ impl AppState {
             &redis_pool,
             &repos,
             &services,
-            log_worker_handle,
             roster_cache.clone(),
+            pairing_rx,
+            pairing_notifier.clone(),
         );
 
         let state = Arc::new(AppState::new(

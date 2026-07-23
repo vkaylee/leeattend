@@ -278,11 +278,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     drop(state);
 
-    tracing::info!("Waiting for log worker to drain...");
-    if let Err(e) = workers.log_worker_handle.await {
-        tracing::error!("Log worker task panicked: {:?}", e);
-    }
-
     tracing::info!("Server stopped.");
     Ok(())
 }

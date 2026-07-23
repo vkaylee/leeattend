@@ -114,7 +114,7 @@ impl WorkerConfig {
     pub fn from_env() -> Self {
         let mut config = Self::default();
 
-        let max_conn = std::env::var("DB_WORKER_MAX_CONN")
+        let max_conn = std::env::var("WORKER_MAX_CONCURRENT_JOBS")
             .ok()
             .and_then(|v| v.parse::<usize>().ok())
             .unwrap_or(5);
@@ -186,8 +186,11 @@ impl JobWorker {
         config: WorkerConfig,
         coordinator: Arc<ReportCoordinator>,
         roster_cache: Option<Arc<RosterCache>>,
+        pairing_notifier: Option<Arc<super::pairing_scheduler::PairingNotifier>>,
     ) -> Self {
-        let deps = Arc::new(super::WorkerDeps::new(diesel));
+        let mut worker_deps = super::WorkerDeps::new(diesel);
+        worker_deps.pairing_notifier = pairing_notifier;
+        let deps = Arc::new(worker_deps);
         let redis_cache: Arc<dyn crate::repositories::CacheRepository> =
             Arc::new(crate::cache::RedisCache::new(redis.clone()));
         let cache = Arc::new(CacheManager::new(
@@ -596,7 +599,7 @@ mod tests {
     #[test]
     fn test_worker_config_from_env() {
         // Test with no env vars (should use defaults)
-        std::env::remove_var("DB_WORKER_MAX_CONN");
+        std::env::remove_var("WORKER_MAX_CONCURRENT_JOBS");
         std::env::remove_var("WORKER_POLL_TIMEOUT_SECS");
         std::env::remove_var("WORKER_MAX_RETRIES");
         std::env::remove_var("WORKER_JOB_TIMEOUT_SECS");

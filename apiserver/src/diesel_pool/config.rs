@@ -93,7 +93,7 @@ impl DbPoolConfig {
             reader_url,
             api_max_conn: env_parse("DB_API_MAX_CONN", 20),
             api_acquire_timeout_secs: env_parse("DB_API_ACQUIRE_TIMEOUT_SECS", 5),
-            worker_max_conn: env_parse("DB_WORKER_MAX_CONN", 5),
+            worker_max_conn: 5, // system worker pool — low volume, no env needed
             worker_acquire_timeout_secs: env_parse("DB_WORKER_ACQUIRE_TIMEOUT_SECS", 30),
             tenant_max_conn: env_parse("DB_TENANT_MAX_CONN", 5),
         })
@@ -154,7 +154,6 @@ mod tests {
             ("DB_READER_URL", reader),
             ("DB_API_MAX_CONN", None),
             ("DB_API_ACQUIRE_TIMEOUT_SECS", None),
-            ("DB_WORKER_MAX_CONN", None),
             ("DB_WORKER_ACQUIRE_TIMEOUT_SECS", None),
             ("DB_TENANT_MAX_CONN", None),
         ];

@@ -678,20 +678,15 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             attendance_summary_service,
             Arc::new(
                 AttendanceLogService::new(
-                    pairing_service.clone(),
-                    apiserver::services::attendance_log_service::AttendanceLogServiceConfig {
-                        buffer_capacity: 100,
-                        batch_size: 10,
-                        flush_interval_ms: 1000,
-                    },
                     apiserver::services::attendance_log_service::AttendanceLogServiceDeps {
                         employee_repo: employee_repo.clone(),
                         raw_log_repo: raw_log_repo.clone(),
                         staging_repo: staging_repo.clone(),
                         error_repo: error_repo.clone(),
+                        pairing_service: Some(pairing_service.clone()),
                     },
-                )
-                .0,
+                    None,
+                ),
             ),
             pairing_service,
             adjustment_service,
@@ -1403,20 +1398,15 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
             attendance_summary_service,
             Arc::new(
                 AttendanceLogService::new(
-                    pairing_service.clone(),
-                    apiserver::services::attendance_log_service::AttendanceLogServiceConfig {
-                        buffer_capacity: 100,
-                        batch_size: 10,
-                        flush_interval_ms: 1000,
-                    },
                     apiserver::services::attendance_log_service::AttendanceLogServiceDeps {
                         employee_repo: employee_repo.clone(),
                         raw_log_repo: raw_log_repo.clone(),
                         staging_repo: staging_repo.clone(),
                         error_repo: error_repo.clone(),
+                        pairing_service: Some(pairing_service.clone()),
                     },
-                )
-                .0,
+                    None,
+                ),
             ),
             pairing_service,
             adjustment_service,
@@ -2177,20 +2167,15 @@ pub async fn setup_app_tower_internal_extended(
             attendance_summary_service,
             Arc::new(
                 AttendanceLogService::new(
-                    pairing_service.clone(),
-                    apiserver::services::attendance_log_service::AttendanceLogServiceConfig {
-                        buffer_capacity: 100,
-                        batch_size: 10,
-                        flush_interval_ms: 1000,
-                    },
                     apiserver::services::attendance_log_service::AttendanceLogServiceDeps {
                         employee_repo: employee_repo.clone(),
                         raw_log_repo: raw_log_repo.clone(),
                         staging_repo: staging_repo.clone(),
                         error_repo: error_repo.clone(),
+                        pairing_service: Some(pairing_service.clone()),
                     },
-                )
-                .0,
+                    None,
+                ),
             ),
             pairing_service,
             adjustment_service,

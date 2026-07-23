@@ -198,7 +198,7 @@ services:
       - DATABASE_TENANT_POOLER_SESS_URL=postgres://tenant_user:tenant_password@pgbouncer_tenant_sess:5452/tenant_db
       - DB_POOLER_TYPE=pgbouncer
       - DB_API_MAX_CONN=${DB_API_MAX_CONN:-20}
-      - DB_WORKER_MAX_CONN=${DB_WORKER_MAX_CONN:-5}
+      - WORKER_MAX_CONCURRENT_JOBS=${WORKER_MAX_CONCURRENT_JOBS:-5}
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - API_HOST=0.0.0.0
       - API_PORT=3000

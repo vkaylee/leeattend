@@ -10,6 +10,7 @@ use crate::repositories::outbox_job_repository::OutboxJobRepository;
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::AttendancePolicyRepository;
 use crate::repositories::TimeEntryRepository;
+use crate::worker::pairing_scheduler::PairingNotifier;
 
 /// Shared, pre-built repository instances for worker handlers.
 ///
@@ -48,6 +49,10 @@ pub struct WorkerDeps {
     pub custom_field_repo: Arc<dyn crate::repositories::CustomFieldRepository>,
     pub employer_repo: Arc<dyn crate::repositories::EmployerRepository>,
     pub diesel_pools: crate::diesel_pool::DieselPools,
+    /// Optional notifier for deferred pairing. When set, `log_service()` will
+    /// pass it to `AttendanceLogService` so INSERTs fire notifications to the
+    /// `PairingScheduler` instead of triggering inline `process_new_raw_log`.
+    pub pairing_notifier: Option<Arc<PairingNotifier>>,
 }
 
 impl WorkerDeps {
@@ -151,6 +156,7 @@ impl WorkerDeps {
             employer_repo: Arc::new(crate::repositories::DieselEmployerRepository::new(
                 diesel.clone(),
             )),
+            pairing_notifier: None,
         }
     }
 
@@ -189,26 +195,16 @@ impl WorkerDeps {
 
     /// Build an [`AttendanceLogService`](crate::services::AttendanceLogService)
     /// using the shared repository instances.
-    pub fn log_service(
-        &self,
-    ) -> (
-        crate::services::AttendanceLogService,
-        tokio::task::JoinHandle<()>,
-    ) {
-        let pairing_svc = self.pairing_service();
+    pub fn log_service(&self) -> crate::services::AttendanceLogService {
         crate::services::AttendanceLogService::new(
-            pairing_svc,
-            crate::services::attendance_log_service::AttendanceLogServiceConfig {
-                buffer_capacity: 1,
-                batch_size: 1,
-                flush_interval_ms: 1000,
-            },
             crate::services::attendance_log_service::AttendanceLogServiceDeps {
                 employee_repo: Arc::clone(&self.employee_repo),
                 raw_log_repo: Arc::clone(&self.raw_log_repo),
                 staging_repo: Arc::clone(&self.staging_repo),
                 error_repo: Arc::clone(&self.error_repo),
+                pairing_service: None,
             },
+            self.pairing_notifier.clone(),
         )
     }
 }

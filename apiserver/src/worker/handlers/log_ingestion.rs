@@ -24,7 +24,7 @@ impl LogIngestionHandler {
             .log_ingestion_payload()
             .ok_or("Invalid payload for LogIngestion job")?;
 
-        let (log_svc, _handle) = deps.log_service();
+        let log_svc = deps.log_service();
 
         log_svc
             .process_log(crate::services::attendance_log_service::ProcessLogArgs {

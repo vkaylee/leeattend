@@ -7,8 +7,8 @@ use crate::agent_manager::AgentManager;
 use crate::crypto::CryptoService;
 use crate::diesel_pool::DieselPools;
 use crate::queue::RedisPool;
+use crate::worker::pairing_scheduler::PairingNotifier;
 use std::sync::Arc;
-use tokio::task::JoinHandle;
 
 pub struct Services {
     pub lifecycle: Arc<crate::services::LifecycleService>,
@@ -53,7 +53,8 @@ pub async fn build_services(
     crypto_service: &Option<Arc<CryptoService>>,
     agent_manager: &AgentManager,
     repos: &Repositories,
-) -> Result<(Services, JoinHandle<()>), Box<dyn std::error::Error>> {
+    notifier: &Option<Arc<PairingNotifier>>,
+) -> Result<Services, Box<dyn std::error::Error>> {
     let core = build_core_services(
         diesel_pools,
         redis_pool,
@@ -62,8 +63,8 @@ pub async fn build_services(
         repos,
     )
     .await?;
-    let (attendance, log_worker_handle) =
-        build_attendance_services(diesel_pools, redis_pool, crypto_service, repos).await?;
+    let attendance =
+        build_attendance_services(diesel_pools, redis_pool, crypto_service, repos, notifier).await?;
     let leave = build_leave_services(diesel_pools, redis_pool, repos, &core, &attendance)?;
 
     let roster_provider: Arc<dyn crate::services::payroll_service::RosterDataProvider> = Arc::new(
@@ -91,8 +92,7 @@ pub async fn build_services(
         },
     ));
 
-    Ok((
-        Services {
+    Ok(Services {
             lifecycle: core.lifecycle,
             employee: core.employee,
             outbox: core.outbox,
@@ -127,6 +127,5 @@ pub async fn build_services(
             import: attendance.import,
             condition_type: core.condition_type,
         },
-        log_worker_handle,
-    ))
+    )
 }

@@ -4,8 +4,8 @@ use crate::crypto::CryptoService;
 use crate::diesel_pool::DieselPools;
 use crate::queue::RedisPool;
 use crate::services::AttendanceLogService;
+use crate::worker::pairing_scheduler::PairingNotifier;
 use std::sync::Arc;
-use tokio::task::JoinHandle;
 
 pub struct AttendanceServices {
     pub time_tracking: Arc<crate::services::TimeTrackingService>,
@@ -24,7 +24,8 @@ pub async fn build_attendance_services(
     _redis_pool: &Option<RedisPool>,
     crypto_service: &Option<Arc<CryptoService>>,
     repos: &Repositories,
-) -> Result<(AttendanceServices, JoinHandle<()>), Box<dyn std::error::Error>> {
+    notifier: &Option<Arc<PairingNotifier>>,
+) -> Result<AttendanceServices, Box<dyn std::error::Error>> {
     let time_tracking = Arc::new(crate::services::TimeTrackingService::new(
         Arc::clone(&repos.time_entry),
         Arc::clone(&repos.roster),
@@ -72,32 +73,16 @@ pub async fn build_attendance_services(
         ),
     );
 
-    let buffer_capacity: usize = std::env::var("AGENT_LOG_BUFFER_CAPACITY")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(5000);
-    let batch_size: usize = std::env::var("AGENT_LOG_BATCH_SIZE")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(100);
-    let flush_interval_ms: u64 = std::env::var("AGENT_LOG_FLUSH_MS")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(1000);
-
-    let (attendance, log_worker_handle) = AttendanceLogService::new(
-        Arc::clone(&pairing),
-        crate::services::attendance_log_service::AttendanceLogServiceConfig {
-            buffer_capacity,
-            batch_size,
-            flush_interval_ms,
-        },
-        crate::services::attendance_log_service::AttendanceLogServiceDeps {
-            employee_repo: Arc::clone(&repos.employee),
-            raw_log_repo: Arc::clone(&repos.raw_log),
-            staging_repo: Arc::clone(&repos.staging),
-            error_repo: Arc::clone(&repos.error),
-        },
+    let deps = crate::services::attendance_log_service::AttendanceLogServiceDeps {
+        employee_repo: Arc::clone(&repos.employee),
+        raw_log_repo: Arc::clone(&repos.raw_log),
+        staging_repo: Arc::clone(&repos.staging),
+        error_repo: Arc::clone(&repos.error),
+        pairing_service: Some(Arc::clone(&pairing) as Arc<dyn crate::services::pairing::PairingProcessor>),
+    };
+    let attendance = AttendanceLogService::new(
+        deps,
+        notifier.clone(),
     );
     let attendance = Arc::new(attendance);
 
@@ -132,16 +117,13 @@ pub async fn build_attendance_services(
         },
     ));
 
-    Ok((
-        AttendanceServices {
-            time_tracking,
-            attendance_summary,
-            pairing,
-            adjustment,
-            attendance,
-            import,
-            report,
-        },
-        log_worker_handle,
-    ))
+    Ok(AttendanceServices {
+        time_tracking,
+        attendance_summary,
+        pairing,
+        adjustment,
+        attendance,
+        import,
+        report,
+    })
 }

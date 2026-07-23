@@ -103,19 +103,15 @@ async fn test_process_log_success_with_timezone() {
     > = std::sync::Arc::new(
         apiserver::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
-    let (service, _) = AttendanceLogService::new(
-        pairing,
-        apiserver::services::attendance_log_service::AttendanceLogServiceConfig {
-            buffer_capacity: 100,
-            batch_size: 10,
-            flush_interval_ms: 1000,
-        },
+    let service = AttendanceLogService::new(
         apiserver::services::attendance_log_service::AttendanceLogServiceDeps {
             employee_repo: emp_repo,
             raw_log_repo: rl_repo,
             staging_repo: st_repo,
             error_repo: er_repo,
+            pairing_service: Some(pairing),
         },
+        None,
     );
     let result = service
         .process_log(
@@ -243,19 +239,15 @@ async fn test_same_second_punch_with_different_status_allowed() {
     > = std::sync::Arc::new(
         apiserver::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
-    let (service, _) = AttendanceLogService::new(
-        pairing,
-        apiserver::services::attendance_log_service::AttendanceLogServiceConfig {
-            buffer_capacity: 100,
-            batch_size: 10,
-            flush_interval_ms: 1000,
-        },
+    let service = AttendanceLogService::new(
         apiserver::services::attendance_log_service::AttendanceLogServiceDeps {
             employee_repo: emp_repo,
             raw_log_repo: rl_repo,
             staging_repo: st_repo,
             error_repo: er_repo,
+            pairing_service: Some(pairing),
         },
+        None,
     );
 
     // 1. First punch (check-in)

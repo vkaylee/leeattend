@@ -1448,4 +1448,75 @@ mod tests {
             .ok()
             .unwrap_or(());
     }
+
+    /// When only low-priority jobs are in the queue, every 10th dequeue
+    /// triggers a non-blocking LPOP from `queue:low`. Before the fix,
+    /// LPOP returned `Option<String>` but the code tried to deserialize as
+    /// `Option<(String, String)>`, causing a Redis `TypeError`.
+    ///
+    /// This test enqueues 12 low-priority jobs and dequeues them all,
+    /// proving that LPOP (hit at least once in 12 attempts when
+    /// LOW_QUEUE_WEIGHT=10) succeeds with the corrected return type.
+    #[tokio::test]
+    async fn test_dequeue_low_priority_lpop_type_fix() {
+        let pool = setup_redis_or_skip!();
+        let queue = JobQueue::with_namespace(pool.clone(), &Uuid::new_v4().to_string());
+
+        let mut conn = pool.conn();
+        let ws = Uuid::new_v4();
+
+        // Enqueue 12 low-priority jobs — enough to guarantee LPOP is hit
+        // at least once (LOW_QUEUE_WEIGHT=10, so dequeue #11 triggers LPOP).
+        let mut job_ids = Vec::new();
+        for i in 0..12 {
+            let id = Uuid::new_v4();
+            job_ids.push(id);
+            let job = Job::with_priority(
+                id,
+                0,
+                TaskType::LogIngestion,
+                ws,
+                JobPayload::LogIngestion(crate::queue::LogIngestionPayload {
+                    workspace_id: ws,
+                    employee_id_number: format!("EMP{i:03}"),
+                    punch_time_raw: "2026-01-26 09:00:00".to_string(),
+                    device_id: None,
+                    raw_data: None,
+                    timezone: "UTC".to_string(),
+                    date_fmt: "YYYY-MM-DD".to_string(),
+                    time_fmt: "24h".to_string(),
+                }),
+                crate::queue::JobPriority::Low,
+            );
+            queue.enqueue_single(job).await.unwrap();
+        }
+
+        // Dequeue all 12 jobs — must succeed without Redis TypeError.
+        let mut dequeued = 0u32;
+        for _ in 0..12 {
+            let result = queue.dequeue_job(0.5).await;
+            assert!(
+                result.is_ok(),
+                "dequeue_job must not fail with Redis error; got {:?}",
+                result.err()
+            );
+            let job = result.unwrap().expect("should dequeue a job");
+            assert!(
+                job_ids.contains(&job.job_id),
+                "dequeued unexpected job {}",
+                job.job_id
+            );
+            dequeued += 1;
+        }
+
+        assert_eq!(dequeued, 12, "all 12 low-priority jobs must be dequeued");
+
+        // Cleanup
+        let _: () = redis::cmd("DEL")
+            .arg(queue.queue_low())
+            .query_async(&mut conn)
+            .await
+            .ok()
+            .unwrap_or(());
+    }
 }
