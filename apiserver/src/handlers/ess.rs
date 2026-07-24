@@ -36,7 +36,7 @@ pub async fn get_my_profile(
         .repo()
         .get_employee_by_id(
             employee.employee_id,
-            &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
+            &employee.auth_token,
         )
         .await?
         .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
@@ -46,7 +46,7 @@ pub async fn get_my_profile(
         .employees()
         .repo()
         .get_employee_profile(
-            &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
+            &employee.auth_token,
             employee.employee_id,
         )
         .await?;
@@ -56,7 +56,7 @@ pub async fn get_my_profile(
         .employees()
         .repo()
         .get_emergency_contacts(
-            &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
+            &employee.auth_token,
             employee.employee_id,
         )
         .await?;
@@ -87,7 +87,7 @@ pub async fn update_my_profile(
         .employees()
         .repo()
         .upsert_employee_profile(
-            &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
+            &employee.auth_token,
             employee.employee_id,
             &req,
         )
@@ -114,7 +114,7 @@ pub async fn get_my_emergency_contacts(
         .employees()
         .repo()
         .get_emergency_contacts(
-            &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
+            &employee.auth_token,
             employee.employee_id,
         )
         .await?;
@@ -140,7 +140,7 @@ pub async fn add_emergency_contact(
         .employees()
         .repo()
         .upsert_emergency_contact(
-            &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
+            &employee.auth_token,
             employee.employee_id,
             &req,
         )
@@ -170,7 +170,7 @@ pub async fn delete_emergency_contact(
         .employees()
         .repo()
         .delete_emergency_contact(
-            &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
+            &employee.auth_token,
             employee.employee_id,
             contact_id,
         )
@@ -201,7 +201,7 @@ pub async fn get_my_documents(
         .employees()
         .repo()
         .get_employee_documents(
-            &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
+            &employee.auth_token,
             employee.employee_id,
         )
         .await?;
@@ -273,11 +273,10 @@ pub async fn get_my_attendance(
         .map(|t| t.and_utc())
         .ok_or_else(|| AppError::Internal("Invalid end date".to_string()))?;
 
-    let auth_token = crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id);
     let emp = state
         .employees()
         .repo()
-        .get_employee_by_id(employee.employee_id, &auth_token)
+        .get_employee_by_id(employee.employee_id, &employee.auth_token)
         .await?
         .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
     let active_emp_id = emp
@@ -287,7 +286,7 @@ pub async fn get_my_attendance(
     let entries = state
         .attendance()
         .time_entry_repo()
-        .get_employment_time_entries(&auth_token, active_emp_id, from, to)
+        .get_employment_time_entries(&employee.auth_token, active_emp_id, from, to)
         .await?;
 
     Ok(Json(entries))
@@ -313,11 +312,10 @@ pub async fn ess_punch(
     employee: EmployeeContext,
     Json(req): Json<EssPunchRequest>,
 ) -> AppResult<(StatusCode, Json<TimeEntry>)> {
-    let auth_token = crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id);
     let emp = state
         .employees()
         .repo()
-        .get_employee_by_id(employee.employee_id, &auth_token)
+        .get_employee_by_id(employee.employee_id, &employee.auth_token)
         .await?
         .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
     let active_emp_id = emp
@@ -365,11 +363,10 @@ pub async fn get_my_time_entries(
         .unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::days(30));
     let end = query.end_date.unwrap_or_else(chrono::Utc::now);
 
-    let auth_token = crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id);
     let emp = state
         .employees()
         .repo()
-        .get_employee_by_id(employee.employee_id, &auth_token)
+        .get_employee_by_id(employee.employee_id, &employee.auth_token)
         .await?
         .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
     let active_emp_id = emp
@@ -416,7 +413,7 @@ pub async fn get_my_leave_balances(
         .leaves()
         .balance_repo()
         .get_employee_balances(
-            &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
+            &employee.auth_token,
             employee.employee_id,
             year,
         )
@@ -453,7 +450,7 @@ pub async fn ess_get_my_leave_requests(
         .leaves()
         .request_repo()
         .get_employee_leave_requests(
-            &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
+            &employee.auth_token,
             employee.employee_id,
         )
         .await?;

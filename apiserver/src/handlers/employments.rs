@@ -45,7 +45,7 @@ pub async fn list_employee_employments(
         let mut custom_fields_map = state
             .core()
             .custom_field_service()
-            .get_values_for_entities(ctx.workspace_id, &entity_ids)
+            .get_values_for_entities(&ctx.auth_token, &entity_ids)
             .await?;
         for emp in &mut list {
             if let Some(fields) = custom_fields_map.remove(&emp.id()) {
@@ -87,7 +87,7 @@ pub async fn get_employment(
     let custom_fields = state
         .core()
         .custom_field_service()
-        .get_values_for_entity(ctx.workspace_id, employment_id)
+        .get_values_for_entity(&ctx.auth_token, employment_id)
         .await?;
 
     emp = emp.with_custom_fields(custom_fields);
@@ -125,7 +125,7 @@ pub async fn create_employment(
     let custom_fields = state
         .core()
         .custom_field_service()
-        .get_values_for_entity(ctx.workspace_id, emp.id())
+        .get_values_for_entity(&ctx.auth_token, emp.id())
         .await?;
 
     emp = emp.with_custom_fields(custom_fields);
@@ -164,7 +164,7 @@ pub async fn update_employment(
     let custom_fields = state
         .core()
         .custom_field_service()
-        .get_values_for_entity(ctx.workspace_id, employment_id)
+        .get_values_for_entity(&ctx.auth_token, employment_id)
         .await?;
 
     emp = emp.with_custom_fields(custom_fields);

@@ -1,3 +1,4 @@
+use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
 use crate::repositories::{
     EmployeeContractRepository, EmployeeRepository, EmploymentRepository, WorkspaceRepository,
@@ -36,7 +37,7 @@ impl TemplateService {
 
     /// Fetches necessary employee data and uses `fill_template` to generate the document.
     pub async fn generate_employee_document(
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employee_id: Uuid,
         workspace_repo: &dyn WorkspaceRepository,
         employee_repo: &dyn EmployeeRepository,
@@ -48,6 +49,7 @@ impl TemplateService {
         let mut variables = HashMap::new();
 
         // 1. Fetch Workspace
+        let workspace_id = auth_token.workspace_id();
         if let Ok(Some(workspace)) = workspace_repo.get_workspace_by_id(workspace_id).await {
             variables.insert("COMPANY_NAME".to_string(), workspace.name().to_string());
         } else {
@@ -55,9 +57,8 @@ impl TemplateService {
         }
 
         // 2. Fetch Employee
-        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
         if let Ok(Some(employee)) = employee_repo
-            .get_employee_by_id(employee_id, &auth_token)
+            .get_employee_by_id(employee_id, auth_token)
             .await
         {
             variables.insert(
@@ -73,12 +74,12 @@ impl TemplateService {
         // 3. Fetch Employment (Active on today or fallback to first employment in list)
         let today = chrono::Utc::now().date_naive();
         let employment = if let Ok(Some(emp)) = employment_repo
-            .get_active_employment_on_date(&auth_token, employee_id, today)
+            .get_active_employment_on_date(auth_token, employee_id, today)
             .await
         {
             Some(emp)
         } else if let Ok(employments) = employment_repo
-            .list_employee_employments(&auth_token, employee_id)
+            .list_employee_employments(auth_token, employee_id)
             .await
         {
             employments.into_iter().next()
@@ -97,7 +98,7 @@ impl TemplateService {
 
             // 4. Fetch Contract (Active/First contract for this employment)
             if let Ok(contracts) = contract_repo
-                .list_employee_contracts(&auth_token, emp.id())
+                .list_employee_contracts(auth_token, emp.id())
                 .await
             {
                 if let Some(contract) = contracts.first() {
@@ -257,7 +258,7 @@ mod tests {
 
         let template = "Welcome to {{COMPANY_NAME}}, {{EMPLOYEE_NAME}} (ID: {{EMPLOYEE_ID_NUMBER}}). Your title is {{JOB_TITLE}} and your contract is {{CONTRACT_NUMBER}}.";
         let result = TemplateService::generate_employee_document(
-            ws_id,
+            &TenantAuthToken::system_override(ws_id),
             emp_id,
             &workspace_repo,
             &employee_repo,
@@ -311,7 +312,7 @@ mod tests {
         let template =
             "Company: {{COMPANY_NAME}} | Employee: {{EMPLOYEE_NAME}} | Date: {{DOCUMENT_DATE}}";
         let result = TemplateService::generate_employee_document(
-            ws_id,
+            &TenantAuthToken::system_override(ws_id),
             emp_id,
             &workspace_repo,
             &employee_repo,

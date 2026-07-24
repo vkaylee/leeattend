@@ -78,7 +78,7 @@ impl EmployeeService {
             {
                 if let Some(emp) = employments.first() {
                     if let Err(e) = lifecycle_service
-                        .auto_trigger_onboarding(workspace_id, emp.id(), None)
+                        .auto_trigger_onboarding(auth_token, emp.id(), None)
                         .await
                     {
                         tracing::warn!(

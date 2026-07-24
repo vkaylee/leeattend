@@ -131,7 +131,7 @@ impl EmployeeService {
         // Trigger offboarding checklist if lifecycle service is registered
         if let Some(ref lifecycle_service) = self.lifecycle_service {
             if let Err(e) = lifecycle_service
-                .auto_trigger_offboarding(auth_token.workspace_id(), employment_id, None)
+                .auto_trigger_offboarding(auth_token, employment_id, None)
                 .await
             {
                 tracing::warn!(

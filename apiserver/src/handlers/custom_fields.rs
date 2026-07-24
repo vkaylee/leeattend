@@ -39,7 +39,7 @@ pub async fn create_definition(
     let definition = state
         .core()
         .custom_field_service()
-        .create_definition(ctx.workspace_id, ctx.user_id, req)
+        .create_definition(&ctx.auth_token, ctx.user_id, req)
         .await?;
     Ok((StatusCode::CREATED, Json(definition)))
 }
@@ -67,7 +67,7 @@ pub async fn get_definition(
     let definition = state
         .core()
         .custom_field_service()
-        .get_definition(ctx.workspace_id, id)
+        .get_definition(&ctx.auth_token, id)
         .await?;
     Ok(Json(definition))
 }
@@ -100,7 +100,7 @@ pub async fn list_definitions(
     let definitions = state
         .core()
         .custom_field_service()
-        .list_definitions(ctx.workspace_id, query.entity_type)
+        .list_definitions(&ctx.auth_token, query.entity_type)
         .await?;
     Ok(Json(definitions))
 }
@@ -130,7 +130,7 @@ pub async fn update_definition(
     let definition = state
         .core()
         .custom_field_service()
-        .update_definition(ctx.workspace_id, id, ctx.user_id, req)
+        .update_definition(&ctx.auth_token, id, ctx.user_id, req)
         .await?;
     Ok(Json(definition))
 }
@@ -158,7 +158,7 @@ pub async fn delete_definition(
     state
         .core()
         .custom_field_service()
-        .delete_definition(ctx.workspace_id, id, ctx.user_id)
+        .delete_definition(&ctx.auth_token, id, ctx.user_id)
         .await?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -203,7 +203,7 @@ pub async fn get_values(
     let values = state
         .core()
         .custom_field_service()
-        .get_values_for_entity(ctx.workspace_id, entity_id)
+        .get_values_for_entity(&ctx.auth_token, entity_id)
         .await?;
     Ok(Json(values))
 }
@@ -249,7 +249,7 @@ pub async fn set_values(
         .core()
         .custom_field_service()
         .set_values(
-            ctx.workspace_id,
+            &ctx.auth_token,
             ctx.user_id,
             &entity_type,
             entity_id,

@@ -200,6 +200,7 @@ impl WorkspaceService {
     #[allow(clippy::too_many_lines)]
     pub async fn update_workspace(
         &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         args: UpdateWorkspaceArgs,
     ) -> crate::errors::AppResult<Workspace> {
         let has_system_changes = args.name.is_some()
@@ -221,12 +222,10 @@ impl WorkspaceService {
         }
 
         if has_eav_changes {
-            let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.ws_id);
-
             if let Some(strategy) = &args.holiday_overnight_strategy {
                 self.workspace_config_repo
                     .delete_by_key(
-                        &auth_token,
+                        auth_token,
                         args.ws_id,
                         "workspace",
                         "overtime.holiday_overnight_strategy",
@@ -252,14 +251,14 @@ impl WorkspaceService {
                 );
 
                 self.workspace_config_repo
-                    .create_entry(&auth_token, entry)
+                    .create_entry(auth_token, entry)
                     .await?;
             }
 
             if let Some(multiplier) = args.default_holiday_ot_multiplier {
                 self.workspace_config_repo
                     .delete_by_key(
-                        &auth_token,
+                        auth_token,
                         args.ws_id,
                         "workspace",
                         "overtime.default_holiday_ot_multiplier",
@@ -285,7 +284,7 @@ impl WorkspaceService {
                 );
 
                 self.workspace_config_repo
-                    .create_entry(&auth_token, entry)
+                    .create_entry(auth_token, entry)
                     .await?;
             }
         }
@@ -954,7 +953,8 @@ mod tests {
             holiday_overnight_strategy: None,
             default_holiday_ot_multiplier: None,
         };
-        let err = svc.update_workspace(args).await.unwrap_err();
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.ws_id);
+        let err = svc.update_workspace(&auth_token, args).await.unwrap_err();
         assert!(matches!(err, AppError::Validation(_)));
     }
 
@@ -974,7 +974,8 @@ mod tests {
             holiday_overnight_strategy: None,
             default_holiday_ot_multiplier: None,
         };
-        let ws = svc.update_workspace(args).await.unwrap();
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.ws_id);
+        let ws = svc.update_workspace(&auth_token, args).await.unwrap();
         assert_eq!(ws.name(), "Updated Corp");
     }
 
@@ -995,7 +996,8 @@ mod tests {
             holiday_overnight_strategy: None,
             default_holiday_ot_multiplier: Some(Decimal::new(15, 1)), // 1.5
         };
-        let ws = svc.update_workspace(args).await.unwrap();
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.ws_id);
+        let ws = svc.update_workspace(&auth_token, args).await.unwrap();
         assert!(!ws.name().is_empty());
     }
 

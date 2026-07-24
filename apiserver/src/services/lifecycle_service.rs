@@ -47,141 +47,142 @@ impl LifecycleService {
     // --- Templates ---
     pub async fn create_template(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         data: CreateLifecycleChecklistTemplateRequest,
     ) -> Result<LifecycleChecklistTemplate, AppError> {
         if data.name.trim().is_empty() {
             return Err(AppError::validation(I18nKey::TemplateNameEmpty));
         }
-        let auth_token = TenantAuthToken::system_override(workspace_id);
-        self.repo.create_template(&auth_token, data).await
+
+        self.repo.create_template(auth_token, data).await
     }
 
     pub async fn get_template(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         id: Uuid,
     ) -> Result<LifecycleChecklistTemplate, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+
         self.repo
-            .get_template_by_id(&auth_token, id)
+            .get_template_by_id(auth_token, id)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::TemplateNotFound))
     }
 
     pub async fn list_active_templates(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         checklist_type: Option<LifecycleChecklistType>,
     ) -> Result<Vec<LifecycleChecklistTemplate>, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+
         self.repo
-            .list_active_templates(&auth_token, checklist_type)
+            .list_active_templates(auth_token, checklist_type)
             .await
     }
 
     pub async fn update_template(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         id: Uuid,
         data: UpdateLifecycleChecklistTemplateRequest,
     ) -> Result<LifecycleChecklistTemplate, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
-        self.repo.update_template(&auth_token, id, data).await
+
+        self.repo.update_template(auth_token, id, data).await
     }
 
-    pub async fn delete_template(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
-        self.repo.soft_delete_template(&auth_token, id).await
+    pub async fn delete_template(&self, auth_token: &TenantAuthToken, id: Uuid) -> Result<(), AppError> {
+
+        self.repo.soft_delete_template(auth_token, id).await
     }
 
     // --- Template Items ---
     pub async fn create_template_item(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         template_id: Uuid,
         data: CreateLifecycleChecklistTemplateItemRequest,
     ) -> Result<LifecycleChecklistTemplateItem, AppError> {
         if data.title.trim().is_empty() {
             return Err(AppError::validation(I18nKey::TemplateItemTitleEmpty));
         }
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+
         // Verify template exists
-        let _ = self.get_template(workspace_id, template_id).await?;
+        let _ = self.get_template(auth_token, template_id).await?;
         self.repo
-            .create_template_item(&auth_token, template_id, data)
+            .create_template_item(auth_token, template_id, data)
             .await
     }
 
     pub async fn get_template_item(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         id: Uuid,
     ) -> Result<LifecycleChecklistTemplateItem, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+
         self.repo
-            .get_template_item_by_id(&auth_token, id)
+            .get_template_item_by_id(auth_token, id)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::TemplateItemNotFound))
     }
 
     pub async fn list_template_items(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         template_id: Uuid,
     ) -> Result<Vec<LifecycleChecklistTemplateItem>, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+
         self.repo
-            .list_template_items(&auth_token, template_id)
+            .list_template_items(auth_token, template_id)
             .await
     }
 
     pub async fn update_template_item(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         id: Uuid,
         data: UpdateLifecycleChecklistTemplateItemRequest,
     ) -> Result<LifecycleChecklistTemplateItem, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
-        self.repo.update_template_item(&auth_token, id, data).await
+
+        self.repo.update_template_item(auth_token, id, data).await
     }
 
-    pub async fn delete_template_item(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
-        self.repo.delete_template_item(&auth_token, id).await
+    pub async fn delete_template_item(&self, auth_token: &TenantAuthToken, id: Uuid) -> Result<(), AppError> {
+
+        self.repo.delete_template_item(auth_token, id).await
     }
 
     // --- Checklist Instances ---
     #[allow(clippy::too_many_lines)]
     pub async fn create_checklist_from_template(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employment_id: Uuid,
         template_id: Uuid,
         actor_id: Option<Uuid>,
     ) -> Result<LifecycleChecklistResponse, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+
+        let workspace_id = auth_token.workspace_id();
 
         let template = self
             .repo
-            .get_template_by_id(&auth_token, template_id)
+            .get_template_by_id(auth_token, template_id)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::TemplateNotFound))?;
 
         let template_items = self
             .repo
-            .list_template_items(&auth_token, template_id)
+            .list_template_items(auth_token, template_id)
             .await?;
 
         let employment = self
             .employment_repo
-            .get_employment_by_id(&auth_token, employment_id)
+            .get_employment_by_id(auth_token, employment_id)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
 
         let employee = self
             .employee_repo
-            .get_employee_by_id(employment.employee_id(), &auth_token)
+            .get_employee_by_id(employment.employee_id(), auth_token)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
 
@@ -236,12 +237,12 @@ impl LifecycleService {
             if let Some(mgr_emp_id) = employment.manager_employment_id() {
                 if let Ok(Some(mgr_emp)) = self
                     .employment_repo
-                    .get_employment_by_id(&auth_token, mgr_emp_id)
+                    .get_employment_by_id(auth_token, mgr_emp_id)
                     .await
                 {
                     if let Ok(Some(mgr_employee)) = self
                         .employee_repo
-                        .get_employee_by_id(mgr_emp.employee_id(), &auth_token)
+                        .get_employee_by_id(mgr_emp.employee_id(), auth_token)
                         .await
                     {
                         mgr_employee.user_id()
@@ -337,7 +338,7 @@ impl LifecycleService {
 
         let (checklist, items) = self
             .repo
-            .create_checklist_with_items(&auth_token, checklist_entity, item_entities)
+            .create_checklist_with_items(auth_token, checklist_entity, item_entities)
             .await?;
 
         // If template had no items, complete checklist immediately
@@ -345,7 +346,7 @@ impl LifecycleService {
             let cl = self
                 .repo
                 .update_checklist_status_and_progress(
-                    &auth_token,
+                    auth_token,
                     checklist.id(),
                     ChecklistStatus::Completed,
                     100,
@@ -376,17 +377,17 @@ impl LifecycleService {
 
     pub async fn get_checklist(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         id: Uuid,
     ) -> Result<LifecycleChecklistResponse, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+
         let checklist = self
             .repo
-            .get_checklist_by_id(&auth_token, id)
+            .get_checklist_by_id(auth_token, id)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::ChecklistNotFound))?;
 
-        let items = self.repo.list_checklist_items(&auth_token, id).await?;
+        let items = self.repo.list_checklist_items(auth_token, id).await?;
 
         Ok(LifecycleChecklistResponse {
             id: checklist.id(),
@@ -407,13 +408,13 @@ impl LifecycleService {
 
     pub async fn list_checklists_for_employment(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employment_id: Uuid,
     ) -> Result<Vec<LifecycleChecklistResponse>, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+
         let checklists = self
             .repo
-            .list_checklists_for_employment(&auth_token, employment_id)
+            .list_checklists_for_employment(auth_token, employment_id)
             .await?;
 
         let mut responses = Vec::new();
@@ -426,7 +427,7 @@ impl LifecycleService {
             .collect();
         let all_items = self
             .repo
-            .list_items_for_checklist_ids(&auth_token, &checklist_ids)
+            .list_items_for_checklist_ids(auth_token, &checklist_ids)
             .await?;
 
         // Group items by checklist_id for efficient lookup
@@ -463,27 +464,27 @@ impl LifecycleService {
     #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
     pub async fn update_item_status(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         item_id: Uuid,
         status: ChecklistItemStatus,
         notes: Option<String>,
         completed_by: Option<Uuid>,
     ) -> Result<LifecycleChecklistResponse, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+
 
         let item = self
             .repo
-            .get_checklist_item_by_id(&auth_token, item_id)
+            .get_checklist_item_by_id(auth_token, item_id)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::ChecklistItemNotFound))?;
 
         self.repo
-            .update_checklist_item_status(&auth_token, item_id, status, completed_by, notes)
+            .update_checklist_item_status(auth_token, item_id, status, completed_by, notes)
             .await?;
 
         let items = self
             .repo
-            .list_checklist_items(&auth_token, item.checklist_id())
+            .list_checklist_items(auth_token, item.checklist_id())
             .await?;
 
         let total_items = items.len();
@@ -516,7 +517,7 @@ impl LifecycleService {
         let checklist = self
             .repo
             .update_checklist_status_and_progress(
-                &auth_token,
+                auth_token,
                 item.checklist_id(),
                 new_status,
                 progress_percent,
@@ -543,31 +544,31 @@ impl LifecycleService {
 
     pub async fn get_pending_tasks_for_user(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         user_id: Uuid,
     ) -> Result<Vec<PendingTaskResponse>, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+
         self.repo
-            .get_pending_tasks_for_user(&auth_token, user_id)
+            .get_pending_tasks_for_user(auth_token, user_id)
             .await
     }
 
     // --- Auto Trigger Rules ---
     pub async fn auto_trigger_onboarding(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employment_id: Uuid,
         actor_id: Option<Uuid>,
     ) -> Result<(), AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+
         if let Some(template) = self
             .repo
-            .get_default_template(&auth_token, LifecycleChecklistType::Onboarding)
+            .get_default_template(auth_token, LifecycleChecklistType::Onboarding)
             .await?
         {
             let _ = self
                 .create_checklist_from_template(
-                    workspace_id,
+                    auth_token,
                     employment_id,
                     template.id(),
                     actor_id,
@@ -579,19 +580,19 @@ impl LifecycleService {
 
     pub async fn auto_trigger_offboarding(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employment_id: Uuid,
         actor_id: Option<Uuid>,
     ) -> Result<(), AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+
         if let Some(template) = self
             .repo
-            .get_default_template(&auth_token, LifecycleChecklistType::Offboarding)
+            .get_default_template(auth_token, LifecycleChecklistType::Offboarding)
             .await?
         {
             let _ = self
                 .create_checklist_from_template(
-                    workspace_id,
+                    auth_token,
                     employment_id,
                     template.id(),
                     actor_id,

@@ -46,7 +46,7 @@ pub async fn list_employers(
     let (employers, total) = state
         .core()
         .employer_service()
-        .list_employers(ctx.workspace_id, page, limit)
+        .list_employers(&ctx.auth_token, page, limit)
         .await?;
     Ok(Json(PaginatedResponse {
         data: employers,
@@ -78,7 +78,7 @@ pub async fn get_employer(
     let employer = state
         .core()
         .employer_service()
-        .get_employer(ctx.workspace_id, id)
+        .get_employer(&ctx.auth_token, id)
         .await?;
     Ok(Json(employer))
 }
@@ -107,7 +107,7 @@ pub async fn create_employer(
     let employer = state
         .core()
         .employer_service()
-        .create_employer(ctx.workspace_id, actor_id, payload)
+        .create_employer(&ctx.auth_token, actor_id, payload)
         .await?;
     Ok((StatusCode::CREATED, Json(employer)))
 }
@@ -137,7 +137,7 @@ pub async fn update_employer(
     let employer = state
         .core()
         .employer_service()
-        .update_employer(ctx.workspace_id, id, actor_id, payload)
+        .update_employer(&ctx.auth_token, id, actor_id, payload)
         .await?;
     Ok(Json(employer))
 }
@@ -165,7 +165,7 @@ pub async fn delete_employer(
     state
         .core()
         .employer_service()
-        .delete_employer(ctx.workspace_id, id, actor_id)
+        .delete_employer(&ctx.auth_token, id, actor_id)
         .await?;
     Ok(StatusCode::NO_CONTENT)
 }

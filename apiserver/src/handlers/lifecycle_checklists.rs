@@ -42,7 +42,7 @@ pub async fn create_template(
     let template = state
         .core()
         .lifecycle_service()
-        .create_template(ctx.workspace_id, req)
+        .create_template(&ctx.auth_token, req)
         .await?;
     Ok((StatusCode::CREATED, Json(template)))
 }
@@ -70,7 +70,7 @@ pub async fn get_template(
     let template = state
         .core()
         .lifecycle_service()
-        .get_template(ctx.workspace_id, id)
+        .get_template(&ctx.auth_token, id)
         .await?;
     Ok(Json(template))
 }
@@ -103,7 +103,7 @@ pub async fn list_templates(
     let templates = state
         .core()
         .lifecycle_service()
-        .list_active_templates(ctx.workspace_id, query.checklist_type)
+        .list_active_templates(&ctx.auth_token, query.checklist_type)
         .await?;
     Ok(Json(templates))
 }
@@ -133,7 +133,7 @@ pub async fn update_template(
     let template = state
         .core()
         .lifecycle_service()
-        .update_template(ctx.workspace_id, id, req)
+        .update_template(&ctx.auth_token, id, req)
         .await?;
     Ok(Json(template))
 }
@@ -161,7 +161,7 @@ pub async fn delete_template(
     state
         .core()
         .lifecycle_service()
-        .delete_template(ctx.workspace_id, id)
+        .delete_template(&ctx.auth_token, id)
         .await?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -193,7 +193,7 @@ pub async fn create_template_item(
     let item = state
         .core()
         .lifecycle_service()
-        .create_template_item(ctx.workspace_id, id, req)
+        .create_template_item(&ctx.auth_token, id, req)
         .await?;
     Ok((StatusCode::CREATED, Json(item)))
 }
@@ -222,7 +222,7 @@ pub async fn get_template_item(
     let item = state
         .core()
         .lifecycle_service()
-        .get_template_item(ctx.workspace_id, iid)
+        .get_template_item(&ctx.auth_token, iid)
         .await?;
     Ok(Json(item))
 }
@@ -250,7 +250,7 @@ pub async fn list_template_items(
     let items = state
         .core()
         .lifecycle_service()
-        .list_template_items(ctx.workspace_id, id)
+        .list_template_items(&ctx.auth_token, id)
         .await?;
     Ok(Json(items))
 }
@@ -281,7 +281,7 @@ pub async fn update_template_item(
     let item = state
         .core()
         .lifecycle_service()
-        .update_template_item(ctx.workspace_id, iid, req)
+        .update_template_item(&ctx.auth_token, iid, req)
         .await?;
     Ok(Json(item))
 }
@@ -310,7 +310,7 @@ pub async fn delete_template_item(
     state
         .core()
         .lifecycle_service()
-        .delete_template_item(ctx.workspace_id, iid)
+        .delete_template_item(&ctx.auth_token, iid)
         .await?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -343,7 +343,7 @@ pub async fn create_checklist(
         .core()
         .lifecycle_service()
         .create_checklist_from_template(
-            ctx.workspace_id,
+            &ctx.auth_token,
             emp_id,
             req.template_id,
             Some(ctx.user_id),
@@ -375,7 +375,7 @@ pub async fn list_checklists(
     let checklists = state
         .core()
         .lifecycle_service()
-        .list_checklists_for_employment(ctx.workspace_id, emp_id)
+        .list_checklists_for_employment(&ctx.auth_token, emp_id)
         .await?;
     Ok(Json(checklists))
 }
@@ -403,7 +403,7 @@ pub async fn get_checklist(
     let checklist = state
         .core()
         .lifecycle_service()
-        .get_checklist(ctx.workspace_id, id)
+        .get_checklist(&ctx.auth_token, id)
         .await?;
     Ok(Json(checklist))
 }
@@ -433,7 +433,7 @@ pub async fn update_item_status(
     let checklist = state
         .core()
         .lifecycle_service()
-        .get_checklist(ctx.workspace_id, id)
+        .get_checklist(&ctx.auth_token, id)
         .await?;
 
     // Must be either assignee of the item, OR have EmployeesUpdate permission
@@ -450,7 +450,7 @@ pub async fn update_item_status(
         .core()
         .lifecycle_service()
         .update_item_status(
-            ctx.workspace_id,
+            &ctx.auth_token,
             iid,
             req.status,
             req.notes,
@@ -483,7 +483,7 @@ pub async fn get_my_tasks(
     let tasks = state
         .core()
         .lifecycle_service()
-        .get_pending_tasks_for_user(ctx.workspace_id, ctx.user_id)
+        .get_pending_tasks_for_user(&ctx.auth_token, ctx.user_id)
         .await?;
     Ok(Json(tasks))
 }

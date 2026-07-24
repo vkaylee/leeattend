@@ -23,29 +23,28 @@ impl EmployerService {
 
     pub async fn list_employers(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         page: i64,
         limit: i64,
     ) -> Result<(Vec<Employer>, i64), AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
-        self.repo.get_employers(&auth_token, page, limit).await
+        self.repo.get_employers(auth_token, page, limit).await
     }
 
-    pub async fn get_employer(&self, workspace_id: Uuid, id: Uuid) -> Result<Employer, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+    pub async fn get_employer(&self, auth_token: &TenantAuthToken, id: Uuid) -> Result<Employer, AppError> {
         self.repo
-            .get_employer_by_id(&auth_token, id)
+            .get_employer_by_id(auth_token, id)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::EmployerNotFound))
     }
 
     pub async fn create_employer(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         actor_id: Uuid,
         data: CreateEmployerRequest,
     ) -> Result<Employer, AppError> {
-        self.validate_parent_employer(workspace_id, None, data.parent_id)
+        let workspace_id = auth_token.workspace_id();
+        self.validate_parent_employer(auth_token, None, data.parent_id)
             .await?;
 
         if let Some(ref email) = data.email {
@@ -58,8 +57,7 @@ impl EmployerService {
             validate_currency_code(currency)?;
         }
 
-        let auth_token = TenantAuthToken::system_override(workspace_id);
-        let employer = self.repo.create_employer(&auth_token, data).await?;
+        let employer = self.repo.create_employer(auth_token, data).await?;
 
         let empty_headers = HeaderMap::new();
         AuditHelper::log(AuditLogArgs {
@@ -93,13 +91,14 @@ impl EmployerService {
 
     pub async fn update_employer(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         id: Uuid,
         actor_id: Uuid,
         data: UpdateEmployerRequest,
     ) -> Result<Employer, AppError> {
+        let workspace_id = auth_token.workspace_id();
         if let Some(parent_opt) = data.parent_id {
-            self.validate_parent_employer(workspace_id, Some(id), parent_opt)
+            self.validate_parent_employer(auth_token, Some(id), parent_opt)
                 .await?;
         }
 
@@ -113,8 +112,7 @@ impl EmployerService {
             validate_currency_code(currency)?;
         }
 
-        let auth_token = TenantAuthToken::system_override(workspace_id);
-        let employer = self.repo.update_employer(&auth_token, id, data).await?;
+        let employer = self.repo.update_employer(auth_token, id, data).await?;
 
         let empty_headers = HeaderMap::new();
         AuditHelper::log(AuditLogArgs {
@@ -148,16 +146,16 @@ impl EmployerService {
 
     pub async fn delete_employer(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         id: Uuid,
         actor_id: Uuid,
     ) -> Result<(), AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
-        let existing = self.get_employer(workspace_id, id).await?;
+        let workspace_id = auth_token.workspace_id();
+        let existing = self.get_employer(auth_token, id).await?;
 
         let employee_count = self
             .repo
-            .count_employees_by_employer(&auth_token, id)
+            .count_employees_by_employer(auth_token, id)
             .await?;
 
         if employee_count > 0 {
@@ -169,7 +167,7 @@ impl EmployerService {
             ));
         }
 
-        self.repo.delete_employer(&auth_token, id).await?;
+        self.repo.delete_employer(auth_token, id).await?;
 
         let empty_headers = HeaderMap::new();
         AuditHelper::log(AuditLogArgs {
@@ -192,7 +190,7 @@ impl EmployerService {
 
     async fn validate_parent_employer(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employer_id: Option<Uuid>,
         parent_id: Option<Uuid>,
     ) -> Result<(), AppError> {
@@ -213,7 +211,7 @@ impl EmployerService {
         }
 
         let parent = self
-            .get_employer(workspace_id, parent_id)
+            .get_employer(auth_token, parent_id)
             .await
             .map_err(|e| {
                 AppError::validation_args(
@@ -243,7 +241,7 @@ impl EmployerService {
                 }
                 visited.insert(pid);
 
-                if let Ok(p) = self.get_employer(workspace_id, pid).await {
+                if let Ok(p) = self.get_employer(auth_token, pid).await {
                     current_parent_id = p.parent_id;
                 } else {
                     break;

@@ -44,7 +44,7 @@ pub async fn preview_template_handler(
     Json(payload): Json<TemplatePreviewRequest>,
 ) -> AppResult<Json<TemplatePreviewResponse>> {
     let content = TemplateService::generate_employee_document(
-        ctx.workspace_id,
+        &ctx.auth_token,
         payload.employee_id,
         state.core().workspace_repo().as_ref(),
         state.employees().repo().as_ref(),

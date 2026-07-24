@@ -181,6 +181,7 @@ async fn test_update_workspace_time_format() {
         dummy_migrator,
     )
     .update_workspace(
+        &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
         apiserver::services::workspace_service::UpdateWorkspaceArgs {
             ws_id,
             name: None,
@@ -238,6 +239,7 @@ async fn test_update_workspace_all_fields() {
         dummy_migrator,
     )
     .update_workspace(
+        &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
         apiserver::services::workspace_service::UpdateWorkspaceArgs {
             ws_id,
             name: Some("New Name".to_string()),
@@ -290,6 +292,7 @@ async fn test_update_workspace_no_fields() {
         dummy_migrator,
     )
     .update_workspace(
+        &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
         apiserver::services::workspace_service::UpdateWorkspaceArgs {
             ws_id,
             name: None,
@@ -359,6 +362,7 @@ async fn test_update_workspace_syncs_headquarters_timezone() {
         dummy_migrator,
     )
     .update_workspace(
+        &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
         apiserver::services::workspace_service::UpdateWorkspaceArgs {
             ws_id,
             name: None,

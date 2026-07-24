@@ -31,10 +31,11 @@ impl CustomFieldService {
 
     pub async fn create_definition(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         actor_id: Uuid,
         data: CreateCustomFieldDefinitionRequest,
     ) -> Result<CustomFieldDefinition, AppError> {
+        let workspace_id = auth_token.workspace_id();
         // Validate entity_type
         if data.entity_type != "employee"
             && data.entity_type != "employment"
@@ -114,8 +115,7 @@ impl CustomFieldService {
             }
         }
 
-        let auth_token = TenantAuthToken::system_override(workspace_id);
-        let definition = self.repo.create_definition(&auth_token, data).await?;
+        let definition = self.repo.create_definition(auth_token, data).await?;
 
         // Log audit
         let empty_headers = HeaderMap::new();
@@ -143,34 +143,32 @@ impl CustomFieldService {
 
     pub async fn get_definition(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         id: Uuid,
     ) -> Result<CustomFieldDefinition, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
         self.repo
-            .get_definition_by_id(&auth_token, id)
+            .get_definition_by_id(auth_token, id)
             .await?
             .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::CustomFieldNotFound))
     }
 
     pub async fn list_definitions(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         entity_type: Option<String>,
     ) -> Result<Vec<CustomFieldDefinition>, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
-        self.repo.list_definitions(&auth_token, entity_type).await
+        self.repo.list_definitions(auth_token, entity_type).await
     }
 
     pub async fn update_definition(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         id: Uuid,
         actor_id: Uuid,
         data: UpdateCustomFieldDefinitionRequest,
     ) -> Result<CustomFieldDefinition, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
-        let definition = self.repo.update_definition(&auth_token, id, data).await?;
+        let workspace_id = auth_token.workspace_id();
+        let definition = self.repo.update_definition(auth_token, id, data).await?;
 
         // Log audit
         let empty_headers = HeaderMap::new();
@@ -197,14 +195,14 @@ impl CustomFieldService {
 
     pub async fn delete_definition(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         id: Uuid,
         actor_id: Uuid,
     ) -> Result<(), AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
-        let definition = self.get_definition(workspace_id, id).await?;
+        let workspace_id = auth_token.workspace_id();
+        let definition = self.get_definition(auth_token, id).await?;
 
-        self.repo.soft_delete_definition(&auth_token, id).await?;
+        self.repo.soft_delete_definition(auth_token, id).await?;
 
         // Log audit
         let empty_headers = HeaderMap::new();
@@ -231,13 +229,12 @@ impl CustomFieldService {
 
     pub async fn get_values_for_entity(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         entity_id: Uuid,
     ) -> Result<Vec<CustomFieldValueResponse>, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
         let pairs = self
             .repo
-            .get_values_for_entity(&auth_token, entity_id)
+            .get_values_for_entity(auth_token, entity_id)
             .await?;
 
         Ok(pairs
@@ -254,13 +251,12 @@ impl CustomFieldService {
 
     pub async fn get_values_for_entities(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         entity_ids: &[Uuid],
     ) -> Result<HashMap<Uuid, Vec<CustomFieldValueResponse>>, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
         let map = self
             .repo
-            .get_values_for_entities(&auth_token, entity_ids)
+            .get_values_for_entities(auth_token, entity_ids)
             .await?;
 
         let mut response_map = HashMap::new();
@@ -284,13 +280,13 @@ impl CustomFieldService {
     #[allow(clippy::too_many_lines)]
     pub async fn set_values(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         actor_id: Uuid,
         entity_type: &str,
         entity_id: Uuid,
         values: Vec<SetCustomFieldValueRequest>,
     ) -> Result<Vec<CustomFieldValueResponse>, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+        let workspace_id = auth_token.workspace_id();
 
         // Track request definitions
         let requested_def_ids: std::collections::HashSet<Uuid> =
@@ -299,7 +295,7 @@ impl CustomFieldService {
         // 1. Fetch current values for comparison (for audit logging)
         let current_pairs = self
             .repo
-            .get_values_for_entity(&auth_token, entity_id)
+            .get_values_for_entity(auth_token, entity_id)
             .await?;
         let current_values_map: HashMap<Uuid, (CustomFieldValue, CustomFieldDefinition)> =
             current_pairs
@@ -311,7 +307,7 @@ impl CustomFieldService {
         for val_req in &values {
             let definition = self
                 .repo
-                .get_definition_by_id(&auth_token, val_req.definition_id)
+                .get_definition_by_id(auth_token, val_req.definition_id)
                 .await?;
             let Some(def) = definition else {
                 return Err(AppError::not_found(I18nKey::CustomFieldNotFound));
@@ -438,12 +434,12 @@ impl CustomFieldService {
         }
 
         // 3. Save the values
-        let saved_values = self.repo.set_values(&auth_token, entity_id, values).await?;
+        let saved_values = self.repo.set_values(auth_token, entity_id, values).await?;
 
         // 4. Load definitions for the saved values to construct the response and log audit trail
         let saved_definitions = self
             .repo
-            .list_definitions(&auth_token, Some(entity_type.to_string()))
+            .list_definitions(auth_token, Some(entity_type.to_string()))
             .await?;
         let definitions_map: HashMap<Uuid, CustomFieldDefinition> = saved_definitions
             .into_iter()
@@ -539,13 +535,12 @@ impl CustomFieldService {
 
     pub async fn find_entity_ids_by_value(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         definition_id: Uuid,
         value_query: String,
     ) -> Result<Vec<Uuid>, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
         self.repo
-            .find_entity_ids_by_value(&auth_token, definition_id, value_query)
+            .find_entity_ids_by_value(auth_token, definition_id, value_query)
             .await
     }
 }

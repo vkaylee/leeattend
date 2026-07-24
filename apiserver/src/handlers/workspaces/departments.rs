@@ -56,7 +56,7 @@ pub async fn get_departments(
         let mut custom_fields_map = state
             .core()
             .custom_field_service()
-            .get_values_for_entities(ctx.workspace_id, &entity_ids)
+            .get_values_for_entities(&ctx.auth_token, &entity_ids)
             .await?;
         for d in &mut departments {
             if let Some(fields) = custom_fields_map.remove(&d.id()) {
@@ -102,7 +102,7 @@ pub async fn create_department(
     let custom_fields = state
         .core()
         .custom_field_service()
-        .get_values_for_entity(ctx.workspace_id, dept.id())
+        .get_values_for_entity(&ctx.auth_token, dept.id())
         .await?;
     dept = dept.with_custom_fields(custom_fields);
 
@@ -141,7 +141,7 @@ pub async fn update_department(
     let custom_fields = state
         .core()
         .custom_field_service()
-        .get_values_for_entity(ctx.workspace_id, id)
+        .get_values_for_entity(&ctx.auth_token, id)
         .await?;
     dept = dept.with_custom_fields(custom_fields);
 

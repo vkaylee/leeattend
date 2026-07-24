@@ -356,7 +356,9 @@ pub async fn update_workspace(
     state
         .core()
         .workspace_service()
-        .update_workspace(crate::services::workspace_service::UpdateWorkspaceArgs {
+        .update_workspace(
+            &ctx.auth_token,
+            crate::services::workspace_service::UpdateWorkspaceArgs {
             ws_id: ctx.auth_token.workspace_id(),
             name: req.name,
             date_format: req.date_format,

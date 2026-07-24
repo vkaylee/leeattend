@@ -62,19 +62,20 @@ impl HolidayLeaveService {
     #[tracing::instrument(skip_all, err)]
     pub async fn process_holiday_leave(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         holiday: &Holiday,
     ) -> Result<Vec<HolidayLeaveResult>, crate::errors::AppError> {
-        self.process_holiday_leave_inner(workspace_id, holiday)
+        self.process_holiday_leave_inner(auth_token, holiday)
             .await
     }
 
     #[allow(clippy::too_many_lines)]
     async fn process_holiday_leave_inner(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         holiday: &Holiday,
     ) -> Result<Vec<HolidayLeaveResult>, crate::errors::AppError> {
+        let workspace_id = auth_token.workspace_id();
         // Paid holidays need no deduction
         if holiday.is_paid() {
             return Ok(vec![HolidayLeaveResult::Paid]);
@@ -106,12 +107,10 @@ impl HolidayLeaveService {
             .get_leave_type_name(leave_type_id, workspace_id)
             .await?;
 
-        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
-
         // Get all active employees in workspace
         let employees = self
             .employee_repo
-            .get_active_employees(&auth_token)
+            .get_active_employees(auth_token)
             .await
             .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
 
@@ -125,7 +124,7 @@ impl HolidayLeaveService {
         // Fetch active employments on holiday date
         let active_employments = self
             .employment_repo
-            .get_active_employments_for_employees(&auth_token, &employee_ids, holiday.date())
+            .get_active_employments_for_employees(auth_token, &employee_ids, holiday.date())
             .await?;
 
         let mut emp_to_employment_map = std::collections::HashMap::new();
@@ -136,13 +135,13 @@ impl HolidayLeaveService {
         // 1. Batch fetch existing leaves for this date
         let existing_leaves = self
             .leave_request_repo
-            .get_approved_leave_dates(&auth_token, &employee_ids, holiday.date(), holiday.date())
+            .get_approved_leave_dates(auth_token, &employee_ids, holiday.date(), holiday.date())
             .await?;
 
         // 2. Batch fetch balances
         let (workspace_balances, _) = self
             .leave_balance_repo
-            .get_workspace_balances(&auth_token, year, 100_000, 0, None)
+            .get_workspace_balances(auth_token, year, 100_000, 0, None)
             .await?;
 
         let mut balance_map = std::collections::HashMap::new();
@@ -230,7 +229,7 @@ impl HolidayLeaveService {
         // 3. Batch apply to DB in a single transaction
         if !new_requests.is_empty() || !new_rosters.is_empty() || !new_logs.is_empty() {
             self.holiday_repo
-                .apply_holiday_leave_deductions(&auth_token, &new_requests, &new_rosters, &new_logs)
+                .apply_holiday_leave_deductions(auth_token, &new_requests, &new_rosters, &new_logs)
                 .await?;
         }
 

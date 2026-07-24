@@ -217,7 +217,7 @@ pub async fn process_holiday_leave(
     let results = state
         .leaves()
         .holiday_leave_service()
-        .process_holiday_leave(ctx.workspace_id, &holiday)
+        .process_holiday_leave(&ctx.auth_token, &holiday)
         .await?;
 
     Ok(Json(results))

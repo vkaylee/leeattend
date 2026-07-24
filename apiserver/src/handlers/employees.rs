@@ -168,7 +168,7 @@ pub async fn get_employees(
             let definitions = state
                 .core()
                 .custom_field_service()
-                .list_definitions(ctx.workspace_id, Some("employee".to_string()))
+                .list_definitions(&ctx.auth_token, Some("employee".to_string()))
                 .await?;
             let def_map: std::collections::HashMap<String, Uuid> = definitions
                 .into_iter()
@@ -185,7 +185,7 @@ pub async fn get_employees(
                         let matching_entity_ids = state
                             .core()
                             .custom_field_service()
-                            .find_entity_ids_by_value(ctx.workspace_id, def_id, val)
+                            .find_entity_ids_by_value(&ctx.auth_token, def_id, val)
                             .await?;
                         let matching_set: std::collections::HashSet<Uuid> =
                             matching_entity_ids.into_iter().collect();
@@ -230,7 +230,7 @@ pub async fn get_employees(
         let mut custom_fields_map = state
             .core()
             .custom_field_service()
-            .get_values_for_entities(ctx.workspace_id, &entity_ids)
+            .get_values_for_entities(&ctx.auth_token, &entity_ids)
             .await?;
         for emp in &mut data {
             if let Some(fields) = custom_fields_map.remove(&emp.id()) {
@@ -277,7 +277,7 @@ pub async fn get_employee(
     let custom_fields = state
         .core()
         .custom_field_service()
-        .get_values_for_entity(ctx.workspace_id, id)
+        .get_values_for_entity(&ctx.auth_token, id)
         .await?;
 
     employee = employee.with_custom_fields(custom_fields);
