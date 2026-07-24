@@ -181,7 +181,7 @@ export default function DepartmentsPage() {
                       </div>
                       { }
                       <div className="mt-0.5 truncate text-[10px] font-semibold italic text-slate-400 opacity-70 dark:text-slate-500">
-                        {dept.description || t("common.no_description")}
+                        {dept.description ?? t("common.no_description")}
                       </div>
                     </div>
                   </div>
@@ -267,7 +267,7 @@ export default function DepartmentsPage() {
                         </td>
                         { }
                         <td className="px-8 py-6 max-w-xs truncate text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-tight opacity-65 leading-relaxed italic">
-                          {dept.description || t("common.no_description")}
+                          {dept.description ?? t("common.no_description")}
                         </td>
                         <td className="px-8 py-6 text-slate-600 dark:text-slate-300 text-xs font-bold uppercase tracking-tight">
                           {manager ? manager.full_name : t("departments.not_assigned").toUpperCase()}

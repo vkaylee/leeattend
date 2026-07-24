@@ -22,12 +22,13 @@ export function shiftMatchesQuery(shift: Shift, query: string): boolean {
   if (shift.name.toLowerCase().includes(q)) return true;
   if (shift.report_symbol?.toLowerCase().includes(q)) return true;
 
+  return intervalTimesMatchQuery(shift, q);
+}
+
+function intervalTimesMatchQuery(shift: Shift, q: string): boolean {
   const typed = shift as ShiftWithIntervals;
   const intervals = typed.intervals ?? [];
-  for (const iv of intervals) {
-    if (iv.start_time?.includes(q)) return true;
-    if (iv.end_time?.includes(q)) return true;
-  }
-
-  return false;
+  return intervals.some(
+    (iv) => iv.start_time.includes(q) || iv.end_time.includes(q),
+  );
 }

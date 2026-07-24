@@ -24,19 +24,6 @@ interface NoShowTableProps {
   tracesByKey: Map<string, ScheduleTrace[]>;
 }
 
-function TableSkeleton() {
-  return (
-    <div className="space-y-2 animate-pulse">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          className="h-14 rounded-xl bg-slate-100 dark:bg-slate-800"
-          key={i}
-        />
-      ))}
-    </div>
-  );
-}
-
 function EmptyStateRow({ empty, hint }: { empty: string; hint: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
@@ -159,7 +146,7 @@ function NoShowMobileCard({
 function NoShowDesktopRow({
   row,
   idx,
-  columns,
+  columns: _columns,
   tracesByKey,
   t,
 }: {

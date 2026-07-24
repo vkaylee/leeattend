@@ -20,10 +20,12 @@ export const AssignmentRuleConditionsList: React.FC<AssignmentRuleConditionsList
 }) => {
   const { t } = useTranslation();
 
+  /* eslint-disable @typescript-eslint/prefer-nullish-coalescing -- || is used for boolean OR between different conditions, not default-coalescing */
   const hasConditions =
     (conditions.department_id ?? conditions.employer_id ?? conditions.location_id) ||
     (conditions.tags && conditions.tags.length > 0) ||
     (conditions.employee_id_numbers && conditions.employee_id_numbers.length > 0);
+  /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
 
   if (!hasConditions) {
     return (

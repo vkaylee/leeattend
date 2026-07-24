@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import type { components } from "@/types/api-generated";
 import { FileList } from "@/components/files/file-list";
 import { FileUpload } from "@/components/files/file-upload";
 import Button from "@/components/ui/button";
+import { Typography } from "@/components/ui/typography";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { client } from "@/lib/api/client";
 
@@ -19,7 +20,7 @@ interface EmployeeDocumentsTabProps {
 }
 
 export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) {
-  const { t } = useTranslation();
+  const _t = useTranslation().t;
   const queryClient = useQueryClient();
   const { workspace: currentWorkspace } = useWorkspace();
   
@@ -43,8 +44,8 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
 
       if (error) {
         toast.error("Failed to load documents");
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- error shape is unknown at runtime
-        throw new Error((error as { message?: string })?.message || "Failed to load documents");
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime guard: API error shape may differ from type
+        throw new Error((error as { message?: string })?.message ?? "Failed to load documents");
       }
 
       return data;
@@ -52,7 +53,7 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
     enabled: !!currentWorkspace?.id && !!employeeId,
   });
 
-  const files = filesData || [];
+  const files = filesData ?? [];
 
   const handleDownload = async (file: WorkspaceFile) => {
     if (!currentWorkspace?.id) return;
@@ -65,19 +66,20 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
           },
         },
       });
-      if (error) throw error;
-      
+      if (error) throw new Error("Failed to get download URL");
+
       // The generated client type for this endpoint omits the `url` field,
       // but the runtime response includes a presigned download URL.
       const downloadUrl = (data as { url?: string } | undefined)?.url;
       if (downloadUrl) {
         window.open(downloadUrl, "_blank");
       }
-    } catch (err) {
+    } catch {
       toast.error("Download failed. Please try again.");
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/require-await -- async required by FileList prop signature
   const handleRename = async (fileId: string, newName: string) => {
     toast.success(`Renamed file to: ${newName}`);
     // Will implement PUT /v1/workspaces/{ws_id}/files/{id} in backend later
@@ -92,11 +94,11 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
         const { error } = await client.DELETE("/v1/workspaces/{ws_id}/files/{id}", {
           params: { path: { ws_id: currentWorkspace.id, id } },
         });
-        if (error) throw error;
+        if (error) throw new Error("Failed to delete file");
       }
       toast.success(`${fileIds.length} file(s) deleted successfully.`);
-      queryClient.invalidateQueries({ queryKey: ["files", "employee", employeeId] });
-    } catch (err) {
+      void queryClient.invalidateQueries({ queryKey: ["files", "employee", employeeId] });
+    } catch {
       toast.error("Failed to delete some files.");
     }
   };
@@ -108,7 +110,7 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
   const handleUploadSuccess = (file: WorkspaceFile) => {
     toast.success(`File uploaded successfully: ${file.file_name}`);
     setShowUploadPanel(false);
-    queryClient.invalidateQueries({ queryKey: ["files", "employee", employeeId] });
+    void queryClient.invalidateQueries({ queryKey: ["files", "employee", employeeId] });
   };
 
   return (
@@ -117,12 +119,12 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
       {/* Header Actions */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
+          <Typography className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100" variant="h2">
             Employee Documents
-          </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          </Typography>
+          <Typography className="text-sm text-slate-500 dark:text-slate-400 mt-1" variant="p">
             Manage contracts, ID cards, and compliance documents for this employee.
-          </p>
+          </Typography>
         </div>
         
         <Button
@@ -135,7 +137,7 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
       </div>
 
       {/* Upload Panel (Collapsible) */}
-      {!!showUploadPanel && !!currentWorkspace && (
+      {showUploadPanel && currentWorkspace ? (
         <div className="animate-in slide-in-from-top-4 fade-in duration-300">
           <FileUpload
             category="EmployeeDoc"
@@ -146,7 +148,7 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
             workspaceId={currentWorkspace.id}
           />
         </div>
-      )}
+      ) : null}
 
       {/* Main Grid View */}
       <div className="flex-1 min-h-0">

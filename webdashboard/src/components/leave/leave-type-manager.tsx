@@ -323,7 +323,7 @@ function AddLeaveTypeModal({ existingCodes, onClose, onSave, isSaving }: AddLeav
   // Proactive inline duplicate detection (matches the workspace-unique,
   // case-insensitive code constraint enforced server-side).
   const normalizedCode = formData.code.trim().toLowerCase();
-  const isDuplicateCode =
+  const _isDuplicateCode =
     normalizedCode.length > 0 && existingCodes.includes(normalizedCode);
 
   const handleApplyTemplate = (template: LeaveTemplate) => {

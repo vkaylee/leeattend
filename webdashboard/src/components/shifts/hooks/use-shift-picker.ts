@@ -132,7 +132,7 @@ export function useShiftPicker({
   }, [shifts]);
 
   // ── Derived: filtered + grouped shifts ───────────────────────────
-  const { filtered, hasFrequent, frequentShifts, restShifts } = useMemo(() => {
+  const { filtered, hasFrequent } = useMemo(() => {
     const all = shifts ?? [];
 
     // Step 1: apply search

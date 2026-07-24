@@ -6,6 +6,7 @@
 //
 // When wiring: replace stubs with real client.GET/POST calls targeting the
 // registered routes, and remove this comment block.
+/* eslint-disable @typescript-eslint/require-await -- stubs; will await real API calls when backend is wired */
 
 import type { Employer } from "./types";
 

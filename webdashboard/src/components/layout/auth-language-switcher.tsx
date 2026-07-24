@@ -40,6 +40,7 @@ export function AuthLanguageSwitcher() {
 
   return (
     <div className="relative">
+      {/* eslint-disable-next-line react/forbid-elements -- language toggle with ARIA dropdown pattern */}
       <button
         aria-expanded={open}
         aria-haspopup="listbox"
@@ -80,6 +81,7 @@ export function AuthLanguageSwitcher() {
             {AUTH_LANGUAGES.map(({ code, nativeName, Flag }) => {
               const isSelected = current === code;
               return (
+                // eslint-disable-next-line react/forbid-elements -- language option in ARIA listbox, needs native button semantics
                 <button
                   aria-selected={isSelected}
                   className={cn(

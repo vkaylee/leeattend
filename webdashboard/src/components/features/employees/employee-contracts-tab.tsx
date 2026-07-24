@@ -35,7 +35,7 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
 
   // e-signature backend not yet wired — employers are fetched for future use
   // but envelopes are always empty for now.
-  const { data: employers = [] } = useQuery({
+  const { data: _employers = [] } = useQuery({
     queryKey: ["employers", wsId],
     queryFn: () => fetchEmployers(wsId),
     enabled: !!wsId,

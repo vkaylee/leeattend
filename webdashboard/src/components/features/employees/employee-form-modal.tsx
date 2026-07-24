@@ -3,20 +3,18 @@ import { UserCircle } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { WorkspaceMember } from "@/lib/api";
-
-import {
-  createEmployee, updateEmployee, fetchWorkspaceMembers,
-  Employee, fetchEmployers, fetchEmployeeEmployments,
-  updateEmployeeEmployment, Employment,
-  type CreateEmployeeRequest,
-  type UpdateEmployeeRequest,
-} from "@/lib/api";
+import type { WorkspaceMember, CreateEmployeeRequest, UpdateEmployeeRequest } from "@/lib/api";
 
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import {
+  createEmployee, updateEmployee, fetchWorkspaceMembers,
+  Employee, fetchEmployers, fetchEmployeeEmployments,
+  updateEmployeeEmployment, Employment,
+} from "@/lib/api";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
+import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 
 import EmployeeFormInputs from "./employee-form-inputs";
 
@@ -57,8 +55,6 @@ function useEmployeeMutations(wsId: string, onClose: () => void, onSuccess?: () 
 
   return { createMutation, updateMutation };
 }
-
-import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 
 function useFormDefaults(editingEmployee: Employee | null, activeLocationId: string, activeEmployerId: string) {
   const externalUserId = editingEmployee?.user_id ?? "";

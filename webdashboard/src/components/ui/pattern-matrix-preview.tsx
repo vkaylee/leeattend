@@ -74,8 +74,8 @@ export function PatternMatrixPreview({
   const allShiftIds = Array.from(
     new Set(
       (details ?? [])
-        .filter((d) => d.shift_id)
-        .map((d) => d.shift_id!),
+        .filter((d): d is WorkingPatternDetail & { shift_id: string } => !!d.shift_id)
+        .map((d) => d.shift_id),
     ),
   );
 
@@ -112,7 +112,7 @@ export function PatternMatrixPreview({
     >
       {Array.from({ length: numDays }, (_, idx) => {
         const dayDetails =
-          details?.filter((d) => d.schedule_day === idx) ?? [];
+          details.filter((d) => d.schedule_day === idx);
         const assignedDetails = dayDetails.filter((d) => d.shift_id);
         const hasShifts = assignedDetails.length > 0;
 
@@ -261,9 +261,7 @@ function DayMatrixCell({
               .join(", ")}`}
             className={cn(
               "flex flex-col items-center rounded-2xl border p-2 transition-all text-left outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 active:scale-95",
-              hasShifts
-                ? "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-sm"
-                : "bg-slate-50/50 dark:bg-slate-800/20 border-slate-100 dark:border-slate-800 opacity-60 hover:opacity-100",
+              "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-sm",
             )}
             onBlur={() => {
               setIsOpen(false);

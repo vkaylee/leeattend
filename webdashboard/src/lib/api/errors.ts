@@ -35,13 +35,16 @@ export function parseComplianceConflict(body: unknown): ComplianceConflictRetry 
   if (typeof b.error.retry !== "object" || b.error.retry === null) return undefined;
   const retry = b.error.retry;
   if (!Array.isArray(retry.violations) || retry.requires_override !== true) return undefined;
-  // Validate each violation has at least violation_type and message
+  return validateComplianceViolations(retry.violations);
+}
+
+function validateComplianceViolations(raw: unknown[]): ComplianceConflictRetry | undefined {
   const violations: ComplianceViolation[] = [];
-  for (const v of retry.violations) {
+  for (const v of raw) {
     if (typeof v !== "object" || v === null) return undefined;
     const violation = v as Partial<ComplianceViolation>;
     if (typeof violation.violation_type !== "string" || typeof violation.message !== "string") return undefined;
-    violations.push(v);
+    violations.push(violation as ComplianceViolation);
   }
   if (violations.length === 0) return undefined;
   return { violations, requires_override: true };

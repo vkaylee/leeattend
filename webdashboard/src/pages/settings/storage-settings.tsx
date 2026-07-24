@@ -15,14 +15,6 @@ import {
   useUpsertStorageConfig,
 } from "@/hooks/use-storage-settings";
 
-interface StorageConfigData {
-  access_key?: string;
-  bucket_name?: string;
-  endpoint_url?: string;
-  region?: string;
-  use_path_style?: boolean;
-}
-
 interface FormState {
   accessKey: string;
   bucketName: string;

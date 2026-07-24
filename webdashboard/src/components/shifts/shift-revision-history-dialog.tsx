@@ -43,12 +43,12 @@ const BADGE_STYLES: Record<string, string> = {
 function changeTypeBadge(changeType: string, t: (k: string) => string): { label: string; style: string } {
   const key = changeType.toLowerCase();
   if (key === "correct" || key === "correction") {
-    return { label: t("shifts.revisions.badge_correction"), style: BADGE_STYLES.correction ?? "" };
+    return { label: t("shifts.revisions.badge_correction"), style: BADGE_STYLES.correction };
   }
   if (key === "revise" || key === "revision") {
-    return { label: t("shifts.revisions.badge_revision"), style: BADGE_STYLES.revision ?? "" };
+    return { label: t("shifts.revisions.badge_revision"), style: BADGE_STYLES.revision };
   }
-  return { label: t("shifts.revisions.badge_create"), style: BADGE_STYLES.create ?? "" };
+  return { label: t("shifts.revisions.badge_create"), style: BADGE_STYLES.create };
 }
 
 // ── Sub-components ─────────────────────────────────────────────────
@@ -125,6 +125,10 @@ function IntervalDiff({ current, previous, t }: IntervalDiffProps) {
           {Array.from({ length: maxLen }).map((_, idx) => {
             const ci = currIntervals[idx];
             const pi = prevIntervals[idx];
+            /* eslint-disable @typescript-eslint/no-unnecessary-condition --
+               TS doesn't flag out-of-bounds array access; ci/pi can be
+               undefined when arrays differ in length. All optional chains
+               in this block are legitimate runtime guards. */
             if (!ci && !pi) return null;
             const startChanged = ci?.start_time?.substring(0, 5) !== pi?.start_time?.substring(0, 5);
             const endChanged = ci?.end_time?.substring(0, 5) !== pi?.end_time?.substring(0, 5);
@@ -183,6 +187,7 @@ function IntervalDiff({ current, previous, t }: IntervalDiffProps) {
               </div>
             );
           })}
+          {/* eslint-enable @typescript-eslint/no-unnecessary-condition */}
         </div>
       ) : null}
     </div>

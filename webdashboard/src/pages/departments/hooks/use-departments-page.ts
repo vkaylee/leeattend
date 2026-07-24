@@ -64,7 +64,7 @@ export function useDepartmentsPage() {
       ...activeManagers.map(e => ({
         value: e.id,
         label: e.full_name.toUpperCase(),
-        // Keep ternary (not ??): empty-string department_name should map to undefined
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty-string should map to undefined, ?? would preserve ""
         description: e.department_name ? e.department_name : undefined
       }))
     ];

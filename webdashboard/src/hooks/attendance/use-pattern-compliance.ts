@@ -28,7 +28,7 @@ export function usePatternCompliance(
     const byDay = new Map<number, WorkingPatternDetail[]>();
     for (const d of previewDetails) {
       if (!d.shift_id) continue;
-      const list = byDay.get(d.schedule_day) || [];
+      const list = byDay.get(d.schedule_day) ?? [];
       list.push(d);
       byDay.set(d.schedule_day, list);
     }

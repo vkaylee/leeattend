@@ -56,6 +56,9 @@ function buildHttpForm(
 }
 
 function buildSavePayload(smtp: SmtpConfigData, http: HttpApiConfig): SmtpConfigData {
+  /* eslint-disable @typescript-eslint/prefer-nullish-coalescing --
+     || undefined converts empty strings to undefined for the API payload.
+     ?? would preserve "" which is not a valid value for these fields. */
   const payload: SmtpConfigData = {
     host: smtp.host || undefined,
     port: smtp.port || undefined,
@@ -76,6 +79,7 @@ function buildSavePayload(smtp: SmtpConfigData, http: HttpApiConfig): SmtpConfig
   } else {
     payload.http_api = null;
   }
+  /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
   return payload;
 }
 

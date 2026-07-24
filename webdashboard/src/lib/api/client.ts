@@ -152,6 +152,7 @@ interface RawFetchResult { data?: unknown; error?: unknown; response: Response }
 function guardResult(result: RawFetchResult): RawFetchResult {
   if (result.error !== undefined) {
     throw new ApiError(
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- response is from dynamic openapi-fetch; may be undefined at runtime
       result.response?.status ?? 500,
       "SafeClient invariant violated",
       "INVALID_RESPONSE",

@@ -66,7 +66,7 @@ function ChecklistItemRow({
   item,
   isEditingNotes,
   itemNotes,
-  editingNotesItemId,
+  editingNotesItemId: _editingNotesItemId,
   onToggle,
   onEditNotes,
   onSaveNotes,

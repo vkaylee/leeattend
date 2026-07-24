@@ -23,7 +23,7 @@ export default function EContractDetailsDrawer({
   envelope,
   isOpen,
   onClose,
-  wsId,
+  wsId: _wsId,
 }: EContractDetailsDrawerProps) {
   const { t } = useTranslation("employees");
   const toast = useToast();

@@ -20,17 +20,6 @@ export interface DepartmentConfigModalProps {
   wsId: string;
 }
 
-// Internal type matching what the component expects
-interface TemporalConfigRecord {
-  effective_date: string;
-  hours_per_day: number;
-  id: string;
-  is_virtual?: boolean;
-  max_ot_hours_per_day?: number | null;
-  max_ot_hours_per_month?: number | null;
-  std_working_days: number;
-}
-
 export function DepartmentConfigModal({ editingDept, isOpen, onClose, wsId, t }: DepartmentConfigModalProps) {
   const queryClient = useQueryClient();
 

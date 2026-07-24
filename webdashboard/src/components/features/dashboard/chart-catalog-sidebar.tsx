@@ -168,10 +168,11 @@ export default function ChartCatalogSidebar({
 
                   const meta = CHART_METADATA[widgetId];
                   const Icon = meta?.icon;
-                  const isVisible = !!visibleWidgets[widgetId];
+                  const isVisible = visibleWidgets[widgetId];
                   const label = t(widget.labelKey);
 
                   return (
+                    // eslint-disable-next-line react/forbid-elements -- role="switch" button with ARIA needs native button semantics
                     <button
                       aria-checked={isVisible}
                       className={cn(
