@@ -1,4 +1,5 @@
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { Shift } from "@/lib/api/types";
 
@@ -6,6 +7,7 @@ import { ScheduleTracePopover } from "../schedule-trace-popover";
 import { getCellStyles, getHighestPrioritySource, getShiftSymbol } from "./roster-utils";
 
 interface RosterCellProps {
+  complianceStatus?: "ok" | "warning" | "violation";
   dateStr: string;
   daySchedules: import("@/lib/api/types").EffectiveSchedule[];
   employeeId: string;
@@ -15,6 +17,7 @@ interface RosterCellProps {
 }
 
 const RosterCell = memo(function RosterCell({
+  complianceStatus,
   dateStr,
   employeeId,
   isSelected,
@@ -22,6 +25,7 @@ const RosterCell = memo(function RosterCell({
   shifts,
   status,
 }: RosterCellProps) {
+  const { t } = useTranslation();
   const workingSchedules = daySchedules.filter((s) => s.shift_id);
   const hasShift = workingSchedules.length > 0;
   const isHoliday = daySchedules.some((s) => s.is_holiday);
@@ -54,6 +58,21 @@ const RosterCell = memo(function RosterCell({
           <span className="absolute top-0.5 left-0.5 z-30 text-[9px] font-extrabold text-emerald-600 dark:text-emerald-400 animate-in fade-in">
             ✓
           </span>
+        ) : null}
+
+        {complianceStatus === "warning" ? (
+          <span
+            aria-label={t("shifts.compliance.badge_warning")}
+            className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500 z-25"
+            title={t("shifts.compliance.badge_warning")}
+          />
+        ) : null}
+        {complianceStatus === "violation" ? (
+          <span
+            aria-label={t("shifts.compliance.badge_violation")}
+            className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500 z-25"
+            title={t("shifts.compliance.badge_violation")}
+          />
         ) : null}
 
         {isHoliday ? (

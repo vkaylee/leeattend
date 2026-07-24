@@ -9,11 +9,11 @@ import {
   RefreshCw,
 } from "lucide-react";
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
-import { useQuery } from "@tanstack/react-query";
-
 import { EmployeeSearch } from "@/components/common/employee-search";
+import { ComplianceWarningModal } from "@/components/shifts/compliance-warning-modal";
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { ComplianceAlertBadge } from "@/components/ui/compliance-alert-badge";
@@ -37,6 +37,13 @@ export function PatternModals({ hook }: PatternModalsProps) {
     <>
       <CreatePatternModal hook={hook} />
       <BulkAssignModal hook={hook} />
+      <ComplianceWarningModal
+        isLoading={hook.isComplianceResolving}
+        isOpen={hook.complianceModalOpen}
+        onClose={() => { hook.setComplianceModalOpen(false); }}
+        onConfirm={hook.onComplianceOverride}
+        violations={hook.complianceViolations}
+      />
     </>
   );
 }

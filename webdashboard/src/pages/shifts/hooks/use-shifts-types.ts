@@ -1,6 +1,7 @@
  
 import { UseMutationResult } from "@tanstack/react-query";
 
+import type { ComplianceViolation } from "@/lib/api/errors";
 import {
   AssignPatternRequest,
   AssignmentHistory,
@@ -27,6 +28,8 @@ export interface UseShiftsReturn {
   allowEarlyOt: boolean;
   assignPatternMutation: UseMutationResult<EmployeeWorkingPattern, Error, AssignPatternRequest>;
   bulkRosterMutation: UseMutationResult<unknown, Error, { date: string; shift_id: string | null }[]>;
+  complianceModalOpen: boolean;
+  complianceViolations: ComplianceViolation[];
   correctionEffectiveDate: string;
   createShiftMutation: UseMutationResult<Shift, Error, CreateShiftRequest>;
   currentDate: Date;
@@ -54,6 +57,7 @@ export interface UseShiftsReturn {
   history: AssignmentHistory[] | undefined;
   isAutoDeduct: boolean;
   isBreakOvertime: boolean;
+  isComplianceResolving: boolean;
   isCorrection: boolean;
   isCreateModalOpen: boolean;
   isEmployeesError: boolean;
@@ -76,6 +80,7 @@ export interface UseShiftsReturn {
   newShiftName: string;
   newShiftStart: string;
   newShiftSymbol: string;
+  onComplianceOverride: (reason: string) => void;
   openEditModal: (shift: Shift) => void;
   patterns: WorkingPattern[] | undefined;
   refetchEmployees: () => Promise<unknown>;
@@ -87,6 +92,7 @@ export interface UseShiftsReturn {
   selectedPatternId: string;
   setActiveTab: (v: TabType) => void;
   setAllowEarlyOt: (v: boolean) => void;
+  setComplianceModalOpen: (v: boolean) => void;
   setCorrectionEffectiveDate: (v: string) => void;
   setCurrentDate: (v: Date) => void;
   setEditingShift: (v: Shift | null) => void;

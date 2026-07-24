@@ -1,9 +1,11 @@
 /* eslint-disable max-lines -- Hook module: 320 lines with multiple internal sub-hooks and patterns; splitting would diffract coupling */
 import { useMutation, useQuery, useQueryClient, UseMutationResult } from "@tanstack/react-query";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format, startOfToday } from "date-fns";
+
+import type { ComplianceViolation } from "@/lib/api/errors";
 
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -26,6 +28,7 @@ import {
   fetchEmployees,
   fetchDepartments,
 } from "@/lib/api";
+import { ApiError, ComplianceConflictError, parseComplianceConflict } from "@/lib/api/errors";
 
 type BulkAssignPatternRequestLocal = Parameters<typeof bulkAssignPattern>[1];
 
@@ -34,6 +37,8 @@ export interface UseWorkingPatternsReturn {
   assignAnchorDate: string;
   assignStartDate: string;
   bulkAssignMutation: UseMutationResult<BulkAssignResponse, Error, BulkAssignPatternRequestLocal>;
+  complianceModalOpen: boolean;
+  complianceViolations: ComplianceViolation[];
   ConfirmationDialog: React.ComponentType<unknown>;
   createMutation: UseMutationResult<WorkingPattern, Error, CreateWorkingPatternRequest>;
   cycleLengthDays: number;
@@ -44,10 +49,12 @@ export interface UseWorkingPatternsReturn {
   handleCreate: () => void;
   handleDelete: (pattern: WorkingPattern) => Promise<void>;
   isBulkModalOpen: boolean;
+  isComplianceResolving: boolean;
   isCreateModalOpen: boolean;
   isLoading: boolean;
   newPatternDesc: string;
   newPatternName: string;
+  onComplianceOverride: (reason: string) => void;
   patternDetails: WorkingPatternDetail[];
   patterns: WorkingPattern[];
   patternType: "weekly" | "rotation";
@@ -57,6 +64,7 @@ export interface UseWorkingPatternsReturn {
   selectedPatternId: string;
   setAssignAnchorDate: (v: string) => void;
   setAssignStartDate: (v: string) => void;
+  setComplianceModalOpen: (v: boolean) => void;
   setCycleLengthDays: (v: number) => void;
   setExpandedPatternId: (v: string | null) => void;
   setIsBulkModalOpen: (v: boolean) => void;
@@ -90,6 +98,8 @@ function useWorkingPatternMutations(
     setSelectedEmployeeIds: (v: string[]) => void;
     setPatternType: (v: "weekly" | "rotation") => void;
     setCycleLengthDays: (v: number) => void;
+    setComplianceModalOpen: (v: boolean) => void;
+    setComplianceViolations: (v: ComplianceViolation[]) => void;
   }
 ) {
   const { t } = useTranslation();
@@ -121,6 +131,25 @@ function useWorkingPatternMutations(
         toast.error(t("patterns.messages.bulk_assign_conflict", { count: data.failed_employees.length }));
       }
     },
+    onError: (error: Error) => {
+      // Detect 409 compliance conflict and surface the override modal.
+      if (error instanceof ComplianceConflictError) {
+        setters.setComplianceViolations(error.violations);
+        setters.setComplianceModalOpen(true);
+        return;
+      }
+      if (error instanceof ApiError && error.isConflict) {
+        const retry = parseComplianceConflict(error.errorBody);
+        if (retry) {
+          setters.setComplianceViolations(
+            new ComplianceConflictError(error.status, error.statusText, error.errorBody, retry).violations,
+          );
+          setters.setComplianceModalOpen(true);
+          return;
+        }
+      }
+      toast.error(error.message || t("patterns.messages.bulk_assign_error"));
+    },
   });
 
   const deleteMutation = useMutation<unknown, Error, string>({
@@ -150,6 +179,12 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
   const [newPatternName, setNewPatternName] = useState("");
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [selectedPatternId, setSelectedPatternId] = useState("");
+
+  // ── Compliance modal state ────────────────────────────────────────────
+  const [complianceModalOpen, setComplianceModalOpen] = useState(false);
+  const [complianceViolations, setComplianceViolations] = useState<ComplianceViolation[]>([]);
+  const [isComplianceResolving, setIsComplianceResolving] = useState(false);
+  const pendingRetryRef = useRef<BulkAssignPatternRequestLocal | null>(null);
 
   const {
     grid: weeklyGrid,
@@ -203,6 +238,8 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
     setSelectedEmployeeIds,
     setPatternType: handleSetPatternType,
     setCycleLengthDays: handleSetCycleLengthDays,
+    setComplianceModalOpen,
+    setComplianceViolations,
   });
 
   // addShiftToDay and removeShiftFromDay are provided by useWorkingPatternGrid
@@ -257,19 +294,37 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
     if (selectedPatternId && selectedEmployeeIds.length > 0) {
       const selectedPattern = patterns.find((p) => p.id === selectedPatternId);
       const isRotation = selectedPattern?.pattern_type === "rotation";
-      
+
       const employmentIds = selectedEmployeeIds
         .map(empId => employees.find(e => e.id === empId)?.active_employment_id)
         .filter((id): id is string => !!id);
 
-      bulkAssignMutation.mutate({
+      const payload: BulkAssignPatternRequestLocal = {
         employment_ids: employmentIds,
         pattern_id: selectedPatternId,
         start_date: assignStartDate,
         anchor_date: isRotation ? assignAnchorDate : undefined,
-      });
+      };
+      pendingRetryRef.current = payload;
+      bulkAssignMutation.mutate(payload);
     }
   };
+
+  // ── Compliance override retry ─────────────────────────────────────────
+  const onComplianceOverride = useCallback(async (reason: string) => {
+    const pending = pendingRetryRef.current;
+    if (!pending) return;
+    setIsComplianceResolving(true);
+    try {
+      await bulkAssignMutation.mutateAsync({ ...pending, allow_warnings: true, override_reason: reason });
+      setComplianceModalOpen(false);
+      pendingRetryRef.current = null;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    } finally {
+      setIsComplianceResolving(false);
+    }
+  }, [bulkAssignMutation, toast]);
 
   const prefillStandard = () => {
     if (!shifts.length) return;
@@ -282,6 +337,8 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
     assignAnchorDate,
     assignStartDate,
     bulkAssignMutation,
+    complianceModalOpen,
+    complianceViolations,
     createMutation,
     cycleLengthDays,
     deleteMutation,
@@ -291,10 +348,12 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
     handleCreate,
     handleDelete,
     isBulkModalOpen,
+    isComplianceResolving,
     isCreateModalOpen,
     isLoading,
     newPatternDesc,
     newPatternName,
+    onComplianceOverride,
     patternDetails,
     patternType,
     patterns,
@@ -304,6 +363,7 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
     selectedPatternId,
     setAssignAnchorDate,
     setAssignStartDate: handleStartDateChange,
+    setComplianceModalOpen,
     setCycleLengthDays: handleSetCycleLengthDays,
     setExpandedPatternId,
     setIsBulkModalOpen,

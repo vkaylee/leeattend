@@ -233,6 +233,12 @@ const createMockHook = (overrides = {}) => {
     viewMode: "month",
     weekDays: [],
     wsId: "test-ws-id",
+    // Compliance modal state
+    complianceModalOpen: false,
+    complianceViolations: [],
+    isComplianceResolving: false,
+    onComplianceOverride: vi.fn(),
+    setComplianceModalOpen: vi.fn(),
     ...overrides,
   } as unknown as ReturnType<typeof useShifts>;
 };

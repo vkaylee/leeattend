@@ -19,18 +19,38 @@ import {
   updateShift,
   upsertRoster,
 } from "@/lib/api";
+import { ApiError, ComplianceConflictError, parseComplianceConflict } from "@/lib/api/errors";
 
 interface UseShiftMutationsProps {
+  onComplianceConflict?: (error: ComplianceConflictError) => void;
   onSuccess?: (type: string) => void;
   selectedEmployeeId: string | undefined;
   selectedEmploymentId: string | undefined;
   wsId: string;
 }
 
-export function useShiftMutations({ wsId, selectedEmployeeId, selectedEmploymentId, onSuccess }: UseShiftMutationsProps) {
+export function useShiftMutations({ wsId, selectedEmployeeId, selectedEmploymentId, onSuccess, onComplianceConflict }: UseShiftMutationsProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
+
+  /** Detect a 409 compliance conflict and forward to the callback if present. */
+  const handlePossibleComplianceConflict = (error: Error): boolean => {
+    if (error instanceof ComplianceConflictError) {
+      onComplianceConflict?.(error);
+      return true;
+    }
+    if (error instanceof ApiError && error.isConflict) {
+      const retry = parseComplianceConflict(error.errorBody);
+      if (retry) {
+        onComplianceConflict?.(
+          new ComplianceConflictError(error.status, error.statusText, error.errorBody, retry),
+        );
+        return true;
+      }
+    }
+    return false;
+  };
 
   const assignPatternMutation = useMutation<EmployeeWorkingPattern, Error, AssignPatternRequest>({
     mutationFn: (data: AssignPatternRequest) => {
@@ -56,7 +76,10 @@ export function useShiftMutations({ wsId, selectedEmployeeId, selectedEmployment
       void queryClient.invalidateQueries({ queryKey: ["schedules"] });
       void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
-    onError: (error: Error) => { toast.error(error.message, t("shifts.messages.update_roster_error")); }
+    onError: (error: Error) => {
+      if (handlePossibleComplianceConflict(error)) return;
+      toast.error(error.message, t("shifts.messages.update_roster_error"));
+    }
   });
 
   const bulkRosterMutation = useMutation<unknown, Error, { date: string; shift_id: string | null }[]>({
@@ -70,7 +93,10 @@ export function useShiftMutations({ wsId, selectedEmployeeId, selectedEmployment
       void queryClient.invalidateQueries({ queryKey: ["schedules"] });
       void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
-    onError: (error: Error) => { toast.error(error.message, t("shifts.messages.bulk_update_error")); }
+    onError: (error: Error) => {
+      if (handlePossibleComplianceConflict(error)) return;
+      toast.error(error.message, t("shifts.messages.bulk_update_error"));
+    }
   });
 
   const deleteRosterMutation = useMutation<unknown, Error, string>({

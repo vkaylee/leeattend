@@ -83,6 +83,12 @@ describe("PatternModals", () => {
     wsId: "ws-1",
     assignAnchorDate: "",
     setAssignAnchorDate: vi.fn(),
+    // Compliance modal state
+    complianceModalOpen: false,
+    complianceViolations: [],
+    isComplianceResolving: false,
+    onComplianceOverride: vi.fn(),
+    setComplianceModalOpen: vi.fn(),
   };
 
   beforeEach(() => {

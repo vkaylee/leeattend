@@ -65,7 +65,7 @@ export async function assignPattern(
 
 export async function bulkAssignPattern(
   wsId: string,
-  data: BulkAssignPatternRequest
+  data: BulkAssignPatternRequest & { allow_warnings?: boolean; override_reason?: string }
 ): Promise<BulkAssignResponse> {
   const { data: result } = await client.POST("/workspaces/{workspace_id}/working-patterns/bulk-assign", {
     params: {

@@ -2,14 +2,17 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format, addDays, subMonths, startOfMonth, endOfMonth } from "date-fns";
 
+import type { ComplianceViolation } from "@/lib/api/errors";
 import type { AssignPatternRequest, Employee, EmployeeSchedule, EmployeeWorkingPattern, EffectiveSchedule } from "@/lib/api/types";
 
 import { useToast } from "@/components/ui/toast";
 import { fetchWorkspaceSchedules, bulkUpsertRoster, deleteRoster } from "@/lib/api";
+import { ComplianceConflictError } from "@/lib/api/errors";
 import { runPool } from "@/lib/async-pool";
 
 // Cap concurrent roster requests so large monthly selections (e.g. 20 employees)
@@ -29,6 +32,9 @@ interface UseRosterHandlersProps {
   selectedDays: string[];
   selectedEmployee: Employee | null;
   selectedPatternId: string;
+  setComplianceModalOpen: (v: boolean) => void;
+  setComplianceViolations: (v: ComplianceViolation[]) => void;
+  setIsComplianceResolving: (v: boolean) => void;
   startDate: string;
   startOfWeek: Date;
   weekDays: Date[];
@@ -51,10 +57,20 @@ export function useRosterHandlers({
   mutations,
   currentMonth,
   monthDays,
+  setComplianceModalOpen,
+  setComplianceViolations,
+  setIsComplianceResolving,
 }: UseRosterHandlersProps) {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
+
+  // ── Compliance retry ref ──────────────────────────────────────────────
+  const pendingRetryRef = useRef<{
+    assignments: { employeeId: string; employmentId?: string; dates: string[] }[];
+    shiftId: string | null;
+    onRowStatus?: (employeeId: string, status: "saving" | "saved" | "error") => void;
+  } | null>(null);
 
   const handleAssign = () => {
     if (!selectedEmployee || !selectedPatternId) {
@@ -149,6 +165,20 @@ export function useRosterHandlers({
       },
     );
     void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+
+    // Check for compliance conflicts before generic failure handling.
+    const complianceFailure = failures.find(
+      (f): f is { item: (typeof assignments)[number]; error: ComplianceConflictError } =>
+        f.error instanceof ComplianceConflictError,
+    );
+    if (complianceFailure) {
+      const err = complianceFailure.error;
+      pendingRetryRef.current = { assignments, shiftId, onRowStatus };
+      setComplianceViolations(err.violations);
+      setComplianceModalOpen(true);
+      return;
+    }
+
     if (failures.length > 0) {
       toast.error(t("shifts.messages.bulk_partial_failure", { count: failures.length }));
     } else {
@@ -178,7 +208,7 @@ export function useRosterHandlers({
     const prevMonth = subMonths(currentMonth, 1);
     const prevStartStr = format(startOfMonth(prevMonth), 'yyyy-MM-dd');
     const prevEndStr = format(endOfMonth(prevMonth), 'yyyy-MM-dd');
-    
+
     try {
       const prevSchedules = await fetchWorkspaceSchedules(wsId, prevStartStr, prevEndStr);
       const currentYearMonth = format(currentMonth, 'yyyy-MM');
@@ -220,6 +250,45 @@ export function useRosterHandlers({
     }
   };
 
+  // ── Compliance override retry ─────────────────────────────────────────
+  const onComplianceOverride = useCallback(async (reason: string) => {
+    const pending = pendingRetryRef.current;
+    if (!pending) return;
+    setIsComplianceResolving(true);
+    try {
+      const { assignments, shiftId, onRowStatus } = pending;
+      const failures = await runPool(
+        assignments,
+        ROSTER_REQUEST_CONCURRENCY,
+        async ({ employeeId, employmentId, dates }) => {
+          const items = dates.map(date => ({ date, shift_id: shiftId }));
+          await bulkUpsertRoster(wsId, employeeId, items, { allow_warnings: true, override_reason: reason });
+          if (employmentId) {
+            try { await refetchAndPatchRow(employmentId); } catch { /* stale OK */ }
+          }
+        },
+        {
+          onItemStart: ({ employeeId }) => { onRowStatus?.(employeeId, "saving"); },
+          onItemSettle: ({ employeeId }, _index, error) => {
+            onRowStatus?.(employeeId, error ? "error" : "saved");
+          },
+        },
+      );
+      void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+      if (failures.length > 0) {
+        toast.error(t("shifts.messages.bulk_partial_failure", { count: failures.length }));
+      } else {
+        toast.success(t("shifts.messages.bulk_update_success"));
+      }
+      setComplianceModalOpen(false);
+      pendingRetryRef.current = null;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    } finally {
+      setIsComplianceResolving(false);
+    }
+  }, [wsId, queryClient, toast, t, refetchAndPatchRow, setComplianceModalOpen, setIsComplianceResolving]);
+
   return {
     handleAssign,
     handleAssignAllWeek,
@@ -228,5 +297,6 @@ export function useRosterHandlers({
     handleMonthBulkAssign,
     handleMonthDeleteRoster,
     handleCopyPreviousMonth,
+    onComplianceOverride,
   };
 }

@@ -1,5 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
+import { useState, useCallback } from "react";
 
+import type { ComplianceViolation } from "@/lib/api/errors";
 import type { Shift, EmployeeSchedule } from "@/lib/api/types";
 
 import { getCurrentWorkspaceId } from "@/lib/api";
@@ -29,10 +31,21 @@ export function useShifts(): UseShiftsReturn {
     selectedEmployeeIds: form.selectedEmployeeIds,
   });
 
+  // ── Compliance state (shared between mutations and roster handlers) ───
+  const [complianceModalOpen, setComplianceModalOpen] = useState(false);
+  const [complianceViolations, setComplianceViolations] = useState<ComplianceViolation[]>([]);
+  const [isComplianceResolving, setIsComplianceResolving] = useState(false);
+
+  const onComplianceConflict = useCallback((error: { violations: ComplianceViolation[] }) => {
+    setComplianceViolations(error.violations);
+    setComplianceModalOpen(true);
+  }, []);
+
   const mutations = useShiftMutations({
     wsId,
     selectedEmployeeId: form.selectedEmployee?.id,
     selectedEmploymentId: form.selectedEmployee?.active_employment_id ?? undefined,
+    onComplianceConflict,
     onSuccess: (type) => {
       if (type === "assignPattern") {
         form.setSelectedPatternId("");
@@ -69,6 +82,11 @@ export function useShifts(): UseShiftsReturn {
     mutations,
     currentMonth: monthNav.currentMonth,
     monthDays: monthNav.monthDays,
+    // Compliance state — roster handlers own the retry logic, but share
+    // these setters so both mutations and pool-based handlers can open the modal.
+    setComplianceModalOpen,
+    setComplianceViolations,
+    setIsComplianceResolving,
   });
 
   const openEditModal = (shift: Shift) => {
@@ -97,6 +115,10 @@ export function useShifts(): UseShiftsReturn {
     ...data,
     ...mutations,
     ...rosterHandlers,
+    complianceModalOpen,
+    complianceViolations,
+    isComplianceResolving,
+    setComplianceModalOpen,
     openEditModal,
     handleCreateShift,
     handleUpdateShift,

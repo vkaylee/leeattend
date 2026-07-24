@@ -1,7 +1,7 @@
 import type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster, CreateShiftRequest, UpdateShiftRequest, UpsertRosterRequest, ShiftVersionHistoryItem } from "./types";
 
 import { client } from "./client";
-import { ApiError } from "./errors";
+import { ApiError, ComplianceConflictError, parseComplianceConflict } from "./errors";
 import { apiFetch, TIMEOUT } from "./helpers";
 
 
@@ -40,7 +40,7 @@ export async function updateShift(
 
 export async function assignShift(
   wsId: string,
-  data: { employment_id: string; shift_id: string; start_date: string; end_date?: string | null }
+  data: { employment_id: string; shift_id: string; start_date: string; end_date?: string | null; allow_warnings?: boolean; override_reason?: string }
 ): Promise<void> {
   await client.POST("/workspaces/{workspace_id}/shifts/assign", {
     params: {
@@ -97,12 +97,20 @@ export const fetchEmployeeRosters = async (
   return data.data;
 }
 
-export async function upsertRoster(wsId: string, employeeId: string, data: Omit<UpsertRosterRequest, 'employment_id'>): Promise<ShiftRoster> {
+export async function upsertRoster(
+  wsId: string,
+  employeeId: string,
+  data: Omit<UpsertRosterRequest, 'employment_id'> & { allow_warnings?: boolean; override_reason?: string }
+): Promise<ShiftRoster> {
+  const body: Record<string, unknown> = { ...data, employment_id: employeeId };
+  // Only include override fields when explicitly set so they don't pollute normal requests.
+  if (data.allow_warnings !== undefined) body.allow_warnings = data.allow_warnings;
+  if (data.override_reason !== undefined) body.override_reason = data.override_reason;
   const { data: result } = await client.POST("/workspaces/{workspace_id}/employees/{id}/rosters", {
     params: {
       path: { workspace_id: wsId, id: employeeId },
     },
-    body: { ...data, employment_id: employeeId },
+    body: body as Record<string, unknown>,
   });
   return result;
 }
@@ -111,20 +119,44 @@ export async function bulkUpsertRoster(
   wsId: string,
   employeeId: string,
   items: (Omit<Partial<ShiftRoster>, "date"> & { date: string })[],
+  opts?: { allow_warnings?: boolean; override_reason?: string },
 ): Promise<void> {
   // Bypass the openapi client here: bulk roster writes trigger per-day attendance
   // reprocessing on the backend and can exceed the default 10s timeout for large
   // selections. Use apiFetch directly with the long report-operation timeout.
+  const body: Record<string, unknown> = { items };
+  if (opts?.allow_warnings !== undefined) body.allow_warnings = opts.allow_warnings;
+  if (opts?.override_reason !== undefined) body.override_reason = opts.override_reason;
+
   const response = await apiFetch(
     `/v1/workspaces/${wsId}/employees/${employeeId}/rosters/bulk`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items }),
+      body: JSON.stringify(body),
       timeout: TIMEOUT.REPORT_OPERATION,
     },
   );
-  if (!response.ok) await ApiError.rejectResponse(response);
+  if (!response.ok) {
+    // Detect compliance conflict (409 with retry.violations) so callers can
+    // surface the warning modal instead of a generic error toast.
+    let parsedBody: unknown;
+    try {
+      parsedBody = JSON.parse(await response.clone().text());
+    } catch {
+      // Ignore parse failures — fall through to rejectResponse.
+    }
+    const retry = parseComplianceConflict(parsedBody);
+    if (retry) {
+      throw new ComplianceConflictError(
+        response.status,
+        response.statusText,
+        parsedBody as Record<string, unknown> | undefined,
+        retry,
+      );
+    }
+    await ApiError.rejectResponse(response);
+  }
 }
 
 export async function deleteRoster(wsId: string, employeeId: string, date: string): Promise<void> {

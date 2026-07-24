@@ -5,11 +5,13 @@ import React, { memo } from "react";
 import { format, isToday as isDateToday } from "date-fns";
 
 import type { EmployeeSchedule, Shift } from "@/lib/api/types";
+import type { ComplianceViolation } from "@/lib/api/errors";
 
 import { RosterCell } from "./roster-cell";
-import { isWeekend } from "./roster-utils";
+import { getComplianceStatus, isWeekend } from "./roster-utils";
 
 interface RosterGridTableProps {
+  complianceViolations?: ComplianceViolation[];
   containerRef?: React.RefObject<HTMLDivElement | null>;
   currentLocale: Locale;
   employeesLabel: string;
@@ -39,6 +41,7 @@ const cellCoordsFromNode = (
 };
 
 const RosterGridTable = memo(function RosterGridTable({
+  complianceViolations,
   containerRef,
   currentLocale,
   employeesLabel,
@@ -166,6 +169,7 @@ const RosterGridTable = memo(function RosterGridTable({
 
                 return (
                   <RosterCell
+                    complianceStatus={getComplianceStatus(daySchedules, empSchedule.employee_id ?? "", dateStr, complianceViolations)}
                     dateStr={dateStr}
                     daySchedules={daySchedules}
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

@@ -5,6 +5,48 @@ export interface AppErrorResponse {
   message?: string;
 }
 
+/** A single compliance violation returned by the backend on 409 Conflict. */
+export interface ComplianceViolation {
+  violation_type: "overlap" | "rest_period" | "weekly_hours" | "monthly_ot";
+  severity: "hard" | "soft";
+  message: string;
+  details: {
+    employment_id: string;
+    shift_ids: string[];
+    conflicting_dates: string[];
+    total_hours?: number;
+    limit_hours?: number;
+  };
+}
+
+/** Structured retry payload for compliance violations. */
+export interface ComplianceConflictRetry {
+  violations: ComplianceViolation[];
+  requires_override: boolean;
+}
+
+/** Narrow an unknown error body to check for a compliance-conflict retry payload. */
+export function parseComplianceConflict(body: unknown): ComplianceConflictRetry | undefined {
+  if (typeof body !== "object" || body === null) return undefined;
+  const b = body as { error?: { retry?: Partial<ComplianceConflictRetry> } };
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive runtime narrowing
+  if (typeof b.error !== "object" || b.error === null) return undefined;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive runtime narrowing
+  if (typeof b.error.retry !== "object" || b.error.retry === null) return undefined;
+  const retry = b.error.retry;
+  if (!Array.isArray(retry.violations) || retry.requires_override !== true) return undefined;
+  // Validate each violation has at least violation_type and message
+  const violations: ComplianceViolation[] = [];
+  for (const v of retry.violations) {
+    if (typeof v !== "object" || v === null) return undefined;
+    const violation = v as Partial<ComplianceViolation>;
+    if (typeof violation.violation_type !== "string" || typeof violation.message !== "string") return undefined;
+    violations.push(v as ComplianceViolation);
+  }
+  if (violations.length === 0) return undefined;
+  return { violations, requires_override: true };
+}
+
 /** Structured retry hint returned on 409 Conflict for retired resources. */
 export interface ConflictRetryHint {
   leave_type_id: string;
@@ -89,5 +131,31 @@ export class ApiError extends Error {
   
   get isConflict() {
     return this.status === 409;
+  }
+}
+
+/**
+ * Thrown when a 409 Conflict response carries a compliance violation retry
+ * payload ({@link ComplianceConflictRetry}). Callers can inspect {@link retry}
+ * or {@link violations} to surface the specific issues to the user before
+ * retrying with allow_warnings + override_reason.
+ */
+export class ComplianceConflictError extends ApiError {
+  public readonly retry: ComplianceConflictRetry;
+
+  constructor(
+    status: number,
+    statusText: string,
+    errorBody: AppErrorResponse | undefined,
+    retry: ComplianceConflictRetry,
+  ) {
+    super(status, statusText, errorBody?.error_code, errorBody);
+    this.name = "ComplianceConflictError";
+    Object.setPrototypeOf(this, ComplianceConflictError.prototype);
+    this.retry = retry;
+  }
+
+  get violations(): ComplianceViolation[] {
+    return this.retry.violations;
   }
 }

@@ -1,4 +1,5 @@
 import type { EffectiveSchedule } from "@/lib/api/types";
+import type { ComplianceViolation } from "@/lib/api/errors";
 
 /** Check if weekend day (Sat/Sun) */
 export const isWeekend = (date: Date): boolean => {
@@ -79,3 +80,34 @@ export const orderSchedulesBySelection = <T extends { employee_id?: string }>(
     .map((id) => byId.get(id))
     .filter((s): s is T => s !== undefined);
 };
+
+/** Compliance status for a roster cell badge. */
+export type ComplianceCellStatus = "ok" | "warning" | "violation";
+
+/**
+ * Determine the worst compliance status for a roster cell based on known
+ * violation data from a 409 response. Returns "violation" if any overlap is
+ * detected, "warning" for soft violations, or "ok" when no violation matches
+ * this cell.
+ */
+export function getComplianceStatus(
+  cellSchedules: EffectiveSchedule[],
+  employeeId: string,
+  dateStr: string,
+  violations: ComplianceViolation[] | undefined,
+): ComplianceCellStatus {
+  if (!violations || violations.length === 0) return "ok";
+
+  const matchingViolations = violations.filter((v) => {
+    const matchesEmployee = v.details.employment_id === employeeId;
+    const matchesDate = v.details.conflicting_dates.includes(dateStr);
+    return matchesEmployee && matchesDate;
+  });
+
+  if (matchingViolations.length === 0) return "ok";
+
+  const hasHardViolation = matchingViolations.some(
+    (v) => v.violation_type === "overlap" || v.severity === "hard",
+  );
+  return hasHardViolation ? "violation" : "warning";
+}
