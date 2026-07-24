@@ -175,7 +175,7 @@ async fn test_overnight_ot_payroll_calculation() {
             )),
         })
     }
-    .calculate_monthly_payslip(employee_id, workspace_id, 2026, 1)
+    .calculate_monthly_payslip(employee_id, &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), 2026, 1)
     .await
     .unwrap();
 

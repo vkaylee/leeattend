@@ -144,7 +144,7 @@ async fn test_payroll_std_days_source_traceability() {
             )),
         })
     }
-    .calculate_monthly_payslip(employee_id, workspace_id, 2024, 1)
+    .calculate_monthly_payslip(employee_id, &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), 2024, 1)
     .await
     .unwrap();
     let pr_instance = apiserver::repositories::DieselPayrollRepository::new(diesel_pools.clone());
@@ -238,7 +238,7 @@ async fn test_payroll_std_days_source_traceability() {
             )),
         })
     }
-    .calculate_monthly_payslip(employee_id, workspace_id, 2024, 2)
+    .calculate_monthly_payslip(employee_id, &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), 2024, 2)
     .await
     .unwrap();
     let segments_b = pr_instance
@@ -327,7 +327,7 @@ async fn test_payroll_std_days_source_traceability() {
             )),
         })
     }
-    .calculate_monthly_payslip(employee_id, workspace_id, 2024, 3)
+    .calculate_monthly_payslip(employee_id, &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), 2024, 3)
     .await
     .unwrap();
     let segments_c = pr_instance
@@ -417,7 +417,7 @@ async fn test_payroll_std_days_source_traceability() {
             )),
         })
     }
-    .calculate_monthly_payslip(employee_id, workspace_id, 2024, 4)
+    .calculate_monthly_payslip(employee_id, &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), 2024, 4)
     .await
     .unwrap();
     let segments_d = pr_instance

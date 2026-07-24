@@ -1586,8 +1586,9 @@ mod tests {
 
         // When we call get_daily_attendance_report, it will hit WorkspaceRepo (succeeds)
         // and then EmployeeRepo (returns empty list), triggering an early return with empty Data!
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id);
         let result = report_service
-            .get_daily_attendance_report(args)
+            .get_daily_attendance_report(&auth_token, args)
             .await
             .unwrap();
 
@@ -2778,8 +2779,9 @@ mod tests {
             shift_type: None,
         };
 
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id);
         let result = report_service
-            .get_daily_attendance_report(args)
+            .get_daily_attendance_report(&auth_token, args)
             .await
             .unwrap();
 
@@ -2958,8 +2960,9 @@ mod tests {
             shift_type: None,
         };
 
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id);
         let result = report_service
-            .get_daily_attendance_report(args)
+            .get_daily_attendance_report(&auth_token, args)
             .await
             .unwrap();
 
@@ -3008,8 +3011,9 @@ mod tests {
             shift_type: None,
         };
 
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id);
         let result = report_service
-            .get_workspace_attendance_summary(args)
+            .get_workspace_attendance_summary(&auth_token, args)
             .await
             .unwrap();
 

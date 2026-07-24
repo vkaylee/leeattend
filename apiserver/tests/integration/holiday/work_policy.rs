@@ -199,7 +199,7 @@ async fn test_payroll_holiday_work_with_multiplier() {
     }
     .calculate_monthly_payslip(
         emp,
-        workspace_id,
+        &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),
         first_of_month.year(),
         first_of_month.month(),
     )
@@ -398,7 +398,7 @@ async fn test_payroll_holiday_work_no_credit() {
     }
     .calculate_monthly_payslip(
         emp,
-        workspace_id,
+        &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),
         first_of_month.year(),
         first_of_month.month(),
     )
@@ -584,7 +584,7 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
     }
     .calculate_monthly_payslip(
         emp,
-        workspace_id,
+        &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),
         first_of_month.year(),
         first_of_month.month(),
     )
@@ -816,7 +816,7 @@ async fn test_leave_kept_partial_work() {
             ),
         },
     )
-    .recalculate_daily_summary(workspace_id, emp_employment_id, today)
+    .recalculate_daily_summary(&apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), emp_employment_id, today)
     .await
     .expect("Recalculate failed");
 
@@ -1074,7 +1074,7 @@ async fn test_leave_reversal_only_system() {
             ),
         },
     )
-    .recalculate_daily_summary(workspace_id, emp_employment_id, today)
+    .recalculate_daily_summary(&apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), emp_employment_id, today)
     .await
     .expect("Recalculate failed");
 

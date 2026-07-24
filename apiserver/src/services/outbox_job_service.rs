@@ -17,12 +17,11 @@ impl OutboxJobService {
 
     pub async fn create_job(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         id: Uuid,
         job_type: &str,
         payload: serde_json::Value,
     ) -> Result<OutboxJob, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
         let mut payload = payload;
         if let Some(trace_ctx) = crate::utils::logging::get_trace_context() {
             if let Some(obj) = payload.as_object_mut() {
@@ -33,47 +32,47 @@ impl OutboxJobService {
             }
         }
         self.outbox_repo
-            .insert_job(&auth_token, id, job_type, payload)
+            .insert_job(auth_token, id, job_type, payload)
             .await
     }
 
-    pub async fn complete_job(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+    pub async fn complete_job(&self, auth_token: &TenantAuthToken, id: Uuid) -> Result<(), AppError> {
+
         self.outbox_repo
-            .update_job_status(&auth_token, id, "completed", None)
+            .update_job_status(auth_token, id, "completed", None)
             .await
     }
 
     pub async fn fail_job(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         id: Uuid,
         error: &str,
     ) -> Result<(), AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+
         self.outbox_repo
-            .update_job_status(&auth_token, id, "failed", Some(error.to_string()))
+            .update_job_status(auth_token, id, "failed", Some(error.to_string()))
             .await
     }
 
     pub async fn get_pending_jobs(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         limit: i64,
     ) -> Result<Vec<OutboxJob>, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
-        self.outbox_repo.get_pending_jobs(&auth_token, limit).await
+
+        self.outbox_repo.get_pending_jobs(auth_token, limit).await
     }
 
     pub async fn get_stuck_jobs(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         older_than: chrono::DateTime<chrono::Utc>,
         limit: i64,
     ) -> Result<Vec<OutboxJob>, AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+
         self.outbox_repo
-            .get_stuck_jobs(&auth_token, older_than, limit)
+            .get_stuck_jobs(auth_token, older_than, limit)
             .await
     }
 
@@ -87,14 +86,14 @@ impl OutboxJobService {
 
     pub async fn update_job_status(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         id: Uuid,
         status: &str,
         error_message: Option<String>,
     ) -> Result<(), AppError> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+
         self.outbox_repo
-            .update_job_status(&auth_token, id, status, error_message)
+            .update_job_status(auth_token, id, status, error_message)
             .await
     }
 }
@@ -136,7 +135,7 @@ mod tests {
             .returning(move |_, _, _, _| Ok(expected_clone.clone()));
 
         let service = OutboxJobService::new(Arc::new(mock_repo));
-        let result = service.create_job(ws_id, job_id, job_type, payload).await;
+        let result = service.create_job(&TenantAuthToken::system_override(ws_id), job_id, job_type, payload).await;
 
         assert!(result.is_ok());
         let job = result.unwrap();
@@ -163,7 +162,7 @@ mod tests {
             .returning(|_, _, _, _| Ok(()));
 
         let service = OutboxJobService::new(Arc::new(mock_repo));
-        let result = service.complete_job(ws_id, job_id).await;
+        let result = service.complete_job(&TenantAuthToken::system_override(ws_id), job_id).await;
         assert!(result.is_ok());
     }
 
@@ -185,7 +184,7 @@ mod tests {
             .returning(|_, _, _, _| Ok(()));
 
         let service = OutboxJobService::new(Arc::new(mock_repo));
-        let result = service.fail_job(ws_id, job_id, error_msg).await;
+        let result = service.fail_job(&TenantAuthToken::system_override(ws_id), job_id, error_msg).await;
         assert!(result.is_ok());
     }
 
@@ -213,7 +212,7 @@ mod tests {
             .returning(move |_, _| Ok(expected_clone.clone()));
 
         let service = OutboxJobService::new(Arc::new(mock_repo));
-        let result = service.get_pending_jobs(ws_id, limit).await;
+        let result = service.get_pending_jobs(&TenantAuthToken::system_override(ws_id), limit).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap().len(), 1);
@@ -234,7 +233,7 @@ mod tests {
             .returning(move |_, _, _| Ok(vec![]));
 
         let service = OutboxJobService::new(Arc::new(mock_repo));
-        let result = service.get_stuck_jobs(ws_id, older_than, limit).await;
+        let result = service.get_stuck_jobs(&TenantAuthToken::system_override(ws_id), older_than, limit).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap().len(), 0);
@@ -260,7 +259,7 @@ mod tests {
 
         let service = OutboxJobService::new(Arc::new(mock_repo));
         let result = service
-            .update_job_status(ws_id, job_id, status, err_msg)
+            .update_job_status(&TenantAuthToken::system_override(ws_id), job_id, status, err_msg)
             .await;
         assert!(result.is_ok());
     }
@@ -299,7 +298,7 @@ mod tests {
 
         let result = crate::utils::logging::CURRENT_TRACE_CONTEXT
             .scope("test-request-id-123".to_string(), async {
-                service.create_job(ws_id, job_id, job_type, payload).await
+                service.create_job(&TenantAuthToken::system_override(ws_id), job_id, job_type, payload).await
             })
             .await;
 

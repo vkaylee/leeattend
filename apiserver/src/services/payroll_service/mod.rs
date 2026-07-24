@@ -1,3 +1,4 @@
+use crate::diesel_pool::TenantAuthToken;
 use crate::errors::{AppError, AppResult};
 use crate::utils::i18n::I18nKey;
 
@@ -102,13 +103,13 @@ impl PayrollService {
     pub async fn calculate_monthly_payslip(
         &self,
         employee_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         year: i32,
         month: u32,
     ) -> Result<Payslip, AppError> {
         // Phase 1: Fetch all context data
         let ctx = self
-            .fetch_context(employee_id, workspace_id, year, month)
+            .fetch_context(employee_id, auth_token, year, month)
             .await?;
 
         self.calculate_payslip_with_context(ctx).await

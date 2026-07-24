@@ -79,7 +79,7 @@ pub(crate) async fn reprocess_single_day(
             .await?;
 
         service
-            .recalculate_summary_with_retry(workspace_id, employment_id, date)
+            .recalculate_summary_with_retry(auth_token, employment_id, date)
             .await?;
 
         return Ok(shift_config);
@@ -190,7 +190,7 @@ pub(crate) async fn save_paired_entries_and_update_summary(
         .await?;
 
     service
-        .recalculate_summary_with_retry(auth_token.workspace_id(), employment_id, date)
+        .recalculate_summary_with_retry(auth_token, employment_id, date)
         .await?;
 
     Ok(())

@@ -116,6 +116,7 @@ impl ReportService {
     #[allow(clippy::too_many_lines)]
     pub async fn get_daily_attendance_report(
         &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         args: AttendanceReportArgs,
     ) -> Result<PaginatedResponse<DailyAttendanceReport>, AppError> {
         let workspace = self
@@ -133,8 +134,6 @@ impl ReportService {
         let page = args.page.unwrap_or(1);
         let limit = args.limit.unwrap_or(20);
 
-        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id);
-
         // Shift-type filter (comma-separated shift names), applied post-join to keep
         // pagination at employee level. Mirrors the existing `employee_ids` split.
         let shift_names: Option<Vec<String>> = args.shift_type.as_ref().map(|s| {
@@ -149,13 +148,13 @@ impl ReportService {
             if let Some(specific_employment_id) = args.employment_id {
                 let emp = self
                     .employment_repo
-                    .get_employment_by_id(&auth_token, specific_employment_id)
+                    .get_employment_by_id(auth_token, specific_employment_id)
                     .await?
                     .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
                 let employee = self
                     .employee_repo
-                    .get_employees_by_ids(&[emp.employee_id()], &auth_token)
+                    .get_employees_by_ids(&[emp.employee_id()], auth_token)
                     .await?
                     .into_iter()
                     .next()
@@ -176,7 +175,7 @@ impl ReportService {
                 let (paginated_employees, total_employees) = self
                     .employee_repo
                     .get_paginated_employee_ids(
-                        &auth_token,
+                        auth_token,
                         crate::models::EmployeePaginationArgs::new(
                             args.employee_ids.as_ref(),
                             args.department_id,
@@ -206,7 +205,7 @@ impl ReportService {
 
                 let employments = self
                     .employment_repo
-                    .get_employments_for_employees(&auth_token, &emp_ids)
+                    .get_employments_for_employees(auth_token, &emp_ids)
                     .await?;
 
                 let selection = super::employment_selection::select_report_employments(
@@ -238,7 +237,7 @@ impl ReportService {
             .roster_repo
             .get_workspace_schedules(
                 None,
-                &auth_token,
+                auth_token,
                 args.start_date,
                 args.end_date,
                 Some(&paginated_employment_ids),
@@ -257,7 +256,7 @@ impl ReportService {
         let entries_map = self
             .time_entry_repo
             .get_workspace_time_entries_batch_by_employments(
-                &auth_token,
+                auth_token,
                 &paginated_employment_ids,
                 start_dt,
                 end_dt,
@@ -266,13 +265,13 @@ impl ReportService {
 
         let holidays_map = self
             .holiday_repo
-            .get_holidays_in_range(&auth_token, args.start_date, args.end_date)
+            .get_holidays_in_range(auth_token, args.start_date, args.end_date)
             .await?;
 
         let ot_status_map = self
             .attendance_daily_summary_repo
             .get_batch_ot_statuses(
-                &auth_token,
+                auth_token,
                 &paginated_employment_ids,
                 args.start_date,
                 args.end_date,
@@ -281,7 +280,7 @@ impl ReportService {
 
         let leave_details_map = self
             .leave_repo
-            .get_approved_leave_details(&auth_token, &emp_ids, args.start_date, args.end_date)
+            .get_approved_leave_details(auth_token, &emp_ids, args.start_date, args.end_date)
             .await?;
 
         let leave_date_set: std::collections::HashSet<(Uuid, NaiveDate)> =
@@ -290,7 +289,7 @@ impl ReportService {
         let attendance_rules_map = PolicyResolverService::resolve_attendance_policy_batch(
             &*self.policy_repo,
             &emp_ids,
-            &auth_token,
+            auth_token,
             args.start_date,
         )
         .await?;
@@ -298,21 +297,21 @@ impl ReportService {
         let working_conditions_map = PolicyResolverService::resolve_attendance_rules_batch(
             &*self.employee_repo,
             &emp_ids,
-            &auth_token,
+            auth_token,
             args.start_date,
             args.end_date,
         )
         .await?;
         let condition_type_catalog = PolicyResolverService::load_condition_type_catalog(
             self.condition_type_repo.as_ref(),
-            &auth_token,
+            auth_token,
         )
         .await?;
 
         // Fetch all employers to get names
         let (employers, _) = self
             .employer_repo
-            .get_employers(&auth_token, 1, 1000)
+            .get_employers(auth_token, 1, 1000)
             .await?;
 
         let employer_name_map: std::collections::HashMap<Uuid, String> =
@@ -517,6 +516,7 @@ impl ReportService {
     #[allow(clippy::too_many_lines)]
     pub async fn get_segment_attendance_report(
         &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         args: AttendanceReportArgs,
     ) -> Result<PaginatedResponse<DailyAttendanceReport>, AppError> {
         let workspace = self
@@ -534,8 +534,6 @@ impl ReportService {
         let page = args.page.unwrap_or(1);
         let limit = args.limit.unwrap_or(20);
 
-        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id);
-
         // Shift-type filter (comma-separated shift names), applied post-join to keep
         // pagination at employee level. Mirrors the existing `employee_ids` split.
         let shift_names: Option<Vec<String>> = args.shift_type.as_ref().map(|s| {
@@ -551,12 +549,12 @@ impl ReportService {
             if let Some(specific_employment_id) = args.employment_id {
                 let emp = self
                     .employment_repo
-                    .get_employment_by_id(&auth_token, specific_employment_id)
+                    .get_employment_by_id(auth_token, specific_employment_id)
                     .await?
                     .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
                 let employee = self
                     .employee_repo
-                    .get_employees_by_ids(&[emp.employee_id()], &auth_token)
+                    .get_employees_by_ids(&[emp.employee_id()], auth_token)
                     .await?
                     .into_iter()
                     .next()
@@ -576,7 +574,7 @@ impl ReportService {
                 let (paginated_employees, total_employees) = self
                     .employee_repo
                     .get_paginated_employee_ids(
-                        &auth_token,
+                        auth_token,
                         crate::models::EmployeePaginationArgs::new(
                             args.employee_ids.as_ref(),
                             args.department_id,
@@ -603,7 +601,7 @@ impl ReportService {
                 let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
                 let employments = self
                     .employment_repo
-                    .get_employments_for_employees(&auth_token, &emp_ids)
+                    .get_employments_for_employees(auth_token, &emp_ids)
                     .await?;
                 let selection = super::employment_selection::select_report_employments(
                     &employments,
@@ -632,7 +630,7 @@ impl ReportService {
             .roster_repo
             .get_workspace_segments(
                 None,
-                &auth_token,
+                auth_token,
                 args.start_date,
                 args.end_date,
                 Some(&paginated_employment_ids),
@@ -651,7 +649,7 @@ impl ReportService {
         let entries_map = self
             .time_entry_repo
             .get_workspace_time_entries_batch_by_employments(
-                &auth_token,
+                auth_token,
                 &paginated_employment_ids,
                 start_dt,
                 end_dt,
@@ -660,13 +658,13 @@ impl ReportService {
 
         let holidays_map = self
             .holiday_repo
-            .get_holidays_in_range(&auth_token, args.start_date, args.end_date)
+            .get_holidays_in_range(auth_token, args.start_date, args.end_date)
             .await?;
 
         let ot_status_map = self
             .attendance_daily_summary_repo
             .get_batch_ot_statuses(
-                &auth_token,
+                auth_token,
                 &paginated_employment_ids,
                 args.start_date,
                 args.end_date,
@@ -675,7 +673,7 @@ impl ReportService {
 
         let leave_details_map = self
             .leave_repo
-            .get_approved_leave_details(&auth_token, &emp_ids, args.start_date, args.end_date)
+            .get_approved_leave_details(auth_token, &emp_ids, args.start_date, args.end_date)
             .await?;
 
         let leave_date_set: std::collections::HashSet<(Uuid, NaiveDate)> =
@@ -684,7 +682,7 @@ impl ReportService {
         let attendance_rules_map = PolicyResolverService::resolve_attendance_policy_batch(
             &*self.policy_repo,
             &emp_ids,
-            &auth_token,
+            auth_token,
             args.start_date,
         )
         .await?;
@@ -692,20 +690,20 @@ impl ReportService {
         let working_conditions_map = PolicyResolverService::resolve_attendance_rules_batch(
             &*self.employee_repo,
             &emp_ids,
-            &auth_token,
+            auth_token,
             args.start_date,
             args.end_date,
         )
         .await?;
         let condition_type_catalog = PolicyResolverService::load_condition_type_catalog(
             self.condition_type_repo.as_ref(),
-            &auth_token,
+            auth_token,
         )
         .await?;
 
         let (employers, _) = self
             .employer_repo
-            .get_employers(&auth_token, 1, 1000)
+            .get_employers(auth_token, 1, 1000)
             .await?;
         let employer_name_map: std::collections::HashMap<Uuid, String> =
             employers.into_iter().map(|e| (e.id, e.name)).collect();

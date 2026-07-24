@@ -120,26 +120,26 @@ pub(crate) async fn clear_auto_entries(
 
 pub(crate) async fn recalculate_summary_with_retry(
     service: &PairingService,
-    workspace_id: Uuid,
+    auth_token: &crate::diesel_pool::TenantAuthToken,
     employment_id: Uuid,
     date: NaiveDate,
 ) -> Result<(), AppError> {
     let summary_service = &service.summary_service;
     retry_with_log(
         "recalculate_daily_summary",
-        workspace_id,
+        auth_token.workspace_id(),
         employment_id,
         &format!("date={date}"),
         3,
         100,
-        || summary_service.recalculate_daily_summary(workspace_id, employment_id, date),
+        || summary_service.recalculate_daily_summary(auth_token, employment_id, date),
     )
     .await
 }
 
 pub(crate) async fn recalculate_range_summary_with_retry(
     service: &PairingService,
-    workspace_id: Uuid,
+    auth_token: &crate::diesel_pool::TenantAuthToken,
     employment_id: Uuid,
     start_date: NaiveDate,
     end_date: NaiveDate,
@@ -147,14 +147,14 @@ pub(crate) async fn recalculate_range_summary_with_retry(
     let summary_service = &service.summary_service;
     retry_with_log(
         "recalculate_attendance_range",
-        workspace_id,
+        auth_token.workspace_id(),
         employment_id,
         &format!("range={start_date}..{end_date}"),
         3,
         100,
         || {
             summary_service.recalculate_attendance_range(
-                workspace_id,
+                auth_token,
                 employment_id,
                 start_date,
                 end_date,

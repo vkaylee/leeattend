@@ -176,7 +176,7 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
             )),
         })
     }
-    .calculate_monthly_payslip(employee_id, workspace_id, 2026, 1)
+    .calculate_monthly_payslip(employee_id, &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), 2026, 1)
     .await
     .unwrap();
 
@@ -349,7 +349,7 @@ async fn test_grace_period_nonzero_shift_overrides() {
             )),
         })
     }
-    .calculate_monthly_payslip(employee_id, workspace_id, 2026, 1)
+    .calculate_monthly_payslip(employee_id, &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), 2026, 1)
     .await
     .unwrap();
 

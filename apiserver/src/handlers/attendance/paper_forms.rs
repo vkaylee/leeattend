@@ -77,8 +77,8 @@ pub async fn enter_paper_ot(
         .attendance()
         .summary_service()
         .enter_paper_ot(
+            &ctx.auth_token,
             crate::services::attendance_summary_service::EnterPaperOtArgs {
-                workspace_id: ctx.workspace_id,
                 employment_id: active_employment_id,
                 date: req.date,
                 claimed_minutes: req.claimed_minutes,
@@ -269,8 +269,8 @@ pub async fn bulk_upload_paper_ot(
             .attendance()
             .summary_service()
             .enter_paper_ot(
+                &ctx.auth_token,
                 crate::services::attendance_summary_service::EnterPaperOtArgs {
-                    workspace_id: ctx.workspace_id,
                     employment_id: active_employment_id,
                     date: row.date,
                     claimed_minutes: row.minutes,

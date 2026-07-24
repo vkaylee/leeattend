@@ -69,7 +69,7 @@ pub async fn claim_ot(
         .attendance()
         .summary_service()
         .claim_ot(
-            ctx.workspace_id,
+            &ctx.auth_token,
             active_employment_id,
             req.date,
             req.claimed_minutes,
@@ -156,7 +156,7 @@ pub async fn approve_ot(
         .attendance()
         .summary_service()
         .approve_ot(
-            ctx.workspace_id,
+            &ctx.auth_token,
             active_employment_id,
             req.date,
             req.approved_minutes,

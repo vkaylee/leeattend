@@ -1,4 +1,5 @@
 use super::ApprovalWorkflowService;
+use crate::diesel_pool::TenantAuthToken;
 use crate::errors::{AppError, AppResult};
 use crate::models::{ApprovalAction, ApprovalWorkflowInstance, WorkflowInstanceStepSnapshot};
 use crate::utils::i18n::I18nKey;
@@ -534,7 +535,7 @@ impl ApprovalWorkflowService {
                 })?;
 
                 outbox_service
-                    .create_job(workspace_id, job_id, "WorkflowCompleted", payload_json)
+                    .create_job(&TenantAuthToken::system_override(workspace_id), job_id, "WorkflowCompleted", payload_json)
                     .await?;
             } else {
                 // Fallback: call callback directly (for tests and simple cases)

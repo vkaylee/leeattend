@@ -182,7 +182,7 @@ fn process_single_day_in_range(
 pub(crate) async fn save_range_entries(
     service: &PairingService,
     auth_token: &TenantAuthToken,
-    workspace_id: Uuid,
+    _workspace_id: Uuid,
     employment_id: Uuid,
     start_date: NaiveDate,
     end_date: NaiveDate,
@@ -207,7 +207,7 @@ pub(crate) async fn save_range_entries(
         .await?;
 
     service
-        .recalculate_range_summary_with_retry(workspace_id, employment_id, start_date, end_date)
+        .recalculate_range_summary_with_retry(auth_token, employment_id, start_date, end_date)
         .await?;
 
     Ok(())

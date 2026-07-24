@@ -40,6 +40,7 @@ impl ReportService {
     #[allow(clippy::too_many_lines)]
     pub async fn get_no_show_report(
         &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         args: NoShowReportArgs,
     ) -> Result<PaginatedResponse<DailyAttendanceReport>, AppError> {
         let workspace = self
@@ -62,7 +63,9 @@ impl ReportService {
             .ok_or_else(|| AppError::validation(I18nKey::Validation))?;
 
         let daily = self
-            .get_daily_attendance_report(AttendanceReportArgs {
+            .get_daily_attendance_report(
+                auth_token,
+                AttendanceReportArgs {
                 workspace_id: args.workspace_id,
                 start_date: date_pre,
                 end_date: args.date,
@@ -82,7 +85,6 @@ impl ReportService {
 
         // Resolve per-employee timezone for each unique employee in the result
         // set. We batch this to avoid N+1 queries.
-        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id);
         let mut tz_cache: HashMap<Uuid, Tz> = HashMap::new();
 
         let filtered: Vec<DailyAttendanceReport> = {
@@ -93,7 +95,7 @@ impl ReportService {
                 } else {
                     let emp_tz = self
                         .employee_repo
-                        .get_employee_timezone_at_date(&auth_token, row.employee_id, args.date)
+                        .get_employee_timezone_at_date(auth_token, row.employee_id, args.date)
                         .await
                         .unwrap_or(tz);
                     tz_cache.insert(row.employee_id, emp_tz);

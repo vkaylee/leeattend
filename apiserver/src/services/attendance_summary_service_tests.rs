@@ -105,7 +105,7 @@ mod determine_ot_status_tests {
 
         let svc = make_service(mock);
         let status = svc
-            .determine_ot_status(Uuid::new_v4(), Uuid::new_v4(), dummy_date(), 0)
+            .determine_ot_status(&TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), dummy_date(), 0)
             .await
             .unwrap();
 
@@ -119,7 +119,7 @@ mod determine_ot_status_tests {
 
         let svc = make_service(mock);
         let status = svc
-            .determine_ot_status(Uuid::new_v4(), Uuid::new_v4(), dummy_date(), 60)
+            .determine_ot_status(&TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), dummy_date(), 60)
             .await
             .unwrap();
 
@@ -134,7 +134,7 @@ mod determine_ot_status_tests {
 
         let svc = make_service(mock);
         let status = svc
-            .determine_ot_status(Uuid::new_v4(), Uuid::new_v4(), dummy_date(), 60)
+            .determine_ot_status(&TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), dummy_date(), 60)
             .await
             .unwrap();
 
@@ -148,8 +148,9 @@ mod determine_ot_status_tests {
             .returning(|_, _, _| Ok(Some(create_dummy_summary(60, OtStatus::PendingManager))));
 
         let svc = make_service(mock);
+        let token = TenantAuthToken::system_override(Uuid::new_v4());
         let status = svc
-            .determine_ot_status(Uuid::new_v4(), Uuid::new_v4(), dummy_date(), 120)
+            .determine_ot_status(&token, Uuid::new_v4(), dummy_date(), 120)
             .await
             .unwrap();
 
@@ -170,8 +171,9 @@ mod claim_ot_tests {
         mock.expect_claim_ot().returning(|_, _, _, _, _| Ok(1));
 
         let svc = make_service(mock);
+        let token = TenantAuthToken::system_override(Uuid::new_v4());
         let result = svc
-            .claim_ot(Uuid::new_v4(), Uuid::new_v4(), dummy_date(), 60, None)
+            .claim_ot(&token, Uuid::new_v4(), dummy_date(), 60, None)
             .await;
 
         assert!(result.is_ok());
@@ -183,8 +185,9 @@ mod claim_ot_tests {
         mock.expect_claim_ot().returning(|_, _, _, _, _| Ok(0));
 
         let svc = make_service(mock);
+        let token = TenantAuthToken::system_override(Uuid::new_v4());
         let result = svc
-            .claim_ot(Uuid::new_v4(), Uuid::new_v4(), dummy_date(), 60, None)
+            .claim_ot(&token, Uuid::new_v4(), dummy_date(), 60, None)
             .await;
 
         assert!(result.is_err());
@@ -205,9 +208,10 @@ mod approve_ot_tests {
         mock.expect_approve_ot().returning(|_, _, _, _, _, _| Ok(1));
 
         let svc = make_service(mock);
+        let token = TenantAuthToken::system_override(Uuid::new_v4());
         let result = svc
             .approve_ot(
-                Uuid::new_v4(),
+                &token,
                 Uuid::new_v4(),
                 dummy_date(),
                 60,
@@ -225,9 +229,10 @@ mod approve_ot_tests {
         mock.expect_approve_ot().returning(|_, _, _, _, _, _| Ok(0));
 
         let svc = make_service(mock);
+        let token = TenantAuthToken::system_override(Uuid::new_v4());
         let result = svc
             .approve_ot(
-                Uuid::new_v4(),
+                &token,
                 Uuid::new_v4(),
                 dummy_date(),
                 60,
@@ -250,7 +255,6 @@ mod enter_paper_ot_tests {
 
     fn paper_ot_args(claimed: i32, allow_exceed: bool) -> EnterPaperOtArgs {
         EnterPaperOtArgs {
-            workspace_id: Uuid::new_v4(),
             employment_id: Uuid::new_v4(),
             date: dummy_date(),
             claimed_minutes: claimed,
@@ -269,7 +273,8 @@ mod enter_paper_ot_tests {
             .returning(|_, _, _, _, _, _, _| Ok(create_dummy_summary(0, OtStatus::None)));
 
         let svc = make_service(mock);
-        let result = svc.enter_paper_ot(paper_ot_args(60, true)).await;
+        let token = TenantAuthToken::system_override(Uuid::new_v4());
+        let result = svc.enter_paper_ot(&token, paper_ot_args(60, true)).await;
         assert!(result.is_ok());
     }
 
@@ -282,7 +287,8 @@ mod enter_paper_ot_tests {
         mock.expect_upsert_paper_ot().never();
 
         let svc = make_service(mock);
-        let result = svc.enter_paper_ot(paper_ot_args(120, false)).await;
+        let token = TenantAuthToken::system_override(Uuid::new_v4());
+        let result = svc.enter_paper_ot(&token, paper_ot_args(120, false)).await;
 
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), AppError::Validation(_)));
@@ -298,7 +304,8 @@ mod enter_paper_ot_tests {
 
         let svc = make_service(mock);
         // claimed_minutes=120 > system_detected=60, but allow_exceed=true
-        let result = svc.enter_paper_ot(paper_ot_args(120, true)).await;
+        let token = TenantAuthToken::system_override(Uuid::new_v4());
+        let result = svc.enter_paper_ot(&token, paper_ot_args(120, true)).await;
         assert!(result.is_ok());
     }
 
@@ -311,7 +318,8 @@ mod enter_paper_ot_tests {
 
         let svc = make_service(mock);
         // allow_exceed=false but no existing summary → no validation to fail
-        let result = svc.enter_paper_ot(paper_ot_args(120, false)).await;
+        let token = TenantAuthToken::system_override(Uuid::new_v4());
+        let result = svc.enter_paper_ot(&token, paper_ot_args(120, false)).await;
         assert!(result.is_ok());
     }
 }
@@ -539,7 +547,7 @@ mod recalculate_daily_summary_leave_tests {
         });
 
         let result = svc
-            .recalculate_daily_summary(workspace_id, employee_id, date)
+            .recalculate_daily_summary(&TenantAuthToken::system_override(workspace_id), employee_id, date)
             .await;
         assert!(result.is_ok());
     }
@@ -701,7 +709,7 @@ mod recalculate_daily_summary_leave_tests {
         });
 
         let result = svc
-            .recalculate_daily_summary(workspace_id, employee_id, date)
+            .recalculate_daily_summary(&TenantAuthToken::system_override(workspace_id), employee_id, date)
             .await;
         assert!(result.is_ok());
     }
@@ -863,7 +871,7 @@ mod recalculate_daily_summary_leave_tests {
         });
 
         let result = svc
-            .recalculate_daily_summary(workspace_id, employee_id, date)
+            .recalculate_daily_summary(&TenantAuthToken::system_override(workspace_id), employee_id, date)
             .await;
         assert!(result.is_ok());
     }
@@ -979,7 +987,7 @@ mod recalculate_daily_summary_leave_tests {
         });
 
         let result = svc
-            .recalculate_daily_summary(workspace_id, employee_id, date)
+            .recalculate_daily_summary(&TenantAuthToken::system_override(workspace_id), employee_id, date)
             .await;
         assert!(result.is_ok());
     }
@@ -1120,7 +1128,7 @@ mod recalculate_daily_summary_leave_tests {
         });
 
         let result = svc
-            .recalculate_daily_summary(workspace_id, employee_id, date)
+            .recalculate_daily_summary(&TenantAuthToken::system_override(workspace_id), employee_id, date)
             .await;
         assert!(result.is_ok());
     }
@@ -1243,7 +1251,7 @@ mod recalculate_daily_summary_leave_tests {
         });
 
         let result = svc
-            .recalculate_attendance_range(workspace_id, employee_id, date, date2)
+            .recalculate_attendance_range(&TenantAuthToken::system_override(workspace_id), employee_id, date, date2)
             .await;
         assert!(result.is_ok());
     }

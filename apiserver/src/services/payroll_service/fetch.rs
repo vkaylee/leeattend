@@ -8,10 +8,11 @@ impl PayrollService {
     pub(super) async fn fetch_context(
         &self,
         employee_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         year: i32,
         month: u32,
     ) -> Result<PayrollContext, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let workspace = self
             .workspace_repo
             .get_workspace_by_id(workspace_id)
@@ -39,7 +40,7 @@ impl PayrollService {
         let all_dept_history = self
             .department_repo
             .get_employee_department_history(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employee_id,
             )
             .await?;
@@ -48,7 +49,7 @@ impl PayrollService {
             .employee_repo
             .get_employee_by_id(
                 employee_id,
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
             )
             .await?
             .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
@@ -71,7 +72,7 @@ impl PayrollService {
         let time_entries = self
             .time_entry_repo
             .get_employment_time_entries(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 active_emp_id,
                 start_dt,
                 end_dt,
@@ -81,7 +82,7 @@ impl PayrollService {
         let holidays_map = self
             .holiday_repo
             .get_holidays_in_range(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 start_date,
                 end_date,
             )
@@ -92,7 +93,7 @@ impl PayrollService {
         let (rosters, _) = self
             .roster_repo
             .get_employment_rosters(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 active_emp_id,
                 start_date,
                 end_date,
@@ -115,7 +116,7 @@ impl PayrollService {
         let (working_conditions, _) = self
             .employee_repo
             .get_working_conditions(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 active_emp_id,
                 1,
                 3000,
@@ -123,7 +124,7 @@ impl PayrollService {
             .await?;
         let condition_type_catalog = PolicyResolverService::load_condition_type_catalog(
             self.condition_type_repo.as_ref(),
-            &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            auth_token,
         )
         .await?;
 
@@ -134,7 +135,7 @@ impl PayrollService {
         let policy_version = self
             .policy_repo
             .get_employment_effective_policy(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 active_emp_id,
                 effective_time,
             )
@@ -154,7 +155,7 @@ impl PayrollService {
         let emp_payroll_configs = self
             .employee_repo
             .get_employee_payroll_configs(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 active_emp_id,
             )
             .await?;
@@ -174,7 +175,7 @@ impl PayrollService {
         let department_payroll_configs = self
             .department_repo
             .get_department_payroll_configs_batch(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 &department_ids,
             )
             .await?;
@@ -187,7 +188,7 @@ impl PayrollService {
         let active_contracts = self
             .contract_repo
             .list_employee_contracts(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employee_id,
             )
             .await?;
@@ -195,15 +196,14 @@ impl PayrollService {
         let active_assignments = self
             .employee_repo
             .list_employee_assignments(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 active_emp_id,
             )
             .await?;
 
-        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
         let active_employment = self
             .employment_repo
-            .get_active_employment_on_date(&auth_token, employee_id, start_date)
+            .get_active_employment_on_date(auth_token, employee_id, start_date)
             .await?
             .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
 
@@ -216,7 +216,7 @@ impl PayrollService {
 
         let active_employments = self
             .employment_repo
-            .list_employee_employments(&auth_token, employee_id)
+            .list_employee_employments(auth_token, employee_id)
             .await?;
 
         let groups = self
@@ -259,7 +259,7 @@ impl PayrollService {
         let month_end_attendance_policy = PolicyResolverService::resolve_attendance_policy(
             &*self.policy_repo,
             employee_id,
-            &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            auth_token,
             end_date,
         )
         .await?;
@@ -271,7 +271,7 @@ impl PayrollService {
                 employee_id,
                 start_date,
                 end_date,
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
             )
             .await
             .map_err(|e| {
@@ -317,7 +317,7 @@ impl PayrollService {
         let unpaid_holiday_days: i64 = self
             .leave_repo
             .get_unpaid_holiday_days_without_leave(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employee_id,
                 start_date,
                 end_date,

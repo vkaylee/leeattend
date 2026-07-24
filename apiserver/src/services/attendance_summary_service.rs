@@ -29,14 +29,14 @@ use crate::utils::chrono_helpers::local_to_utc as local_midnight_to_utc;
 pub trait SummaryRecalculator: Send + Sync {
     async fn recalculate_daily_summary(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employment_id: Uuid,
         date: NaiveDate,
     ) -> Result<(), AppError>;
 
     async fn recalculate_attendance_range(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employment_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
@@ -47,28 +47,27 @@ pub trait SummaryRecalculator: Send + Sync {
 impl SummaryRecalculator for AttendanceSummaryService {
     async fn recalculate_daily_summary(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employment_id: Uuid,
         date: NaiveDate,
     ) -> Result<(), AppError> {
-        self.recalculate_daily_summary(workspace_id, employment_id, date)
+        self.recalculate_daily_summary(auth_token, employment_id, date)
             .await
     }
 
     async fn recalculate_attendance_range(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employment_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<(), AppError> {
-        self.recalculate_attendance_range(workspace_id, employment_id, start_date, end_date)
+        self.recalculate_attendance_range(auth_token, employment_id, start_date, end_date)
             .await
     }
 }
 
 pub struct EnterPaperOtArgs {
-    pub workspace_id: Uuid,
     pub employment_id: Uuid,
     pub date: NaiveDate,
     pub claimed_minutes: i32,
@@ -108,7 +107,7 @@ struct CalculateOtBucketsParams<'a> {
     tz: &'a Tz,
     date: NaiveDate,
     employee_id: Uuid,
-    workspace_id: Uuid,
+    auth_token: &'a TenantAuthToken,
     daily_schedule: &'a crate::models::EffectiveSchedule,
     punch_in: chrono::DateTime<Tz>,
     punch_out: chrono::DateTime<Tz>,
@@ -136,14 +135,15 @@ impl AttendanceSummaryService {
     #[tracing::instrument(skip_all, err)]
     pub async fn recalculate_daily_summary(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employment_id: Uuid,
         date: NaiveDate,
     ) -> AppResult<()> {
+        let _workspace_id = auth_token.workspace_id();
         let employment = self
             .employment_repo
             .get_employment_by_id(
-                &TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employment_id,
             )
             .await?
@@ -152,7 +152,7 @@ impl AttendanceSummaryService {
 
         // 1. Fetch schedule & time entries
         let (tz, daily_schedule, day_entries) = self
-            .fetch_daily_schedule(workspace_id, employment_id, date)
+            .fetch_daily_schedule(auth_token, employment_id, date)
             .await?;
 
         // Auto-cancel approved leave requests if the employee worked (day_entries is not empty) and it's not a holiday
@@ -160,7 +160,7 @@ impl AttendanceSummaryService {
             let leaves = self
                 .leave_request_repo
                 .get_employee_leave_requests(
-                    &TenantAuthToken::system_override(workspace_id),
+                    auth_token,
                     employee_id,
                 )
                 .await?;
@@ -175,7 +175,7 @@ impl AttendanceSummaryService {
             if let Some(req) = leave_to_cancel {
                 // Cancel the leave request (which updates status and refunds balance)
                 self.leave_request_repo
-                    .cancel_leave_request(&TenantAuthToken::system_override(workspace_id), req.id())
+                    .cancel_leave_request(auth_token, req.id())
                     .await?;
             }
         }
@@ -186,7 +186,7 @@ impl AttendanceSummaryService {
                 &tz,
                 date,
                 employee_id,
-                workspace_id,
+                auth_token,
                 &daily_schedule,
                 &day_entries,
             )
@@ -195,7 +195,7 @@ impl AttendanceSummaryService {
         // 3. Holiday leave conflict detection
         let (is_holiday, holiday_name) = self
             .handle_holiday_leave_conflict(
-                workspace_id,
+                auth_token,
                 employee_id,
                 date,
                 actual_work_minutes,
@@ -205,13 +205,13 @@ impl AttendanceSummaryService {
 
         // 4. Determine OT status
         let new_status = self
-            .determine_ot_status(workspace_id, employee_id, date, system_detected_ot_minutes)
+            .determine_ot_status(auth_token, employee_id, date, system_detected_ot_minutes)
             .await?;
 
         // 5. Persist
         self.daily_summary_repo
             .upsert_calculated_summary(
-                &TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employment_id,
                 date,
                 actual_work_minutes,
@@ -230,16 +230,16 @@ impl AttendanceSummaryService {
     #[allow(clippy::too_many_lines)]
     pub async fn recalculate_attendance_range(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employment_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> AppResult<()> {
-        let auth_token = TenantAuthToken::system_override(workspace_id);
+        let workspace_id = auth_token.workspace_id();
 
         let employment = self
             .employment_repo
-            .get_employment_by_id(&auth_token, employment_id)
+            .get_employment_by_id(auth_token, employment_id)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
         let employee_id = employment.employee_id();
@@ -257,7 +257,7 @@ impl AttendanceSummaryService {
             .roster_repo
             .get_workspace_schedules(
                 None,
-                &auth_token,
+                auth_token,
                 start_date,
                 end_date,
                 Some(&vec![employment_id]),
@@ -281,25 +281,25 @@ impl AttendanceSummaryService {
 
         let all_entries = self
             .time_entry_repo
-            .get_employment_time_entries(&auth_token, employment_id, start_dt_utc, end_dt_utc)
+            .get_employment_time_entries(auth_token, employment_id, start_dt_utc, end_dt_utc)
             .await?;
 
         // 3. Fetch leaves in range (employee leaves)
         let leaves = self
             .leave_request_repo
-            .get_employee_leave_requests(&auth_token, employee_id)
+            .get_employee_leave_requests(auth_token, employee_id)
             .await?;
 
         // 4. Fetch holidays in range
         let holidays_map = self
             .holiday_repo
-            .get_holidays_in_range(&auth_token, start_date, end_date)
+            .get_holidays_in_range(auth_token, start_date, end_date)
             .await?;
 
         // 5. Fetch existing summaries in range to determine OT status
         let existing_summaries = self
             .daily_summary_repo
-            .get_summaries(&auth_token, Some(employment_id), start_date, end_date)
+            .get_summaries(auth_token, Some(employment_id), start_date, end_date)
             .await?;
 
         // 6. Iterate day-by-day in range
@@ -326,7 +326,7 @@ impl AttendanceSummaryService {
 
                     if let Some(req) = leave_to_cancel {
                         self.leave_request_repo
-                            .cancel_leave_request(&auth_token, req.id())
+                            .cancel_leave_request(auth_token, req.id())
                             .await?;
                     }
                 }
@@ -337,7 +337,7 @@ impl AttendanceSummaryService {
                         &tz,
                         curr_date,
                         employee_id,
-                        workspace_id,
+                        auth_token,
                         daily_schedule,
                         &day_entries,
                     )
@@ -355,7 +355,7 @@ impl AttendanceSummaryService {
                     if let Some(hol) = filtered_holiday {
                         if let Err(e) = self
                             .maybe_reverse_holiday_leave(
-                                workspace_id,
+                                auth_token,
                                 employee_id,
                                 curr_date,
                                 actual_work_minutes,
@@ -400,7 +400,7 @@ impl AttendanceSummaryService {
                 // 6e. Persist summary
                 self.daily_summary_repo
                     .upsert_calculated_summary(
-                        &auth_token,
+                        auth_token,
                         employment_id,
                         curr_date,
                         actual_work_minutes,
@@ -421,7 +421,7 @@ impl AttendanceSummaryService {
     /// Fetch workspace timezone, the employee's schedule for the date, and time entries.
     async fn fetch_daily_schedule(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employment_id: Uuid,
         date: NaiveDate,
     ) -> AppResult<(
@@ -429,6 +429,7 @@ impl AttendanceSummaryService {
         crate::models::EffectiveSchedule,
         Vec<crate::models::TimeEntry>,
     )> {
+        let workspace_id = auth_token.workspace_id();
         let workspace = self
             .workspace_repo
             .get_workspace_by_id(workspace_id)
@@ -441,7 +442,7 @@ impl AttendanceSummaryService {
             .roster_repo
             .get_workspace_schedules(
                 None,
-                &TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 date,
                 date,
                 Some(&vec![employment_id]),
@@ -475,7 +476,7 @@ impl AttendanceSummaryService {
         let entries = self
             .time_entry_repo
             .get_employment_time_entries(
-                &TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employment_id,
                 start_dt_utc,
                 end_dt_utc,
@@ -496,7 +497,7 @@ impl AttendanceSummaryService {
         tz: &Tz,
         date: NaiveDate,
         employee_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         daily_schedule: &crate::models::EffectiveSchedule,
         day_entries: &[crate::models::TimeEntry],
     ) -> AppResult<(i32, i32)> {
@@ -526,7 +527,7 @@ impl AttendanceSummaryService {
                 tz,
                 date,
                 employee_id,
-                workspace_id,
+                auth_token,
                 daily_schedule,
                 punch_in,
                 punch_out,
@@ -543,7 +544,7 @@ impl AttendanceSummaryService {
             tz,
             date,
             employee_id,
-            workspace_id,
+            auth_token,
             daily_schedule,
             punch_in,
             punch_out,
@@ -575,7 +576,7 @@ impl AttendanceSummaryService {
             &*self.employee_repo,
             &*self.condition_type_repo,
             employee_id,
-            &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            auth_token,
             date,
         )
         .await?;
@@ -585,7 +586,7 @@ impl AttendanceSummaryService {
             &*self.employee_repo,
             &*self.condition_type_repo,
             employee_id,
-            &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            auth_token,
             date,
             &ShiftPolicyOverrides::new(
                 daily_schedule.early_punch_in_grace_period_minutes(),
@@ -635,7 +636,7 @@ impl AttendanceSummaryService {
     /// Check if the date is a holiday and handle leave conflict (reversal if employee worked enough).
     async fn handle_holiday_leave_conflict(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
         actual_work_minutes: i32,
@@ -644,7 +645,7 @@ impl AttendanceSummaryService {
         let active_employment = self
             .employment_repo
             .get_active_employment_on_date(
-                &TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employee_id,
                 date,
             )
@@ -654,7 +655,7 @@ impl AttendanceSummaryService {
         let holiday = self
             .holiday_repo
             .is_holiday(
-                &TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 date,
                 location_id,
             )
@@ -666,7 +667,7 @@ impl AttendanceSummaryService {
             if let Some(ref hol) = holiday {
                 if let Err(e) = self
                     .maybe_reverse_holiday_leave(
-                        workspace_id,
+                        auth_token,
                         employee_id,
                         date,
                         actual_work_minutes,
@@ -691,7 +692,7 @@ impl AttendanceSummaryService {
     /// Reverse system-generated holiday leave if employee worked above the threshold.
     async fn maybe_reverse_holiday_leave(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
         actual_work_minutes: i32,
@@ -701,7 +702,7 @@ impl AttendanceSummaryService {
         let system_leave = self
             .leave_request_repo
             .get_system_generated_holiday_leave(
-                &TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employee_id,
                 date,
             )
@@ -737,7 +738,7 @@ impl AttendanceSummaryService {
         if work_percent >= threshold {
             self.leave_request_repo
                 .cancel_leave_request(
-                    &TenantAuthToken::system_override(workspace_id),
+                    auth_token,
                     leave_request_id,
                 )
                 .await?;
@@ -766,7 +767,7 @@ impl AttendanceSummaryService {
     /// Determine the OT status based on existing summary and detected OT.
     async fn determine_ot_status(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
         system_detected_ot_minutes: i32,
@@ -774,7 +775,7 @@ impl AttendanceSummaryService {
         let existing = self
             .daily_summary_repo
             .get_summary(
-                &TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employee_id,
                 date,
             )
@@ -803,7 +804,7 @@ impl AttendanceSummaryService {
     #[tracing::instrument(skip_all, err)]
     pub async fn claim_ot(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employment_id: Uuid,
         date: NaiveDate,
         claimed_minutes: i32,
@@ -813,7 +814,7 @@ impl AttendanceSummaryService {
 
         let rows_affected = summary_repo
             .claim_ot(
-                &TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employment_id,
                 date,
                 claimed_minutes,
@@ -830,7 +831,7 @@ impl AttendanceSummaryService {
     #[tracing::instrument(skip_all, err)]
     pub async fn approve_ot(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employment_id: Uuid,
         date: NaiveDate,
         approved_minutes: i32,
@@ -841,7 +842,7 @@ impl AttendanceSummaryService {
 
         let rows_affected = summary_repo
             .approve_ot(
-                &TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employment_id,
                 date,
                 approved_minutes,
@@ -859,6 +860,7 @@ impl AttendanceSummaryService {
     #[tracing::instrument(skip_all, err)]
     pub async fn enter_paper_ot(
         &self,
+        auth_token: &TenantAuthToken,
         args: EnterPaperOtArgs,
     ) -> AppResult<AttendanceDailySummary> {
         let summary_repo = self.daily_summary_repo.as_ref();
@@ -866,7 +868,7 @@ impl AttendanceSummaryService {
         // 1. Check existing summary
         let existing = summary_repo
             .get_summary(
-                &TenantAuthToken::system_override(args.workspace_id),
+                auth_token,
                 args.employment_id,
                 args.date,
             )
@@ -894,7 +896,7 @@ impl AttendanceSummaryService {
         // 3. Upsert with paper form metadata
         let result = summary_repo
             .upsert_paper_ot(
-                &TenantAuthToken::system_override(args.workspace_id),
+                auth_token,
                 args.employment_id,
                 args.date,
                 args.claimed_minutes,
@@ -917,7 +919,7 @@ impl crate::services::approval_workflow::WorkflowCallbackHandler for AttendanceS
         status: &str,
         _user_id: Uuid,
     ) -> Result<(), AppError> {
-        let workspace_id = auth_token.workspace_id();
+        let _workspace_id = auth_token.workspace_id();
 
         let summary = self
             .daily_summary_repo
@@ -932,7 +934,7 @@ impl crate::services::approval_workflow::WorkflowCallbackHandler for AttendanceS
         };
 
         self.approve_ot(
-            workspace_id,
+            auth_token,
             summary.employment_id,
             summary.date,
             summary.claimed_ot_minutes,

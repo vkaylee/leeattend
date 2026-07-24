@@ -106,7 +106,7 @@ impl OutboxSweepScheduler {
                     let _ = self
                         .outbox_service
                         .update_job_status(
-                            ws_id,
+                            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
                             job.id(),
                             "failed",
                             Some(format!("Re-enqueue failed: {e}")),
@@ -125,7 +125,7 @@ impl OutboxSweepScheduler {
                 let _ = self
                     .outbox_service
                     .update_job_status(
-                        ws_id,
+                        &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
                         job.id(),
                         "failed",
                         Some("Invalid job payload".to_string()),
@@ -149,7 +149,7 @@ impl OutboxSweepScheduler {
                         let _ = self
                             .outbox_service
                             .update_job_status(
-                                ws_id,
+                                &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
                                 job.id(),
                                 "failed",
                                 Some(format!("Callback failed: {e}")),
@@ -159,7 +159,7 @@ impl OutboxSweepScheduler {
                         info!(job_id = %job.id(), "Successfully processed workflow completed callback");
                         let _ = self
                             .outbox_service
-                            .update_job_status(ws_id, job.id(), "completed", None)
+                            .update_job_status(&crate::diesel_pool::TenantAuthToken::system_override(ws_id), job.id(), "completed", None)
                             .await;
                     }
                 }
@@ -172,7 +172,7 @@ impl OutboxSweepScheduler {
                     let _ = self
                         .outbox_service
                         .update_job_status(
-                            ws_id,
+                            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
                             job.id(),
                             "failed",
                             Some("Invalid job payload".to_string()),

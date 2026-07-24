@@ -135,7 +135,7 @@ pub async fn calculate_payroll(
     let payslip = state
         .payroll()
         .service()
-        .calculate_monthly_payslip(employee_id, ctx.workspace_id, query.year, query.month)
+        .calculate_monthly_payslip(employee_id, &ctx.auth_token, query.year, query.month)
         .await?;
 
     // Fetch segments and incentives

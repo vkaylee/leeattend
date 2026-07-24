@@ -13,6 +13,7 @@ impl ReportService {
     #[allow(clippy::too_many_lines)]
     pub async fn get_workspace_attendance_summary(
         &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         args: AttendanceReportArgs,
     ) -> Result<PaginatedResponse<AttendanceSummary>, AppError> {
         let workspace = self
@@ -50,7 +51,7 @@ impl ReportService {
             let (_, total) = self
                 .employee_repo
                 .get_paginated_employee_ids(
-                    &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
+                    auth_token,
                     crate::models::EmployeePaginationArgs::new(
                         args.employee_ids.as_ref(),
                         args.department_id,
@@ -73,7 +74,7 @@ impl ReportService {
                 let (emps, _) = self
                     .employee_repo
                     .get_paginated_employee_ids(
-                        &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
+                        auth_token,
                         crate::models::EmployeePaginationArgs::new(
                             args.employee_ids.as_ref(),
                             args.department_id,
@@ -94,7 +95,7 @@ impl ReportService {
         } else {
             self.employee_repo
                 .get_paginated_employee_ids(
-                    &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
+                    auth_token,
                     crate::models::EmployeePaginationArgs::new(
                         args.employee_ids.as_ref(),
                         args.department_id,
@@ -124,10 +125,9 @@ impl ReportService {
         let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
 
         // Fetch employments to build maps
-        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id);
         let employments = self
             .employment_repo
-            .get_employments_for_employees(&auth_token, &emp_ids)
+            .get_employments_for_employees(auth_token, &emp_ids)
             .await?;
 
         let employments: Vec<_> = employments
@@ -153,7 +153,7 @@ impl ReportService {
             .roster_repo
             .get_workspace_schedules(
                 None,
-                &auth_token,
+                auth_token,
                 args.start_date,
                 args.end_date,
                 Some(&paginated_employment_ids),
@@ -172,7 +172,7 @@ impl ReportService {
         let entries_map = self
             .time_entry_repo
             .get_workspace_time_entries_batch_by_employments(
-                &auth_token,
+                auth_token,
                 &paginated_employment_ids,
                 start_dt,
                 end_dt,
@@ -181,13 +181,13 @@ impl ReportService {
 
         let leave_data = self
             .leave_repo
-            .get_batch_leave_days(&auth_token, &emp_ids, args.start_date, args.end_date)
+            .get_batch_leave_days(auth_token, &emp_ids, args.start_date, args.end_date)
             .await?;
 
         let attendance_rules_map = PolicyResolverService::resolve_attendance_policy_batch(
             &*self.policy_repo,
             &emp_ids,
-            &auth_token,
+            auth_token,
             args.start_date,
         )
         .await?;
@@ -195,14 +195,14 @@ impl ReportService {
         let working_conditions_map = PolicyResolverService::resolve_attendance_rules_batch(
             &*self.employee_repo,
             &emp_ids,
-            &auth_token,
+            auth_token,
             args.start_date,
             args.end_date,
         )
         .await?;
         let condition_type_catalog = PolicyResolverService::load_condition_type_catalog(
             self.condition_type_repo.as_ref(),
-            &auth_token,
+            auth_token,
         )
         .await?;
 
@@ -291,7 +291,7 @@ impl ReportService {
         // Fetch all employers to get names
         let (employers, _) = self
             .employer_repo
-            .get_employers(&auth_token, 1, 1000)
+            .get_employers(auth_token, 1, 1000)
             .await?;
 
         let employer_name_map: HashMap<Uuid, String> =

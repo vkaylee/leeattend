@@ -82,7 +82,7 @@ async fn test_daily_report_employee_filtering() {
 
     // Filter by emp1
     let result_1 = report_service
-        .get_daily_attendance_report(apiserver::services::report_service::AttendanceReportArgs {
+        .get_daily_attendance_report(&apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), apiserver::services::report_service::AttendanceReportArgs {
             workspace_id,
             start_date: date,
             end_date: date,
@@ -103,7 +103,7 @@ async fn test_daily_report_employee_filtering() {
 
     // Filter by emp2, emp3
     let result_23 = report_service
-        .get_daily_attendance_report(apiserver::services::report_service::AttendanceReportArgs {
+        .get_daily_attendance_report(&apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), apiserver::services::report_service::AttendanceReportArgs {
             workspace_id,
             start_date: date,
             end_date: date,
@@ -197,7 +197,7 @@ async fn test_attendance_report_resigned_employee_filtering() {
     // Case 1: Report date range is [2026-01-01, 2026-01-31], status filter is "active"
     // emp2 resigned on 2026-01-15 (within the range), so emp2 must be included!
     let range_jan = report_service
-        .get_daily_attendance_report(apiserver::services::report_service::AttendanceReportArgs {
+        .get_daily_attendance_report(&apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), apiserver::services::report_service::AttendanceReportArgs {
             workspace_id,
             start_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
             end_date: NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
@@ -219,7 +219,7 @@ async fn test_attendance_report_resigned_employee_filtering() {
     // Case 2: Report date range is [2026-02-01, 2026-02-28], status filter is "active"
     // emp2 resigned on 2026-01-15 (before the start of range), so emp2 must be excluded!
     let range_feb_active = report_service
-        .get_daily_attendance_report(apiserver::services::report_service::AttendanceReportArgs {
+        .get_daily_attendance_report(&apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), apiserver::services::report_service::AttendanceReportArgs {
             workspace_id,
             start_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
             end_date: NaiveDate::from_ymd_opt(2026, 2, 28).unwrap(),
@@ -241,7 +241,7 @@ async fn test_attendance_report_resigned_employee_filtering() {
     // Case 3: Report date range is [2026-02-01, 2026-02-28], status filter is "all"
     // The terminated employee is selectable, but their employment is not effective in February.
     let range_feb_all = report_service
-        .get_daily_attendance_report(apiserver::services::report_service::AttendanceReportArgs {
+        .get_daily_attendance_report(&apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), apiserver::services::report_service::AttendanceReportArgs {
             workspace_id,
             start_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
             end_date: NaiveDate::from_ymd_opt(2026, 2, 28).unwrap(),
@@ -261,7 +261,7 @@ async fn test_attendance_report_resigned_employee_filtering() {
 
     // Case 4: The terminated employee is selected, but has no effective employment in February.
     let range_feb_terminated = report_service
-        .get_daily_attendance_report(apiserver::services::report_service::AttendanceReportArgs {
+        .get_daily_attendance_report(&apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), apiserver::services::report_service::AttendanceReportArgs {
             workspace_id,
             start_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
             end_date: NaiveDate::from_ymd_opt(2026, 2, 28).unwrap(),
@@ -380,6 +380,7 @@ async fn test_report_multi_employment_and_employer() {
     // 1. Get attendance summary. It should return 2 entries for the single employee (one for each employment).
     let summary = report_service
         .get_workspace_attendance_summary(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),
             apiserver::services::report_service::AttendanceReportArgs {
                 workspace_id,
                 start_date: date,
@@ -411,6 +412,7 @@ async fn test_report_multi_employment_and_employer() {
     // 2. Filter by employer_id (first employer)
     let summary_first_employer = report_service
         .get_workspace_attendance_summary(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),
             apiserver::services::report_service::AttendanceReportArgs {
                 workspace_id,
                 start_date: date,
@@ -438,6 +440,7 @@ async fn test_report_multi_employment_and_employer() {
     // 3. Filter by employment_id (second employment)
     let summary_second_employment = report_service
         .get_workspace_attendance_summary(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),
             apiserver::services::report_service::AttendanceReportArgs {
                 workspace_id,
                 start_date: date,

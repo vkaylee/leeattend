@@ -4,6 +4,7 @@
 //! and enqueues them via [`JobQueue`] for distributed worker processing.
 //! Tracks job progress and triggers result aggregation when all batches complete.
 
+use crate::diesel_pool::TenantAuthToken;
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -156,7 +157,7 @@ impl ReportCoordinator {
         .map_err(|e| ReportError::DatabaseError(format!("Failed to serialize job request: {e}")))?;
         self.outbox_service
             .create_job(
-                workspace_id,
+                &TenantAuthToken::system_override(workspace_id),
                 parent_job_id,
                 "AttendanceReport",
                 outbox_payload,

@@ -238,13 +238,13 @@ impl PairingService {
 
     pub(crate) async fn recalculate_summary_with_retry(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employment_id: Uuid,
         date: NaiveDate,
     ) -> Result<(), AppError> {
         super::service_helpers::recalculate_summary_with_retry(
             self,
-            workspace_id,
+            auth_token,
             employment_id,
             date,
         )
@@ -253,14 +253,14 @@ impl PairingService {
 
     pub(crate) async fn recalculate_range_summary_with_retry(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employment_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<(), AppError> {
         super::service_helpers::recalculate_range_summary_with_retry(
             self,
-            workspace_id,
+            auth_token,
             employment_id,
             start_date,
             end_date,

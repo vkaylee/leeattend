@@ -274,7 +274,7 @@ impl TimeTrackingService {
                 },
             );
             let _ = summary_svc
-                .recalculate_daily_summary(auth_token.workspace_id(), entry.employment_id(), local_date)
+                .recalculate_daily_summary(auth_token, entry.employment_id(), local_date)
                 .await;
         }
 
