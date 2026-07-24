@@ -119,7 +119,7 @@ impl PayrollService {
             )
             .await;
 
-        let mut employees = match employees_res {
+        let employees = match employees_res {
             Ok(emps) => emps
                 .into_iter()
                 .map(|e| (e.id(), e))
@@ -169,8 +169,8 @@ impl PayrollService {
             .filter(|id| employment_to_employee.contains_key(id))
             .collect();
 
-        let mut salary_map = salary_histories.unwrap_or_default();
-        let mut dept_map = dept_histories.unwrap_or_default();
+        let salary_map = salary_histories.unwrap_or_default();
+        let dept_map = dept_histories.unwrap_or_default();
 
         let mut time_map = HashMap::new();
         if let Ok(entries) = time_entries {
@@ -193,10 +193,10 @@ impl PayrollService {
             }
         }
 
-        let mut policies_map = policies_res.unwrap_or_default();
-        let mut month_end_policies_map = month_end_policies_res.unwrap_or_default();
-        let mut contracts_map = contracts_res.unwrap_or_default();
-        let mut assignments_map = assignments_res.unwrap_or_default();
+        let policies_map = policies_res.unwrap_or_default();
+        let month_end_policies_map = month_end_policies_res.unwrap_or_default();
+        let contracts_map = contracts_res.unwrap_or_default();
+        let assignments_map = assignments_res.unwrap_or_default();
 
         let batch_dept_ids: Vec<Uuid> = dept_map
             .values()
@@ -220,7 +220,7 @@ impl PayrollService {
                 HashMap::new()
             });
 
-        let mut emp_configs_map: HashMap<Uuid, Vec<crate::models::EmployeePayrollConfig>> = self
+        let emp_configs_map: HashMap<Uuid, Vec<crate::models::EmployeePayrollConfig>> = self
             .employee_repo
             .get_employee_payroll_configs_batch(&d.token, &chunk_employment_ids)
             .await
@@ -255,7 +255,7 @@ impl PayrollService {
             .resolve_ot_base_component_ids(workspace_id, &d.salary_base_groups)
             .await;
 
-        let mut leave_breakdowns_map = self
+        let leave_breakdowns_map = self
             .leave_repo
             .get_approved_leave_breakdowns_batch(
                 &chunk_employee_ids,
@@ -274,7 +274,7 @@ impl PayrollService {
                 HashMap::new()
             });
 
-        let mut unpaid_holidays_map = self
+        let unpaid_holidays_map = self
             .leave_repo
             .get_unpaid_holiday_days_without_leave_batch(
                 &d.token,
@@ -322,24 +322,26 @@ impl PayrollService {
         let context_results = build_payroll_contexts(
             &chunk_employment_ids,
             &employment_to_employee,
-            &mut employees,
-            &mut time_map,
-            &mut roster_map,
-            &mut conditions_map,
-            &mut policies_map,
-            &mut emp_configs_map,
-            &mut dept_map,
-            &batch_dept_payroll_configs,
             &emp_to_location,
             &emp_to_employments,
-            &mut salary_map,
-            &mut leave_breakdowns_map,
-            &mut unpaid_holidays_map,
+            &batch_dept_payroll_configs,
             &rule_assignments_map,
-            &mut month_end_policies_map,
             &ot_base_component_ids,
-            &mut contracts_map,
-            &mut assignments_map,
+            &mut BatchMaps {
+                employees,
+                time_map,
+                roster_map,
+                conditions_map,
+                policies_map,
+                emp_configs_map,
+                dept_map,
+                salary_map,
+                leave_breakdowns_map,
+                unpaid_holidays_map,
+                month_end_policies_map,
+                contracts_map,
+                assignments_map,
+            },
             d,
         );
 

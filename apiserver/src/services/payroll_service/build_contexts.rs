@@ -1,42 +1,54 @@
 use super::*;
 
-/// Build PayrollContext values for a chunk of employments.
-/// Returns a tuple per employment: `(employment_id, Result<context, error_result>)`.
-/// Failures are pre-built `BatchCalculateResult` with `status: "error"`.
-#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
-pub fn build_payroll_contexts(
-    chunk_employment_ids: &[Uuid],
-    employment_to_employee: &HashMap<Uuid, Uuid>,
-    employees: &mut HashMap<Uuid, crate::models::employee::Employee>,
-    time_map: &mut HashMap<Uuid, Vec<crate::models::TimeEntry>>,
-    roster_map: &mut HashMap<Uuid, Vec<crate::models::shift::ShiftRoster>>,
-    conditions_map: &mut HashMap<Uuid, Vec<crate::models::WorkingCondition>>,
-    policies_map: &mut HashMap<Uuid, crate::models::AttendancePolicyVersion>,
-    emp_configs_map: &mut HashMap<Uuid, Vec<crate::models::EmployeePayrollConfig>>,
-    dept_map: &mut HashMap<Uuid, Vec<crate::models::EmployeeDepartmentHistory>>,
-    batch_dept_payroll_configs: &HashMap<Uuid, Vec<crate::models::DepartmentPayrollConfig>>,
-    emp_to_location: &HashMap<Uuid, Uuid>,
-    emp_to_employments: &HashMap<Uuid, Vec<crate::models::employment::Employment>>,
-    salary_map: &mut HashMap<
+/// Mutable per-employment maps consumed during `build_payroll_contexts`.
+///
+/// Groups the 13 `&mut HashMap<Uuid, …>` parameters that were previously
+/// passed individually.  Each map is keyed by `employment_id` (or `employee_id`
+/// where noted) and is drained via `.remove()` inside the per-employment loop.
+pub struct BatchMaps {
+    pub employees: HashMap<Uuid, crate::models::employee::Employee>,
+    pub time_map: HashMap<Uuid, Vec<crate::models::TimeEntry>>,
+    pub roster_map: HashMap<Uuid, Vec<crate::models::shift::ShiftRoster>>,
+    pub conditions_map: HashMap<Uuid, Vec<crate::models::WorkingCondition>>,
+    pub policies_map: HashMap<Uuid, crate::models::AttendancePolicyVersion>,
+    pub emp_configs_map: HashMap<Uuid, Vec<crate::models::EmployeePayrollConfig>>,
+    /// Keyed by employee_id (not employment_id).
+    pub dept_map: HashMap<Uuid, Vec<crate::models::EmployeeDepartmentHistory>>,
+    pub salary_map: HashMap<
         Uuid,
         Vec<(
             crate::models::EmployeeSalaryComponent,
             crate::models::SalaryComponentDefinition,
         )>,
     >,
-    leave_breakdowns_map: &mut HashMap<
+    /// Keyed by employee_id.
+    pub leave_breakdowns_map: HashMap<
         Uuid,
         crate::repositories::leave_request_repository::LeaveBreakdown,
     >,
-    unpaid_holidays_map: &mut HashMap<Uuid, i64>,
-    rule_assignments_map: &HashMap<Uuid, Vec<RuleAssignmentWithTiers>>,
-    month_end_policies_map: &mut HashMap<Uuid, crate::models::AttendancePolicyVersion>,
-    ot_base_component_ids: &std::collections::HashSet<Uuid>,
-    contracts_map: &mut HashMap<Uuid, Vec<crate::models::contract::EmployeeContract>>,
-    assignments_map: &mut HashMap<
+    /// Keyed by employee_id.
+    pub unpaid_holidays_map: HashMap<Uuid, i64>,
+    pub month_end_policies_map: HashMap<Uuid, crate::models::AttendancePolicyVersion>,
+    /// Keyed by employee_id.
+    pub contracts_map: HashMap<Uuid, Vec<crate::models::contract::EmployeeContract>>,
+    pub assignments_map: HashMap<
         Uuid,
         Vec<crate::models::employee_assignment::EmployeeAssignment>,
     >,
+}
+
+/// Build PayrollContext values for a chunk of employments.
+/// Returns a tuple per employment: `(employment_id, Result<context, error_result>)`.
+/// Failures are pre-built `BatchCalculateResult` with `status: "error"`.
+pub fn build_payroll_contexts(
+    chunk_employment_ids: &[Uuid],
+    employment_to_employee: &HashMap<Uuid, Uuid>,
+    emp_to_location: &HashMap<Uuid, Uuid>,
+    emp_to_employments: &HashMap<Uuid, Vec<crate::models::employment::Employment>>,
+    batch_dept_payroll_configs: &HashMap<Uuid, Vec<crate::models::DepartmentPayrollConfig>>,
+    rule_assignments_map: &HashMap<Uuid, Vec<RuleAssignmentWithTiers>>,
+    ot_base_component_ids: &std::collections::HashSet<Uuid>,
+    maps: &mut BatchMaps,
     d: &Arc<ChunkSharedData>,
 ) -> Vec<(
     Uuid,
@@ -62,7 +74,7 @@ pub fn build_payroll_contexts(
             ));
             continue;
         };
-        let Some(employee) = employees.remove(&emp_id) else {
+        let Some(employee) = maps.employees.remove(&emp_id) else {
             results.push((
                 *employment_id,
                 Err(crate::models::BatchCalculateResult {
@@ -75,25 +87,29 @@ pub fn build_payroll_contexts(
             ));
             continue;
         };
-        let daily_entries_map =
-            build_daily_entries_map(time_map.remove(employment_id).unwrap_or_default(), &d.tz);
+        let daily_entries_map = build_daily_entries_map(
+            maps.time_map.remove(employment_id).unwrap_or_default(),
+            &d.tz,
+        );
 
-        let payroll_roster_map = roster_map
+        let payroll_roster_map = maps
+            .roster_map
             .remove(employment_id)
             .unwrap_or_default()
             .into_iter()
             .map(|r| ((r.employment_id, r.date), r.shift_id))
             .collect();
 
-        let working_conditions = conditions_map.remove(employment_id).unwrap_or_default();
+        let working_conditions = maps.conditions_map.remove(employment_id).unwrap_or_default();
 
-        let attendance_policy = policies_map
+        let attendance_policy = maps
+            .policies_map
             .remove(employment_id)
             .map_or_else(default_attendance_rules, |pv| pv.rules);
 
-        let emp_payroll_configs = emp_configs_map.remove(employment_id).unwrap_or_default();
+        let emp_payroll_configs = maps.emp_configs_map.remove(employment_id).unwrap_or_default();
 
-        let all_dept_history = dept_map.remove(&emp_id).unwrap_or_default();
+        let all_dept_history = maps.dept_map.remove(&emp_id).unwrap_or_default();
         let mut emp_dept_payroll_configs = HashMap::new();
         for dh in &all_dept_history {
             if let Some(configs) = batch_dept_payroll_configs.get(&dh.department_id()) {
@@ -106,18 +122,19 @@ pub fn build_payroll_contexts(
             .copied()
             .unwrap_or_else(Uuid::new_v4);
 
-        let salary_history = salary_map.remove(employment_id).unwrap_or_default();
+        let salary_history = maps.salary_map.remove(employment_id).unwrap_or_default();
         let ot_base_comp_ids = if ot_base_component_ids.is_empty() {
             salary_history.iter().map(|(_, scd)| scd.id).collect()
         } else {
             ot_base_component_ids.clone()
         };
 
-        let month_end_attendance_policy = month_end_policies_map
+        let month_end_attendance_policy = maps
+            .month_end_policies_map
             .remove(employment_id)
             .map_or_else(default_attendance_rules, |pv| pv.rules);
 
-        let leave_breakdown = leave_breakdowns_map.remove(&emp_id).unwrap_or(
+        let leave_breakdown = maps.leave_breakdowns_map.remove(&emp_id).unwrap_or(
             crate::repositories::leave_request_repository::LeaveBreakdown {
                 total_days: 0.0,
                 unpaid_days: 0.0,
@@ -125,7 +142,7 @@ pub fn build_payroll_contexts(
             },
         );
 
-        let unpaid_holiday_days = unpaid_holidays_map.remove(&emp_id).unwrap_or(0);
+        let unpaid_holiday_days = maps.unpaid_holidays_map.remove(&emp_id).unwrap_or(0);
         let rule_assignments_with_tiers = rule_assignments_map
             .get(employment_id)
             .cloned()
@@ -155,8 +172,8 @@ pub fn build_payroll_contexts(
                 department_payroll_configs: emp_dept_payroll_configs,
                 overtime_data: Arc::clone(&d.overtime_data),
                 ot_base_component_ids: ot_base_comp_ids,
-                active_contracts: contracts_map.remove(&emp_id).unwrap_or_default(),
-                active_assignments: assignments_map.remove(employment_id).unwrap_or_default(),
+                active_contracts: maps.contracts_map.remove(&emp_id).unwrap_or_default(),
+                active_assignments: maps.assignments_map.remove(employment_id).unwrap_or_default(),
                 active_employments: emp_to_employments.get(&emp_id).cloned().unwrap_or_default(),
                 primary_location_id,
                 month_end_payroll_settings: Arc::clone(&d.month_end_payroll_settings),

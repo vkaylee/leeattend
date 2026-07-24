@@ -3,6 +3,7 @@ mod balance;
 mod approval;
 pub(super) mod conflict;
 pub(super) mod submission;
+pub use submission::SubmitterInfo;
 mod workflow;
 #[cfg(test)]
 mod tests;

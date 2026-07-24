@@ -15,7 +15,49 @@ use uuid::Uuid;
 
 use crate::models::{LeaveDurationType, LeaveRequest, LeaveStatus, SubmitLeaveRequest};
 
+/// Result of resolving submitter identity and employment for leave submission.
+pub struct SubmitterInfo {
+    pub target_employee_id: Uuid,
+    pub caller_employee_id: Option<Uuid>,
+    pub is_on_behalf: bool,
+}
+
 impl super::LeaveService {
+    /// Resolve submitter identity from user/employment IDs.
+    ///
+    /// Looks up the employment to find the target employee, and resolves the
+    /// caller's employee record to determine if this is a self-submit or
+    /// on-behalf submission.  Employment lookup uses the cached path so a
+    /// subsequent `submit_leave_request` call will hit cache.
+    pub async fn resolve_submitter_info(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        user_id: Uuid,
+        employment_id: Uuid,
+    ) -> Result<SubmitterInfo, AppError> {
+        let employment = self
+            .get_employment_cached(auth_token, employment_id)
+            .await?
+            .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
+        let target_employee_id = employment.employee_id();
+
+        let caller_employee_id = self
+            .employee_repo
+            .get_employee_id_by_user_id(auth_token, user_id)
+            .await?;
+
+        let is_on_behalf = match caller_employee_id {
+            Some(emp_id) => emp_id != target_employee_id,
+            None => true,
+        };
+
+        Ok(SubmitterInfo {
+            target_employee_id,
+            caller_employee_id,
+            is_on_behalf,
+        })
+    }
+
     #[tracing::instrument(skip_all, err)]
     #[allow(clippy::too_many_lines)]
     pub async fn submit_leave_request(

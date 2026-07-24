@@ -294,3 +294,117 @@ impl AuthService {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TEST_SECRET: &str = "test-secret-key-for-jwt-testing-32chars";
+
+    // --- JWT Token Tests ---
+
+    #[test]
+    fn test_generate_and_verify_token_roundtrip() {
+        let user_id = Uuid::new_v4();
+        let token = AuthService::generate_token(user_id, TEST_SECRET, 60).unwrap();
+        let verified = AuthService::verify_token(&token, TEST_SECRET).unwrap();
+        assert_eq!(verified, user_id);
+    }
+
+    #[test]
+    fn test_verify_token_invalid_signature() {
+        let user_id = Uuid::new_v4();
+        let token = AuthService::generate_token(user_id, TEST_SECRET, 60).unwrap();
+        let result = AuthService::verify_token(&token, "wrong-secret-key-32chars-long!");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_verify_token_malformed() {
+        let result = AuthService::verify_token("not-a-valid-jwt", TEST_SECRET);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_verify_token_claims_contains_sub_and_exp() {
+        let user_id = Uuid::new_v4();
+        let token = AuthService::generate_token(user_id, TEST_SECRET, 60).unwrap();
+        let claims = AuthService::verify_token_claims(&token, TEST_SECRET).unwrap();
+        assert_eq!(claims.sub, user_id.to_string());
+        assert!(claims.exp > claims.iat);
+        assert!(claims.exp <= claims.iat + 3600); // 60 min buffer
+    }
+
+    #[test]
+    fn test_generate_token_different_duration() {
+        let user_id = Uuid::new_v4();
+        let token = AuthService::generate_token(user_id, TEST_SECRET, 10080).unwrap(); // 7 days
+        let claims = AuthService::verify_token_claims(&token, TEST_SECRET).unwrap();
+        // 7 days in seconds
+        assert!(claims.exp > claims.iat + 600_000); // at least ~7 days
+    }
+
+    #[test]
+    fn test_verify_token_expired() {
+        let user_id = Uuid::new_v4();
+        // Generate a token that expired 10 minutes ago
+        let token = AuthService::generate_token(user_id, TEST_SECRET, -10).unwrap();
+        let result = AuthService::verify_token(&token, TEST_SECRET);
+        assert!(result.is_err(), "Expired token should be rejected");
+    }
+
+    // --- Password Hashing Tests ---
+
+    #[test]
+    fn test_hash_password_produces_argon2id() {
+        let hash = AuthService::hash_password("my-secure-password").unwrap();
+        assert!(hash.starts_with("$argon2"), "Hash should start with $argon2");
+    }
+
+    #[test]
+    fn test_hash_password_different_salts() {
+        let hash1 = AuthService::hash_password("same-password").unwrap();
+        let hash2 = AuthService::hash_password("same-password").unwrap();
+        assert_ne!(hash1, hash2, "Same password should produce different hashes (unique salt)");
+    }
+
+    #[test]
+    fn test_verify_password_valid() {
+        let hash = AuthService::hash_password("correct-password").unwrap();
+        let (valid, needs_rehash) = AuthService::verify_password("correct-password", &hash);
+        assert!(valid);
+        assert!(!needs_rehash, "argon2id hash should not need rehash");
+    }
+
+    #[test]
+    fn test_verify_password_wrong() {
+        let hash = AuthService::hash_password("correct-password").unwrap();
+        let (valid, needs_rehash) = AuthService::verify_password("wrong-password", &hash);
+        assert!(!valid);
+        assert!(!needs_rehash);
+    }
+
+    #[test]
+    fn test_verify_password_empty_password() {
+        let hash = AuthService::hash_password("").unwrap();
+        let (valid, _) = AuthService::verify_password("", &hash);
+        assert!(valid, "Empty password should verify against its own hash");
+    }
+
+    #[test]
+    fn test_verify_password_unicode() {
+        let password = "mật-khẩu-🏠-secure";
+        let hash = AuthService::hash_password(password).unwrap();
+        let (valid, _) = AuthService::verify_password(password, &hash);
+        assert!(valid, "Unicode password should verify correctly");
+    }
+
+    #[test]
+    fn test_verify_password_legacy_bcrypt_disabled() {
+        // Legacy bcrypt hashes should be rejected (feature disabled)
+        let legacy_hash = "$2b$12$LJ3m4ys3YOlDkOmMrLJ3eO1fHkD9X1Yq";
+        let (valid, needs_rehash) = AuthService::verify_password("anything", legacy_hash);
+        assert!(!valid);
+        assert!(!needs_rehash);
+    }
+}

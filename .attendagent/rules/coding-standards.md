@@ -13,6 +13,12 @@
 
 ## 3. Error Handling & Observability
 - **Structured Errors:** Use `AppError` with `I18nKey` constructors: `AppError::not_found(I18nKey::NotFound)`, `AppError::auth(I18nKey::InvalidToken)`, `AppError::validation(I18nKey::Validation)`, `AppError::forbidden(I18nKey::Forbidden)`, `AppError::conflict(I18nKey::Conflict)`, `AppError::internal("context: {details}")`. Use the `AppResult<T>` alias. Never throw generic `Error` or pass raw strings.
+- **🔴 ZERO PANIC POLICY:** `.unwrap()` and `.expect()` are **FORBIDDEN** in production code (enforced by `#![deny(clippy::unwrap_used, clippy::expect_used)]` in `lib.rs` + CI gate `scripts/check-unwrap.sh`). Use these replacements:
+  - **Option unwrap:** `.ok_or_else(|| AppError::internal("expected value"))?`
+  - **Result unwrap:** `.map_err(|e| AppError::internal(format!("context: {e}")))?`
+  - **Mutex lock:** `.lock().map_err(|e| AppError::internal(format!("lock poisoned: {e}")))?`
+  - **Chrono constants:** Use `date_ymd!(y,m,d)` / `time_hms!(h,m,s)` macros from `utils/datetime.rs` (panic on invalid constant is acceptable — it's a compile-time bug)
+  - **Serde in models:** Return `AppResult<Self>` instead of `Self` from parsing methods
 - **Error Boundaries:** Wrap all independent UI components in React Error Boundaries.
 - **Telemetry Baseline:** All backend APIs MUST include request tracing/metrics (e.g., OpenTelemetry span/context).
 

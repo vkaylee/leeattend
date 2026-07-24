@@ -50,32 +50,20 @@ pub async fn submit_leave_request(
     ctx: MemberContext,
     Json(req): Json<SubmitLeaveRequest>,
 ) -> AppResult<(StatusCode, Json<LeaveRequest>)> {
-    let employment = state
-        .employees()
-        .employment_repo()
-        .get_employment_by_id(&ctx.auth_token, req.employment_id)
-        .await?
-        .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
-    let target_employee_id = employment.employee_id();
+    // Delegate submitter identity resolution to the service layer
+    let info = state
+        .leaves()
+        .service()
+        .resolve_submitter_info(&ctx.auth_token, user_id, req.employment_id)
+        .await?;
 
     // Look up employee's department for scoped permission check
     let target_dept_id =
-        crate::handlers::common::current_department_id(&state, &ctx.auth_token, target_employee_id)
+        crate::handlers::common::current_department_id(&state, &ctx.auth_token, info.target_employee_id)
             .await;
 
-    let caller_employee_id = state
-        .employees()
-        .repo()
-        .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
-        .await?;
-
-    let is_on_behalf = match caller_employee_id {
-        Some(emp_id) => emp_id != target_employee_id,
-        None => true,
-    };
-
-    if is_on_behalf {
-        check_leave_behalf_scope(&state, &ctx, target_employee_id).await?;
+    if info.is_on_behalf {
+        check_leave_behalf_scope(&state, &ctx, info.target_employee_id).await?;
     } else {
         // Require submit permission scoped to the employee's department
         ctx.require_scoped_permission(Permission::LeaveRequestsSubmit, target_dept_id)?;
@@ -107,7 +95,7 @@ pub async fn submit_leave_request(
                 &ctx.auth_token,
                 "leave_request".to_string(),
                 request.id(),
-                target_employee_id,
+                info.target_employee_id,
             )
             .await?;
     }

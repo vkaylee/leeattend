@@ -99,6 +99,38 @@ fn normalize_header(h: &str) -> String {
         .to_lowercase()
 }
 
+/// Find the sheet whose first row best matches the expected headers.
+/// Returns the range of the best-matching sheet, or None if no sheets match.
+fn find_best_sheet_range(
+    sheet_names: &[String],
+    expected_normalized: &[String],
+    mut get_range: impl FnMut(&str) -> Option<calamine::Range<Data>>,
+) -> Option<calamine::Range<Data>> {
+    let mut best_sheet_range = None;
+    let mut max_matched_headers = 0;
+
+    for name in sheet_names {
+        if let Some(range) = get_range(name) {
+            if let Some(first_row) = range.rows().next() {
+                let mut match_count = 0;
+                for cell in first_row {
+                    let cell_str = cell_to_string(Some(cell));
+                    let norm = normalize_header(&cell_str);
+                    if !norm.is_empty() && expected_normalized.contains(&norm) {
+                        match_count += 1;
+                    }
+                }
+                if match_count > max_matched_headers {
+                    max_matched_headers = match_count;
+                    best_sheet_range = Some(range);
+                }
+            }
+        }
+    }
+
+    best_sheet_range
+}
+
 /// Extract rows and map them using normalized headers.
 ///
 /// Returns a list of (line_number, mapped_row).
@@ -186,29 +218,11 @@ pub fn extract_mapped_rows(
             AppError::validation_args(I18nKey::CannotOpenXlsx, vec![("error", e.to_string())])
         })?;
         let sheet_names = reader.sheet_names();
-        let mut best_sheet_range = None;
-        let mut max_matched_headers = 0;
+        let best = find_best_sheet_range(&sheet_names, &expected_normalized, |name| {
+            reader.worksheet_range(name).ok()
+        });
 
-        for name in &sheet_names {
-            if let Ok(range) = reader.worksheet_range(name) {
-                if let Some(first_row) = range.rows().next() {
-                    let mut match_count = 0;
-                    for cell in first_row {
-                        let cell_str = cell_to_string(Some(cell));
-                        let norm = normalize_header(&cell_str);
-                        if !norm.is_empty() && expected_normalized.contains(&norm) {
-                            match_count += 1;
-                        }
-                    }
-                    if match_count > max_matched_headers {
-                        max_matched_headers = match_count;
-                        best_sheet_range = Some(range);
-                    }
-                }
-            }
-        }
-
-        let range = if let Some(r) = best_sheet_range {
+        let range = if let Some(r) = best {
             r
         } else if let Some(name) = sheet_names.first() {
             reader.worksheet_range(name).map_err(|e| {
@@ -234,29 +248,11 @@ pub fn extract_mapped_rows(
             AppError::validation_args(I18nKey::CannotOpenXls, vec![("error", e.to_string())])
         })?;
         let sheet_names = reader.sheet_names();
-        let mut best_sheet_range = None;
-        let mut max_matched_headers = 0;
+        let best = find_best_sheet_range(&sheet_names, &expected_normalized, |name| {
+            reader.worksheet_range(name).ok()
+        });
 
-        for name in &sheet_names {
-            if let Ok(range) = reader.worksheet_range(name) {
-                if let Some(first_row) = range.rows().next() {
-                    let mut match_count = 0;
-                    for cell in first_row {
-                        let cell_str = cell_to_string(Some(cell));
-                        let norm = normalize_header(&cell_str);
-                        if !norm.is_empty() && expected_normalized.contains(&norm) {
-                            match_count += 1;
-                        }
-                    }
-                    if match_count > max_matched_headers {
-                        max_matched_headers = match_count;
-                        best_sheet_range = Some(range);
-                    }
-                }
-            }
-        }
-
-        let range = if let Some(r) = best_sheet_range {
+        let range = if let Some(r) = best {
             r
         } else if let Some(name) = sheet_names.first() {
             reader.worksheet_range(name).map_err(|e| {

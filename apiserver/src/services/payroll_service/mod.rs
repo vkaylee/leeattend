@@ -125,4 +125,4 @@ mod payslip_calc;
 #[cfg(test)]
 mod tests_mod;
 
-pub(crate) use build_contexts::build_payroll_contexts;
+pub(crate) use build_contexts::{build_payroll_contexts, BatchMaps};

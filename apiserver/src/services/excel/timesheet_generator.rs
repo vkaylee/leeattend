@@ -7,10 +7,99 @@ use super::utils::{
     ceil_units_to_hours, fmt_h, format_period_label, units_to_hours, DayCell, SegmentCell,
 };
 use crate::models::DailyAttendanceReport;
+use crate::services::attendance_utils::AttendanceStatus;
 use crate::services::import_messages::ExcelReportMessages;
 use crate::utils::excel_format_utils::ExcelFormatUtils;
 
-#[allow(clippy::too_many_lines)]
+/// Render a single day cell — returns the display text and the format to use.
+fn render_day_cell<'a>(
+    cell: &DayCell,
+    work_unit_minutes: i32,
+    tz: Tz,
+    cell_fmt: &'a Format,
+    ot_fmt: &'a Format,
+    holiday_fmt: &'a Format,
+    leave_paid_fmt: &'a Format,
+    leave_unpaid_fmt: &'a Format,
+) -> (String, &'a Format) {
+    let prefix = cell.shift_symbol.as_deref().unwrap_or("");
+
+    if cell.status == AttendanceStatus::Leave || cell.status == AttendanceStatus::HolidayLeave {
+        let suffix = match cell.is_leave_paid {
+            Some(true) => "(PL)",
+            _ => "(UL)",
+        };
+        let t = format!("{}{}", prefix, suffix);
+        let f = match cell.is_leave_paid {
+            Some(true) => leave_paid_fmt,
+            _ => leave_unpaid_fmt,
+        };
+        (t, f)
+    } else if cell.status == AttendanceStatus::HolidayPaid {
+        (format!("{}(HP)", prefix), holiday_fmt)
+    } else if cell.status == AttendanceStatus::HolidayUnpaid {
+        (format!("{}(HU)", prefix), leave_unpaid_fmt)
+    } else {
+        // Standard work day with late/early-leave/OT calculation
+        let std_h = units_to_hours(cell.std_work_units, work_unit_minutes);
+
+        let late_h = match (cell.punch_in, cell.scheduled_start) {
+            (Some(pin_utc), Some(sched)) => {
+                let pin_time = pin_utc.with_timezone(&tz).time();
+                if pin_time > sched {
+                    ceil_units_to_hours(
+                        (pin_time - sched).num_minutes(),
+                        i64::from(work_unit_minutes),
+                    )
+                } else {
+                    0.0
+                }
+            }
+            _ => 0.0,
+        };
+
+        let early_leave_h = match (cell.punch_out, cell.scheduled_end) {
+            (Some(pout_utc), Some(sched)) => {
+                let pout_time = pout_utc.with_timezone(&tz).time();
+                if pout_time < sched {
+                    ceil_units_to_hours(
+                        (sched - pout_time).num_minutes(),
+                        i64::from(work_unit_minutes),
+                    )
+                } else {
+                    0.0
+                }
+            }
+            _ => 0.0,
+        };
+
+        let ot_h = units_to_hours(cell.ot_work_units, work_unit_minutes);
+        let suffix = if cell.status == AttendanceStatus::HolidayWork {
+            "(HW)"
+        } else {
+            ""
+        };
+        let t = format!(
+            "{}{}/{}/{}/{}{}",
+            prefix,
+            fmt_h(std_h),
+            fmt_h(late_h),
+            fmt_h(early_leave_h),
+            fmt_h(ot_h),
+            suffix,
+        );
+
+        let f = if cell.is_holiday {
+            holiday_fmt
+        } else if cell.ot_work_units > 0 {
+            ot_fmt
+        } else {
+            cell_fmt
+        };
+        (t, f)
+    }
+}
+
 pub fn generate(
     workbook: &mut Workbook,
     reports: &[DailyAttendanceReport],
@@ -132,92 +221,16 @@ pub fn generate(
 
         for (day_idx, date) in dates.iter().enumerate() {
             if let Some(cell) = day_map.get(date) {
-                let prefix = cell.shift_symbol.as_deref().unwrap_or("");
-                let (text, fmt) = if cell.status
-                    == crate::services::attendance_utils::AttendanceStatus::Leave
-                    || cell.status
-                        == crate::services::attendance_utils::AttendanceStatus::HolidayLeave
-                {
-                    let suffix = match cell.is_leave_paid {
-                        Some(true) => "(PL)",
-                        _ => "(UL)",
-                    };
-                    let t = format!("{prefix}{suffix}");
-                    let f = match cell.is_leave_paid {
-                        Some(true) => &leave_paid_fmt,
-                        _ => &leave_unpaid_fmt,
-                    };
-                    (t, f)
-                } else if cell.status
-                    == crate::services::attendance_utils::AttendanceStatus::HolidayPaid
-                {
-                    let t = format!("{prefix}(HP)");
-                    (t, &holiday_fmt)
-                } else if cell.status
-                    == crate::services::attendance_utils::AttendanceStatus::HolidayUnpaid
-                {
-                    let t = format!("{prefix}(HU)");
-                    (t, &leave_unpaid_fmt)
-                } else {
-                    // Convert work units to hours
-                    let std_h = units_to_hours(cell.std_work_units, work_unit_minutes);
-
-                    // Calculate late: ceil to nearest work unit, then convert to hours
-                    let late_h = match (cell.punch_in, cell.scheduled_start) {
-                        (Some(pin_utc), Some(sched)) => {
-                            let pin_local = pin_utc.with_timezone(&tz);
-                            let pin_time = pin_local.time();
-                            if pin_time > sched {
-                                let diff_minutes = (pin_time - sched).num_minutes();
-                                ceil_units_to_hours(diff_minutes, i64::from(work_unit_minutes))
-                            } else {
-                                0.0
-                            }
-                        }
-                        _ => 0.0,
-                    };
-
-                    // Calculate early-leave: ceil to nearest work unit, then convert to hours
-                    let early_leave_h = match (cell.punch_out, cell.scheduled_end) {
-                        (Some(pout_utc), Some(sched)) => {
-                            let pout_local = pout_utc.with_timezone(&tz);
-                            let pout_time = pout_local.time();
-                            if pout_time < sched {
-                                let diff_minutes = (sched - pout_time).num_minutes();
-                                ceil_units_to_hours(diff_minutes, i64::from(work_unit_minutes))
-                            } else {
-                                0.0
-                            }
-                        }
-                        _ => 0.0,
-                    };
-
-                    let ot_h = units_to_hours(cell.ot_work_units, work_unit_minutes);
-                    let suffix = if cell.status
-                        == crate::services::attendance_utils::AttendanceStatus::HolidayWork
-                    {
-                        "(HW)"
-                    } else {
-                        ""
-                    };
-                    let t = format!(
-                        "{}{}/{}/{}/{}{}",
-                        prefix,
-                        fmt_h(std_h),
-                        fmt_h(late_h),
-                        fmt_h(early_leave_h),
-                        fmt_h(ot_h),
-                        suffix
-                    );
-                    let f = if cell.is_holiday {
-                        &holiday_fmt
-                    } else if cell.ot_work_units > 0 {
-                        &ot_fmt
-                    } else {
-                        &cell_fmt
-                    };
-                    (t, f)
-                };
+                let (text, fmt) = render_day_cell(
+                    cell,
+                    work_unit_minutes,
+                    tz,
+                    &cell_fmt,
+                    &ot_fmt,
+                    &holiday_fmt,
+                    &leave_paid_fmt,
+                    &leave_unpaid_fmt,
+                );
 
                 worksheet.write_string_with_format(
                     row,
