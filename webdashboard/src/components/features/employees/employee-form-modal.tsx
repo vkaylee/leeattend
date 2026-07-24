@@ -76,14 +76,11 @@ function useFormDefaults(editingEmployee: Employee | null, activeLocationId: str
 /**
  * EmployeeFormModal — create or edit an employee.
  *
- * Complexity is suppressed because the remaining branches are genuine business
- * logic (create vs update, optional employment mutation). The component has
- * been decomposed into useEmployeeMutations, useFormDefaults, and
- * EmployeeFormInputs. Further decomposition would degrade readability.
- *
- * eslint-disable-next-line complexity
+ * The component has been decomposed into useEmployeeMutations, useFormDefaults,
+ * and EmployeeFormInputs. The remaining branches are genuine business logic
+ * (create vs update, optional employment mutation).
  */
-  // eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- JSX composition + query wiring; logic already in useEmployeeMutations / useFormDefaults
 export default function EmployeeFormModal({
   isOpen, onClose, editingEmployee, wsId, prefillEnrollmentId, onSuccess,
 }: EmployeeFormModalProps) {
@@ -98,8 +95,10 @@ export default function EmployeeFormModal({
 
   const { data: employments = [] } = useQuery({
     queryKey: ["employee-employments", wsId, editingEmployee?.id],
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    queryFn: () => fetchEmployeeEmployments(wsId, editingEmployee!.id),
+    queryFn: () => {
+      if (!editingEmployee?.id) throw new Error("editingEmployee.id required");
+      return fetchEmployeeEmployments(wsId, editingEmployee.id);
+    },
     enabled: !!wsId && !!editingEmployee?.id && isOpen,
   });
   const active: Employment | undefined = employments.find(e => e.status === "active");
@@ -123,11 +122,18 @@ export default function EmployeeFormModal({
     }
   }, [isOpen, wsId]);
 
-  // eslint-disable-next-line complexity -- create vs update + optional employment mutation are genuine branches
+  async function syncEmploymentIfChanged(employee: Employee) {
+    if (defaults.selectedLocationId !== activeLocationId || defaults.selectedEmployerId !== activeEmployerId) {
+      await updateEmployeeEmployment(wsId, employee.id, active?.id ?? "", {
+        primary_location_id: defaults.selectedLocationId || null,
+        employer_id: defaults.selectedEmployerId || undefined,
+      });
+    }
+  }
+
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    // FormData values are FormDataEntryValue | null; is_active is coerced to boolean
     const data: Record<string, FormDataEntryValue | boolean | null> = {
       full_name: fd.get("full_name"),
       employee_id_number: fd.get("employee_id_number"),
@@ -138,12 +144,7 @@ export default function EmployeeFormModal({
 
     if (editingEmployee) {
       await updateMutation.mutateAsync({ id: editingEmployee.id, employee: data });
-      if (defaults.selectedLocationId !== activeLocationId || defaults.selectedEmployerId !== activeEmployerId) {
-        await updateEmployeeEmployment(wsId, editingEmployee.id, active?.id ?? "", {
-          primary_location_id: defaults.selectedLocationId || null,
-          employer_id: defaults.selectedEmployerId || undefined,
-        });
-      }
+      await syncEmploymentIfChanged(editingEmployee);
     } else {
       if (defaults.selectedLocationId) data.primary_location_id = defaults.selectedLocationId;
       data.employer_id = defaults.selectedEmployerId || null;
@@ -165,8 +166,7 @@ export default function EmployeeFormModal({
           activeEmployment={active}
           editingEmployee={editingEmployee}
           employers={employers}
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          locations={locations || []}
+          locations={locations}
           members={members}
           prefillEnrollmentId={prefillEnrollmentId ?? ""}
           selectedEmployerId={defaults.selectedEmployerId}

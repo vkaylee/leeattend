@@ -1,4 +1,3 @@
-// eslint-disable-next-line complexity -- table cell rendering handles many states
 import { RefreshCw, Bug, CheckCircle, ThumbsUp, ThumbsDown, ChevronRight } from "lucide-react";
 import React from "react";
 

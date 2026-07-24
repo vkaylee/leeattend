@@ -6,9 +6,7 @@
 const FREQUENT_SHIFTS_KEY = "leeattend_frequent_shifts";
 const FREQUENT_TOP_COUNT = 3;
 
-export interface FrequentMap {
-  [shiftId: string]: number;
-}
+export type FrequentMap = Record<string, number>;
 
 export function readFrequentShifts(): FrequentMap {
   try {

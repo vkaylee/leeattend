@@ -41,7 +41,7 @@ export function ShiftTimelinePreview({
     isAutoDeduct,
     isBreakOvertime,
     allowEarlyOt,
-    maxEarlyOtMinutes: maxEarlyOt = 0,
+    maxEarlyOtMinutes: maxEarlyOt,
   } = iv;
 
   const startMin = timeToMinutes(shiftStart);

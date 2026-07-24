@@ -5,7 +5,7 @@ import { Shift } from "@/lib/api";
 /** Check whether any interval of a shift is a night shift. */
 export function isNightShift(shift: Shift): boolean {
   const typed = shift as ShiftWithIntervals;
-  return typed.intervals?.some((iv) => iv.is_night_shift === true) ?? false;
+  return typed.intervals?.some((iv) => iv.is_night_shift) ?? false;
 }
 
 /** Check whether a shift is a split/multi-block shift (> 1 interval). */

@@ -76,7 +76,7 @@ export function PatternMatrixPreview({
     new Set(
       (details ?? [])
         .filter((d) => d.shift_id)
-        .map((d) => d.shift_id as string),
+        .map((d) => d.shift_id!),
     ),
   );
 
@@ -132,13 +132,13 @@ export function PatternMatrixPreview({
             assignedDetails={assignedDetails}
             dayLabel={dayLabels[idx]}
             hasShifts={hasShifts}
-            intervals={intervals as Array<{
+            intervals={intervals as {
               start_time?: string;
               end_time?: string;
               break_start?: string;
               break_end?: string;
               break_duration_minutes?: number;
-            }>}
+            }[]}
             key={idx}
             shifts={shifts}
             variant={variant}
@@ -163,13 +163,13 @@ function DayMatrixCell({
   assignedDetails: WorkingPatternDetail[];
   dayLabel: string;
   hasShifts: boolean;
-  intervals: Array<{
+  intervals: {
     start_time?: string;
     end_time?: string;
     break_start?: string;
     break_end?: string;
     break_duration_minutes?: number;
-  }>;
+  }[];
   shifts?: Shift[];
   variant: "row" | "modal";
 }) {

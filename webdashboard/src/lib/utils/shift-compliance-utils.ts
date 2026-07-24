@@ -173,7 +173,7 @@ export function computeNetMinutes(
   end: string,
   breakDurationMinutes = 0,
 ): number {
-  let s = parseMinutes(start);
+  const s = parseMinutes(start);
   let e = parseMinutes(end);
   if (e <= s) e += 24 * 60;
   const gross = e - s;
@@ -199,11 +199,11 @@ export function formatDuration(minutes: number): string {
 export interface ShiftRef {
   id: string;
   name: string;
-  intervals?: Array<{
+  intervals?: {
     start_time?: string;
     end_time?: string;
     break_duration_minutes?: number;
-  }> | null;
+  }[] | null;
 }
 
 export interface DayShiftAssignment {

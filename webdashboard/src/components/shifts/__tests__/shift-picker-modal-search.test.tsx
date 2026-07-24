@@ -27,7 +27,7 @@ vi.mock("@/hooks/use-datetime", () => ({
 // ── Helpers ──────────────────────────────────────────────────────────
 
 function makeShift(overrides: Partial<Shift> & {
-  intervals?: Array<{
+  intervals?: {
     start_time?: string;
     end_time?: string;
     break_start?: string | null;
@@ -36,7 +36,7 @@ function makeShift(overrides: Partial<Shift> & {
     is_break_auto_deduct?: boolean;
     is_night_shift?: boolean;
     interval_name?: string;
-  }>;
+  };
 } = {}): Shift {
   const id = overrides.id ?? `shift-${Math.random().toString(36).slice(2, 8)}`;
   return {

@@ -137,8 +137,8 @@ interface SafeClient {
 // giving every call-site a clean `{ data }` destructure.
 //
 // Each method goes through safeWrap which adds a runtime guard: if a 2xx
-// response somehow lands in the error branch (or data is missing), it
-// throws immediately rather than letting undefined data propagate silently.
+// response somehow lands in the error branch, it throws immediately rather
+// than letting undefined data propagate silently.
 // See: .ai/ADRs/safe-client-wrapper.md
 
 const _rawClient = createClient<paths>({
@@ -146,25 +146,36 @@ const _rawClient = createClient<paths>({
   fetch: customFetch,
 });
 
+/** Concrete return shape of openapi-fetch — the union narrowed by guardResult. */
+interface RawFetchResult { data?: unknown; error?: unknown; response: Response }
+
+function guardResult(result: RawFetchResult): RawFetchResult {
+  if (result.error !== undefined) {
+    throw new ApiError(
+      result.response?.status ?? 500,
+      "SafeClient invariant violated",
+      "INVALID_RESPONSE",
+      { message: "API returned error branch on a response that passed customFetch" },
+    );
+  }
+  return result;
+}
+
 function safeWrap<M extends "GET" | "POST" | "PUT" | "PATCH" | "DELETE">(
   method: M,
 ): SafeMethod<M> {
-  return (async (url: any, ...init: any[]) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call -- raw openapi-fetch method call, types erased by safeWrap generic
-    const result = await (_rawClient[method] as Function)(url, ...init);
+  // Index-access dispatch through a typed function reference (not Function).
+  // `unknown` params keep the implementation body free of `any` while the
+  // SafeMethod<M> signature provides full path-specific inference at call sites.
+  const fn = _rawClient[method] as (url: string, init?: Record<string, unknown>) => Promise<RawFetchResult>;
+  return (async (url: unknown, ...init: unknown[]) => {
+    const initArg = init[0] as Record<string, unknown> | undefined;
+    const result = await fn(url as string, initArg);
     // Runtime guard: defend against a future where openapi-fetch stops
     // respecting our customFetch throw-on-error contract and returns
     // the error branch instead of throwing.  (data MAY be undefined on
     // 204 No Content / empty-body DELETE responses — that is normal.)
-    if (result.error !== undefined) {
-      throw new ApiError(
-        result.response?.status ?? 500,
-        "SafeClient invariant violated",
-        "INVALID_RESPONSE",
-        { message: "API returned error branch or missing data on a response that passed customFetch" },
-      );
-    }
-    return result;
+    return guardResult(result);
   }) as SafeMethod<M>;
 }
 

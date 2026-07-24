@@ -84,7 +84,7 @@ export async function uploadAttendance(
     body: formData,
   });
   if (!res.ok) await ApiError.rejectResponse(res);
-  return res.json();
+  return res.json() as Promise<{ job_id: string }>;
 }
 
 export async function fetchLatestImportJob(

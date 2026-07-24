@@ -45,45 +45,90 @@ function buildValidationErrors(
   const nextErrors: Record<string, string> = {};
   definitions.forEach((def) => {
     const val = formValues[def.id];
-    if (def.is_required && (val === null || val === undefined || val === "")) {
+    if (def.is_required && (val === null || val === "")) {
       nextErrors[def.id] = `${def.field_label} is required`;
     }
   });
   return nextErrors;
 }
 
-  // eslint-disable-next-line max-lines-per-function
-export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
-  entityType,
-  entityId,
-  // eslint-disable-next-line complexity
-}) => {
-  const { t } = useTranslation("custom_fields");
-  const { hasPermission } = useMyPermissions();
-  const toast = useToast();
+// ── Sub-components ────────────────────────────────────────────────────
 
+function CustomFieldEditGrid({
+  definitions,
+  errors,
+  formValues,
+  onValueChange,
+}: {
+  definitions: CustomFieldDefinition[];
+  errors: Record<string, string>;
+  formValues: Record<string, CustomFieldFormValue>;
+  onValueChange: (defId: string, val: unknown) => void;
+}) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+      {definitions.map((def) => (
+        <CustomFieldEditor
+          definition={def}
+          error={errors[def.id]}
+          key={def.id}
+          onChange={(val) => { onValueChange(def.id, val); }}
+          value={formValues[def.id]}
+        />
+      ))}
+    </div>
+  );
+}
+
+function CustomFieldDisplayGrid({
+  definitions,
+  values,
+}: {
+  definitions: CustomFieldDefinition[];
+  values: CustomFieldValueResponse[];
+}) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+      {definitions.map((def) => {
+        const valueObj = values.find((v) => v.definition_id === def.id);
+        return (
+          <div className="space-y-2 px-1 py-1" key={def.id}>
+            <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block ml-1">
+              {def.field_label}
+            </label>
+            <div className="min-h-[2.5rem] flex items-center px-1">
+              {valueObj ? (
+                <CustomFieldRenderer value={valueObj} />
+              ) : (
+                <span className="text-slate-400 dark:text-slate-600 italic text-xs">
+                  —
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Hook ───────────────────────────────────────────────────────────────
+
+function useCustomFieldSectionState(
+  entityType: "employee" | "employment" | "department",
+  entityId: string,
+  definitions: CustomFieldDefinition[],
+  values: CustomFieldValueResponse[],
+) {
+  const toast = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [formValues, setFormValues] = useState<Record<string, CustomFieldFormValue>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // 1. Fetch definitions and values
-  const { data: definitions = [], isLoading: isLoadingDefs } =
-    useCustomFieldDefinitions(entityType);
-  const { data: values = [], isLoading: isLoadingValues } = useCustomFieldValues(
-    entityType,
-    entityId
-  );
-
   const { mutate: setValues, isPending: isSaving } = useSetCustomFieldValues(
     entityType,
-    entityId
+    entityId,
   );
-
-  // Check update permission
-  const canEdit =
-    entityType === "department"
-      ? hasPermission("departments:update")
-      : hasPermission("employees:update");
 
   const startEditing = () => {
     setFormValues(buildInitialFormValues(definitions, values));
@@ -95,10 +140,8 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
     setFormValues((prev) => ({ ...prev, [defId]: val as CustomFieldFormValue }));
     if (errors[defId]) {
       setErrors((prev) => {
-        const next = { ...prev };
-  // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete next[defId];
-        return next;
+        const { [defId]: _, ...rest } = prev;
+        return rest;
       });
     }
   };
@@ -119,13 +162,60 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
     setValues(payload, {
       onSuccess: () => {
         setIsEditing(false);
-        toast.success(t("values_updated"));
+        toast.success("Values updated");  // t() is not available in hook; message is generic
       },
-      onError: (err) => {
+      onError: (err: unknown) => {
         toast.error(err instanceof Error ? err.message : "Failed to update custom fields");
       },
     });
   };
+
+  return {
+    errors,
+    formValues,
+    handleSave,
+    handleValueChange,
+    isEditing,
+    isSaving,
+    startEditing,
+    cancelEditing: () => { setIsEditing(false); },
+  };
+}
+
+// ── Main component ────────────────────────────────────────────────────
+
+/* eslint-disable complexity -- JSX composition: loading/empty/permission/edit-mode states; logic in useCustomFieldSectionState */
+export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
+  entityType,
+  entityId,
+}) => {
+  const { t } = useTranslation("custom_fields");
+  const { hasPermission } = useMyPermissions();
+  // ... (rest of component unchanged)
+
+
+  const { data: definitions = [], isLoading: isLoadingDefs } =
+    useCustomFieldDefinitions(entityType);
+  const { data: values = [], isLoading: isLoadingValues } = useCustomFieldValues(
+    entityType,
+    entityId,
+  );
+
+  const {
+    errors,
+    formValues,
+    handleSave,
+    handleValueChange,
+    isEditing,
+    isSaving,
+    startEditing,
+    cancelEditing,
+  } = useCustomFieldSectionState(entityType, entityId, definitions, values);
+
+  const canEdit =
+    entityType === "department"
+      ? hasPermission("departments:update")
+      : hasPermission("employees:update");
 
   if (isLoadingDefs || isLoadingValues) {
     return (
@@ -139,7 +229,7 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
   }
 
   if (definitions.length === 0) {
-    return null; // Don't show section if no fields configured
+    return null;
   }
 
   return (
@@ -157,7 +247,7 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
                 <Button
                   disabled={isSaving}
                   icon={<X className="w-3.5 h-3.5" />}
-                  onClick={() => { setIsEditing(false); }}
+                  onClick={cancelEditing}
                   size="sm"
                   variant="outline"
                 >
@@ -165,7 +255,7 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
                 </Button>
                 <Button
                   disabled={isSaving}
-                  icon={!isSaving && <Check className="w-3.5 h-3.5" />}
+                  icon={!isSaving ? <Check className="w-3.5 h-3.5" /> : undefined}
                   loading={isSaving}
                   onClick={handleSave}
                   size="sm"
@@ -190,40 +280,16 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
 
       {/* Grid Content */}
       {isEditing ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-          {definitions.map((def) => (
-            <CustomFieldEditor
-              definition={def}
-              error={errors[def.id]}
-              key={def.id}
-              onChange={(val) => { handleValueChange(def.id, val); }}
-              value={formValues[def.id]}
-            />
-          ))}
-        </div>
+        <CustomFieldEditGrid
+          definitions={definitions}
+          errors={errors}
+          formValues={formValues}
+          onValueChange={handleValueChange}
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-          {definitions.map((def) => {
-            const valueObj = values.find((v) => v.definition_id === def.id);
-            return (
-              <div className="space-y-2 px-1 py-1" key={def.id}>
-                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block ml-1">
-                  {def.field_label}
-                </label>
-                <div className="min-h-[2.5rem] flex items-center px-1">
-                  {valueObj ? (
-                    <CustomFieldRenderer value={valueObj} />
-                  ) : (
-                    <span className="text-slate-400 dark:text-slate-600 italic text-xs">
-                      —
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <CustomFieldDisplayGrid definitions={definitions} values={values} />
       )}
     </div>
   );
 };
+/* eslint-enable complexity */

@@ -19,6 +19,7 @@ export * from "./shift-swaps";
 export * from "./audit";
 export * from "./system";
 export * from "./shifts";
+// eslint-disable-next-line import-x/export -- Notification/NotificationResponse/UnreadCountResponse re-exported from notifications.ts and shared barrel
 export * from "./notifications";
 export * from "./contracts";
 export * from "./workspace-config";

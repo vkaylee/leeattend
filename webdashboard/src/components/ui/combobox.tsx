@@ -173,7 +173,7 @@ function ComboboxTrigger({
   return (
     <Popover.Trigger asChild>
       <button
-         
+        // eslint-disable-next-line jsx-a11y/no-autofocus -- combobox trigger needs autoFocus for keyboard navigation UX
         autoFocus={autoFocus}
         className={cn("flex h-[var(--ui-height-md)] w-full items-center justify-between rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-6 text-sm font-bold text-primary-600 dark:text-primary-400 transition-all hover:border-primary-200 dark:hover:border-primary-800 hover:bg-white dark:hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-primary-500/10 shadow-inner uppercase tracking-tight disabled:opacity-50 disabled:cursor-not-allowed", className)}
         data-testid={testId}
@@ -251,7 +251,8 @@ function ComboboxContent({
         <Command className="flex flex-col gap-3" onValueChange={setHighlightedValue} shouldFilter={shouldFilter ?? !onSearchChange} value={highlightedValue}>
           <div className="flex items-center border-b border-slate-50 dark:border-slate-800 px-4 pb-3 pt-1">
             <Search className="mr-3 h-4 w-4 shrink-0 text-slate-300 dark:text-slate-500" />
-            { }
+            {/*
+ eslint-disable-next-line jsx-a11y/no-autofocus -- search input must autoFocus when combobox opens for immediate typing */}
             <Command.Input autoFocus className="flex h-10 w-full rounded-md bg-transparent text-sm text-primary-700 dark:text-primary-300 outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50 font-bold" onValueChange={onSearchChange} placeholder={searchPlaceholder ?? t("common.combobox.search")} />
           </div>
 
@@ -339,7 +340,7 @@ export function Combobox({
       </select>
 
       <ComboboxTrigger
-         
+        // eslint-disable-next-line jsx-a11y/no-autofocus -- native select fallback needs autoFocus for keyboard nav
         autoFocus={autoFocus}
         className={className}
         disabled={disabled}

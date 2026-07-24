@@ -99,7 +99,12 @@ export async function bulkUploadPaperOt(
     body: formData,
   });
   if (!res.ok) await ApiError.rejectResponse(res);
-  return res.json();
+  return res.json() as Promise<{
+    total_rows: number;
+    success_count: number;
+    failed_count: number;
+    errors: { line_number: number; employment_id: string; error_message: string }[];
+  }>;
 }
 
 // --- Staging Logs (Unknown Users) ---

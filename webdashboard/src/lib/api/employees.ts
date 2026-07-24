@@ -245,7 +245,7 @@ export async function uploadTerminationImportPreview(
     body: formData,
   });
   if (!res.ok) await ApiError.rejectResponse(res);
-  return res.json();
+  return res.json() as Promise<TerminationPreviewResponse>;
 }
 
 /** Confirm employee bulk terminations */
