@@ -8,7 +8,7 @@ use crate::queue::{Job, JobPayload, JobPriority, LeaveImportChunkPayload, TaskTy
 use crate::services::import_messages::LeaveImportMessages;
 use crate::services::import_pipeline::ImportPipeline;
 use crate::services::leave_import_service::LeaveImportStrategy;
-use crate::services::leave_service::LeaveService;
+use crate::services::leave_service::{LeaveService, LeaveSubmission};
 use chrono_tz::Tz;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -251,22 +251,26 @@ impl LeaveImportChunkHandler {
 
         let employee_repo = Arc::clone(&deps.employee_repo);
         let employment_repo = Arc::clone(&deps.employment_repo);
-        let leave_balance_repo = Arc::clone(&deps.leave_balance_repo);
-        let leave_request_repo = Arc::clone(&deps.leave_request_repo);
         let roster_repo = Arc::clone(&deps.roster_repo);
         let leave_accrual_log_repo = Arc::clone(&deps.leave_accrual_log_repo);
-        let leave_service = LeaveService::new(
-            leave_balance_repo,
-            leave_request_repo,
-            Arc::clone(&employee_repo),
-            employment_repo,
-            roster_repo,
-            leave_accrual_log_repo,
-            Arc::clone(&deps.workspace_config_repo),
-            Arc::clone(&deps.user_repo),
-            Arc::clone(&deps.workspace_repo),
-            Some(Arc::clone(cache)),
-        );
+
+        let leave_submission: Arc<dyn LeaveSubmission> = deps
+            .leave_submission
+            .clone()
+            .unwrap_or_else(|| {
+                Arc::new(LeaveService::new(
+                    Arc::clone(&deps.leave_balance_repo),
+                    Arc::clone(&deps.leave_request_repo),
+                    Arc::clone(&employee_repo),
+                    Arc::clone(&employment_repo),
+                    Arc::clone(&roster_repo),
+                    Arc::clone(&leave_accrual_log_repo),
+                    Arc::clone(&deps.workspace_config_repo),
+                    Arc::clone(&deps.user_repo),
+                    Arc::clone(&deps.workspace_repo),
+                    Some(Arc::clone(cache)),
+                ))
+            });
 
         let strategy = LeaveImportStrategy {
             msgs,
@@ -274,7 +278,7 @@ impl LeaveImportChunkHandler {
             user_id: payload.user_id,
             employees_cache: HashMap::new(),
             leave_types_cache: HashMap::new(),
-            leave_service,
+            leave_submission,
         };
 
         let pipeline = ImportPipeline {

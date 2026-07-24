@@ -10,6 +10,7 @@ use crate::repositories::outbox_job_repository::OutboxJobRepository;
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::AttendancePolicyRepository;
 use crate::repositories::TimeEntryRepository;
+use crate::services::leave_service::LeaveSubmission;
 use crate::worker::pairing_scheduler::PairingNotifier;
 
 /// Shared, pre-built repository instances for worker handlers.
@@ -53,6 +54,9 @@ pub struct WorkerDeps {
     /// pass it to `AttendanceLogService` so INSERTs fire notifications to the
     /// `PairingScheduler` instead of triggering inline `process_new_raw_log`.
     pub pairing_notifier: Option<Arc<PairingNotifier>>,
+    /// Leave submission service — set via [`Self::with_leave_submission`]
+    /// for workers that need to submit leave requests (e.g., leave import).
+    pub leave_submission: Option<Arc<dyn LeaveSubmission>>,
 }
 
 impl WorkerDeps {
@@ -157,7 +161,15 @@ impl WorkerDeps {
                 diesel.clone(),
             )),
             pairing_notifier: None,
+            leave_submission: None,
         }
+    }
+
+    /// Inject a leave submission service for workers that need it.
+    #[must_use]
+    pub fn with_leave_submission(mut self, svc: Arc<dyn LeaveSubmission>) -> Self {
+        self.leave_submission = Some(svc);
+        self
     }
 
     /// Build a [`AttendanceSummaryService`](crate::services::AttendanceSummaryService)

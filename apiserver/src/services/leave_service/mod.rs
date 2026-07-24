@@ -8,15 +8,12 @@ mod workflow;
 mod tests;
 
 use std::sync::Arc;
+use uuid::Uuid;
 
 // These re-exports exist only so the test module's `use super::*;` can find
 // items that were previously in this file before decomposition.
 #[cfg(test)]
 pub(super) use chrono::Utc;
-#[cfg(test)]
-pub(super) use crate::errors::AppError;
-#[cfg(test)]
-pub(super) use uuid::Uuid;
 #[cfg(test)]
 pub(super) use crate::models::{LeaveDurationType, LeaveStatus};
 
@@ -42,6 +39,22 @@ pub struct LeaveService {
     config_cache: Option<crate::cache::ConfigCache>,
     cache: Option<Arc<dyn crate::repositories::CacheRepository>>,
     diesel_pools: Option<crate::diesel_pool::DieselPools>,
+}
+
+use crate::errors::AppError;
+use crate::models::{LeaveRequest, SubmitLeaveRequest};
+
+/// Minimal interface for submitting leave requests — used to decouple
+/// the import worker from the concrete [`LeaveService`] constructor.
+#[async_trait::async_trait]
+pub trait LeaveSubmission: Send + Sync {
+    async fn submit_leave_request(
+        &self,
+        workspace_id: Uuid,
+        user_id: Uuid,
+        req: SubmitLeaveRequest,
+        auto_approve: bool,
+    ) -> Result<LeaveRequest, AppError>;
 }
 
 impl LeaveService {
@@ -84,5 +97,18 @@ impl LeaveService {
     pub fn with_diesel_pools(mut self, pools: crate::diesel_pool::DieselPools) -> Self {
         self.diesel_pools = Some(pools);
         self
+    }
+}
+
+#[async_trait::async_trait]
+impl LeaveSubmission for LeaveService {
+    async fn submit_leave_request(
+        &self,
+        workspace_id: Uuid,
+        user_id: Uuid,
+        req: SubmitLeaveRequest,
+        auto_approve: bool,
+    ) -> Result<LeaveRequest, AppError> {
+        self.submit_leave_request(workspace_id, user_id, req, auto_approve).await
     }
 }

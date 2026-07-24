@@ -12,6 +12,7 @@ use uuid::Uuid;
 use crate::errors::AppResult;
 use crate::models::{LeaveDurationType, SubmitLeaveRequest};
 use crate::services::import_messages::LeaveImportMessages;
+use crate::services::leave_service::LeaveSubmission;
 use crate::services::leave_service::LeaveService;
 use crate::utils::i18n::I18nKey;
 
@@ -41,7 +42,7 @@ pub struct LeaveImportStrategy {
     pub user_id: Uuid,
     pub employees_cache: std::collections::HashMap<String, Uuid>,
     pub leave_types_cache: std::collections::HashMap<String, Uuid>,
-    pub leave_service: LeaveService,
+    pub leave_submission: Arc<dyn LeaveSubmission>,
 }
 
 #[async_trait::async_trait]
@@ -245,7 +246,7 @@ impl ImportStrategy for LeaveImportStrategy {
         };
 
         match self
-            .leave_service
+            .leave_submission
             .submit_leave_request(job.workspace_id, self.user_id, submit, self.auto_approve)
             .await
         {
@@ -302,18 +303,24 @@ impl LeaveImportService {
 
         let msgs = LeaveImportMessages::for_lang(&lang);
 
-        let leave_service = LeaveService::new(
-            Arc::clone(&self.deps.leave_balance_repo),
-            Arc::clone(&self.deps.leave_request_repo),
-            Arc::clone(&self.deps.employee_repo),
-            Arc::clone(&self.deps.employment_repo),
-            Arc::clone(&self.deps.roster_repo),
-            Arc::clone(&self.deps.leave_accrual_log_repo),
-            Arc::clone(&self.deps.workspace_config_repo),
-            Arc::clone(&self.deps.user_repo),
-            Arc::clone(&self.deps.workspace_repo),
-            None,
-        );
+        let leave_submission: Arc<dyn LeaveSubmission> = self
+            .deps
+            .leave_submission
+            .clone()
+            .unwrap_or_else(|| {
+                Arc::new(LeaveService::new(
+                    Arc::clone(&self.deps.leave_balance_repo),
+                    Arc::clone(&self.deps.leave_request_repo),
+                    Arc::clone(&self.deps.employee_repo),
+                    Arc::clone(&self.deps.employment_repo),
+                    Arc::clone(&self.deps.roster_repo),
+                    Arc::clone(&self.deps.leave_accrual_log_repo),
+                    Arc::clone(&self.deps.workspace_config_repo),
+                    Arc::clone(&self.deps.user_repo),
+                    Arc::clone(&self.deps.workspace_repo),
+                    None,
+                ))
+            });
 
         let strategy = LeaveImportStrategy {
             msgs,
@@ -321,7 +328,7 @@ impl LeaveImportService {
             user_id,
             employees_cache: std::collections::HashMap::new(),
             leave_types_cache: std::collections::HashMap::new(),
-            leave_service,
+            leave_submission,
         };
 
         let pipeline = ImportPipeline {

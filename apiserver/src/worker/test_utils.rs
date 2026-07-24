@@ -393,6 +393,7 @@ impl MockWorkerDepsBuilder {
                 "postgres://user:pass@localhost:5432/leeattend_test_db",
             ),
             pairing_notifier: None,
+            leave_submission: None,
         }
     }
 }
