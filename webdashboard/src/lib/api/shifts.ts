@@ -1,8 +1,23 @@
+import type { components } from "@/types/api-generated";
+
 import type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster, CreateShiftRequest, UpdateShiftRequest, UpsertRosterRequest, ShiftVersionHistoryItem } from "./types";
 
 import { client } from "./client";
 import { ApiError, type AppErrorResponse, ComplianceConflictError, parseComplianceConflict } from "./errors";
 import { apiFetch, TIMEOUT } from "./helpers";
+
+// ── Schema-gap override type ────────────────────────────────────────────────
+// The generated CreateRosterRequest schema lacks allow_warnings + override_reason
+// fields that the backend accepts. This extension bridges the gap until the
+// OpenAPI schema is updated and api-generated.ts is regenerated.
+// TODO: Add allow_warnings + override_reason to the backend OpenAPI schema,
+//       regenerate api-generated.ts, then delete this type and use
+//       components["schemas"]["CreateRosterRequest"] directly.
+
+type UpsertRosterRequestBody = components["schemas"]["CreateRosterRequest"] & {
+  allow_warnings?: boolean | undefined;
+  override_reason?: string | undefined;
+};
 
 
 export async function fetchShifts(wsId: string): Promise<Shift[]> {
@@ -102,21 +117,14 @@ export async function upsertRoster(
   employeeId: string,
   data: Omit<UpsertRosterRequest, 'employment_id'> & { allow_warnings?: boolean; override_reason?: string }
 ): Promise<ShiftRoster> {
-  // TODO: Add allow_warnings + override_reason to openapi.raw.json CreateRosterRequest schema,
-  //       regenerate types, then replace Record<string, unknown> with proper typed body.
-  const body: Record<string, unknown> = { ...data, employment_id: employeeId };
+  const body: UpsertRosterRequestBody = { ...data, employment_id: employeeId };
   // Only include override fields when explicitly set so they don't pollute normal requests.
   if (data.allow_warnings !== undefined) body.allow_warnings = data.allow_warnings;
   if (data.override_reason !== undefined) body.override_reason = data.override_reason;
-  // TODO: Add allow_warnings + override_reason to openapi.raw.json CreateRosterRequest schema,
-  //       regenerate types, then replace Record<string, unknown> + cast with proper typed body.
   const { data: result } = await client.POST("/workspaces/{workspace_id}/employees/{id}/rosters", {
     params: {
       path: { workspace_id: wsId, id: employeeId },
     },
-    // TODO: Add allow_warnings + override_reason to openapi.raw.json CreateRosterRequest schema,
-    //       regenerate types, then remove this cast.
-    // @ts-expect-error — override fields accepted by backend but not yet in generated schema
     body,
   });
   return result;

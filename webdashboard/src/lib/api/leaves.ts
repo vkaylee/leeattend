@@ -1,32 +1,33 @@
 /* eslint-disable max-lines -- API wrapper: 400+ lines of thin exported functions; splitting would scatter imports */
-import type { paths } from "@/types/api-generated";
+import type { components } from "@/types/api-generated";
 
-import type { LeavePolicyAssignmentDetail, LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, LeaveDurationType, PaginatedResponse, BehalfAssignment, CreateBehalfAssignmentRequest } from './types';
+import type { LeavePolicyAssignmentDetail, LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, PaginatedResponse, BehalfAssignment, CreateBehalfAssignmentRequest } from './types';
 
 import { client, fetch } from "./client";
 import { API_BASE_URL } from './config';
 import { ApiError } from "./errors";
 import { apiFetch } from "./helpers";
 
+// ── Typed request body aliases (from generated OpenAPI schema) ──────────────
+// These replace handwritten inline types that required `as never` casts.
+// Source: components["schemas"] in api-generated.ts
+
+type SubmitLeaveRequestBody = components["schemas"]["SubmitLeaveRequest"];
+type ApproveLeaveRequestBody = components["schemas"]["ApproveLeaveRequest"];
+type AdjustBalanceRequestBody = components["schemas"]["AdjustBalanceRequest"];
+type CreateLeaveTypeRequestBody = components["schemas"]["CreateLeaveTypeRequest"];
+type AssignLeavePolicyRequestBody = components["schemas"]["AssignLeavePolicyRequest"];
+type TriggerAccrualRequestBody = components["schemas"]["TriggerAccrualRequest"];
+
 export async function submitLeaveRequest(
   wsId: string,
-  data: {
-    employment_id: string;
-    leave_type_id: string;
-    start_date: string;
-    end_date: string;
-    reason?: string;
-    duration_type?: LeaveDurationType;
-    start_time?: string;
-    end_time?: string;
-    attachment_file_ids?: string[];
-  },
+  data: SubmitLeaveRequestBody,
 ): Promise<LeaveRequest> {
   const { data: resData } = await client.POST("/workspaces/{ws_id}/leave/submit", {
     params: {
       path: { ws_id: wsId },
     },
-    body: data as never,
+    body: data,
   });
   return resData;
 }
@@ -68,13 +69,13 @@ export async function fetchMyLeaveRequests(
 export async function approveLeaveRequest(
   wsId: string,
   requestId: string,
-  data: paths["/workspaces/{ws_id}/leave/requests/{id}/approve"]["post"]["requestBody"]["content"]["application/json"]
+  data: ApproveLeaveRequestBody,
 ): Promise<void> {
   await client.POST("/workspaces/{ws_id}/leave/requests/{id}/approve", {
     params: {
       path: { ws_id: wsId, id: requestId },
     },
-    body: data as never,
+    body: data,
   });
 }
 
@@ -125,13 +126,13 @@ export async function fetchLeaveHistory(
 export async function adjustLeaveBalance(
   wsId: string,
   employeeId: string,
-  data: { leave_type_id: string; amount: number; reason: string; transaction_date: string }
+  data: AdjustBalanceRequestBody,
 ): Promise<void> {
   await client.POST("/workspaces/{ws_id}/employees/{id}/leave/adjust", {
     params: {
       path: { ws_id: wsId, id: employeeId },
     },
-    body: data as never,
+    body: data,
   });
 }
 
@@ -148,7 +149,8 @@ export async function createLeavePolicy(
 ): Promise<LeavePolicy> {
   const { data: resData } = await client.POST("/workspaces/{ws_id}/leave/policies", {
     params: { path: { ws_id: wsId } },
-    body: data as never,
+    // @ts-expect-error — caller passes Partial<LeavePolicy> which differs from CreateLeavePolicyRequest schema type
+    body: data,
   });
   return resData as LeavePolicy;
 }
@@ -160,7 +162,8 @@ export async function updateLeavePolicy(
 ): Promise<LeavePolicy> {
   const { data: resData } = await client.PATCH("/workspaces/{ws_id}/leave/policies/{policy_id}", {
     params: { path: { ws_id: wsId, policy_id: policyId } },
-    body: data as never,
+    // @ts-expect-error — caller passes Partial<LeavePolicy> which differs from UpdateLeavePolicyRequest schema type
+    body: data,
   });
   return resData as LeavePolicy;
 }
@@ -187,13 +190,13 @@ export async function fetchLeaveTypes(wsId: string): Promise<LeaveType[]> {
 
 export async function createLeaveType(
   wsId: string,
-  data: { code: string; is_paid: boolean; name: string; policy_config?: LeaveTypeConfig }
+  data: CreateLeaveTypeRequestBody
 ): Promise<LeaveType> {
   const { data: resData } = await client.POST("/workspaces/{workspace_id}/leave/types", {
     params: {
       path: { workspace_id: wsId },
     },
-    body: data as never,
+    body: data,
   });
   return resData;
 }
@@ -233,13 +236,13 @@ export async function fetchLeavePolicyAssignments(wsId: string): Promise<LeavePo
 
 export async function assignLeavePolicy(
   wsId: string,
-  data: { assignee_type: string; assignee_id: string | null; policy_id: string; effective_from: string }
+  data: AssignLeavePolicyRequestBody
 ): Promise<void> {
   await client.POST("/workspaces/{ws_id}/leave/policies/assign", {
     params: {
       path: { ws_id: wsId },
     },
-    body: data as never,
+    body: data,
   });
 }
 
@@ -262,13 +265,13 @@ export interface AccrualJobResponse {
 
 export async function triggerAccrualRun(
   wsId: string,
-  data: { date: string }
+  data: TriggerAccrualRequestBody
 ): Promise<AccrualJobResponse> {
   const { data: resData } = await client.POST("/workspaces/{ws_id}/leave/accrual/run", {
     params: {
       path: { ws_id: wsId },
     },
-    body: data as never,
+    body: data,
   });
   return resData;
 }

@@ -56,7 +56,8 @@ export const approvalWorkflowsApi = {
   updateWorkflow: async (workspaceId: string, id: string, payload: UpdateWorkflowRequest): Promise<ApprovalWorkflow> => {
     const { data: resData } = await client.PUT("/workspaces/{ws_id}/approval-workflows/{id}", {
       params: { path: { ws_id: workspaceId, id } },
-      body: payload as never,
+      // @ts-expect-error — schema expects CreateWorkflowRequest but backend accepts partial UpdateWorkflowRequest (TODO: fix OpenAPI schema)
+      body: payload,
     });
     return resData;
   },

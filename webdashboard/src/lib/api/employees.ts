@@ -9,13 +9,20 @@ import type {
   CompensationHistoryResponse,
 } from "./types";
 
+// ── Typed request body aliases (from generated OpenAPI schema) ──────────────
+// Used as documentation only; callers currently pass Partial<Employee> which
+// includes extra fields. TODO: migrate callers to use these strict request types.
+
+type _CreateEmployeeBody = components["schemas"]["CreateEmployeeRequest"];
+type _UpdateEmployeeBody = components["schemas"]["UpdateEmployeeRequest"];
+
 // Employment is already exported from types.ts; re-exporting here causes
 // a duplicate when both modules are barrel-re-exported together.
  
 export type { Employment } from "./types";
 
-import { ApiError } from "./errors";
 import { client } from "./client";
+import { ApiError } from "./errors";
 import { apiFetch } from "./helpers";
 
 export * from "./employee-phases";
@@ -127,7 +134,8 @@ export async function createEmployee(
     params: {
       path: { workspace_id: wsId },
     },
-    body: employee as never,
+    // @ts-expect-error — callers pass Partial<Employee> which is broader than CreateEmployeeRequest; TODO: narrow callers to schema type
+    body: employee,
   });
   return data;
 }
@@ -141,7 +149,7 @@ export async function updateEmployee(
     params: {
       path: { workspace_id: wsId, id },
     },
-    body: employee as never,
+    body: employee,
   });
   return data;
 }
