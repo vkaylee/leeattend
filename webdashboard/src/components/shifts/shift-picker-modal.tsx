@@ -1,6 +1,5 @@
 import { Clock, Info, Search } from "lucide-react";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
+import React from "react";
 
 import type { ShiftWithIntervals } from "@/pages/shifts/hooks/use-shifts-types";
 
@@ -8,43 +7,17 @@ import SearchBox from "@/components/common/search-box";
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Shift } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { readFrequentShifts, writeFrequentShift, getTopFrequentIds } from "@/lib/frequent-shifts-storage";
-import type { FrequentMap } from "@/lib/frequent-shifts-storage";
-import { isNightShift, isSplitShift, shiftMatchesQuery } from "./shift-utils";
 
-// ── Types ────────────────────────────────────────────────────────────
+import {
+  useShiftPicker,
+  type FilterChip,
+  FILTER_CHIPS,
+  getShiftBadge,
+} from "./hooks/use-shift-picker";
 
-type FilterChip = "all" | "frequent" | "night" | "single" | "split";
-
-// ── Color badge helpers ──────────────────────────────────────────────
-
-interface ShiftBadgeStyle {
-  bg: string;
-  dot: string;
-  label: string;
-}
-
-function getShiftBadge(shift: Shift, t: (key: string) => string): ShiftBadgeStyle {
-  if (isNightShift(shift)) {
-    return { bg: "bg-indigo-50 dark:bg-indigo-950/40", dot: "bg-indigo-500", label: t("shifts.picker.filter_night") };
-  }
-  if (isSplitShift(shift)) {
-    return { bg: "bg-teal-50 dark:bg-teal-950/40", dot: "bg-teal-500", label: t("shifts.picker.filter_split") };
-  }
-  const typed = shift as ShiftWithIntervals;
-  const firstStart = typed.intervals?.[0]?.start_time ?? "";
-  // Morning shifts: start before 12:00
-  if (firstStart < "12:00") {
-    return { bg: "bg-amber-50 dark:bg-amber-950/40", dot: "bg-amber-500", label: "" };
-  }
-  // Evening/afternoon shifts
-  return { bg: "bg-slate-100 dark:bg-slate-800", dot: "bg-slate-400", label: "" };
-}
-
-// ── ShiftTimeBadge (existing, moved outside for clarity) ─────────────
+// ── ShiftTimeBadge ──────────────────────────────────────────────────
 
 interface ShiftTimeProps {
   formatTime: (v: string) => string;
@@ -80,20 +53,61 @@ function ShiftTimeBadge({ shift, formatTime, t }: ShiftTimeProps) {
   );
 }
 
-// ── Filter chip definitions ──────────────────────────────────────────
+// ── ShiftButton ─────────────────────────────────────────────────────
 
-interface ChipDef {
-  key: FilterChip;
-  labelKey: string;
+function ShiftButton({
+  shift,
+  onClick,
+  formatTime,
+  t,
+}: {
+  formatTime: (v: string) => string;
+  onClick: () => void;
+  shift: Shift;
+  t: (key: string) => string;
+}) {
+  const badge = getShiftBadge(shift, t);
+
+  return (
+    <Button
+      className={cn(
+        "p-5 rounded-[28px] border-2 text-left transition-all relative overflow-hidden group w-full",
+        "hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950/30",
+        "border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30"
+      )}
+      onClick={onClick}
+      variant="ghost"
+    >
+      {/* Color strip */}
+      <div className={cn("absolute left-0 top-0 bottom-0 w-1.5 rounded-l-full", badge.dot)} />
+
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-bold text-sm uppercase tracking-tight text-slate-700 dark:text-slate-200">{shift.name}</div>
+          {shift.report_symbol && (
+            <span className="text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded ml-0">
+              [{shift.report_symbol}]
+            </span>
+          )}
+          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
+            <ShiftTimeBadge formatTime={formatTime} shift={shift} t={t} />
+          </div>
+        </div>
+
+        {/* Badge pill */}
+        {badge.label && (
+          <span className={cn(
+            "shrink-0 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider",
+            badge.bg,
+            badge.dot.replace("bg-", "text-").replace("-500", "-600").replace("-400", "-500") + " dark:" + badge.dot.replace("bg-", "text-").replace("-500", "-400").replace("-400", "-300")
+          )}>
+            {badge.label}
+          </span>
+        )}
+      </div>
+    </Button>
+  );
 }
-
-const FILTER_CHIPS: ChipDef[] = [
-  { key: "all", labelKey: "shifts.picker.filter_all" },
-  { key: "frequent", labelKey: "shifts.picker.filter_frequent" },
-  { key: "night", labelKey: "shifts.picker.filter_night" },
-  { key: "single", labelKey: "shifts.picker.filter_single" },
-  { key: "split", labelKey: "shifts.picker.filter_split" },
-];
 
 // ── Props ────────────────────────────────────────────────────────────
 
@@ -110,133 +124,24 @@ interface ShiftPickerModalProps {
 export function ShiftPickerModal({
   isOpen, onClose, targetDates, shifts, onSelectShift,
 }: ShiftPickerModalProps) {
-  const { t } = useTranslation();
-  const { formatTime } = useDateTimeFormatter();
-
-  // ── State ────────────────────────────────────────────────────────
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeChip, setActiveChip] = useState<FilterChip>("all");
-  const [frequentMap, setFrequentMap] = useState<FrequentMap>({});
-  const [selectedLocationId, setSelectedLocationId] = useState<string>("");
-  const [selectedEmployerId, setSelectedEmployerId] = useState<string>("");
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // Reset state on open, and auto-focus search input
-  useEffect(() => {
-    if (isOpen) {
-      setSearchQuery("");
-      setActiveChip("all");
-      setSelectedLocationId("");
-      setSelectedEmployerId("");
-      setFrequentMap(readFrequentShifts());
-      // Small delay for modal animation to finish before focusing
-      const timer = setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 100);
-      return () => { clearTimeout(timer); };
-    }
-  }, [isOpen]);
-
-  // ── Frequent shift IDs ───────────────────────────────────────────
-  const frequentIds = useMemo(() => getTopFrequentIds(frequentMap), [frequentMap]);
-
-  // ── Unique location/employer IDs across all shifts ──────────────
-  const { locationIds, employerIds } = useMemo(() => {
-    const all = shifts ?? [];
-    const locIds = [...new Set(all.map((s) => s.location_id).filter(Boolean))] as string[];
-    const empIds = [...new Set(all.map((s) => s.employer_id).filter(Boolean))] as string[];
-    return { locationIds: locIds, employerIds: empIds };
-  }, [shifts]);
-
-  // ── Derived: filtered + grouped shifts ───────────────────────────
-  const { filtered, hasFrequent } = useMemo(() => {
-    const all = shifts ?? [];
-
-    // Step 1: apply search
-    const searched = searchQuery.trim()
-      ? all.filter((s) => shiftMatchesQuery(s, searchQuery))
-      : all;
-
-    // Step 2: apply filter chip
-    let chipFiltered = searched;
-    switch (activeChip) {
-      case "night":
-        chipFiltered = searched.filter((s) => isNightShift(s));
-        break;
-      case "single":
-        chipFiltered = searched.filter((s) => !isSplitShift(s));
-        break;
-      case "split":
-        chipFiltered = searched.filter((s) => isSplitShift(s));
-        break;
-      case "frequent":
-        chipFiltered = searched.filter((s) => frequentIds.includes(s.id));
-        break;
-      default:
-        // "all" — no additional filtering
-        break;
-    }
-
-    // Step 2.5: apply location/employer scope filters
-    let scopeFiltered = chipFiltered;
-    if (selectedLocationId) {
-      scopeFiltered = scopeFiltered.filter((s) => s.location_id === selectedLocationId);
-    }
-    if (selectedEmployerId) {
-      scopeFiltered = scopeFiltered.filter((s) => s.employer_id === selectedEmployerId);
-    }
-
-    // Step 3: separate frequent from rest (only when "all" chip is active and no search)
-    const isDefault = activeChip === "all" && !searchQuery.trim() && !selectedLocationId && !selectedEmployerId;
-    const frequent = isDefault ? scopeFiltered.filter((s) => frequentIds.includes(s.id)) : [];
-    const rest = isDefault ? scopeFiltered.filter((s) => !frequentIds.includes(s.id)) : scopeFiltered;
-    const hasFreq = frequent.length > 0;
-
-    return { filtered: scopeFiltered, frequentShifts: frequent, restShifts: rest, hasFrequent: hasFreq };
-  }, [shifts, searchQuery, activeChip, frequentIds, selectedLocationId, selectedEmployerId]);
-
-  // ── Handlers ─────────────────────────────────────────────────────
-  const handleSelect = useCallback((shiftId: string | null) => {
-    if (shiftId) {
-      writeFrequentShift(shiftId);
-    }
-    onSelectShift(shiftId);
-    onClose();
-  }, [onSelectShift, onClose]);
-
-  const handleClearSearch = useCallback(() => {
-    setSearchQuery("");
-    setActiveChip("all");
-    setSelectedLocationId("");
-    setSelectedEmployerId("");
-    searchInputRef.current?.focus();
-  }, []);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      if (searchQuery) {
-        e.stopPropagation();
-        handleClearSearch();
-      }
-      // Otherwise, Modal's Radix Dialog handles Escape to close
-    }
-  }, [searchQuery, handleClearSearch]);
-
-  // ── Sorted frequent shifts (always computed, never conditional) ──
-  const sortedFrequentShifts = useMemo(() => {
-    const freq = frequentMap;
-    return [...((shifts ?? []).filter((s) => frequentIds.includes(s.id)))]
-      .sort((a, b) => (freq[b.id] ?? 0) - (freq[a.id] ?? 0));
-  }, [shifts, frequentIds, frequentMap]);
-
-  // ── Non-frequent filtered shifts ───────────────────────────────────
-  const nonFrequentFiltered = useMemo(() => {
-    if (!hasFrequent) return filtered as Shift[];
-    return (filtered as Shift[]).filter((s) => !frequentIds.includes(s.id));
-  }, [filtered, hasFrequent, frequentIds]);
-
-  // Derive whether the frequent chip should show (only when there's data)
-  const showFrequentChip = frequentIds.length > 0;
+  const picker = useShiftPicker({ isOpen, onSelectShift, onClose, shifts });
+  const {
+    searchQuery, setSearchQuery,
+    activeChip, setActiveChip,
+    selectedLocationId, setSelectedLocationId,
+    selectedEmployerId, setSelectedEmployerId,
+    searchInputRef,
+    formatTime, t,
+    locationIds, employerIds,
+    filtered,
+    hasFrequent,
+    sortedFrequentShifts,
+    nonFrequentFiltered,
+    showFrequentChip,
+    handleSelect,
+    handleClearSearch,
+    handleKeyDown,
+  } = picker;
 
   return (
     <Modal
@@ -406,61 +311,5 @@ export function ShiftPickerModal({
         </Button>
       </div>
     </Modal>
-  );
-}
-
-// ── Internal: Shift Button ───────────────────────────────────────────
-
-function ShiftButton({
-  shift,
-  onClick,
-  formatTime,
-  t,
-}: {
-  formatTime: (v: string) => string;
-  onClick: () => void;
-  shift: Shift;
-  t: (key: string) => string;
-}) {
-  const badge = getShiftBadge(shift, t);
-
-  return (
-    <Button
-      className={cn(
-        "p-5 rounded-[28px] border-2 text-left transition-all relative overflow-hidden group w-full",
-        "hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950/30",
-        "border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30"
-      )}
-      onClick={onClick}
-      variant="ghost"
-    >
-      {/* Color strip */}
-      <div className={cn("absolute left-0 top-0 bottom-0 w-1.5 rounded-l-full", badge.dot)} />
-
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="font-bold text-sm uppercase tracking-tight text-slate-700 dark:text-slate-200">{shift.name}</div>
-          {shift.report_symbol && (
-            <span className="text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded ml-0">
-              [{shift.report_symbol}]
-            </span>
-          )}
-          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
-            <ShiftTimeBadge formatTime={formatTime} shift={shift} t={t} />
-          </div>
-        </div>
-
-        {/* Badge pill */}
-        {badge.label && (
-          <span className={cn(
-            "shrink-0 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider",
-            badge.bg,
-            badge.dot.replace("bg-", "text-").replace("-500", "-600").replace("-400", "-500") + " dark:" + badge.dot.replace("bg-", "text-").replace("-500", "-400").replace("-400", "-300")
-          )}>
-            {badge.label}
-          </span>
-        )}
-      </div>
-    </Button>
   );
 }

@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { LayoutDashboard, Plus, LogOut, Database, Check, Loader2, DatabaseZap } from "lucide-react";
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { LABEL_BASE } from "@/components/ui/form-field";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Typography } from "@/components/ui/typography";
 import { useWorkspaces, workspaceKeys } from "@/hooks/use-workspace";
+import { useOnboardingProgress } from "@/pages/hooks/use-onboarding-progress";
 import { setCurrentWorkspaceId } from "@/lib/api";
 import { ROUTES } from "@/lib/routes";
 
@@ -137,13 +138,6 @@ function getValidationError(dbMode: "auto" | "byod", databaseUrl: string, t: (ke
     return isValid ? null : t("onboarding.db_validation_error");
   }
   return null;
-}
-
-function clearIntervalRef(ref: { current: NodeJS.Timeout | null }) {
-  if (ref.current !== null) {
-    clearInterval(ref.current);
-    ref.current = null;
-  }
 }
 
 interface OnboardingHeaderProps {
@@ -277,36 +271,23 @@ export default function OnboardingPage() {
   const [databaseUrl, setDatabaseUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  // Progress screen states
-  const [showProgress, setShowProgress] = useState(false);
-  const [progressPercent, setProgressPercent] = useState(0);
-  const [progressStep, setProgressStep] = useState(0);
+  const {
+    showProgress,
+    setShowProgress,
+    progressPercent,
+    setProgressPercent,
+    progressStep,
+    setProgressStep,
+    startProgressInterval,
+    clearProgressInterval,
+  } = useOnboardingProgress();
 
   const { createWorkspace } = useWorkspaces();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
   const validationError = getValidationError(dbMode, databaseUrl, t);
-
-  const startProgressInterval = () => {
-    progressIntervalRef.current = setInterval(() => {
-      setProgressPercent((prev) => {
-        if (prev >= 98) {
-          return 98;
-        }
-        const step = Math.random() * 4 + 1;
-        const nextPercent = Math.min(prev + step, 98);
-
-        const currentStep = nextPercent < 25 ? 1 : nextPercent < 60 ? 2 : nextPercent < 85 ? 3 : 4;
-        setProgressStep(currentStep);
-
-        return nextPercent;
-      });
-    }, 150);
-  };
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -327,7 +308,7 @@ export default function OnboardingPage() {
         database_url: dbMode === "byod" ? databaseUrl.trim() : undefined,
       });
 
-      clearIntervalRef(progressIntervalRef);
+      clearProgressInterval();
 
       setProgressPercent(100);
       setProgressStep(5);
@@ -336,10 +317,10 @@ export default function OnboardingPage() {
 
       setCurrentWorkspaceId(ws.id);
       queryClient.setQueryData(workspaceKeys.all, [ws]);
-      
+
       await navigate({ to: ROUTES.HOME, replace: true });
     } catch (error_: unknown) {
-      clearIntervalRef(progressIntervalRef);
+      clearProgressInterval();
       setShowProgress(false);
       setIsSubmitting(false);
 
