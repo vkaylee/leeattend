@@ -130,10 +130,51 @@ interface SafeClient {
   PUT: SafeMethod<"PUT">;
 }
 
-export const client = createClient<paths>({
+// ── SafeClient: typed wrapper with runtime guard ────────────────────
+// createClient<paths> returns FetchResponse<T> = { data } | { error },
+// but customFetch always throws ApiError on non-2xx, so the error branch
+// is unreachable at runtime. SafeClient encodes this invariant in the types,
+// giving every call-site a clean `{ data }` destructure.
+//
+// Each method goes through safeWrap which adds a runtime guard: if a 2xx
+// response somehow lands in the error branch (or data is missing), it
+// throws immediately rather than letting undefined data propagate silently.
+// See: .ai/ADRs/safe-client-wrapper.md
+
+const _rawClient = createClient<paths>({
   baseUrl: API_BASE_URL,
   fetch: customFetch,
-}) as unknown as SafeClient;
+});
+
+function safeWrap<M extends "GET" | "POST" | "PUT" | "PATCH" | "DELETE">(
+  method: M,
+): SafeMethod<M> {
+  return (async (url: any, ...init: any[]) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call -- raw openapi-fetch method call, types erased by safeWrap generic
+    const result = await (_rawClient[method] as Function)(url, ...init);
+    // Runtime guard: defend against a future where openapi-fetch stops
+    // respecting our customFetch throw-on-error contract and returns
+    // the error branch instead of throwing.  (data MAY be undefined on
+    // 204 No Content / empty-body DELETE responses — that is normal.)
+    if (result.error !== undefined) {
+      throw new ApiError(
+        result.response?.status ?? 500,
+        "SafeClient invariant violated",
+        "INVALID_RESPONSE",
+        { message: "API returned error branch or missing data on a response that passed customFetch" },
+      );
+    }
+    return result;
+  }) as SafeMethod<M>;
+}
+
+export const client: SafeClient = {
+  DELETE: safeWrap("DELETE"),
+  GET: safeWrap("GET"),
+  PATCH: safeWrap("PATCH"),
+  POST: safeWrap("POST"),
+  PUT: safeWrap("PUT"),
+};
 
 // ── Legacy escape hatch for paths not yet in the generated schema ──────────
 // Migrate callers to typed `client.GET()` / `client.POST()` whenever the

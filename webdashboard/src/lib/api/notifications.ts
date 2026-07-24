@@ -1,41 +1,29 @@
+import type { NotificationResponse, UnreadCountResponse } from "@/lib/api/types";
+
 import { client } from "./client";
 
-export type NotificationType = "leave_approved" | "leave_rejected" | "attendance_missing" | "system" | "message" | "info" | "alert" | (string & {});
+export type { Notification, NotificationResponse, UnreadCountResponse } from "@/lib/api/types";
 
-export interface AppNotification {
-  content: string;
-  created_at: string;
-  id: string;
-  is_read: boolean;
-  link: string | null;
-  title: string;
-  type: NotificationType;
-  user_id: string;
-}
-
-export interface NotificationResponse {
-  next_cursor: string | null;
-  notifications: AppNotification[];
-  unread_count: number;
-}
-
-export interface UnreadCountResponse {
-  count: number;
-}
+/**
+ * The notification type discriminator as declared by the API schema.
+ * Individual icon/display switches should handle specific known values
+ * and fall through to a default branch for future types.
+ */
+export type NotificationType = string;
 
 export async function fetchNotifications(
   limit = 20,
   cursor?: string
 ): Promise<NotificationResponse> {
-  const { data: resData } = await client.GET("/v1/notifications", {
+  const { data } = await client.GET("/v1/notifications", {
     params: { query: { limit, cursor } },
   });
-  return resData as unknown as NotificationResponse;
+  return data;
 }
 
 export async function fetchUnreadCount(): Promise<UnreadCountResponse> {
-  const { data: resData } = await client.GET(`/v1/notifications/unread-count`, {});
-  return resData;
+  const { data } = await client.GET(`/v1/notifications/unread-count`, {});
+  return data;
 }
 
 export async function markNotificationAsRead(id: string): Promise<void> {

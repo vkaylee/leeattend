@@ -10,7 +10,7 @@ import Button from "@/components/ui/button";
 import PageHeader from "@/components/ui/page-header";
 import { Typography } from "@/components/ui/typography";
 import { useNotifications } from "@/hooks/use-notifications";
-import { AppNotification, NotificationType } from "@/lib/api";
+import { Notification, NotificationType } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const getNotificationIcon = (type: NotificationType) => {
@@ -35,7 +35,7 @@ const NotificationItem = memo(({
   onMarkAsRead,
   t
 }: {
-  notification: AppNotification;
+  notification: Notification;
   currentLocale: Locale;
   onMarkAsRead: (id: string) => void;
   t: (key: string, defaultValue: string) => string;
@@ -108,7 +108,7 @@ const NotificationsList = memo(({
   currentLocale,
   t
 }: {
-  notifications: AppNotification[];
+  notifications: Notification[];
   isLoading: boolean;
   hasNextPage: boolean;
   isFetchingNextPage: boolean;

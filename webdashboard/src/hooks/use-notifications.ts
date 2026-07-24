@@ -2,7 +2,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import { useMemo } from "react";
 
 import {
-  AppNotification,
+  Notification,
   fetchNotifications,
   fetchUnreadCount,
   markAllNotificationsAsRead,
@@ -27,7 +27,7 @@ export interface UseNotificationsReturn {
   isMarkingAsRead: boolean;
   markAllAsRead: () => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
-  notifications: AppNotification[];
+  notifications: Notification[];
   unreadCount: number;
 }
 

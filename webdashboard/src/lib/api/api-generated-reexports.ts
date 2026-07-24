@@ -115,3 +115,6 @@ export type LifecycleChecklistType = components["schemas"]["LifecycleChecklistTy
 export type ValidTerminationRow = components["schemas"]["ValidTerminationRow"];
 export type InvalidTerminationRow = components["schemas"]["InvalidTerminationRow"];
 export type ProratedLeavePreview = components["schemas"]["ProratedLeavePreview"];
+export type Notification = components["schemas"]["Notification"];
+export type NotificationResponse = components["schemas"]["NotificationResponse"];
+export type UnreadCountResponse = components["schemas"]["UnreadCountResponse"];
