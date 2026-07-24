@@ -556,7 +556,9 @@
       "violation_weekly_hours": "Tổng giờ làm trong tuần vượt quá giới hạn ({{current}}h / {{limit}}h).",
       "violation_monthly_ot": "Giờ tăng ca trong tháng vượt quá giới hạn ({{current}}h OT / {{limit}}h).",
       "badge_warning": "Cảnh báo tuân thủ",
-      "badge_violation": "Vi phạm tuân thủ"
+      "badge_violation": "Vi phạm tuân thủ",
+      "no_violations": "Không phát hiện vi phạm tuân thủ.",
+      "violation_count": "{{count}} vi phạm được tìm thấy"
     },
     "label": "Ca làm & Lịch trực"
   },

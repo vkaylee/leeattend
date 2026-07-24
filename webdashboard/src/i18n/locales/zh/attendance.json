@@ -538,6 +538,21 @@
       "filter_all_locations": "所有地点",
       "filter_all_employers": "所有雇主"
     },
+    "compliance": {
+      "warning_title": "合规警告",
+      "override_reason_label": "覆盖原因",
+      "override_reason_placeholder": "请输入覆盖此合规警告的原因...",
+      "confirm_override": "确认覆盖",
+      "cancel": "取消",
+      "violation_overlap": "检测到班次重叠。该员工在此时间段已有其他班次。",
+      "violation_rest_period": "休息时间不足（间隔 {{gap}} 小时，要求 {{required}} 小时）。",
+      "violation_weekly_hours": "每周工作时间超出限制（{{current}}小时 / {{limit}}小时限制）。",
+      "violation_monthly_ot": "每月加班时间超出限制（{{current}}小时 OT / {{limit}}小时限制）。",
+      "badge_warning": "合规警告",
+      "badge_violation": "合规违规",
+      "no_violations": "未检测到合规违规。",
+      "violation_count": "发现 {{count}} 个违规"
+    },
     "label": "排班与日历"
   },
   "approvals": {

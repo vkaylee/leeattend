@@ -27,23 +27,21 @@ impl super::LeaveService {
     #[tracing::instrument(skip_all, err)]
     pub async fn approve_leave_request(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         user_id: Uuid,
         request_id: Uuid,
         req: ApproveLeaveRequest,
     ) -> Result<(), AppError> {
-        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
-
         let request = self
             .leave_request_repo
-            .get_leave_request_by_id(&auth_token, request_id)
+            .get_leave_request_by_id(auth_token, request_id)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
         // Verify employment of this request belongs to the workspace
         let _ = self
             .employment_repo
-            .get_employment_by_id(&auth_token, request.employment_id())
+            .get_employment_by_id(auth_token, request.employment_id())
             .await?
             .ok_or_else(|| AppError::forbidden(I18nKey::Forbidden))?;
 
@@ -52,7 +50,7 @@ impl super::LeaveService {
         // autocommit, which left the leave Approved even when conflict handling
         // or roster updates failed.
         if let Some(ref pools) = self.diesel_pools {
-            let mut conn = pools.tenant_transaction_conn(&auth_token).await?;
+            let mut conn = pools.tenant_transaction_conn(auth_token).await?;
             let repo = std::sync::Arc::clone(&self.leave_request_repo);
             let auth = auth_token;
             let status = req.status;
@@ -80,17 +78,17 @@ impl super::LeaveService {
         // and because roster side effects are currently no-ops and conflict handling
         // is a read-then-notify pattern.
         if req.status == LeaveStatus::Approved {
-            self.apply_leave_to_roster(workspace_id, &request).await?;
+            self.apply_leave_to_roster(auth_token.workspace_id(), &request).await?;
 
             // Fetch the updated request object to pass to the conflict checker
             // TODO: avoid double-fetch by having update_leave_request_status_tx return the updated row
             let updated_request = self
                 .leave_request_repo
-                .get_leave_request_by_id(&auth_token, request_id)
+                .get_leave_request_by_id(auth_token, request_id)
                 .await?
                 .ok_or_else(|| AppError::not_found(I18nKey::LeaveNotFoundAfterUpdate))?;
 
-            self.check_and_handle_conflicts(workspace_id, &updated_request)
+            self.check_and_handle_conflicts(auth_token, &updated_request)
                 .await?;
         }
 
@@ -100,7 +98,7 @@ impl super::LeaveService {
     #[tracing::instrument(skip_all, err)]
     pub async fn get_employee_leave_requests(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
     ) -> Result<Vec<LeaveRequest>, AppError> {
         // Verify employee belongs to workspace
@@ -108,14 +106,14 @@ impl super::LeaveService {
             .employee_repo
             .get_employee_by_id(
                 employee_id,
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
             )
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
         self.leave_request_repo
             .get_employee_leave_requests(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employee_id,
             )
             .await
@@ -124,12 +122,12 @@ impl super::LeaveService {
     #[tracing::instrument(skip_all, err)]
     pub async fn get_workspace_leave_requests(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         status: Option<LeaveStatus>,
     ) -> Result<Vec<LeaveRequest>, AppError> {
         self.leave_request_repo
             .get_workspace_leave_requests(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 status,
             )
             .await

@@ -123,7 +123,7 @@ impl PayrollService {
             .await?;
         let condition_type_catalog = PolicyResolverService::load_condition_type_catalog(
             self.condition_type_repo.as_ref(),
-            workspace_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
         )
         .await?;
 
@@ -259,7 +259,7 @@ impl PayrollService {
         let month_end_attendance_policy = PolicyResolverService::resolve_attendance_policy(
             &*self.policy_repo,
             employee_id,
-            workspace_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             end_date,
         )
         .await?;

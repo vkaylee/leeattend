@@ -247,7 +247,12 @@ impl ImportStrategy for LeaveImportStrategy {
 
         match self
             .leave_submission
-            .submit_leave_request(job.workspace_id, self.user_id, submit, self.auto_approve)
+            .submit_leave_request(
+                &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
+                self.user_id,
+                submit,
+                self.auto_approve,
+            )
             .await
         {
             Ok(res) => Ok(Some(res.id())),

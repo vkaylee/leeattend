@@ -16,14 +16,13 @@ impl crate::services::approval_workflow::WorkflowCallbackHandler for super::Leav
         status: &str,
         user_id: Uuid,
     ) -> Result<(), AppError> {
-        let workspace_id = auth_token.workspace_id();
         let leave_status = match status {
             "approved" => LeaveStatus::Approved,
             "rejected" => LeaveStatus::Rejected,
             _ => LeaveStatus::Pending,
         };
         self.approve_leave_request(
-            workspace_id,
+            auth_token,
             user_id,
             entity_id,
             ApproveLeaveRequest {

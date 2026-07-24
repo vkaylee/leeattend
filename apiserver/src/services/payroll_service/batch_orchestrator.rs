@@ -56,7 +56,7 @@ impl PayrollService {
 
         let condition_type_catalog = PolicyResolverService::load_condition_type_catalog(
             self.condition_type_repo.as_ref(),
-            workspace_id,
+            token,
         )
         .await
         .map_err(|e| AppError::Internal(format!("Failed to fetch condition type catalog: {e}")))?;

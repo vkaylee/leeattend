@@ -1,7 +1,7 @@
 import type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster, CreateShiftRequest, UpdateShiftRequest, UpsertRosterRequest, ShiftVersionHistoryItem } from "./types";
 
 import { client } from "./client";
-import { ApiError, ComplianceConflictError, parseComplianceConflict } from "./errors";
+import { ApiError, type AppErrorResponse, ComplianceConflictError, parseComplianceConflict } from "./errors";
 import { apiFetch, TIMEOUT } from "./helpers";
 
 
@@ -102,15 +102,22 @@ export async function upsertRoster(
   employeeId: string,
   data: Omit<UpsertRosterRequest, 'employment_id'> & { allow_warnings?: boolean; override_reason?: string }
 ): Promise<ShiftRoster> {
+  // TODO: Add allow_warnings + override_reason to openapi.raw.json CreateRosterRequest schema,
+  //       regenerate types, then replace Record<string, unknown> with proper typed body.
   const body: Record<string, unknown> = { ...data, employment_id: employeeId };
   // Only include override fields when explicitly set so they don't pollute normal requests.
   if (data.allow_warnings !== undefined) body.allow_warnings = data.allow_warnings;
   if (data.override_reason !== undefined) body.override_reason = data.override_reason;
+  // TODO: Add allow_warnings + override_reason to openapi.raw.json CreateRosterRequest schema,
+  //       regenerate types, then replace Record<string, unknown> + cast with proper typed body.
   const { data: result } = await client.POST("/workspaces/{workspace_id}/employees/{id}/rosters", {
     params: {
       path: { workspace_id: wsId, id: employeeId },
     },
-    body: body as Record<string, unknown>,
+    // TODO: Add allow_warnings + override_reason to openapi.raw.json CreateRosterRequest schema,
+    //       regenerate types, then remove this cast.
+    // @ts-expect-error — override fields accepted by backend but not yet in generated schema
+    body,
   });
   return result;
 }
@@ -124,7 +131,7 @@ export async function bulkUpsertRoster(
   // Bypass the openapi client here: bulk roster writes trigger per-day attendance
   // reprocessing on the backend and can exceed the default 10s timeout for large
   // selections. Use apiFetch directly with the long report-operation timeout.
-  const body: Record<string, unknown> = { items };
+  const body: { items: typeof items; allow_warnings?: boolean; override_reason?: string } = { items };
   if (opts?.allow_warnings !== undefined) body.allow_warnings = opts.allow_warnings;
   if (opts?.override_reason !== undefined) body.override_reason = opts.override_reason;
 
@@ -151,7 +158,7 @@ export async function bulkUpsertRoster(
       throw new ComplianceConflictError(
         response.status,
         response.statusText,
-        parsedBody as Record<string, unknown> | undefined,
+        parsedBody as AppErrorResponse | undefined,
         retry,
       );
     }
@@ -179,5 +186,5 @@ export async function getShiftVersions(
       path: { workspace_id: wsId, shift_id: shiftId },
     },
   });
-  return data ?? [];
+  return data;
 }

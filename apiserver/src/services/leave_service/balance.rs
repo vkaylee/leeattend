@@ -18,7 +18,7 @@ impl super::LeaveService {
     #[tracing::instrument(skip_all, err)]
     pub async fn get_workspace_balances(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         year: i32,
         params: crate::models::PaginationParams,
     ) -> Result<crate::models::PaginatedResponse<WorkspaceLeaveBalance>, AppError> {
@@ -29,7 +29,7 @@ impl super::LeaveService {
         let (data, total) = self
             .leave_balance_repo
             .get_workspace_balances(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 year,
                 limit,
                 offset,
@@ -53,7 +53,7 @@ impl super::LeaveService {
     #[allow(clippy::cast_precision_loss)]
     pub async fn get_employee_leave_history(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         year: i32,
         leave_type_id: Option<Uuid>,
@@ -61,7 +61,7 @@ impl super::LeaveService {
         let employments = self
             .employment_repo
             .list_employee_employments(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employee_id,
             )
             .await?;
@@ -74,7 +74,7 @@ impl super::LeaveService {
         let logs = self
             .leave_accrual_log_repo
             .get_employment_leave_history_logs_batch(
-                workspace_id,
+                auth_token.workspace_id(),
                 &employment_ids,
                 year,
                 leave_type_id,
@@ -84,7 +84,7 @@ impl super::LeaveService {
         let requests = self
             .leave_request_repo
             .get_employee_leave_history_requests(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employee_id,
                 year,
                 leave_type_id,
@@ -155,7 +155,7 @@ impl super::LeaveService {
     #[tracing::instrument(skip_all, err)]
     pub async fn adjust_balance(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         req: AdjustBalanceRequest,
     ) -> Result<(), AppError> {
@@ -164,7 +164,7 @@ impl super::LeaveService {
 
         self.leave_balance_repo
             .adjust_balance(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employee_id,
                 req.leave_type_id,
                 amount_dec,
@@ -177,7 +177,7 @@ impl super::LeaveService {
     #[tracing::instrument(skip_all, err)]
     pub async fn get_employee_balances(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         year: i32,
     ) -> Result<Vec<EmployeeLeaveBalance>, AppError> {
@@ -186,14 +186,14 @@ impl super::LeaveService {
             .employee_repo
             .get_employee_by_id(
                 employee_id,
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
             )
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
         self.leave_balance_repo
             .get_employee_balances(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employee_id,
                 year,
             )

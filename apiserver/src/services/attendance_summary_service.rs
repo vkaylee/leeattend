@@ -575,7 +575,7 @@ impl AttendanceSummaryService {
             &*self.employee_repo,
             &*self.condition_type_repo,
             employee_id,
-            workspace_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             date,
         )
         .await?;
@@ -585,7 +585,7 @@ impl AttendanceSummaryService {
             &*self.employee_repo,
             &*self.condition_type_repo,
             employee_id,
-            workspace_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             date,
             &ShiftPolicyOverrides::new(
                 daily_schedule.early_punch_in_grace_period_minutes(),

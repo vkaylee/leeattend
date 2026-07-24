@@ -556,7 +556,9 @@
       "violation_weekly_hours": "Weekly working hours exceeded ({{current}}h / {{limit}}h limit).",
       "violation_monthly_ot": "Monthly overtime exceeded ({{current}}h OT / {{limit}}h limit).",
       "badge_warning": "Compliance Warning",
-      "badge_violation": "Compliance Violation"
+      "badge_violation": "Compliance Violation",
+      "no_violations": "No compliance violations detected.",
+      "violation_count": "{{count}} violation(s) found"
     },
     "label": "Shifts & Roster"
   },

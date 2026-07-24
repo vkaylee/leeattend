@@ -50,7 +50,7 @@ use crate::models::{LeaveRequest, SubmitLeaveRequest};
 pub trait LeaveSubmission: Send + Sync {
     async fn submit_leave_request(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         user_id: Uuid,
         req: SubmitLeaveRequest,
         auto_approve: bool,
@@ -104,11 +104,11 @@ impl LeaveService {
 impl LeaveSubmission for LeaveService {
     async fn submit_leave_request(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         user_id: Uuid,
         req: SubmitLeaveRequest,
         auto_approve: bool,
     ) -> Result<LeaveRequest, AppError> {
-        self.submit_leave_request(workspace_id, user_id, req, auto_approve).await
+        self.submit_leave_request(auth_token, user_id, req, auto_approve).await
     }
 }

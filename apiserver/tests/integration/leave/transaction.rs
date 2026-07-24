@@ -48,7 +48,7 @@ async fn test_leave_service_transaction_successful_commit() {
     };
 
     let result = leave_service
-        .submit_leave_request(ws_id, owner_id, submit_req, true)
+        .submit_leave_request(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), owner_id, submit_req, true)
         .await;
 
     assert!(
@@ -104,7 +104,7 @@ async fn test_leave_service_transaction_rollback_invalid_employment() {
     };
 
     let result = leave_service
-        .submit_leave_request(ws_id, owner_id, submit_req, true)
+        .submit_leave_request(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), owner_id, submit_req, true)
         .await;
 
     assert!(

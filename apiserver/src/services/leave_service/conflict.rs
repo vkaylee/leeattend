@@ -79,15 +79,13 @@ impl super::LeaveService {
     #[allow(clippy::too_many_lines)]
     pub(super) async fn detect_conflicts(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         req: &LeaveRequest,
     ) -> Result<ConflictInfo, AppError> {
-        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
-
         // Fetch other leave requests of the employee
         let other_requests = self
-            .get_employee_leave_requests_cached(&auth_token, employee_id)
+            .get_employee_leave_requests_cached(auth_token, employee_id)
             .await?;
 
         let mut conflicting_leaves = Vec::new();
@@ -107,7 +105,7 @@ impl super::LeaveService {
         let (rosters, _) = self
             .roster_repo
             .get_employment_rosters(
-                &auth_token,
+                auth_token,
                 req.employment_id(),
                 req.start_date(),
                 req.end_date(),
@@ -133,7 +131,7 @@ impl super::LeaveService {
 
         // Get workspace conflict policy
         let policy = self
-            .resolve_conflict_policy(&auth_token, workspace_id, req.start_date())
+            .resolve_conflict_policy(auth_token, auth_token.workspace_id(), req.start_date())
             .await?;
 
         let should_auto_cancel = policy == "auto_cancel"
@@ -150,7 +148,7 @@ impl super::LeaveService {
     /// or full notify policy path (after the leave request is already committed).
     pub(super) async fn handle_conflict_post_tx(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         req: &LeaveRequest,
         info: &ConflictInfo,
     ) -> Result<(), AppError> {
@@ -163,7 +161,7 @@ impl super::LeaveService {
             // If there's a shift conflict, we still notify because we can't cancel the shift.
             if !info.conflicting_shifts.is_empty() {
                 self.send_conflict_notifications(
-                    workspace_id,
+                    auth_token,
                     req,
                     Vec::new(),
                     info.conflicting_shifts.clone(),
@@ -173,7 +171,7 @@ impl super::LeaveService {
         } else {
             // Policy is notify, or request is Pending: send notifications
             self.send_conflict_notifications(
-                workspace_id,
+                auth_token,
                 req,
                 info.conflicting_leaves.clone(),
                 info.conflicting_shifts.clone(),
@@ -187,32 +185,30 @@ impl super::LeaveService {
     #[allow(clippy::too_many_lines)]
     pub(super) async fn check_and_handle_conflicts(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         req: &LeaveRequest,
     ) -> Result<(), AppError> {
-        self.check_and_handle_conflicts_inner(workspace_id, req, None)
+        self.check_and_handle_conflicts_inner(auth_token, req, None)
             .await
     }
 
     #[allow(clippy::too_many_lines)]
     pub(super) async fn check_and_handle_conflicts_inner(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         req: &LeaveRequest,
         tx_conn: Option<&mut crate::diesel_pool::TransactionConn>,
     ) -> Result<(), AppError> {
-        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
-
         // 1. Get employee ID from employment
         let employment = self
-            .get_employment_cached(&auth_token, req.employment_id())
+            .get_employment_cached(auth_token, req.employment_id())
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
         let employee_id = employment.employee_id();
 
         // 2. Fetch other leave requests of the employee
         let other_requests = self
-            .get_employee_leave_requests_cached(&auth_token, employee_id)
+            .get_employee_leave_requests_cached(auth_token, employee_id)
             .await?;
 
         // Filter for conflicting leave requests (Approved or PreApproved, overlapping dates, excluding self)
@@ -233,7 +229,7 @@ impl super::LeaveService {
         let (rosters, _) = self
             .roster_repo
             .get_employment_rosters(
-                &auth_token,
+                auth_token,
                 req.employment_id(),
                 req.start_date(),
                 req.end_date(),
@@ -257,7 +253,7 @@ impl super::LeaveService {
 
         // 4. Get workspace conflict policy
         let policy = self
-            .resolve_conflict_policy(&auth_token, workspace_id, req.start_date())
+            .resolve_conflict_policy(auth_token, auth_token.workspace_id(), req.start_date())
             .await?;
 
         // 5. Handle conflict based on policy and current request status
@@ -268,21 +264,21 @@ impl super::LeaveService {
                 conflicting_leaves.iter().map(LeaveRequest::id).collect();
             if let Some(conn) = tx_conn {
                 self.leave_request_repo
-                    .bulk_cancel_leave_requests_tx(conn, &auth_token, &conflicting_ids)
+                    .bulk_cancel_leave_requests_tx(conn, auth_token, &conflicting_ids)
                     .await?;
             } else {
                 self.leave_request_repo
-                    .bulk_cancel_leave_requests(&auth_token, &conflicting_ids)
+                    .bulk_cancel_leave_requests(auth_token, &conflicting_ids)
                     .await?;
             }
             if !conflicting_shifts.is_empty() {
-                self.send_conflict_notifications(workspace_id, req, Vec::new(), conflicting_shifts)
+                self.send_conflict_notifications(auth_token, req, Vec::new(), conflicting_shifts)
                     .await?;
             }
         } else {
             // Policy is notify, or request is Pending: send notifications
             self.send_conflict_notifications(
-                workspace_id,
+                auth_token,
                 req,
                 conflicting_leaves,
                 conflicting_shifts,
@@ -295,12 +291,13 @@ impl super::LeaveService {
 
     pub(super) async fn send_conflict_notifications(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         req: &LeaveRequest,
         conflicting_leaves: Vec<LeaveRequest>,
         conflicting_shifts: Vec<crate::models::ShiftRoster>,
     ) -> Result<(), AppError> {
         let mut user_ids_to_notify = std::collections::HashSet::new();
+        let workspace_id = auth_token.workspace_id();
 
         // 1. Notify the submitter of the request
         if let Some(user_id) = req.requested_by_user_id() {

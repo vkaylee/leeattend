@@ -22,21 +22,25 @@ interface CustomFieldSectionProps {
   entityType: "employee" | "employment" | "department";
 }
 
+/** Allowed value types for custom field form state. */
+type CustomFieldFormValue = string | number | boolean | null;
+
 function buildInitialFormValues(
   definitions: CustomFieldDefinition[],
   values: CustomFieldValueResponse[],
-): Record<string, unknown> {
-  const initial: Record<string, unknown> = {};
+): Record<string, CustomFieldFormValue> {
+  const initial: Record<string, CustomFieldFormValue> = {};
   definitions.forEach((def) => {
     const valueObj = values.find((v) => v.definition_id === def.id);
-    initial[def.id] = valueObj ? valueObj.value : def.default_value ?? null;
+    const rawValue: unknown = valueObj ? valueObj.value : def.default_value ?? null;
+    initial[def.id] = rawValue as CustomFieldFormValue;
   });
   return initial;
 }
 
 function buildValidationErrors(
   definitions: CustomFieldDefinition[],
-  formValues: Record<string, unknown>,
+  formValues: Record<string, CustomFieldFormValue>,
 ): Record<string, string> {
   const nextErrors: Record<string, string> = {};
   definitions.forEach((def) => {
@@ -59,7 +63,7 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
   const toast = useToast();
 
   const [isEditing, setIsEditing] = useState(false);
-  const [formValues, setFormValues] = useState<Record<string, unknown>>({});
+  const [formValues, setFormValues] = useState<Record<string, CustomFieldFormValue>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // 1. Fetch definitions and values
@@ -88,7 +92,7 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
   };
 
   const handleValueChange = (defId: string, val: unknown) => {
-    setFormValues((prev) => ({ ...prev, [defId]: val }));
+    setFormValues((prev) => ({ ...prev, [defId]: val as CustomFieldFormValue }));
     if (errors[defId]) {
       setErrors((prev) => {
         const next = { ...prev };

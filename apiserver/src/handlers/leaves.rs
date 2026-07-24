@@ -96,7 +96,7 @@ pub async fn submit_leave_request(
     let request = state
         .leaves()
         .service()
-        .submit_leave_request(ctx.workspace_id, user_id, req, can_auto_approve)
+        .submit_leave_request(&ctx.auth_token, user_id, req, can_auto_approve)
         .await?;
 
     if !can_auto_approve {
@@ -153,7 +153,7 @@ pub async fn approve_leave_request(
     state
         .leaves()
         .service()
-        .approve_leave_request(ctx.workspace_id, user_id, id, req)
+        .approve_leave_request(&ctx.auth_token, user_id, id, req)
         .await?;
 
     Ok(StatusCode::OK)
@@ -206,7 +206,7 @@ pub async fn get_workspace_leave_balances(
     let balances = state
         .leaves()
         .service()
-        .get_workspace_balances(ctx.workspace_id, year, params)
+        .get_workspace_balances(&ctx.auth_token, year, params)
         .await?;
 
     Ok(Json(balances))
@@ -234,7 +234,7 @@ pub async fn get_employee_leave_balances(
     let balances = state
         .leaves()
         .service()
-        .get_employee_balances(ctx.workspace_id, emp_id, year)
+        .get_employee_balances(&ctx.auth_token, emp_id, year)
         .await?;
 
     Ok(Json(balances))
@@ -330,7 +330,7 @@ pub async fn get_employee_leave_history(
     let history = state
         .leaves()
         .service()
-        .get_employee_leave_history(ctx.workspace_id, emp_id, year, query.leave_type_id)
+        .get_employee_leave_history(&ctx.auth_token, emp_id, year, query.leave_type_id)
         .await?;
 
     Ok(Json(history))
@@ -360,7 +360,7 @@ pub async fn adjust_leave_balance(
     state
         .leaves()
         .service()
-        .adjust_balance(ctx.workspace_id, emp_id, req)
+        .adjust_balance(&ctx.auth_token, emp_id, req)
         .await?;
 
     Ok(StatusCode::OK)

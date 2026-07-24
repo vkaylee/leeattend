@@ -187,7 +187,7 @@ impl ReportService {
         let attendance_rules_map = PolicyResolverService::resolve_attendance_policy_batch(
             &*self.policy_repo,
             &emp_ids,
-            workspace.id(),
+            &auth_token,
             args.start_date,
         )
         .await?;
@@ -195,14 +195,14 @@ impl ReportService {
         let working_conditions_map = PolicyResolverService::resolve_attendance_rules_batch(
             &*self.employee_repo,
             &emp_ids,
-            workspace.id(),
+            &auth_token,
             args.start_date,
             args.end_date,
         )
         .await?;
         let condition_type_catalog = PolicyResolverService::load_condition_type_catalog(
             self.condition_type_repo.as_ref(),
-            workspace.id(),
+            &auth_token,
         )
         .await?;
 

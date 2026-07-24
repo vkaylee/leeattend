@@ -668,7 +668,7 @@
         let (svc, _, _, _, _) = build_service(None, true);
         let res = svc
             .get_workspace_balances(
-                Uuid::new_v4(),
+                &crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()),
                 2024,
                 crate::models::PaginationParams {
                     page: Some(1),
@@ -692,7 +692,7 @@
     async fn test_get_employee_leave_history_empty() {
         let (svc, _, _, _, _) = build_service(Some(dummy_employee()), true);
         let history = svc
-            .get_employee_leave_history(Uuid::new_v4(), Uuid::new_v4(), 2024, None)
+            .get_employee_leave_history(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), 2024, None)
             .await
             .unwrap();
         assert!(history.is_empty());
@@ -707,7 +707,7 @@
             transaction_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             reason: "Test".into(),
         };
-        svc.adjust_balance(Uuid::new_v4(), Uuid::new_v4(), req)
+        svc.adjust_balance(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), req)
             .await
             .unwrap();
         assert!(*bal_repo.adjust_called.lock().unwrap());
@@ -717,7 +717,7 @@
     async fn test_get_employee_balances_not_found() {
         let (svc, _, _, _, _) = build_service(None, true); // No employee mock
         let err = svc
-            .get_employee_balances(Uuid::new_v4(), Uuid::new_v4(), 2024)
+            .get_employee_balances(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), 2024)
             .await
             .unwrap_err();
         assert!(matches!(err, AppError::NotFound(_)));
@@ -727,7 +727,7 @@
     async fn test_get_employee_balances_success() {
         let (svc, _, _, _, _) = build_service(Some(dummy_employee()), true);
         let res = svc
-            .get_employee_balances(Uuid::new_v4(), Uuid::new_v4(), 2024)
+            .get_employee_balances(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), 2024)
             .await
             .unwrap();
         assert!(res.is_empty());
@@ -748,7 +748,7 @@
             attachment_file_ids: None,
         };
         let err = svc
-            .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, false)
+            .submit_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), req, false)
             .await
             .unwrap_err();
         assert!(matches!(err, AppError::NotFound(_)));
@@ -769,7 +769,7 @@
             attachment_file_ids: None,
         };
         let err = svc
-            .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, false)
+            .submit_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), req, false)
             .await
             .unwrap_err();
         assert!(matches!(err, AppError::Validation(_)));
@@ -790,7 +790,7 @@
             attachment_file_ids: None,
         };
         let res = svc
-            .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, true)
+            .submit_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), req, true)
             .await
             .unwrap();
         assert_eq!(res.status(), LeaveStatus::PreApproved);
@@ -810,7 +810,7 @@
             attachment_file_ids: None,
         };
         let err = svc
-            .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, false)
+            .submit_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), req, false)
             .await
             .unwrap_err();
         assert!(matches!(err, AppError::Validation(_)));
@@ -833,7 +833,7 @@
             attachment_file_ids: None,
         };
         let err = svc
-            .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req.clone(), false)
+            .submit_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), req.clone(), false)
             .await
             .unwrap_err();
         assert!(
@@ -845,7 +845,7 @@
         req.end_time = NaiveTime::from_hms_opt(10, 0, 0);
         req.end_date = NaiveDate::from_ymd_opt(2024, 1, 2).unwrap();
         let err = svc
-            .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req.clone(), false)
+            .submit_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), req.clone(), false)
             .await
             .unwrap_err();
         assert!(
@@ -857,7 +857,7 @@
         req.start_time = NaiveTime::from_hms_opt(10, 0, 0);
         req.end_time = NaiveTime::from_hms_opt(9, 0, 0);
         let err = svc
-            .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, false)
+            .submit_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), req, false)
             .await
             .unwrap_err();
         assert!(
@@ -873,7 +873,7 @@
             status: LeaveStatus::Approved,
         };
         let err = svc
-            .approve_leave_request(Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4(), req)
+            .approve_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), Uuid::new_v4(), req)
             .await
             .unwrap_err();
         assert!(matches!(err, AppError::NotFound(_)));
@@ -907,7 +907,7 @@
             status: LeaveStatus::Approved,
         };
         let err = svc
-            .approve_leave_request(Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4(), req)
+            .approve_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), Uuid::new_v4(), req)
             .await
             .unwrap_err();
         assert!(matches!(err, AppError::Forbidden(_)));
@@ -937,7 +937,7 @@
         let req = crate::models::ApproveLeaveRequest {
             status: LeaveStatus::Approved,
         };
-        svc.approve_leave_request(Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4(), req)
+        svc.approve_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), Uuid::new_v4(), req)
             .await
             .unwrap();
         assert!(*req_repo.update_called.lock().unwrap());
@@ -947,7 +947,7 @@
     async fn test_get_leave_history() {
         let (svc, _, _, _, _) = build_service(None, true);
         let res = svc
-            .get_employee_leave_history(Uuid::new_v4(), Uuid::new_v4(), 2024, None)
+            .get_employee_leave_history(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), 2024, None)
             .await
             .unwrap();
         assert_eq!(res.len(), 0);
@@ -957,7 +957,7 @@
     async fn test_get_employee_leave_requests() {
         let (svc, _, _, _, _) = build_service(Some(dummy_employee()), true);
         let result = svc
-            .get_employee_leave_requests(Uuid::new_v4(), Uuid::new_v4())
+            .get_employee_leave_requests(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4())
             .await;
         assert!(result.is_ok());
     }
@@ -965,7 +965,7 @@
     #[tokio::test]
     async fn test_get_workspace_leave_requests() {
         let (svc, _, _, _, _) = build_service(None, true);
-        let result = svc.get_workspace_leave_requests(Uuid::new_v4(), None).await;
+        let result = svc.get_workspace_leave_requests(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), None).await;
         assert!(result.is_ok());
     }
     #[tokio::test]
@@ -1005,7 +1005,7 @@
         log_repo.history_logs.lock().unwrap().push(log_item_adj);
 
         let res = svc
-            .get_employee_leave_history(Uuid::new_v4(), Uuid::new_v4(), 2024, None)
+            .get_employee_leave_history(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), 2024, None)
             .await
             .unwrap();
 
@@ -1050,7 +1050,7 @@
         };
 
         let res = svc
-            .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, true)
+            .submit_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), req, true)
             .await
             .unwrap();
 
@@ -1084,7 +1084,7 @@
         };
 
         let res = svc
-            .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, true)
+            .submit_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), req, true)
             .await
             .unwrap();
 
@@ -1124,7 +1124,7 @@
         let req = crate::models::ApproveLeaveRequest {
             status: LeaveStatus::Approved,
         };
-        svc.approve_leave_request(Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4(), req)
+        svc.approve_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), Uuid::new_v4(), req)
             .await
             .unwrap();
 
@@ -1164,7 +1164,7 @@
         let req = crate::models::ApproveLeaveRequest {
             status: LeaveStatus::Approved,
         };
-        svc.approve_leave_request(Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4(), req)
+        svc.approve_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), Uuid::new_v4(), req)
             .await
             .unwrap();
 
@@ -1203,7 +1203,7 @@
         let req = crate::models::ApproveLeaveRequest {
             status: LeaveStatus::Approved,
         };
-        svc.approve_leave_request(Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4(), req)
+        svc.approve_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), Uuid::new_v4(), req)
             .await
             .unwrap();
 
@@ -1402,7 +1402,7 @@
             None,
         );
 
-        svc.check_and_handle_conflicts(workspace_id, &incoming_req)
+        svc.check_and_handle_conflicts(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), &incoming_req)
             .await?;
 
         Ok(())
@@ -1565,7 +1565,7 @@
             None,
         );
 
-        svc.check_and_handle_conflicts(workspace_id, &incoming_req)
+        svc.check_and_handle_conflicts(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), &incoming_req)
             .await?;
 
         Ok(())

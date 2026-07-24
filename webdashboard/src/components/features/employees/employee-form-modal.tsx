@@ -127,7 +127,8 @@ export default function EmployeeFormModal({
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const data: Record<string, unknown> = {
+    // FormData values are FormDataEntryValue | null; is_active is coerced to boolean
+    const data: Record<string, FormDataEntryValue | boolean | null> = {
       full_name: fd.get("full_name"),
       employee_id_number: fd.get("employee_id_number"),
       hire_date: fd.get("hire_date"),

@@ -1,23 +1,19 @@
 import { type Row } from "@tanstack/react-table";
 import React, { useState, useEffect, useRef } from "react";
 
-// Local inline interface to avoid dependency loops
-interface LocalSmartTableColumnMeta {
-  cellClassName?: string;
-  editable?: boolean;
-  editOptions?: { value: string; label: string }[];
-  editType?: "text" | "number" | "select";
-  headerClassName?: string;
-  sticky?: "left" | "right";
-}
+import type {
+  CellCoordinate,
+  EditableCellValue,
+  SmartTableColumnMeta,
+} from "../smart-table/types";
 
 interface UseSmartTableKeyboardProps {
   colCount: number;
-  onCellSave?: (rowId: string, columnId: string, value: unknown) => Promise<void> | void;
+  onCellSave?: (rowId: string, columnId: string, value: EditableCellValue) => Promise<void> | void;
   rowCount: number;
   setCellErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  setLocalCellValues: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
-  validateCell?: (rowId: string, columnId: string, value: unknown) => string | null | undefined;
+  setLocalCellValues: React.Dispatch<React.SetStateAction<Record<string, EditableCellValue>>>;
+  validateCell?: (rowId: string, columnId: string, value: EditableCellValue) => string | null | undefined;
 }
 
 // eslint-disable-next-line max-lines-per-function -- keyboard navigation requires substantial key-binding logic
@@ -29,9 +25,9 @@ export function useSmartTableKeyboard<TData>({
   setCellErrors,
   setLocalCellValues,
 }: UseSmartTableKeyboardProps) {
-  const [focusedCell, setFocusedCell] = useState<{ rowIndex: number; colIndex: number } | null>(null);
-  const [editingCell, setEditingCell] = useState<{ rowIndex: number; colIndex: number } | null>(null);
-  const [editValue, setEditValue] = useState<unknown>("");
+  const [focusedCell, setFocusedCell] = useState<CellCoordinate | null>(null);
+  const [editingCell, setEditingCell] = useState<CellCoordinate | null>(null);
+  const [editValue, setEditValue] = useState<EditableCellValue>("");
 
   const cellRefs = useRef<Record<string, HTMLTableCellElement | null>>({});
 
@@ -52,7 +48,7 @@ export function useSmartTableKeyboard<TData>({
     }
   };
 
-  const startCellEdit = (rowIndex: number, colIndex: number, value: unknown) => {
+  const startCellEdit = (rowIndex: number, colIndex: number, value: EditableCellValue) => {
     setEditingCell({ rowIndex, colIndex });
     setEditValue(value);
   };
@@ -60,7 +56,7 @@ export function useSmartTableKeyboard<TData>({
   const saveCellEdit = (
     rowIndex: number,
     colIndex: number,
-    column: { id: string; columnDef: { meta?: LocalSmartTableColumnMeta } },
+    column: { id: string; columnDef: { meta?: SmartTableColumnMeta } },
     row: Row<TData>
   ) => {
     const errorKey = `${row.id}-${column.id}`;
@@ -71,13 +67,13 @@ export function useSmartTableKeyboard<TData>({
 
     if (error) {
       setCellErrors((prev: Record<string, string>) => ({ ...prev, [errorKey]: error }));
-      setLocalCellValues((prev: Record<string, unknown>) => ({ ...prev, [errorKey]: editValue }));
+      setLocalCellValues((prev: Record<string, EditableCellValue>) => ({ ...prev, [errorKey]: editValue }));
     } else {
       setCellErrors((prev: Record<string, string>) => {
         const { [errorKey]: _, ...rest } = prev;
         return rest;
       });
-      setLocalCellValues((prev: Record<string, unknown>) => {
+      setLocalCellValues((prev: Record<string, EditableCellValue>) => {
         const { [errorKey]: _, ...rest } = prev;
         return rest;
       });
@@ -142,7 +138,7 @@ export function useSmartTableKeyboard<TData>({
   };
 
   const handleCellKeyDown = (args: {
-    column: { id: string; columnDef: { meta?: LocalSmartTableColumnMeta } };
+    column: { id: string; columnDef: { meta?: SmartTableColumnMeta } };
     e: React.KeyboardEvent;
     colIndex: number;
     row: Row<TData>;

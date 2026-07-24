@@ -18,7 +18,7 @@ import { format } from "date-fns";
 import type { components } from "@/types/api-generated";
 
 import Button from "@/components/ui/button";
-import SmartTable from "@/components/ui/smart-table";
+import SmartTable, { type EditableCellValue } from "@/components/ui/smart-table";
 import { formatBytes } from "@/lib/utils";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
@@ -163,7 +163,7 @@ export function FileList({
 }: FileListProps) {
   const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set());
 
-  const handleCellSave = async (rowId: string, columnId: string, value: unknown) => {
+  const handleCellSave = async (rowId: string, columnId: string, value: EditableCellValue) => {
     if (columnId === "file_name" && typeof value === "string" && value.trim()) {
       await onRename(rowId, value.trim());
     }

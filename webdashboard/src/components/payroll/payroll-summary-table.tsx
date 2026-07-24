@@ -14,7 +14,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import PaginationControls from "@/components/common/pagination-controls";
-import ResponsiveTable from "@/components/ui/responsive-table";
+import ResponsiveTable, { type EditableCellValue } from "@/components/ui/responsive-table";
 import { useToast } from "@/components/ui/toast";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { Employee, Payslip } from "@/lib/api/types";
@@ -243,7 +243,7 @@ export default function PayrollSummaryTable({
   const isAllFilteredSelected = filteredEmployees.length > 0 && filteredEmployees.every(e => selectedIds.has(e.id));
 
   // Handle local cell updates (Base Pay & Status)
-  const handleCellSave = (employeeId: string, columnId: string, value: unknown) => {
+  const handleCellSave = (employeeId: string, columnId: string, value: EditableCellValue) => {
     // Typically this would fire an API mutation, here we display a success toast feedback
     toast.success(
       t("common.saved", "Saved change successfully"),
@@ -251,14 +251,14 @@ export default function PayrollSummaryTable({
     );
   };
 
-  const handleBulkCellSave = (changes: { rowId: string; columnId: string; value: unknown }[]) => {
+  const handleBulkCellSave = (changes: { rowId: string; columnId: string; value: EditableCellValue }[]) => {
     toast.success(
       t("common.saved", "Saved change successfully"),
       `Updated ${changes.length} cells successfully`
     );
   };
 
-  const validateCell = (rowId: string, columnId: string, value: unknown) => {
+  const validateCell = (rowId: string, columnId: string, value: EditableCellValue) => {
     if (columnId === "base_pay") {
       const num = Number(value);
       if (isNaN(num) || num <= 0) {

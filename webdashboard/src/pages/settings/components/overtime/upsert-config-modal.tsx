@@ -116,8 +116,9 @@ function useUpsertConfigForm({
           payload.value_bool = data.value === "true";
           break;
         case "json":
-          // JSON.parse returns any; the field expects a Record (validated by form).
-          payload.value_json = JSON.parse(data.value) as Record<string, unknown>;
+          // value_json is typed as unknown on CreateConfigEntryRequest;
+          // the JSON value is validated by the zod schema at form level.
+          payload.value_json = JSON.parse(data.value) as unknown;
           break;
         case "text":
           payload.value_text = data.value;

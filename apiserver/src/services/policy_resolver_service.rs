@@ -11,11 +11,10 @@ pub struct PolicyResolverService;
 impl PolicyResolverService {
     pub async fn load_condition_type_catalog(
         condition_type_repo: &dyn ConditionTypeRepository,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<HashMap<String, ConditionTypeDefinition>, AppError> {
-        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
         let definitions = condition_type_repo
-            .list_condition_types(&auth_token, false)
+            .list_condition_types(auth_token, false)
             .await?;
 
         Ok(definitions
@@ -29,12 +28,13 @@ impl PolicyResolverService {
         payroll_repo: &dyn crate::repositories::payroll_repository::PayrollRepository,
         employee_id: Uuid,
         department_id: Option<Uuid>,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
     ) -> Result<StandardMonthConfig, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let emp_config = employee_repo
             .get_employee_payroll_config_at(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employee_id,
                 date,
             )
@@ -62,7 +62,7 @@ impl PolicyResolverService {
     pub async fn resolve_attendance_policy(
         policy_repo: &dyn AttendancePolicyRepository,
         employee_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
     ) -> Result<AttendanceRules, AppError> {
         // Convert NaiveDate to UTC start of day
@@ -70,7 +70,7 @@ impl PolicyResolverService {
 
         let policy_version = policy_repo
             .get_employee_effective_policy(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employee_id,
                 effective_time,
             )
@@ -92,14 +92,14 @@ impl PolicyResolverService {
     pub async fn resolve_attendance_policy_by_employment(
         policy_repo: &dyn AttendancePolicyRepository,
         employment_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
     ) -> Result<AttendanceRules, AppError> {
         let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
 
         let policy_version = policy_repo
             .get_employment_effective_policy(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employment_id,
                 effective_time,
             )
@@ -120,7 +120,7 @@ impl PolicyResolverService {
     pub async fn resolve_attendance_policy_batch(
         policy_repo: &dyn AttendancePolicyRepository,
         employee_ids: &[Uuid],
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
     ) -> Result<HashMap<Uuid, AttendanceRules>, AppError> {
         if employee_ids.is_empty() {
@@ -131,7 +131,7 @@ impl PolicyResolverService {
 
         let versions = policy_repo
             .get_employee_effective_policies_batch(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employee_ids,
                 effective_time,
             )
@@ -160,7 +160,7 @@ impl PolicyResolverService {
     pub async fn resolve_attendance_policy_batch_by_employment(
         policy_repo: &dyn AttendancePolicyRepository,
         employment_ids: &[Uuid],
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
     ) -> Result<HashMap<Uuid, AttendanceRules>, AppError> {
         if employment_ids.is_empty() {
@@ -171,7 +171,7 @@ impl PolicyResolverService {
 
         let versions = policy_repo
             .get_employment_effective_policies_batch(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employment_ids,
                 effective_time,
             )
@@ -202,22 +202,22 @@ impl PolicyResolverService {
         employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
         condition_type_repo: &dyn ConditionTypeRepository,
         employee_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
     ) -> Result<PolicyRules, AppError> {
         // 1. Get Attendance Policy rules
         let attendance_rules =
-            Self::resolve_attendance_policy(policy_repo, employee_id, workspace_id, date).await?;
+            Self::resolve_attendance_policy(policy_repo, employee_id, auth_token, date).await?;
 
         // 2. Get Employee Special Conditions
         let conditions = employee_repo
             .get_working_conditions_at(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employee_id,
                 date,
             )
             .await?;
-        let catalog = Self::load_condition_type_catalog(condition_type_repo, workspace_id).await?;
+        let catalog = Self::load_condition_type_catalog(condition_type_repo, auth_token).await?;
 
         Ok(PolicyResolver::resolve_attendance_rules_pure(
             &attendance_rules,
@@ -232,14 +232,14 @@ impl PolicyResolverService {
         employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
         condition_type_repo: &dyn ConditionTypeRepository,
         employment_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
     ) -> Result<PolicyRules, AppError> {
         // 1. Get Attendance Policy rules by employment_id
         let attendance_rules = Self::resolve_attendance_policy_by_employment(
             policy_repo,
             employment_id,
-            workspace_id,
+            auth_token,
             date,
         )
         .await?;
@@ -247,12 +247,12 @@ impl PolicyResolverService {
         // 2. Get Employee Special Conditions by employment_id
         let conditions = employee_repo
             .get_working_conditions_at(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employment_id,
                 date,
             )
             .await?;
-        let catalog = Self::load_condition_type_catalog(condition_type_repo, workspace_id).await?;
+        let catalog = Self::load_condition_type_catalog(condition_type_repo, auth_token).await?;
 
         Ok(PolicyResolver::resolve_attendance_rules_pure(
             &attendance_rules,
@@ -265,13 +265,12 @@ impl PolicyResolverService {
     pub async fn resolve_attendance_rules_batch(
         employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
         employee_ids: &[Uuid],
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<HashMap<Uuid, Vec<WorkingCondition>>, AppError> {
-        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
         let employees = employee_repo
-            .get_employees_by_ids(employee_ids, &auth_token)
+            .get_employees_by_ids(employee_ids, auth_token)
             .await?;
 
         let mut emp_to_employment = HashMap::new();
@@ -285,7 +284,7 @@ impl PolicyResolverService {
 
         let conditions = employee_repo
             .get_working_conditions_batch_by_employments(
-                &auth_token,
+                auth_token,
                 &employment_ids,
                 start_date,
                 end_date,
@@ -305,14 +304,13 @@ impl PolicyResolverService {
     pub async fn resolve_attendance_rules_batch_by_employment(
         employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
         employment_ids: &[Uuid],
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<HashMap<Uuid, Vec<WorkingCondition>>, AppError> {
-        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
         employee_repo
             .get_working_conditions_batch_by_employments(
-                &auth_token,
+                auth_token,
                 employment_ids,
                 start_date,
                 end_date,
@@ -325,7 +323,7 @@ impl PolicyResolverService {
         employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
         condition_type_repo: &dyn ConditionTypeRepository,
         employee_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
         overrides: &ShiftPolicyOverrides,
     ) -> Result<PolicyRules, AppError> {
@@ -334,7 +332,7 @@ impl PolicyResolverService {
             employee_repo,
             condition_type_repo,
             employee_id,
-            workspace_id,
+            auth_token,
             date,
         )
         .await?;
@@ -347,7 +345,7 @@ impl PolicyResolverService {
         employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
         condition_type_repo: &dyn ConditionTypeRepository,
         employment_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
         overrides: &ShiftPolicyOverrides,
     ) -> Result<PolicyRules, AppError> {
@@ -356,7 +354,7 @@ impl PolicyResolverService {
             employee_repo,
             condition_type_repo,
             employment_id,
-            workspace_id,
+            auth_token,
             date,
         )
         .await?;
@@ -402,7 +400,7 @@ mod tests {
             &payroll_repo,
             emp_id,
             Some(dept_id),
-            ws_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
         )
         .await;
@@ -414,7 +412,7 @@ mod tests {
             &payroll_repo,
             emp_id,
             None,
-            ws_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
         )
         .await;
@@ -433,7 +431,7 @@ mod tests {
             .returning(|_, _, _| Ok(None));
 
         let rules =
-            PolicyResolverService::resolve_attendance_policy(&policy_repo, emp_id, ws_id, date)
+            PolicyResolverService::resolve_attendance_policy(&policy_repo, emp_id, &crate::diesel_pool::TenantAuthToken::system_override(ws_id), date)
                 .await
                 .unwrap();
 
@@ -455,7 +453,7 @@ mod tests {
         let rules = PolicyResolverService::resolve_attendance_policy_by_employment(
             &policy_repo,
             employment_id,
-            ws_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
         )
         .await
@@ -473,7 +471,7 @@ mod tests {
         let mut policy_repo = MockAttendancePolicyRepository::new();
         // Empty batch
         let res_empty =
-            PolicyResolverService::resolve_attendance_policy_batch(&policy_repo, &[], ws_id, date)
+            PolicyResolverService::resolve_attendance_policy_batch(&policy_repo, &[], &crate::diesel_pool::TenantAuthToken::system_override(ws_id), date)
                 .await
                 .unwrap();
         assert!(res_empty.is_empty());
@@ -485,7 +483,7 @@ mod tests {
         let res = PolicyResolverService::resolve_attendance_policy_batch(
             &policy_repo,
             &[emp_id],
-            ws_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
         )
         .await
@@ -505,7 +503,7 @@ mod tests {
         let res_empty = PolicyResolverService::resolve_attendance_policy_batch_by_employment(
             &policy_repo,
             &[],
-            ws_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
         )
         .await
@@ -519,7 +517,7 @@ mod tests {
         let res = PolicyResolverService::resolve_attendance_policy_batch_by_employment(
             &policy_repo,
             &[employment_id],
-            ws_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
         )
         .await
@@ -556,7 +554,7 @@ mod tests {
             &employee_repo,
             &condition_type_repo,
             emp_id,
-            ws_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
         )
         .await
@@ -627,7 +625,7 @@ mod tests {
             &employee_repo,
             &condition_type_repo,
             employee_id,
-            ws_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
         )
         .await
@@ -659,7 +657,7 @@ mod tests {
             &employee_repo,
             &condition_type_repo,
             employment_id,
-            ws_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
         )
         .await
@@ -685,7 +683,7 @@ mod tests {
         let res = PolicyResolverService::resolve_attendance_rules_batch(
             &employee_repo,
             &[emp_id],
-            ws_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
             date,
         )
@@ -709,7 +707,7 @@ mod tests {
         let res = PolicyResolverService::resolve_attendance_rules_batch_by_employment(
             &employee_repo,
             &[employment_id],
-            ws_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
             date,
         )
@@ -743,7 +741,7 @@ mod tests {
             &employee_repo,
             &condition_type_repo,
             emp_id,
-            ws_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
             &overrides,
         )
@@ -764,7 +762,7 @@ mod tests {
             &employee_repo,
             &condition_type_repo_emp,
             Uuid::new_v4(),
-            ws_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
             &overrides,
         )

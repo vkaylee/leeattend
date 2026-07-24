@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import type { PayrollRuleAssignment } from "@/lib/api/types";
 
+import type { FixedConfig, PercentageConfig } from "../../payroll-rule-config";
 import type { ScopeType } from "../scope-selector";
 
 export function useAssignmentForm(
@@ -34,7 +35,7 @@ export function useAssignmentForm(
 
   const handleSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
-    let overrideConfig: Record<string, unknown> | undefined;
+    let overrideConfig: PercentageConfig | FixedConfig | undefined;
     if (hasOverride) {
       if (calculationMethod === "percentage" && overrideRate) {
         overrideConfig = { rate: parseFloat(overrideRate), base: overrideBase };

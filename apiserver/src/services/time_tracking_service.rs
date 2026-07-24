@@ -137,7 +137,7 @@ impl TimeTrackingService {
                     &*self.employee_repo,
                     &*self.condition_type_repo,
                     employment_id,
-                    workspace_id,
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                     today,
                 )
                 .await?;

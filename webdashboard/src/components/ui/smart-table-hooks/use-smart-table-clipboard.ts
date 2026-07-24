@@ -1,18 +1,15 @@
 import React from "react";
 
-interface LocalSmartTableColumnMeta {
-  cellClassName?: string;
-  editable?: boolean;
-  editOptions?: { value: string; label: string }[];
-  editType?: "text" | "number" | "select";
-  headerClassName?: string;
-  sticky?: "left" | "right";
-}
+import type {
+  CellCoordinate,
+  EditableCellValue,
+  SmartTableColumnMeta,
+} from "../smart-table/types";
 
 interface ClipboardCell {
   column: {
     columnDef: {
-      meta?: LocalSmartTableColumnMeta;
+      meta?: SmartTableColumnMeta;
     };
     id: string;
   };
@@ -27,17 +24,17 @@ interface ClipboardRow {
 interface UseSmartTableClipboardProps<TRow extends ClipboardRow = ClipboardRow> {
   cellErrors: Record<string, string>;
   colCount: number;
-  editingCell: { rowIndex: number; colIndex: number } | null;
-  focusedCell: { rowIndex: number; colIndex: number } | null;
-  localCellValues: Record<string, unknown>;
-  onBulkCellSave?: (changes: { columnId: string; rowId: string; value: unknown }[]) => Promise<void> | void;
-  onCellSave?: (rowId: string, columnId: string, value: unknown) => Promise<void> | void;
+  editingCell: CellCoordinate | null;
+  focusedCell: CellCoordinate | null;
+  localCellValues: Record<string, EditableCellValue>;
+  onBulkCellSave?: (changes: { columnId: string; rowId: string; value: EditableCellValue }[]) => Promise<void> | void;
+  onCellSave?: (rowId: string, columnId: string, value: EditableCellValue) => Promise<void> | void;
   rowCount: number;
   rows: TRow[];
   selectedRowIds?: Set<string>;
   setCellErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  setLocalCellValues: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
-  validateCell?: (rowId: string, columnId: string, value: unknown) => string | null | undefined;
+  setLocalCellValues: React.Dispatch<React.SetStateAction<Record<string, EditableCellValue>>>;
+  validateCell?: (rowId: string, columnId: string, value: EditableCellValue) => string | null | undefined;
 }
 
 export function useSmartTableClipboard<TRow extends ClipboardRow = ClipboardRow>({
@@ -114,9 +111,9 @@ export function useSmartTableClipboard<TRow extends ClipboardRow = ClipboardRow>
 
     e.preventDefault();
 
-    const changes: { columnId: string; rowId: string; value: unknown }[] = [];
+    const changes: { columnId: string; rowId: string; value: EditableCellValue }[] = [];
     const newErrors = { ...cellErrors };
-    const newLocalValues = { ...localCellValues };
+    const newLocalValues: Record<string, EditableCellValue> = { ...localCellValues };
 
     for (let i = 0; i < grid.length; i++) {
       const targetRowIndex = focusedCell.rowIndex + i;
@@ -135,7 +132,7 @@ export function useSmartTableClipboard<TRow extends ClipboardRow = ClipboardRow>
 
         if (meta?.editable) {
           const rawValue = grid[i][j];
-          let parsedValue: unknown = rawValue;
+          let parsedValue: EditableCellValue = rawValue;
           if (meta.editType === "number") {
             const num = Number(rawValue);
             parsedValue = isNaN(num) ? rawValue : num;

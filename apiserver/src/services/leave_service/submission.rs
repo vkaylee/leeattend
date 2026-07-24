@@ -20,7 +20,7 @@ impl super::LeaveService {
     #[allow(clippy::too_many_lines)]
     pub async fn submit_leave_request(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         user_id: Uuid,
         req: SubmitLeaveRequest,
         auto_approve: bool,
@@ -28,7 +28,7 @@ impl super::LeaveService {
         // Verify employment belongs to workspace
         let employment = self
             .get_employment_cached(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 req.employment_id,
             )
             .await?
@@ -38,7 +38,7 @@ impl super::LeaveService {
         // Validate leave_type_id exists for this workspace
         if !self
             .check_leave_type_exists_cached(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 req.leave_type_id,
             )
             .await?
@@ -105,13 +105,12 @@ impl super::LeaveService {
 
         // Phase 1: Detect conflicts (reads fresh data from DB since cache was invalidated).
         let conflict_info = self
-            .detect_conflicts(workspace_id, employee_id, &request)
+            .detect_conflicts(auth_token, employee_id, &request)
             .await?;
 
         // Phase 2: Transaction-wrapped critical writes
         if let Some(ref pools) = self.diesel_pools {
-            let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
-            let mut conn = pools.tenant_transaction_conn(&auth_token).await?;
+            let mut conn = pools.tenant_transaction_conn(auth_token).await?;
             let request = request.clone();
             let repo = Arc::clone(&self.leave_request_repo);
             let auth_token_clone = auth_token;
@@ -129,9 +128,9 @@ impl super::LeaveService {
                 let ids = conflicting_ids.clone();
                 let cancel = should_cancel;
                 Box::pin(async move {
-                    repo.create_leave_request_tx(pg_conn, &auth, &req).await?;
+                    repo.create_leave_request_tx(pg_conn, auth, &req).await?;
                     if cancel && !ids.is_empty() {
-                        repo.bulk_cancel_leave_requests_tx(pg_conn, &auth, &ids)
+                        repo.bulk_cancel_leave_requests_tx(pg_conn, auth, &ids)
                             .await?;
                     }
                     Ok(())
@@ -156,14 +155,14 @@ impl super::LeaveService {
             // Fallback: no DieselPools injected — use separate non-transactional calls
             self.leave_request_repo
                 .create_leave_request(
-                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    auth_token,
                     &request,
                 )
                 .await?;
         }
 
         // Phase 3: Handle non-cancel conflict actions
-        self.handle_conflict_post_tx(workspace_id, &request, &conflict_info)
+        self.handle_conflict_post_tx(auth_token, &request, &conflict_info)
             .await?;
 
         Ok(request)

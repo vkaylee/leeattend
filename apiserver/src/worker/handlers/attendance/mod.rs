@@ -175,7 +175,7 @@ impl AttendanceHandler {
 
         let condition_type_catalog = PolicyResolverService::load_condition_type_catalog(
             deps.condition_type_repo.as_ref(),
-            workspace_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
         )
         .await
         .map_err(|e| format!("Failed to fetch condition type catalog: {e}"))?;

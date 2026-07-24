@@ -6,9 +6,13 @@ import { useTranslation } from "react-i18next";
 import EmptyState from "@/components/ui/empty-state";
 import SmartTable, {
   type ContextMenuItem,
+  type EditableCellValue,
   type SmartTableColumnMeta,
 } from "@/components/ui/smart-table";
 import { cn } from "@/lib/utils";
+
+// Re-export SmartTable types that consumers need for callbacks
+export type { ContextMenuItem, EditableCellValue, SmartTableColumnMeta } from "@/components/ui/smart-table";
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -57,9 +61,9 @@ interface ResponsiveTableSmartMode<T> extends ResponsiveTableBase<T> {
   /** Unique row ID extractor (required by SmartTable) */
   getRowId: (row: T) => string;
   /** Bulk cell save callback (desktop editing) */
-  onBulkCellSave?: (changes: { rowId: string; columnId: string; value: unknown }[]) => Promise<void> | void;
+  onBulkCellSave?: (changes: { rowId: string; columnId: string; value: EditableCellValue }[]) => Promise<void> | void;
   /** Single cell save callback (desktop editing) */
-  onCellSave?: (rowId: string, columnId: string, value: unknown) => Promise<void> | void;
+  onCellSave?: (rowId: string, columnId: string, value: EditableCellValue) => Promise<void> | void;
   /** Row click handler */
   onRowClick?: (row: T, e: React.MouseEvent) => void;
   /** Selection change callback (desktop-only) */
@@ -75,7 +79,7 @@ interface ResponsiveTableSmartMode<T> extends ResponsiveTableBase<T> {
   /** Optional className for the desktop table wrapper */
   tableClassName?: string;
   /** Cell validation callback (desktop editing) */
-  validateCell?: (rowId: string, columnId: string, value: unknown) => string | null | undefined;
+  validateCell?: (rowId: string, columnId: string, value: EditableCellValue) => string | null | undefined;
 }
 
 /**

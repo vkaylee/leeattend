@@ -22,7 +22,7 @@ impl AttendanceHandler {
         let conditions_map = PolicyResolverService::resolve_attendance_rules_batch(
             args.employee_repo,
             emp_ids,
-            args.workspace_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
             args.start_date,
             args.end_date,
         )
@@ -32,7 +32,7 @@ impl AttendanceHandler {
         let attendance_rules_map = PolicyResolverService::resolve_attendance_policy_batch(
             args.policy_repo,
             emp_ids,
-            args.workspace_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
             args.start_date, // Using start_date as proxy for the report period
         )
         .await
