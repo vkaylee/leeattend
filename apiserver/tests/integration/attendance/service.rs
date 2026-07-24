@@ -103,9 +103,15 @@ async fn test_process_log_success_with_timezone() {
     > = std::sync::Arc::new(
         apiserver::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
+    let employment_repo: std::sync::Arc<
+        dyn apiserver::repositories::employment_repository::EmploymentRepository,
+    > = std::sync::Arc::new(
+        apiserver::repositories::DieselEmploymentRepository::new(diesel_pools.clone()),
+    );
     let service = AttendanceLogService::new(
         apiserver::services::attendance_log_service::AttendanceLogServiceDeps {
             employee_repo: emp_repo,
+            employment_repo: employment_repo.clone(),
             raw_log_repo: rl_repo,
             staging_repo: st_repo,
             error_repo: er_repo,
@@ -241,9 +247,15 @@ async fn test_same_second_punch_with_different_status_allowed() {
     > = std::sync::Arc::new(
         apiserver::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
+    let employment_repo2: std::sync::Arc<
+        dyn apiserver::repositories::employment_repository::EmploymentRepository,
+    > = std::sync::Arc::new(
+        apiserver::repositories::DieselEmploymentRepository::new(diesel_pools.clone()),
+    );
     let service = AttendanceLogService::new(
         apiserver::services::attendance_log_service::AttendanceLogServiceDeps {
             employee_repo: emp_repo,
+            employment_repo: employment_repo2.clone(),
             raw_log_repo: rl_repo,
             staging_repo: st_repo,
             error_repo: er_repo,

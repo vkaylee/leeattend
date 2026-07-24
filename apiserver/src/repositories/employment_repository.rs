@@ -55,6 +55,29 @@ pub trait EmploymentRepository: Send + Sync {
         date: chrono::NaiveDate,
     ) -> Result<Option<Employment>, AppError>;
 
+    /// Find the employment effective on `date` for the given employee.
+    ///
+    /// Unlike [`get_active_employment_on_date`], this does NOT filter by
+    /// `status = "active"` — a terminated employment whose date range covers
+    /// `date` is still returned. This is the correct resolution for historical
+    /// log ingestion and reprocessing.
+    async fn get_employment_effective_on_date(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+        date: chrono::NaiveDate,
+    ) -> Result<Option<Employment>, AppError>;
+
+    /// List all employments whose date range overlaps `[start_date, end_date]`
+    /// for the given employee, ordered by `start_date DESC`.
+    async fn list_employments_effective_in_range(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+        start_date: chrono::NaiveDate,
+        end_date: chrono::NaiveDate,
+    ) -> Result<Vec<Employment>, AppError>;
+
     async fn get_active_employments_for_workspace(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

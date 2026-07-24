@@ -304,6 +304,68 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
         Ok(entity.map(Into::into))
     }
 
+    async fn get_employment_effective_on_date(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id_val: Uuid,
+        date_val: chrono::NaiveDate,
+    ) -> Result<Option<Employment>, AppError> {
+        use crate::schema::employments::dsl::*;
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
+
+        // Does NOT filter on status — terminated employments whose date
+        // range covers date_val are still valid for historical log ingestion.
+        let entity = employments
+            .filter(workspace_id.eq(auth_token.workspace_id()))
+            .filter(employee_id.eq(employee_id_val))
+            .filter(start_date.le(date_val))
+            .filter(end_date.is_null().or(end_date.ge(date_val)))
+            .filter(deleted_at.is_null())
+            .order(start_date.desc())
+            .first::<EmploymentEntity>(&mut *conn)
+            .await
+            .optional()?;
+
+        Ok(entity.map(Into::into))
+    }
+
+    async fn list_employments_effective_in_range(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id_val: Uuid,
+        range_start: chrono::NaiveDate,
+        range_end: chrono::NaiveDate,
+    ) -> Result<Vec<Employment>, AppError> {
+        use crate::schema::employments::dsl::*;
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
+
+        // Employment overlaps [range_start, range_end] when:
+        //   start_date <= range_end AND (end_date IS NULL OR end_date >= range_start)
+        let list = employments
+            .filter(workspace_id.eq(auth_token.workspace_id()))
+            .filter(employee_id.eq(employee_id_val))
+            .filter(start_date.le(range_end))
+            .filter(end_date.is_null().or(end_date.ge(range_start)))
+            .filter(deleted_at.is_null())
+            .order(start_date.desc())
+            .load::<EmploymentEntity>(&mut *conn)
+            .await?;
+
+        Ok(list.into_iter().map(Into::into).collect())
+    }
+
     async fn get_active_employments_for_workspace(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

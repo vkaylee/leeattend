@@ -41,23 +41,53 @@ impl ReprocessAttendanceHandler {
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id);
 
         // Prefer the exact employment when the caller pinned one (e.g. shift
-        // reassignment), otherwise fall back to the employee's active employment.
+        // reassignment), otherwise resolve the employment(s) covering the date
+        // range. Terminated employments are valid if their date range covers
+        // the reprocess range.
         let active_employment_id = if let Some(id) = payload.employment_id {
+            // Validate workspace ownership for pinned employment
+            let employment = deps
+                .employment_repo
+                .get_employment_by_id(&auth_token, id)
+                .await
+                .map_err(|e| format!("Failed to lookup pinned employment: {e}"))?
+                .ok_or_else(|| format!("Pinned employment not found: {id}"))?;
+            if employment.workspace_id() != job.workspace_id {
+                return Err(format!(
+                    "Pinned employment {id} does not belong to workspace {}",
+                    job.workspace_id
+                ));
+            }
             id
         } else {
-            let employee = deps
-                .employee_repo
-                .get_employee_by_id(payload.employee_id, &auth_token)
-                .await
-                .map_err(|e| e.to_string())?
-                .ok_or_else(|| format!("Employee not found: {}", payload.employee_id))?;
-
-            employee.active_employment_id().ok_or_else(|| {
-                format!(
-                    "No active employment found for employee: {}",
-                    payload.employee_id
+            // Resolve employment(s) overlapping the date range.
+            let employments = deps
+                .employment_repo
+                .list_employments_effective_in_range(
+                    &auth_token,
+                    payload.employee_id,
+                    payload.date_range.start,
+                    payload.date_range.end,
                 )
-            })?
+                .await
+                .map_err(|e| format!("Failed to resolve employment by date range: {e}"))?;
+
+            if employments.is_empty() {
+                return Err(format!(
+                    "No employment covers date range {:?}–{:?} for employee {}",
+                    payload.date_range.start, payload.date_range.end, payload.employee_id
+                ));
+            }
+            if employments.len() > 1 {
+                return Err(format!(
+                    "Date range {:?}–{:?} spans {} employments for employee {}. Specify employment_id.",
+                    payload.date_range.start,
+                    payload.date_range.end,
+                    employments.len(),
+                    payload.employee_id
+                ));
+            }
+            employments[0].id()
         };
 
         // Initialize pairing service from shared deps
@@ -125,11 +155,11 @@ mod tests {
 
     /// How the handler is expected to resolve the employment to reprocess.
     enum EmploymentResolution {
-        /// `employment_id` is `None`: handler must look up the employee and use
-        /// its active employment. `get_employee_by_id` is expected to be called.
-        ViaActiveEmployee,
-        /// `employment_id` is `Some`: handler must use it directly and never call
-        /// `get_employee_by_id`.
+        /// `employment_id` is `None`: handler must resolve employment by date range.
+        /// `list_employments_effective_in_range` is expected to be called.
+        ViaDateRange,
+        /// `employment_id` is `Some`: handler must validate it via
+        /// `get_employment_by_id` and never call employee lookup.
         Pinned,
     }
 
@@ -240,27 +270,9 @@ mod tests {
 
         let mut emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
         match *resolution {
-            EmploymentResolution::ViaActiveEmployee => {
-                emp_repo.expect_get_employee_by_id().returning(move |_, _| {
-                    Ok(Some(
-                        crate::models::Employee::new(
-                            emp_id,
-                            ws_id,
-                            None,
-                            "Test Employee".to_string(),
-                            "EMP001".to_string(),
-                            vec![],
-                            Utc::now(),
-                            Utc::now(),
-                            None,
-                        )
-                        .with_employment_info(
-                            Some(employment_id),
-                            None,
-                            None,
-                        ),
-                    ))
-                });
+            EmploymentResolution::ViaDateRange => {
+                // Date-range path: do NOT call employee lookup; use employment repo instead.
+                emp_repo.expect_get_employee_by_id().never();
             }
             EmploymentResolution::Pinned => {
                 // Pinned path must not consult the employee lookup at all.
@@ -300,12 +312,37 @@ mod tests {
             .expect_get_active_employment_on_date()
             .returning(|_, _, _| Ok(None));
         employment_repo
+            .expect_get_employment_effective_on_date()
+            .returning(|_, _, _| Ok(None));
+        employment_repo
+            .expect_list_employments_effective_in_range()
+            .returning(move |_, _, _, _| {
+                Ok(vec![crate::models::employment::Employment::new(
+                    employment_id,
+                    ws_id,
+                    emp_id,
+                    uuid::Uuid::new_v4(),
+                    None,
+                    None,
+                    "active".to_string(),
+                    chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                    None,
+                    None,
+                    "full_time".to_string(),
+                    None,
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                    None,
+                    None,
+                )])
+            });
+        employment_repo
             .expect_get_employment_by_id()
-            .returning(|_, employment_id| {
+            .returning(move |_, employment_id| {
                 Ok(Some(crate::models::employment::Employment::new(
                     employment_id,
-                    uuid::Uuid::new_v4(),
-                    employment_id,
+                    ws_id,
+                    emp_id,
                     uuid::Uuid::new_v4(),
                     None,
                     None,
@@ -372,7 +409,7 @@ mod tests {
             emp_id,
             employment_id,
             ws_id,
-            &EmploymentResolution::ViaActiveEmployee,
+            &EmploymentResolution::ViaDateRange,
         );
         let job = reprocess_job(ws_id, emp_id, None);
 
@@ -401,5 +438,298 @@ mod tests {
         let result = ReprocessAttendanceHandler::handle(&queue_arc, &job, &deps).await;
 
         assert!(result.is_ok(), "Handler failed: {:?}", result.err());
+    }
+
+    /// When `employment_id` is `None` and the employee has a terminated
+    /// employment whose date range covers the reprocess range, the handler
+    /// must resolve it via `list_employments_effective_in_range` and succeed.
+    #[tokio::test]
+    async fn test_reprocess_resolves_terminated_employment_by_date_range() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+
+        let mut queue = MockQueueRepository::new();
+        queue.expect_get_job_metadata().returning(|_| Ok(None));
+
+        let deps = build_deps(emp_id, employment_id, ws_id, &EmploymentResolution::ViaDateRange);
+        let job = reprocess_job(ws_id, emp_id, None);
+
+        let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
+        let result = ReprocessAttendanceHandler::handle(&queue_arc, &job, &deps).await;
+
+        assert!(result.is_ok(), "Handler should resolve terminated employment by date range, got: {:?}", result.err());
+    }
+
+    /// When `employment_id` is `None` and no employment covers the range,
+    /// the handler must return an error (not fall back to active_employment_id).
+    #[tokio::test]
+    async fn test_reprocess_fails_when_no_employment_covers_range() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let _employment_id = Uuid::new_v4();
+
+        let mut queue = MockQueueRepository::new();
+        queue.expect_get_job_metadata().returning(|_| Ok(None));
+
+        // Build deps where employment_repo returns empty list for date range
+        let mut time_entry_repo = MockTimeEntryRepository::new();
+        time_entry_repo
+            .expect_replace_time_entries()
+            .returning(|_, _, _, _, _| Ok(()));
+        time_entry_repo
+            .expect_get_employment_time_entries()
+            .returning(|_, _, _, _| Ok(vec![]));
+
+        let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
+        daily_summary_repo
+            .expect_upsert_calculated_summary()
+            .returning(|_, _, _, _, _, _, _, _| Ok(()));
+        daily_summary_repo
+            .expect_get_summary()
+            .returning(|_, _, _| Ok(None));
+        daily_summary_repo
+            .expect_get_summaries()
+            .returning(|_, _, _, _| Ok(vec![]));
+
+        let mut roster_repo = MockRosterRepository::new();
+        roster_repo
+            .expect_get_effective_shift()
+            .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+        roster_repo.expect_get_workspace_schedules().returning(
+            move |_, _, _, _, _, _, _| Box::pin(async { Ok((vec![], 0)) }),
+        );
+
+        let mut workspace_repo =
+            crate::repositories::workspace_repository::MockWorkspaceRepository::new();
+        workspace_repo.expect_get_workspace_by_id().returning(|_| {
+            Box::pin(async {
+                Ok(Some(crate::models::Workspace::new(
+                    Uuid::new_v4(), "test".to_string(), "YYYY-MM-DD".to_string(),
+                    "HH:mm".to_string(), "UTC".to_string(), "#ffffff".to_string(),
+                    "en".to_string(), None, None, "split".to_string(),
+                    rust_decimal::Decimal::new(100, 2), Utc::now(), None,
+                )))
+            })
+        });
+
+        let mut builder = MockWorkerDepsBuilder::new();
+        builder.workspace_repo = workspace_repo;
+        builder.time_entry_repo = time_entry_repo;
+        builder.daily_summary_repo = daily_summary_repo;
+
+        let mut emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
+        emp_repo.expect_get_employee_by_id().never();
+        emp_repo
+            .expect_get_employee_timezone_fallback()
+            .returning(|_, _| Ok(chrono_tz::UTC));
+        emp_repo
+            .expect_get_employee_timezone_at_date()
+            .returning(|_, _, _| Ok(chrono_tz::UTC));
+        builder.employee_repo = emp_repo;
+        builder.roster_repo = roster_repo;
+
+        let mut raw_log_repo =
+            crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository::new();
+        raw_log_repo
+            .expect_get_employment_logs_in_time_range()
+            .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
+        builder.raw_log_repo = raw_log_repo;
+
+        let mut leave_repo =
+            crate::repositories::leave_request_repository::MockLeaveRequestRepository::new();
+        leave_repo
+            .expect_get_approved_leave_dates()
+            .returning(|_, _, _, _| Box::pin(async { Ok(std::collections::HashSet::new()) }));
+        leave_repo
+            .expect_get_employee_leave_requests()
+            .returning(|_, _| Box::pin(async { Ok(vec![]) }));
+        builder.leave_request_repo = leave_repo;
+
+        // Employment repo: return empty for date-range lookup
+        let mut employment_repo =
+            crate::repositories::employment_repository::MockEmploymentRepository::new();
+        employment_repo
+            .expect_get_active_employment_on_date()
+            .returning(|_, _, _| Ok(None));
+        employment_repo
+            .expect_get_employment_effective_on_date()
+            .returning(|_, _, _| Ok(None));
+        employment_repo
+            .expect_list_employments_effective_in_range()
+            .returning(|_, _, _, _| Ok(vec![])); // EMPTY
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(|_, _| Ok(None));
+        builder.employment_repo = employment_repo;
+
+        let mut holiday_repo =
+            crate::repositories::holiday_repository::MockHolidayRepository::new();
+        holiday_repo
+            .expect_is_holiday()
+            .returning(|_, _, _| Box::pin(async { Ok(None) }));
+        holiday_repo
+            .expect_get_holidays_in_range()
+            .returning(|_, _, _| Box::pin(async { Ok(std::collections::HashMap::new()) }));
+        builder.holiday_repo = holiday_repo;
+
+        let deps = builder.build();
+        let job = reprocess_job(ws_id, emp_id, None);
+
+        let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
+        let result = ReprocessAttendanceHandler::handle(&queue_arc, &job, &deps).await;
+
+        assert!(result.is_err(), "Handler should fail when no employment covers the range");
+        let err_msg = result.unwrap_err();
+        assert!(
+            err_msg.contains("No employment covers date range"),
+            "Error message should mention missing employment, got: {err_msg}"
+        );
+    }
+
+    /// When `employment_id` is `None` and multiple employments overlap the
+    /// range (rehire scenario), the handler must return an error asking for
+    /// explicit employment_id.
+    #[tokio::test]
+    async fn test_reprocess_fails_when_multiple_employments_overlap_range() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let employment_a = Uuid::new_v4();
+        let employment_b = Uuid::new_v4();
+
+        let mut queue = MockQueueRepository::new();
+        queue.expect_get_job_metadata().returning(|_| Ok(None));
+
+        let mut time_entry_repo = MockTimeEntryRepository::new();
+        time_entry_repo
+            .expect_replace_time_entries()
+            .returning(|_, _, _, _, _| Ok(()));
+        time_entry_repo
+            .expect_get_employment_time_entries()
+            .returning(|_, _, _, _| Ok(vec![]));
+
+        let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
+        daily_summary_repo
+            .expect_upsert_calculated_summary()
+            .returning(|_, _, _, _, _, _, _, _| Ok(()));
+        daily_summary_repo
+            .expect_get_summary()
+            .returning(|_, _, _| Ok(None));
+        daily_summary_repo
+            .expect_get_summaries()
+            .returning(|_, _, _, _| Ok(vec![]));
+
+        let mut roster_repo = MockRosterRepository::new();
+        roster_repo
+            .expect_get_effective_shift()
+            .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+        roster_repo.expect_get_workspace_schedules().returning(
+            move |_, _, _, _, _, _, _| Box::pin(async { Ok((vec![], 0)) }),
+        );
+
+        let mut workspace_repo =
+            crate::repositories::workspace_repository::MockWorkspaceRepository::new();
+        workspace_repo.expect_get_workspace_by_id().returning(|_| {
+            Box::pin(async {
+                Ok(Some(crate::models::Workspace::new(
+                    Uuid::new_v4(), "test".to_string(), "YYYY-MM-DD".to_string(),
+                    "HH:mm".to_string(), "UTC".to_string(), "#ffffff".to_string(),
+                    "en".to_string(), None, None, "split".to_string(),
+                    rust_decimal::Decimal::new(100, 2), Utc::now(), None,
+                )))
+            })
+        });
+
+        let mut builder = MockWorkerDepsBuilder::new();
+        builder.workspace_repo = workspace_repo;
+        builder.time_entry_repo = time_entry_repo;
+        builder.daily_summary_repo = daily_summary_repo;
+
+        let mut emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
+        emp_repo.expect_get_employee_by_id().never();
+        emp_repo
+            .expect_get_employee_timezone_fallback()
+            .returning(|_, _| Ok(chrono_tz::UTC));
+        emp_repo
+            .expect_get_employee_timezone_at_date()
+            .returning(|_, _, _| Ok(chrono_tz::UTC));
+        builder.employee_repo = emp_repo;
+        builder.roster_repo = roster_repo;
+
+        let mut raw_log_repo =
+            crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository::new();
+        raw_log_repo
+            .expect_get_employment_logs_in_time_range()
+            .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
+        builder.raw_log_repo = raw_log_repo;
+
+        let mut leave_repo =
+            crate::repositories::leave_request_repository::MockLeaveRequestRepository::new();
+        leave_repo
+            .expect_get_approved_leave_dates()
+            .returning(|_, _, _, _| Box::pin(async { Ok(std::collections::HashSet::new()) }));
+        leave_repo
+            .expect_get_employee_leave_requests()
+            .returning(|_, _| Box::pin(async { Ok(vec![]) }));
+        builder.leave_request_repo = leave_repo;
+
+        // Employment repo: return TWO employments for date-range lookup
+        let mut employment_repo =
+            crate::repositories::employment_repository::MockEmploymentRepository::new();
+        employment_repo
+            .expect_get_active_employment_on_date()
+            .returning(|_, _, _| Ok(None));
+        employment_repo
+            .expect_get_employment_effective_on_date()
+            .returning(|_, _, _| Ok(None));
+        employment_repo
+            .expect_list_employments_effective_in_range()
+            .returning(move |_, _, _, _| {
+                Ok(vec![
+                    crate::models::employment::Employment::new(
+                        employment_a, ws_id, emp_id, uuid::Uuid::new_v4(),
+                        None, None, "terminated".to_string(),
+                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                        Some(chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap()),
+                        None, "full_time".to_string(), None,
+                        chrono::Utc::now(), chrono::Utc::now(), None, None,
+                    ),
+                    crate::models::employment::Employment::new(
+                        employment_b, ws_id, emp_id, uuid::Uuid::new_v4(),
+                        None, None, "active".to_string(),
+                        chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                        None,
+                        None, "full_time".to_string(), None,
+                        chrono::Utc::now(), chrono::Utc::now(), None, None,
+                    ),
+                ])
+            });
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(|_, _| Ok(None));
+        builder.employment_repo = employment_repo;
+
+        let mut holiday_repo =
+            crate::repositories::holiday_repository::MockHolidayRepository::new();
+        holiday_repo
+            .expect_is_holiday()
+            .returning(|_, _, _| Box::pin(async { Ok(None) }));
+        holiday_repo
+            .expect_get_holidays_in_range()
+            .returning(|_, _, _| Box::pin(async { Ok(std::collections::HashMap::new()) }));
+        builder.holiday_repo = holiday_repo;
+
+        let deps = builder.build();
+        let job = reprocess_job(ws_id, emp_id, None);
+
+        let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
+        let result = ReprocessAttendanceHandler::handle(&queue_arc, &job, &deps).await;
+
+        assert!(result.is_err(), "Handler should fail when multiple employments overlap the range");
+        let err_msg = result.unwrap_err();
+        assert!(
+            err_msg.contains("spans 2 employments"),
+            "Error message should mention ambiguous employments, got: {err_msg}"
+        );
     }
 }

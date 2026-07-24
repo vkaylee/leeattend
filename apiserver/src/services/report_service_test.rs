@@ -1551,6 +1551,25 @@ mod tests {
         ) -> Result<crate::models::employment::Employment, AppError> {
             unimplemented!()
         }
+
+        async fn get_employment_effective_on_date(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Uuid,
+            _date: chrono::NaiveDate,
+        ) -> Result<Option<crate::models::employment::Employment>, AppError> {
+            Ok(None)
+        }
+
+        async fn list_employments_effective_in_range(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Uuid,
+            _start_date: chrono::NaiveDate,
+            _end_date: chrono::NaiveDate,
+        ) -> Result<Vec<crate::models::employment::Employment>, AppError> {
+            Ok(vec![])
+        }
     }
 
     #[tokio::test]

@@ -273,6 +273,9 @@ pub async fn force_reprocess_attendance(
 
     // Accept both employee_id and employment_id for resilience.
     // Try employee_id first; if not found, fall back to employment_id lookup.
+    // When path resolves to an employment, PIN that specific employment_id
+    // (do NOT re-resolve via active_employment_id()). When path resolves to
+    // an employee, find the employment effective across the date range.
     tracing::info!(
         path_id = %path_id,
         workspace_id = %ctx.workspace_id,
@@ -293,9 +296,44 @@ pub async fn force_reprocess_attendance(
         "Reprocess: employee lookup result"
     );
 
-    let employee = if let Some(emp) = emp_result? {
-        emp
+    // Determine whether path_id was an employee_id or an employment_id.
+    // If it was an employment_id, pin it. If it was an employee_id,
+    // resolve the employment(s) overlapping the date range.
+    let (_target_employee_id, target_employment_id) = if let Some(ref emp) = emp_result? {
+        // path_id is an employee_id → resolve employment(s) by date range
+        let effective_employments = state
+            .employees()
+            .employment_repo()
+            .list_employments_effective_in_range(
+                &ctx.auth_token,
+                emp.id(),
+                query.start_date,
+                query.end_date,
+            )
+            .await?;
+
+        if effective_employments.is_empty() {
+            return Err(AppError::validation(
+                crate::utils::i18n::I18nKey::NoEmploymentOnDate,
+            ));
+        }
+        if effective_employments.len() > 1 {
+            return Err(AppError::validation_args(
+                crate::utils::i18n::I18nKey::AmbiguousEmploymentRange,
+                vec![(
+                    "details",
+                    format!(
+                        "Date range {:?}–{:?} spans {} employments. Please specify employment_id.",
+                        query.start_date,
+                        query.end_date,
+                        effective_employments.len()
+                    ),
+                )],
+            ));
+        }
+        (emp.id(), effective_employments[0].id())
     } else {
+        // path_id is not an employee → try employment lookup
         let employment_result = state
             .employees()
             .employment_repo()
@@ -310,12 +348,18 @@ pub async fn force_reprocess_attendance(
         );
 
         if let Some(employment) = employment_result? {
-            state
+            // Verify workspace ownership
+            let emp = state
                 .employees()
                 .repo()
                 .get_employee_by_id(employment.employee_id(), &ctx.auth_token)
                 .await?
-                .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?
+                .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
+            if emp.workspace_id() != ctx.workspace_id {
+                return Err(AppError::forbidden(crate::utils::i18n::I18nKey::Forbidden));
+            }
+            // Pin the employment — do NOT re-resolve via active_employment_id()
+            (emp.id(), employment.id())
         } else {
             return Err(AppError::not_found(
                 crate::utils::i18n::I18nKey::EmployeeNotFound,
@@ -323,14 +367,10 @@ pub async fn force_reprocess_attendance(
         }
     };
 
-    let active_employment_id = employee
-        .active_employment_id()
-        .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
-
     let tz: chrono_tz::Tz = state
         .employees()
         .repo()
-        .get_employee_timezone_fallback(&ctx.auth_token, active_employment_id)
+        .get_employee_timezone_fallback(&ctx.auth_token, target_employment_id)
         .await?;
 
     state
@@ -338,7 +378,7 @@ pub async fn force_reprocess_attendance(
         .pairing_service()
         .reprocess_attendance_range(
             ctx.workspace_id,
-            active_employment_id,
+            target_employment_id,
             query.start_date,
             query.end_date,
             tz,

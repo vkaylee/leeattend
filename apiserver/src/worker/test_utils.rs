@@ -286,6 +286,15 @@ impl MockWorkerDepsBuilder {
                 )))
             });
 
+        // Default: no employment found by date (tests override when needed).
+        employment_repo
+            .expect_get_employment_effective_on_date()
+            .returning(|_, _, _| Ok(None));
+
+        employment_repo
+            .expect_list_employments_effective_in_range()
+            .returning(|_, _, _, _| Ok(vec![]));
+
         let mut employee_repo = MockEmployeeRepository::new();
         employee_repo
             .expect_get_employees_by_ids()

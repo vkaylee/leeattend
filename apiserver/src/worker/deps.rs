@@ -211,6 +211,7 @@ impl WorkerDeps {
         crate::services::AttendanceLogService::new(
             crate::services::attendance_log_service::AttendanceLogServiceDeps {
                 employee_repo: Arc::clone(&self.employee_repo),
+                employment_repo: Arc::clone(&self.employment_repo),
                 raw_log_repo: Arc::clone(&self.raw_log_repo),
                 staging_repo: Arc::clone(&self.staging_repo),
                 error_repo: Arc::clone(&self.error_repo),

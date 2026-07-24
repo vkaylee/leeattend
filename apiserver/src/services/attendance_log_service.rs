@@ -8,17 +8,20 @@ use crate::utils::id::new_id;
 
 use crate::models::{LogSource, RawAttendanceLog};
 use crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository;
+use crate::repositories::employment_repository::EmploymentRepository;
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
 use crate::repositories::staging_log_repository::StagingLogRepository;
 use crate::repositories::EmployeeRepository;
 use crate::services::pairing::PairingProcessor;
 use crate::services::AgentLogEntry;
 use crate::utils::datetime::parse_datetime_with_tz;
+use crate::utils::tz::parse_workspace_tz;
 use crate::worker::pairing_scheduler::PairingNotifier;
 
 #[derive(Clone)]
 pub struct AttendanceLogService {
     employee_repo: Arc<dyn EmployeeRepository>,
+    employment_repo: Arc<dyn EmploymentRepository>,
     raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
     staging_repo: Arc<dyn StagingLogRepository>,
     error_repo: Arc<dyn AttendanceLogErrorRepository>,
@@ -33,6 +36,7 @@ pub struct AttendanceLogService {
 
 pub struct AttendanceLogServiceDeps {
     pub employee_repo: Arc<dyn EmployeeRepository>,
+    pub employment_repo: Arc<dyn EmploymentRepository>,
     pub raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
     pub staging_repo: Arc<dyn StagingLogRepository>,
     pub error_repo: Arc<dyn AttendanceLogErrorRepository>,
@@ -59,6 +63,7 @@ impl AttendanceLogService {
     pub fn new(deps: AttendanceLogServiceDeps, notifier: Option<Arc<PairingNotifier>>) -> Self {
         Self {
             employee_repo: deps.employee_repo,
+            employment_repo: deps.employment_repo,
             raw_log_repo: deps.raw_log_repo,
             staging_repo: deps.staging_repo,
             error_repo: deps.error_repo,
@@ -211,9 +216,58 @@ impl AttendanceLogService {
             }
         };
 
-        let active_employment_id = employee.active_employment_id().ok_or_else(|| {
-            crate::errors::AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment)
-        })?;
+        // Resolve employment effective on the local punch date (NOT current active).
+        // Use the timezone from args to derive the local date, then query the repo
+        // without a hard status = "active" filter so terminated employments whose
+        // date range covers the punch date are still valid for historical ingestion.
+        let punch_tz: chrono_tz::Tz = parse_workspace_tz(args.timezone);
+        let local_punch_date = punch_time.with_timezone(&punch_tz).date_naive();
+
+        let resolved_employment_id = match self
+            .employment_repo
+            .get_employment_effective_on_date(
+                args.auth_token,
+                employee.id(),
+                local_punch_date,
+            )
+            .await
+        {
+            Ok(Some(emp)) => emp.id(),
+            Ok(None) => {
+                // No employment covers the punch date → stage as error (NOT retry)
+                let msg = format!(
+                    "No employment covers punch date {} (local: {}) for employee {}",
+                    punch_time, local_punch_date, employee.id()
+                );
+                warn!("{}", msg);
+
+                let fingerprint = Self::calculate_fingerprint(
+                    args.device_id.as_deref(),
+                    &normalized_emp_id,
+                    args.punch_time_raw,
+                    raw_data.as_ref(),
+                );
+
+                let _ = self
+                    .error_repo
+                    .create_error_log_with_fingerprint(
+                        args.auth_token,
+                        args.device_id.clone(),
+                        raw_data,
+                        &msg,
+                        &format!("{:?}", args.source),
+                        &fingerprint,
+                    )
+                    .await;
+
+                return Ok(false); // SUCCESS - don't retry
+            }
+            Err(e) => {
+                let msg = format!("Database error resolving employment by date: {e}");
+                error!("{}", msg);
+                return Err(crate::errors::AppError::Internal(msg));
+            }
+        };
 
         // 3. Create RawAttendanceLog
         let (punch, status) = Self::extract_punch_status(raw_data.as_ref());
@@ -221,7 +275,7 @@ impl AttendanceLogService {
         let raw_log = RawAttendanceLog::new(
             new_id(),
             args.workspace_id,
-            active_employment_id,
+            resolved_employment_id,
             punch_time,
             args.source,
             args.device_id,
@@ -248,7 +302,7 @@ impl AttendanceLogService {
                 // Notify PairingScheduler (fire-and-forget) — pairing is deferred
                 // to a background batch sweep to avoid advisory-lock contention.
                 if let Some(notifier) = &self.notifier {
-                    notifier.notify(args.workspace_id, active_employment_id, punch_time);
+                    notifier.notify(args.workspace_id, resolved_employment_id, punch_time);
                 }
                 Ok(true)
             }
@@ -272,7 +326,7 @@ impl AttendanceLogService {
     pub async fn process_parsed_log(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         punch_time: DateTime<Utc>,
         source: LogSource,
         device_id: Option<String>,
@@ -285,7 +339,7 @@ impl AttendanceLogService {
         let raw_log = RawAttendanceLog::new(
             new_id(),
             workspace_id,
-            employee_id,
+            employment_id,
             punch_time,
             source,
             device_id,
@@ -320,7 +374,7 @@ impl AttendanceLogService {
                 } else {
                     // No pairing service — notify PairingScheduler
                     if let Some(notifier) = &self.notifier {
-                        notifier.notify(workspace_id, employee_id, punch_time);
+                        notifier.notify(workspace_id, employment_id, punch_time);
                     }
                 }
                 Ok(true)

@@ -689,6 +689,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
                 AttendanceLogService::new(
                     apiserver::services::attendance_log_service::AttendanceLogServiceDeps {
                         employee_repo: employee_repo.clone(),
+                        employment_repo: employment_repo.clone(),
                         raw_log_repo: raw_log_repo.clone(),
                         staging_repo: staging_repo.clone(),
                         error_repo: error_repo.clone(),
@@ -1419,6 +1420,7 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
                 AttendanceLogService::new(
                     apiserver::services::attendance_log_service::AttendanceLogServiceDeps {
                         employee_repo: employee_repo.clone(),
+                        employment_repo: employment_repo.clone(),
                         raw_log_repo: raw_log_repo.clone(),
                         staging_repo: staging_repo.clone(),
                         error_repo: error_repo.clone(),
@@ -2198,6 +2200,7 @@ pub async fn setup_app_tower_internal_extended(
                 AttendanceLogService::new(
                     apiserver::services::attendance_log_service::AttendanceLogServiceDeps {
                         employee_repo: employee_repo.clone(),
+                        employment_repo: employment_repo.clone(),
                         raw_log_repo: raw_log_repo.clone(),
                         staging_repo: staging_repo.clone(),
                         error_repo: error_repo.clone(),

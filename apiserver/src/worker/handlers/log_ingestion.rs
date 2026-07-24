@@ -211,8 +211,60 @@ mod tests {
             .expect_upsert_calculated_summary()
             .returning(|_, _, _, _, _, _, _, _| Ok(()));
 
+        // Mock Employment repo to return the employment for the punch date
+        let mut employment_repo =
+            crate::repositories::employment_repository::MockEmploymentRepository::new();
+        employment_repo
+            .expect_get_employment_effective_on_date()
+            .returning(move |_, _, _| {
+                Ok(Some(crate::models::employment::Employment::new(
+                    employment_id,
+                    ws_id,
+                    emp_id,
+                    uuid::Uuid::new_v4(),
+                    None,
+                    None,
+                    "active".to_string(),
+                    chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                    None,
+                    None,
+                    "full_time".to_string(),
+                    None,
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                    None,
+                    None,
+                )))
+            });
+        employment_repo
+            .expect_get_employments_for_employees()
+            .returning(|_, _| Ok(vec![]));
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(move |_, id| {
+                Ok(Some(crate::models::employment::Employment::new(
+                    id,
+                    ws_id,
+                    emp_id,
+                    uuid::Uuid::new_v4(),
+                    None,
+                    None,
+                    "active".to_string(),
+                    chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                    None,
+                    None,
+                    "full_time".to_string(),
+                    None,
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                    None,
+                    None,
+                )))
+            });
+
         let mut builder = MockWorkerDepsBuilder::new();
         builder.employee_repo = emp_repo;
+        builder.employment_repo = employment_repo;
         builder.raw_log_repo = raw_log_repo;
         builder.staging_repo = staging_repo;
         builder.error_repo = error_repo;

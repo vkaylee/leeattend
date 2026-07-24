@@ -75,6 +75,7 @@ pub async fn build_attendance_services(
 
     let deps = crate::services::attendance_log_service::AttendanceLogServiceDeps {
         employee_repo: Arc::clone(&repos.employee),
+        employment_repo: Arc::clone(&repos.employment),
         raw_log_repo: Arc::clone(&repos.raw_log),
         staging_repo: Arc::clone(&repos.staging),
         error_repo: Arc::clone(&repos.error),
