@@ -57,12 +57,12 @@ impl super::LeaveService {
 
             conn.transaction::<_, AppError, _>(|pg_conn| {
                 let repo = std::sync::Arc::clone(&repo);
-                Box::pin(async move {
+                
                     repo.update_leave_request_status_tx(
                         pg_conn, auth, request_id, status, Some(user_id),
                     )
                     .await
-                })
+                
             })
             .await?;
         } else {

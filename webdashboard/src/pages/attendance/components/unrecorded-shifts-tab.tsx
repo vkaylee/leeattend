@@ -9,8 +9,8 @@ import { Typography } from "@/components/ui/typography";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 
 import { useUnrecordedShiftsData } from "./hooks/use-unrecorded-shifts-data";
+import { NoShowTable } from "./unrecorded-shifts/no-show-table";
 import { NoShowFilterBar } from "./unrecorded-shifts/NoShowFilterBar";
-import { NoShowTable } from "./unrecorded-shifts/NoShowTable";
 import { useNoShowExport } from "./unrecorded-shifts/useNoShowExport";
 
 function getTodayIso(): string {

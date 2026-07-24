@@ -226,7 +226,7 @@ mod tests {
         builder
             .system_repo
             .expect_execute_tenant_partition_queries_batch()
-            .returning(|_, _| Box::pin(async { Ok(()) }));
+            .returning(|_, _| Ok(()));
         let deps = builder.build();
 
         let job = Job::with_priority(

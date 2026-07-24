@@ -121,7 +121,7 @@ export function useRosterHandlers({
   const monthStartStr = monthDays.length > 0 ? format(monthDays[0], 'yyyy-MM-dd') : null;
   const monthEndStr = monthDays.length > 0 ? format(monthDays[monthDays.length - 1], 'yyyy-MM-dd') : null;
 
-  const refetchAndPatchRow = async (employmentId: string) => {
+  const refetchAndPatchRow = useCallback(async (employmentId: string) => {
     if (!monthStartStr || !monthEndStr) return;
     const fresh = await fetchWorkspaceSchedules(wsId, monthStartStr, monthEndStr, [employmentId]);
     const freshRow = fresh.find((s) => s.employment_id === employmentId) ?? fresh[0];
@@ -134,7 +134,7 @@ export function useRosterHandlers({
           row.employment_id === employmentId ? { ...row, schedules: freshRow.schedules } : row
         ),
     );
-  };
+  }, [monthStartStr, monthEndStr, wsId, queryClient]);
 
   const handleMonthBulkAssign = async (
     assignments: { employeeId: string; employmentId?: string; dates: string[] }[],

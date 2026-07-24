@@ -87,7 +87,7 @@ export default function SmartTable<T>({
     <div
       className={cn("relative flex flex-col h-full w-full", className)}
       onKeyDown={smart.handleKeyDown}
-      onPaste={smart.handlePaste}
+      onPaste={(e) => { void smart.handlePaste(e); }}
     >
       {/* Scrollable Container with rounded corners */}
       <div className="flex-1 overflow-auto scrollbar-thin border border-slate-200 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900 shadow-sm relative">

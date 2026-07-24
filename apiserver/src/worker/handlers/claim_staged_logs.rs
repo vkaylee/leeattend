@@ -167,17 +167,17 @@ mod tests {
         let mut roster_repo = MockRosterRepository::new();
         roster_repo
             .expect_get_effective_shift()
-            .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+            .returning(|_, _, _|  Ok((None, vec![])) );
         roster_repo
             .expect_get_workspace_schedules()
-            .returning(|_, _, _, _, _, _, _| Box::pin(async { Ok((vec![], 0)) }));
+            .returning(|_, _, _, _, _, _, _|  Ok((vec![], 0)) );
 
         let mut raw_log_repo =
             crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository::new(
             );
         raw_log_repo
             .expect_get_employment_logs_in_time_range()
-            .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
+            .returning(|_, _, _, _|  Ok(vec![]) );
 
         let mut time_entry_repo =
             crate::repositories::time_entry_repository::MockTimeEntryRepository::new();

@@ -887,7 +887,7 @@ async fn test_process_new_raw_log_duplicate() {
     mock_raw_repo
         .expect_has_duplicate_raw_log()
         .times(1)
-        .returning(|_, _, _, _| Box::pin(async { Ok(true) }));
+        .returning(|_, _, _, _|  Ok(true) );
 
     let service = PairingService::new(PairingServiceArgs::new(
         Arc::new(MockTimeEntryRepository::new()),
@@ -943,13 +943,13 @@ async fn test_reprocess_daily_attendance_no_logs() {
     mock_roster_repo
         .expect_get_effective_shift()
         .times(1)
-        .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+        .returning(|_, _, _|  Ok((None, vec![])) );
 
     let mut mock_raw_repo = MockRawAttendanceLogRepository::new();
     mock_raw_repo
         .expect_get_employment_logs_in_time_range()
         .times(1)
-        .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
+        .returning(|_, _, _, _|  Ok(vec![]) );
 
     let mut mock_time_entry_repo = MockTimeEntryRepository::new();
     mock_time_entry_repo
@@ -993,7 +993,7 @@ async fn test_reprocess_daily_attendance_excludes_already_paired_logs() {
     mock_roster_repo
         .expect_get_effective_shift()
         .times(1)
-        .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+        .returning(|_, _, _|  Ok((None, vec![])) );
 
     let paired_log_id = Uuid::new_v4();
     let fresh_log_id = Uuid::new_v4();
@@ -1167,7 +1167,7 @@ async fn test_reprocess_attendance_range_success() {
     mock_raw_repo
         .expect_get_employment_logs_in_time_range()
         .times(1)
-        .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
+        .returning(|_, _, _, _|  Ok(vec![]) );
 
     let mut mock_time_entry_repo = MockTimeEntryRepository::new();
     mock_time_entry_repo
@@ -1317,7 +1317,7 @@ async fn test_propagate_overnight_reprocesses_next_day() {
                 false,
                 None,
             );
-            Box::pin(async move {
+            
                 let list = vec![crate::models::EmployeeSchedule::new(
                     emp_id,
                     emp_id,
@@ -1327,14 +1327,14 @@ async fn test_propagate_overnight_reprocesses_next_day() {
                 )];
                 let total = list.len() as i64;
                 Ok((list, total))
-            })
+            
         });
 
     let mut mock_raw_repo = MockRawAttendanceLogRepository::new();
     mock_raw_repo
         .expect_get_employment_logs_in_time_range()
         .times(1)
-        .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
+        .returning(|_, _, _, _|  Ok(vec![]) );
 
     let mut mock_time_entry_repo = MockTimeEntryRepository::new();
     mock_time_entry_repo
@@ -1441,7 +1441,7 @@ async fn test_propagate_overnight_no_schedule_graceful() {
     mock_roster_repo
         .expect_get_workspace_schedules()
         .times(1)
-        .returning(|_, _, _, _, _, _, _| Box::pin(async { Ok((vec![], 0)) }));
+        .returning(|_, _, _, _, _, _, _|  Ok((vec![], 0)) );
 
     let service = PairingService::new(PairingServiceArgs::new(
         Arc::new(MockTimeEntryRepository::new()),
@@ -1524,7 +1524,7 @@ async fn test_range_reprocess_multi_day_with_logs() {
     mock_raw_repo
         .expect_get_employment_logs_in_time_range()
         .times(1)
-        .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
+        .returning(|_, _, _, _|  Ok(vec![]) );
 
     let mut mock_time_entry_repo = MockTimeEntryRepository::new();
     mock_time_entry_repo
@@ -1568,7 +1568,7 @@ async fn test_range_reprocess_handles_overnight_tail() {
     let mut mock_raw_repo = MockRawAttendanceLogRepository::new();
     mock_raw_repo
         .expect_get_employment_logs_in_time_range()
-        .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
+        .returning(|_, _, _, _|  Ok(vec![]) );
 
     let mut mock_time_entry_repo = MockTimeEntryRepository::new();
     mock_time_entry_repo
@@ -1715,7 +1715,7 @@ async fn test_range_reprocess_empty_schedule_day_skipped() {
                 false,
                 None,
             )];
-            Box::pin(async move {
+            
                 let list = vec![crate::models::EmployeeSchedule::new(
                     sched_emp_id,
                     sched_emp_id,
@@ -1725,14 +1725,14 @@ async fn test_range_reprocess_empty_schedule_day_skipped() {
                 )];
                 let total = list.len() as i64;
                 Ok((list, total))
-            })
+            
         });
 
     let mut mock_raw_repo = MockRawAttendanceLogRepository::new();
     mock_raw_repo
         .expect_get_employment_logs_in_time_range()
         .times(1)
-        .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
+        .returning(|_, _, _, _|  Ok(vec![]) );
 
     let mut mock_time_entry_repo = MockTimeEntryRepository::new();
     mock_time_entry_repo
@@ -2181,7 +2181,7 @@ async fn test_fetch_shift_config_falls_back_when_no_intervals() {
         .times(1)
         .returning(move |_, _, _| {
             let sid = shift_id;
-            Box::pin(async move { Ok((Some(sid), vec![])) })
+             Ok((Some(sid), vec![])) 
         });
 
     // get_raw_roster_data → shift exists but NO intervals
@@ -2199,7 +2199,7 @@ async fn test_fetch_shift_config_falls_back_when_no_intervals() {
         .times(1)
         .returning(move |_| {
             let rd = Arc::clone(&roster_data);
-            Box::pin(async move { Ok(rd) })
+             Ok(rd) 
         });
 
     // get_workspace_schedules → fallback path — returns schedule WITH break

@@ -113,7 +113,7 @@ async fn test_attendance_handler_calculate_summary_with_data() {
         .expect_get_workspace_schedules()
         .returning(move |_, _, _, _, _, _, _| {
             let sched = schedule.clone();
-            Box::pin(async move { Ok((vec![sched], 1)) })
+            Ok((vec![sched], 1))
         });
 
     let punch_in = chrono::Utc.with_ymd_and_hms(2026, 1, 15, 8, 0, 0).unwrap();
@@ -152,7 +152,7 @@ async fn test_attendance_handler_calculate_summary_with_data() {
         .returning(move |_, _, _, _| {
             let mut map = HashMap::new();
             map.insert(emp_id, 2);
-            Box::pin(async move { Ok(map) })
+            Ok(map)
         });
 
     builder

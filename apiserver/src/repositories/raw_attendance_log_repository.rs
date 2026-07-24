@@ -7,8 +7,8 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 // Trait: RawAttendanceLogRepository — DIP abstraction
 // ---------------------------------------------------------------------------
-#[async_trait]
 #[cfg_attr(test, mockall::automock)]
+#[async_trait]
 pub trait RawAttendanceLogRepository: Send + Sync {
     async fn create_raw_log(
         &self,

@@ -27,13 +27,14 @@ function LoadingState() {
 
 // ── Page Tabs Config ─────────────────────────────────────────────────
 
-function buildTabs(
-  t: (key: string, opts?: Record<string, unknown>) => string,
-  canApprove: boolean,
-  canCreateOnBehalf: boolean,
-  canClaimOnBehalf: boolean,
-  canManagePolicies: boolean
-): PageTab[] {
+function buildTabs(opts: {
+  t: (key: string, opts?: Record<string, unknown>) => string;
+  canApprove: boolean;
+  canCreateOnBehalf: boolean;
+  canClaimOnBehalf: boolean;
+  canManagePolicies: boolean;
+}): PageTab[] {
+  const { t, canApprove, canCreateOnBehalf, canClaimOnBehalf, canManagePolicies } = opts;
   return [
     {
       id: "pre",
@@ -110,7 +111,7 @@ export default function OtApprovalsPage() {
     t,
   } = approvals;
 
-  const tabs = buildTabs(t, canApprove, canCreateOnBehalf, canClaimOnBehalf, canManagePolicies);
+  const tabs = buildTabs({ t, canApprove, canCreateOnBehalf, canClaimOnBehalf, canManagePolicies });
 
   if (permissionsLoading) {
     return (

@@ -54,7 +54,7 @@ export interface UseWorkingPatternsReturn {
   isLoading: boolean;
   newPatternDesc: string;
   newPatternName: string;
-  onComplianceOverride: (reason: string) => void;
+  onComplianceOverride: (reason: string) => Promise<void>;
   patternDetails: WorkingPatternDetail[];
   patterns: WorkingPattern[];
   patternType: "weekly" | "rotation";

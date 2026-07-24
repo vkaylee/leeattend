@@ -40,7 +40,7 @@ export function usePatternCompliance(
       for (const d of dayDetails) {
         const shift = shifts.find((s) => s.id === d.shift_id);
         const iv = shift?.intervals?.[0];
-        if (!iv?.start_time || !iv?.end_time) continue;
+        if (!iv.start_time || !iv.end_time) continue;
         dayBlocks.push({
           shiftId: d.shift_id ?? "",
           shiftName: shift?.name ?? "",

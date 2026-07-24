@@ -8,13 +8,13 @@ import type { WorkspaceMember, CreateEmployeeRequest, UpdateEmployeeRequest } fr
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 import {
   createEmployee, updateEmployee, fetchWorkspaceMembers,
   Employee, fetchEmployers, fetchEmployeeEmployments,
   updateEmployeeEmployment, Employment,
 } from "@/lib/api";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
-import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 
 import EmployeeFormInputs from "./employee-form-inputs";
 

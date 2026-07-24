@@ -41,7 +41,7 @@ export function PatternModals({ hook }: PatternModalsProps) {
         isLoading={hook.isComplianceResolving}
         isOpen={hook.complianceModalOpen}
         onClose={() => { hook.setComplianceModalOpen(false); }}
-        onConfirm={hook.onComplianceOverride}
+        onConfirm={(reason) => { void hook.onComplianceOverride(reason); }}
         violations={hook.complianceViolations}
       />
     </>
@@ -335,7 +335,7 @@ function BulkAssignModal({ hook }: PatternModalsProps) {
                     msg = t("patterns.conflicts.rest_warning", {
                       hours: issue.restHours,
                     });
-                  } else if (issue.type === "hours") {
+                  } else {
                     badgeType = "hours";
                     msg = t("patterns.conflicts.weekly_hours_exceeded", {
                       total: Math.round(issue.totalMinutes / 60),

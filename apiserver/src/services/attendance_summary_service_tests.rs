@@ -18,7 +18,7 @@ fn empty_condition_type_repo() -> Arc<dyn crate::repositories::ConditionTypeRepo
 
     let mut repo = MockConditionTypeRepository::new();
     repo.expect_list_condition_types()
-        .returning(|_, _| Box::pin(async move { Ok(vec![]) }));
+        .returning(|_, _| Ok(vec![]));
     Arc::new(repo)
 }
 
@@ -1222,7 +1222,7 @@ mod recalculate_daily_summary_leave_tests {
 
         leave_request_repo
             .expect_get_employee_leave_requests()
-            .returning(|_, _| Box::pin(async { Ok(vec![]) }));
+            .returning(|_, _| Ok(vec![]));
 
         holiday_repo
             .expect_get_holidays_in_range()

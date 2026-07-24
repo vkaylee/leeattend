@@ -69,7 +69,7 @@ async fn test_attendance_handler_with_mocks() {
     builder
         .roster_repo
         .expect_get_workspace_schedules()
-        .returning(|_, _, _, _, _, _, _| Box::pin(async move { Ok((vec![], 0)) }));
+        .returning(|_, _, _, _, _, _, _|  Ok((vec![], 0)) );
     builder
         .time_entry_repo
         .expect_get_workspace_time_entries_batch_by_employments()
@@ -77,7 +77,7 @@ async fn test_attendance_handler_with_mocks() {
     builder
         .leave_request_repo
         .expect_get_batch_leave_days()
-        .returning(|_, _, _, _| Box::pin(async move { Ok(HashMap::new()) }));
+        .returning(|_, _, _, _|  Ok(HashMap::new()) );
     builder
         .employee_repo
         .expect_get_working_conditions_batch_by_employments()
@@ -236,7 +236,7 @@ async fn test_attendance_handler_calculate_detail_late_early() {
         .expect_get_workspace_schedules()
         .returning(move |_, _, _, _, _, _, _| {
             let sched = schedule.clone();
-            Box::pin(async move { Ok((vec![sched], 1)) })
+            Ok((vec![sched], 1))
         });
 
     let punch_in = chrono::Utc.with_ymd_and_hms(2026, 1, 15, 8, 15, 0).unwrap();
@@ -272,7 +272,7 @@ async fn test_attendance_handler_calculate_detail_late_early() {
     builder
         .leave_request_repo
         .expect_get_batch_leave_days()
-        .returning(|_, _, _, _| Box::pin(async move { Ok(HashMap::new()) }));
+        .returning(|_, _, _, _| Ok(HashMap::new()));
     builder
         .employee_repo
         .expect_get_working_conditions_batch_by_employments()

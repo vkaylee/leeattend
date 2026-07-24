@@ -64,7 +64,7 @@ export interface UseSmartTableReturn<T> {
   handleCellKeyDown: (args: { column: TanStackColumn<T>; e: React.KeyboardEvent; colIndex: number; row: Row<T>; rowIndex: number }) => void;
   // Clipboard
   handleKeyDown: (e: React.KeyboardEvent) => void;
-  handlePaste: (e: React.ClipboardEvent) => void;
+  handlePaste: (e: React.ClipboardEvent) => Promise<void>;
   handleRowContextMenu: (row: T, e: React.MouseEvent) => void;
   handleRowMouseDown: (index: number, e: React.MouseEvent) => void;
   handleRowMouseEnter: (index: number) => void;
@@ -255,7 +255,7 @@ export function useSmartTable<T>({
     return {
       position: "sticky",
       [isPinned]: `${offset}px`,
-      zIndex: isPinned ? 2 : 1,
+      zIndex: 2,
     };
   }, []);
 

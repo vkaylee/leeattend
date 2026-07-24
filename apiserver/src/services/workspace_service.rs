@@ -739,10 +739,10 @@ mod tests {
             crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository::new();
         mock_config_repo
             .expect_delete_by_key()
-            .returning(|_, _, _, _| Box::pin(async move { Ok(()) }));
+            .returning(|_, _, _, _|  Ok(()) );
         mock_config_repo
             .expect_create_entry()
-            .returning(|_, entry| Box::pin(async move { Ok(entry) }));
+            .returning(|_, entry|  Ok(entry) );
         let provisioner = std::sync::Arc::new(MockTenantProvisioner);
         WorkspaceService::new(
             std::sync::Arc::new(MockWorkspaceRepo {
@@ -842,10 +842,10 @@ mod tests {
             crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository::new();
         mock_config_repo
             .expect_delete_by_key()
-            .returning(|_, _, _, _| Box::pin(async move { Ok(()) }));
+            .returning(|_, _, _, _|  Ok(()) );
         mock_config_repo
             .expect_create_entry()
-            .returning(|_, entry| Box::pin(async move { Ok(entry) }));
+            .returning(|_, entry|  Ok(entry) );
         let provisioner = std::sync::Arc::new(FailingMockTenantProvisioner);
         WorkspaceService::new(
             std::sync::Arc::new(MockWorkspaceRepo {

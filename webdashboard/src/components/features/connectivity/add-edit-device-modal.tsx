@@ -37,7 +37,7 @@ export function AddEditDeviceModal({
       const val = editingDevice[field as keyof Device];
       return (typeof val === "string" || typeof val === "number") ? val : "";
     }
-    return (newDevice[field as keyof CreateDeviceRequest]!) || "";
+    return newDevice[field as keyof CreateDeviceRequest] ?? "";
   };
 
   const handleChange = (field: string, value: string | number) => {

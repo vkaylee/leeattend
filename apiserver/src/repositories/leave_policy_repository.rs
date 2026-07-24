@@ -7,8 +7,8 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 // Trait: LeavePolicyRepository — DIP abstraction
 // ---------------------------------------------------------------------------
-#[async_trait]
 #[cfg_attr(test, mockall::automock)]
+#[async_trait]
 pub trait LeavePolicyRepository: Send + Sync {
     async fn get_leave_types(
         &self,

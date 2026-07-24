@@ -197,7 +197,7 @@ mod tests {
         let mut roster_repo = MockRosterRepository::new();
         roster_repo
             .expect_get_effective_shift()
-            .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+            .returning(|_, _, _| Ok((None, vec![])));
 
         let sched_emp_id = emp_id;
         let sched_employment_id = employment_id;
@@ -227,8 +227,7 @@ mod tests {
                     )
                 };
                 let schedules = vec![empty_schedule(start_date), empty_schedule(end_date)];
-                Box::pin(async move {
-                    Ok((
+                Ok((
                         vec![crate::models::EmployeeSchedule::new(
                             sched_employment_id,
                             sched_emp_id,
@@ -238,7 +237,6 @@ mod tests {
                         )],
                         1,
                     ))
-                })
             },
         );
 
@@ -294,17 +292,17 @@ mod tests {
             );
         raw_log_repo
             .expect_get_employment_logs_in_time_range()
-            .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
+            .returning(|_, _, _, _| Ok(vec![]));
         builder.raw_log_repo = raw_log_repo;
 
         let mut leave_repo =
             crate::repositories::leave_request_repository::MockLeaveRequestRepository::new();
         leave_repo
             .expect_get_approved_leave_dates()
-            .returning(|_, _, _, _| Box::pin(async { Ok(std::collections::HashSet::new()) }));
+            .returning(|_, _, _, _| Ok(std::collections::HashSet::new()));
         leave_repo
             .expect_get_employee_leave_requests()
-            .returning(|_, _| Box::pin(async { Ok(vec![]) }));
+            .returning(|_, _| Ok(vec![]));
         builder.leave_request_repo = leave_repo;
 
         let mut employment_repo =
@@ -496,9 +494,9 @@ mod tests {
         let mut roster_repo = MockRosterRepository::new();
         roster_repo
             .expect_get_effective_shift()
-            .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+            .returning(|_, _, _| Ok((None, vec![])));
         roster_repo.expect_get_workspace_schedules().returning(
-            move |_, _, _, _, _, _, _| Box::pin(async { Ok((vec![], 0)) }),
+            move |_, _, _, _, _, _, _| Ok((vec![], 0)),
         );
 
         let mut workspace_repo =
@@ -534,17 +532,17 @@ mod tests {
             crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository::new();
         raw_log_repo
             .expect_get_employment_logs_in_time_range()
-            .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
+            .returning(|_, _, _, _| Ok(vec![]));
         builder.raw_log_repo = raw_log_repo;
 
         let mut leave_repo =
             crate::repositories::leave_request_repository::MockLeaveRequestRepository::new();
         leave_repo
             .expect_get_approved_leave_dates()
-            .returning(|_, _, _, _| Box::pin(async { Ok(std::collections::HashSet::new()) }));
+            .returning(|_, _, _, _| Ok(std::collections::HashSet::new()));
         leave_repo
             .expect_get_employee_leave_requests()
-            .returning(|_, _| Box::pin(async { Ok(vec![]) }));
+            .returning(|_, _| Ok(vec![]));
         builder.leave_request_repo = leave_repo;
 
         // Employment repo: return empty for date-range lookup
@@ -623,9 +621,9 @@ mod tests {
         let mut roster_repo = MockRosterRepository::new();
         roster_repo
             .expect_get_effective_shift()
-            .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+            .returning(|_, _, _| Ok((None, vec![])));
         roster_repo.expect_get_workspace_schedules().returning(
-            move |_, _, _, _, _, _, _| Box::pin(async { Ok((vec![], 0)) }),
+            move |_, _, _, _, _, _, _| Ok((vec![], 0)),
         );
 
         let mut workspace_repo =
@@ -661,17 +659,17 @@ mod tests {
             crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository::new();
         raw_log_repo
             .expect_get_employment_logs_in_time_range()
-            .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
+            .returning(|_, _, _, _| Ok(vec![]));
         builder.raw_log_repo = raw_log_repo;
 
         let mut leave_repo =
             crate::repositories::leave_request_repository::MockLeaveRequestRepository::new();
         leave_repo
             .expect_get_approved_leave_dates()
-            .returning(|_, _, _, _| Box::pin(async { Ok(std::collections::HashSet::new()) }));
+            .returning(|_, _, _, _| Ok(std::collections::HashSet::new()));
         leave_repo
             .expect_get_employee_leave_requests()
-            .returning(|_, _| Box::pin(async { Ok(vec![]) }));
+            .returning(|_, _| Ok(vec![]));
         builder.leave_request_repo = leave_repo;
 
         // Employment repo: return TWO employments for date-range lookup

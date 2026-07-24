@@ -169,7 +169,7 @@ const RosterGridTable = memo(function RosterGridTable({
 
                 return (
                   <RosterCell
-                    complianceStatus={getComplianceStatus(daySchedules, empSchedule.employee_id ?? "", dateStr, complianceViolations)}
+                    complianceStatus={getComplianceStatus(daySchedules, empSchedule.employee_id, dateStr, complianceViolations)}
                     dateStr={dateStr}
                     daySchedules={daySchedules}
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
