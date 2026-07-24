@@ -309,13 +309,7 @@ impl ReportService {
         .await?;
 
         // Fetch all employers to get names
-        let (employers, _) = self
-            .employer_repo
-            .get_employers(auth_token, 1, 1000)
-            .await?;
-
-        let employer_name_map: std::collections::HashMap<Uuid, String> =
-            employers.into_iter().map(|e| (e.id, e.name)).collect();
+        let employer_name_map = self.fetch_all_employers(auth_token).await?;
 
         let mut reports = Vec::new();
 

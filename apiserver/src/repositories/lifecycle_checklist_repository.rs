@@ -10,8 +10,8 @@ use crate::models::{
 use async_trait::async_trait;
 use uuid::Uuid;
 
-#[async_trait]
 #[cfg_attr(test, mockall::automock)]
+#[async_trait]
 pub trait LifecycleChecklistRepository: Send + Sync {
     // --- Templates ---
     async fn create_template(

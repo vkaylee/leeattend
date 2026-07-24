@@ -602,3 +602,995 @@ impl LifecycleService {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::{
+        ChecklistAssigneeType, ChecklistCategory, ChecklistItemStatus, ChecklistStatus, Employment,
+        LifecycleChecklist, LifecycleChecklistItem, LifecycleChecklistTemplate,
+        LifecycleChecklistTemplateItem,
+    };
+    use crate::repositories::employee::MockEmployeeRepository;
+    use crate::repositories::employment_repository::MockEmploymentRepository;
+    use crate::repositories::lifecycle_checklist_repository::MockLifecycleChecklistRepository;
+    use crate::repositories::user_repository::MockUserRepository;
+    use crate::repositories::workspace_repository::MockWorkspaceRepository;
+    use chrono::{NaiveDate, Utc};
+    use std::sync::Arc;
+    use uuid::Uuid;
+
+    // ── helpers ───────────────────────────────────────────────────────────
+
+    fn make_token(ws: Uuid) -> TenantAuthToken {
+        TenantAuthToken::system_override(ws)
+    }
+
+    fn make_template(ws: Uuid) -> LifecycleChecklistTemplate {
+        LifecycleChecklistTemplate::new(
+            Uuid::new_v4(),
+            ws,
+            "Test Template".into(),
+            Some("Description".into()),
+            LifecycleChecklistType::Onboarding,
+            false,
+            true,
+            Utc::now(),
+            Utc::now(),
+        )
+    }
+
+    fn make_template_item(template_id: Uuid) -> LifecycleChecklistTemplateItem {
+        LifecycleChecklistTemplateItem::new(
+            Uuid::new_v4(),
+            template_id,
+            "Complete paperwork".into(),
+            Some("HR paperwork".into()),
+            ChecklistCategory::HrAdmin,
+            ChecklistAssigneeType::Employee,
+            None,
+            true,
+            3,
+            1,
+        )
+    }
+
+    fn make_employment(ws: Uuid, employee_id: Uuid) -> Employment {
+        Employment::new(
+            Uuid::new_v4(),
+            ws,
+            employee_id,
+            Uuid::new_v4(), // employer_id
+            None,           // primary_location_id
+            None,           // department_id
+            "active".into(),
+            NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            None,           // end_date
+            Some("Developer".into()),
+            "full_time".into(),
+            None,           // manager_employment_id
+            Utc::now(),
+            Utc::now(),
+            None,           // termination_reason
+            None,           // notes
+        )
+    }
+
+    fn make_checklist(ws: Uuid, employment_id: Uuid, template_id: Uuid) -> LifecycleChecklist {
+        LifecycleChecklist::new(
+            Uuid::new_v4(),
+            ws,
+            employment_id,
+            Some(template_id),
+            LifecycleChecklistType::Onboarding,
+            ChecklistStatus::InProgress,
+            50,
+            Utc::now(),
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        )
+    }
+
+    fn make_checklist_item(checklist_id: Uuid) -> LifecycleChecklistItem {
+        LifecycleChecklistItem::new(
+            Uuid::new_v4(),
+            checklist_id,
+            None,
+            "HR paperwork".into(),
+            None,
+            ChecklistCategory::HrAdmin,
+            None,
+            true,
+            Some(NaiveDate::from_ymd_opt(2026, 1, 4).unwrap()),
+            ChecklistItemStatus::Pending,
+            None,
+            None,
+            None,
+            1,
+            Utc::now(),
+            Utc::now(),
+        )
+    }
+
+    fn make_employee(ws: Uuid) -> crate::models::Employee {
+        crate::models::Employee::new(
+            Uuid::new_v4(),
+            ws,
+            None,
+            "Test Employee".into(),
+            "EMP001".into(),
+            vec![],
+            Utc::now(),
+            Utc::now(),
+            None,
+        )
+    }
+
+    fn build_service(
+        repo: MockLifecycleChecklistRepository,
+    ) -> LifecycleService {
+        LifecycleService::new(
+            Arc::new(repo),
+            Arc::new(MockEmployeeRepository::new()),
+            Arc::new(MockEmploymentRepository::new()),
+            Arc::new(MockUserRepository::new()),
+            Arc::new(MockWorkspaceRepository::new()),
+        )
+    }
+
+    fn build_service_full(
+        lifecycle_repo: MockLifecycleChecklistRepository,
+        employee_repo: MockEmployeeRepository,
+        employment_repo: MockEmploymentRepository,
+    ) -> LifecycleService {
+        LifecycleService::new(
+            Arc::new(lifecycle_repo),
+            Arc::new(employee_repo),
+            Arc::new(employment_repo),
+            Arc::new(MockUserRepository::new()),
+            Arc::new(MockWorkspaceRepository::new()),
+        )
+    }
+
+    // ── Template tests ────────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn create_template_success() {
+        let ws = Uuid::new_v4();
+        let template = make_template(ws);
+        let expected = template.clone();
+
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_create_template()
+            .returning(move |_, _| Ok(expected.clone()));
+
+        let svc = build_service(repo);
+        let result = svc
+            .create_template(
+                &make_token(ws),
+                CreateLifecycleChecklistTemplateRequest {
+                    name: "Test Template".into(),
+                    description: None,
+                    checklist_type: LifecycleChecklistType::Onboarding,
+                    is_default: false,
+                },
+            )
+            .await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().id(), template.id());
+    }
+
+    #[tokio::test]
+    async fn create_template_empty_name() {
+        let repo = MockLifecycleChecklistRepository::new();
+        let svc = build_service(repo);
+        let result = svc
+            .create_template(
+                &make_token(Uuid::new_v4()),
+                CreateLifecycleChecklistTemplateRequest {
+                    name: "   ".into(),
+                    description: None,
+                    checklist_type: LifecycleChecklistType::Onboarding,
+                    is_default: false,
+                },
+            )
+            .await;
+
+        assert!(matches!(result.unwrap_err(), AppError::Validation(_)));
+    }
+
+    #[tokio::test]
+    async fn get_template_found() {
+        let ws = Uuid::new_v4();
+        let template = make_template(ws);
+        let template_id = template.id();
+        let expected = template.clone();
+
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_get_template_by_id()
+            .returning(move |_, _| Ok(Some(expected.clone())));
+
+        let svc = build_service(repo);
+        let result = svc.get_template(&make_token(ws), template_id).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().id(), template_id);
+    }
+
+    #[tokio::test]
+    async fn get_template_not_found() {
+        let ws = Uuid::new_v4();
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_get_template_by_id()
+            .returning(|_, _| Ok(None));
+
+        let svc = build_service(repo);
+        let result = svc.get_template(&make_token(ws), Uuid::new_v4()).await;
+
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn list_active_templates_with_filter() {
+        let ws = Uuid::new_v4();
+        let template = make_template(ws);
+        let expected = vec![template.clone()];
+
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_list_active_templates()
+            .returning(move |_, _| Ok(expected.clone()));
+
+        let svc = build_service(repo);
+        let result = svc
+            .list_active_templates(&make_token(ws), Some(LifecycleChecklistType::Onboarding))
+            .await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn list_active_templates_none_filter() {
+        let ws = Uuid::new_v4();
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_list_active_templates()
+            .returning(|_, _| Ok(vec![]));
+
+        let svc = build_service(repo);
+        let result = svc.list_active_templates(&make_token(ws), None).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn update_template_success() {
+        let ws = Uuid::new_v4();
+        let updated = make_template(ws);
+        let expected = updated.clone();
+
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_update_template()
+            .returning(move |_, _, _| Ok(expected.clone()));
+
+        let svc = build_service(repo);
+        let result = svc
+            .update_template(
+                &make_token(ws),
+                updated.id(),
+                UpdateLifecycleChecklistTemplateRequest {
+                    name: Some("Updated".into()),
+                    description: None,
+                    is_default: None,
+                    is_active: None,
+                },
+            )
+            .await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn delete_template_success() {
+        let ws = Uuid::new_v4();
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_soft_delete_template()
+            .returning(|_, _| Ok(()));
+
+        let svc = build_service(repo);
+        let result = svc.delete_template(&make_token(ws), Uuid::new_v4()).await;
+
+        assert!(result.is_ok());
+    }
+
+    // ── Template Item tests ───────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn create_template_item_success() {
+        let ws = Uuid::new_v4();
+        let template = make_template(ws);
+        let template_id = template.id();
+        let item = make_template_item(template_id);
+        let expected_item = item.clone();
+        let expected_template = template.clone();
+
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_get_template_by_id()
+            .returning(move |_, _| Ok(Some(expected_template.clone())));
+        repo.expect_create_template_item()
+            .returning(move |_, _, _| Ok(expected_item.clone()));
+
+        let svc = build_service(repo);
+        let result = svc
+            .create_template_item(
+                &make_token(ws),
+                template_id,
+                CreateLifecycleChecklistTemplateItemRequest {
+                    title: "Complete paperwork".into(),
+                    description: None,
+                    category: ChecklistCategory::HrAdmin,
+                    assignee_type: ChecklistAssigneeType::Employee,
+                    assignee_user_id: None,
+                    is_required: true,
+                    due_days_offset: 3,
+                    display_order: 1,
+                },
+            )
+            .await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn create_template_item_empty_title() {
+        let ws = Uuid::new_v4();
+        let repo = MockLifecycleChecklistRepository::new();
+        let svc = build_service(repo);
+        let result = svc
+            .create_template_item(
+                &make_token(ws),
+                Uuid::new_v4(),
+                CreateLifecycleChecklistTemplateItemRequest {
+                    title: "".into(),
+                    description: None,
+                    category: ChecklistCategory::HrAdmin,
+                    assignee_type: ChecklistAssigneeType::Employee,
+                    assignee_user_id: None,
+                    is_required: true,
+                    due_days_offset: 3,
+                    display_order: 1,
+                },
+            )
+            .await;
+
+        assert!(matches!(result.unwrap_err(), AppError::Validation(_)));
+    }
+
+    #[tokio::test]
+    async fn create_template_item_template_not_found() {
+        let ws = Uuid::new_v4();
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_get_template_by_id()
+            .returning(|_, _| Ok(None));
+
+        let svc = build_service(repo);
+        let result = svc
+            .create_template_item(
+                &make_token(ws),
+                Uuid::new_v4(),
+                CreateLifecycleChecklistTemplateItemRequest {
+                    title: "Task".into(),
+                    description: None,
+                    category: ChecklistCategory::HrAdmin,
+                    assignee_type: ChecklistAssigneeType::Employee,
+                    assignee_user_id: None,
+                    is_required: true,
+                    due_days_offset: 1,
+                    display_order: 1,
+                },
+            )
+            .await;
+
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn get_template_item_found() {
+        let ws = Uuid::new_v4();
+        let template = make_template(ws);
+        let item = make_template_item(template.id());
+        let item_id = item.id();
+        let expected = item.clone();
+
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_get_template_item_by_id()
+            .returning(move |_, _| Ok(Some(expected.clone())));
+
+        let svc = build_service(repo);
+        let result = svc.get_template_item(&make_token(ws), item_id).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().id(), item_id);
+    }
+
+    #[tokio::test]
+    async fn get_template_item_not_found() {
+        let ws = Uuid::new_v4();
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_get_template_item_by_id()
+            .returning(|_, _| Ok(None));
+
+        let svc = build_service(repo);
+        let result = svc.get_template_item(&make_token(ws), Uuid::new_v4()).await;
+
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn list_template_items_success() {
+        let ws = Uuid::new_v4();
+        let template_id = Uuid::new_v4();
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_list_template_items()
+            .returning(|_, _| Ok(vec![]));
+
+        let svc = build_service(repo);
+        let result = svc.list_template_items(&make_token(ws), template_id).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn update_template_item_success() {
+        let ws = Uuid::new_v4();
+        let template = make_template(ws);
+        let item = make_template_item(template.id());
+        let expected = item.clone();
+
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_update_template_item()
+            .returning(move |_, _, _| Ok(expected.clone()));
+
+        let svc = build_service(repo);
+        let result = svc
+            .update_template_item(
+                &make_token(ws),
+                item.id(),
+                UpdateLifecycleChecklistTemplateItemRequest {
+                    title: Some("Updated task".into()),
+                    description: None,
+                    category: None,
+                    assignee_type: None,
+                    assignee_user_id: None,
+                    is_required: None,
+                    due_days_offset: None,
+                    display_order: None,
+                },
+            )
+            .await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn delete_template_item_success() {
+        let ws = Uuid::new_v4();
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_delete_template_item()
+            .returning(|_, _| Ok(()));
+
+        let svc = build_service(repo);
+        let result = svc.delete_template_item(&make_token(ws), Uuid::new_v4()).await;
+
+        assert!(result.is_ok());
+    }
+
+    // ── Checklist Instance tests ──────────────────────────────────────────
+
+    #[tokio::test]
+    async fn get_checklist_found() {
+        let ws = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+        let template_id = Uuid::new_v4();
+        let checklist = make_checklist(ws, employment_id, template_id);
+        let checklist_id = checklist.id();
+        let expected_cl = checklist.clone();
+
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_get_checklist_by_id()
+            .returning(move |_, _| Ok(Some(expected_cl.clone())));
+        repo.expect_list_checklist_items()
+            .returning(|_, _| Ok(vec![]));
+
+        let svc = build_service(repo);
+        let result = svc.get_checklist(&make_token(ws), checklist_id).await;
+
+        assert!(result.is_ok());
+        let resp = result.unwrap();
+        assert_eq!(resp.id, checklist_id);
+        assert_eq!(resp.items.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn get_checklist_not_found() {
+        let ws = Uuid::new_v4();
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_get_checklist_by_id()
+            .returning(|_, _| Ok(None));
+
+        let svc = build_service(repo);
+        let result = svc.get_checklist(&make_token(ws), Uuid::new_v4()).await;
+
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn list_checklists_for_employment_empty() {
+        let ws = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_list_checklists_for_employment()
+            .returning(|_, _| Ok(vec![]));
+
+        let svc = build_service(repo);
+        let result = svc
+            .list_checklists_for_employment(&make_token(ws), employment_id)
+            .await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 0);
+    }
+
+    #[tokio::test]
+    async fn list_checklists_for_employment_with_items() {
+        let ws = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+        let template_id = Uuid::new_v4();
+        let checklist = make_checklist(ws, employment_id, template_id);
+        let checklist_id = checklist.id();
+        let item = make_checklist_item(checklist_id);
+
+        let expected_cl = checklist.clone();
+        let expected_items = vec![item.clone()];
+
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_list_checklists_for_employment()
+            .returning(move |_, _| Ok(vec![expected_cl.clone()]));
+        repo.expect_list_items_for_checklist_ids()
+            .returning(move |_, _| Ok(expected_items.clone()));
+
+        let svc = build_service(repo);
+        let result = svc
+            .list_checklists_for_employment(&make_token(ws), employment_id)
+            .await;
+
+        assert!(result.is_ok());
+        let responses = result.unwrap();
+        assert_eq!(responses.len(), 1);
+        assert_eq!(responses[0].items.len(), 1);
+        assert_eq!(responses[0].items[0].id(), item.id());
+    }
+
+    #[tokio::test]
+    async fn get_pending_tasks_for_user_success() {
+        let ws = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_get_pending_tasks_for_user()
+            .returning(|_, _| Ok(vec![]));
+
+        let svc = build_service(repo);
+        let result = svc.get_pending_tasks_for_user(&make_token(ws), user_id).await;
+
+        assert!(result.is_ok());
+    }
+
+    // ── Item Status tests ─────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn update_item_status_item_not_found() {
+        let ws = Uuid::new_v4();
+        let item_id = Uuid::new_v4();
+
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_get_checklist_item_by_id()
+            .returning(|_, _| Ok(None));
+
+        let svc = build_service(repo);
+        let result = svc
+            .update_item_status(
+                &make_token(ws),
+                item_id,
+                ChecklistItemStatus::Completed,
+                None,
+                None,
+            )
+            .await;
+
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn update_item_status_to_completed_progress_100() {
+        let ws = Uuid::new_v4();
+        let checklist_id = Uuid::new_v4();
+        let item_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+        let template_id = Uuid::new_v4();
+
+        let item = make_checklist_item(checklist_id);
+        let completed_item = LifecycleChecklistItem::new(
+            item.id(),
+            checklist_id,
+            None,
+            "HR paperwork".into(),
+            None,
+            ChecklistCategory::HrAdmin,
+            None,
+            true,
+            item.due_date(),
+            ChecklistItemStatus::Completed,
+            Some(Utc::now()),
+            Some(Uuid::new_v4()),
+            None,
+            1,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        let completed_checklist = LifecycleChecklist::new(
+            checklist_id,
+            ws,
+            employment_id,
+            Some(template_id),
+            LifecycleChecklistType::Onboarding,
+            ChecklistStatus::Completed,
+            100,
+            Utc::now(),
+            Some(Utc::now()),
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        let expected_item = item.clone();
+        let expected_completed_item = completed_item.clone();
+        let expected_checklist = completed_checklist.clone();
+
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_get_checklist_item_by_id()
+            .returning(move |_, _| Ok(Some(expected_item.clone())));
+        repo.expect_update_checklist_item_status()
+            .returning(move |_, _, _, _, _| Ok(expected_completed_item.clone()));
+        repo.expect_list_checklist_items()
+            .returning(move |_, _| Ok(vec![completed_item.clone()]));
+        repo.expect_update_checklist_status_and_progress()
+            .returning(move |_, _, _, _, _| Ok(expected_checklist.clone()));
+
+        let svc = build_service(repo);
+        let result = svc
+            .update_item_status(
+                &make_token(ws),
+                item_id,
+                ChecklistItemStatus::Completed,
+                None,
+                Some(Uuid::new_v4()),
+            )
+            .await;
+
+        assert!(result.is_ok());
+        let resp = result.unwrap();
+        assert_eq!(resp.status, ChecklistStatus::Completed);
+        assert_eq!(resp.progress_percent, 100);
+        assert!(resp.completed_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn update_item_status_partial_progress() {
+        let ws = Uuid::new_v4();
+        let checklist_id = Uuid::new_v4();
+        let item_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+        let template_id = Uuid::new_v4();
+
+        let item = make_checklist_item(checklist_id);
+        let completed_item = LifecycleChecklistItem::new(
+            item.id(),
+            checklist_id,
+            None,
+            "HR paperwork".into(),
+            None,
+            ChecklistCategory::HrAdmin,
+            None,
+            true,
+            item.due_date(),
+            ChecklistItemStatus::Completed,
+            Some(Utc::now()),
+            Some(Uuid::new_v4()),
+            None,
+            1,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        // Two items: one completed, one still pending → 50%
+        let pending_item = LifecycleChecklistItem::new(
+            Uuid::new_v4(),
+            checklist_id,
+            None,
+            "IT Setup".into(),
+            None,
+            ChecklistCategory::ItSetup,
+            None,
+            true,
+            None,
+            ChecklistItemStatus::Pending,
+            None,
+            None,
+            None,
+            2,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        let in_progress_checklist = LifecycleChecklist::new(
+            checklist_id,
+            ws,
+            employment_id,
+            Some(template_id),
+            LifecycleChecklistType::Onboarding,
+            ChecklistStatus::InProgress,
+            50,
+            Utc::now(),
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        let expected_item = item.clone();
+        let expected_completed_item = completed_item.clone();
+        let expected_checklist = in_progress_checklist.clone();
+
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_get_checklist_item_by_id()
+            .returning(move |_, _| Ok(Some(expected_item.clone())));
+        repo.expect_update_checklist_item_status()
+            .returning(move |_, _, _, _, _| Ok(expected_completed_item.clone()));
+        repo.expect_list_checklist_items()
+            .returning(move |_, _| Ok(vec![completed_item.clone(), pending_item.clone()]));
+        repo.expect_update_checklist_status_and_progress()
+            .returning(move |_, _, _, _, _| Ok(expected_checklist.clone()));
+
+        let svc = build_service(repo);
+        let result = svc
+            .update_item_status(
+                &make_token(ws),
+                item_id,
+                ChecklistItemStatus::Completed,
+                None,
+                Some(Uuid::new_v4()),
+            )
+            .await;
+
+        assert!(result.is_ok());
+        let resp = result.unwrap();
+        assert_eq!(resp.status, ChecklistStatus::InProgress);
+        assert_eq!(resp.progress_percent, 50);
+        assert!(resp.completed_at.is_none());
+    }
+
+    // ── Auto-trigger tests ────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn auto_trigger_onboarding_no_template() {
+        let ws = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_get_default_template()
+            .returning(|_, _| Ok(None));
+
+        let svc = build_service(repo);
+        let result = svc
+            .auto_trigger_onboarding(&make_token(ws), employment_id, None)
+            .await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn auto_trigger_offboarding_no_template() {
+        let ws = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+
+        let mut repo = MockLifecycleChecklistRepository::new();
+        repo.expect_get_default_template()
+            .returning(|_, _| Ok(None));
+
+        let svc = build_service(repo);
+        let result = svc
+            .auto_trigger_offboarding(&make_token(ws), employment_id, None)
+            .await;
+
+        assert!(result.is_ok());
+    }
+
+    // ── create_checklist_from_template (integration-style with all mocks) ──
+
+    #[tokio::test]
+    async fn create_checklist_from_template_with_items_success() {
+        let ws = Uuid::new_v4();
+        let employee_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+        let template = make_template(ws);
+        let template_id = template.id();
+
+        let item = make_template_item(template_id);
+        let employee = make_employee(ws);
+        let employment = make_employment(ws, employee_id);
+
+        let checklist = make_checklist(ws, employment_id, template_id);
+        let checklist_item = make_checklist_item(checklist.id());
+
+        let expected_template = template.clone();
+        let expected_item = item.clone();
+        let expected_employee = employee.clone();
+        let expected_employment = employment.clone();
+        let expected_checklist = checklist.clone();
+        let expected_checklist_item = checklist_item.clone();
+
+        let mut lifecycle_repo = MockLifecycleChecklistRepository::new();
+        lifecycle_repo
+            .expect_get_template_by_id()
+            .returning(move |_, _| Ok(Some(expected_template.clone())));
+        lifecycle_repo
+            .expect_list_template_items()
+            .returning(move |_, _| Ok(vec![expected_item.clone()]));
+        lifecycle_repo
+            .expect_create_checklist_with_items()
+            .returning(move |_, _, _| Ok((expected_checklist.clone(), vec![expected_checklist_item.clone()])));
+
+        let mut employee_repo = MockEmployeeRepository::new();
+        employee_repo
+            .expect_get_employee_by_id()
+            .returning(move |_, _| Ok(Some(expected_employee.clone())));
+
+        let mut employment_repo = MockEmploymentRepository::new();
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(move |_, _| Ok(Some(expected_employment.clone())));
+
+        let svc = build_service_full(lifecycle_repo, employee_repo, employment_repo);
+        let result = svc
+            .create_checklist_from_template(
+                &make_token(ws),
+                employment_id,
+                template_id,
+                None,
+            )
+            .await;
+
+        assert!(result.is_ok());
+        let resp = result.unwrap();
+        assert_eq!(resp.employment_id, employment_id);
+        assert_eq!(resp.items.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn create_checklist_from_template_not_found() {
+        let ws = Uuid::new_v4();
+
+        let mut lifecycle_repo = MockLifecycleChecklistRepository::new();
+        lifecycle_repo
+            .expect_get_template_by_id()
+            .returning(|_, _| Ok(None));
+
+        let employee_repo = MockEmployeeRepository::new();
+        let employment_repo = MockEmploymentRepository::new();
+
+        let svc = build_service_full(lifecycle_repo, employee_repo, employment_repo);
+        let result = svc
+            .create_checklist_from_template(
+                &make_token(ws),
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                None,
+            )
+            .await;
+
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn create_checklist_from_template_employment_not_found() {
+        let ws = Uuid::new_v4();
+        let template = make_template(ws);
+        let template_id = template.id();
+        let item = make_template_item(template_id);
+        let employee = make_employee(ws);
+
+        let expected_template = template.clone();
+        let expected_item = item.clone();
+        let expected_employee = employee.clone();
+
+        let mut lifecycle_repo = MockLifecycleChecklistRepository::new();
+        lifecycle_repo
+            .expect_get_template_by_id()
+            .returning(move |_, _| Ok(Some(expected_template.clone())));
+        lifecycle_repo
+            .expect_list_template_items()
+            .returning(move |_, _| Ok(vec![expected_item.clone()]));
+
+        let mut employee_repo = MockEmployeeRepository::new();
+        employee_repo
+            .expect_get_employee_by_id()
+            .returning(move |_, _| Ok(Some(expected_employee.clone())));
+
+        let mut employment_repo = MockEmploymentRepository::new();
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(|_, _| Ok(None));
+
+        let svc = build_service_full(lifecycle_repo, employee_repo, employment_repo);
+        let result = svc
+            .create_checklist_from_template(
+                &make_token(ws),
+                Uuid::new_v4(),
+                template_id,
+                None,
+            )
+            .await;
+
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn create_checklist_from_template_employee_not_found() {
+        let ws = Uuid::new_v4();
+        let employee_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+        let template = make_template(ws);
+        let template_id = template.id();
+        let item = make_template_item(template_id);
+        let employment = make_employment(ws, employee_id);
+
+        let expected_template = template.clone();
+        let expected_item = item.clone();
+        let expected_employment = employment.clone();
+
+        let mut lifecycle_repo = MockLifecycleChecklistRepository::new();
+        lifecycle_repo
+            .expect_get_template_by_id()
+            .returning(move |_, _| Ok(Some(expected_template.clone())));
+        lifecycle_repo
+            .expect_list_template_items()
+            .returning(move |_, _| Ok(vec![expected_item.clone()]));
+
+        let mut employment_repo = MockEmploymentRepository::new();
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(move |_, _| Ok(Some(expected_employment.clone())));
+
+        let mut employee_repo = MockEmployeeRepository::new();
+        employee_repo
+            .expect_get_employee_by_id()
+            .returning(|_, _| Ok(None));
+
+        let svc = build_service_full(lifecycle_repo, employee_repo, employment_repo);
+        let result = svc
+            .create_checklist_from_template(
+                &make_token(ws),
+                employment_id,
+                template_id,
+                None,
+            )
+            .await;
+
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+}

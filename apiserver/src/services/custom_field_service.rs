@@ -544,3 +544,488 @@ impl CustomFieldService {
             .await
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::repositories::audit_log_repository::MockAuditLogRepository;
+    use crate::repositories::custom_field_repository::MockCustomFieldRepository;
+    use chrono::Utc;
+    use std::sync::Arc;
+
+    fn make_token(ws: Uuid) -> TenantAuthToken {
+        TenantAuthToken::system_override(ws)
+    }
+
+    fn make_definition(ws: Uuid) -> CustomFieldDefinition {
+        CustomFieldDefinition::new(
+            Uuid::new_v4(),
+            ws,
+            "employee".into(),
+            "test_field".into(),
+            "Test Field".into(),
+            "text".into(),
+            None,
+            None,
+            false,
+            true,
+            false,
+            true,
+            1,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        )
+    }
+
+    fn build_service(
+        repo: MockCustomFieldRepository,
+    ) -> CustomFieldService {
+        CustomFieldService::new(
+            Arc::new(repo),
+            Arc::new(MockAuditLogRepository::new()),
+        )
+    }
+
+    fn build_service_with_audit(
+        repo: MockCustomFieldRepository,
+        audit: MockAuditLogRepository,
+    ) -> CustomFieldService {
+        CustomFieldService::new(
+            Arc::new(repo),
+            Arc::new(audit),
+        )
+    }
+
+    // ── create_definition validation tests ────────────────────────────────
+
+    #[tokio::test]
+    async fn create_definition_invalid_entity_type() {
+        let ws = Uuid::new_v4();
+        let repo = MockCustomFieldRepository::new();
+        let svc = build_service(repo);
+
+        let result = svc
+            .create_definition(
+                &make_token(ws),
+                Uuid::new_v4(),
+                CreateCustomFieldDefinitionRequest {
+                    entity_type: "invalid_type".into(),
+                    field_key: "test_field".into(),
+                    field_label: "Test Field".into(),
+                    field_type: "text".into(),
+                    options: None,
+                    default_value: None,
+                    is_required: false,
+                    is_visible_to_employee: true,
+                    is_filterable: false,
+                    is_exportable: true,
+                    display_order: 1,
+                    section_name: None,
+                    validation_rules: None,
+                },
+            )
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(matches!(err, AppError::Validation(_)));
+        assert!(err.to_string().contains("Invalid entity type"));
+    }
+
+    #[tokio::test]
+    async fn create_definition_invalid_field_type() {
+        let ws = Uuid::new_v4();
+        let repo = MockCustomFieldRepository::new();
+        let svc = build_service(repo);
+
+        let result = svc
+            .create_definition(
+                &make_token(ws),
+                Uuid::new_v4(),
+                CreateCustomFieldDefinitionRequest {
+                    entity_type: "employee".into(),
+                    field_key: "test_field".into(),
+                    field_label: "Test Field".into(),
+                    field_type: "invalid_field_type".into(),
+                    options: None,
+                    default_value: None,
+                    is_required: false,
+                    is_visible_to_employee: true,
+                    is_filterable: false,
+                    is_exportable: true,
+                    display_order: 1,
+                    section_name: None,
+                    validation_rules: None,
+                },
+            )
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(matches!(err, AppError::Validation(_)));
+        assert!(err.to_string().contains("Invalid field type"));
+    }
+
+    #[tokio::test]
+    async fn create_definition_invalid_field_key_empty() {
+        let ws = Uuid::new_v4();
+        let repo = MockCustomFieldRepository::new();
+        let svc = build_service(repo);
+
+        let result = svc
+            .create_definition(
+                &make_token(ws),
+                Uuid::new_v4(),
+                CreateCustomFieldDefinitionRequest {
+                    entity_type: "employee".into(),
+                    field_key: "".into(),
+                    field_label: "Test Field".into(),
+                    field_type: "text".into(),
+                    options: None,
+                    default_value: None,
+                    is_required: false,
+                    is_visible_to_employee: true,
+                    is_filterable: false,
+                    is_exportable: true,
+                    display_order: 1,
+                    section_name: None,
+                    validation_rules: None,
+                },
+            )
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(matches!(err, AppError::Validation(_)));
+        assert!(err.to_string().contains("Invalid field key"));
+    }
+
+    #[tokio::test]
+    async fn create_definition_invalid_field_key_special_chars() {
+        let ws = Uuid::new_v4();
+        let repo = MockCustomFieldRepository::new();
+        let svc = build_service(repo);
+
+        let result = svc
+            .create_definition(
+                &make_token(ws),
+                Uuid::new_v4(),
+                CreateCustomFieldDefinitionRequest {
+                    entity_type: "employee".into(),
+                    field_key: "test-field".into(), // hyphen is invalid
+                    field_label: "Test Field".into(),
+                    field_type: "text".into(),
+                    options: None,
+                    default_value: None,
+                    is_required: false,
+                    is_visible_to_employee: true,
+                    is_filterable: false,
+                    is_exportable: true,
+                    display_order: 1,
+                    section_name: None,
+                    validation_rules: None,
+                },
+            )
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(matches!(err, AppError::Validation(_)));
+        assert!(err.to_string().contains("Invalid field key"));
+    }
+
+    #[tokio::test]
+    async fn create_definition_select_missing_options() {
+        let ws = Uuid::new_v4();
+        let repo = MockCustomFieldRepository::new();
+        let svc = build_service(repo);
+
+        let result = svc
+            .create_definition(
+                &make_token(ws),
+                Uuid::new_v4(),
+                CreateCustomFieldDefinitionRequest {
+                    entity_type: "employee".into(),
+                    field_key: "test_field".into(),
+                    field_label: "Test Field".into(),
+                    field_type: "select".into(),
+                    options: None, // select requires options
+                    default_value: None,
+                    is_required: false,
+                    is_visible_to_employee: true,
+                    is_filterable: false,
+                    is_exportable: true,
+                    display_order: 1,
+                    section_name: None,
+                    validation_rules: None,
+                },
+            )
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(matches!(err, AppError::Validation(_)));
+        assert!(err.to_string().contains("Options are required"));
+    }
+
+    #[tokio::test]
+    async fn create_definition_multiselect_missing_options() {
+        let ws = Uuid::new_v4();
+        let repo = MockCustomFieldRepository::new();
+        let svc = build_service(repo);
+
+        let result = svc
+            .create_definition(
+                &make_token(ws),
+                Uuid::new_v4(),
+                CreateCustomFieldDefinitionRequest {
+                    entity_type: "employee".into(),
+                    field_key: "test_field".into(),
+                    field_label: "Test Field".into(),
+                    field_type: "multiselect".into(),
+                    options: None, // multiselect requires options
+                    default_value: None,
+                    is_required: false,
+                    is_visible_to_employee: true,
+                    is_filterable: false,
+                    is_exportable: true,
+                    display_order: 1,
+                    section_name: None,
+                    validation_rules: None,
+                },
+            )
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(matches!(err, AppError::Validation(_)));
+        assert!(err.to_string().contains("Options are required"));
+    }
+
+    #[tokio::test]
+    async fn create_definition_select_empty_options_array() {
+        let ws = Uuid::new_v4();
+        let repo = MockCustomFieldRepository::new();
+        let svc = build_service(repo);
+
+        let result = svc
+            .create_definition(
+                &make_token(ws),
+                Uuid::new_v4(),
+                CreateCustomFieldDefinitionRequest {
+                    entity_type: "employee".into(),
+                    field_key: "test_field".into(),
+                    field_label: "Test Field".into(),
+                    field_type: "select".into(),
+                    options: Some(serde_json::json!([])), // empty array
+                    default_value: None,
+                    is_required: false,
+                    is_visible_to_employee: true,
+                    is_filterable: false,
+                    is_exportable: true,
+                    display_order: 1,
+                    section_name: None,
+                    validation_rules: None,
+                },
+            )
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(matches!(err, AppError::Validation(_)));
+        assert!(err.to_string().contains("Options are required"));
+    }
+
+    #[tokio::test]
+    async fn create_definition_success() {
+        let ws = Uuid::new_v4();
+        let definition = make_definition(ws);
+        let expected = definition.clone();
+
+        let mut repo = MockCustomFieldRepository::new();
+        repo.expect_create_definition()
+            .returning(move |_, _| Ok(expected.clone()));
+
+        let mut audit = MockAuditLogRepository::new();
+        audit.expect_create_log()
+            .returning(|_| {
+                Ok(crate::domain::audit::AuditLog::new(
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    Some(Uuid::new_v4()),
+                    Some("user".into()),
+                    None,
+                    None,
+                    None,
+                    Some(Uuid::new_v4()),
+                    "custom_field.definition_created".into(),
+                    None,
+                    None,
+                    None,
+                    Utc::now(),
+                ))
+            });
+
+        let svc = build_service_with_audit(repo, audit);
+        let result = svc
+            .create_definition(
+                &make_token(ws),
+                Uuid::new_v4(),
+                CreateCustomFieldDefinitionRequest {
+                    entity_type: "employee".into(),
+                    field_key: "test_field".into(),
+                    field_label: "Test Field".into(),
+                    field_type: "text".into(),
+                    options: None,
+                    default_value: None,
+                    is_required: false,
+                    is_visible_to_employee: true,
+                    is_filterable: false,
+                    is_exportable: true,
+                    display_order: 1,
+                    section_name: None,
+                    validation_rules: None,
+                },
+            )
+            .await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().id(), definition.id());
+    }
+
+    // ── get_definition tests ──────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn get_definition_not_found() {
+        let ws = Uuid::new_v4();
+        let mut repo = MockCustomFieldRepository::new();
+        repo.expect_get_definition_by_id()
+            .returning(|_, _| Ok(None));
+
+        let svc = build_service(repo);
+        let result = svc.get_definition(&make_token(ws), Uuid::new_v4()).await;
+
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn get_definition_found() {
+        let ws = Uuid::new_v4();
+        let definition = make_definition(ws);
+        let def_id = definition.id();
+        let expected = definition.clone();
+
+        let mut repo = MockCustomFieldRepository::new();
+        repo.expect_get_definition_by_id()
+            .returning(move |_, _| Ok(Some(expected.clone())));
+
+        let svc = build_service(repo);
+        let result = svc.get_definition(&make_token(ws), def_id).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().id(), def_id);
+    }
+
+    // ── list_definitions tests ────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn list_definitions_with_filter() {
+        let ws = Uuid::new_v4();
+        let definition = make_definition(ws);
+        let expected = vec![definition.clone()];
+
+        let mut repo = MockCustomFieldRepository::new();
+        repo.expect_list_definitions()
+            .returning(move |_, _| Ok(expected.clone()));
+
+        let svc = build_service(repo);
+        let result = svc
+            .list_definitions(&make_token(ws), Some("employee".into()))
+            .await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 1);
+    }
+
+    // ── delete_definition tests ───────────────────────────────────────────
+
+    #[tokio::test]
+    async fn delete_definition_not_found() {
+        let ws = Uuid::new_v4();
+        let mut repo = MockCustomFieldRepository::new();
+        repo.expect_get_definition_by_id()
+            .returning(|_, _| Ok(None));
+
+        let svc = build_service(repo);
+        let result = svc
+            .delete_definition(&make_token(ws), Uuid::new_v4(), Uuid::new_v4())
+            .await;
+
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    // ── entity_type acceptance tests ──────────────────────────────────────
+
+    #[tokio::test]
+    async fn create_definition_valid_entity_types() {
+        // Test that all three valid entity types pass validation
+        for entity_type in &["employee", "employment", "department"] {
+            let ws = Uuid::new_v4();
+            let mut repo = MockCustomFieldRepository::new();
+            let captured_entity_type = entity_type.to_string();
+            repo.expect_create_definition()
+                .returning(move |_, req| {
+                    assert_eq!(req.entity_type, captured_entity_type);
+                    let def = make_definition(ws);
+                    Ok(def)
+                });
+
+            let mut audit = MockAuditLogRepository::new();
+            audit.expect_create_log()
+                .returning(move |_| {
+                    Ok(crate::domain::audit::AuditLog::new(
+                        Uuid::new_v4(),
+                        ws,
+                        Some(Uuid::new_v4()),
+                        Some("user".into()),
+                        None,
+                        None,
+                        None,
+                        Some(Uuid::new_v4()),
+                        "custom_field.definition_created".into(),
+                        None,
+                        None,
+                        None,
+                        Utc::now(),
+                    ))
+                });
+
+            let svc = build_service_with_audit(repo, audit);
+            let result = svc
+                .create_definition(
+                    &make_token(ws),
+                    Uuid::new_v4(),
+                    CreateCustomFieldDefinitionRequest {
+                        entity_type: entity_type.to_string(),
+                        field_key: format!("field_{entity_type}"),
+                        field_label: "Test Field".into(),
+                        field_type: "text".into(),
+                        options: None,
+                        default_value: None,
+                        is_required: false,
+                        is_visible_to_employee: true,
+                        is_filterable: false,
+                        is_exportable: true,
+                        display_order: 1,
+                        section_name: None,
+                        validation_rules: None,
+                    },
+                )
+                .await;
+
+            assert!(result.is_ok(), "Failed for entity_type: {entity_type}");
+        }
+    }
+}

@@ -310,3 +310,200 @@ fn validate_currency_code(code: &str) -> Result<(), AppError> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::repositories::audit_log_repository::MockAuditLogRepository;
+    use crate::repositories::employer_repository::MockEmployerRepository;
+    use std::sync::Arc;
+
+    fn make_token(ws: Uuid) -> TenantAuthToken {
+        TenantAuthToken::system_override(ws)
+    }
+
+    fn make_employer(ws: Uuid) -> Employer {
+        Employer {
+            id: Uuid::new_v4(),
+            workspace_id: ws,
+            name: "Test Corp".into(),
+            tax_code: Some("TAX123".into()),
+            legal_address: Some("123 Main St".into()),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            parent_id: None,
+            relationship_type: None,
+            business_type: Some("corporation".into()),
+            registration_number: Some("REG456".into()),
+            phone: Some("+84123456789".into()),
+            email: Some("test@corp.com".into()),
+            website: Some("https://corp.com".into()),
+            incorporation_date: None,
+            country_code: Some("VNM".into()),
+            currency_code: Some("VND".into()),
+        }
+    }
+
+    fn build_service(repo: MockEmployerRepository) -> EmployerService {
+        EmployerService::new(
+            Arc::new(repo),
+            Arc::new(MockAuditLogRepository::new()),
+        )
+    }
+
+    // ── validate_email tests ──────────────────────────────────────────────
+
+    #[test]
+    fn validate_email_valid() {
+        assert!(validate_email("test@example.com").is_ok());
+        assert!(validate_email("user.name+tag@example.co.uk").is_ok());
+        assert!(validate_email("a@b.com").is_ok());
+    }
+
+    #[test]
+    fn validate_email_empty() {
+        assert!(validate_email("").is_err());
+        assert!(validate_email("   ").is_err());
+    }
+
+    #[test]
+    fn validate_email_no_at_sign() {
+        assert!(validate_email("invalid-email").is_err());
+    }
+
+    #[test]
+    fn validate_email_missing_domain() {
+        assert!(validate_email("user@").is_err());
+    }
+
+    #[test]
+    fn validate_email_missing_local() {
+        assert!(validate_email("@example.com").is_err());
+    }
+
+    #[test]
+    fn validate_email_domain_no_dot() {
+        assert!(validate_email("user@domain").is_err());
+    }
+
+    // ── validate_country_code tests ───────────────────────────────────────
+
+    #[test]
+    fn validate_country_code_valid() {
+        assert!(validate_country_code("VNM").is_ok());
+        assert!(validate_country_code("USA").is_ok());
+        assert!(validate_country_code("jpn").is_ok()); // lowercase is fine
+    }
+
+    #[test]
+    fn validate_country_code_wrong_length() {
+        assert!(validate_country_code("VN").is_err());
+        assert!(validate_country_code("VIET").is_err());
+    }
+
+    #[test]
+    fn validate_country_code_contains_numbers() {
+        assert!(validate_country_code("VN1").is_err());
+    }
+
+    #[test]
+    fn validate_country_code_contains_special_chars() {
+        assert!(validate_country_code("V M").is_err());
+    }
+
+    // ── validate_currency_code tests ──────────────────────────────────────
+
+    #[test]
+    fn validate_currency_code_valid() {
+        assert!(validate_currency_code("VND").is_ok());
+        assert!(validate_currency_code("USD").is_ok());
+        assert!(validate_currency_code("eur").is_ok());
+    }
+
+    #[test]
+    fn validate_currency_code_wrong_length() {
+        assert!(validate_currency_code("VN").is_err());
+        assert!(validate_currency_code("VNDD").is_err());
+    }
+
+    #[test]
+    fn validate_currency_code_contains_numbers() {
+        assert!(validate_currency_code("VN1").is_err());
+    }
+
+    // ── list_employers test ───────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn list_employers_success() {
+        let ws = Uuid::new_v4();
+        let employer = make_employer(ws);
+        let expected = vec![employer.clone()];
+
+        let mut repo = MockEmployerRepository::new();
+        repo.expect_get_employers()
+            .returning(move |_, _, _| Ok((expected.clone(), 1)));
+
+        let svc = build_service(repo);
+        let result = svc.list_employers(&make_token(ws), 1, 10).await;
+
+        assert!(result.is_ok());
+        let (list, total) = result.unwrap();
+        assert_eq!(list.len(), 1);
+        assert_eq!(total, 1);
+    }
+
+    // ── get_employer tests ────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn get_employer_found() {
+        let ws = Uuid::new_v4();
+        let employer = make_employer(ws);
+        let emp_id = employer.id;
+        let expected = employer.clone();
+
+        let mut repo = MockEmployerRepository::new();
+        repo.expect_get_employer_by_id()
+            .returning(move |_, _| Ok(Some(expected.clone())));
+
+        let svc = build_service(repo);
+        let result = svc.get_employer(&make_token(ws), emp_id).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().id, emp_id);
+    }
+
+    #[tokio::test]
+    async fn get_employer_not_found() {
+        let ws = Uuid::new_v4();
+        let mut repo = MockEmployerRepository::new();
+        repo.expect_get_employer_by_id()
+            .returning(|_, _| Ok(None));
+
+        let svc = build_service(repo);
+        let result = svc.get_employer(&make_token(ws), Uuid::new_v4()).await;
+
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    // ── delete_employer tests ─────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn delete_employer_has_employees() {
+        let ws = Uuid::new_v4();
+        let employer = make_employer(ws);
+
+        let mut repo = MockEmployerRepository::new();
+        repo.expect_get_employer_by_id()
+            .returning(move |_, _| Ok(Some(employer.clone())));
+        repo.expect_count_employees_by_employer()
+            .returning(|_, _| Ok(5)); // has employees
+
+        let svc = build_service(repo);
+        let result = svc.delete_employer(&make_token(ws), Uuid::new_v4(), Uuid::new_v4()).await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(matches!(err, AppError::Validation(_)));
+        assert!(err.to_string().contains("5 employees"));
+    }
+}

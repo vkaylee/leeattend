@@ -2,6 +2,7 @@ use crate::models::{CreateWorkLocationRequest, UpdateWorkLocationRequest, WorkLo
 use async_trait::async_trait;
 use uuid::Uuid;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait LocationRepository: Send + Sync {
     async fn find_all_by_workspace(

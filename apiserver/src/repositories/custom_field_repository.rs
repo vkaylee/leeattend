@@ -8,8 +8,8 @@ use async_trait::async_trait;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-#[async_trait]
 #[cfg_attr(test, mockall::automock)]
+#[async_trait]
 pub trait CustomFieldRepository: Send + Sync {
     async fn create_definition(
         &self,

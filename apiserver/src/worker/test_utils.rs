@@ -332,7 +332,7 @@ impl MockWorkerDepsBuilder {
         let mut custom_field_repo = MockCustomFieldRepository::new();
         custom_field_repo
             .expect_list_definitions()
-            .returning(|_, _| Box::pin(async move { Ok(vec![]) }));
+            .returning(|_, _| Ok(vec![]));
 
         Self {
             time_entry_repo,

@@ -188,3 +188,165 @@ impl LocationService {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::repositories::audit_log_repository::MockAuditLogRepository;
+    use crate::repositories::location_repository::MockLocationRepository;
+    use chrono::Utc;
+    use std::sync::Arc;
+
+    fn make_location(ws: Uuid) -> WorkLocation {
+        WorkLocation {
+            id: Uuid::new_v4(),
+            workspace_id: ws,
+            name: "HQ Office".into(),
+            address: Some("123 Main St".into()),
+            timezone: "Asia/Ho_Chi_Minh".into(),
+            is_headquarters: false,
+            status: "active".into(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    fn make_headquarters(ws: Uuid) -> WorkLocation {
+        WorkLocation {
+            id: Uuid::new_v4(),
+            workspace_id: ws,
+            name: "HQ Office".into(),
+            address: Some("123 Main St".into()),
+            timezone: "Asia/Ho_Chi_Minh".into(),
+            is_headquarters: true,
+            status: "active".into(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    fn build_service(repo: MockLocationRepository) -> LocationService {
+        LocationService::new(
+            Arc::new(repo),
+            Arc::new(MockAuditLogRepository::new()),
+        )
+    }
+
+    // ── list_locations tests ──────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn list_locations_success() {
+        let ws = Uuid::new_v4();
+        let location = make_location(ws);
+        let expected = vec![location.clone()];
+
+        let mut repo = MockLocationRepository::new();
+        repo.expect_find_all_by_workspace()
+            .returning(move |_, _, _| Ok((expected.clone(), 1)));
+
+        let svc = build_service(repo);
+        let result = svc.list_locations(ws, 1, 10).await;
+
+        assert!(result.is_ok());
+        let (list, total) = result.unwrap();
+        assert_eq!(list.len(), 1);
+        assert_eq!(total, 1);
+    }
+
+    // ── get_location tests ────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn get_location_found() {
+        let ws = Uuid::new_v4();
+        let location = make_location(ws);
+        let loc_id = location.id;
+        let expected = location.clone();
+
+        let mut repo = MockLocationRepository::new();
+        repo.expect_find_by_id()
+            .returning(move |_, _| Ok(Some(expected.clone())));
+
+        let svc = build_service(repo);
+        let result = svc.get_location(ws, loc_id).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().id, loc_id);
+    }
+
+    #[tokio::test]
+    async fn get_location_not_found() {
+        let ws = Uuid::new_v4();
+        let mut repo = MockLocationRepository::new();
+        repo.expect_find_by_id()
+            .returning(|_, _| Ok(None));
+
+        let svc = build_service(repo);
+        let result = svc.get_location(ws, Uuid::new_v4()).await;
+
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    // ── create_location tests ─────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn create_location_headquarters_rejected() {
+        let ws = Uuid::new_v4();
+        let repo = MockLocationRepository::new();
+        let svc = build_service(repo);
+
+        let result = svc
+            .create_location(
+                ws,
+                Uuid::new_v4(),
+                CreateWorkLocationRequest {
+                    name: "HQ".into(),
+                    address: None,
+                    timezone: None,
+                    is_headquarters: Some(true),
+                    status: None,
+                },
+            )
+            .await;
+
+        assert!(matches!(result.unwrap_err(), AppError::Validation(_)));
+    }
+
+    // ── delete_location tests ─────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn delete_location_headquarters_rejected() {
+        let ws = Uuid::new_v4();
+        let hq = make_headquarters(ws);
+        let expected = hq.clone();
+
+        let mut repo = MockLocationRepository::new();
+        repo.expect_find_by_id()
+            .returning(move |_, _| Ok(Some(expected.clone())));
+
+        let svc = build_service(repo);
+        let result = svc.delete_location(ws, hq.id, Uuid::new_v4()).await;
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("cannot_delete_headquarters"));
+    }
+
+    #[tokio::test]
+    async fn delete_location_in_use() {
+        let ws = Uuid::new_v4();
+        let location = make_location(ws);
+        let expected = location.clone();
+        let loc_id = location.id;
+
+        let mut repo = MockLocationRepository::new();
+        repo.expect_find_by_id()
+            .returning(move |_, _| Ok(Some(expected.clone())));
+        repo.expect_count_employees_in_location()
+            .returning(|_, _| Ok(5));
+
+        let svc = build_service(repo);
+        let result = svc.delete_location(ws, loc_id, Uuid::new_v4()).await;
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("cannot_delete_location_in_use"));
+    }
+}

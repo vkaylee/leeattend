@@ -3,6 +3,8 @@ use chrono_tz::Tz;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::diesel_pool::TenantAuthToken;
+use crate::errors::AppError;
 use crate::models::AttendanceReportSort;
 use crate::repositories::holiday_repository::HolidayRepository;
 use crate::repositories::roster::RosterRepository;
@@ -90,6 +92,36 @@ impl ReportService {
             holiday_repo: args.holiday_repo,
             employer_repo: args.employer_repo,
         }
+    }
+
+    /// Fetch all employers for the workspace, handling pagination transparently.
+    const EMPLOYER_PAGE_SIZE: i64 = 500;
+
+    async fn fetch_all_employers(
+        &self,
+        auth_token: &TenantAuthToken,
+    ) -> Result<std::collections::HashMap<Uuid, String>, AppError> {
+        let mut all_employers = Vec::new();
+        let mut page: i64 = 1;
+        loop {
+            let (mut batch, total) = self
+                .employer_repo
+                .get_employers(auth_token, page, Self::EMPLOYER_PAGE_SIZE)
+                .await?;
+            if batch.is_empty() {
+                break;
+            }
+            let remaining = total - all_employers.len() as i64;
+            all_employers.append(&mut batch);
+            if remaining <= 0 {
+                break;
+            }
+            page += 1;
+        }
+        Ok(all_employers
+            .into_iter()
+            .map(|e| (e.id, e.name))
+            .collect())
     }
 }
 
