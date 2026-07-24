@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
-import { AuthorizedAgent, Device } from "@/lib/api";
+import { AuthorizedAgent, Device, type CreateDeviceRequest } from "@/lib/api";
 
 import { ConnectionSection } from "./connection-section";
 import { InfrastructureSection } from "./infrastructure-section";
@@ -13,7 +13,7 @@ interface AddEditDeviceModalProps {
   agents: AuthorizedAgent[];
   editingDevice: Device | null;
   isOpen: boolean;
-  newDevice: Partial<Device>;
+  newDevice: CreateDeviceRequest;
   onClose: () => void;
   onNewDeviceChange: (field: string, value: string | number) => void;
   onSave: (e: React.SyntheticEvent) => void;
@@ -32,12 +32,12 @@ export function AddEditDeviceModal({
 }: AddEditDeviceModalProps) {
   const { t } = useTranslation();
 
-  const getValue = (field: keyof Device): string | number => {
+  const getValue = (field: string): string | number => {
     if (editingDevice) {
-      const val = editingDevice[field];
+      const val = editingDevice[field as keyof Device];
       return (typeof val === "string" || typeof val === "number") ? val : "";
     }
-    return (newDevice[field] as string | number) || "";
+    return (newDevice[field as keyof CreateDeviceRequest]!) || "";
   };
 
   const handleChange = (field: string, value: string | number) => {

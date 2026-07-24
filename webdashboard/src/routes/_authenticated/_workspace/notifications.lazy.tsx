@@ -1,6 +1,5 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 import { Suspense, lazy } from "react";
-import { Bell } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 

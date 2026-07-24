@@ -3,6 +3,7 @@ import type { ApprovalActionLog, BehalfAssignment, CreateBehalfAssignmentRequest
 import { client, fetch, fire } from './client';
 
 export interface OvertimeRequestQueryParams {
+  [key: string]: unknown;
   consent?: string;
   department_id?: string;
   employee_id?: string;
@@ -10,7 +11,6 @@ export interface OvertimeRequestQueryParams {
   page?: number;
   planned_date?: string;
   status?: OtRequestStatus;
-  [key: string]: unknown;
 }
 
 export type OtRequestStatus = 

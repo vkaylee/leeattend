@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
-import type { WorkingPatternDetail } from "@/lib/api/types";
-import type { Shift } from "@/lib/api/types";
+import type { WorkingPatternDetail, Shift  } from "@/lib/api/types";
+
 import {
   checkRestHours,
   checkShiftOverlap,

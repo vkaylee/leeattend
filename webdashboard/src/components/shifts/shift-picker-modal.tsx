@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 
 import {
   useShiftPicker,
-  type FilterChip,
   FILTER_CHIPS,
   getShiftBadge,
 } from "./hooks/use-shift-picker";
@@ -84,7 +83,7 @@ function ShiftButton({
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="font-bold text-sm uppercase tracking-tight text-slate-700 dark:text-slate-200">{shift.name}</div>
-          {shift.report_symbol && (
+          {!!shift.report_symbol && (
             <span className="text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded ml-0">
               [{shift.report_symbol}]
             </span>
@@ -95,7 +94,7 @@ function ShiftButton({
         </div>
 
         {/* Badge pill */}
-        {badge.label && (
+        {!!badge.label && (
           <span className={cn(
             "shrink-0 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider",
             badge.bg,
@@ -256,8 +255,7 @@ export function ShiftPickerModal({
         ) : (
           <div className="grid grid-cols-1 gap-3 max-h-[50vh] overflow-y-auto pr-1">
             {/* ── Frequently Used Section ──────────────────────────── */}
-            {hasFrequent && (
-              <>
+            {!!hasFrequent && <>
                 <div className="flex items-center gap-2 pt-1 pb-0.5">
                   <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-lg">
                     ★ {t("shifts.picker.frequent_section_title")}
@@ -273,8 +271,7 @@ export function ShiftPickerModal({
                   />
                 ))}
                 <div className="border-t border-slate-100 dark:border-slate-800 pt-1" />
-              </>
-            )}
+              </>}
 
             {/* ── Main Shift List ──────────────────────────────────── */}
             {nonFrequentFiltered.map((shift) => (

@@ -1,5 +1,5 @@
-import type { EffectiveSchedule } from "@/lib/api/types";
 import type { ComplianceViolation } from "@/lib/api/errors";
+import type { EffectiveSchedule } from "@/lib/api/types";
 
 /** Check if weekend day (Sat/Sun) */
 export const isWeekend = (date: Date): boolean => {

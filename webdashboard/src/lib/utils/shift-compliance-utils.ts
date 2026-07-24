@@ -7,46 +7,46 @@
 
 /** Represents a time interval in HH:mm format */
 export interface TimeRange {
-  start: string; // HH:mm
   end: string;   // HH:mm
+  start: string; // HH:mm
 }
 
 /** A shift with its identifying info and time range */
 export interface ShiftTimeBlock {
+  day?: number;  // schedule_day index, if applicable
+  end: string;   // HH:mm
   shiftId: string;
   shiftName: string;
   start: string; // HH:mm
-  end: string;   // HH:mm
-  day?: number;  // schedule_day index, if applicable
 }
 
 /** Detected overlapping shifts */
 export interface OverlapConflict {
-  type: "overlap";
+  day?: number;
   shiftA: string;
   shiftB: string;
-  day?: number;
+  type: "overlap";
 }
 
 /** Detected insufficient rest between shifts */
 export interface RestViolation {
-  type: "rest";
+  day?: number;
+  /** Rest duration in hours (always < 12) */
+  restHours: number;
   /** Name of the earlier shift */
   shiftA: string;
   /** Name of the later shift */
   shiftB: string;
-  /** Rest duration in hours (always < 12) */
-  restHours: number;
-  day?: number;
+  type: "rest";
 }
 
 /** Detected weekly hours exceeding the limit */
 export interface HoursViolation {
-  type: "hours";
-  /** Total weekly minutes worked */
-  totalMinutes: number;
   /** The configured limit in minutes (default 2880 = 48h) */
   limitMinutes: number;
+  /** Total weekly minutes worked */
+  totalMinutes: number;
+  type: "hours";
 }
 
 export type ComplianceIssue = OverlapConflict | RestViolation | HoursViolation;
@@ -198,12 +198,12 @@ export function formatDuration(minutes: number): string {
  */
 export interface ShiftRef {
   id: string;
-  name: string;
   intervals?: {
     start_time?: string;
     end_time?: string;
     break_duration_minutes?: number;
   }[] | null;
+  name: string;
 }
 
 export interface DayShiftAssignment {

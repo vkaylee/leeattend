@@ -1,15 +1,15 @@
 import { useRef, useState } from "react";
 
 interface UseOnboardingProgressReturn {
-  showProgress: boolean;
-  setShowProgress: (v: boolean) => void;
-  progressPercent: number;
-  setProgressPercent: React.Dispatch<React.SetStateAction<number>>;
-  progressStep: number;
-  setProgressStep: React.Dispatch<React.SetStateAction<number>>;
-  progressIntervalRef: React.MutableRefObject<NodeJS.Timeout | null>;
-  startProgressInterval: () => void;
   clearProgressInterval: () => void;
+  progressIntervalRef: React.MutableRefObject<NodeJS.Timeout | null>;
+  progressPercent: number;
+  progressStep: number;
+  setProgressPercent: React.Dispatch<React.SetStateAction<number>>;
+  setProgressStep: React.Dispatch<React.SetStateAction<number>>;
+  setShowProgress: (v: boolean) => void;
+  showProgress: boolean;
+  startProgressInterval: () => void;
 }
 
 export function useOnboardingProgress(): UseOnboardingProgressReturn {

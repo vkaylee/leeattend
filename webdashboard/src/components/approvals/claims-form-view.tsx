@@ -1,12 +1,13 @@
+import type { TFunction } from "i18next";
+
 import { Upload, FileText, X } from "lucide-react";
 import React from "react";
-
-import type { TFunction } from "i18next";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
 import type { ClaimItem } from "./confirm-claims-dialog";
+
 import { ClaimRow } from "./claim-row";
 
 interface ClaimsFormViewProps {

@@ -24,7 +24,6 @@ import {
   DepartmentPayrollConfig,
   SetEmployeePayrollConfigRequest,
   SetDepartmentPayrollConfigRequest,
-  UpsertRosterRequest,
   IncentiveTier,
 } from "./types";
 

@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+import type { FrequentMap } from "@/lib/frequent-shifts-storage";
 import type { ShiftWithIntervals } from "@/pages/shifts/hooks/use-shifts-types";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Shift } from "@/lib/api";
 import { readFrequentShifts, writeFrequentShift, getTopFrequentIds } from "@/lib/frequent-shifts-storage";
-import type { FrequentMap } from "@/lib/frequent-shifts-storage";
+
 import { isNightShift, isSplitShift, shiftMatchesQuery } from "../shift-utils";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -54,33 +56,33 @@ export function getShiftBadge(shift: Shift, t: (key: string) => string): ShiftBa
 
 interface UseShiftPickerOptions {
   isOpen: boolean;
-  onSelectShift: (shiftId: string | null) => void;
   onClose: () => void;
+  onSelectShift: (shiftId: string | null) => void;
   shifts?: Shift[];
 }
 
 interface UseShiftPickerReturn {
-  searchQuery: string;
-  setSearchQuery: (v: string) => void;
   activeChip: FilterChip;
-  setActiveChip: (v: FilterChip) => void;
-  selectedLocationId: string;
-  setSelectedLocationId: (v: string) => void;
-  selectedEmployerId: string;
-  setSelectedEmployerId: (v: string) => void;
-  searchInputRef: React.RefObject<HTMLInputElement | null>;
-  formatTime: (v: string) => string;
-  t: TFunction;
-  locationIds: string[];
   employerIds: string[];
   filtered: Shift[];
-  hasFrequent: boolean;
-  sortedFrequentShifts: Shift[];
-  nonFrequentFiltered: Shift[];
-  showFrequentChip: boolean;
-  handleSelect: (shiftId: string | null) => void;
+  formatTime: (v: string) => string;
   handleClearSearch: () => void;
   handleKeyDown: (e: React.KeyboardEvent) => void;
+  handleSelect: (shiftId: string | null) => void;
+  hasFrequent: boolean;
+  locationIds: string[];
+  nonFrequentFiltered: Shift[];
+  searchInputRef: React.RefObject<HTMLInputElement | null>;
+  searchQuery: string;
+  selectedEmployerId: string;
+  selectedLocationId: string;
+  setActiveChip: (v: FilterChip) => void;
+  setSearchQuery: (v: string) => void;
+  setSelectedEmployerId: (v: string) => void;
+  setSelectedLocationId: (v: string) => void;
+  showFrequentChip: boolean;
+  sortedFrequentShifts: Shift[];
+  t: TFunction;
 }
 
 export function useShiftPicker({
@@ -184,8 +186,8 @@ export function useShiftPicker({
 
   // ── Non-frequent filtered shifts ─────────────────────────────────
   const nonFrequentFiltered = useMemo(() => {
-    if (!hasFrequent) return filtered as Shift[];
-    return (filtered as Shift[]).filter((s) => !frequentIds.includes(s.id));
+    if (!hasFrequent) return filtered;
+    return (filtered).filter((s) => !frequentIds.includes(s.id));
   }, [filtered, hasFrequent, frequentIds]);
 
   // ── Handlers ─────────────────────────────────────────────────────

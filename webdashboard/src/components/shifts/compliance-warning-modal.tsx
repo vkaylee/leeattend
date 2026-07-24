@@ -11,11 +11,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Typography } from "@/components/ui/typography";
 
 interface ComplianceWarningModalProps {
+  isLoading: boolean;
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (overrideReason: string) => void;
   violations: ComplianceViolation[];
-  isLoading: boolean;
 }
 
 const VIOLATION_STYLES: Record<
@@ -118,7 +118,7 @@ export function ComplianceWarningModal({
     if (violations.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <Typography variant="body" className="text-slate-400 dark:text-slate-500">
+          <Typography className="text-slate-400 dark:text-slate-500" variant="body">
             {t("shifts.compliance.no_violations", "No compliance issues to display.")}
           </Typography>
         </div>
@@ -129,10 +129,10 @@ export function ComplianceWarningModal({
       <>
         {/* Violation list */}
         <div
+          aria-label={t("shifts.compliance.warning_title")}
           className="space-y-2 max-h-48 overflow-y-auto pr-1 roster-scrollbar"
           id="compliance-violation-list"
           role="list"
-          aria-label={t("shifts.compliance.warning_title")}
         >
           {violations.map((v, idx) => {
             const style = VIOLATION_STYLES[v.violation_type];
@@ -141,8 +141,8 @@ export function ComplianceWarningModal({
 
             return (
               <div
-                key={`${v.violation_type}-${idx}`}
                 className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${style.classes}`}
+                key={`${v.violation_type}-${idx}`}
                 role="listitem"
               >
                 <Icon className="mt-0.5 flex-shrink-0" size={16} />

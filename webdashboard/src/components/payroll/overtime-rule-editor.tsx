@@ -200,7 +200,7 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
   return (
     <div className='mt-6 space-y-4 border-t border-slate-100 dark:border-slate-800 pt-6'>
       <div className='flex items-center justify-between'>
-        <Typography className='text-sm font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400' variant="h4">{t('payroll.rules')}</Typography>
+        <Typography className='text-sm font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400' variant="h4">{t('payroll.rules.label')}</Typography>
         <Button className='flex items-center gap-1.5 text-xs font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:text-primary-300 transition-colors'
           onClick={() => { setIsAdding(!isAdding); }}
           variant="ghost"

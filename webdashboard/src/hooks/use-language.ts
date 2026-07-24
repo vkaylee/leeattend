@@ -1,6 +1,8 @@
 import { useCallback, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { logError } from "@/lib/logger";
+
 import { useProfile } from './use-profile';
 
 export type SupportedLanguage = 'en' | 'vi' | 'zh';
@@ -71,8 +73,8 @@ export function useLanguage() {
     // Sync to server in background (silent failure)
     try {
       await updateProfile({ preferred_language: langCode });
-    } catch {
-      console.warn('Failed to sync language preference to server');
+    } catch (err: unknown) {
+      logError(err, { component: "useLanguage" });
     }
   }, [i18n, updateProfile]);
 

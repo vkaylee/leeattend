@@ -2,7 +2,7 @@ import {
   Building2,
   UserX,
 } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
 import { ScheduleTracePopover } from "@/components/shifts/schedule-trace-popover";
@@ -188,7 +188,7 @@ function NoShowDesktopRow({
         >
           <ZoneIcon zone={row.zone} />
           <span>{key}</span>
-          {hint && <span className="opacity-70 normal-case tracking-normal">· {hint}</span>}
+          {!!hint && <span className="opacity-70 normal-case tracking-normal">· {hint}</span>}
           <span className="sr-only">
             {key}{hint ? `, ${hint}` : ""}
           </span>
@@ -257,7 +257,7 @@ export function NoShowTable({
   onlyZoneB,
   t,
 }: NoShowTableProps) {
-  const columns = {
+  const columns = useMemo(() => ({
     zone: t("unrecorded_shifts.zone_header"),
     employee_code: t("unrecorded_shifts.columns.employee_code"),
     employee_name: t("unrecorded_shifts.columns.employee_name"),
@@ -265,24 +265,7 @@ export function NoShowTable({
     shift_type: t("unrecorded_shifts.columns.shift_type"),
     shift_in: t("unrecorded_shifts.columns.shift_in"),
     shift_out: t("unrecorded_shifts.columns.shift_out"),
-  };
-
-  if (filteredRows.length === 0) {
-    return (
-      <EmptyStateRow
-        empty={
-          onlyZoneB
-            ? t("unrecorded_shifts.empty_zone_b")
-            : t("unrecorded_shifts.empty")
-        }
-        hint={
-          onlyZoneB
-            ? t("unrecorded_shifts.empty_zone_b_hint")
-            : t("unrecorded_shifts.empty_hint")
-        }
-      />
-    );
-  }
+  }), [t]);
 
   const renderCard = useCallback((row: ZonedNoShowRow) => (
     <NoShowMobileCard columns={columns} row={row} t={t} tracesByKey={tracesByKey} />
@@ -317,7 +300,7 @@ export function NoShowTable({
               tracesByKey={tracesByKey}
             />
           ))}
-          {hasNextPage && (
+          {!!hasNextPage && (
             <InfiniteScrollSentinel
               colSpan={7}
               isFetchingNextPage={isFetchingNextPage}
@@ -328,6 +311,23 @@ export function NoShowTable({
       </table>
     </div>
   ), [filteredRows, columns, t, tracesByKey, hasNextPage, isFetchingNextPage, loadMoreRef]);
+
+  if (filteredRows.length === 0) {
+    return (
+      <EmptyStateRow
+        empty={
+          onlyZoneB
+            ? t("unrecorded_shifts.empty_zone_b")
+            : t("unrecorded_shifts.empty")
+        }
+        hint={
+          onlyZoneB
+            ? t("unrecorded_shifts.empty_zone_b_hint")
+            : t("unrecorded_shifts.empty_hint")
+        }
+      />
+    );
+  }
 
   return (
     <div className="rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">

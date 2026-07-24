@@ -8,9 +8,9 @@ import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import { Typography } from "@/components/ui/typography";
 import { useWorkspaces, workspaceKeys } from "@/hooks/use-workspace";
-import { useOnboardingProgress } from "@/pages/hooks/use-onboarding-progress";
 import { setCurrentWorkspaceId } from "@/lib/api";
 import { ROUTES } from "@/lib/routes";
+import { useOnboardingProgress } from "@/pages/hooks/use-onboarding-progress";
 
 import { DatabaseConfig } from "./onboarding/database-config";
 import { OnboardingHeader } from "./onboarding/onboarding-header";

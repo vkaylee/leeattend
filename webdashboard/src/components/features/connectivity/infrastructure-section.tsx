@@ -2,12 +2,12 @@ import { Cpu, Server } from "lucide-react";
 import React from "react";
 
 import { Combobox } from "@/components/ui/combobox";
-import { AuthorizedAgent, Device } from "@/lib/api";
+import { AuthorizedAgent, Device, type CreateDeviceRequest } from "@/lib/api";
 
 import { FormField } from "./form-field";
 
 interface SectionProps {
-  getValue: (field: keyof Device) => string | number;
+  getValue: (field: string) => string | number;
   handleChange: (field: string, value: string | number) => void;
   t: (key: string) => string;
 }
@@ -15,7 +15,7 @@ interface SectionProps {
 interface InfrastructureSectionProps extends SectionProps {
   agents: AuthorizedAgent[];
   editingDevice: Device | null;
-  newDevice: Partial<Device>;
+  newDevice: CreateDeviceRequest;
 }
 
 export function InfrastructureSection({ t, getValue, handleChange, agents, editingDevice, newDevice }: InfrastructureSectionProps) {

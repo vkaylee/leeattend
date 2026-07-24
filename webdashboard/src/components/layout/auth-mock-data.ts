@@ -4,12 +4,12 @@ export const ATTENDANCE_BARS = [72, 88, 65, 92, 78, 95, 83] as const;
 export const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"] as const;
 
 export interface MockEmployee {
+  hue: string;
+  initials: string;
   name: string;
   role: string;
   status: "present" | "late" | "leave";
   time: string;
-  initials: string;
-  hue: string;
 }
 
 export const MOCK_EMPLOYEES: MockEmployee[] = [

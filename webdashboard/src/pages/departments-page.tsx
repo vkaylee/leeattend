@@ -179,7 +179,7 @@ export default function DepartmentsPage() {
                       <div className="truncate text-sm font-bold uppercase tracking-tight text-slate-800 dark:text-slate-100">
                         {dept.name}
                       </div>
-                      {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- || intentional: empty string "" is treated as "no description" */}
+                      { }
                       <div className="mt-0.5 truncate text-[10px] font-semibold italic text-slate-400 opacity-70 dark:text-slate-500">
                         {dept.description || t("common.no_description")}
                       </div>
@@ -265,7 +265,7 @@ export default function DepartmentsPage() {
                             </span>
                           </div>
                         </td>
-                        {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- || intentional: empty string "" is treated as "no description" */}
+                        { }
                         <td className="px-8 py-6 max-w-xs truncate text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-tight opacity-65 leading-relaxed italic">
                           {dept.description || t("common.no_description")}
                         </td>

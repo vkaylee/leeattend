@@ -1,23 +1,22 @@
-import { Clock } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import type { Shift, WorkingPatternDetail } from "@/lib/api/types";
 
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import {
   ShiftTimelineScrubber,
 } from "@/components/ui/shift-timeline-scrubber";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Shift, WorkingPatternDetail } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
-
 import { PatternPopoverDetails } from "@/pages/attendance/components/working-patterns/pattern-popover-details";
 
 interface PatternMatrixPreviewProps {
-  details?: WorkingPatternDetail[];
-  shifts?: Shift[];
-  patternType: "weekly" | "rotation";
   cycleLength: number;
+  details?: WorkingPatternDetail[];
   isLoading?: boolean;
+  patternType: "weekly" | "rotation";
+  shifts?: Shift[];
   /** row = larger cells for pattern list cards; modal = compact for modal previews */
   variant?: "row" | "modal";
 }
@@ -232,7 +231,7 @@ function DayMatrixCell({
       </div>
 
       {/* Mini timeline scrubber */}
-      {hasShifts && intervals.length > 0 && (
+      {!!hasShifts && intervals.length > 0 && (
         <ShiftTimelineScrubber
           className="mt-0.5"
           intervals={intervals}

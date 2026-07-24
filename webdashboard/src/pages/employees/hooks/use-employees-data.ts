@@ -12,6 +12,7 @@ import {
   fetchDepartments,
   fetchEmployeeDepartmentHistory,
   updateEmployeeEmployment,
+  type UpdateEmployeeRequest,
 } from "@/lib/api";
 
 import type { SortKey, SortDir } from "./use-employees-state";
@@ -110,7 +111,7 @@ export const useEmployeesData = ({
 
 
   const updateMutation = useMutation({
-    mutationFn: (data: { id: string; employee: Partial<Employee> }) => updateEmployee(wsId, data.id, data.employee),
+    mutationFn: (data: { id: string; employee: UpdateEmployeeRequest }) => updateEmployee(wsId, data.id, data.employee),
     onSuccess: () => { 
       void queryClient.invalidateQueries({ queryKey: ["employees", wsId] }); 
       setIsModalOpen(false); 

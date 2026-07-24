@@ -1,10 +1,11 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import "@testing-library/jest-dom";
 
-import { ShiftPickerModal } from "../shift-picker-modal";
 import { Shift } from "../../../lib/api";
+import { ShiftPickerModal } from "../shift-picker-modal";
 
 // ── Mocks ────────────────────────────────────────────────────────────
 

@@ -1,5 +1,4 @@
 import {
-  Shield,
   Globe,
   Check,
 } from "lucide-react";
@@ -7,6 +6,7 @@ import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
+
 import { VietnameseFlag, EnglishFlag, ChineseFlag } from "../ui/icons/flags";
 
 type AuthLang = "vi" | "en" | "zh";

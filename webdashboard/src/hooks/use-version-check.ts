@@ -24,8 +24,8 @@ function setDismissedVersion(hash: string): void {
 }
 
 interface ReloadAttempt {
-  buildId: string;
   attemptedAt: number;
+  buildId: string;
 }
 
 function getReloadAttempt(): ReloadAttempt | null {

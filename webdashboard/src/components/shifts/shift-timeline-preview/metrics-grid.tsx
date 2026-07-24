@@ -1,10 +1,11 @@
-import { memo } from "react";
 import type { TFunction } from "i18next";
+
+import { memo } from "react";
 
 interface MetricsGridProps {
   shiftDurationMin: number;
-  workingHours: string;
   t: TFunction;
+  workingHours: string;
 }
 
 export const MetricsGrid = memo(function MetricsGrid({

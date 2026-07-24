@@ -1,5 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 
+import type { CreateDeviceRequest, UpdateDeviceRequest, CreateAuthorizedAgentRequest } from "@/lib/api";
+
 import { AuthorizedAgent, Device, DeviceStatus, AgentStatus } from "@/lib/api";
 import { logError } from "@/lib/logger";
 
@@ -8,7 +10,7 @@ export function useConnectivityState() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showAddDeviceForm, setShowAddDeviceForm] = useState(false);
   const [newAgent, setNewAgent] = useState({ id: "", name: "", token: "" });
-  const [newDevice, setNewDevice] = useState({ name: "", agent_id: "", ip: "", port: 4370, brand: "zkteco", password: "", timezone: "UTC" });
+  const [newDevice, setNewDevice] = useState<CreateDeviceRequest>({ name: "", agent_id: "", ip: "", port: 4370, brand: "zkteco", password: "", timezone: "UTC" });
   const [editingAgent, setEditingAgent] = useState<AuthorizedAgent | null>(null);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
 
@@ -73,11 +75,11 @@ export function useConnectivityMaps(agents: AuthorizedAgent[], agentsStatus: Age
 }
 
 interface ConnectivityActionsProps {
-  createAgent: (agent: { id: string; name: string; token: string }) => Promise<unknown>;
-  createDevice: (device: Partial<Device>) => Promise<unknown>;
+  createAgent: (agent: CreateAuthorizedAgentRequest) => Promise<unknown>;
+  createDevice: (device: CreateDeviceRequest) => Promise<unknown>;
   editingDevice: Device | null;
   newAgent: { id: string; name: string; token: string };
-  newDevice: Partial<Device>;
+  newDevice: CreateDeviceRequest;
   refetchAgents: () => Promise<unknown>;
   refetchStatus: () => Promise<unknown>;
   sendCommand: (args: { id: string; command: unknown }) => Promise<unknown>;
@@ -87,7 +89,7 @@ interface ConnectivityActionsProps {
   setShowAddForm: (show: boolean) => void;
   t: (key: string) => string;
   toast: { success: (msg: string) => void; error: (msg: string) => void };
-  updateDevice: (id: string, device: Partial<Device>) => Promise<unknown>;
+  updateDevice: (id: string, device: UpdateDeviceRequest) => Promise<unknown>;
 }
 
 export function useConnectivityActions({

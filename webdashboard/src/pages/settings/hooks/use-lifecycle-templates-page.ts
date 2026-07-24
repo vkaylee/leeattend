@@ -94,8 +94,8 @@ export function useLifecycleTemplatesPage() {
     updateTemplateMutation.mutate(
       { id: template.id, payload: { is_default: true } },
       {
-        onSuccess: () => toast.success(`Set "${template.name}" as default template`),
-        onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to set default template"),
+        onSuccess: () => { toast.success(`Set "${template.name}" as default template`); },
+        onError: (err) => { toast.error(err instanceof Error ? err.message : "Failed to set default template"); },
       },
     );
   };
@@ -105,8 +105,8 @@ export function useLifecycleTemplatesPage() {
     updateTemplateMutation.mutate(
       { id: template.id, payload: { is_active: !template.is_active } },
       {
-        onSuccess: () => toast.success(`Template ${template.is_active ? "disabled" : "enabled"} successfully`),
-        onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to update template status"),
+        onSuccess: () => { toast.success(`Template ${template.is_active ? "disabled" : "enabled"} successfully`); },
+        onError: (err) => { toast.error(err instanceof Error ? err.message : "Failed to update template status"); },
       },
     );
   };
@@ -131,8 +131,8 @@ export function useLifecycleTemplatesPage() {
     });
     if (ok) {
       deleteItemMutation.mutate(item.id, {
-        onSuccess: () => toast.success("Checklist item deleted successfully"),
-        onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to delete checklist item"),
+        onSuccess: () => { toast.success("Checklist item deleted successfully"); },
+        onError: (err) => { toast.error(err instanceof Error ? err.message : "Failed to delete checklist item"); },
       });
     }
   };

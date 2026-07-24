@@ -1,11 +1,12 @@
 import { ErrorBoundary } from "@/components/common/error-boundary";
 
+import type { SourceFilter } from "./ot-approvals-filters";
+import type { OtSummary } from "./ot-approvals-table";
+
 import { BehalfAssignmentsTab } from "./behalf-assignments-tab";
 import { DelegatedClaimsTab } from "./delegated-claims-tab";
 import { PostOtTabContent } from "./post-ot-tab-content";
 import { PreOtApprovalsTab } from "./pre-ot-approvals-tab";
-import type { SourceFilter } from "./ot-approvals-filters";
-import type { OtSummary } from "./ot-approvals-table";
 
 interface TabContentRendererProps {
   activeTab: "pre" | "post" | "delegated_claim" | "behalf_assignments";

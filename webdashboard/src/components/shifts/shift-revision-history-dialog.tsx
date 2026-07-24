@@ -95,7 +95,7 @@ interface IntervalDiffProps {
 function IntervalDiff({ current, previous, t }: IntervalDiffProps) {
   const [expanded, setExpanded] = useState(false);
 
-  if (!previous || !previous.intervals.length) {
+  if (!previous?.intervals.length) {
     return null;
   }
 
@@ -132,7 +132,7 @@ function IntervalDiff({ current, previous, t }: IntervalDiffProps) {
 
             if (!startChanged && !endChanged && !breakChanged) {
               return (
-                <div key={idx} className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                <div className="text-[10px] text-slate-400 dark:text-slate-500 font-medium" key={idx}>
                   {t("shifts.revisions.no_changes", "No changes in this interval")}
                 </div>
               );
@@ -298,12 +298,12 @@ export function ShiftRevisionHistoryDialog({
 
   return (
     <Modal
+      icon={<History className="w-5 h-5 text-primary-500" />}
       isOpen={isOpen}
       maxWidth="2xl"
       onClose={onClose}
-      title={t("shifts.revisions.title", "Version History")}
       subtitle={t("shifts.revisions.subtitle", "Revision history for {{name}}", { name: shiftName })}
-      icon={<History className="w-5 h-5 text-primary-500" />}
+      title={t("shifts.revisions.title", "Version History")}
     >
       <div className="px-1 py-2">
         {/* Loading */}

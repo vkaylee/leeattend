@@ -75,7 +75,7 @@ export default function ChartCatalogSidebar({
       grouped[cat] = allWidgets
         .filter((w) => {
           const meta = CHART_METADATA[w.id];
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- chart id may not exist in metadata map
+           
           if (meta?.category !== cat) return false;
           if (!query) return true;
           const label = t(w.labelKey).toLowerCase();
@@ -197,7 +197,7 @@ export default function ChartCatalogSidebar({
                             : "border-slate-300 dark:border-slate-600",
                         )}
                       >
-                        {isVisible && (
+                        {!!isVisible && (
                           <svg
                             className="w-2.5 h-2.5 text-white"
                             fill="none"
@@ -212,7 +212,7 @@ export default function ChartCatalogSidebar({
                         )}
                       </span>
 
-                      {!collapsed && Icon && <Icon className="shrink-0" size={15} />}
+                      {!collapsed && !!Icon && <Icon className="shrink-0" size={15} />}
 
                       {!collapsed && (
                         <span className="flex-1 text-left text-xs font-medium truncate">

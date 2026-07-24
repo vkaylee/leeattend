@@ -6,7 +6,6 @@ import {
   type SortingState,
   type RowSelectionState,
   type ColumnPinningState,
-  type Column,
   type Column as TanStackColumn,
   type Row,
 } from "@tanstack/react-table";
@@ -43,47 +42,47 @@ interface UseSmartTableProps<T> {
 // ── Hook return ───────────────────────────────────────────────────────
 
 export interface UseSmartTableReturn<T> {
-  // Table instance
-  table: ReturnType<typeof useReactTable<T>>;
+  // Grid validation state
+  cellErrors: Record<string, string>;
 
+  // Keyboard & editing
+  cellRefs: React.RefObject<Record<string, HTMLTableCellElement | null>>;
   // Derived data
   colCount: number;
-  rows: Row<T>[];
-  rowCount: number;
+  // Context menu
+  contextMenu: { x: number; y: number; row: T } | null;
 
   // Drag selection
   dragCurrentRow: number | null;
   dragStartRow: number | null;
-  handleRowMouseDown: (index: number, e: React.MouseEvent) => void;
-  handleRowMouseEnter: (index: number) => void;
-  isDragging: boolean;
-
-  // Keyboard & editing
-  cellRefs: React.RefObject<Record<string, HTMLTableCellElement | null>>;
   editingCell: { colIndex: number; rowIndex: number } | null;
   editValue: EditableCellValue;
   focusedCell: { colIndex: number; rowIndex: number } | null;
+
+  // Styling
+  getPinStyles: (column: TanStackColumn<T>) => React.CSSProperties;
   handleCellKeyDown: (args: { column: TanStackColumn<T>; e: React.KeyboardEvent; colIndex: number; row: Row<T>; rowIndex: number }) => void;
+  // Clipboard
+  handleKeyDown: (e: React.KeyboardEvent) => void;
+  handlePaste: (e: React.ClipboardEvent) => void;
+  handleRowContextMenu: (row: T, e: React.MouseEvent) => void;
+  handleRowMouseDown: (index: number, e: React.MouseEvent) => void;
+  handleRowMouseEnter: (index: number) => void;
+  isDragging: boolean;
+  localCellValues: Record<string, EditableCellValue>;
+
+  rowCount: number;
+  rows: Row<T>[];
+
   saveCellEdit: (rowIndex: number, colIndex: number, column: TanStackColumn<T>, row: Row<T>) => void;
+  setContextMenu: React.Dispatch<React.SetStateAction<{ x: number; y: number; row: T } | null>>;
+
   setEditValue: React.Dispatch<React.SetStateAction<EditableCellValue>>;
   setFocusedCell: React.Dispatch<React.SetStateAction<{ colIndex: number; rowIndex: number } | null>>;
   startCellEdit: (rowIndex: number, colIndex: number, value: EditableCellValue) => void;
 
-  // Clipboard
-  handleKeyDown: (e: React.KeyboardEvent) => void;
-  handlePaste: (e: React.ClipboardEvent) => void;
-
-  // Grid validation state
-  cellErrors: Record<string, string>;
-  localCellValues: Record<string, EditableCellValue>;
-
-  // Context menu
-  contextMenu: { x: number; y: number; row: T } | null;
-  setContextMenu: React.Dispatch<React.SetStateAction<{ x: number; y: number; row: T } | null>>;
-  handleRowContextMenu: (row: T, e: React.MouseEvent) => void;
-
-  // Styling
-  getPinStyles: (column: TanStackColumn<T>) => React.CSSProperties;
+  // Table instance
+  table: ReturnType<typeof useReactTable<T>>;
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────

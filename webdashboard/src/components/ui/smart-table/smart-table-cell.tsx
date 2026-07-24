@@ -9,6 +9,7 @@ import React, { memo, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
 
 import type { CellCoordinate, EditableCellValue } from "./types";
+
 import CellEditControl from "./cell-edit-control";
 import CellErrorTooltip from "./cell-error-tooltip";
 

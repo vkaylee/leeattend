@@ -195,7 +195,10 @@
     "overtime_policies_desc": "Manage overtime pay rules based on time and day.",
     "no_overtime_policies": "No overtime policies found.",
     "create_first_policy": "Create your first policy now.",
-    "rules": "Calculation Rules",
+    "rules": {
+      "label": "Calculation Rules",
+      "enable_override": "Enable Override"
+    },
     "add_rule": "Add Rule",
     "assign_policy": "Assign Policy",
     "assign_overtime_policy": "Assign Overtime Policy",

@@ -5,6 +5,7 @@ import { ArrowLeft, History, Save } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { ShiftRevisionHistoryDialog } from "@/components/shifts/shift-revision-history-dialog";
 import { ShiftTimelinePreview } from "@/components/shifts/shift-timeline-preview";
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
@@ -14,7 +15,6 @@ import { fetchLocations, fetchEmployers } from "@/lib/api";
 
 import { CorrectionConfigCard } from "./components/correction-config-card";
 import { IntervalEditorCard } from "./components/interval-editor-card";
-import { ShiftRevisionHistoryDialog } from "@/components/shifts/shift-revision-history-dialog";
 import { useShiftEditor } from "./hooks/use-shift-editor";
 
   // eslint-disable-next-line complexity
@@ -66,6 +66,8 @@ export default function ShiftEditorPage() {
     ],
   });
 
+  const [historyOpen, setHistoryOpen] = useState(false);
+
   if (!wsId) {
     return (
       <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
@@ -73,8 +75,6 @@ export default function ShiftEditorPage() {
       </div>
     );
   }
-
-  const [historyOpen, setHistoryOpen] = useState(false);
 
   if (isEditMode && isLoadingShifts) {
     return (

@@ -10,11 +10,9 @@ import type {
 } from "./types";
 
 // ── Typed request body aliases (from generated OpenAPI schema) ──────────────
-// Used as documentation only; callers currently pass Partial<Employee> which
-// includes extra fields. TODO: migrate callers to use these strict request types.
 
-type _CreateEmployeeBody = components["schemas"]["CreateEmployeeRequest"];
-type _UpdateEmployeeBody = components["schemas"]["UpdateEmployeeRequest"];
+export type CreateEmployeeRequest = components["schemas"]["CreateEmployeeRequest"];
+export type UpdateEmployeeRequest = components["schemas"]["UpdateEmployeeRequest"];
 
 // Employment is already exported from types.ts; re-exporting here causes
 // a duplicate when both modules are barrel-re-exported together.
@@ -128,13 +126,12 @@ export async function rehireEmployee(
 
 export async function createEmployee(
   wsId: string,
-  employee: Partial<Employee>,
+  employee: CreateEmployeeRequest,
 ): Promise<Employee> {
   const { data } = await client.POST("/workspaces/{workspace_id}/employees", {
     params: {
       path: { workspace_id: wsId },
     },
-    // @ts-expect-error — callers pass Partial<Employee> which is broader than CreateEmployeeRequest; TODO: narrow callers to schema type
     body: employee,
   });
   return data;
@@ -143,7 +140,7 @@ export async function createEmployee(
 export async function updateEmployee(
   wsId: string,
   id: string,
-  employee: Partial<Employee>,
+  employee: UpdateEmployeeRequest,
 ): Promise<Employee> {
   const { data } = await client.PUT("/workspaces/{workspace_id}/employees/{id}", {
     params: {

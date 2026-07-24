@@ -14,9 +14,8 @@ export function DocumentTemplatesPage() {
       />
       <div className="flex-1 min-h-0">
         <TemplateEditor 
-          onSave={(content) => {
+          onSave={(_content) => {
             toast.success("Template saved successfully");
-            console.warn("Saving template:", content);
           }}
         />
       </div>

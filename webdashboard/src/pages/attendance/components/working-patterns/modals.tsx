@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import {
   CalendarDays,
   Check,
@@ -9,7 +10,6 @@ import {
   RefreshCw,
 } from "lucide-react";
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import { EmployeeSearch } from "@/components/common/employee-search";
@@ -316,10 +316,10 @@ function BulkAssignModal({ hook }: PatternModalsProps) {
         </div>
 
         {/* Live pattern preview with compliance alerts */}
-        {selectedPatternId && (
+        {!!selectedPatternId && (
           <div className="space-y-4 px-1 animate-in fade-in slide-in-from-top-2 duration-300">
             {/* Compliance badges */}
-            {hasConflicts && (
+            {!!hasConflicts && (
               <div className="flex flex-wrap gap-2">
                 {complianceIssues.map((issue, i) => {
                   let badgeType: "overlap" | "rest" | "hours" = "overlap";

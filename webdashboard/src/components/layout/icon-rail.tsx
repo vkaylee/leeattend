@@ -188,8 +188,8 @@ const MenuLink = memo(function MenuLink({ group, icon: Icon, isActive, label, on
   }
 
   return (
-    <button aria-label={label} className={cls} data-testid={testId} onClick={onClick} ref={refCb} type="button"
-      onBlur={handleBlur} onFocus={handleFocus} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+    <button aria-label={label} className={cls} data-testid={testId} onBlur={handleBlur} onClick={onClick} onFocus={handleFocus}
+      onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} ref={refCb} type="button">
       {inner}
       <TooltipPortal el={el} hovered={hovered} label={label} />
     </button>

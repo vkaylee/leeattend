@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 
 import type { IntervalDraft } from "../hooks/use-shift-editor";
+
 import BreakConfigSection from "./break-config-section";
 import GraceAndOtSection from "./grace-ot-section";
 import OtAggregationSection from "./ot-aggregation-section";

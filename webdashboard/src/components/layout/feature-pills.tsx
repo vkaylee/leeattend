@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+
 import { FEATURE_PILLS } from "./auth-mock-data";
 
 export function FeaturePills() {

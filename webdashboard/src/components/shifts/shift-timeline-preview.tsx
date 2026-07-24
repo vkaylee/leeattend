@@ -3,10 +3,11 @@ import { useTranslation } from "react-i18next";
 
 import { calculateBreakDuration, calculateShiftDuration, timeToMinutes } from "@/lib/shift-timeline-math";
 
+import type { ShiftTimelinePreviewProps } from "./shift-timeline-preview/types";
+
 import { MetricsGrid } from "./shift-timeline-preview/metrics-grid";
 import { ShiftDetailsList } from "./shift-timeline-preview/shift-details-list";
 import { TimelineBar } from "./shift-timeline-preview/timeline-bar";
-import type { ShiftTimelinePreviewProps } from "./shift-timeline-preview/types";
 
 // Re-export for consumers that previously imported from this file
 export { TimelineBar } from "./shift-timeline-preview/timeline-bar";

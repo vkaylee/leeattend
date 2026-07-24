@@ -48,7 +48,7 @@ describe("api.ts comprehensive tests", () => {
 
     it("createDevice", async () => {
       mockSuccess({ id: "d1" });
-      await api.createDevice({ name: "D" });
+      await api.createDevice({ name: "D", agent_id: "ag-1", ip: "192.168.1.1" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/devices"), expect.objectContaining({ method: "POST" }));
     });
 
@@ -110,7 +110,7 @@ describe("api.ts comprehensive tests", () => {
 
     it("createEmployee", async () => {
       mockSuccess({});
-      await api.createEmployee("ws-1", { full_name: "A" });
+      await api.createEmployee("ws-1", { full_name: "A", employee_id_number: "E001", employer_id: "emp-1", hire_date: "2024-01-01" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees"), expect.objectContaining({ method: "POST" }));
     });
 

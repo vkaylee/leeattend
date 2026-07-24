@@ -61,7 +61,7 @@ export function DepartmentConfigModal({ editingDept, isOpen, onClose, wsId, t }:
         <TemporalConfigTable 
           isLoading={isConfigsLoading} 
           onSave={async (data) => { await saveConfigMutation.mutateAsync(data); }} 
-          records={deptConfigs as TemporalConfigRecord[]} 
+          records={deptConfigs} 
           title={t("payroll.settings.std_days_history")} 
         />
         {!!editingDept?.id && (

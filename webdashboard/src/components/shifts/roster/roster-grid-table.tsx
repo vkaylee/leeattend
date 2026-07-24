@@ -4,8 +4,8 @@ import React, { memo } from "react";
 
 import { format, isToday as isDateToday } from "date-fns";
 
-import type { EmployeeSchedule, Shift } from "@/lib/api/types";
 import type { ComplianceViolation } from "@/lib/api/errors";
+import type { EmployeeSchedule, Shift } from "@/lib/api/types";
 
 import { RosterCell } from "./roster-cell";
 import { getComplianceStatus, isWeekend } from "./roster-utils";

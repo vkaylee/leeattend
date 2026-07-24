@@ -5,9 +5,9 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useRowMeta } from "@/hooks/reports/use-row-meta";
 import { DailyAttendanceReport, AttendanceAdjustmentRequest, ScheduleTrace } from "@/lib/api";
+import { getDerivedSource, SEGMENT_TYPE_COLORS } from "@/lib/report-row-utils";
 import { cn } from "@/lib/utils";
 import { formatHours, getUnitTypeI18nKey, buildWorkUnitsTooltip } from "@/lib/utils/attendance";
-import { getDerivedSource, SEGMENT_TYPE_COLORS } from "@/lib/report-row-utils";
 
 import { ScheduleTracePopover } from "../../shifts/schedule-trace-popover";
 import { DailyReportTimeline, TimeEntry } from "./daily-report-timeline";
@@ -46,7 +46,7 @@ function DailyReportTableRowExpanded({
           {/* Visual Timeline Component */}
           <DailyReportTimeline formatTime={formatTime} row={row} t={t} />
 
-          {isDebugMode && (
+          {!!isDebugMode && (
             <div className="mt-8 border-t border-slate-100 dark:border-slate-800 pt-6">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/10 flex items-center justify-center text-amber-500 shadow-inner border border-amber-500/20">
@@ -296,7 +296,7 @@ function PunchTimeCell({
         <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">
           {formatTime(time)}
         </div>
-        {side === "in" && hasMultipleSessions && (
+        {side === "in" && !!hasMultipleSessions && (
           <span
             className="text-[8px] bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider scale-90 cursor-help"
             title={timeEntries.map((e, i) => `Session ${i + 1}: ${formatTime(e.punch_in_time)} - ${e.punch_out_time ? formatTime(e.punch_out_time) : "---"} (${e.entry_type})`).join("\n")}
@@ -350,7 +350,7 @@ function RowCells({
       </td>
       <td className="px-4 py-2.5 text-right"><OtCell onApproveOt={onApproveOt} row={row} t={t} /></td>
       <td className="px-4 py-2.5 text-center"><ReportStatusBadge onResolveUnscheduled={onResolveUnscheduled} row={row} status={row.status} t={t} /></td>
-      {isDebugMode && (
+      {!!isDebugMode && (
         <td className="px-4 py-2.5 text-center">
           <Button className={cn("p-1.5 rounded-lg transition-all shadow-sm border h-auto", isExpanded ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-white text-amber-600 border-slate-100 hover:bg-amber-50")} onClick={() => { onToggleExpandRow(segmentKey); }} variant="ghost">
             <Bug size={16} />

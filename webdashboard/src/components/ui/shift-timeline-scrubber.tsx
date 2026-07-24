@@ -8,20 +8,20 @@ import { cn } from "@/lib/utils";
 
 /** A single shift interval with optional break */
 export interface ShiftIntervalData {
-  start_time?: string;
-  end_time?: string;
-  break_start?: string;
-  break_end?: string;
   break_duration_minutes?: number;
+  break_end?: string;
+  break_start?: string;
+  end_time?: string;
+  start_time?: string;
 }
 
 interface ShiftTimelineScrubberProps {
+  className?: string;
   intervals: ShiftIntervalData[];
+  isLoading?: boolean;
   shiftName?: string;
   /** compact = small inline (matrix cells), full = standalone with labels */
   variant?: "compact" | "full";
-  isLoading?: boolean;
-  className?: string;
 }
 
 /**
@@ -228,7 +228,7 @@ export function ShiftTimelineScrubber({
       >
         <div className="space-y-3">
           {/* Shift name header */}
-          {shiftName && (
+          {!!shiftName && (
             <div className="border-b border-slate-100 dark:border-slate-800/60 pb-2">
               <span className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight">
                 {shiftName}

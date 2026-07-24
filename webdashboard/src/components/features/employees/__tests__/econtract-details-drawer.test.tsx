@@ -5,8 +5,9 @@ import React from "react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { ToastProvider } from "@/components/ui/toast";
 import type { EContractEnvelope } from "@/lib/api/econtracts";
+
+import { ToastProvider } from "@/components/ui/toast";
 
 import EContractDetailsDrawer from "../econtract-details-drawer";
 

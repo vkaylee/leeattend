@@ -7,9 +7,6 @@ export interface AppErrorResponse {
 
 /** A single compliance violation returned by the backend on 409 Conflict. */
 export interface ComplianceViolation {
-  violation_type: "overlap" | "rest_period" | "weekly_hours" | "monthly_ot";
-  severity: "hard" | "soft";
-  message: string;
   details: {
     employment_id: string;
     shift_ids: string[];
@@ -17,12 +14,15 @@ export interface ComplianceViolation {
     total_hours?: number;
     limit_hours?: number;
   };
+  message: string;
+  severity: "hard" | "soft";
+  violation_type: "overlap" | "rest_period" | "weekly_hours" | "monthly_ot";
 }
 
 /** Structured retry payload for compliance violations. */
 export interface ComplianceConflictRetry {
-  violations: ComplianceViolation[];
   requires_override: boolean;
+  violations: ComplianceViolation[];
 }
 
 /** Narrow an unknown error body to check for a compliance-conflict retry payload. */
@@ -41,7 +41,7 @@ export function parseComplianceConflict(body: unknown): ComplianceConflictRetry 
     if (typeof v !== "object" || v === null) return undefined;
     const violation = v as Partial<ComplianceViolation>;
     if (typeof violation.violation_type !== "string" || typeof violation.message !== "string") return undefined;
-    violations.push(v as ComplianceViolation);
+    violations.push(v);
   }
   if (violations.length === 0) return undefined;
   return { violations, requires_override: true };

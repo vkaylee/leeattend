@@ -96,7 +96,7 @@ export async function handleUnauthorized({
     return retryResponse;
   }
 
-  console.warn("Session expired (401). Redirecting to login...");
+  logError("Session expired (401). Redirecting to login...", { component: "apiFetch" });
   clearAuthSession();
   if (window.location.pathname !== ROUTES.LOGIN) {
     window.location.href = ROUTES.LOGIN;

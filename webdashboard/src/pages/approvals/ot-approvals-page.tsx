@@ -2,16 +2,14 @@ import { CheckCircle, Clock, FileText, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { BulkUploadOtDialog } from "@/components/approvals/bulk-upload-ot-dialog";
-import { ErrorBoundary } from "@/components/common/error-boundary";
 import { PDFPreviewModal } from "@/components/files/pdf-preview-modal";
 import { PageTabs, PageTab } from "@/components/ui/page-tabs";
-import { Typography } from "@/components/ui/typography";
 import { invalidateAttendanceQueries } from "@/lib/utils/query-invalidation";
 
-import { useOtApprovals, getPendingSummaries } from "./hooks/use-ot-approvals";
 import { AddPhotoDialog } from "./components/add-photo-dialog";
 import { OtApprovalsHeader } from "./components/ot-approvals-header";
 import { TabContentRenderer } from "./components/tab-content-renderer";
+import { useOtApprovals, getPendingSummaries } from "./hooks/use-ot-approvals";
 
 // ── Loading State ────────────────────────────────────────────────────
 

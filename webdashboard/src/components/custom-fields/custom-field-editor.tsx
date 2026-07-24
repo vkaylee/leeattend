@@ -24,24 +24,26 @@ interface Option {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+interface OptionLike {
+  label?: unknown;
+  value: unknown;
+}
+
+function isOptionLike(opt: unknown): opt is OptionLike {
+  return !!opt && typeof opt === "object" && "value" in opt;
+}
+
 function parseOptions(opts: unknown): Option[] {
-  if (!opts) return [];
-  try {
-    if (Array.isArray(opts)) {
-      return opts.map((opt) => {
-        if (opt && typeof opt === "object" && "value" in opt) {
-          return {
-            value: String((opt as { value: unknown }).value),
-            label: String((opt as { label: unknown }).label ?? (opt as { value: unknown }).value),
-          };
-        }
-        return { value: String(opt), label: String(opt) };
-      });
+  if (!Array.isArray(opts)) return [];
+  return opts.map((opt) => {
+    if (isOptionLike(opt)) {
+      return {
+        value: String(opt.value),
+        label: String(opt.label ?? opt.value),
+      };
     }
-  } catch {
-    // Ignore malformed options
-  }
-  return [];
+    return { value: String(opt), label: String(opt) };
+  });
 }
 
 function toStringValue(value: unknown): string {

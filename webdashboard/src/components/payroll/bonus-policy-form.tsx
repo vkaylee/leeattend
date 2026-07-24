@@ -8,18 +8,19 @@ import { Typography } from "@/components/ui/typography";
 import { useBonusTiers, type TierInput } from "@/hooks/use-bonus-tiers";
 import { createIncentivePolicy } from "@/lib/api/payroll";
 import { RuleCondition } from "@/lib/api/types";
+
 import { METRICS, OPERATORS } from "./bonus-policy-constants";
 
 // ── Bonus Tier Input ─────────────────────────────────────────────────
 
 interface BonusTierInputProps {
-  tier: TierInput;
+  addTierRule: (tierIndex: number) => void;
+  handleRemoveTier: (index: number) => void;
   index: number;
+  removeTierRule: (tierIndex: number, ruleIndex: number) => void;
+  tier: TierInput;
   updateTierAmount: (index: number, value: string | number) => void;
   updateTierRule: (tierIndex: number, ruleIndex: number, field: keyof RuleCondition, value: string | number) => void;
-  addTierRule: (tierIndex: number) => void;
-  removeTierRule: (tierIndex: number, ruleIndex: number) => void;
-  handleRemoveTier: (index: number) => void;
 }
 
 function BonusTierInput({
@@ -98,9 +99,9 @@ function BonusTierInput({
 // ── Bonus Policy Inputs ──────────────────────────────────────────────
 
 interface BonusPolicyInputsProps {
-  name: string; setName: (val: string) => void;
-  baseAmount: number; setBaseAmount: (val: number) => void;
-  effectiveFrom: string; setEffectiveFrom: (val: string) => void;
+  baseAmount: number; effectiveFrom: string;
+  name: string; setBaseAmount: (val: number) => void;
+  setEffectiveFrom: (val: string) => void; setName: (val: string) => void;
 }
 
 function BonusPolicyInputs({ name, setName, baseAmount, setBaseAmount, effectiveFrom, setEffectiveFrom }: BonusPolicyInputsProps) {

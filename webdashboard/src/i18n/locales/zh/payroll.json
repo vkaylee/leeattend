@@ -195,7 +195,10 @@
     "overtime_policy_desc_placeholder": "例：周末与夜间费率",
     "no_overtime_policies": "未找到加班政策。",
     "create_first_policy": "立即创建您的第一个政策。",
-    "rules": "计算规则",
+    "rules": {
+      "label": "计算规则",
+      "enable_override": "启用覆盖"
+    },
     "add_rule": "添加规则",
     "assign_policy": "分配政策",
     "assign_overtime_policy": "分配加班政策",

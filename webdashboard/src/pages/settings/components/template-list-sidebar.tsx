@@ -101,7 +101,7 @@ export function TemplateListSidebar({
                   <Button
                     className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20"
                     icon={<Trash2 size={12} />}
-                    onClick={(e) => handleDeleteTemplate(template, e)}
+                    onClick={(e) => { handleDeleteTemplate(template, e); }}
                     variant="ghost"
                   />
                 </div>

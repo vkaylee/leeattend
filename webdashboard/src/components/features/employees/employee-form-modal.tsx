@@ -5,14 +5,17 @@ import { useTranslation } from "react-i18next";
 
 import type { WorkspaceMember } from "@/lib/api";
 
-import Button from "@/components/ui/button";
-import Modal from "@/components/ui/modal";
-import { useToast } from "@/components/ui/toast";
 import {
   createEmployee, updateEmployee, fetchWorkspaceMembers,
   Employee, fetchEmployers, fetchEmployeeEmployments,
   updateEmployeeEmployment, Employment,
+  type CreateEmployeeRequest,
+  type UpdateEmployeeRequest,
 } from "@/lib/api";
+
+import Button from "@/components/ui/button";
+import Modal from "@/components/ui/modal";
+import { useToast } from "@/components/ui/toast";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 
 import EmployeeFormInputs from "./employee-form-inputs";
@@ -32,7 +35,7 @@ function useEmployeeMutations(wsId: string, onClose: () => void, onSuccess?: () 
   const toast = useToast();
 
   const createMutation = useMutation({
-    mutationFn: (data: Partial<Employee>) => createEmployee(wsId, data),
+    mutationFn: (data: CreateEmployeeRequest) => createEmployee(wsId, data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
       onClose();
@@ -42,7 +45,7 @@ function useEmployeeMutations(wsId: string, onClose: () => void, onSuccess?: () 
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: { id: string; employee: Partial<Employee> }) =>
+    mutationFn: (data: { id: string; employee: UpdateEmployeeRequest }) =>
       updateEmployee(wsId, data.id, data.employee),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
@@ -134,21 +137,25 @@ export default function EmployeeFormModal({
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const data: Record<string, FormDataEntryValue | boolean | null> = {
-      full_name: fd.get("full_name"),
-      employee_id_number: fd.get("employee_id_number"),
-      hire_date: fd.get("hire_date"),
-      is_active: fd.get("is_active") === "on",
-    };
-    if (defaults.selectedUserId) data.user_id = defaults.selectedUserId;
 
     if (editingEmployee) {
-      await updateMutation.mutateAsync({ id: editingEmployee.id, employee: data });
+      const payload: UpdateEmployeeRequest = {
+        full_name: String(fd.get("full_name") ?? ""),
+        employee_id_number: String(fd.get("employee_id_number") ?? ""),
+        user_id: defaults.selectedUserId || undefined,
+      };
+      await updateMutation.mutateAsync({ id: editingEmployee.id, employee: payload });
       await syncEmploymentIfChanged(editingEmployee);
     } else {
-      if (defaults.selectedLocationId) data.primary_location_id = defaults.selectedLocationId;
-      data.employer_id = defaults.selectedEmployerId || null;
-      createMutation.mutate(data);
+      const payload: CreateEmployeeRequest = {
+        full_name: String(fd.get("full_name") ?? ""),
+        employee_id_number: String(fd.get("employee_id_number") ?? ""),
+        hire_date: String(fd.get("hire_date") ?? ""),
+        employer_id: defaults.selectedEmployerId || "",
+        primary_location_id: defaults.selectedLocationId || undefined,
+        user_id: defaults.selectedUserId || undefined,
+      };
+      createMutation.mutate(payload);
     }
   };
 

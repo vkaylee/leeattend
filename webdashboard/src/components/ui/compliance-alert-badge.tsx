@@ -6,11 +6,11 @@ import { cn } from "@/lib/utils";
 export type ComplianceBadgeType = "overlap" | "rest" | "hours";
 
 interface ComplianceAlertBadgeProps {
-  type: ComplianceBadgeType;
+  className?: string;
   message: string;
+  type: ComplianceBadgeType;
   /** badge = standalone pill, inline = compact text+icon */
   variant?: "badge" | "inline";
-  className?: string;
 }
 
 const TYPE_STYLES: Record<

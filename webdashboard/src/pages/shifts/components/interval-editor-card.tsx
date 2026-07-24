@@ -6,6 +6,7 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
 import type { IntervalDraft } from "../hooks/use-shift-editor";
+
 import IntervalDraftEditor from "./interval-draft-editor";
 
 interface IntervalEditorCardProps {

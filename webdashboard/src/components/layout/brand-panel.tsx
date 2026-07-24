@@ -2,6 +2,7 @@ import { Shield } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Typography } from "@/components/ui/typography";
+
 import { DashboardMockup } from "./dashboard-mockup";
 import { FeaturePills } from "./feature-pills";
 

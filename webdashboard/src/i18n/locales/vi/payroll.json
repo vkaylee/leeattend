@@ -195,7 +195,10 @@
     "overtime_policies_desc": "Quản lý các quy tắc tính lương tăng ca theo thời gian và ngày.",
     "no_overtime_policies": "Chưa có chính sách tăng ca nào.",
     "create_first_policy": "Tạo chính sách đầu tiên ngay.",
-    "rules": "Quy tắc tính",
+    "rules": {
+      "label": "Quy tắc tính",
+      "enable_override": "Bật ghi đè"
+    },
     "add_rule": "Thêm quy tắc",
     "assign_policy": "Gán chính sách",
     "assign_overtime_policy": "Gán chính sách tăng ca",

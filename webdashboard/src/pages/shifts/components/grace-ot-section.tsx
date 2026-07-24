@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import type { IntervalDraft } from "../hooks/use-shift-editor";
+
 import ToggleSwitch from "./toggle-switch";
 
 function GraceAndOtSection({

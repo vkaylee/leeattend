@@ -5,8 +5,8 @@ import {
   createDevice,
   updateDevice,
   deleteDevice,
-  Device,
   fetchDeviceInfo,
+  type UpdateDeviceRequest,
 } from "@/lib/api";
 
 export const devicesKeys = {
@@ -31,7 +31,7 @@ export function useDevices() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Device> }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateDeviceRequest }) =>
       updateDevice(id, data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: devicesKeys.all });
@@ -54,7 +54,7 @@ export function useDevices() {
     refetch: devicesQuery.refetch,
 
     createDevice: createMutation.mutateAsync,
-    updateDevice: (id: string, data: Partial<Device>) =>
+    updateDevice: (id: string, data: UpdateDeviceRequest) =>
       updateMutation.mutateAsync({ id, data }),
     deleteDevice: deleteMutation.mutateAsync,
 

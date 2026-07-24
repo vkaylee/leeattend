@@ -4,9 +4,10 @@ import { useTranslation } from "react-i18next";
 import SearchBox from "@/components/common/search-box";
 import { Typography } from "@/components/ui/typography";
 
+import type { OtSummary } from "./ot-approvals-table";
+
 import { OtApprovalsFilters, SourceFilter } from "./ot-approvals-filters";
 import { OtApprovalsTable } from "./ot-approvals-table";
-import type { OtSummary } from "./ot-approvals-table";
 
 // ── Loading State ────────────────────────────────────────────────────
 

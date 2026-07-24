@@ -56,12 +56,12 @@ function ScopeBadges({ shift }: { shift: Shift }) {
 
   return (
     <div className="flex items-center gap-1.5">
-      {hasLocation && (
+      {!!hasLocation && (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-[9px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
           <MapPin size={10} /> {t("common.office_branch")}
         </span>
       )}
-      {hasEmployer && (
+      {!!hasEmployer && (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-violet-50 dark:bg-violet-950/40 text-[9px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400">
           <Building2 size={10} /> {t("common.employer")}
         </span>
@@ -102,9 +102,7 @@ function ShiftMobileCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="text-sm font-bold uppercase tracking-tight text-slate-700 dark:text-slate-200">{shift.name}</div>
-          {shift.report_symbol && (
-            <span className="text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500">{shift.report_symbol}</span>
-          )}
+          {!!shift.report_symbol && <span className="text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500">{shift.report_symbol}</span>}
           <div className="mt-1 font-mono text-[10px] font-bold tracking-tighter text-slate-500 dark:text-slate-400">{shift.id}</div>
         </div>
         {/* Night shift badge on card */}
@@ -318,9 +316,7 @@ export function ShiftList({ shifts, onEdit, onDelete, onViewHistory }: ShiftList
                     <TableCell className="px-8 py-6">
                       <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase">{shift.name}</div>
                       <div className="flex items-center gap-2 mt-1">
-                        {shift.report_symbol && (
-                          <span className="text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500">{shift.report_symbol}</span>
-                        )}
+                        {!!shift.report_symbol && <span className="text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500">{shift.report_symbol}</span>}
                         {isNightShift(shift) && (
                           <span className="px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800">
                             {t("shifts.picker.filter_night")}

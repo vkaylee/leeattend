@@ -4,12 +4,13 @@ import { useTranslation } from "react-i18next";
 
 import { toast } from "sonner";
 
+import type { components } from "@/types/api-generated";
+
 import { FileList } from "@/components/files/file-list";
 import { FileUpload } from "@/components/files/file-upload";
 import Button from "@/components/ui/button";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { client } from "@/lib/api/client";
-import type { components } from "@/types/api-generated";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
 

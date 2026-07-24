@@ -110,7 +110,7 @@ export function ChecklistItemsPanel({
                   <Button
                     className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20"
                     icon={<Trash2 size={14} />}
-                    onClick={() => handleDeleteItem(item)}
+                    onClick={() => { handleDeleteItem(item); }}
                     variant="ghost"
                   />
                 </div>

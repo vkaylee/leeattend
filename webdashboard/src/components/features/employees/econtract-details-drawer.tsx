@@ -6,7 +6,7 @@ import Button from "@/components/ui/button";
 import Sheet from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { EContractEnvelope, SignerStatus } from "@/lib/api/econtracts";
+import { EContractEnvelope } from "@/lib/api/econtracts";
 import { cn } from "@/lib/utils";
 
 import EContractSigningModal from "./econtract-signing-modal";

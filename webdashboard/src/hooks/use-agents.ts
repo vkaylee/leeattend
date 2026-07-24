@@ -8,8 +8,8 @@ import {
   deleteAuthorizedAgent,
   updateAuthorizedAgent,
   fetchAgents,
-  AuthorizedAgent,
   sendAgentCommand,
+  type UpdateAuthorizedAgentRequest,
 } from "@/lib/api";
 
 export const agentsKeys = {
@@ -55,7 +55,7 @@ export function useAuthorizedAgents() {
       agent,
     }: {
       id: string;
-      agent: Partial<AuthorizedAgent>;
+      agent: UpdateAuthorizedAgentRequest;
     }) => updateAuthorizedAgent(id, agent),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["authorized-agents"] });

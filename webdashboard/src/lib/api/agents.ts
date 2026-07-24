@@ -4,13 +4,11 @@ import { client } from "./client";
 import { AgentStatus, Device, AuthorizedAgent, DeviceInfo } from "./types";
 
 // ── Typed request body aliases (from generated OpenAPI schema) ──────────────
-// Used as documentation only; callers currently pass Partial<T> which includes
-// extra fields. TODO: migrate callers to use these strict request types.
 
-type _CreateDeviceBody = components["schemas"]["CreateDeviceRequest"];
-type _UpdateDeviceBody = components["schemas"]["UpdateDeviceRequest"];
-type _CreateAuthorizedAgentBody = components["schemas"]["CreateAuthorizedAgentRequest"];
-type _UpdateAuthorizedAgentBody = components["schemas"]["UpdateAuthorizedAgentRequest"];
+export type CreateDeviceRequest = components["schemas"]["CreateDeviceRequest"];
+export type UpdateDeviceRequest = components["schemas"]["UpdateDeviceRequest"];
+export type CreateAuthorizedAgentRequest = components["schemas"]["CreateAuthorizedAgentRequest"];
+export type UpdateAuthorizedAgentRequest = components["schemas"]["UpdateAuthorizedAgentRequest"];
 type TrustAgentRequestBody = components["schemas"]["TrustAgentRequest"];
 
 export async function fetchAgents(): Promise<AgentStatus[]> {
@@ -31,15 +29,14 @@ export async function fetchDevices(): Promise<Device[]> {
   return resData;
 }
 
-export async function createDevice(device: Partial<Device>): Promise<{ id: string }> {
+export async function createDevice(device: CreateDeviceRequest): Promise<{ id: string }> {
   const { data: resData } = await client.POST("/devices", {
-    // @ts-expect-error — callers pass Partial<Device> which is broader than CreateDeviceRequest (schema gap)
     body: device,
   });
   return resData;
 }
 
-export async function updateDevice(id: string, device: Partial<Device>): Promise<void> {
+export async function updateDevice(id: string, device: UpdateDeviceRequest): Promise<void> {
   await client.PUT("/devices/{id}", {
     params: { path: { id } },
     body: device,
@@ -68,9 +65,8 @@ export async function fetchAuthorizedAgentById(id: string): Promise<AuthorizedAg
   return resData;
 }
 
-export async function createAuthorizedAgent(agent: Partial<AuthorizedAgent>): Promise<{ id: string }> {
+export async function createAuthorizedAgent(agent: CreateAuthorizedAgentRequest): Promise<{ id: string }> {
   const { data: resData } = await client.POST("/authorized-agents", {
-    // @ts-expect-error — callers pass Partial<AuthorizedAgent> which is broader than CreateAuthorizedAgentRequest (schema gap)
     body: agent,
   });
   return resData;
@@ -84,7 +80,7 @@ export async function updateAgentTrust(id: string, is_trusted: boolean): Promise
   });
 }
 
-export async function updateAuthorizedAgent(id: string, agent: Partial<AuthorizedAgent>): Promise<AuthorizedAgent> {
+export async function updateAuthorizedAgent(id: string, agent: UpdateAuthorizedAgentRequest): Promise<AuthorizedAgent> {
   const { data: resData } = await client.PATCH("/authorized-agents/{id}", {
     params: { path: { id } },
     body: agent,
