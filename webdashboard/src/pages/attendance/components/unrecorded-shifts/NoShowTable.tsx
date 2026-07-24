@@ -7,6 +7,7 @@ import { useCallback, useMemo } from "react";
 import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
 import { ScheduleTracePopover } from "@/components/shifts/schedule-trace-popover";
 import ResponsiveTable from "@/components/ui/responsive-table";
+import { Typography } from "@/components/ui/typography";
 import { ScheduleTrace } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -30,8 +31,8 @@ function EmptyStateRow({ empty, hint }: { empty: string; hint: string }) {
       <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center shadow-inner">
         <UserX className="text-emerald-500 dark:text-emerald-400" size={28} />
       </div>
-      <p className="font-bold text-sm text-slate-700 dark:text-slate-200">{empty}</p>
-      <p className="text-xs text-slate-400 dark:text-slate-500 max-w-xs">{hint}</p>
+      <Typography className="font-bold text-sm text-slate-700 dark:text-slate-200" variant="p">{empty}</Typography>
+      <Typography className="text-xs text-slate-400 dark:text-slate-500 max-w-xs" variant="p">{hint}</Typography>
     </div>
   );
 }
@@ -287,13 +288,13 @@ export function NoShowTable({
               tracesByKey={tracesByKey}
             />
           ))}
-          {!!hasNextPage && (
+          {hasNextPage ? (
             <InfiniteScrollSentinel
               colSpan={7}
               isFetchingNextPage={isFetchingNextPage}
               sentinelRef={loadMoreRef}
             />
-          )}
+          ) : null}
         </tbody>
       </table>
     </div>

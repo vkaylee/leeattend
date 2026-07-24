@@ -198,7 +198,7 @@ export default function ChartCatalogSidebar({
                             : "border-slate-300 dark:border-slate-600",
                         )}
                       >
-                        {!!isVisible && (
+                        {isVisible ? (
                           <svg
                             className="w-2.5 h-2.5 text-white"
                             fill="none"
@@ -210,7 +210,7 @@ export default function ChartCatalogSidebar({
                           >
                             <polyline points="20 6 9 17 4 12" />
                           </svg>
-                        )}
+                        ) : null}
                       </span>
 
                       {!collapsed && !!Icon && <Icon className="shrink-0" size={15} />}

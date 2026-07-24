@@ -319,7 +319,7 @@ function BulkAssignModal({ hook }: PatternModalsProps) {
         {!!selectedPatternId && (
           <div className="space-y-4 px-1 animate-in fade-in slide-in-from-top-2 duration-300">
             {/* Compliance badges */}
-            {!!hasConflicts && (
+            {hasConflicts ? (
               <div className="flex flex-wrap gap-2">
                 {complianceIssues.map((issue, i) => {
                   let badgeType: "overlap" | "rest" | "hours" = "overlap";
@@ -352,7 +352,7 @@ function BulkAssignModal({ hook }: PatternModalsProps) {
                   );
                 })}
               </div>
-            )}
+            ) : null}
 
             {/* Matrix preview */}
             <div className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl p-4 border border-slate-100 dark:border-slate-700/50">

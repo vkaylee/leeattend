@@ -87,7 +87,7 @@ export function useAssignmentRuleForm(ruleId?: string) {
     setIsDirty(true);
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = (e?: React.SyntheticEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     if (!name || !patternId) return;
 

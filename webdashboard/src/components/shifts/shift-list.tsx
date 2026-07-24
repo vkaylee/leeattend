@@ -56,16 +56,16 @@ function ScopeBadges({ shift }: { shift: Shift }) {
 
   return (
     <div className="flex items-center gap-1.5">
-      {!!hasLocation && (
+      {hasLocation ? (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-[9px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
           <MapPin size={10} /> {t("common.office_branch")}
         </span>
-      )}
-      {!!hasEmployer && (
+      ) : null}
+      {hasEmployer ? (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-violet-50 dark:bg-violet-950/40 text-[9px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400">
           <Building2 size={10} /> {t("common.employer")}
         </span>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -244,10 +244,10 @@ export function ShiftList({ shifts, onEdit, onDelete, onViewHistory }: ShiftList
             />
             <div className="flex gap-2 overflow-x-auto scrollbar-hide">
               {FILTER_CHIPS.map((chip) => (
-                <button
+                <Button
                   aria-pressed={activeFilter === chip.key}
                   className={cn(
-                    "shrink-0 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200",
+                    "shrink-0 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 h-auto",
                     "border-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50",
                     activeFilter === chip.key
                       ? "bg-primary-600 text-white border-primary-600 shadow-md shadow-primary-200 dark:shadow-primary-900/30"
@@ -256,9 +256,10 @@ export function ShiftList({ shifts, onEdit, onDelete, onViewHistory }: ShiftList
                   key={chip.key}
                   onClick={() => { setActiveFilter(chip.key); }}
                   type="button"
+                  variant="ghost"
                 >
                   {t(chip.labelKey)}
-                </button>
+                </Button>
               ))}
             </div>
           </div>

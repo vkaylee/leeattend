@@ -15,6 +15,7 @@ import { useSmtpConfig } from "./hooks/use-smtp-config";
 
 export default function SmtpSettingsPage() {
   const { t } = useTranslation();
+  const inputValue = (v: unknown): string => (typeof v === "string" || typeof v === "number") ? String(v) : "";
   const {
     isLoading,
     dirty,
@@ -107,7 +108,7 @@ export default function SmtpSettingsPage() {
                 }}
                 placeholder={placeholder}
                 type={type}
-                value={String(form[key] ?? "")}
+                value={inputValue(form[key])}
               />
               {hint ? (
                 <Typography className="text-[11px] text-slate-400 dark:text-slate-500" variant="p">{hint}</Typography>

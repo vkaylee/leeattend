@@ -231,14 +231,14 @@ function DayMatrixCell({
       </div>
 
       {/* Mini timeline scrubber */}
-      {!!hasShifts && intervals.length > 0 && (
+      {hasShifts && intervals.length > 0 ? (
         <ShiftTimelineScrubber
           className="mt-0.5"
           intervals={intervals}
           shiftName={undefined}
           variant={isCompact ? "compact" : "compact"}
         />
-      )}
+      ) : null}
 
       {/* Empty day fill */}
       {!hasShifts && (

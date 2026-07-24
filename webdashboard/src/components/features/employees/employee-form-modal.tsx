@@ -130,23 +130,28 @@ export default function EmployeeFormModal({
     }
   }
 
+  const getFormString = (fd: FormData, key: string): string => {
+    const val = fd.get(key);
+    return typeof val === "string" ? val : "";
+  };
+
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
 
     if (editingEmployee) {
       const payload: UpdateEmployeeRequest = {
-        full_name: String(fd.get("full_name") ?? ""),
-        employee_id_number: String(fd.get("employee_id_number") ?? ""),
+        full_name: getFormString(fd, "full_name"),
+        employee_id_number: getFormString(fd, "employee_id_number"),
         user_id: defaults.selectedUserId || undefined,
       };
       await updateMutation.mutateAsync({ id: editingEmployee.id, employee: payload });
       await syncEmploymentIfChanged(editingEmployee);
     } else {
       const payload: CreateEmployeeRequest = {
-        full_name: String(fd.get("full_name") ?? ""),
-        employee_id_number: String(fd.get("employee_id_number") ?? ""),
-        hire_date: String(fd.get("hire_date") ?? ""),
+        full_name: getFormString(fd, "full_name"),
+        employee_id_number: getFormString(fd, "employee_id_number"),
+        hire_date: getFormString(fd, "hire_date"),
         employer_id: defaults.selectedEmployerId || "",
         primary_location_id: defaults.selectedLocationId || undefined,
         user_id: defaults.selectedUserId || undefined,

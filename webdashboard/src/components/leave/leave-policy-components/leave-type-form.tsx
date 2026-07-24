@@ -34,7 +34,7 @@ export function LeaveTypeForm({
   const isDuplicateCode =
     normalizedCode.length > 0 && existingCodes.includes(normalizedCode);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isDuplicateCode) return;
     onSave(formData);

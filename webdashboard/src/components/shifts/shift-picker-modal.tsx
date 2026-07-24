@@ -171,10 +171,10 @@ export function ShiftPickerModal({
         {/* ── Filter Chips ─────────────────────────────────────────── */}
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
           {FILTER_CHIPS.filter((chip) => chip.key !== "frequent" || showFrequentChip).map((chip) => (
-            <button
+            <Button
               aria-pressed={activeChip === chip.key}
               className={cn(
-                "shrink-0 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200",
+                "shrink-0 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 h-auto",
                 "border-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50",
                 activeChip === chip.key
                   ? "bg-primary-600 text-white border-primary-600 shadow-lg shadow-primary-200 dark:shadow-primary-900/30"
@@ -183,9 +183,10 @@ export function ShiftPickerModal({
               key={chip.key}
               onClick={() => { setActiveChip(chip.key); }}
               type="button"
+              variant="ghost"
             >
               {t(chip.labelKey)}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -255,7 +256,7 @@ export function ShiftPickerModal({
         ) : (
           <div className="grid grid-cols-1 gap-3 max-h-[50vh] overflow-y-auto pr-1">
             {/* ── Frequently Used Section ──────────────────────────── */}
-            {!!hasFrequent && <>
+            {hasFrequent ? <>
                 <div className="flex items-center gap-2 pt-1 pb-0.5">
                   <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-lg">
                     ★ {t("shifts.picker.frequent_section_title")}
@@ -271,7 +272,7 @@ export function ShiftPickerModal({
                   />
                 ))}
                 <div className="border-t border-slate-100 dark:border-slate-800 pt-1" />
-              </>}
+              </> : null}
 
             {/* ── Main Shift List ──────────────────────────────────── */}
             {nonFrequentFiltered.map((shift) => (

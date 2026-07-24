@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 
 interface UseOnboardingProgressReturn {
   clearProgressInterval: () => void;
-  progressIntervalRef: React.MutableRefObject<NodeJS.Timeout | null>;
+  progressIntervalRef: React.RefObject<NodeJS.Timeout | null>;
   progressPercent: number;
   progressStep: number;
   setProgressPercent: React.Dispatch<React.SetStateAction<number>>;

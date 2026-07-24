@@ -120,11 +120,11 @@ function ChecklistItemRow({
             <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
               {formatChecklistType(item.category)}
             </span>
-            {!!item.is_required && (
+            {item.is_required ? (
               <span className="bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
                 Required
               </span>
-            )}
+            ) : null}
           </div>
 
           {!!item.description && (
@@ -150,7 +150,7 @@ function ChecklistItemRow({
             </div>
           )}
 
-          {!!isEditingNotes && (
+          {isEditingNotes ? (
             <div className="space-y-2 mt-2">
               <FormField
                 label="Notes"
@@ -175,7 +175,7 @@ function ChecklistItemRow({
                 </Button>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
 
         {!isEditingNotes && (
