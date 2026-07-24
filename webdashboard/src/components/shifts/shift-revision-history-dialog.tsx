@@ -86,6 +86,96 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
+interface IntervalDiffRowProps {
+  currentInterval: ShiftVersionHistoryItem["intervals"][number] | undefined;
+  previousInterval: ShiftVersionHistoryItem["intervals"][number] | undefined;
+  idx: number;
+  t: (key: string, fallback?: string) => string;
+}
+
+/* eslint-disable @typescript-eslint/no-unnecessary-condition --
+   TS doesn't flag out-of-bounds array access; ci/pi can be
+   undefined when arrays differ in length. All optional chains
+   in this block are legitimate runtime guards. */
+
+/** Renders a single time field diff (label + old→new comparison). */
+function TimeFieldDiff({
+  label,
+  changed,
+  prevValue,
+  currValue,
+}: {
+  label: string;
+  changed: boolean;
+  prevValue?: string;
+  currValue?: string;
+}) {
+  return (
+    <>
+      <span className="font-bold text-slate-600 dark:text-slate-300">{label}:</span>
+      {prevValue ? <span className="text-slate-400 line-through">{prevValue.substring(0, 5)}</span> : null}
+      {currValue ? (
+        <span className={changed ? "text-amber-600 dark:text-amber-400 font-bold" : "text-slate-600 dark:text-slate-300"}>
+          {currValue.substring(0, 5)}
+        </span>
+      ) : null}
+    </>
+  );
+}
+
+/** Renders break duration diff (old→new). */
+function BreakFieldDiff({
+  t,
+  prevMinutes,
+  currMinutes,
+}: {
+  t: (key: string, fallback?: string) => string;
+  prevMinutes?: number;
+  currMinutes?: number;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="font-bold text-slate-600 dark:text-slate-300">
+        {t("shifts.table.break_time")}:
+      </span>
+      <span className="text-slate-400 line-through">{prevMinutes}{t("common.minutes")}</span>
+      <span className="text-amber-600 dark:text-amber-400 font-bold">{currMinutes}{t("common.minutes")}</span>
+    </div>
+  );
+}
+
+/** Renders a single interval comparison row (start/end time + break changes). */
+function IntervalDiffRow({ currentInterval: ci, previousInterval: pi, idx, t }: IntervalDiffRowProps) {
+  if (!ci && !pi) return null;
+
+  const startChanged = ci?.start_time?.substring(0, 5) !== pi?.start_time?.substring(0, 5);
+  const endChanged = ci?.end_time?.substring(0, 5) !== pi?.end_time?.substring(0, 5);
+  const breakChanged = ci?.break_duration_minutes !== pi?.break_duration_minutes;
+
+  if (!startChanged && !endChanged && !breakChanged) {
+    return (
+      <div className="text-[10px] text-slate-400 dark:text-slate-500 font-medium" key={idx}>
+        {t("shifts.revisions.no_changes", "No changes in this interval")}
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-[11px] font-mono space-y-1" key={idx}>
+      {(startChanged || endChanged) ? (
+        <div className="flex items-center gap-2 flex-wrap">
+          <TimeFieldDiff changed={startChanged} currValue={ci?.start_time} label={t("shifts.modal.start_time", "Start")} prevValue={pi?.start_time} />
+          <span className="text-slate-300 dark:text-slate-600 mx-1">|</span>
+          <TimeFieldDiff changed={endChanged} currValue={ci?.end_time} label={t("shifts.modal.end_time", "End")} prevValue={pi?.end_time} />
+        </div>
+      ) : null}
+      {breakChanged ? <BreakFieldDiff currMinutes={ci?.break_duration_minutes} prevMinutes={pi?.break_duration_minutes} t={t} /> : null}
+    </div>
+  );
+}
+
+/* eslint-enable @typescript-eslint/no-unnecessary-condition */
+
 interface IntervalDiffProps {
   current: ShiftVersionHistoryItem;
   previous: ShiftVersionHistoryItem | null;
@@ -122,72 +212,15 @@ function IntervalDiff({ current, previous, t }: IntervalDiffProps) {
 
       {expanded ? (
         <div className="mt-2 space-y-2 pl-4 border-l-2 border-amber-200 dark:border-amber-800">
-          {Array.from({ length: maxLen }).map((_, idx) => {
-            const ci = currIntervals[idx];
-            const pi = prevIntervals[idx];
-            /* eslint-disable @typescript-eslint/no-unnecessary-condition --
-               TS doesn't flag out-of-bounds array access; ci/pi can be
-               undefined when arrays differ in length. All optional chains
-               in this block are legitimate runtime guards. */
-            if (!ci && !pi) return null;
-            const startChanged = ci?.start_time?.substring(0, 5) !== pi?.start_time?.substring(0, 5);
-            const endChanged = ci?.end_time?.substring(0, 5) !== pi?.end_time?.substring(0, 5);
-            const breakChanged = ci?.break_duration_minutes !== pi?.break_duration_minutes;
-
-            if (!startChanged && !endChanged && !breakChanged) {
-              return (
-                <div className="text-[10px] text-slate-400 dark:text-slate-500 font-medium" key={idx}>
-                  {t("shifts.revisions.no_changes", "No changes in this interval")}
-                </div>
-              );
-            }
-
-            return (
-              <div className="text-[11px] font-mono space-y-1" key={idx}>
-                {startChanged || endChanged ? (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-slate-600 dark:text-slate-300">
-                      {t("shifts.modal.start_time", "Start")}:
-                    </span>
-                    {pi?.start_time ? (
-                      <span className="text-slate-400 line-through">
-                        {pi.start_time.substring(0, 5)}
-                      </span>
-                    ) : null}
-                    {ci?.start_time ? (
-                      <span className={startChanged ? "text-amber-600 dark:text-amber-400 font-bold" : "text-slate-600 dark:text-slate-300"}>
-                        {ci.start_time.substring(0, 5)}
-                      </span>
-                    ) : null}
-                    <span className="text-slate-300 dark:text-slate-600 mx-1">|</span>
-                    <span className="font-bold text-slate-600 dark:text-slate-300">
-                      {t("shifts.modal.end_time", "End")}:
-                    </span>
-                    {pi?.end_time ? (
-                      <span className="text-slate-400 line-through">
-                        {pi.end_time.substring(0, 5)}
-                      </span>
-                    ) : null}
-                    {ci?.end_time ? (
-                      <span className={endChanged ? "text-amber-600 dark:text-amber-400 font-bold" : "text-slate-600 dark:text-slate-300"}>
-                        {ci.end_time.substring(0, 5)}
-                      </span>
-                    ) : null}
-                  </div>
-                ) : null}
-                {breakChanged ? (
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-600 dark:text-slate-300">
-                      {t("shifts.table.break_time")}:
-                    </span>
-                    <span className="text-slate-400 line-through">{pi?.break_duration_minutes}{t("common.minutes")}</span>
-                    <span className="text-amber-600 dark:text-amber-400 font-bold">{ci?.break_duration_minutes}{t("common.minutes")}</span>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-          {/* eslint-enable @typescript-eslint/no-unnecessary-condition */}
+          {Array.from({ length: maxLen }).map((_, idx) => (
+            <IntervalDiffRow
+              currentInterval={currIntervals[idx]}
+              idx={idx}
+              key={idx}
+              previousInterval={prevIntervals[idx]}
+              t={t}
+            />
+          ))}
         </div>
       ) : null}
     </div>

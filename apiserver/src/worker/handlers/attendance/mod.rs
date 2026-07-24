@@ -95,13 +95,25 @@ impl AttendanceHandler {
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
 
         // Fetch all employers to get names
-        let (employers, _) = deps
-            .employer_repo
-            .get_employers(&auth_token, 1, 1000)
-            .await
-            .map_err(|e| format!("Failed to fetch employers: {e}"))?;
+        let mut all_employers = Vec::new();
+        let mut page = 1;
+        loop {
+            let (employers, total) = deps
+                .employer_repo
+                .get_employers(&auth_token, page, 1000)
+                .await
+                .map_err(|e| format!("Failed to fetch employers: {e}"))?;
+            if employers.is_empty() {
+                break;
+            }
+            all_employers.extend(employers);
+            if all_employers.len() as i64 >= total {
+                break;
+            }
+            page += 1;
+        }
 
-        let employer_name_map: HashMap<Uuid, String> = employers
+        let employer_name_map: HashMap<Uuid, String> = all_employers
             .into_iter()
             .map(|emp| (emp.id, emp.name))
             .collect();

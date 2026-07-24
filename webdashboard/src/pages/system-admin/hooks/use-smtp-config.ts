@@ -27,14 +27,26 @@ interface TestResult {
   success: boolean;
 }
 
+// ── Pure field-merge helpers (extracted to reduce cyclomatic complexity) ──
+
+/** Merge override > config > default in a single branch point. */
+function mergeField<T>(overrideVal: T | undefined, configVal: T | undefined, defaultVal: T): T {
+  return overrideVal ?? configVal ?? defaultVal;
+}
+
+/** Convert empty string to undefined for API payloads (|| semantics). */
+function emptyToUndefined(v: string | undefined): string | undefined {
+  return v || undefined;
+}
+
 function buildForm(cfg: SmtpConfigData | null | undefined, ov: Partial<SmtpConfigData>): SmtpConfigData {
   return {
-    host: ov.host ?? cfg?.host ?? "",
-    port: ov.port ?? cfg?.port ?? 587,
-    username: ov.username ?? cfg?.username ?? "",
-    password: ov.password ?? cfg?.password ?? "",
-    from: ov.from ?? cfg?.from ?? "",
-    base_url: ov.base_url ?? cfg?.base_url ?? "",
+    host: mergeField(ov.host, cfg?.host, ""),
+    port: mergeField(ov.port, cfg?.port, 587),
+    username: mergeField(ov.username, cfg?.username, ""),
+    password: mergeField(ov.password, cfg?.password, ""),
+    from: mergeField(ov.from, cfg?.from, ""),
+    base_url: mergeField(ov.base_url, cfg?.base_url, ""),
     http_api: cfg?.http_api ?? undefined,
   };
 }
@@ -46,40 +58,37 @@ function buildHttpForm(
 ): HttpApiConfig {
   const src = ov.http_api ?? cfg?.http_api;
   return {
-    url: hov.url ?? src?.url ?? "",
-    auth_header: hov.auth_header ?? src?.auth_header ?? "",
-    auth_value: hov.auth_value ?? src?.auth_value ?? "",
-    success_field: hov.success_field ?? src?.success_field ?? "",
-    success_value: hov.success_value ?? src?.success_value ?? true,
-    body_template: hov.body_template ?? src?.body_template ?? "",
+    url: mergeField(hov.url, src?.url, ""),
+    auth_header: mergeField(hov.auth_header, src?.auth_header, ""),
+    auth_value: mergeField(hov.auth_value, src?.auth_value, ""),
+    success_field: mergeField(hov.success_field, src?.success_field, ""),
+    success_value: mergeField(hov.success_value, src?.success_value, true),
+    body_template: mergeField(hov.body_template, src?.body_template, ""),
   };
 }
 
 function buildSavePayload(smtp: SmtpConfigData, http: HttpApiConfig): SmtpConfigData {
-  /* eslint-disable @typescript-eslint/prefer-nullish-coalescing --
-     || undefined converts empty strings to undefined for the API payload.
-     ?? would preserve "" which is not a valid value for these fields. */
   const payload: SmtpConfigData = {
-    host: smtp.host || undefined,
+    host: emptyToUndefined(smtp.host),
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- port=0 is invalid, must convert to undefined
     port: smtp.port || undefined,
-    username: smtp.username || undefined,
-    password: smtp.password || undefined,
-    from: smtp.from || undefined,
-    base_url: smtp.base_url || undefined,
+    username: emptyToUndefined(smtp.username),
+    password: emptyToUndefined(smtp.password),
+    from: emptyToUndefined(smtp.from),
+    base_url: emptyToUndefined(smtp.base_url),
   };
   if (http.url.trim()) {
     payload.http_api = {
       url: http.url.trim(),
-      auth_header: http.auth_header || undefined,
-      auth_value: http.auth_value || undefined,
-      success_field: http.success_field || undefined,
+      auth_header: emptyToUndefined(http.auth_header),
+      auth_value: emptyToUndefined(http.auth_value),
+      success_field: emptyToUndefined(http.success_field),
       success_value: http.success_field ? (http.success_value ?? true) : undefined,
       body_template: http.body_template.trim(),
     };
   } else {
     payload.http_api = null;
   }
-  /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
   return payload;
 }
 

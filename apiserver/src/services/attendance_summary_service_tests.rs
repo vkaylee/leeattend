@@ -430,7 +430,7 @@ mod recalculate_daily_summary_leave_tests {
         roster_repo
             .expect_get_workspace_schedules()
             .returning(move |_, _, _, _, _, _, _| {
-                Box::pin(async move {
+                
                     Ok((
                         vec![crate::models::EmployeeSchedule::new(
                             employee_id,
@@ -461,7 +461,7 @@ mod recalculate_daily_summary_leave_tests {
                         )],
                         1,
                     ))
-                })
+                
             });
 
         // Mock fetch time entries (non-empty, i.e., worked)
@@ -498,14 +498,14 @@ mod recalculate_daily_summary_leave_tests {
         leave_request_repo
             .expect_get_employee_leave_requests()
             .returning(move |_, _| {
-                Box::pin(async move {
+                
                     Ok(vec![create_approved_leave(
                         leave_id,
                         employee_id,
                         date,
                         date,
                     )])
-                })
+                
             });
 
         // Expect cancellation of the leave request
@@ -516,7 +516,7 @@ mod recalculate_daily_summary_leave_tests {
                 mockall::predicate::eq(leave_id),
             )
             .times(1)
-            .returning(|_, _| Box::pin(async move { Ok(()) }));
+            .returning(|_, _|  Ok(()) );
 
         // Under Option B, we never delete roster overrides because we don't write them on approval
         roster_repo.expect_delete_roster().never();
@@ -595,7 +595,7 @@ mod recalculate_daily_summary_leave_tests {
         roster_repo
             .expect_get_workspace_schedules()
             .returning(move |_, _, _, _, _, _, _| {
-                Box::pin(async move {
+                
                     Ok((
                         vec![crate::models::EmployeeSchedule::new(
                             employee_id,
@@ -626,7 +626,7 @@ mod recalculate_daily_summary_leave_tests {
                         )],
                         1,
                     ))
-                })
+                
             });
 
         time_entry_repo
@@ -664,14 +664,14 @@ mod recalculate_daily_summary_leave_tests {
         leave_request_repo
             .expect_get_employee_leave_requests()
             .returning(move |_, _| {
-                Box::pin(async move {
+                
                     Ok(vec![create_approved_leave(
                         leave_id,
                         employee_id,
                         start,
                         end,
                     )])
-                })
+                
             });
 
         leave_request_repo
@@ -681,7 +681,7 @@ mod recalculate_daily_summary_leave_tests {
                 mockall::predicate::eq(leave_id),
             )
             .times(1)
-            .returning(|_, _| Box::pin(async move { Ok(()) }));
+            .returning(|_, _|  Ok(()) );
 
         // Under Option B, we never delete roster overrides
         roster_repo.expect_delete_roster().never();
@@ -756,7 +756,7 @@ mod recalculate_daily_summary_leave_tests {
         roster_repo
             .expect_get_workspace_schedules()
             .returning(move |_, _, _, _, _, _, _| {
-                Box::pin(async move {
+                
                     Ok((
                         vec![crate::models::EmployeeSchedule::new(
                             employee_id,
@@ -787,7 +787,7 @@ mod recalculate_daily_summary_leave_tests {
                         )],
                         1,
                     ))
-                })
+                
             });
 
         time_entry_repo
@@ -841,7 +841,7 @@ mod recalculate_daily_summary_leave_tests {
             .expect_get_employee_leave_requests()
             .returning(move |_, _| {
                 let req_clone = req.clone();
-                Box::pin(async move { Ok(vec![req_clone]) })
+                 Ok(vec![req_clone]) 
             });
 
         // Should NOT call cancel_leave_request or delete_roster
@@ -918,7 +918,7 @@ mod recalculate_daily_summary_leave_tests {
         roster_repo
             .expect_get_workspace_schedules()
             .returning(move |_, _, _, _, _, _, _| {
-                Box::pin(async move {
+                
                     Ok((
                         vec![crate::models::EmployeeSchedule::new(
                             employee_id,
@@ -949,7 +949,7 @@ mod recalculate_daily_summary_leave_tests {
                         )],
                         1,
                     ))
-                })
+                
             });
 
         // NO time entries (i.e., did not work)
@@ -1034,7 +1034,7 @@ mod recalculate_daily_summary_leave_tests {
         roster_repo
             .expect_get_workspace_schedules()
             .returning(move |_, _, _, _, _, _, _| {
-                Box::pin(async move {
+                
                     Ok((
                         vec![crate::models::EmployeeSchedule::new(
                             employee_id,
@@ -1065,7 +1065,7 @@ mod recalculate_daily_summary_leave_tests {
                         )],
                         1,
                     ))
-                })
+                
             });
 
         // Worked (has time entries)
@@ -1159,7 +1159,7 @@ mod recalculate_daily_summary_leave_tests {
         roster_repo
             .expect_get_workspace_schedules()
             .returning(move |_, _, _, _, _, _, _| {
-                Box::pin(async move {
+                
                     Ok((
                         vec![crate::models::EmployeeSchedule::new(
                             emp_id,
@@ -1213,7 +1213,7 @@ mod recalculate_daily_summary_leave_tests {
                         )],
                         1,
                     ))
-                })
+                
             });
 
         time_entry_repo

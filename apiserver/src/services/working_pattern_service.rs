@@ -870,7 +870,7 @@ mod tests {
             .expect_get_raw_roster_data()
             .times(1)
             .return_once(move |_| {
-                Box::pin(std::future::ready(Ok(std::sync::Arc::new(overlap_data))))
+                (Ok(std::sync::Arc::new(overlap_data)))
             });
         let roster_arc = std::sync::Arc::new(roster_mock);
 
@@ -977,7 +977,7 @@ mod tests {
             .expect_get_raw_roster_data()
             .times(1)
             .return_once(move |_| {
-                Box::pin(std::future::ready(Ok(std::sync::Arc::new(overlap_data))))
+                (Ok(std::sync::Arc::new(overlap_data)))
             });
         let roster_arc2 = std::sync::Arc::new(roster_mock2);
 

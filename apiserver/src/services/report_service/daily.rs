@@ -695,12 +695,24 @@ impl ReportService {
         )
         .await?;
 
-        let (employers, _) = self
-            .employer_repo
-            .get_employers(auth_token, 1, 1000)
-            .await?;
+        let mut all_employers = Vec::new();
+        let mut page = 1;
+        loop {
+            let (employers, total) = self
+                .employer_repo
+                .get_employers(auth_token, page, 1000)
+                .await?;
+            if employers.is_empty() {
+                break;
+            }
+            all_employers.extend(employers);
+            if all_employers.len() as i64 >= total {
+                break;
+            }
+            page += 1;
+        }
         let employer_name_map: std::collections::HashMap<Uuid, String> =
-            employers.into_iter().map(|e| (e.id, e.name)).collect();
+            all_employers.into_iter().map(|e| (e.id, e.name)).collect();
 
         // ── Build segment-centric report rows ──
         let mut reports = Vec::new();

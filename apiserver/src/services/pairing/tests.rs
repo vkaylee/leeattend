@@ -1069,7 +1069,7 @@ async fn test_reprocess_daily_attendance_excludes_already_paired_logs() {
         .returning(move |_, _, _, _| {
             let l1 = log1.clone();
             let l2 = log2.clone();
-            Box::pin(async move { Ok(vec![l1, l2]) })
+             Ok(vec![l1, l2]) 
         });
 
     let mut mock_summary_service = MockSummaryRecalculator::new();
@@ -1658,7 +1658,7 @@ async fn test_range_reprocess_handles_overnight_tail() {
         });
     mock_roster_combined
         .expect_get_effective_shift()
-        .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+        .returning(|_, _, _| Box::pin(async { Ok((No);
 
     let service = PairingService::new(PairingServiceArgs::new(
         Arc::new(mock_time_entry_repo),
@@ -2227,10 +2227,7 @@ async fn test_fetch_shift_config_falls_back_when_no_intervals() {
         .times(1)
         .returning(move |_, _, _, _, _, _, _| {
             let s = emp_sched.clone();
-            Box::pin(async move { Ok((vec![s], 1)) })
-        });
-
-    let service = PairingService::new(PairingServiceArgs::new(
+            Box::pin(async move { Ok((vec![s], 1)) let service = PairingService::new(PairingServiceArgs::new(
         Arc::new(MockTimeEntryRepository::new()),
         Arc::new(mock_roster),
         Arc::new(MockEmployeeRepository::new()),
@@ -2305,9 +2302,7 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
         .returning(move |_, _, _| {
             let sid = shift_id;
             Box::pin(async move { Ok((Some(sid), vec![])) })
-        });
-
-    // get_raw_roster_data → shift exists but NO intervals
+        }oster_data → shift exists but NO intervals
     let roster_data2 = Arc::new({
         let mut d = RosterData::default();
         d.shifts.insert(
@@ -2324,7 +2319,7 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
             Box::pin(async move { Ok(rd) })
         });
 
-    // get_workspace_schedules → fallback path with break
+    // get_workspace_schedules → reak
     let sched = make_effective_schedule(date, Some(shift_id), 7, 30, 16, 30, 11, 30, 12, 30);
     let emp_sched = crate::models::EmployeeSchedule::new(
         emp_id,
@@ -2341,7 +2336,7 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
             Box::pin(async move { Ok((vec![s], 1)) })
         });
 
-    // get_employment_time_entries → empty (no consumed logs from adjacent days)
+    // get_employment_time_entries → empty om adjacent days
     mock_time_entry
         .expect_get_employment_time_entries()
         .times(1)
@@ -2641,5 +2636,4 @@ fn test_buffer_defaults_to_120_when_none() {
     assert_eq!(sessions.len(), 2);
     assert_eq!(sessions[0].start_minutes(), 433);
     let meta = sessions[0].metadata().unwrap();
-    assert_eq!(meta["tier"], "shift_window");
-}
+    assert_eq!(meta["tier"], "shift_window")
