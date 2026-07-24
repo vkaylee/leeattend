@@ -92,7 +92,7 @@ async fn test_resolve_attendance_policy_hierarchy() {
     let rules = PolicyResolverService::resolve_attendance_policy(
         &policy_repo,
         employee_id,
-        ws_id,
+        &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
         test_date,
     )
     .await
@@ -123,7 +123,7 @@ async fn test_resolve_attendance_policy_hierarchy() {
     let rules = PolicyResolverService::resolve_attendance_policy(
         &policy_repo,
         employee_id,
-        ws_id,
+        &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
         test_date,
     )
     .await
@@ -153,7 +153,7 @@ async fn test_resolve_attendance_policy_hierarchy() {
     let rules = PolicyResolverService::resolve_attendance_policy(
         &policy_repo,
         employee_id,
-        ws_id,
+        &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
         test_date,
     )
     .await
@@ -192,7 +192,7 @@ async fn test_resolve_attendance_policy_hierarchy() {
     let rules = PolicyResolverService::resolve_attendance_policy_by_employment(
         &policy_repo,
         employment_id,
-        ws_id,
+        &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
         test_date,
     )
     .await
@@ -207,7 +207,7 @@ async fn test_resolve_attendance_policy_hierarchy() {
     let batch_rules = PolicyResolverService::resolve_attendance_policy_batch_by_employment(
         &policy_repo,
         &[employment_id],
-        ws_id,
+        &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
         test_date,
     )
     .await

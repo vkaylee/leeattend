@@ -62,7 +62,7 @@ impl TimeTrackingService {
     pub async fn punch(
         &self,
         log_service: &crate::services::AttendanceLogService,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employment_id: Uuid,
         note: Option<String>,
     ) -> Result<TimeEntry, AppError> {
@@ -70,7 +70,7 @@ impl TimeTrackingService {
         let employment = self
             .employment_repo
             .get_employment_by_id(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employment_id,
             )
             .await?
@@ -88,7 +88,7 @@ impl TimeTrackingService {
         let is_in = self
             .repo
             .get_latest_active_entry(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employment_id,
             )
             .await?
@@ -98,7 +98,7 @@ impl TimeTrackingService {
             // Get Workspace Timezone
             let workspace = self
                 .workspace_repo
-                .get_workspace_by_id(workspace_id)
+                .get_workspace_by_id(auth_token.workspace_id())
                 .await?
                 .ok_or(AppError::Internal("error.workspace_not_found".into()))?;
 
@@ -110,14 +110,14 @@ impl TimeTrackingService {
             let (shift_id, _) = self
                 .roster_repo
                 .get_effective_shift(
-                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    auth_token,
                     employment_id,
                     today,
                 )
                 .await?;
 
             if let Some(sid) = shift_id {
-                let roster_data = self.roster_repo.get_raw_roster_data(workspace_id).await?;
+                let roster_data = self.roster_repo.get_raw_roster_data(auth_token.workspace_id()).await?;
                 let interval = roster_data
                     .shift_intervals
                     .get(&sid)
@@ -137,7 +137,7 @@ impl TimeTrackingService {
                     &*self.employee_repo,
                     &*self.condition_type_repo,
                     employment_id,
-                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    auth_token,
                     today,
                 )
                 .await?;
@@ -159,7 +159,7 @@ impl TimeTrackingService {
 
         log_service
             .process_parsed_log(
-                workspace_id,
+                auth_token.workspace_id(),
                 employment_id,
                 now,
                 crate::models::LogSource::Device,
@@ -171,7 +171,7 @@ impl TimeTrackingService {
         let entry = self
             .repo
             .get_latest_entry_for_employment(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employment_id,
             )
             .await?
@@ -185,7 +185,7 @@ impl TimeTrackingService {
     #[tracing::instrument(skip_all, err)]
     pub async fn get_employee_history(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employment_id: Uuid,
         start_date: DateTime<Utc>,
         end_date: DateTime<Utc>,
@@ -194,7 +194,7 @@ impl TimeTrackingService {
         let _ = self
             .employment_repo
             .get_employment_by_id(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employment_id,
             )
             .await?
@@ -202,7 +202,7 @@ impl TimeTrackingService {
 
         self.repo
             .get_employment_time_entries(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employment_id,
                 start_date,
                 end_date,
@@ -213,14 +213,14 @@ impl TimeTrackingService {
     #[tracing::instrument(skip_all, err)]
     pub async fn update_time_entry(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
         req: UpdateTimeEntryRequest,
     ) -> Result<TimeEntry, AppError> {
         let mut entry = self
             .repo
             .get_time_entry_by_id(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 id,
             )
             .await?
@@ -229,7 +229,7 @@ impl TimeTrackingService {
         let _ = self
             .employment_repo
             .get_employment_by_id(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 entry.employment_id(),
             )
             .await?
@@ -250,13 +250,13 @@ impl TimeTrackingService {
 
         self.repo
             .update_time_entry(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 &entry,
             )
             .await?;
 
         // Recalculate summary
-        if let Ok(Some(ws)) = self.workspace_repo.get_workspace_by_id(workspace_id).await {
+        if let Ok(Some(ws)) = self.workspace_repo.get_workspace_by_id(auth_token.workspace_id()).await {
             let tz: Tz = crate::utils::tz::parse_workspace_tz(ws.timezone());
             let local_date = entry.punch_in_time().with_timezone(&tz).date_naive();
             let summary_svc = crate::services::AttendanceSummaryService::new(
@@ -274,7 +274,7 @@ impl TimeTrackingService {
                 },
             );
             let _ = summary_svc
-                .recalculate_daily_summary(workspace_id, entry.employment_id(), local_date)
+                .recalculate_daily_summary(auth_token.workspace_id(), entry.employment_id(), local_date)
                 .await;
         }
 
@@ -282,11 +282,11 @@ impl TimeTrackingService {
     }
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn delete_time_entry(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
+    pub async fn delete_time_entry(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError> {
         let entry = self
             .repo
             .get_time_entry_by_id(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 id,
             )
             .await?
@@ -296,7 +296,7 @@ impl TimeTrackingService {
         let _ = self
             .employment_repo
             .get_employment_by_id(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 entry.employment_id(),
             )
             .await?
@@ -304,7 +304,7 @@ impl TimeTrackingService {
 
         self.repo
             .delete_time_entry(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 id,
             )
             .await?;

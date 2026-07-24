@@ -48,7 +48,7 @@ pub async fn create_shift_swap(
     let swap = state
         .shifts()
         .swap_service()
-        .create_swap(ctx.workspace_id, user_id, req)
+        .create_swap(&ctx.auth_token, user_id, req)
         .await?;
 
     Ok((StatusCode::CREATED, Json(swap)))
@@ -84,7 +84,7 @@ pub async fn list_shift_swaps(
     let swaps = state
         .shifts()
         .swap_service()
-        .get_workspace_swaps(ctx.workspace_id, query.status)
+        .get_workspace_swaps(&ctx.auth_token, query.status)
         .await?;
 
     Ok(Json(swaps))
@@ -119,7 +119,7 @@ pub async fn approve_shift_swap(
     state
         .shifts()
         .swap_service()
-        .approve_swap(ctx.workspace_id, user_id, id, req.status)
+        .approve_swap(&ctx.auth_token, user_id, id, req.status)
         .await?;
 
     Ok(StatusCode::OK)

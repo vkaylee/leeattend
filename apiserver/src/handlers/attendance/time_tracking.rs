@@ -37,14 +37,12 @@ pub async fn punch_in(
     ctx: MemberContext,
     Json(req): Json<PunchInRequest>,
 ) -> AppResult<(StatusCode, Json<TimeEntry>)> {
-    let workspace_id = ctx.workspace_id;
-
     let entry = state
         .attendance()
         .time_tracking_service()
         .punch(
             state.attendance().log_service().as_ref(),
-            workspace_id,
+            &ctx.auth_token,
             req.employment_id(),
             req.note().map(String::from),
         )
@@ -73,7 +71,7 @@ pub async fn punch_out(
     Json(req): Json<PunchOutRequest>,
 ) -> AppResult<Json<TimeEntry>> {
     let (_workspace_id, employee_id) = params;
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let employee = state
         .employees()
@@ -91,7 +89,7 @@ pub async fn punch_out(
         .time_tracking_service()
         .punch(
             state.attendance().log_service().as_ref(),
-            workspace_id,
+            &ctx.auth_token,
             active_employment_id,
             req.note().map(String::from),
         )
@@ -120,7 +118,7 @@ pub async fn get_time_history(
     Query(query): Query<HistoryQuery>,
 ) -> AppResult<Json<Vec<TimeEntry>>> {
     let (_workspace_id, employee_id) = params;
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let employee = state
         .employees()
@@ -136,7 +134,7 @@ pub async fn get_time_history(
     let entries = state
         .attendance()
         .time_tracking_service()
-        .get_employee_history(workspace_id, active_employment_id, query.start, query.end)
+        .get_employee_history(&ctx.auth_token, active_employment_id, query.start, query.end)
         .await?;
 
     Ok(Json(entries))
@@ -170,7 +168,7 @@ pub async fn update_time_entry(
     let entry = state
         .attendance()
         .time_tracking_service()
-        .update_time_entry(ctx.workspace_id, id, req)
+        .update_time_entry(&ctx.auth_token, id, req)
         .await?;
 
     Ok(Json(entry))
@@ -197,12 +195,12 @@ pub async fn delete_time_entry(
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     let (_, id) = __path_params;
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     state
         .attendance()
         .time_tracking_service()
-        .delete_time_entry(workspace_id, id)
+        .delete_time_entry(&ctx.auth_token, id)
         .await?;
 
     Ok(StatusCode::NO_CONTENT)

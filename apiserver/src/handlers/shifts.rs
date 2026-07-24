@@ -179,7 +179,7 @@ pub async fn get_shifts(
         .shifts()
         .service()
         .get_workspace_shifts(
-            workspace_id,
+            &ctx.auth_token,
             query.location_id,
             query.employer_id,
             Some(page),
@@ -258,7 +258,7 @@ pub async fn create_shift(
     let shift = state
         .shifts()
         .service()
-        .create_shift(workspace_id, ctx.user_id, &req)
+        .create_shift(&ctx.auth_token, ctx.user_id, &req)
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
@@ -291,7 +291,7 @@ pub async fn update_shift(
     let shift = state
         .shifts()
         .service()
-        .update_shift(ctx.workspace_id, shift_id, ctx.user_id, req)
+        .update_shift(&ctx.auth_token, shift_id, ctx.user_id, req)
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
@@ -322,7 +322,7 @@ pub async fn get_shift_versions(
     let versions = state
         .shifts()
         .service()
-        .get_shift_versions(ctx.workspace_id, shift_id)
+        .get_shift_versions(&ctx.auth_token, shift_id)
         .await?;
     Ok(Json(versions))
 }
@@ -362,7 +362,7 @@ pub async fn assign_shift(
         .shifts()
         .service()
         .assign_shift(
-            ctx.workspace_id,
+            &ctx.auth_token,
             req.employment_id,
             req.shift_id,
             req.start_date,

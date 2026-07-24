@@ -2,6 +2,7 @@ use chrono::{Local, NaiveDate};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
 use crate::models::{Shift, ShiftVersionHistoryItem, UpdateShiftRequest};
 use crate::repositories::shift_repository::ShiftRepository;
@@ -19,13 +20,13 @@ impl ShiftService {
     #[tracing::instrument(skip_all, err)]
     pub async fn create_shift(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         actor_id: Uuid,
         req: &crate::models::CreateShiftRequest,
     ) -> Result<Shift, AppError> {
         self.repo
             .create_shift(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 actor_id,
                 req,
             )
@@ -35,7 +36,7 @@ impl ShiftService {
     #[tracing::instrument(skip_all, err)]
     pub async fn get_workspace_shifts(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         location_id: Option<Uuid>,
         employer_id: Option<Uuid>,
         page: Option<i64>,
@@ -43,7 +44,7 @@ impl ShiftService {
     ) -> Result<(Vec<Shift>, i64), AppError> {
         self.repo
             .get_workspace_shifts(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 location_id,
                 employer_id,
                 page,
@@ -64,7 +65,7 @@ impl ShiftService {
     #[tracing::instrument(skip_all, err)]
     pub async fn update_shift(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         template_id: Uuid,
         actor_id: Uuid,
         req: UpdateShiftRequest,
@@ -73,7 +74,7 @@ impl ShiftService {
         let old_shift = self
             .repo
             .get_shift_by_id(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 template_id,
             )
             .await?
@@ -96,7 +97,7 @@ impl ShiftService {
             let effective_from = old_shift.created_at().date_naive(); // fallback to original
             self.repo
                 .create_new_version(
-                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    auth_token,
                     template_id,
                     &req,
                     "correct",
@@ -112,7 +113,7 @@ impl ShiftService {
                 .unwrap_or_else(|| Local::now().date_naive());
             self.repo
                 .create_new_version(
-                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    auth_token,
                     template_id,
                     &req,
                     "revise",
@@ -127,7 +128,7 @@ impl ShiftService {
     #[tracing::instrument(skip_all, err)]
     pub async fn assign_shift(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employment_id: Uuid,
         template_id: Uuid,
         start_date: NaiveDate,
@@ -136,7 +137,7 @@ impl ShiftService {
         match self
             .repo
             .assign_employment_shift(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employment_id,
                 template_id,
                 start_date,
@@ -158,12 +159,12 @@ impl ShiftService {
     #[tracing::instrument(skip_all, err)]
     pub async fn get_shift_versions(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         template_id: Uuid,
     ) -> Result<Vec<ShiftVersionHistoryItem>, AppError> {
         self.repo
             .get_shift_versions(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 template_id,
             )
             .await
@@ -193,6 +194,10 @@ mod tests {
             Utc::now(),
             Utc::now(),
         )
+    }
+
+    fn test_auth() -> TenantAuthToken {
+        TenantAuthToken::system_override(Uuid::new_v4())
     }
 
     struct MockShiftRepo {
@@ -387,7 +392,7 @@ mod tests {
         let (svc, repo) = build_service(None);
         let req = make_create_req();
         let result = svc
-            .create_shift(Uuid::new_v4(), Uuid::new_v4(), &req)
+            .create_shift(&test_auth(), Uuid::new_v4(), &req)
             .await
             .unwrap();
         assert_eq!(result.name(), "Night");
@@ -400,7 +405,7 @@ mod tests {
     async fn test_get_workspace_shifts_empty() {
         let (svc, _) = build_service(None);
         let (result, total) = svc
-            .get_workspace_shifts(Uuid::new_v4(), None, None, None, None)
+            .get_workspace_shifts(&test_auth(), None, None, None, None)
             .await
             .unwrap();
         assert!(result.is_empty());
@@ -412,7 +417,7 @@ mod tests {
         let tid = Uuid::new_v4();
         let (svc, _) = build_service(Some((tid, dummy_shift(tid))));
         let (result, total) = svc
-            .get_workspace_shifts(Uuid::new_v4(), None, None, None, None)
+            .get_workspace_shifts(&test_auth(), None, None, None, None)
             .await
             .unwrap();
         assert_eq!(result.len(), 1);
@@ -450,7 +455,7 @@ mod tests {
             effective_date: None,
         };
         let result = svc
-            .update_shift(Uuid::new_v4(), tid, Uuid::new_v4(), req)
+            .update_shift(&test_auth(), tid, Uuid::new_v4(), req)
             .await
             .unwrap();
         assert_eq!(result.name(), "Updated Morning");
@@ -485,7 +490,7 @@ mod tests {
             effective_date: None,
         };
         let err = svc
-            .update_shift(Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4(), req)
+            .update_shift(&test_auth(), Uuid::new_v4(), Uuid::new_v4(), req)
             .await
             .unwrap_err();
         assert!(matches!(err, AppError::NotFound(_)));
@@ -520,7 +525,7 @@ mod tests {
             effective_date: Some(NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()),
         };
         let result = svc
-            .update_shift(Uuid::new_v4(), tid, Uuid::new_v4(), req)
+            .update_shift(&test_auth(), tid, Uuid::new_v4(), req)
             .await
             .unwrap();
         assert_eq!(result.name(), "Morning V2");
@@ -534,7 +539,7 @@ mod tests {
         let (svc, _) = build_service(None);
         let result = svc
             .assign_shift(
-                Uuid::new_v4(),
+                &test_auth(),
                 Uuid::new_v4(),
                 Uuid::new_v4(),
                 NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
@@ -575,7 +580,7 @@ mod tests {
             effective_date: None,
         };
         let result = svc
-            .update_shift(Uuid::new_v4(), tid, Uuid::new_v4(), req)
+            .update_shift(&test_auth(), tid, Uuid::new_v4(), req)
             .await
             .unwrap();
         assert_eq!(result.name(), "Morning (fixed typo)");
@@ -616,7 +621,7 @@ mod tests {
             effective_date: Some(effective),
         };
         let result = svc
-            .update_shift(Uuid::new_v4(), tid, Uuid::new_v4(), req)
+            .update_shift(&test_auth(), tid, Uuid::new_v4(), req)
             .await
             .unwrap();
         assert_eq!(result.name(), "Morning V2");
@@ -650,7 +655,7 @@ mod tests {
             effective_date: None,
         };
         let result = svc
-            .update_shift(Uuid::new_v4(), tid, Uuid::new_v4(), req)
+            .update_shift(&test_auth(), tid, Uuid::new_v4(), req)
             .await
             .unwrap();
         assert_eq!(result.name(), original.name());
@@ -690,7 +695,7 @@ mod tests {
             effective_date: Some(NaiveDate::from_ymd_opt(2026, 6, 1).unwrap()),
         };
         let result = svc
-            .update_shift(Uuid::new_v4(), tid, Uuid::new_v4(), req)
+            .update_shift(&test_auth(), tid, Uuid::new_v4(), req)
             .await
             .unwrap();
         // The template_id (shift.id()) must remain `tid` — stable identity
@@ -731,7 +736,7 @@ mod tests {
     async fn test_get_shift_versions_empty() {
         let tid = Uuid::new_v4();
         let (svc, _repo) = build_service_with_versions(Some((tid, dummy_shift(tid))), vec![]);
-        let result = svc.get_shift_versions(Uuid::new_v4(), tid).await.unwrap();
+        let result = svc.get_shift_versions(&test_auth(), tid).await.unwrap();
         assert!(result.is_empty());
     }
 
@@ -775,7 +780,7 @@ mod tests {
         let versions = vec![v1, v0];
         let (svc, _repo) =
             build_service_with_versions(Some((tid, dummy_shift(tid))), versions.clone());
-        let result = svc.get_shift_versions(Uuid::new_v4(), tid).await.unwrap();
+        let result = svc.get_shift_versions(&test_auth(), tid).await.unwrap();
         assert_eq!(result.len(), 2);
         // Should be ordered newest first (version_number DESC)
         assert_eq!(result[0].version_number, 2);
@@ -819,7 +824,7 @@ mod tests {
             is_correction: false,
             effective_date: Some(NaiveDate::from_ymd_opt(2026, 4, 1).unwrap()),
         };
-        svc.update_shift(Uuid::new_v4(), tid, Uuid::new_v4(), req)
+        svc.update_shift(&test_auth(), tid, Uuid::new_v4(), req)
             .await
             .unwrap();
         let reason = repo.last_change_reason.lock().unwrap().clone();
@@ -858,7 +863,7 @@ mod tests {
             is_correction: true,
             effective_date: None,
         };
-        svc.update_shift(Uuid::new_v4(), tid, Uuid::new_v4(), req)
+        svc.update_shift(&test_auth(), tid, Uuid::new_v4(), req)
             .await
             .unwrap();
         let reason = repo.last_change_reason.lock().unwrap().clone();

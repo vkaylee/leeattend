@@ -44,6 +44,7 @@ pub struct AttendanceLogServiceDeps {
 
 pub struct ProcessLogArgs<'a> {
     pub workspace_id: Uuid,
+    pub auth_token: &'a crate::diesel_pool::TenantAuthToken,
     pub employee_id_number: &'a str,
     pub punch_time_raw: &'a str,
     pub source: LogSource,
@@ -122,7 +123,7 @@ impl AttendanceLogService {
         let employee = match self
             .employee_repo
             .find_by_number(
-                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
+                args.auth_token,
                 &normalized_emp_id,
             )
             .await
@@ -197,7 +198,7 @@ impl AttendanceLogService {
                 let _ = self
                     .error_repo
                     .create_error_log_with_fingerprint(
-                        &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
+                        args.auth_token,
                         args.device_id.clone(),
                         raw_data,
                         &msg,

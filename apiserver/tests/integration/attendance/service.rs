@@ -113,9 +113,11 @@ async fn test_process_log_success_with_timezone() {
         },
         None,
     );
+    let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id);
     let result = service
         .process_log(
             apiserver::services::attendance_log_service::ProcessLogArgs {
+                auth_token: &auth_token,
                 workspace_id,
                 employee_id_number: "EMP_VN_001",
                 punch_time_raw,
@@ -251,9 +253,11 @@ async fn test_same_second_punch_with_different_status_allowed() {
     );
 
     // 1. First punch (check-in)
+    let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id);
     let res1 = service
         .process_log(
             apiserver::services::attendance_log_service::ProcessLogArgs {
+                auth_token: &auth_token,
                 workspace_id,
                 employee_id_number: "EMP001",
                 punch_time_raw,
@@ -272,6 +276,7 @@ async fn test_same_second_punch_with_different_status_allowed() {
     let res2 = service
         .process_log(
             apiserver::services::attendance_log_service::ProcessLogArgs {
+                auth_token: &auth_token,
                 workspace_id,
                 employee_id_number: "EMP001",
                 punch_time_raw,
@@ -293,6 +298,7 @@ async fn test_same_second_punch_with_different_status_allowed() {
     let res3 = service
         .process_log(
             apiserver::services::attendance_log_service::ProcessLogArgs {
+                auth_token: &auth_token,
                 workspace_id,
                 employee_id_number: "EMP001",
                 punch_time_raw,

@@ -240,7 +240,7 @@ mod tests {
         let repo = Arc::new(MockOvertimeRequestRepository::new());
         let service = OvertimeRequestService::new(repo.clone());
         let ws_id = Uuid::new_v4();
-        let token = TenantAuthToken::system_override(ws_id);
+        let token = TenantAuthToken(ws_id);
 
         let request = OvertimeRequest::new(
             Uuid::new_v4(),
@@ -292,7 +292,7 @@ mod tests {
         let repo = Arc::new(MockOvertimeRequestRepository::new());
         let service = OvertimeRequestService::new(repo.clone());
         let ws_id = Uuid::new_v4();
-        let token = TenantAuthToken::system_override(ws_id);
+        let token = TenantAuthToken(ws_id);
 
         let request_id = Uuid::new_v4();
 
@@ -315,7 +315,7 @@ mod tests {
         let repo = Arc::new(MockOvertimeRequestRepository::new());
         let service = OvertimeRequestService::new(repo.clone());
         let ws_id = Uuid::new_v4();
-        let token = TenantAuthToken::system_override(ws_id);
+        let token = TenantAuthToken(ws_id);
 
         let request_id = Uuid::new_v4();
 

@@ -327,7 +327,7 @@ pub async fn ess_punch(
         .time_tracking_service()
         .punch(
             state.attendance().log_service().as_ref(),
-            employee.workspace_id,
+            &employee.auth_token,
             active_emp_id,
             req.note,
         )
@@ -376,7 +376,7 @@ pub async fn get_my_time_entries(
     let entries = state
         .attendance()
         .time_tracking_service()
-        .get_employee_history(employee.workspace_id, active_emp_id, start, end)
+        .get_employee_history(&employee.auth_token, active_emp_id, start, end)
         .await?;
 
     Ok(Json(entries))
@@ -479,7 +479,7 @@ pub async fn ess_get_my_shift_swaps(
     let swaps = state
         .shifts()
         .swap_service()
-        .get_employee_swaps(employee.employee_id, employee.workspace_id)
+        .get_employee_swaps(employee.employee_id, &employee.auth_token)
         .await?;
 
     Ok(Json(swaps))
@@ -503,7 +503,7 @@ pub async fn ess_create_shift_swap(
         .shifts()
         .swap_service()
         .create_ess_swap(
-            employee.workspace_id,
+            &employee.auth_token,
             employee.employee_id,
             employee.user_id,
             req,
@@ -534,7 +534,7 @@ pub async fn ess_respond_to_swap(
     state
         .shifts()
         .swap_service()
-        .respond_to_swap(employee.workspace_id, employee.employee_id, id, req.accept)
+        .respond_to_swap(&employee.auth_token, employee.employee_id, id, req.accept)
         .await?;
 
     Ok(StatusCode::OK)
@@ -559,7 +559,7 @@ pub async fn ess_cancel_swap(
     state
         .shifts()
         .swap_service()
-        .cancel_swap(employee.workspace_id, employee.employee_id, id)
+        .cancel_swap(&employee.auth_token, employee.employee_id, id)
         .await?;
 
     Ok(StatusCode::NO_CONTENT)
