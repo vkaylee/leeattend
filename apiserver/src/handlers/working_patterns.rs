@@ -378,8 +378,10 @@ async fn check_pattern_compliance(
         std::collections::HashMap::new();
     for date in &dates {
         let days_since_anchor = (*date - anchor).num_days();
+        let cycle_days_i64 = i64::from(cycle_days);
         let normalized =
-            ((days_since_anchor % cycle_days as i64) + cycle_days as i64) % cycle_days as i64;
+            ((days_since_anchor % cycle_days_i64) + cycle_days_i64) % cycle_days_i64;
+        #[allow(clippy::cast_possible_truncation)]
         let schedule_day = (normalized as i32) + 1; // 1-indexed
 
         if let Some(&shift_id) = shift_day_map.get(&schedule_day) {

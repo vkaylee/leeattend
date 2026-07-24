@@ -69,8 +69,18 @@ impl ComplianceValidationService {
         }
 
         // 3. Load existing rosters for this employment across the date range ±1 day
-        let min_date = request.dates.iter().min().copied().unwrap();
-        let max_date = request.dates.iter().max().copied().unwrap();
+        let min_date = request
+            .dates
+            .iter()
+            .min()
+            .copied()
+            .ok_or_else(|| AppError::validation(I18nKey::Validation))?;
+        let max_date = request
+            .dates
+            .iter()
+            .max()
+            .copied()
+            .ok_or_else(|| AppError::validation(I18nKey::Validation))?;
         let query_start = min_date - chrono::Duration::days(1);
         let query_end = max_date + chrono::Duration::days(1);
 
@@ -96,7 +106,7 @@ impl ComplianceValidationService {
         let mut violations: Vec<ComplianceViolation> = Vec::new();
 
         // Check A: Overlap detection (HARD)
-        self.check_overlaps(
+        Self::check_overlaps(
             request,
             &existing_rosters,
             &roster_data.shift_intervals,
@@ -104,7 +114,7 @@ impl ComplianceValidationService {
         );
 
         // Check B: Rest period (SOFT)
-        self.check_rest_period(
+        Self::check_rest_period(
             request,
             &existing_rosters,
             &roster_data.shift_intervals,
@@ -113,7 +123,7 @@ impl ComplianceValidationService {
         );
 
         // Check C: Weekly hours (SOFT)
-        self.check_weekly_hours(
+        Self::check_weekly_hours(
             request,
             &existing_rosters,
             &roster_data.shift_intervals,
@@ -122,7 +132,7 @@ impl ComplianceValidationService {
         );
 
         // Check D: Monthly OT (SOFT)
-        self.check_monthly_ot(
+        Self::check_monthly_ot(
             request,
             &existing_rosters,
             &roster_data.shift_intervals,
@@ -175,7 +185,6 @@ impl ComplianceValidationService {
     // Check A: Overlap (HARD)
     // -----------------------------------------------------------------------
     fn check_overlaps(
-        &self,
         request: &ComplianceCheckRequest,
         existing: &[&ShiftRoster],
         shift_intervals: &HashMap<Uuid, Vec<crate::cache::RosterInterval>>,
@@ -191,9 +200,8 @@ impl ComplianceValidationService {
                     continue;
                 }
 
-                let existing_shift_id = match roster.shift_id {
-                    Some(id) => id,
-                    None => continue, // day off — no overlap
+                let Some(existing_shift_id) = roster.shift_id else {
+                    continue; // day off — no overlap
                 };
 
                 let existing_intervals = shift_intervals.get(&existing_shift_id);
@@ -246,8 +254,8 @@ impl ComplianceValidationService {
     // -----------------------------------------------------------------------
     // Check B: Rest Period (SOFT)
     // -----------------------------------------------------------------------
+    #[allow(clippy::expect_used)]
     fn check_rest_period(
-        &self,
         request: &ComplianceCheckRequest,
         existing: &[&ShiftRoster],
         shift_intervals: &HashMap<Uuid, Vec<crate::cache::RosterInterval>>,
@@ -270,22 +278,21 @@ impl ComplianceValidationService {
                                 .iter()
                                 .map(|i| i.end_time)
                                 .max_by_key(|t| seconds_from_midnight_or_wrap(*t))
-                                .unwrap_or(NaiveTime::from_hms_opt(0, 0, 0).unwrap());
+                                .unwrap_or(NaiveTime::from_hms_opt(0, 0, 0).expect("0:0:0 is valid"));
 
                             let new_start = new_ints
                                 .iter()
                                 .map(|i| i.start_time)
                                 .min_by_key(|t| seconds_from_midnight_or_wrap(*t))
-                                .unwrap_or(NaiveTime::from_hms_opt(23, 59, 59).unwrap());
+                                .unwrap_or(NaiveTime::from_hms_opt(23, 59, 59).expect("23:59:59 is valid"));
 
                             let gap_hours = rest_gap_hours(prev_end, new_start);
-                            if gap_hours < min_rest_hours as f64 {
+                            if gap_hours < f64::from(min_rest_hours) {
                                 violations.push(ComplianceViolation {
                                     violation_type: ViolationType::RestPeriod,
                                     severity: ViolationSeverity::Soft,
                                     message: format!(
-                                        "Insufficient rest: {}h gap, {}h required",
-                                        gap_hours as i32, min_rest_hours
+                                        "Insufficient rest: {gap_hours:.0}h gap, {min_rest_hours}h required"
                                     ),
                                     details: ComplianceViolationDetails {
                                         employment_id: request.employment_id,
@@ -310,22 +317,21 @@ impl ComplianceValidationService {
                                 .iter()
                                 .map(|i| i.end_time)
                                 .max_by_key(|t| seconds_from_midnight_or_wrap(*t))
-                                .unwrap_or(NaiveTime::from_hms_opt(0, 0, 0).unwrap());
+                                .unwrap_or(NaiveTime::from_hms_opt(0, 0, 0).expect("0:0:0 is valid"));
 
                             let next_start = next_intervals
                                 .iter()
                                 .map(|i| i.start_time)
                                 .min_by_key(|t| seconds_from_midnight_or_wrap(*t))
-                                .unwrap_or(NaiveTime::from_hms_opt(23, 59, 59).unwrap());
+                                .unwrap_or(NaiveTime::from_hms_opt(23, 59, 59).expect("23:59:59 is valid"));
 
                             let gap_hours = rest_gap_hours(new_end, next_start);
-                            if gap_hours < min_rest_hours as f64 {
+                            if gap_hours < f64::from(min_rest_hours) {
                                 violations.push(ComplianceViolation {
                                     violation_type: ViolationType::RestPeriod,
                                     severity: ViolationSeverity::Soft,
                                     message: format!(
-                                        "Insufficient rest: {}h gap, {}h required",
-                                        gap_hours as i32, min_rest_hours
+                                        "Insufficient rest: {gap_hours:.0}h gap, {min_rest_hours}h required"
                                     ),
                                     details: ComplianceViolationDetails {
                                         employment_id: request.employment_id,
@@ -347,7 +353,6 @@ impl ComplianceValidationService {
     // Check C: Weekly Hours (SOFT)
     // -----------------------------------------------------------------------
     fn check_weekly_hours(
-        &self,
         request: &ComplianceCheckRequest,
         existing: &[&ShiftRoster],
         shift_intervals: &HashMap<Uuid, Vec<crate::cache::RosterInterval>>,
@@ -367,7 +372,7 @@ impl ComplianceValidationService {
             {
                 if let Some(shift_id) = roster.shift_id {
                     if let Some(intervals) = shift_intervals.get(&shift_id) {
-                        total_hours += intervals.iter().map(|i| interval_hours(i)).sum::<f64>();
+                        total_hours += intervals.iter().map(interval_hours).sum::<f64>();
                     }
                 }
             }
@@ -379,17 +384,16 @@ impl ComplianceValidationService {
                 .filter(|d| **d >= week_start && **d <= week_end)
             {
                 if let Some(intervals) = shift_intervals.get(&request.shift_id) {
-                    total_hours += intervals.iter().map(|i| interval_hours(i)).sum::<f64>();
+                    total_hours += intervals.iter().map(interval_hours).sum::<f64>();
                 }
             }
 
-            if total_hours > max_weekly_hours as f64 {
+            if total_hours > f64::from(max_weekly_hours) {
                 violations.push(ComplianceViolation {
                     violation_type: ViolationType::WeeklyHours,
                     severity: ViolationSeverity::Soft,
                     message: format!(
-                        "Weekly hours exceeded: {:.1}h, limit: {}h",
-                        total_hours, max_weekly_hours
+                        "Weekly hours exceeded: {total_hours:.1}h, limit: {max_weekly_hours}h"
                     ),
                     details: ComplianceViolationDetails {
                         employment_id: request.employment_id,
@@ -407,8 +411,8 @@ impl ComplianceValidationService {
     // -----------------------------------------------------------------------
     // Check D: Monthly OT (SOFT)
     // -----------------------------------------------------------------------
+    #[allow(clippy::expect_used)]
     fn check_monthly_ot(
-        &self,
         request: &ComplianceCheckRequest,
         existing: &[&ShiftRoster],
         shift_intervals: &HashMap<Uuid, Vec<crate::cache::RosterInterval>>,
@@ -418,7 +422,8 @@ impl ComplianceValidationService {
         const STANDARD_DAILY_HOURS: f64 = 8.0;
 
         for date in &request.dates {
-            let month_start = NaiveDate::from_ymd_opt(date.year(), date.month(), 1).unwrap();
+            let month_start =
+                NaiveDate::from_ymd_opt(date.year(), date.month(), 1).expect("year/month from a valid NaiveDate is valid");
             let month_end = last_day_of_month(*date);
 
             // Count OT from existing rosters in this month
@@ -429,7 +434,7 @@ impl ComplianceValidationService {
             {
                 if let Some(shift_id) = roster.shift_id {
                     if let Some(intervals) = shift_intervals.get(&shift_id) {
-                        let daily_hours: f64 = intervals.iter().map(|i| interval_hours(i)).sum();
+                        let daily_hours: f64 = intervals.iter().map(interval_hours).sum();
                         if daily_hours > STANDARD_DAILY_HOURS {
                             total_ot += daily_hours - STANDARD_DAILY_HOURS;
                         }
@@ -444,20 +449,19 @@ impl ComplianceValidationService {
                 .filter(|d| **d >= month_start && **d <= month_end)
             {
                 if let Some(intervals) = shift_intervals.get(&request.shift_id) {
-                    let daily_hours: f64 = intervals.iter().map(|i| interval_hours(i)).sum();
+                    let daily_hours: f64 = intervals.iter().map(interval_hours).sum();
                     if daily_hours > STANDARD_DAILY_HOURS {
                         total_ot += daily_hours - STANDARD_DAILY_HOURS;
                     }
                 }
             }
 
-            if total_ot > max_monthly_ot_hours as f64 {
+            if total_ot > f64::from(max_monthly_ot_hours) {
                 violations.push(ComplianceViolation {
                     violation_type: ViolationType::MonthlyOvertime,
                     severity: ViolationSeverity::Soft,
                     message: format!(
-                        "Monthly OT exceeded: {:.1}h OT, limit: {}h",
-                        total_ot, max_monthly_ot_hours
+                        "Monthly OT exceeded: {total_ot:.1}h OT, limit: {max_monthly_ot_hours}h"
                     ),
                     details: ComplianceViolationDetails {
                         employment_id: request.employment_id,
@@ -508,6 +512,7 @@ fn seconds_from_midnight_or_wrap(t: NaiveTime) -> i64 {
 
 /// Calculate the rest gap in hours between end of one shift and start of the next.
 /// Handles overnight end times.
+#[allow(clippy::cast_precision_loss)]
 fn rest_gap_hours(prev_end: NaiveTime, next_start: NaiveTime) -> f64 {
     let pe = i64::from(prev_end.num_seconds_from_midnight());
     let ns = i64::from(next_start.num_seconds_from_midnight());
@@ -533,6 +538,7 @@ fn rest_gap_hours(prev_end: NaiveTime, next_start: NaiveTime) -> f64 {
 }
 
 /// Calculate total hours for an interval.
+#[allow(clippy::cast_lossless, clippy::cast_precision_loss)]
 fn interval_hours(interval: &crate::cache::RosterInterval) -> f64 {
     let start_secs = i64::from(interval.start_time.num_seconds_from_midnight());
     let end_secs = i64::from(interval.end_time.num_seconds_from_midnight());
@@ -559,13 +565,14 @@ fn monday_of_week(date: NaiveDate) -> NaiveDate {
 }
 
 /// Get the last day of the month containing the given date.
+#[allow(clippy::expect_used)]
 fn last_day_of_month(date: NaiveDate) -> NaiveDate {
     let next_month = if date.month() == 12 {
         NaiveDate::from_ymd_opt(date.year() + 1, 1, 1)
     } else {
         NaiveDate::from_ymd_opt(date.year(), date.month() + 1, 1)
     };
-    next_month.unwrap() - chrono::Duration::days(1)
+    next_month.expect("year/month from a valid NaiveDate is valid") - chrono::Duration::days(1)
 }
 
 // ============================================================================

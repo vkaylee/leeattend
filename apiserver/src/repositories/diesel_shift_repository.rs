@@ -42,9 +42,11 @@ fn shift_from(current_version: &ShiftVersionEntity, template: &ShiftTemplateEnti
     )
 }
 
+#[allow(clippy::too_many_lines)]
 #[async_trait]
 impl ShiftRepository for DieselShiftRepository {
     // ── create_shift ─────────────────────────────────────────────────────────────
+    #[allow(clippy::too_many_lines)]
     async fn create_shift(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -348,7 +350,8 @@ impl ShiftRepository for DieselShiftRepository {
                         .filter(shift_templates::workspace_id.eq(workspace_id))
                         .first::<(ShiftTemplateEntity, ShiftVersionEntity)>(conn)
                         .await
-                        .map_err(|_| {
+                        .map_err(|e| {
+                            tracing::error!(?e, "Failed to fetch shift template");
                             AppError::not_found(crate::utils::i18n::I18nKey::ShiftNotFound)
                         })?;
 

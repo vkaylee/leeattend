@@ -12,6 +12,7 @@ use crate::queue::{Job, JobStatus};
 pub struct ReprocessAttendanceHandler;
 
 impl ReprocessAttendanceHandler {
+    #[allow(clippy::too_many_lines)]
     pub async fn handle(
         queue: &Arc<dyn crate::repositories::QueueRepository>,
         job: &Job,

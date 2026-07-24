@@ -10,6 +10,7 @@ use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
 impl DieselEmployeeRepository {
+    #[allow(clippy::too_many_lines)]
     pub(super) async fn get_all_employees_impl(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -207,6 +208,7 @@ impl DieselEmployeeRepository {
         Ok((employees, total))
     }
 
+    #[allow(clippy::too_many_lines)]
     pub(super) async fn get_paginated_employee_ids_impl(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

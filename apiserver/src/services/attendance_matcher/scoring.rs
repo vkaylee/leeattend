@@ -119,7 +119,7 @@ impl AttendanceMatcher {
     /// OT pay, and checks for late/early violations.
     ///
     /// Returns `(std_u, ot_u, ot_pay_delta, holiday_premium_delta, is_violation)`.
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
     pub(super) fn process_matched_entry(
         ctx: &PayrollContext,
         employee_id: Uuid,
@@ -259,7 +259,7 @@ impl AttendanceMatcher {
     /// per-entry computation to [`process_matched_entry`].
     ///
     /// Returns `(std_units, ot_units, ot_pay, holiday_premium, violation_count)`.
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
     pub(super) fn process_daily_entries(
         ctx: &PayrollContext,
         employee_id: Uuid,

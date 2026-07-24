@@ -243,6 +243,7 @@ pub struct ReprocessQuery {
         ("bearer_auth" = [])
     )
 )]
+#[allow(clippy::too_many_lines)]
 #[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id, employee_id = %__path_params.1))]
 pub async fn force_reprocess_attendance(
     State(state): State<Arc<AppState>>,

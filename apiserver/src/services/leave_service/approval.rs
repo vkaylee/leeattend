@@ -57,10 +57,9 @@ impl super::LeaveService {
 
             conn.transaction::<_, AppError, _>(|pg_conn| {
                 let repo = std::sync::Arc::clone(&repo);
-                let auth = auth;
                 Box::pin(async move {
                     repo.update_leave_request_status_tx(
-                        pg_conn, &auth, request_id, status, Some(user_id),
+                        pg_conn, auth, request_id, status, Some(user_id),
                     )
                     .await
                 })
@@ -69,7 +68,7 @@ impl super::LeaveService {
         } else {
             // Fallback: no DieselPools injected — use non-transactional call
             self.leave_request_repo
-                .update_leave_request_status(&auth_token, request_id, req.status, Some(user_id))
+                .update_leave_request_status(auth_token, request_id, req.status, Some(user_id))
                 .await?;
         }
 

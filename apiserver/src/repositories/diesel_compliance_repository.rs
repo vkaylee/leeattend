@@ -37,14 +37,14 @@ impl ComplianceRepository for DieselComplianceRepository {
             .optional()
             .map_err(AppError::from)?;
 
-        match entity {
-            Some(e) => Ok(e.into()),
-            None => {
-                // Return defaults — no row exists yet for this workspace
-                let mut defaults = ComplianceRules::default();
-                defaults.workspace_id = workspace_id;
-                Ok(defaults)
-            }
+        if let Some(e) = entity {
+            Ok(e.into())
+        } else {
+            // Return defaults — no row exists yet for this workspace
+            Ok(ComplianceRules {
+                workspace_id,
+                ..Default::default()
+            })
         }
     }
 

@@ -9,6 +9,7 @@ use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
 impl DieselEmployeeRepository {
+    #[allow(clippy::too_many_lines)]
     pub(super) async fn bulk_create_employees_skip_duplicates_impl(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
