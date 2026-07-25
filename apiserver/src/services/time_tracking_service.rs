@@ -331,7 +331,8 @@ mod tests {
     use crate::repositories::staging_log_repository::MockStagingLogRepository;
     use crate::repositories::time_entry_repository::MockTimeEntryRepository;
     use crate::repositories::workspace_repository::MockWorkspaceRepository;
-    use crate::services::{AttendanceLogService, AttendanceLogServiceDeps};
+    use crate::services::attendance_log_service::AttendanceLogServiceDeps;
+    use crate::services::AttendanceLogService;
     use chrono::{NaiveDate, TimeZone, Utc};
     use uuid::Uuid;
 
