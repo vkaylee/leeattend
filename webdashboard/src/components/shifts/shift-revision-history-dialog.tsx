@@ -1,13 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   Clock,
   GitBranch,
   History,
 } from "lucide-react";
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
@@ -18,6 +16,8 @@ import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
 import { getShiftVersions } from "@/lib/api/shifts";
+
+import { IntervalDiff } from "./shift-revision-diff";
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -82,147 +82,6 @@ function EmptyState({ message }: { message: string }) {
       >
         {message}
       </Typography>
-    </div>
-  );
-}
-
-interface IntervalDiffRowProps {
-  currentInterval: ShiftVersionHistoryItem["intervals"][number] | undefined;
-  previousInterval: ShiftVersionHistoryItem["intervals"][number] | undefined;
-  idx: number;
-  t: (key: string, fallback?: string) => string;
-}
-
-/* eslint-disable @typescript-eslint/no-unnecessary-condition --
-   TS doesn't flag out-of-bounds array access; ci/pi can be
-   undefined when arrays differ in length. All optional chains
-   in this block are legitimate runtime guards. */
-
-/** Renders a single time field diff (label + old→new comparison). */
-function TimeFieldDiff({
-  label,
-  changed,
-  prevValue,
-  currValue,
-}: {
-  label: string;
-  changed: boolean;
-  prevValue?: string;
-  currValue?: string;
-}) {
-  return (
-    <>
-      <span className="font-bold text-slate-600 dark:text-slate-300">{label}:</span>
-      {prevValue ? <span className="text-slate-400 line-through">{prevValue.substring(0, 5)}</span> : null}
-      {currValue ? (
-        <span className={changed ? "text-amber-600 dark:text-amber-400 font-bold" : "text-slate-600 dark:text-slate-300"}>
-          {currValue.substring(0, 5)}
-        </span>
-      ) : null}
-    </>
-  );
-}
-
-/** Renders break duration diff (old→new). */
-function BreakFieldDiff({
-  t,
-  prevMinutes,
-  currMinutes,
-}: {
-  t: (key: string, fallback?: string) => string;
-  prevMinutes?: number;
-  currMinutes?: number;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="font-bold text-slate-600 dark:text-slate-300">
-        {t("shifts.table.break_time")}:
-      </span>
-      <span className="text-slate-400 line-through">{prevMinutes}{t("common.minutes")}</span>
-      <span className="text-amber-600 dark:text-amber-400 font-bold">{currMinutes}{t("common.minutes")}</span>
-    </div>
-  );
-}
-
-/** Renders a single interval comparison row (start/end time + break changes). */
-function IntervalDiffRow({ currentInterval: ci, previousInterval: pi, idx, t }: IntervalDiffRowProps) {
-  if (!ci && !pi) return null;
-
-  const startChanged = ci?.start_time?.substring(0, 5) !== pi?.start_time?.substring(0, 5);
-  const endChanged = ci?.end_time?.substring(0, 5) !== pi?.end_time?.substring(0, 5);
-  const breakChanged = ci?.break_duration_minutes !== pi?.break_duration_minutes;
-
-  if (!startChanged && !endChanged && !breakChanged) {
-    return (
-      <div className="text-[10px] text-slate-400 dark:text-slate-500 font-medium" key={idx}>
-        {t("shifts.revisions.no_changes", "No changes in this interval")}
-      </div>
-    );
-  }
-
-  return (
-    <div className="text-[11px] font-mono space-y-1" key={idx}>
-      {(startChanged || endChanged) ? (
-        <div className="flex items-center gap-2 flex-wrap">
-          <TimeFieldDiff changed={startChanged} currValue={ci?.start_time} label={t("shifts.modal.start_time", "Start")} prevValue={pi?.start_time} />
-          <span className="text-slate-300 dark:text-slate-600 mx-1">|</span>
-          <TimeFieldDiff changed={endChanged} currValue={ci?.end_time} label={t("shifts.modal.end_time", "End")} prevValue={pi?.end_time} />
-        </div>
-      ) : null}
-      {breakChanged ? <BreakFieldDiff currMinutes={ci?.break_duration_minutes} prevMinutes={pi?.break_duration_minutes} t={t} /> : null}
-    </div>
-  );
-}
-
-/* eslint-enable @typescript-eslint/no-unnecessary-condition */
-
-interface IntervalDiffProps {
-  current: ShiftVersionHistoryItem;
-  previous: ShiftVersionHistoryItem | null;
-  t: (key: string, fallback?: string) => string;
-}
-
-function IntervalDiff({ current, previous, t }: IntervalDiffProps) {
-  const [expanded, setExpanded] = useState(false);
-
-  if (!previous?.intervals.length) {
-    return null;
-  }
-
-  const currIntervals = current.intervals;
-  const prevIntervals = previous.intervals;
-  const maxLen = Math.max(currIntervals.length, prevIntervals.length);
-
-  return (
-    <div className="mt-3">
-      <Button
-        className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest hover:text-primary-500 dark:hover:text-primary-400 transition-colors"
-        data-testid="shift-diff-toggle"
-        onClick={() => { setExpanded((v) => !v); }}
-        type="button"
-        variant="ghost"
-      >
-        {expanded
-          ? <ChevronUp className="w-3 h-3" />
-          : <ChevronDown className="w-3 h-3" />}
-        {expanded
-          ? t("shifts.revisions.hide_diff", "Hide changes")
-          : t("shifts.revisions.show_diff", "Show changes")}
-      </Button>
-
-      {expanded ? (
-        <div className="mt-2 space-y-2 pl-4 border-l-2 border-amber-200 dark:border-amber-800">
-          {Array.from({ length: maxLen }).map((_, idx) => (
-            <IntervalDiffRow
-              currentInterval={currIntervals[idx]}
-              idx={idx}
-              key={idx}
-              previousInterval={prevIntervals[idx]}
-              t={t}
-            />
-          ))}
-        </div>
-      ) : null}
     </div>
   );
 }
