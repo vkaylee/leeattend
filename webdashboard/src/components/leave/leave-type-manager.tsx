@@ -7,6 +7,7 @@ import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
+import { LeaveType } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 import { useLeaveTypeManager } from "./hooks/use-leave-type-manager";
@@ -14,6 +15,90 @@ import EditLeaveTypeModal from "./leave-policy-components/edit-leave-type-modal"
 import { LeaveTypeForm } from "./leave-policy-components/leave-type-form";
 import { TemplateGallery } from "./leave-policy-components/template-gallery";
 import { LeaveTemplate } from "./leave-templates";
+
+// ── PolicyBadges ─────────────────────────────────────────────────────
+
+function PolicyBadges({ type, t }: { type: LeaveType; t: (k: string) => string }) {
+  return (
+    <>
+      {!!type.policy_config?.approval_required && (
+        <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-100 dark:border-blue-800">
+          {t("settings.leave.fields.approval", "Approval")}
+        </span>
+      )}
+      {!!type.policy_config?.requires_document && (
+        <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-100 dark:border-purple-800">
+          {t("settings.leave.fields.document", "Document")}
+        </span>
+      )}
+      {!!type.policy_config?.allow_negative_balance && (
+        <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-100 dark:border-rose-800">
+          {t("settings.leave.type_manager.negative_balance", "Negative Balance")}
+        </span>
+      )}
+    </>
+  );
+}
+
+// ── LeaveTypeCard ────────────────────────────────────────────────────
+
+function LeaveTypeCard({ type, onEdit, onDelete }: {
+  type: LeaveType;
+  onEdit: (t: LeaveType) => void;
+  onDelete: (t: LeaveType) => void;
+}) {
+  const { t } = useTranslation();
+
+  const paidClasses = type.is_paid
+    ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800"
+    : "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border border-amber-100 dark:border-amber-800";
+
+  const paidBadgeClasses = type.is_paid
+    ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800"
+    : "bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-800";
+
+  return (
+    <div className="relative flex flex-col justify-between rounded-[2rem] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-7 shadow-sm hover:shadow-md transition-all group">
+      <div>
+        <div className="flex items-center justify-between">
+          <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl shadow-inner", paidClasses)}>
+            {type.is_paid ? <Wallet size={20} /> : <AlertTriangle size={20} />}
+          </div>
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              className="h-9 w-9 p-2 text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:text-primary-400 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800"
+              onClick={() => { onEdit(type); }}
+              size="icon"
+              variant="outline"
+            >
+              <Pencil size={16} />
+            </Button>
+            <Button
+              className="h-9 w-9 p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800"
+              onClick={() => { onDelete(type); }}
+              size="icon"
+              variant="outline"
+            >
+              <Trash2 size={16} />
+            </Button>
+          </div>
+        </div>
+        <Typography className="mt-5 text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-none uppercase" variant="h3">
+          {t(`settings.leave.templates.${type.code.toLowerCase()}.name`, type.name)}
+        </Typography>
+        <Typography className="mt-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">
+          {t("settings.leave.type_manager.code", "Code")}: {type.code}
+        </Typography>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className={cn("px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border", paidBadgeClasses)}>
+            {type.is_paid ? t("settings.leave.type_manager.paid", "Paid") : t("settings.leave.type_manager.unpaid", "Unpaid")}
+          </span>
+          <PolicyBadges t={t} type={type} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface LeaveTypeManagerProps {
   wsId: string;
@@ -72,80 +157,12 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
           {leaveTypes.map((type) => (
-            <div
-              className="relative flex flex-col justify-between rounded-[2rem] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-7 shadow-sm hover:shadow-md transition-all group"
+            <LeaveTypeCard
               key={type.id}
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <div
-                    className={cn(
-                      "flex h-12 w-12 items-center justify-center rounded-2xl shadow-inner",
-                      type.is_paid
-                        ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800"
-                        : "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border border-amber-100 dark:border-amber-800"
-                    )}
-                  >
-                    {type.is_paid ? <Wallet size={20} /> : <AlertTriangle size={20} />}
-                  </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      className="h-9 w-9 p-2 text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:text-primary-400 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800"
-                      onClick={() => {
-                        setEditingType(type);
-                      }}
-                      size="icon"
-                      variant="outline"
-                    >
-                      <Pencil size={16} />
-                    </Button>
-                    <Button
-                      className="h-9 w-9 p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800"
-                      onClick={() => {
-                        setDeletingType(type);
-                      }}
-                      size="icon"
-                      variant="outline"
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                </div>
-                <Typography className="mt-5 text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-none uppercase" variant="h3">
-                  {t(`settings.leave.templates.${type.code.toLowerCase()}.name`, type.name)}
-                </Typography>
-                <Typography className="mt-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">
-                  {t("settings.leave.type_manager.code", "Code")}: {type.code}
-                </Typography>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span
-                    className={cn(
-                      "px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border",
-                      type.is_paid
-                        ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800"
-                        : "bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-800"
-                    )}
-                  >
-                    {type.is_paid ? t("settings.leave.type_manager.paid", "Paid") : t("settings.leave.type_manager.unpaid", "Unpaid")}
-                  </span>
-                  {!!type.policy_config?.approval_required && (
-                    <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-100 dark:border-blue-800">
-                      {t("settings.leave.fields.approval", "Approval")}
-                    </span>
-                  )}
-                  {!!type.policy_config?.requires_document && (
-                    <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-100 dark:border-purple-800">
-                      {t("settings.leave.fields.document", "Document")}
-                    </span>
-                  )}
-                  {!!type.policy_config?.allow_negative_balance && (
-                    <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-100 dark:border-rose-800">
-                      {t("settings.leave.type_manager.negative_balance", "Negative Balance")}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
+              onDelete={(t) => { setDeletingType(t); }}
+              onEdit={(t) => { setEditingType(t); }}
+              type={type}
+            />
           ))}
         </div>
       ) : (

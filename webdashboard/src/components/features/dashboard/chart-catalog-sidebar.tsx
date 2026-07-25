@@ -41,20 +41,88 @@ function useCollapsedState() {
   return { collapsed, toggle };
 }
 
-interface ChartCatalogSidebarProps {
-  allWidgets: { id: WidgetId; labelKey: string }[];
-  onToggleWidget: (id: WidgetId) => void;
-  visibleWidgets: Record<WidgetId, boolean>;
+// ── WidgetToggleItem ─────────────────────────────────────────────────
+
+function CheckIndicator({ isVisible }: { isVisible: boolean }) {
+  return (
+    <span
+      className={cn(
+        "shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors duration-150",
+        isVisible
+          ? "border-primary-600 dark:border-primary-400 bg-primary-600 dark:bg-primary-400"
+          : "border-slate-300 dark:border-slate-600",
+      )}
+    >
+      {isVisible ? (
+        <svg
+          className="w-2.5 h-2.5 text-white"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={3}
+          viewBox="0 0 24 24"
+        >
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      ) : null}
+    </span>
+  );
 }
 
-export default function ChartCatalogSidebar({
-  allWidgets,
-  visibleWidgets,
-  onToggleWidget,
-}: ChartCatalogSidebarProps) {
+interface WidgetToggleItemProps {
+  collapsed: boolean;
+  onToggleWidget: (id: WidgetId) => void;
+  visibleWidgets: Record<WidgetId, boolean>;
+  widgetId: WidgetId;
+  widgetMap: Map<WidgetId, { id: WidgetId; labelKey: string }>;
+}
+
+function WidgetToggleItem({ widgetId, widgetMap, visibleWidgets, collapsed, onToggleWidget }: WidgetToggleItemProps) {
   const { t } = useTranslation();
-  const { collapsed, toggle } = useCollapsedState();
-  const [searchQuery, setSearchQuery] = useState("");
+  const widget = widgetMap.get(widgetId);
+  if (!widget) return null;
+
+  const meta = CHART_METADATA[widgetId];
+  const Icon = meta?.icon;
+  const isVisible = visibleWidgets[widgetId];
+  const label = t(widget.labelKey);
+
+  return (
+    // eslint-disable-next-line react/forbid-elements -- role="switch" button with ARIA needs native button semantics
+    <button
+      aria-checked={isVisible}
+      className={cn(
+        "w-full flex items-center gap-3 rounded-xl transition-all duration-150",
+        collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2",
+        isVisible
+          ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400"
+          : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-700 dark:hover:text-slate-200",
+      )}
+      onClick={() => { onToggleWidget(widgetId); }}
+      role="switch"
+      tabIndex={0}
+      title={collapsed ? label : undefined}
+      type="button"
+    >
+      {/* Checkbox circle */}
+      <CheckIndicator isVisible={isVisible} />
+
+      {!collapsed && Icon ? <Icon className="shrink-0" size={15} /> : null}
+
+      {!collapsed && (
+        <span className="flex-1 text-left text-xs font-medium truncate">
+          {label}
+        </span>
+      )}
+    </button>
+  );
+}
+
+// ── useWidgetSearch ──────────────────────────────────────────────────
+
+function useWidgetSearch(allWidgets: { id: WidgetId; labelKey: string }[], searchQuery: string) {
+  const { t } = useTranslation();
 
   const widgetMap = useMemo(() => {
     const map = new Map<WidgetId, { id: WidgetId; labelKey: string }>();
@@ -75,7 +143,6 @@ export default function ChartCatalogSidebar({
       grouped[cat] = allWidgets
         .filter((w) => {
           const meta = CHART_METADATA[w.id];
-           
           if (meta?.category !== cat) return false;
           if (!query) return true;
           const label = t(w.labelKey).toLowerCase();
@@ -91,6 +158,25 @@ export default function ChartCatalogSidebar({
     () => CATEGORY_ORDER.reduce((sum, cat) => sum + filteredWidgets[cat].length, 0),
     [filteredWidgets],
   );
+
+  return { widgetMap, filteredWidgets, totalResults };
+}
+
+interface ChartCatalogSidebarProps {
+  allWidgets: { id: WidgetId; labelKey: string }[];
+  onToggleWidget: (id: WidgetId) => void;
+  visibleWidgets: Record<WidgetId, boolean>;
+}
+
+export default function ChartCatalogSidebar({
+  allWidgets,
+  visibleWidgets,
+  onToggleWidget,
+}: ChartCatalogSidebarProps) {
+  const { t } = useTranslation();
+  const { collapsed, toggle } = useCollapsedState();
+  const [searchQuery, setSearchQuery] = useState("");
+  const { widgetMap, filteredWidgets, totalResults } = useWidgetSearch(allWidgets, searchQuery);
 
   return (
     <aside
@@ -162,67 +248,16 @@ export default function ChartCatalogSidebar({
 
               <section aria-labelledby={`catalog-cat-${cat}`}>
 
-                {widgets.map((widgetId) => {
-                  const widget = widgetMap.get(widgetId);
-                  if (!widget) return null;
-
-                  const meta = CHART_METADATA[widgetId];
-                  const Icon = meta?.icon;
-                  const isVisible = visibleWidgets[widgetId];
-                  const label = t(widget.labelKey);
-
-                  return (
-                    // eslint-disable-next-line react/forbid-elements -- role="switch" button with ARIA needs native button semantics
-                    <button
-                      aria-checked={isVisible}
-                      className={cn(
-                        "w-full flex items-center gap-3 rounded-xl transition-all duration-150",
-                        collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2",
-                        isVisible
-                          ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400"
-                          : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-700 dark:hover:text-slate-200",
-                      )}
-                      key={widgetId}
-                      onClick={() => { onToggleWidget(widgetId); }}
-                      role="switch"
-                      tabIndex={0}
-                      title={collapsed ? label : undefined}
-                      type="button"
-                    >
-                      {/* Checkbox circle */}
-                      <span
-                        className={cn(
-                          "shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors duration-150",
-                          isVisible
-                            ? "border-primary-600 dark:border-primary-400 bg-primary-600 dark:bg-primary-400"
-                            : "border-slate-300 dark:border-slate-600",
-                        )}
-                      >
-                        {isVisible ? (
-                          <svg
-                            className="w-2.5 h-2.5 text-white"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={3}
-                            viewBox="0 0 24 24"
-                          >
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        ) : null}
-                      </span>
-
-                      {!collapsed && !!Icon && <Icon className="shrink-0" size={15} />}
-
-                      {!collapsed && (
-                        <span className="flex-1 text-left text-xs font-medium truncate">
-                          {label}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+                {widgets.map((widgetId) => (
+                  <WidgetToggleItem
+                    collapsed={collapsed}
+                    key={widgetId}
+                    onToggleWidget={onToggleWidget}
+                    visibleWidgets={visibleWidgets}
+                    widgetId={widgetId}
+                    widgetMap={widgetMap}
+                  />
+                ))}
               </section>
             </div>
           );

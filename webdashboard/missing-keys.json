@@ -1,17 +1,1 @@
-[
-  {
-    "file": "src/components/payroll/rule-assignment/override-config-section.tsx",
-    "key": "payroll.rules.enable_override",
-    "lang": "en"
-  },
-  {
-    "file": "src/components/payroll/rule-assignment/override-config-section.tsx",
-    "key": "payroll.rules.enable_override",
-    "lang": "vi"
-  },
-  {
-    "file": "src/components/payroll/rule-assignment/override-config-section.tsx",
-    "key": "payroll.rules.enable_override",
-    "lang": "zh"
-  }
-]
+[]

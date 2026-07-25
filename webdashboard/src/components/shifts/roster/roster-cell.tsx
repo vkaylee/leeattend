@@ -16,6 +16,54 @@ interface RosterCellProps {
   status?: "saving" | "saved" | "error";
 }
 
+function CellOverlays({ status, complianceStatus, isHoliday, holidayName, hasTraces, workingSchedules, shifts, highestSource, allTraces }: {
+  status?: "saving" | "saved" | "error";
+  complianceStatus?: "ok" | "warning" | "violation";
+  isHoliday: boolean;
+  holidayName?: string;
+  hasTraces: boolean;
+  workingSchedules: import("@/lib/api/types").EffectiveSchedule[];
+  shifts?: Shift[];
+  highestSource?: string;
+  allTraces: import("@/lib/api/types").ScheduleTrace[];
+}) {
+  const { t } = useTranslation();
+  return (
+    <>
+      {status === "saved" ? (
+        <span className="absolute top-0.5 left-0.5 z-30 text-[9px] font-extrabold text-emerald-600 dark:text-emerald-400 animate-in fade-in">
+          ✓
+        </span>
+      ) : null}
+      {complianceStatus === "warning" ? (
+        <span
+          aria-label={t("shifts.compliance.badge_warning")}
+          className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500 z-25"
+          title={t("shifts.compliance.badge_warning")}
+        />
+      ) : null}
+      {complianceStatus === "violation" ? (
+        <span
+          aria-label={t("shifts.compliance.badge_violation")}
+          className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500 z-25"
+          title={t("shifts.compliance.badge_violation")}
+        />
+      ) : null}
+      {isHoliday ? (
+        <span
+          className="absolute top-1 left-1 text-[8px] bg-amber-100 dark:bg-amber-950 text-amber-600 rounded-full px-0.5 font-extrabold scale-90 border border-amber-200 dark:border-amber-900"
+          title={holidayName ?? "Lễ"}
+        >
+          🎉
+        </span>
+      ) : null}
+      {hasTraces ? (
+        <TracePopoverOverlay schedules={workingSchedules} shifts={shifts} source={highestSource ?? "none"} traces={allTraces} />
+      ) : null}
+    </>
+  );
+}
+
 const RosterCell = memo(function RosterCell({
   complianceStatus,
   dateStr,
@@ -25,7 +73,6 @@ const RosterCell = memo(function RosterCell({
   shifts,
   status,
 }: RosterCellProps) {
-  const { t } = useTranslation();
   const workingSchedules = daySchedules.filter((s) => s.shift_id);
   const hasShift = workingSchedules.length > 0;
   const isHoliday = daySchedules.some((s) => s.is_holiday);
@@ -54,39 +101,17 @@ const RosterCell = memo(function RosterCell({
 
         <SourceIndicator source={highestSource} />
 
-        {status === "saved" ? (
-          <span className="absolute top-0.5 left-0.5 z-30 text-[9px] font-extrabold text-emerald-600 dark:text-emerald-400 animate-in fade-in">
-            ✓
-          </span>
-        ) : null}
-
-        {complianceStatus === "warning" ? (
-          <span
-            aria-label={t("shifts.compliance.badge_warning")}
-            className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500 z-25"
-            title={t("shifts.compliance.badge_warning")}
-          />
-        ) : null}
-        {complianceStatus === "violation" ? (
-          <span
-            aria-label={t("shifts.compliance.badge_violation")}
-            className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500 z-25"
-            title={t("shifts.compliance.badge_violation")}
-          />
-        ) : null}
-
-        {isHoliday ? (
-          <span
-            className="absolute top-1 left-1 text-[8px] bg-amber-100 dark:bg-amber-950 text-amber-600 rounded-full px-0.5 font-extrabold scale-90 border border-amber-200 dark:border-amber-900"
-            title={holidayName ?? "Lễ"}
-          >
-            🎉
-          </span>
-        ) : null}
-
-        {hasTraces ? (
-          <TracePopoverOverlay schedules={workingSchedules} shifts={shifts} source={highestSource ?? "none"} traces={allTraces} />
-        ) : null}
+        <CellOverlays
+          allTraces={allTraces}
+          complianceStatus={complianceStatus}
+          hasTraces={hasTraces}
+          highestSource={highestSource}
+          holidayName={holidayName}
+          isHoliday={isHoliday}
+          shifts={shifts}
+          status={status}
+          workingSchedules={workingSchedules}
+        />
       </div>
     </td>
   );

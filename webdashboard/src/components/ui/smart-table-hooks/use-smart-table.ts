@@ -85,6 +85,27 @@ export interface UseSmartTableReturn<T> {
   table: ReturnType<typeof useReactTable<T>>;
 }
 
+// ── Helpers ────────────────────────────────────────────────────────────
+
+/** Compute column id from a column definition, handling both accessorKey and id variants. */
+function computeColumnId<T>(col: ColumnDef<T>, index: number): string {
+  if (col.id) return col.id;
+  if ("accessorKey" in col) return col.accessorKey as string;
+  return `col_${index}`;
+}
+
+/** Determine if a column should be pinned left based on meta or sticky count. */
+function shouldPinLeft(col: { meta?: SmartTableColumnMeta }, index: number, stickyLeftCount: number): boolean {
+  if (col.meta?.sticky === "left") return true;
+  return stickyLeftCount > 0 && index < stickyLeftCount;
+}
+
+/** Determine if a column should be pinned right based on meta or sticky count. */
+function shouldPinRight(col: { meta?: SmartTableColumnMeta }, index: number, totalCols: number, stickyRightCount: number): boolean {
+  if (col.meta?.sticky === "right") return true;
+  return stickyRightCount > 0 && index >= totalCols - stickyRightCount;
+}
+
 // ── Hook ──────────────────────────────────────────────────────────────
 
 export function useSmartTable<T>({
@@ -135,21 +156,18 @@ export function useSmartTable<T>({
   const columnPinning = useMemo((): ColumnPinningState => {
     const left: string[] = [];
     const right: string[] = [];
+    const sLC = stickyLeftColumns ?? 0;
+    const sRC = stickyRightColumns ?? 0;
     columns.forEach((col, index) => {
-      const id = (col.id ?? ("accessorKey" in col ? (col.accessorKey as string) : "")) || "";
-      const sLC = stickyLeftColumns ?? 0;
-      const sRC = stickyRightColumns ?? 0;
-      if (col.meta?.sticky === "left" || (sLC > 0 && index < sLC)) {
-        left.push(id);
-      }
-      if (col.meta?.sticky === "right" || (sRC > 0 && index >= columns.length - sRC)) {
-        right.push(id);
-      }
+      const id = computeColumnId(col, index);
+      if (shouldPinLeft(col, index, sLC)) left.push(id);
+      if (shouldPinRight(col, index, columns.length, sRC)) right.push(id);
     });
     return { left, right };
   }, [columns, stickyLeftColumns, stickyRightColumns]);
 
   // ── Table instance ───────────────────────────────────────────────
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table's useReactTable API returns functions that cannot be memoized safely; this is a known limitation
   const table = useReactTable({
     data,
     columns,

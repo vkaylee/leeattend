@@ -1,7 +1,5 @@
-import { Clock, Info, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import React from "react";
-
-import type { ShiftWithIntervals } from "@/pages/shifts/hooks/use-shifts-types";
 
 import SearchBox from "@/components/common/search-box";
 import Button from "@/components/ui/button";
@@ -15,42 +13,7 @@ import {
   FILTER_CHIPS,
   getShiftBadge,
 } from "./hooks/use-shift-picker";
-
-// ── ShiftTimeBadge ──────────────────────────────────────────────────
-
-interface ShiftTimeProps {
-  formatTime: (v: string) => string;
-  shift: Shift;
-  t: (key: string) => string;
-}
-
-function ShiftTimeBadge({ shift, formatTime, t }: ShiftTimeProps) {
-  const typed = shift as ShiftWithIntervals;
-  const iv = typed.intervals?.[0] as
-    | { start_time?: string; end_time?: string; break_start?: string; break_end?: string; break_duration_minutes?: number }
-    | undefined;
-  const st = iv?.start_time ?? "";
-  const et = iv?.end_time ?? "";
-  const bs = iv?.break_start;
-  const be = iv?.break_end;
-  const bd = iv?.break_duration_minutes ?? 0;
-
-  return (
-    <>
-      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold flex items-center gap-1">
-        <Clock size={10} /> {st ? formatTime(st) : "—"} - {et ? formatTime(et) : "—"}
-      </div>
-      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold flex items-center gap-1">
-        <Info size={10} />
-        {bs ? (
-          <span>{bs.substring(0, 5)}-{be?.substring(0, 5)}</span>
-        ) : (
-          <span>{t("common.break")} {bd}m</span>
-        )}
-      </div>
-    </>
-  );
-}
+import { ShiftTimeBadge } from "./shift-time-badge";
 
 // ── ShiftButton ─────────────────────────────────────────────────────
 

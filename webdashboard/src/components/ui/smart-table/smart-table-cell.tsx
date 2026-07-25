@@ -80,7 +80,8 @@ function SmartTableCellInner<T>({
     const key = `${rowIndex}-${colIndex}`;
     // eslint-disable-next-line react-hooks/immutability, @typescript-eslint/no-unnecessary-condition -- ref-based keyboard nav requires mutable storage; .current is always initialized
     if (cellRefs.current) cellRefs.current[key] = el;
-  }, [cellRefs, rowIndex, colIndex]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- cellRefs is a stable ref; .current is intentionally excluded to match React Compiler inference
+  }, [rowIndex, colIndex]);
 
   const handleEditBlur = useCallback(() => {
     saveCellEdit(rowIndex, colIndex, cell.column, row);

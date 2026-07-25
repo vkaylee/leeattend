@@ -148,15 +148,15 @@ export function PatternMatrixPreview({
   );
 }
 
-/** Individual day cell in the matrix */
-function DayMatrixCell({
+/** Inner cell content: badges, timeline scrubber, empty state */
+function DayCellContent({
   allShiftIds,
   assignedDetails,
   dayLabel,
   hasShifts,
   intervals,
+  isCompact,
   shifts,
-  variant,
 }: {
   allShiftIds: string[];
   assignedDetails: WorkingPatternDetail[];
@@ -169,14 +169,12 @@ function DayMatrixCell({
     break_end?: string;
     break_duration_minutes?: number;
   }[];
+  isCompact: boolean;
   shifts?: Shift[];
-  variant: "row" | "modal";
 }) {
   const { t } = useTranslation();
-  const [isOpen, setIsOpen] = useState(false);
-  const isCompact = variant === "modal";
 
-  const cellContent = (
+  return (
     <div
       className={cn(
         "flex flex-col gap-1 transition-all",
@@ -245,6 +243,46 @@ function DayMatrixCell({
         <div className="h-3 mt-0.5 rounded-lg bg-slate-100/50 dark:bg-slate-800/30 border border-dashed border-slate-200/50 dark:border-slate-700/30" />
       )}
     </div>
+  );
+}
+
+/** Individual day cell in the matrix */
+function DayMatrixCell({
+  allShiftIds,
+  assignedDetails,
+  dayLabel,
+  hasShifts,
+  intervals,
+  shifts,
+  variant,
+}: {
+  allShiftIds: string[];
+  assignedDetails: WorkingPatternDetail[];
+  dayLabel: string;
+  hasShifts: boolean;
+  intervals: {
+    start_time?: string;
+    end_time?: string;
+    break_start?: string;
+    break_end?: string;
+    break_duration_minutes?: number;
+  }[];
+  shifts?: Shift[];
+  variant: "row" | "modal";
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const isCompact = variant === "modal";
+
+  const cellContent = (
+    <DayCellContent
+      allShiftIds={allShiftIds}
+      assignedDetails={assignedDetails}
+      dayLabel={dayLabel}
+      hasShifts={hasShifts}
+      intervals={intervals}
+      isCompact={isCompact}
+      shifts={shifts}
+    />
   );
 
   // Popover for detail on hover (only for row variant with shifts)

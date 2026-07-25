@@ -52,6 +52,34 @@ export function getShiftBadge(shift: Shift, t: (key: string) => string): ShiftBa
   return { bg: "bg-slate-100 dark:bg-slate-800", dot: "bg-slate-400", label: "" };
 }
 
+// ── Filter helpers (extracted to reduce useMemo complexity) ────────────
+
+function applyChipFilter(shifts: Shift[], chip: FilterChip, frequentIds: string[]): Shift[] {
+  switch (chip) {
+    case "night":
+      return shifts.filter((s) => isNightShift(s));
+    case "single":
+      return shifts.filter((s) => !isSplitShift(s));
+    case "split":
+      return shifts.filter((s) => isSplitShift(s));
+    case "frequent":
+      return shifts.filter((s) => frequentIds.includes(s.id));
+    default:
+      return shifts;
+  }
+}
+
+function applyScopeFilters(shifts: Shift[], locationId: string, employerId: string): Shift[] {
+  let result = shifts;
+  if (locationId) {
+    result = result.filter((s) => s.location_id === locationId);
+  }
+  if (employerId) {
+    result = result.filter((s) => s.employer_id === employerId);
+  }
+  return result;
+}
+
 // ── Hook ─────────────────────────────────────────────────────────────
 
 interface UseShiftPickerOptions {
@@ -105,6 +133,7 @@ export function useShiftPicker({
   // Reset state on open, and auto-focus search input
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional form reset when picker opens; all state updates batch in React 18+
       setSearchQuery("");
       setActiveChip("all");
       setSelectedLocationId("");
@@ -141,40 +170,17 @@ export function useShiftPicker({
       : all;
 
     // Step 2: apply filter chip
-    let chipFiltered = searched;
-    switch (activeChip) {
-      case "night":
-        chipFiltered = searched.filter((s) => isNightShift(s));
-        break;
-      case "single":
-        chipFiltered = searched.filter((s) => !isSplitShift(s));
-        break;
-      case "split":
-        chipFiltered = searched.filter((s) => isSplitShift(s));
-        break;
-      case "frequent":
-        chipFiltered = searched.filter((s) => frequentIds.includes(s.id));
-        break;
-      default:
-        break;
-    }
+    const chipFiltered = applyChipFilter(searched, activeChip, frequentIds);
 
     // Step 2.5: apply location/employer scope filters
-    let scopeFiltered = chipFiltered;
-    if (selectedLocationId) {
-      scopeFiltered = scopeFiltered.filter((s) => s.location_id === selectedLocationId);
-    }
-    if (selectedEmployerId) {
-      scopeFiltered = scopeFiltered.filter((s) => s.employer_id === selectedEmployerId);
-    }
+    const scopeFiltered = applyScopeFilters(chipFiltered, selectedLocationId, selectedEmployerId);
 
-    // Step 3: separate frequent from rest (only when "all" chip is active and no search)
+    // Step 3: separate frequent from rest (only when "all" chip is active and no filters)
     const isDefault = activeChip === "all" && !searchQuery.trim() && !selectedLocationId && !selectedEmployerId;
     const frequent = isDefault ? scopeFiltered.filter((s) => frequentIds.includes(s.id)) : [];
-    const rest = isDefault ? scopeFiltered.filter((s) => !frequentIds.includes(s.id)) : scopeFiltered;
     const hasFreq = frequent.length > 0;
 
-    return { filtered: scopeFiltered, frequentShifts: frequent, restShifts: rest, hasFrequent: hasFreq };
+    return { filtered: scopeFiltered, frequentShifts: frequent, restShifts: isDefault ? scopeFiltered.filter((s) => !frequentIds.includes(s.id)) : scopeFiltered, hasFrequent: hasFreq };
   }, [shifts, searchQuery, activeChip, frequentIds, selectedLocationId, selectedEmployerId]);
 
   // ── Sorted frequent shifts ───────────────────────────────────────

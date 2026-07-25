@@ -168,29 +168,26 @@ describe("SmtpSettingsPage", () => {
 
     const user = userEvent.setup();
     const hostInput = screen.getByTestId("smtp-field-host");
-    const portInput = screen.getByTestId("smtp-field-port") as HTMLInputElement;
 
     await user.clear(hostInput);
     await user.type(hostInput, "smtp.gmail.com");
-    // Clear default 587 before typing to avoid "587587"
-    await user.clear(portInput);
-    await user.type(portInput, "587");
 
-    await user.click(screen.getByTestId("smtp-save-btn"));
+    const saveBtn = screen.getByTestId("smtp-save-btn");
+    expect(saveBtn).not.toBeDisabled();
+    await user.click(saveBtn);
 
-    await waitFor(() => {
-      expect(mockSaveSmtpConfig).toHaveBeenCalledWith({
-        host: "smtp.gmail.com",
-        port: 587,
-        username: undefined,
-        password: undefined,
-        from: undefined,
-        base_url: undefined,
-        http_api: null,
-      });
-      expect(mockToast.success).toHaveBeenCalled();
-      expect(mockInvalidate).toHaveBeenCalledWith({ queryKey: ["smtp-config"] });
+    // The mutation is synchronous in mock: assert directly
+    expect(mockSaveSmtpConfig).toHaveBeenCalledWith({
+      host: "smtp.gmail.com",
+      port: 587,
+      username: undefined,
+      password: undefined,
+      from: undefined,
+      base_url: undefined,
+      http_api: null,
     });
+    expect(mockToast.success).toHaveBeenCalled();
+    expect(mockInvalidate).toHaveBeenCalledWith({ queryKey: ["smtp-config"] });
   });
 
   it("shows error toast on save failure", async () => {
