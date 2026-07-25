@@ -1,24 +1,25 @@
-import { Clock, X } from "lucide-react";
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import Button from "@/components/ui/button";
-import { Combobox } from "@/components/ui/combobox";
 import { type Shift } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+import { AddShiftTrigger } from "./working-patterns/add-shift-trigger";
+import { AssignedShiftChip } from "./working-patterns/assigned-shift-chip";
+import { ShiftPickerModal } from "@/components/shifts/shift-picker-modal";
+
 interface WeeklyDesignEditorProps {
-  addShiftToDay: (dayIndex: number, shiftId: string) => void;
   grid: string[][];
   gridRows: string[];
+  onOpenPicker: (dayIndex: number) => void;
   removeShiftFromDay: (dayIndex: number, shiftId: string) => void;
   shifts: Shift[];
 }
 
 function WeeklyDesignEditor({
-  addShiftToDay,
   grid,
   gridRows,
+  onOpenPicker,
   removeShiftFromDay,
   shifts,
 }: WeeklyDesignEditorProps) {
@@ -27,13 +28,14 @@ function WeeklyDesignEditor({
     <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent">
       {gridRows.map((dayName, index) => {
         const dayShifts = grid[index] || [];
+        const availableShifts = shifts.filter((s) => !dayShifts.includes(s.id));
         return (
           <div
             className={cn(
               "flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-4 rounded-2xl border transition-all duration-300",
               dayShifts.length > 0
                 ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800/50 shadow-sm"
-                : "bg-slate-50/50 dark:bg-slate-850/30 border-slate-100 dark:border-slate-850"
+                : "bg-slate-50/50 dark:bg-slate-850/30 border-slate-100 dark:border-slate-850",
             )}
             key={index}
           >
@@ -43,7 +45,7 @@ function WeeklyDesignEditor({
                   "text-[10px] font-extrabold uppercase tracking-widest block",
                   dayShifts.length > 0
                     ? "text-slate-750 dark:text-slate-200"
-                    : "text-slate-400 dark:text-slate-500"
+                    : "text-slate-400 dark:text-slate-500",
                 )}
               >
                 {dayName}
@@ -52,28 +54,16 @@ function WeeklyDesignEditor({
 
             <div className="flex-1 flex items-center gap-2 flex-wrap min-h-[2.5rem]">
               {dayShifts.map((shiftId) => {
-                const shiftName = shifts.find((s) => s.id === shiftId)?.name ?? shiftId;
+                const shift = shifts.find((s) => s.id === shiftId);
+                if (!shift) return null;
                 return (
-                  <div
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-950 border border-primary-100 dark:border-primary-850 rounded-xl shadow-sm animate-in zoom-in-95 duration-350"
+                  <AssignedShiftChip
                     key={shiftId}
-                  >
-                    <Clock className="text-primary-500 dark:text-primary-400 flex-shrink-0" size={10} />
-                    <span className="text-[10px] font-bold text-primary-750 dark:text-primary-300 uppercase tracking-tight">
-                      {shiftName.toUpperCase()}
-                    </span>
-                    <Button
-                      aria-label={`Remove ${shiftName}`}
-                      className="p-0.5 rounded-md text-primary-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors flex-shrink-0 ml-1"
-                      onClick={() => {
-                        removeShiftFromDay(index, shiftId);
-                      }}
-                      type="button"
-                      variant="destructive"
-                    >
-                      <X size={12} />
-                    </Button>
-                  </div>
+                    onRemove={() => {
+                      removeShiftFromDay(index, shiftId);
+                    }}
+                    shift={shift}
+                  />
                 );
               })}
               {dayShifts.length === 0 && (
@@ -83,16 +73,11 @@ function WeeklyDesignEditor({
               )}
             </div>
 
-            <Combobox
-              className="w-36 flex-shrink-0 !py-1.5 !px-3 rounded-xl text-[9px] font-bold uppercase tracking-tight outline-none border border-dashed border-primary-200 dark:border-primary-800 bg-transparent text-primary-500 dark:text-primary-400 cursor-pointer transition-all hover:bg-primary-50 dark:hover:bg-primary-950/50"
-              onChange={(val) => {
-                if (val) addShiftToDay(index, val);
+            <AddShiftTrigger
+              availableCount={availableShifts.length}
+              onClick={() => {
+                onOpenPicker(index);
               }}
-              options={shifts
-                .filter((s) => !dayShifts.includes(s.id))
-                .map((s) => ({ label: s.name.toUpperCase(), value: s.id }))}
-              placeholder={`+ ${t("patterns.form.add_shift") || "ADD"}`}
-              value=""
             />
           </div>
         );
@@ -102,17 +87,17 @@ function WeeklyDesignEditor({
 }
 
 interface RotationDesignEditorProps {
-  addShiftToDay: (dayIndex: number, shiftId: string) => void;
   grid: string[][];
   gridRows: string[];
+  onOpenPicker: (dayIndex: number) => void;
   removeShiftFromDay: (dayIndex: number, shiftId: string) => void;
   shifts: Shift[];
 }
 
 function RotationDesignEditor({
-  addShiftToDay,
   grid,
   gridRows,
+  onOpenPicker,
   removeShiftFromDay,
   shifts,
 }: RotationDesignEditorProps) {
@@ -121,13 +106,14 @@ function RotationDesignEditor({
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent p-1">
       {gridRows.map((dayName, index) => {
         const dayShifts = grid[index] || [];
+        const availableShifts = shifts.filter((s) => !dayShifts.includes(s.id));
         return (
           <div
             className={cn(
               "flex flex-col justify-between p-5 rounded-[1.5rem] border transition-all duration-300 gap-4 min-h-[10rem]",
               dayShifts.length > 0
                 ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800/50 shadow-sm"
-                : "bg-slate-50/50 dark:bg-slate-850/30 border-slate-100 dark:border-slate-850"
+                : "bg-slate-50/50 dark:bg-slate-850/30 border-slate-100 dark:border-slate-850",
             )}
             key={index}
           >
@@ -137,7 +123,7 @@ function RotationDesignEditor({
                   "text-[10px] font-extrabold uppercase tracking-widest",
                   dayShifts.length > 0
                     ? "text-slate-755 dark:text-slate-200"
-                    : "text-slate-400 dark:text-slate-500"
+                    : "text-slate-400 dark:text-slate-500",
                 )}
               >
                 {dayName}
@@ -147,33 +133,16 @@ function RotationDesignEditor({
             <div className="flex-1 flex flex-col gap-1.5 justify-center min-h-[3rem]">
               {dayShifts.length > 0 ? (
                 dayShifts.map((shiftId) => {
-                  const shiftName = shifts.find((s) => s.id === shiftId)?.name ?? shiftId;
+                  const shift = shifts.find((s) => s.id === shiftId);
+                  if (!shift) return null;
                   return (
-                    <div
-                      className="flex items-center justify-between gap-1.5 px-2.5 py-1.5 bg-primary-50 dark:bg-primary-950 border border-primary-100 dark:border-primary-850 rounded-xl shadow-sm animate-in zoom-in-95 duration-350"
+                    <AssignedShiftChip
                       key={shiftId}
-                    >
-                      <div className="flex items-center gap-1.5 overflow-hidden">
-                        <Clock
-                          className="text-primary-500 dark:text-primary-400 flex-shrink-0"
-                          size={10}
-                        />
-                        <span className="text-[10px] font-bold text-primary-750 dark:text-primary-300 uppercase tracking-tight truncate">
-                          {shiftName.toUpperCase()}
-                        </span>
-                      </div>
-                      <Button
-                        aria-label={`Remove ${shiftName}`}
-                        className="p-0.5 rounded-md text-primary-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors flex-shrink-0 ml-1"
-                        onClick={() => {
-                          removeShiftFromDay(index, shiftId);
-                        }}
-                        type="button"
-                        variant="destructive"
-                      >
-                        <X size={12} />
-                      </Button>
-                    </div>
+                      onRemove={() => {
+                        removeShiftFromDay(index, shiftId);
+                      }}
+                      shift={shift}
+                    />
                   );
                 })
               ) : (
@@ -185,16 +154,12 @@ function RotationDesignEditor({
               )}
             </div>
 
-            <Combobox
-              className="w-full !py-1.5 !px-3 rounded-xl text-[9px] font-bold uppercase tracking-tight outline-none border border-dashed border-primary-200 dark:border-primary-800 bg-transparent text-primary-500 dark:text-primary-400 cursor-pointer transition-all hover:bg-primary-50 dark:hover:bg-primary-950/50"
-              onChange={(val) => {
-                if (val) addShiftToDay(index, val);
+            <AddShiftTrigger
+              availableCount={availableShifts.length}
+              fullWidth
+              onClick={() => {
+                onOpenPicker(index);
               }}
-              options={shifts
-                .filter((s) => !dayShifts.includes(s.id))
-                .map((s) => ({ label: s.name.toUpperCase(), value: s.id }))}
-              placeholder={`+ ${t("patterns.form.add_shift") || "ADD"}`}
-              value=""
             />
           </div>
         );
@@ -220,23 +185,67 @@ export function WorkingPatternDesignEditor({
   removeShiftFromDay,
   shifts,
 }: WorkingPatternDesignEditorProps) {
+  const [pickerDayIndex, setPickerDayIndex] = useState<number | null>(null);
+
+  const handleOpenPicker = useCallback((dayIndex: number) => {
+    setPickerDayIndex(dayIndex);
+  }, []);
+
+  const handleClosePicker = useCallback(() => {
+    setPickerDayIndex(null);
+  }, []);
+
+  const handleSelectShift = useCallback(
+    (shiftId: string | null) => {
+      if (pickerDayIndex === null) return;
+      if (shiftId === null) {
+        // OFF day — clear all shifts for this day
+        const dayShifts = grid[pickerDayIndex] ?? [];
+        for (const sid of dayShifts) {
+          removeShiftFromDay(pickerDayIndex, sid);
+        }
+      } else {
+        addShiftToDay(pickerDayIndex, shiftId);
+      }
+    },
+    [pickerDayIndex, grid, addShiftToDay, removeShiftFromDay],
+  );
+
+  const pickerDayName = pickerDayIndex !== null ? (gridRows[pickerDayIndex] ?? "") : "";
+
+  // Shifts available for the currently-picked day (filter out already-assigned)
+  const pickerShifts =
+    pickerDayIndex !== null
+      ? shifts.filter((s) => !(grid[pickerDayIndex] ?? []).includes(s.id))
+      : shifts;
+
   return (
     <div className="flex-1">
       {patternType === "weekly" ? (
         <WeeklyDesignEditor
-          addShiftToDay={addShiftToDay}
           grid={grid}
           gridRows={gridRows}
+          onOpenPicker={handleOpenPicker}
           removeShiftFromDay={removeShiftFromDay}
           shifts={shifts}
         />
       ) : (
         <RotationDesignEditor
-          addShiftToDay={addShiftToDay}
           grid={grid}
           gridRows={gridRows}
+          onOpenPicker={handleOpenPicker}
           removeShiftFromDay={removeShiftFromDay}
           shifts={shifts}
+        />
+      )}
+
+      {pickerDayIndex !== null && (
+        <ShiftPickerModal
+          isOpen={pickerDayIndex !== null}
+          onClose={handleClosePicker}
+          onSelectShift={handleSelectShift}
+          shifts={pickerShifts}
+          targetDates={[pickerDayName]}
         />
       )}
     </div>

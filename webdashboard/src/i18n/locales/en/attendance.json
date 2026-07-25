@@ -213,6 +213,7 @@
       "cycle_grid_title": "Cycle Schedule Grid",
       "prefill_standard": "Fill Standard Pattern",
       "add_shift": "Add Shift",
+      "all_shifts_committed": "All shifts assigned",
       "pattern_type": "Pattern Type",
       "pattern_type_weekly": "Weekly Schedule",
       "pattern_type_rotation": "Rotating Cycle",

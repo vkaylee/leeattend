@@ -213,6 +213,7 @@
       "cycle_grid_title": "Lưới lịch chu kỳ",
       "prefill_standard": "Điền mẫu hành chính",
       "add_shift": "Thêm ca",
+      "all_shifts_committed": "Đã gán hết ca",
       "pattern_type": "Loại lịch làm việc",
       "pattern_type_weekly": "Hằng tuần",
       "pattern_type_rotation": "Ca xoay chu kỳ",

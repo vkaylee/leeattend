@@ -3,8 +3,8 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { Shift, WorkingPattern, WorkingPatternDetail  } from "@/lib/api/types";
-import type { ShiftWithIntervals } from "@/pages/shifts/hooks/use-shifts-types";
 
+import { getShiftIntervals } from "@/lib/shift-card-metrics";
 import StatusBadge from "@/components/ui/status-badge";
 import { Typography } from "@/components/ui/typography";
 
@@ -35,9 +35,13 @@ function renderDayPill(shiftInfo: Shift | undefined | null, label: string, t: (k
   const isOff = !shiftInfo;
   const dayLabel = label;
   const badgeText = isOff ? "OFF" : (shiftInfo.report_symbol ?? shiftInfo.name.substring(0, 2).toUpperCase());
-  const tooltipTitle = isOff
-    ? t("status_off")
-    : `${shiftInfo.name} (${(shiftInfo as ShiftWithIntervals).intervals?.[0]?.start_time ?? '--'} - ${(shiftInfo as ShiftWithIntervals).intervals?.[0]?.end_time ?? '--'})`;
+  const tooltipTitle = (() => {
+    if (isOff) return t("status_off");
+    const ivs = getShiftIntervals(shiftInfo);
+    if (ivs.length === 0) return shiftInfo.name;
+    const times = ivs.map((iv) => `${iv.start_time}-${iv.end_time}`).join(", ");
+    return `${shiftInfo.name} (${times})`;
+  })();
   const pillClass = isOff
     ? "bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200/55 dark:border-slate-700/55 opacity-75"
     : "bg-primary-50 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300 border-primary-100 dark:border-primary-800/80";

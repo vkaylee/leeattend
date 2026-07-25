@@ -206,6 +206,7 @@
       "cycle_grid_title": "循环日程网格",
       "prefill_standard": "填充标准模式",
       "add_shift": "添加班次",
+      "all_shifts_committed": "所有班次已分配",
       "pattern_type": "排班类型",
       "pattern_type_weekly": "每周排班",
       "pattern_type_rotation": "循环轮班",
