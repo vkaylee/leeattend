@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use chrono::NaiveDate;
 use uuid::Uuid;
 
-#[cfg_attr(test, mockall::automock)]
 #[async_trait]
+#[cfg_attr(test, mockall::automock)]
 pub trait WorkspaceConfigRepository: Send + Sync {
     async fn create_entry(
         &self,

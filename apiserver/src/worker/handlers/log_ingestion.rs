@@ -150,13 +150,13 @@ mod tests {
             );
         raw_log_repo
             .expect_has_duplicate_raw_log()
-            .returning(|_, _, _, _|  Ok(false) );
+            .returning(|_, _, _, _| Box::pin(async { Ok(false) }));
         raw_log_repo
             .expect_create_raw_log()
-            .returning(|_, _|  Ok(true) );
+            .returning(|_, _| Box::pin(async { Ok(true) }));
         raw_log_repo
             .expect_get_employment_logs_in_time_range()
-            .returning(|_, _, _, _|  Ok(vec![]) );
+            .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
 
         // Mock Staging repo just in case
         let staging_repo =
@@ -192,10 +192,10 @@ mod tests {
         let mut roster_repo = crate::repositories::roster::MockRosterRepository::new();
         roster_repo
             .expect_get_effective_shift()
-            .returning(|_, _, _|  Ok((None, vec![])) );
+            .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
         roster_repo
             .expect_get_workspace_schedules()
-            .returning(|_, _, _, _, _, _, _|  Ok((vec![], 0)) );
+            .returning(|_, _, _, _, _, _, _| Box::pin(async { Ok((vec![], 0)) }));
 
         let mut time_entry_repo =
             crate::repositories::time_entry_repository::MockTimeEntryRepository::new();

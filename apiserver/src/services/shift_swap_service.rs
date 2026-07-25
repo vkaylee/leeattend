@@ -742,12 +742,12 @@ mod tests {
             .expect_get_effective_shift()
             .times(2)
             .returning(move |_, _, _| {
-                
+                Box::pin(async move {
                     Ok((
                         Some(Uuid::new_v4()),
                         Vec::<crate::models::attendance::ScheduleTrace>::new(),
                     ))
-                
+                })
             });
 
         let mut swap_repo = MockShiftSwapRepository::new();
@@ -834,7 +834,7 @@ mod tests {
             .returning(|_ws, r| {
                 let mut roster = r.clone();
                 roster.id = Uuid::new_v4();
-                 Ok(roster) 
+                Box::pin(async move { Ok(roster) })
             });
 
         let mut employee_repo = MockEmployeeRepository::new();

@@ -230,10 +230,10 @@ impl MockWorkerDepsBuilder {
         let mut leave_request_repo = MockLeaveRequestRepository::new();
         leave_request_repo
             .expect_get_approved_leave_dates()
-            .returning(|_, _, _, _| Ok(std::collections::HashSet::new()));
+            .returning(|_, _, _, _| Box::pin(async move { Ok(std::collections::HashSet::new()) }));
         leave_request_repo
             .expect_get_approved_leave_details()
-            .returning(|_, _, _, _| Ok(std::collections::HashMap::new()));
+            .returning(|_, _, _, _| Box::pin(async move { Ok(std::collections::HashMap::new()) }));
 
         let mut employment_repo = MockEmploymentRepository::new();
         employment_repo

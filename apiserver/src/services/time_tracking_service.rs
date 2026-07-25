@@ -312,3 +312,241 @@ impl TimeTrackingService {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::diesel_pool::TenantAuthToken;
+    use crate::models::{Employment, TimeEntry, UpdateTimeEntryRequest};
+    use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
+    use crate::repositories::attendance_log_error_repository::MockAttendanceLogErrorRepository;
+    use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
+    use crate::repositories::condition_type_repository::MockConditionTypeRepository;
+    use crate::repositories::employee::MockEmployeeRepository;
+    use crate::repositories::employment_repository::MockEmploymentRepository;
+    use crate::repositories::holiday_repository::MockHolidayRepository;
+    use crate::repositories::leave_request_repository::MockLeaveRequestRepository;
+    use crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository;
+    use crate::repositories::roster::MockRosterRepository;
+    use crate::repositories::staging_log_repository::MockStagingLogRepository;
+    use crate::repositories::time_entry_repository::MockTimeEntryRepository;
+    use crate::repositories::workspace_repository::MockWorkspaceRepository;
+    use crate::services::{AttendanceLogService, AttendanceLogServiceDeps};
+    use chrono::{NaiveDate, TimeZone, Utc};
+    use uuid::Uuid;
+
+    fn make_token(ws: Uuid) -> TenantAuthToken {
+        TenantAuthToken::system_override(ws)
+    }
+
+    fn make_employment(ws: Uuid, status: &str) -> Employment {
+        Employment::new(
+            Uuid::new_v4(), ws, Uuid::new_v4(), Uuid::new_v4(),
+            None, None, status.into(),
+            NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            None, Some("Dev".into()), "full_time".into(), None,
+            Utc::now(), Utc::now(), None, None,
+        )
+    }
+
+    fn make_time_entry(ws: Uuid, emp_id: Uuid) -> TimeEntry {
+        TimeEntry::new(
+            Uuid::new_v4(), emp_id, ws, None, None,
+            Utc.with_ymd_and_hms(2026, 7, 24, 8, 0, 0).unwrap(),
+            None, None, false, "regular".into(), None, None,
+            Utc::now(), Utc::now(),
+        )
+    }
+
+    fn build_service(
+        repo: MockTimeEntryRepository,
+        employment_repo: MockEmploymentRepository,
+        workspace_repo: MockWorkspaceRepository,
+    ) -> TimeTrackingService {
+        TimeTrackingService::new(
+            Arc::new(repo),
+            Arc::new(MockRosterRepository::new()),
+            Arc::new(MockAttendancePolicyRepository::new()),
+            Arc::new(MockConditionTypeRepository::new()),
+            Arc::new(MockEmployeeRepository::new()),
+            Arc::new(employment_repo),
+            Arc::new(workspace_repo),
+            Arc::new(MockHolidayRepository::new()),
+            Arc::new(MockLeaveRequestRepository::new()),
+            Arc::new(MockAttendanceDailySummaryRepository::new()),
+        )
+    }
+
+    fn make_log_service() -> AttendanceLogService {
+        AttendanceLogService::new(
+            AttendanceLogServiceDeps {
+                employee_repo: Arc::new(MockEmployeeRepository::new()),
+                employment_repo: Arc::new(MockEmploymentRepository::new()),
+                raw_log_repo: Arc::new(MockRawAttendanceLogRepository::new()),
+                staging_repo: Arc::new(MockStagingLogRepository::new()),
+                error_repo: Arc::new(MockAttendanceLogErrorRepository::new()),
+                pairing_service: None,
+            },
+            None,
+        )
+    }
+
+    // ── get_employee_history ──────────────────────────────────────────
+
+    #[tokio::test]
+    async fn get_employee_history_employment_not_found() {
+        let ws = Uuid::new_v4();
+        let mut employment_repo = MockEmploymentRepository::new();
+        employment_repo.expect_get_employment_by_id().returning(|_, _| Ok(None));
+        let svc = build_service(MockTimeEntryRepository::new(), employment_repo, MockWorkspaceRepository::new());
+        let result = svc.get_employee_history(&make_token(ws), Uuid::new_v4(), Utc::now(), Utc::now()).await;
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn get_employee_history_success() {
+        let ws = Uuid::new_v4();
+        let emp = make_employment(ws, "active");
+        let emp_id = emp.id();
+        let entry = make_time_entry(ws, emp_id);
+
+        let mut employment_repo = MockEmploymentRepository::new();
+        employment_repo.expect_get_employment_by_id().returning(move |_, _| Ok(Some(emp.clone())));
+
+        let mut repo = MockTimeEntryRepository::new();
+        repo.expect_get_employment_time_entries().returning(move |_, _, _, _| Ok(vec![entry.clone()]));
+
+        let svc = build_service(repo, employment_repo, MockWorkspaceRepository::new());
+        let result = svc.get_employee_history(&make_token(ws), emp_id, Utc::now(), Utc::now()).await;
+        assert_eq!(result.unwrap().len(), 1);
+    }
+
+    // ── update_time_entry ─────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn update_time_entry_not_found() {
+        let ws = Uuid::new_v4();
+        let mut repo = MockTimeEntryRepository::new();
+        repo.expect_get_time_entry_by_id().returning(|_, _| Ok(None));
+        let svc = build_service(repo, MockEmploymentRepository::new(), MockWorkspaceRepository::new());
+        let result = svc.update_time_entry(&make_token(ws), Uuid::new_v4(), UpdateTimeEntryRequest::new(None, None, None, None, None)).await;
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn update_time_entry_cross_workspace_forbidden() {
+        let ws = Uuid::new_v4();
+        let entry = make_time_entry(ws, Uuid::new_v4());
+        let entry_id = entry.id();
+
+        let mut repo = MockTimeEntryRepository::new();
+        repo.expect_get_time_entry_by_id().returning(move |_, _| Ok(Some(entry.clone())));
+
+        let mut employment_repo = MockEmploymentRepository::new();
+        employment_repo.expect_get_employment_by_id().returning(|_, _| Ok(None));
+
+        let svc = build_service(repo, employment_repo, MockWorkspaceRepository::new());
+        let result = svc.update_time_entry(&make_token(ws), entry_id, UpdateTimeEntryRequest::new(None, None, None, None, None)).await;
+        assert!(matches!(result.unwrap_err(), AppError::Forbidden(_)));
+    }
+
+    #[tokio::test]
+    async fn update_time_entry_success() {
+        let ws = Uuid::new_v4();
+        let emp = make_employment(ws, "active");
+        let emp_id = emp.id();
+        let entry = make_time_entry(ws, emp_id);
+        let entry_id = entry.id();
+
+        let mut repo = MockTimeEntryRepository::new();
+        repo.expect_get_time_entry_by_id().returning(move |_, _| Ok(Some(entry.clone())));
+        repo.expect_update_time_entry().returning(|_, _| Ok(()));
+
+        let mut employment_repo = MockEmploymentRepository::new();
+        employment_repo.expect_get_employment_by_id().returning(move |_, _| Ok(Some(emp.clone())));
+
+        // workspace_repo returns Ok(None) to skip daily-summary recalculation
+        let mut workspace_repo = MockWorkspaceRepository::new();
+        workspace_repo.expect_get_workspace_by_id().returning(|_| Box::pin(async { Ok(None) }));
+
+        let svc = build_service(repo, employment_repo, workspace_repo);
+        let new_note = Some("note".into());
+        let new_type = Some("overtime".into());
+        let result = svc.update_time_entry(&make_token(ws), entry_id,
+            UpdateTimeEntryRequest::new(None, None, None, new_type.clone(), new_note.clone())).await;
+        let updated = result.unwrap();
+        assert_eq!(updated.note().as_deref(), new_note.as_deref());
+        assert_eq!(updated.entry_type(), "overtime");
+    }
+
+    // ── delete_time_entry ─────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn delete_time_entry_not_found() {
+        let ws = Uuid::new_v4();
+        let mut repo = MockTimeEntryRepository::new();
+        repo.expect_get_time_entry_by_id().returning(|_, _| Ok(None));
+        let svc = build_service(repo, MockEmploymentRepository::new(), MockWorkspaceRepository::new());
+        let result = svc.delete_time_entry(&make_token(ws), Uuid::new_v4()).await;
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn delete_time_entry_cross_workspace_forbidden() {
+        let ws = Uuid::new_v4();
+        let entry = make_time_entry(ws, Uuid::new_v4());
+        let entry_id = entry.id();
+
+        let mut repo = MockTimeEntryRepository::new();
+        repo.expect_get_time_entry_by_id().returning(move |_, _| Ok(Some(entry.clone())));
+
+        let mut employment_repo = MockEmploymentRepository::new();
+        employment_repo.expect_get_employment_by_id().returning(|_, _| Ok(None));
+
+        let svc = build_service(repo, employment_repo, MockWorkspaceRepository::new());
+        let result = svc.delete_time_entry(&make_token(ws), entry_id).await;
+        assert!(matches!(result.unwrap_err(), AppError::Forbidden(_)));
+    }
+
+    #[tokio::test]
+    async fn delete_time_entry_success() {
+        let ws = Uuid::new_v4();
+        let emp = make_employment(ws, "active");
+        let entry = make_time_entry(ws, emp.id());
+        let entry_id = entry.id();
+
+        let mut repo = MockTimeEntryRepository::new();
+        repo.expect_get_time_entry_by_id().returning(move |_, _| Ok(Some(entry.clone())));
+        repo.expect_delete_time_entry().returning(|_, _| Ok(()));
+
+        let mut employment_repo = MockEmploymentRepository::new();
+        employment_repo.expect_get_employment_by_id().returning(move |_, _| Ok(Some(emp.clone())));
+
+        let svc = build_service(repo, employment_repo, MockWorkspaceRepository::new());
+        assert!(svc.delete_time_entry(&make_token(ws), entry_id).await.is_ok());
+    }
+
+    // ── punch error paths (before log_service call) ────────────────────
+
+    #[tokio::test]
+    async fn punch_employment_not_found() {
+        let ws = Uuid::new_v4();
+        let mut employment_repo = MockEmploymentRepository::new();
+        employment_repo.expect_get_employment_by_id().returning(|_, _| Ok(None));
+        let svc = build_service(MockTimeEntryRepository::new(), employment_repo, MockWorkspaceRepository::new());
+        let result = svc.punch(&make_log_service(), &make_token(ws), Uuid::new_v4(), None).await;
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn punch_employment_inactive() {
+        let ws = Uuid::new_v4();
+        let emp = make_employment(ws, "inactive");
+        let emp_id = emp.id();
+        let mut employment_repo = MockEmploymentRepository::new();
+        employment_repo.expect_get_employment_by_id().returning(move |_, _| Ok(Some(emp.clone())));
+        let svc = build_service(MockTimeEntryRepository::new(), employment_repo, MockWorkspaceRepository::new());
+        let result = svc.punch(&make_log_service(), &make_token(ws), emp_id, None).await;
+        assert!(matches!(result.unwrap_err(), AppError::Forbidden(_)));
+    }
+}

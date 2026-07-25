@@ -623,7 +623,7 @@
             crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository::new();
         mock_workspace_config_repo
             .expect_get_effective_config()
-            .returning(|_, _, _, _, _, _|  Ok(None) );
+            .returning(|_, _, _, _, _, _| Box::pin(async move { Ok(None) }));
 
         let mock_user_repo = crate::repositories::user_repository::MockUserRepository::new();
         let mock_workspace_repo =
@@ -1350,7 +1350,7 @@
         let mut ros_repo = crate::repositories::roster::MockRosterRepository::new();
         ros_repo
             .expect_get_employment_rosters()
-            .returning(|_, _, _, _, _, _|  Ok((vec![], 0)) );
+            .returning(|_, _, _, _, _, _| Box::pin(async move { Ok((vec![], 0)) }));
 
         // 4. Mock config repo: returns "auto_cancel" policy
         let mut config_repo =
@@ -1377,7 +1377,7 @@
             .expect_get_effective_config()
             .returning(move |_, _, _, _, _, _| {
                 let val = config_entry_clone.clone();
-                 Ok(Some(val)) 
+                Box::pin(async move { Ok(Some(val)) })
             });
 
         // 5. Unused mocks
@@ -1503,7 +1503,7 @@
         let mut ros_repo = crate::repositories::roster::MockRosterRepository::new();
         ros_repo
             .expect_get_employment_rosters()
-            .returning(|_, _, _, _, _, _|  Ok((vec![], 0)) );
+            .returning(|_, _, _, _, _, _| Box::pin(async move { Ok((vec![], 0)) }));
 
         // 4. Mock config repo: returns "notify" policy
         let mut config_repo =
@@ -1530,7 +1530,7 @@
             .expect_get_effective_config()
             .returning(move |_, _, _, _, _, _| {
                 let val = config_entry_clone.clone();
-                 Ok(Some(val)) 
+                Box::pin(async move { Ok(Some(val)) })
             });
 
         // 5. Mock workspace repo: return list of admins
