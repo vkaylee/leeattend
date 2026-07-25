@@ -63,6 +63,21 @@ function clearReloadAttempt(): void {
   }
 }
 
+/** Extract and validate build ID from manifest JSON response. */
+async function fetchServerBuildId(): Promise<string | null> {
+  const res = await fetch(`/version.json?_v=${Date.now()}`, {
+    method: "GET",
+    cache: "no-store",
+    headers: { "Cache-Control": "no-cache" },
+  });
+  if (!res.ok) return null;
+  const manifest = await res.json() as { buildId?: unknown };
+  if (typeof manifest.buildId === "string" && manifest.buildId.length > 0) {
+    return manifest.buildId;
+  }
+  return null;
+}
+
 export function useVersionCheck() {
   const [hasNewVersion, setHasNewVersion] = useState(false);
   const latestServerHash = useRef<string | null>(null);
@@ -73,15 +88,8 @@ export function useVersionCheck() {
       const current = __BUILD_HASH__;
       if (!current) return;
 
-      const res = await fetch(`/version.json?_v=${Date.now()}`, {
-        method: "GET",
-        cache: "no-store",
-        headers: { "Cache-Control": "no-cache" },
-      });
-      if (!res.ok) return;
-      const manifest = await res.json() as { buildId?: unknown };
-      if (typeof manifest.buildId !== "string" || manifest.buildId.length === 0) return;
-      const serverHash = manifest.buildId;
+      const serverHash = await fetchServerBuildId();
+      if (!serverHash) return;
 
       // Server serves the build we're running — nothing new; clear any
       // half-confirmed sighting.

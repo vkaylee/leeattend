@@ -25,12 +25,14 @@ function groupByDay(details: WorkingPatternDetail[]): Map<number, WorkingPattern
 
 /** Convert a single pattern detail to a ShiftTimeBlock, or null if its shift has no intervals. */
 function toShiftBlock(d: WorkingPatternDetail, shifts: Shift[], day: number): ShiftTimeBlock | null {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- shift may be undefined when shift_id not found
   const shift = shifts.find((s) => s.id === d.shift_id);
   const iv = shift?.intervals?.[0];
   if (!iv) return null;
   if (!iv.start_time || !iv.end_time) return null;
   return {
     shiftId: d.shift_id ?? "",
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     shiftName: shift?.name ?? "",
     start: iv.start_time,
     end: iv.end_time,

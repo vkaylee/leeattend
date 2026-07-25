@@ -36,7 +36,7 @@ function mergeField<T>(overrideVal: T | undefined, configVal: T | undefined, def
 
 /** Convert empty string to undefined for API payloads (|| semantics). */
 function emptyToUndefined(v: string | undefined): string | undefined {
-  return v || undefined;
+  return v ?? undefined;
 }
 
 function buildForm(cfg: SmtpConfigData | null | undefined, ov: Partial<SmtpConfigData>): SmtpConfigData {
