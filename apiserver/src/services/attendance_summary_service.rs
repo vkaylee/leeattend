@@ -142,10 +142,7 @@ impl AttendanceSummaryService {
         let _workspace_id = auth_token.workspace_id();
         let employment = self
             .employment_repo
-            .get_employment_by_id(
-                auth_token,
-                employment_id,
-            )
+            .get_employment_by_id(auth_token, employment_id)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
         let employee_id = employment.employee_id();
@@ -159,10 +156,7 @@ impl AttendanceSummaryService {
         if !daily_schedule.is_holiday() && !day_entries.is_empty() {
             let leaves = self
                 .leave_request_repo
-                .get_employee_leave_requests(
-                    auth_token,
-                    employee_id,
-                )
+                .get_employee_leave_requests(auth_token, employee_id)
                 .await?;
 
             let leave_to_cancel = leaves.into_iter().find(|l| {
@@ -475,12 +469,7 @@ impl AttendanceSummaryService {
 
         let entries = self
             .time_entry_repo
-            .get_employment_time_entries(
-                auth_token,
-                employment_id,
-                start_dt_utc,
-                end_dt_utc,
-            )
+            .get_employment_time_entries(auth_token, employment_id, start_dt_utc, end_dt_utc)
             .await?;
 
         let day_entries: Vec<_> = entries
@@ -644,21 +633,13 @@ impl AttendanceSummaryService {
     ) -> AppResult<(bool, Option<String>)> {
         let active_employment = self
             .employment_repo
-            .get_active_employment_on_date(
-                auth_token,
-                employee_id,
-                date,
-            )
+            .get_active_employment_on_date(auth_token, employee_id, date)
             .await?;
         let location_id = active_employment.and_then(|e| e.primary_location_id());
 
         let holiday = self
             .holiday_repo
-            .is_holiday(
-                auth_token,
-                date,
-                location_id,
-            )
+            .is_holiday(auth_token, date, location_id)
             .await?;
         let is_holiday = holiday.is_some();
         let holiday_name = holiday.as_ref().map(|h| h.name().to_string());
@@ -701,11 +682,7 @@ impl AttendanceSummaryService {
     ) -> AppResult<()> {
         let system_leave = self
             .leave_request_repo
-            .get_system_generated_holiday_leave(
-                auth_token,
-                employee_id,
-                date,
-            )
+            .get_system_generated_holiday_leave(auth_token, employee_id, date)
             .await?;
 
         let Some((leave_request_id, _leave_type_id, _leave_code)) = system_leave else {
@@ -737,10 +714,7 @@ impl AttendanceSummaryService {
 
         if work_percent >= threshold {
             self.leave_request_repo
-                .cancel_leave_request(
-                    auth_token,
-                    leave_request_id,
-                )
+                .cancel_leave_request(auth_token, leave_request_id)
                 .await?;
 
             tracing::info!(
@@ -774,11 +748,7 @@ impl AttendanceSummaryService {
     ) -> AppResult<OtStatus> {
         let existing = self
             .daily_summary_repo
-            .get_summary(
-                auth_token,
-                employee_id,
-                date,
-            )
+            .get_summary(auth_token, employee_id, date)
             .await?;
 
         let status = match existing {
@@ -813,13 +783,7 @@ impl AttendanceSummaryService {
         let summary_repo = self.daily_summary_repo.as_ref();
 
         let rows_affected = summary_repo
-            .claim_ot(
-                auth_token,
-                employment_id,
-                date,
-                claimed_minutes,
-                reason,
-            )
+            .claim_ot(auth_token, employment_id, date, claimed_minutes, reason)
             .await?;
 
         if rows_affected == 0 {
@@ -867,11 +831,7 @@ impl AttendanceSummaryService {
 
         // 1. Check existing summary
         let existing = summary_repo
-            .get_summary(
-                auth_token,
-                args.employment_id,
-                args.date,
-            )
+            .get_summary(auth_token, args.employment_id, args.date)
             .await?;
 
         // 2. Validate against system detected (if not allowing exceed)

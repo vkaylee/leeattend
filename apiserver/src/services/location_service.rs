@@ -226,10 +226,7 @@ mod tests {
     }
 
     fn build_service(repo: MockLocationRepository) -> LocationService {
-        LocationService::new(
-            Arc::new(repo),
-            Arc::new(MockAuditLogRepository::new()),
-        )
+        LocationService::new(Arc::new(repo), Arc::new(MockAuditLogRepository::new()))
     }
 
     // ── list_locations tests ──────────────────────────────────────────────
@@ -277,8 +274,7 @@ mod tests {
     async fn get_location_not_found() {
         let ws = Uuid::new_v4();
         let mut repo = MockLocationRepository::new();
-        repo.expect_find_by_id()
-            .returning(|_, _| Ok(None));
+        repo.expect_find_by_id().returning(|_, _| Ok(None));
 
         let svc = build_service(repo);
         let result = svc.get_location(ws, Uuid::new_v4()).await;
@@ -327,7 +323,10 @@ mod tests {
         let result = svc.delete_location(ws, hq.id, Uuid::new_v4()).await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("cannot_delete_headquarters"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("cannot_delete_headquarters"));
     }
 
     #[tokio::test]
@@ -347,6 +346,9 @@ mod tests {
         let result = svc.delete_location(ws, loc_id, Uuid::new_v4()).await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("cannot_delete_location_in_use"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("cannot_delete_location_in_use"));
     }
 }

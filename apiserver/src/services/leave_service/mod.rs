@@ -1,12 +1,12 @@
-mod caching;
-mod balance;
 mod approval;
+mod balance;
+mod caching;
 pub(super) mod conflict;
 pub(super) mod submission;
 pub use submission::SubmitterInfo;
-mod workflow;
 #[cfg(test)]
 mod tests;
+mod workflow;
 
 use std::sync::Arc;
 use uuid::Uuid;
@@ -14,9 +14,9 @@ use uuid::Uuid;
 // These re-exports exist only so the test module's `use super::*;` can find
 // items that were previously in this file before decomposition.
 #[cfg(test)]
-pub(super) use chrono::Utc;
-#[cfg(test)]
 pub(super) use crate::models::{LeaveDurationType, LeaveStatus};
+#[cfg(test)]
+pub(super) use chrono::Utc;
 
 use crate::repositories::leave_balance_repository::LeaveBalanceRepository;
 use crate::repositories::leave_request_repository::LeaveRequestRepository;
@@ -110,6 +110,7 @@ impl LeaveSubmission for LeaveService {
         req: SubmitLeaveRequest,
         auto_approve: bool,
     ) -> Result<LeaveRequest, AppError> {
-        self.submit_leave_request(auth_token, user_id, req, auto_approve).await
+        self.submit_leave_request(auth_token, user_id, req, auto_approve)
+            .await
     }
 }

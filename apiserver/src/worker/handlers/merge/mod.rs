@@ -12,8 +12,8 @@ use crate::services::import_messages::ExcelReportMessages;
 use crate::utils::i18n::I18nKey;
 use std::sync::Arc;
 
-mod summary;
 mod detail;
+mod summary;
 
 #[cfg(test)]
 mod tests;

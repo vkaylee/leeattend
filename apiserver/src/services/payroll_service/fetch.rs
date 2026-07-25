@@ -39,18 +39,12 @@ impl PayrollService {
 
         let all_dept_history = self
             .department_repo
-            .get_employee_department_history(
-                auth_token,
-                employee_id,
-            )
+            .get_employee_department_history(auth_token, employee_id)
             .await?;
 
         let employee = self
             .employee_repo
-            .get_employee_by_id(
-                employee_id,
-                auth_token,
-            )
+            .get_employee_by_id(employee_id, auth_token)
             .await?
             .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
 
@@ -71,35 +65,19 @@ impl PayrollService {
 
         let time_entries = self
             .time_entry_repo
-            .get_employment_time_entries(
-                auth_token,
-                active_emp_id,
-                start_dt,
-                end_dt,
-            )
+            .get_employment_time_entries(auth_token, active_emp_id, start_dt, end_dt)
             .await?;
 
         let holidays_map = self
             .holiday_repo
-            .get_holidays_in_range(
-                auth_token,
-                start_date,
-                end_date,
-            )
+            .get_holidays_in_range(auth_token, start_date, end_date)
             .await?;
 
         let roster_data = self.roster_provider.get_roster_data(workspace_id).await?;
 
         let (rosters, _) = self
             .roster_repo
-            .get_employment_rosters(
-                auth_token,
-                active_emp_id,
-                start_date,
-                end_date,
-                None,
-                None,
-            )
+            .get_employment_rosters(auth_token, active_emp_id, start_date, end_date, None, None)
             .await?;
         let payroll_roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>> = rosters
             .into_iter()
@@ -115,12 +93,7 @@ impl PayrollService {
 
         let (working_conditions, _) = self
             .employee_repo
-            .get_working_conditions(
-                auth_token,
-                active_emp_id,
-                1,
-                3000,
-            )
+            .get_working_conditions(auth_token, active_emp_id, 1, 3000)
             .await?;
         let condition_type_catalog = PolicyResolverService::load_condition_type_catalog(
             self.condition_type_repo.as_ref(),
@@ -134,11 +107,7 @@ impl PayrollService {
             .and_utc();
         let policy_version = self
             .policy_repo
-            .get_employment_effective_policy(
-                auth_token,
-                active_emp_id,
-                effective_time,
-            )
+            .get_employment_effective_policy(auth_token, active_emp_id, effective_time)
             .await?;
 
         let attendance_policy = if let Some(pv) = policy_version {
@@ -154,10 +123,7 @@ impl PayrollService {
 
         let emp_payroll_configs = self
             .employee_repo
-            .get_employee_payroll_configs(
-                auth_token,
-                active_emp_id,
-            )
+            .get_employee_payroll_configs(auth_token, active_emp_id)
             .await?;
 
         let ws_payroll_settings_history = self
@@ -174,10 +140,7 @@ impl PayrollService {
 
         let department_payroll_configs = self
             .department_repo
-            .get_department_payroll_configs_batch(
-                auth_token,
-                &department_ids,
-            )
+            .get_department_payroll_configs_batch(auth_token, &department_ids)
             .await?;
 
         let overtime_data = self
@@ -187,18 +150,12 @@ impl PayrollService {
 
         let active_contracts = self
             .contract_repo
-            .list_employee_contracts(
-                auth_token,
-                employee_id,
-            )
+            .list_employee_contracts(auth_token, employee_id)
             .await?;
 
         let active_assignments = self
             .employee_repo
-            .list_employee_assignments(
-                auth_token,
-                active_emp_id,
-            )
+            .list_employee_assignments(auth_token, active_emp_id)
             .await?;
 
         let active_employment = self
@@ -267,12 +224,7 @@ impl PayrollService {
         // Fetch leave breakdown
         let leave_breakdown = self
             .leave_repo
-            .get_approved_leave_breakdown(
-                employee_id,
-                start_date,
-                end_date,
-                auth_token,
-            )
+            .get_approved_leave_breakdown(employee_id, start_date, end_date, auth_token)
             .await
             .map_err(|e| {
                 tracing::error!(
@@ -316,12 +268,7 @@ impl PayrollService {
         // Fetch unpaid holiday days
         let unpaid_holiday_days: i64 = self
             .leave_repo
-            .get_unpaid_holiday_days_without_leave(
-                auth_token,
-                employee_id,
-                start_date,
-                end_date,
-            )
+            .get_unpaid_holiday_days_without_leave(auth_token, employee_id, start_date, end_date)
             .await
             .unwrap_or_else(|e| {
                 tracing::error!(

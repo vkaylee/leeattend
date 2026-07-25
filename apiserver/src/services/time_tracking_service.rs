@@ -69,10 +69,7 @@ impl TimeTrackingService {
         // Verify employment belongs to workspace
         let employment = self
             .employment_repo
-            .get_employment_by_id(
-                auth_token,
-                employment_id,
-            )
+            .get_employment_by_id(auth_token, employment_id)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
 
@@ -87,10 +84,7 @@ impl TimeTrackingService {
         // for backward compatibility with systems expecting 0=IN, 1=OUT
         let is_in = self
             .repo
-            .get_latest_active_entry(
-                auth_token,
-                employment_id,
-            )
+            .get_latest_active_entry(auth_token, employment_id)
             .await?
             .is_none();
 
@@ -109,15 +103,14 @@ impl TimeTrackingService {
             // 1. Identify effective shift
             let (shift_id, _) = self
                 .roster_repo
-                .get_effective_shift(
-                    auth_token,
-                    employment_id,
-                    today,
-                )
+                .get_effective_shift(auth_token, employment_id, today)
                 .await?;
 
             if let Some(sid) = shift_id {
-                let roster_data = self.roster_repo.get_raw_roster_data(auth_token.workspace_id()).await?;
+                let roster_data = self
+                    .roster_repo
+                    .get_raw_roster_data(auth_token.workspace_id())
+                    .await?;
                 let interval = roster_data
                     .shift_intervals
                     .get(&sid)
@@ -170,10 +163,7 @@ impl TimeTrackingService {
 
         let entry = self
             .repo
-            .get_latest_entry_for_employment(
-                auth_token,
-                employment_id,
-            )
+            .get_latest_entry_for_employment(auth_token, employment_id)
             .await?
             .ok_or(AppError::Internal(
                 "error.time_tracking_failed_fetch_punched".into(),
@@ -193,20 +183,12 @@ impl TimeTrackingService {
         // Verify employment belongs to workspace
         let _ = self
             .employment_repo
-            .get_employment_by_id(
-                auth_token,
-                employment_id,
-            )
+            .get_employment_by_id(auth_token, employment_id)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
 
         self.repo
-            .get_employment_time_entries(
-                auth_token,
-                employment_id,
-                start_date,
-                end_date,
-            )
+            .get_employment_time_entries(auth_token, employment_id, start_date, end_date)
             .await
     }
 
@@ -219,19 +201,13 @@ impl TimeTrackingService {
     ) -> Result<TimeEntry, AppError> {
         let mut entry = self
             .repo
-            .get_time_entry_by_id(
-                auth_token,
-                id,
-            )
+            .get_time_entry_by_id(auth_token, id)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::TimeEntryNotFound))?;
 
         let _ = self
             .employment_repo
-            .get_employment_by_id(
-                auth_token,
-                entry.employment_id(),
-            )
+            .get_employment_by_id(auth_token, entry.employment_id())
             .await?
             .ok_or_else(|| AppError::forbidden(I18nKey::TimeTrackingEditOtherWorkspace))?;
 
@@ -248,15 +224,14 @@ impl TimeTrackingService {
             entry.set_note(Some(n.to_string()));
         }
 
-        self.repo
-            .update_time_entry(
-                auth_token,
-                &entry,
-            )
-            .await?;
+        self.repo.update_time_entry(auth_token, &entry).await?;
 
         // Recalculate summary
-        if let Ok(Some(ws)) = self.workspace_repo.get_workspace_by_id(auth_token.workspace_id()).await {
+        if let Ok(Some(ws)) = self
+            .workspace_repo
+            .get_workspace_by_id(auth_token.workspace_id())
+            .await
+        {
             let tz: Tz = crate::utils::tz::parse_workspace_tz(ws.timezone());
             let local_date = entry.punch_in_time().with_timezone(&tz).date_naive();
             let summary_svc = crate::services::AttendanceSummaryService::new(
@@ -282,32 +257,25 @@ impl TimeTrackingService {
     }
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn delete_time_entry(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError> {
+    pub async fn delete_time_entry(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+    ) -> Result<(), AppError> {
         let entry = self
             .repo
-            .get_time_entry_by_id(
-                auth_token,
-                id,
-            )
+            .get_time_entry_by_id(auth_token, id)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::TimeEntryNotFound))?;
 
         // Verify employment of this entry belongs to the workspace
         let _ = self
             .employment_repo
-            .get_employment_by_id(
-                auth_token,
-                entry.employment_id(),
-            )
+            .get_employment_by_id(auth_token, entry.employment_id())
             .await?
             .ok_or_else(|| AppError::forbidden(I18nKey::TimeTrackingEditOtherWorkspace))?;
 
-        self.repo
-            .delete_time_entry(
-                auth_token,
-                id,
-            )
-            .await?;
+        self.repo.delete_time_entry(auth_token, id).await?;
 
         Ok(())
     }
@@ -342,20 +310,41 @@ mod tests {
 
     fn make_employment(ws: Uuid, status: &str) -> Employment {
         Employment::new(
-            Uuid::new_v4(), ws, Uuid::new_v4(), Uuid::new_v4(),
-            None, None, status.into(),
+            Uuid::new_v4(),
+            ws,
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            None,
+            None,
+            status.into(),
             NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-            None, Some("Dev".into()), "full_time".into(), None,
-            Utc::now(), Utc::now(), None, None,
+            None,
+            Some("Dev".into()),
+            "full_time".into(),
+            None,
+            Utc::now(),
+            Utc::now(),
+            None,
+            None,
         )
     }
 
     fn make_time_entry(ws: Uuid, emp_id: Uuid) -> TimeEntry {
         TimeEntry::new(
-            Uuid::new_v4(), emp_id, ws, None, None,
+            Uuid::new_v4(),
+            emp_id,
+            ws,
+            None,
+            None,
             Utc.with_ymd_and_hms(2026, 7, 24, 8, 0, 0).unwrap(),
-            None, None, false, "regular".into(), None, None,
-            Utc::now(), Utc::now(),
+            None,
+            None,
+            false,
+            "regular".into(),
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
         )
     }
 
@@ -398,9 +387,17 @@ mod tests {
     async fn get_employee_history_employment_not_found() {
         let ws = Uuid::new_v4();
         let mut employment_repo = MockEmploymentRepository::new();
-        employment_repo.expect_get_employment_by_id().returning(|_, _| Ok(None));
-        let svc = build_service(MockTimeEntryRepository::new(), employment_repo, MockWorkspaceRepository::new());
-        let result = svc.get_employee_history(&make_token(ws), Uuid::new_v4(), Utc::now(), Utc::now()).await;
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(|_, _| Ok(None));
+        let svc = build_service(
+            MockTimeEntryRepository::new(),
+            employment_repo,
+            MockWorkspaceRepository::new(),
+        );
+        let result = svc
+            .get_employee_history(&make_token(ws), Uuid::new_v4(), Utc::now(), Utc::now())
+            .await;
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
     }
 
@@ -412,13 +409,18 @@ mod tests {
         let entry = make_time_entry(ws, emp_id);
 
         let mut employment_repo = MockEmploymentRepository::new();
-        employment_repo.expect_get_employment_by_id().returning(move |_, _| Ok(Some(emp.clone())));
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(move |_, _| Ok(Some(emp.clone())));
 
         let mut repo = MockTimeEntryRepository::new();
-        repo.expect_get_employment_time_entries().returning(move |_, _, _, _| Ok(vec![entry.clone()]));
+        repo.expect_get_employment_time_entries()
+            .returning(move |_, _, _, _| Ok(vec![entry.clone()]));
 
         let svc = build_service(repo, employment_repo, MockWorkspaceRepository::new());
-        let result = svc.get_employee_history(&make_token(ws), emp_id, Utc::now(), Utc::now()).await;
+        let result = svc
+            .get_employee_history(&make_token(ws), emp_id, Utc::now(), Utc::now())
+            .await;
         assert_eq!(result.unwrap().len(), 1);
     }
 
@@ -428,9 +430,20 @@ mod tests {
     async fn update_time_entry_not_found() {
         let ws = Uuid::new_v4();
         let mut repo = MockTimeEntryRepository::new();
-        repo.expect_get_time_entry_by_id().returning(|_, _| Ok(None));
-        let svc = build_service(repo, MockEmploymentRepository::new(), MockWorkspaceRepository::new());
-        let result = svc.update_time_entry(&make_token(ws), Uuid::new_v4(), UpdateTimeEntryRequest::new(None, None, None, None, None)).await;
+        repo.expect_get_time_entry_by_id()
+            .returning(|_, _| Ok(None));
+        let svc = build_service(
+            repo,
+            MockEmploymentRepository::new(),
+            MockWorkspaceRepository::new(),
+        );
+        let result = svc
+            .update_time_entry(
+                &make_token(ws),
+                Uuid::new_v4(),
+                UpdateTimeEntryRequest::new(None, None, None, None, None),
+            )
+            .await;
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
     }
 
@@ -441,13 +454,22 @@ mod tests {
         let entry_id = entry.id();
 
         let mut repo = MockTimeEntryRepository::new();
-        repo.expect_get_time_entry_by_id().returning(move |_, _| Ok(Some(entry.clone())));
+        repo.expect_get_time_entry_by_id()
+            .returning(move |_, _| Ok(Some(entry.clone())));
 
         let mut employment_repo = MockEmploymentRepository::new();
-        employment_repo.expect_get_employment_by_id().returning(|_, _| Ok(None));
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(|_, _| Ok(None));
 
         let svc = build_service(repo, employment_repo, MockWorkspaceRepository::new());
-        let result = svc.update_time_entry(&make_token(ws), entry_id, UpdateTimeEntryRequest::new(None, None, None, None, None)).await;
+        let result = svc
+            .update_time_entry(
+                &make_token(ws),
+                entry_id,
+                UpdateTimeEntryRequest::new(None, None, None, None, None),
+            )
+            .await;
         assert!(matches!(result.unwrap_err(), AppError::Forbidden(_)));
     }
 
@@ -460,21 +482,31 @@ mod tests {
         let entry_id = entry.id();
 
         let mut repo = MockTimeEntryRepository::new();
-        repo.expect_get_time_entry_by_id().returning(move |_, _| Ok(Some(entry.clone())));
+        repo.expect_get_time_entry_by_id()
+            .returning(move |_, _| Ok(Some(entry.clone())));
         repo.expect_update_time_entry().returning(|_, _| Ok(()));
 
         let mut employment_repo = MockEmploymentRepository::new();
-        employment_repo.expect_get_employment_by_id().returning(move |_, _| Ok(Some(emp.clone())));
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(move |_, _| Ok(Some(emp.clone())));
 
         // workspace_repo returns Ok(None) to skip daily-summary recalculation
         let mut workspace_repo = MockWorkspaceRepository::new();
-        workspace_repo.expect_get_workspace_by_id().returning(|_| Box::pin(async { Ok(None) }));
+        workspace_repo
+            .expect_get_workspace_by_id()
+            .returning(|_| Box::pin(async { Ok(None) }));
 
         let svc = build_service(repo, employment_repo, workspace_repo);
         let new_note = Some("note".into());
         let new_type = Some("overtime".into());
-        let result = svc.update_time_entry(&make_token(ws), entry_id,
-            UpdateTimeEntryRequest::new(None, None, None, new_type.clone(), new_note.clone())).await;
+        let result = svc
+            .update_time_entry(
+                &make_token(ws),
+                entry_id,
+                UpdateTimeEntryRequest::new(None, None, None, new_type.clone(), new_note.clone()),
+            )
+            .await;
         let updated = result.unwrap();
         assert_eq!(updated.note().as_deref(), new_note.as_deref());
         assert_eq!(updated.entry_type(), "overtime");
@@ -486,8 +518,13 @@ mod tests {
     async fn delete_time_entry_not_found() {
         let ws = Uuid::new_v4();
         let mut repo = MockTimeEntryRepository::new();
-        repo.expect_get_time_entry_by_id().returning(|_, _| Ok(None));
-        let svc = build_service(repo, MockEmploymentRepository::new(), MockWorkspaceRepository::new());
+        repo.expect_get_time_entry_by_id()
+            .returning(|_, _| Ok(None));
+        let svc = build_service(
+            repo,
+            MockEmploymentRepository::new(),
+            MockWorkspaceRepository::new(),
+        );
         let result = svc.delete_time_entry(&make_token(ws), Uuid::new_v4()).await;
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
     }
@@ -499,10 +536,13 @@ mod tests {
         let entry_id = entry.id();
 
         let mut repo = MockTimeEntryRepository::new();
-        repo.expect_get_time_entry_by_id().returning(move |_, _| Ok(Some(entry.clone())));
+        repo.expect_get_time_entry_by_id()
+            .returning(move |_, _| Ok(Some(entry.clone())));
 
         let mut employment_repo = MockEmploymentRepository::new();
-        employment_repo.expect_get_employment_by_id().returning(|_, _| Ok(None));
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(|_, _| Ok(None));
 
         let svc = build_service(repo, employment_repo, MockWorkspaceRepository::new());
         let result = svc.delete_time_entry(&make_token(ws), entry_id).await;
@@ -517,14 +557,20 @@ mod tests {
         let entry_id = entry.id();
 
         let mut repo = MockTimeEntryRepository::new();
-        repo.expect_get_time_entry_by_id().returning(move |_, _| Ok(Some(entry.clone())));
+        repo.expect_get_time_entry_by_id()
+            .returning(move |_, _| Ok(Some(entry.clone())));
         repo.expect_delete_time_entry().returning(|_, _| Ok(()));
 
         let mut employment_repo = MockEmploymentRepository::new();
-        employment_repo.expect_get_employment_by_id().returning(move |_, _| Ok(Some(emp.clone())));
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(move |_, _| Ok(Some(emp.clone())));
 
         let svc = build_service(repo, employment_repo, MockWorkspaceRepository::new());
-        assert!(svc.delete_time_entry(&make_token(ws), entry_id).await.is_ok());
+        assert!(svc
+            .delete_time_entry(&make_token(ws), entry_id)
+            .await
+            .is_ok());
     }
 
     // ── punch error paths (before log_service call) ────────────────────
@@ -533,9 +579,17 @@ mod tests {
     async fn punch_employment_not_found() {
         let ws = Uuid::new_v4();
         let mut employment_repo = MockEmploymentRepository::new();
-        employment_repo.expect_get_employment_by_id().returning(|_, _| Ok(None));
-        let svc = build_service(MockTimeEntryRepository::new(), employment_repo, MockWorkspaceRepository::new());
-        let result = svc.punch(&make_log_service(), &make_token(ws), Uuid::new_v4(), None).await;
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(|_, _| Ok(None));
+        let svc = build_service(
+            MockTimeEntryRepository::new(),
+            employment_repo,
+            MockWorkspaceRepository::new(),
+        );
+        let result = svc
+            .punch(&make_log_service(), &make_token(ws), Uuid::new_v4(), None)
+            .await;
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
     }
 
@@ -545,9 +599,17 @@ mod tests {
         let emp = make_employment(ws, "inactive");
         let emp_id = emp.id();
         let mut employment_repo = MockEmploymentRepository::new();
-        employment_repo.expect_get_employment_by_id().returning(move |_, _| Ok(Some(emp.clone())));
-        let svc = build_service(MockTimeEntryRepository::new(), employment_repo, MockWorkspaceRepository::new());
-        let result = svc.punch(&make_log_service(), &make_token(ws), emp_id, None).await;
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(move |_, _| Ok(Some(emp.clone())));
+        let svc = build_service(
+            MockTimeEntryRepository::new(),
+            employment_repo,
+            MockWorkspaceRepository::new(),
+        );
+        let result = svc
+            .punch(&make_log_service(), &make_token(ws), emp_id, None)
+            .await;
         assert!(matches!(result.unwrap_err(), AppError::Forbidden(_)));
     }
 }

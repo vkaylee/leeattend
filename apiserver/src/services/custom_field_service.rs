@@ -579,23 +579,15 @@ mod tests {
         )
     }
 
-    fn build_service(
-        repo: MockCustomFieldRepository,
-    ) -> CustomFieldService {
-        CustomFieldService::new(
-            Arc::new(repo),
-            Arc::new(MockAuditLogRepository::new()),
-        )
+    fn build_service(repo: MockCustomFieldRepository) -> CustomFieldService {
+        CustomFieldService::new(Arc::new(repo), Arc::new(MockAuditLogRepository::new()))
     }
 
     fn build_service_with_audit(
         repo: MockCustomFieldRepository,
         audit: MockAuditLogRepository,
     ) -> CustomFieldService {
-        CustomFieldService::new(
-            Arc::new(repo),
-            Arc::new(audit),
-        )
+        CustomFieldService::new(Arc::new(repo), Arc::new(audit))
     }
 
     // ── create_definition validation tests ────────────────────────────────
@@ -849,24 +841,23 @@ mod tests {
             .returning(move |_, _| Ok(expected.clone()));
 
         let mut audit = MockAuditLogRepository::new();
-        audit.expect_create_log()
-            .returning(|_| {
-                Ok(crate::domain::audit::AuditLog::new(
-                    Uuid::new_v4(),
-                    Uuid::new_v4(),
-                    Some(Uuid::new_v4()),
-                    Some("user".into()),
-                    None,
-                    None,
-                    None,
-                    Some(Uuid::new_v4()),
-                    "custom_field.definition_created".into(),
-                    None,
-                    None,
-                    None,
-                    Utc::now(),
-                ))
-            });
+        audit.expect_create_log().returning(|_| {
+            Ok(crate::domain::audit::AuditLog::new(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                Some(Uuid::new_v4()),
+                Some("user".into()),
+                None,
+                None,
+                None,
+                Some(Uuid::new_v4()),
+                "custom_field.definition_created".into(),
+                None,
+                None,
+                None,
+                Utc::now(),
+            ))
+        });
 
         let svc = build_service_with_audit(repo, audit);
         let result = svc
@@ -975,32 +966,30 @@ mod tests {
             let ws = Uuid::new_v4();
             let mut repo = MockCustomFieldRepository::new();
             let captured_entity_type = entity_type.to_string();
-            repo.expect_create_definition()
-                .returning(move |_, req| {
-                    assert_eq!(req.entity_type, captured_entity_type);
-                    let def = make_definition(ws);
-                    Ok(def)
-                });
+            repo.expect_create_definition().returning(move |_, req| {
+                assert_eq!(req.entity_type, captured_entity_type);
+                let def = make_definition(ws);
+                Ok(def)
+            });
 
             let mut audit = MockAuditLogRepository::new();
-            audit.expect_create_log()
-                .returning(move |_| {
-                    Ok(crate::domain::audit::AuditLog::new(
-                        Uuid::new_v4(),
-                        ws,
-                        Some(Uuid::new_v4()),
-                        Some("user".into()),
-                        None,
-                        None,
-                        None,
-                        Some(Uuid::new_v4()),
-                        "custom_field.definition_created".into(),
-                        None,
-                        None,
-                        None,
-                        Utc::now(),
-                    ))
-                });
+            audit.expect_create_log().returning(move |_| {
+                Ok(crate::domain::audit::AuditLog::new(
+                    Uuid::new_v4(),
+                    ws,
+                    Some(Uuid::new_v4()),
+                    Some("user".into()),
+                    None,
+                    None,
+                    None,
+                    Some(Uuid::new_v4()),
+                    "custom_field.definition_created".into(),
+                    None,
+                    None,
+                    None,
+                    Utc::now(),
+                ))
+            });
 
             let svc = build_service_with_audit(repo, audit);
             let result = svc

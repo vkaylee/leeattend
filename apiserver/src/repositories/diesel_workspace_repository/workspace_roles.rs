@@ -1,6 +1,8 @@
 use super::DieselWorkspaceRepository;
 use crate::errors::AppError;
-use crate::models::diesel::core::{MemberExtraPermissionEntity, MemberExtraRoleEntity, WorkspaceRoleEntity};
+use crate::models::diesel::core::{
+    MemberExtraPermissionEntity, MemberExtraRoleEntity, WorkspaceRoleEntity,
+};
 use crate::schema::{
     member_extra_roles, workspace_member_extra_permissions, workspace_role_permissions,
     workspace_roles,

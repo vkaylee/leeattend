@@ -358,14 +358,20 @@ mod tests {
     #[test]
     fn test_hash_password_produces_argon2id() {
         let hash = AuthService::hash_password("my-secure-password").unwrap();
-        assert!(hash.starts_with("$argon2"), "Hash should start with $argon2");
+        assert!(
+            hash.starts_with("$argon2"),
+            "Hash should start with $argon2"
+        );
     }
 
     #[test]
     fn test_hash_password_different_salts() {
         let hash1 = AuthService::hash_password("same-password").unwrap();
         let hash2 = AuthService::hash_password("same-password").unwrap();
-        assert_ne!(hash1, hash2, "Same password should produce different hashes (unique salt)");
+        assert_ne!(
+            hash1, hash2,
+            "Same password should produce different hashes (unique salt)"
+        );
     }
 
     #[test]

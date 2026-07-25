@@ -24,13 +24,7 @@ impl ShiftService {
         actor_id: Uuid,
         req: &crate::models::CreateShiftRequest,
     ) -> Result<Shift, AppError> {
-        self.repo
-            .create_shift(
-                auth_token,
-                actor_id,
-                req,
-            )
-            .await
+        self.repo.create_shift(auth_token, actor_id, req).await
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -43,13 +37,7 @@ impl ShiftService {
         limit: Option<i64>,
     ) -> Result<(Vec<Shift>, i64), AppError> {
         self.repo
-            .get_workspace_shifts(
-                auth_token,
-                location_id,
-                employer_id,
-                page,
-                limit,
-            )
+            .get_workspace_shifts(auth_token, location_id, employer_id, page, limit)
             .await
     }
 
@@ -73,10 +61,7 @@ impl ShiftService {
         // Verify the template exists
         let old_shift = self
             .repo
-            .get_shift_by_id(
-                auth_token,
-                template_id,
-            )
+            .get_shift_by_id(auth_token, template_id)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::ShiftNotFound))?;
 
@@ -136,13 +121,7 @@ impl ShiftService {
     ) -> Result<(), AppError> {
         match self
             .repo
-            .assign_employment_shift(
-                auth_token,
-                employment_id,
-                template_id,
-                start_date,
-                end_date,
-            )
+            .assign_employment_shift(auth_token, employment_id, template_id, start_date, end_date)
             .await
         {
             Ok(()) => Ok(()),
@@ -162,12 +141,7 @@ impl ShiftService {
         auth_token: &TenantAuthToken,
         template_id: Uuid,
     ) -> Result<Vec<ShiftVersionHistoryItem>, AppError> {
-        self.repo
-            .get_shift_versions(
-                auth_token,
-                template_id,
-            )
-            .await
+        self.repo.get_shift_versions(auth_token, template_id).await
     }
 }
 

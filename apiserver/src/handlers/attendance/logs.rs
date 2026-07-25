@@ -355,7 +355,9 @@ pub async fn force_reprocess_attendance(
                 .repo()
                 .get_employee_by_id(employment.employee_id(), &ctx.auth_token)
                 .await?
-                .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
+                .ok_or_else(|| {
+                    AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound)
+                })?;
             if emp.workspace_id() != ctx.workspace_id {
                 return Err(AppError::forbidden(crate::utils::i18n::I18nKey::Forbidden));
             }

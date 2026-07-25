@@ -513,11 +513,12 @@ pub async fn test_smtp(
         Ok(msg) => {
             // Persist verification timestamp in system_settings.smtp JSON
             let repo = state.infra().system_settings_repo();
-            if let Ok(Some(mut config)) = repo.get("smtp").await {
-                config["last_verified_at"] =
-                    serde_json::Value::String(chrono::Utc::now().to_rfc3339());
-                let _ = repo.set("smtp", &config).await;
-            }
+            let mut config = repo
+                .get("smtp")
+                .await?
+                .unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new()));
+            config["last_verified_at"] = serde_json::Value::String(chrono::Utc::now().to_rfc3339());
+            repo.set("smtp", &config).await?;
 
             Ok(Json(SmtpTestResponse {
                 success: true,

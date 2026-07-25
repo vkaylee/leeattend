@@ -30,7 +30,11 @@ impl EmployerService {
         self.repo.get_employers(auth_token, page, limit).await
     }
 
-    pub async fn get_employer(&self, auth_token: &TenantAuthToken, id: Uuid) -> Result<Employer, AppError> {
+    pub async fn get_employer(
+        &self,
+        auth_token: &TenantAuthToken,
+        id: Uuid,
+    ) -> Result<Employer, AppError> {
         self.repo
             .get_employer_by_id(auth_token, id)
             .await?
@@ -345,10 +349,7 @@ mod tests {
     }
 
     fn build_service(repo: MockEmployerRepository) -> EmployerService {
-        EmployerService::new(
-            Arc::new(repo),
-            Arc::new(MockAuditLogRepository::new()),
-        )
+        EmployerService::new(Arc::new(repo), Arc::new(MockAuditLogRepository::new()))
     }
 
     // ── validate_email tests ──────────────────────────────────────────────
@@ -476,8 +477,7 @@ mod tests {
     async fn get_employer_not_found() {
         let ws = Uuid::new_v4();
         let mut repo = MockEmployerRepository::new();
-        repo.expect_get_employer_by_id()
-            .returning(|_, _| Ok(None));
+        repo.expect_get_employer_by_id().returning(|_, _| Ok(None));
 
         let svc = build_service(repo);
         let result = svc.get_employer(&make_token(ws), Uuid::new_v4()).await;
@@ -499,7 +499,9 @@ mod tests {
             .returning(|_, _| Ok(5)); // has employees
 
         let svc = build_service(repo);
-        let result = svc.delete_employer(&make_token(ws), Uuid::new_v4(), Uuid::new_v4()).await;
+        let result = svc
+            .delete_employer(&make_token(ws), Uuid::new_v4(), Uuid::new_v4())
+            .await;
 
         assert!(result.is_err());
         let err = result.unwrap_err();

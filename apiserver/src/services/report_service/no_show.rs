@@ -66,19 +66,20 @@ impl ReportService {
             .get_daily_attendance_report(
                 auth_token,
                 AttendanceReportArgs {
-                workspace_id: args.workspace_id,
-                start_date: date_pre,
-                end_date: args.date,
-                page: args.page,
-                limit: args.limit,
-                employee_ids: args.employee_ids.clone(),
-                department_id: args.department_id,
-                sort: None,
-                employee_status: None,
-                employer_id: None,
-                employment_id: None,
-                shift_type: args.shift_type.clone(),
-            })
+                    workspace_id: args.workspace_id,
+                    start_date: date_pre,
+                    end_date: args.date,
+                    page: args.page,
+                    limit: args.limit,
+                    employee_ids: args.employee_ids.clone(),
+                    department_id: args.department_id,
+                    sort: None,
+                    employee_status: None,
+                    employer_id: None,
+                    employment_id: None,
+                    shift_type: args.shift_type.clone(),
+                },
+            )
             .await?;
 
         let now = Utc::now();

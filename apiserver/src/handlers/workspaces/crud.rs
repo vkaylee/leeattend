@@ -359,18 +359,19 @@ pub async fn update_workspace(
         .update_workspace(
             &ctx.auth_token,
             crate::services::workspace_service::UpdateWorkspaceArgs {
-            ws_id: ctx.auth_token.workspace_id(),
-            name: req.name,
-            date_format: req.date_format,
-            time_format: req.time_format,
-            timezone: req.timezone,
-            theme_primary_color: req.theme_primary_color,
-            default_language: req.default_language,
-            logo_url: req.logo_url,
-            tagline: req.tagline,
-            holiday_overnight_strategy: req.holiday_overnight_strategy,
-            default_holiday_ot_multiplier: req.default_holiday_ot_multiplier,
-        })
+                ws_id: ctx.auth_token.workspace_id(),
+                name: req.name,
+                date_format: req.date_format,
+                time_format: req.time_format,
+                timezone: req.timezone,
+                theme_primary_color: req.theme_primary_color,
+                default_language: req.default_language,
+                logo_url: req.logo_url,
+                tagline: req.tagline,
+                holiday_overnight_strategy: req.holiday_overnight_strategy,
+                default_holiday_ot_multiplier: req.default_holiday_ot_multiplier,
+            },
+        )
         .await
         .map(Json)
 }

@@ -535,7 +535,12 @@ impl ApprovalWorkflowService {
                 })?;
 
                 outbox_service
-                    .create_job(&TenantAuthToken::system_override(workspace_id), job_id, "WorkflowCompleted", payload_json)
+                    .create_job(
+                        &TenantAuthToken::system_override(workspace_id),
+                        job_id,
+                        "WorkflowCompleted",
+                        payload_json,
+                    )
                     .await?;
             } else {
                 // Fallback: call callback directly (for tests and simple cases)

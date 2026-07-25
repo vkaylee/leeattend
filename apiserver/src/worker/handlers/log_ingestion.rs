@@ -26,8 +26,7 @@ impl LogIngestionHandler {
 
         let log_svc = deps.log_service();
 
-        let auth_token =
-            crate::diesel_pool::TenantAuthToken::system_override(payload.workspace_id);
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(payload.workspace_id);
         log_svc
             .process_log(crate::services::attendance_log_service::ProcessLogArgs {
                 workspace_id: payload.workspace_id,

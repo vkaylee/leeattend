@@ -65,8 +65,7 @@ impl HolidayLeaveService {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         holiday: &Holiday,
     ) -> Result<Vec<HolidayLeaveResult>, crate::errors::AppError> {
-        self.process_holiday_leave_inner(auth_token, holiday)
-            .await
+        self.process_holiday_leave_inner(auth_token, holiday).await
     }
 
     #[allow(clippy::too_many_lines)]

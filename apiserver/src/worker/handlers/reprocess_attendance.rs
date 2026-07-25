@@ -453,13 +453,22 @@ mod tests {
         let mut queue = MockQueueRepository::new();
         queue.expect_get_job_metadata().returning(|_| Ok(None));
 
-        let deps = build_deps(emp_id, employment_id, ws_id, &EmploymentResolution::ViaDateRange);
+        let deps = build_deps(
+            emp_id,
+            employment_id,
+            ws_id,
+            &EmploymentResolution::ViaDateRange,
+        );
         let job = reprocess_job(ws_id, emp_id, None);
 
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
         let result = ReprocessAttendanceHandler::handle(&queue_arc, &job, &deps).await;
 
-        assert!(result.is_ok(), "Handler should resolve terminated employment by date range, got: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Handler should resolve terminated employment by date range, got: {:?}",
+            result.err()
+        );
     }
 
     /// When `employment_id` is `None` and no employment covers the range,
@@ -497,19 +506,28 @@ mod tests {
         roster_repo
             .expect_get_effective_shift()
             .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
-        roster_repo.expect_get_workspace_schedules().returning(
-            move |_, _, _, _, _, _, _| Box::pin(async { Ok((vec![], 0)) }),
-        );
+        roster_repo
+            .expect_get_workspace_schedules()
+            .returning(move |_, _, _, _, _, _, _| Box::pin(async { Ok((vec![], 0)) }));
 
         let mut workspace_repo =
             crate::repositories::workspace_repository::MockWorkspaceRepository::new();
         workspace_repo.expect_get_workspace_by_id().returning(|_| {
             Box::pin(async {
                 Ok(Some(crate::models::Workspace::new(
-                    Uuid::new_v4(), "test".to_string(), "YYYY-MM-DD".to_string(),
-                    "HH:mm".to_string(), "UTC".to_string(), "#ffffff".to_string(),
-                    "en".to_string(), None, None, "split".to_string(),
-                    rust_decimal::Decimal::new(100, 2), Utc::now(), None,
+                    Uuid::new_v4(),
+                    "test".to_string(),
+                    "YYYY-MM-DD".to_string(),
+                    "HH:mm".to_string(),
+                    "UTC".to_string(),
+                    "#ffffff".to_string(),
+                    "en".to_string(),
+                    None,
+                    None,
+                    "split".to_string(),
+                    rust_decimal::Decimal::new(100, 2),
+                    Utc::now(),
+                    None,
                 )))
             })
         });
@@ -531,7 +549,8 @@ mod tests {
         builder.roster_repo = roster_repo;
 
         let mut raw_log_repo =
-            crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository::new();
+            crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository::new(
+            );
         raw_log_repo
             .expect_get_employment_logs_in_time_range()
             .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
@@ -580,7 +599,10 @@ mod tests {
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
         let result = ReprocessAttendanceHandler::handle(&queue_arc, &job, &deps).await;
 
-        assert!(result.is_err(), "Handler should fail when no employment covers the range");
+        assert!(
+            result.is_err(),
+            "Handler should fail when no employment covers the range"
+        );
         let err_msg = result.unwrap_err();
         assert!(
             err_msg.contains("No employment covers date range"),
@@ -624,19 +646,28 @@ mod tests {
         roster_repo
             .expect_get_effective_shift()
             .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
-        roster_repo.expect_get_workspace_schedules().returning(
-            move |_, _, _, _, _, _, _| Box::pin(async { Ok((vec![], 0)) }),
-        );
+        roster_repo
+            .expect_get_workspace_schedules()
+            .returning(move |_, _, _, _, _, _, _| Box::pin(async { Ok((vec![], 0)) }));
 
         let mut workspace_repo =
             crate::repositories::workspace_repository::MockWorkspaceRepository::new();
         workspace_repo.expect_get_workspace_by_id().returning(|_| {
             Box::pin(async {
                 Ok(Some(crate::models::Workspace::new(
-                    Uuid::new_v4(), "test".to_string(), "YYYY-MM-DD".to_string(),
-                    "HH:mm".to_string(), "UTC".to_string(), "#ffffff".to_string(),
-                    "en".to_string(), None, None, "split".to_string(),
-                    rust_decimal::Decimal::new(100, 2), Utc::now(), None,
+                    Uuid::new_v4(),
+                    "test".to_string(),
+                    "YYYY-MM-DD".to_string(),
+                    "HH:mm".to_string(),
+                    "UTC".to_string(),
+                    "#ffffff".to_string(),
+                    "en".to_string(),
+                    None,
+                    None,
+                    "split".to_string(),
+                    rust_decimal::Decimal::new(100, 2),
+                    Utc::now(),
+                    None,
                 )))
             })
         });
@@ -658,7 +689,8 @@ mod tests {
         builder.roster_repo = roster_repo;
 
         let mut raw_log_repo =
-            crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository::new();
+            crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository::new(
+            );
         raw_log_repo
             .expect_get_employment_logs_in_time_range()
             .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
@@ -688,20 +720,40 @@ mod tests {
             .returning(move |_, _, _, _| {
                 Ok(vec![
                     crate::models::employment::Employment::new(
-                        employment_a, ws_id, emp_id, uuid::Uuid::new_v4(),
-                        None, None, "terminated".to_string(),
+                        employment_a,
+                        ws_id,
+                        emp_id,
+                        uuid::Uuid::new_v4(),
+                        None,
+                        None,
+                        "terminated".to_string(),
                         chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
                         Some(chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap()),
-                        None, "full_time".to_string(), None,
-                        chrono::Utc::now(), chrono::Utc::now(), None, None,
+                        None,
+                        "full_time".to_string(),
+                        None,
+                        chrono::Utc::now(),
+                        chrono::Utc::now(),
+                        None,
+                        None,
                     ),
                     crate::models::employment::Employment::new(
-                        employment_b, ws_id, emp_id, uuid::Uuid::new_v4(),
-                        None, None, "active".to_string(),
+                        employment_b,
+                        ws_id,
+                        emp_id,
+                        uuid::Uuid::new_v4(),
+                        None,
+                        None,
+                        "active".to_string(),
                         chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
                         None,
-                        None, "full_time".to_string(), None,
-                        chrono::Utc::now(), chrono::Utc::now(), None, None,
+                        None,
+                        "full_time".to_string(),
+                        None,
+                        chrono::Utc::now(),
+                        chrono::Utc::now(),
+                        None,
+                        None,
                     ),
                 ])
             });
@@ -726,7 +778,10 @@ mod tests {
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
         let result = ReprocessAttendanceHandler::handle(&queue_arc, &job, &deps).await;
 
-        assert!(result.is_err(), "Handler should fail when multiple employments overlap the range");
+        assert!(
+            result.is_err(),
+            "Handler should fail when multiple employments overlap the range"
+        );
         let err_msg = result.unwrap_err();
         assert!(
             err_msg.contains("spans 2 employments"),

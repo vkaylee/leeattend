@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
@@ -113,6 +113,10 @@ export function useSmtpConfig() {
   const [verifiedAt, setVerifiedAt] = useState<Date | null>(() =>
     config?.last_verified_at ? new Date(config.last_verified_at) : null,
   );
+
+  useEffect(() => {
+    setVerifiedAt(config?.last_verified_at ? new Date(config.last_verified_at) : null);
+  }, [config?.last_verified_at]);
 
   const [overrides, setOverrides] = useState<Partial<SmtpConfigData>>({});
   const [httpOverrides, setHttpOverrides] = useState<Partial<HttpApiConfig>>({});

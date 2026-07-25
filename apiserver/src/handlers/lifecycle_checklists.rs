@@ -342,12 +342,7 @@ pub async fn create_checklist(
     let checklist = state
         .core()
         .lifecycle_service()
-        .create_checklist_from_template(
-            &ctx.auth_token,
-            emp_id,
-            req.template_id,
-            Some(ctx.user_id),
-        )
+        .create_checklist_from_template(&ctx.auth_token, emp_id, req.template_id, Some(ctx.user_id))
         .await?;
     Ok((StatusCode::CREATED, Json(checklist)))
 }

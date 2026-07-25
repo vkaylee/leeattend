@@ -135,7 +135,8 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         workspace_id: Uuid,
         user_id: Uuid,
     ) -> Result<Vec<String>, AppError> {
-        self.find_extra_permissions_impl(workspace_id, user_id).await
+        self.find_extra_permissions_impl(workspace_id, user_id)
+            .await
     }
 
     async fn get_member_extra_permissions(
@@ -155,8 +156,14 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         expires_at: chrono::DateTime<chrono::Utc>,
         assigned_by: Uuid,
     ) -> Result<crate::models::MemberExtraPermission, AppError> {
-        self.assign_extra_permission_impl(workspace_id, user_id, permission, expires_at, assigned_by)
-            .await
+        self.assign_extra_permission_impl(
+            workspace_id,
+            user_id,
+            permission,
+            expires_at,
+            assigned_by,
+        )
+        .await
     }
 
     async fn revoke_extra_permission(
@@ -185,7 +192,8 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         workspace_id: Uuid,
         extra_role_id: Uuid,
     ) -> Result<u64, AppError> {
-        self.revoke_extra_role_impl(workspace_id, extra_role_id).await
+        self.revoke_extra_role_impl(workspace_id, extra_role_id)
+            .await
     }
 
     async fn get_workspace_roles(
@@ -256,10 +264,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         self.set_role_permissions_impl(role_id, permissions).await
     }
 
-    async fn get_permissions_for_roles(
-        &self,
-        role_ids: &[Uuid],
-    ) -> Result<Vec<String>, AppError> {
+    async fn get_permissions_for_roles(&self, role_ids: &[Uuid]) -> Result<Vec<String>, AppError> {
         self.get_permissions_for_roles_impl(role_ids).await
     }
 

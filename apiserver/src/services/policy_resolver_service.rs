@@ -33,11 +33,7 @@ impl PolicyResolverService {
     ) -> Result<StandardMonthConfig, AppError> {
         let workspace_id = auth_token.workspace_id();
         let emp_config = employee_repo
-            .get_employee_payroll_config_at(
-                auth_token,
-                employee_id,
-                date,
-            )
+            .get_employee_payroll_config_at(auth_token, employee_id, date)
             .await?;
 
         let dept_config = if let Some(dept_id) = department_id {
@@ -69,11 +65,7 @@ impl PolicyResolverService {
         let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
 
         let policy_version = policy_repo
-            .get_employee_effective_policy(
-                auth_token,
-                employee_id,
-                effective_time,
-            )
+            .get_employee_effective_policy(auth_token, employee_id, effective_time)
             .await?;
 
         // Fallback if no policy found
@@ -98,11 +90,7 @@ impl PolicyResolverService {
         let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
 
         let policy_version = policy_repo
-            .get_employment_effective_policy(
-                auth_token,
-                employment_id,
-                effective_time,
-            )
+            .get_employment_effective_policy(auth_token, employment_id, effective_time)
             .await?;
 
         if let Some(pv) = policy_version {
@@ -130,11 +118,7 @@ impl PolicyResolverService {
         let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
 
         let versions = policy_repo
-            .get_employee_effective_policies_batch(
-                auth_token,
-                employee_ids,
-                effective_time,
-            )
+            .get_employee_effective_policies_batch(auth_token, employee_ids, effective_time)
             .await?;
 
         let mut result = HashMap::with_capacity(employee_ids.len());
@@ -170,11 +154,7 @@ impl PolicyResolverService {
         let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
 
         let versions = policy_repo
-            .get_employment_effective_policies_batch(
-                auth_token,
-                employment_ids,
-                effective_time,
-            )
+            .get_employment_effective_policies_batch(auth_token, employment_ids, effective_time)
             .await?;
 
         let mut result = HashMap::with_capacity(employment_ids.len());
@@ -211,11 +191,7 @@ impl PolicyResolverService {
 
         // 2. Get Employee Special Conditions
         let conditions = employee_repo
-            .get_working_conditions_at(
-                auth_token,
-                employee_id,
-                date,
-            )
+            .get_working_conditions_at(auth_token, employee_id, date)
             .await?;
         let catalog = Self::load_condition_type_catalog(condition_type_repo, auth_token).await?;
 
@@ -246,11 +222,7 @@ impl PolicyResolverService {
 
         // 2. Get Employee Special Conditions by employment_id
         let conditions = employee_repo
-            .get_working_conditions_at(
-                auth_token,
-                employment_id,
-                date,
-            )
+            .get_working_conditions_at(auth_token, employment_id, date)
             .await?;
         let catalog = Self::load_condition_type_catalog(condition_type_repo, auth_token).await?;
 
@@ -430,10 +402,14 @@ mod tests {
             .expect_get_employee_effective_policy()
             .returning(|_, _, _| Ok(None));
 
-        let rules =
-            PolicyResolverService::resolve_attendance_policy(&policy_repo, emp_id, &crate::diesel_pool::TenantAuthToken::system_override(ws_id), date)
-                .await
-                .unwrap();
+        let rules = PolicyResolverService::resolve_attendance_policy(
+            &policy_repo,
+            emp_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
+            date,
+        )
+        .await
+        .unwrap();
 
         assert_eq!(rules.work_unit_minutes, 30);
         assert_eq!(rules.rounding_policy, "floor");
@@ -470,10 +446,14 @@ mod tests {
 
         let mut policy_repo = MockAttendancePolicyRepository::new();
         // Empty batch
-        let res_empty =
-            PolicyResolverService::resolve_attendance_policy_batch(&policy_repo, &[], &crate::diesel_pool::TenantAuthToken::system_override(ws_id), date)
-                .await
-                .unwrap();
+        let res_empty = PolicyResolverService::resolve_attendance_policy_batch(
+            &policy_repo,
+            &[],
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
+            date,
+        )
+        .await
+        .unwrap();
         assert!(res_empty.is_empty());
 
         policy_repo

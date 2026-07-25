@@ -254,10 +254,8 @@ impl LeaveImportChunkHandler {
         let roster_repo = Arc::clone(&deps.roster_repo);
         let leave_accrual_log_repo = Arc::clone(&deps.leave_accrual_log_repo);
 
-        let leave_submission: Arc<dyn LeaveSubmission> = deps
-            .leave_submission
-            .clone()
-            .unwrap_or_else(|| {
+        let leave_submission: Arc<dyn LeaveSubmission> =
+            deps.leave_submission.clone().unwrap_or_else(|| {
                 Arc::new(LeaveService::new(
                     Arc::clone(&deps.leave_balance_repo),
                     Arc::clone(&deps.leave_request_repo),

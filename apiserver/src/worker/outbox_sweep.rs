@@ -159,7 +159,12 @@ impl OutboxSweepScheduler {
                         info!(job_id = %job.id(), "Successfully processed workflow completed callback");
                         let _ = self
                             .outbox_service
-                            .update_job_status(&crate::diesel_pool::TenantAuthToken::system_override(ws_id), job.id(), "completed", None)
+                            .update_job_status(
+                                &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
+                                job.id(),
+                                "completed",
+                                None,
+                            )
                             .await;
                     }
                 }

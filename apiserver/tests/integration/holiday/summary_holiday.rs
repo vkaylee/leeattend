@@ -116,7 +116,11 @@ async fn test_summary_records_holiday_flag_after_recalculate() {
             ),
         },
     )
-    .recalculate_daily_summary(&apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), employment_id, today)
+    .recalculate_daily_summary(
+        &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),
+        employment_id,
+        today,
+    )
     .await
     .expect("Recalculate failed");
 

@@ -82,15 +82,18 @@ pub async fn get_no_show_report(
     let report = state
         .reports()
         .service()
-        .get_no_show_report(&ctx.auth_token, NoShowReportArgs {
-            workspace_id,
-            date: target_date,
-            page: params.page,
-            limit: params.limit,
-            employee_ids,
-            department_id: params.department_id,
-            shift_type: params.shift_type,
-        })
+        .get_no_show_report(
+            &ctx.auth_token,
+            NoShowReportArgs {
+                workspace_id,
+                date: target_date,
+                page: params.page,
+                limit: params.limit,
+                employee_ids,
+                department_id: params.department_id,
+                shift_type: params.shift_type,
+            },
+        )
         .await?;
 
     Ok(Json(

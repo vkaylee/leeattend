@@ -265,6 +265,18 @@ describe("SmtpSettingsPage", () => {
     expect(screen.getByText(/Untested/)).toBeDefined();
   });
 
+  it("hydrates the verified badge when persisted config arrives asynchronously", () => {
+    queryData = null;
+    queryLoading = true;
+    const page = renderPage();
+
+    queryData = { last_verified_at: "2026-07-25T08:30:00Z" };
+    queryLoading = false;
+    page.rerender(<SmtpSettingsPage />);
+
+    expect(screen.getByText(/Verified/)).toBeDefined();
+  });
+
   it("shows untested reminder when not verified", () => {
     queryData = {};
     renderPage();

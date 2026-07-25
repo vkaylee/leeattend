@@ -29,16 +29,16 @@ fn render_day_cell<'a>(
             Some(true) => "(PL)",
             _ => "(UL)",
         };
-        let t = format!("{}{}", prefix, suffix);
+        let t = format!("{prefix}{suffix}");
         let f = match cell.is_leave_paid {
             Some(true) => leave_paid_fmt,
             _ => leave_unpaid_fmt,
         };
         (t, f)
     } else if cell.status == AttendanceStatus::HolidayPaid {
-        (format!("{}(HP)", prefix), holiday_fmt)
+        (format!("{prefix}(HP)"), holiday_fmt)
     } else if cell.status == AttendanceStatus::HolidayUnpaid {
-        (format!("{}(HU)", prefix), leave_unpaid_fmt)
+        (format!("{prefix}(HU)"), leave_unpaid_fmt)
     } else {
         // Standard work day with late/early-leave/OT calculation
         let std_h = units_to_hours(cell.std_work_units, work_unit_minutes);
@@ -100,6 +100,7 @@ fn render_day_cell<'a>(
     }
 }
 
+#[allow(clippy::too_many_lines)]
 pub fn generate(
     workbook: &mut Workbook,
     reports: &[DailyAttendanceReport],

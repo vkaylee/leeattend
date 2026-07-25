@@ -134,7 +134,12 @@ pub async fn get_time_history(
     let entries = state
         .attendance()
         .time_tracking_service()
-        .get_employee_history(&ctx.auth_token, active_employment_id, query.start, query.end)
+        .get_employee_history(
+            &ctx.auth_token,
+            active_employment_id,
+            query.start,
+            query.end,
+        )
         .await?;
 
     Ok(Json(entries))

@@ -127,10 +127,7 @@ impl AttendanceLogService {
         // 1. Resolve employee_id from employee_id_number and workspace_id
         let employee = match self
             .employee_repo
-            .find_by_number(
-                args.auth_token,
-                &normalized_emp_id,
-            )
+            .find_by_number(args.auth_token, &normalized_emp_id)
             .await
         {
             Ok(Some(emp)) => emp,
@@ -225,11 +222,7 @@ impl AttendanceLogService {
 
         let resolved_employment_id = match self
             .employment_repo
-            .get_employment_effective_on_date(
-                args.auth_token,
-                employee.id(),
-                local_punch_date,
-            )
+            .get_employment_effective_on_date(args.auth_token, employee.id(), local_punch_date)
             .await
         {
             Ok(Some(emp)) => emp.id(),
@@ -237,7 +230,9 @@ impl AttendanceLogService {
                 // No employment covers the punch date → stage as error (NOT retry)
                 let msg = format!(
                     "No employment covers punch date {} (local: {}) for employee {}",
-                    punch_time, local_punch_date, employee.id()
+                    punch_time,
+                    local_punch_date,
+                    employee.id()
                 );
                 warn!("{}", msg);
 

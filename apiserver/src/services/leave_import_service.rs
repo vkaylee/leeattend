@@ -12,8 +12,8 @@ use uuid::Uuid;
 use crate::errors::AppResult;
 use crate::models::{LeaveDurationType, SubmitLeaveRequest};
 use crate::services::import_messages::LeaveImportMessages;
-use crate::services::leave_service::LeaveSubmission;
 use crate::services::leave_service::LeaveService;
+use crate::services::leave_service::LeaveSubmission;
 use crate::utils::i18n::I18nKey;
 
 use crate::models::AttendanceImportJob;
@@ -308,11 +308,8 @@ impl LeaveImportService {
 
         let msgs = LeaveImportMessages::for_lang(&lang);
 
-        let leave_submission: Arc<dyn LeaveSubmission> = self
-            .deps
-            .leave_submission
-            .clone()
-            .unwrap_or_else(|| {
+        let leave_submission: Arc<dyn LeaveSubmission> =
+            self.deps.leave_submission.clone().unwrap_or_else(|| {
                 Arc::new(LeaveService::new(
                     Arc::clone(&self.deps.leave_balance_repo),
                     Arc::clone(&self.deps.leave_request_repo),

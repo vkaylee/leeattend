@@ -278,13 +278,17 @@ impl ComplianceValidationService {
                                 .iter()
                                 .map(|i| i.end_time)
                                 .max_by_key(|t| seconds_from_midnight_or_wrap(*t))
-                                .unwrap_or(NaiveTime::from_hms_opt(0, 0, 0).expect("0:0:0 is valid"));
+                                .unwrap_or(
+                                    NaiveTime::from_hms_opt(0, 0, 0).expect("0:0:0 is valid"),
+                                );
 
                             let new_start = new_ints
                                 .iter()
                                 .map(|i| i.start_time)
                                 .min_by_key(|t| seconds_from_midnight_or_wrap(*t))
-                                .unwrap_or(NaiveTime::from_hms_opt(23, 59, 59).expect("23:59:59 is valid"));
+                                .unwrap_or(
+                                    NaiveTime::from_hms_opt(23, 59, 59).expect("23:59:59 is valid"),
+                                );
 
                             let gap_hours = rest_gap_hours(prev_end, new_start);
                             if gap_hours < f64::from(min_rest_hours) {
@@ -317,13 +321,17 @@ impl ComplianceValidationService {
                                 .iter()
                                 .map(|i| i.end_time)
                                 .max_by_key(|t| seconds_from_midnight_or_wrap(*t))
-                                .unwrap_or(NaiveTime::from_hms_opt(0, 0, 0).expect("0:0:0 is valid"));
+                                .unwrap_or(
+                                    NaiveTime::from_hms_opt(0, 0, 0).expect("0:0:0 is valid"),
+                                );
 
                             let next_start = next_intervals
                                 .iter()
                                 .map(|i| i.start_time)
                                 .min_by_key(|t| seconds_from_midnight_or_wrap(*t))
-                                .unwrap_or(NaiveTime::from_hms_opt(23, 59, 59).expect("23:59:59 is valid"));
+                                .unwrap_or(
+                                    NaiveTime::from_hms_opt(23, 59, 59).expect("23:59:59 is valid"),
+                                );
 
                             let gap_hours = rest_gap_hours(new_end, next_start);
                             if gap_hours < f64::from(min_rest_hours) {
@@ -422,8 +430,8 @@ impl ComplianceValidationService {
         const STANDARD_DAILY_HOURS: f64 = 8.0;
 
         for date in &request.dates {
-            let month_start =
-                NaiveDate::from_ymd_opt(date.year(), date.month(), 1).expect("year/month from a valid NaiveDate is valid");
+            let month_start = NaiveDate::from_ymd_opt(date.year(), date.month(), 1)
+                .expect("year/month from a valid NaiveDate is valid");
             let month_end = last_day_of_month(*date);
 
             // Count OT from existing rosters in this month

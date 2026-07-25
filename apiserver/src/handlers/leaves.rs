@@ -58,9 +58,12 @@ pub async fn submit_leave_request(
         .await?;
 
     // Look up employee's department for scoped permission check
-    let target_dept_id =
-        crate::handlers::common::current_department_id(&state, &ctx.auth_token, info.target_employee_id)
-            .await;
+    let target_dept_id = crate::handlers::common::current_department_id(
+        &state,
+        &ctx.auth_token,
+        info.target_employee_id,
+    )
+    .await;
 
     if info.is_on_behalf {
         check_leave_behalf_scope(&state, &ctx, info.target_employee_id).await?;

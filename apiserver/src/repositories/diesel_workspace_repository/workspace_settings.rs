@@ -147,10 +147,7 @@ impl DieselWorkspaceRepository {
         Ok(())
     }
 
-    pub(super) async fn delete_workspace_impl(
-        &self,
-        workspace_id: Uuid,
-    ) -> Result<(), AppError> {
+    pub(super) async fn delete_workspace_impl(&self, workspace_id: Uuid) -> Result<(), AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .api

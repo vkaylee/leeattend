@@ -105,7 +105,12 @@ mod determine_ot_status_tests {
 
         let svc = make_service(mock);
         let status = svc
-            .determine_ot_status(&TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), dummy_date(), 0)
+            .determine_ot_status(
+                &TenantAuthToken::system_override(Uuid::new_v4()),
+                Uuid::new_v4(),
+                dummy_date(),
+                0,
+            )
             .await
             .unwrap();
 
@@ -119,7 +124,12 @@ mod determine_ot_status_tests {
 
         let svc = make_service(mock);
         let status = svc
-            .determine_ot_status(&TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), dummy_date(), 60)
+            .determine_ot_status(
+                &TenantAuthToken::system_override(Uuid::new_v4()),
+                Uuid::new_v4(),
+                dummy_date(),
+                60,
+            )
             .await
             .unwrap();
 
@@ -134,7 +144,12 @@ mod determine_ot_status_tests {
 
         let svc = make_service(mock);
         let status = svc
-            .determine_ot_status(&TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), dummy_date(), 60)
+            .determine_ot_status(
+                &TenantAuthToken::system_override(Uuid::new_v4()),
+                Uuid::new_v4(),
+                dummy_date(),
+                60,
+            )
             .await
             .unwrap();
 
@@ -547,7 +562,11 @@ mod recalculate_daily_summary_leave_tests {
         });
 
         let result = svc
-            .recalculate_daily_summary(&TenantAuthToken::system_override(workspace_id), employee_id, date)
+            .recalculate_daily_summary(
+                &TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                date,
+            )
             .await;
         assert!(result.is_ok());
     }
@@ -709,7 +728,11 @@ mod recalculate_daily_summary_leave_tests {
         });
 
         let result = svc
-            .recalculate_daily_summary(&TenantAuthToken::system_override(workspace_id), employee_id, date)
+            .recalculate_daily_summary(
+                &TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                date,
+            )
             .await;
         assert!(result.is_ok());
     }
@@ -871,7 +894,11 @@ mod recalculate_daily_summary_leave_tests {
         });
 
         let result = svc
-            .recalculate_daily_summary(&TenantAuthToken::system_override(workspace_id), employee_id, date)
+            .recalculate_daily_summary(
+                &TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                date,
+            )
             .await;
         assert!(result.is_ok());
     }
@@ -987,7 +1014,11 @@ mod recalculate_daily_summary_leave_tests {
         });
 
         let result = svc
-            .recalculate_daily_summary(&TenantAuthToken::system_override(workspace_id), employee_id, date)
+            .recalculate_daily_summary(
+                &TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                date,
+            )
             .await;
         assert!(result.is_ok());
     }
@@ -1128,7 +1159,11 @@ mod recalculate_daily_summary_leave_tests {
         });
 
         let result = svc
-            .recalculate_daily_summary(&TenantAuthToken::system_override(workspace_id), employee_id, date)
+            .recalculate_daily_summary(
+                &TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                date,
+            )
             .await;
         assert!(result.is_ok());
     }
@@ -1251,7 +1286,12 @@ mod recalculate_daily_summary_leave_tests {
         });
 
         let result = svc
-            .recalculate_attendance_range(&TenantAuthToken::system_override(workspace_id), employee_id, date, date2)
+            .recalculate_attendance_range(
+                &TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                date,
+                date2,
+            )
             .await;
         assert!(result.is_ok());
     }

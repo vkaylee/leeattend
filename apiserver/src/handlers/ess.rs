@@ -34,10 +34,7 @@ pub async fn get_my_profile(
     let emp = state
         .employees()
         .repo()
-        .get_employee_by_id(
-            employee.employee_id,
-            &employee.auth_token,
-        )
+        .get_employee_by_id(employee.employee_id, &employee.auth_token)
         .await?
         .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
 
@@ -45,20 +42,14 @@ pub async fn get_my_profile(
     let profile = state
         .employees()
         .repo()
-        .get_employee_profile(
-            &employee.auth_token,
-            employee.employee_id,
-        )
+        .get_employee_profile(&employee.auth_token, employee.employee_id)
         .await?;
 
     // Get emergency contacts
     let contacts = state
         .employees()
         .repo()
-        .get_emergency_contacts(
-            &employee.auth_token,
-            employee.employee_id,
-        )
+        .get_emergency_contacts(&employee.auth_token, employee.employee_id)
         .await?;
 
     Ok(Json(MyProfileResponse {
@@ -86,11 +77,7 @@ pub async fn update_my_profile(
     let profile = state
         .employees()
         .repo()
-        .upsert_employee_profile(
-            &employee.auth_token,
-            employee.employee_id,
-            &req,
-        )
+        .upsert_employee_profile(&employee.auth_token, employee.employee_id, &req)
         .await?;
 
     Ok(Json(profile))
@@ -113,10 +100,7 @@ pub async fn get_my_emergency_contacts(
     let contacts = state
         .employees()
         .repo()
-        .get_emergency_contacts(
-            &employee.auth_token,
-            employee.employee_id,
-        )
+        .get_emergency_contacts(&employee.auth_token, employee.employee_id)
         .await?;
 
     Ok(Json(contacts))
@@ -139,11 +123,7 @@ pub async fn add_emergency_contact(
     let contact = state
         .employees()
         .repo()
-        .upsert_emergency_contact(
-            &employee.auth_token,
-            employee.employee_id,
-            &req,
-        )
+        .upsert_emergency_contact(&employee.auth_token, employee.employee_id, &req)
         .await?;
 
     Ok((StatusCode::CREATED, Json(contact)))
@@ -169,11 +149,7 @@ pub async fn delete_emergency_contact(
     let affected = state
         .employees()
         .repo()
-        .delete_emergency_contact(
-            &employee.auth_token,
-            employee.employee_id,
-            contact_id,
-        )
+        .delete_emergency_contact(&employee.auth_token, employee.employee_id, contact_id)
         .await?;
 
     if affected == 0 {
@@ -200,10 +176,7 @@ pub async fn get_my_documents(
     let docs = state
         .employees()
         .repo()
-        .get_employee_documents(
-            &employee.auth_token,
-            employee.employee_id,
-        )
+        .get_employee_documents(&employee.auth_token, employee.employee_id)
         .await?;
 
     Ok(Json(docs))
@@ -412,11 +385,7 @@ pub async fn get_my_leave_balances(
     let balances = state
         .leaves()
         .balance_repo()
-        .get_employee_balances(
-            &employee.auth_token,
-            employee.employee_id,
-            year,
-        )
+        .get_employee_balances(&employee.auth_token, employee.employee_id, year)
         .await?;
 
     let ess_balances = balances
@@ -449,10 +418,7 @@ pub async fn ess_get_my_leave_requests(
     let requests = state
         .leaves()
         .request_repo()
-        .get_employee_leave_requests(
-            &employee.auth_token,
-            employee.employee_id,
-        )
+        .get_employee_leave_requests(&employee.auth_token, employee.employee_id)
         .await?;
 
     Ok(Json(requests))

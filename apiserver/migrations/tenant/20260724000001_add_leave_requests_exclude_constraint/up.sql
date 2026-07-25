@@ -40,7 +40,7 @@ BEGIN
             has_conflict := false;
 
             -- Check against all previously kept ranges
-            FOR i IN 1..array_length(kept_ranges, 1) LOOP
+            FOR i IN 1..COALESCE(array_length(kept_ranges, 1), 0) LOOP
                 IF kept_ranges[i] && current_range THEN
                     has_conflict := true;
                     EXIT;

@@ -111,17 +111,15 @@ impl ReportService {
             if batch.is_empty() {
                 break;
             }
-            let remaining = total - all_employers.len() as i64;
+            let len_i64 = i64::try_from(all_employers.len()).unwrap_or(i64::MAX);
+            let remaining = total - len_i64;
             all_employers.append(&mut batch);
             if remaining <= 0 {
                 break;
             }
             page += 1;
         }
-        Ok(all_employers
-            .into_iter()
-            .map(|e| (e.id, e.name))
-            .collect())
+        Ok(all_employers.into_iter().map(|e| (e.id, e.name)).collect())
     }
 }
 

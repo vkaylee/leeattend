@@ -241,9 +241,13 @@ pub async fn get_attendance_report(
             None,
         );
         let report = if use_segments {
-            service.get_segment_attendance_report(&ctx.auth_token, args).await?
+            service
+                .get_segment_attendance_report(&ctx.auth_token, args)
+                .await?
         } else {
-            service.get_daily_attendance_report(&ctx.auth_token, args).await?
+            service
+                .get_daily_attendance_report(&ctx.auth_token, args)
+                .await?
         };
         Ok(Json(
             serde_json::to_value(report).map_err(|e| AppError::from(e.to_string()))?,

@@ -123,7 +123,9 @@ impl super::MergeHandler {
             )
         })
         .await
-        .map_err(|e| crate::errors::AppError::Internal(format!("Excel generation join error: {e}")))??;
+        .map_err(|e| {
+            crate::errors::AppError::Internal(format!("Excel generation join error: {e}"))
+        })??;
 
         let file_name = format!(
             "attendance_summary_{}_{}.xlsx",

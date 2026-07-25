@@ -28,13 +28,7 @@ impl super::LeaveService {
 
         let (data, total) = self
             .leave_balance_repo
-            .get_workspace_balances(
-                auth_token,
-                year,
-                limit,
-                offset,
-                params.q,
-            )
+            .get_workspace_balances(auth_token, year, limit, offset, params.q)
             .await
             .map_err(|e| {
                 tracing::error!(error = %e, "Error in get_workspace_balances");
@@ -60,10 +54,7 @@ impl super::LeaveService {
     ) -> Result<Vec<LeaveHistoryItem>, AppError> {
         let employments = self
             .employment_repo
-            .list_employee_employments(
-                auth_token,
-                employee_id,
-            )
+            .list_employee_employments(auth_token, employee_id)
             .await?;
 
         // Batch-fetch all leave history logs to avoid N+1
@@ -83,12 +74,7 @@ impl super::LeaveService {
 
         let requests = self
             .leave_request_repo
-            .get_employee_leave_history_requests(
-                auth_token,
-                employee_id,
-                year,
-                leave_type_id,
-            )
+            .get_employee_leave_history_requests(auth_token, employee_id, year, leave_type_id)
             .await?;
 
         let mut history: Vec<LeaveHistoryItem> = Vec::new();
@@ -184,19 +170,12 @@ impl super::LeaveService {
         // Verify employee belongs to workspace
         let _ = self
             .employee_repo
-            .get_employee_by_id(
-                employee_id,
-                auth_token,
-            )
+            .get_employee_by_id(employee_id, auth_token)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
         self.leave_balance_repo
-            .get_employee_balances(
-                auth_token,
-                employee_id,
-                year,
-            )
+            .get_employee_balances(auth_token, employee_id, year)
             .await
     }
 }

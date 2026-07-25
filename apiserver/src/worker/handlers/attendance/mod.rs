@@ -107,7 +107,9 @@ impl AttendanceHandler {
                 break;
             }
             all_employers.extend(employers);
-            if all_employers.len() as i64 >= total {
+            if u64::try_from(all_employers.len()).unwrap_or(u64::MAX)
+                >= u64::try_from(total).unwrap_or(0)
+            {
                 break;
             }
             page += 1;

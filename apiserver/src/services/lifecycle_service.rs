@@ -62,7 +62,6 @@ impl LifecycleService {
         auth_token: &TenantAuthToken,
         id: Uuid,
     ) -> Result<LifecycleChecklistTemplate, AppError> {
-
         self.repo
             .get_template_by_id(auth_token, id)
             .await?
@@ -74,7 +73,6 @@ impl LifecycleService {
         auth_token: &TenantAuthToken,
         checklist_type: Option<LifecycleChecklistType>,
     ) -> Result<Vec<LifecycleChecklistTemplate>, AppError> {
-
         self.repo
             .list_active_templates(auth_token, checklist_type)
             .await
@@ -86,12 +84,14 @@ impl LifecycleService {
         id: Uuid,
         data: UpdateLifecycleChecklistTemplateRequest,
     ) -> Result<LifecycleChecklistTemplate, AppError> {
-
         self.repo.update_template(auth_token, id, data).await
     }
 
-    pub async fn delete_template(&self, auth_token: &TenantAuthToken, id: Uuid) -> Result<(), AppError> {
-
+    pub async fn delete_template(
+        &self,
+        auth_token: &TenantAuthToken,
+        id: Uuid,
+    ) -> Result<(), AppError> {
         self.repo.soft_delete_template(auth_token, id).await
     }
 
@@ -118,7 +118,6 @@ impl LifecycleService {
         auth_token: &TenantAuthToken,
         id: Uuid,
     ) -> Result<LifecycleChecklistTemplateItem, AppError> {
-
         self.repo
             .get_template_item_by_id(auth_token, id)
             .await?
@@ -130,10 +129,7 @@ impl LifecycleService {
         auth_token: &TenantAuthToken,
         template_id: Uuid,
     ) -> Result<Vec<LifecycleChecklistTemplateItem>, AppError> {
-
-        self.repo
-            .list_template_items(auth_token, template_id)
-            .await
+        self.repo.list_template_items(auth_token, template_id).await
     }
 
     pub async fn update_template_item(
@@ -142,12 +138,14 @@ impl LifecycleService {
         id: Uuid,
         data: UpdateLifecycleChecklistTemplateItemRequest,
     ) -> Result<LifecycleChecklistTemplateItem, AppError> {
-
         self.repo.update_template_item(auth_token, id, data).await
     }
 
-    pub async fn delete_template_item(&self, auth_token: &TenantAuthToken, id: Uuid) -> Result<(), AppError> {
-
+    pub async fn delete_template_item(
+        &self,
+        auth_token: &TenantAuthToken,
+        id: Uuid,
+    ) -> Result<(), AppError> {
         self.repo.delete_template_item(auth_token, id).await
     }
 
@@ -160,7 +158,6 @@ impl LifecycleService {
         template_id: Uuid,
         actor_id: Option<Uuid>,
     ) -> Result<LifecycleChecklistResponse, AppError> {
-
         let workspace_id = auth_token.workspace_id();
 
         let template = self
@@ -380,7 +377,6 @@ impl LifecycleService {
         auth_token: &TenantAuthToken,
         id: Uuid,
     ) -> Result<LifecycleChecklistResponse, AppError> {
-
         let checklist = self
             .repo
             .get_checklist_by_id(auth_token, id)
@@ -411,7 +407,6 @@ impl LifecycleService {
         auth_token: &TenantAuthToken,
         employment_id: Uuid,
     ) -> Result<Vec<LifecycleChecklistResponse>, AppError> {
-
         let checklists = self
             .repo
             .list_checklists_for_employment(auth_token, employment_id)
@@ -470,8 +465,6 @@ impl LifecycleService {
         notes: Option<String>,
         completed_by: Option<Uuid>,
     ) -> Result<LifecycleChecklistResponse, AppError> {
-
-
         let item = self
             .repo
             .get_checklist_item_by_id(auth_token, item_id)
@@ -547,7 +540,6 @@ impl LifecycleService {
         auth_token: &TenantAuthToken,
         user_id: Uuid,
     ) -> Result<Vec<PendingTaskResponse>, AppError> {
-
         self.repo
             .get_pending_tasks_for_user(auth_token, user_id)
             .await
@@ -560,19 +552,13 @@ impl LifecycleService {
         employment_id: Uuid,
         actor_id: Option<Uuid>,
     ) -> Result<(), AppError> {
-
         if let Some(template) = self
             .repo
             .get_default_template(auth_token, LifecycleChecklistType::Onboarding)
             .await?
         {
             let _ = self
-                .create_checklist_from_template(
-                    auth_token,
-                    employment_id,
-                    template.id(),
-                    actor_id,
-                )
+                .create_checklist_from_template(auth_token, employment_id, template.id(), actor_id)
                 .await?;
         }
         Ok(())
@@ -584,19 +570,13 @@ impl LifecycleService {
         employment_id: Uuid,
         actor_id: Option<Uuid>,
     ) -> Result<(), AppError> {
-
         if let Some(template) = self
             .repo
             .get_default_template(auth_token, LifecycleChecklistType::Offboarding)
             .await?
         {
             let _ = self
-                .create_checklist_from_template(
-                    auth_token,
-                    employment_id,
-                    template.id(),
-                    actor_id,
-                )
+                .create_checklist_from_template(auth_token, employment_id, template.id(), actor_id)
                 .await?;
         }
         Ok(())
@@ -665,14 +645,14 @@ mod tests {
             None,           // department_id
             "active".into(),
             NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-            None,           // end_date
+            None, // end_date
             Some("Developer".into()),
             "full_time".into(),
-            None,           // manager_employment_id
+            None, // manager_employment_id
             Utc::now(),
             Utc::now(),
-            None,           // termination_reason
-            None,           // notes
+            None, // termination_reason
+            None, // notes
         )
     }
 
@@ -728,9 +708,7 @@ mod tests {
         )
     }
 
-    fn build_service(
-        repo: MockLifecycleChecklistRepository,
-    ) -> LifecycleService {
+    fn build_service(repo: MockLifecycleChecklistRepository) -> LifecycleService {
         LifecycleService::new(
             Arc::new(repo),
             Arc::new(MockEmployeeRepository::new()),
@@ -824,8 +802,7 @@ mod tests {
     async fn get_template_not_found() {
         let ws = Uuid::new_v4();
         let mut repo = MockLifecycleChecklistRepository::new();
-        repo.expect_get_template_by_id()
-            .returning(|_, _| Ok(None));
+        repo.expect_get_template_by_id().returning(|_, _| Ok(None));
 
         let svc = build_service(repo);
         let result = svc.get_template(&make_token(ws), Uuid::new_v4()).await;
@@ -896,8 +873,7 @@ mod tests {
     async fn delete_template_success() {
         let ws = Uuid::new_v4();
         let mut repo = MockLifecycleChecklistRepository::new();
-        repo.expect_soft_delete_template()
-            .returning(|_, _| Ok(()));
+        repo.expect_soft_delete_template().returning(|_, _| Ok(()));
 
         let svc = build_service(repo);
         let result = svc.delete_template(&make_token(ws), Uuid::new_v4()).await;
@@ -972,8 +948,7 @@ mod tests {
     async fn create_template_item_template_not_found() {
         let ws = Uuid::new_v4();
         let mut repo = MockLifecycleChecklistRepository::new();
-        repo.expect_get_template_by_id()
-            .returning(|_, _| Ok(None));
+        repo.expect_get_template_by_id().returning(|_, _| Ok(None));
 
         let svc = build_service(repo);
         let result = svc
@@ -1078,11 +1053,12 @@ mod tests {
     async fn delete_template_item_success() {
         let ws = Uuid::new_v4();
         let mut repo = MockLifecycleChecklistRepository::new();
-        repo.expect_delete_template_item()
-            .returning(|_, _| Ok(()));
+        repo.expect_delete_template_item().returning(|_, _| Ok(()));
 
         let svc = build_service(repo);
-        let result = svc.delete_template_item(&make_token(ws), Uuid::new_v4()).await;
+        let result = svc
+            .delete_template_item(&make_token(ws), Uuid::new_v4())
+            .await;
 
         assert!(result.is_ok());
     }
@@ -1117,8 +1093,7 @@ mod tests {
     async fn get_checklist_not_found() {
         let ws = Uuid::new_v4();
         let mut repo = MockLifecycleChecklistRepository::new();
-        repo.expect_get_checklist_by_id()
-            .returning(|_, _| Ok(None));
+        repo.expect_get_checklist_by_id().returning(|_, _| Ok(None));
 
         let svc = build_service(repo);
         let result = svc.get_checklist(&make_token(ws), Uuid::new_v4()).await;
@@ -1184,7 +1159,9 @@ mod tests {
             .returning(|_, _| Ok(vec![]));
 
         let svc = build_service(repo);
-        let result = svc.get_pending_tasks_for_user(&make_token(ws), user_id).await;
+        let result = svc
+            .get_pending_tasks_for_user(&make_token(ws), user_id)
+            .await;
 
         assert!(result.is_ok());
     }
@@ -1453,7 +1430,12 @@ mod tests {
             .returning(move |_, _| Ok(vec![expected_item.clone()]));
         lifecycle_repo
             .expect_create_checklist_with_items()
-            .returning(move |_, _, _| Ok((expected_checklist.clone(), vec![expected_checklist_item.clone()])));
+            .returning(move |_, _, _| {
+                Ok((
+                    expected_checklist.clone(),
+                    vec![expected_checklist_item.clone()],
+                ))
+            });
 
         let mut employee_repo = MockEmployeeRepository::new();
         employee_repo
@@ -1467,12 +1449,7 @@ mod tests {
 
         let svc = build_service_full(lifecycle_repo, employee_repo, employment_repo);
         let result = svc
-            .create_checklist_from_template(
-                &make_token(ws),
-                employment_id,
-                template_id,
-                None,
-            )
+            .create_checklist_from_template(&make_token(ws), employment_id, template_id, None)
             .await;
 
         assert!(result.is_ok());
@@ -1495,12 +1472,7 @@ mod tests {
 
         let svc = build_service_full(lifecycle_repo, employee_repo, employment_repo);
         let result = svc
-            .create_checklist_from_template(
-                &make_token(ws),
-                Uuid::new_v4(),
-                Uuid::new_v4(),
-                None,
-            )
+            .create_checklist_from_template(&make_token(ws), Uuid::new_v4(), Uuid::new_v4(), None)
             .await;
 
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
@@ -1538,12 +1510,7 @@ mod tests {
 
         let svc = build_service_full(lifecycle_repo, employee_repo, employment_repo);
         let result = svc
-            .create_checklist_from_template(
-                &make_token(ws),
-                Uuid::new_v4(),
-                template_id,
-                None,
-            )
+            .create_checklist_from_template(&make_token(ws), Uuid::new_v4(), template_id, None)
             .await;
 
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
@@ -1583,12 +1550,7 @@ mod tests {
 
         let svc = build_service_full(lifecycle_repo, employee_repo, employment_repo);
         let result = svc
-            .create_checklist_from_template(
-                &make_token(ws),
-                employment_id,
-                template_id,
-                None,
-            )
+            .create_checklist_from_template(&make_token(ws), employment_id, template_id, None)
             .await;
 
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));

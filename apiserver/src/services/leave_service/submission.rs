@@ -69,20 +69,14 @@ impl super::LeaveService {
     ) -> Result<LeaveRequest, AppError> {
         // Verify employment belongs to workspace
         let employment = self
-            .get_employment_cached(
-                auth_token,
-                req.employment_id,
-            )
+            .get_employment_cached(auth_token, req.employment_id)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
         let employee_id = employment.employee_id();
 
         // Validate leave_type_id exists for this workspace
         if !self
-            .check_leave_type_exists_cached(
-                auth_token,
-                req.leave_type_id,
-            )
+            .check_leave_type_exists_cached(auth_token, req.leave_type_id)
             .await?
         {
             return Err(AppError::validation(I18nKey::Validation));
@@ -163,22 +157,23 @@ impl super::LeaveService {
                 .collect();
             let should_cancel = conflict_info.should_auto_cancel;
 
-            let tx_result = conn.transaction::<_, AppError, _>(|pg_conn| {
-                let req = request.clone();
-                let repo = Arc::clone(&repo);
-                let auth = auth_token_clone;
-                let ids = conflicting_ids.clone();
-                let cancel = should_cancel;
-                Box::pin(async move {
-                    repo.create_leave_request_tx(pg_conn, auth, &req).await?;
-                    if cancel && !ids.is_empty() {
-                        repo.bulk_cancel_leave_requests_tx(pg_conn, auth, &ids)
-                            .await?;
-                    }
-                    Ok(())
+            let tx_result = conn
+                .transaction::<_, AppError, _>(|pg_conn| {
+                    let req = request.clone();
+                    let repo = Arc::clone(&repo);
+                    let auth = auth_token_clone;
+                    let ids = conflicting_ids.clone();
+                    let cancel = should_cancel;
+                    Box::pin(async move {
+                        repo.create_leave_request_tx(pg_conn, auth, &req).await?;
+                        if cancel && !ids.is_empty() {
+                            repo.bulk_cancel_leave_requests_tx(pg_conn, auth, &ids)
+                                .await?;
+                        }
+                        Ok(())
+                    })
                 })
-            })
-            .await;
+                .await;
 
             match tx_result {
                 Ok(()) => {}
@@ -196,10 +191,7 @@ impl super::LeaveService {
         } else {
             // Fallback: no DieselPools injected — use separate non-transactional calls
             self.leave_request_repo
-                .create_leave_request(
-                    auth_token,
-                    &request,
-                )
+                .create_leave_request(auth_token, &request)
                 .await?;
         }
 

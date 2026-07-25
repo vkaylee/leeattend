@@ -51,12 +51,7 @@ impl ShiftSwapService {
         // 1. Duplicate check
         let dup = self
             .swap_repo
-            .has_active_swap(
-                auth_token,
-                requester_id,
-                target_id,
-                swap_date,
-            )
+            .has_active_swap(auth_token, requester_id, target_id, swap_date)
             .await
             .map_err(|e| {
                 error!("SWAP_DUP_CHECK: {:?}", e);
@@ -70,11 +65,7 @@ impl ShiftSwapService {
         for emp_id in [requester_id, target_id] {
             let conflict = self
                 .swap_repo
-                .has_approved_swap_on_date(
-                    auth_token,
-                    emp_id,
-                    swap_date,
-                )
+                .has_approved_swap_on_date(auth_token, emp_id, swap_date)
                 .await
                 .map_err(|e| {
                     error!("SWAP_CONFLICT_CHECK: {:?}", e);
@@ -180,17 +171,11 @@ impl ShiftSwapService {
         // Validate both employees belong to this workspace
         let req_emp = self
             .employee_repo
-            .get_employee_by_id(
-                req.requester_id,
-                auth_token,
-            )
+            .get_employee_by_id(req.requester_id, auth_token)
             .await?;
         let tgt_emp = self
             .employee_repo
-            .get_employee_by_id(
-                req.target_id,
-                auth_token,
-            )
+            .get_employee_by_id(req.target_id, auth_token)
             .await?;
 
         if req_emp.is_none() || tgt_emp.is_none() {
@@ -211,11 +196,7 @@ impl ShiftSwapService {
         // Look up current effective shifts for both employees
         let (requester_shift_id, _) = self
             .roster_repo
-            .get_effective_shift(
-                auth_token,
-                req_employment_id,
-                req.swap_date,
-            )
+            .get_effective_shift(auth_token, req_employment_id, req.swap_date)
             .await
             .map_err(|e| {
                 error!("SHIFT_SWAP_LOOKUP_REQUESTER: {:?}", e);
@@ -224,11 +205,7 @@ impl ShiftSwapService {
 
         let (target_shift_id, _) = self
             .roster_repo
-            .get_effective_shift(
-                auth_token,
-                tgt_employment_id,
-                req.swap_date,
-            )
+            .get_effective_shift(auth_token, tgt_employment_id, req.swap_date)
             .await
             .map_err(|e| {
                 error!("SHIFT_SWAP_LOOKUP_TARGET: {:?}", e);
@@ -286,10 +263,7 @@ impl ShiftSwapService {
     ) -> Result<(), AppError> {
         let request = self
             .swap_repo
-            .get_swap_request_by_id(
-                request_id,
-                auth_token,
-            )
+            .get_swap_request_by_id(request_id, auth_token)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
@@ -300,12 +274,7 @@ impl ShiftSwapService {
 
         // Update the status first
         self.swap_repo
-            .update_swap_status(
-                request_id,
-                auth_token,
-                new_status,
-                Some(approver_id),
-            )
+            .update_swap_status(request_id, auth_token, new_status, Some(approver_id))
             .await
             .map_err(|e| {
                 error!("SHIFT_SWAP_STATUS_UPDATE_ERROR: {:?}", e);
@@ -318,18 +287,12 @@ impl ShiftSwapService {
 
             let req_emp = self
                 .employee_repo
-                .get_employee_by_id(
-                    request.requester_id(),
-                    auth_token,
-                )
+                .get_employee_by_id(request.requester_id(), auth_token)
                 .await?
                 .ok_or_else(|| AppError::validation(I18nKey::EmployeeNotFound))?;
             let tgt_emp = self
                 .employee_repo
-                .get_employee_by_id(
-                    request.target_id(),
-                    auth_token,
-                )
+                .get_employee_by_id(request.target_id(), auth_token)
                 .await?
                 .ok_or_else(|| AppError::validation(I18nKey::EmployeeNotFound))?;
 
@@ -365,10 +328,7 @@ impl ShiftSwapService {
             };
 
             self.roster_repo
-                .upsert_roster(
-                    auth_token,
-                    &requester_roster,
-                )
+                .upsert_roster(auth_token, &requester_roster)
                 .await
                 .map_err(|e| {
                     error!("SHIFT_SWAP_ROSTER_REQUESTER_ERROR: {:?}", e);
@@ -376,10 +336,7 @@ impl ShiftSwapService {
                 })?;
 
             self.roster_repo
-                .upsert_roster(
-                    auth_token,
-                    &target_roster,
-                )
+                .upsert_roster(auth_token, &target_roster)
                 .await
                 .map_err(|e| {
                     error!("SHIFT_SWAP_ROSTER_TARGET_ERROR: {:?}", e);
@@ -398,10 +355,7 @@ impl ShiftSwapService {
         status: Option<ShiftSwapStatus>,
     ) -> Result<Vec<ShiftSwapRequestWithNames>, AppError> {
         self.swap_repo
-            .get_workspace_swaps(
-                auth_token,
-                status,
-            )
+            .get_workspace_swaps(auth_token, status)
             .await
             .map_err(|e| {
                 error!("SHIFT_SWAP_LIST_ERROR: {:?}", e);
@@ -429,10 +383,7 @@ impl ShiftSwapService {
         // Validate target belongs to same workspace
         let target_emp = self
             .employee_repo
-            .get_employee_by_id(
-                req.target_id,
-                auth_token,
-            )
+            .get_employee_by_id(req.target_id, auth_token)
             .await?;
 
         if target_emp.as_ref().is_none_or(|e| !e.is_active()) {
@@ -443,10 +394,7 @@ impl ShiftSwapService {
             target_emp.ok_or_else(|| AppError::validation(I18nKey::EmployeeNotFound))?;
         let req_emp = self
             .employee_repo
-            .get_employee_by_id(
-                requester_employee_id,
-                auth_token,
-            )
+            .get_employee_by_id(requester_employee_id, auth_token)
             .await?
             .ok_or_else(|| AppError::validation(I18nKey::EmployeeNotFound))?;
 
@@ -460,11 +408,7 @@ impl ShiftSwapService {
         // Look up effective shifts
         let (requester_shift_id, _) = self
             .roster_repo
-            .get_effective_shift(
-                auth_token,
-                req_employment_id,
-                req.swap_date,
-            )
+            .get_effective_shift(auth_token, req_employment_id, req.swap_date)
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_LOOKUP_REQUESTER: {:?}", e);
@@ -473,11 +417,7 @@ impl ShiftSwapService {
 
         let (target_shift_id, _) = self
             .roster_repo
-            .get_effective_shift(
-                auth_token,
-                tgt_employment_id,
-                req.swap_date,
-            )
+            .get_effective_shift(auth_token, tgt_employment_id, req.swap_date)
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_LOOKUP_TARGET: {:?}", e);
@@ -537,10 +477,7 @@ impl ShiftSwapService {
     ) -> Result<(), AppError> {
         let request = self
             .swap_repo
-            .get_swap_request_by_id(
-                request_id,
-                auth_token,
-            )
+            .get_swap_request_by_id(request_id, auth_token)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
@@ -561,12 +498,7 @@ impl ShiftSwapService {
         };
 
         self.swap_repo
-            .update_swap_status(
-                request_id,
-                auth_token,
-                new_status,
-                None,
-            )
+            .update_swap_status(request_id, auth_token, new_status, None)
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_RESPOND_ERROR: {:?}", e);
@@ -584,10 +516,7 @@ impl ShiftSwapService {
     ) -> Result<(), AppError> {
         let request = self
             .swap_repo
-            .get_swap_request_by_id(
-                request_id,
-                auth_token,
-            )
+            .get_swap_request_by_id(request_id, auth_token)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
@@ -604,12 +533,7 @@ impl ShiftSwapService {
         }
 
         self.swap_repo
-            .update_swap_status(
-                request_id,
-                auth_token,
-                ShiftSwapStatus::Cancelled,
-                None,
-            )
+            .update_swap_status(request_id, auth_token, ShiftSwapStatus::Cancelled, None)
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_CANCEL_ERROR: {:?}", e);
@@ -625,10 +549,7 @@ impl ShiftSwapService {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<ShiftSwapRequestWithNames>, AppError> {
         self.swap_repo
-            .get_employee_swaps(
-                employee_id,
-                auth_token,
-            )
+            .get_employee_swaps(employee_id, auth_token)
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_LIST_ERROR: {:?}", e);
@@ -640,8 +561,8 @@ impl ShiftSwapService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{Employee, ShiftSwapRequest};
     use crate::diesel_pool::TenantAuthToken;
+    use crate::models::{Employee, ShiftSwapRequest};
     use crate::repositories::employee::MockEmployeeRepository;
     use crate::repositories::payroll_repository::MockPayrollRepository;
     use crate::repositories::roster::MockRosterRepository;
@@ -685,7 +606,11 @@ mod tests {
         };
 
         let res = service
-            .create_swap(&TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4(), req2)
+            .create_swap(
+                &TenantAuthToken::system_override(Uuid::new_v4()),
+                Uuid::new_v4(),
+                req2,
+            )
             .await;
         assert!(matches!(res, Err(AppError::Validation(_))));
     }
@@ -790,7 +715,9 @@ mod tests {
             reason: Some("Test".into()),
         };
 
-        let res = service.create_swap(&TenantAuthToken::system_override(ws_id), user_id, req).await;
+        let res = service
+            .create_swap(&TenantAuthToken::system_override(ws_id), user_id, req)
+            .await;
         assert!(res.is_ok());
         let swap = res.unwrap();
         assert_eq!(swap.requester_id(), req_id);
@@ -851,7 +778,12 @@ mod tests {
         );
 
         let res = service
-            .approve_swap(&TenantAuthToken::system_override(ws_id), Uuid::new_v4(), req_id, ShiftSwapStatus::Approved)
+            .approve_swap(
+                &TenantAuthToken::system_override(ws_id),
+                Uuid::new_v4(),
+                req_id,
+                ShiftSwapStatus::Approved,
+            )
             .await;
         assert!(res.is_ok());
     }
@@ -896,7 +828,12 @@ mod tests {
         );
 
         let res = service
-            .respond_to_swap(&TenantAuthToken::system_override(ws_id), target_emp_id, req_id, true)
+            .respond_to_swap(
+                &TenantAuthToken::system_override(ws_id),
+                target_emp_id,
+                req_id,
+                true,
+            )
             .await;
         assert!(res.is_ok());
     }

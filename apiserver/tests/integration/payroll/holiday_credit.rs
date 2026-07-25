@@ -150,7 +150,12 @@ async fn test_payroll_credits_paid_holiday() {
             )),
         })
     }
-    .calculate_monthly_payslip(employee_id, &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), 2026, 5)
+    .calculate_monthly_payslip(
+        employee_id,
+        &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),
+        2026,
+        5,
+    )
     .await
     .unwrap();
 

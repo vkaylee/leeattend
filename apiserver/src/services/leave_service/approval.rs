@@ -59,7 +59,11 @@ impl super::LeaveService {
                 let repo = std::sync::Arc::clone(&repo);
                 Box::pin(async move {
                     repo.update_leave_request_status_tx(
-                        pg_conn, auth, request_id, status, Some(user_id),
+                        pg_conn,
+                        auth,
+                        request_id,
+                        status,
+                        Some(user_id),
                     )
                     .await
                 })
@@ -77,7 +81,8 @@ impl super::LeaveService {
         // and because roster side effects are currently no-ops and conflict handling
         // is a read-then-notify pattern.
         if req.status == LeaveStatus::Approved {
-            self.apply_leave_to_roster(auth_token.workspace_id(), &request).await?;
+            self.apply_leave_to_roster(auth_token.workspace_id(), &request)
+                .await?;
 
             // Fetch the updated request object to pass to the conflict checker
             // TODO: avoid double-fetch by having update_leave_request_status_tx return the updated row
@@ -103,18 +108,12 @@ impl super::LeaveService {
         // Verify employee belongs to workspace
         let _ = self
             .employee_repo
-            .get_employee_by_id(
-                employee_id,
-                auth_token,
-            )
+            .get_employee_by_id(employee_id, auth_token)
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
         self.leave_request_repo
-            .get_employee_leave_requests(
-                auth_token,
-                employee_id,
-            )
+            .get_employee_leave_requests(auth_token, employee_id)
             .await
     }
 
@@ -125,10 +124,7 @@ impl super::LeaveService {
         status: Option<LeaveStatus>,
     ) -> Result<Vec<LeaveRequest>, AppError> {
         self.leave_request_repo
-            .get_workspace_leave_requests(
-                auth_token,
-                status,
-            )
+            .get_workspace_leave_requests(auth_token, status)
             .await
     }
 }

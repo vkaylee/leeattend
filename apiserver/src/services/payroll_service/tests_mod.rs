@@ -232,7 +232,7 @@ fn test_build_contexts_employee_data_not_found() {
 
     let results = build_payroll_contexts(
         &[employment_id],
-        &emp_to_employee,    // mapping exists...
+        &emp_to_employee, // mapping exists...
         &HashMap::new(),
         &HashMap::new(),
         &HashMap::new(),

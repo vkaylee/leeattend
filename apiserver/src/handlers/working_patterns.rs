@@ -379,8 +379,7 @@ async fn check_pattern_compliance(
     for date in &dates {
         let days_since_anchor = (*date - anchor).num_days();
         let cycle_days_i64 = i64::from(cycle_days);
-        let normalized =
-            ((days_since_anchor % cycle_days_i64) + cycle_days_i64) % cycle_days_i64;
+        let normalized = ((days_since_anchor % cycle_days_i64) + cycle_days_i64) % cycle_days_i64;
         #[allow(clippy::cast_possible_truncation)]
         let schedule_day = (normalized as i32) + 1; // 1-indexed
 
