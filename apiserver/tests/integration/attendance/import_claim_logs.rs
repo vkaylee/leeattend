@@ -285,12 +285,14 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
         "Staged log should be processed for existing employee"
     );
 
-    // Get the employment ID for the employee
+    // Get the employment covering the punch date (same resolution as claim_staged_logs).
+    // After the refactor, claim_staged_logs resolves per punch date rather than
+    // picking an arbitrary active employment, so we must query the same way.
     let employment_id: Uuid = crate::test_query_scalar_uuid!(
         &diesel_pools.api,
-        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
-        diesel::sql_types::Uuid,
-        employee_id
+        "SELECT id FROM employments WHERE employee_id = $1 AND start_date <= $2 AND (end_date IS NULL OR end_date >= $2) LIMIT 1",
+        diesel::sql_types::Uuid, employee_id,
+        diesel::sql_types::Date, punch_time.date_naive()
     );
 
     // 4. Verify raw log exists for this employee

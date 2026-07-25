@@ -120,6 +120,46 @@ impl Employment {
     }
 }
 
+/// Outcome of resolving which employment a dated event (e.g. an attendance
+/// punch) belongs to.
+///
+/// Distinguishes "no employment covers this date" from "several do" so callers
+/// never silently pick one of several overlapping candidates. Overlap is not
+/// prevented by a DB constraint, so `Ambiguous` is reachable in practice.
+#[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
+pub enum EmploymentResolution {
+    /// Exactly one employment covers the date.
+    Resolved(Employment),
+    /// No employment covers the date.
+    NotFound,
+    /// More than one employment covers the date — a human must decide.
+    Ambiguous(Vec<Employment>),
+}
+
+impl EmploymentResolution {
+    /// Build a resolution from the full candidate set covering a date.
+    pub fn from_candidates(mut candidates: Vec<Employment>) -> Self {
+        match candidates.len() {
+            0 => Self::NotFound,
+            1 => candidates.pop().map_or(Self::NotFound, Self::Resolved),
+            _ => Self::Ambiguous(candidates),
+        }
+    }
+
+    /// The unambiguously resolved employment, if any.
+    pub fn resolved(&self) -> Option<&Employment> {
+        match self {
+            Self::Resolved(e) => Some(e),
+            Self::NotFound | Self::Ambiguous(_) => None,
+        }
+    }
+
+    pub fn is_ambiguous(&self) -> bool {
+        matches!(self, Self::Ambiguous(_))
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct CreateEmploymentRequest {
     pub employee_id: Uuid,

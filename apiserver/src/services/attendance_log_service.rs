@@ -6,11 +6,12 @@ use uuid::Uuid;
 
 use crate::utils::id::new_id;
 
+use crate::models::employment::EmploymentResolution;
 use crate::models::{LogSource, RawAttendanceLog};
 use crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository;
 use crate::repositories::employment_repository::EmploymentRepository;
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
-use crate::repositories::staging_log_repository::StagingLogRepository;
+use crate::repositories::staging_log_repository::{StagingLogRepository, StagingStatus};
 use crate::repositories::EmployeeRepository;
 use crate::services::pairing::PairingProcessor;
 use crate::services::AgentLogEntry;
@@ -158,6 +159,7 @@ impl AttendanceLogService {
                         punch_time,
                         raw_data,
                         &fingerprint,
+                        StagingStatus::Pending,
                     )
                     .await;
 
@@ -220,13 +222,22 @@ impl AttendanceLogService {
         let punch_tz: chrono_tz::Tz = parse_workspace_tz(args.timezone);
         let local_punch_date = punch_time.with_timezone(&punch_tz).date_naive();
 
-        let resolved_employment_id = match self
+        let resolution = match self
             .employment_repo
-            .get_employment_effective_on_date(args.auth_token, employee.id(), local_punch_date)
+            .resolve_employment_on_date(args.auth_token, employee.id(), local_punch_date)
             .await
         {
-            Ok(Some(emp)) => emp.id(),
-            Ok(None) => {
+            Ok(res) => res,
+            Err(e) => {
+                let msg = format!("Database error resolving employment by date: {e}");
+                error!("{}", msg);
+                return Err(crate::errors::AppError::Internal(msg));
+            }
+        };
+
+        let resolved_employment_id = match resolution {
+            EmploymentResolution::Resolved(emp) => emp.id(),
+            EmploymentResolution::NotFound => {
                 // No employment covers the punch date → stage as error (NOT retry)
                 let msg = format!(
                     "No employment covers punch date {} (local: {}) for employee {}",
@@ -257,10 +268,37 @@ impl AttendanceLogService {
 
                 return Ok(false); // SUCCESS - don't retry
             }
-            Err(e) => {
-                let msg = format!("Database error resolving employment by date: {e}");
-                error!("{}", msg);
-                return Err(crate::errors::AppError::Internal(msg));
+            EmploymentResolution::Ambiguous(candidates) => {
+                // Several employments cover the punch date. Guessing one would
+                // silently attribute attendance (and payroll) to the wrong
+                // employer, so park the punch for a human decision instead.
+                warn!(
+                    employee_id = %employee.id(),
+                    local_punch_date = %local_punch_date,
+                    candidate_count = candidates.len(),
+                    "Ambiguous employment for punch — staged for manual resolution"
+                );
+
+                let fingerprint = Self::calculate_fingerprint(
+                    args.device_id.as_deref(),
+                    &normalized_emp_id,
+                    args.punch_time_raw,
+                    raw_data.as_ref(),
+                );
+
+                self.staging_repo
+                    .create_staging_log(
+                        args.workspace_id,
+                        args.device_id.clone(),
+                        &normalized_emp_id,
+                        punch_time,
+                        raw_data,
+                        &fingerprint,
+                        StagingStatus::Ambiguous,
+                    )
+                    .await?;
+
+                return Ok(false); // SUCCESS - don't retry
             }
         };
 

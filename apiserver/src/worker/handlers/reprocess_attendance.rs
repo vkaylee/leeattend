@@ -313,8 +313,8 @@ mod tests {
             .expect_get_active_employment_on_date()
             .returning(|_, _, _| Ok(None));
         employment_repo
-            .expect_get_employment_effective_on_date()
-            .returning(|_, _, _| Ok(None));
+            .expect_resolve_employment_on_date()
+            .returning(|_, _, _| Ok(crate::models::employment::EmploymentResolution::NotFound));
         employment_repo
             .expect_list_employments_effective_in_range()
             .returning(move |_, _, _, _| {
@@ -573,8 +573,8 @@ mod tests {
             .expect_get_active_employment_on_date()
             .returning(|_, _, _| Ok(None));
         employment_repo
-            .expect_get_employment_effective_on_date()
-            .returning(|_, _, _| Ok(None));
+            .expect_resolve_employment_on_date()
+            .returning(|_, _, _| Ok(crate::models::employment::EmploymentResolution::NotFound));
         employment_repo
             .expect_list_employments_effective_in_range()
             .returning(|_, _, _, _| Ok(vec![])); // EMPTY
@@ -713,8 +713,8 @@ mod tests {
             .expect_get_active_employment_on_date()
             .returning(|_, _, _| Ok(None));
         employment_repo
-            .expect_get_employment_effective_on_date()
-            .returning(|_, _, _| Ok(None));
+            .expect_resolve_employment_on_date()
+            .returning(|_, _, _| Ok(crate::models::employment::EmploymentResolution::NotFound));
         employment_repo
             .expect_list_employments_effective_in_range()
             .returning(move |_, _, _, _| {

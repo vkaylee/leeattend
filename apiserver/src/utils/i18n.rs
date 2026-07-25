@@ -161,6 +161,8 @@ i18n_table! {
     NoActiveEmployment => "error.no_active_employment" => ("No active employment found for employee", "Không tìm thấy hợp đồng lao động đang hoạt động cho nhân viên", "没有为员工找到处于活动状态的雇佣关系"),
     NoEmploymentOnDate => "error.no_employment_on_date" => ("No employment covers the punch date", "Không có hợp đồng lao động nào bao phủ ngày chấm công", "没有雇佣关系覆盖打卡日期"),
     AmbiguousEmploymentRange => "error.ambiguous_employment_range" => ("Date range spans multiple employments, please specify employment_id", "Khoảng ngày bao phủ nhiều hợp đồng lao động, vui lòng chỉ định employment_id", "日期范围跨越多个雇佣关系，请指定 employment_id"),
+    AmbiguousEmploymentOnDate => "error.ambiguous_employment_on_date" => ("Several employments cover the punch date, please specify employment_id", "Nhiều hợp đồng lao động bao phủ ngày chấm công, vui lòng chỉ định employment_id", "多个雇佣关系覆盖打卡日期，请指定 employment_id"),
+    EmploymentNotCoveringPunch => "error.employment_not_covering_punch" => ("The selected employment does not cover the punch date", "Hợp đồng lao động đã chọn không bao phủ ngày chấm công", "所选雇佣关系未覆盖打卡日期"),
     EmployeeAlreadyTerminated => "error.employee_already_terminated" => ("Employee is already terminated", "Nhân viên đã nghỉ việc từ trước", "该员工已被解雇"),
     OverlappingEmployment => "error.overlapping_employment" => ("Overlapping primary employments are not allowed", "Không cho phép các mối quan hệ công việc chính trùng lặp thời gian", "不允许重叠的主要雇佣关系"),
     CustomFieldNotFound => "error.custom_field_not_found" => ("Custom field not found", "Không tìm thấy trường tùy chỉnh", "未找到自定义字段"),

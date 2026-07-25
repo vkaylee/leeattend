@@ -2,7 +2,9 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 use crate::errors::AppError;
-use crate::models::employment::{CreateEmploymentRequest, Employment, UpdateEmploymentRequest};
+use crate::models::employment::{
+    CreateEmploymentRequest, Employment, EmploymentResolution, UpdateEmploymentRequest,
+};
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -55,18 +57,23 @@ pub trait EmploymentRepository: Send + Sync {
         date: chrono::NaiveDate,
     ) -> Result<Option<Employment>, AppError>;
 
-    /// Find the employment effective on `date` for the given employee.
+    /// Resolve the employment effective on `date` for the given employee.
     ///
-    /// Unlike [`get_active_employment_on_date`], this does NOT filter by
-    /// `status = "active"` — a terminated employment whose date range covers
-    /// `date` is still returned. This is the correct resolution for historical
-    /// log ingestion and reprocessing.
-    async fn get_employment_effective_on_date(
+    /// Unlike [`EmploymentRepository::get_active_employment_on_date`], this does
+    /// NOT filter by `status = "active"` — a terminated employment whose date
+    /// range covers `date` is still returned. This is the correct resolution for
+    /// historical log ingestion and reprocessing.
+    ///
+    /// Returns [`EmploymentResolution::Ambiguous`] when several employments
+    /// cover `date`. Callers MUST NOT pick one arbitrarily: overlapping ranges
+    /// are not blocked by a DB constraint, so guessing silently attributes
+    /// attendance to the wrong employer.
+    async fn resolve_employment_on_date(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: chrono::NaiveDate,
-    ) -> Result<Option<Employment>, AppError>;
+    ) -> Result<EmploymentResolution, AppError>;
 
     /// List all employments whose date range overlaps `[start_date, end_date]`
     /// for the given employee, ordered by `start_date DESC`.

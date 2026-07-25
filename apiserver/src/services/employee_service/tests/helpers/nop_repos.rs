@@ -293,6 +293,7 @@ impl StagingLogRepository for NopStagingRepo {
         _p: chrono::DateTime<chrono::Utc>,
         _ra: Option<serde_json::Value>,
         _f: &str,
+        _s: crate::repositories::staging_log_repository::StagingStatus,
     ) -> Result<bool, AppError> {
         Ok(false)
     }
@@ -303,7 +304,12 @@ impl StagingLogRepository for NopStagingRepo {
     ) -> Result<Vec<StagingLog>, AppError> {
         Ok(vec![])
     }
-    async fn update_staging_status(&self, _i: Uuid, _w: Uuid, _s: &str) -> Result<bool, AppError> {
+    async fn update_staging_status(
+        &self,
+        _i: Uuid,
+        _w: Uuid,
+        _s: crate::repositories::staging_log_repository::StagingStatus,
+    ) -> Result<bool, AppError> {
         Ok(false)
     }
     async fn get_pending_staging_logs(
@@ -324,6 +330,7 @@ impl StagingLogRepository for NopStagingRepo {
         _l: Uuid,
         _w: Uuid,
         _e: Uuid,
+        _em: Option<Uuid>,
     ) -> Result<RawAttendanceLog, AppError> {
         Err(AppError::not_found(I18nKey::NotFound))
     }

@@ -73,7 +73,11 @@ function StagingLogRow({
       </TableCell>
       <TableCell className="px-8 py-5">
         <div className="font-bold text-amber-700 dark:text-amber-300 text-lg tracking-tight font-mono">{log.raw_user_id}</div>
-        <div className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">{t("attendance_logs.not_in_system")}</div>
+        <div className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">
+          {log.status === "ambiguous"
+            ? t("attendance_logs.ambiguous_employment")
+            : t("attendance_logs.not_in_system")}
+        </div>
       </TableCell>
       <TableCell className="px-8 py-5">
         <div className="flex flex-col gap-1">

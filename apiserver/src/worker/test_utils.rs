@@ -288,8 +288,8 @@ impl MockWorkerDepsBuilder {
 
         // Default: no employment found by date (tests override when needed).
         employment_repo
-            .expect_get_employment_effective_on_date()
-            .returning(|_, _, _| Ok(None));
+            .expect_resolve_employment_on_date()
+            .returning(|_, _, _| Ok(crate::models::employment::EmploymentResolution::NotFound));
 
         employment_repo
             .expect_list_employments_effective_in_range()

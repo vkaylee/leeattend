@@ -214,26 +214,28 @@ mod tests {
         let mut employment_repo =
             crate::repositories::employment_repository::MockEmploymentRepository::new();
         employment_repo
-            .expect_get_employment_effective_on_date()
+            .expect_resolve_employment_on_date()
             .returning(move |_, _, _| {
-                Ok(Some(crate::models::employment::Employment::new(
-                    employment_id,
-                    ws_id,
-                    emp_id,
-                    uuid::Uuid::new_v4(),
-                    None,
-                    None,
-                    "active".to_string(),
-                    chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-                    None,
-                    None,
-                    "full_time".to_string(),
-                    None,
-                    chrono::Utc::now(),
-                    chrono::Utc::now(),
-                    None,
-                    None,
-                )))
+                Ok(crate::models::employment::EmploymentResolution::Resolved(
+                    crate::models::employment::Employment::new(
+                        employment_id,
+                        ws_id,
+                        emp_id,
+                        uuid::Uuid::new_v4(),
+                        None,
+                        None,
+                        "active".to_string(),
+                        chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                        None,
+                        None,
+                        "full_time".to_string(),
+                        None,
+                        chrono::Utc::now(),
+                        chrono::Utc::now(),
+                        None,
+                        None,
+                    ),
+                ))
             });
         employment_repo
             .expect_get_employments_for_employees()

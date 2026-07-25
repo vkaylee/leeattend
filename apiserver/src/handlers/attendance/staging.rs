@@ -107,6 +107,10 @@ pub async fn get_staging_logs(
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct ResolveStagingLogRequest {
     pub employee_id: Uuid,
+    /// Which employment owns this punch. Required only when several employments
+    /// cover the punch date; otherwise it is resolved from the date.
+    #[serde(default)]
+    pub employment_id: Option<Uuid>,
 }
 
 /// POST /workspaces/:ws_id/attendance/staging-logs/:id/resolve
@@ -140,7 +144,7 @@ pub async fn resolve_staging_log(
     let raw_log = state
         .attendance()
         .staging_repo()
-        .resolve_staging_log(log_id, ctx.workspace_id, req.employee_id)
+        .resolve_staging_log(log_id, ctx.workspace_id, req.employee_id, req.employment_id)
         .await?;
 
     // 6. Trigger pairing (post-commit side effect, log errors but don't fail the response)
@@ -184,7 +188,11 @@ pub async fn dismiss_staging_log(
     let updated = state
         .attendance()
         .staging_repo()
-        .update_staging_status(log_id, ctx.workspace_id, "dismissed")
+        .update_staging_status(
+            log_id,
+            ctx.workspace_id,
+            crate::repositories::staging_log_repository::StagingStatus::Dismissed,
+        )
         .await?;
 
     if !updated {

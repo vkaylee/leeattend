@@ -1552,13 +1552,13 @@ mod tests {
             unimplemented!()
         }
 
-        async fn get_employment_effective_on_date(
+        async fn resolve_employment_on_date(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _employee_id: Uuid,
             _date: chrono::NaiveDate,
-        ) -> Result<Option<crate::models::employment::Employment>, AppError> {
-            Ok(None)
+        ) -> Result<crate::models::employment::EmploymentResolution, AppError> {
+            Ok(crate::models::employment::EmploymentResolution::NotFound)
         }
 
         async fn list_employments_effective_in_range(

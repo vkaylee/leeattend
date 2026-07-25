@@ -7,7 +7,9 @@ use crate::{
     diesel_pool::DieselPools,
     errors::AppError,
     models::diesel::employment::{EmploymentEntity, UpdateDieselEmployment},
-    models::employment::{CreateEmploymentRequest, Employment, UpdateEmploymentRequest},
+    models::employment::{
+        CreateEmploymentRequest, Employment, EmploymentResolution, UpdateEmploymentRequest,
+    },
 };
 
 pub struct DieselEmploymentRepository {
@@ -304,12 +306,12 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
         Ok(entity.map(Into::into))
     }
 
-    async fn get_employment_effective_on_date(
+    async fn resolve_employment_on_date(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id_val: Uuid,
         date_val: chrono::NaiveDate,
-    ) -> Result<Option<Employment>, AppError> {
+    ) -> Result<EmploymentResolution, AppError> {
         use crate::schema::employments::dsl::*;
 
         let mut conn = crate::diesel_pool::TransactionConn(
@@ -321,18 +323,23 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
 
         // Does NOT filter on status — terminated employments whose date
         // range covers date_val are still valid for historical log ingestion.
-        let entity = employments
+        //
+        // Loads ALL covering rows rather than `.first()`: an overlapping range
+        // must be reported as ambiguous, not silently collapsed to the newest
+        // one. An employee has a handful of employments, so this is bounded.
+        let candidates = employments
             .filter(workspace_id.eq(auth_token.workspace_id()))
             .filter(employee_id.eq(employee_id_val))
             .filter(start_date.le(date_val))
             .filter(end_date.is_null().or(end_date.ge(date_val)))
             .filter(deleted_at.is_null())
             .order(start_date.desc())
-            .first::<EmploymentEntity>(&mut *conn)
-            .await
-            .optional()?;
+            .load::<EmploymentEntity>(&mut *conn)
+            .await?;
 
-        Ok(entity.map(Into::into))
+        Ok(EmploymentResolution::from_candidates(
+            candidates.into_iter().map(Into::into).collect(),
+        ))
     }
 
     async fn list_employments_effective_in_range(

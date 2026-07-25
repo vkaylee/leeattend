@@ -6,7 +6,9 @@ use uuid::Uuid;
 
 use crate::errors::AppError;
 use crate::models::diesel::attendance_log::AttendanceStagingLogEntity;
-use crate::repositories::staging_log_repository::{StagingLog, StagingLogRepository};
+use crate::repositories::staging_log_repository::{
+    StagingLog, StagingLogRepository, StagingStatus,
+};
 use crate::schema::attendance_staging_logs;
 use crate::utils::i18n::I18nKey;
 
@@ -31,6 +33,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
         punch_time: DateTime<Utc>,
         raw_data: Option<serde_json::Value>,
         fingerprint: &str,
+        status: StagingStatus,
     ) -> Result<bool, AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -53,7 +56,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
             punch_time,
             raw_data,
             fingerprint: fingerprint.to_string(),
-            status: "pending".to_string(),
+            status: status.as_str().to_string(),
             created_at: Utc::now(),
         };
 
@@ -98,7 +101,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
 
         let results: Vec<AttendanceStagingLogEntity> = attendance_staging_logs::table
             .filter(attendance_staging_logs::workspace_id.eq(workspace_id))
-            .filter(attendance_staging_logs::status.eq("pending"))
+            .filter(attendance_staging_logs::status.eq_any(StagingStatus::open_statuses()))
             .order(attendance_staging_logs::created_at.asc())
             .limit(limit)
             .load(&mut *conn)
@@ -137,7 +140,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
         let results: Vec<AttendanceStagingLogEntity> = attendance_staging_logs::table
             .filter(attendance_staging_logs::workspace_id.eq(workspace_id))
             .filter(attendance_staging_logs::raw_user_id.eq(employee_id_number))
-            .filter(attendance_staging_logs::status.eq("pending"))
+            .filter(attendance_staging_logs::status.eq(StagingStatus::Pending.as_str()))
             .order(attendance_staging_logs::punch_time.asc())
             .load(&mut *conn)
             .await
@@ -163,7 +166,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
         &self,
         id: Uuid,
         workspace_id: Uuid,
-        status: &str,
+        status: StagingStatus,
     ) -> Result<bool, AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -176,7 +179,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
         let rows_affected = diesel::update(attendance_staging_logs::table)
             .filter(attendance_staging_logs::id.eq(id))
             .filter(attendance_staging_logs::workspace_id.eq(workspace_id))
-            .set(attendance_staging_logs::status.eq(status))
+            .set(attendance_staging_logs::status.eq(status.as_str()))
             .execute(&mut *conn)
             .await
             .map_err(AppError::from)?;
@@ -195,7 +198,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
 
         let count = attendance_staging_logs::table
             .filter(attendance_staging_logs::workspace_id.eq(workspace_id))
-            .filter(attendance_staging_logs::status.eq("pending"))
+            .filter(attendance_staging_logs::status.eq_any(StagingStatus::open_statuses()))
             .count()
             .get_result::<i64>(&mut *conn)
             .await
@@ -224,26 +227,10 @@ impl StagingLogRepository for DieselStagingLogRepository {
             Box::pin(async move {
                 use crate::schema::employments;
 
-                // Verify that employee has active employment in this workspace
-                let active_employment = employments::table
-                    .filter(employments::employee_id.eq(employee_id))
-                    .filter(employments::workspace_id.eq(workspace_id))
-                    .filter(employments::status.eq("active"))
-                    .filter(employments::deleted_at.is_null())
-                    .select(employments::id)
-                    .first::<Uuid>(&mut *conn)
-                    .await
-                    .optional()
-                    .map_err(|e| AppError::Internal(format!("db check active employment: {e}")))?;
-
-                let Some(employment_id) = active_employment else {
-                    return Err(AppError::not_found(I18nKey::EmployeeNotFound));
-                };
-
                 let staged_logs = attendance_staging_logs::table
                     .filter(attendance_staging_logs::workspace_id.eq(workspace_id))
                     .filter(attendance_staging_logs::raw_user_id.eq(&raw_user_id_owned))
-                    .filter(attendance_staging_logs::status.eq("pending"))
+                    .filter(attendance_staging_logs::status.eq(StagingStatus::Pending.as_str()))
                     .order(attendance_staging_logs::punch_time.asc())
                     .load::<AttendanceStagingLogEntity>(&mut *conn)
                     .await
@@ -253,11 +240,50 @@ impl StagingLogRepository for DieselStagingLogRepository {
                     return Ok(0);
                 }
 
+                // Resolve each punch against the employment covering ITS OWN date.
+                // Batch-fetch every employment of this employee once (no query in
+                // the loop) — a re-hired employee's historical punches must attach
+                // to the employment that was in force then, not the current one.
+                let candidates = employments::table
+                    .filter(employments::employee_id.eq(employee_id))
+                    .filter(employments::workspace_id.eq(workspace_id))
+                    .filter(employments::deleted_at.is_null())
+                    .select((
+                        employments::id,
+                        employments::start_date,
+                        employments::end_date,
+                    ))
+                    .load::<(Uuid, chrono::NaiveDate, Option<chrono::NaiveDate>)>(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db load employments: {e}")))?;
+
+                if candidates.is_empty() {
+                    return Err(AppError::not_found(I18nKey::EmployeeNotFound));
+                }
+
                 let now = chrono::Utc::now();
-                let raw_log_entities: Vec<_> = staged_logs
-                    .iter()
-                    .map(
-                        |staged| crate::models::diesel::attendance_log::RawAttendanceLogEntity {
+                let mut raw_log_entities = Vec::with_capacity(staged_logs.len());
+                let mut claimed_ids = Vec::with_capacity(staged_logs.len());
+
+                for staged in &staged_logs {
+                    let punch_date = staged.punch_time.date_naive();
+                    let covering: Vec<Uuid> = candidates
+                        .iter()
+                        .filter(|(_, start, end)| {
+                            *start <= punch_date && end.is_none_or(|e| e >= punch_date)
+                        })
+                        .map(|(id, _, _)| *id)
+                        .collect();
+
+                    // Leave anything undecidable in staging rather than guessing:
+                    // 0 candidates → no employment covers the date;
+                    // >1 candidates → overlapping ranges, needs a human choice.
+                    let [employment_id] = covering[..] else {
+                        continue;
+                    };
+
+                    raw_log_entities.push(
+                        crate::models::diesel::attendance_log::RawAttendanceLogEntity {
                             id: crate::utils::id::new_id(),
                             workspace_id,
                             employment_id,
@@ -269,8 +295,13 @@ impl StagingLogRepository for DieselStagingLogRepository {
                             status: -1,
                             created_at: Some(now),
                         },
-                    )
-                    .collect();
+                    );
+                    claimed_ids.push(staged.id);
+                }
+
+                if raw_log_entities.is_empty() {
+                    return Ok(0);
+                }
 
                 let inserted_rows = diesel::insert_into(crate::schema::raw_attendance_logs::table)
                     .values(&raw_log_entities)
@@ -279,13 +310,12 @@ impl StagingLogRepository for DieselStagingLogRepository {
                     .await
                     .map_err(AppError::from)?;
 
-                let staged_ids: Vec<_> = staged_logs.iter().map(|staged| staged.id).collect();
-
                 diesel::update(
                     attendance_staging_logs::table
-                        .filter(attendance_staging_logs::id.eq_any(&staged_ids)),
+                        .filter(attendance_staging_logs::workspace_id.eq(workspace_id))
+                        .filter(attendance_staging_logs::id.eq_any(&claimed_ids)),
                 )
-                .set(attendance_staging_logs::status.eq("processed"))
+                .set(attendance_staging_logs::status.eq(StagingStatus::Processed.as_str()))
                 .execute(&mut *conn)
                 .await
                 .map_err(AppError::from)?;
@@ -301,6 +331,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
         log_id: Uuid,
         workspace_id: Uuid,
         employee_id: Uuid,
+        employment_id_choice: Option<Uuid>,
     ) -> Result<crate::models::RawAttendanceLog, AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -318,22 +349,9 @@ impl StagingLogRepository for DieselStagingLogRepository {
             Box::pin(async move {
                 use crate::schema::employments;
 
-                // Verify that employee has active employment in this workspace
-                let active_employment = employments::table
-                    .filter(employments::employee_id.eq(employee_id))
-                    .filter(employments::workspace_id.eq(workspace_id))
-                    .filter(employments::status.eq("active"))
-                    .filter(employments::deleted_at.is_null())
-                    .select(employments::id)
-                    .first::<Uuid>(&mut *conn)
-                    .await
-                    .optional()
-                    .map_err(|e| AppError::Internal(format!("db check active employment: {e}")))?;
-
-                let Some(employment_id) = active_employment else {
-                    return Err(AppError::not_found(I18nKey::EmployeeNotFound));
-                };
-
+                // Lock the staging row FIRST: the punch date it carries is what
+                // decides which employment owns the punch.
+                //
                 // Use for_update() to lock the row. We don't use nowait() here because it might
                 // not be available or might cause compatibility issues. Just use regular for_update().
                 let staged = attendance_staging_logs::table
@@ -356,9 +374,48 @@ impl StagingLogRepository for DieselStagingLogRepository {
                         }
                     })?;
 
-                if staged.status != "pending" {
+                if !StagingStatus::open_statuses().contains(&staged.status.as_str()) {
                     return Err(AppError::validation(I18nKey::StagingLogProcessed));
                 }
+
+                let punch_date = staged.punch_time.date_naive();
+
+                // Candidate employments are those actually covering the punch
+                // date — NOT merely `status = "active"`. A re-hired employee's
+                // historical punch belongs to the contract in force back then.
+                let candidates = employments::table
+                    .filter(employments::employee_id.eq(employee_id))
+                    .filter(employments::workspace_id.eq(workspace_id))
+                    .filter(employments::start_date.le(punch_date))
+                    .filter(
+                        employments::end_date
+                            .is_null()
+                            .or(employments::end_date.ge(punch_date)),
+                    )
+                    .filter(employments::deleted_at.is_null())
+                    .select(employments::id)
+                    .load::<Uuid>(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db resolve employment: {e}")))?;
+
+                let employment_id = match employment_id_choice {
+                    // Operator picked one: honour it only if it is a genuine
+                    // candidate, so a stale or hand-crafted id cannot attach a
+                    // punch to an unrelated employment or another tenant's row.
+                    Some(chosen) => {
+                        if !candidates.contains(&chosen) {
+                            return Err(AppError::validation(I18nKey::EmploymentNotCoveringPunch));
+                        }
+                        chosen
+                    }
+                    None => match candidates.as_slice() {
+                        [] => return Err(AppError::not_found(I18nKey::NoEmploymentOnDate)),
+                        [only] => *only,
+                        // Ambiguous: refuse rather than pick. The caller must
+                        // supply an explicit choice.
+                        _ => return Err(AppError::validation(I18nKey::AmbiguousEmploymentOnDate)),
+                    },
+                };
 
                 let punch = staged
                     .raw_data
@@ -409,7 +466,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
                         .filter(attendance_staging_logs::id.eq(log_id))
                         .filter(attendance_staging_logs::workspace_id.eq(workspace_id)),
                 )
-                .set(attendance_staging_logs::status.eq("processed"))
+                .set(attendance_staging_logs::status.eq(StagingStatus::Processed.as_str()))
                 .execute(&mut *conn)
                 .await
                 .map_err(|e| AppError::Internal(format!("db update staging: {e}")))?;
@@ -439,7 +496,15 @@ mod tests {
         let emp_id = Uuid::new_v4();
 
         let created = repo
-            .create_staging_log(ws_id, None, "user1", Utc::now(), None, "fingerprint1")
+            .create_staging_log(
+                ws_id,
+                None,
+                "user1",
+                Utc::now(),
+                None,
+                "fingerprint1",
+                StagingStatus::Pending,
+            )
             .await;
 
         if created.is_ok() {
@@ -450,7 +515,15 @@ mod tests {
 
             // Re-create to test resolution
             let _ = repo
-                .create_staging_log(ws_id, None, "user2", Utc::now(), None, "fingerprint2")
+                .create_staging_log(
+                    ws_id,
+                    None,
+                    "user2",
+                    Utc::now(),
+                    None,
+                    "fingerprint2",
+                    StagingStatus::Pending,
+                )
                 .await;
 
             let logs = repo
@@ -458,26 +531,28 @@ mod tests {
                 .await
                 .unwrap_or_default();
             if let Some(log) = logs.into_iter().next() {
-                let _ = repo.update_staging_status(log.id, ws_id, "processed").await;
-                let _ = repo.resolve_staging_log(log.id, ws_id, emp_id).await;
+                let _ = repo
+                    .update_staging_status(log.id, ws_id, StagingStatus::Processed)
+                    .await;
+                let _ = repo.resolve_staging_log(log.id, ws_id, emp_id, None).await;
             } else {
                 let _ = repo
-                    .update_staging_status(Uuid::new_v4(), ws_id, "processed")
+                    .update_staging_status(Uuid::new_v4(), ws_id, StagingStatus::Processed)
                     .await;
                 let _ = repo
-                    .resolve_staging_log(Uuid::new_v4(), ws_id, emp_id)
+                    .resolve_staging_log(Uuid::new_v4(), ws_id, emp_id, None)
                     .await;
             }
         } else {
             let _ = repo.get_pending_staging_logs(ws_id, 10).await;
             let _ = repo.get_pending_staged_logs(ws_id, "user1").await;
             let _ = repo
-                .update_staging_status(Uuid::new_v4(), ws_id, "processed")
+                .update_staging_status(Uuid::new_v4(), ws_id, StagingStatus::Processed)
                 .await;
             let _ = repo.count_pending_staging_logs(ws_id).await;
             let _ = repo.claim_staged_logs(ws_id, "user1", emp_id).await;
             let _ = repo
-                .resolve_staging_log(Uuid::new_v4(), ws_id, emp_id)
+                .resolve_staging_log(Uuid::new_v4(), ws_id, emp_id, None)
                 .await;
         }
     }
@@ -509,14 +584,16 @@ mod tests {
             }
         }
 
-        // 2. resolve_staging_log with invalid employee should return NotFound
+        // 2. resolve_staging_log now locks the staging row FIRST (its punch date
+        // decides the employment), so a non-existent log id fails as
+        // StagingLogNotFound before the employee is ever considered.
         let resolve_res = repo
-            .resolve_staging_log(Uuid::new_v4(), ws_id, emp_id)
+            .resolve_staging_log(Uuid::new_v4(), ws_id, emp_id, None)
             .await;
         assert!(resolve_res.is_err());
         match resolve_res.unwrap_err() {
             AppError::NotFound(msg) => {
-                assert_eq!(msg.to_string(), "error.employee_not_found");
+                assert_eq!(msg.to_string(), "error.staging_log_not_found");
             }
             AppError::Internal(msg) => {
                 assert!(

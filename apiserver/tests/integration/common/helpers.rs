@@ -10,6 +10,7 @@ use apiserver::diesel_pool::DieselPools;
 use apiserver::errors::AppError;
 use apiserver::models::TimeEntry;
 use apiserver::models::{RawAttendanceLog, RawAttendanceLogWithEmployee};
+use apiserver::repositories::staging_log_repository::StagingStatus;
 use apiserver::repositories::{
     raw_attendance_log_repository::RawAttendanceLogRepository,
     staging_log_repository::StagingLogRepository, time_entry_repository::TimeEntryRepository,
@@ -36,6 +37,7 @@ pub async fn create_staging_log(
         punch_time,
         raw_data,
         fingerprint,
+        StagingStatus::Pending,
     )
     .await
 }
