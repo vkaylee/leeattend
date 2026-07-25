@@ -67,6 +67,7 @@
     },
     "unknown_id": "Unknown ID",
     "not_in_system": "Not in system",
+    "ambiguous_employment": "Multiple employments",
     "select_employee": "Select employee...",
     "assign": "Assign",
     "create_employee": "Create",
@@ -543,7 +544,14 @@
       "filter_location": "Filter by location",
       "filter_employer": "Filter by employer",
       "filter_all_locations": "All Locations",
-      "filter_all_employers": "All Employers"
+      "filter_all_employers": "All Employers",
+      "keyboard_hint": "↑↓ to browse · Enter to select · Esc to clear",
+      "card": {
+        "work_hours": "Paid",
+        "next_day": "Ends the next day",
+        "blocks": "{{count}} blocks",
+        "used_times": "Used {{count}} times"
+      }
     },
     "compliance": {
       "warning_title": "Compliance Warning",

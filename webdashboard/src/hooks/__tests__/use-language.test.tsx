@@ -9,6 +9,7 @@ const mockChangeLanguage = vi.hoisted(() => vi.fn().mockResolvedValue(undefined)
 const mockOn = vi.hoisted(() => vi.fn());
 const mockOff = vi.hoisted(() => vi.fn());
 const mockUpdateProfile = vi.hoisted(() => vi.fn().mockResolvedValue({}));
+const mockLogError = vi.hoisted(() => vi.fn());
 
 // Mock i18next with hoisted mocks
 vi.mock("react-i18next", () => ({
@@ -30,6 +31,12 @@ vi.mock("../use-profile", () => ({
     updateProfile: (data: any) => mockUpdateProfile(data),
     isUpdating: false,
   }),
+}));
+
+// Mock logger — the real implementation calls logError on API failure,
+// not console.warn
+vi.mock("@/lib/logger", () => ({
+  logError: mockLogError,
 }));
 
 // Mock use-language giữ real implementation nhưng mock use-profile phía trên
@@ -115,14 +122,15 @@ describe("useLanguage (real implementation with mocked deps)", () => {
 
   it("changeLanguage handles API errors silently", async () => {
     mockUpdateProfile.mockRejectedValueOnce(new Error("API Error"));
-    const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => { /* empty */ });
     const { result } = renderHook(() => useLanguage(), { wrapper: createWrapper() });
     await act(async () => {
       await result.current.changeLanguage("en");
     });
-    expect(consoleSpy).toHaveBeenCalledWith("Failed to sync language preference to server");
+    expect(mockLogError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "API Error" }),
+      { component: "useLanguage" },
+    );
     expect(mockChangeLanguage).toHaveBeenCalledWith("en");
-    consoleSpy.mockRestore();
   });
 
   it("registers languageChanged event listener on mount", () => {

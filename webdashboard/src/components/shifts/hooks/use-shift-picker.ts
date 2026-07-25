@@ -4,81 +4,25 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { FrequentMap } from "@/lib/frequent-shifts-storage";
-import type { ShiftWithIntervals } from "@/pages/shifts/hooks/use-shifts-types";
+import type { ShiftCardMetrics } from "@/lib/shift-card-metrics";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Shift } from "@/lib/api";
 import { readFrequentShifts, writeFrequentShift, getTopFrequentIds } from "@/lib/frequent-shifts-storage";
+import { getShiftCardMetrics } from "@/lib/shift-card-metrics";
 
-import { isNightShift, isSplitShift, shiftMatchesQuery } from "../shift-utils";
+import type { FilterChip } from "./shift-picker-filters";
 
-// ── Types ────────────────────────────────────────────────────────────
+import { shiftMatchesQuery } from "../shift-utils";
+import { applyChipFilter, applyScopeFilters, isDefaultView, uniqueIds } from "./shift-picker-filters";
+import { NO_ACTIVE_INDEX, useRovingCursor } from "./use-roving-cursor";
 
-export type FilterChip = "all" | "frequent" | "night" | "single" | "split";
-
-export interface ShiftBadgeStyle {
-  bg: string;
-  dot: string;
-  label: string;
-}
-
-export interface ChipDef {
-  key: FilterChip;
-  labelKey: string;
-}
-
-export const FILTER_CHIPS: ChipDef[] = [
-  { key: "all", labelKey: "shifts.picker.filter_all" },
-  { key: "frequent", labelKey: "shifts.picker.filter_frequent" },
-  { key: "night", labelKey: "shifts.picker.filter_night" },
-  { key: "single", labelKey: "shifts.picker.filter_single" },
-  { key: "split", labelKey: "shifts.picker.filter_split" },
-];
-
-// ── Color badge helpers ──────────────────────────────────────────────
-
-export function getShiftBadge(shift: Shift, t: (key: string) => string): ShiftBadgeStyle {
-  if (isNightShift(shift)) {
-    return { bg: "bg-indigo-50 dark:bg-indigo-950/40", dot: "bg-indigo-500", label: t("shifts.picker.filter_night") };
-  }
-  if (isSplitShift(shift)) {
-    return { bg: "bg-teal-50 dark:bg-teal-950/40", dot: "bg-teal-500", label: t("shifts.picker.filter_split") };
-  }
-  const typed = shift as ShiftWithIntervals;
-  const firstStart = typed.intervals?.[0]?.start_time ?? "";
-  if (firstStart < "12:00") {
-    return { bg: "bg-amber-50 dark:bg-amber-950/40", dot: "bg-amber-500", label: "" };
-  }
-  return { bg: "bg-slate-100 dark:bg-slate-800", dot: "bg-slate-400", label: "" };
-}
-
-// ── Filter helpers (extracted to reduce useMemo complexity) ────────────
-
-function applyChipFilter(shifts: Shift[], chip: FilterChip, frequentIds: string[]): Shift[] {
-  switch (chip) {
-    case "night":
-      return shifts.filter((s) => isNightShift(s));
-    case "single":
-      return shifts.filter((s) => !isSplitShift(s));
-    case "split":
-      return shifts.filter((s) => isSplitShift(s));
-    case "frequent":
-      return shifts.filter((s) => frequentIds.includes(s.id));
-    default:
-      return shifts;
-  }
-}
-
-function applyScopeFilters(shifts: Shift[], locationId: string, employerId: string): Shift[] {
-  let result = shifts;
-  if (locationId) {
-    result = result.filter((s) => s.location_id === locationId);
-  }
-  if (employerId) {
-    result = result.filter((s) => s.employer_id === employerId);
-  }
-  return result;
-}
+// Badge tokens and filter definitions live in their own modules now; re-exported
+// so existing importers of this hook keep working.
+export type { ShiftAccent, ShiftBadgeStyle } from "../shift-badge-style";
+export { getShiftAccent, getShiftBadge } from "../shift-badge-style";
+export type { ChipDef, FilterChip } from "./shift-picker-filters";
+export { FILTER_CHIPS } from "./shift-picker-filters";
 
 // ── Hook ─────────────────────────────────────────────────────────────
 
@@ -91,26 +35,36 @@ interface UseShiftPickerOptions {
 
 interface UseShiftPickerReturn {
   activeChip: FilterChip;
+  /** Index into {@link orderedShifts} of the arrow-key cursor; -1 when unset. */
+  activeIndex: number;
   employerIds: string[];
   filtered: Shift[];
   formatTime: (v: string) => string;
+  /** Aggregate metrics per shift id, memoised across renders. */
+  getMetrics: (shift: Shift) => ShiftCardMetrics;
   handleClearSearch: () => void;
   handleKeyDown: (e: React.KeyboardEvent) => void;
   handleSelect: (shiftId: string | null) => void;
   hasFrequent: boolean;
   locationIds: string[];
   nonFrequentFiltered: Shift[];
+  /** Frequent section followed by the rest — the visual order on screen. */
+  orderedShifts: Shift[];
+  registerItemRef: (index: number) => (el: HTMLButtonElement | null) => void;
   searchInputRef: React.RefObject<HTMLInputElement | null>;
   searchQuery: string;
   selectedEmployerId: string;
   selectedLocationId: string;
   setActiveChip: (v: FilterChip) => void;
+  setActiveIndex: (v: number) => void;
   setSearchQuery: (v: string) => void;
   setSelectedEmployerId: (v: string) => void;
   setSelectedLocationId: (v: string) => void;
   showFrequentChip: boolean;
   sortedFrequentShifts: Shift[];
   t: TFunction;
+  /** How many times each shift has been picked on this device. */
+  usageCounts: FrequentMap;
 }
 
 export function useShiftPicker({
@@ -130,71 +84,90 @@ export function useShiftPicker({
   const [selectedEmployerId, setSelectedEmployerId] = useState<string>("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  const resetFilters = useCallback(() => {
+    setSearchQuery("");
+    setActiveChip("all");
+    setSelectedLocationId("");
+    setSelectedEmployerId("");
+  }, []);
+
   // Reset state on open, and auto-focus search input
   useEffect(() => {
     if (isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional form reset when picker opens; all state updates batch in React 18+
-      setSearchQuery("");
-      setActiveChip("all");
-      setSelectedLocationId("");
-      setSelectedEmployerId("");
+      resetFilters();
       setFrequentMap(readFrequentShifts());
       const timer = setTimeout(() => {
         searchInputRef.current?.focus();
       }, 100);
       return () => { clearTimeout(timer); };
     }
-  }, [isOpen]);
+  }, [isOpen, resetFilters]);
 
   // ── Frequent shift IDs ───────────────────────────────────────────
   const frequentIds = useMemo(() => getTopFrequentIds(frequentMap), [frequentMap]);
 
   // ── Unique location/employer IDs across all shifts ──────────────
-  const locationIds = useMemo(() => {
-    const all = shifts ?? [];
-    return [...new Set(all.map((s) => s.location_id).filter(Boolean))] as string[];
-  }, [shifts]);
-
-  const employerIds = useMemo(() => {
-    const all = shifts ?? [];
-    return [...new Set(all.map((s) => s.employer_id).filter(Boolean))] as string[];
-  }, [shifts]);
+  const locationIds = useMemo(() => uniqueIds(shifts ?? [], "location_id"), [shifts]);
+  const employerIds = useMemo(() => uniqueIds(shifts ?? [], "employer_id"), [shifts]);
 
   // ── Derived: filtered + grouped shifts ───────────────────────────
   const { filtered, hasFrequent } = useMemo(() => {
-    const all = shifts ?? [];
+    const pool = shifts ?? [];
 
-    // Step 1: apply search
+    // Step 1: free-text search, Step 2: type chip, Step 3: location/employer scope.
     const searched = searchQuery.trim()
-      ? all.filter((s) => shiftMatchesQuery(s, searchQuery))
-      : all;
-
-    // Step 2: apply filter chip
+      ? pool.filter((s) => shiftMatchesQuery(s, searchQuery))
+      : pool;
     const chipFiltered = applyChipFilter(searched, activeChip, frequentIds);
-
-    // Step 2.5: apply location/employer scope filters
     const scopeFiltered = applyScopeFilters(chipFiltered, selectedLocationId, selectedEmployerId);
 
-    // Step 3: separate frequent from rest (only when "all" chip is active and no filters)
-    const isDefault = activeChip === "all" && !searchQuery.trim() && !selectedLocationId && !selectedEmployerId;
-    const frequent = isDefault ? scopeFiltered.filter((s) => frequentIds.includes(s.id)) : [];
-    const hasFreq = frequent.length > 0;
-
-    return { filtered: scopeFiltered, frequentShifts: frequent, restShifts: isDefault ? scopeFiltered.filter((s) => !frequentIds.includes(s.id)) : scopeFiltered, hasFrequent: hasFreq };
+    // The frequent section only appears in the unfiltered default view,
+    // otherwise it would duplicate rows the user explicitly filtered for.
+    const isDefault = isDefaultView(activeChip, searchQuery, selectedLocationId, selectedEmployerId);
+    return {
+      filtered: scopeFiltered,
+      hasFrequent: isDefault && scopeFiltered.some((s) => frequentIds.includes(s.id)),
+    };
   }, [shifts, searchQuery, activeChip, frequentIds, selectedLocationId, selectedEmployerId]);
 
-  // ── Sorted frequent shifts ───────────────────────────────────────
+  // ── Sorted frequent shifts (most used first) ─────────────────────
   const sortedFrequentShifts = useMemo(() => {
-    const freq = frequentMap;
-    return [...((shifts ?? []).filter((s) => frequentIds.includes(s.id)))]
-      .sort((a, b) => (freq[b.id] ?? 0) - (freq[a.id] ?? 0));
-  }, [shifts, frequentIds, frequentMap]);
+    if (!hasFrequent) return [];
+    return filtered
+      .filter((s) => frequentIds.includes(s.id))
+      .sort((a, b) => (frequentMap[b.id] ?? 0) - (frequentMap[a.id] ?? 0));
+  }, [filtered, hasFrequent, frequentIds, frequentMap]);
 
-  // ── Non-frequent filtered shifts ─────────────────────────────────
-  const nonFrequentFiltered = useMemo(() => {
-    if (!hasFrequent) return filtered;
-    return (filtered).filter((s) => !frequentIds.includes(s.id));
-  }, [filtered, hasFrequent, frequentIds]);
+  const nonFrequentFiltered = useMemo(
+    () => (hasFrequent ? filtered.filter((s) => !frequentIds.includes(s.id)) : filtered),
+    [filtered, hasFrequent, frequentIds],
+  );
+
+  // ── Flat visual order, used to map the arrow-key cursor to a card ──
+  const orderedShifts = useMemo(
+    () => [...sortedFrequentShifts, ...nonFrequentFiltered],
+    [sortedFrequentShifts, nonFrequentFiltered],
+  );
+
+  // ── Per-shift metrics cache ──────────────────────────────────────
+  const metricsCache = useMemo(() => {
+    const cache = new Map<string, ShiftCardMetrics>();
+    for (const shift of shifts ?? []) {
+      cache.set(shift.id, getShiftCardMetrics(shift));
+    }
+    return cache;
+  }, [shifts]);
+
+  const getMetrics = useCallback(
+    (shift: Shift): ShiftCardMetrics => metricsCache.get(shift.id) ?? getShiftCardMetrics(shift),
+    [metricsCache],
+  );
+
+  const cursor = useRovingCursor(
+    orderedShifts.length,
+    orderedShifts.map((s) => s.id).join("|"),
+  );
 
   // ── Handlers ─────────────────────────────────────────────────────
   const handleSelect = useCallback((shiftId: string | null) => {
@@ -206,45 +179,69 @@ export function useShiftPicker({
   }, [onSelectShift, onClose]);
 
   const handleClearSearch = useCallback(() => {
-    setSearchQuery("");
-    setActiveChip("all");
-    setSelectedLocationId("");
-    setSelectedEmployerId("");
+    resetFilters();
+    cursor.reset();
     searchInputRef.current?.focus();
-  }, []);
+  }, [resetFilters, cursor]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      if (searchQuery) {
-        e.stopPropagation();
-        handleClearSearch();
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        cursor.moveCursor(1);
+        return;
+      case "ArrowUp":
+        e.preventDefault();
+        cursor.moveCursor(-1);
+        return;
+      case "Enter": {
+        // Enter with no cursor picks the top result — the fast path after typing.
+        const index = cursor.activeIndex === NO_ACTIVE_INDEX ? 0 : cursor.activeIndex;
+        const target = orderedShifts.at(index);
+        if (target) {
+          e.preventDefault();
+          handleSelect(target.id);
+        }
+        return;
       }
+      case "Escape":
+        if (searchQuery) {
+          e.stopPropagation();
+          handleClearSearch();
+        }
+        return;
+      default:
+        return;
     }
-  }, [searchQuery, handleClearSearch]);
-
-  const showFrequentChip = frequentIds.length > 0;
+  }, [cursor, orderedShifts, handleSelect, searchQuery, handleClearSearch]);
 
   return {
-    searchQuery,
-    setSearchQuery,
     activeChip,
-    setActiveChip,
-    selectedLocationId,
-    setSelectedLocationId,
-    selectedEmployerId,
-    setSelectedEmployerId,
-    searchInputRef,
-    formatTime,
-    t,
-    locationIds,
+    activeIndex: cursor.activeIndex,
     employerIds,
     filtered,
-    hasFrequent,
-    sortedFrequentShifts,
-    nonFrequentFiltered,
-    showFrequentChip,
-    handleSelect,
+    formatTime,
+    getMetrics,
     handleClearSearch,
     handleKeyDown,
+    handleSelect,
+    hasFrequent,
+    locationIds,
+    nonFrequentFiltered,
+    orderedShifts,
+    registerItemRef: cursor.registerItemRef,
+    searchInputRef,
+    searchQuery,
+    selectedEmployerId,
+    selectedLocationId,
+    setActiveChip,
+    setActiveIndex: cursor.setActiveIndex,
+    setSearchQuery,
+    setSelectedEmployerId,
+    setSelectedLocationId,
+    showFrequentChip: frequentIds.length > 0,
+    sortedFrequentShifts,
+    t,
+    usageCounts: frequentMap,
   };
 }

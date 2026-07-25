@@ -67,6 +67,7 @@
     },
     "unknown_id": "未知ID",
     "not_in_system": "系统中不存在",
+    "ambiguous_employment": "存在多个雇佣关系",
     "select_employee": "选择员工...",
     "assign": "分配",
     "create_employee": "创建",
@@ -536,7 +537,14 @@
       "filter_location": "按地点筛选",
       "filter_employer": "按雇主筛选",
       "filter_all_locations": "所有地点",
-      "filter_all_employers": "所有雇主"
+      "filter_all_employers": "所有雇主",
+      "keyboard_hint": "↑↓ 选择 · Enter 确认 · Esc 清除",
+      "card": {
+        "work_hours": "计薪工时",
+        "next_day": "跨天结束（次日）",
+        "blocks": "{{count}} 个时段",
+        "used_times": "已使用 {{count}} 次"
+      }
     },
     "compliance": {
       "warning_title": "合规警告",

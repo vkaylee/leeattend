@@ -67,6 +67,7 @@
     },
     "unknown_id": "ID chưa xác định",
     "not_in_system": "Chưa có trong hệ thống",
+    "ambiguous_employment": "Trùng nhiều hợp đồng",
     "select_employee": "Chọn nhân viên...",
     "assign": "Gán",
     "create_employee": "Tạo mới",
@@ -543,7 +544,14 @@
       "filter_location": "Lọc theo địa điểm",
       "filter_employer": "Lọc theo công ty",
       "filter_all_locations": "Tất cả địa điểm",
-      "filter_all_employers": "Tất cả công ty"
+      "filter_all_employers": "Tất cả công ty",
+      "keyboard_hint": "↑↓ để chọn · Enter để xác nhận · Esc để xóa",
+      "card": {
+        "work_hours": "Giờ tính lương",
+        "next_day": "Kết thúc sang ngày hôm sau",
+        "blocks": "{{count}} khung giờ",
+        "used_times": "Đã dùng {{count}} lần"
+      }
     },
     "compliance": {
       "warning_title": "Cảnh báo tuân thủ",
