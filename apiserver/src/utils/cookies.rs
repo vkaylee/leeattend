@@ -46,9 +46,18 @@ pub fn clear_auth_cookies() -> HeaderMap {
     headers
 }
 
+#[allow(clippy::disallowed_methods)]
 fn cookie_domain_attr() -> String {
     match std::env::var("COOKIE_DOMAIN") {
         Ok(d) if !d.is_empty() => format!("Domain={d}; "),
+        _ => String::new(),
+    }
+}
+
+/// Resolve the cookie domain attribute from the centralized env registry.
+pub fn cookie_domain_from_registry(registry: &crate::utils::env_registry::EnvRegistry) -> String {
+    match registry.get("COOKIE_DOMAIN") {
+        Some(d) if !d.is_empty() => format!("Domain={d}; "),
         _ => String::new(),
     }
 }

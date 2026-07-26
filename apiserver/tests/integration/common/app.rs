@@ -832,7 +832,24 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         .await
         .expect("Failed to bind random port");
     let port = listener.local_addr().unwrap().port();
-    let app = create_app(state);
+
+    // Ensure pooler URLs are set so EnvRegistry can resolve for create_app
+    let db_url = test_db.url();
+    let _ = std::env::var("DB_POOLER_TX_URL").or_else(|_| {
+        std::env::set_var("DB_POOLER_TX_URL", &db_url);
+        std::env::var("DB_POOLER_TX_URL")
+    });
+    let _ = std::env::var("DB_POOLER_SESS_URL").or_else(|_| {
+        std::env::set_var("DB_POOLER_SESS_URL", &db_url);
+        std::env::var("DB_POOLER_SESS_URL")
+    });
+    let _ = std::env::var("DB_PRIMARY_URL").or_else(|_| {
+        std::env::set_var("DB_PRIMARY_URL", &db_url);
+        std::env::var("DB_PRIMARY_URL")
+    });
+    let registry = apiserver::utils::env_registry::EnvRegistry::resolve()
+        .expect("Failed to resolve env registry for test");
+    let app = create_app(state, &registry);
 
     tokio::spawn(async move {
         axum::serve(listener, app).await.unwrap();
@@ -1563,7 +1580,24 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
         .await
         .expect("Failed to bind random port");
     let port = listener.local_addr().unwrap().port();
-    let app = create_app(state);
+
+    // Ensure pooler URLs are set so EnvRegistry can resolve for create_app
+    let db_url = test_db.url();
+    let _ = std::env::var("DB_POOLER_TX_URL").or_else(|_| {
+        std::env::set_var("DB_POOLER_TX_URL", &db_url);
+        std::env::var("DB_POOLER_TX_URL")
+    });
+    let _ = std::env::var("DB_POOLER_SESS_URL").or_else(|_| {
+        std::env::set_var("DB_POOLER_SESS_URL", &db_url);
+        std::env::var("DB_POOLER_SESS_URL")
+    });
+    let _ = std::env::var("DB_PRIMARY_URL").or_else(|_| {
+        std::env::set_var("DB_PRIMARY_URL", &db_url);
+        std::env::var("DB_PRIMARY_URL")
+    });
+    let registry = apiserver::utils::env_registry::EnvRegistry::resolve()
+        .expect("Failed to resolve env registry for test");
+    let app = create_app(state, &registry);
 
     tokio::spawn(async move {
         axum::serve(listener, app).await.unwrap();
@@ -2343,6 +2377,22 @@ pub async fn setup_app_tower_internal_extended(
         scan_service.clone(),
     ));
 
-    let app = apiserver::create_app(app_state.clone());
+    // Ensure pooler URLs are set so EnvRegistry can resolve for create_app
+    let db_url = test_db.url();
+    let _ = std::env::var("DB_POOLER_TX_URL").or_else(|_| {
+        std::env::set_var("DB_POOLER_TX_URL", &db_url);
+        std::env::var("DB_POOLER_TX_URL")
+    });
+    let _ = std::env::var("DB_POOLER_SESS_URL").or_else(|_| {
+        std::env::set_var("DB_POOLER_SESS_URL", &db_url);
+        std::env::var("DB_POOLER_SESS_URL")
+    });
+    let _ = std::env::var("DB_PRIMARY_URL").or_else(|_| {
+        std::env::set_var("DB_PRIMARY_URL", &db_url);
+        std::env::var("DB_PRIMARY_URL")
+    });
+    let registry = apiserver::utils::env_registry::EnvRegistry::resolve()
+        .expect("Failed to resolve env registry for test");
+    let app = apiserver::create_app(app_state.clone(), &registry);
     (test_db, factory, app_state, app)
 }

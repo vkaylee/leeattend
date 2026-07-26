@@ -134,6 +134,7 @@ impl EnvRegistry {
     /// 4. In production mode, also collect errors for `required_in_prod` vars.
     ///
     /// Returns `Ok(registry)` with all resolved values, or `Err(list_of_errors)`.
+    #[allow(clippy::disallowed_methods)]
     pub fn resolve() -> Result<Self, Vec<String>> {
         let mut resolved = Vec::with_capacity(ALL_ENV_VARS.len());
         let mut errors: Vec<String> = Vec::new();
@@ -235,18 +236,24 @@ impl EnvRegistry {
 // ── Display / Startup Summary ────────────────────────────────────────────
 
 impl EnvRegistry {
-    /// Print a formatted startup summary showing all env vars and their status.
+    /// Build a formatted startup summary string showing all env vars and their status.
     ///
     /// Modeled after `agent-main/src/config.rs:show_summary()`.
-    /// Uses `tracing::info!` for structured log output.
-    pub fn show_summary(&self) {
-        // Use println! for startup display (before tracing is initialized,
-        // this goes to stdout; after, it's captured by the subscriber).
-        // We emit via tracing::info! for structured log integration.
+    /// Callers should emit the returned string via `tracing::info!` or `println!`.
+    pub fn format_summary(&self) -> String {
+        use std::fmt::Write;
 
-        tracing::info!("============================================================");
-        tracing::info!("  LeeAttend API Server — Environment Configuration");
-        tracing::info!("============================================================");
+        let mut output = String::new();
+
+        let _ = writeln!(
+            output,
+            "============================================================"
+        );
+        let _ = writeln!(output, "  LeeAttend API Server — Environment Configuration");
+        let _ = writeln!(
+            output,
+            "============================================================"
+        );
 
         // Group by category
         let categories = [
@@ -273,8 +280,11 @@ impl EnvRegistry {
                 continue;
             }
 
-            tracing::info!("------------------------------------------------------------");
-            tracing::info!("  {}", category);
+            let _ = writeln!(
+                output,
+                "------------------------------------------------------------"
+            );
+            let _ = writeln!(output, "  {category}");
 
             for r in &vars {
                 let status_icon = match r.source {
@@ -302,12 +312,10 @@ impl EnvRegistry {
                     ValueSource::Missing => "[MISSING]".to_string(),
                 };
 
-                tracing::info!(
+                let _ = writeln!(
+                    output,
                     "  {} {:<35} = {:<40} {}",
-                    status_icon,
-                    r.def.key,
-                    display_value,
-                    source_tag,
+                    status_icon, r.def.key, display_value, source_tag,
                 );
             }
         }
@@ -323,21 +331,143 @@ impl EnvRegistry {
             .map(|r| r.def.key)
             .collect();
 
+        let _ = writeln!(
+            output,
+            "============================================================"
+        );
         if missing_required.is_empty() {
-            tracing::info!("============================================================");
-            tracing::info!(
+            let _ = writeln!(
+                output,
                 "Status: ✓ All required env vars are set (mode: {})",
                 self.app_env
             );
         } else {
-            tracing::warn!("============================================================");
-            tracing::warn!(
+            let _ = writeln!(
+                output,
                 "Status: ❌ {} required env var(s) MISSING: {}",
                 missing_required.len(),
                 missing_required.join(", ")
             );
         }
-        tracing::info!("============================================================");
+        let _ = writeln!(
+            output,
+            "============================================================"
+        );
+
+        output
+    }
+
+    /// Generate a `.env.example` file content from the registry metadata.
+    ///
+    /// The output is grouped by category with description comments and
+    /// sensible placeholder values for required secrets. This can be
+    /// written to `.env.example` at the repo root.
+    ///
+    /// Regenerate with: `cargo run -- gen-env-example > .env.example`
+    pub fn generate_env_example() -> String {
+        use std::fmt::Write;
+
+        let mut out = String::new();
+
+        let _ = writeln!(
+            out,
+            "# =============================================================================="
+        );
+        let _ = writeln!(out, "# LeeAttend API Server — Environment Variables");
+        let _ = writeln!(
+            out,
+            "# =============================================================================="
+        );
+        let _ = writeln!(
+            out,
+            "# Auto-generated from EnvRegistry (apiserver/src/utils/env_registry.rs)."
+        );
+        let _ = writeln!(
+            out,
+            "# Regenerate: cargo run -- gen-env-example > .env.example"
+        );
+        let _ = writeln!(
+            out,
+            "# =============================================================================="
+        );
+
+        let categories = [
+            EnvCategory::Core,
+            EnvCategory::Database,
+            EnvCategory::Redis,
+            EnvCategory::Security,
+            EnvCategory::Storage,
+            EnvCategory::Worker,
+            EnvCategory::RateLimit,
+            EnvCategory::Scan,
+            EnvCategory::Integration,
+            EnvCategory::FeatureFlag,
+        ];
+
+        for category in &categories {
+            let vars: Vec<&EnvVarDef> = ALL_ENV_VARS
+                .iter()
+                .filter(|d| d.category == *category)
+                .collect();
+
+            if vars.is_empty() {
+                continue;
+            }
+
+            let _ = writeln!(out);
+            let _ = writeln!(out, "# --- {category} ---");
+
+            for def in vars {
+                let _ = writeln!(out);
+
+                // Description
+                let required_tag = if def.required_always {
+                    " REQUIRED"
+                } else if def.required_in_prod {
+                    " (required in production)"
+                } else {
+                    ""
+                };
+                let _ = writeln!(out, "# {}{}", def.description, required_tag);
+
+                // Alias hint
+                if !def.aliases.is_empty() {
+                    let _ = writeln!(out, "# Aliases: {}", def.aliases.join(", "));
+                }
+
+                // Value line
+                let line = format_env_example_line(def);
+                let _ = writeln!(out, "{line}");
+            }
+        }
+
+        // Trailing newline
+        let _ = writeln!(out);
+
+        out
+    }
+}
+
+/// Format a single `KEY=VALUE` line for `.env.example` generation.
+fn format_env_example_line(def: &EnvVarDef) -> String {
+    if let Some(default) = def.default_value {
+        // Var has a default — show it uncommented with the default value.
+        format!("{}={}", def.key, default)
+    } else {
+        // No default. Determine placeholder value.
+        let placeholder = match def.sensitivity {
+            Sensitivity::Secret => "your_secret_here",
+            Sensitivity::Connection => "your_connection_url_here",
+            Sensitivity::Public => "your_value_here",
+        };
+
+        if def.required_always || def.required_in_prod {
+            // Required — show uncommented with placeholder.
+            format!("{}={}", def.key, placeholder)
+        } else {
+            // Optional — comment it out with placeholder.
+            format!("# {}={}", def.key, placeholder)
+        }
     }
 }
 
@@ -636,7 +766,7 @@ pub static ALL_ENV_VARS: &[EnvVarDef] = &[
         description: "S3-compatible storage endpoint URL.",
         required_always: false,
         required_in_prod: true,
-        default_value: None,
+        default_value: Some("http://localhost:9000"),
         sensitivity: Sensitivity::Public,
     },
     EnvVarDef {
@@ -646,7 +776,7 @@ pub static ALL_ENV_VARS: &[EnvVarDef] = &[
         description: "S3 bucket name for file storage.",
         required_always: false,
         required_in_prod: true,
-        default_value: None,
+        default_value: Some("leeattend"),
         sensitivity: Sensitivity::Public,
     },
     EnvVarDef {
@@ -656,7 +786,7 @@ pub static ALL_ENV_VARS: &[EnvVarDef] = &[
         description: "S3 access key.",
         required_always: false,
         required_in_prod: true,
-        default_value: None,
+        default_value: Some("minioadmin"),
         sensitivity: Sensitivity::Secret,
     },
     EnvVarDef {
@@ -666,7 +796,7 @@ pub static ALL_ENV_VARS: &[EnvVarDef] = &[
         description: "S3 secret key.",
         required_always: false,
         required_in_prod: true,
-        default_value: None,
+        default_value: Some("minioadmin"),
         sensitivity: Sensitivity::Secret,
     },
     EnvVarDef {
@@ -771,6 +901,16 @@ pub static ALL_ENV_VARS: &[EnvVarDef] = &[
         required_always: false,
         required_in_prod: false,
         default_value: Some("500"),
+        sensitivity: Sensitivity::Public,
+    },
+    EnvVarDef {
+        key: "PAIRING_SWEEP_INTERVAL_SECS",
+        aliases: &[],
+        category: EnvCategory::Worker,
+        description: "Pairing scheduler sweep interval in seconds.",
+        required_always: false,
+        required_in_prod: false,
+        default_value: Some("2"),
         sensitivity: Sensitivity::Public,
     },
 
@@ -926,9 +1066,10 @@ mod tests {
         assert_eq!(registry.get("DB_API_MAX_CONN").unwrap(), "20");
         assert_eq!(registry.get("DB_TENANT_MAX_CONN").unwrap(), "5");
 
-        // S3 optional — should be missing but not required
+        // S3 vars — now have dev defaults (used as fallback, not required)
         let s3 = registry.get_resolved("S3_ENDPOINT_URL").unwrap();
-        assert_eq!(s3.source, ValueSource::Missing);
+        assert_eq!(s3.source, ValueSource::Default);
+        assert_eq!(s3.value, "http://localhost:9000");
 
         // REDIS_URL is optional
         let redis = registry.get_resolved("REDIS_URL").unwrap();
@@ -1087,13 +1228,19 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_show_summary_does_not_panic() {
+    fn test_format_summary_does_not_panic() {
         clear_all_env_vars();
         set_minimum_env();
 
         let registry = EnvRegistry::resolve().unwrap();
-        // Just verify it doesn't panic — output goes to tracing
-        registry.show_summary();
+        let summary = registry.format_summary();
+        // Verify it produces non-empty output with key sections
+        assert!(summary.contains("LeeAttend API Server"));
+        assert!(summary.contains("Core"));
+        assert!(summary.contains("Database"));
+        assert!(summary.contains("Status:"));
+        assert!(summary.contains("APP_ENV"));
+        assert!(summary.contains("DB_PRIMARY_URL"));
     }
 
     #[test]
@@ -1138,5 +1285,85 @@ mod tests {
         assert_eq!(registry.get("API_JWT_SECRET").unwrap(), "supa-jwt-token");
         let resolved = registry.get_resolved("API_JWT_SECRET").unwrap();
         assert_eq!(resolved.resolved_key, "SUPAVISOR_API_JWT");
+    }
+
+    #[test]
+    fn test_generate_env_example_structure() {
+        let example = EnvRegistry::generate_env_example();
+
+        // Header
+        assert!(
+            example.contains("LeeAttend API Server — Environment Variables"),
+            "Should contain header"
+        );
+        assert!(
+            example.contains("Auto-generated from EnvRegistry"),
+            "Should contain auto-gen notice"
+        );
+
+        // Category sections
+        assert!(
+            example.contains("# --- Core ---"),
+            "Should have Core section"
+        );
+        assert!(
+            example.contains("# --- Database ---"),
+            "Should have Database section"
+        );
+        assert!(
+            example.contains("# --- Security ---"),
+            "Should have Security section"
+        );
+        assert!(
+            example.contains("# --- Storage ---"),
+            "Should have Storage section"
+        );
+
+        // Required vars should be uncommented
+        assert!(
+            example.contains("DB_PRIMARY_URL="),
+            "DB_PRIMARY_URL should be present (required)"
+        );
+        assert!(
+            example.contains("DB_POOLER_TX_URL="),
+            "DB_POOLER_TX_URL should be present (required)"
+        );
+
+        // Default vars should show default value
+        assert!(
+            example.contains("APP_PORT=3000"),
+            "APP_PORT should show default 3000"
+        );
+        assert!(
+            example.contains("APP_ENV=development"),
+            "APP_ENV should show default development"
+        );
+
+        // Secret vars should have placeholder
+        assert!(
+            example.contains("JWT_SECRET=your_secret_here"),
+            "JWT_SECRET should have secret placeholder"
+        );
+
+        // Optional vars without default should be commented out with placeholder
+        let lines: Vec<&str> = example.lines().collect();
+        let cookie_line = lines
+            .iter()
+            .find(|l| l.contains("COOKIE_DOMAIN"))
+            .expect("COOKIE_DOMAIN should be present");
+        assert!(
+            cookie_line.starts_with('#'),
+            "COOKIE_DOMAIN should be commented out (optional, no default). Got: {cookie_line}"
+        );
+        assert!(
+            cookie_line.contains("your_value_here"),
+            "COOKIE_DOMAIN should have a placeholder. Got: {cookie_line}"
+        );
+
+        // REQUIRED tag
+        assert!(
+            example.contains("# REQUIRED") || example.contains("REQUIRED"),
+            "Required vars should be tagged"
+        );
     }
 }

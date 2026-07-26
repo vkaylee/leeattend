@@ -82,16 +82,38 @@ fn mask_db_url(url: &str) -> String {
     }
 }
 
+#[allow(clippy::disallowed_methods)]
 fn db_host_from_env() -> String {
     std::env::var("PGBOUNCER_HOST")
         .or_else(|_| std::env::var("DATABASE_HOST"))
         .unwrap_or_else(|_| "localhost".to_string())
 }
 
+#[allow(clippy::disallowed_methods)]
 fn db_port_from_env() -> String {
     std::env::var("PGBOUNCER_PORT")
         .or_else(|_| std::env::var("PGPORT"))
         .unwrap_or_else(|_| "5432".to_string())
+}
+
+/// Resolve database host from the centralized env registry.
+#[allow(dead_code)]
+fn db_host_from_registry(registry: &crate::utils::env_registry::EnvRegistry) -> String {
+    registry
+        .get("PGBOUNCER_HOST")
+        .map(ToString::to_string)
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "localhost".to_string())
+}
+
+/// Resolve database port from the centralized env registry.
+#[allow(dead_code)]
+fn db_port_from_registry(registry: &crate::utils::env_registry::EnvRegistry) -> String {
+    registry
+        .get("PGBOUNCER_PORT")
+        .map(ToString::to_string)
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "5432".to_string())
 }
 
 // ── Handlers ─────────────────────────────────────────────────────────────

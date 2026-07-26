@@ -6,12 +6,26 @@ use std::sync::Arc;
 
 #[tokio::test]
 async fn test_app_state_build_works() {
+    std::env::set_var("S3_ENDPOINT_URL", "http://localhost:9000");
+    std::env::set_var("S3_BUCKET_NAME", "test-bucket");
+    std::env::set_var("S3_ACCESS_KEY", "test-access");
+    std::env::set_var("S3_SECRET_KEY", "test-secret");
+    std::env::set_var("S3_REGION", "us-east-1");
+
     let test_db = TestDatabase::new().await;
-    let diesel_pools = DieselPools::for_test(&test_db.url());
+    let db_url = test_db.url();
+    std::env::set_var("DB_PRIMARY_URL", &db_url);
+    std::env::set_var("DB_POOLER_TX_URL", &db_url);
+    std::env::set_var("DB_POOLER_SESS_URL", &db_url);
+
+    let diesel_pools = DieselPools::for_test(&db_url);
     let redis_pool = create_test_redis_pool().await;
 
+    let registry = apiserver::utils::env_registry::EnvRegistry::resolve()
+        .expect("Failed to resolve env registry for test");
+
     // Call build
-    let build_result = AppState::build(diesel_pools, redis_pool).await;
+    let build_result = AppState::build(diesel_pools, redis_pool, &registry).await;
     assert!(
         build_result.is_ok(),
         "Failed to build AppState: {:?}",
@@ -38,16 +52,29 @@ async fn test_binary_gen_openapi() {
 
 #[tokio::test]
 async fn test_create_app_router_config() {
+    std::env::set_var("S3_ENDPOINT_URL", "http://localhost:9000");
+    std::env::set_var("S3_BUCKET_NAME", "test-bucket");
+    std::env::set_var("S3_ACCESS_KEY", "test-access");
+    std::env::set_var("S3_SECRET_KEY", "test-secret");
+    std::env::set_var("S3_REGION", "us-east-1");
+
     let test_db = TestDatabase::new().await;
-    let diesel_pools = DieselPools::for_test(&test_db.url());
+    let db_url = test_db.url();
+    std::env::set_var("DB_PRIMARY_URL", &db_url);
+    std::env::set_var("DB_POOLER_TX_URL", &db_url);
+    std::env::set_var("DB_POOLER_SESS_URL", &db_url);
+
+    let diesel_pools = DieselPools::for_test(&db_url);
     let redis_pool = create_test_redis_pool().await;
 
-    let build_result = AppState::build(diesel_pools, redis_pool).await;
+    let registry = apiserver::utils::env_registry::EnvRegistry::resolve()
+        .expect("Failed to resolve env registry for test");
+    let build_result = AppState::build(diesel_pools, redis_pool, &registry).await;
     assert!(build_result.is_ok());
     let (state, _workers) = build_result.unwrap();
 
     // Create the router
-    let app = apiserver::create_app(state);
+    let app = apiserver::create_app(state, &registry);
 
     // Verify routing and middleware setup by sending a request using tower::ServiceExt
     use axum::body::Body;

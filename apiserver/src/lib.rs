@@ -19,6 +19,7 @@
     clippy::multiple_crate_versions
 )]
 #![warn(clippy::too_many_lines)]
+#![warn(clippy::disallowed_methods)]
 #![deny(clippy::clone_on_ref_ptr)]
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::expect_used)]
@@ -45,6 +46,7 @@
     allow(
         clippy::unwrap_used,
         clippy::expect_used,
+        clippy::disallowed_methods,
         clippy::cast_possible_truncation,
         clippy::cast_precision_loss,
         clippy::cast_possible_wrap,
@@ -272,7 +274,10 @@ pub fn parse_allowed_origins(origins_str: &str) -> Vec<HeaderValue> {
     origins
 }
 
-pub fn create_app(state: Arc<AppState>) -> Router {
+pub fn create_app(
+    state: Arc<AppState>,
+    registry: &crate::utils::env_registry::EnvRegistry,
+) -> Router {
     let config = crate::utils::config::get_config();
     let allowed_origins_str = config.allowed_origins.clone();
 
@@ -302,7 +307,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
     // Compose domain-specific route modules
     let router = Router::new()
         .merge(routes::dashboard::router())
-        .merge(routes::auth::router(&state))
+        .merge(routes::auth::router(&state, registry))
         .merge(routes::workspaces::router())
         .merge(routes::files::router())
         .merge(routes::documents::router())
@@ -348,7 +353,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         ))
         .layer(crate::mw::RateLimitLayer::new(
             state.infra().redis().cloned(),
-            crate::mw::rate_limit::RateLimitConfig::default(),
+            crate::mw::rate_limit::RateLimitConfig::from_registry(registry),
             state.core().jwt_secret().to_string(),
         ))
         .layer(axum::middleware::from_fn(crate::mw::request_id_middleware))

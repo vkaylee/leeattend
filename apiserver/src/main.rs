@@ -38,6 +38,14 @@ impl Drop for PortFileGuard {
 #[allow(clippy::too_many_lines)]
 #[allow(clippy::disallowed_macros)] // eprintln! needed before tracing init for fatal config errors
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Check for env-example generation flag before everything else
+    if std::env::args().any(|arg| arg == "gen-env-example") {
+        let example = apiserver::utils::env_registry::EnvRegistry::generate_env_example();
+        let mut stdout = std::io::stdout();
+        let _ = stdout.write_all(example.as_bytes());
+        return Ok(());
+    }
+
     // Check for openapi generation flag before everything else
     if std::env::args().any(|arg| arg == "gen-openapi") {
         let openapi_json = ApiDoc::openapi().to_pretty_json()?;
@@ -93,10 +101,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Emit the full startup configuration summary
-    registry.show_summary();
+    tracing::info!("{}", registry.format_summary());
 
     // Initialize configurable database pools (API + Worker + optional Reader)
-    let db_config = DbPoolConfig::from_env()?;
+    let db_config = DbPoolConfig::from_registry(&registry)?;
 
     // Backup workspace configurations before dropping columns in system migrations
     let backup_cache = match tokio::task::spawn_blocking({
@@ -194,12 +202,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize Redis for distributed job processing and presence tracking (optional)
     tracing::info!("Initializing Redis connection...");
-    let redis_pool = init_redis().await;
+    let redis_pool = init_redis(&registry).await;
     tracing::info!("Redis initialization complete");
 
-    let (state, workers) = AppState::build(diesel_pools, redis_pool).await?;
+    let (state, workers) = AppState::build(diesel_pools, redis_pool, &registry).await?;
 
-    let app = create_app(std::sync::Arc::clone(&state));
+    let app = create_app(std::sync::Arc::clone(&state), &registry);
 
     // ── Bind to port (from AppConfig, already validated) ──────────────────
 
@@ -267,15 +275,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn init_redis() -> Option<RedisPool> {
-    let Ok(url) = std::env::var("REDIS_URL") else {
+async fn init_redis(registry: &apiserver::utils::env_registry::EnvRegistry) -> Option<RedisPool> {
+    let Some(url) = registry.get("REDIS_URL") else {
         tracing::info!("REDIS_URL not set, distributed processing and presence tracking disabled");
         return None;
     };
 
     tracing::info!("Connecting to Redis at {}", url);
 
-    let pool = match timeout(std::time::Duration::from_secs(5), RedisPool::new(&url)).await {
+    let pool = match timeout(std::time::Duration::from_secs(5), RedisPool::new(url)).await {
         Ok(Ok(p)) => p,
         Ok(Err(e)) => {
             tracing::warn!("Redis connection failed: {}", e);

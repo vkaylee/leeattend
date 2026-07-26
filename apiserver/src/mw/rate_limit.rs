@@ -31,30 +31,27 @@ pub struct RateLimitConfig {
 
 impl Default for RateLimitConfig {
     fn default() -> Self {
-        Self::from_env()
+        Self {
+            max_read_requests: 120,
+            max_write_requests: 30,
+            window_secs: 60,
+        }
     }
 }
 
 impl RateLimitConfig {
-    /// Load rate limit configuration from environment variables or fall back to defaults.
-    pub fn from_env() -> Self {
-        let max_read_requests = std::env::var("RATE_LIMIT_MAX_READ")
-            .ok()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(120);
-        let max_write_requests = std::env::var("RATE_LIMIT_MAX_WRITE")
-            .ok()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(30);
-        let window_secs = std::env::var("RATE_LIMIT_WINDOW_SECS")
-            .ok()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(60);
-
+    /// Load rate limit configuration from the centralized env registry.
+    pub fn from_registry(registry: &crate::utils::env_registry::EnvRegistry) -> Self {
         Self {
-            max_read_requests,
-            max_write_requests,
-            window_secs,
+            max_read_requests: registry
+                .get_parsed::<u64>("RATE_LIMIT_MAX_READ")
+                .unwrap_or(120),
+            max_write_requests: registry
+                .get_parsed::<u64>("RATE_LIMIT_MAX_WRITE")
+                .unwrap_or(30),
+            window_secs: registry
+                .get_parsed::<u64>("RATE_LIMIT_WINDOW_SECS")
+                .unwrap_or(60),
         }
     }
 
@@ -322,22 +319,6 @@ mod tests {
         assert_eq!(config.max_read_requests, 120);
         assert_eq!(config.max_write_requests, 30);
         assert_eq!(config.window_secs, 60);
-    }
-
-    #[test]
-    fn test_from_env_config() {
-        std::env::set_var("RATE_LIMIT_MAX_READ", "150");
-        std::env::set_var("RATE_LIMIT_MAX_WRITE", "45");
-        std::env::set_var("RATE_LIMIT_WINDOW_SECS", "120");
-
-        let config = RateLimitConfig::from_env();
-        assert_eq!(config.max_read_requests, 150);
-        assert_eq!(config.max_write_requests, 45);
-        assert_eq!(config.window_secs, 120);
-
-        std::env::remove_var("RATE_LIMIT_MAX_READ");
-        std::env::remove_var("RATE_LIMIT_MAX_WRITE");
-        std::env::remove_var("RATE_LIMIT_WINDOW_SECS");
     }
 
     #[test]

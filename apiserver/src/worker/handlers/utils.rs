@@ -68,10 +68,20 @@ impl Drop for ImportTimeoutGuard {
 }
 
 /// Get the chunk size for import jobs from the environment, defaulting to 500.
+#[allow(clippy::disallowed_methods)]
 pub fn get_import_chunk_size() -> usize {
     std::env::var("IMPORT_CHUNK_SIZE")
         .unwrap_or_else(|_| "500".to_string())
         .parse::<usize>()
+        .unwrap_or(500)
+}
+
+/// Get the chunk size for import jobs from the centralized env registry.
+pub fn get_import_chunk_size_from_registry(
+    registry: &crate::utils::env_registry::EnvRegistry,
+) -> usize {
+    registry
+        .get_parsed::<usize>("IMPORT_CHUNK_SIZE")
         .unwrap_or(500)
 }
 

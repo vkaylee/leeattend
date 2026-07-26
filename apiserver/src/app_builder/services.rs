@@ -56,6 +56,7 @@ pub async fn build_services(
     agent_manager: &AgentManager,
     repos: &Repositories,
     notifier: &Option<Arc<PairingNotifier>>,
+    registry: &crate::utils::env_registry::EnvRegistry,
 ) -> Result<Services, Box<dyn std::error::Error>> {
     let core = build_core_services(
         diesel_pools,
@@ -63,6 +64,7 @@ pub async fn build_services(
         crypto_service,
         agent_manager,
         repos,
+        registry,
     )
     .await?;
     let attendance =

@@ -90,6 +90,7 @@ impl AppConfig {
 
     /// Legacy: Build configuration from raw environment variables.
     /// Prefer [`AppConfig::from_registry`] for new code.
+    #[allow(clippy::disallowed_methods)]
     pub fn from_env() -> Result<Self, String> {
         let env = std::env::var("APP_ENV")
             .or_else(|_| std::env::var("API_ENV"))

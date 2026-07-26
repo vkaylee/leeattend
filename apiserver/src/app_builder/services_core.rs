@@ -77,6 +77,7 @@ pub async fn build_core_services(
     _crypto_service: &Option<Arc<CryptoService>>,
     agent_manager: &AgentManager,
     repos: &Repositories,
+    registry: &crate::utils::env_registry::EnvRegistry,
 ) -> Result<CoreServices, Box<dyn std::error::Error>> {
     let (lifecycle, employee, outbox, auth) =
         build_auth_and_people_services(redis_pool.as_ref(), repos);
@@ -114,7 +115,7 @@ pub async fn build_core_services(
     )));
 
     let central_storage =
-        Arc::new(crate::services::storage::s3_storage::S3Storage::from_env().await?);
+        Arc::new(crate::services::storage::s3_storage::S3Storage::from_registry(registry).await?);
     let storage_resolver = Arc::new(crate::services::storage::resolver::StorageResolver::new(
         central_storage,
         repos.storage_config.clone(),
@@ -128,7 +129,7 @@ pub async fn build_core_services(
         repos.signature.clone(),
         file.clone(),
     ));
-    let scan = crate::services::storage::ScanProvider::build();
+    let scan = crate::services::storage::ScanProvider::build_from_registry(registry);
 
     let agent = Arc::new(crate::services::AgentService::new(
         Arc::clone(&repos.agent),

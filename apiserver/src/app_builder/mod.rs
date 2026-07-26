@@ -28,26 +28,12 @@ pub struct AppWorkers {
 
 impl AppState {
     #[allow(clippy::too_many_lines, clippy::similar_names)]
+    #[allow(clippy::disallowed_methods)]
     pub async fn build(
         diesel_pools: crate::diesel_pool::DieselPools,
         redis_pool: Option<RedisPool>,
+        registry: &crate::utils::env_registry::EnvRegistry,
     ) -> Result<(Arc<Self>, AppWorkers), Box<dyn std::error::Error>> {
-        let app_env = std::env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
-        if app_env != "production" {
-            if std::env::var("S3_ENDPOINT_URL").is_err() {
-                std::env::set_var("S3_ENDPOINT_URL", "http://localhost:9000");
-            }
-            if std::env::var("S3_BUCKET_NAME").is_err() {
-                std::env::set_var("S3_BUCKET_NAME", "leeattend");
-            }
-            if std::env::var("S3_ACCESS_KEY").is_err() {
-                std::env::set_var("S3_ACCESS_KEY", "minioadmin");
-            }
-            if std::env::var("S3_SECRET_KEY").is_err() {
-                std::env::set_var("S3_SECRET_KEY", "minioadmin");
-            }
-        }
-
         let config = crate::utils::config::get_config();
         let crypto_service = if let Some(keys_json) = &config.encryption_keys_json {
             let crypto = crate::crypto::CryptoService::from_json(keys_json)
@@ -86,6 +72,7 @@ impl AppState {
             &agent_manager,
             &repos,
             &pairing_notifier,
+            registry,
         )
         .await?;
 
@@ -101,6 +88,7 @@ impl AppState {
             roster_cache.clone(),
             pairing_rx,
             pairing_notifier.clone(),
+            registry,
         );
 
         let state = Arc::new(AppState::new(
@@ -218,9 +206,21 @@ mod tests {
 
     #[tokio::test]
     async fn test_app_state_build_invalid_db_url() {
+        std::env::set_var("DB_PRIMARY_URL", "postgres://u:p@localhost:5432/db");
+        std::env::set_var("DB_POOLER_TX_URL", "postgres://u:p@localhost:6543/db");
+        std::env::set_var("DB_POOLER_SESS_URL", "postgres://u:p@localhost:5452/db");
+        std::env::set_var("S3_ENDPOINT_URL", "http://localhost:9000");
+        std::env::set_var("S3_BUCKET_NAME", "test-bucket");
+        std::env::set_var("S3_ACCESS_KEY", "test-access");
+        std::env::set_var("S3_SECRET_KEY", "test-secret");
+        std::env::set_var("S3_REGION", "us-east-1");
+
+        let registry = crate::utils::env_registry::EnvRegistry::resolve()
+            .expect("Should resolve with minimum env");
+
         let invalid_url = "postgres://invalid:invalid@localhost:12345/invalid_db";
         let diesel_pools = DieselPools::for_test(invalid_url);
-        let result = AppState::build(diesel_pools, None).await;
+        let result = AppState::build(diesel_pools, None, &registry).await;
         // Since database pools are initialized lazily without eager connection check,
         // constructing the AppState struct succeeds.
         assert!(result.is_ok());
@@ -228,15 +228,22 @@ mod tests {
 
     #[tokio::test]
     async fn test_app_state_build_env_overrides() {
+        std::env::set_var("DB_PRIMARY_URL", "postgres://u:p@localhost:5432/db");
+        std::env::set_var("DB_POOLER_TX_URL", "postgres://u:p@localhost:6543/db");
+        std::env::set_var("DB_POOLER_SESS_URL", "postgres://u:p@localhost:5452/db");
         std::env::set_var("APP_ENV", "testing");
         std::env::set_var("S3_ENDPOINT_URL", "http://localhost:9000");
         std::env::set_var("S3_BUCKET_NAME", "test-bucket");
         std::env::set_var("S3_ACCESS_KEY", "test-access");
         std::env::set_var("S3_SECRET_KEY", "test-secret");
+        std::env::set_var("S3_REGION", "us-east-1");
+
+        let registry = crate::utils::env_registry::EnvRegistry::resolve()
+            .expect("Should resolve with minimum env");
 
         let invalid_url = "postgres://invalid:invalid@localhost:12345/invalid_db";
         let diesel_pools = DieselPools::for_test(invalid_url);
-        let result = AppState::build(diesel_pools, None).await;
+        let result = AppState::build(diesel_pools, None, &registry).await;
         assert!(result.is_ok());
         if let Ok((state, _workers)) = result {
             assert!(state.infra().redis().is_none());

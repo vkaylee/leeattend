@@ -54,6 +54,7 @@ pub struct UpdateWorkspaceArgs {
 
 impl WorkspaceService {
     #[tracing::instrument(skip_all, err)]
+    #[allow(clippy::disallowed_methods)]
     pub async fn create_workspace(
         &self,
         id: Uuid,

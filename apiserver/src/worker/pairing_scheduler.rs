@@ -106,10 +106,10 @@ impl PairingScheduler {
         rx: mpsc::UnboundedReceiver<PairingNotification>,
         pairing_service: Arc<dyn PairingProcessor>,
         employee_repo: Arc<dyn EmployeeRepository>,
+        registry: &crate::utils::env_registry::EnvRegistry,
     ) -> Self {
-        let interval_secs = std::env::var("PAIRING_SWEEP_INTERVAL_SECS")
-            .ok()
-            .and_then(|v| v.parse::<u64>().ok())
+        let interval_secs = registry
+            .get_parsed::<u64>("PAIRING_SWEEP_INTERVAL_SECS")
             .unwrap_or(DEFAULT_SWEEP_INTERVAL_SECS);
 
         Self {

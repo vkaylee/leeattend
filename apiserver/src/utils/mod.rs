@@ -18,8 +18,18 @@ pub mod tz;
 pub mod upload;
 
 /// Returns the base storage directory from the STORAGE_DIR environment variable, defaulting to "storage".
+#[allow(clippy::disallowed_methods)]
 pub fn get_storage_dir() -> String {
     std::env::var("STORAGE_DIR").unwrap_or_else(|_| "storage".to_string())
+}
+
+/// Returns the base storage directory from the centralized env registry.
+pub fn get_storage_dir_from_registry(registry: &crate::utils::env_registry::EnvRegistry) -> String {
+    registry
+        .get("STORAGE_DIR")
+        .map(ToString::to_string)
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "storage".to_string())
 }
 
 /// Normalizes an employee ID by trimming whitespace and removing leading zeros if the ID is purely numeric.

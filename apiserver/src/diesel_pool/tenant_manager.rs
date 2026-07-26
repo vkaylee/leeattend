@@ -137,6 +137,7 @@ impl TenantPoolManager {
             .map_err(|e| AppError::Internal(format!("Failed to create tenant pool: {e}")))
     }
 
+    #[allow(clippy::disallowed_methods)]
     async fn get_or_create_pool(&self, workspace_id: &Uuid) -> Result<DieselPool, AppError> {
         // Fast path
         if let Some(pool) = self.pools.get(workspace_id).await {

@@ -20,13 +20,14 @@ pub fn build_workers(
     roster_cache: Option<Arc<crate::cache::RosterCache>>,
     pairing_rx: mpsc::UnboundedReceiver<PairingNotification>,
     pairing_notifier_for_worker: Option<Arc<PairingNotifier>>,
+    registry: &crate::utils::env_registry::EnvRegistry,
 ) -> (Option<Arc<ReportCoordinator>>, AppWorkers) {
     let worker_cancel_token = CancellationToken::new();
     let (coordinator, worker_handle, scheduler_handle, outbox_sweep_handle) =
         redis_pool.as_ref().map_or_else(
             || (None, None, None, None),
             |redis| {
-                let worker_config = WorkerConfig::from_env();
+                let worker_config = WorkerConfig::from_registry(registry);
                 tracing::info!(
                     max_concurrent = worker_config.max_concurrent_jobs,
                     poll_timeout = worker_config.poll_timeout_secs,
@@ -87,6 +88,7 @@ pub fn build_workers(
         pairing_rx,
         Arc::clone(&services.pairing),
         Arc::clone(&repos.employee),
+        registry,
     );
     let pairing_scheduler_handle = Some(pairing_scheduler.start(worker_cancel_token.clone()));
 

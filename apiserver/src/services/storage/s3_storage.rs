@@ -23,18 +23,37 @@ pub struct S3Storage {
 }
 
 impl S3Storage {
-    pub async fn from_env() -> AppResult<Self> {
-        let endpoint_url = std::env::var("S3_ENDPOINT_URL")
-            .map_err(|e| AppError::Internal(format!("S3_ENDPOINT_URL env var not set: {e}")))?;
-        let bucket_name = std::env::var("S3_BUCKET_NAME")
-            .map_err(|e| AppError::Internal(format!("S3_BUCKET_NAME env var not set: {e}")))?;
-        let access_key = std::env::var("S3_ACCESS_KEY")
-            .map_err(|e| AppError::Internal(format!("S3_ACCESS_KEY env var not set: {e}")))?;
-        let secret_key = std::env::var("S3_SECRET_KEY")
-            .map_err(|e| AppError::Internal(format!("S3_SECRET_KEY env var not set: {e}")))?;
-        let region = std::env::var("S3_REGION").unwrap_or_else(|_| "us-east-1".to_string());
-        let use_path_style = std::env::var("S3_USE_PATH_STYLE")
-            .map(|v| v.parse::<bool>().unwrap_or(true))
+    /// Build S3 storage from the centralized env registry.
+    pub async fn from_registry(
+        registry: &crate::utils::env_registry::EnvRegistry,
+    ) -> AppResult<Self> {
+        let endpoint_url = registry
+            .get("S3_ENDPOINT_URL")
+            .map(ToString::to_string)
+            .filter(|s| !s.is_empty())
+            .ok_or_else(|| AppError::Internal("S3_ENDPOINT_URL env var not set".to_string()))?;
+        let bucket_name = registry
+            .get("S3_BUCKET_NAME")
+            .map(ToString::to_string)
+            .filter(|s| !s.is_empty())
+            .ok_or_else(|| AppError::Internal("S3_BUCKET_NAME env var not set".to_string()))?;
+        let access_key = registry
+            .get("S3_ACCESS_KEY")
+            .map(ToString::to_string)
+            .filter(|s| !s.is_empty())
+            .ok_or_else(|| AppError::Internal("S3_ACCESS_KEY env var not set".to_string()))?;
+        let secret_key = registry
+            .get("S3_SECRET_KEY")
+            .map(ToString::to_string)
+            .filter(|s| !s.is_empty())
+            .ok_or_else(|| AppError::Internal("S3_SECRET_KEY env var not set".to_string()))?;
+        let region = registry
+            .get("S3_REGION")
+            .map(ToString::to_string)
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "us-east-1".to_string());
+        let use_path_style = registry
+            .get_parsed::<bool>("S3_USE_PATH_STYLE")
             .unwrap_or(true);
 
         let config = S3Config {

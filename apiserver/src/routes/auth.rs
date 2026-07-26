@@ -8,13 +8,15 @@ use crate::handlers;
 use crate::mw;
 use crate::AppState;
 
-pub fn router(state: &Arc<AppState>) -> Router<Arc<AppState>> {
+use crate::utils::env_registry::EnvRegistry;
+
+pub fn router(state: &Arc<AppState>, registry: &EnvRegistry) -> Router<Arc<AppState>> {
     Router::new()
         .route("/auth/login", post(handlers::login))
         .route("/auth/register", post(handlers::register))
         .route_layer(mw::RateLimitLayer::new(
             state.infra().redis().cloned(),
-            mw::rate_limit::RateLimitConfig::default(),
+            mw::rate_limit::RateLimitConfig::from_registry(registry),
             state.core().jwt_secret().to_string(),
         ))
         // ── Below the rate-limiter: these have their own internal rate limiting ──

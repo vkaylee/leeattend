@@ -24,6 +24,28 @@ pub struct FileService {
 }
 
 impl FileService {
+    /// Build a FileService reading configuration from the centralized env registry.
+    pub fn from_registry(
+        storage_resolver: Arc<StorageResolver>,
+        file_repository: Arc<dyn FileRepository>,
+        registry: &crate::utils::env_registry::EnvRegistry,
+    ) -> Self {
+        let file_proxy_threshold_bytes = registry
+            .get_parsed::<i64>("FILE_PROXY_THRESHOLD_BYTES")
+            .unwrap_or(1024 * 1024);
+        let presigned_url_ttl_secs = registry
+            .get_parsed::<u64>("PRESIGNED_URL_TTL_SECS")
+            .unwrap_or(900);
+
+        Self {
+            storage_resolver,
+            file_repository,
+            file_proxy_threshold_bytes,
+            presigned_url_ttl: Duration::from_secs(presigned_url_ttl_secs),
+        }
+    }
+
+    #[allow(clippy::disallowed_methods)]
     pub fn new(
         storage_resolver: Arc<StorageResolver>,
         file_repository: Arc<dyn FileRepository>,

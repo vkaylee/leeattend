@@ -110,52 +110,31 @@ impl Default for WorkerConfig {
 }
 
 impl WorkerConfig {
-    /// Create config from environment variables with defaults.
-    pub fn from_env() -> Self {
-        let mut config = Self::default();
-
-        let max_conn = std::env::var("WORKER_MAX_CONCURRENT_JOBS")
-            .ok()
-            .and_then(|v| v.parse::<usize>().ok())
+    /// Create config from the centralized env registry.
+    pub fn from_registry(registry: &crate::utils::env_registry::EnvRegistry) -> Self {
+        let max_concurrent_jobs = registry
+            .get_parsed::<usize>("WORKER_MAX_CONCURRENT_JOBS")
             .unwrap_or(5);
-        config.max_concurrent_jobs = max_conn;
 
-        if let Ok(val) = std::env::var("WORKER_POLL_TIMEOUT_SECS") {
-            match val.parse::<f64>() {
-                Ok(n) if n.is_finite() && n > 0.0 && n <= 300.0 => {
-                    config.poll_timeout_secs = n;
-                }
-                Ok(n) => {
-                    tracing::warn!(
-                        value = n,
-                        "WORKER_POLL_TIMEOUT_SECS has invalid value (must be finite, positive, <=300), using default: {}",
-                        config.poll_timeout_secs
-                    );
-                }
-                Err(e) => {
-                    tracing::warn!(
-                        value = %val,
-                        error = %e,
-                        "Failed to parse WORKER_POLL_TIMEOUT_SECS, using default: {}",
-                        config.poll_timeout_secs
-                    );
-                }
-            }
+        let poll_timeout_secs = registry
+            .get_parsed::<f64>("WORKER_POLL_TIMEOUT_SECS")
+            .filter(|n| n.is_finite() && *n > 0.0 && *n <= 300.0)
+            .unwrap_or(30.0);
+
+        let max_retries = registry
+            .get_parsed::<u32>("WORKER_MAX_RETRIES")
+            .unwrap_or(3);
+
+        let job_timeout_secs = registry
+            .get_parsed::<u64>("WORKER_JOB_TIMEOUT_SECS")
+            .unwrap_or(300);
+
+        Self {
+            max_concurrent_jobs,
+            poll_timeout_secs,
+            max_retries,
+            job_timeout_secs,
         }
-
-        if let Ok(val) = std::env::var("WORKER_MAX_RETRIES") {
-            if let Ok(n) = val.parse() {
-                config.max_retries = n;
-            }
-        }
-
-        if let Ok(val) = std::env::var("WORKER_JOB_TIMEOUT_SECS") {
-            if let Ok(n) = val.parse() {
-                config.job_timeout_secs = n;
-            }
-        }
-
-        config
     }
 }
 
@@ -199,6 +178,7 @@ impl JobWorker {
             Arc::clone(&deps.shift_repo),
             Arc::clone(&deps.workspace_config_repo),
         ));
+        #[allow(clippy::disallowed_methods)]
         let hostname = std::env::var("HOSTNAME")
             .or_else(|_| std::env::var("COMPUTERNAME"))
             .unwrap_or_else(|_| "unknown".to_string());
@@ -594,19 +574,6 @@ mod tests {
         assert!((config.poll_timeout_secs - 30.0).abs() < 0.01);
         assert_eq!(config.max_retries, 3);
         assert_eq!(config.job_timeout_secs, 300);
-    }
-
-    #[test]
-    fn test_worker_config_from_env() {
-        // Test with no env vars (should use defaults)
-        std::env::remove_var("WORKER_MAX_CONCURRENT_JOBS");
-        std::env::remove_var("WORKER_POLL_TIMEOUT_SECS");
-        std::env::remove_var("WORKER_MAX_RETRIES");
-        std::env::remove_var("WORKER_JOB_TIMEOUT_SECS");
-
-        let config = WorkerConfig::from_env();
-        assert_eq!(config.max_concurrent_jobs, 5);
-        assert_eq!(config.max_retries, 3);
     }
 
     #[test]

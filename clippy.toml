@@ -7,6 +7,9 @@ disallowed-methods = [
     "std::process::exit",
     "std::process::abort",
 
+    # Cấm đọc biến môi trường trực tiếp (Buộc dùng EnvRegistry)
+    "std::env::var",
+
     # Cấm các hàm block thread trong môi trường async (Buộc dùng tokio::time::sleep hoặc tokio::fs)
     "std::thread::sleep",
     "std::fs::read",
