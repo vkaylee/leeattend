@@ -11,7 +11,7 @@ import {
   Plus,
   X,
 } from "lucide-react";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
@@ -25,6 +25,11 @@ import { Combobox } from "@/components/ui/combobox";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Employee, Shift } from "@/lib/api/types";
+import { readFrequentShifts, getTopFrequentIds } from "@/lib/frequent-shifts-storage";
+import { getShiftIntervals } from "@/lib/shift-card-metrics";
+import { cn } from "@/lib/utils";
+
+import { getShiftAccent, type ShiftAccent } from "./shift-badge-style";
 
 const noop = () => undefined;
 
@@ -35,6 +40,23 @@ const dateLocales: Partial<Record<string, Locale>> = {
 };
 
 // ── RosterActionBar ──────────────────────────────────────
+
+/** Accent colours adapted for the dark primary-600 toolbar background. */
+const ACCENT_ON_DARK: Record<ShiftAccent, { dot: string }> = {
+  morning:   { dot: "bg-amber-300" },
+  afternoon: { dot: "bg-sky-300" },
+  night:     { dot: "bg-indigo-300" },
+  split:     { dot: "bg-teal-300" },
+};
+
+/** Compact time-range label for a shift, e.g. "08:00–17:00". */
+export function formatShiftTimeRange(shift: Shift): string {
+  const intervals = getShiftIntervals(shift);
+  if (intervals.length === 0) return "";
+  const starts = intervals.map((iv) => iv.start_time);
+  const ends = intervals.map((iv) => iv.end_time);
+  return `${starts.join("/")}–${ends.join("/")}`;
+}
 
 interface RosterActionBarProps {
   assignLabel: string;
@@ -62,6 +84,17 @@ export const RosterActionBar = memo(function RosterActionBar({
   shifts,
   onApplyShift,
 }: RosterActionBarProps) {
+  const sortedShifts = useMemo(() => {
+    if (!shifts || shifts.length === 0) return [];
+    const freqMap = readFrequentShifts();
+    const topIds = new Set(getTopFrequentIds(freqMap));
+    const frequent = shifts
+      .filter((s) => topIds.has(s.id))
+      .sort((a, b) => (freqMap[b.id] ?? 0) - (freqMap[a.id] ?? 0));
+    const rest = shifts.filter((s) => !topIds.has(s.id));
+    return [...frequent, ...rest].slice(0, 3);
+  }, [shifts]);
+
   return (
     <div className="absolute inset-0 z-40 bg-primary-600 text-white px-6 py-4 rounded-[28px] shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-200">
       <div className="flex items-center gap-3">
@@ -71,14 +104,44 @@ export const RosterActionBar = memo(function RosterActionBar({
         <span className="text-xs font-bold uppercase tracking-widest">{selectedLabel}</span>
       </div>
       <div className="flex items-center gap-2.5">
-        {!!shifts && shifts.length > 0 && (
+        {sortedShifts.length > 0 && (
           <div className="hidden md:flex items-center gap-1.5 mr-2 bg-white/10 p-1 rounded-xl">
             <span className="text-[9px] text-white/70 font-bold uppercase tracking-wider px-1.5">Quick:</span>
-            {shifts.slice(0, 3).map((shift) => (
-              <Button className="px-2.5 py-1 bg-white/20 hover:bg-white text-white hover:text-primary-700 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer border border-transparent hover:border-white/10" disabled={isMutating} key={shift.id} onClick={() => { onApplyShift(shift.id); }} variant="ghost">
-                {shift.report_symbol ?? shift.name.substring(0, 2).toUpperCase()}
-              </Button>
-            ))}
+            {sortedShifts.map((shift) => {
+              const accent = getShiftAccent(shift);
+              const accentColors = ACCENT_ON_DARK[accent];
+              const timeRange = formatShiftTimeRange(shift);
+              const label = shift.report_symbol
+                ? `${shift.name} (${shift.report_symbol})`
+                : shift.name;
+              const tooltip = timeRange ? `${label}: ${timeRange}` : label;
+
+              return (
+                <Button
+                  key={shift.id}
+                  type="button"
+                  disabled={isMutating}
+                  onClick={() => { onApplyShift(shift.id); }}
+                  title={tooltip}
+                  aria-label={`Assign ${shift.name} shift`}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 cursor-pointer h-auto min-w-0",
+                    "bg-white/10 hover:bg-white/20 border border-transparent hover:border-white/20",
+                    "active:scale-95 focus-visible:ring-2 focus-visible:ring-white/50",
+                    "text-white hover:text-white",
+                  )}
+                  variant="ghost"
+                >
+                  <span className={cn("w-2 h-2 rounded-full shrink-0", accentColors.dot)} aria-hidden="true" />
+                  <span className="flex flex-col items-start leading-tight min-w-0">
+                    <span className="text-[11px] font-bold text-white truncate max-w-[100px]">{shift.name}</span>
+                    {timeRange && (
+                      <span className="text-[9px] text-white/60 font-medium tabular-nums">{timeRange}</span>
+                    )}
+                  </span>
+                </Button>
+              );
+            })}
           </div>
         )}
         <Button className="px-4 py-2 bg-white text-primary-700 hover:bg-white/90 active:scale-95 rounded-xl text-[10px] font-extrabold uppercase tracking-widest transition-all disabled:opacity-50 cursor-pointer shadow-sm" disabled={isMutating} onClick={onAssignSelected} variant="ghost">{assignLabel}</Button>

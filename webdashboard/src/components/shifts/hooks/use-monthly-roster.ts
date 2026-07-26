@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 
 import { groupCellsByEmployee } from "@/components/shifts/roster/roster-utils";
+import { writeFrequentShift } from "@/lib/frequent-shifts-storage";
 import { useShifts } from "@/pages/shifts/hooks/use-shifts";
 
 import { useDragCellSelection } from "./use-drag-cell-selection";
@@ -73,6 +74,7 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
   const handleApplyShift = async (shiftId: string | null) => {
     setIsMutating(true);
     try {
+      if (shiftId) writeFrequentShift(shiftId);
       const groups = groupCellsByEmployee(selectedCells);
       const employmentByEmployee = new Map(
         filteredSchedules.map((s) => [s.employee_id, s.employment_id]),
