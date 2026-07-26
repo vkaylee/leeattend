@@ -524,25 +524,12 @@ fn seconds_from_midnight_or_wrap(t: NaiveTime) -> i64 {
 fn rest_gap_hours(prev_end: NaiveTime, next_start: NaiveTime) -> f64 {
     let pe = i64::from(prev_end.num_seconds_from_midnight());
     let ns = i64::from(next_start.num_seconds_from_midnight());
-    // If prev_end is after midnight (e.g., 02:00), wrap it
-    let pe_adjusted = if pe < 43_200 {
-        // prev_end is in the early morning (e.g., 02:00) → treat as next day
-        pe + 86_400
-    } else {
-        pe
-    };
-    // If next_start is before prev_end (same-day), next_start is actually next day
-    let ns_adjusted = if ns <= pe_adjusted && ns < 43_200 {
-        ns + 86_400
-    } else {
-        ns
-    };
-    let gap_seconds = ns_adjusted - pe_adjusted;
-    if gap_seconds < 0 {
-        0.0
-    } else {
-        (gap_seconds as f64) / 3600.0
-    }
+    // Both arguments belong to adjacent roster dates. Model those dates
+    // explicitly so an overnight end (04:30) is before the following day's
+    // 19:30 start rather than being compared as 28:30 against 19:30.
+    let prev_end_adjusted = if pe < 43_200 { pe + 86_400 } else { pe };
+    let next_start_adjusted = ns + 86_400;
+    ((next_start_adjusted - prev_end_adjusted).max(0) as f64) / 3600.0
 }
 
 /// Calculate total hours for an interval.
@@ -643,6 +630,41 @@ mod tests {
         // End at 22:00, start at 05:00 → 7h gap (insufficient for 12h rule)
         let gap = rest_gap_hours(t(22, 0), t(5, 0));
         assert!((gap - 7.0).abs() < 0.01, "Expected 7h gap, got {}", gap);
+    }
+
+    #[test]
+    fn test_rest_gap_hours_consecutive_overnight_shift() {
+        // A 19:30–04:30 shift followed by the same shift has 15h of rest.
+        let gap = rest_gap_hours(t(4, 30), t(19, 30));
+        assert!((gap - 15.0).abs() < 0.01, "Expected 15h gap, got {}", gap);
+    }
+
+    #[test]
+    fn test_rest_gap_hours_exact_minimum_boundary() {
+        let gap = rest_gap_hours(t(20, 0), t(8, 0));
+        assert!((gap - 12.0).abs() < 0.01, "Expected 12h gap, got {}", gap);
+    }
+
+    #[test]
+    fn test_rest_gap_hours_start_at_midnight() {
+        let gap = rest_gap_hours(t(18, 0), t(0, 0));
+        assert!((gap - 6.0).abs() < 0.01, "Expected 6h gap, got {}", gap);
+    }
+
+    #[test]
+    fn test_rest_gap_hours_end_before_midnight_start_after_midnight() {
+        let gap = rest_gap_hours(t(23, 59), t(0, 1));
+        assert!(
+            (gap - (2.0 / 60.0)).abs() < 0.001,
+            "Expected 2m gap, got {}",
+            gap
+        );
+    }
+
+    #[test]
+    fn test_rest_gap_hours_overnight_end_to_day_shift() {
+        let gap = rest_gap_hours(t(4, 30), t(8, 0));
+        assert!((gap - 3.5).abs() < 0.01, "Expected 3.5h gap, got {}", gap);
     }
 
     #[test]
