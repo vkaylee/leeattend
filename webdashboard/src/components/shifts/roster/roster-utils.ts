@@ -1,5 +1,5 @@
 import type { ComplianceViolation } from "@/lib/api/errors";
-import type { EffectiveSchedule } from "@/lib/api/types";
+import type { EffectiveSchedule, EmployeeSchedule } from "@/lib/api/types";
 
 /** Check if weekend day (Sat/Sun) */
 export const isWeekend = (date: Date): boolean => {
@@ -83,6 +83,62 @@ export const orderSchedulesBySelection = <T extends { employee_id?: string }>(
 
 /** Compliance status for a roster cell badge. */
 export type ComplianceCellStatus = "ok" | "warning" | "violation";
+
+/** Result entry after translating roster schedules to a target month. */
+export interface TranslatedRosterEntry {
+  employeeId: string;
+  rosterEntries: { date: string; shift_id: string | null }[];
+}
+
+/**
+ * Translate roster-backed schedules from a previous month into the target
+ * month, preserving day-of-month. Only entries whose source is "roster" and
+ * that have a shift_id are included; dates outside the valid set are dropped.
+ */
+export function translateRosterEntriesToMonth(
+  prevSchedules: EmployeeSchedule[],
+  currentYearMonth: string,
+  validDates: Set<string>,
+): TranslatedRosterEntry[] {
+  return prevSchedules
+    .map((empSchedule) => {
+      const rosterEntries = empSchedule.schedules
+        .filter((s: EffectiveSchedule) => s.source === "roster" && !!s.shift_id)
+        .map((s: EffectiveSchedule) => {
+          const targetDateStr = `${currentYearMonth}-${s.date.substring(8)}`;
+          if (validDates.has(targetDateStr)) {
+            return { date: targetDateStr, shift_id: s.shift_id ?? null };
+          }
+          return null;
+        })
+        .filter((item): item is { date: string; shift_id: string | null } => item !== null);
+      return { employeeId: empSchedule.employee_id, rosterEntries };
+    })
+    .filter(({ rosterEntries }) => rosterEntries.length > 0);
+}
+
+/**
+ * Group selected cell keys ("employeeId:dateStr") by employee id.
+ * Used by both apply-shift and clear-overrides flows to batch cells per employee
+ * before delegating to the bulk mutation handlers.
+ */
+export function groupCellsByEmployee(
+  selectedCells: Set<string>,
+): Record<string, string[]> {
+  return Array.from(selectedCells).reduce<Record<string, string[]>>(
+    (acc, key) => {
+      const [empId, d] = key.split(":");
+      const list = acc[empId];
+      if (list) {
+        list.push(d);
+      } else {
+        acc[empId] = [d];
+      }
+      return acc;
+    },
+    {},
+  );
+}
 
 /**
  * Determine the worst compliance status for a roster cell based on known

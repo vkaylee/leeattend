@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useCallback } from "react";
 
-import { format } from "date-fns";
-
-import { orderSchedulesBySelection } from "@/components/shifts/roster/roster-utils";
+import { groupCellsByEmployee } from "@/components/shifts/roster/roster-utils";
 import { useShifts } from "@/pages/shifts/hooks/use-shifts";
+
+import { useDragCellSelection } from "./use-drag-cell-selection";
+import { useMonthlyRosterKeyboard } from "./use-monthly-roster-keyboard";
+import { useMonthlySchedules } from "./use-monthly-schedules";
 
 interface UseMonthlyRosterProps {
   hook: ReturnType<typeof useShifts>;
 }
 
-  // eslint-disable-next-line max-lines-per-function
 export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
   const {
     monthDays,
@@ -28,9 +29,6 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
   const [isShiftPickerOpen, setIsShiftPickerOpen] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
-  // Per-employee-row write status for the bulk apply flow: a row flips to
-  // "saving" when its request starts, then "saved"/"error" when it settles.
-  // "saved" auto-expires so the success tick only flashes briefly.
   const [rowStatus, setRowStatus] = useState<
     Map<string, "saving" | "saved" | "error">
   >(new Map());
@@ -56,166 +54,26 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
     [],
   );
 
-  const selectedEmployeesMeta = useMemo(() => {
-    const list = [...selectedEmployees];
-    if (employees) {
-      const empMap = new Map(employees.map((e) => [e.id, e]));
-      selectedEmployeeIds.forEach((id) => {
-        if (!list.some((e) => e.id === id)) {
-          const emp = empMap.get(id);
-          if (emp) list.push(emp);
-        }
-      });
-    }
-    return list;
-  }, [employees, selectedEmployeeIds, selectedEmployees]);
-
-  const combinedSchedules = useMemo(() => {
-    if (!employees) return [];
-    const list = [...employees];
-    selectedEmployees.forEach((selectedEmp) => {
-      if (!list.some((e) => e.id === selectedEmp.id)) {
-        list.push(selectedEmp);
-      }
+  const { selectedEmployeesMeta, combinedSchedules, filteredSchedules } =
+    useMonthlySchedules({
+      employees,
+      monthSchedules,
+      selectedEmployeeIds,
+      selectedEmployees,
     });
-    return list.map((emp) => {
-      const existing = monthSchedules?.find(
-        (s) => s.employee_id === emp.id || s.employment_id === emp.active_employment_id
-      );
-      if (existing) {
-        return {
-          ...existing,
-          employee_id: emp.id,
-          employee_id_number: emp.employee_id_number,
-          department_name: emp.department_name ?? undefined,
-        };
-      }
-      return {
-        employee_id: emp.id,
-        employee_id_number: emp.employee_id_number,
-        department_name: emp.department_name ?? undefined,
-        employment_id: emp.active_employment_id ?? "",
-        full_name: emp.full_name,
-        schedules: [],
-      };
+
+  const { isDragging, handleCellPointerDown, handleCellPointerEnter } =
+    useDragCellSelection({
+      selectedCells,
+      setSelectedCells,
+      filteredSchedules,
+      monthDays,
     });
-  }, [employees, monthSchedules, selectedEmployees]);
-
-  const filteredSchedules = useMemo(
-    () => orderSchedulesBySelection(combinedSchedules, selectedEmployeeIds),
-    [combinedSchedules, selectedEmployeeIds]
-  );
-
-  const [dragStartCell, setDragStartCell] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragMode, setDragMode] = useState<"add" | "remove">("add");
-  const [dragSnapshot, setDragSnapshot] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    const handleGlobalPointerUp = () => {
-      setIsDragging(false);
-      setDragStartCell(null);
-    };
-
-    if (isDragging) {
-      window.addEventListener("pointerup", handleGlobalPointerUp);
-      window.addEventListener("pointercancel", handleGlobalPointerUp);
-      return () => {
-        window.removeEventListener("pointerup", handleGlobalPointerUp);
-        window.removeEventListener("pointercancel", handleGlobalPointerUp);
-      };
-    }
-  }, [isDragging]);
-
-  const handleCellPointerDown = (
-    employeeId: string,
-    dateStr: string,
-    e: React.PointerEvent
-  ) => {
-    // Only primary button (left mouse / single touch / pen contact)
-    if (e.button !== 0) return;
-    const key = `${employeeId}:${dateStr}`;
-    // Anchor cell decides the paint direction: dragging from a selected cell
-    // erases the whole rectangle, dragging from an empty cell paints it.
-    const mode: "add" | "remove" = selectedCells.has(key) ? "remove" : "add";
-    setIsDragging(true);
-    setDragStartCell(key);
-    setDragMode(mode);
-
-    setSelectedCells((prev) => {
-      const next = new Set(prev);
-      if (mode === "remove") {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      setDragSnapshot(new Set(next));
-      return next;
-    });
-  };
-
-  const handleCellPointerEnter = (employeeId: string, dateStr: string) => {
-    if (!isDragging || !dragStartCell) return;
-
-    const [startEmpId, startDateStr] = dragStartCell.split(":");
-
-    const startEmpIdx = filteredSchedules.findIndex(
-      (s) => s.employee_id === startEmpId
-    );
-    const endEmpIdx = filteredSchedules.findIndex(
-      (s) => s.employee_id === employeeId
-    );
-
-    if (startEmpIdx === -1 || endEmpIdx === -1) return;
-
-    const startDayIdx = monthDays.findIndex(
-      (d) => format(d, "yyyy-MM-dd") === startDateStr
-    );
-    const endDayIdx = monthDays.findIndex(
-      (d) => format(d, "yyyy-MM-dd") === dateStr
-    );
-
-    if (startDayIdx === -1 || endDayIdx === -1) return;
-
-    const minEmpIdx = Math.min(startEmpIdx, endEmpIdx);
-    const maxEmpIdx = Math.max(startEmpIdx, endEmpIdx);
-    const minDayIdx = Math.min(startDayIdx, endDayIdx);
-    const maxDayIdx = Math.max(startDayIdx, endDayIdx);
-
-    setSelectedCells(() => {
-      const next = new Set(dragSnapshot);
-      for (let i = minEmpIdx; i <= maxEmpIdx; i++) {
-   
-        const empId = filteredSchedules[i].employee_id;
-        for (let j = minDayIdx; j <= maxDayIdx; j++) {
-          const dStr = format(monthDays[j], "yyyy-MM-dd");
-          const cellKey = `${empId}:${dStr}`;
-          if (dragMode === "remove") {
-            next.delete(cellKey);
-          } else {
-            next.add(cellKey);
-          }
-        }
-      }
-      return next;
-    });
-  };
 
   const handleApplyShift = async (shiftId: string | null) => {
     setIsMutating(true);
     try {
-      const groups = Array.from(selectedCells).reduce<
-        Record<string, string[] | undefined>
-      >((acc, key) => {
-        const [empId, d] = key.split(":");
-        const list = acc[empId];
-        if (list) {
-          list.push(d);
-        } else {
-          acc[empId] = [d];
-        }
-        return acc;
-      }, {});
+      const groups = groupCellsByEmployee(selectedCells);
       const employmentByEmployee = new Map(
         filteredSchedules.map((s) => [s.employee_id, s.employment_id]),
       );
@@ -234,18 +92,7 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
   const handleClearSelectedOverrides = async () => {
     setIsMutating(true);
     try {
-      const groups = Array.from(selectedCells).reduce<
-        Record<string, string[] | undefined>
-      >((acc, key) => {
-        const [empId, d] = key.split(":");
-        const list = acc[empId];
-        if (list) {
-          list.push(d);
-        } else {
-          acc[empId] = [d];
-        }
-        return acc;
-      }, {});
+      const groups = groupCellsByEmployee(selectedCells);
       const assignments = Object.entries(groups).map(([employeeId, dates]) => ({
         employeeId,
         dates: dates ?? [],
@@ -266,41 +113,12 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
     }
   };
 
-  // Keyboard shortcuts when cells are selected
-  useEffect(() => {
-    if (selectedCells.size === 0) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is typing in inputs or editing content
-      const activeEl = document.activeElement;
-      if (
-        activeEl &&
-   
-        (activeEl.tagName === "INPUT" ||
-          activeEl.tagName === "TEXTAREA" ||
-          activeEl.getAttribute("contenteditable") === "true")
-      ) {
-        return;
-      }
-
-      if (e.key === "a" || e.key === "A") {
-        e.preventDefault();
-        setIsShiftPickerOpen(true);
-      } else if (e.key === "Delete" || e.key === "Backspace") {
-        e.preventDefault();
-        void handleClearSelectedOverrides();
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        setSelectedCells(new Set());
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCells.size, setIsShiftPickerOpen, setSelectedCells]);
+  useMonthlyRosterKeyboard({
+    selectedCells,
+    setIsShiftPickerOpen,
+    setSelectedCells,
+    onClearOverrides: handleClearSelectedOverrides,
+  });
 
   return {
     selectedCells,

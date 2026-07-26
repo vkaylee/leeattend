@@ -1,41 +1,115 @@
 {
-  "time_tracking": {
-    "title": "Chấm công",
-    "subtitle": "Theo dõi thời gian làm việc và nghỉ giải lao.",
-    "modal": {
-      "edit_title": "Sửa lượt chấm công",
-      "new_title": "Yêu cầu điều chỉnh mới",
-      "reason_label": "Lý do điều chỉnh",
-      "reason_placeholder": "Tại sao bạn yêu cầu thay đổi này?",
-      "subtitle": "Yêu cầu thay đổi thời gian vào/ra của bạn."
-    },
-    "actions": {
-      "punch_out": "Giờ ra",
-      "return_to_work": "Kết thúc nghỉ",
-      "start_break": "Bắt đầu nghỉ",
-      "start_work": "Giờ vào",
-      "hold_to_punch": "Chạm & Giữ để Chấm Công"
-    },
-    "forgot_punch": "Quên quẹt thẻ?",
+  "adjustments": {
     "status": {
-      "break_start_at": "Bắt đầu nghỉ lúc",
-      "off_duty": "Đang nghỉ",
-      "on_break": "Đang nghỉ giải lao",
-      "shift_start_at": "Bắt đầu ca lúc",
-      "working": "Đang làm việc"
+      "approved": "Đã duyệt",
+      "pending": "Chờ duyệt",
+      "rejected": "Từ chối"
+    }
+  },
+  "approvals": {
+    "bulk_upload": {
+      "btn": "Tải lên hàng loạt",
+      "confirm_close_with_errors": "Một số dòng thất bại. Bạn có chắc muốn đóng?",
+      "description": "Tải file CSV để nhập nhiều yêu cầu OT cùng lúc",
+      "download_errors": "Tải xuống lỗi",
+      "download_template": "Tải mẫu CSV",
+      "drag_drop": "Kéo thả file CSV vào đây",
+      "error_csv_only": "Chỉ cho phép file CSV",
+      "error_details": "Chi tiết lỗi",
+      "failed": "Thất bại",
+      "instructions_title": "Hướng dẫn chuẩn bị dữ liệu",
+      "line": "Dòng",
+      "or_click": "hoặc nhấn để chọn",
+      "result_summary": "Tóm tắt kết quả",
+      "select_file": "Chọn file",
+      "step1": "Tải xuống file CSV mẫu bằng nút phía dưới.",
+      "step2": "Điền thông tin tăng ca của nhân sự theo các cột bắt buộc:",
+      "step2_col_date": "Định dạng YYYY-MM-DD",
+      "step2_col_id": "Mã nhân viên (Employee ID)",
+      "step2_col_mins": "Số phút tăng ca (> 0)",
+      "step2_col_reason": "Lý do tăng ca (bắt buộc)",
+      "step3": "Kéo thả hoặc bấm chọn tệp CSV để tải lên hệ thống.",
+      "step4": "Hệ thống sẽ kiểm tra và hiển thị báo cáo chi tiết nếu có dòng lỗi.",
+      "success": "Thành công",
+      "success_message": "{{count}} yêu cầu OT đã được nhập thành công",
+      "title": "Tải lên hàng loạt OT",
+      "total": "Tổng số",
+      "upload": "Tải lên & Xử lý"
+    },
+    "filter": {
+      "paper_forms": "Đơn giấy",
+      "self_service": "Tự phục vụ"
+    },
+    "paper_ot": {
+      "btn_enter": "Nhập đơn giấy",
+      "description": "Nhập yêu cầu tăng ca từ đơn giấy đã ký",
+      "error_minutes": "Số phút phải lớn hơn 0",
+      "error_no_employee": "Vui lòng chọn nhân viên",
+      "error_reason": "Lý do là bắt buộc",
+      "minutes": "Số phút OT",
+      "photo": "Ảnh đơn giấy (Tùy chọn)",
+      "photo_coming_soon": "Tính năng tải ảnh sắp ra mắt",
+      "reason_placeholder": "Đơn #1234 - Dây chuyền sản xuất",
+      "select_employee": "Tìm nhân viên...",
+      "title": "Nhập đơn OT giấy",
+      "upload_prompt": "Nhấp hoặc kéo ảnh vào đây để tải lên"
+    },
+    "pre_ot_dialog": {
+      "business_reason": "Lý do công việc",
+      "date": "Ngày",
+      "duration_hours": "{{hours}} giờ",
+      "end_time": "Giờ kết thúc",
+      "error_message": "Tạo yêu cầu OT thất bại",
+      "estimated_duration": "Thời gian dự kiến",
+      "modal_subtitle": "Gán giờ tăng ca trước cho nhân viên",
+      "modal_title": "Lập kế hoạch tăng ca (Pre-OT)",
+      "new_request_btn": "Đăng ký Pre-OT mới",
+      "no_employees": "Không tìm thấy nhân viên nào",
+      "quota_warning_desc": "Nhân viên được chọn đã dùng {{used}}h trên tổng số {{limit}}h trong tháng này.",
+      "quota_warning_title": "Cảnh báo hạn mức",
+      "reason_placeholder": "Tại sao việc tăng ca này là cần thiết?",
+      "select_employees": "Chọn nhân viên",
+      "selected_count": "Đã chọn {{count}}",
+      "start_time": "Giờ bắt đầu",
+      "submit_btn": "Gửi yêu cầu",
+      "success_message": "Đã tạo yêu cầu Pre-OT thành công!",
+      "validation": {
+        "invalid_time": "Khoảng thời gian không hợp lệ",
+        "provide_reason": "Vui lòng nhập lý do",
+        "select_employee": "Vui lòng chọn ít nhất một nhân viên"
+      }
+    }
+  },
+  "attendance": {
+    "adjustment": {
+      "attachment": "Minh chứng (chỉ PDF)",
+      "punch_time": "Thời gian quẹt thẻ"
+    },
+    "log": {
+      "create": "Tạo Bản ghi Chấm công"
+    },
+    "shift_swap": {
+      "request": "Yêu cầu Đổi ca"
     }
   },
   "attendance_confirm": {
-    "title": "Xác nhận công",
-    "subtitle": "Phê duyệt các yêu cầu điều chỉnh/bổ sung công từ nhân viên.",
     "excel_template": "Mẫu Excel",
     "import_excel": "Nhập Excel",
+    "label": "Xác nhận công",
+    "messages": {
+      "no_data": "Hiện tại chưa có yêu cầu điều chỉnh công nào cần xử lý.",
+      "no_requests": "Chưa có yêu cầu nào."
+    },
+    "modal": {
+      "import_title": "Nhập dữ liệu chấm công từ file"
+    },
     "ot_label": "Làm thông trưa",
     "status": {
       "approved": "Đã duyệt",
-      "rejected": "Từ chối",
-      "pending": "Chờ duyệt"
+      "pending": "Chờ duyệt",
+      "rejected": "Từ chối"
     },
+    "subtitle": "Phê duyệt các yêu cầu điều chỉnh/bổ sung công từ nhân viên.",
     "table": {
       "request_time": "Yêu cầu (Vào - Ra)"
     },
@@ -43,704 +117,181 @@
       "adjustments": "Danh sách điều chỉnh",
       "behalf_assignments": "Ủy quyền điều chỉnh công"
     },
+    "title": "Xác nhận công"
+  },
+  "attendance_import": {
+    "columns": {
+      "employee_code": {
+        "desc": "Mã số định danh duy nhất của nhân viên trong hệ thống (Employee ID).",
+        "label": "Mã nhân viên"
+      },
+      "punch_time": {
+        "desc": "Mốc thời gian vào/ra ca cần điều chỉnh.",
+        "label": "Thời gian chấm công"
+      }
+    },
+    "download_csv_excel_template": "Tải file Excel mẫu (Template)",
+    "download_error_logs": "Tải file Excel chứa danh sách các dòng lỗi / bỏ qua",
+    "download_template": "Tải file Excel mẫu (Template)",
+    "error_list_title": "Danh sách lỗi chi tiết:",
+    "file_requirements": {
+      "auto_detect": "💡 Hệ thống nhận diện cột tự động theo tiêu đề ở hàng đầu tiên (Header). Thứ tự các cột không quan trọng. Các cột khác ngoài danh sách dưới đây sẽ tự động được bỏ qua.",
+      "col_a": "Cột A: Mã số nhân viên (Employee ID)",
+      "col_b": "Cột B: Tên nhân viên (Không bắt buộc)",
+      "col_c": "Cột C: Thời gian quẹt thẻ (DD/MM/YYYY HH:mm)",
+      "formats": "Hỗ trợ file .xlsx và .xls",
+      "title": "Yêu cầu định dạng file:"
+    },
+    "format_label": "Định dạng",
     "messages": {
-      "no_requests": "Chưa có yêu cầu nào.",
-      "no_data": "Hiện tại chưa có yêu cầu điều chỉnh công nào cần xử lý."
+      "upload_error": "Lỗi khi tải file lên"
     },
-    "modal": {
-      "import_title": "Nhập dữ liệu chấm công từ file"
+    "optional": "Tùy chọn",
+    "or": "hoặc",
+    "required": "Bắt buộc",
+    "rows_processed": "dòng đã xử lý",
+    "select_another_file": "Chọn file khác",
+    "start_import": "Bắt đầu nhập dữ liệu",
+    "status": {
+      "completed": "Hoàn thành!",
+      "failed": "Có lỗi xảy ra",
+      "pending": "Đang chờ...",
+      "processing": "Đang xử lý dữ liệu...",
+      "uploading": "Đang tải lên..."
     },
-    "label": "Xác nhận công"
+    "subtitle": "Nhập dữ liệu hàng loạt",
+    "upload_limit": "Excel (Tối đa 10MB)",
+    "upload_prompt": "Click hoặc kéo thả file vào đây"
   },
   "attendance_logs": {
-    "title": "Nhật ký quẹt thẻ",
-    "subtitle": "Dữ liệu thô từ máy chấm công và các nguồn quẹt thẻ.",
+    "ambiguous_employment": "Trùng nhiều hợp đồng",
+    "assign": "Gán",
+    "context": {
+      "copy_id": "Copy Employee ID",
+      "copy_time": "Copy Punch Time"
+    },
+    "create_employee": "Tạo mới",
     "export_btn": "Xuất dữ liệu",
     "import_btn": "Nhập dữ liệu",
+    "messages": {
+      "all_matched": "Tất cả bản ghi chấm công đã được khớp với nhân viên.",
+      "loading": "Đang tải nhật ký...",
+      "no_data": "Không tìm thấy dữ liệu quẹt thẻ nào.",
+      "no_data_hint": "Hãy thử điều chỉnh bộ lọc khoảng thời gian hoặc chọn nhân viên khác để tìm kiếm.",
+      "no_unknown_logs": "Không có bản ghi chưa xác định"
+    },
+    "modal": {
+      "import_title": "Nhập nhật ký quẹt thẻ từ file"
+    },
+    "not_in_system": "Chưa có trong hệ thống",
+    "select_employee": "Chọn nhân viên...",
     "status": {
       "recorded": "Đã ghi nhận"
     },
+    "subtitle": "Dữ liệu thô từ máy chấm công và các nguồn quẹt thẻ.",
     "tabs": {
       "recorded": "Đã ghi nhận",
       "unknown": "Chưa xác định",
       "unrecorded": "Vắng đầu ca"
     },
+    "title": "Nhật ký quẹt thẻ",
     "unknown_id": "ID chưa xác định",
-    "not_in_system": "Chưa có trong hệ thống",
-    "ambiguous_employment": "Trùng nhiều hợp đồng",
-    "select_employee": "Chọn nhân viên...",
-    "assign": "Gán",
-    "create_employee": "Tạo mới",
-    "messages": {
-      "loading": "Đang tải nhật ký...",
-      "no_data": "Không tìm thấy dữ liệu quẹt thẻ nào.",
-      "no_unknown_logs": "Không có bản ghi chưa xác định",
-      "no_data_hint": "Hãy thử điều chỉnh bộ lọc khoảng thời gian hoặc chọn nhân viên khác để tìm kiếm.",
-      "all_matched": "Tất cả bản ghi chấm công đã được khớp với nhân viên."
-    },
-    "modal": {
-      "import_title": "Nhập nhật ký quẹt thẻ từ file"
-    },
-    "view_reports": "Xem Báo Cáo Tổng Hợp",
-    "context": {
-      "copy_id": "Copy Employee ID",
-      "copy_time": "Copy Punch Time"
-    }
-  },
-  "unrecorded_shifts": {
-    "title": "Danh sách vắng đầu ca",
-    "subtitle": "Nhân sự có lịch làm việc nhưng chưa chấm công và không nghỉ phép.",
-    "export_btn": "Xuất Excel",
-    "filter_dept": "Lọc theo bộ phận",
-    "all_departments": "Tất cả bộ phận",
-    "columns": {
-      "employee_code": "Mã NV",
-      "employee_name": "Họ và Tên",
-      "department": "Bộ phận",
-      "shift_type": "Phân ca",
-      "shift_in": "Giờ vào ca",
-      "shift_out": "Giờ ra ca",
-      "zone": "Trạng thái"
-    },
-    "empty": "Không có nhân sự nào chưa xác nhận chấm công vào ngày này.",
-    "empty_hint": "Tất cả nhân sự đã chấm công hoặc đã đăng ký nghỉ phép.",
-    "export_date": "Ngày",
-    "zone_header": "Trạng thái",
-    "zone_a": "Chờ",
-    "zone_b": "Cần xác minh",
-    "zone_c": "Vắng (kết thúc ca)",
-    "zone_a_hint": "Còn {{minutes}} phút",
-    "zone_b_hint": "Quá hạn {{minutes}} phút",
-    "date_label": "Ngày",
-    "live_badge": "Trực tiếp",
-    "filter_date_from": "Từ ngày",
-    "filter_date_to": "Đến ngày",
-    "filter_shift_type": "Loại ca",
-    "filter_shift_type_empty": "Không có loại ca",
-    "filter_shift_inactive": "ngừng",
-    "filter_employee": "Nhân viên",
-    "only_zone_b": "Chỉ Cần xác minh",
-    "clear_filters": "Xóa lọc",
-    "empty_zone_b": "Không có nhân sự cần xác minh.",
-    "empty_zone_b_hint": "Tất cả nhân sự trong ca đã chấm công hoặc vẫn trong thời gian grace.",
-    "viewing_past": "Lịch sử — bản ghi đã cố định",
-    "timeline": "Dòng thời gian",
-    "now_badge": "Bây giờ",
-    "scrubber_label": "Thanh trượt tại {{time}} {{date}}, dùng phím mũi tên để di chuyển",
-    "export_reference_time": "Thời gian tham chiếu",
-    "step_back": "Lùi 1 giờ",
-    "step_forward": "Tiến 1 giờ",
-    "jump_to_now": "Hiện tại"
-  },
-  "attendance_import": {
-    "subtitle": "Nhập dữ liệu hàng loạt",
-    "rows_processed": "dòng đã xử lý",
-    "error_list_title": "Danh sách lỗi chi tiết:",
-    "select_another_file": "Chọn file khác",
-    "upload_prompt": "Click hoặc kéo thả file vào đây",
-    "upload_limit": "Excel (Tối đa 10MB)",
-    "start_import": "Bắt đầu nhập dữ liệu",
-    "download_error_logs": "Tải file Excel chứa danh sách các dòng lỗi / bỏ qua",
-    "required": "Bắt buộc",
-    "optional": "Tùy chọn",
-    "format_label": "Định dạng",
-    "download_template": "Tải file Excel mẫu (Template)",
-    "download_csv_excel_template": "Tải file Excel mẫu (Template)",
-    "or": "hoặc",
-    "columns": {
-      "employee_code": {
-        "label": "Mã nhân viên",
-        "desc": "Mã số định danh duy nhất của nhân viên trong hệ thống (Employee ID)."
-      },
-      "punch_time": {
-        "label": "Thời gian chấm công",
-        "desc": "Mốc thời gian vào/ra ca cần điều chỉnh."
-      }
-    },
-    "status": {
-      "processing": "Đang xử lý dữ liệu...",
-      "completed": "Hoàn thành!",
-      "failed": "Có lỗi xảy ra",
-      "pending": "Đang chờ...",
-      "uploading": "Đang tải lên..."
-    },
-    "file_requirements": {
-      "title": "Yêu cầu định dạng file:",
-      "auto_detect": "💡 Hệ thống nhận diện cột tự động theo tiêu đề ở hàng đầu tiên (Header). Thứ tự các cột không quan trọng. Các cột khác ngoài danh sách dưới đây sẽ tự động được bỏ qua.",
-      "col_a": "Cột A: Mã số nhân viên (Employee ID)",
-      "col_b": "Cột B: Tên nhân viên (Không bắt buộc)",
-      "col_c": "Cột C: Thời gian quẹt thẻ (DD/MM/YYYY HH:mm)",
-      "formats": "Hỗ trợ file .xlsx và .xls"
-    },
-    "messages": {
-      "upload_error": "Lỗi khi tải file lên"
-    }
-  },
-  "patterns": {
-    "title": "Mẫu lịch làm việc",
-    "subtitle": "Quản lý lịch làm việc tuần hoàn cho nhân viên",
-    "cycle_summary": "Chu kỳ {{total}} ngày: {{active}} làm / {{off}} nghỉ",
-    "manage_btn": "Quản lý mẫu",
-    "create_btn": "Tạo mẫu mới",
-    "create_title": "Tạo mẫu lịch làm việc",
-    "create_subtitle": "Định nghĩa mẫu tuần",
-    "create_submit": "Tạo mẫu",
-    "empty_title": "Chưa có mẫu nào",
-    "empty_desc": "Tạo một mẫu để gán nhanh ca làm việc tuần hoàn cho nhân viên.",
-    "view_mode_grid": "Xem dạng lưới",
-    "view_mode_list": "Xem danh sách",
-    "create_first": "Tạo mẫu đầu tiên",
-    "weekly_schedule": "Lịch tuần",
-    "select_pattern": "Chọn mẫu lịch",
-    "view_details": "Chi tiết mẫu",
-    "form": {
-      "name": "Tên mẫu",
-      "description": "Mô tả",
-      "select_pattern": "Chọn mẫu lịch",
-      "select_pattern_label": "Chọn mẫu lịch",
-      "select_pattern_placeholder": "Chọn một mẫu...",
-      "start_date": "Ngày bắt đầu hiệu lực",
-      "start_date_label": "Ngày bắt đầu",
-      "start_date_note": "Lịch sẽ tự động lặp lại từ ngày này.",
-      "select_employees": "Chọn nhân viên",
-      "select_employees_label": "Nhân viên áp dụng",
-      "select_employees_placeholder": "Tìm kiếm và chọn...",
-      "name_placeholder": "VD: Giờ hành chính, Xoay ca đêm",
-      "name_label": "Tên mẫu lịch",
-      "desc_placeholder": "Mô tả tùy chọn",
-      "desc_label": "Mô tả ngắn",
-      "weekly_grid_title": "Lưới lịch tuần",
-      "cycle_grid_title": "Lưới lịch chu kỳ",
-      "prefill_standard": "Điền mẫu hành chính",
-      "add_shift": "Thêm ca",
-      "all_shifts_committed": "Đã gán hết ca",
-      "pattern_type": "Loại lịch làm việc",
-      "pattern_type_weekly": "Hằng tuần",
-      "pattern_type_rotation": "Ca xoay chu kỳ",
-      "cycle_length": "Số ngày trong chu kỳ",
-      "cycle_length_placeholder": "ví dụ: 6",
-      "cycle_length_note": "Xác định tổng số ngày của chu kỳ xoay lịch.",
-      "cycle_config_title": "Cấu hình chu kỳ xoay ca",
-      "day_index": "Ngày {{index}}",
-      "anchor_date_label": "Ngày mốc chu kỳ xoay",
-      "anchor_date_note": "Ngày bắt đầu thực tế cho Ngày 1 của chu kỳ xoay.",
-      "editor_title_new": "Tạo mẫu lịch làm việc mới",
-      "editor_title_edit": "Chỉnh sửa mẫu lịch làm việc",
-      "clear_all": "Xóa tất cả ca",
-      "clear_all_confirm": "Bạn có chắc muốn xóa tất cả ca đã gán không?",
-      "unsaved_changes": "Bạn có thay đổi chưa lưu. Bạn có chắc chắn muốn rời đi?",
-      "unsaved_changes_cancel": "Ở lại",
-      "unsaved_changes_confirm": "Rời khỏi",
-      "view_mode_design": "Thiết lập chu kỳ",
-      "view_mode_preview": "Xem trước lịch",
-      "anchor_date_preview": "Ngày mốc xem trước",
-      "preview_month": "Tháng xem trước"
-    },
-    "weekly_config": "Cấu hình tuần",
-    "actions": {
-      "prefill_standard": "Điền nhanh: Hành chính (T2-T6)"
-    },
-    "badge_rotation": "Ca xoay ({{days}} ngày)",
-    "badge_weekly": "Hằng tuần",
-    "validation_name_required": "Vui lòng nhập tên mẫu.",
-    "validation_cycle_length_invalid": "Vui lòng nhập số ngày chu kỳ hợp lệ từ 1 đến 366.",
-    "messages": {
-      "create_success": "Đã tạo mẫu lịch làm việc thành công.",
-      "create_error": "Lỗi khi tạo mẫu lịch làm việc.",
-      "update_success": "Đã cập nhật mẫu lịch làm việc thành công.",
-      "update_error": "Lỗi khi cập nhật mẫu lịch làm việc.",
-      "delete_success": "Xóa mẫu lịch làm việc thành công.",
-      "delete_error": "Lỗi khi xóa mẫu lịch làm việc.",
-      "bulk_assign_success_count": "Đã gán mẫu cho {{count}} nhân viên.",
-      "bulk_assign_conflict": "Một số nhân viên đã có lịch làm việc, hệ thống sẽ ghi đè.",
-      "bulk_assign_error": "Lỗi khi gán lịch hàng loạt.",
-      "no_shifts_available": "Không có ca làm việc nào để tự động điền."
-    },
-    "confirm_delete": "Bạn có chắc chắn muốn xóa mẫu \"{{name}}\" ?",
-    "assign_btn": "Gán mẫu lịch làm việc",
-    "bulk_assign_btn": "Gán hàng loạt",
-    "bulk_assign_title": "Gán lịch hàng loạt",
-    "bulk_assign_subtitle": "Gán mẫu lịch cho nhiều nhân viên cùng lúc",
-    "modal": {
-      "create_title": "Tạo chu kỳ mới",
-      "subtitle": "Thiết lập lịch tuần hoàn",
-      "submit_btn": "Lưu mẫu",
-      "assign_btn": "Xác nhận gán",
-      "bulk_subtitle": "Phân bổ lịch trình",
-      "assign_title": "Gán lịch tuần/xoay ca",
-      "assign_subtitle": "Thiết lập lịch làm việc lặp lại định kỳ cho nhân viên"
-    },
-    "validation_pattern_required": "Vui lòng chọn mẫu lịch.",
-    "validation_employees_required": "Vui lòng chọn ít nhất một nhân viên.",
-    "bulk_assign_submit": "Xác nhận gán",
-    "timeline": {
-      "shift_duration": "{{hours}}h",
-      "break_label": "Nghỉ",
-      "off_day": "OFF"
-    },
-    "conflicts": {
-      "overlap": "Trùng ca: {{shiftA}} & {{shiftB}}",
-      "insufficient_rest": "Nghỉ thiếu giờ (<12h)",
-      "rest_warning": "Chỉ {{hours}}h nghỉ giữa ca",
-      "weekly_hours_exceeded": "{{total}}h/tuần vượt giới hạn {{limit}}h"
-    }
-  },
-  "rules": {
-    "title": "Quy tắc gán tự động",
-    "subtitle": "Tự động gán mẫu lịch cho nhân viên dựa trên các điều kiện",
-    "create_btn": "Thêm quy tắc",
-    "table": {
-      "priority": "Ưu tiên",
-      "name": "Tên quy tắc",
-      "pattern": "Mẫu lịch gán",
-      "conditions": "Điều kiện"
-    },
-    "match_all": "Toàn hệ thống (Khớp tất cả)",
-    "empty_list": "Chưa có quy tắc gán nào",
-    "info_priority": "Các quy tắc được đánh giá từ mức ưu tiên cao nhất đến thấp nhất. Quy tắc đầu tiên khớp với nhân viên sẽ được áp dụng. Quy tắc chung nên có mức ưu tiên thấp nhất.",
-    "edit_title": "Chỉnh sửa quy tắc",
-    "create_title": "Tạo quy tắc mới",
-    "form_subtitle": "Định nghĩa khi nào mẫu này sẽ được áp dụng",
-    "form": {
-      "name": "Tên quy tắc",
-      "priority": "Mức ưu tiên (Càng cao càng mạnh)",
-      "pattern": "Chọn mẫu lịch",
-      "name_placeholder": "VD: Nhân viên kỹ thuật ca đêm",
-      "tags_placeholder": "CaDem, HaNoi, VVIP",
-      "start_date": "Ngày bắt đầu",
-      "end_date": "Ngày kết thúc",
-      "employer": "Pháp nhân / Công ty",
-      "all_employers": "Tất cả công ty",
-      "location": "Địa điểm / Chi nhánh",
-      "all_locations": "Tất cả địa điểm",
-      "employee_id_numbers": "Mã số nhân viên"
-    },
-    "start_date_fallback": "Từ trước",
-    "end_date_fallback": "Vô thời hạn",
-    "conditions_title": "Điều kiện khớp",
-    "condition_help": "Để trống để khớp với tất cả nhân viên (trong phạm vi các điều kiện khác).",
-    "messages": {
-      "create_success": "Đã tạo quy tắc thành công",
-      "create_error": "Không thể tạo quy tắc",
-      "update_success": "Đã cập nhật quy tắc thành công",
-      "update_error": "Không thể cập nhật quy tắc",
-      "delete_success": "Đã xóa quy tắc"
-    },
-    "validation": {
-      "required_fields": "Tên và Mẫu lịch là bắt buộc"
-    },
-    "confirm_delete_msg": "Bạn có chắc chắn muốn xóa quy tắc này không?"
-  },
-  "shifts": {
-    "weekly": {
-      "title": "Lịch ca tuần"
-    },
-    "monthly": {
-      "title": "Lịch ca tháng",
-      "copy_previous_month": "Copy tháng trước",
-      "clear_month": "Xóa ca đã gán",
-      "pattern_source": "Tự động từ mẫu",
-      "roster_source": "Gán thủ công",
-      "off_day": "Nghỉ",
-      "all_employees": "Tất cả nhân viên",
-      "cells_selected": "Đã chọn {{count}} ô",
-      "assign_selected": "Gán ca cho ô đã chọn",
-      "view_week": "Xem tuần",
-      "view_month": "Xem tháng",
-      "search_placeholder": "Tìm kiếm nhân viên...",
-      "filter_department": "Lọc theo phòng ban",
-      "all_departments": "Tất cả phòng ban",
-      "no_department": "Không thuộc phòng ban",
-      "no_results_desc": "Không tìm thấy nhân viên nào khớp với tiêu chí tìm kiếm hoặc lọc.",
-      "empty_state_desc": "Không tìm thấy nhân viên hoặc lịch trình làm việc. Vui lòng kiểm tra lại phòng ban hoặc cấu hình nhân sự.",
-      "failed_to_load": "Tải lịch làm việc tháng thất bại. Vui lòng thử lại.",
-      "selected_employees": "Nhân sự đang chọn ({{count}})",
-      "clear_all_employees": "Bỏ chọn tất cả",
-      "cleared_selection": "Đã bỏ chọn {{count}} người",
-      "undo": "Hoàn tác",
-      "bulk_select": "Chọn hàng loạt",
-      "bulk_picker_title": "Chọn nhân viên",
-      "bulk_picker_subtitle": "Chọn cả phòng ban hoặc từng người",
-      "bulk_selected_count": "Đã chọn {{count}}",
-      "select_whole_department": "Chọn cả phòng ban",
-      "deselect_all": "Bỏ chọn tất cả",
-      "bulk_search_placeholder": "Tìm theo tên hoặc mã...",
-      "bulk_no_results": "Không có nhân viên khớp với tìm kiếm.",
-      "bulk_loading_departments": "Đang tải phòng ban...",
-      "done": "Xong"
-    },
-    "title": "Hệ thống Lịch trình",
-    "subtitle": "Quản lý ca làm việc linh hoạt và cố định",
-    "create_btn": "Tạo ca",
-    "current_week_roster": "Lịch trực tuần hiện tại",
-    "days_selected": "Đã chọn {{count}} ngày",
-    "assign_selected_btn": "Gán ca cho mục đã chọn",
-    "off_day": "NGHỈ",
-    "history_title": "Lịch sử thay đổi gán ca",
-    "fixed_assignment_subtitle": "Gán lịch trình cố định hoặc dài hạn",
-    "select_default_shift": "Chọn Ca Làm Việc Mặc Định",
-    "assign_btn": "Gán ca làm việc",
-    "directory_title": "Danh sách các loại ca",
-    "auto_deduct": "Tự động trừ",
-    "grace_period": "Grace Period (phút)",
-    "grace_period_desc": "Chỉ áp dụng cho việc đến sớm. Nếu dùng chính sách 'Chặn', chấm công trước khoảng này sẽ bị chặn. Nếu 'Clamp', OT bắt đầu tính từ đây. Không ảnh hưởng đến thời gian ân hạn đi muộn.",
-    "set_off_day": "Đặt nghỉ (OFF)",
-    "days_count": "{{count}} ngày đã chọn",
-    "empty_state": {
-      "title": "Chọn nhân sự để tiếp tục",
-      "desc": "Vui lòng chọn một nhân viên từ danh sách bên trái để bắt đầu sắp xếp lịch làm việc."
-    },
-    "tabs": {
-      "weekly_roster": "LỊCH PHÂN CA",
-      "fixed_assignments": "GÁN MẪU LỊCH",
-      "directory": "CÁC LOẠI CA"
-    },
-    "actions": {
-      "copy_previous": "Sao chép tuần trước",
-      "assign_all_week": "Gán ca cả tuần này",
-      "clear_week": "Xóa lịch tuần này"
-    },
-    "types": {
-      "flexible": "Linh hoạt",
-      "fixed": "Cố định"
-    },
-    "table": {
-      "assignment_type": "Loại gán",
-      "range": "Phạm vi",
-      "shift_name": "Tên loại ca",
-      "time_range": "Khung giờ",
-      "break_time": "Nghỉ giữa ca"
-    },
-    "modal": {
-      "setup_title": "Thiết lập ca",
-      "setup_subtitle": "KHAI BÁO THAM SỐ CA LÀM VIỆC",
-      "edit_subtitle": "CẬP NHẬT CẤU HÌNH HOẶC THAY ĐỔI GIỜ LÀM",
-      "name_placeholder": "Hành chính, Ca sáng, Ca gãy...",
-      "start_time": "Giờ vào",
-      "end_time": "Giờ ra",
-      "break_config": "Cấu hình nghỉ giải lao",
-      "break_start": "Bắt đầu nghỉ",
-      "break_end": "Kết thúc nghỉ",
-      "auto_deduct_label": "Tự động trừ giờ nghỉ (Auto-deduct)",
-      "break_policy_label": "Chính sách giờ nghỉ",
-      "break_policy_auto_deduct": "Trừ giờ nghỉ theo lịch (Mặc định)",
-      "break_policy_auto_deduct_help": "Hệ thống tự động trừ thời lượng nghỉ trưa khỏi giờ công. Nhân viên chỉ cần chấm công 2 lần/ngày.",
-      "break_policy_no_deduct": "Không trừ giờ nghỉ - tính đủ giờ công",
-      "break_policy_no_deduct_help": "Không khấu trừ công. Nhân viên bắt buộc chấm công giờ nghỉ trưa (vào/ra nghỉ), cần chấm 4 lần/ngày.",
-      "break_policy_overtime": "Tính giờ nghỉ là tăng ca (OT)",
-      "break_policy_overtime_help": "Tính giờ nghỉ là tăng ca (OT). Phù hợp cho nhân sự trực máy, trực vận hành xuyên trưa.",
-      "break_policy_overtime_disabled_hint": "Chỉ khả dụng khi bật Giờ nghỉ Cố định (Fixed Break)",
-      "break_duration": "Thời lượng nghỉ",
-      "save_shift_btn": "Lưu loại ca",
-      "update_config_btn": "Cập nhật cấu hình",
-      "correction_label": "Hiệu chỉnh dữ liệu",
-      "correction_desc": "Hiệu chỉnh sẽ ghi đè trực tiếp lên bản ghi ca hiện tại. Chỉ dùng để sửa lỗi chính tả/nhập sai.",
-      "correction_warning": "Đây là hiệu chỉnh trực tiếp",
-      "effective_date_label": "Ngày hiệu lực",
-      "effective_date_desc": "Phiên bản mới sẽ có hiệu lực từ ngày này.",
-      "grace_period": "Cho phép vào sớm (phút)",
-      "grace_period_desc": "Chỉ áp dụng cho việc đến sớm. Nếu dùng chính sách 'Chặn', chấm công trước khoảng này sẽ bị chặn. Nếu 'Clamp', OT bắt đầu tính từ đây. Không ảnh hưởng đến thời gian ân hạn đi muộn.",
-      "select_shift_title": "Chọn ca làm việc",
-      "select_shift_subtitle": "Chọn ca cho {{count}} ngày đã chọn",
-      "mark_as_off": "Đánh dấu các ngày đã chọn là nghỉ",
-      "assign_to_days": "Gán cho {{days}}",
-      "report_symbol": "Ký hiệu báo cáo",
-      "report_symbol_placeholder": "VD: S8, T8, FX...",
-      "allow_early_ot": "Cho phép tính tăng ca sớm",
-      "allow_early_ot_help": "Tính thời gian làm việc trước ca là tăng ca sớm (Early OT)",
-      "max_early_ot": "Giới hạn tăng ca sớm tối đa (phút)",
-      "max_early_ot_required": "Vui lòng nhập số phút giới hạn lớn hơn 0.",
-      "early_arrival_notice_block": "⚠️ Lưu ý: Quy tắc đến sớm của Workspace hiện đang được cấu hình là 'Chặn chấm công sớm'. Cài đặt Tăng ca sớm (Early OT) này sẽ không có hiệu lực đối với nhân viên.",
-      "early_arrival_notice_clamp": "ℹ️ Quy tắc đến sớm của Workspace hiện là 'Giới hạn OT sớm'. Thời gian tính tăng ca sớm (nếu bật) sẽ bị giới hạn tối đa bằng số phút Grace Period của ca (hiện tại là {{grace}} phút).",
-      "early_arrival_notice_allow": "ℹ️ Quy tắc đến sớm của Workspace hiện là 'Cho phép mọi lúc'. Thời gian tăng ca sớm sẽ được tính đầy đủ kể từ lúc check-in.",
-      "basic_info": "Thông tin cơ bản",
-      "edit_description": "Cập nhật cấu hình hoặc thay đổi giờ làm",
-      "ot_grace_config": "Cấu hình đi muộn & Tăng ca",
-      "preview_title": "Xem trước sơ đồ ca",
-      "shift_duration": "Tổng thời gian ca",
-      "shift_name_label": "Tên ca",
-      "working_hours": "Công thực tế",
-      "location": "Chi nhánh / Địa điểm Scope",
-      "global_scope": "Toàn cục / Dùng chung",
-      "select_location": "Chọn địa điểm làm việc",
-      "employer": "Pháp nhân / Công ty Scope",
-      "select_employer": "Chọn pháp nhân trực thuộc",
-      "change_reason_label": "Lý do điều chỉnh",
-      "change_reason_placeholder": "Nhập lý do thay đổi ca làm việc..."
-    },
-    "messages": {
-      "assign_success": "Đã gán ca làm việc cho nhân viên thành công.",
-      "assign_error": "Lỗi gán ca",
-      "update_roster_success": "Đã cập nhật lịch trực.",
-      "update_roster_error": "Lỗi cập nhật lịch",
-      "bulk_update_success": "Đã cập nhật lịch trực hàng loạt.",
-      "bulk_update_error": "Lỗi cập nhật hàng loạt",
-      "bulk_partial_failure": "Không thể cập nhật {{count}} nhân viên. Vui lòng thử lại.",
-      "remove_override_success": "Đã gỡ bỏ ghi đè, quay về lịch mặc định.",
-      "remove_override_error": "Lỗi khi gỡ bỏ lịch",
-      "create_shift_success": "Loại ca \"{{name}}\" đã được khởi tạo.",
-      "create_shift_error": "Lỗi tạo ca",
-      "update_shift_success": "Đã cập nhật cấu hình ca làm việc.",
-      "update_shift_error": "Lỗi cập nhật ca",
-      "validation_missing_fields": "Vui lòng chọn đầy đủ nhân viên, ca làm và ngày bắt đầu.",
-      "no_previous_data": "Không tìm thấy dữ liệu tuần trước.",
-      "copy_error": "Lỗi sao chép",
-      "validation_shift_name_time": "Tên ca và thời gian làm việc không được để trống.",
-      "validation_break_times": "Vui lòng nhập giờ bắt đầu và kết thúc nghỉ trưa.",
-      "no_shifts": "Hệ thống chưa có loại ca nào."
-    },
-    "traceability": {
-      "title": "Truy vết Logic",
-      "applied": "Logic đang áp dụng",
-      "applied_shift": "Ca áp dụng",
-      "overridden": "Các quy tắc bị ghi đè",
-      "show_overridden": "Hiển thị các quy tắc bị ghi đè",
-      "priority": "Độ ưu tiên",
-      "reason": "Lý do",
-      "source": "Nguồn",
-      "winner": "Quy tắc chiến thắng",
-      "priority_hierarchy": "Thứ tự ưu tiên",
-      "p100_manual": "Lịch trực (Gán trực tiếp)",
-      "p80_pattern": "Chu kỳ cá nhân",
-      "p60_rules": "Quy tắc động",
-      "p60_rules_subsumes": "(bao gồm Chu kỳ phòng ban & Mặc định phòng ban)",
-      "p40_dept_pattern": "Chu kỳ phòng ban",
-      "p20_fixed": "Gán ca cố định",
-      "p10_dept_fixed": "Mặc định phòng ban",
-      "p0_none": "Ngày nghỉ",
-      "override_hint": "Bạn muốn ghi đè logic này? Hãy gán Lịch trực thủ công cho ngày này (Ưu tiên 100).",
-      "highest_priority_hint": "Đây là lịch trực thủ công và có mức ưu tiên cao nhất.",
-      "highest_priority": "Ưu tiên cao nhất",
-      "lowest_priority": "Không có ca (Ngày nghỉ)",
-      "hierarchy_explanation": "Các tầng được đánh giá từ trên xuống. Tầng khớp đầu tiên thắng — tầng cao hơn ghi đè tầng thấp hơn.",
-      "tier_subsumed_note": "Quy tắc động (P3) xử lý điều kiện phòng ban, nhãn, địa điểm, và nhà tuyển dụng — không cần tầng Chu kỳ phòng ban / Mặc định phòng ban riêng."
-    },
-    "revisions": {
-      "title": "Lịch sử phiên bản",
-      "subtitle": "Lịch sử chỉnh sửa của {{name}}",
-      "active_version": "Hiện hành",
-      "badge_create": "Tạo mới",
-      "badge_revision": "Điều chỉnh",
-      "badge_correction": "Hiệu chỉnh",
-      "effective_range": "{{from}} — {{to}}",
-      "effective_present": "Hiện tại",
-      "change_reason_label": "Lý do thay đổi",
-      "show_diff": "Xem thay đổi",
-      "hide_diff": "Ẩn thay đổi",
-      "no_changes": "Không có thay đổi trong khung giờ này",
-      "empty_state": "Không có lịch sử phiên bản cho ca làm việc này.",
-      "loading": "Đang tải lịch sử phiên bản..."
-    },
-    "picker": {
-      "search_placeholder": "Tìm theo tên ca, ký hiệu hoặc giờ làm (VD: Ca Sáng, 08:00)...",
-      "filter_all": "Tất cả ca",
-      "filter_frequent": "Thường dùng",
-      "filter_night": "Ca đêm",
-      "filter_split": "Ca gãy",
-      "filter_single": "Ca đơn",
-      "no_results_title": "Không tìm thấy ca phù hợp",
-      "no_results_desc": "Thử điều chỉnh từ khóa tìm kiếm hoặc bộ lọc.",
-      "clear_search": "Xóa tìm kiếm",
-      "frequent_section_title": "Thường dùng",
-      "filter_location": "Lọc theo địa điểm",
-      "filter_employer": "Lọc theo công ty",
-      "filter_all_locations": "Tất cả địa điểm",
-      "filter_all_employers": "Tất cả công ty",
-      "keyboard_hint": "↑↓ để chọn · Enter để xác nhận · Esc để xóa",
-      "card": {
-        "work_hours": "Giờ tính lương",
-        "next_day": "Kết thúc sang ngày hôm sau",
-        "blocks": "{{count}} khung giờ",
-        "used_times": "Đã dùng {{count}} lần"
-      }
-    },
-    "compliance": {
-      "warning_title": "Cảnh báo tuân thủ",
-      "override_reason_label": "Lý do ghi đè",
-      "override_reason_placeholder": "Nhập lý do ghi đè cảnh báo tuân thủ...",
-      "confirm_override": "Xác nhận ghi đè",
-      "cancel": "Hủy",
-      "violation_overlap": "Phát hiện trùng lặp ca làm việc. Nhân viên đã có ca khác vào thời gian này.",
-      "violation_rest_period": "Thời gian nghỉ giữa ca không đủ (cách {{gap}} giờ, yêu cầu {{required}} giờ).",
-      "violation_weekly_hours": "Tổng giờ làm trong tuần vượt quá giới hạn ({{current}}h / {{limit}}h).",
-      "violation_monthly_ot": "Giờ tăng ca trong tháng vượt quá giới hạn ({{current}}h OT / {{limit}}h).",
-      "badge_warning": "Cảnh báo tuân thủ",
-      "badge_violation": "Vi phạm tuân thủ",
-      "no_violations": "Không phát hiện vi phạm tuân thủ.",
-      "violation_count": "{{count}} vi phạm được tìm thấy"
-    },
-    "label": "Ca làm & Lịch trực"
-  },
-  "approvals": {
-    "paper_ot": {
-      "title": "Nhập đơn OT giấy",
-      "description": "Nhập yêu cầu tăng ca từ đơn giấy đã ký",
-      "select_employee": "Tìm nhân viên...",
-      "minutes": "Số phút OT",
-      "reason_placeholder": "Đơn #1234 - Dây chuyền sản xuất",
-      "photo": "Ảnh đơn giấy (Tùy chọn)",
-      "photo_coming_soon": "Tính năng tải ảnh sắp ra mắt",
-      "error_no_employee": "Vui lòng chọn nhân viên",
-      "error_minutes": "Số phút phải lớn hơn 0",
-      "error_reason": "Lý do là bắt buộc",
-      "btn_enter": "Nhập đơn giấy",
-      "upload_prompt": "Nhấp hoặc kéo ảnh vào đây để tải lên"
-    },
-    "bulk_upload": {
-      "title": "Tải lên hàng loạt OT",
-      "description": "Tải file CSV để nhập nhiều yêu cầu OT cùng lúc",
-      "btn": "Tải lên hàng loạt",
-      "download_template": "Tải mẫu CSV",
-      "drag_drop": "Kéo thả file CSV vào đây",
-      "or_click": "hoặc nhấn để chọn",
-      "select_file": "Chọn file",
-      "upload": "Tải lên & Xử lý",
-      "error_csv_only": "Chỉ cho phép file CSV",
-      "confirm_close_with_errors": "Một số dòng thất bại. Bạn có chắc muốn đóng?",
-      "result_summary": "Tóm tắt kết quả",
-      "total": "Tổng số",
-      "success": "Thành công",
-      "failed": "Thất bại",
-      "error_details": "Chi tiết lỗi",
-      "download_errors": "Tải xuống lỗi",
-      "line": "Dòng",
-      "success_message": "{{count}} yêu cầu OT đã được nhập thành công",
-      "instructions_title": "Hướng dẫn chuẩn bị dữ liệu",
-      "step1": "Tải xuống file CSV mẫu bằng nút phía dưới.",
-      "step2": "Điền thông tin tăng ca của nhân sự theo các cột bắt buộc:",
-      "step2_col_id": "Mã nhân viên (Employee ID)",
-      "step2_col_date": "Định dạng YYYY-MM-DD",
-      "step2_col_mins": "Số phút tăng ca (> 0)",
-      "step2_col_reason": "Lý do tăng ca (bắt buộc)",
-      "step3": "Kéo thả hoặc bấm chọn tệp CSV để tải lên hệ thống.",
-      "step4": "Hệ thống sẽ kiểm tra và hiển thị báo cáo chi tiết nếu có dòng lỗi."
-    },
-    "filter": {
-      "paper_forms": "Đơn giấy",
-      "self_service": "Tự phục vụ"
-    },
-    "pre_ot_dialog": {
-      "new_request_btn": "Đăng ký Pre-OT mới",
-      "modal_title": "Lập kế hoạch tăng ca (Pre-OT)",
-      "modal_subtitle": "Gán giờ tăng ca trước cho nhân viên",
-      "select_employees": "Chọn nhân viên",
-      "no_employees": "Không tìm thấy nhân viên nào",
-      "selected_count": "Đã chọn {{count}}",
-      "quota_warning_title": "Cảnh báo hạn mức",
-      "quota_warning_desc": "Nhân viên được chọn đã dùng {{used}}h trên tổng số {{limit}}h trong tháng này.",
-      "date": "Ngày",
-      "start_time": "Giờ bắt đầu",
-      "end_time": "Giờ kết thúc",
-      "estimated_duration": "Thời gian dự kiến",
-      "duration_hours": "{{hours}} giờ",
-      "business_reason": "Lý do công việc",
-      "reason_placeholder": "Tại sao việc tăng ca này là cần thiết?",
-      "submit_btn": "Gửi yêu cầu",
-      "validation": {
-        "select_employee": "Vui lòng chọn ít nhất một nhân viên",
-        "provide_reason": "Vui lòng nhập lý do",
-        "invalid_time": "Khoảng thời gian không hợp lệ"
-      },
-      "success_message": "Đã tạo yêu cầu Pre-OT thành công!",
-      "error_message": "Tạo yêu cầu OT thất bại"
-    }
-  },
-  "holidays": {
-    "title": "Ngày lễ",
-    "subtitle": "Quản lý các ngày nghỉ lễ chung và ngày đặc biệt của tổ chức",
-    "add_btn": "Thêm ngày lễ",
-    "no_holidays": "Chưa có ngày lễ nào được cấu hình cho năm {{year}}",
-    "modal_title_new": "Thêm ngày lễ mới",
-    "modal_title_edit": "Cập nhật ngày lễ",
-    "fields": {
-      "name": "Tên ngày lễ",
-      "name_placeholder": "VD: Tết Dương Lịch",
-      "date": "Ngày",
-      "type": "Phân loại",
-      "types": {
-        "national": "Quốc gia",
-        "company": "Công ty",
-        "regional": "Khu vực"
-      },
-      "ot_multiplier": "Hệ số tăng ca (OT)",
-      "ot_multiplier_placeholder": "3.0",
-      "ot_multiplier_help": "VD: 3× = 300% lương cho mỗi giờ đi làm",
-      "description": "Mô tả",
-      "description_placeholder": "Nội dung ghi chú thêm",
-      "paid_holiday": "Nghỉ lễ có lương",
-      "deduct_leave_type": "Trừ vào loại phép",
-      "auto_first_paid": "Tự động (loại phép có lương đầu tiên xếp theo tự tự ngày tạo)",
-      "deduction_warning": "Nhân viên không đủ số dư phép sẽ bị hệ thống tự động ghi nhận là nghỉ không lương.",
-      "work_policy_title": "Chính sách khi NV đi làm ngày lễ",
-      "credit_on_work": "Credit lương ngày lễ",
-      "credit_on_work_help": "NV vẫn nhận lương ngày lễ + lương giờ làm",
-      "threshold_percent": "Ngưỡng hoàn phép",
-      "threshold_help": "NV làm ≥ ngưỡng → hoàn phép. < ngưỡng → giữ phép"
-    },
-    "table": {
-      "date": "Ngày",
-      "name": "Tên ngày lễ",
-      "type": "Loại",
-      "paid": "Có lương",
-      "ot": "HS OT",
-      "description": "Mô tả",
-      "paid_status": "Có lương",
-      "deduct_leave": "Trừ phép",
-      "credit": "Credit",
-      "threshold": "Ngưỡng"
-    },
-    "messages": {
-      "load_error": "Lỗi khi tải danh sách ngày lễ",
-      "save_error": "Lỗi khi lưu ngày lễ",
-      "delete_error": "Lỗi khi xóa ngày lễ",
-      "confirm_delete": "Bạn có chắc chắn muốn xóa ngày lễ này không?"
-    },
-    "info": {
-      "title": "Quy tắc trừ phép đối với Ngày lễ không lương",
-      "body_1": "Khi một kỳ nghỉ lễ được cấu hình là KHÔNG LƯƠNG, hệ thống sẽ tự động đối chiếu số dư phép của từng nhân viên:",
-      "rule_1": "Đủ số dư phép: Tự động trừ 1 ngày phép và tính công có lương.",
-      "rule_2": "Không đủ số dư phép: Tự động ghi nhận là nghỉ Không Lương (Unpaid)."
-    }
+    "view_reports": "Xem Báo Cáo Tổng Hợp"
   },
   "attendance_policy_overrides": {
-    "title": "Ghi đè & Ngoại lệ",
+    "add_button": "THÊM GHI ĐÈ",
     "description": "Cấu hình quy tắc cụ thể cho phòng ban hoặc cá nhân.",
+    "drawer": {
+      "add_subtitle": "Cấu hình quy tắc cụ thể cho đối tượng",
+      "add_title": "Thêm Ghi đè Chính sách",
+      "grace_period_placeholder": "Sử dụng giá trị mặc định của workspace",
+      "override_notice": "Lưu ý: Các thiết lập dưới đây sẽ ghi đè cấu hình mặc định của Workspace dành riêng cho đối tượng này kể từ ngày hiệu lực.",
+      "save_button": "LƯU GHI ĐÈ",
+      "search_placeholder": "Tìm kiếm {{type}}...",
+      "select_target_type": "Chọn {{type}}",
+      "step_rules": "2. Cấu hình Quy tắc",
+      "step_target": "1. Chọn Đối tượng"
+    },
+    "empty_state": {
+      "description": "Mọi người đang áp dụng chính sách mặc định của không gian làm việc.",
+      "title": "Chưa có ghi đè nào"
+    },
     "filters": {
       "all": "TẤT CẢ",
       "depts": "PHÒNG BAN",
       "users": "NHÂN VIÊN"
     },
-    "add_button": "THÊM GHI ĐÈ",
-    "empty_state": {
-      "title": "Chưa có ghi đè nào",
-      "description": "Mọi người đang áp dụng chính sách mặc định của không gian làm việc."
-    },
     "labels": {
       "department": "PHÒNG BAN",
       "employee": "NHÂN VIÊN",
-      "not_set": "Chưa Thiết Lập",
-      "minutes": "phút"
-    },
-    "drawer": {
-      "add_title": "Thêm Ghi đè Chính sách",
-      "add_subtitle": "Cấu hình quy tắc cụ thể cho đối tượng",
-      "step_target": "1. Chọn Đối tượng",
-      "step_rules": "2. Cấu hình Quy tắc",
-      "select_target_type": "Chọn {{type}}",
-      "search_placeholder": "Tìm kiếm {{type}}...",
-      "grace_period_placeholder": "Sử dụng giá trị mặc định của workspace",
-      "save_button": "LƯU GHI ĐÈ",
-      "override_notice": "Lưu ý: Các thiết lập dưới đây sẽ ghi đè cấu hình mặc định của Workspace dành riêng cho đối tượng này kể từ ngày hiệu lực."
+      "minutes": "phút",
+      "not_set": "Chưa Thiết Lập"
     },
     "messages": {
       "delete_success": "Đã xóa ghi đè chính sách",
       "save_success": "Đã lưu ghi đè chính sách",
       "validation_select_target": "Vui lòng chọn phòng ban hoặc nhân viên"
-    }
+    },
+    "title": "Ghi đè & Ngoại lệ"
+  },
+  "holidays": {
+    "add_btn": "Thêm ngày lễ",
+    "fields": {
+      "auto_first_paid": "Tự động (loại phép có lương đầu tiên xếp theo tự tự ngày tạo)",
+      "credit_on_work": "Credit lương ngày lễ",
+      "credit_on_work_help": "NV vẫn nhận lương ngày lễ + lương giờ làm",
+      "date": "Ngày",
+      "deduct_leave_type": "Trừ vào loại phép",
+      "deduction_warning": "Nhân viên không đủ số dư phép sẽ bị hệ thống tự động ghi nhận là nghỉ không lương.",
+      "description": "Mô tả",
+      "description_placeholder": "Nội dung ghi chú thêm",
+      "name": "Tên ngày lễ",
+      "name_placeholder": "VD: Tết Dương Lịch",
+      "ot_multiplier": "Hệ số tăng ca (OT)",
+      "ot_multiplier_help": "VD: 3× = 300% lương cho mỗi giờ đi làm",
+      "ot_multiplier_placeholder": "3.0",
+      "paid_holiday": "Nghỉ lễ có lương",
+      "threshold_help": "NV làm ≥ ngưỡng → hoàn phép. < ngưỡng → giữ phép",
+      "threshold_percent": "Ngưỡng hoàn phép",
+      "type": "Phân loại",
+      "types": {
+        "company": "Công ty",
+        "national": "Quốc gia",
+        "regional": "Khu vực"
+      },
+      "work_policy_title": "Chính sách khi NV đi làm ngày lễ"
+    },
+    "info": {
+      "body_1": "Khi một kỳ nghỉ lễ được cấu hình là KHÔNG LƯƠNG, hệ thống sẽ tự động đối chiếu số dư phép của từng nhân viên:",
+      "rule_1": "Đủ số dư phép: Tự động trừ 1 ngày phép và tính công có lương.",
+      "rule_2": "Không đủ số dư phép: Tự động ghi nhận là nghỉ Không Lương (Unpaid).",
+      "title": "Quy tắc trừ phép đối với Ngày lễ không lương"
+    },
+    "messages": {
+      "confirm_delete": "Bạn có chắc chắn muốn xóa ngày lễ này không?",
+      "delete_error": "Lỗi khi xóa ngày lễ",
+      "load_error": "Lỗi khi tải danh sách ngày lễ",
+      "save_error": "Lỗi khi lưu ngày lễ"
+    },
+    "modal_title_edit": "Cập nhật ngày lễ",
+    "modal_title_new": "Thêm ngày lễ mới",
+    "no_holidays": "Chưa có ngày lễ nào được cấu hình cho năm {{year}}",
+    "subtitle": "Quản lý các ngày nghỉ lễ chung và ngày đặc biệt của tổ chức",
+    "table": {
+      "credit": "Credit",
+      "date": "Ngày",
+      "deduct_leave": "Trừ phép",
+      "description": "Mô tả",
+      "name": "Tên ngày lễ",
+      "ot": "HS OT",
+      "paid": "Có lương",
+      "paid_status": "Có lương",
+      "threshold": "Ngưỡng",
+      "type": "Loại"
+    },
+    "title": "Ngày lễ"
   },
   "ot_approvals": {
-    "subtitle": "Quản lý phê duyệt yêu cầu tăng ca",
-    "title": "Phê duyệt Tăng ca",
     "actions": {
       "approve": "Phê duyệt",
       "reject": "Từ chối"
@@ -749,26 +300,48 @@
       "paper": "Đơn giấy",
       "self": "Cá nhân"
     },
+    "delegated_claim": {
+      "actions": {
+        "claim": "Khai báo",
+        "claim_selected": "Khai báo {{count}} mục đã chọn"
+      },
+      "confirm_description": "Xem xét và chỉnh sửa các yêu cầu tăng ca thay cho nhân viên.",
+      "confirm_title": "Xác nhận khai báo hộ",
+      "default_reason": "Khai báo hộ tăng ca",
+      "empty_state": {
+        "description": "Tất cả giờ tăng ca đã được khai báo hoặc không có thời gian tăng ca phát sinh.",
+        "title": "Không có bản ghi chờ khai báo"
+      },
+      "messages": {
+        "error": "Khai báo tăng ca thất bại",
+        "select_at_least_one": "Vui lòng chọn ít nhất một mục để khai báo",
+        "success": "Khai báo tăng ca thành công"
+      },
+      "no_search_results": "Không tìm thấy kết quả phù hợp",
+      "paper_warning": "yêu cầu quyền tải lên đơn giấy",
+      "search_placeholder": "Tìm theo tên hoặc mã nhân viên...",
+      "subtitle": "Khai báo giờ tăng ca thay cho nhân sự sản xuất / không có tài khoản",
+      "table": {
+        "actual_hours": "Giờ làm thực tế",
+        "claimed_ot": "OT Khai báo",
+        "computed_ot": "OT Hệ thống",
+        "date": "Ngày",
+        "employee": "Nhân viên",
+        "filtered_count": "Tìm thấy {{count}} bản ghi",
+        "reason": "Lý do tăng ca"
+      },
+      "title": "Khai báo hộ OT",
+      "warning": {
+        "btn_confirm": "Xác nhận & Gửi",
+        "btn_edit": "Quay lại chỉnh sửa",
+        "description": "Một số yêu cầu khai báo khác với giờ OT do hệ thống tính toán. Vui lòng xác nhận trước khi tiếp tục.",
+        "details": "Các nhân viên sau có thời gian khai báo khác với OT hệ thống tính toán. Vui lòng xác nhận.",
+        "title": "Xác nhận chênh lệch"
+      }
+    },
     "empty_state": {
       "description": "Không có yêu cầu tăng ca nào đang chờ duyệt",
       "title": "Đã xử lý hết!"
-    },
-    "pre": {
-      "no_pending_title": "Không có yêu cầu chờ duyệt",
-      "no_pending_desc": "Bạn không có yêu cầu Pre-OT nào đang chờ phê duyệt.",
-      "pending_status": "Chờ duyệt",
-      "employees": "Nhân viên",
-      "no_reason": "Không có lý do",
-      "approved_note": "Đã phê duyệt qua Cổng quản lý",
-      "rejected_note": "Đã từ chối qua Cổng quản lý",
-      "success_approve": "Đã phê duyệt yêu cầu",
-      "success_reject": "Đã từ chối yêu cầu",
-      "fail_process": "Phê duyệt thất bại",
-      "workflow_configured": "Đã cấu hình luồng duyệt",
-      "search_placeholder": "Tìm kiếm theo tên nhân viên hoặc lý do..."
-    },
-    "post": {
-      "search_placeholder": "Tìm kiếm theo tên nhân viên, mã nhân viên hoặc lý do..."
     },
     "evidence": {
       "add": "Thêm ảnh",
@@ -776,6 +349,26 @@
       "missing": "Không có ảnh",
       "view": "Xem ảnh"
     },
+    "no_active_employee": "Không tìm thấy nhân viên hoạt động",
+    "no_employee_info": "Không tìm thấy thông tin nhân viên",
+    "post": {
+      "search_placeholder": "Tìm kiếm theo tên nhân viên, mã nhân viên hoặc lý do..."
+    },
+    "pre": {
+      "approved_note": "Đã phê duyệt qua Cổng quản lý",
+      "employees": "Nhân viên",
+      "fail_process": "Phê duyệt thất bại",
+      "no_pending_desc": "Bạn không có yêu cầu Pre-OT nào đang chờ phê duyệt.",
+      "no_pending_title": "Không có yêu cầu chờ duyệt",
+      "no_reason": "Không có lý do",
+      "pending_status": "Chờ duyệt",
+      "rejected_note": "Đã từ chối qua Cổng quản lý",
+      "search_placeholder": "Tìm kiếm theo tên nhân viên hoặc lý do...",
+      "success_approve": "Đã phê duyệt yêu cầu",
+      "success_reject": "Đã từ chối yêu cầu",
+      "workflow_configured": "Đã cấu hình luồng duyệt"
+    },
+    "subtitle": "Quản lý phê duyệt yêu cầu tăng ca",
     "table": {
       "actions": "Hành động",
       "claimed": "Yêu cầu",
@@ -787,120 +380,534 @@
       "system": "Hệ thống"
     },
     "tabs": {
-      "post_ot": "Sau ca (Post-OT)",
-      "pre_ot": "Trước ca (Pre-OT)",
+      "behalf_assignments": "Phân Quyền Claim Hộ",
       "delegated_claim": "Khai báo hộ OT",
-      "behalf_assignments": "Phân Quyền Claim Hộ"
+      "post_ot": "Sau ca (Post-OT)",
+      "pre_ot": "Trước ca (Pre-OT)"
     },
-    "delegated_claim": {
-      "title": "Khai báo hộ OT",
-      "subtitle": "Khai báo giờ tăng ca thay cho nhân sự sản xuất / không có tài khoản",
-      "default_reason": "Khai báo hộ tăng ca",
-      "confirm_title": "Xác nhận khai báo hộ",
-      "confirm_description": "Xem xét và chỉnh sửa các yêu cầu tăng ca thay cho nhân viên.",
-      "paper_warning": "yêu cầu quyền tải lên đơn giấy",
-      "search_placeholder": "Tìm theo tên hoặc mã nhân viên...",
-      "no_search_results": "Không tìm thấy kết quả phù hợp",
-      "warning": {
-        "title": "Xác nhận chênh lệch",
-        "description": "Một số yêu cầu khai báo khác với giờ OT do hệ thống tính toán. Vui lòng xác nhận trước khi tiếp tục.",
-        "details": "Các nhân viên sau có thời gian khai báo khác với OT hệ thống tính toán. Vui lòng xác nhận.",
-        "btn_edit": "Quay lại chỉnh sửa",
-        "btn_confirm": "Xác nhận & Gửi"
-      },
-      "table": {
-        "employee": "Nhân viên",
-        "date": "Ngày",
-        "actual_hours": "Giờ làm thực tế",
-        "computed_ot": "OT Hệ thống",
-        "claimed_ot": "OT Khai báo",
-        "reason": "Lý do tăng ca",
-        "filtered_count": "Tìm thấy {{count}} bản ghi"
-      },
-      "actions": {
-        "claim": "Khai báo",
-        "claim_selected": "Khai báo {{count}} mục đã chọn"
-      },
-      "messages": {
-        "success": "Khai báo tăng ca thành công",
-        "error": "Khai báo tăng ca thất bại",
-        "select_at_least_one": "Vui lòng chọn ít nhất một mục để khai báo"
-      },
-      "empty_state": {
-        "title": "Không có bản ghi chờ khai báo",
-        "description": "Tất cả giờ tăng ca đã được khai báo hoặc không có thời gian tăng ca phát sinh."
-      }
-    },
-    "no_active_employee": "Không tìm thấy nhân viên hoạt động",
-    "no_employee_info": "Không tìm thấy thông tin nhân viên"
+    "title": "Phê duyệt Tăng ca"
   },
-  "attendance": {
-    "log": {
-      "create": "Tạo Bản ghi Chấm công"
+  "patterns": {
+    "actions": {
+      "prefill_standard": "Điền nhanh: Hành chính (T2-T6)"
     },
-    "shift_swap": {
-      "request": "Yêu cầu Đổi ca"
+    "assign_btn": "Gán mẫu lịch làm việc",
+    "badge_rotation": "Ca xoay ({{days}} ngày)",
+    "badge_weekly": "Hằng tuần",
+    "bulk_assign_btn": "Gán hàng loạt",
+    "bulk_assign_submit": "Xác nhận gán",
+    "bulk_assign_subtitle": "Gán mẫu lịch cho nhiều nhân viên cùng lúc",
+    "bulk_assign_title": "Gán lịch hàng loạt",
+    "confirm_delete": "Bạn có chắc chắn muốn xóa mẫu \"{{name}}\" ?",
+    "conflicts": {
+      "insufficient_rest": "Nghỉ thiếu giờ (<12h)",
+      "overlap": "Trùng ca: {{shiftA}} & {{shiftB}}",
+      "rest_warning": "Chỉ {{hours}}h nghỉ giữa ca",
+      "weekly_hours_exceeded": "{{total}}h/tuần vượt giới hạn {{limit}}h"
     },
-    "adjustment": {
-      "attachment": "Minh chứng (chỉ PDF)",
-      "punch_time": "Thời gian quẹt thẻ"
+    "create_btn": "Tạo mẫu mới",
+    "create_first": "Tạo mẫu đầu tiên",
+    "create_submit": "Tạo mẫu",
+    "create_subtitle": "Định nghĩa mẫu tuần",
+    "create_title": "Tạo mẫu lịch làm việc",
+    "cycle_summary": "Chu kỳ {{total}} ngày: {{active}} làm / {{off}} nghỉ",
+    "empty_desc": "Tạo một mẫu để gán nhanh ca làm việc tuần hoàn cho nhân viên.",
+    "empty_title": "Chưa có mẫu nào",
+    "form": {
+      "add_shift": "Thêm ca",
+      "all_shifts_committed": "Đã gán hết ca",
+      "anchor_date_label": "Ngày mốc chu kỳ xoay",
+      "anchor_date_note": "Ngày bắt đầu thực tế cho Ngày 1 của chu kỳ xoay.",
+      "anchor_date_preview": "Ngày mốc xem trước",
+      "clear_all": "Xóa tất cả ca",
+      "clear_all_confirm": "Bạn có chắc muốn xóa tất cả ca đã gán không?",
+      "cycle_config_title": "Cấu hình chu kỳ xoay ca",
+      "cycle_grid_title": "Lưới lịch chu kỳ",
+      "cycle_length": "Số ngày trong chu kỳ",
+      "cycle_length_note": "Xác định tổng số ngày của chu kỳ xoay lịch.",
+      "cycle_length_placeholder": "ví dụ: 6",
+      "day_index": "Ngày {{index}}",
+      "desc_label": "Mô tả ngắn",
+      "desc_placeholder": "Mô tả tùy chọn",
+      "description": "Mô tả",
+      "editor_title_edit": "Chỉnh sửa mẫu lịch làm việc",
+      "editor_title_new": "Tạo mẫu lịch làm việc mới",
+      "name": "Tên mẫu",
+      "name_label": "Tên mẫu lịch",
+      "name_placeholder": "VD: Giờ hành chính, Xoay ca đêm",
+      "pattern_type": "Loại lịch làm việc",
+      "pattern_type_rotation": "Ca xoay chu kỳ",
+      "pattern_type_weekly": "Hằng tuần",
+      "prefill_standard": "Điền mẫu hành chính",
+      "preview_month": "Tháng xem trước",
+      "select_employees": "Chọn nhân viên",
+      "select_employees_label": "Nhân viên áp dụng",
+      "select_employees_placeholder": "Tìm kiếm và chọn...",
+      "select_pattern": "Chọn mẫu lịch",
+      "select_pattern_label": "Chọn mẫu lịch",
+      "select_pattern_placeholder": "Chọn một mẫu...",
+      "start_date": "Ngày bắt đầu hiệu lực",
+      "start_date_label": "Ngày bắt đầu",
+      "start_date_note": "Lịch sẽ tự động lặp lại từ ngày này.",
+      "unsaved_changes": "Bạn có thay đổi chưa lưu. Bạn có chắc chắn muốn rời đi?",
+      "unsaved_changes_cancel": "Ở lại",
+      "unsaved_changes_confirm": "Rời khỏi",
+      "view_mode_design": "Thiết lập chu kỳ",
+      "view_mode_preview": "Xem trước lịch",
+      "weekly_grid_title": "Lưới lịch tuần"
+    },
+    "manage_btn": "Quản lý mẫu",
+    "messages": {
+      "bulk_assign_conflict": "Một số nhân viên đã có lịch làm việc, hệ thống sẽ ghi đè.",
+      "bulk_assign_error": "Lỗi khi gán lịch hàng loạt.",
+      "bulk_assign_success_count": "Đã gán mẫu cho {{count}} nhân viên.",
+      "create_error": "Lỗi khi tạo mẫu lịch làm việc.",
+      "create_success": "Đã tạo mẫu lịch làm việc thành công.",
+      "delete_error": "Lỗi khi xóa mẫu lịch làm việc.",
+      "delete_success": "Xóa mẫu lịch làm việc thành công.",
+      "no_shifts_available": "Không có ca làm việc nào để tự động điền.",
+      "update_error": "Lỗi khi cập nhật mẫu lịch làm việc.",
+      "update_success": "Đã cập nhật mẫu lịch làm việc thành công."
+    },
+    "modal": {
+      "assign_btn": "Xác nhận gán",
+      "assign_subtitle": "Thiết lập lịch làm việc lặp lại định kỳ cho nhân viên",
+      "assign_title": "Gán lịch tuần/xoay ca",
+      "bulk_subtitle": "Phân bổ lịch trình",
+      "create_title": "Tạo chu kỳ mới",
+      "submit_btn": "Lưu mẫu",
+      "subtitle": "Thiết lập lịch tuần hoàn"
+    },
+    "select_pattern": "Chọn mẫu lịch",
+    "subtitle": "Quản lý lịch làm việc tuần hoàn cho nhân viên",
+    "timeline": {
+      "break_label": "Nghỉ",
+      "off_day": "OFF",
+      "shift_duration": "{{hours}}h"
+    },
+    "title": "Mẫu lịch làm việc",
+    "validation_cycle_length_invalid": "Vui lòng nhập số ngày chu kỳ hợp lệ từ 1 đến 366.",
+    "validation_employees_required": "Vui lòng chọn ít nhất một nhân viên.",
+    "validation_name_required": "Vui lòng nhập tên mẫu.",
+    "validation_pattern_required": "Vui lòng chọn mẫu lịch.",
+    "view_details": "Chi tiết mẫu",
+    "view_mode_grid": "Xem dạng lưới",
+    "view_mode_list": "Xem danh sách",
+    "weekly_config": "Cấu hình tuần",
+    "weekly_schedule": "Lịch tuần"
+  },
+  "rules": {
+    "condition_help": "Để trống để khớp với tất cả nhân viên (trong phạm vi các điều kiện khác).",
+    "conditions_title": "Điều kiện khớp",
+    "confirm_delete_msg": "Bạn có chắc chắn muốn xóa quy tắc này không?",
+    "create_btn": "Thêm quy tắc",
+    "create_title": "Tạo quy tắc mới",
+    "edit_title": "Chỉnh sửa quy tắc",
+    "empty_list": "Chưa có quy tắc gán nào",
+    "end_date_fallback": "Vô thời hạn",
+    "form": {
+      "all_employers": "Tất cả công ty",
+      "all_locations": "Tất cả địa điểm",
+      "employee_id_numbers": "Mã số nhân viên",
+      "employer": "Pháp nhân / Công ty",
+      "end_date": "Ngày kết thúc",
+      "location": "Địa điểm / Chi nhánh",
+      "name": "Tên quy tắc",
+      "name_placeholder": "VD: Nhân viên kỹ thuật ca đêm",
+      "pattern": "Chọn mẫu lịch",
+      "priority": "Mức ưu tiên (Càng cao càng mạnh)",
+      "start_date": "Ngày bắt đầu",
+      "tags_placeholder": "CaDem, HaNoi, VVIP"
+    },
+    "form_subtitle": "Định nghĩa khi nào mẫu này sẽ được áp dụng",
+    "info_priority": "Các quy tắc được đánh giá từ mức ưu tiên cao nhất đến thấp nhất. Quy tắc đầu tiên khớp với nhân viên sẽ được áp dụng. Quy tắc chung nên có mức ưu tiên thấp nhất.",
+    "match_all": "Toàn hệ thống (Khớp tất cả)",
+    "messages": {
+      "create_error": "Không thể tạo quy tắc",
+      "create_success": "Đã tạo quy tắc thành công",
+      "delete_success": "Đã xóa quy tắc",
+      "update_error": "Không thể cập nhật quy tắc",
+      "update_success": "Đã cập nhật quy tắc thành công"
+    },
+    "start_date_fallback": "Từ trước",
+    "subtitle": "Tự động gán mẫu lịch cho nhân viên dựa trên các điều kiện",
+    "table": {
+      "conditions": "Điều kiện",
+      "name": "Tên quy tắc",
+      "pattern": "Mẫu lịch gán",
+      "priority": "Ưu tiên"
+    },
+    "title": "Quy tắc gán tự động",
+    "validation": {
+      "required_fields": "Tên và Mẫu lịch là bắt buộc"
     }
   },
+  "shifts": {
+    "actions": {
+      "assign_all_week": "Gán ca cả tuần này",
+      "clear_week": "Xóa lịch tuần này",
+      "copy_previous": "Sao chép tuần trước"
+    },
+    "assign_btn": "Gán ca làm việc",
+    "assign_selected_btn": "Gán ca cho mục đã chọn",
+    "auto_deduct": "Tự động trừ",
+    "compliance": {
+      "badge_violation": "Vi phạm tuân thủ",
+      "badge_warning": "Cảnh báo tuân thủ",
+      "cancel": "Hủy",
+      "confirm_override": "Xác nhận ghi đè",
+      "no_violations": "Không phát hiện vi phạm tuân thủ.",
+      "override_reason_label": "Lý do ghi đè",
+      "override_reason_placeholder": "Nhập lý do ghi đè cảnh báo tuân thủ...",
+      "violation_count": "{{count}} vi phạm được tìm thấy",
+      "violation_monthly_ot": "Giờ tăng ca trong tháng vượt quá giới hạn ({{current}}h OT / {{limit}}h).",
+      "violation_overlap": "Phát hiện trùng lặp ca làm việc. Nhân viên đã có ca khác vào thời gian này.",
+      "violation_rest_period": "Thời gian nghỉ giữa ca không đủ (cách {{gap}} giờ, yêu cầu {{required}} giờ).",
+      "violation_weekly_hours": "Tổng giờ làm trong tuần vượt quá giới hạn ({{current}}h / {{limit}}h).",
+      "warning_title": "Cảnh báo tuân thủ"
+    },
+    "create_btn": "Tạo ca",
+    "current_week_roster": "Lịch trực tuần hiện tại",
+    "days_count": "{{count}} ngày đã chọn",
+    "days_selected": "Đã chọn {{count}} ngày",
+    "directory_title": "Danh sách các loại ca",
+    "empty_state": {
+      "desc": "Vui lòng chọn một nhân viên từ danh sách bên trái để bắt đầu sắp xếp lịch làm việc.",
+      "title": "Chọn nhân sự để tiếp tục"
+    },
+    "fixed_assignment_subtitle": "Gán lịch trình cố định hoặc dài hạn",
+    "grace_period": "Grace Period (phút)",
+    "grace_period_desc": "Chỉ áp dụng cho việc đến sớm. Nếu dùng chính sách 'Chặn', chấm công trước khoảng này sẽ bị chặn. Nếu 'Clamp', OT bắt đầu tính từ đây. Không ảnh hưởng đến thời gian ân hạn đi muộn.",
+    "history_title": "Lịch sử thay đổi gán ca",
+    "label": "Ca làm & Lịch trực",
+    "messages": {
+      "assign_error": "Lỗi gán ca",
+      "assign_success": "Đã gán ca làm việc cho nhân viên thành công.",
+      "bulk_partial_failure": "Không thể cập nhật {{count}} nhân viên. Vui lòng thử lại.",
+      "bulk_update_error": "Lỗi cập nhật hàng loạt",
+      "bulk_update_success": "Đã cập nhật lịch trực hàng loạt.",
+      "copy_error": "Lỗi sao chép",
+      "create_shift_error": "Lỗi tạo ca",
+      "create_shift_success": "Loại ca \"{{name}}\" đã được khởi tạo.",
+      "no_previous_data": "Không tìm thấy dữ liệu tuần trước.",
+      "no_shifts": "Hệ thống chưa có loại ca nào.",
+      "remove_override_error": "Lỗi khi gỡ bỏ lịch",
+      "remove_override_success": "Đã gỡ bỏ ghi đè, quay về lịch mặc định.",
+      "update_roster_error": "Lỗi cập nhật lịch",
+      "update_roster_success": "Đã cập nhật lịch trực.",
+      "update_shift_error": "Lỗi cập nhật ca",
+      "update_shift_success": "Đã cập nhật cấu hình ca làm việc.",
+      "validation_break_times": "Vui lòng nhập giờ bắt đầu và kết thúc nghỉ trưa.",
+      "validation_missing_fields": "Vui lòng chọn đầy đủ nhân viên, ca làm và ngày bắt đầu.",
+      "validation_shift_name_time": "Tên ca và thời gian làm việc không được để trống."
+    },
+    "modal": {
+      "allow_early_ot": "Cho phép tính tăng ca sớm",
+      "allow_early_ot_help": "Tính thời gian làm việc trước ca là tăng ca sớm (Early OT)",
+      "assign_to_days": "Gán cho {{days}}",
+      "auto_deduct_label": "Tự động trừ giờ nghỉ (Auto-deduct)",
+      "basic_info": "Thông tin cơ bản",
+      "break_config": "Cấu hình nghỉ giải lao",
+      "break_duration": "Thời lượng nghỉ",
+      "break_end": "Kết thúc nghỉ",
+      "break_policy_auto_deduct": "Trừ giờ nghỉ theo lịch (Mặc định)",
+      "break_policy_auto_deduct_help": "Hệ thống tự động trừ thời lượng nghỉ trưa khỏi giờ công. Nhân viên chỉ cần chấm công 2 lần/ngày.",
+      "break_policy_label": "Chính sách giờ nghỉ",
+      "break_policy_no_deduct": "Không trừ giờ nghỉ - tính đủ giờ công",
+      "break_policy_no_deduct_help": "Không khấu trừ công. Nhân viên bắt buộc chấm công giờ nghỉ trưa (vào/ra nghỉ), cần chấm 4 lần/ngày.",
+      "break_policy_overtime": "Tính giờ nghỉ là tăng ca (OT)",
+      "break_policy_overtime_disabled_hint": "Chỉ khả dụng khi bật Giờ nghỉ Cố định (Fixed Break)",
+      "break_policy_overtime_help": "Tính giờ nghỉ là tăng ca (OT). Phù hợp cho nhân sự trực máy, trực vận hành xuyên trưa.",
+      "break_start": "Bắt đầu nghỉ",
+      "change_reason_label": "Lý do điều chỉnh",
+      "change_reason_placeholder": "Nhập lý do thay đổi ca làm việc...",
+      "correction_desc": "Hiệu chỉnh sẽ ghi đè trực tiếp lên bản ghi ca hiện tại. Chỉ dùng để sửa lỗi chính tả/nhập sai.",
+      "correction_label": "Hiệu chỉnh dữ liệu",
+      "correction_warning": "Đây là hiệu chỉnh trực tiếp",
+      "early_arrival_notice_allow": "ℹ️ Quy tắc đến sớm của Workspace hiện là 'Cho phép mọi lúc'. Thời gian tăng ca sớm sẽ được tính đầy đủ kể từ lúc check-in.",
+      "early_arrival_notice_block": "⚠️ Lưu ý: Quy tắc đến sớm của Workspace hiện đang được cấu hình là 'Chặn chấm công sớm'. Cài đặt Tăng ca sớm (Early OT) này sẽ không có hiệu lực đối với nhân viên.",
+      "early_arrival_notice_clamp": "ℹ️ Quy tắc đến sớm của Workspace hiện là 'Giới hạn OT sớm'. Thời gian tính tăng ca sớm (nếu bật) sẽ bị giới hạn tối đa bằng số phút Grace Period của ca (hiện tại là {{grace}} phút).",
+      "edit_description": "Cập nhật cấu hình hoặc thay đổi giờ làm",
+      "edit_subtitle": "CẬP NHẬT CẤU HÌNH HOẶC THAY ĐỔI GIỜ LÀM",
+      "effective_date_desc": "Phiên bản mới sẽ có hiệu lực từ ngày này.",
+      "effective_date_label": "Ngày hiệu lực",
+      "employer": "Pháp nhân / Công ty Scope",
+      "end_time": "Giờ ra",
+      "global_scope": "Toàn cục / Dùng chung",
+      "grace_period": "Cho phép vào sớm (phút)",
+      "grace_period_desc": "Chỉ áp dụng cho việc đến sớm. Nếu dùng chính sách 'Chặn', chấm công trước khoảng này sẽ bị chặn. Nếu 'Clamp', OT bắt đầu tính từ đây. Không ảnh hưởng đến thời gian ân hạn đi muộn.",
+      "location": "Chi nhánh / Địa điểm Scope",
+      "mark_as_off": "Đánh dấu các ngày đã chọn là nghỉ",
+      "max_early_ot": "Giới hạn tăng ca sớm tối đa (phút)",
+      "max_early_ot_required": "Vui lòng nhập số phút giới hạn lớn hơn 0.",
+      "name_placeholder": "Hành chính, Ca sáng, Ca gãy...",
+      "ot_grace_config": "Cấu hình đi muộn & Tăng ca",
+      "preview_title": "Xem trước sơ đồ ca",
+      "report_symbol": "Ký hiệu báo cáo",
+      "report_symbol_placeholder": "VD: S8, T8, FX...",
+      "save_shift_btn": "Lưu loại ca",
+      "select_employer": "Chọn pháp nhân trực thuộc",
+      "select_location": "Chọn địa điểm làm việc",
+      "select_shift_subtitle": "Chọn ca cho {{count}} ngày đã chọn",
+      "select_shift_title": "Chọn ca làm việc",
+      "setup_subtitle": "KHAI BÁO THAM SỐ CA LÀM VIỆC",
+      "setup_title": "Thiết lập ca",
+      "shift_duration": "Tổng thời gian ca",
+      "shift_name_label": "Tên ca",
+      "start_time": "Giờ vào",
+      "update_config_btn": "Cập nhật cấu hình",
+      "working_hours": "Công thực tế"
+    },
+    "monthly": {
+      "all_departments": "Tất cả phòng ban",
+      "all_employees": "Tất cả nhân viên",
+      "assign_selected": "Gán ca cho ô đã chọn",
+      "bulk_loading_departments": "Đang tải phòng ban...",
+      "bulk_no_results": "Không có nhân viên khớp với tìm kiếm.",
+      "bulk_picker_subtitle": "Chọn cả phòng ban hoặc từng người",
+      "bulk_picker_title": "Chọn nhân viên",
+      "bulk_search_placeholder": "Tìm theo tên hoặc mã...",
+      "bulk_select": "Chọn hàng loạt",
+      "bulk_selected_count": "Đã chọn {{count}}",
+      "cells_selected": "Đã chọn {{count}} ô",
+      "clear_all_employees": "Bỏ chọn tất cả",
+      "clear_month": "Xóa ca đã gán",
+      "cleared_selection": "Đã bỏ chọn {{count}} người",
+      "copy_previous_month": "Copy tháng trước",
+      "deselect_all": "Bỏ chọn tất cả",
+      "done": "Xong",
+      "empty_state_desc": "Không tìm thấy nhân viên hoặc lịch trình làm việc. Vui lòng kiểm tra lại phòng ban hoặc cấu hình nhân sự.",
+      "failed_to_load": "Tải lịch làm việc tháng thất bại. Vui lòng thử lại.",
+      "filter_department": "Lọc theo phòng ban",
+      "no_department": "Không thuộc phòng ban",
+      "no_results_desc": "Không tìm thấy nhân viên nào khớp với tiêu chí tìm kiếm hoặc lọc.",
+      "off_day": "Nghỉ",
+      "pattern_source": "Tự động từ mẫu",
+      "roster_source": "Gán thủ công",
+      "search_placeholder": "Tìm kiếm nhân viên...",
+      "select_whole_department": "Chọn cả phòng ban",
+      "selected_employees": "Nhân sự đang chọn ({{count}})",
+      "title": "Lịch ca tháng",
+      "undo": "Hoàn tác",
+      "view_month": "Xem tháng",
+      "view_week": "Xem tuần"
+    },
+    "off_day": "NGHỈ",
+    "picker": {
+      "card": {
+        "blocks": "{{count}} khung giờ",
+        "next_day": "Kết thúc sang ngày hôm sau",
+        "used_times": "Đã dùng {{count}} lần",
+        "work_hours": "Giờ tính lương"
+      },
+      "clear_search": "Xóa tìm kiếm",
+      "filter_all": "Tất cả ca",
+      "filter_all_employers": "Tất cả công ty",
+      "filter_all_locations": "Tất cả địa điểm",
+      "filter_employer": "Lọc theo công ty",
+      "filter_frequent": "Thường dùng",
+      "filter_location": "Lọc theo địa điểm",
+      "filter_night": "Ca đêm",
+      "filter_single": "Ca đơn",
+      "filter_split": "Ca gãy",
+      "frequent_section_title": "Thường dùng",
+      "keyboard_hint": "↑↓ để chọn · Enter để xác nhận · Esc để xóa",
+      "no_results_desc": "Thử điều chỉnh từ khóa tìm kiếm hoặc bộ lọc.",
+      "no_results_title": "Không tìm thấy ca phù hợp",
+      "search_placeholder": "Tìm theo tên ca, ký hiệu hoặc giờ làm (VD: Ca Sáng, 08:00)..."
+    },
+    "revisions": {
+      "active_version": "Hiện hành",
+      "badge_correction": "Hiệu chỉnh",
+      "badge_create": "Tạo mới",
+      "badge_revision": "Điều chỉnh",
+      "change_reason_label": "Lý do thay đổi",
+      "effective_present": "Hiện tại",
+      "effective_range": "{{from}} — {{to}}",
+      "empty_state": "Không có lịch sử phiên bản cho ca làm việc này.",
+      "hide_diff": "Ẩn thay đổi",
+      "loading": "Đang tải lịch sử phiên bản...",
+      "no_changes": "Không có thay đổi trong khung giờ này",
+      "show_diff": "Xem thay đổi",
+      "subtitle": "Lịch sử chỉnh sửa của {{name}}",
+      "title": "Lịch sử phiên bản"
+    },
+    "select_default_shift": "Chọn Ca Làm Việc Mặc Định",
+    "set_off_day": "Đặt nghỉ (OFF)",
+    "subtitle": "Quản lý ca làm việc linh hoạt và cố định",
+    "table": {
+      "assignment_type": "Loại gán",
+      "break_time": "Nghỉ giữa ca",
+      "range": "Phạm vi",
+      "shift_name": "Tên loại ca",
+      "time_range": "Khung giờ"
+    },
+    "tabs": {
+      "directory": "CÁC LOẠI CA",
+      "fixed_assignments": "GÁN MẪU LỊCH",
+      "weekly_roster": "LỊCH PHÂN CA"
+    },
+    "title": "Hệ thống Lịch trình",
+    "traceability": {
+      "applied": "Logic đang áp dụng",
+      "applied_shift": "Ca áp dụng",
+      "hierarchy_explanation": "Các tầng được đánh giá từ trên xuống. Tầng khớp đầu tiên thắng — tầng cao hơn ghi đè tầng thấp hơn.",
+      "highest_priority": "Ưu tiên cao nhất",
+      "highest_priority_hint": "Đây là lịch trực thủ công và có mức ưu tiên cao nhất.",
+      "lowest_priority": "Không có ca (Ngày nghỉ)",
+      "overridden": "Các quy tắc bị ghi đè",
+      "override_hint": "Bạn muốn ghi đè logic này? Hãy gán Lịch trực thủ công cho ngày này (Ưu tiên 100).",
+      "p0_none": "Ngày nghỉ",
+      "p100_manual": "Lịch trực (Gán trực tiếp)",
+      "p10_dept_fixed": "Mặc định phòng ban",
+      "p20_fixed": "Gán ca cố định",
+      "p40_dept_pattern": "Chu kỳ phòng ban",
+      "p60_rules": "Quy tắc động",
+      "p60_rules_subsumes": "(bao gồm Chu kỳ phòng ban & Mặc định phòng ban)",
+      "p80_pattern": "Chu kỳ cá nhân",
+      "priority": "Độ ưu tiên",
+      "priority_hierarchy": "Thứ tự ưu tiên",
+      "reason": "Lý do",
+      "show_overridden": "Hiển thị các quy tắc bị ghi đè",
+      "source": "Nguồn",
+      "tier_subsumed_note": "Quy tắc động (P3) xử lý điều kiện phòng ban, nhãn, địa điểm, và nhà tuyển dụng — không cần tầng Chu kỳ phòng ban / Mặc định phòng ban riêng.",
+      "title": "Truy vết Logic",
+      "winner": "Quy tắc chiến thắng"
+    },
+    "types": {
+      "fixed": "Cố định",
+      "flexible": "Linh hoạt"
+    },
+    "weekly": {
+      "title": "Lịch ca tuần"
+    }
+  },
+  "time_tracking": {
+    "actions": {
+      "hold_to_punch": "Chạm & Giữ để Chấm Công",
+      "punch_out": "Giờ ra",
+      "return_to_work": "Kết thúc nghỉ",
+      "start_break": "Bắt đầu nghỉ",
+      "start_work": "Giờ vào"
+    },
+    "forgot_punch": "Quên quẹt thẻ?",
+    "modal": {
+      "edit_title": "Sửa lượt chấm công",
+      "new_title": "Yêu cầu điều chỉnh mới",
+      "reason_label": "Lý do điều chỉnh",
+      "reason_placeholder": "Tại sao bạn yêu cầu thay đổi này?",
+      "subtitle": "Yêu cầu thay đổi thời gian vào/ra của bạn."
+    },
+    "status": {
+      "break_start_at": "Bắt đầu nghỉ lúc",
+      "off_duty": "Đang nghỉ",
+      "on_break": "Đang nghỉ giải lao",
+      "shift_start_at": "Bắt đầu ca lúc",
+      "working": "Đang làm việc"
+    },
+    "subtitle": "Theo dõi thời gian làm việc và nghỉ giải lao.",
+    "title": "Chấm công"
+  },
+  "unrecorded_shifts": {
+    "all_departments": "Tất cả bộ phận",
+    "clear_filters": "Xóa lọc",
+    "columns": {
+      "department": "Bộ phận",
+      "employee_code": "Mã NV",
+      "employee_name": "Họ và Tên",
+      "shift_in": "Giờ vào ca",
+      "shift_out": "Giờ ra ca",
+      "shift_type": "Phân ca",
+      "zone": "Trạng thái"
+    },
+    "date_label": "Ngày",
+    "empty": "Không có nhân sự nào chưa xác nhận chấm công vào ngày này.",
+    "empty_hint": "Tất cả nhân sự đã chấm công hoặc đã đăng ký nghỉ phép.",
+    "empty_zone_b": "Không có nhân sự cần xác minh.",
+    "empty_zone_b_hint": "Tất cả nhân sự trong ca đã chấm công hoặc vẫn trong thời gian grace.",
+    "export_btn": "Xuất Excel",
+    "export_date": "Ngày",
+    "export_reference_time": "Thời gian tham chiếu",
+    "filter_date_from": "Từ ngày",
+    "filter_date_to": "Đến ngày",
+    "filter_dept": "Lọc theo bộ phận",
+    "filter_employee": "Nhân viên",
+    "filter_shift_inactive": "ngừng",
+    "filter_shift_type": "Loại ca",
+    "filter_shift_type_empty": "Không có loại ca",
+    "jump_to_now": "Hiện tại",
+    "live_badge": "Trực tiếp",
+    "now_badge": "Bây giờ",
+    "only_zone_b": "Chỉ Cần xác minh",
+    "scrubber_label": "Thanh trượt tại {{time}} {{date}}, dùng phím mũi tên để di chuyển",
+    "step_back": "Lùi 1 giờ",
+    "step_forward": "Tiến 1 giờ",
+    "subtitle": "Nhân sự có lịch làm việc nhưng chưa chấm công và không nghỉ phép.",
+    "timeline": "Dòng thời gian",
+    "title": "Danh sách vắng đầu ca",
+    "viewing_past": "Lịch sử — bản ghi đã cố định",
+    "zone_a": "Chờ",
+    "zone_a_hint": "Còn {{minutes}} phút",
+    "zone_b": "Cần xác minh",
+    "zone_b_hint": "Quá hạn {{minutes}} phút",
+    "zone_c": "Vắng (kết thúc ca)",
+    "zone_header": "Trạng thái"
+  },
   "work_segments": {
-    "title": "Phiên làm việc",
-    "segment": "Phiên",
-    "segments": "Các phiên",
-    "create_segment": "Tạo phiên",
-    "edit_segment": "Sửa phiên",
-    "delete_segment": "Xóa phiên",
-    "no_segments": "Không có phiên làm việc",
-    "sort_order": "Thứ tự",
-    "segment_type": {
-      "work": "Làm việc",
-      "standby": "Trực chờ",
-      "on_call": "On Call",
-      "training": "Đào tạo",
-      "travel": "Công tác"
-    },
-    "gap_compensation": {
-      "unpaid": "Nghỉ không lương",
-      "standby": "Trực chờ có lương",
-      "break": "Nghỉ dài"
-    },
-    "compensation_rate": "Tỷ lệ hưởng lương",
-    "gap_before": "Khoảng nghỉ trước phiên",
-    "source": {
-      "roster": "Xếp lịch thủ công",
-      "pattern": "Mẫu lịch làm việc",
-      "rule": "Luật phân ca",
-      "fixed": "Gán cố định",
-      "manual": "Thủ công",
-      "auto": "Tự động"
-    },
     "bulk_create": "Tạo hàng loạt",
-    "replace_existing": "Thay thế phiên hiện có",
+    "compensation_rate": "Tỷ lệ hưởng lương",
+    "create_segment": "Tạo phiên",
     "daily_total": "Tổng ngày",
-    "intervals": {
-      "title": "Khung giờ trong ca",
-      "interval": "Khung giờ",
-      "add_interval": "Thêm khung giờ",
-      "remove_interval": "Xóa khung giờ",
-      "interval_name": "Tên khung giờ",
-      "start_time": "Bắt đầu",
-      "end_time": "Kết thúc",
-      "no_intervals": "Chưa có khung giờ. Hệ thống dùng giờ bắt đầu/kết thúc của ca.",
-      "drag_to_reorder": "Kéo để sắp xếp khung giờ"
+    "delete_segment": "Xóa phiên",
+    "edit_segment": "Sửa phiên",
+    "gap_before": "Khoảng nghỉ trước phiên",
+    "gap_compensation": {
+      "break": "Nghỉ dài",
+      "standby": "Trực chờ có lương",
+      "unpaid": "Nghỉ không lương"
     },
+    "intervals": {
+      "add_interval": "Thêm khung giờ",
+      "drag_to_reorder": "Kéo để sắp xếp khung giờ",
+      "end_time": "Kết thúc",
+      "interval": "Khung giờ",
+      "interval_name": "Tên khung giờ",
+      "no_intervals": "Chưa có khung giờ. Hệ thống dùng giờ bắt đầu/kết thúc của ca.",
+      "remove_interval": "Xóa khung giờ",
+      "start_time": "Bắt đầu",
+      "title": "Khung giờ trong ca"
+    },
+    "night_shift": {
+      "description": "Ca làm qua nửa đêm — giờ làm tính cho ngày bắt đầu",
+      "label": "Ca đêm"
+    },
+    "no_segments": "Không có phiên làm việc",
     "ot_aggregation_mode": {
-      "label": "Cách tính tăng ca",
       "aggregate": "Gộp (Tổng cả ngày)",
       "aggregate_desc": "Cộng dồn tất cả phiên, tính OT một lần",
+      "label": "Cách tính tăng ca",
       "per_segment": "Theo từng phiên",
       "per_segment_desc": "Tính OT độc lập cho mỗi phiên"
     },
-    "night_shift": {
-      "label": "Ca đêm",
-      "description": "Ca làm qua nửa đêm — giờ làm tính cho ngày bắt đầu"
-    }
+    "replace_existing": "Thay thế phiên hiện có",
+    "segment": "Phiên",
+    "segment_type": {
+      "on_call": "On Call",
+      "standby": "Trực chờ",
+      "training": "Đào tạo",
+      "travel": "Công tác",
+      "work": "Làm việc"
+    },
+    "segments": "Các phiên",
+    "sort_order": "Thứ tự",
+    "source": {
+      "auto": "Tự động",
+      "fixed": "Gán cố định",
+      "manual": "Thủ công",
+      "pattern": "Mẫu lịch làm việc",
+      "roster": "Xếp lịch thủ công",
+      "rule": "Luật phân ca"
+    },
+    "title": "Phiên làm việc"
   }
 }

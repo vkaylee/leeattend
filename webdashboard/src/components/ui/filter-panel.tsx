@@ -1,6 +1,6 @@
 import * as Popover from "@radix-ui/react-popover";
 import { Search, Check, X } from "lucide-react";
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Command } from "cmdk";
 
@@ -11,6 +11,8 @@ import {
   DropdownMenuContent,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useDraftSelection } from "@/components/ui/hooks/use-draft-selection";
+import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { cn } from "@/lib/utils";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -91,11 +93,13 @@ function MultiOptionRow({
   option,
   checked,
   onToggle,
+  stopPropagation,
   testId,
 }: {
   checked: boolean;
   onToggle: () => void;
   option: FilterOption;
+  stopPropagation?: boolean;
   testId?: string;
 }) {
   return (
@@ -110,7 +114,7 @@ function MultiOptionRow({
       data-testid={testId ? `${testId}-option-${option.value}` : undefined}
       disabled={option.disabled}
       key={option.value}
-      onClick={(e) => { e.preventDefault(); onToggle(); }}
+      onClick={(e) => { e.preventDefault(); if (stopPropagation) e.stopPropagation(); onToggle(); }}
       role="option"
       type="button"
       variant="ghost"
@@ -137,11 +141,13 @@ function SingleOptionRow({
   option,
   checked,
   onSelect,
+  stopPropagation,
   testId,
 }: {
   checked: boolean;
   onSelect: () => void;
   option: FilterOption;
+  stopPropagation?: boolean;
   testId?: string;
 }) {
   return (
@@ -155,7 +161,7 @@ function SingleOptionRow({
       data-testid={testId ? `${testId}-option-${option.value}` : undefined}
       disabled={option.disabled}
       key={option.value}
-      onClick={(e) => { e.preventDefault(); onSelect(); }}
+      onClick={(e) => { e.preventDefault(); if (stopPropagation) e.stopPropagation(); onSelect(); }}
       role="option"
       type="button"
       variant="ghost"
@@ -395,48 +401,18 @@ export function FilterPanel({
   const [open, setOpen] = useState(false);
 
   // Draft state for apply-button mode
-  const [draftSelected, setDraftSelected] = useState<string[]>(selected);
+  const { draftSelected, setDraftSelected } = useDraftSelection({
+    selected,
+    isOpen: open,
+    enabled: showApplyButton,
+  });
 
-  // Sync draft when panel opens or selected changes externally
-  useEffect(() => {
-    if (open && showApplyButton) {
-      setDraftSelected([...selected]);
-    }
-  }, [open, selected, showApplyButton]);
-
-  // ── Keyboard shortcut ────────────────────────────────────────────
-  useEffect(() => {
-    if (!keyboardShortcut) return;
-
-    const isInputTarget = (target: HTMLElement) =>
-      ['INPUT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable;
-
-    const handler = (e: KeyboardEvent) => {
-      if (open) return; // don't re-open when already open
-      if (isInputTarget(e.target as HTMLElement)) return;
-
-      const parts = keyboardShortcut.toLowerCase().split('+');
-      const key = parts[parts.length - 1];
-      const ctrl = parts.includes('ctrl');
-      const shift = parts.includes('shift');
-      const alt = parts.includes('alt');
-      const meta = parts.includes('meta');
-
-      if (
-        e.key.toLowerCase() === key &&
-        e.ctrlKey === ctrl &&
-        e.shiftKey === shift &&
-        e.altKey === alt &&
-        e.metaKey === meta
-      ) {
-        e.preventDefault();
-        setOpen(true);
-      }
-    };
-
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [keyboardShortcut, open]);
+  // Keyboard shortcut (opt-in, no default)
+  useKeyboardShortcut({
+    shortcut: keyboardShortcut,
+    onTrigger: () => { setOpen(true); },
+    disabled: open,
+  });
 
   const effectiveSelected = showApplyButton ? draftSelected : selected;
 
@@ -573,44 +549,26 @@ export function FilterPanel({
           {options.map((opt) => {
             const checked = effectiveSelected.includes(opt.value);
             const isMultiLive = mode === "multi" && !showApplyButton;
+            if (mode === "multi") {
+              return (
+                <MultiOptionRow
+                  checked={checked}
+                  key={opt.value}
+                  onToggle={() => { handleDropdownToggle(opt.value); }}
+                  option={opt}
+                  stopPropagation={isMultiLive}
+                  testId={testId}
+                />
+              );
+            }
             return (
-              <Button
-                className={cn(
-                  "h-auto w-full px-3 py-2.5 flex items-center gap-3 rounded-xl text-[11px] font-bold uppercase tracking-wide transition-colors border-none shadow-none justify-start",
-                  checked
-                    ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900"
-                    : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800",
-                )}
-                data-testid={testId ? `${testId}-option-${opt.value}` : undefined}
-                disabled={opt.disabled}
+              <SingleOptionRow
+                checked={checked}
                 key={opt.value}
-                onClick={(e) => {
-                  // In multi live mode, prevent dropdown close; in single mode, let it close
-                  if (isMultiLive) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }
-                  handleDropdownToggle(opt.value);
-                }}
-                type="button"
-                variant="ghost"
-              >
-                <span
-                  className={cn(
-                    "flex items-center justify-center shrink-0 transition-colors",
-                    mode === "multi" ? "w-4 h-4 rounded border" : "w-4 h-4 rounded-full border",
-                    checked
-                      ? "bg-primary-600 border-primary-600 text-white"
-                      : "border-slate-300 dark:border-slate-600",
-                  )}
-                >
-                  {checked ? <Check size={10} strokeWidth={3} /> : null}
-                </span>
-                {opt.icon ? (
-                  <span className="opacity-50 shrink-0">{opt.icon}</span>
-                ) : null}
-                <span className="truncate">{opt.label}</span>
-              </Button>
+                onSelect={() => { handleDropdownToggle(opt.value); }}
+                option={opt}
+                testId={testId}
+              />
             );
           })}
 

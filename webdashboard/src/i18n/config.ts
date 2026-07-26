@@ -12,6 +12,7 @@ export const namespaces = [
   'departments',
   'attendance',
   'leave',
+  'monitor',
   'settings',
   'system_roles',
   'custom_fields',

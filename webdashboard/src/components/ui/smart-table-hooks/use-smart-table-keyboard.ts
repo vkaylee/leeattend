@@ -6,6 +6,7 @@ import type {
   EditableCellValue,
   SmartTableColumnMeta,
 } from "../smart-table/types";
+import { computeCellNavigation } from "./cell-navigation";
 
 interface UseSmartTableKeyboardProps {
   colCount: number;
@@ -92,49 +93,9 @@ export function useSmartTableKeyboard<TData>({
     key: string,
     rowIndex: number,
     colIndex: number,
-    shiftKey: boolean
+    shiftKey: boolean,
   ): { nextCol: number; nextRow: number; handled: boolean } => {
-    let nextRow = rowIndex;
-    let nextCol = colIndex;
-    let handled = false;
-
-    switch (key) {
-      case "ArrowUp":
-        nextRow = Math.max(0, rowIndex - 1);
-        handled = true;
-        break;
-      case "ArrowDown":
-        nextRow = Math.min(rowCount - 1, rowIndex + 1);
-        handled = true;
-        break;
-      case "ArrowLeft":
-        nextCol = Math.max(0, colIndex - 1);
-        handled = true;
-        break;
-      case "ArrowRight":
-        nextCol = Math.min(colCount - 1, colIndex + 1);
-        handled = true;
-        break;
-      case "Tab":
-        if (shiftKey) {
-          nextCol = colIndex - 1;
-          if (nextCol < 0) {
-            nextCol = colCount - 1;
-            nextRow = Math.max(0, rowIndex - 1);
-          }
-        } else {
-          nextCol = colIndex + 1;
-          if (nextCol >= colCount) {
-            nextCol = 0;
-            nextRow = Math.min(rowCount - 1, rowIndex + 1);
-          }
-        }
-        handled = true;
-        break;
-      default:
-        break;
-    }
-    return { nextCol, nextRow, handled };
+    return computeCellNavigation(key, rowIndex, colIndex, shiftKey, rowCount, colCount);
   };
 
   const handleCellKeyDown = (args: {

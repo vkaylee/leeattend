@@ -223,7 +223,7 @@ export default tseslint.config(
       'src/types/api-generated.ts',
       'src/lib/api-generated/**/*',
       // Legacy files violating max-lines limits (> 200 lines) (.ts)
-      'src/components/shifts/hooks/use-monthly-roster.ts',
+
     ],
     rules: {
       'max-lines': ['warn', { max: 200, skipBlankLines: true, skipComments: true }],
