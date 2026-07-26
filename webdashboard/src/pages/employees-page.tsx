@@ -1,6 +1,6 @@
 import FloatingRecordBadge from "@/components/common/floating-record-badge";
 import { FilterChips } from "@/components/ui/filter-chips";
-import { Building2, UserX, Users } from "lucide-react";
+import { Building2, UserX } from "lucide-react";
 
 import { EmployeeOverlays } from "./employees/components/employee-overlays";
 import { EmployeeTable } from "./employees/components/employee-table";

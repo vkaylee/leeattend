@@ -1,6 +1,6 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { Clock, Filter, Plus, ShieldCheck, Upload } from "lucide-react";
+import { Clock, Plus, ShieldCheck, Upload } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -17,16 +17,9 @@ import { LeaveStatusFilterHeader } from "@/components/features/leave/leave-statu
 import { useLeaveRequests, TabType, LeaveStatusFilter } from "@/components/features/leave/use-leave-requests";
 import { PDFPreviewModal } from "@/components/files/pdf-preview-modal";
 import ApprovalListLayout from "@/components/templates/approval-list-layout";
+import { FilterPanel } from "@/components/ui/filter-panel";
+import { FilterTrigger } from "@/components/ui/filter-trigger";
 import Button from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { PageTabs, PageTab } from "@/components/ui/page-tabs";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import ResponsiveToolbar from "@/components/ui/responsive-toolbar";
@@ -42,25 +35,28 @@ function StatusFilterDropdown({ setStatusFilter, statusFilter }: { setStatusFilt
   return (
     <div className="space-y-2">
       <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{tLocal("common.status")}</label>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button className="w-full justify-between" variant="outline">
-            <span>{tLocal(`common.status_${statusFilter}`).toUpperCase()}</span>
-            <Filter size={14} />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-52">
-          <DropdownMenuLabel>{tLocal("common.filter_by_status", "Filter by Status").toUpperCase()}</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuRadioGroup onValueChange={(val) => { setStatusFilter(val as LeaveStatusFilter); }} value={statusFilter}>
-            <DropdownMenuRadioItem value="all">{tLocal("common.all", "All").toUpperCase()}</DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="pending">{tLocal("common.status_pending", "Pending").toUpperCase()}</DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="approved">{tLocal("common.status_approved", "Approved").toUpperCase()}</DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="pre_approved">{tLocal("common.status_pre_approved", "Pre-approved").toUpperCase()}</DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="rejected">{tLocal("common.status_rejected", "Rejected").toUpperCase()}</DropdownMenuRadioItem>
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <FilterPanel
+        container="dropdown"
+        mode="single"
+        options={[
+          { value: "all", label: tLocal("common.all", "All").toUpperCase() },
+          { value: "pending", label: tLocal("common.status_pending", "Pending").toUpperCase() },
+          { value: "approved", label: tLocal("common.status_approved", "Approved").toUpperCase() },
+          { value: "pre_approved", label: tLocal("common.status_pre_approved", "Pre-approved").toUpperCase() },
+          { value: "rejected", label: tLocal("common.status_rejected", "Rejected").toUpperCase() },
+        ]}
+        selected={statusFilter !== "all" ? [statusFilter] : []}
+        onToggle={(val) => { setStatusFilter(val as LeaveStatusFilter); }}
+        onClear={() => { setStatusFilter("all"); }}
+        trigger={
+          <FilterTrigger
+            variant="pill-button"
+            label={tLocal(`common.status_${statusFilter}`).toUpperCase()}
+            hasActive={statusFilter !== "all"}
+            chevron
+          />
+        }
+      />
     </div>
   );
 }

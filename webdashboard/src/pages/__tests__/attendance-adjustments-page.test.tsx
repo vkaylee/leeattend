@@ -70,13 +70,6 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
   DropdownMenuContent: ({ children }: any) => <div data-testid="dropdown-content">{children}</div>,
   DropdownMenuLabel: ({ children }: any) => <div>{children}</div>,
   DropdownMenuSeparator: () => <hr />,
-  DropdownMenuRadioGroup: ({ value, onValueChange, children }: any) => (
-    <div data-testid="dropdown-radio-group" data-value={value} onClick={(e: any) => {
-      const btn = e.target.closest('[role="button"]');
-      if (btn) onValueChange(btn.getAttribute('data-value'));
-    }}>{children}</div>
-  ),
-  DropdownMenuRadioItem: ({ value, children }: any) => <div data-value={value} role="button">{children}</div>,
 }));
 
 // Mock the API library

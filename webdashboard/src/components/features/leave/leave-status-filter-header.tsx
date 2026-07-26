@@ -19,6 +19,7 @@ export function LeaveStatusFilterHeader({ statusFilter, setStatusFilter }: Leave
       <div className="flex justify-center">
         <FilterPanel
           container="dropdown"
+          data-testid="leave-status-filter"
           mode="single"
           onClear={() => { setStatusFilter("all"); }}
           onToggle={(val) => { setStatusFilter(val as LeaveStatusFilter); }}

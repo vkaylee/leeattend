@@ -34,4 +34,4 @@ src-tauri/target
 
 # orval generated
 /src/lib/api-generated/*
-!/src/lib/api-generated/mutator.ts
+!/src/lib/api-generated/mutator.tsmissing-keys.json
