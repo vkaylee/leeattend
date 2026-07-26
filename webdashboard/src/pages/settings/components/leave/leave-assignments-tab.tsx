@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 
 import type { Employee, Department } from "@/lib/api/types";
 

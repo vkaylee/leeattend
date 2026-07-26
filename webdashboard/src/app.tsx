@@ -3,7 +3,7 @@ import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@ta
 import { RouterProvider } from "@tanstack/react-router";
 import React, { Suspense } from "react";
 
-import { toast } from "sonner";
+import { toast } from "./components/ui/toast";
 
 import { ErrorBoundary } from "./components/common/error-boundary";
 import { GlobalLoader } from "./components/common/global-loader";

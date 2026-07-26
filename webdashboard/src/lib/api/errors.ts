@@ -25,17 +25,18 @@ export interface ComplianceConflictRetry {
   violations: ComplianceViolation[];
 }
 
-/** Narrow an unknown error body to check for a compliance-conflict retry payload. */
+/** Narrow an unknown error body to check for a compliance-conflict retry payload.
+ *  Handles both the raw backend shape ({ error: { retry } }) and the unwrapped
+ *  shape ({ retry }) produced by ApiError.rejectResponse. */
 export function parseComplianceConflict(body: unknown): ComplianceConflictRetry | undefined {
   if (typeof body !== "object" || body === null) return undefined;
-  const b = body as { error?: { retry?: Partial<ComplianceConflictRetry> } };
+  const b = body as { retry?: Partial<ComplianceConflictRetry>; error?: { retry?: Partial<ComplianceConflictRetry> } };
+  // Try unwrapped shape first (produced by rejectResponse), then raw backend shape
+  const retryCandidate = b.retry ?? b.error?.retry;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive runtime narrowing
-  if (typeof b.error !== "object" || b.error === null) return undefined;
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive runtime narrowing
-  if (typeof b.error.retry !== "object" || b.error.retry === null) return undefined;
-  const retry = b.error.retry;
-  if (!Array.isArray(retry.violations) || retry.requires_override !== true) return undefined;
-  return validateComplianceViolations(retry.violations);
+  if (typeof retryCandidate !== "object" || retryCandidate === null) return undefined;
+  if (!Array.isArray(retryCandidate.violations) || retryCandidate.requires_override !== true) return undefined;
+  return validateComplianceViolations(retryCandidate.violations);
 }
 
 function validateComplianceViolations(raw: unknown[]): ComplianceConflictRetry | undefined {
@@ -57,22 +58,19 @@ export interface ConflictRetryHint {
   reason: string;
 }
 
-/** Narrow an unknown error body to check for a conflict-retry payload. */
+/** Narrow an unknown error body to check for a conflict-retry payload.
+ *  `errorBody` is always the unwrapped shape produced by ApiError.rejectResponse,
+ *  where `retry` sits at the root (not nested under `error`). */
 export function parseConflictRetry(body: unknown): ConflictRetryHint | undefined {
-  // Step through the nested error shape with runtime type checks at each level.
-  // The API returns { error: { retry: { reason, leave_type_id, name } } } on
-  // 409 Conflict when a retired resource can be restored.
   if (typeof body !== "object" || body === null) return undefined;
-  const b = body as { error?: { retry?: Partial<ConflictRetryHint> } };
+  const b = body as { retry?: Partial<ConflictRetryHint> };
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive runtime narrowing on cast object
-  if (typeof b.error !== "object" || b.error === null) return undefined;
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive runtime narrowing on cast object
-  if (typeof b.error.retry !== "object" || b.error.retry === null) return undefined;
-  if (b.error.retry.reason !== "retired_leave_type" || typeof b.error.retry.leave_type_id !== "string") return undefined;
+  if (typeof b.retry !== "object" || b.retry === null) return undefined;
+  if (b.retry.reason !== "retired_leave_type" || typeof b.retry.leave_type_id !== "string") return undefined;
   return {
-    reason: b.error.retry.reason,
-    leave_type_id: b.error.retry.leave_type_id,
-    name: typeof b.error.retry.name === "string" ? b.error.retry.name : "",
+    reason: b.retry.reason,
+    leave_type_id: b.retry.leave_type_id,
+    name: typeof b.retry.name === "string" ? b.retry.name : "",
   };
 }
 
@@ -107,7 +105,19 @@ export class ApiError extends Error {
     try {
       errorText = await res.clone().text();
       if (errorText) {
-        errorBody = JSON.parse(errorText) as AppErrorResponse;
+        const raw = JSON.parse(errorText) as Record<string, unknown>;
+        // Backend wraps errors as { error: { code, message } } — unwrap to
+        // the flat AppErrorResponse shape the rest of the codebase expects.
+        if (typeof raw.error === "object" && raw.error !== null) {
+          const inner = raw.error as Record<string, unknown>;
+          errorBody = {
+            error_code: typeof inner.code === "string" ? inner.code : undefined,
+            message: typeof inner.message === "string" ? inner.message : undefined,
+            retry: inner.retry,
+          };
+        } else {
+          errorBody = raw as AppErrorResponse;
+        }
       }
     } catch {
       // Ignore parse failures — fall through to the generic error below.

@@ -31,9 +31,10 @@ vi.mock("@/lib/api/leaves", () => ({
   fetchJobStatus: vi.fn(),
 }));
 
-// Mock sonner toast
-vi.mock("sonner", () => ({
+// Mock toast
+vi.mock("@/components/ui/toast", () => ({
   toast: { error: vi.fn(), success: vi.fn(), warning: vi.fn() },
+  useToast: () => ({ error: vi.fn(), success: vi.fn(), warning: vi.fn() }),
 }));
 
 // Mock lazy exceljs + file-saver used by exportErrorsToExcel

@@ -39,7 +39,6 @@ describe("performance budget", () => {
       "vendor-exceljs-": 1_000_000,
       "vendor-xyflow-": 200_000,
       "vendor-sentry-": 100_000,
-      "vendor-sonner-": 50_000,
     };
 
     for (const file of files) {

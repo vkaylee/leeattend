@@ -23,6 +23,28 @@ export interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
+// ── Imperative (module-level) toast API ─────────────────────────────
+// So non-React callers (e.g. QueryClient onError in app.tsx) can fire
+// toasts without being inside a component tree.  ToastProvider registers
+// its `show` callback on mount; the exported `toast` object fans out to
+// all registered listeners (normally just one).
+
+type ToastListener = (message: string, type: ToastType, title?: string) => void;
+const listeners = new Set<ToastListener>();
+
+function notify(message: string, type: ToastType, title?: string): void {
+  listeners.forEach((fn) => { fn(message, type, title); });
+}
+
+/** Imperative toast — usable outside React (e.g. QueryClient callbacks). */
+export const toast: ToastContextType = {
+  show: (message, type = 'info', title) => { notify(message, type, title); },
+  success: (message, title) => { notify(message, 'success', title); },
+  error: (message, title) => { notify(message, 'error', title); },
+  info: (message, title) => { notify(message, 'info', title); },
+  warning: (message, title) => { notify(message, 'warning', title); },
+};
+
 /** Tracks remaining time for each toast so hover-pause can resume correctly */
 interface ToastTimer {
   remaining: number;
@@ -70,6 +92,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       timeout,
     });
   }, [remove]);
+
+  // Wire the imperative toast API so callers outside the React tree
+  // (e.g. QueryClient onError) render through this provider.
+  useEffect(() => {
+    listeners.add(show);
+    return () => { listeners.delete(show); };
+  }, [show]);
 
   // Cleanup on unmount
   useEffect(() => {

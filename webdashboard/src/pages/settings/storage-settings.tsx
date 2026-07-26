@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 
 import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 import {

@@ -39,11 +39,12 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("sonner", () => ({
+vi.mock("@/components/ui/toast", () => ({
   toast: {
     success: vi.fn(),
     error: vi.fn(),
   },
+  useToast: () => ({ success: vi.fn(), error: vi.fn() }),
 }));
 
 vi.mock("@/lib/api/leaves");
