@@ -9,6 +9,8 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import { FilterPanel } from "@/components/ui/filter-panel";
+import { FilterTrigger } from "@/components/ui/filter-trigger";
 import { cn } from "@/lib/utils";
 
 import { ShiftTypePicker } from "../shift-type-picker";
@@ -85,23 +87,28 @@ export function NoShowFilterBar({
       {/* Filters bar */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-3 flex flex-wrap items-center gap-3">
         {/* Department */}
-        <div className="relative">
-          <Building2
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-            size={14}
-          />
-          <select
-            className="pl-8 pr-8 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500/30"
-            id="unrecorded-dept-filter"
-            onChange={(e) => { onDeptChange(e.target.value); }}
-            value={selectedDept}
-          >
-            <option value="__all__">{t("unrecorded_shifts.all_departments")}</option>
-            {departments.map((dept) => (
-              <option key={dept} value={dept}>{dept}</option>
-            ))}
-          </select>
-        </div>
+        <FilterPanel
+          container="popover"
+          mode="single"
+          options={[
+            { value: "__all__", label: t("unrecorded_shifts.all_departments") },
+            ...departments.map(dept => ({ value: dept, label: dept })),
+          ]}
+          selected={selectedDept !== "__all__" ? [selectedDept] : []}
+          onToggle={(val) => { onDeptChange(val); }}
+          onClear={() => { onDeptChange("__all__"); }}
+          trigger={
+            <FilterTrigger
+              variant="pill-button"
+              label={selectedDept === "__all__"
+                ? t("unrecorded_shifts.all_departments")
+                : selectedDept}
+              hasActive={selectedDept !== "__all__"}
+              icon={<Building2 size={14} />}
+              chevron
+            />
+          }
+        />
 
         <ShiftTypePicker onChange={onShiftTypesChange} selected={selectedShiftTypes} />
 

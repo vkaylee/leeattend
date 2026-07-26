@@ -1,9 +1,9 @@
-import * as Popover from "@radix-ui/react-popover";
-import { Building2, Check, ListFilter, UserCheck, UserX, Users, X } from "lucide-react";
+import { Building2, ListFilter, UserCheck, UserX, Users } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import Button from "@/components/ui/button";
+import { FilterPanel } from "@/components/ui/filter-panel";
+import { FilterTrigger } from "@/components/ui/filter-trigger";
 import { cn } from "@/lib/utils";
 
 import type { Employee, Department } from "../../../lib/api/types";
@@ -35,82 +35,40 @@ interface StatusFilterHeaderProps {
   setFilterStatus: (status: string) => void;
 }
 
-export const StatusFilterHeader = ({
+export function StatusFilterHeader({
   filterStatus,
   setFilterStatus,
-}: StatusFilterHeaderProps) => {
+}: StatusFilterHeaderProps) {
   const { t } = useTranslation();
 
-  const options: { value: string; label: string; icon: React.ReactNode }[] = [
+  const statusOptions = [
     { value: "active", label: t("employees.table.active", "Hoạt động"), icon: <UserCheck size={12} /> },
     { value: "terminated", label: t("employees.table.terminated", "Đã nghỉ việc"), icon: <UserX size={12} /> },
     { value: "all", label: t("common.all", "Tất cả"), icon: <Users size={12} /> },
   ];
 
   return (
-    <Popover.Root>
-      <Popover.Trigger asChild>
-        <Button
-          className={cn(
-            "relative h-5 w-5 rounded transition-colors p-0 border-none shadow-none hover:bg-transparent",
-            filterStatus !== "active"
-              ? "text-primary-600 dark:text-primary-400"
-              : "text-slate-400 dark:text-slate-500 opacity-60 hover:opacity-100 hover:text-primary-600"
-          )}
+    <FilterPanel
+      container="popover"
+      data-testid="status-filter"
+      mode="single"
+      options={statusOptions}
+      selected={filterStatus !== "active" ? [filterStatus] : []}
+      onToggle={(val) => setFilterStatus(val)}
+      onClear={() => setFilterStatus("active")}
+      headerLabel={t("employees.filter_status", "Filter by status")}
+      trigger={
+        <FilterTrigger
+          variant="icon-button"
+          label={t("employees.filter_status", "Filter by status")}
+          hasActive={filterStatus !== "active"}
+          icon={<ListFilter size={12} />}
           data-testid="status-filter-btn"
-          onClick={(e) => { e.stopPropagation(); }}
-          title={t("employees.filter_status", "Filter by status")}
-          variant="ghost"
-        >
-          <ListFilter size={12} />
-        </Button>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content
-          align="end"
-          className="z-[10000] w-52 overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 shadow-2xl dark:shadow-black/30 animate-in fade-in zoom-in-95 duration-200"
-          onClick={(e) => { e.stopPropagation(); }}
-          sideOffset={8}
-        >
-          <div className="px-3 pt-2 pb-1.5">
-            <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
-              {t("employees.filter_status", "Filter by status")}
-            </div>
-          </div>
-          <div className="max-h-60 overflow-y-auto custom-scrollbar">
-            {options.map((opt) => {
-              const isChecked = filterStatus === opt.value;
-              return (
-                <Button
-                  className={cn(
-                    "h-auto w-full px-3 py-2.5 flex items-center gap-3 rounded-xl text-[11px] font-bold uppercase tracking-wide transition-colors border-none shadow-none justify-start",
-                    isChecked
-                      ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900"
-                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  )}
-                  data-testid={`status-filter-option-${opt.value}`}
-                  key={opt.value}
-                  onClick={() => { setFilterStatus(opt.value); }}
-                  variant="ghost"
-                >
-                  <div className={cn("w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors",
-                    isChecked
-                      ? "bg-primary-600 border-primary-600 text-white"
-                      : "border-slate-300 dark:border-slate-600"
-                  )}>
-                    {isChecked ? <Check size={10} strokeWidth={3} /> : null}
-                  </div>
-                  <span className="opacity-60">{opt.icon}</span>
-                  <span className="truncate">{opt.label}</span>
-                </Button>
-              );
-            })}
-          </div>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+        />
+      }
+    />
   );
-};
+}
 
 interface DepartmentFilterHeaderProps {
   departments: Department[] | undefined;
@@ -119,98 +77,41 @@ interface DepartmentFilterHeaderProps {
   toggleDeptFilter: (id: string) => void;
 }
 
-export const DepartmentFilterHeader = ({ 
-  departments, 
-  filterDeptIds, 
-  setFilterDeptIds, 
-  toggleDeptFilter 
-}: DepartmentFilterHeaderProps) => {
+export function DepartmentFilterHeader({
+  departments,
+  filterDeptIds,
+  setFilterDeptIds,
+  toggleDeptFilter,
+}: DepartmentFilterHeaderProps) {
   const { t } = useTranslation();
-  
-  return (
-    <Popover.Root>
-      <Popover.Trigger asChild>
-        <Button
-          className={cn(
-            "relative h-5 w-5 rounded transition-colors p-0 border-none shadow-none hover:bg-transparent",
-            filterDeptIds.length > 0
-              ? "text-primary-600 dark:text-primary-400"
-              : "text-slate-400 dark:text-slate-500 opacity-60 hover:opacity-100 hover:text-primary-600"
-          )}
-          data-testid="dept-filter-btn"
-          onClick={(e) => { e.stopPropagation(); }}
-          title={t("employees.filter_department", "Filter by department")}
-          variant="ghost"
-        >
-          <ListFilter size={12} />
-          {filterDeptIds.length > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-0.5 flex items-center justify-center bg-primary-500 text-white text-[8px] font-bold rounded-full leading-none animate-in zoom-in">
-              {filterDeptIds.length}
-            </span>
-          )}
-        </Button>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content
-          align="start"
-          className="z-[10000] w-56 overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 shadow-2xl dark:shadow-black/30 animate-in fade-in zoom-in-95 duration-200"
-          onClick={(e) => { e.stopPropagation(); }}
-          sideOffset={8}
-        >
-          <div className="px-3 pt-2 pb-1.5">
-            <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
-              {t("employees.filter_department", "Filter by department")}
-            </div>
-          </div>
-          <div className="max-h-60 overflow-y-auto custom-scrollbar">
-            {filterDeptIds.length > 0 && (
-              <Button
-                className="h-auto w-full px-3 py-2 flex items-center gap-3 rounded-xl text-[11px] font-bold uppercase tracking-wide text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors mb-1 border-none shadow-none justify-start"
-                onClick={() => { setFilterDeptIds([]); }}
-                variant="ghost"
-              >
-                <X className="shrink-0" size={12} />
-                {t("employees.clear_filter", "Xóa bộ lọc")}
-              </Button>
-            )}
+  const deptOptions = (departments ?? []).map(d => ({
+    value: d.id,
+    label: d.name,
+    icon: <Building2 className="opacity-50 shrink-0" size={12} />,
+  }));
 
-            {departments && departments.length > 0 ? (
-              departments.map(d => {
-                const isChecked = filterDeptIds.includes(d.id);
-                return (
-                  <Button
-                    className={cn(
-                      "h-auto w-full px-3 py-2.5 flex items-center gap-3 rounded-xl text-[11px] font-bold uppercase tracking-wide transition-colors border-none shadow-none justify-start",
-                      isChecked
-                        ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900"
-                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                    )}
-                    data-testid={`dept-filter-option-${d.id}`}
-                    key={d.id}
-                    onClick={() => { toggleDeptFilter(d.id); }}
-                    variant="ghost"
-                  >
-                    <div className={cn("w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
-                      isChecked
-                        ? "bg-primary-600 border-primary-600 text-white"
-                        : "border-slate-300 dark:border-slate-600"
-                    )}>
-                      {isChecked ? <Check size={10} strokeWidth={3} /> : null}
-                    </div>
-                    <Building2 className="opacity-50 shrink-0" size={12} />
-                    <span className="truncate">{d.name}</span>
-                  </Button>
-                );
-              })
-            ) : (
-              <div className="px-3 py-6 text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest opacity-60">
-                {t("employees.no_departments", "Chưa có phòng ban")}
-              </div>
-            )}
-          </div>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+  return (
+    <FilterPanel
+      container="popover"
+      mode="multi"
+      options={deptOptions}
+      selected={filterDeptIds}
+      onToggle={toggleDeptFilter}
+      onClear={() => setFilterDeptIds([])}
+      headerLabel={t("employees.filter_department", "Filter by department")}
+      emptyMessage={t("employees.no_departments", "Chưa có phòng ban")}
+      data-testid="dept-filter"
+      trigger={
+        <FilterTrigger
+          variant="icon-button"
+          label={t("employees.filter_department", "Filter by department")}
+          activeCount={filterDeptIds.length}
+          hasActive={filterDeptIds.length > 0}
+          icon={<ListFilter size={12} />}
+          data-testid="dept-filter-btn"
+        />
+      }
+    />
   );
-};
+}
 

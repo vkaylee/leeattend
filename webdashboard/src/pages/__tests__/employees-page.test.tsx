@@ -440,12 +440,12 @@ describe("EmployeesPage", () => {
 
         // Wait for status chip to appear
         await waitFor(() => {
-            expect(screen.getByTestId("status-chip-terminated")).toBeDefined();
+            expect(screen.getByTestId("active-filter-chips-chip-status-terminated")).toBeDefined();
         });
 
         // Click the chip to remove it
         vi.mocked(api.searchEmployees).mockClear();
-        await user.click(screen.getByTestId("status-chip-terminated"));
+        await user.click(screen.getByTestId("active-filter-chips-chip-status-terminated"));
 
         await waitFor(() => {
             expect(api.searchEmployees).toHaveBeenCalledWith(
@@ -576,7 +576,7 @@ describe("EmployeesPage", () => {
         // Click the filter chip to remove it
  
         vi.mocked(api.searchEmployees).mockClear();
-        await user.click(screen.getByTestId("dept-chip-dept-1"));
+        await user.click(screen.getByTestId("active-filter-chips-chip-dept-dept-1"));
 
         await waitFor(() => {
             expect(api.searchEmployees).toHaveBeenCalledWith(
@@ -605,8 +605,8 @@ describe("EmployeesPage", () => {
         await waitFor(() => {
             const chipsArea = screen.getByTestId("active-filter-chips");
             expect(chipsArea).toBeDefined();
-            expect(screen.getByTestId("dept-chip-dept-1")).toBeDefined();
-            expect(screen.getByTestId("dept-chip-dept-3")).toBeDefined();
+            expect(screen.getByTestId("active-filter-chips-chip-dept-dept-1")).toBeDefined();
+            expect(screen.getByTestId("active-filter-chips-chip-dept-dept-3")).toBeDefined();
         });
     });
 

@@ -1,22 +1,16 @@
-import { Filter, User, X } from 'lucide-react';
+import { User, X } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Button from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 import { useDebounce } from '../../hooks/use-debounce';
 import { useEmployeeSearch } from '../../hooks/use-employee-search';
 import { useEmployeeSelection } from '../../hooks/use-employee-selection';
 import { Department, Employee } from '../../lib/api/types';
 import { Combobox } from '../ui/combobox';
+import { FilterPanel } from "@/components/ui/filter-panel";
+import { FilterTrigger } from "@/components/ui/filter-trigger";
 
 interface EmployeeSearchProps {
   className?: string;
@@ -111,20 +105,6 @@ function useNormalizedIds(value: string | string[] | undefined): string[] {
   }, [value]);
 }
 
-function useDepartmentFilter(
-  departments: Department[] | undefined,
-  selectedDepartmentIds: string[] | undefined,
-  onDepartmentFilterChange: ((ids: string[]) => void) | undefined,
-) {
-  const [internalDeptIds, setInternalDeptIds] = useState<string[]>([]);
-  const effectiveDeptIds = selectedDepartmentIds ?? internalDeptIds;
-  const handleDeptChange = (ids: string[]) => {
-    if (onDepartmentFilterChange) onDepartmentFilterChange(ids);
-    if (selectedDepartmentIds === undefined) setInternalDeptIds(ids);
-  };
-  return { effectiveDeptIds, handleDeptChange };
-}
-
 interface SelectedEmployeeChipsProps {
   onRemove: (id: string) => void;
   selectedIds: string[];
@@ -157,73 +137,11 @@ function SelectedEmployeeChips({ onRemove, selectedIds, selectedMeta }: Selected
   );
 }
 
-interface DepartmentFilterButtonProps {
-  departments: Department[];
-  onChange: (ids: string[]) => void;
-  selectedIds: string[];
-}
-
-function DepartmentFilterButton({ departments, onChange, selectedIds }: DepartmentFilterButtonProps) {
-  const { t } = useTranslation();
-  const activeCount = selectedIds.length;
-
-  const toggle = (deptId: string) => {
-    if (selectedIds.includes(deptId)) {
-      onChange(selectedIds.filter(id => id !== deptId));
-    } else {
-      onChange([...selectedIds, deptId]);
-    }
-  };
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          aria-label={t('common.filter_by_department', { defaultValue: 'Filter by department' })}
-          className={`relative flex h-[var(--ui-height-md)] shrink-0 items-center gap-2 rounded-2xl border px-4 text-sm font-bold uppercase tracking-tight shadow-inner transition-all ${
-            activeCount > 0
-              ? 'border-primary-500 dark:border-primary-500 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400'
-              : 'border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:border-primary-200 dark:hover:border-primary-800'
-          }`}
-          data-testid="employee-dept-filter"
-          type="button"
-          variant="ghost"
-        >
-          <Filter className="h-4 w-4" />
-          {activeCount > 0 ? (
-            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-600 dark:bg-primary-500 px-1.5 text-[10px] text-white">
-              {activeCount}
-            </span>
-          ) : null}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="max-h-80 w-64 overflow-y-auto custom-scrollbar" sideOffset={8}>
-        <DropdownMenuItem
-          className={selectedIds.length === 0 ? 'text-primary-600 dark:text-primary-400' : ''}
-          onSelect={(e) => { e.preventDefault(); onChange([]); }}
-        >
-          {t('common.all_departments', { defaultValue: 'All departments' })}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        {departments.map((dept) => (
-          <DropdownMenuCheckboxItem
-            checked={selectedIds.includes(dept.id)}
-            key={dept.id}
-            onSelect={(e) => { e.preventDefault(); toggle(dept.id); }}
-          >
-            {dept.name}
-          </DropdownMenuCheckboxItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 /**
  * EmployeeSearch — reusable employee search combobox with department filter.
  * Complexity (11) is 1 over threshold; remaining branches are JSX ternaries for
  * placeholder defaults and conditional rendering. Logic is decomposed into
- * useNormalizedIds, useDepartmentFilter, useEmployeeSearchOptions, and useEmployeeSelection.
+ * useNormalizedIds, useEmployeeSearchOptions, and useEmployeeSelection.
  */
 // eslint-disable-next-line complexity
 export function EmployeeSearch({
@@ -250,11 +168,12 @@ export function EmployeeSearch({
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const selectedIds = useNormalizedIds(value);
 
-  const { effectiveDeptIds, handleDeptChange } = useDepartmentFilter(
-    departments,
-    selectedDepartmentIds,
-    onDepartmentFilterChange,
-  );
+  const [internalDeptIds, setInternalDeptIds] = useState<string[]>([]);
+  const effectiveDeptIds = selectedDepartmentIds ?? internalDeptIds;
+  const handleDeptChange = (ids: string[]) => {
+    if (onDepartmentFilterChange) onDepartmentFilterChange(ids);
+    if (selectedDepartmentIds === undefined) setInternalDeptIds(ids);
+  };
 
   const {
     employees,
@@ -307,11 +226,34 @@ export function EmployeeSearch({
           />
         </div>
         {hasDepartmentFilter ? (
-          <DepartmentFilterButton
-            departments={departments ?? []}
-            onChange={handleDeptChange}
-            selectedIds={effectiveDeptIds}
-          />
+          (() => {
+            const deptOptions = (departments ?? []).map(d => ({ value: d.id, label: d.name }));
+            return (
+              <FilterPanel
+                container="dropdown"
+                mode="multi"
+                options={deptOptions}
+                selected={effectiveDeptIds}
+                onToggle={(id) => {
+                  handleDeptChange(
+                    effectiveDeptIds.includes(id)
+                      ? effectiveDeptIds.filter(i => i !== id)
+                      : [...effectiveDeptIds, id]
+                  );
+                }}
+                onClear={() => handleDeptChange([])}
+                trigger={
+                  <FilterTrigger
+                    variant="pill-button"
+                    label={t('common.filter_by_department', 'Filter by department')}
+                    activeCount={effectiveDeptIds.length}
+                    hasActive={effectiveDeptIds.length > 0}
+                    data-testid="employee-dept-filter"
+                  />
+                }
+              />
+            );
+          })()
         ) : null}
       </div>
 

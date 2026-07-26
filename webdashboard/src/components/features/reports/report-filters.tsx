@@ -10,6 +10,8 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { FilterPanel } from "@/components/ui/filter-panel";
+import { FilterTrigger } from "@/components/ui/filter-trigger";
 import { cn } from "@/lib/utils";
 
 interface ReportFiltersProps {
@@ -204,52 +206,25 @@ function EmployerFilterSelector({
   const selectedEmployer = employers.find(emp => emp.id === selectedEmployerId);
 
   return (
-    <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-700/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200 dark:border-slate-700/50">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all h-auto text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-            variant="ghost"
-          >
-            <Briefcase size={14} />
-            {selectedEmployer ? selectedEmployer.name : t("reports.all_employers").toUpperCase()}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="start"
-          className="w-64 p-2 rounded-[2rem] shadow-premium-2xl border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/95 backdrop-blur-xl max-h-80 overflow-y-auto"
-          sideOffset={8}
-        >
-          <Button
-            className={cn(
-              "w-full justify-start text-left px-4 py-2.5 rounded-xl text-xs font-bold transition-all h-auto mb-1",
-              selectedEmployerId === null
-                ? "bg-primary-50 dark:bg-primary-950/30 text-primary-600 dark:text-primary-400"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-            )}
-            onClick={() => onEmployerChange?.(null)}
-            variant="ghost"
-          >
-            {t("reports.all_employers")}
-          </Button>
-          {employers.map((emp) => (
-            <Button
-              className={cn(
-                "w-full justify-start text-left px-4 py-2.5 rounded-xl text-xs font-bold transition-all h-auto mb-1",
-                selectedEmployerId === emp.id
-                  ? "bg-primary-50 dark:bg-primary-950/30 text-primary-600 dark:text-primary-400"
-                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-              )}
-              key={emp.id}
-              onClick={() => onEmployerChange?.(emp.id)}
-              variant="ghost"
-            >
-              {emp.name}
-            </Button>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+    <FilterPanel
+      container="dropdown"
+      mode="single"
+      options={[
+        { value: "__all__", label: t("reports.all_employers") },
+        ...employers.map(e => ({ value: e.id, label: e.name })),
+      ]}
+      selected={selectedEmployerId ? [selectedEmployerId] : []}
+      onToggle={(val) => onEmployerChange?.(val === "__all__" ? null : val)}
+      onClear={() => onEmployerChange?.(null)}
+      trigger={
+        <FilterTrigger
+          variant="pill-button"
+          label={selectedEmployer ? selectedEmployer.name : t("reports.all_employers")}
+          hasActive={!!selectedEmployerId}
+          icon={<Briefcase size={14} />}
+        />
+      }
+    />
   );
 }
 

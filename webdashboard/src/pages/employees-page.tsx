@@ -1,6 +1,7 @@
 import FloatingRecordBadge from "@/components/common/floating-record-badge";
+import { FilterChips } from "@/components/ui/filter-chips";
+import { Building2, UserX, Users } from "lucide-react";
 
-import { EmployeeFilterChips } from "./employees/components/employee-filter-chips";
 import { EmployeeOverlays } from "./employees/components/employee-overlays";
 import { EmployeeTable } from "./employees/components/employee-table";
 import { EmployeesPageHeader } from "./employees/components/employees-page-header";
@@ -15,6 +16,33 @@ export default function EmployeesPage() {
     t,
   } = page;
 
+  // Build filter chips for the generic FilterChips component
+  const statusChip = page.filterStatus !== "active" ? [{
+    key: `status-${page.filterStatus}`,
+    label: page.filterStatus === "terminated"
+      ? t("employees.table.terminated", "Đã nghỉ việc")
+      : t("common.all", "Tất cả"),
+    category: "status",
+    icon: <UserX size={10} />,
+  }] : [];
+
+  const deptChips = (page.departments ?? [])
+    .filter(d => page.filterDeptIds.includes(d.id))
+    .map(d => ({
+      key: `dept-${d.id}`,
+      label: d.name,
+      category: "department",
+      icon: <Building2 size={10} />,
+    }));
+
+  const cfChips = Object.entries(page.customFieldFilters).map(([k, v]) => ({
+    key: `cf-${k}`,
+    label: `${k}: ${v}`,
+    category: "custom",
+  }));
+
+  const activeChips = [...statusChip, ...deptChips, ...cfChips];
+
   return (
     <div className="space-y-6 pb-20 animate-in fade-in duration-700">
       <EmployeesPageHeader
@@ -24,16 +52,20 @@ export default function EmployeesPage() {
         setIsTerminationImportOpen={page.setIsTerminationImportOpen}
       />
 
-      <EmployeeFilterChips
-        customFieldFilters={page.customFieldFilters}
-        departments={page.departments}
-        filterDeptIds={page.filterDeptIds}
-        filterStatus={page.filterStatus}
-        setCustomFieldFilters={page.setCustomFieldFilters}
-        setFilterDeptIds={page.setFilterDeptIds}
-        setFilterStatus={page.setFilterStatus}
-        toggleDeptFilter={page.toggleDeptFilter}
-        updateCustomFieldFilter={page.updateCustomFieldFilter}
+      <FilterChips
+        chips={activeChips}
+        onRemove={(key) => {
+          if (key.startsWith("status-")) page.setFilterStatus("active");
+          else if (key.startsWith("dept-")) page.toggleDeptFilter(key.replace("dept-", ""));
+          else if (key.startsWith("cf-")) page.updateCustomFieldFilter(key.replace("cf-", ""), "");
+        }}
+        onClearAll={() => {
+          page.setFilterStatus("active");
+          page.setFilterDeptIds([]);
+          page.setCustomFieldFilters({});
+        }}
+        label={t("employees.filtering_by", "Đang lọc")}
+        data-testid="active-filter-chips"
       />
 
       <EmployeeTable

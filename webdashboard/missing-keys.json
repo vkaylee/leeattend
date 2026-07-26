@@ -1,1 +1,167 @@
-[]
+[
+  {
+    "file": "src/components/custom-fields/multiselect-field-editor.tsx",
+    "key": "common.no_options",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/custom-fields/multiselect-field-editor.tsx",
+    "key": "common.no_options",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/custom-fields/multiselect-field-editor.tsx",
+    "key": "common.no_options",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/ui/filter-panel.tsx",
+    "key": "common.clear_filter",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/ui/filter-panel.tsx",
+    "key": "common.clear_filter",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/ui/filter-panel.tsx",
+    "key": "common.clear_filter",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/ui/filter-panel.tsx",
+    "key": "common.no_options",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/ui/filter-panel.tsx",
+    "key": "common.no_options",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/ui/filter-panel.tsx",
+    "key": "common.no_options",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/ui/filter-panel.tsx",
+    "key": "common.selected_count",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/ui/filter-panel.tsx",
+    "key": "common.selected_count",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/ui/filter-panel.tsx",
+    "key": "common.selected_count",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/ui/filter-panel.tsx",
+    "key": "common.all_selected",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/ui/filter-panel.tsx",
+    "key": "common.all_selected",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/ui/filter-panel.tsx",
+    "key": "common.all_selected",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/ui/filter-panel.tsx",
+    "key": "common.clear_filter",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/ui/filter-panel.tsx",
+    "key": "common.clear_filter",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/ui/filter-panel.tsx",
+    "key": "common.clear_filter",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/attendance/components/adjustments-table/header.tsx",
+    "key": "adjustments.status.pending",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/attendance/components/adjustments-table/header.tsx",
+    "key": "adjustments.status.pending",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/attendance/components/adjustments-table/header.tsx",
+    "key": "adjustments.status.pending",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/attendance/components/adjustments-table/header.tsx",
+    "key": "adjustments.status.approved",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/attendance/components/adjustments-table/header.tsx",
+    "key": "adjustments.status.approved",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/attendance/components/adjustments-table/header.tsx",
+    "key": "adjustments.status.approved",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/attendance/components/adjustments-table/header.tsx",
+    "key": "adjustments.status.rejected",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/attendance/components/adjustments-table/header.tsx",
+    "key": "adjustments.status.rejected",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/attendance/components/adjustments-table/header.tsx",
+    "key": "adjustments.status.rejected",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/monitor/jobs-table.tsx",
+    "key": "monitor.filter_status",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/monitor/jobs-table.tsx",
+    "key": "monitor.filter_status",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/monitor/jobs-table.tsx",
+    "key": "monitor.filter_status",
+    "lang": "zh"
+  },
+  {
+    "file": "src/pages/monitor/jobs-table.tsx",
+    "key": "monitor.filter_type",
+    "lang": "en"
+  },
+  {
+    "file": "src/pages/monitor/jobs-table.tsx",
+    "key": "monitor.filter_type",
+    "lang": "vi"
+  },
+  {
+    "file": "src/pages/monitor/jobs-table.tsx",
+    "key": "monitor.filter_type",
+    "lang": "zh"
+  }
+]

@@ -1,21 +1,16 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-conversion, react/forbid-elements */
-import * as Popover from "@radix-ui/react-popover";
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronDown } from "lucide-react";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import Button from "@/components/ui/button";
+import { FilterPanel } from "@/components/ui/filter-panel";
+import { FilterTrigger } from "@/components/ui/filter-trigger";
 import { fetchShifts, getCurrentWorkspaceId  } from "@/lib/api";
-import { cn } from "@/lib/utils";
 
 /**
- * Multi-select shift-type filter built on Radix Popover (the existing `Combobox`
+ * Multi-select shift-type filter built on FilterPanel (the existing `Combobox`
  * is single-select only). Options come from the shift catalogue via `fetchShifts`,
  * de-duplicated by name. Selected names are sent to the backend as `shift_type`.
- *
- * Uses the project's <Button> component everywhere for WCAG-compliant focus
- * rings (never a raw <button>).
  */
 export function ShiftTypePicker({
   selected,
@@ -26,7 +21,6 @@ export function ShiftTypePicker({
 }) {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
-  const [open, setOpen] = useState(false);
 
   const { data: shifts = [] } = useQuery({
     queryKey: ["shifts-catalogue", wsId],
@@ -58,80 +52,28 @@ export function ShiftTypePicker({
   };
 
   return (
-    <Popover.Root onOpenChange={setOpen} open={open}>
-      <Popover.Trigger asChild>
-        <Button
+    <FilterPanel
+      container="popover"
+      emptyMessage={t("unrecorded_shifts.filter_shift_type_empty", {
+        defaultValue: "No shift types",
+      })}
+      mode="multi"
+      onClear={() => { onChange([]); }}
+      onToggle={toggle}
+      options={options.map(opt => ({ value: opt.name, label: opt.name }))}
+      searchable
+      selected={selected}
+      trigger={
+        <FilterTrigger
+          activeCount={selected.length}
           aria-haspopup="listbox"
-          aria-label={t("unrecorded_shifts.filter_shift_type")}
-          className="px-3 py-2 justify-between normal-case"
+          chevron
+          hasActive={selected.length > 0}
           id="unrecorded-shift-type-picker"
-          variant="outline"
-        >
-          <span className="flex items-center gap-2">
-            {t("unrecorded_shifts.filter_shift_type")}
-            {selected.length > 0 && (
-              <span className="px-1.5 py-0.5 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded-md text-[9px]">
-                {selected.length}
-              </span>
-            )}
-          </span>
-          <ChevronDown
-            className={cn("size-3.5 transition-transform", open && "rotate-180")}
-          />
-        </Button>
-      </Popover.Trigger>
-
-      <Popover.Portal>
-        <Popover.Content
-          align="start"
-          className="z-50 w-64 max-h-80 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 shadow-lg animate-in fade-in zoom-in-95"
-          sideOffset={6}
-        >
-          {options.length === 0 ? (
-            <p className="px-3 py-2 text-xs text-slate-400">
-              {t("unrecorded_shifts.filter_shift_type_empty", {
-                defaultValue: "No shift types",
-              })}
-            </p>
-          ) : (
-            options.map((opt) => {
-              const checked = selected.includes(opt.name);
-              return (
-                <Button
-                  aria-selected={checked}
-                  className={cn(
-                    "w-full justify-start gap-3 px-3 py-2 rounded-lg text-xs font-semibold normal-case",
-                    checked && "bg-primary-50 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300",
-                  )}
-                  key={opt.name}
-                  onClick={() => { toggle(opt.name); }}
-                  role="option"
-                  variant="ghost"
-                >
-                  <span
-                    className={cn(
-                      "size-4 rounded border flex items-center justify-center shrink-0",
-                      checked
-                        ? "bg-primary-600 border-primary-600 text-white"
-                        : "border-slate-300 dark:border-slate-600",
-                    )}
-                  >
-                    {!!checked && <Check className="size-3" />}
-                  </span>
-                  {!opt.active && (
-                    <span className="text-[9px] uppercase text-slate-400 tracking-wider">
-                      {t("unrecorded_shifts.filter_shift_inactive", {
-                        defaultValue: "inactive",
-                      })}
-                    </span>
-                  )}
-                  {opt.name}
-                </Button>
-              );
-            })
-          )}
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+          label={t("unrecorded_shifts.filter_shift_type")}
+          variant="pill-button"
+        />
+      }
+    />
   );
 }

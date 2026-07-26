@@ -261,8 +261,8 @@ describe("AttendanceAdjustmentsPage", () => {
     // Clear calls to mock to isolate the dropdown filter click trigger
     vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockClear();
 
-    // Click the "Pending" option inside the dropdown menu (mocked as role=button)
-    const pendingOption = document.querySelector('div[role="button"][data-value="pending"]');
+    // Click the "Pending" option inside the dropdown (FilterPanel renders Buttons with data-testid)
+    const pendingOption = document.querySelector('[data-testid="adjustments-status-filter-option-pending"]');
     expect(pendingOption).not.toBeNull();
     await user.click(pendingOption!);
 

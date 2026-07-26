@@ -4,6 +4,8 @@ import React, { useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { TFunction } from "i18next";
 
+import { FilterPanel } from "@/components/ui/filter-panel";
+import { FilterTrigger } from "@/components/ui/filter-trigger";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import { Typography } from "@/components/ui/typography";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -156,31 +158,58 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
               />
             </div>
             <div className="w-full md:w-48">
-              <select
-                className="w-full cursor-pointer rounded-2xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm text-slate-700 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-slate-800/80 dark:bg-slate-800/40 dark:text-slate-200"
-                onChange={(e) => { setStatusFilter(e.target.value); }}
-                value={statusFilter}
-              >
-                <option value="all">{t("monitor.filter_status_all", { defaultValue: "All Statuses" })}</option>
-                <option value="completed">{t("monitor.status_completed", { defaultValue: "Completed" })}</option>
-                <option value="failed">{t("monitor.status_failed", { defaultValue: "Failed" })}</option>
-                <option value="processing">{t("monitor.status_processing", { defaultValue: "Processing" })}</option>
-                <option value="pending">{t("monitor.status_pending", { defaultValue: "Pending" })}</option>
-              </select>
+              <FilterPanel
+                container="popover"
+                mode="single"
+                onClear={() => { setStatusFilter("all"); }}
+                onToggle={(val) => { setStatusFilter(val); }}
+                options={[
+                  { value: "all", label: t("monitor.filter_status_all", { defaultValue: "All Statuses" }) },
+                  { value: "completed", label: t("monitor.status_completed", { defaultValue: "Completed" }) },
+                  { value: "failed", label: t("monitor.status_failed", { defaultValue: "Failed" }) },
+                  { value: "processing", label: t("monitor.status_processing", { defaultValue: "Processing" }) },
+                  { value: "pending", label: t("monitor.status_pending", { defaultValue: "Pending" }) },
+                ]}
+                selected={statusFilter !== "all" ? [statusFilter] : []}
+                showClearButton={false}
+                trigger={
+                  <FilterTrigger
+                    chevron
+                    hasActive={statusFilter !== "all"}
+                    label={statusFilter !== "all"
+                      ? statusFilter
+                      : t("monitor.filter_status", { defaultValue: "Status" })}
+                    variant="pill-button"
+                  />
+                }
+              />
             </div>
             <div className="w-full md:w-56">
-              <select
-                className="w-full cursor-pointer rounded-2xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm text-slate-700 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-slate-800/80 dark:bg-slate-800/40 dark:text-slate-200"
-                onChange={(e) => { setTypeFilter(e.target.value); }}
-                value={typeFilter}
-              >
-                <option value="all">{t("monitor.filter_type_all", { defaultValue: "All Types" })}</option>
-                {uniqueTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {t(`monitor.task_types.${type}`, { defaultValue: type })}
-                  </option>
-                ))}
-              </select>
+              <FilterPanel
+                container="popover"
+                mode="single"
+                onClear={() => { setTypeFilter("all"); }}
+                onToggle={(val) => { setTypeFilter(val); }}
+                options={[
+                  { value: "all", label: t("monitor.filter_type_all", { defaultValue: "All Types" }) },
+                  ...uniqueTypes.map((type) => ({
+                    value: type,
+                    label: t(`monitor.task_types.${type}`, { defaultValue: type }),
+                  })),
+                ]}
+                selected={typeFilter !== "all" ? [typeFilter] : []}
+                showClearButton={false}
+                trigger={
+                  <FilterTrigger
+                    chevron
+                    hasActive={typeFilter !== "all"}
+                    label={typeFilter !== "all"
+                      ? t(`monitor.task_types.${typeFilter}`, { defaultValue: typeFilter })
+                      : t("monitor.filter_type", { defaultValue: "Type" })}
+                    variant="pill-button"
+                  />
+                }
+              />
             </div>
           </div>
         </div>
