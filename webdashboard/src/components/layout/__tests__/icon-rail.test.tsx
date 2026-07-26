@@ -41,7 +41,11 @@ vi.mock("@/hooks/use-language", () => ({
     currentLanguage: "vi" as const,
     currentOption: { code: "vi", flag: "🇻🇳", name: "Vietnamese", nativeName: "Tiếng Việt" },
     changeLanguage: mockChangeLanguage,
-    languages: [],
+    languages: [
+      { code: "vi", flag: "🇻🇳", name: "Vietnamese", nativeName: "Tiếng Việt" },
+      { code: "en", flag: "🇺🇸", name: "English", nativeName: "English" },
+      { code: "zh", flag: "🇨🇳", name: "Chinese", nativeName: "中文" },
+    ],
   }),
 }));
 
@@ -183,15 +187,27 @@ describe("IconRail", () => {
 
   // ── Language ─────────────────────────────────────────────────
 
-  it("shows current language code", () => {
+  it("shows current language code badge", () => {
     render(<IconRail {...defaultProps} />, { wrapper: Wrapper });
     expect(screen.getByText("VI")).toBeInTheDocument();
   });
 
-  it("cycles language on click (vi → en)", () => {
+  it("opens popover with all 3 language options on click", () => {
     render(<IconRail {...defaultProps} />, { wrapper: Wrapper });
 
     fireEvent.click(screen.getByTestId("nav-rail-lang-toggle"));
+
+    expect(screen.getByTestId("rail-lang-option-vi")).toBeInTheDocument();
+    expect(screen.getByTestId("rail-lang-option-en")).toBeInTheDocument();
+    expect(screen.getByTestId("rail-lang-option-zh")).toBeInTheDocument();
+  });
+
+  it("calls changeLanguage when selecting an option from popover", () => {
+    render(<IconRail {...defaultProps} />, { wrapper: Wrapper });
+
+    fireEvent.click(screen.getByTestId("nav-rail-lang-toggle"));
+    fireEvent.click(screen.getByTestId("rail-lang-option-en"));
+
     expect(mockChangeLanguage).toHaveBeenCalledWith("en");
   });
 
