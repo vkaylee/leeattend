@@ -716,6 +716,7 @@
       "no_results_title": "No shifts found",
       "search_placeholder": "Search by shift name, symbol, or time (e.g., Morning, 08:00)..."
     },
+    "quick_shift_label": "Quick:",
     "revisions": {
       "active_version": "Active",
       "badge_correction": "Correction",

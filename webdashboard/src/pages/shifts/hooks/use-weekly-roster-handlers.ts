@@ -8,6 +8,7 @@ import type { AssignPatternRequest, EffectiveSchedule, Employee, EmployeeSchedul
 
 import type { useToast } from "@/components/ui/toast";
 import { fetchWorkspaceSchedules } from "@/lib/api";
+import { writeFrequentShift } from "@/lib/frequent-shifts-storage";
 
 type ToastApi = ReturnType<typeof useToast>;
 
@@ -31,6 +32,7 @@ interface UseWeeklyRosterHandlersProps {
 }
 
 interface UseWeeklyRosterHandlersReturn {
+  handleApplyShift: (shiftId: string | null) => void;
   handleAssign: () => void;
   handleAssignAllWeek: (shiftId: string | null) => void;
   handleAssignBulk: (shiftId: string | null) => void;
@@ -74,6 +76,12 @@ export function useWeeklyRosterHandlers({
     mutations.bulkRosterMutation.mutate(items);
   };
 
+  /** Quick-shift assignment: applies the shift to selected days and records it for the frequency ranking. */
+  const handleApplyShift = (shiftId: string | null) => {
+    if (shiftId) writeFrequentShift(shiftId);
+    handleBulkAssign(shiftId);
+  };
+
   const handleAssignAllWeek = (shiftId: string | null) => {
     if (!selectedEmployee) return;
     const items = weekDays.map((day) => ({
@@ -115,6 +123,7 @@ export function useWeeklyRosterHandlers({
   };
 
   return {
+    handleApplyShift,
     handleAssign,
     handleAssignAllWeek,
     handleAssignBulk: handleBulkAssign,

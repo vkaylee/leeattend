@@ -42,6 +42,7 @@ export interface UseShiftsReturn {
   employeeSchedule: EmployeeSchedule | undefined;
   employeesError: Error | null;
   endDate: string;
+  handleApplyShift: (shiftId: string | null) => void;
   handleAssign: () => void;
 
 

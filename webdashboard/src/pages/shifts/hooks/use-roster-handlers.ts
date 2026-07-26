@@ -206,6 +206,7 @@ export function useRosterHandlers({
   };
 
   return {
+    handleApplyShift: weekly.handleApplyShift,
     handleAssign: weekly.handleAssign,
     handleAssignAllWeek: weekly.handleAssignAllWeek,
     handleAssignBulk: weekly.handleAssignBulk,

@@ -716,6 +716,7 @@
       "no_results_title": "未找到匹配的班次",
       "search_placeholder": "按班次名称、符号或时间搜索（例如：早班, 08:00）..."
     },
+    "quick_shift_label": "快捷：",
     "revisions": {
       "active_version": "当前版本",
       "badge_correction": "更正",

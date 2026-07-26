@@ -58,6 +58,75 @@ export function formatShiftTimeRange(shift: Shift): string {
   return `${starts.join("/")}–${ends.join("/")}`;
 }
 
+interface QuickShiftRowProps {
+  isMutating: boolean;
+  onApplyShift: (shiftId: string | null) => void;
+  shifts?: Shift[];
+}
+
+/** Horizontally-scrollable row of top frequent shifts (mobile touch strip; wraps on larger screens). */
+export const QuickShiftRow = memo(function QuickShiftRow({
+  isMutating,
+  onApplyShift,
+  shifts,
+}: QuickShiftRowProps) {
+  const { t } = useTranslation();
+  const sortedShifts = useMemo(() => {
+    if (!shifts || shifts.length === 0) return [];
+    const freqMap = readFrequentShifts();
+    const topIds = new Set(getTopFrequentIds(freqMap));
+    const frequent = shifts
+      .filter((s) => topIds.has(s.id))
+      .sort((a, b) => (freqMap[b.id] ?? 0) - (freqMap[a.id] ?? 0));
+    const rest = shifts.filter((s) => !topIds.has(s.id));
+    return [...frequent, ...rest].slice(0, 3);
+  }, [shifts]);
+
+  if (sortedShifts.length === 0) return null;
+
+  return (
+    <div className="flex items-center gap-1.5 bg-white/10 p-1 rounded-xl overflow-x-auto scrollbar-hide sm:flex-wrap sm:overflow-visible">
+      <span className="text-[9px] text-white/70 font-bold uppercase tracking-wider px-1.5 shrink-0">{t("shifts.quick_shift_label")}</span>
+      {sortedShifts.map((shift) => {
+        const accent = getShiftAccent(shift);
+        const accentColors = ACCENT_ON_DARK[accent];
+        const timeRange = formatShiftTimeRange(shift);
+        const label = shift.report_symbol
+          ? `${shift.name} (${shift.report_symbol})`
+          : shift.name;
+        const tooltip = timeRange ? `${label}: ${timeRange}` : label;
+
+        return (
+          <Button
+            key={shift.id}
+            type="button"
+            disabled={isMutating}
+            onClick={() => { onApplyShift(shift.id); }}
+            title={tooltip}
+            aria-label={`Assign ${shift.name} shift`}
+            className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 cursor-pointer h-auto min-w-0 shrink-0",
+              "bg-white/10 hover:bg-white/20 border border-transparent hover:border-white/20",
+              "active:scale-95 focus-visible:ring-2 focus-visible:ring-white/50",
+              "text-white hover:text-white",
+            )}
+            variant="ghost"
+          >
+            <span className={cn("w-2 h-2 rounded-full shrink-0", accentColors.dot)} aria-hidden="true" />
+            <span className="flex flex-col items-start leading-tight min-w-0">
+              <span className="text-[11px] font-bold text-white truncate max-w-[100px]">{shift.name}</span>
+              {timeRange && (
+                <span className="text-[9px] text-white/60 font-medium tabular-nums">{timeRange}</span>
+              )}
+            </span>
+          </Button>
+        );
+      })}
+    </div>
+  );
+});
+QuickShiftRow.displayName = "QuickShiftRow";
+
 interface RosterActionBarProps {
   assignLabel: string;
   cancelLabel: string;
@@ -84,70 +153,22 @@ export const RosterActionBar = memo(function RosterActionBar({
   shifts,
   onApplyShift,
 }: RosterActionBarProps) {
-  const sortedShifts = useMemo(() => {
-    if (!shifts || shifts.length === 0) return [];
-    const freqMap = readFrequentShifts();
-    const topIds = new Set(getTopFrequentIds(freqMap));
-    const frequent = shifts
-      .filter((s) => topIds.has(s.id))
-      .sort((a, b) => (freqMap[b.id] ?? 0) - (freqMap[a.id] ?? 0));
-    const rest = shifts.filter((s) => !topIds.has(s.id));
-    return [...frequent, ...rest].slice(0, 3);
-  }, [shifts]);
-
   return (
-    <div className="absolute inset-0 z-40 bg-primary-600 text-white px-6 py-4 rounded-[28px] shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-200">
-      <div className="flex items-center gap-3">
-        <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
-          <Sparkles className="text-white animate-pulse" size={12} />
-        </div>
-        <span className="text-xs font-bold uppercase tracking-widest">{selectedLabel}</span>
-      </div>
-      <div className="flex items-center gap-2.5">
-        {sortedShifts.length > 0 && (
-          <div className="hidden md:flex items-center gap-1.5 mr-2 bg-white/10 p-1 rounded-xl">
-            <span className="text-[9px] text-white/70 font-bold uppercase tracking-wider px-1.5">Quick:</span>
-            {sortedShifts.map((shift) => {
-              const accent = getShiftAccent(shift);
-              const accentColors = ACCENT_ON_DARK[accent];
-              const timeRange = formatShiftTimeRange(shift);
-              const label = shift.report_symbol
-                ? `${shift.name} (${shift.report_symbol})`
-                : shift.name;
-              const tooltip = timeRange ? `${label}: ${timeRange}` : label;
-
-              return (
-                <Button
-                  key={shift.id}
-                  type="button"
-                  disabled={isMutating}
-                  onClick={() => { onApplyShift(shift.id); }}
-                  title={tooltip}
-                  aria-label={`Assign ${shift.name} shift`}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 cursor-pointer h-auto min-w-0",
-                    "bg-white/10 hover:bg-white/20 border border-transparent hover:border-white/20",
-                    "active:scale-95 focus-visible:ring-2 focus-visible:ring-white/50",
-                    "text-white hover:text-white",
-                  )}
-                  variant="ghost"
-                >
-                  <span className={cn("w-2 h-2 rounded-full shrink-0", accentColors.dot)} aria-hidden="true" />
-                  <span className="flex flex-col items-start leading-tight min-w-0">
-                    <span className="text-[11px] font-bold text-white truncate max-w-[100px]">{shift.name}</span>
-                    {timeRange && (
-                      <span className="text-[9px] text-white/60 font-medium tabular-nums">{timeRange}</span>
-                    )}
-                  </span>
-                </Button>
-              );
-            })}
+    <div className="absolute inset-0 z-40 bg-primary-600 text-white px-5 sm:px-6 py-3.5 sm:py-4 rounded-[28px] shadow-lg flex flex-col gap-3 animate-in fade-in duration-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+            <Sparkles className="text-white animate-pulse" size={12} />
           </div>
-        )}
-        <Button className="px-4 py-2 bg-white text-primary-700 hover:bg-white/90 active:scale-95 rounded-xl text-[10px] font-extrabold uppercase tracking-widest transition-all disabled:opacity-50 cursor-pointer shadow-sm" disabled={isMutating} onClick={onAssignSelected} variant="ghost">{assignLabel}</Button>
-        <Button className="p-2 border border-white/20 hover:bg-white/10 text-white rounded-xl transition-all active:scale-90 disabled:opacity-50 cursor-pointer" disabled={isMutating} onClick={onClearOverrides} title={clearLabel} variant="ghost"><Trash2 size={14} /></Button>
-        <Button className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all cursor-pointer" onClick={onCancel} variant="ghost">{cancelLabel}</Button>
+          <span className="text-xs font-bold uppercase tracking-widest">{selectedLabel}</span>
+        </div>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <Button className="px-4 py-2 bg-white text-primary-700 hover:bg-white/90 active:scale-95 rounded-xl text-[10px] font-extrabold uppercase tracking-widest transition-all disabled:opacity-50 cursor-pointer shadow-sm" disabled={isMutating} onClick={onAssignSelected} variant="ghost">{assignLabel}</Button>
+          <Button className="p-2 border border-white/20 hover:bg-white/10 text-white rounded-xl transition-all active:scale-90 disabled:opacity-50 cursor-pointer" disabled={isMutating} onClick={onClearOverrides} title={clearLabel} variant="ghost"><Trash2 size={14} /></Button>
+          <Button className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all cursor-pointer" onClick={onCancel} variant="ghost">{cancelLabel}</Button>
+        </div>
       </div>
+      <QuickShiftRow isMutating={isMutating} onApplyShift={onApplyShift} shifts={shifts} />
     </div>
   );
 });
@@ -271,22 +292,28 @@ export function WeekViewControls({ hook }: { hook: ReturnType<typeof useShifts> 
 // ── WeekActionBar + MonthOverlay ────────────────────────
 
 export function WeekActionBar({
-  selectedDays, onOpenWeekShiftPicker, onClearWeekSelection,
+  selectedDays, onOpenWeekShiftPicker, onClearWeekSelection, shifts, onApplyShift, isMutating,
 }: {
   selectedDays?: string[];
   onOpenWeekShiftPicker?: (dates: string[]) => void;
   onClearWeekSelection?: () => void;
+  shifts?: Shift[];
+  onApplyShift?: (shiftId: string | null) => void;
+  isMutating?: boolean;
 }) {
   const { t } = useTranslation();
   return (
-    <div className="absolute inset-0 z-40 bg-primary-600 text-white px-6 py-4 rounded-[28px] flex items-center justify-between shadow-xl animate-in fade-in duration-300">
-      <div className="flex items-center gap-4">
-        <span className="text-xs font-bold uppercase tracking-widest">{t("shifts.days_selected", { count: selectedDays?.length ?? 0 })}</span>
-        <div className="h-4 w-px bg-white/20" />
-        <Button className="bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-white/20 transition-all flex items-center gap-2 cursor-pointer"
-          onClick={() => { if (selectedDays && onOpenWeekShiftPicker) onOpenWeekShiftPicker(selectedDays); }} variant="ghost"><Plus size={14} /> {t("shifts.assign_selected_btn")}</Button>
+    <div className="absolute inset-0 z-40 bg-primary-600 text-white px-5 sm:px-6 py-3.5 sm:py-4 rounded-[28px] flex flex-col gap-3 shadow-xl animate-in fade-in duration-300">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-4">
+          <span className="text-xs font-bold uppercase tracking-widest">{t("shifts.days_selected", { count: selectedDays?.length ?? 0 })}</span>
+          <div className="h-4 w-px bg-white/20" />
+          <Button className="bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-white/20 transition-all flex items-center gap-2 cursor-pointer"
+            onClick={() => { if (selectedDays && onOpenWeekShiftPicker) onOpenWeekShiftPicker(selectedDays); }} variant="ghost"><Plus size={14} /> {t("shifts.assign_selected_btn")}</Button>
+        </div>
+        <Button className="hover:bg-white/10 p-2 rounded-xl transition-all cursor-pointer shrink-0" onClick={onClearWeekSelection} variant="ghost"><X size={18} /></Button>
       </div>
-      <Button className="hover:bg-white/10 p-2 rounded-xl transition-all cursor-pointer" onClick={onClearWeekSelection} variant="ghost"><X size={18} /></Button>
+      <QuickShiftRow isMutating={isMutating ?? false} onApplyShift={onApplyShift ?? noop} shifts={shifts} />
     </div>
   );
 }

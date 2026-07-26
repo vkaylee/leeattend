@@ -716,6 +716,7 @@
       "no_results_title": "Không tìm thấy ca phù hợp",
       "search_placeholder": "Tìm theo tên ca, ký hiệu hoặc giờ làm (VD: Ca Sáng, 08:00)..."
     },
+    "quick_shift_label": "Nhanh:",
     "revisions": {
       "active_version": "Hiện hành",
       "badge_correction": "Hiệu chỉnh",

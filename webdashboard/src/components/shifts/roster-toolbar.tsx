@@ -42,7 +42,16 @@ export const RosterToolbar = memo(function RosterToolbar(props: RosterToolbarPro
       </div>
 
       {viewMode === "month" && <MonthOverlay hook={hook} isMutating={props.isMutating} onApplyShift={props.onApplyShift} onAssignSelected={props.onAssignSelected} onCancelSelection={props.onCancelSelection} onClearOverrides={props.onClearOverrides} selectedCells={selectedCells} />}
-      {viewMode === "week" && !!selectedDays && selectedDays.length > 0 && <WeekActionBar onClearWeekSelection={props.onClearWeekSelection} onOpenWeekShiftPicker={props.onOpenWeekShiftPicker} selectedDays={selectedDays} />}
+      {viewMode === "week" && !!selectedDays && selectedDays.length > 0 && (
+        <WeekActionBar
+          isMutating={props.isMutating}
+          onApplyShift={props.onApplyShift}
+          onClearWeekSelection={props.onClearWeekSelection}
+          onOpenWeekShiftPicker={props.onOpenWeekShiftPicker}
+          selectedDays={selectedDays}
+          shifts={hook.shifts}
+        />
+      )}
     </div>
   );
 });

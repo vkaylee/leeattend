@@ -71,8 +71,8 @@ export default function ShiftsPage() {
         <RosterToolbar 
           hook={hook} 
           isCopying={monthlyRoster.isCopying}
-          isMutating={monthlyRoster.isMutating}
-          onApplyShift={monthlyRoster.handleApplyShift}
+          isMutating={viewMode === "month" ? monthlyRoster.isMutating : hook.bulkRosterMutation.isPending}
+          onApplyShift={viewMode === "month" ? monthlyRoster.handleApplyShift : hook.handleApplyShift}
           onAssignSelected={() => { monthlyRoster.setIsShiftPickerOpen(true); }}
           onCancelSelection={() => { monthlyRoster.setSelectedCells(new Set()); }}
           onClearOverrides={monthlyRoster.handleClearSelectedOverrides}
