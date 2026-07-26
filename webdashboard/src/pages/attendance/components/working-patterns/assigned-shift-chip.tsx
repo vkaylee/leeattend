@@ -2,6 +2,7 @@ import { X, Clock } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Shift } from "@/lib/api";
 import {
@@ -115,18 +116,19 @@ export function AssignedShiftChip({ onRemove, shift }: AssignedShiftChipProps) {
       )}
 
       {/* Remove button */}
-      <button
+      <Button
         aria-label={[t("common.remove"), shift.name].filter(Boolean).join(": ")}
         className={cn(
-          "ml-1 p-0.5 rounded-md flex-shrink-0 transition-colors",
+          "!h-auto !min-w-0 !p-0.5 !rounded-md flex-shrink-0 !gap-0",
           "opacity-50 hover:opacity-100 hover:bg-rose-100 dark:hover:bg-rose-950/50 hover:text-rose-600 dark:hover:text-rose-400",
           "focus:outline-none focus-visible:ring-1 focus-visible:ring-rose-400",
         )}
         onClick={handleRemove}
         type="button"
+        variant="ghost"
       >
         <X size={11} />
-      </button>
+      </Button>
     </span>
   );
 }

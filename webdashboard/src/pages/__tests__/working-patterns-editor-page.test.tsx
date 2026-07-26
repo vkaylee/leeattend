@@ -187,7 +187,7 @@ describe("WorkingPatternsEditorPage", () => {
     await user.click(prefillBtn);
 
     // Verify shift is rendered in document (Mon-Fri)
-    const morningShiftElements = await screen.findAllByText("MORNING SHIFT");
+    const morningShiftElements = await screen.findAllByText("Morning Shift");
     expect(morningShiftElements.length).toBeGreaterThan(0);
 
     // Click clear all
@@ -208,7 +208,7 @@ describe("WorkingPatternsEditorPage", () => {
     expect(screen.queryByText("patterns.form.clear_all_confirm")).not.toBeInTheDocument();
     
     const isMorningShiftAssigned = () => {
-      const elements = screen.queryAllByText("MORNING SHIFT");
+      const elements = screen.queryAllByText("Morning Shift");
       return elements.some(el => el.tagName.toLowerCase() === "span");
     };
     expect(isMorningShiftAssigned()).toBe(true);
