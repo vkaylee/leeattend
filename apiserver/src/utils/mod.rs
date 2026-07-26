@@ -5,6 +5,7 @@ pub mod config;
 pub mod cookies;
 pub mod datetime;
 pub mod debug;
+pub mod env_registry;
 pub mod excel_format_utils;
 pub mod file_parser;
 pub mod i18n;

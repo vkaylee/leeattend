@@ -36,6 +36,7 @@ impl Drop for PortFileGuard {
 
 #[tokio::main]
 #[allow(clippy::too_many_lines)]
+#[allow(clippy::disallowed_macros)] // eprintln! needed before tracing init for fatal config errors
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Check for openapi generation flag before everything else
     if std::env::args().any(|arg| arg == "gen-openapi") {
@@ -46,11 +47,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    // Fail-fast configuration validation
+    // ╔═══════════════════════════════════════════════════════════════╗
+    // ║  ENVIRONMENT CONFIGURATION — centralized registry            ║
+    // ╚═══════════════════════════════════════════════════════════════╝
+    // Resolve the centralized env registry and emit the startup summary
+    // BEFORE initializing tracing, so any resolution errors are visible
+    // on stderr/stdout.
+    let registry =
+        apiserver::utils::env_registry::EnvRegistry::resolve().unwrap_or_else(|errors| {
+            eprintln!("╔══════════════════════════════════════════════════════════════╗");
+            eprintln!(
+                "║  ❌ CONFIGURATION FAILURE — {} missing env var(s)      ║",
+                errors.len()
+            );
+            eprintln!("╠══════════════════════════════════════════════════════════════╣");
+            for err in &errors {
+                eprintln!("║  • {err}");
+            }
+            eprintln!("╚══════════════════════════════════════════════════════════════╝");
+            std::process::exit(1);
+        });
+
+    // Fail-fast configuration validation (uses OnceLock, reads from env)
     let config = apiserver::utils::config::get_config();
     let app_env = &config.env;
 
-    let registry = tracing_subscriber::registry()
+    let registry_for_tracing = tracing_subscriber::registry()
         .with(apiserver::utils::logging::SpanContextLayer)
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -58,49 +80,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
 
     if app_env == "production" {
-        registry
+        registry_for_tracing
             .with(
                 tracing_subscriber::fmt::layer()
                     .event_format(apiserver::utils::logging::ProductionJsonFormatter),
             )
             .init();
     } else {
-        registry.with(tracing_subscriber::fmt::layer()).init();
+        registry_for_tracing
+            .with(tracing_subscriber::fmt::layer())
+            .init();
     }
 
-    // Log loaded configuration keys (no values)
-    let mut loaded_keys = Vec::new();
-    for key in &[
-        "APP_ENV",
-        "API_ENV",
-        "APP_PORT",
-        "API_PORT",
-        "APP_HOST",
-        "API_HOST",
-        "DB_PRIMARY_URL",
-        "DB_URL",
-        "DATABASE_URL",
-        "DB_POOLER_TX_URL",
-        "DATABASE_POOLER_TX_URL",
-        "DB_POOLER_SESS_URL",
-        "DATABASE_POOLER_SESS_URL",
-        "DB_READER_URL",
-        "DATABASE_READER_URL",
-        "REDIS_URL",
-        "JWT_SECRET",
-        "COOKIE_DOMAIN",
-        "ALLOWED_ORIGINS",
-        "ENCRYPTION_KEYS_JSON",
-    ] {
-        if std::env::var(key).is_ok() {
-            loaded_keys.push(*key);
-        }
-    }
-    tracing::info!(
-        app_env = %app_env,
-        loaded_keys = ?loaded_keys,
-        "Configuration loaded successfully"
-    );
+    // Emit the full startup configuration summary
+    registry.show_summary();
 
     // Initialize configurable database pools (API + Worker + optional Reader)
     let db_config = DbPoolConfig::from_env()?;
@@ -208,19 +201,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = create_app(std::sync::Arc::clone(&state));
 
-    let host = std::env::var("APP_HOST")
-        .or_else(|_| std::env::var("API_HOST"))
-        .unwrap_or_else(|_| "0.0.0.0".to_string());
-    let host = host.trim().to_string();
-    let port_str = std::env::var("APP_PORT")
-        .or_else(|_| std::env::var("API_PORT"))
-        .unwrap_or_else(|_| "3000".to_string());
-    let preferred_port = port_str.parse::<u16>().map_err(|e| {
-        Box::<dyn std::error::Error>::from(format!("FATAL: Invalid APP_PORT/API_PORT: {e}"))
-    })?;
+    // ── Bind to port (from AppConfig, already validated) ──────────────────
 
-    let port_file_name =
-        std::env::var("PORT_FILE_NAME").unwrap_or_else(|_| ".api_port".to_string());
+    let host = config.host.clone();
+    let preferred_port = config.port;
+    let port_file_name = config.port_file_name.clone();
     let _ = std::fs::remove_file(&port_file_name);
 
     let listener = {
