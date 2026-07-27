@@ -20,32 +20,32 @@ pub fn merge_layer(acc: &mut PolicyRules, layer: &PartialPolicyRules) {
     // Numeric fields: override + delta.
     let grace = merge_i32(
         acc.grace_period_minutes(),
-        layer.override_grace_period_minutes,
-        layer.delta_grace_period_minutes,
+        layer.override_grace_period_minutes(),
+        layer.delta_grace_period_minutes(),
     );
     acc.set_grace_period_minutes(grace);
 
     let ael = merge_i32(
         acc.authorized_early_leave_minutes(),
-        layer.override_authorized_early_leave_minutes,
-        layer.delta_authorized_early_leave_minutes,
+        layer.override_authorized_early_leave_minutes(),
+        layer.delta_authorized_early_leave_minutes(),
     );
     acc.set_authorized_early_leave_minutes(ael);
 
     // Bool / enum fields: override only.
-    if let Some(v) = layer.override_is_early_leave_paid {
+    if let Some(v) = layer.override_is_early_leave_paid() {
         acc.set_is_early_leave_paid(v);
     }
-    if let Some(v) = layer.override_early_arrival_strategy {
+    if let Some(v) = layer.override_early_arrival_strategy() {
         acc.set_early_arrival_strategy(v);
     }
-    if let Some(v) = layer.override_is_break_auto_deduct {
+    if let Some(v) = layer.override_is_break_auto_deduct() {
         acc.set_is_break_auto_deduct(v);
     }
-    if let Some(v) = layer.override_is_break_overtime {
+    if let Some(v) = layer.override_is_break_overtime() {
         acc.set_is_break_overtime(v);
     }
-    if let Some(v) = layer.override_allow_early_ot {
+    if let Some(v) = layer.override_allow_early_ot() {
         acc.set_allow_early_ot(v);
     }
 }
@@ -80,10 +80,7 @@ mod tests {
         let mut acc = base_rules();
         merge_layer(
             &mut acc,
-            &PartialPolicyRules {
-                override_grace_period_minutes: Some(20),
-                ..Default::default()
-            },
+            &PartialPolicyRules::default().with_override_grace_period_minutes(20),
         );
         assert_eq!(acc.grace_period_minutes(), 20);
     }
@@ -93,10 +90,7 @@ mod tests {
         let mut acc = base_rules();
         merge_layer(
             &mut acc,
-            &PartialPolicyRules {
-                delta_grace_period_minutes: Some(30),
-                ..Default::default()
-            },
+            &PartialPolicyRules::default().with_delta_grace_period_minutes(30),
         );
         assert_eq!(acc.grace_period_minutes(), 40);
     }
@@ -106,11 +100,9 @@ mod tests {
         let mut acc = base_rules();
         merge_layer(
             &mut acc,
-            &PartialPolicyRules {
-                override_grace_period_minutes: Some(20),
-                delta_grace_period_minutes: Some(5),
-                ..Default::default()
-            },
+            &PartialPolicyRules::default()
+                .with_override_grace_period_minutes(20)
+                .with_delta_grace_period_minutes(5),
         );
         assert_eq!(acc.grace_period_minutes(), 25);
     }
@@ -122,10 +114,7 @@ mod tests {
         // L2a: override 20
         merge_layer(
             &mut acc,
-            &PartialPolicyRules {
-                override_grace_period_minutes: Some(20),
-                ..Default::default()
-            },
+            &PartialPolicyRules::default().with_override_grace_period_minutes(20),
         );
         assert_eq!(acc.grace_period_minutes(), 20);
         // L2b: nothing
@@ -136,19 +125,13 @@ mod tests {
         // L2.5: delta +30
         merge_layer(
             &mut acc,
-            &PartialPolicyRules {
-                delta_grace_period_minutes: Some(30),
-                ..Default::default()
-            },
+            &PartialPolicyRules::default().with_delta_grace_period_minutes(30),
         );
         assert_eq!(acc.grace_period_minutes(), 50);
         // L3: override 15 — resets the whole chain
         merge_layer(
             &mut acc,
-            &PartialPolicyRules {
-                override_grace_period_minutes: Some(15),
-                ..Default::default()
-            },
+            &PartialPolicyRules::default().with_override_grace_period_minutes(15),
         );
         assert_eq!(acc.grace_period_minutes(), 15);
     }
@@ -158,12 +141,10 @@ mod tests {
         let mut acc = base_rules();
         merge_layer(
             &mut acc,
-            &PartialPolicyRules {
-                override_is_break_overtime: Some(true),
-                override_early_arrival_strategy: Some(EarlyArrivalStrategy::Clamp),
-                override_allow_early_ot: Some(true),
-                ..Default::default()
-            },
+            &PartialPolicyRules::default()
+                .with_override_is_break_overtime(true)
+                .with_override_early_arrival_strategy(EarlyArrivalStrategy::Clamp)
+                .with_override_allow_early_ot(true),
         );
         assert!(acc.is_break_overtime());
         assert!(acc.allow_early_ot());

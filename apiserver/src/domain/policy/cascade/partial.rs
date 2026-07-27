@@ -13,29 +13,29 @@ use serde::{Deserialize, Serialize};
 #[serde(deny_unknown_fields, default)]
 pub struct PartialPolicyRules {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub override_grace_period_minutes: Option<i32>,
+    override_grace_period_minutes: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub delta_grace_period_minutes: Option<i32>,
+    delta_grace_period_minutes: Option<i32>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub override_authorized_early_leave_minutes: Option<i32>,
+    override_authorized_early_leave_minutes: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub delta_authorized_early_leave_minutes: Option<i32>,
+    delta_authorized_early_leave_minutes: Option<i32>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub override_is_early_leave_paid: Option<bool>,
+    override_is_early_leave_paid: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub override_early_arrival_strategy: Option<EarlyArrivalStrategy>,
+    override_early_arrival_strategy: Option<EarlyArrivalStrategy>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub override_is_break_auto_deduct: Option<bool>,
+    override_is_break_auto_deduct: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub override_is_break_overtime: Option<bool>,
+    override_is_break_overtime: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub override_allow_early_ot: Option<bool>,
+    override_allow_early_ot: Option<bool>,
 }
 
 impl PartialPolicyRules {
@@ -49,6 +49,82 @@ impl PartialPolicyRules {
             && self.override_is_break_auto_deduct.is_none()
             && self.override_is_break_overtime.is_none()
             && self.override_allow_early_ot.is_none()
+    }
+
+    // Getters — all fields are Copy so return by value.
+    pub fn override_grace_period_minutes(&self) -> Option<i32> {
+        self.override_grace_period_minutes
+    }
+    pub fn delta_grace_period_minutes(&self) -> Option<i32> {
+        self.delta_grace_period_minutes
+    }
+    pub fn override_authorized_early_leave_minutes(&self) -> Option<i32> {
+        self.override_authorized_early_leave_minutes
+    }
+    pub fn delta_authorized_early_leave_minutes(&self) -> Option<i32> {
+        self.delta_authorized_early_leave_minutes
+    }
+    pub fn override_is_early_leave_paid(&self) -> Option<bool> {
+        self.override_is_early_leave_paid
+    }
+    pub fn override_early_arrival_strategy(&self) -> Option<EarlyArrivalStrategy> {
+        self.override_early_arrival_strategy
+    }
+    pub fn override_is_break_auto_deduct(&self) -> Option<bool> {
+        self.override_is_break_auto_deduct
+    }
+    pub fn override_is_break_overtime(&self) -> Option<bool> {
+        self.override_is_break_overtime
+    }
+    pub fn override_allow_early_ot(&self) -> Option<bool> {
+        self.override_allow_early_ot
+    }
+
+    // Fluent builders — `impl Into<Option<T>>` so callers can pass either `T` or `Option<T>`.
+    pub fn with_override_grace_period_minutes(mut self, v: impl Into<Option<i32>>) -> Self {
+        self.override_grace_period_minutes = v.into();
+        self
+    }
+    pub fn with_delta_grace_period_minutes(mut self, v: impl Into<Option<i32>>) -> Self {
+        self.delta_grace_period_minutes = v.into();
+        self
+    }
+    pub fn with_override_authorized_early_leave_minutes(
+        mut self,
+        v: impl Into<Option<i32>>,
+    ) -> Self {
+        self.override_authorized_early_leave_minutes = v.into();
+        self
+    }
+    pub fn with_delta_authorized_early_leave_minutes(
+        mut self,
+        v: impl Into<Option<i32>>,
+    ) -> Self {
+        self.delta_authorized_early_leave_minutes = v.into();
+        self
+    }
+    pub fn with_override_is_early_leave_paid(mut self, v: impl Into<Option<bool>>) -> Self {
+        self.override_is_early_leave_paid = v.into();
+        self
+    }
+    pub fn with_override_early_arrival_strategy(
+        mut self,
+        v: impl Into<Option<EarlyArrivalStrategy>>,
+    ) -> Self {
+        self.override_early_arrival_strategy = v.into();
+        self
+    }
+    pub fn with_override_is_break_auto_deduct(mut self, v: impl Into<Option<bool>>) -> Self {
+        self.override_is_break_auto_deduct = v.into();
+        self
+    }
+    pub fn with_override_is_break_overtime(mut self, v: impl Into<Option<bool>>) -> Self {
+        self.override_is_break_overtime = v.into();
+        self
+    }
+    pub fn with_override_allow_early_ot(mut self, v: impl Into<Option<bool>>) -> Self {
+        self.override_allow_early_ot = v.into();
+        self
     }
 }
 
@@ -66,11 +142,9 @@ mod tests {
 
     #[test]
     fn only_set_fields_are_serialized() {
-        let p = PartialPolicyRules {
-            override_grace_period_minutes: Some(20),
-            delta_grace_period_minutes: Some(-5),
-            ..Default::default()
-        };
+        let p = PartialPolicyRules::default()
+            .with_override_grace_period_minutes(20)
+            .with_delta_grace_period_minutes(-5);
         let json = serde_json::to_value(&p).unwrap();
         let obj = json.as_object().unwrap();
         assert_eq!(obj.len(), 2);
@@ -92,19 +166,28 @@ mod tests {
 
     #[test]
     fn roundtrip_preserves_all_populated_fields() {
-        let p = PartialPolicyRules {
-            override_grace_period_minutes: Some(30),
-            delta_grace_period_minutes: Some(10),
-            override_authorized_early_leave_minutes: Some(45),
-            delta_authorized_early_leave_minutes: Some(-15),
-            override_is_early_leave_paid: Some(true),
-            override_early_arrival_strategy: Some(EarlyArrivalStrategy::Clamp),
-            override_is_break_auto_deduct: Some(false),
-            override_is_break_overtime: Some(true),
-            override_allow_early_ot: Some(true),
-        };
+        let p = PartialPolicyRules::default()
+            .with_override_grace_period_minutes(30)
+            .with_delta_grace_period_minutes(10)
+            .with_override_authorized_early_leave_minutes(45)
+            .with_delta_authorized_early_leave_minutes(-15)
+            .with_override_is_early_leave_paid(true)
+            .with_override_early_arrival_strategy(EarlyArrivalStrategy::Clamp)
+            .with_override_is_break_auto_deduct(false)
+            .with_override_is_break_overtime(true)
+            .with_override_allow_early_ot(true);
         let json = serde_json::to_string(&p).unwrap();
         let back: PartialPolicyRules = serde_json::from_str(&json).unwrap();
         assert_eq!(p, back);
+    }
+
+    #[test]
+    fn getters_reflect_builder_state() {
+        let p = PartialPolicyRules::default()
+            .with_override_grace_period_minutes(20)
+            .with_delta_grace_period_minutes(-5);
+        assert_eq!(p.override_grace_period_minutes(), Some(20));
+        assert_eq!(p.delta_grace_period_minutes(), Some(-5));
+        assert_eq!(p.override_is_early_leave_paid(), None);
     }
 }

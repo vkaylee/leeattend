@@ -10,19 +10,63 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BaseFieldSpec<T> {
-    pub default_value: T,
+    default_value: T,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub absolute_min: Option<T>,
+    absolute_min: Option<T>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub absolute_max: Option<T>,
+    absolute_max: Option<T>,
+}
+
+impl<T: Copy> BaseFieldSpec<T> {
+    pub fn new(default_value: T, absolute_min: Option<T>, absolute_max: Option<T>) -> Self {
+        Self {
+            default_value,
+            absolute_min,
+            absolute_max,
+        }
+    }
+
+    pub fn default_value(&self) -> T {
+        self.default_value
+    }
+    pub fn absolute_min(&self) -> Option<T> {
+        self.absolute_min
+    }
+    pub fn absolute_max(&self) -> Option<T> {
+        self.absolute_max
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClampWarning {
-    pub field: String,
-    pub before: i64,
-    pub after: i64,
-    pub reason: ClampReason,
+    field: String,
+    before: i64,
+    after: i64,
+    reason: ClampReason,
+}
+
+impl ClampWarning {
+    pub fn new(field: impl Into<String>, before: i64, after: i64, reason: ClampReason) -> Self {
+        Self {
+            field: field.into(),
+            before,
+            after,
+            reason,
+        }
+    }
+
+    pub fn field(&self) -> &str {
+        &self.field
+    }
+    pub fn before(&self) -> i64 {
+        self.before
+    }
+    pub fn after(&self) -> i64 {
+        self.after
+    }
+    pub fn reason(&self) -> ClampReason {
+        self.reason
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -35,29 +79,29 @@ pub enum ClampReason {
 /// Clamp `value` to `[spec.absolute_min, spec.absolute_max]`. Returns the
 /// clamped value and a `ClampWarning` when the value was moved.
 pub fn clamp_i32(field: &str, value: i32, spec: &BaseFieldSpec<i32>) -> (i32, Option<ClampWarning>) {
-    if let Some(min) = spec.absolute_min {
+    if let Some(min) = spec.absolute_min() {
         if value < min {
             return (
                 min,
-                Some(ClampWarning {
-                    field: field.to_string(),
-                    before: value as i64,
-                    after: min as i64,
-                    reason: ClampReason::BelowMin,
-                }),
+                Some(ClampWarning::new(
+                    field,
+                    value as i64,
+                    min as i64,
+                    ClampReason::BelowMin,
+                )),
             );
         }
     }
-    if let Some(max) = spec.absolute_max {
+    if let Some(max) = spec.absolute_max() {
         if value > max {
             return (
                 max,
-                Some(ClampWarning {
-                    field: field.to_string(),
-                    before: value as i64,
-                    after: max as i64,
-                    reason: ClampReason::AboveMax,
-                }),
+                Some(ClampWarning::new(
+                    field,
+                    value as i64,
+                    max as i64,
+                    ClampReason::AboveMax,
+                )),
             );
         }
     }
@@ -69,11 +113,7 @@ mod tests {
     use super::*;
 
     fn spec(min: Option<i32>, max: Option<i32>) -> BaseFieldSpec<i32> {
-        BaseFieldSpec {
-            default_value: 0,
-            absolute_min: min,
-            absolute_max: max,
-        }
+        BaseFieldSpec::new(0, min, max)
     }
 
     #[test]
@@ -88,10 +128,10 @@ mod tests {
         let (v, w) = clamp_i32("grace", -5, &spec(Some(0), Some(120)));
         assert_eq!(v, 0);
         let w = w.unwrap();
-        assert_eq!(w.field, "grace");
-        assert_eq!(w.before, -5);
-        assert_eq!(w.after, 0);
-        assert_eq!(w.reason, ClampReason::BelowMin);
+        assert_eq!(w.field(), "grace");
+        assert_eq!(w.before(), -5);
+        assert_eq!(w.after(), 0);
+        assert_eq!(w.reason(), ClampReason::BelowMin);
     }
 
     #[test]
@@ -99,8 +139,8 @@ mod tests {
         let (v, w) = clamp_i32("grace", 999, &spec(Some(0), Some(120)));
         assert_eq!(v, 120);
         let w = w.unwrap();
-        assert_eq!(w.after, 120);
-        assert_eq!(w.reason, ClampReason::AboveMax);
+        assert_eq!(w.after(), 120);
+        assert_eq!(w.reason(), ClampReason::AboveMax);
     }
 
     #[test]

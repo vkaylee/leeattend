@@ -25,8 +25,21 @@ pub const MIN_SLICE_MINUTES: i64 = 1;
 /// The shift's local-time window, tz-aware.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ShiftSchedule {
-    pub start: DateTime<Tz>,
-    pub end: DateTime<Tz>,
+    start: DateTime<Tz>,
+    end: DateTime<Tz>,
+}
+
+impl ShiftSchedule {
+    pub fn new(start: DateTime<Tz>, end: DateTime<Tz>) -> Self {
+        Self { start, end }
+    }
+
+    pub fn start(&self) -> DateTime<Tz> {
+        self.start
+    }
+    pub fn end(&self) -> DateTime<Tz> {
+        self.end
+    }
 }
 
 /// One evaluation-unit produced by `decompose_shift`.
@@ -36,12 +49,29 @@ pub struct ShiftSchedule {
 /// owned by the policy/holiday layer, not by this module.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Slice {
-    pub start: DateTime<Tz>,
-    pub end: DateTime<Tz>,
-    pub day_type: String,
+    start: DateTime<Tz>,
+    end: DateTime<Tz>,
+    day_type: String,
 }
 
 impl Slice {
+    pub fn new(start: DateTime<Tz>, end: DateTime<Tz>, day_type: impl Into<String>) -> Self {
+        Self {
+            start,
+            end,
+            day_type: day_type.into(),
+        }
+    }
+
+    pub fn start(&self) -> DateTime<Tz> {
+        self.start
+    }
+    pub fn end(&self) -> DateTime<Tz> {
+        self.end
+    }
+    pub fn day_type(&self) -> &str {
+        &self.day_type
+    }
     pub fn duration_minutes(&self) -> i64 {
         (self.end - self.start).num_minutes()
     }
@@ -76,12 +106,12 @@ pub fn decompose_shift<F>(schedule: &ShiftSchedule, tz: &Tz, day_type_of: F) -> 
 where
     F: Fn(NaiveDate) -> String,
 {
-    if schedule.end <= schedule.start {
+    if schedule.end() <= schedule.start() {
         return Vec::new();
     }
 
-    let start_local = schedule.start.with_timezone(tz);
-    let end_local = schedule.end.with_timezone(tz);
+    let start_local = schedule.start().with_timezone(tz);
+    let end_local = schedule.end().with_timezone(tz);
 
     let mut cuts: Vec<DateTime<Tz>> = vec![start_local];
     let mut cursor_date = start_local.date_naive();
@@ -102,11 +132,7 @@ where
 
     let mut slices: Vec<Slice> = cuts
         .windows(2)
-        .map(|w| Slice {
-            start: w[0],
-            end: w[1],
-            day_type: day_type_of(w[0].date_naive()),
-        })
+        .map(|w| Slice::new(w[0], w[1], day_type_of(w[0].date_naive())))
         .collect();
 
     merge_slivers(&mut slices);
@@ -138,7 +164,7 @@ fn merge_slivers(slices: &mut Vec<Slice>) {
     let mut i = 0;
     while i + 1 < slices.len() {
         if slices[i].duration_minutes() <= MIN_SLICE_MINUTES {
-            let sliver_start = slices[i].start;
+            let sliver_start = slices[i].start();
             slices[i + 1].start = sliver_start;
             slices.remove(i);
         } else {
@@ -148,7 +174,7 @@ fn merge_slivers(slices: &mut Vec<Slice>) {
     if slices.len() >= 2 {
         let last = slices.len() - 1;
         if slices[last].duration_minutes() <= MIN_SLICE_MINUTES {
-            let sliver_end = slices[last].end;
+            let sliver_end = slices[last].end();
             slices[last - 1].end = sliver_end;
             slices.remove(last);
         }
@@ -173,7 +199,7 @@ mod tests {
     }
 
     fn schedule(start: DateTime<Tz>, end: DateTime<Tz>) -> ShiftSchedule {
-        ShiftSchedule { start, end }
+        ShiftSchedule::new(start, end)
     }
 
     #[test]
@@ -185,9 +211,9 @@ mod tests {
         let end = local_to_tz(&tz, d, 17, 0, 0).unwrap();
         let slices = decompose_shift(&schedule(start, end), &tz, weekday_or_sunday);
         assert_eq!(slices.len(), 1);
-        assert_eq!(slices[0].start, start);
-        assert_eq!(slices[0].end, end);
-        assert_eq!(slices[0].day_type, "weekday");
+        assert_eq!(slices[0].start(), start);
+        assert_eq!(slices[0].end(), end);
+        assert_eq!(slices[0].day_type(), "weekday");
         assert_eq!(slices[0].duration_minutes(), 9 * 60);
     }
 
@@ -210,12 +236,12 @@ mod tests {
         };
         let slices = decompose_shift(&schedule(start, end), &tz, resolver);
         assert_eq!(slices.len(), 2);
-        assert_eq!(slices[0].day_type, "sunday");
-        assert_eq!(slices[1].day_type, "holiday_national");
+        assert_eq!(slices[0].day_type(), "sunday");
+        assert_eq!(slices[1].day_type(), "holiday_national");
         assert_eq!(slices[0].duration_minutes(), 2 * 60);
         assert_eq!(slices[1].duration_minutes(), 6 * 60);
         // Boundary continuity: slice[0].end == slice[1].start.
-        assert_eq!(slices[0].end, slices[1].start);
+        assert_eq!(slices[0].end(), slices[1].start());
     }
 
     #[test]
@@ -228,10 +254,10 @@ mod tests {
         let end = local_to_tz(&tz, mon, 0, 1, 0).unwrap();
         let slices = decompose_shift(&schedule(start, end), &tz, weekday_or_sunday);
         assert_eq!(slices.len(), 1);
-        assert_eq!(slices[0].start, start);
-        assert_eq!(slices[0].end, end);
+        assert_eq!(slices[0].start(), start);
+        assert_eq!(slices[0].end(), end);
         // Left sliver absorbs into right → right's day_type wins.
-        assert_eq!(slices[0].day_type, "weekday");
+        assert_eq!(slices[0].day_type(), "weekday");
     }
 
     #[test]
@@ -246,8 +272,8 @@ mod tests {
         assert_eq!(slices[0].duration_minutes(), 16 * 60); // 08:00→24:00
         assert_eq!(slices[1].duration_minutes(), 24 * 60); // full day
         assert_eq!(slices[2].duration_minutes(), 12 * 60); // 00:00→12:00
-        assert_eq!(slices[0].end, slices[1].start);
-        assert_eq!(slices[1].end, slices[2].start);
+        assert_eq!(slices[0].end(), slices[1].start());
+        assert_eq!(slices[1].end(), slices[2].start());
     }
 
     #[test]
@@ -261,8 +287,8 @@ mod tests {
         let slices = decompose_shift(&schedule(start, end), &tz, weekday_or_sunday);
         // Trailing 30-s slice merges into the 16h slice on the left.
         assert_eq!(slices.len(), 1);
-        assert_eq!(slices[0].start, start);
-        assert_eq!(slices[0].end, end);
+        assert_eq!(slices[0].start(), start);
+        assert_eq!(slices[0].end(), end);
     }
 
     #[test]

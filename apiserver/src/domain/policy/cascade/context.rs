@@ -15,16 +15,61 @@ use uuid::Uuid;
 /// it "wins" per ADR-001 semantics).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EmployeeModifier {
-    pub modifier_id: Uuid,
-    pub priority_rank: i32,
-    pub contributions: PartialPolicyRules,
+    modifier_id: Uuid,
+    priority_rank: i32,
+    contributions: PartialPolicyRules,
+}
+
+impl EmployeeModifier {
+    pub fn new(modifier_id: Uuid, priority_rank: i32, contributions: PartialPolicyRules) -> Self {
+        Self {
+            modifier_id,
+            priority_rank,
+            contributions,
+        }
+    }
+
+    pub fn modifier_id(&self) -> Uuid {
+        self.modifier_id
+    }
+    pub fn priority_rank(&self) -> i32 {
+        self.priority_rank
+    }
+    pub fn contributions(&self) -> &PartialPolicyRules {
+        &self.contributions
+    }
+
+    /// Destructure by move for engine consumption.
+    pub fn into_parts(self) -> (Uuid, i32, PartialPolicyRules) {
+        (self.modifier_id, self.priority_rank, self.contributions)
+    }
 }
 
 /// One resolved L3 row (rare — at most one exception per employee per date).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AttendanceException {
-    pub exception_id: Uuid,
-    pub contributions: PartialPolicyRules,
+    exception_id: Uuid,
+    contributions: PartialPolicyRules,
+}
+
+impl AttendanceException {
+    pub fn new(exception_id: Uuid, contributions: PartialPolicyRules) -> Self {
+        Self {
+            exception_id,
+            contributions,
+        }
+    }
+
+    pub fn exception_id(&self) -> Uuid {
+        self.exception_id
+    }
+    pub fn contributions(&self) -> &PartialPolicyRules {
+        &self.contributions
+    }
+
+    pub fn into_parts(self) -> (Uuid, PartialPolicyRules) {
+        (self.exception_id, self.contributions)
+    }
 }
 
 /// Every input the cascade needs, pre-loaded.
@@ -33,27 +78,122 @@ pub struct AttendanceException {
 /// still emits an empty trace entry so the audit shape stays stable.
 #[derive(Debug, Clone)]
 pub struct EvaluationContext {
-    pub policy_version_id: Uuid,
-    pub base_rules: BaseRules,
+    policy_version_id: Uuid,
+    base_rules: BaseRules,
 
-    pub day_type: Option<String>,
-    pub day_type_contribution: Option<PartialPolicyRules>,
+    day_type: Option<String>,
+    day_type_contribution: Option<PartialPolicyRules>,
 
-    pub shift_template_id: Option<Uuid>,
-    pub shift_template_contribution: Option<PartialPolicyRules>,
+    shift_template_id: Option<Uuid>,
+    shift_template_contribution: Option<PartialPolicyRules>,
 
-    pub shift_version_id: Option<Uuid>,
-    pub shift_version_contribution: Option<PartialPolicyRules>,
+    shift_version_id: Option<Uuid>,
+    shift_version_contribution: Option<PartialPolicyRules>,
 
-    pub employee_modifiers: Vec<EmployeeModifier>,
-    pub exception: Option<AttendanceException>,
+    employee_modifiers: Vec<EmployeeModifier>,
+    exception: Option<AttendanceException>,
 }
 
 impl EvaluationContext {
+    pub fn new(policy_version_id: Uuid, base_rules: BaseRules) -> Self {
+        Self {
+            policy_version_id,
+            base_rules,
+            day_type: None,
+            day_type_contribution: None,
+            shift_template_id: None,
+            shift_template_contribution: None,
+            shift_version_id: None,
+            shift_version_contribution: None,
+            employee_modifiers: Vec::new(),
+            exception: None,
+        }
+    }
+
+    // Fluent builders.
+    pub fn with_day_type(mut self, day_type: impl Into<String>, contribution: PartialPolicyRules) -> Self {
+        self.day_type = Some(day_type.into());
+        self.day_type_contribution = Some(contribution);
+        self
+    }
+    pub fn with_shift_template(mut self, id: Uuid, contribution: PartialPolicyRules) -> Self {
+        self.shift_template_id = Some(id);
+        self.shift_template_contribution = Some(contribution);
+        self
+    }
+    pub fn with_shift_version(mut self, id: Uuid, contribution: PartialPolicyRules) -> Self {
+        self.shift_version_id = Some(id);
+        self.shift_version_contribution = Some(contribution);
+        self
+    }
+    pub fn push_modifier(mut self, modifier: EmployeeModifier) -> Self {
+        self.employee_modifiers.push(modifier);
+        self
+    }
+    pub fn with_exception(mut self, exception: AttendanceException) -> Self {
+        self.exception = Some(exception);
+        self
+    }
+
+    // Getters.
+    pub fn policy_version_id(&self) -> Uuid {
+        self.policy_version_id
+    }
+    pub fn base_rules(&self) -> &BaseRules {
+        &self.base_rules
+    }
+    pub fn day_type(&self) -> Option<&str> {
+        self.day_type.as_deref()
+    }
+    pub fn shift_template_id(&self) -> Option<Uuid> {
+        self.shift_template_id
+    }
+    pub fn shift_version_id(&self) -> Option<Uuid> {
+        self.shift_version_id
+    }
+    pub fn employee_modifiers(&self) -> &[EmployeeModifier] {
+        &self.employee_modifiers
+    }
+    pub fn exception(&self) -> Option<&AttendanceException> {
+        self.exception.as_ref()
+    }
+
     /// Sort modifiers so the cascade applies them from highest `priority_rank`
     /// down to lowest — lowest runs last and wins per-field conflicts.
     pub fn sort_modifiers(&mut self) {
         self.employee_modifiers
             .sort_by(|a, b| b.priority_rank.cmp(&a.priority_rank));
+    }
+
+    /// Consume the context; hand every layer contribution to the engine.
+    /// Ordering: `(policy_version_id, base_rules, day_type, l2a, shift_template_id,
+    /// l2b, shift_version_id, l2c, modifiers, exception)`.
+    #[allow(clippy::type_complexity)]
+    pub fn into_parts(
+        self,
+    ) -> (
+        Uuid,
+        BaseRules,
+        Option<String>,
+        Option<PartialPolicyRules>,
+        Option<Uuid>,
+        Option<PartialPolicyRules>,
+        Option<Uuid>,
+        Option<PartialPolicyRules>,
+        Vec<EmployeeModifier>,
+        Option<AttendanceException>,
+    ) {
+        (
+            self.policy_version_id,
+            self.base_rules,
+            self.day_type,
+            self.day_type_contribution,
+            self.shift_template_id,
+            self.shift_template_contribution,
+            self.shift_version_id,
+            self.shift_version_contribution,
+            self.employee_modifiers,
+            self.exception,
+        )
     }
 }
