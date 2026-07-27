@@ -81,6 +81,15 @@ trigger: always_on
 - **Observability:** `@[.agent/rules/observability-rules.md]` (Structured logging, monitoring, alerting, tracing)
 - **Business Continuity:** `@[.agent/rules/business-continuity.md]` (RPO/RTO, backup policy, failover, DR testing)
 
+### 📐 Architecture Decision Records (ADR)
+> Immutable design decisions. Read BEFORE working on the corresponding subsystem. See `@[.agent/adr/README.md]` for full index.
+- **Attendance Policy Engine (V5):** Layered Explicit Policy System — 6-layer cascade, field-level `Option<T>` merge, immutable snapshot + cascade trace, dual-run migration.
+  - `@[.agent/adr/ADR-001-foundation-up-layered-hierarchy.md]` — Cascade order & priority rank
+  - `@[.agent/adr/ADR-002-field-level-option-cascade.md]` — Merge formula & absolute caps
+  - `@[.agent/adr/ADR-003-time-sliced-evaluation.md]` — Overnight slice + per-rule anchoring matrix
+  - `@[.agent/adr/ADR-004-immutable-snapshot-cascade-trace.md]` — DRAFT/ACTIVE/FROZEN lifecycle + `rules_hash` + supersede
+  - `@[.agent/adr/ADR-005-dual-run-shadow-rollback.md]` — 14-day shadow → cutover → 30-day dual-run
+
 ## 🔌 External Skill Integration (Plugin Protocol)
 To prevent capability limitations, this workspace supports external AI skills:
 1. **Persona-Bound:** External skills must be registered directly inside the specific `.agent/agents/*.md` file. Do NOT load global skills randomly.
