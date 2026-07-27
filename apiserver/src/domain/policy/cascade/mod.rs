@@ -15,6 +15,7 @@ pub mod context;
 pub mod engine;
 pub mod merge;
 pub mod partial;
+pub mod time_slice;
 pub mod trace;
 
 pub use engine::evaluate;
