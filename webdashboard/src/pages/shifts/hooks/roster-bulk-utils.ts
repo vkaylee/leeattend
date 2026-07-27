@@ -75,6 +75,10 @@ export async function runRosterBulk<T>({
     const cf = findComplianceFailure(failures);
     if (cf) {
       onComplianceFailure(cf);
+      // Compliance conflicts still count as failed roster writes. Keep the
+      // row-level/modal details, but always provide a visible toast so a bulk
+      // operation can never fail silently.
+      toast.error(t(partialFailureKey, { count: failures.length }));
       return;
     }
   }

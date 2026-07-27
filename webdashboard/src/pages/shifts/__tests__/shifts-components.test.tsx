@@ -23,6 +23,13 @@ vi.mock("@/components/shifts/pattern-assignment-form", () => ({ PatternAssignmen
 vi.mock("@/components/shifts/shift-list", () => ({ ShiftList: () => <div data-testid="shift-list" /> }));
 vi.mock("@/components/shifts/priority-legend", () => ({ PriorityLegend: () => <div data-testid="priority-legend" /> }));
 vi.mock("@/components/shifts/assignment-history", () => ({ AssignmentHistory: () => <div data-testid="assignment-history" /> }));
+vi.mock("@/components/shifts/compliance-warning-modal", () => ({
+  ComplianceWarningModal: (props: any) => props.isOpen ? (
+    <Button data-testid="compliance-modal" onClick={() => props.onConfirm("Approved override")} variant="ghost">
+      Confirm override
+    </Button>
+  ) : null,
+}));
 
 vi.mock("@/components/shifts/shift-picker-modal", () => ({ ShiftPickerModal: (props: any) => <Button data-testid="picker-modal" onClick={props.onClose} variant="ghost">Close</Button> }));
 vi.mock("@/components/ui/modal", () => ({
@@ -96,6 +103,11 @@ describe("Shifts Components Unit Tests", () => {
     setEditingShift: vi.fn(),
     setIsCorrection: vi.fn(),
     setNewShiftGrace: vi.fn(),
+    complianceModalOpen: false,
+    complianceViolations: [],
+    isComplianceResolving: false,
+    onComplianceOverride: vi.fn(),
+    setComplianceModalOpen: vi.fn(),
   };
 
   const mockMonthlyRoster = {
@@ -173,5 +185,18 @@ describe("Shifts Components Unit Tests", () => {
     getByTestId("picker-modal").click();
     expect(mockHook.setIsShiftPickerOpen).toHaveBeenCalledWith(false);
     expect(mockHook.setTargetDates).toHaveBeenCalledWith([]);
+  });
+
+  it("renders compliance override feedback for monthly roster conflicts", () => {
+    const hook = {
+      ...mockHook,
+      complianceModalOpen: true,
+      complianceViolations: [{ violation_type: "rest_period", message: "Insufficient rest" }],
+    };
+    const { getByTestId } = render(<ShiftsModals hook={hook as any} />);
+
+    getByTestId("compliance-modal").click();
+
+    expect(hook.onComplianceOverride).toHaveBeenCalledWith("Approved override");
   });
 });

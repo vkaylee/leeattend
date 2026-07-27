@@ -2,6 +2,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { ComplianceWarningModal } from "@/components/shifts/compliance-warning-modal";
 import { PatternAssignmentForm } from "@/components/shifts/pattern-assignment-form";
 import { ShiftPickerModal } from "@/components/shifts/shift-picker-modal";
 import Modal from "@/components/ui/modal";
@@ -17,6 +18,13 @@ export function ShiftsModals({ hook }: ShiftsModalsProps) {
     <>
       <ShiftPicker hook={hook} />
       <PatternAssignmentPicker hook={hook} />
+      <ComplianceWarningModal
+        isLoading={hook.isComplianceResolving}
+        isOpen={hook.complianceModalOpen}
+        onClose={() => { hook.setComplianceModalOpen(false); }}
+        onConfirm={(reason) => { void hook.onComplianceOverride(reason); }}
+        violations={hook.complianceViolations}
+      />
     </>
   );
 }
