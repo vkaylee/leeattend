@@ -172,6 +172,7 @@ name = "apiserver"
 version = "0.1.0"
 dependencies = [
  "aes-gcm",
+ "arc-swap",
  "argon2",
  "async-trait",
  "aws-config",
