@@ -33,6 +33,7 @@ async fn test_process_log_success_with_timezone() {
     ));
     let summary_service = std::sync::Arc::new(apiserver::services::AttendanceSummaryService::new(
         apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+            feature_flag_repo: None,
             time_entry_repo: repo.clone(),
             roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
@@ -177,6 +178,7 @@ async fn test_same_second_punch_with_different_status_allowed() {
     ));
     let summary_service = std::sync::Arc::new(apiserver::services::AttendanceSummaryService::new(
         apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+            feature_flag_repo: None,
             time_entry_repo: repo.clone(),
             roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),

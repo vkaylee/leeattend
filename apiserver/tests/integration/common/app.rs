@@ -323,6 +323,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let attendance_summary_service = Arc::new(
         apiserver::services::AttendanceSummaryService::new(
             apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+                feature_flag_repo: None,
                 time_entry_repo: time_entry_repo.clone(),
                 roster_repo: roster_repo.clone(),
                 policy_repo: policy_repo.clone(),
@@ -1031,6 +1032,7 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
     let attendance_summary_service = Arc::new(
         apiserver::services::AttendanceSummaryService::new(
             apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+                feature_flag_repo: None,
                 time_entry_repo: time_entry_repo.clone(),
                 roster_repo: roster_repo.clone(),
                 policy_repo: policy_repo.clone(),
@@ -1099,6 +1101,7 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
     let attendance_summary_service = Arc::new(
         apiserver::services::AttendanceSummaryService::new(
             apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+                feature_flag_repo: None,
                 time_entry_repo: time_entry_repo.clone(),
                 roster_repo: roster_repo.clone(),
                 policy_repo: policy_repo.clone(),
@@ -1845,6 +1848,7 @@ pub async fn setup_app_tower_internal_extended(
     let attendance_summary_service = Arc::new(
         apiserver::services::AttendanceSummaryService::new(
             apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+                feature_flag_repo: None,
                 time_entry_repo: time_entry_repo.clone(),
                 roster_repo: roster_repo.clone(),
                 policy_repo: policy_repo.clone(),
@@ -1919,6 +1923,7 @@ pub async fn setup_app_tower_internal_extended(
     let attendance_summary_service = Arc::new(
         apiserver::services::AttendanceSummaryService::new(
             apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+                feature_flag_repo: None,
                 time_entry_repo: time_entry_repo.clone(),
                 roster_repo: roster_repo.clone(),
                 policy_repo: policy_repo.clone(),

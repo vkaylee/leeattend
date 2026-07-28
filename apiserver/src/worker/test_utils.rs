@@ -219,6 +219,7 @@ pub struct MockWorkerDepsBuilder {
     pub employer_repo: crate::repositories::employer_repository::MockEmployerRepository,
     pub employee_policy_modifier_repo: crate::repositories::employee_policy_modifier_repository::MockEmployeePolicyModifierRepository,
     pub attendance_exception_repo: crate::repositories::attendance_exception_repository::MockAttendanceExceptionRepository,
+    pub feature_flag_repo: crate::repositories::feature_flag_repository::MockFeatureFlagRepository,
 }
 
 impl Default for MockWorkerDepsBuilder {
@@ -369,6 +370,7 @@ impl MockWorkerDepsBuilder {
             employer_repo: crate::repositories::employer_repository::MockEmployerRepository::new(),
             employee_policy_modifier_repo: crate::repositories::employee_policy_modifier_repository::MockEmployeePolicyModifierRepository::new(),
             attendance_exception_repo: crate::repositories::attendance_exception_repository::MockAttendanceExceptionRepository::new(),
+            feature_flag_repo: crate::repositories::feature_flag_repository::MockFeatureFlagRepository::new(),
         }
     }
 
@@ -404,6 +406,7 @@ impl MockWorkerDepsBuilder {
             employer_repo: Arc::new(self.employer_repo),
             employee_policy_modifier_repo: Arc::new(self.employee_policy_modifier_repo),
             attendance_exception_repo: Arc::new(self.attendance_exception_repo),
+            feature_flag_repo: Arc::new(self.feature_flag_repo),
             diesel_pools: crate::diesel_pool::DieselPools::for_test(
                 "postgres://user:pass@localhost:5432/leeattend_test_db",
             ),

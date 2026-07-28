@@ -246,6 +246,7 @@ impl TimeTrackingService {
                     holiday_repo: Arc::clone(&self.holiday_repo),
                     leave_request_repo: Arc::clone(&self.leave_request_repo),
                     daily_summary_repo: Arc::clone(&self.daily_summary_repo),
+                    feature_flag_repo: None,
                 },
             );
             let _ = summary_svc

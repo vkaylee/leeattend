@@ -52,6 +52,7 @@ pub async fn build_attendance_services(
                 holiday_repo: Arc::clone(&repos.holiday),
                 leave_request_repo: Arc::clone(&repos.leave_request),
                 daily_summary_repo: Arc::clone(&repos.attendance_daily_summary),
+                feature_flag_repo: Some(Arc::clone(&repos.feature_flag) as Arc<dyn crate::repositories::feature_flag_repository::FeatureFlagRepository>),
             },
         )
         .with_modifier_repo(Arc::clone(&repos.employee_policy_modifier))

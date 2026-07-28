@@ -13,6 +13,7 @@ use crate::domain::policy::cascade::context::{
     AttendanceException, EmployeeModifier, EvaluationContext,
 };
 use crate::domain::policy::cascade::day_type::resolve_day_type;
+use crate::domain::policy::cascade::diff::CascadeDiffEvent;
 use crate::domain::policy::cascade::engine::evaluate as cascade_evaluate;
 use crate::domain::policy::cascade::trace::EffectiveRulesSnapshot;
 use crate::domain::policy::defaults::DEFAULT_WORK_MINUTES_PER_DAY;
@@ -21,6 +22,7 @@ use crate::models::{AttendanceDailySummary, OtStatus};
 use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
 use crate::repositories::attendance_exception_repository::AttendanceExceptionRepository;
 use crate::repositories::employee_policy_modifier_repository::EmployeePolicyModifierRepository;
+use crate::repositories::feature_flag_repository::FeatureFlagRepository;
 use crate::repositories::holiday_repository::HolidayRepository;
 use crate::repositories::leave_request_repository::LeaveRequestRepository;
 use crate::repositories::roster::RosterRepository;
@@ -95,6 +97,7 @@ pub struct AttendanceSummaryServiceArgs {
     pub holiday_repo: Arc<dyn HolidayRepository>,
     pub leave_request_repo: Arc<dyn LeaveRequestRepository>,
     pub daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
+    pub feature_flag_repo: Option<Arc<dyn FeatureFlagRepository>>,
 }
 
 pub struct AttendanceSummaryService {
@@ -110,6 +113,7 @@ pub struct AttendanceSummaryService {
     daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
     modifier_repo: Option<Arc<dyn EmployeePolicyModifierRepository>>,
     exception_repo: Option<Arc<dyn AttendanceExceptionRepository>>,
+    feature_flag_repo: Option<Arc<dyn FeatureFlagRepository>>,
     policy_cache: Arc<PolicyVersionCache>,
 }
 
@@ -139,6 +143,7 @@ impl AttendanceSummaryService {
             daily_summary_repo: args.daily_summary_repo,
             modifier_repo: None,
             exception_repo: None,
+            feature_flag_repo: args.feature_flag_repo,
             policy_cache: Arc::new(PolicyVersionCache::new()),
         }
     }
@@ -154,6 +159,13 @@ impl AttendanceSummaryService {
     #[must_use]
     pub fn with_exception_repo(mut self, repo: Arc<dyn AttendanceExceptionRepository>) -> Self {
         self.exception_repo = Some(repo);
+        self
+    }
+
+    /// Inject feature flag repository — used for ADR-005 canary rollout toggle.
+    #[must_use]
+    pub fn with_feature_flag_repo(mut self, repo: Arc<dyn FeatureFlagRepository>) -> Self {
+        self.feature_flag_repo = Some(repo);
         self
     }
 
@@ -609,6 +621,11 @@ impl AttendanceSummaryService {
 
     /// Internal: compute OT buckets from schedule + punches.
     /// Returns (ot_minutes, optional_cascade_snapshot).
+    ///
+    /// ADR-005 Phase 3: When the cascade-as-primary feature flag is enabled,
+    /// the cascade engine's `final_rules()` replaces the legacy resolver output
+    /// as the primary ruleset for OT calculation. The legacy path always runs
+    /// so the snapshot is available for diff comparison regardless of toggle state.
     async fn calculate_ot_buckets(
         &self,
         params: CalculateOtBucketsParams<'_>,
@@ -644,6 +661,7 @@ impl AttendanceSummaryService {
             end += chrono::Duration::days(1);
         }
 
+        // Resolve legacy rules (always — used for cascade diff comparison)
         let rules = PolicyResolverService::resolve_attendance_rules(
             &*self.policy_repo,
             &*self.employee_repo,
@@ -654,7 +672,7 @@ impl AttendanceSummaryService {
         )
         .await?;
 
-        let policy_rules = PolicyResolverService::resolve_with_shift_overrides(
+        let legacy_policy_rules = PolicyResolverService::resolve_with_shift_overrides(
             &*self.policy_repo,
             &*self.employee_repo,
             &*self.condition_type_repo,
@@ -670,6 +688,20 @@ impl AttendanceSummaryService {
             ),
         )
         .await?;
+
+        // ── SHADOW: Cascade engine evaluation (ADR-005 dual-run) ──
+        // Always evaluated alongside legacy regardless of toggle state.
+        let snapshot = self
+            .run_cascade_shadow(auth_token, employee_id, date, &legacy_policy_rules)
+            .await;
+
+        // ── ADR-005 Phase 3: Cascade-as-primary toggle ──
+        // When the feature flag is enabled, use cascade final_rules() as the
+        // primary ruleset for OT bucket calculation. Otherwise, keep legacy.
+        let active_rules = self
+            .maybe_use_cascade_primary(auth_token, employee_id, &snapshot, &legacy_policy_rules)
+            .await
+            .unwrap_or_else(|| legacy_policy_rules.clone());
 
         let break_start_dt = daily_schedule
             .break_start()
@@ -694,7 +726,7 @@ impl AttendanceSummaryService {
                 break_end: break_end_dt,
                 work_unit: 0,
                 rounding_policy: String::new(),
-                rules: policy_rules.clone(),
+                rules: active_rules,
                 ot_ceiling: None,
                 max_early_ot_minutes: daily_schedule.max_early_ot_minutes(),
                 segment_id: None,
@@ -706,12 +738,77 @@ impl AttendanceSummaryService {
         let total_ot =
             buckets.early_ot_minutes + buckets.late_ot_minutes + buckets.break_ot_minutes;
 
-        // ── SHADOW: Cascade engine evaluation (ADR-005 pre-dual-run) ──
-        let snapshot = self
-            .run_cascade_shadow(auth_token, employee_id, date, &policy_rules)
-            .await;
-
         Ok((total_ot, snapshot))
+    }
+
+    /// ADR-005 Phase 3: Decide whether cascade engine output should replace
+    /// legacy resolver output for OT calculation.
+    ///
+    /// Checks two feature flags in order:
+    /// 1. `cascade_as_primary` — workspace-wide boolean; if true, all employees
+    ///    use cascade as primary.
+    /// 2. `cascade_primary_employee_ids` — per-employee canary; if the
+    ///    employee_id appears in the flag's metadata `employee_ids` array,
+    ///    cascade is promoted to primary.
+    ///
+    /// Returns `Some(PolicyRules)` when cascade should be used as primary,
+    /// `None` when legacy should remain primary (or cascade not available).
+    async fn maybe_use_cascade_primary(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+        snapshot: &Option<EffectiveRulesSnapshot>,
+        _legacy: &crate::models::PolicyRules,
+    ) -> Option<crate::models::PolicyRules> {
+        let feature_flag_repo = self.feature_flag_repo.as_ref()?;
+        let snapshot = snapshot.as_ref()?;
+
+        // Check workspace-wide toggle.
+        let workspace_enabled = feature_flag_repo
+            .is_enabled_flag(auth_token, "cascade_as_primary")
+            .await
+            .unwrap_or(false);
+
+        if workspace_enabled {
+            tracing::debug!(
+                employee_id = %employee_id,
+                "Cascade-as-primary: workspace-wide toggle enabled"
+            );
+            return Some(snapshot.final_rules().clone());
+        }
+
+        // Check per-employee canary list.
+        match feature_flag_repo
+            .get_flag_by_key(auth_token, "cascade_primary_employee_ids")
+            .await
+        {
+            Ok(Some(flag)) if flag.enabled => {
+                if let Some(employee_ids) = flag
+                    .metadata
+                    .get("employee_ids")
+                    .and_then(|v| v.as_array())
+                {
+                    let eid_str = employee_id.to_string();
+                    let matched = employee_ids.iter().any(|v| v.as_str() == Some(&eid_str));
+                    if matched {
+                        tracing::info!(
+                            employee_id = %employee_id,
+                            "Cascade-as-primary: employee in canary list"
+                        );
+                        return Some(snapshot.final_rules().clone());
+                    }
+                }
+            }
+            Ok(_) => { /* flag not found or disabled — cascade stays as shadow */ }
+            Err(e) => {
+                tracing::warn!(
+                    error = %e,
+                    "Cascade-as-primary: failed to check canary flag, falling back to legacy"
+                );
+            }
+        }
+
+        None
     }
 
     /// Load (or retrieve from cache) the CompiledPolicy for a policy version.
@@ -860,18 +957,23 @@ impl AttendanceSummaryService {
 
         let snapshot = cascade_evaluate(ctx);
 
-        // Log diff for ADR-005 pre-dual-run taxonomy
+        // Structured diff event per ADR-005 Phase 2.
+        // Emitted as tracing::info! so observability pipelines can ingest
+        // every field as a typed attribute. The summary() method also
+        // provides a human-readable fallback.
         let cascade_rules = snapshot.final_rules();
         if cascade_rules != legacy_rules {
+            let diff_event = CascadeDiffEvent::new(cascade_rules, legacy_rules);
             tracing::info!(
-                employee_id = %employee_id,
-                date = %date,
                 cascade_grace = cascade_rules.grace_period_minutes(),
                 legacy_grace = legacy_rules.grace_period_minutes(),
                 cascade_early_leave = cascade_rules.authorized_early_leave_minutes(),
                 legacy_early_leave = legacy_rules.authorized_early_leave_minutes(),
                 cascade_trace_len = snapshot.cascade_trace().len(),
                 clamp_warnings = snapshot.clamp_warnings().len(),
+                diff_count = diff_event.diffs.len(),
+                diff_summary = diff_event.summary(),
+                cascade_diff = ?diff_event,
                 "Cascade vs legacy policy diff — shadow mode"
             );
         }

@@ -5,6 +5,7 @@ mod api_log_details;
 mod api_upload;
 mod cascade_snapshot;
 mod claim_staged_logs;
+mod dual_run_diff;
 mod import;
 mod import_claim_logs;
 mod ot;

@@ -51,6 +51,7 @@ pub struct WorkerDeps {
     pub employer_repo: Arc<dyn crate::repositories::EmployerRepository>,
     pub employee_policy_modifier_repo: Arc<dyn crate::repositories::employee_policy_modifier_repository::EmployeePolicyModifierRepository>,
     pub attendance_exception_repo: Arc<dyn crate::repositories::attendance_exception_repository::AttendanceExceptionRepository>,
+    pub feature_flag_repo: Arc<dyn crate::repositories::feature_flag_repository::FeatureFlagRepository>,
     pub diesel_pools: crate::diesel_pool::DieselPools,
     /// Optional notifier for deferred pairing. When set, `log_service()` will
     /// pass it to `AttendanceLogService` so INSERTs fire notifications to the
@@ -168,6 +169,9 @@ impl WorkerDeps {
             attendance_exception_repo: Arc::new(
                 crate::repositories::diesel_attendance_exception_repository::DieselAttendanceExceptionRepository::new(diesel.clone()),
             ),
+            feature_flag_repo: Arc::new(
+                crate::repositories::DieselFeatureFlagRepository::new(diesel.clone()),
+            ),
             pairing_notifier: None,
             leave_submission: None,
         }
@@ -196,6 +200,7 @@ impl WorkerDeps {
                     holiday_repo: Arc::clone(&self.holiday_repo),
                     leave_request_repo: Arc::clone(&self.leave_request_repo),
                     daily_summary_repo: Arc::clone(&self.daily_summary_repo),
+                    feature_flag_repo: Some(Arc::clone(&self.feature_flag_repo) as Arc<dyn crate::repositories::feature_flag_repository::FeatureFlagRepository>),
                 },
             )
             .with_modifier_repo(Arc::clone(&self.employee_policy_modifier_repo))

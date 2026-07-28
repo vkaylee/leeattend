@@ -107,13 +107,13 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
         Ok(enabled.unwrap_or(false))
     }
 
-    async fn create_flag(
+    async fn create_flag<'a>(
         &self,
         auth_token: &TenantAuthToken,
-        flag_key: &str,
+        flag_key: &'a str,
         enabled: bool,
-        description: Option<&str>,
-        metadata: &serde_json::Value,
+        description: Option<&'a str>,
+        metadata: &'a serde_json::Value,
     ) -> Result<FeatureFlag, AppError> {
         let mut conn = self
             .diesel_pools
@@ -142,13 +142,13 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
             .map(Into::into)
     }
 
-    async fn update_flag(
+    async fn update_flag<'a>(
         &self,
         auth_token: &TenantAuthToken,
         id: Uuid,
         enabled: Option<bool>,
-        description: Option<&str>,
-        metadata: Option<&serde_json::Value>,
+        description: Option<&'a str>,
+        metadata: Option<&'a serde_json::Value>,
     ) -> Result<Option<FeatureFlag>, AppError> {
         let mut conn = self
             .diesel_pools
@@ -193,13 +193,13 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
         .map(|count| count > 0)
     }
 
-    async fn upsert_flag(
+    async fn upsert_flag<'a>(
         &self,
         auth_token: &TenantAuthToken,
-        flag_key: &str,
+        flag_key: &'a str,
         enabled: bool,
-        description: Option<&str>,
-        metadata: &serde_json::Value,
+        description: Option<&'a str>,
+        metadata: &'a serde_json::Value,
     ) -> Result<FeatureFlag, AppError> {
         let mut conn = self
             .diesel_pools

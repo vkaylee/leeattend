@@ -117,6 +117,7 @@ async fn test_dst_spring_forward() {
     ));
     let summary_service = std::sync::Arc::new(apiserver::services::AttendanceSummaryService::new(
         apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+            feature_flag_repo: None,
             time_entry_repo: repo.clone(),
             roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
@@ -307,6 +308,7 @@ async fn test_dst_fall_back() {
     ));
     let summary_service = std::sync::Arc::new(apiserver::services::AttendanceSummaryService::new(
         apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+            feature_flag_repo: None,
             time_entry_repo: repo.clone(),
             roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
@@ -496,6 +498,7 @@ async fn test_dst_fall_back_repeated_hour() {
     ));
     let summary_service = std::sync::Arc::new(apiserver::services::AttendanceSummaryService::new(
         apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+            feature_flag_repo: None,
             time_entry_repo: repo.clone(),
             roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
@@ -681,6 +684,7 @@ async fn test_dst_spring_forward_day_shift() {
     ));
     let summary_service = std::sync::Arc::new(apiserver::services::AttendanceSummaryService::new(
         apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+            feature_flag_repo: None,
             time_entry_repo: repo.clone(),
             roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),

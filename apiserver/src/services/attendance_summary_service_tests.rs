@@ -93,6 +93,7 @@ fn make_service(
         holiday_repo: Arc::new(MockHolidayRepository::new()),
         leave_request_repo: Arc::new(MockLeaveRequestRepository::new()),
         daily_summary_repo: Arc::new(daily_summary_repo),
+        feature_flag_repo: None,
     })
 }
 
@@ -564,6 +565,7 @@ mod recalculate_daily_summary_leave_tests {
             holiday_repo: Arc::new(holiday_repo),
             leave_request_repo: Arc::new(leave_request_repo),
             daily_summary_repo: Arc::new(daily_summary_repo),
+            feature_flag_repo: None,
         });
 
         let result = svc
@@ -730,6 +732,7 @@ mod recalculate_daily_summary_leave_tests {
             holiday_repo: Arc::new(holiday_repo),
             leave_request_repo: Arc::new(leave_request_repo),
             daily_summary_repo: Arc::new(daily_summary_repo),
+            feature_flag_repo: None,
         });
 
         let result = svc
@@ -896,6 +899,7 @@ mod recalculate_daily_summary_leave_tests {
             holiday_repo: Arc::new(holiday_repo),
             leave_request_repo: Arc::new(leave_request_repo),
             daily_summary_repo: Arc::new(daily_summary_repo),
+            feature_flag_repo: None,
         });
 
         let result = svc
@@ -1016,6 +1020,7 @@ mod recalculate_daily_summary_leave_tests {
             holiday_repo: Arc::new(holiday_repo),
             leave_request_repo: Arc::new(leave_request_repo),
             daily_summary_repo: Arc::new(daily_summary_repo),
+            feature_flag_repo: None,
         });
 
         let result = svc
@@ -1161,6 +1166,7 @@ mod recalculate_daily_summary_leave_tests {
             holiday_repo: Arc::new(holiday_repo),
             leave_request_repo: Arc::new(leave_request_repo),
             daily_summary_repo: Arc::new(daily_summary_repo),
+            feature_flag_repo: None,
         });
 
         let result = svc
@@ -1288,6 +1294,7 @@ mod recalculate_daily_summary_leave_tests {
             holiday_repo: Arc::new(holiday_repo),
             leave_request_repo: Arc::new(leave_request_repo),
             daily_summary_repo: Arc::new(daily_summary_repo),
+            feature_flag_repo: None,
         });
 
         let result = svc
