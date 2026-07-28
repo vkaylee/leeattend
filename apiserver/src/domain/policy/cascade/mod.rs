@@ -12,6 +12,7 @@ pub mod base;
 pub mod caps;
 pub mod compiled;
 pub mod context;
+pub mod day_type;
 pub mod engine;
 pub mod merge;
 pub mod partial;

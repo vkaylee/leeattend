@@ -9,6 +9,7 @@ import "@testing-library/jest-dom";
 import { ToastProvider } from "../../components/ui/toast";
 import * as api from "../../lib/api";
 import { LeaveRequest, EmployeeLeaveBalance } from "../../lib/api/types";
+import { type RouterMockState } from "../../test/router-mock";
 import LeaveRequestsPage from "../leave-requests-page";
 
 (globalThis as any).__mockPermissions = ["leave:requests:submit_on_behalf"];
@@ -29,46 +30,18 @@ vi.mock("../../hooks/use-permissions", () => ({
   }),
 }));
 
-// Mock TanStack Router — stateful + reactive.
-vi.mock("@tanstack/react-router", () => {
-  let _search: Record<string, unknown> = { tab: "requests", status: "all" };
-  const _listeners = new Set<() => void>();
-
-  function notify() {
-    _listeners.forEach((fn) => fn());
-  }
-
-  function useSearchState() {
-    const [search, setSearch] = React.useState(_search);
-    React.useEffect(() => {
-      const listener = () => setSearch({ ..._search });
-      _listeners.add(listener);
-      return () => {
-        _listeners.delete(listener);
-      };
-    }, []);
-    return search;
-  }
-
+// Reactive TanStack Router mock — stateful so navigate({ search }) triggers re-render.
+const { state, resetSearch } = vi.hoisted(() => {
+  const DEFAULT = { tab: "requests", status: "all" };
   return {
-    useNavigate: () =>
-      (opts: { to?: string; search?: ((prev: unknown) => Record<string, unknown>) | Record<string, unknown>; replace?: boolean }) => {
-        if (opts.search) {
-          if (typeof opts.search === "function") {
-            _search = opts.search(_search);
-          } else {
-            _search = opts.search as Record<string, unknown>;
-          }
-          notify();
-        }
-      },
-    useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-    useSearch: useSearchState,
-    createFileRoute: () => () => ({
-      useSearch: useSearchState,
-    }),
-    Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
+    state: { _listeners: new Set(), _search: { ...DEFAULT }, DEFAULT } as RouterMockState,
+    resetSearch: () => { state._search = { ...state.DEFAULT }; },
   };
+});
+
+vi.mock("@tanstack/react-router", async () => {
+  const { buildMockImpl } = await import("../../test/router-mock");
+  return buildMockImpl(state);
 });
 
 // Mock the API library
@@ -156,6 +129,7 @@ describe("LeaveRequestsPage", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetSearch();
     queryClient = new QueryClient({
       defaultOptions: {
         queries: {

@@ -49,6 +49,8 @@ pub struct WorkerDeps {
     pub workspace_config_repo: Arc<dyn crate::repositories::workspace_config_repository::WorkspaceConfigRepository>,
     pub custom_field_repo: Arc<dyn crate::repositories::CustomFieldRepository>,
     pub employer_repo: Arc<dyn crate::repositories::EmployerRepository>,
+    pub employee_policy_modifier_repo: Arc<dyn crate::repositories::employee_policy_modifier_repository::EmployeePolicyModifierRepository>,
+    pub attendance_exception_repo: Arc<dyn crate::repositories::attendance_exception_repository::AttendanceExceptionRepository>,
     pub diesel_pools: crate::diesel_pool::DieselPools,
     /// Optional notifier for deferred pairing. When set, `log_service()` will
     /// pass it to `AttendanceLogService` so INSERTs fire notifications to the
@@ -160,6 +162,12 @@ impl WorkerDeps {
             employer_repo: Arc::new(crate::repositories::DieselEmployerRepository::new(
                 diesel.clone(),
             )),
+            employee_policy_modifier_repo: Arc::new(
+                crate::repositories::diesel_employee_policy_modifier_repository::DieselEmployeePolicyModifierRepository::new(diesel.clone()),
+            ),
+            attendance_exception_repo: Arc::new(
+                crate::repositories::diesel_attendance_exception_repository::DieselAttendanceExceptionRepository::new(diesel.clone()),
+            ),
             pairing_notifier: None,
             leave_submission: None,
         }
@@ -175,20 +183,24 @@ impl WorkerDeps {
     /// Build a [`AttendanceSummaryService`](crate::services::AttendanceSummaryService)
     /// using the shared repository instances.
     pub fn summary_service(&self) -> Arc<crate::services::AttendanceSummaryService> {
-        Arc::new(crate::services::AttendanceSummaryService::new(
-            crate::services::attendance_summary_service::AttendanceSummaryServiceArgs {
-                time_entry_repo: Arc::clone(&self.time_entry_repo),
-                roster_repo: Arc::clone(&self.roster_repo),
-                policy_repo: Arc::clone(&self.policy_repo),
-                condition_type_repo: Arc::clone(&self.condition_type_repo),
-                workspace_repo: Arc::clone(&self.workspace_repo),
-                employee_repo: Arc::clone(&self.employee_repo),
-                employment_repo: Arc::clone(&self.employment_repo),
-                holiday_repo: Arc::clone(&self.holiday_repo),
-                leave_request_repo: Arc::clone(&self.leave_request_repo),
-                daily_summary_repo: Arc::clone(&self.daily_summary_repo),
-            },
-        ))
+        Arc::new(
+            crate::services::AttendanceSummaryService::new(
+                crate::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+                    time_entry_repo: Arc::clone(&self.time_entry_repo),
+                    roster_repo: Arc::clone(&self.roster_repo),
+                    policy_repo: Arc::clone(&self.policy_repo),
+                    condition_type_repo: Arc::clone(&self.condition_type_repo),
+                    workspace_repo: Arc::clone(&self.workspace_repo),
+                    employee_repo: Arc::clone(&self.employee_repo),
+                    employment_repo: Arc::clone(&self.employment_repo),
+                    holiday_repo: Arc::clone(&self.holiday_repo),
+                    leave_request_repo: Arc::clone(&self.leave_request_repo),
+                    daily_summary_repo: Arc::clone(&self.daily_summary_repo),
+                },
+            )
+            .with_modifier_repo(Arc::clone(&self.employee_policy_modifier_repo))
+            .with_exception_repo(Arc::clone(&self.attendance_exception_repo)),
+        )
     }
 
     /// Build a [`PairingService`](crate::services::pairing::PairingService)

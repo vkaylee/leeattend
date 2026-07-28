@@ -1309,7 +1309,7 @@ mod tests {
             _end_date: NaiveDate,
         ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), AttendanceDailySummary>, AppError>
         {
-            unimplemented!()
+            Ok(std::collections::HashMap::new())
         }
         async fn get_summaries_paginated(
             &self,
@@ -2444,7 +2444,7 @@ mod tests {
             _end_date: NaiveDate,
         ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), AttendanceDailySummary>, AppError>
         {
-            unimplemented!()
+            Ok(std::collections::HashMap::new())
         }
         async fn get_summaries_paginated(
             &self,

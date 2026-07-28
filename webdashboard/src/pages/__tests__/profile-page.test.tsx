@@ -9,55 +9,22 @@ import { ToastProvider } from "../../components/ui/toast";
 import * as useProfileHook from "../../hooks/use-profile";
 import * as useThemeHook from "../../hooks/use-theme";
 import * as api from "../../lib/api";
+import { type RouterMockState } from "../../test/router-mock";
 import ProfilePage from "../profile-page";
 
-// Mock TanStack Router — reactive for tab switching.
-// _search is declared outside the mock so beforeEach() can reset it between tests.
-let profileSearch: Record<string, unknown> = { tab: "profile" };
-const mockNavigate = vi.fn();
-const _listeners = new Set<() => void>();
+// Reactive TanStack Router mock — stateful so navigate({ search }) triggers re-render.
+const { state, resetSearch } = vi.hoisted(() => {
+  const DEFAULT = { tab: "profile" };
+  return {
+    state: { _listeners: new Set(), _search: { ...DEFAULT }, DEFAULT } as RouterMockState,
+    resetSearch: () => { state._search = { ...state.DEFAULT }; },
+  };
+});
 
-function notify() {
-  _listeners.forEach((fn) => fn());
-}
-
-vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => (opts: { to?: string; search?: ((prev: unknown) => Record<string, unknown>) | Record<string, unknown>; replace?: boolean }) => {
-    if (opts.search) {
-      if (typeof opts.search === "function") {
-        profileSearch = opts.search(profileSearch);
-      } else {
-        profileSearch = opts.search as Record<string, unknown>;
-      }
-      notify();
-    }
-  },
-  useSearch: () => {
-    const [search, setSearch] = React.useState(profileSearch);
-    React.useEffect(() => {
-      const listener = () => setSearch({ ...profileSearch });
-      _listeners.add(listener);
-      return () => { _listeners.delete(listener); };
-    }, []);
-    return search;
-  },
-  createFileRoute: () => () => ({
-    useSearch: () => {
-      const [search, setSearch] = React.useState(profileSearch);
-      React.useEffect(() => {
-        const listener = () => setSearch({ ...profileSearch });
-        _listeners.add(listener);
-        return () => { _listeners.delete(listener); };
-      }, []);
-      return search;
-    },
-  }),
-  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => (
-    <a href={to} {...props}>
-      {children}
-    </a>
-  ),
-}));
+vi.mock("@tanstack/react-router", async () => {
+  const { buildMockImpl } = await import("../../test/router-mock");
+  return buildMockImpl(state);
+});
 
 // Mock i18next
 vi.mock("react-i18next", () => ({
@@ -138,7 +105,7 @@ describe("ProfilePage", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    profileSearch = { tab: "profile" };
+    resetSearch();
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });

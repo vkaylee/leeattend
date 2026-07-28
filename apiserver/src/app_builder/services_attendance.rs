@@ -52,7 +52,9 @@ pub async fn build_attendance_services(
             leave_request_repo: Arc::clone(&repos.leave_request),
             daily_summary_repo: Arc::clone(&repos.attendance_daily_summary),
         },
-    ));
+    )
+    .with_modifier_repo(Arc::clone(&repos.employee_policy_modifier))
+    .with_exception_repo(Arc::clone(&repos.attendance_exception)));
 
     let pairing: Arc<dyn crate::services::pairing::PairingProcessor> =
         Arc::new(crate::services::pairing::PairingService::new(

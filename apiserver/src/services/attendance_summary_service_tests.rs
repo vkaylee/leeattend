@@ -71,6 +71,11 @@ fn create_dummy_summary(sys_ot: i32, status: OtStatus) -> AttendanceDailySummary
         holiday_name: None,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
+        policy_version_id: None,
+        effective_rules_snapshot: None,
+        is_superseded: false,
+        superseded_by_id: None,
+        superseded_at: None,
     }
 }
 

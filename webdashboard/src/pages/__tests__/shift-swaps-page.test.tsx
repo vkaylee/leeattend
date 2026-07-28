@@ -9,51 +9,22 @@ import { ToastProvider } from "../../components/ui/toast";
 import * as api from "../../lib/api";
 import * as shiftSwapsApi from "../../lib/api/shift-swaps";
 import { PaginatedResponse, Employee } from "../../lib/api/types";
+import { type RouterMockState } from "../../test/router-mock";
 import ShiftSwapsPage from "../shift-swaps-page";
 
-// Mock TanStack Router — reactive for tab switching.
-// swSwapSearch declared outside the mock so beforeEach() can reset it between tests.
-let swSwapSearch: Record<string, unknown> = { tab: "pending_admin" };
-const _swListeners = new Set<() => void>();
+// Reactive TanStack Router mock — stateful so navigate({ search }) triggers re-render.
+const { state, resetSearch } = vi.hoisted(() => {
+  const DEFAULT = { tab: "pending_admin" };
+  return {
+    state: { _listeners: new Set(), _search: { ...DEFAULT }, DEFAULT } as RouterMockState,
+    resetSearch: () => { state._search = { ...state.DEFAULT }; },
+  };
+});
 
-function swNotify() {
-  _swListeners.forEach((fn) => fn());
-}
-
-vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => (opts: { to?: string; search?: ((prev: unknown) => Record<string, unknown>) | Record<string, unknown>; replace?: boolean }) => {
-    if (opts.search) {
-      if (typeof opts.search === "function") {
-        swSwapSearch = opts.search(swSwapSearch);
-      } else {
-        swSwapSearch = opts.search as Record<string, unknown>;
-      }
-      swNotify();
-    }
-  },
-  useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  useSearch: () => {
-    const [search, setSearch] = React.useState(swSwapSearch);
-    React.useEffect(() => {
-      const listener = () => setSearch({ ...swSwapSearch });
-      _swListeners.add(listener);
-      return () => { _swListeners.delete(listener); };
-    }, []);
-    return search;
-  },
-  createFileRoute: () => () => ({
-    useSearch: () => {
-      const [search, setSearch] = React.useState(swSwapSearch);
-      React.useEffect(() => {
-        const listener = () => setSearch({ ...swSwapSearch });
-        _swListeners.add(listener);
-        return () => { _swListeners.delete(listener); };
-      }, []);
-      return search;
-    },
-  }),
-  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
-}));
+vi.mock("@tanstack/react-router", async () => {
+  const { buildMockImpl } = await import("../../test/router-mock");
+  return buildMockImpl(state);
+});
 
 // Mock i18next
 vi.mock("react-i18next", () => ({
@@ -180,7 +151,7 @@ describe("ShiftSwapsPage", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    swSwapSearch = { tab: "pending_admin" };
+    resetSearch();
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });

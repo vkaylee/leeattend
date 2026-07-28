@@ -660,13 +660,36 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         let versions = attendance_policy_versions::table
             .filter(attendance_policy_versions::policy_id.eq(p_id))
             .order(attendance_policy_versions::valid_from.desc())
-            .load::<crate::models::diesel::attendance_policy::AttendancePolicyVersionEntity>(
-                &mut *conn,
-            )
+            .select((
+                attendance_policy_versions::id,
+                attendance_policy_versions::policy_id,
+                attendance_policy_versions::rules,
+                attendance_policy_versions::valid_from,
+                attendance_policy_versions::valid_to,
+                attendance_policy_versions::created_by,
+                attendance_policy_versions::created_at,
+            ))
+            .load::<(Uuid, Uuid, Value, DateTime<Utc>, Option<DateTime<Utc>>, Option<Uuid>, DateTime<Utc>)>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        Ok(versions.into_iter().map(Into::into).collect())
+        Ok(versions
+            .into_iter()
+            .map(
+                |(id, policy_id, rules, valid_from, valid_to, created_by, created_at)| {
+                    crate::models::diesel::attendance_policy::AttendancePolicyVersionEntity {
+                        id,
+                        policy_id,
+                        rules,
+                        valid_from,
+                        valid_to,
+                        created_by,
+                        created_at,
+                    }
+                },
+            )
+            .map(Into::into)
+            .collect())
     }
 
     async fn update_default_policy_rules(
@@ -780,19 +803,17 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
 
                 let version_id = crate::utils::id::new_id();
                 let now = Utc::now();
-                let version_entity =
-                    crate::models::diesel::attendance_policy::AttendancePolicyVersionEntity {
-                        id: version_id,
-                        policy_id,
-                        rules: serde_json::to_value(&new_rules).unwrap_or_default(),
-                        valid_from,
-                        valid_to: None,
-                        created_by: Some(user_id),
-                        created_at: now,
-                    };
 
                 diesel::insert_into(attendance_policy_versions::table)
-                    .values(&version_entity)
+                    .values((
+                        attendance_policy_versions::id.eq(version_id),
+                        attendance_policy_versions::policy_id.eq(policy_id),
+                        attendance_policy_versions::rules.eq(serde_json::to_value(&new_rules).unwrap_or_default()),
+                        attendance_policy_versions::valid_from.eq(valid_from),
+                        attendance_policy_versions::valid_to.eq(None::<DateTime<Utc>>),
+                        attendance_policy_versions::created_by.eq(Some(user_id)),
+                        attendance_policy_versions::created_at.eq(now),
+                    ))
                     .execute(&mut *conn)
                     .await
                     .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -1006,18 +1027,16 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                     grace_period_minutes: req.grace_period_minutes,
                 };
 
-                let version_entity = crate::models::diesel::attendance_policy::AttendancePolicyVersionEntity {
-                    id: version_id,
-                    policy_id,
-                    rules: serde_json::to_value(&rules).unwrap_or_default(),
-                    valid_from,
-                    valid_to: None,
-                    created_by: Some(user_id),
-                    created_at: Utc::now(),
-                };
-
                 diesel::insert_into(attendance_policy_versions::table)
-                    .values(&version_entity)
+                    .values((
+                        attendance_policy_versions::id.eq(version_id),
+                        attendance_policy_versions::policy_id.eq(policy_id),
+                        attendance_policy_versions::rules.eq(serde_json::to_value(&rules).unwrap_or_default()),
+                        attendance_policy_versions::valid_from.eq(valid_from),
+                        attendance_policy_versions::valid_to.eq(None::<DateTime<Utc>>),
+                        attendance_policy_versions::created_by.eq(Some(user_id)),
+                        attendance_policy_versions::created_at.eq(Utc::now()),
+                    ))
                     .execute(&mut *conn)
                     .await
                     .map_err(|e| AppError::Internal(e.to_string()))?;

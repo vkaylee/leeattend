@@ -7,24 +7,22 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ToastProvider } from "../../components/ui/toast";
 import * as api from "../../lib/api";
 import { Shift, Workspace, EmployeeSchedule } from "../../lib/api/types";
+import { type RouterMockState } from "../../test/router-mock";
 import ShiftsPage from "../shifts-page";
 
-// Mock TanStack Router
-vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => vi.fn(),
-  useParams: () => ({}),
-  useSearch: () => ({}),
-  useBlocker: () => ({
-    proceed: vi.fn(),
-    reset: vi.fn(),
-    status: "idle",
-  }),
-  createFileRoute: () => () => ({
-    useSearch: () => ({}),
-  }),
-  useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, children, ...props }: { to?: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
-}));
+// TanStack Router mock — basic non-reactive mock via shared utility.
+const { state, resetSearch } = vi.hoisted(() => {
+  const DEFAULT = {} as Record<string, unknown>;
+  return {
+    state: { _listeners: new Set(), _search: { ...DEFAULT }, DEFAULT } as RouterMockState,
+    resetSearch: () => { state._search = { ...state.DEFAULT }; },
+  };
+});
+
+vi.mock("@tanstack/react-router", async () => {
+  const { buildMockImpl } = await import("../../test/router-mock");
+  return buildMockImpl(state);
+});
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({
@@ -205,6 +203,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetSearch();
     queryClient = new QueryClient({
       defaultOptions: {
         queries: {

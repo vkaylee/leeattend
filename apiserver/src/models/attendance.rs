@@ -345,6 +345,11 @@ pub struct AttendanceDailySummary {
     pub holiday_name: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub policy_version_id: Option<Uuid>,
+    pub effective_rules_snapshot: Option<serde_json::Value>,
+    pub is_superseded: bool,
+    pub superseded_by_id: Option<Uuid>,
+    pub superseded_at: Option<DateTime<Utc>>,
 }
 
 // Bulk OT Upload Models

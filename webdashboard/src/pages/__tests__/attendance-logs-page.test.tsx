@@ -10,61 +10,22 @@ import { ToastProvider } from "../../components/ui/toast";
 import * as api from "../../lib/api";
 import { StagingLogsResponse } from "../../lib/api/attendance";
 import { PaginatedResponse, RawAttendanceLog, Workspace } from "../../lib/api/types";
+import { type RouterMockState } from "../../test/router-mock";
 import AttendanceLogsPage from "../attendance-logs-page";
 
-
-// Mock TanStack Router — stateful + reactive so navigate({ search }) triggers re-render.
-vi.mock("@tanstack/react-router", () => {
-  let _search: Record<string, unknown> = { tab: "recorded", mode: "this_month" };
-  const _listeners = new Set<() => void>();
-
-  function notify() {
-    _listeners.forEach((fn) => fn());
-  }
-
-  function useSearchState() {
-    const [search, setSearch] = React.useState(_search);
-    React.useEffect(() => {
-      const listener = () => setSearch({ ..._search });
-      _listeners.add(listener);
-      return () => {
-        _listeners.delete(listener);
-      };
-    }, []);
-    return search;
-  }
-
+// Reactive TanStack Router mock — state created in vi.hoisted so it exists
+// before vi.mock's factory fires (Vitest hoists vi.mock before module code).
+const { state, resetSearch } = vi.hoisted(() => {
+  const DEFAULT = { tab: "recorded", mode: "this_month" };
   return {
-    useNavigate: () =>
-      (opts: { to?: string; search?: ((prev: unknown) => Record<string, unknown>) | Record<string, unknown>; replace?: boolean }) => {
-        if (opts.search) {
-          if (typeof opts.search === "function") {
-            _search = opts.search(_search);
-          } else {
-            _search = opts.search as Record<string, unknown>;
-          }
-          notify();
-        }
-      },
-    useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-    useSearch: useSearchState,
-    createFileRoute: () => () => ({
-      useSearch: useSearchState,
-    }),
-    Link: ({ to, search, children, ...props }: { to: string; search?: Record<string, unknown>; children: React.ReactNode }) => {
-      let href = to;
-      if (search && typeof search === "object") {
-        const params = new URLSearchParams();
-        Object.entries(search).forEach(([key, value]) => {
-          const stringValue = (value && typeof value === "object") ? JSON.stringify(value) : String(value);
-          params.append(key, stringValue);
-        });
-        const qs = params.toString();
-        if (qs) href += `?${qs}`;
-      }
-      return <a href={href} {...props}>{children}</a>;
-    },
+    state: { _listeners: new Set(), _search: { ...DEFAULT }, DEFAULT } as RouterMockState,
+    resetSearch: () => { state._search = { ...state.DEFAULT }; },
   };
+});
+
+vi.mock("@tanstack/react-router", async () => {
+  const { buildMockImpl } = await import("../../test/router-mock");
+  return buildMockImpl(state);
 });
 
 // Mock IntersectionObserver for jsdom
@@ -105,6 +66,7 @@ describe("AttendanceLogsPage", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetSearch();
     queryClient = new QueryClient({
       defaultOptions: {
         queries: {
@@ -112,9 +74,9 @@ describe("AttendanceLogsPage", () => {
           gcTime: 0,
           staleTime: 0,
         },
- 
+
       },
- 
+
     });
  
     vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");

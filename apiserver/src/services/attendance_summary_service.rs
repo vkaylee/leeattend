@@ -1,5 +1,6 @@
 use crate::errors::{AppError, AppResult};
 use crate::utils::i18n::I18nKey;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use chrono::{NaiveDate, TimeZone};
@@ -7,15 +8,23 @@ use chrono_tz::Tz;
 
 use uuid::Uuid;
 
-use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
-use crate::repositories::leave_request_repository::LeaveRequestRepository;
-
 use crate::diesel_pool::TenantAuthToken;
+use crate::domain::policy::cascade::base::BaseRules;
+use crate::domain::policy::cascade::caps::BaseFieldSpec;
+use crate::domain::policy::cascade::context::{
+    AttendanceException, EmployeeModifier, EvaluationContext,
+};
+use crate::domain::policy::cascade::day_type::resolve_day_type;
+use crate::domain::policy::cascade::engine::evaluate as cascade_evaluate;
+use crate::domain::policy::cascade::trace::EffectiveRulesSnapshot;
 use crate::domain::policy::defaults::DEFAULT_WORK_MINUTES_PER_DAY;
-
 use crate::domain::policy::resolver::ShiftPolicyOverrides;
 use crate::models::{AttendanceDailySummary, OtStatus};
+use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
+use crate::repositories::attendance_exception_repository::AttendanceExceptionRepository;
+use crate::repositories::employee_policy_modifier_repository::EmployeePolicyModifierRepository;
 use crate::repositories::holiday_repository::HolidayRepository;
+use crate::repositories::leave_request_repository::LeaveRequestRepository;
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::AttendancePolicyRepository;
 use crate::repositories::EmployeeRepository;
@@ -101,6 +110,8 @@ pub struct AttendanceSummaryService {
     holiday_repo: Arc<dyn HolidayRepository>,
     leave_request_repo: Arc<dyn LeaveRequestRepository>,
     daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
+    modifier_repo: Option<Arc<dyn EmployeePolicyModifierRepository>>,
+    exception_repo: Option<Arc<dyn AttendanceExceptionRepository>>,
 }
 
 struct CalculateOtBucketsParams<'a> {
@@ -127,7 +138,21 @@ impl AttendanceSummaryService {
             holiday_repo: args.holiday_repo,
             leave_request_repo: args.leave_request_repo,
             daily_summary_repo: args.daily_summary_repo,
+            modifier_repo: None,
+            exception_repo: None,
         }
+    }
+
+    /// Inject cascade engine dependency — employee policy modifiers (L2.5).
+    pub fn with_modifier_repo(mut self, repo: Arc<dyn EmployeePolicyModifierRepository>) -> Self {
+        self.modifier_repo = Some(repo);
+        self
+    }
+
+    /// Inject cascade engine dependency — attendance exceptions (L3).
+    pub fn with_exception_repo(mut self, repo: Arc<dyn AttendanceExceptionRepository>) -> Self {
+        self.exception_repo = Some(repo);
+        self
     }
 
     /// Recalculates and persists the daily summary for a specific employee and date.
@@ -175,7 +200,7 @@ impl AttendanceSummaryService {
         }
 
         // 2. Calculate work minutes and OT
-        let (actual_work_minutes, system_detected_ot_minutes) = self
+        let (actual_work_minutes, system_detected_ot_minutes, cascade_snapshot) = self
             .calculate_work_and_ot(
                 &tz,
                 date,
@@ -202,19 +227,45 @@ impl AttendanceSummaryService {
             .determine_ot_status(auth_token, employee_id, date, system_detected_ot_minutes)
             .await?;
 
-        // 5. Persist
-        self.daily_summary_repo
-            .upsert_calculated_summary(
-                auth_token,
-                employment_id,
-                date,
-                actual_work_minutes,
-                system_detected_ot_minutes,
-                new_status,
-                is_holiday,
-                holiday_name,
-            )
-            .await?;
+        // 5. Persist — with cascade snapshot when available
+        if let Some(snapshot) = cascade_snapshot {
+            let policy_version_id = snapshot
+                .cascade_trace()
+                .first()
+                .and_then(|t| t.provenance().policy_version_id())
+                .unwrap_or_else(|| employment.employee_id()); // fallback: use employee_id as sentinel
+            let snapshot_json = serde_json::to_value(&snapshot).unwrap_or_else(|e| {
+                tracing::error!(error = %e, "Failed to serialize cascade snapshot");
+                serde_json::Value::Null
+            });
+            self.daily_summary_repo
+                .upsert_calculated_summary_with_snapshot(
+                    auth_token,
+                    employment_id,
+                    date,
+                    actual_work_minutes,
+                    system_detected_ot_minutes,
+                    new_status,
+                    is_holiday,
+                    holiday_name,
+                    policy_version_id,
+                    Some(snapshot_json),
+                )
+                .await?;
+        } else {
+            self.daily_summary_repo
+                .upsert_calculated_summary(
+                    auth_token,
+                    employment_id,
+                    date,
+                    actual_work_minutes,
+                    system_detected_ot_minutes,
+                    new_status,
+                    is_holiday,
+                    holiday_name,
+                )
+                .await?;
+        }
         Ok(())
     }
 
@@ -326,7 +377,7 @@ impl AttendanceSummaryService {
                 }
 
                 // 6b. Calculate work minutes and OT
-                let (actual_work_minutes, system_detected_ot_minutes) = self
+                let (actual_work_minutes, system_detected_ot_minutes, cascade_snapshot) = self
                     .calculate_work_and_ot(
                         &tz,
                         curr_date,
@@ -391,19 +442,45 @@ impl AttendanceSummaryService {
                     }
                 };
 
-                // 6e. Persist summary
-                self.daily_summary_repo
-                    .upsert_calculated_summary(
-                        auth_token,
-                        employment_id,
-                        curr_date,
-                        actual_work_minutes,
-                        system_detected_ot_minutes,
-                        new_status,
-                        is_holiday,
-                        holiday_name,
-                    )
-                    .await?;
+                // 6e. Persist summary — with cascade snapshot when available
+                if let Some(ref snapshot) = cascade_snapshot {
+                    let policy_version_id = snapshot
+                        .cascade_trace()
+                        .first()
+                        .and_then(|t| t.provenance().policy_version_id())
+                        .unwrap_or_else(|| employee_id);
+                    let snapshot_json = serde_json::to_value(snapshot).unwrap_or_else(|e| {
+                        tracing::error!(error = %e, "Failed to serialize cascade snapshot");
+                        serde_json::Value::Null
+                    });
+                    self.daily_summary_repo
+                        .upsert_calculated_summary_with_snapshot(
+                            auth_token,
+                            employment_id,
+                            curr_date,
+                            actual_work_minutes,
+                            system_detected_ot_minutes,
+                            new_status,
+                            is_holiday,
+                            holiday_name,
+                            policy_version_id,
+                            Some(snapshot_json),
+                        )
+                        .await?;
+                } else {
+                    self.daily_summary_repo
+                        .upsert_calculated_summary(
+                            auth_token,
+                            employment_id,
+                            curr_date,
+                            actual_work_minutes,
+                            system_detected_ot_minutes,
+                            new_status,
+                            is_holiday,
+                            holiday_name,
+                        )
+                        .await?;
+                }
             }
 
             curr_date = curr_date.succ_opt().unwrap_or(curr_date);
@@ -481,6 +558,7 @@ impl AttendanceSummaryService {
     }
 
     /// Calculate actual work minutes and system-detected OT from time entries.
+    /// Returns (actual_work_minutes, system_detected_ot_minutes, optional_cascade_snapshot).
     async fn calculate_work_and_ot(
         &self,
         tz: &Tz,
@@ -489,7 +567,7 @@ impl AttendanceSummaryService {
         auth_token: &TenantAuthToken,
         daily_schedule: &crate::models::EffectiveSchedule,
         day_entries: &[crate::models::TimeEntry],
-    ) -> AppResult<(i32, i32)> {
+    ) -> AppResult<(i32, i32, Option<EffectiveRulesSnapshot>)> {
         let actual_punch_in = day_entries
             .first()
             .map(|e| e.punch_in_time().with_timezone(tz));
@@ -498,7 +576,7 @@ impl AttendanceSummaryService {
             .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(tz)));
 
         let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) else {
-            return Ok((0, 0));
+            return Ok((0, 0, None));
         };
 
         let actual_break_minutes: i32 = day_entries
@@ -511,7 +589,7 @@ impl AttendanceSummaryService {
             i32::try_from(punch_out.signed_duration_since(punch_in).num_minutes()).unwrap_or(0);
         let actual_work_minutes = i32::max(0, raw_duration - actual_break_minutes);
 
-        let system_detected_ot_minutes = self
+        let (system_detected_ot_minutes, snapshot) = self
             .calculate_ot_buckets(CalculateOtBucketsParams {
                 tz,
                 date,
@@ -524,11 +602,15 @@ impl AttendanceSummaryService {
             })
             .await?;
 
-        Ok((actual_work_minutes, system_detected_ot_minutes))
+        Ok((actual_work_minutes, system_detected_ot_minutes, snapshot))
     }
 
     /// Internal: compute OT buckets from schedule + punches.
-    async fn calculate_ot_buckets(&self, params: CalculateOtBucketsParams<'_>) -> AppResult<i32> {
+    /// Returns (ot_minutes, optional_cascade_snapshot).
+    async fn calculate_ot_buckets(
+        &self,
+        params: CalculateOtBucketsParams<'_>,
+    ) -> AppResult<(i32, Option<EffectiveRulesSnapshot>)> {
         let CalculateOtBucketsParams {
             tz,
             date,
@@ -542,7 +624,7 @@ impl AttendanceSummaryService {
         let (Some(sched_start_time), Some(sched_end_time)) =
             (daily_schedule.start_time(), daily_schedule.end_time())
         else {
-            return Ok(0);
+            return Ok((0, None));
         };
 
         let start_dt = tz
@@ -553,7 +635,7 @@ impl AttendanceSummaryService {
             .single();
 
         let (Some(start), Some(mut end)) = (start_dt, end_dt) else {
-            return Ok(0);
+            return Ok((0, None));
         };
 
         if sched_end_time < sched_start_time {
@@ -610,7 +692,7 @@ impl AttendanceSummaryService {
                 break_end: break_end_dt,
                 work_unit: 0,
                 rounding_policy: String::new(),
-                rules: policy_rules,
+                rules: policy_rules.clone(),
                 ot_ceiling: None,
                 max_early_ot_minutes: daily_schedule.max_early_ot_minutes(),
                 segment_id: None,
@@ -619,7 +701,124 @@ impl AttendanceSummaryService {
             },
         );
 
-        Ok(buckets.early_ot_minutes + buckets.late_ot_minutes + buckets.break_ot_minutes)
+        let total_ot =
+            buckets.early_ot_minutes + buckets.late_ot_minutes + buckets.break_ot_minutes;
+
+        // ── SHADOW: Cascade engine evaluation (ADR-005 pre-dual-run) ──
+        let snapshot = self
+            .run_cascade_shadow(auth_token, employee_id, date, &policy_rules)
+            .await;
+
+        Ok((total_ot, snapshot))
+    }
+
+    /// Run cascade engine in shadow mode — evaluate, log diff, return snapshot.
+    /// Errors are logged but never propagated; shadow mode must not block processing.
+    async fn run_cascade_shadow(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+        date: NaiveDate,
+        legacy_rules: &crate::models::PolicyRules,
+    ) -> Option<EffectiveRulesSnapshot> {
+        let modifier_repo = self.modifier_repo.as_ref()?;
+        let exception_repo = self.exception_repo.as_ref()?;
+
+        // L1: Get policy version id + base_rules
+        let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
+        let policy_version = self
+            .policy_repo
+            .get_employee_effective_policy(auth_token, employee_id, effective_time)
+            .await
+            .ok()??;
+
+        // Bridge: construct BaseRules from legacy AttendanceRules (entity doesn't
+        // expose the new base_rules column yet — Phase 4 will deserialize from DB).
+        let base_rules = BaseRules::new(
+            BaseFieldSpec::new(
+                policy_version
+                    .rules
+                    .grace_period_minutes
+                    .unwrap_or(crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES),
+                Some(0),
+                Some(120),
+            ),
+            BaseFieldSpec::new(0, Some(0), Some(240)),
+            false,
+            policy_version.rules.early_arrival_strategy,
+            true,
+            false,
+            false,
+        );
+
+        let mut ctx = EvaluationContext::new(policy_version.id, base_rules);
+
+        // L2a: day_type (empty holiday map for shadow mode — no holiday overrides yet)
+        let day_type = resolve_day_type(date, &HashMap::new());
+        ctx = ctx.with_day_type(day_type, Default::default());
+
+        // L2.5: employee modifiers
+        match modifier_repo
+            .get_active_modifiers(auth_token, employee_id, date)
+            .await
+        {
+            Ok(modifiers) => {
+                for m in modifiers {
+                    ctx = ctx.push_modifier(EmployeeModifier::new(
+                        m.id(),
+                        m.priority_rank(),
+                        m.contributions(),
+                    ));
+                }
+            }
+            Err(e) => {
+                tracing::warn!(
+                    error = %e,
+                    employee_id = %employee_id,
+                    date = %date,
+                    "Cascade L2.5 modifier fetch failed, continuing without modifiers"
+                );
+            }
+        }
+
+        // L3: exception
+        match exception_repo
+            .get_exception_for_date(auth_token, employee_id, date)
+            .await
+        {
+            Ok(Some(exc)) => {
+                ctx = ctx.with_exception(AttendanceException::new(exc.id(), exc.contributions()));
+            }
+            Ok(None) => { /* no exception — normal */ }
+            Err(e) => {
+                tracing::warn!(
+                    error = %e,
+                    employee_id = %employee_id,
+                    date = %date,
+                    "Cascade L3 exception fetch failed, continuing without exception"
+                );
+            }
+        }
+
+        let snapshot = cascade_evaluate(ctx);
+
+        // Log diff for ADR-005 pre-dual-run taxonomy
+        let cascade_rules = snapshot.final_rules();
+        if cascade_rules != legacy_rules {
+            tracing::info!(
+                employee_id = %employee_id,
+                date = %date,
+                cascade_grace = cascade_rules.grace_period_minutes(),
+                legacy_grace = legacy_rules.grace_period_minutes(),
+                cascade_early_leave = cascade_rules.authorized_early_leave_minutes(),
+                legacy_early_leave = legacy_rules.authorized_early_leave_minutes(),
+                cascade_trace_len = snapshot.cascade_trace().len(),
+                clamp_warnings = snapshot.clamp_warnings().len(),
+                "Cascade vs legacy policy diff — shadow mode"
+            );
+        }
+
+        Some(snapshot)
     }
 
     /// Check if the date is a holiday and handle leave conflict (reversal if employee worked enough).

@@ -33,6 +33,37 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
         holiday_name: Option<String>,
     ) -> Result<(), AppError>;
 
+    /// Like upsert_calculated_summary but also writes cascade engine snapshot columns.
+    /// Default implementation delegates to `upsert_calculated_summary` — overridden
+    /// by Diesel impls that write the snapshot columns.
+    #[allow(clippy::too_many_arguments)]
+    async fn upsert_calculated_summary_with_snapshot(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_id: Uuid,
+        date: NaiveDate,
+        actual_work_minutes: i32,
+        system_detected_ot_minutes: i32,
+        new_status: OtStatus,
+        is_holiday: bool,
+        holiday_name: Option<String>,
+        _policy_version_id: Uuid,
+        _effective_rules_snapshot: Option<serde_json::Value>,
+    ) -> Result<(), AppError> {
+        // Default: delegate to the basic upsert (ignores snapshot columns).
+        self.upsert_calculated_summary(
+            auth_token,
+            employment_id,
+            date,
+            actual_work_minutes,
+            system_detected_ot_minutes,
+            new_status,
+            is_holiday,
+            holiday_name,
+        )
+        .await
+    }
+
     async fn claim_ot(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
