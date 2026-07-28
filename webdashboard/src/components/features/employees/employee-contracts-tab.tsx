@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { FileText, Pencil, Plus, Trash2, KeyRound, Eye } from "lucide-react";
+import { FileText, Pencil, Plus, Trash2, Eye } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -23,7 +23,7 @@ interface EmployeeContractsTabProps {
 }
 
  
-  // eslint-disable-next-line max-lines-per-function
+   
 export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: EmployeeContractsTabProps) {
   const { contracts, isLoading, deleteContract } = useEmployeeContracts(wsId, employeeId);
   const [editingContract, setEditingContract] = useState<EmployeeContract | null>(null);
@@ -111,7 +111,6 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
           <div className="relative pl-12 space-y-8 before:absolute before:left-[11px] before:top-4 before:bottom-4 before:w-px before:bg-slate-100 dark:before:bg-slate-700">
             {contracts.map((contract: EmployeeContract, index: number) => {
               // Envelopes disabled until e-signature backend is wired
-              const envelope = null;
               return (
                 <div className="relative animate-in slide-in-from-left duration-500" key={contract.id}>
                   <div className={cn("absolute -left-[3.15rem] top-1 w-6 h-6 rounded-full border-4 border-white dark:border-slate-900 shadow-xl ring-4 z-10", index === 0 && contract.status === "active" ? 'bg-emerald-50 dark:bg-emerald-950 ring-emerald-50 dark:ring-emerald-900/30 animate-pulse' : 'bg-primary-600 ring-primary-50 dark:ring-primary-900/30')}></div>
@@ -123,19 +122,7 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
                           <span className={cn("text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border shadow-sm", getStatusColor(contract.status))}>
                             {contract.status === "active" ? t("employees.table.active").toUpperCase() : contract.status.toUpperCase()}
                           </span>
-                          {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- envelope may not exist for all contracts */}
-                          {!!envelope && (
-                            <span
-                              className={cn(
-                                "text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border shadow-sm flex items-center gap-1",
-                                envelope.status === "completed"
-                                  ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                                  : "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
-                              )}
-                            >
-                              <KeyRound size={10} /> e-Sign: {envelope.status}
-                            </span>
-                          )}
+                          {/* Envelopes disabled until e-signature backend is wired — badge hidden */}
                         </div>
                         {!!contract.contract_number && <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{t("employees.details.contracts.contract_number").replace("{{number}}", contract.contract_number)}</div>}
                       </div>
@@ -169,22 +156,7 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
                       </div>
                     </div>
 
-                    {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- envelope may not exist for all contracts */}
-                    {!!envelope && (
-                      <div className="mt-4 flex justify-end relative z-10">
-                        <Button
-                          className="flex items-center gap-1.5 text-[10px] font-bold text-primary-600 hover:text-primary-700 uppercase tracking-widest py-1.5 px-3.5 rounded-xl border border-primary-100 hover:bg-primary-50/50 transition-colors shadow-none"
-                          onClick={() => {
-                            setSelectedEnvelope(envelope);
-                            setIsDrawerOpen(true);
-                          }}
-                          size="sm"
-                          variant="ghost"
-                        >
-                          <KeyRound size={12} /> e-Sign Details
-                        </Button>
-                      </div>
-                    )}
+                    {/* Envelopes disabled until e-signature backend is wired */}
 
                     <FileText className="absolute -right-6 -bottom-6 w-24 h-24 text-slate-100 dark:text-slate-800 opacity-50 -rotate-12 group-hover:rotate-0 transition-transform duration-700 z-0 pointer-events-none" />
                   </div>

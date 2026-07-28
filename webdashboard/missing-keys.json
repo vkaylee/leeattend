@@ -1,1 +1,47 @@
-[]
+[
+  {
+    "file": "src/components/features/dashboard/dual-run-countdown-banner.tsx",
+    "key": "dual_run.last_day",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/dashboard/dual-run-countdown-banner.tsx",
+    "key": "dual_run.last_day",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/dashboard/dual-run-countdown-banner.tsx",
+    "key": "dual_run.last_day",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/dashboard/dual-run-countdown-banner.tsx",
+    "key": "dual_run.days_remaining",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/dashboard/dual-run-countdown-banner.tsx",
+    "key": "dual_run.days_remaining",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/dashboard/dual-run-countdown-banner.tsx",
+    "key": "dual_run.days_remaining",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/dashboard/dual-run-countdown-banner.tsx",
+    "key": "common.dismiss",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/dashboard/dual-run-countdown-banner.tsx",
+    "key": "common.dismiss",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/dashboard/dual-run-countdown-banner.tsx",
+    "key": "common.dismiss",
+    "lang": "zh"
+  }
+]

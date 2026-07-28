@@ -118,7 +118,7 @@ export function ComplianceWarningModal({
     if (violations.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <Typography className="text-slate-400 dark:text-slate-500" variant="body">
+          <Typography className="text-slate-400 dark:text-slate-500" variant="p">
             {t("shifts.compliance.no_violations", "No compliance issues to display.")}
           </Typography>
         </div>

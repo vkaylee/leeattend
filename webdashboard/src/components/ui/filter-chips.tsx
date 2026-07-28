@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+
 import { AnimatePresence, motion } from "framer-motion";
 
 import Button from "@/components/ui/button";
@@ -9,41 +10,41 @@ import { cn } from "@/lib/utils";
 // ── Types ────────────────────────────────────────────────────────────
 
 export interface FilterChipItem {
-  /** Unique key for removal */
-  key: string;
-  /** Display label */
-  label: string;
   /** Category name — maps to built-in preset styles */
   category?: string;
   /** Custom icon override */
   icon?: React.ReactNode;
+  /** Unique key for removal */
+  key: string;
+  /** Display label */
+  label: string;
 }
 
 export interface ChipStyle {
-  icon?: React.ReactNode;
   baseClass: string;
+  icon?: React.ReactNode;
 }
 
 export interface FilterChipsProps {
-  /** Active filter chips to display */
-  chips: FilterChipItem[];
-  /** Called when a single chip is removed (X click) */
-  onRemove: (key: string) => void;
-  /** Called when "Clear all" is clicked */
-  onClearAll: () => void;
-
   /** Per-category style overrides. Falls back to built-in presets, then default. */
   categoryStyles?: Record<string, ChipStyle>;
-  /** Show "Clear all" button at end of row */
-  showClearAll?: boolean;
-  /** Custom "Clear all" label */
-  clearAllLabel?: string;
-  /** Label shown before chips (e.g. "Đang lọc") */
-  label?: string;
+  /** Active filter chips to display */
+  chips: FilterChipItem[];
   /** Additional CSS */
   className?: string;
+
+  /** Custom "Clear all" label */
+  clearAllLabel?: string;
   /** Test id prefix */
   "data-testid"?: string;
+  /** Label shown before chips (e.g. "Đang lọc") */
+  label?: string;
+  /** Called when "Clear all" is clicked */
+  onClearAll: () => void;
+  /** Called when a single chip is removed (X click) */
+  onRemove: (key: string) => void;
+  /** Show "Clear all" button at end of row */
+  showClearAll?: boolean;
 }
 
 // ── Built-in Category Presets ────────────────────────────────────────
@@ -110,16 +111,16 @@ export function FilterChips({
 
       <AnimatePresence>
         {chips.map((chip) => {
-          const style = (chip.category && categoryStyles?.[chip.category])
+          const style: ChipStyle = (chip.category ? categoryStyles?.[chip.category] : undefined)
             ?? (chip.category ? CATEGORY_PRESETS[chip.category] : undefined)
             ?? DEFAULT_CHIP_STYLE;
 
           return (
             <motion.div
-              key={chip.key}
-              initial={{ opacity: 0, y: -8, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -8, scale: 0.95 }}
+              initial={{ opacity: 0, y: -8, scale: 0.95 }}
+              key={chip.key}
               transition={{ duration: 0.2 }}
             >
               <Button

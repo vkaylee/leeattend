@@ -45,6 +45,7 @@ export function HrPromoCards({ isCollapsed, onToggle, t }: HrPromoCardsProps) {
           linkElement={
             <Link
               className="bg-slate-900 text-white px-8 sm:px-10 py-3 sm:py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all inline-flex items-center gap-4 hover:gap-6 shadow-2xl shadow-black/20 active:scale-95"
+              search={{ tab: "recorded", mode: "this_month" }}
               to={ROUTES.ATTENDANCE_LOGS}
             >
               {t("dashboard.hr.payroll_btn").toUpperCase()} <ArrowRight size={20} />

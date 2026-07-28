@@ -11,7 +11,7 @@ export interface IntervalDiffRowProps {
   currentInterval: ShiftVersionHistoryItem["intervals"][number] | undefined;
   idx: number;
   previousInterval: ShiftVersionHistoryItem["intervals"][number] | undefined;
-  t: (key: string, fallback?: string) => string;
+  t: (key: string, options?: Record<string, unknown>) => string;
 }
 
 interface IntervalChangeSet {
@@ -29,7 +29,7 @@ interface IntervalChangeSet {
 interface IntervalDiffProps {
   current: ShiftVersionHistoryItem;
   previous: ShiftVersionHistoryItem | null;
-  t: (key: string, fallback?: string) => string;
+  t: (key: string, options?: Record<string, unknown>) => string;
 }
 
 // ── Pure helpers ────────────────────────────────────────────────────
@@ -119,7 +119,7 @@ function BreakFieldDiff({
   prevMinutes,
   currMinutes,
 }: {
-  t: (key: string, fallback?: string) => string;
+  t: (key: string, options?: Record<string, unknown>) => string;
   prevMinutes?: number;
   currMinutes?: number;
 }) {
@@ -140,14 +140,14 @@ function TimeRangeChanged({
   t,
 }: {
   ch: IntervalChangeSet;
-  t: (key: string, fallback?: string) => string;
+  t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   if (!ch.startChanged && !ch.endChanged) return null;
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <TimeFieldDiff changed={ch.startChanged} currValue={ch.startCurr} label={t("shifts.modal.start_time", "Start")} prevValue={ch.startPrev} />
+      <TimeFieldDiff changed={ch.startChanged} currValue={ch.startCurr} label={t("shifts.modal.start_time")} prevValue={ch.startPrev} />
       <span className="text-slate-300 dark:text-slate-600 mx-1">|</span>
-      <TimeFieldDiff changed={ch.endChanged} currValue={ch.endCurr} label={t("shifts.modal.end_time", "End")} prevValue={ch.endPrev} />
+      <TimeFieldDiff changed={ch.endChanged} currValue={ch.endCurr} label={t("shifts.modal.end_time")} prevValue={ch.endPrev} />
     </div>
   );
 }
@@ -159,7 +159,7 @@ function IntervalDiffRow({ currentInterval: ci, previousInterval: pi, idx, t }: 
   if (hasNoChanges(ch)) {
     return (
       <div className="text-[10px] text-slate-400 dark:text-slate-500 font-medium" key={idx}>
-        {t("shifts.revisions.no_changes", "No changes in this interval")}
+        {t("shifts.revisions.no_changes")}
       </div>
     );
   }
@@ -198,8 +198,8 @@ export function IntervalDiff({ current, previous, t }: IntervalDiffProps) {
           ? <ChevronUp className="w-3 h-3" />
           : <ChevronDown className="w-3 h-3" />}
         {expanded
-          ? t("shifts.revisions.hide_diff", "Hide changes")
-          : t("shifts.revisions.show_diff", "Show changes")}
+          ? t("shifts.revisions.hide_diff")
+          : t("shifts.revisions.show_diff")}
       </Button>
 
       {expanded ? (

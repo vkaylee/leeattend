@@ -18,7 +18,7 @@ import { LeaveTemplate } from "./leave-templates";
 
 // ── PolicyBadges ─────────────────────────────────────────────────────
 
-function PolicyBadges({ type, t }: { type: LeaveType; t: (k: string) => string }) {
+function PolicyBadges({ type, t }: { type: LeaveType; t: ((k: string, d?: string) => string) | ((k: string) => string) }) {
   return (
     <>
       {!!type.policy_config?.approval_required && (

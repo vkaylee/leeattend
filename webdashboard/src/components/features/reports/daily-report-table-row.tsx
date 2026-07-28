@@ -169,7 +169,7 @@ export function DailyReportTableRow(props: DailyReportTableRowProps) {
           isDebugMode={isDebugMode} isExpanded={meta.isExpanded}
           isFirstInGroup={isFirstInGroup} onApproveOt={onApproveOt}
           onResolveUnscheduled={onResolveUnscheduled} onToggleExpandRow={onToggleExpandRow} row={row}
-          segmentKey={meta.segmentKey} t={t} timeEntries={meta.timeEntries} />
+          segmentKey={meta.segmentKey} t={t} timeEntries={meta.timeEntries as TimeEntry[]} />
         <td className="px-4 py-2.5 text-right">
           <RowActions
             existingAdjustment={meta.existingAdjustment}

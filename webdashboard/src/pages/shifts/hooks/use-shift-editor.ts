@@ -115,6 +115,7 @@ export function useShiftEditor(shiftId?: string) {
         employerId: editingShift.employer_id ?? null,
         isCorrection: false,
         correctionEffectiveDate: format(new Date(), 'yyyy-MM-dd'),
+        changeReason: "",
       };
     }
     return EMPTY_SHIFT_FORM;

@@ -39,7 +39,7 @@ export function ShiftsSectionNav() {
     <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50">
       <button
         className={`${baseClass} ${active === "roster" ? activeClass : inactiveClass}`}
-        onClick={() => void navigate({ to: ROUTES.SHIFTS })}
+        onClick={() => void navigate({ to: ROUTES.SHIFTS, search: { tab: "weekly-roster", view: "week" } })}
         type="button"
       >
         <LayoutGrid size={14} /> {t("shifts.title")}

@@ -219,18 +219,18 @@ function TestConnectionSection({
         onClick={onTestConnection}
         variant="outline"
       >
-        {t("settings.storage.test_btn", "Test Connection").toUpperCase()}
+        {t("settings.storage.test_btn").toUpperCase()}
       </Button>
       {testResult === "success" ? (
         <span className="flex items-center text-sm font-bold text-emerald-600 dark:text-emerald-400 gap-2 animate-in fade-in bg-emerald-50 dark:bg-emerald-950/30 px-4 py-2 rounded-xl">
           <CheckCircle2 className="w-5 h-5" />
-          {t("settings.storage.test_success", "Connection successful!")}
+          {t("settings.storage.test_success")}
         </span>
       ) : null}
       {testResult === "error" ? (
         <span className="flex items-center text-sm font-bold text-rose-600 dark:text-rose-400 gap-2 animate-in fade-in bg-rose-50 dark:bg-rose-950/30 px-4 py-2 rounded-xl">
           <XCircle className="w-5 h-5" />
-          {t("settings.storage.test_error", "Connection failed. Check credentials.")}
+          {t("settings.storage.test_error")}
         </span>
       ) : null}
     </div>

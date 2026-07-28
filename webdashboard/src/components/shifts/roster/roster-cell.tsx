@@ -76,7 +76,7 @@ const RosterCell = memo(function RosterCell({
   const workingSchedules = daySchedules.filter((s) => s.shift_id);
   const hasShift = workingSchedules.length > 0;
   const isHoliday = daySchedules.some((s) => s.is_holiday);
-  const holidayName = daySchedules.find((s) => s.holiday_name)?.holiday_name;
+  const holidayName = daySchedules.find((s) => s.holiday_name)?.holiday_name ?? undefined;
 
   const highestSource = getHighestPrioritySource(daySchedules);
   const statusStyles =

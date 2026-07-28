@@ -580,7 +580,7 @@ describe("ReportsPage", () => {
     const fromString = `${lastMonth.getFullYear()}-${pad(lastMonth.getMonth() + 1)}-01`;
     const toString_ = `${lastMonthEnd.getFullYear()}-${pad(lastMonthEnd.getMonth() + 1)}-${pad(lastMonthEnd.getDate())}`;
 
-    expect(link.getAttribute("href")).toBe(`/attendance-logs?from=${fromString}&to=${toString_}`);
+    expect(link.getAttribute("href")).toBe(`/attendance-logs?tab=recorded&mode=custom&from=${fromString}&to=${toString_}`);
   });
   it("filters the report by selected department", async () => {
     const user = userEvent.setup();

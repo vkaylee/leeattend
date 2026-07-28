@@ -76,7 +76,7 @@ export function ShiftTimelinePreview({
           endMin={endMin}
           isCrossMidnight={isCrossMidnight}
           isFixedBreak={isFixedBreak}
-          maxEarlyOtMinutes={maxEarlyOt}
+          maxEarlyOtMinutes={maxEarlyOt ?? 0}
           shiftEnd={shiftEnd}
           shiftStart={shiftStart}
           startMin={startMin}
@@ -103,7 +103,7 @@ export function ShiftTimelinePreview({
         isAutoDeduct={isAutoDeduct}
         isBreakOvertime={isBreakOvertime}
         isFixedBreak={isFixedBreak}
-        maxEarlyOtMinutes={maxEarlyOt}
+        maxEarlyOtMinutes={maxEarlyOt ?? 0}
         shiftBreak={shiftBreak}
         shiftEnd={shiftEnd}
         shiftGrace={shiftGrace}

@@ -89,7 +89,7 @@ function EmptyState({ message }: { message: string }) {
 interface VersionCardProps {
   isLatest: boolean;
   previous: ShiftVersionHistoryItem | null;
-  t: (key: string, fallback?: string) => string;
+  t: (key: string, options?: Record<string, unknown>) => string;
   version: ShiftVersionHistoryItem;
 }
 
@@ -97,7 +97,7 @@ function VersionCard({ isLatest, previous, t, version }: VersionCardProps) {
   const badge = changeTypeBadge(version.change_type, t);
   const effectiveTo = version.effective_to
     ? format(new Date(version.effective_to), "MMM dd, yyyy")
-    : t("shifts.revisions.effective_present", "Present");
+    : t("shifts.revisions.effective_present");
 
   return (
     <div className="relative flex gap-5 group">
@@ -135,7 +135,7 @@ function VersionCard({ isLatest, previous, t, version }: VersionCardProps) {
           {isLatest ? (
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary-50 dark:bg-primary-950/30 text-primary-600 dark:text-primary-400 text-[9px] font-black tracking-widest uppercase">
               <CheckCircle2 className="w-3 h-3" />
-              {t("shifts.revisions.active_version", "Active")}
+              {t("shifts.revisions.active_version")}
             </span>
           ) : null}
         </div>

@@ -13,12 +13,13 @@ import { usePatternCompliance } from "@/hooks/attendance/use-pattern-compliance"
 import { fetchPatternDetails } from "@/lib/api";
 import { WorkingPatternDetail } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
+import { type ComplianceIssue } from "@/lib/utils/shift-compliance-utils";
 
 import { useWorkingPatterns } from "../../hooks/use-working-patterns";
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
-function getComplianceBadge(issue: { type: string; shiftA?: string; shiftB?: string; restHours?: number; totalMinutes: number; limitMinutes: number }, t: (k: string) => string): { badgeType: "overlap" | "rest" | "hours"; msg: string } {
+function getComplianceBadge(issue: ComplianceIssue, t: (k: string, options?: Record<string, unknown>) => string): { badgeType: "overlap" | "rest" | "hours"; msg: string } {
   if (issue.type === "overlap") {
     return { badgeType: "overlap", msg: t("patterns.conflicts.overlap", { shiftA: issue.shiftA, shiftB: issue.shiftB }) };
   }
