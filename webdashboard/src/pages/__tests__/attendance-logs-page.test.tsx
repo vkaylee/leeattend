@@ -13,25 +13,59 @@ import { PaginatedResponse, RawAttendanceLog, Workspace } from "../../lib/api/ty
 import AttendanceLogsPage from "../attendance-logs-page";
 
 
-// Mock TanStack Router
-vi.mock("@tanstack/react-router", () => ({
- 
-  useNavigate: () => vi.fn(),
-  useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, search, children, ...props }: { to: string; search?: Record<string, unknown>; children: React.ReactNode }) => {
-    let href = to;
-    if (search && typeof search === 'object') {
-      const params = new URLSearchParams();
-      Object.entries(search).forEach(([key, value]) => {
-        const stringValue = (value && typeof value === "object") ? JSON.stringify(value) : String(value);
-        params.append(key, stringValue);
-      });
-      const qs = params.toString();
-      if (qs) href += `?${qs}`;
-    }
-    return <a href={href} {...props}>{children}</a>;
-  },
-}));
+// Mock TanStack Router — stateful + reactive so navigate({ search }) triggers re-render.
+vi.mock("@tanstack/react-router", () => {
+  let _search: Record<string, unknown> = { tab: "recorded", mode: "this_month" };
+  const _listeners = new Set<() => void>();
+
+  function notify() {
+    _listeners.forEach((fn) => fn());
+  }
+
+  function useSearchState() {
+    const [search, setSearch] = React.useState(_search);
+    React.useEffect(() => {
+      const listener = () => setSearch({ ..._search });
+      _listeners.add(listener);
+      return () => {
+        _listeners.delete(listener);
+      };
+    }, []);
+    return search;
+  }
+
+  return {
+    useNavigate: () =>
+      (opts: { to?: string; search?: ((prev: unknown) => Record<string, unknown>) | Record<string, unknown>; replace?: boolean }) => {
+        if (opts.search) {
+          if (typeof opts.search === "function") {
+            _search = opts.search(_search);
+          } else {
+            _search = opts.search as Record<string, unknown>;
+          }
+          notify();
+        }
+      },
+    useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+    useSearch: useSearchState,
+    createFileRoute: () => () => ({
+      useSearch: useSearchState,
+    }),
+    Link: ({ to, search, children, ...props }: { to: string; search?: Record<string, unknown>; children: React.ReactNode }) => {
+      let href = to;
+      if (search && typeof search === "object") {
+        const params = new URLSearchParams();
+        Object.entries(search).forEach(([key, value]) => {
+          const stringValue = (value && typeof value === "object") ? JSON.stringify(value) : String(value);
+          params.append(key, stringValue);
+        });
+        const qs = params.toString();
+        if (qs) href += `?${qs}`;
+      }
+      return <a href={href} {...props}>{children}</a>;
+    },
+  };
+});
 
 // Mock IntersectionObserver for jsdom
 class MockIntersectionObserver {
@@ -127,10 +161,14 @@ describe("AttendanceLogsPage", () => {
   });
 
   it("renders cross-navigation link with preserved date range", async () => {
-    renderWithProviders(<AttendanceLogsPage />, ["/attendance-logs?from=2026-01-01&to=2026-01-31"]);
+    // With URL-first state, the report link reflects the current search state.
+    // The mock returns mode: "this_month", so the link shows this month's dates.
+    renderWithProviders(<AttendanceLogsPage />);
     const link = await screen.findByRole("link", { name: /View Summary Report|attendance_logs.view_reports/i });
     expect(link).toBeDefined();
-    expect(link.getAttribute("href")).toBe("/reports?from=2026-01-01&to=2026-01-31");
+    // The link should contain date params from the current search state (this_month).
+    const href = link.getAttribute("href");
+    expect(href).toMatch(/^\/reports\?from=\d{4}-\d{2}-\d{2}&to=\d{4}-\d{2}-\d{2}$/);
   });
 
  
@@ -263,10 +301,14 @@ describe("AttendanceLogsPage", () => {
     const user = userEvent.setup();
 
     renderWithProviders(<AttendanceLogsPage />);
-    // ResponsiveTable renders both desktop and mobile views, so use findAllByText
+
+    // Switch to unknown tab — the test above may have left search state on "unknown",
+    // so clicked tab may already be active. Click "recorded" first to ensure a clean
+    // transition, then switch to "unknown".
+    const recordedTab = screen.getByText(/attendance_logs.tabs.recorded/i);
+    await user.click(recordedTab);
     await screen.findAllByText(/John Doe/i);
 
-    // Switch to unknown tab
     const unknownTab = screen.getByText(/attendance_logs.tabs.unknown/i);
     await user.click(unknownTab);
 

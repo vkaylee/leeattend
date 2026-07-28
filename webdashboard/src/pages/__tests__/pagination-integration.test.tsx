@@ -26,12 +26,18 @@ import PayrollPage from "../payroll-page";
  */
 
 // Mock TanStack Router
-vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => vi.fn(),
-  useLocation: () => ({ pathname: "/", search: "", hash: "" }),
- 
-  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode; [key: string]: unknown }) => <a href={to} {...props}>{children}</a>,
-}));
+vi.mock("@tanstack/react-router", () => {
+  const defaultSearch = { tab: "recorded", mode: "this_month" } as Record<string, unknown>;
+  return {
+    useNavigate: () => vi.fn(),
+    useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+    useSearch: () => defaultSearch,
+    createFileRoute: () => () => ({
+      useSearch: () => defaultSearch,
+    }),
+    Link: ({ to, children, ...props }: { to: string; children: React.ReactNode; [key: string]: unknown }) => <a href={to} {...props}>{children}</a>,
+  };
+});
 
 vi.mock("../../lib/api", () => ({
   fetchEmployees: vi.fn(),

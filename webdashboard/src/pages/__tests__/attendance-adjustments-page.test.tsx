@@ -27,12 +27,47 @@ vi.mock("../../hooks/use-permissions", () => ({
   }),
 }));
 
-// Mock TanStack Router
-vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => vi.fn(),
-  useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
-}));
+// Mock TanStack Router — stateful + reactive so navigate({ search }) triggers re-render.
+vi.mock("@tanstack/react-router", () => {
+  let _search: Record<string, unknown> = { tab: "adjustments", status: "all" };
+  const _listeners = new Set<() => void>();
+
+  function notify() {
+    _listeners.forEach((fn) => fn());
+  }
+
+  function useSearchState() {
+    const [search, setSearch] = React.useState(_search);
+    React.useEffect(() => {
+      const listener = () => setSearch({ ..._search });
+      _listeners.add(listener);
+      return () => {
+        _listeners.delete(listener);
+      };
+    }, []);
+    return search;
+  }
+
+  return {
+    useNavigate: () =>
+      (opts: { to?: string; search?: ((prev: unknown) => Record<string, unknown>) | Record<string, unknown>; replace?: boolean }) => {
+        if (opts.search) {
+          if (typeof opts.search === "function") {
+            _search = opts.search(_search);
+          } else {
+            _search = opts.search as Record<string, unknown>;
+          }
+          notify();
+        }
+      },
+    useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+    useSearch: useSearchState,
+    createFileRoute: () => () => ({
+      useSearch: useSearchState,
+    }),
+    Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
+  };
+});
 
 // Mock useBehalfEmployees
 vi.mock("@/hooks/use-behalf-employees", () => ({

@@ -11,10 +11,47 @@ import * as shiftSwapsApi from "../../lib/api/shift-swaps";
 import { PaginatedResponse, Employee } from "../../lib/api/types";
 import ShiftSwapsPage from "../shift-swaps-page";
 
-// Mock TanStack Router
+// Mock TanStack Router — reactive for tab switching.
+// swSwapSearch declared outside the mock so beforeEach() can reset it between tests.
+let swSwapSearch: Record<string, unknown> = { tab: "pending_admin" };
+const _swListeners = new Set<() => void>();
+
+function swNotify() {
+  _swListeners.forEach((fn) => fn());
+}
+
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => vi.fn(),
+  useNavigate: () => (opts: { to?: string; search?: ((prev: unknown) => Record<string, unknown>) | Record<string, unknown>; replace?: boolean }) => {
+    if (opts.search) {
+      if (typeof opts.search === "function") {
+        swSwapSearch = opts.search(swSwapSearch);
+      } else {
+        swSwapSearch = opts.search as Record<string, unknown>;
+      }
+      swNotify();
+    }
+  },
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+  useSearch: () => {
+    const [search, setSearch] = React.useState(swSwapSearch);
+    React.useEffect(() => {
+      const listener = () => setSearch({ ...swSwapSearch });
+      _swListeners.add(listener);
+      return () => { _swListeners.delete(listener); };
+    }, []);
+    return search;
+  },
+  createFileRoute: () => () => ({
+    useSearch: () => {
+      const [search, setSearch] = React.useState(swSwapSearch);
+      React.useEffect(() => {
+        const listener = () => setSearch({ ...swSwapSearch });
+        _swListeners.add(listener);
+        return () => { _swListeners.delete(listener); };
+      }, []);
+      return search;
+    },
+  }),
   Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
 
@@ -143,6 +180,7 @@ describe("ShiftSwapsPage", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    swSwapSearch = { tab: "pending_admin" };
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });

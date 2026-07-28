@@ -13,12 +13,18 @@ import MyClockPage from "../ess/my-clock-page";
 import LeaveBalancesPage from "../leave-balances-page";
 
 // Mock TanStack Router
-vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => vi.fn(),
-  useLocation: () => ({ pathname: "/", search: "", hash: "" }),
- 
-  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
-}));
+vi.mock("@tanstack/react-router", () => {
+  const defaultSearch = { tab: "recorded", mode: "this_month" } as Record<string, unknown>;
+  return {
+    useNavigate: () => vi.fn(),
+    useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+    useSearch: () => defaultSearch,
+    createFileRoute: () => () => ({
+      useSearch: () => defaultSearch,
+    }),
+    Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
+  };
+});
 
 // Mock scrollIntoView and IntersectionObserver for jsdom
 window.HTMLElement.prototype.scrollIntoView = vi.fn();

@@ -2,6 +2,7 @@ import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tansta
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
+import type { LeaveRequestsSearch } from "@/components/features/leave/search-schema";
 import type { LeaveImportJob } from "@/lib/api/leaves";
 
 import { useToast } from "@/components/ui/toast";
@@ -15,9 +16,11 @@ import {
   PaginatedResponse,
   LeaveRequest,
 } from "@/lib/api";
+import { useSearchPatch } from "@/lib/state";
+import { Route } from "@/routes/_authenticated/_workspace/leave-requests";
 
-export type TabType = "requests" | "behalf_assignments";
-export type LeaveStatusFilter = "all" | "pending" | "approved" | "rejected" | "cancelled" | "pre_approved";
+export type TabType = LeaveRequestsSearch["tab"];
+export type LeaveStatusFilter = LeaveRequestsSearch["status"];
 
 const PAGE_SIZE = 20;
 
@@ -25,12 +28,20 @@ export function useLeaveRequests(wsId: string | null) {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
-  
+
+  const search = Route.useSearch();
+  const patchSearch = useSearchPatch<LeaveRequestsSearch>();
+
+  const activeTab = search.tab;
+  const statusFilter = search.status;
+  const employeeId = search.employee ?? "all";
+
+  const setActiveTab = useCallback((tab: TabType) => { patchSearch({ tab }); }, [patchSearch]);
+  const setStatusFilter = useCallback((s: LeaveStatusFilter) => { patchSearch({ status: s }); }, [patchSearch]);
+  const setEmployeeId = useCallback((id: string) => { patchSearch({ employee: id === "all" ? undefined : id }); }, [patchSearch]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>("requests");
-  const [employeeId, setEmployeeId] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<LeaveStatusFilter>("all");
 
   const { employees } = useAllEmployees(wsId);
 

@@ -9,6 +9,20 @@ import * as api from "@/lib/api";
 import { useLeaveRequests } from "../use-leave-requests";
 
 // Mock imports
+// Mock TanStack Router
+vi.mock("@tanstack/react-router", () => {
+  const defaultSearch = { tab: "requests", status: "all" } as Record<string, unknown>;
+  return {
+    useNavigate: () => vi.fn(),
+    useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+    useSearch: () => defaultSearch,
+    createFileRoute: () => () => ({
+      useSearch: () => defaultSearch,
+    }),
+    Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
+  };
+});
+
 vi.mock("@/lib/api", () => ({
   fetchWorkspaceLeaveRequests: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 }),
   approveLeaveRequest: vi.fn().mockResolvedValue({}),

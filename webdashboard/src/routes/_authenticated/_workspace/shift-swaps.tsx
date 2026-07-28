@@ -1,3 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute('/_authenticated/_workspace/shift-swaps')({});
+import { shiftSwapsSearchSchema } from "@/pages/shift-swaps/search-schema";
+
+export const Route = createFileRoute("/_authenticated/_workspace/shift-swaps")({
+  validateSearch: (search) => shiftSwapsSearchSchema.parse(search),
+});

@@ -1,6 +1,8 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+
+import type { AdjustmentSearch } from "@/pages/attendance/search-schema";
 
 import { useToast } from "@/components/ui/toast";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
@@ -14,9 +16,11 @@ import {
   AttendanceAdjustmentRequest,
 } from "@/lib/api";
 import { logError } from "@/lib/logger";
+import { useSearchPatch } from "@/lib/state";
+import { Route } from "@/routes/_authenticated/_workspace/attendance-adjustments";
 
-export type TabType = "adjustments" | "behalf_assignments";
-export type AttendanceStatusFilter = "all" | "pending" | "approved" | "rejected";
+export type TabType = AdjustmentSearch["tab"];
+export type AttendanceStatusFilter = AdjustmentSearch["status"];
 
 const PAGE_SIZE = 20;
 
@@ -25,11 +29,20 @@ export function useAttendanceAdjustmentsPage() {
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
   const { formatDate, formatTime } = useDateTimeFormatter();
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>("adjustments");
-  const [employeeId, setEmployeeId] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<AttendanceStatusFilter>("all");
   const toast = useToast();
+
+  const search = Route.useSearch();
+  const patchSearch = useSearchPatch<AdjustmentSearch>();
+
+  const activeTab = search.tab;
+  const statusFilter = search.status;
+  const employeeId = search.employee ?? "all";
+
+  const setActiveTab = useCallback((tab: TabType) => { patchSearch({ tab }); }, [patchSearch]);
+  const setStatusFilter = useCallback((status: AttendanceStatusFilter) => { patchSearch({ status }); }, [patchSearch]);
+  const setEmployeeId = useCallback((id: string) => { patchSearch({ employee: id === "all" ? undefined : id }); }, [patchSearch]);
+
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
   const {
     data: paginatedRequests,

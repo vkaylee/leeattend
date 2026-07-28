@@ -11,10 +11,47 @@ import * as useThemeHook from "../../hooks/use-theme";
 import * as api from "../../lib/api";
 import ProfilePage from "../profile-page";
 
-// Mock TanStack Router
+// Mock TanStack Router — reactive for tab switching.
+// _search is declared outside the mock so beforeEach() can reset it between tests.
+let profileSearch: Record<string, unknown> = { tab: "profile" };
 const mockNavigate = vi.fn();
+const _listeners = new Set<() => void>();
+
+function notify() {
+  _listeners.forEach((fn) => fn());
+}
+
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => mockNavigate,
+  useNavigate: () => (opts: { to?: string; search?: ((prev: unknown) => Record<string, unknown>) | Record<string, unknown>; replace?: boolean }) => {
+    if (opts.search) {
+      if (typeof opts.search === "function") {
+        profileSearch = opts.search(profileSearch);
+      } else {
+        profileSearch = opts.search as Record<string, unknown>;
+      }
+      notify();
+    }
+  },
+  useSearch: () => {
+    const [search, setSearch] = React.useState(profileSearch);
+    React.useEffect(() => {
+      const listener = () => setSearch({ ...profileSearch });
+      _listeners.add(listener);
+      return () => { _listeners.delete(listener); };
+    }, []);
+    return search;
+  },
+  createFileRoute: () => () => ({
+    useSearch: () => {
+      const [search, setSearch] = React.useState(profileSearch);
+      React.useEffect(() => {
+        const listener = () => setSearch({ ...profileSearch });
+        _listeners.add(listener);
+        return () => { _listeners.delete(listener); };
+      }, []);
+      return search;
+    },
+  }),
   Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => (
     <a href={to} {...props}>
       {children}
@@ -101,6 +138,7 @@ describe("ProfilePage", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    profileSearch = { tab: "profile" };
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });

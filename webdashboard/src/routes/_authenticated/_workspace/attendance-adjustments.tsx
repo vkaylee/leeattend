@@ -1,3 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute('/_authenticated/_workspace/attendance-adjustments')({});
+import { adjustmentSearchSchema } from "@/pages/attendance/search-schema";
+
+export const Route = createFileRoute("/_authenticated/_workspace/attendance-adjustments")({
+  validateSearch: (search) => adjustmentSearchSchema.parse(search),
+});

@@ -19,6 +19,9 @@ vi.mock("@tanstack/react-router", () => ({
     reset: vi.fn(),
     status: "idle",
   }),
+  createFileRoute: () => () => ({
+    useSearch: () => ({}),
+  }),
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
   Link: ({ to, children, ...props }: { to?: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));

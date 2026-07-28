@@ -1,61 +1,58 @@
 import { useQuery, useInfiniteQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format, endOfMonth } from "date-fns";
 
 import type { RawAttendanceLog, Employee } from "@/lib/api/types";
+import type { AttendanceLogsSearch } from "@/pages/attendance/search-schema";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-import { 
+import {
   fetchRawAttendanceLogs,
   getCurrentWorkspaceId,
   fetchDepartments,
   fetchDevices,
-  fetchStagingLogs, 
-  resolveStagingLog, 
+  fetchStagingLogs,
+  resolveStagingLog,
   dismissStagingLog,
   StagingLog,
-  StagingLogsResponse
+  StagingLogsResponse,
 } from "@/lib/api";
+import { useSearchPatch } from "@/lib/state";
+import { Route } from "@/routes/_authenticated/_workspace/attendance-logs";
 
 const PAGE_SIZE = 20;
 
-export type TabType = "recorded" | "unknown" | "unrecorded";
-export type FilterMode = "this_month" | "last_month" | "custom" | "specific_month";
+export type TabType = AttendanceLogsSearch["tab"];
+export type FilterMode = AttendanceLogsSearch["mode"];
 
-function useAttendanceDateRange(urlFrom: string | null, urlTo: string | null) {
-  const getMonthRange = (offset = 0) => {
-    const d = new Date();
-    d.setDate(1); // Prevent rollover when today is 31st
-    d.setMonth(d.getMonth() + offset);
-    const firstDay = format(new Date(d.getFullYear(), d.getMonth(), 1), "yyyy-MM-dd");
-    const lastDay = format(new Date(d.getFullYear(), d.getMonth() + 1, 0), "yyyy-MM-dd");
-    return { start: firstDay, end: lastDay };
-  };
+function firstDayOf(offset: number): string {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + offset);
+  return format(new Date(d.getFullYear(), d.getMonth(), 1), "yyyy-MM-dd");
+}
 
-  const [filterMode, setFilterMode] = useState<FilterMode>(urlFrom && urlTo ? "custom" : "this_month");
-  const [dateRange, setDateRange] = useState(urlFrom && urlTo ? { start: urlFrom, end: urlTo } : getMonthRange(0));
-  const [specificMonth, setSpecificMonth] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
+function lastDayOf(offset: number): string {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + offset);
+  return format(new Date(d.getFullYear(), d.getMonth() + 1, 0), "yyyy-MM-dd");
+}
 
-  const handleFilterModeChange = useCallback((mode: FilterMode) => {
-    setFilterMode(mode);
-    if (mode === "this_month") setDateRange(getMonthRange(0));
-    else if (mode === "last_month") setDateRange(getMonthRange(-1));
-  }, []);
-
-  const handleSpecificMonthChange = useCallback((m: number, y: number) => {
-    setSpecificMonth({ month: m, year: y });
-    setFilterMode("specific_month");
-    const start = format(new Date(y, m - 1, 1), "yyyy-MM-dd");
-    const end = format(endOfMonth(new Date(y, m - 1, 1)), "yyyy-MM-dd");
-    setDateRange({ start, end });
-  }, []);
-
-  return { dateRange, filterMode, handleFilterModeChange, handleSpecificMonthChange, setDateRange, specificMonth };
+function resolveDateRange(search: AttendanceLogsSearch): { start: string; end: string } {
+  if (search.mode === "custom" && search.from && search.to) {
+    return { start: search.from, end: search.to };
+  }
+  if (search.mode === "specific_month" && search.from && search.to) {
+    return { start: search.from, end: search.to };
+  }
+  const offset = search.mode === "last_month" ? -1 : 0;
+  return { start: firstDayOf(offset), end: lastDayOf(offset) };
 }
 
 function useAttendanceMutations(wsId: string | null) {
@@ -141,23 +138,48 @@ export function useAttendanceLogsPage() {
   const wsId = getCurrentWorkspaceId();
   const { formatDate, formatTime } = useDateTimeFormatter();
 
-  const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-  const urlFrom = searchParams.get("from");
-  const urlTo = searchParams.get("to");
-  const urlEmployee = searchParams.get("employee");
+  const search = Route.useSearch();
+  const patchSearch = useSearchPatch<AttendanceLogsSearch>();
 
-  const [activeTab, setActiveTab] = useState<TabType>("recorded");
-  const [employeeId, setEmployeeId] = useState<string>(urlEmployee ?? "all");
-  const { dateRange, filterMode, handleFilterModeChange, handleSpecificMonthChange, setDateRange, specificMonth } = useAttendanceDateRange(urlFrom, urlTo);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-
-  useEffect(() => {
-    if (urlFrom || urlTo || urlEmployee) {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("from"); url.searchParams.delete("to"); url.searchParams.delete("employee");
-      window.history.replaceState({}, "", url.toString());
+  const activeTab = search.tab;
+  const employeeId = search.employee ?? "all";
+  const filterMode = search.mode;
+  const dateRange = useMemo(() => resolveDateRange(search), [search]);
+  const specificMonth = useMemo(() => {
+    if (search.mode === "specific_month" && search.from) {
+      const d = new Date(`${search.from}T00:00:00`);
+      return { month: d.getMonth() + 1, year: d.getFullYear() };
     }
-  }, [urlFrom, urlTo, urlEmployee]);
+    const now = new Date();
+    return { month: now.getMonth() + 1, year: now.getFullYear() };
+  }, [search.from, search.mode]);
+
+  const setActiveTab = useCallback((tab: TabType) => { patchSearch({ tab }); }, [patchSearch]);
+  const setEmployeeId = useCallback((id: string) => { patchSearch({ employee: id === "all" ? undefined : id }); }, [patchSearch]);
+
+  const setDateRange = useCallback(
+    (next: { start: string; end: string } | ((prev: { start: string; end: string }) => { start: string; end: string })) => {
+      const resolved = typeof next === "function" ? next(dateRange) : next;
+      patchSearch({ mode: "custom", from: resolved.start, to: resolved.end });
+    },
+    [patchSearch, dateRange],
+  );
+
+  const handleFilterModeChange = useCallback((mode: FilterMode) => {
+    if (mode === "this_month" || mode === "last_month") {
+      patchSearch({ mode, from: undefined, to: undefined });
+    } else {
+      patchSearch({ mode });
+    }
+  }, [patchSearch]);
+
+  const handleSpecificMonthChange = useCallback((m: number, y: number) => {
+    const start = format(new Date(y, m - 1, 1), "yyyy-MM-dd");
+    const end = format(endOfMonth(new Date(y, m - 1, 1)), "yyyy-MM-dd");
+    patchSearch({ mode: "specific_month", from: start, to: end });
+  }, [patchSearch]);
+
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
   const { data: departments = [] } = useQuery({
     queryKey: ["departments", wsId],

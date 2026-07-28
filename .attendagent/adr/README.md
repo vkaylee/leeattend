@@ -25,6 +25,14 @@ Layered Explicit Policy System — 6-layer cascade replacing fragmented hardcode
 | [ADR-004](./ADR-004-immutable-snapshot-cascade-trace.md) | Hybrid Immutable Snapshot, Cascade Trace & 3-State Lifecycle | Accepted | DRAFT/ACTIVE/FROZEN, `rules_hash` generated column, supersede-recompute |
 | [ADR-005](./ADR-005-dual-run-shadow-rollback.md) | Dual-Run Shadow Mode & Rollback Protocol | Accepted | Diff taxonomy A/B/C, 14-day shadow, 30-day dual-run, legacy edit migration |
 
+### Client Infrastructure (Webdashboard, 2026-07-27)
+
+Frontend architectural decisions for the React/TS SPA.
+
+| ID | Title | Status | Scope |
+|----|-------|--------|-------|
+| [ADR-006](./ADR-006-client-state-model.md) | Client State Model — URL-First Layered State | Accepted | 4-layer state model (server/URL/session/persistent), Zod-validated search, Route-owned contract |
+
 ## Related
 
 - **Implementation plan:** `.claude/plans/snoopy-yawning-quasar.md` (V5 refactor breakdown).

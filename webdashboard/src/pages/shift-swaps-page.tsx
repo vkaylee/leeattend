@@ -9,10 +9,12 @@ import {
   Check,
   X,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 import { TFunction } from "i18next";
+
+import type { ShiftSwapsSearch } from "@/pages/shift-swaps/search-schema";
 
 import ApprovalListLayout, { TabConfig } from "@/components/templates/approval-list-layout";
 import Button from "@/components/ui/button";
@@ -22,6 +24,8 @@ import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useAllEmployees } from "@/hooks/use-employees";
+import { useSearchPatch } from "@/lib/state";
+import { Route } from "@/routes/_authenticated/_workspace/shift-swaps";
 
 import {
   getCurrentWorkspaceId,
@@ -135,7 +139,7 @@ function ShiftSwapMobileCard({
   );
 }
 
-type TabType = "pending_target" | "pending_admin" | "approved" | "rejected" | "cancelled";
+type TabType = ShiftSwapsSearch["tab"];
 
 export default function ShiftSwapsPage() {
   const { t } = useTranslation();
@@ -154,7 +158,12 @@ export default function ShiftSwapsPage() {
 
 function ShiftSwapsContent({ t, wsId }: { t: TFunction; wsId: string }) {
   const { formatDate } = useDateTimeFormatter();
-  const [activeTab, setActiveTab] = useState<TabType>("pending_admin");
+
+  const search = Route.useSearch();
+  const patchSearch = useSearchPatch<ShiftSwapsSearch>();
+  const activeTab = search.tab;
+  const setActiveTab = useCallback((tab: TabType) => { patchSearch({ tab }); }, [patchSearch]);
+
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
 
