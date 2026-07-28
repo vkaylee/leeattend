@@ -1,6 +1,5 @@
 use crate::errors::{AppError, AppResult};
 use crate::utils::i18n::I18nKey;
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use chrono::{NaiveDate, TimeZone};
@@ -9,8 +8,7 @@ use chrono_tz::Tz;
 use uuid::Uuid;
 
 use crate::diesel_pool::TenantAuthToken;
-use crate::domain::policy::cascade::base::BaseRules;
-use crate::domain::policy::cascade::caps::BaseFieldSpec;
+use crate::domain::policy::cascade::compiled::{CompiledPolicy, PolicyVersionCache};
 use crate::domain::policy::cascade::context::{
     AttendanceException, EmployeeModifier, EvaluationContext,
 };
@@ -112,6 +110,7 @@ pub struct AttendanceSummaryService {
     daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
     modifier_repo: Option<Arc<dyn EmployeePolicyModifierRepository>>,
     exception_repo: Option<Arc<dyn AttendanceExceptionRepository>>,
+    policy_cache: Arc<PolicyVersionCache>,
 }
 
 struct CalculateOtBucketsParams<'a> {
@@ -140,16 +139,19 @@ impl AttendanceSummaryService {
             daily_summary_repo: args.daily_summary_repo,
             modifier_repo: None,
             exception_repo: None,
+            policy_cache: Arc::new(PolicyVersionCache::new()),
         }
     }
 
     /// Inject cascade engine dependency — employee policy modifiers (L2.5).
+    #[must_use]
     pub fn with_modifier_repo(mut self, repo: Arc<dyn EmployeePolicyModifierRepository>) -> Self {
         self.modifier_repo = Some(repo);
         self
     }
 
     /// Inject cascade engine dependency — attendance exceptions (L3).
+    #[must_use]
     pub fn with_exception_repo(mut self, repo: Arc<dyn AttendanceExceptionRepository>) -> Self {
         self.exception_repo = Some(repo);
         self
@@ -448,7 +450,7 @@ impl AttendanceSummaryService {
                         .cascade_trace()
                         .first()
                         .and_then(|t| t.provenance().policy_version_id())
-                        .unwrap_or_else(|| employee_id);
+                        .unwrap_or(employee_id);
                     let snapshot_json = serde_json::to_value(snapshot).unwrap_or_else(|e| {
                         tracing::error!(error = %e, "Failed to serialize cascade snapshot");
                         serde_json::Value::Null
@@ -712,6 +714,56 @@ impl AttendanceSummaryService {
         Ok((total_ot, snapshot))
     }
 
+    /// Load (or retrieve from cache) the CompiledPolicy for a policy version.
+    /// On cache miss, loads base_rules + all L2 conditional overrides from DB,
+    /// builds a CompiledPolicy, and publishes it to the cache.
+    async fn ensure_compiled_policy(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        policy_version_id: Uuid,
+    ) -> Option<Arc<CompiledPolicy>> {
+        // Cache hit — lock-free read.
+        if let Some(compiled) = self.policy_cache.get(policy_version_id) {
+            return Some(compiled);
+        }
+
+        // Cache miss — load from DB and publish.
+        let base_rules = self
+            .policy_repo
+            .get_policy_version_base_rules(auth_token, policy_version_id)
+            .await
+            .unwrap_or_default()
+            .unwrap_or_default();
+
+        let l2a = self
+            .policy_repo
+            .get_day_type_overrides_for_version(auth_token, policy_version_id)
+            .await
+            .unwrap_or_default();
+
+        let l2b = self
+            .policy_repo
+            .get_shift_template_overrides_for_version(auth_token, policy_version_id)
+            .await
+            .unwrap_or_default();
+
+        let l2c = self
+            .policy_repo
+            .get_shift_version_overrides_for_version(auth_token, policy_version_id)
+            .await
+            .unwrap_or_default();
+
+        let compiled = Arc::new(CompiledPolicy::new(
+            policy_version_id,
+            base_rules,
+            l2a,
+            l2b,
+            l2c,
+        ));
+        self.policy_cache.publish(&compiled);
+        Some(compiled)
+    }
+
     /// Run cascade engine in shadow mode — evaluate, log diff, return snapshot.
     /// Errors are logged but never propagated; shadow mode must not block processing.
     async fn run_cascade_shadow(
@@ -724,7 +776,7 @@ impl AttendanceSummaryService {
         let modifier_repo = self.modifier_repo.as_ref()?;
         let exception_repo = self.exception_repo.as_ref()?;
 
-        // L1: Get policy version id + base_rules
+        // L1: Get the effective policy version for this employee.
         let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
         let policy_version = self
             .policy_repo
@@ -732,30 +784,36 @@ impl AttendanceSummaryService {
             .await
             .ok()??;
 
-        // Bridge: construct BaseRules from legacy AttendanceRules (entity doesn't
-        // expose the new base_rules column yet — Phase 4 will deserialize from DB).
-        let base_rules = BaseRules::new(
-            BaseFieldSpec::new(
-                policy_version
-                    .rules
-                    .grace_period_minutes
-                    .unwrap_or(crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES),
-                Some(0),
-                Some(120),
-            ),
-            BaseFieldSpec::new(0, Some(0), Some(240)),
-            false,
-            policy_version.rules.early_arrival_strategy,
-            true,
-            false,
-            false,
-        );
+        let policy_version_id = policy_version.id;
 
-        let mut ctx = EvaluationContext::new(policy_version.id, base_rules);
+        // Items 1–3: Load CompiledPolicy from cache (or populate cache on miss).
+        // This yields base_rules + all L2 conditional overrides in one shot.
+        let compiled = self
+            .ensure_compiled_policy(auth_token, policy_version_id)
+            .await?;
 
-        // L2a: day_type (empty holiday map for shadow mode — no holiday overrides yet)
-        let day_type = resolve_day_type(date, &HashMap::new());
-        ctx = ctx.with_day_type(day_type, Default::default());
+        let base_rules = compiled.base_rules().clone();
+        let mut ctx = EvaluationContext::new(policy_version_id, base_rules);
+
+        // L2a: day_type — resolve from date + holiday map, then lookup in compiled policy.
+        let holiday_map = self
+            .holiday_repo
+            .get_holidays_in_range(
+                auth_token,
+                date - chrono::Duration::days(3),
+                date + chrono::Duration::days(3),
+            )
+            .await
+            .unwrap_or_default();
+
+        let day_type = resolve_day_type(date, &holiday_map);
+        let day_type_contributions = compiled
+            .l2a_by_day_type()
+            .get(&day_type)
+            .cloned()
+            .unwrap_or_default();
+
+        ctx = ctx.with_day_type(day_type, day_type_contributions);
 
         // L2.5: employee modifiers
         match modifier_repo

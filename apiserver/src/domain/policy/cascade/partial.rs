@@ -39,6 +39,7 @@ pub struct PartialPolicyRules {
 }
 
 impl PartialPolicyRules {
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.override_grace_period_minutes.is_none()
             && self.delta_grace_period_minutes.is_none()
@@ -81,14 +82,17 @@ impl PartialPolicyRules {
     }
 
     // Fluent builders — `impl Into<Option<T>>` so callers can pass either `T` or `Option<T>`.
+    #[must_use]
     pub fn with_override_grace_period_minutes(mut self, v: impl Into<Option<i32>>) -> Self {
         self.override_grace_period_minutes = v.into();
         self
     }
+    #[must_use]
     pub fn with_delta_grace_period_minutes(mut self, v: impl Into<Option<i32>>) -> Self {
         self.delta_grace_period_minutes = v.into();
         self
     }
+    #[must_use]
     pub fn with_override_authorized_early_leave_minutes(
         mut self,
         v: impl Into<Option<i32>>,
@@ -96,17 +100,17 @@ impl PartialPolicyRules {
         self.override_authorized_early_leave_minutes = v.into();
         self
     }
-    pub fn with_delta_authorized_early_leave_minutes(
-        mut self,
-        v: impl Into<Option<i32>>,
-    ) -> Self {
+    #[must_use]
+    pub fn with_delta_authorized_early_leave_minutes(mut self, v: impl Into<Option<i32>>) -> Self {
         self.delta_authorized_early_leave_minutes = v.into();
         self
     }
+    #[must_use]
     pub fn with_override_is_early_leave_paid(mut self, v: impl Into<Option<bool>>) -> Self {
         self.override_is_early_leave_paid = v.into();
         self
     }
+    #[must_use]
     pub fn with_override_early_arrival_strategy(
         mut self,
         v: impl Into<Option<EarlyArrivalStrategy>>,
@@ -114,14 +118,17 @@ impl PartialPolicyRules {
         self.override_early_arrival_strategy = v.into();
         self
     }
+    #[must_use]
     pub fn with_override_is_break_auto_deduct(mut self, v: impl Into<Option<bool>>) -> Self {
         self.override_is_break_auto_deduct = v.into();
         self
     }
+    #[must_use]
     pub fn with_override_is_break_overtime(mut self, v: impl Into<Option<bool>>) -> Self {
         self.override_is_break_overtime = v.into();
         self
     }
+    #[must_use]
     pub fn with_override_allow_early_ot(mut self, v: impl Into<Option<bool>>) -> Self {
         self.override_allow_early_ot = v.into();
         self

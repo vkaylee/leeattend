@@ -37,11 +37,13 @@ impl EmployeePolicyModifierRepository for DieselEmployeePolicyModifierRepository
         );
 
         // effective_from <= (date end of day) AND (effective_to IS NULL OR effective_to > (date start))
-        let day_start = date.and_hms_opt(0, 0, 0).expect("valid date");
+        let day_start = date
+            .and_hms_opt(0, 0, 0)
+            .ok_or_else(|| AppError::Internal("invalid date start".into()))?;
         let day_end = date
             .succ_opt()
             .and_then(|next| next.and_hms_opt(0, 0, 0))
-            .expect("valid date");
+            .ok_or_else(|| AppError::Internal("invalid date end".into()))?;
 
         let modifiers = epm::employee_policy_modifiers
             .filter(epm::workspace_id.eq(auth_token.workspace_id()))

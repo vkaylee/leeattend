@@ -5,12 +5,14 @@
 //! Bool / enum fields carry only a concrete default (no caps).
 
 use crate::domain::policy::cascade::caps::BaseFieldSpec;
-use crate::models::PolicyRules;
+use crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES;
 use crate::models::enums::EarlyArrivalStrategy;
+use crate::models::PolicyRules;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct BaseRules {
     grace_period_minutes: BaseFieldSpec<i32>,
     authorized_early_leave_minutes: BaseFieldSpec<i32>,
@@ -22,7 +24,8 @@ pub struct BaseRules {
 }
 
 impl BaseRules {
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
+    #[must_use]
     pub fn new(
         grace_period_minutes: BaseFieldSpec<i32>,
         authorized_early_leave_minutes: BaseFieldSpec<i32>,
@@ -43,6 +46,7 @@ impl BaseRules {
         }
     }
 
+    #[must_use]
     pub fn grace_period_minutes(&self) -> &BaseFieldSpec<i32> {
         &self.grace_period_minutes
     }
@@ -82,6 +86,24 @@ impl BaseRules {
             self.is_break_overtime,
             self.allow_early_ot,
         )
+    }
+}
+
+impl Default for BaseRules {
+    fn default() -> Self {
+        Self {
+            grace_period_minutes: BaseFieldSpec::new(
+                DEFAULT_GRACE_PERIOD_MINUTES,
+                Some(0),
+                Some(120),
+            ),
+            authorized_early_leave_minutes: BaseFieldSpec::new(0, Some(0), Some(240)),
+            is_early_leave_paid: false,
+            early_arrival_strategy: EarlyArrivalStrategy::Block,
+            is_break_auto_deduct: true,
+            is_break_overtime: false,
+            allow_early_ot: false,
+        }
     }
 }
 

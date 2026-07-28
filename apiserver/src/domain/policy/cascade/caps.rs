@@ -37,6 +37,16 @@ impl<T: Copy> BaseFieldSpec<T> {
     }
 }
 
+impl Default for BaseFieldSpec<i32> {
+    fn default() -> Self {
+        Self {
+            default_value: 0,
+            absolute_min: None,
+            absolute_max: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClampWarning {
     field: String,
@@ -78,15 +88,19 @@ pub enum ClampReason {
 
 /// Clamp `value` to `[spec.absolute_min, spec.absolute_max]`. Returns the
 /// clamped value and a `ClampWarning` when the value was moved.
-pub fn clamp_i32(field: &str, value: i32, spec: &BaseFieldSpec<i32>) -> (i32, Option<ClampWarning>) {
+pub fn clamp_i32(
+    field: &str,
+    value: i32,
+    spec: &BaseFieldSpec<i32>,
+) -> (i32, Option<ClampWarning>) {
     if let Some(min) = spec.absolute_min() {
         if value < min {
             return (
                 min,
                 Some(ClampWarning::new(
                     field,
-                    value as i64,
-                    min as i64,
+                    i64::from(value),
+                    i64::from(min),
                     ClampReason::BelowMin,
                 )),
             );
@@ -98,8 +112,8 @@ pub fn clamp_i32(field: &str, value: i32, spec: &BaseFieldSpec<i32>) -> (i32, Op
                 max,
                 Some(ClampWarning::new(
                     field,
-                    value as i64,
-                    max as i64,
+                    i64::from(value),
+                    i64::from(max),
                     ClampReason::AboveMax,
                 )),
             );

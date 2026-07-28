@@ -115,11 +115,8 @@ where
 
     let mut cuts: Vec<DateTime<Tz>> = vec![start_local];
     let mut cursor_date = start_local.date_naive();
-    loop {
-        let Some(next_date) = cursor_date.succ_opt() else {
-            break;
-        };
-        let Some(midnight) = local_midnight(tz, next_date) else {
+    while let Some(next_date) = cursor_date.succ_opt() {
+        let Some(midnight) = local_midnight(*tz, next_date) else {
             break;
         };
         if midnight >= end_local {
@@ -142,7 +139,7 @@ where
 /// Local 00:00 of `date` in `tz`, with a Phase-1 tolerance for the DST-gap
 /// edge case (Vietnam has no DST, so this branch is never exercised in
 /// production — kept so Phase 2 tz expansion doesn't panic).
-fn local_midnight(tz: &Tz, date: NaiveDate) -> Option<DateTime<Tz>> {
+fn local_midnight(tz: Tz, date: NaiveDate) -> Option<DateTime<Tz>> {
     let naive = date.and_hms_opt(0, 0, 0)?;
     match tz.from_local_datetime(&naive) {
         chrono::LocalResult::Single(dt) | chrono::LocalResult::Ambiguous(dt, _) => Some(dt),

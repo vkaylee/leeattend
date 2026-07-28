@@ -9,6 +9,7 @@
 
 use chrono::{Datelike, NaiveDate};
 use std::collections::HashMap;
+use std::hash::BuildHasher;
 
 use crate::models::Holiday;
 
@@ -16,7 +17,10 @@ use crate::models::Holiday;
 ///
 /// Holiday dates take precedence over weekday, so a national holiday that
 /// falls on a Sunday returns `"holiday_national"` not `"sunday"`.
-pub fn resolve_day_type(date: NaiveDate, holidays: &HashMap<NaiveDate, Holiday>) -> String {
+pub fn resolve_day_type(
+    date: NaiveDate,
+    holidays: &HashMap<NaiveDate, Holiday, impl BuildHasher>,
+) -> String {
     if let Some(holiday) = holidays.get(&date) {
         return format!("holiday_{}", holiday.holiday_type());
     }

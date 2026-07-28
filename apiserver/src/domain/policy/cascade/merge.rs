@@ -63,7 +63,15 @@ mod tests {
     use crate::models::enums::EarlyArrivalStrategy;
 
     fn base_rules() -> PolicyRules {
-        PolicyRules::new(10, 0, false, EarlyArrivalStrategy::Allow, true, false, false)
+        PolicyRules::new(
+            10,
+            0,
+            false,
+            EarlyArrivalStrategy::Allow,
+            true,
+            false,
+            false,
+        )
     }
 
     #[test]
@@ -111,7 +119,7 @@ mod tests {
     #[test]
     fn adr002_example_flow() {
         let mut acc = base_rules(); // L1: grace = 10
-        // L2a: override 20
+                                    // L2a: override 20
         merge_layer(
             &mut acc,
             &PartialPolicyRules::default().with_override_grace_period_minutes(20),

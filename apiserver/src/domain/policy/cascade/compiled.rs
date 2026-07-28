@@ -34,6 +34,7 @@ pub struct CompiledPolicy {
 }
 
 impl CompiledPolicy {
+    #[must_use]
     pub fn new(
         policy_version_id: Uuid,
         base_rules: BaseRules,
@@ -50,6 +51,7 @@ impl CompiledPolicy {
         }
     }
 
+    #[must_use]
     pub fn empty(policy_version_id: Uuid, base_rules: BaseRules) -> Self {
         Self {
             policy_version_id,
@@ -87,22 +89,24 @@ pub struct PolicyVersionCache {
 }
 
 impl PolicyVersionCache {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             inner: ArcSwap::from_pointee(HashMap::new()),
         }
     }
 
+    #[must_use]
     pub fn get(&self, policy_version_id: Uuid) -> Option<Arc<CompiledPolicy>> {
         self.inner.load().get(&policy_version_id).cloned()
     }
 
     /// Insert-or-replace a compiled policy. Safe to call concurrently.
-    pub fn publish(&self, compiled: Arc<CompiledPolicy>) {
+    pub fn publish(&self, compiled: &Arc<CompiledPolicy>) {
         let id = compiled.policy_version_id();
         self.inner.rcu(|current| {
             let mut next = (**current).clone();
-            next.insert(id, compiled.clone());
+            next.insert(id, Arc::clone(compiled));
             next
         });
     }
@@ -162,7 +166,7 @@ mod tests {
         let cache = PolicyVersionCache::new();
         let id = Uuid::new_v4();
         let compiled = Arc::new(CompiledPolicy::empty(id, base(10)));
-        cache.publish(compiled.clone());
+        cache.publish(&compiled);
 
         let fetched = cache.get(id).unwrap();
         assert!(Arc::ptr_eq(&compiled, &fetched));
@@ -173,11 +177,16 @@ mod tests {
     fn publish_same_id_replaces_previous() {
         let cache = PolicyVersionCache::new();
         let id = Uuid::new_v4();
-        cache.publish(Arc::new(CompiledPolicy::empty(id, base(10))));
-        cache.publish(Arc::new(CompiledPolicy::empty(id, base(30))));
+        let c10 = Arc::new(CompiledPolicy::empty(id, base(10)));
+        cache.publish(&c10);
+        let c30 = Arc::new(CompiledPolicy::empty(id, base(30)));
+        cache.publish(&c30);
 
         let latest = cache.get(id).unwrap();
-        assert_eq!(latest.base_rules().grace_period_minutes().default_value(), 30);
+        assert_eq!(
+            latest.base_rules().grace_period_minutes().default_value(),
+            30
+        );
         assert_eq!(cache.len(), 1);
     }
 
@@ -186,8 +195,10 @@ mod tests {
         let cache = PolicyVersionCache::new();
         let a = Uuid::new_v4();
         let b = Uuid::new_v4();
-        cache.publish(Arc::new(CompiledPolicy::empty(a, base(10))));
-        cache.publish(Arc::new(CompiledPolicy::empty(b, base(20))));
+        let c10 = Arc::new(CompiledPolicy::empty(a, base(10)));
+        cache.publish(&c10);
+        let c20 = Arc::new(CompiledPolicy::empty(b, base(20)));
+        cache.publish(&c20);
         assert_eq!(cache.len(), 2);
 
         cache.evict(a);

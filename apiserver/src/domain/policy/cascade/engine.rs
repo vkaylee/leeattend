@@ -12,7 +12,7 @@
 //! After L3, numeric fields are clamped once against `BaseFieldSpec` bounds
 //! from `BaseRules`; every clamp produces a `ClampWarning`.
 
-use crate::domain::policy::cascade::caps::{ClampWarning, clamp_i32};
+use crate::domain::policy::cascade::caps::{clamp_i32, ClampWarning};
 use crate::domain::policy::cascade::context::EvaluationContext;
 use crate::domain::policy::cascade::merge::merge_layer;
 use crate::domain::policy::cascade::partial::PartialPolicyRules;
@@ -102,7 +102,11 @@ pub fn evaluate(mut ctx: EvaluationContext) -> EffectiveRulesSnapshot {
         None => (PartialPolicyRules::default(), LayerProvenance::empty()),
     };
     merge_layer(&mut rules, &l3_partial);
-    trace.push(LayerContribution::new(LayerId::L3Exception, l3_prov, l3_partial));
+    trace.push(LayerContribution::new(
+        LayerId::L3Exception,
+        l3_prov,
+        l3_partial,
+    ));
 
     // Clamp numeric fields against the base absolute caps.
     let mut warnings: Vec<ClampWarning> = Vec::new();
@@ -220,8 +224,8 @@ mod tests {
     #[test]
     fn value_above_cap_is_clamped_and_warned() {
         let base = base(10, Some(60));
-        let ctx = EvaluationContext::new(Uuid::nil(), base)
-            .with_exception(AttendanceException::new(
+        let ctx =
+            EvaluationContext::new(Uuid::nil(), base).with_exception(AttendanceException::new(
                 Uuid::new_v4(),
                 PartialPolicyRules::default().with_override_grace_period_minutes(200),
             ));

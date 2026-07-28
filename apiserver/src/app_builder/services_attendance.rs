@@ -39,22 +39,24 @@ pub async fn build_attendance_services(
         Arc::clone(&repos.attendance_daily_summary),
     ));
 
-    let attendance_summary = Arc::new(crate::services::AttendanceSummaryService::new(
-        crate::services::attendance_summary_service::AttendanceSummaryServiceArgs {
-            time_entry_repo: Arc::clone(&repos.time_entry),
-            roster_repo: Arc::clone(&repos.roster),
-            policy_repo: Arc::clone(&repos.policy),
-            condition_type_repo: Arc::clone(&repos.condition_type),
-            workspace_repo: Arc::clone(&repos.workspace),
-            employee_repo: Arc::clone(&repos.employee),
-            employment_repo: Arc::clone(&repos.employment),
-            holiday_repo: Arc::clone(&repos.holiday),
-            leave_request_repo: Arc::clone(&repos.leave_request),
-            daily_summary_repo: Arc::clone(&repos.attendance_daily_summary),
-        },
-    )
-    .with_modifier_repo(Arc::clone(&repos.employee_policy_modifier))
-    .with_exception_repo(Arc::clone(&repos.attendance_exception)));
+    let attendance_summary = Arc::new(
+        crate::services::AttendanceSummaryService::new(
+            crate::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+                time_entry_repo: Arc::clone(&repos.time_entry),
+                roster_repo: Arc::clone(&repos.roster),
+                policy_repo: Arc::clone(&repos.policy),
+                condition_type_repo: Arc::clone(&repos.condition_type),
+                workspace_repo: Arc::clone(&repos.workspace),
+                employee_repo: Arc::clone(&repos.employee),
+                employment_repo: Arc::clone(&repos.employment),
+                holiday_repo: Arc::clone(&repos.holiday),
+                leave_request_repo: Arc::clone(&repos.leave_request),
+                daily_summary_repo: Arc::clone(&repos.attendance_daily_summary),
+            },
+        )
+        .with_modifier_repo(Arc::clone(&repos.employee_policy_modifier))
+        .with_exception_repo(Arc::clone(&repos.attendance_exception)),
+    );
 
     let pairing: Arc<dyn crate::services::pairing::PairingProcessor> =
         Arc::new(crate::services::pairing::PairingService::new(

@@ -21,6 +21,7 @@ pub struct EmployeeModifier {
 }
 
 impl EmployeeModifier {
+    #[must_use]
     pub fn new(modifier_id: Uuid, priority_rank: i32, contributions: PartialPolicyRules) -> Self {
         Self {
             modifier_id,
@@ -53,6 +54,7 @@ pub struct AttendanceException {
 }
 
 impl AttendanceException {
+    #[must_use]
     pub fn new(exception_id: Uuid, contributions: PartialPolicyRules) -> Self {
         Self {
             exception_id,
@@ -60,6 +62,7 @@ impl AttendanceException {
         }
     }
 
+    #[must_use]
     pub fn exception_id(&self) -> Uuid {
         self.exception_id
     }
@@ -95,6 +98,7 @@ pub struct EvaluationContext {
 }
 
 impl EvaluationContext {
+    #[must_use]
     pub fn new(policy_version_id: Uuid, base_rules: BaseRules) -> Self {
         Self {
             policy_version_id,
@@ -111,25 +115,34 @@ impl EvaluationContext {
     }
 
     // Fluent builders.
-    pub fn with_day_type(mut self, day_type: impl Into<String>, contribution: PartialPolicyRules) -> Self {
+    #[must_use]
+    pub fn with_day_type(
+        mut self,
+        day_type: impl Into<String>,
+        contribution: PartialPolicyRules,
+    ) -> Self {
         self.day_type = Some(day_type.into());
         self.day_type_contribution = Some(contribution);
         self
     }
+    #[must_use]
     pub fn with_shift_template(mut self, id: Uuid, contribution: PartialPolicyRules) -> Self {
         self.shift_template_id = Some(id);
         self.shift_template_contribution = Some(contribution);
         self
     }
+    #[must_use]
     pub fn with_shift_version(mut self, id: Uuid, contribution: PartialPolicyRules) -> Self {
         self.shift_version_id = Some(id);
         self.shift_version_contribution = Some(contribution);
         self
     }
+    #[must_use]
     pub fn push_modifier(mut self, modifier: EmployeeModifier) -> Self {
         self.employee_modifiers.push(modifier);
         self
     }
+    #[must_use]
     pub fn with_exception(mut self, exception: AttendanceException) -> Self {
         self.exception = Some(exception);
         self

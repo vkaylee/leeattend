@@ -54,41 +54,50 @@ pub struct LayerProvenance {
 }
 
 impl LayerProvenance {
+    #[must_use]
     pub fn empty() -> Self {
         Self::default()
     }
 
     // Fluent builders — all fields are optional; setter form fits engine call sites.
+    #[must_use]
     pub fn with_policy_version_id(mut self, v: Uuid) -> Self {
         self.policy_version_id = Some(v);
         self
     }
+    #[must_use]
     pub fn with_day_type(mut self, v: impl Into<String>) -> Self {
         self.day_type = Some(v.into());
         self
     }
+    #[must_use]
     pub fn with_shift_template_id(mut self, v: Uuid) -> Self {
         self.shift_template_id = Some(v);
         self
     }
+    #[must_use]
     pub fn with_shift_version_id(mut self, v: Uuid) -> Self {
         self.shift_version_id = Some(v);
         self
     }
+    #[must_use]
     pub fn with_modifier_id(mut self, v: Uuid) -> Self {
         self.modifier_id = Some(v);
         self
     }
+    #[must_use]
     pub fn with_priority_rank(mut self, v: i32) -> Self {
         self.priority_rank = Some(v);
         self
     }
+    #[must_use]
     pub fn with_exception_id(mut self, v: Uuid) -> Self {
         self.exception_id = Some(v);
         self
     }
 
     // Getters.
+    #[must_use]
     pub fn policy_version_id(&self) -> Option<Uuid> {
         self.policy_version_id
     }
@@ -146,6 +155,7 @@ impl LayerContribution {
         }
     }
 
+    #[must_use]
     pub fn layer(&self) -> LayerId {
         self.layer
     }
@@ -158,7 +168,7 @@ impl LayerContribution {
 }
 
 /// The full snapshot stored on `attendance_daily_summaries.effective_rules_snapshot`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EffectiveRulesSnapshot {
     final_rules: PolicyRules,
     cascade_trace: Vec<LayerContribution>,
@@ -197,7 +207,10 @@ mod tests {
 
     #[test]
     fn layer_id_serializes_to_adr_names() {
-        assert_eq!(serde_json::to_string(&LayerId::L1Base).unwrap(), r#""L1_base""#);
+        assert_eq!(
+            serde_json::to_string(&LayerId::L1Base).unwrap(),
+            r#""L1_base""#
+        );
         assert_eq!(
             serde_json::to_string(&LayerId::L2aDayType).unwrap(),
             r#""L2a_day_type""#
