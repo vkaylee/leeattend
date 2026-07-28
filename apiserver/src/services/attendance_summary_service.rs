@@ -214,7 +214,7 @@ impl AttendanceSummaryService {
         }
 
         // 2. Calculate work minutes and OT
-        let (actual_work_minutes, system_detected_ot_minutes, cascade_snapshot) = self
+        let (actual_work_minutes, system_detected_ot_minutes, cascade_snapshot, legacy_json) = self
             .calculate_work_and_ot(
                 &tz,
                 date,
@@ -264,6 +264,7 @@ impl AttendanceSummaryService {
                     holiday_name,
                     policy_version_id,
                     Some(snapshot_json),
+                    legacy_json,
                 )
                 .await?;
         } else {
@@ -391,7 +392,7 @@ impl AttendanceSummaryService {
                 }
 
                 // 6b. Calculate work minutes and OT
-                let (actual_work_minutes, system_detected_ot_minutes, cascade_snapshot) = self
+                let (actual_work_minutes, system_detected_ot_minutes, cascade_snapshot, legacy_json) = self
                     .calculate_work_and_ot(
                         &tz,
                         curr_date,
@@ -479,6 +480,7 @@ impl AttendanceSummaryService {
                             holiday_name,
                             policy_version_id,
                             Some(snapshot_json),
+                            legacy_json,
                         )
                         .await?;
                 } else {
@@ -581,7 +583,7 @@ impl AttendanceSummaryService {
         auth_token: &TenantAuthToken,
         daily_schedule: &crate::models::EffectiveSchedule,
         day_entries: &[crate::models::TimeEntry],
-    ) -> AppResult<(i32, i32, Option<EffectiveRulesSnapshot>)> {
+    ) -> AppResult<(i32, i32, Option<EffectiveRulesSnapshot>, Option<serde_json::Value>)> {
         let actual_punch_in = day_entries
             .first()
             .map(|e| e.punch_in_time().with_timezone(tz));
@@ -590,7 +592,7 @@ impl AttendanceSummaryService {
             .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(tz)));
 
         let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) else {
-            return Ok((0, 0, None));
+            return Ok((0, 0, None, None));
         };
 
         let actual_break_minutes: i32 = day_entries
@@ -603,7 +605,7 @@ impl AttendanceSummaryService {
             i32::try_from(punch_out.signed_duration_since(punch_in).num_minutes()).unwrap_or(0);
         let actual_work_minutes = i32::max(0, raw_duration - actual_break_minutes);
 
-        let (system_detected_ot_minutes, snapshot) = self
+        let (system_detected_ot_minutes, snapshot, legacy_json) = self
             .calculate_ot_buckets(CalculateOtBucketsParams {
                 tz,
                 date,
@@ -616,7 +618,7 @@ impl AttendanceSummaryService {
             })
             .await?;
 
-        Ok((actual_work_minutes, system_detected_ot_minutes, snapshot))
+        Ok((actual_work_minutes, system_detected_ot_minutes, snapshot, legacy_json))
     }
 
     /// Internal: compute OT buckets from schedule + punches.
@@ -629,7 +631,7 @@ impl AttendanceSummaryService {
     async fn calculate_ot_buckets(
         &self,
         params: CalculateOtBucketsParams<'_>,
-    ) -> AppResult<(i32, Option<EffectiveRulesSnapshot>)> {
+    ) -> AppResult<(i32, Option<EffectiveRulesSnapshot>, Option<serde_json::Value>)> {
         let CalculateOtBucketsParams {
             tz,
             date,
@@ -643,7 +645,7 @@ impl AttendanceSummaryService {
         let (Some(sched_start_time), Some(sched_end_time)) =
             (daily_schedule.start_time(), daily_schedule.end_time())
         else {
-            return Ok((0, None));
+            return Ok((0, None, None));
         };
 
         let start_dt = tz
@@ -654,7 +656,7 @@ impl AttendanceSummaryService {
             .single();
 
         let (Some(start), Some(mut end)) = (start_dt, end_dt) else {
-            return Ok((0, None));
+            return Ok((0, None, None));
         };
 
         if sched_end_time < sched_start_time {
@@ -738,7 +740,9 @@ impl AttendanceSummaryService {
         let total_ot =
             buckets.early_ot_minutes + buckets.late_ot_minutes + buckets.break_ot_minutes;
 
-        Ok((total_ot, snapshot))
+        let legacy_json = serde_json::to_value(&legacy_policy_rules).ok();
+
+        Ok((total_ot, snapshot, legacy_json))
     }
 
     /// ADR-005 Phase 3: Decide whether cascade engine output should replace

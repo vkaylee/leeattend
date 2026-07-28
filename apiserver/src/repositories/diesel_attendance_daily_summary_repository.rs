@@ -145,6 +145,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         holiday_name: Option<String>,
         policy_version_id: Uuid,
         effective_rules_snapshot: Option<serde_json::Value>,
+        legacy_rules_snapshot: Option<serde_json::Value>,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
@@ -169,6 +170,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
                 ads::holiday_name.eq(holiday_name),
                 ads::policy_version_id.eq(policy_version_id),
                 ads::effective_rules_snapshot.eq(effective_rules_snapshot),
+                ads::legacy_rules_snapshot.eq(legacy_rules_snapshot),
             ))
             .on_conflict((ads::employment_id, ads::date))
             .do_update()
@@ -179,6 +181,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
                 ads::holiday_name.eq(excluded(ads::holiday_name)),
                 ads::policy_version_id.eq(excluded(ads::policy_version_id)),
                 ads::effective_rules_snapshot.eq(excluded(ads::effective_rules_snapshot)),
+                ads::legacy_rules_snapshot.eq(excluded(ads::legacy_rules_snapshot)),
                 ads::ot_status.eq(diesel::dsl::sql::<crate::schema::sql_types::OtStatusType>(
                     "CASE
                         WHEN attendance_daily_summaries.ot_status = 'none'::ot_status_type AND EXCLUDED.system_detected_ot_minutes > 0 THEN 'pending_employee'::ot_status_type

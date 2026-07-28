@@ -6,6 +6,7 @@ import { ResilientWidget } from "@/components/common/resilient-widget";
 import ChartCatalogSidebar from "@/components/features/dashboard/chart-catalog-sidebar";
 import CustomizePanel from "@/components/features/dashboard/customize-panel";
 import { DashboardErrorBanner } from "@/components/features/dashboard/dashboard-error-banner";
+import DualRunCountdownBanner from "@/components/features/dashboard/dual-run-countdown-banner";
 import { DashboardHrTab } from "@/components/features/dashboard/dashboard-hr-tab";
 import { DashboardSystemTab } from "@/components/features/dashboard/dashboard-system-tab";
 import PendingTasksWidget from "@/components/features/dashboard/pending-tasks-widget";
@@ -132,6 +133,8 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
+      <DualRunCountdownBanner />
+
       <ResilientWidget>
         <PendingTasksWidget />
       </ResilientWidget>

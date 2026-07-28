@@ -1903,6 +1903,17 @@
       "db_clusters": "Manage database cluster configurations",
       "tenants": "Oversee multi-tenant workspace instances",
       "charts": "Attendance trends, overtime, turnover and workforce analytics"
+    },
+    "dual_run": {
+      "banner_title": "Dual-Run Window",
+      "days_remaining": "{{count}}d left",
+      "last_day": "Last day",
+      "status_active": "Dual-Run Active",
+      "status_closing_soon": "Dual-Run Closing Soon",
+      "status_critical": "Dual-Run Window Critical",
+      "status_final": "Dual-Run Final Day",
+      "status_closed": "Dual-Run Closed",
+      "warning_modifiers": "Modifiers and exceptions created during this window may be lost if rollback occurs."
     }
   }
 }

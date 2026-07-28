@@ -212,9 +212,14 @@ diesel::table! {
         employment_id -> Uuid,
         policy_version_id -> Nullable<Uuid>,
         effective_rules_snapshot -> Nullable<Jsonb>,
+        legacy_rules_snapshot -> Nullable<Jsonb>,
         is_superseded -> Bool,
         superseded_by_id -> Nullable<Uuid>,
         superseded_at -> Nullable<Timestamptz>,
+        is_manual_override -> Bool,
+        manual_override_category -> Nullable<Int2>,
+        requires_hr_review -> Bool,
+        manual_override_notes -> Nullable<Text>,
     }
 }
 

@@ -1903,6 +1903,17 @@
       "db_clusters": "Quản lý cấu hình cụm cơ sở dữ liệu",
       "tenants": "Quản lý các workspace đa đối tượng thuê",
       "charts": "Biểu đồ chấm công, tăng ca, biến động nhân sự và phân tích"
+    },
+    "dual_run": {
+      "banner_title": "Cửa Sổ Dual-Run",
+      "days_remaining": "Còn {{count}} ngày",
+      "last_day": "Ngày cuối",
+      "status_active": "Dual-Run Đang Hoạt Động",
+      "status_closing_soon": "Dual-Run Sắp Kết Thúc",
+      "status_critical": "Dual-Run Sắp Hết Hạn",
+      "status_final": "Dual-Run Ngày Cuối",
+      "status_closed": "Dual-Run Đã Đóng",
+      "warning_modifiers": "Các điều chỉnh và ngoại lệ được tạo trong cửa sổ này có thể bị mất nếu rollback."
     }
   }
 }

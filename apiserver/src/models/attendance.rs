@@ -347,9 +347,14 @@ pub struct AttendanceDailySummary {
     pub updated_at: DateTime<Utc>,
     pub policy_version_id: Option<Uuid>,
     pub effective_rules_snapshot: Option<serde_json::Value>,
+    pub legacy_rules_snapshot: Option<serde_json::Value>,
     pub is_superseded: bool,
     pub superseded_by_id: Option<Uuid>,
     pub superseded_at: Option<DateTime<Utc>>,
+    pub is_manual_override: bool,
+    pub manual_override_category: Option<i16>,
+    pub requires_hr_review: bool,
+    pub manual_override_notes: Option<String>,
 }
 
 // Bulk OT Upload Models

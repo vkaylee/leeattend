@@ -76,6 +76,11 @@ fn create_dummy_summary(sys_ot: i32, status: OtStatus) -> AttendanceDailySummary
         is_superseded: false,
         superseded_by_id: None,
         superseded_at: None,
+        legacy_rules_snapshot: None,
+        is_manual_override: false,
+        manual_override_category: None,
+        requires_hr_review: false,
+        manual_override_notes: None,
     }
 }
 

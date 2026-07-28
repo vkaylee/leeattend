@@ -1895,6 +1895,17 @@
       "db_clusters": "管理数据库集群配置",
       "tenants": "管理多租户工作区实例",
       "charts": "考勤趋势、加班、离职率和劳动力分析图表"
+    },
+    "dual_run": {
+      "banner_title": "双运行窗口",
+      "days_remaining": "剩余 {{count}} 天",
+      "last_day": "最后一天",
+      "status_active": "双运行进行中",
+      "status_closing_soon": "双运行即将关闭",
+      "status_critical": "双运行窗口危急",
+      "status_final": "双运行最后一天",
+      "status_closed": "双运行已关闭",
+      "warning_modifiers": "在此窗口期间创建的修改和例外可能在回滚时丢失。"
     }
   },
   "shifts": {

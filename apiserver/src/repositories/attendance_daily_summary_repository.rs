@@ -49,6 +49,7 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
         holiday_name: Option<String>,
         _policy_version_id: Uuid,
         _effective_rules_snapshot: Option<serde_json::Value>,
+        _legacy_rules_snapshot: Option<serde_json::Value>,
     ) -> Result<(), AppError> {
         // Default: delegate to the basic upsert (ignores snapshot columns).
         self.upsert_calculated_summary(

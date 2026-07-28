@@ -60,9 +60,14 @@ pub struct AttendanceDailySummaryEntity {
     pub employment_id: Uuid,
     pub policy_version_id: Option<Uuid>,
     pub effective_rules_snapshot: Option<serde_json::Value>,
+    pub legacy_rules_snapshot: Option<serde_json::Value>,
     pub is_superseded: bool,
     pub superseded_by_id: Option<Uuid>,
     pub superseded_at: Option<DateTime<Utc>>,
+    pub is_manual_override: bool,
+    pub manual_override_category: Option<i16>,
+    pub requires_hr_review: bool,
+    pub manual_override_notes: Option<String>,
 }
 
 impl From<AttendanceDailySummaryEntity> for AttendanceDailySummary {
@@ -89,9 +94,14 @@ impl From<AttendanceDailySummaryEntity> for AttendanceDailySummary {
             updated_at: val.updated_at,
             policy_version_id: val.policy_version_id,
             effective_rules_snapshot: val.effective_rules_snapshot,
+            legacy_rules_snapshot: val.legacy_rules_snapshot,
             is_superseded: val.is_superseded,
             superseded_by_id: val.superseded_by_id,
             superseded_at: val.superseded_at,
+            is_manual_override: val.is_manual_override,
+            manual_override_category: val.manual_override_category,
+            requires_hr_review: val.requires_hr_review,
+            manual_override_notes: val.manual_override_notes,
         }
     }
 }

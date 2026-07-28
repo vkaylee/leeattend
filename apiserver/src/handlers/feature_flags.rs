@@ -9,7 +9,7 @@ use uuid::Uuid;
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::{CreateFeatureFlagRequest, FeatureFlag, UpdateFeatureFlagRequest};
+use crate::models::{CreateFeatureFlagRequest, FeatureFlag, UpdateFeatureFlagRequest, CascadeDualRunStatus};
 use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
@@ -294,4 +294,105 @@ pub async fn delete_feature_flag(
     } else {
         Err(AppError::not_found(I18nKey::FeatureFlagNotFound))
     }
+}
+
+// ── ADR-005 Dual-Run Status ──────────────────────────────────────────────
+
+/// GET /workspaces/:ws_id/cascade-dual-run/status
+///
+/// Returns the current dual-run window status for the ADR-005 cascade cutover.
+/// Computes days remaining from the `cutover_at` in the `cascade_as_primary`
+/// feature flag metadata (30-day window per ADR-005 §3).
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/cascade-dual-run/status",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+    ),
+    responses(
+        (status = 200, description = "Dual-run status", body = crate::models::feature_flag::CascadeDualRunStatus)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+#[allow(clippy::unused_async)]
+pub async fn get_cascade_dual_run_status(
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Path(_ws_id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    ctx.require_permission(Permission::FeatureFlagsRead)?;
+
+    const WINDOW_DAYS: i64 = 30;
+
+    let flag = state
+        .payroll()
+        .feature_flag_repo()
+        .get_flag_by_key(&ctx.auth_token, "cascade_as_primary")
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to fetch cascade_as_primary flag: {e}");
+            AppError::Internal("Failed to fetch dual-run status".into())
+        })?;
+
+    let now = chrono::Utc::now();
+
+    let (enabled, cutover_at, window_closes_at, days_remaining, phase, message) = match flag {
+        Some(f) if f.enabled => {
+            let cutover_str = f
+                .metadata
+                .get("cutover_at")
+                .and_then(|v| v.as_str())
+                .map(String::from);
+
+            let closes_dt = cutover_str
+                .as_ref()
+                .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+                .map(|dt| dt.with_timezone(&chrono::Utc))
+                .or_else(|| {
+                    // Fallback: use flag updated_at + 30 days
+                    Some(f.updated_at + chrono::Duration::days(WINDOW_DAYS))
+                });
+
+            let days = closes_dt
+                .as_ref()
+                .map(|closes| {
+                    let duration = *closes - now;
+                    duration.num_days().max(0)
+                });
+
+            let (phase_str, msg) = match days {
+                Some(0) => ("closed", "Dual-run window closed — rollback path disabled.".into()),
+                Some(1) => ("final", "1 day remaining in dual-run window. Rollback path closes tomorrow!".into()),
+                Some(d) if d <= 3 => ("critical", format!("{d} days remaining — rollback window closing soon!")),
+                Some(d) if d <= 7 => ("closing_soon", format!("{d} days remaining in dual-run window.")),
+                Some(d) => ("active", format!("Dual-run active — {d} days remaining. Rollback available.")),
+                None => ("active", "Dual-run active. Rollback available.".into()),
+            };
+
+            let closes_str = closes_dt.map(|dt| dt.to_rfc3339());
+
+            (true, cutover_str, closes_str, days, phase_str.to_string(), msg)
+        }
+        _ => {
+            (
+                false,
+                None,
+                None,
+                None,
+                "closed".to_string(),
+                "Dual-run window not active.".to_string(),
+            )
+        }
+    };
+
+    Ok(Json(CascadeDualRunStatus {
+        enabled,
+        cutover_at,
+        window_closes_at,
+        days_remaining,
+        window_phase: phase,
+        message,
+    }))
 }
