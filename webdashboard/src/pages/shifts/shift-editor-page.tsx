@@ -89,7 +89,7 @@ export default function ShiftEditorPage() {
   }
 
   const navBack = () => {
-    void navigate({ to: "/shifts", search: { tab: "directory" } });
+    void navigate({ to: "/shifts", search: { tab: "directory", view: "week" } });
   };
 
   return (

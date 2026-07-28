@@ -9,33 +9,34 @@ import type { Shift, Employee } from "@/lib/api/types";
 import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 import { fetchEmployee } from "@/lib/api";
 
+import type { ShiftsSearch } from "../search-schema";
 import type { TabType, ViewMode } from "./use-shifts-types";
 
-interface ShiftSearchParams {
-  employeeId?: string;
-  employeeIds?: string;
-  tab?: string;
-  view?: string;
-}
-
-// eslint-disable-next-line complexity
 export function useShiftFormState(wsId?: string) {
   // useSearch({ strict: false }) returns a permissive type; we cast to
-  // ShiftSearchParams to document fields used by this hook (codebase idiom
+  // ShiftsSearch to match the route's validateSearch contract (codebase idiom
   // — see shifts-rules-page.tsx).
   const rawSearch = useSearch({ strict: false });
-  const search = rawSearch as ShiftSearchParams;
+  const search = rawSearch as ShiftsSearch;
   const navigate = useNavigate();
 
-  const tab = typeof search.tab === "string" ? search.tab : "";
-  const initialTab = tab === "weekly-roster" || tab === "assignments" || tab === "directory" ? tab : "weekly-roster";
+  // Derive single employeeId from comma-separated employeeIds (schema field).
+  const employeeId = search.employeeIds ? search.employeeIds.split(",")[0] : undefined;
+
+  // Runtime guards are necessary: the type says tab/view are always valid
+  // (Zod .catch() in the schema), but at runtime — especially in tests — useSearch
+  // may return {} before Zod validation applies.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const tab: TabType = search.tab === "weekly-roster" || search.tab === "assignments" || search.tab === "directory" ? search.tab : "weekly-roster";
+  const initialTab = tab;
   const [activeTab, setActiveTabState] = useState<TabType>(initialTab);
-  
-  const initialView = search.view === "week" || search.view === "month" ? search.view : "week";
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const initialView: ViewMode = search.view === "week" || search.view === "month" ? search.view : "week";
   const [viewMode, setViewModeState] = useState<ViewMode>(initialView);
 
   // Selection states
-  const initialIds = typeof search.employeeIds === "string" && search.employeeIds ? search.employeeIds.split(",") : [];
+  const initialIds = search.employeeIds ? search.employeeIds.split(",") : [];
   const [selectedEmployeeIds, setSelectedEmployeeIdsState] = useState<string[]>(initialIds);
   const [selectedEmployees, setSelectedEmployeesState] = useState<Employee[]>([]);
   
@@ -68,14 +69,14 @@ export function useShiftFormState(wsId?: string) {
 
   // Load initial selected employee from URL query parameter if present on mount.
   // Do not gate on selectedEmployee — that would create a circular TDZ with the
-  // derived-state declaration below. The query only runs when URL has employeeId.
+  // derived-state declaration below. The query only runs when URL has employeeIds.
   const { data: initialEmployee } = useQuery({
-    queryKey: ["employee", wsId, search.employeeId],
+    queryKey: ["employee", wsId, employeeId],
     queryFn: () => {
-      if (!wsId || !search.employeeId) throw new Error("Missing params");
-      return fetchEmployee(wsId, search.employeeId);
+      if (!wsId || !employeeId) throw new Error("Missing params");
+      return fetchEmployee(wsId, employeeId);
     },
-    enabled: !!wsId && !!search.employeeId,
+    enabled: !!wsId && !!employeeId,
   });
 
   // Sync initial employee from React Query result — useDerivedStateFrom
@@ -90,7 +91,7 @@ export function useShiftFormState(wsId?: string) {
     setActiveTabState(val);
     void navigate({
       to: "/shifts",
-      search: { tab: val, employeeId: search.employeeId, employeeIds: search.employeeIds },
+      search: (prev: unknown) => ({ ...(prev as ShiftsSearch), tab: val }),
     });
   };
 
@@ -98,7 +99,7 @@ export function useShiftFormState(wsId?: string) {
     setViewModeState(val);
     void navigate({
       to: "/shifts",
-      search: { view: val, employeeId: search.employeeId, employeeIds: search.employeeIds },
+      search: (prev: unknown) => ({ ...(prev as ShiftsSearch), view: val }),
     });
   };
 
@@ -112,7 +113,7 @@ export function useShiftFormState(wsId?: string) {
     }
     void navigate({
       to: "/shifts",
-      search: { tab: search.tab, employeeId: emp?.id, employeeIds: search.employeeIds },
+      search: (prev: unknown) => ({ ...(prev as ShiftsSearch), employeeIds: emp?.id }),
     });
   };
 
@@ -127,7 +128,7 @@ export function useShiftFormState(wsId?: string) {
     }
     void navigate({
       to: "/shifts",
-      search: { tab: search.tab, employeeId: search.employeeId, employeeIds: ids.length > 0 ? ids.join(",") : undefined },
+      search: (prev: unknown) => ({ ...(prev as ShiftsSearch), employeeIds: ids.length > 0 ? ids.join(",") : undefined }),
     });
   };
 

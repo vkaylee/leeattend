@@ -203,7 +203,7 @@ export function useShiftEditor(shiftId?: string) {
       toast.success(t("shifts.messages.create_shift_success", { name: data.name }));
       void queryClient.invalidateQueries({ queryKey: ["shifts", wsId] });
       setIsDirty(false);
-      void navigate({ to: "/shifts", search: { tab: "directory" } });
+      void navigate({ to: "/shifts", search: { tab: "directory", view: "week" } });
     },
     onError: (error) => {
       toast.error(error.message, t("shifts.messages.create_shift_error"));
@@ -218,7 +218,7 @@ export function useShiftEditor(shiftId?: string) {
       void queryClient.invalidateQueries({ queryKey: ["schedules"] });
       void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
       setIsDirty(false);
-      void navigate({ to: "/shifts", search: { tab: "directory" } });
+      void navigate({ to: "/shifts", search: { tab: "directory", view: "week" } });
     },
     onError: (error) => {
       toast.error(error.message, t("shifts.messages.update_shift_error"));
