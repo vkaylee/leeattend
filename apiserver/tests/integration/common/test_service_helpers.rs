@@ -14,7 +14,6 @@ pub fn build_pairing_service(
     ));
     let summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(
         apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
-            feature_flag_repo: None,
             time_entry_repo: time_entry_repo.clone(),
             roster_repo: Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),

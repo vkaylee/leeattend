@@ -71,16 +71,6 @@ fn create_dummy_summary(sys_ot: i32, status: OtStatus) -> AttendanceDailySummary
         holiday_name: None,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
-        policy_version_id: None,
-        effective_rules_snapshot: None,
-        is_superseded: false,
-        superseded_by_id: None,
-        superseded_at: None,
-        legacy_rules_snapshot: None,
-        is_manual_override: false,
-        manual_override_category: None,
-        requires_hr_review: false,
-        manual_override_notes: None,
     }
 }
 
@@ -98,7 +88,6 @@ fn make_service(
         holiday_repo: Arc::new(MockHolidayRepository::new()),
         leave_request_repo: Arc::new(MockLeaveRequestRepository::new()),
         daily_summary_repo: Arc::new(daily_summary_repo),
-        feature_flag_repo: None,
     })
 }
 
@@ -570,7 +559,6 @@ mod recalculate_daily_summary_leave_tests {
             holiday_repo: Arc::new(holiday_repo),
             leave_request_repo: Arc::new(leave_request_repo),
             daily_summary_repo: Arc::new(daily_summary_repo),
-            feature_flag_repo: None,
         });
 
         let result = svc
@@ -737,7 +725,6 @@ mod recalculate_daily_summary_leave_tests {
             holiday_repo: Arc::new(holiday_repo),
             leave_request_repo: Arc::new(leave_request_repo),
             daily_summary_repo: Arc::new(daily_summary_repo),
-            feature_flag_repo: None,
         });
 
         let result = svc
@@ -904,7 +891,6 @@ mod recalculate_daily_summary_leave_tests {
             holiday_repo: Arc::new(holiday_repo),
             leave_request_repo: Arc::new(leave_request_repo),
             daily_summary_repo: Arc::new(daily_summary_repo),
-            feature_flag_repo: None,
         });
 
         let result = svc
@@ -1025,7 +1011,6 @@ mod recalculate_daily_summary_leave_tests {
             holiday_repo: Arc::new(holiday_repo),
             leave_request_repo: Arc::new(leave_request_repo),
             daily_summary_repo: Arc::new(daily_summary_repo),
-            feature_flag_repo: None,
         });
 
         let result = svc
@@ -1171,7 +1156,6 @@ mod recalculate_daily_summary_leave_tests {
             holiday_repo: Arc::new(holiday_repo),
             leave_request_repo: Arc::new(leave_request_repo),
             daily_summary_repo: Arc::new(daily_summary_repo),
-            feature_flag_repo: None,
         });
 
         let result = svc
@@ -1299,7 +1283,6 @@ mod recalculate_daily_summary_leave_tests {
             holiday_repo: Arc::new(holiday_repo),
             leave_request_repo: Arc::new(leave_request_repo),
             daily_summary_repo: Arc::new(daily_summary_repo),
-            feature_flag_repo: None,
         });
 
         let result = svc

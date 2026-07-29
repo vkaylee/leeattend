@@ -56,10 +56,6 @@ pub mod sql_types {
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "ot_aggregation_mode_type"))]
     pub struct OtAggregationModeType;
-
-    #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "policy_version_status_type"))]
-    pub struct PolicyVersionStatusType;
 }
 
 diesel::table! {
@@ -210,16 +206,6 @@ diesel::table! {
         #[max_length = 255]
         holiday_name -> Nullable<Varchar>,
         employment_id -> Uuid,
-        policy_version_id -> Nullable<Uuid>,
-        effective_rules_snapshot -> Nullable<Jsonb>,
-        legacy_rules_snapshot -> Nullable<Jsonb>,
-        is_superseded -> Bool,
-        superseded_by_id -> Nullable<Uuid>,
-        superseded_at -> Nullable<Timestamptz>,
-        is_manual_override -> Bool,
-        manual_override_category -> Nullable<Int2>,
-        requires_hr_review -> Bool,
-        manual_override_notes -> Nullable<Text>,
     }
 }
 
@@ -283,9 +269,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    use diesel::sql_types::*;
-    use super::sql_types::PolicyVersionStatusType;
-
     attendance_policy_versions (id) {
         id -> Uuid,
         policy_id -> Uuid,
@@ -294,88 +277,6 @@ diesel::table! {
         valid_to -> Nullable<Timestamptz>,
         created_by -> Nullable<Uuid>,
         created_at -> Timestamptz,
-        status -> PolicyVersionStatusType,
-        #[max_length = 255]
-        name -> Nullable<Varchar>,
-        description -> Nullable<Text>,
-        updated_by -> Nullable<Uuid>,
-        updated_at -> Timestamptz,
-        base_rules -> Jsonb,
-        conditional_overrides -> Jsonb,
-        delta_specs -> Jsonb,
-        rules_hash -> Nullable<Text>,
-        first_referenced_at -> Nullable<Timestamptz>,
-    }
-}
-
-diesel::table! {
-    attendance_policy_day_type_overrides (id) {
-        id -> Uuid,
-        policy_version_id -> Uuid,
-        workspace_id -> Uuid,
-        #[max_length = 50]
-        day_type -> Varchar,
-        contributions -> Jsonb,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    attendance_policy_shift_template_overrides (id) {
-        id -> Uuid,
-        policy_version_id -> Uuid,
-        workspace_id -> Uuid,
-        shift_template_id -> Uuid,
-        contributions -> Jsonb,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    attendance_policy_shift_version_overrides (id) {
-        id -> Uuid,
-        policy_version_id -> Uuid,
-        workspace_id -> Uuid,
-        shift_version_id -> Uuid,
-        contributions -> Jsonb,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    employee_policy_modifiers (id) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        employee_id -> Uuid,
-        policy_version_id -> Uuid,
-        priority_rank -> Int4,
-        effective_from -> Timestamptz,
-        effective_to -> Nullable<Timestamptz>,
-        contributions -> Jsonb,
-        reason -> Nullable<Text>,
-        created_by -> Nullable<Uuid>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    attendance_exceptions (id) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        employee_id -> Uuid,
-        policy_version_id -> Uuid,
-        exception_from -> Date,
-        exception_to -> Date,
-        contributions -> Jsonb,
-        reason -> Text,
-        approved_by -> Nullable<Uuid>,
-        created_by -> Nullable<Uuid>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
     }
 }
 
@@ -2453,18 +2354,8 @@ diesel::joinable!(assignment_rules -> working_patterns (pattern_id));
 diesel::joinable!(attendance_adjustment_requests -> employments (employment_id));
 diesel::joinable!(attendance_adjustment_requests -> time_entries (time_entry_id));
 diesel::joinable!(attendance_daily_summaries -> employments (employment_id));
-diesel::joinable!(attendance_daily_summaries -> attendance_policy_versions (policy_version_id));
 diesel::joinable!(attendance_policy_assignments -> attendance_policies (policy_id));
 diesel::joinable!(attendance_policy_versions -> attendance_policies (policy_id));
-diesel::joinable!(attendance_policy_day_type_overrides -> attendance_policy_versions (policy_version_id));
-diesel::joinable!(attendance_policy_shift_template_overrides -> attendance_policy_versions (policy_version_id));
-diesel::joinable!(attendance_policy_shift_template_overrides -> shift_templates (shift_template_id));
-diesel::joinable!(attendance_policy_shift_version_overrides -> attendance_policy_versions (policy_version_id));
-diesel::joinable!(attendance_policy_shift_version_overrides -> shift_versions (shift_version_id));
-diesel::joinable!(employee_policy_modifiers -> attendance_policy_versions (policy_version_id));
-diesel::joinable!(employee_policy_modifiers -> employees (employee_id));
-diesel::joinable!(attendance_exceptions -> attendance_policy_versions (policy_version_id));
-diesel::joinable!(attendance_exceptions -> employees (employee_id));
 diesel::joinable!(behalf_assignments -> departments (target_department_id));
 diesel::joinable!(behalf_assignments -> employees (target_employee_id));
 diesel::joinable!(behalf_assignments -> employers (employer_id));
@@ -2577,14 +2468,10 @@ diesel::allow_tables_to_appear_in_same_query!(
     assignment_rules,
     attendance_adjustment_requests,
     attendance_daily_summaries,
-    attendance_exceptions,
     attendance_import_jobs,
     attendance_log_errors,
     attendance_policies,
     attendance_policy_assignments,
-    attendance_policy_day_type_overrides,
-    attendance_policy_shift_template_overrides,
-    attendance_policy_shift_version_overrides,
     attendance_policy_versions,
     attendance_staging_logs,
     attendance_staging_logs_default,
@@ -2629,7 +2516,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     employee_documents,
     employee_emergency_contacts,
     employee_phases,
-    employee_policy_modifiers,
     employee_profiles,
     employee_salary_components,
     employee_shifts,

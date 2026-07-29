@@ -61,7 +61,6 @@ clamav-client = { version = "2.2.0", features = ["tokio"] }
 bytes = "1"
 regex = "1.10.4"
 lettre = { version = "0.11", default-features = false, features = ["builder", "rustls-tls", "smtp-transport"] }
-arc-swap = "1.7"
 
 
 

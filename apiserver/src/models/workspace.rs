@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::models::enums::{EarlyArrivalStrategy, RoleScopeType};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct PolicyRules {
     grace_period_minutes: i32,

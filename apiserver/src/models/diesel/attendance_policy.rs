@@ -34,7 +34,7 @@ impl From<AttendancePolicyEntity> for AttendancePolicy {
     }
 }
 
-#[derive(Debug, Clone, Queryable, Identifiable)]
+#[derive(Debug, Clone, Queryable, Selectable, Insertable, Identifiable, AsChangeset)]
 #[diesel(table_name = attendance_policy_versions)]
 pub struct AttendancePolicyVersionEntity {
     pub id: Uuid,

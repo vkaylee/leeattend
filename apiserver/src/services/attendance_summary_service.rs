@@ -7,24 +7,15 @@ use chrono_tz::Tz;
 
 use uuid::Uuid;
 
+use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
+use crate::repositories::leave_request_repository::LeaveRequestRepository;
+
 use crate::diesel_pool::TenantAuthToken;
-use crate::domain::policy::cascade::compiled::{CompiledPolicy, PolicyVersionCache};
-use crate::domain::policy::cascade::context::{
-    AttendanceException, EmployeeModifier, EvaluationContext,
-};
-use crate::domain::policy::cascade::day_type::resolve_day_type;
-use crate::domain::policy::cascade::diff::CascadeDiffEvent;
-use crate::domain::policy::cascade::engine::evaluate as cascade_evaluate;
-use crate::domain::policy::cascade::trace::EffectiveRulesSnapshot;
 use crate::domain::policy::defaults::DEFAULT_WORK_MINUTES_PER_DAY;
+
 use crate::domain::policy::resolver::ShiftPolicyOverrides;
 use crate::models::{AttendanceDailySummary, OtStatus};
-use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
-use crate::repositories::attendance_exception_repository::AttendanceExceptionRepository;
-use crate::repositories::employee_policy_modifier_repository::EmployeePolicyModifierRepository;
-use crate::repositories::feature_flag_repository::FeatureFlagRepository;
 use crate::repositories::holiday_repository::HolidayRepository;
-use crate::repositories::leave_request_repository::LeaveRequestRepository;
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::AttendancePolicyRepository;
 use crate::repositories::EmployeeRepository;
@@ -97,7 +88,6 @@ pub struct AttendanceSummaryServiceArgs {
     pub holiday_repo: Arc<dyn HolidayRepository>,
     pub leave_request_repo: Arc<dyn LeaveRequestRepository>,
     pub daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
-    pub feature_flag_repo: Option<Arc<dyn FeatureFlagRepository>>,
 }
 
 pub struct AttendanceSummaryService {
@@ -111,10 +101,6 @@ pub struct AttendanceSummaryService {
     holiday_repo: Arc<dyn HolidayRepository>,
     leave_request_repo: Arc<dyn LeaveRequestRepository>,
     daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
-    modifier_repo: Option<Arc<dyn EmployeePolicyModifierRepository>>,
-    exception_repo: Option<Arc<dyn AttendanceExceptionRepository>>,
-    feature_flag_repo: Option<Arc<dyn FeatureFlagRepository>>,
-    policy_cache: Arc<PolicyVersionCache>,
 }
 
 struct CalculateOtBucketsParams<'a> {
@@ -141,32 +127,7 @@ impl AttendanceSummaryService {
             holiday_repo: args.holiday_repo,
             leave_request_repo: args.leave_request_repo,
             daily_summary_repo: args.daily_summary_repo,
-            modifier_repo: None,
-            exception_repo: None,
-            feature_flag_repo: args.feature_flag_repo,
-            policy_cache: Arc::new(PolicyVersionCache::new()),
         }
-    }
-
-    /// Inject cascade engine dependency — employee policy modifiers (L2.5).
-    #[must_use]
-    pub fn with_modifier_repo(mut self, repo: Arc<dyn EmployeePolicyModifierRepository>) -> Self {
-        self.modifier_repo = Some(repo);
-        self
-    }
-
-    /// Inject cascade engine dependency — attendance exceptions (L3).
-    #[must_use]
-    pub fn with_exception_repo(mut self, repo: Arc<dyn AttendanceExceptionRepository>) -> Self {
-        self.exception_repo = Some(repo);
-        self
-    }
-
-    /// Inject feature flag repository — used for ADR-005 canary rollout toggle.
-    #[must_use]
-    pub fn with_feature_flag_repo(mut self, repo: Arc<dyn FeatureFlagRepository>) -> Self {
-        self.feature_flag_repo = Some(repo);
-        self
     }
 
     /// Recalculates and persists the daily summary for a specific employee and date.
@@ -214,7 +175,7 @@ impl AttendanceSummaryService {
         }
 
         // 2. Calculate work minutes and OT
-        let (actual_work_minutes, system_detected_ot_minutes, cascade_snapshot, legacy_json) = self
+        let (actual_work_minutes, system_detected_ot_minutes) = self
             .calculate_work_and_ot(
                 &tz,
                 date,
@@ -241,46 +202,19 @@ impl AttendanceSummaryService {
             .determine_ot_status(auth_token, employee_id, date, system_detected_ot_minutes)
             .await?;
 
-        // 5. Persist — with cascade snapshot when available
-        if let Some(snapshot) = cascade_snapshot {
-            let policy_version_id = snapshot
-                .cascade_trace()
-                .first()
-                .and_then(|t| t.provenance().policy_version_id())
-                .unwrap_or_else(|| employment.employee_id()); // fallback: use employee_id as sentinel
-            let snapshot_json = serde_json::to_value(&snapshot).unwrap_or_else(|e| {
-                tracing::error!(error = %e, "Failed to serialize cascade snapshot");
-                serde_json::Value::Null
-            });
-            self.daily_summary_repo
-                .upsert_calculated_summary_with_snapshot(
-                    auth_token,
-                    employment_id,
-                    date,
-                    actual_work_minutes,
-                    system_detected_ot_minutes,
-                    new_status,
-                    is_holiday,
-                    holiday_name,
-                    policy_version_id,
-                    Some(snapshot_json),
-                    legacy_json,
-                )
-                .await?;
-        } else {
-            self.daily_summary_repo
-                .upsert_calculated_summary(
-                    auth_token,
-                    employment_id,
-                    date,
-                    actual_work_minutes,
-                    system_detected_ot_minutes,
-                    new_status,
-                    is_holiday,
-                    holiday_name,
-                )
-                .await?;
-        }
+        // 5. Persist
+        self.daily_summary_repo
+            .upsert_calculated_summary(
+                auth_token,
+                employment_id,
+                date,
+                actual_work_minutes,
+                system_detected_ot_minutes,
+                new_status,
+                is_holiday,
+                holiday_name,
+            )
+            .await?;
         Ok(())
     }
 
@@ -392,7 +326,7 @@ impl AttendanceSummaryService {
                 }
 
                 // 6b. Calculate work minutes and OT
-                let (actual_work_minutes, system_detected_ot_minutes, cascade_snapshot, legacy_json) = self
+                let (actual_work_minutes, system_detected_ot_minutes) = self
                     .calculate_work_and_ot(
                         &tz,
                         curr_date,
@@ -457,46 +391,19 @@ impl AttendanceSummaryService {
                     }
                 };
 
-                // 6e. Persist summary — with cascade snapshot when available
-                if let Some(ref snapshot) = cascade_snapshot {
-                    let policy_version_id = snapshot
-                        .cascade_trace()
-                        .first()
-                        .and_then(|t| t.provenance().policy_version_id())
-                        .unwrap_or(employee_id);
-                    let snapshot_json = serde_json::to_value(snapshot).unwrap_or_else(|e| {
-                        tracing::error!(error = %e, "Failed to serialize cascade snapshot");
-                        serde_json::Value::Null
-                    });
-                    self.daily_summary_repo
-                        .upsert_calculated_summary_with_snapshot(
-                            auth_token,
-                            employment_id,
-                            curr_date,
-                            actual_work_minutes,
-                            system_detected_ot_minutes,
-                            new_status,
-                            is_holiday,
-                            holiday_name,
-                            policy_version_id,
-                            Some(snapshot_json),
-                            legacy_json,
-                        )
-                        .await?;
-                } else {
-                    self.daily_summary_repo
-                        .upsert_calculated_summary(
-                            auth_token,
-                            employment_id,
-                            curr_date,
-                            actual_work_minutes,
-                            system_detected_ot_minutes,
-                            new_status,
-                            is_holiday,
-                            holiday_name,
-                        )
-                        .await?;
-                }
+                // 6e. Persist summary
+                self.daily_summary_repo
+                    .upsert_calculated_summary(
+                        auth_token,
+                        employment_id,
+                        curr_date,
+                        actual_work_minutes,
+                        system_detected_ot_minutes,
+                        new_status,
+                        is_holiday,
+                        holiday_name,
+                    )
+                    .await?;
             }
 
             curr_date = curr_date.succ_opt().unwrap_or(curr_date);
@@ -574,7 +481,6 @@ impl AttendanceSummaryService {
     }
 
     /// Calculate actual work minutes and system-detected OT from time entries.
-    /// Returns (actual_work_minutes, system_detected_ot_minutes, optional_cascade_snapshot).
     async fn calculate_work_and_ot(
         &self,
         tz: &Tz,
@@ -583,7 +489,7 @@ impl AttendanceSummaryService {
         auth_token: &TenantAuthToken,
         daily_schedule: &crate::models::EffectiveSchedule,
         day_entries: &[crate::models::TimeEntry],
-    ) -> AppResult<(i32, i32, Option<EffectiveRulesSnapshot>, Option<serde_json::Value>)> {
+    ) -> AppResult<(i32, i32)> {
         let actual_punch_in = day_entries
             .first()
             .map(|e| e.punch_in_time().with_timezone(tz));
@@ -592,7 +498,7 @@ impl AttendanceSummaryService {
             .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(tz)));
 
         let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) else {
-            return Ok((0, 0, None, None));
+            return Ok((0, 0));
         };
 
         let actual_break_minutes: i32 = day_entries
@@ -605,7 +511,7 @@ impl AttendanceSummaryService {
             i32::try_from(punch_out.signed_duration_since(punch_in).num_minutes()).unwrap_or(0);
         let actual_work_minutes = i32::max(0, raw_duration - actual_break_minutes);
 
-        let (system_detected_ot_minutes, snapshot, legacy_json) = self
+        let system_detected_ot_minutes = self
             .calculate_ot_buckets(CalculateOtBucketsParams {
                 tz,
                 date,
@@ -618,20 +524,11 @@ impl AttendanceSummaryService {
             })
             .await?;
 
-        Ok((actual_work_minutes, system_detected_ot_minutes, snapshot, legacy_json))
+        Ok((actual_work_minutes, system_detected_ot_minutes))
     }
 
     /// Internal: compute OT buckets from schedule + punches.
-    /// Returns (ot_minutes, optional_cascade_snapshot).
-    ///
-    /// ADR-005 Phase 3: When the cascade-as-primary feature flag is enabled,
-    /// the cascade engine's `final_rules()` replaces the legacy resolver output
-    /// as the primary ruleset for OT calculation. The legacy path always runs
-    /// so the snapshot is available for diff comparison regardless of toggle state.
-    async fn calculate_ot_buckets(
-        &self,
-        params: CalculateOtBucketsParams<'_>,
-    ) -> AppResult<(i32, Option<EffectiveRulesSnapshot>, Option<serde_json::Value>)> {
+    async fn calculate_ot_buckets(&self, params: CalculateOtBucketsParams<'_>) -> AppResult<i32> {
         let CalculateOtBucketsParams {
             tz,
             date,
@@ -645,7 +542,7 @@ impl AttendanceSummaryService {
         let (Some(sched_start_time), Some(sched_end_time)) =
             (daily_schedule.start_time(), daily_schedule.end_time())
         else {
-            return Ok((0, None, None));
+            return Ok(0);
         };
 
         let start_dt = tz
@@ -656,14 +553,13 @@ impl AttendanceSummaryService {
             .single();
 
         let (Some(start), Some(mut end)) = (start_dt, end_dt) else {
-            return Ok((0, None, None));
+            return Ok(0);
         };
 
         if sched_end_time < sched_start_time {
             end += chrono::Duration::days(1);
         }
 
-        // Resolve legacy rules (always — used for cascade diff comparison)
         let rules = PolicyResolverService::resolve_attendance_rules(
             &*self.policy_repo,
             &*self.employee_repo,
@@ -674,7 +570,7 @@ impl AttendanceSummaryService {
         )
         .await?;
 
-        let legacy_policy_rules = PolicyResolverService::resolve_with_shift_overrides(
+        let policy_rules = PolicyResolverService::resolve_with_shift_overrides(
             &*self.policy_repo,
             &*self.employee_repo,
             &*self.condition_type_repo,
@@ -690,20 +586,6 @@ impl AttendanceSummaryService {
             ),
         )
         .await?;
-
-        // ── SHADOW: Cascade engine evaluation (ADR-005 dual-run) ──
-        // Always evaluated alongside legacy regardless of toggle state.
-        let snapshot = self
-            .run_cascade_shadow(auth_token, employee_id, date, &legacy_policy_rules)
-            .await;
-
-        // ── ADR-005 Phase 3: Cascade-as-primary toggle ──
-        // When the feature flag is enabled, use cascade final_rules() as the
-        // primary ruleset for OT bucket calculation. Otherwise, keep legacy.
-        let active_rules = self
-            .maybe_use_cascade_primary(auth_token, employee_id, &snapshot, &legacy_policy_rules)
-            .await
-            .unwrap_or_else(|| legacy_policy_rules.clone());
 
         let break_start_dt = daily_schedule
             .break_start()
@@ -728,7 +610,7 @@ impl AttendanceSummaryService {
                 break_end: break_end_dt,
                 work_unit: 0,
                 rounding_policy: String::new(),
-                rules: active_rules,
+                rules: policy_rules,
                 ot_ceiling: None,
                 max_early_ot_minutes: daily_schedule.max_early_ot_minutes(),
                 segment_id: None,
@@ -737,252 +619,7 @@ impl AttendanceSummaryService {
             },
         );
 
-        let total_ot =
-            buckets.early_ot_minutes + buckets.late_ot_minutes + buckets.break_ot_minutes;
-
-        let legacy_json = serde_json::to_value(&legacy_policy_rules).ok();
-
-        Ok((total_ot, snapshot, legacy_json))
-    }
-
-    /// ADR-005 Phase 3: Decide whether cascade engine output should replace
-    /// legacy resolver output for OT calculation.
-    ///
-    /// Checks two feature flags in order:
-    /// 1. `cascade_as_primary` — workspace-wide boolean; if true, all employees
-    ///    use cascade as primary.
-    /// 2. `cascade_primary_employee_ids` — per-employee canary; if the
-    ///    employee_id appears in the flag's metadata `employee_ids` array,
-    ///    cascade is promoted to primary.
-    ///
-    /// Returns `Some(PolicyRules)` when cascade should be used as primary,
-    /// `None` when legacy should remain primary (or cascade not available).
-    async fn maybe_use_cascade_primary(
-        &self,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
-        snapshot: &Option<EffectiveRulesSnapshot>,
-        _legacy: &crate::models::PolicyRules,
-    ) -> Option<crate::models::PolicyRules> {
-        let feature_flag_repo = self.feature_flag_repo.as_ref()?;
-        let snapshot = snapshot.as_ref()?;
-
-        // Check workspace-wide toggle.
-        let workspace_enabled = feature_flag_repo
-            .is_enabled_flag(auth_token, "cascade_as_primary")
-            .await
-            .unwrap_or(false);
-
-        if workspace_enabled {
-            tracing::debug!(
-                employee_id = %employee_id,
-                "Cascade-as-primary: workspace-wide toggle enabled"
-            );
-            return Some(snapshot.final_rules().clone());
-        }
-
-        // Check per-employee canary list.
-        match feature_flag_repo
-            .get_flag_by_key(auth_token, "cascade_primary_employee_ids")
-            .await
-        {
-            Ok(Some(flag)) if flag.enabled => {
-                if let Some(employee_ids) = flag
-                    .metadata
-                    .get("employee_ids")
-                    .and_then(|v| v.as_array())
-                {
-                    let eid_str = employee_id.to_string();
-                    let matched = employee_ids.iter().any(|v| v.as_str() == Some(&eid_str));
-                    if matched {
-                        tracing::info!(
-                            employee_id = %employee_id,
-                            "Cascade-as-primary: employee in canary list"
-                        );
-                        return Some(snapshot.final_rules().clone());
-                    }
-                }
-            }
-            Ok(_) => { /* flag not found or disabled — cascade stays as shadow */ }
-            Err(e) => {
-                tracing::warn!(
-                    error = %e,
-                    "Cascade-as-primary: failed to check canary flag, falling back to legacy"
-                );
-            }
-        }
-
-        None
-    }
-
-    /// Load (or retrieve from cache) the CompiledPolicy for a policy version.
-    /// On cache miss, loads base_rules + all L2 conditional overrides from DB,
-    /// builds a CompiledPolicy, and publishes it to the cache.
-    async fn ensure_compiled_policy(
-        &self,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        policy_version_id: Uuid,
-    ) -> Option<Arc<CompiledPolicy>> {
-        // Cache hit — lock-free read.
-        if let Some(compiled) = self.policy_cache.get(policy_version_id) {
-            return Some(compiled);
-        }
-
-        // Cache miss — load from DB and publish.
-        let base_rules = self
-            .policy_repo
-            .get_policy_version_base_rules(auth_token, policy_version_id)
-            .await
-            .unwrap_or_default()
-            .unwrap_or_default();
-
-        let l2a = self
-            .policy_repo
-            .get_day_type_overrides_for_version(auth_token, policy_version_id)
-            .await
-            .unwrap_or_default();
-
-        let l2b = self
-            .policy_repo
-            .get_shift_template_overrides_for_version(auth_token, policy_version_id)
-            .await
-            .unwrap_or_default();
-
-        let l2c = self
-            .policy_repo
-            .get_shift_version_overrides_for_version(auth_token, policy_version_id)
-            .await
-            .unwrap_or_default();
-
-        let compiled = Arc::new(CompiledPolicy::new(
-            policy_version_id,
-            base_rules,
-            l2a,
-            l2b,
-            l2c,
-        ));
-        self.policy_cache.publish(&compiled);
-        Some(compiled)
-    }
-
-    /// Run cascade engine in shadow mode — evaluate, log diff, return snapshot.
-    /// Errors are logged but never propagated; shadow mode must not block processing.
-    async fn run_cascade_shadow(
-        &self,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
-        date: NaiveDate,
-        legacy_rules: &crate::models::PolicyRules,
-    ) -> Option<EffectiveRulesSnapshot> {
-        let modifier_repo = self.modifier_repo.as_ref()?;
-        let exception_repo = self.exception_repo.as_ref()?;
-
-        // L1: Get the effective policy version for this employee.
-        let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
-        let policy_version = self
-            .policy_repo
-            .get_employee_effective_policy(auth_token, employee_id, effective_time)
-            .await
-            .ok()??;
-
-        let policy_version_id = policy_version.id;
-
-        // Items 1–3: Load CompiledPolicy from cache (or populate cache on miss).
-        // This yields base_rules + all L2 conditional overrides in one shot.
-        let compiled = self
-            .ensure_compiled_policy(auth_token, policy_version_id)
-            .await?;
-
-        let base_rules = compiled.base_rules().clone();
-        let mut ctx = EvaluationContext::new(policy_version_id, base_rules);
-
-        // L2a: day_type — resolve from date + holiday map, then lookup in compiled policy.
-        let holiday_map = self
-            .holiday_repo
-            .get_holidays_in_range(
-                auth_token,
-                date - chrono::Duration::days(3),
-                date + chrono::Duration::days(3),
-            )
-            .await
-            .unwrap_or_default();
-
-        let day_type = resolve_day_type(date, &holiday_map);
-        let day_type_contributions = compiled
-            .l2a_by_day_type()
-            .get(&day_type)
-            .cloned()
-            .unwrap_or_default();
-
-        ctx = ctx.with_day_type(day_type, day_type_contributions);
-
-        // L2.5: employee modifiers
-        match modifier_repo
-            .get_active_modifiers(auth_token, employee_id, date)
-            .await
-        {
-            Ok(modifiers) => {
-                for m in modifiers {
-                    ctx = ctx.push_modifier(EmployeeModifier::new(
-                        m.id(),
-                        m.priority_rank(),
-                        m.contributions(),
-                    ));
-                }
-            }
-            Err(e) => {
-                tracing::warn!(
-                    error = %e,
-                    employee_id = %employee_id,
-                    date = %date,
-                    "Cascade L2.5 modifier fetch failed, continuing without modifiers"
-                );
-            }
-        }
-
-        // L3: exception
-        match exception_repo
-            .get_exception_for_date(auth_token, employee_id, date)
-            .await
-        {
-            Ok(Some(exc)) => {
-                ctx = ctx.with_exception(AttendanceException::new(exc.id(), exc.contributions()));
-            }
-            Ok(None) => { /* no exception — normal */ }
-            Err(e) => {
-                tracing::warn!(
-                    error = %e,
-                    employee_id = %employee_id,
-                    date = %date,
-                    "Cascade L3 exception fetch failed, continuing without exception"
-                );
-            }
-        }
-
-        let snapshot = cascade_evaluate(ctx);
-
-        // Structured diff event per ADR-005 Phase 2.
-        // Emitted as tracing::info! so observability pipelines can ingest
-        // every field as a typed attribute. The summary() method also
-        // provides a human-readable fallback.
-        let cascade_rules = snapshot.final_rules();
-        if cascade_rules != legacy_rules {
-            let diff_event = CascadeDiffEvent::new(cascade_rules, legacy_rules);
-            tracing::info!(
-                cascade_grace = cascade_rules.grace_period_minutes(),
-                legacy_grace = legacy_rules.grace_period_minutes(),
-                cascade_early_leave = cascade_rules.authorized_early_leave_minutes(),
-                legacy_early_leave = legacy_rules.authorized_early_leave_minutes(),
-                cascade_trace_len = snapshot.cascade_trace().len(),
-                clamp_warnings = snapshot.clamp_warnings().len(),
-                diff_count = diff_event.diffs.len(),
-                diff_summary = diff_event.summary(),
-                cascade_diff = ?diff_event,
-                "Cascade vs legacy policy diff — shadow mode"
-            );
-        }
-
-        Some(snapshot)
+        Ok(buckets.early_ot_minutes + buckets.late_ot_minutes + buckets.break_ot_minutes)
     }
 
     /// Check if the date is a holiday and handle leave conflict (reversal if employee worked enough).

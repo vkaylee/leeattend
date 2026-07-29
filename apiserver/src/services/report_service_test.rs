@@ -996,43 +996,6 @@ mod tests {
         ) -> Result<(), AppError> {
             unimplemented!()
         }
-        async fn get_policy_version_base_rules(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _policy_version_id: Uuid,
-        ) -> Result<Option<crate::domain::policy::cascade::base::BaseRules>, AppError> {
-            unimplemented!()
-        }
-        async fn get_day_type_overrides_for_version(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _policy_version_id: Uuid,
-        ) -> Result<
-            HashMap<String, crate::domain::policy::cascade::partial::PartialPolicyRules>,
-            AppError,
-        > {
-            unimplemented!()
-        }
-        async fn get_shift_template_overrides_for_version(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _policy_version_id: Uuid,
-        ) -> Result<
-            HashMap<Uuid, crate::domain::policy::cascade::partial::PartialPolicyRules>,
-            AppError,
-        > {
-            unimplemented!()
-        }
-        async fn get_shift_version_overrides_for_version(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _policy_version_id: Uuid,
-        ) -> Result<
-            HashMap<Uuid, crate::domain::policy::cascade::partial::PartialPolicyRules>,
-            AppError,
-        > {
-            unimplemented!()
-        }
     }
 
     struct DummyLeaveRepo;
@@ -1346,7 +1309,7 @@ mod tests {
             _end_date: NaiveDate,
         ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), AttendanceDailySummary>, AppError>
         {
-            Ok(std::collections::HashMap::new())
+            unimplemented!()
         }
         async fn get_summaries_paginated(
             &self,
@@ -2389,43 +2352,6 @@ mod tests {
         ) -> Result<(), AppError> {
             unimplemented!()
         }
-        async fn get_policy_version_base_rules(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _policy_version_id: Uuid,
-        ) -> Result<Option<crate::domain::policy::cascade::base::BaseRules>, AppError> {
-            unimplemented!()
-        }
-        async fn get_day_type_overrides_for_version(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _policy_version_id: Uuid,
-        ) -> Result<
-            HashMap<String, crate::domain::policy::cascade::partial::PartialPolicyRules>,
-            AppError,
-        > {
-            unimplemented!()
-        }
-        async fn get_shift_template_overrides_for_version(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _policy_version_id: Uuid,
-        ) -> Result<
-            HashMap<Uuid, crate::domain::policy::cascade::partial::PartialPolicyRules>,
-            AppError,
-        > {
-            unimplemented!()
-        }
-        async fn get_shift_version_overrides_for_version(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _policy_version_id: Uuid,
-        ) -> Result<
-            HashMap<Uuid, crate::domain::policy::cascade::partial::PartialPolicyRules>,
-            AppError,
-        > {
-            unimplemented!()
-        }
     }
 
     struct EmptyDailySummaryRepo;
@@ -2518,7 +2444,7 @@ mod tests {
             _end_date: NaiveDate,
         ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), AttendanceDailySummary>, AppError>
         {
-            Ok(std::collections::HashMap::new())
+            unimplemented!()
         }
         async fn get_summaries_paginated(
             &self,

@@ -56,8 +56,6 @@ pub struct Repositories {
     pub error: Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository>,
     pub condition_type: Arc<dyn crate::repositories::ConditionTypeRepository>,
     pub compliance: Arc<dyn crate::repositories::ComplianceRepository>,
-    pub employee_policy_modifier: Arc<dyn crate::repositories::employee_policy_modifier_repository::EmployeePolicyModifierRepository>,
-    pub attendance_exception: Arc<dyn crate::repositories::attendance_exception_repository::AttendanceExceptionRepository>,
 }
 
 #[allow(clippy::too_many_lines)]
@@ -232,12 +230,6 @@ pub fn build_repositories(
     let compliance = Arc::new(crate::repositories::DieselComplianceRepository::new(
         diesel_pools.clone(),
     ));
-    let employee_policy_modifier = Arc::new(
-        crate::repositories::diesel_employee_policy_modifier_repository::DieselEmployeePolicyModifierRepository::new(diesel_pools.clone()),
-    );
-    let attendance_exception = Arc::new(
-        crate::repositories::diesel_attendance_exception_repository::DieselAttendanceExceptionRepository::new(diesel_pools.clone()),
-    );
 
     Ok(Repositories {
         agent,
@@ -292,7 +284,5 @@ pub fn build_repositories(
         error,
         condition_type,
         compliance,
-        employee_policy_modifier,
-        attendance_exception,
     })
 }

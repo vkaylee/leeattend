@@ -41,24 +41,6 @@ pub struct FeatureFlagCheckResponse {
     pub enabled: bool,
 }
 
-/// ADR-005 dual-run window status response.
-/// Computed from the `cascade_as_primary` feature flag metadata.
-#[derive(Debug, Serialize, utoipa::ToSchema)]
-pub struct CascadeDualRunStatus {
-    /// Whether the dual-run window is active (cascade_as_primary flag is enabled)
-    pub enabled: bool,
-    /// The ISO-8601 cutover timestamp from the flag metadata
-    pub cutover_at: Option<String>,
-    /// ISO-8601 timestamp when the 30-day window closes
-    pub window_closes_at: Option<String>,
-    /// Days remaining in the dual-run window (rounded to nearest integer)
-    pub days_remaining: Option<i64>,
-    /// Window phase: "active" | "closing_soon" (≤7d) | "critical" (≤3d) | "final" (≤1d) | "closed"
-    pub window_phase: String,
-    /// Human-readable message for the UI banner
-    pub message: String,
-}
-
 fn default_metadata() -> serde_json::Value {
     serde_json::Value::Object(serde_json::Map::new())
 }

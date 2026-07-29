@@ -320,49 +320,34 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     > = Arc::new(
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone()),
     );
-    let attendance_summary_service = Arc::new(
-        apiserver::services::AttendanceSummaryService::new(
-            apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
-                feature_flag_repo: None,
-                time_entry_repo: time_entry_repo.clone(),
-                roster_repo: roster_repo.clone(),
-                policy_repo: policy_repo.clone(),
-                condition_type_repo: Arc::new(
-                    apiserver::repositories::DieselConditionTypeRepository::new(
-                        diesel_pools.clone(),
-                    ),
-                ),
-                workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
-                    diesel_pools.clone(),
-                )),
-                employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
-                    diesel_pools.clone(),
-                )),
-                employment_repo: employment_repo.clone(),
-                holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
-                    diesel_pools.clone(),
-                )),
-                leave_request_repo: Arc::new(
-                    apiserver::repositories::DieselLeaveRequestRepository::new(
-                        diesel_pools.clone(),
-                    ),
-                ),
-                daily_summary_repo: Arc::new(
-                    apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
-                        diesel_pools.clone(),
-                    ),
-                ),
-            },
-        )
-        .with_modifier_repo(Arc::new(
-            apiserver::repositories::DieselEmployeePolicyModifierRepository::new(
-                diesel_pools.clone(),
+    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(
+        apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+            time_entry_repo: time_entry_repo.clone(),
+            roster_repo: roster_repo.clone(),
+            policy_repo: policy_repo.clone(),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
             ),
-        ))
-        .with_exception_repo(Arc::new(
-            apiserver::repositories::DieselAttendanceExceptionRepository::new(diesel_pools.clone()),
-        )),
-    );
+            workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
+                diesel_pools.clone(),
+            )),
+            employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            employment_repo: employment_repo.clone(),
+            holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
+                diesel_pools.clone(),
+            )),
+            leave_request_repo: Arc::new(
+                apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone()),
+            ),
+            daily_summary_repo: Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+        },
+    ));
 
     let pairing_service = Arc::new(apiserver::services::pairing::PairingService::new(
         apiserver::services::pairing::PairingServiceArgs::new(
@@ -1029,49 +1014,34 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
         leave_request_repo.clone(),
         attendance_summary_repo.clone(),
     ));
-    let attendance_summary_service = Arc::new(
-        apiserver::services::AttendanceSummaryService::new(
-            apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
-                feature_flag_repo: None,
-                time_entry_repo: time_entry_repo.clone(),
-                roster_repo: roster_repo.clone(),
-                policy_repo: policy_repo.clone(),
-                condition_type_repo: Arc::new(
-                    apiserver::repositories::DieselConditionTypeRepository::new(
-                        diesel_pools.clone(),
-                    ),
-                ),
-                workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
-                    diesel_pools.clone(),
-                )),
-                employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
-                    diesel_pools.clone(),
-                )),
-                employment_repo: employment_repo.clone(),
-                holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
-                    diesel_pools.clone(),
-                )),
-                leave_request_repo: Arc::new(
-                    apiserver::repositories::DieselLeaveRequestRepository::new(
-                        diesel_pools.clone(),
-                    ),
-                ),
-                daily_summary_repo: Arc::new(
-                    apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
-                        diesel_pools.clone(),
-                    ),
-                ),
-            },
-        )
-        .with_modifier_repo(Arc::new(
-            apiserver::repositories::DieselEmployeePolicyModifierRepository::new(
-                diesel_pools.clone(),
+    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(
+        apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+            time_entry_repo: time_entry_repo.clone(),
+            roster_repo: roster_repo.clone(),
+            policy_repo: policy_repo.clone(),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
             ),
-        ))
-        .with_exception_repo(Arc::new(
-            apiserver::repositories::DieselAttendanceExceptionRepository::new(diesel_pools.clone()),
-        )),
-    );
+            workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
+                diesel_pools.clone(),
+            )),
+            employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            employment_repo: employment_repo.clone(),
+            holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
+                diesel_pools.clone(),
+            )),
+            leave_request_repo: Arc::new(
+                apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone()),
+            ),
+            daily_summary_repo: Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+        },
+    ));
     let report_service = Arc::new(apiserver::services::ReportService::new(
         apiserver::services::report_service::ReportServiceArgs {
             time_entry_repo: time_entry_repo.clone(),
@@ -1098,49 +1068,34 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
     > = Arc::new(
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone()),
     );
-    let attendance_summary_service = Arc::new(
-        apiserver::services::AttendanceSummaryService::new(
-            apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
-                feature_flag_repo: None,
-                time_entry_repo: time_entry_repo.clone(),
-                roster_repo: roster_repo.clone(),
-                policy_repo: policy_repo.clone(),
-                condition_type_repo: Arc::new(
-                    apiserver::repositories::DieselConditionTypeRepository::new(
-                        diesel_pools.clone(),
-                    ),
-                ),
-                workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
-                    diesel_pools.clone(),
-                )),
-                employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
-                    diesel_pools.clone(),
-                )),
-                employment_repo: employment_repo.clone(),
-                holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
-                    diesel_pools.clone(),
-                )),
-                leave_request_repo: Arc::new(
-                    apiserver::repositories::DieselLeaveRequestRepository::new(
-                        diesel_pools.clone(),
-                    ),
-                ),
-                daily_summary_repo: Arc::new(
-                    apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
-                        diesel_pools.clone(),
-                    ),
-                ),
-            },
-        )
-        .with_modifier_repo(Arc::new(
-            apiserver::repositories::DieselEmployeePolicyModifierRepository::new(
-                diesel_pools.clone(),
+    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(
+        apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+            time_entry_repo: time_entry_repo.clone(),
+            roster_repo: roster_repo.clone(),
+            policy_repo: policy_repo.clone(),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
             ),
-        ))
-        .with_exception_repo(Arc::new(
-            apiserver::repositories::DieselAttendanceExceptionRepository::new(diesel_pools.clone()),
-        )),
-    );
+            workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
+                diesel_pools.clone(),
+            )),
+            employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            employment_repo: employment_repo.clone(),
+            holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
+                diesel_pools.clone(),
+            )),
+            leave_request_repo: Arc::new(
+                apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone()),
+            ),
+            daily_summary_repo: Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+        },
+    ));
 
     let pairing_service = Arc::new(apiserver::services::pairing::PairingService::new(
         apiserver::services::pairing::PairingServiceArgs::new(
@@ -1845,49 +1800,34 @@ pub async fn setup_app_tower_internal_extended(
         leave_request_repo.clone(),
         attendance_daily_summary_repo.clone(),
     ));
-    let attendance_summary_service = Arc::new(
-        apiserver::services::AttendanceSummaryService::new(
-            apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
-                feature_flag_repo: None,
-                time_entry_repo: time_entry_repo.clone(),
-                roster_repo: roster_repo.clone(),
-                policy_repo: policy_repo.clone(),
-                condition_type_repo: Arc::new(
-                    apiserver::repositories::DieselConditionTypeRepository::new(
-                        diesel_pools.clone(),
-                    ),
-                ),
-                workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
-                    diesel_pools.clone(),
-                )),
-                employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
-                    diesel_pools.clone(),
-                )),
-                employment_repo: employment_repo.clone(),
-                holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
-                    diesel_pools.clone(),
-                )),
-                leave_request_repo: Arc::new(
-                    apiserver::repositories::DieselLeaveRequestRepository::new(
-                        diesel_pools.clone(),
-                    ),
-                ),
-                daily_summary_repo: Arc::new(
-                    apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
-                        diesel_pools.clone(),
-                    ),
-                ),
-            },
-        )
-        .with_modifier_repo(Arc::new(
-            apiserver::repositories::DieselEmployeePolicyModifierRepository::new(
-                diesel_pools.clone(),
+    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(
+        apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+            time_entry_repo: time_entry_repo.clone(),
+            roster_repo: roster_repo.clone(),
+            policy_repo: policy_repo.clone(),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
             ),
-        ))
-        .with_exception_repo(Arc::new(
-            apiserver::repositories::DieselAttendanceExceptionRepository::new(diesel_pools.clone()),
-        )),
-    );
+            workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
+                diesel_pools.clone(),
+            )),
+            employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            employment_repo: employment_repo.clone(),
+            holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
+                diesel_pools.clone(),
+            )),
+            leave_request_repo: Arc::new(
+                apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone()),
+            ),
+            daily_summary_repo: Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+        },
+    ));
     let report_service = Arc::new(apiserver::services::ReportService::new(
         apiserver::services::report_service::ReportServiceArgs {
             time_entry_repo: time_entry_repo.clone(),
@@ -1920,49 +1860,34 @@ pub async fn setup_app_tower_internal_extended(
     > = Arc::new(
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone()),
     );
-    let attendance_summary_service = Arc::new(
-        apiserver::services::AttendanceSummaryService::new(
-            apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
-                feature_flag_repo: None,
-                time_entry_repo: time_entry_repo.clone(),
-                roster_repo: roster_repo.clone(),
-                policy_repo: policy_repo.clone(),
-                condition_type_repo: Arc::new(
-                    apiserver::repositories::DieselConditionTypeRepository::new(
-                        diesel_pools.clone(),
-                    ),
-                ),
-                workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
-                    diesel_pools.clone(),
-                )),
-                employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
-                    diesel_pools.clone(),
-                )),
-                employment_repo: employment_repo.clone(),
-                holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
-                    diesel_pools.clone(),
-                )),
-                leave_request_repo: Arc::new(
-                    apiserver::repositories::DieselLeaveRequestRepository::new(
-                        diesel_pools.clone(),
-                    ),
-                ),
-                daily_summary_repo: Arc::new(
-                    apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
-                        diesel_pools.clone(),
-                    ),
-                ),
-            },
-        )
-        .with_modifier_repo(Arc::new(
-            apiserver::repositories::DieselEmployeePolicyModifierRepository::new(
-                diesel_pools.clone(),
+    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(
+        apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+            time_entry_repo: time_entry_repo.clone(),
+            roster_repo: roster_repo.clone(),
+            policy_repo: policy_repo.clone(),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
             ),
-        ))
-        .with_exception_repo(Arc::new(
-            apiserver::repositories::DieselAttendanceExceptionRepository::new(diesel_pools.clone()),
-        )),
-    );
+            workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
+                diesel_pools.clone(),
+            )),
+            employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            employment_repo: employment_repo.clone(),
+            holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
+                diesel_pools.clone(),
+            )),
+            leave_request_repo: Arc::new(
+                apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone()),
+            ),
+            daily_summary_repo: Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+        },
+    ));
 
     let pairing_service = Arc::new(apiserver::services::pairing::PairingService::new(
         apiserver::services::pairing::PairingServiceArgs::new(

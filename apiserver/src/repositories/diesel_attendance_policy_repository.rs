@@ -3,8 +3,6 @@ use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::domain::policy::cascade::base::BaseRules;
-use crate::domain::policy::cascade::partial::PartialPolicyRules;
 use crate::errors::AppError;
 use crate::models::{AttendancePolicyVersion, AttendanceRules};
 use crate::repositories::attendance_policy_repository::AttendancePolicyRepository;
@@ -662,44 +660,13 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         let versions = attendance_policy_versions::table
             .filter(attendance_policy_versions::policy_id.eq(p_id))
             .order(attendance_policy_versions::valid_from.desc())
-            .select((
-                attendance_policy_versions::id,
-                attendance_policy_versions::policy_id,
-                attendance_policy_versions::rules,
-                attendance_policy_versions::valid_from,
-                attendance_policy_versions::valid_to,
-                attendance_policy_versions::created_by,
-                attendance_policy_versions::created_at,
-            ))
-            .load::<(
-                Uuid,
-                Uuid,
-                Value,
-                DateTime<Utc>,
-                Option<DateTime<Utc>>,
-                Option<Uuid>,
-                DateTime<Utc>,
-            )>(&mut *conn)
+            .load::<crate::models::diesel::attendance_policy::AttendancePolicyVersionEntity>(
+                &mut *conn,
+            )
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        Ok(versions
-            .into_iter()
-            .map(
-                |(id, policy_id, rules, valid_from, valid_to, created_by, created_at)| {
-                    crate::models::diesel::attendance_policy::AttendancePolicyVersionEntity {
-                        id,
-                        policy_id,
-                        rules,
-                        valid_from,
-                        valid_to,
-                        created_by,
-                        created_at,
-                    }
-                },
-            )
-            .map(Into::into)
-            .collect())
+        Ok(versions.into_iter().map(Into::into).collect())
     }
 
     async fn update_default_policy_rules(
@@ -813,18 +780,19 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
 
                 let version_id = crate::utils::id::new_id();
                 let now = Utc::now();
+                let version_entity =
+                    crate::models::diesel::attendance_policy::AttendancePolicyVersionEntity {
+                        id: version_id,
+                        policy_id,
+                        rules: serde_json::to_value(&new_rules).unwrap_or_default(),
+                        valid_from,
+                        valid_to: None,
+                        created_by: Some(user_id),
+                        created_at: now,
+                    };
 
                 diesel::insert_into(attendance_policy_versions::table)
-                    .values((
-                        attendance_policy_versions::id.eq(version_id),
-                        attendance_policy_versions::policy_id.eq(policy_id),
-                        attendance_policy_versions::rules
-                            .eq(serde_json::to_value(&new_rules).unwrap_or_default()),
-                        attendance_policy_versions::valid_from.eq(valid_from),
-                        attendance_policy_versions::valid_to.eq(None::<DateTime<Utc>>),
-                        attendance_policy_versions::created_by.eq(Some(user_id)),
-                        attendance_policy_versions::created_at.eq(now),
-                    ))
+                    .values(&version_entity)
                     .execute(&mut *conn)
                     .await
                     .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -1038,16 +1006,18 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                     grace_period_minutes: req.grace_period_minutes,
                 };
 
+                let version_entity = crate::models::diesel::attendance_policy::AttendancePolicyVersionEntity {
+                    id: version_id,
+                    policy_id,
+                    rules: serde_json::to_value(&rules).unwrap_or_default(),
+                    valid_from,
+                    valid_to: None,
+                    created_by: Some(user_id),
+                    created_at: Utc::now(),
+                };
+
                 diesel::insert_into(attendance_policy_versions::table)
-                    .values((
-                        attendance_policy_versions::id.eq(version_id),
-                        attendance_policy_versions::policy_id.eq(policy_id),
-                        attendance_policy_versions::rules.eq(serde_json::to_value(&rules).unwrap_or_default()),
-                        attendance_policy_versions::valid_from.eq(valid_from),
-                        attendance_policy_versions::valid_to.eq(None::<DateTime<Utc>>),
-                        attendance_policy_versions::created_by.eq(Some(user_id)),
-                        attendance_policy_versions::created_at.eq(Utc::now()),
-                    ))
+                    .values(&version_entity)
                     .execute(&mut *conn)
                     .await
                     .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -1100,145 +1070,6 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
         Ok(())
-    }
-
-    async fn get_policy_version_base_rules(
-        &self,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        policy_version_id: Uuid,
-    ) -> Result<Option<BaseRules>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenant_transaction_conn(auth_token)
-            .await?;
-
-        #[derive(diesel::QueryableByName)]
-        struct RulesRow {
-            #[diesel(sql_type = diesel::sql_types::Jsonb)]
-            base_rules: serde_json::Value,
-        }
-
-        let row: Option<RulesRow> =
-            diesel::sql_query("SELECT base_rules FROM attendance_policy_versions WHERE id = $1")
-                .bind::<diesel::sql_types::Uuid, _>(policy_version_id)
-                .get_result(&mut *conn)
-                .await
-                .optional()
-                .map_err(|e| AppError::Internal(e.to_string()))?;
-
-        match row {
-            None => Ok(None),
-            Some(r) => {
-                if r.base_rules
-                    .as_object()
-                    .is_some_and(serde_json::Map::is_empty)
-                {
-                    Ok(None)
-                } else {
-                    serde_json::from_value(r.base_rules).map(Some).map_err(|e| {
-                        tracing::warn!(
-                            policy_version_id = %policy_version_id,
-                            error = %e,
-                            "Failed to deserialize base_rules JSONB; falling back to default"
-                        );
-                        AppError::Internal(format!("deserialize base_rules: {e}"))
-                    })
-                }
-            }
-        }
-    }
-
-    async fn get_day_type_overrides_for_version(
-        &self,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        policy_version_id: Uuid,
-    ) -> Result<HashMap<String, PartialPolicyRules>, AppError> {
-        use crate::domain::policy::cascade::partial::PartialPolicyRules;
-        use crate::schema::attendance_policy_day_type_overrides::dsl as dto;
-
-        let mut conn = self
-            .diesel_pools
-            .tenant_transaction_conn(auth_token)
-            .await?;
-
-        let rows: Vec<(String, serde_json::Value)> = dto::attendance_policy_day_type_overrides
-            .filter(dto::policy_version_id.eq(policy_version_id))
-            .select((dto::day_type, dto::contributions))
-            .load(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("load day_type overrides: {e}")))?;
-
-        let mut map = HashMap::with_capacity(rows.len());
-        for (day_type, contributions_val) in rows {
-            let partial: PartialPolicyRules =
-                serde_json::from_value(contributions_val).unwrap_or_default();
-            if !partial.is_empty() {
-                map.insert(day_type, partial);
-            }
-        }
-        Ok(map)
-    }
-
-    async fn get_shift_template_overrides_for_version(
-        &self,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        policy_version_id: Uuid,
-    ) -> Result<HashMap<Uuid, PartialPolicyRules>, AppError> {
-        use crate::domain::policy::cascade::partial::PartialPolicyRules;
-        use crate::schema::attendance_policy_shift_template_overrides::dsl as sto;
-
-        let mut conn = self
-            .diesel_pools
-            .tenant_transaction_conn(auth_token)
-            .await?;
-
-        let rows: Vec<(Uuid, serde_json::Value)> = sto::attendance_policy_shift_template_overrides
-            .filter(sto::policy_version_id.eq(policy_version_id))
-            .select((sto::shift_template_id, sto::contributions))
-            .load(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("load shift_template overrides: {e}")))?;
-
-        let mut map = HashMap::with_capacity(rows.len());
-        for (template_id, contributions_val) in rows {
-            let partial: PartialPolicyRules =
-                serde_json::from_value(contributions_val).unwrap_or_default();
-            if !partial.is_empty() {
-                map.insert(template_id, partial);
-            }
-        }
-        Ok(map)
-    }
-
-    async fn get_shift_version_overrides_for_version(
-        &self,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        policy_version_id: Uuid,
-    ) -> Result<HashMap<Uuid, PartialPolicyRules>, AppError> {
-        use crate::domain::policy::cascade::partial::PartialPolicyRules;
-        use crate::schema::attendance_policy_shift_version_overrides::dsl as svo;
-
-        let mut conn = self
-            .diesel_pools
-            .tenant_transaction_conn(auth_token)
-            .await?;
-
-        let rows: Vec<(Uuid, serde_json::Value)> = svo::attendance_policy_shift_version_overrides
-            .filter(svo::policy_version_id.eq(policy_version_id))
-            .select((svo::shift_version_id, svo::contributions))
-            .load(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("load shift_version overrides: {e}")))?;
-
-        let mut map = HashMap::with_capacity(rows.len());
-        for (version_id, contributions_val) in rows {
-            let partial: PartialPolicyRules =
-                serde_json::from_value(contributions_val).unwrap_or_default();
-            if !partial.is_empty() {
-                map.insert(version_id, partial);
-            }
-        }
-        Ok(map)
     }
 }
 

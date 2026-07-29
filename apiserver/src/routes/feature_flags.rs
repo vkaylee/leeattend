@@ -22,9 +22,4 @@ pub fn router() -> Router<Arc<AppState>> {
             "/workspaces/:ws_id/feature-flags/check/:key",
             get(handlers::feature_flags::check_feature_flag),
         )
-        // ADR-005: Cascade dual-run window status
-        .route(
-            "/workspaces/:ws_id/cascade-dual-run/status",
-            get(handlers::feature_flags::get_cascade_dual_run_status),
-        )
 }

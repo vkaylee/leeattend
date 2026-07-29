@@ -1,5 +1,4 @@
 use super::{AttendanceReportArgs, CalculateDayUnitsArgs, ReportService};
-use crate::domain::policy::cascade::trace::EffectiveRulesSnapshot;
 use crate::domain::policy::resolver::{PolicyResolver, ShiftPolicyOverrides};
 use crate::errors::AppError;
 use crate::models::{DailyAttendanceReport, PaginatedResponse};
@@ -279,17 +278,6 @@ impl ReportService {
             )
             .await?;
 
-        // Fetch daily summaries with cascade snapshots for dual-path policy resolution.
-        let daily_summaries_map = self
-            .attendance_daily_summary_repo
-            .get_summaries_by_employments_batch(
-                auth_token,
-                &paginated_employment_ids,
-                args.start_date,
-                args.end_date,
-            )
-            .await?;
-
         let leave_details_map = self
             .leave_repo
             .get_approved_leave_details(auth_token, &emp_ids, args.start_date, args.end_date)
@@ -383,37 +371,6 @@ impl ReportService {
                     daily.break_is_overtime().unwrap_or(false),
                 );
                 let rules = PolicyResolver::apply_shift_overrides(base_rules, &overrides);
-
-                // Dual-path: prefer cascade snapshot over legacy recomputation.
-                // When a snapshot exists, use its final_rules() (still with shift overrides).
-                let rules = if let Some(summary) =
-                    daily_summaries_map.get(&(emp_sched.employment_id(), date))
-                {
-                    if let Some(ref snapshot_json) = summary.effective_rules_snapshot {
-                        match serde_json::from_value::<EffectiveRulesSnapshot>(
-                            snapshot_json.clone(),
-                        ) {
-                            Ok(snapshot) => {
-                                let snap_overrides = ShiftPolicyOverrides::new(
-                                    daily.early_punch_in_grace_period_minutes(),
-                                    daily.is_break_auto_deduct(),
-                                    daily.allow_early_ot(),
-                                    snapshot.final_rules().early_arrival_strategy(),
-                                    daily.break_is_overtime().unwrap_or(false),
-                                );
-                                PolicyResolver::apply_shift_overrides(
-                                    snapshot.final_rules().clone(),
-                                    &snap_overrides,
-                                )
-                            }
-                            Err(_) => rules,
-                        }
-                    } else {
-                        rules
-                    }
-                } else {
-                    rules
-                };
 
                 // Resolved late/absence grace for this employee-day (default 15 when the
                 // attendance policy leaves it unset). Captured once and reused both for
@@ -701,17 +658,6 @@ impl ReportService {
         let ot_status_map = self
             .attendance_daily_summary_repo
             .get_batch_ot_statuses(
-                auth_token,
-                &paginated_employment_ids,
-                args.start_date,
-                args.end_date,
-            )
-            .await?;
-
-        // Fetch daily summaries with cascade snapshots for dual-path policy resolution.
-        let _daily_summaries_map = self
-            .attendance_daily_summary_repo
-            .get_summaries_by_employments_batch(
                 auth_token,
                 &paginated_employment_ids,
                 args.start_date,

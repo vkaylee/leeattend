@@ -780,7 +780,6 @@ async fn test_leave_kept_partial_work() {
 
     apiserver::services::AttendanceSummaryService::new(
         apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
-            feature_flag_repo: None,
             time_entry_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone()),
             ),
@@ -1043,7 +1042,6 @@ async fn test_leave_reversal_only_system() {
 
     apiserver::services::AttendanceSummaryService::new(
         apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
-            feature_flag_repo: None,
             time_entry_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone()),
             ),
