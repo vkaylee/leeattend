@@ -33,6 +33,12 @@ pub trait PayrollRepository: Send + Sync {
         policy_id: Uuid,
     ) -> Result<Vec<IncentiveTier>, AppError>;
 
+    async fn get_policy_tiers_batch(
+        &self,
+        workspace_id: Uuid,
+        policy_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, Vec<IncentiveTier>>, AppError>;
+
     async fn create_incentive_policy(
         &self,
         workspace_id: Uuid,

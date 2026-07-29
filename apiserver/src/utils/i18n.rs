@@ -198,6 +198,11 @@ i18n_table! {
     WeeklyHoursExceeded => "error.weekly_hours_exceeded" => ("Weekly working hours exceeded. Current: {current}h, limit: {limit}h.", "Tổng giờ làm việc trong tuần vượt quá giới hạn. Hiện tại: {current}h, giới hạn: {limit}h.", "每周工作时间超标。当前：{current}h，限制：{limit}h。"),
     MonthlyOTExceeded => "error.monthly_ot_exceeded" => ("Monthly overtime hours exceeded. Current: {current} OT hours, limit: {limit}h.", "Giờ tăng ca trong tháng vượt quá giới hạn. Hiện tại: {current} giờ, giới hạn: {limit}h.", "每月加班时间超标。当前：{current} 小时，限制：{limit}h。"),
     ComplianceOverrideRequired => "error.compliance_override_required" => ("Compliance override reason is required to proceed with this assignment.", "Cần cung cấp lý do ghi đè tuân thủ để tiếp tục phân công này.", "需要提供合规性覆盖理由才能继续本次分配。"),
+    // Termination Import
+    TerminationMultipleNonTerminated => "termination.multiple_non_terminated_warning" => ("Found {count} non-terminated employments. Automatically selected the latest one (starting {start_date}).", "Tìm thấy {count} hợp đồng chưa kết thúc. Đã tự động chọn hợp đồng mới nhất (bắt đầu ngày {start_date}).", "发现 {count} 个未终止的雇佣关系。已自动选择最新的一个（开始于 {start_date}）。"),
+    TerminationDateBeforeStart => "error.termination_date_before_start" => ("Termination date cannot be before employment start date ({start_date})", "Ngày nghỉ việc không được trước ngày bắt đầu làm việc ({start_date})", "离职日期不能早于雇佣开始日期 ({start_date})"),
+    TerminationReasonInvalid => "error.termination_reason_invalid" => ("Invalid termination reason: '{reason}'. Valid values: {valid}", "Lý do nghỉ việc không hợp lệ: '{reason}'. Các giá trị hợp lệ: {valid}", "无效的离职原因: '{reason}'。有效值: {valid}"),
+    TerminationDuplicateCode => "error.termination_duplicate_code" => ("Duplicate employee code in the file", "Mã nhân viên bị lặp lại trong tệp", "文件中员工代码重复"),
 }
 
 // ---------------------------------------------------------------------------

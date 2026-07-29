@@ -83,6 +83,42 @@ impl DieselPayrollRepository {
         Ok(entities.into_iter().map(Into::into).collect())
     }
 
+    pub(super) async fn get_policy_tiers_batch(
+        &self,
+        workspace_id: Uuid,
+        policy_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, Vec<IncentiveTier>>, AppError> {
+        if policy_ids.is_empty() {
+            return Ok(std::collections::HashMap::new());
+        }
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await?,
+        );
+
+        let entities = payroll_incentive_tiers::table
+            .filter(payroll_incentive_tiers::policy_id.eq_any(policy_ids))
+            .order(payroll_incentive_tiers::priority.asc())
+            .load::<IncentiveTierEntity>(&mut *conn)
+            .await
+            .map_err(AppError::from)?;
+
+        let mut map = std::collections::HashMap::new();
+        for &policy_id in policy_ids {
+            map.insert(policy_id, Vec::new());
+        }
+
+        for ent in entities {
+            let policy_id = ent.policy_id;
+            map.entry(policy_id).or_insert_with(Vec::new).push(ent.into());
+        }
+
+        Ok(map)
+    }
+
     pub(super) async fn create_incentive_policy(
         &self,
         workspace_id: Uuid,

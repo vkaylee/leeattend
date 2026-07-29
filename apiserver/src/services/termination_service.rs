@@ -154,21 +154,12 @@ impl TerminationService {
                     .collect();
                 candidates.sort_by(|a, b| b.start_date().cmp(&a.start_date()));
                 if candidates.len() > 1 {
-                    let locale = crate::utils::i18n::get_locale();
-                    let warning_msg = if locale == "vi" {
-                        format!(
-                            "Tìm thấy {} hợp đồng chưa kết thúc. Đã tự động chọn hợp đồng mới nhất (bắt đầu ngày {}).",
-                            candidates.len(),
-                            candidates[0].start_date().format("%d/%m/%Y")
-                        )
-                    } else {
-                        format!(
-                            "Found {} non-terminated employments. Automatically selected the latest one (starting {}).",
-                            candidates.len(),
-                            candidates[0].start_date().format("%d/%m/%Y")
-                        )
-                    };
-                    warnings.push(warning_msg);
+                    let count = candidates.len().to_string();
+                    let start_date = candidates[0].start_date().format("%d/%m/%Y").to_string();
+                    warnings.push(crate::utils::i18n::t_args(
+                        "termination.multiple_non_terminated_warning",
+                        &[("count", &count), ("start_date", &start_date)],
+                    ));
                 }
                 candidates.into_iter().next()
             };
@@ -192,18 +183,11 @@ impl TerminationService {
             };
 
             if row.termination_date < active_employment.start_date() {
-                let locale = crate::utils::i18n::get_locale();
-                let reason = if locale == "vi" {
-                    format!(
-                        "Ngày nghỉ việc không được trước ngày bắt đầu làm việc ({})",
-                        active_employment.start_date().format("%d/%m/%Y")
-                    )
-                } else {
-                    format!(
-                        "Termination date cannot be before employment start date ({})",
-                        active_employment.start_date().format("%d/%m/%Y")
-                    )
-                };
+                let start_date = active_employment.start_date().format("%d/%m/%Y").to_string();
+                let reason = crate::utils::i18n::t_args(
+                    "error.termination_date_before_start",
+                    &[("start_date", &start_date)],
+                );
                 invalid_rows.push(InvalidTerminationRow {
                     row_number: row.row_number,
                     employee_code: Some(row.raw_code.clone()),
@@ -305,20 +289,11 @@ impl TerminationService {
             // Invalid reason
             let termination_reason = raw_reason.trim().to_lowercase();
             if !VALID_TERMINATION_REASONS.contains(&termination_reason.as_str()) {
-                let locale = crate::utils::i18n::get_locale();
-                let reason = if locale == "vi" {
-                    format!(
-                        "Lý do nghỉ việc không hợp lệ: '{}'. Các giá trị hợp lệ: {}",
-                        raw_reason,
-                        VALID_TERMINATION_REASONS.join(", ")
-                    )
-                } else {
-                    format!(
-                        "Invalid termination reason: '{}'. Valid values: {}",
-                        raw_reason,
-                        VALID_TERMINATION_REASONS.join(", ")
-                    )
-                };
+                let valid = VALID_TERMINATION_REASONS.join(", ");
+                let reason = crate::utils::i18n::t_args(
+                    "error.termination_reason_invalid",
+                    &[("reason", &raw_reason), ("valid", &valid)],
+                );
                 invalid_rows.push(InvalidTerminationRow {
                     row_number: line_number,
                     employee_code: Some(raw_code.clone()),
@@ -331,12 +306,7 @@ impl TerminationService {
             // Duplicate code
             let normalized_code = crate::utils::normalize_employee_id(&raw_code);
             if !seen_codes.insert(normalized_code.clone()) {
-                let locale = crate::utils::i18n::get_locale();
-                let reason = if locale == "vi" {
-                    "Mã nhân viên bị lặp lại trong tệp".to_string()
-                } else {
-                    "Duplicate employee code in the file".to_string()
-                };
+                let reason = crate::utils::i18n::t("error.termination_duplicate_code");
                 invalid_rows.push(InvalidTerminationRow {
                     row_number: line_number,
                     employee_code: Some(raw_code),

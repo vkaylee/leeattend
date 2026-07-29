@@ -241,14 +241,28 @@ impl PayrollService {
             .get_active_incentive_policies_for_period(workspace_id, start_date, end_date)
             .await?;
 
-        let mut active_policies_with_tiers = Vec::new();
-        for policy in active_policies {
-            let tiers = self
-                .payroll_repo
-                .get_policy_tiers(workspace_id, policy.id())
-                .await?;
-            active_policies_with_tiers.push(IncentivePolicyWithTiers { policy, tiers });
-        }
+        let policy_ids: Vec<Uuid> = active_policies
+            .iter()
+            .map(crate::models::PayrollIncentivePolicy::id)
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .collect();
+
+        let policy_tiers_map = self
+            .payroll_repo
+            .get_policy_tiers_batch(workspace_id, &policy_ids)
+            .await?;
+
+        let active_policies_with_tiers: Vec<IncentivePolicyWithTiers> = active_policies
+            .into_iter()
+            .map(|policy| {
+                let tiers = policy_tiers_map
+                    .get(&policy.id())
+                    .cloned()
+                    .unwrap_or_default();
+                IncentivePolicyWithTiers { policy, tiers }
+            })
+            .collect();
 
         // Fetch salary base groups
         let salary_base_groups = self
@@ -299,14 +313,28 @@ impl PayrollService {
             )
             .await?;
 
-        let mut rule_assignments_with_tiers = Vec::new();
-        for assignment in rule_assignments {
-            let tiers = self
-                .payroll_repo
-                .get_payroll_rule_tiers(workspace_id, assignment.rule_definition_id)
-                .await?;
-            rule_assignments_with_tiers.push(RuleAssignmentWithTiers { assignment, tiers });
-        }
+        let rule_def_ids: Vec<Uuid> = rule_assignments
+            .iter()
+            .map(|a| a.rule_definition_id)
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .collect();
+
+        let rule_tiers_map = self
+            .payroll_repo
+            .get_payroll_rule_tiers_batch(workspace_id, &rule_def_ids)
+            .await?;
+
+        let rule_assignments_with_tiers: Vec<RuleAssignmentWithTiers> = rule_assignments
+            .into_iter()
+            .map(|assignment| {
+                let tiers = rule_tiers_map
+                    .get(&assignment.rule_definition_id)
+                    .cloned()
+                    .unwrap_or_default();
+                RuleAssignmentWithTiers { assignment, tiers }
+            })
+            .collect();
 
         Ok(PayrollContext {
             employee_id,

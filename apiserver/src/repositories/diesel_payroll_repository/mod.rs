@@ -67,6 +67,14 @@ impl PayrollRepository for DieselPayrollRepository {
         self.get_policy_tiers(workspace_id, policy_id).await
     }
 
+    async fn get_policy_tiers_batch(
+        &self,
+        workspace_id: Uuid,
+        policy_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, Vec<IncentiveTier>>, AppError> {
+        self.get_policy_tiers_batch(workspace_id, policy_ids).await
+    }
+
     async fn create_incentive_policy(
         &self,
         workspace_id: Uuid,
