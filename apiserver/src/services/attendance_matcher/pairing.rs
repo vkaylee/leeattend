@@ -14,7 +14,7 @@ impl AttendanceMatcher {
     ) -> (Option<Uuid>, Uuid, Uuid) {
         // Find active employment on current_date
         let active_employment = ctx
-            .active_employments
+            .active_employments()
             .iter()
             .filter(|e| {
                 e.status() == "active"
@@ -26,7 +26,7 @@ impl AttendanceMatcher {
         let active_employment_id = active_employment
             .map(crate::models::Employment::id)
             .unwrap_or_else(|| {
-                ctx.active_employments
+                ctx.active_employments()
                     .first()
                     .map(crate::models::Employment::id)
                     .unwrap_or_else(Uuid::nil)
@@ -34,7 +34,7 @@ impl AttendanceMatcher {
 
         // Find active assignment on current_date
         let active_assignment = ctx
-            .active_assignments
+            .active_assignments()
             .iter()
             .filter(|a| {
                 a.status == AssignmentStatusEnum::Active
@@ -44,7 +44,7 @@ impl AttendanceMatcher {
             .max_by_key(|a| a.start_date);
         let active_location_id = active_assignment
             .map(|a| a.host_location_id)
-            .unwrap_or(ctx.primary_location_id);
+            .unwrap_or_else(|| ctx.primary_location_id());
 
         (active_employer_id, active_employment_id, active_location_id)
     }
@@ -63,12 +63,12 @@ impl AttendanceMatcher {
         current_date: NaiveDate,
     ) -> Vec<(Uuid, &RosterInterval)> {
         let (shift_ids, _, _) = resolve_effective_shift_from_data(
-            &ctx.roster_data,
-            &ctx.payroll_roster_map,
+            ctx.roster_data(),
+            ctx.payroll_roster_map(),
             active_employment_id,
             employee_id,
-            &ctx.emp_id_number,
-            ctx.emp_tags.as_ref(),
+            ctx.emp_id_number(),
+            ctx.emp_tags(),
             current_date,
             Some(active_location_id),
             active_employer_id,
@@ -78,7 +78,7 @@ impl AttendanceMatcher {
             .iter()
             .filter_map(|opt| {
                 let id = (*opt)?;
-                let interval = ctx.roster_data.shift_intervals.get(&id)?.first()?;
+                let interval = ctx.roster_data().shift_intervals.get(&id)?.first()?;
                 Some((id, interval))
             })
             .collect();
