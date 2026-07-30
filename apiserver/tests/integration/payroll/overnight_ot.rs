@@ -165,11 +165,6 @@ async fn test_overnight_ot_payroll_calculation() {
                     )),
                 ),
             ),
-            contract_repo: Arc::new(
-                apiserver::repositories::DieselEmployeeContractRepository::new(
-                    diesel_pools.clone(),
-                ),
-            ),
             employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
                 diesel_pools.clone(),
             )),

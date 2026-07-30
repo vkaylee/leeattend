@@ -107,7 +107,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
                 config: ReportConfig {
                     report_type: ReportType::Summary,
                     timezone: "UTC".to_string(),
-                    rounding_policy: "nearest".to_string(),
+                    rounding_policy: apiserver::models::RoundingPolicy::None,
                     work_unit_minutes: 60,
                 },
             }),
@@ -131,7 +131,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
                 config: ReportConfig {
                     report_type: ReportType::Summary,
                     timezone: "UTC".to_string(),
-                    rounding_policy: "nearest".to_string(),
+                    rounding_policy: apiserver::models::RoundingPolicy::None,
                     work_unit_minutes: 60,
                 },
             }),

@@ -9,7 +9,7 @@ impl AttendanceMatcher {
     ///
     /// Returns `(active_employer_id, active_employment_id, active_location_id)`.
     pub(super) fn resolve_day_context(
-        ctx: &PayrollContext,
+        ctx: &AttendanceContext,
         current_date: NaiveDate,
     ) -> (Option<Uuid>, Uuid, Uuid) {
         // Find active employment on current_date
@@ -55,7 +55,7 @@ impl AttendanceMatcher {
     /// Uses `resolve_effective_shift_from_data` which is zero-DB — all data
     /// comes from the in-memory `ctx.roster_data` and `ctx.payroll_roster_map`.
     pub(super) fn collect_sorted_day_shifts(
-        ctx: &PayrollContext,
+        ctx: &AttendanceContext,
         active_employment_id: Uuid,
         employee_id: Uuid,
         active_location_id: Uuid,

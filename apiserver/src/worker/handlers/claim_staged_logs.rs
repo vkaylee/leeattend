@@ -167,7 +167,15 @@ mod tests {
         let mut roster_repo = MockRosterRepository::new();
         roster_repo
             .expect_get_effective_shift()
-            .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+            .returning(|_, _, _| {
+                Box::pin(async {
+                    Ok((
+                        None,
+                        vec![],
+                        std::sync::Arc::new(crate::cache::RosterData::default()),
+                    ))
+                })
+            });
         roster_repo
             .expect_get_workspace_schedules()
             .returning(|_, _, _, _, _, _, _| Box::pin(async { Ok((vec![], 0)) }));

@@ -101,16 +101,12 @@ impl TimeTrackingService {
             let today = local_now.date_naive();
 
             // 1. Identify effective shift
-            let (shift_id, _) = self
+            let (shift_id, _, roster_data) = self
                 .roster_repo
                 .get_effective_shift(auth_token, employment_id, today)
                 .await?;
 
             if let Some(sid) = shift_id {
-                let roster_data = self
-                    .roster_repo
-                    .get_raw_roster_data(auth_token.workspace_id())
-                    .await?;
                 let interval = roster_data
                     .shift_intervals
                     .get(&sid)
@@ -218,7 +214,7 @@ impl TimeTrackingService {
             entry.set_punch_out_time(Some(t));
         }
         if let Some(et) = req.entry_type() {
-            entry.set_entry_type(et.to_string());
+            entry.set_entry_type(et);
         }
         if let Some(n) = req.note() {
             entry.set_note(Some(n.to_string()));
@@ -340,7 +336,7 @@ mod tests {
             None,
             None,
             false,
-            "regular".into(),
+            crate::services::pairing::types::EntryType::Work,
             None,
             None,
             Utc::now(),
@@ -499,17 +495,20 @@ mod tests {
 
         let svc = build_service(repo, employment_repo, workspace_repo);
         let new_note = Some("note".into());
-        let new_type = Some("overtime".into());
+        let new_type = Some(crate::services::pairing::types::EntryType::Overtime);
         let result = svc
             .update_time_entry(
                 &make_token(ws),
                 entry_id,
-                UpdateTimeEntryRequest::new(None, None, None, new_type.clone(), new_note.clone()),
+                UpdateTimeEntryRequest::new(None, None, None, new_type, new_note.clone()),
             )
             .await;
         let updated = result.unwrap();
         assert_eq!(updated.note().as_deref(), new_note.as_deref());
-        assert_eq!(updated.entry_type(), "overtime");
+        assert_eq!(
+            updated.entry_type(),
+            crate::services::pairing::types::EntryType::Overtime
+        );
     }
 
     // ── delete_time_entry ─────────────────────────────────────────────

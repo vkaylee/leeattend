@@ -113,7 +113,9 @@ impl DieselPayrollRepository {
 
         for ent in entities {
             let policy_id = ent.policy_id;
-            map.entry(policy_id).or_insert_with(Vec::new).push(ent.into());
+            map.entry(policy_id)
+                .or_insert_with(Vec::new)
+                .push(ent.into());
         }
 
         Ok(map)

@@ -95,11 +95,6 @@ impl PayrollService {
             )
             .await;
 
-        let contracts_res = self
-            .contract_repo
-            .list_contracts_batch(&d.token, &chunk_employee_ids)
-            .await;
-
         let assignments_res = self
             .employee_repo
             .list_assignments_batch(&d.token, &chunk_employment_ids)
@@ -195,7 +190,6 @@ impl PayrollService {
 
         let policies_map = policies_res.unwrap_or_default();
         let month_end_policies_map = month_end_policies_res.unwrap_or_default();
-        let contracts_map = contracts_res.unwrap_or_default();
         let assignments_map = assignments_res.unwrap_or_default();
 
         let batch_dept_ids: Vec<Uuid> = dept_map
@@ -339,7 +333,6 @@ impl PayrollService {
                 leave_breakdowns_map,
                 unpaid_holidays_map,
                 month_end_policies_map,
-                contracts_map,
                 assignments_map,
             },
             d,

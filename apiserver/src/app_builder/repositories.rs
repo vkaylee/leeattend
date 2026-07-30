@@ -62,6 +62,7 @@ pub struct Repositories {
 pub fn build_repositories(
     diesel_pools: &DieselPools,
     crypto_service: &Option<Arc<CryptoService>>,
+    roster_cache: Option<Arc<crate::cache::RosterCache>>,
 ) -> Result<Repositories, Box<dyn std::error::Error>> {
     let agent = Arc::new(crate::repositories::DieselAgentRepository::new(
         diesel_pools.clone(),
@@ -121,9 +122,13 @@ pub fn build_repositories(
     ));
     let attendance_daily_summary = Arc::new(crate::repositories::diesel_attendance_daily_summary_repository::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone()));
     let behalf_assignment = Arc::new(crate::repositories::diesel_behalf_assignment_repository::DieselBehalfAssignmentRepository::new(diesel_pools.clone()));
-    let roster = Arc::new(crate::repositories::DieselRosterRepository::new(
-        diesel_pools.clone(),
-    ));
+    let roster = {
+        let mut repo = crate::repositories::DieselRosterRepository::new(diesel_pools.clone());
+        if let Some(cache) = roster_cache {
+            repo = repo.with_roster_cache(cache);
+        }
+        Arc::new(repo)
+    };
     let policy = Arc::new(crate::repositories::DieselAttendancePolicyRepository::new(
         diesel_pools.clone(),
     ));

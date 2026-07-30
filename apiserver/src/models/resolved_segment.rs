@@ -36,7 +36,8 @@ pub struct ResolvedSegment {
     pub allow_early_ot: bool,
     pub max_early_ot_minutes: Option<i32>,
     pub early_punch_in_grace_period_minutes: i32,
-    pub ot_aggregation_mode: String,
+    #[serde(default)]
+    pub ot_aggregation_mode: crate::services::attendance_calculator::OtAggregationMode,
     pub is_night_shift: bool,
     /// Schedule resolution traces.
     #[serde(default)]

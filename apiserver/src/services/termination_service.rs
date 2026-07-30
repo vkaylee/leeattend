@@ -183,7 +183,10 @@ impl TerminationService {
             };
 
             if row.termination_date < active_employment.start_date() {
-                let start_date = active_employment.start_date().format("%d/%m/%Y").to_string();
+                let start_date = active_employment
+                    .start_date()
+                    .format("%d/%m/%Y")
+                    .to_string();
                 let reason = crate::utils::i18n::t_args(
                     "error.termination_date_before_start",
                     &[("start_date", &start_date)],

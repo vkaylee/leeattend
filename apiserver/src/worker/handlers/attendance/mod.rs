@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use chrono::{Duration, NaiveDate, TimeZone, Utc};
+use chrono::{NaiveDate, Utc};
 use chrono_tz::Tz;
 use tracing::info;
 use uuid::Uuid;
@@ -15,7 +15,7 @@ use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{AttendanceSummary, DailyAttendanceReport, TimeEntry};
 use crate::queue::{Job, JobPayload, ReportType};
 use crate::repositories::{PublisherRepository, QueueRepository};
-use crate::services::{AttendanceCalculator, PolicyResolverService};
+use crate::services::PolicyResolverService;
 
 pub mod detail;
 pub mod summary;

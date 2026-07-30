@@ -50,7 +50,7 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
         Some(Utc::now()),
         Some(10),
         false,
-        "work".to_string(),
+        apiserver::services::pairing::types::EntryType::Work,
         None,
         None,
         Utc::now(),

@@ -25,7 +25,7 @@ pub struct UpsertPolicyAssignmentRequest {
     pub target_type: String, // "USER" or "GROUP"
     pub target_id: Uuid,
     pub work_unit_minutes: i32,
-    pub rounding_policy: String,
+    pub rounding_policy: crate::models::RoundingPolicy,
     pub early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy,
     pub grace_period_minutes: Option<i32>,
     pub valid_from: Option<String>,

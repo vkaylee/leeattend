@@ -4,7 +4,7 @@ use crate::domain::policy::defaults::DEFAULT_OT_MULTIPLIER;
 use crate::domain::policy::overtime::OvertimeEngine;
 use crate::domain::policy::resolver::{PolicyResolver, ShiftPolicyOverrides, StandardMonthConfig};
 use crate::models::TimeEntry;
-use crate::services::attendance_calculator::{DailyCalcInput, OtAggregationMode};
+use crate::services::attendance_calculator::DailyCalcInput;
 use crate::services::AttendanceCalculator;
 use chrono::{NaiveDate, TimeZone};
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
@@ -20,7 +20,7 @@ use uuid::Uuid;
 /// is assigned.
 #[allow(clippy::too_many_arguments)]
 fn compute_ot_pay_for_entry(
-    ctx: &PayrollContext,
+    ctx: &AttendanceContext,
     employee_id: Uuid,
     current_date: NaiveDate,
     punch_in: chrono::DateTime<chrono_tz::Tz>,
@@ -121,7 +121,7 @@ impl AttendanceMatcher {
     /// Returns `(std_u, ot_u, ot_pay_delta, holiday_premium_delta, is_violation)`.
     #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
     pub(super) fn process_matched_entry(
-        ctx: &PayrollContext,
+        ctx: &AttendanceContext,
         employee_id: Uuid,
         entry: &TimeEntry,
         shift_start: chrono::DateTime<chrono_tz::Tz>,
@@ -186,12 +186,12 @@ impl AttendanceMatcher {
             break_start,
             break_end,
             work_unit: attendance_rules.work_unit_minutes,
-            rounding_policy: attendance_rules.rounding_policy.clone(),
+            rounding_policy: attendance_rules.rounding_policy,
             rules: rules.clone(),
             ot_ceiling,
             max_early_ot_minutes: interval.max_early_ot_minutes,
             segment_id: entry.segment_id(),
-            ot_aggregation_mode: OtAggregationMode::from_mode(&interval.ot_aggregation_mode),
+            ot_aggregation_mode: interval.ot_aggregation_mode,
         });
 
         // ── Holiday work compensation ──────────────────────────────
@@ -261,7 +261,7 @@ impl AttendanceMatcher {
     /// Returns `(std_units, ot_units, ot_pay, holiday_premium, violation_count)`.
     #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
     pub(super) fn process_daily_entries(
-        ctx: &PayrollContext,
+        ctx: &AttendanceContext,
         employee_id: Uuid,
         current_date: NaiveDate,
         day_shifts: &[(Uuid, &RosterInterval)],
@@ -275,11 +275,11 @@ impl AttendanceMatcher {
     ) -> (i32, i32, Decimal, Decimal, i32) {
         let work_entries: Vec<_> = entries
             .iter()
-            .filter(|e| e.entry_type() == "work" || e.entry_type().is_empty())
+            .filter(|e| e.entry_type() == crate::services::pairing::types::EntryType::Work)
             .collect();
         let break_entries: Vec<_> = entries
             .iter()
-            .filter(|e| e.entry_type() == "break")
+            .filter(|e| e.entry_type() == crate::services::pairing::types::EntryType::Break)
             .collect();
         let actual_break_minutes: i32 = break_entries
             .iter()
@@ -373,7 +373,7 @@ impl AttendanceMatcher {
                     day_std += AttendanceCalculator::calculate_units(
                         i32::try_from((punch_out - punch_in).num_minutes()).unwrap_or(0),
                         attendance_rules.work_unit_minutes,
-                        &attendance_rules.rounding_policy,
+                        attendance_rules.rounding_policy,
                     );
                 }
             }

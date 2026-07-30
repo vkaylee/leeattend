@@ -683,7 +683,8 @@ mod tests {
             early_punch_in_grace_period_minutes: 0,
             allow_early_ot: false,
             max_early_ot_minutes: None,
-            ot_aggregation_mode: "aggregate".to_string(),
+            ot_aggregation_mode:
+                crate::services::attendance_calculator::OtAggregationMode::Aggregate,
             is_night_shift: false,
         };
         // 9h - 1h break = 8h
@@ -706,7 +707,8 @@ mod tests {
             early_punch_in_grace_period_minutes: 0,
             allow_early_ot: false,
             max_early_ot_minutes: None,
-            ot_aggregation_mode: "aggregate".to_string(),
+            ot_aggregation_mode:
+                crate::services::attendance_calculator::OtAggregationMode::Aggregate,
             is_night_shift: true,
         };
         // 8h - 0.5h break = 7.5h

@@ -62,15 +62,14 @@ impl AttendanceHandler {
                 .get(&employee_id)
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
 
-            let emp_attendance_rules = attendance_rules_map
-                .get(&employee_id)
-                .cloned()
-                .unwrap_or_else(|| crate::models::AttendanceRules {
+            let emp_attendance_rules = attendance_rules_map.get(&employee_id).cloned().unwrap_or(
+                crate::models::AttendanceRules {
                     work_unit_minutes: 30,
-                    rounding_policy: "floor".to_string(),
+                    rounding_policy: crate::models::RoundingPolicy::Floor,
                     early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
                     grace_period_minutes: None,
-                });
+                },
+            );
 
             // Pre-group entries by date once — O(entries) instead of O(entries × days)
             let entries_by_date =
@@ -127,64 +126,30 @@ impl AttendanceHandler {
 
                     grace_period_minutes = Some(rules.grace_period_minutes());
 
-                    if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
-                        let actual_break_minutes: i32 = day_entries
-                            .iter()
-                            .filter(|e| e.entry_type() == "break")
-                            .map(|e| e.duration_minutes().unwrap_or(0))
-                            .sum();
+                    // Delegate to shared AttendanceService instead of
+                    // building DailyCalcInput manually.
+                    let result = crate::services::AttendanceService::compute_daily_attendance(
+                        crate::services::ComputeDailyInput {
+                            daily,
+                            day_entries,
+                            date,
+                            tz: &args.tz,
+                            rules: &rules,
+                            work_unit_minutes: emp_attendance_rules.work_unit_minutes,
+                            rounding_policy: emp_attendance_rules.rounding_policy,
+                            max_early_ot_minutes: daily.max_early_ot_minutes(),
+                            ot_ceiling: None,
+                            segment_id: None,
+                            ot_aggregation_mode:
+                                crate::services::attendance_calculator::OtAggregationMode::Aggregate,
+                        },
+                    );
 
-                        let shift_start_dt = daily
-                            .start_time()
-                            .and_then(|t| args.tz.from_local_datetime(&date.and_time(t)).single());
-                        let shift_end_dt = daily
-                            .end_time()
-                            .and_then(|t| args.tz.from_local_datetime(&date.and_time(t)).single());
-
-                        let (shift_start, shift_end) =
-                            if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
-                                if daily.end_time() < daily.start_time() {
-                                    end += Duration::days(1);
-                                }
-                                (Some(start), Some(end))
-                            } else {
-                                (None, None)
-                            };
-
-                        // Build break frame datetimes for Frame Intersection
-                        let break_start_dt = daily
-                            .break_start()
-                            .and_then(|t| args.tz.from_local_datetime(&date.and_time(t)).single());
-                        let break_end_dt = daily.break_end().and_then(|t| {
-                            let mut dt = args.tz.from_local_datetime(&date.and_time(t)).single()?;
-                            if daily.break_end() < daily.break_start() {
-                                dt += Duration::days(1);
-                            }
-                            Some(dt)
-                        });
-
-                        let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units(
-                            &crate::services::attendance_calculator::DailyCalcInput {
-                                punch_in,
-                                punch_out,
-                                shift_start,
-                                shift_end,
-                                scheduled_break_minutes: daily
-                                    .break_duration_minutes()
-                                    .unwrap_or(0),
-                                actual_break_minutes,
-                                break_start: break_start_dt,
-                                break_end: break_end_dt,
-                                work_unit: emp_attendance_rules.work_unit_minutes,
-                                rounding_policy: emp_attendance_rules.rounding_policy.clone(),
-                                rules: rules.clone(),
-                                ot_ceiling: None,
-                                max_early_ot_minutes: daily.max_early_ot_minutes(),
-                                segment_id: None,
-                                ot_aggregation_mode: crate::services::attendance_calculator::OtAggregationMode::Aggregate,
-                            },
+                    if let Some(r) = result {
+                        let (std_units, ot_units) = r.into_units(
+                            emp_attendance_rules.work_unit_minutes,
+                            emp_attendance_rules.rounding_policy,
                         );
-
                         std_work_units = std_units;
                         ot_work_units = ot_units;
                     }

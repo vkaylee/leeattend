@@ -668,7 +668,8 @@ mod tests {
                 early_punch_in_grace_period_minutes: 0,
                 allow_early_ot: false,
                 max_early_ot_minutes: None,
-                ot_aggregation_mode: "daily".to_string(),
+                ot_aggregation_mode:
+                    crate::services::attendance_calculator::OtAggregationMode::Aggregate,
                 is_night_shift: false,
             }],
         );
@@ -688,7 +689,8 @@ mod tests {
                 early_punch_in_grace_period_minutes: 0,
                 allow_early_ot: false,
                 max_early_ot_minutes: None,
-                ot_aggregation_mode: "daily".to_string(),
+                ot_aggregation_mode:
+                    crate::services::attendance_calculator::OtAggregationMode::Aggregate,
                 is_night_shift: false,
             }],
         );

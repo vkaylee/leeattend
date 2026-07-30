@@ -175,7 +175,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             policy_id: r.policy_id,
             rules: serde_json::from_value(r.rules).unwrap_or_else(|_| AttendanceRules {
                 work_unit_minutes: 0,
-                rounding_policy: "none".to_string(),
+                rounding_policy: crate::models::RoundingPolicy::None,
                 early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
                 grace_period_minutes: None,
             }),
@@ -308,7 +308,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                     policy_id: row.policy_id,
                     rules: serde_json::from_value(row.rules).unwrap_or_else(|_| AttendanceRules {
                         work_unit_minutes: 0,
-                        rounding_policy: "none".to_string(),
+                        rounding_policy: crate::models::RoundingPolicy::None,
                         early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
                         grace_period_minutes: None,
                     }),
@@ -425,7 +425,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             policy_id: r.policy_id,
             rules: serde_json::from_value(r.rules).unwrap_or_else(|_| AttendanceRules {
                 work_unit_minutes: 0,
-                rounding_policy: "none".to_string(),
+                rounding_policy: crate::models::RoundingPolicy::None,
                 early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
                 grace_period_minutes: None,
             }),
@@ -568,7 +568,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                     policy_id: row.policy_id,
                     rules: serde_json::from_value(row.rules).unwrap_or_else(|_| AttendanceRules {
                         work_unit_minutes: 0,
-                        rounding_policy: "none".to_string(),
+                        rounding_policy: crate::models::RoundingPolicy::None,
                         early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
                         grace_period_minutes: None,
                     }),
@@ -623,7 +623,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             Some(r) => Ok(Some(serde_json::from_value(r).unwrap_or_else(|_| {
                 AttendanceRules {
                     work_unit_minutes: 15,
-                    rounding_policy: "none".to_string(),
+                    rounding_policy: crate::models::RoundingPolicy::None,
                     early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
                     grace_period_minutes: None,
                 }
@@ -727,13 +727,13 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                 let mut new_rules = match current_rules_val {
                     Some(v) => serde_json::from_value(v).unwrap_or_else(|_| AttendanceRules {
                         work_unit_minutes: 15,
-                        rounding_policy: "none".to_string(),
+                        rounding_policy: crate::models::RoundingPolicy::None,
                         early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
                         grace_period_minutes: None,
                     }),
                     None => AttendanceRules {
                         work_unit_minutes: 15,
-                        rounding_policy: "none".to_string(),
+                        rounding_policy: crate::models::RoundingPolicy::None,
                         early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
                         grace_period_minutes: None,
                     },
@@ -892,7 +892,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                     valid_to: row.valid_to.map(|d| d.to_rfc3339()),
                     rules: serde_json::from_value(row.rules).unwrap_or_else(|_| AttendanceRules {
                         work_unit_minutes: 0,
-                        rounding_policy: "none".to_string(),
+                        rounding_policy: crate::models::RoundingPolicy::None,
                         early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
                         grace_period_minutes: None,
                     }),
@@ -1001,7 +1001,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                 let version_id = crate::utils::id::new_id();
                 let rules = AttendanceRules {
                     work_unit_minutes: req.work_unit_minutes,
-                    rounding_policy: req.rounding_policy.clone(),
+                    rounding_policy: req.rounding_policy,
                     early_arrival_strategy: req.early_arrival_strategy,
                     grace_period_minutes: req.grace_period_minutes,
                 };

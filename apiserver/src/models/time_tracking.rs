@@ -2,6 +2,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::services::pairing::types::EntryType;
+
 #[derive(Debug, Clone, Default)]
 pub struct TimeEntryLogFilter {
     employment_id: Option<Uuid>,
@@ -60,7 +62,7 @@ pub struct TimeEntry {
     punch_out_time: Option<DateTime<Utc>>,
     duration_minutes: Option<i32>,
     is_break_overtime: bool,
-    entry_type: String,
+    entry_type: EntryType,
     note: Option<String>,
     generation_metadata: Option<serde_json::Value>,
     created_at: DateTime<Utc>,
@@ -79,7 +81,7 @@ impl TimeEntry {
         punch_out_time: Option<DateTime<Utc>>,
         duration_minutes: Option<i32>,
         is_break_overtime: bool,
-        entry_type: String,
+        entry_type: EntryType,
         note: Option<String>,
         generation_metadata: Option<serde_json::Value>,
         created_at: DateTime<Utc>,
@@ -139,8 +141,8 @@ impl TimeEntry {
         self.is_break_overtime
     }
 
-    pub fn entry_type(&self) -> &str {
-        &self.entry_type
+    pub fn entry_type(&self) -> EntryType {
+        self.entry_type
     }
 
     pub fn note(&self) -> Option<&str> {
@@ -177,7 +179,7 @@ impl TimeEntry {
         self.is_break_overtime = b;
     }
 
-    pub fn set_entry_type(&mut self, et: String) {
+    pub fn set_entry_type(&mut self, et: EntryType) {
         self.entry_type = et;
     }
 
@@ -206,7 +208,7 @@ pub struct TimeEntryWithEmployee {
     punch_out_time: Option<DateTime<Utc>>,
     duration_minutes: Option<i32>,
     is_break_overtime: bool,
-    entry_type: String,
+    entry_type: EntryType,
     note: Option<String>,
     generation_metadata: Option<serde_json::Value>,
     created_at: DateTime<Utc>,
@@ -227,7 +229,7 @@ impl TimeEntryWithEmployee {
         punch_out_time: Option<DateTime<Utc>>,
         duration_minutes: Option<i32>,
         is_break_overtime: bool,
-        entry_type: String,
+        entry_type: EntryType,
         note: Option<String>,
         generation_metadata: Option<serde_json::Value>,
         created_at: DateTime<Utc>,
@@ -291,8 +293,8 @@ impl TimeEntryWithEmployee {
         self.is_break_overtime
     }
 
-    pub fn entry_type(&self) -> &str {
-        &self.entry_type
+    pub fn entry_type(&self) -> EntryType {
+        self.entry_type
     }
 
     pub fn note(&self) -> Option<&str> {
@@ -324,7 +326,7 @@ impl TimeEntryWithEmployee {
 pub struct PunchInRequest {
     employment_id: Uuid,
     segment_id: Option<Uuid>,
-    entry_type: Option<String>,
+    entry_type: Option<EntryType>,
     is_break_overtime: Option<bool>,
     note: Option<String>,
 }
@@ -333,7 +335,7 @@ impl PunchInRequest {
     pub fn new(
         employment_id: Uuid,
         segment_id: Option<Uuid>,
-        entry_type: Option<String>,
+        entry_type: Option<EntryType>,
         is_break_overtime: Option<bool>,
         note: Option<String>,
     ) -> Self {
@@ -354,8 +356,8 @@ impl PunchInRequest {
         self.segment_id
     }
 
-    pub fn entry_type(&self) -> Option<&str> {
-        self.entry_type.as_deref()
+    pub fn entry_type(&self) -> Option<EntryType> {
+        self.entry_type
     }
 
     pub fn is_break_overtime(&self) -> Option<bool> {
@@ -387,7 +389,7 @@ pub struct UpdateTimeEntryRequest {
     punch_in_time: Option<DateTime<Utc>>,
     punch_out_time: Option<DateTime<Utc>>,
     segment_id: Option<Uuid>,
-    entry_type: Option<String>,
+    entry_type: Option<EntryType>,
     note: Option<String>,
 }
 
@@ -396,7 +398,7 @@ impl UpdateTimeEntryRequest {
         punch_in_time: Option<DateTime<Utc>>,
         punch_out_time: Option<DateTime<Utc>>,
         segment_id: Option<Uuid>,
-        entry_type: Option<String>,
+        entry_type: Option<EntryType>,
         note: Option<String>,
     ) -> Self {
         Self {
@@ -420,8 +422,8 @@ impl UpdateTimeEntryRequest {
         self.segment_id
     }
 
-    pub fn entry_type(&self) -> Option<&str> {
-        self.entry_type.as_deref()
+    pub fn entry_type(&self) -> Option<EntryType> {
+        self.entry_type
     }
 
     pub fn note(&self) -> Option<&str> {
@@ -466,7 +468,7 @@ mod tests {
             None,
             None,
             false,
-            "work".to_string(),
+            EntryType::Work,
             Some("Note".to_string()),
             Some(serde_json::json!({"test": true})),
             now,
@@ -481,7 +483,7 @@ mod tests {
         assert_eq!(entry.punch_out_time(), None);
         assert_eq!(entry.duration_minutes(), None);
         assert!(!entry.is_break_overtime());
-        assert_eq!(entry.entry_type(), "work");
+        assert_eq!(entry.entry_type(), EntryType::Work);
         assert_eq!(entry.note(), Some("Note"));
         assert_eq!(
             entry.generation_metadata(),
@@ -498,8 +500,8 @@ mod tests {
         entry.set_is_break_overtime(true);
         assert!(entry.is_break_overtime());
 
-        entry.set_entry_type("break".to_string());
-        assert_eq!(entry.entry_type(), "break");
+        entry.set_entry_type(EntryType::Break);
+        assert_eq!(entry.entry_type(), EntryType::Break);
 
         entry.set_note(None);
         assert_eq!(entry.note(), None);
@@ -525,7 +527,7 @@ mod tests {
             Some(now),
             Some(0),
             false,
-            "work".to_string(),
+            EntryType::Work,
             Some("Note".to_string()),
             None,
             now,
@@ -542,7 +544,7 @@ mod tests {
         assert_eq!(entry.punch_out_time(), Some(now));
         assert_eq!(entry.duration_minutes(), Some(0));
         assert!(!entry.is_break_overtime());
-        assert_eq!(entry.entry_type(), "work");
+        assert_eq!(entry.entry_type(), EntryType::Work);
         assert_eq!(entry.note(), Some("Note"));
         assert_eq!(entry.generation_metadata(), None);
         assert_eq!(entry.created_at(), now);
@@ -557,14 +559,14 @@ mod tests {
         let req = PunchInRequest::new(
             emp_id,
             None,
-            Some("work".to_string()),
+            Some(EntryType::Work),
             Some(true),
             Some("Note".to_string()),
         );
 
         assert_eq!(req.employment_id(), emp_id);
         assert_eq!(req.segment_id(), None);
-        assert_eq!(req.entry_type(), Some("work"));
+        assert_eq!(req.entry_type(), Some(EntryType::Work));
         assert_eq!(req.is_break_overtime(), Some(true));
         assert_eq!(req.note(), Some("Note"));
     }
@@ -582,13 +584,13 @@ mod tests {
             Some(now),
             Some(now),
             None,
-            Some("work".to_string()),
+            Some(EntryType::Work),
             Some("Note".to_string()),
         );
 
         assert_eq!(req.punch_in_time(), Some(now));
         assert_eq!(req.punch_out_time(), Some(now));
-        assert_eq!(req.entry_type(), Some("work"));
+        assert_eq!(req.entry_type(), Some(EntryType::Work));
         assert_eq!(req.note(), Some("Note"));
     }
 }

@@ -311,7 +311,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
                     domain.punch_out_time(),
                     domain.duration_minutes(),
                     domain.is_break_overtime(),
-                    domain.entry_type().to_string(),
+                    domain.entry_type(),
                     domain.note().map(String::from),
                     domain.generation_metadata().cloned(),
                     domain.created_at(),

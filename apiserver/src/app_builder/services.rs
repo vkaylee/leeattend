@@ -91,8 +91,6 @@ pub async fn build_services(
             overtime_policy_repo: Arc::clone(&repos.overtime_policy),
             salary_base_repo: Arc::clone(&repos.salary_base),
             roster_provider,
-            contract_repo: Arc::clone(&repos.contract)
-                as Arc<dyn crate::repositories::EmployeeContractRepository>,
             employment_repo: Arc::clone(&repos.employment),
         },
     ));

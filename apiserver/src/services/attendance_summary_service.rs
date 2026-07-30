@@ -2,7 +2,7 @@ use crate::errors::{AppError, AppResult};
 use crate::utils::i18n::I18nKey;
 use std::sync::Arc;
 
-use chrono::{NaiveDate, TimeZone};
+use chrono::NaiveDate;
 use chrono_tz::Tz;
 
 use uuid::Uuid;
@@ -20,7 +20,6 @@ use crate::repositories::roster::RosterRepository;
 use crate::repositories::AttendancePolicyRepository;
 use crate::repositories::EmployeeRepository;
 use crate::repositories::{workspace_repository::WorkspaceRepository, TimeEntryRepository};
-use crate::services::AttendanceCalculator;
 use crate::services::PolicyResolverService;
 use crate::utils::chrono_helpers::local_to_utc as local_midnight_to_utc;
 
@@ -101,17 +100,6 @@ pub struct AttendanceSummaryService {
     holiday_repo: Arc<dyn HolidayRepository>,
     leave_request_repo: Arc<dyn LeaveRequestRepository>,
     daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
-}
-
-struct CalculateOtBucketsParams<'a> {
-    tz: &'a Tz,
-    date: NaiveDate,
-    employee_id: Uuid,
-    auth_token: &'a TenantAuthToken,
-    daily_schedule: &'a crate::models::EffectiveSchedule,
-    punch_in: chrono::DateTime<Tz>,
-    punch_out: chrono::DateTime<Tz>,
-    actual_break_minutes: i32,
 }
 
 impl AttendanceSummaryService {
@@ -481,6 +469,10 @@ impl AttendanceSummaryService {
     }
 
     /// Calculate actual work minutes and system-detected OT from time entries.
+    ///
+    /// Delegates to [`AttendanceService`] — the single shared path for all
+    /// attendance computation — instead of the former manual heuristic
+    /// (`raw_duration - break_minutes`).
     async fn calculate_work_and_ot(
         &self,
         tz: &Tz,
@@ -490,77 +482,9 @@ impl AttendanceSummaryService {
         daily_schedule: &crate::models::EffectiveSchedule,
         day_entries: &[crate::models::TimeEntry],
     ) -> AppResult<(i32, i32)> {
-        let actual_punch_in = day_entries
-            .first()
-            .map(|e| e.punch_in_time().with_timezone(tz));
-        let actual_punch_out = day_entries
-            .last()
-            .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(tz)));
-
-        let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) else {
-            return Ok((0, 0));
-        };
-
-        let actual_break_minutes: i32 = day_entries
-            .iter()
-            .filter(|e| e.entry_type() == "break")
-            .map(|e| e.duration_minutes().unwrap_or(0))
-            .sum();
-
-        let raw_duration =
-            i32::try_from(punch_out.signed_duration_since(punch_in).num_minutes()).unwrap_or(0);
-        let actual_work_minutes = i32::max(0, raw_duration - actual_break_minutes);
-
-        let system_detected_ot_minutes = self
-            .calculate_ot_buckets(CalculateOtBucketsParams {
-                tz,
-                date,
-                employee_id,
-                auth_token,
-                daily_schedule,
-                punch_in,
-                punch_out,
-                actual_break_minutes,
-            })
-            .await?;
-
-        Ok((actual_work_minutes, system_detected_ot_minutes))
-    }
-
-    /// Internal: compute OT buckets from schedule + punches.
-    async fn calculate_ot_buckets(&self, params: CalculateOtBucketsParams<'_>) -> AppResult<i32> {
-        let CalculateOtBucketsParams {
-            tz,
-            date,
-            employee_id,
-            auth_token,
-            daily_schedule,
-            punch_in,
-            punch_out,
-            actual_break_minutes,
-        } = params;
-        let (Some(sched_start_time), Some(sched_end_time)) =
-            (daily_schedule.start_time(), daily_schedule.end_time())
-        else {
-            return Ok(0);
-        };
-
-        let start_dt = tz
-            .from_local_datetime(&date.and_time(sched_start_time))
-            .single();
-        let end_dt = tz
-            .from_local_datetime(&date.and_time(sched_end_time))
-            .single();
-
-        let (Some(start), Some(mut end)) = (start_dt, end_dt) else {
-            return Ok(0);
-        };
-
-        if sched_end_time < sched_start_time {
-            end += chrono::Duration::days(1);
-        }
-
-        let rules = PolicyResolverService::resolve_attendance_rules(
+        // Resolve policy rules (was previously in the now-removed
+        // calculate_ot_buckets helper).
+        let base_rules = PolicyResolverService::resolve_attendance_rules(
             &*self.policy_repo,
             &*self.employee_repo,
             &*self.condition_type_repo,
@@ -570,7 +494,7 @@ impl AttendanceSummaryService {
         )
         .await?;
 
-        let policy_rules = PolicyResolverService::resolve_with_shift_overrides(
+        let rules = PolicyResolverService::resolve_with_shift_overrides(
             &*self.policy_repo,
             &*self.employee_repo,
             &*self.condition_type_repo,
@@ -581,45 +505,36 @@ impl AttendanceSummaryService {
                 daily_schedule.early_punch_in_grace_period_minutes(),
                 daily_schedule.is_break_auto_deduct(),
                 daily_schedule.allow_early_ot(),
-                rules.early_arrival_strategy(),
+                base_rules.early_arrival_strategy(),
                 daily_schedule.break_is_overtime().unwrap_or(false),
             ),
         )
         .await?;
 
-        let break_start_dt = daily_schedule
-            .break_start()
-            .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
-        let break_end_dt = daily_schedule.break_end().and_then(|t| {
-            let mut dt = tz.from_local_datetime(&date.and_time(t)).single()?;
-            if daily_schedule.break_end() < daily_schedule.break_start() {
-                dt += chrono::Duration::days(1);
-            }
-            Some(dt)
-        });
+        // Convert &[TimeEntry] to &[&TimeEntry] for the shared service.
+        let entry_refs: Vec<&crate::models::TimeEntry> = day_entries.iter().collect();
 
-        let buckets = AttendanceCalculator::calculate_buckets(
-            &crate::services::attendance_calculator::DailyCalcInput {
-                punch_in,
-                punch_out,
-                shift_start: Some(start),
-                shift_end: Some(end),
-                scheduled_break_minutes: daily_schedule.break_duration_minutes().unwrap_or(0),
-                actual_break_minutes,
-                break_start: break_start_dt,
-                break_end: break_end_dt,
-                work_unit: 0,
-                rounding_policy: String::new(),
-                rules: policy_rules,
-                ot_ceiling: None,
+        let result = crate::services::AttendanceService::compute_daily_attendance(
+            crate::services::ComputeDailyInput {
+                daily: daily_schedule,
+                day_entries: &entry_refs,
+                date,
+                tz,
+                rules: &rules,
+                work_unit_minutes: 0, // minutes mode: raw minutes, no unit conversion
+                rounding_policy: crate::models::RoundingPolicy::default(),
                 max_early_ot_minutes: daily_schedule.max_early_ot_minutes(),
+                ot_ceiling: None,
                 segment_id: None,
                 ot_aggregation_mode:
                     crate::services::attendance_calculator::OtAggregationMode::Aggregate,
             },
         );
 
-        Ok(buckets.early_ot_minutes + buckets.late_ot_minutes + buckets.break_ot_minutes)
+        match result {
+            Some(r) => Ok((r.actual_work_minutes(), r.system_detected_ot_minutes())),
+            None => Ok((0, 0)),
+        }
     }
 
     /// Check if the date is a holiday and handle leave conflict (reversal if employee worked enough).

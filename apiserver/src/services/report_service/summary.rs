@@ -218,15 +218,14 @@ impl ReportService {
                 .get(&emp_sched.employment_id())
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
 
-            let emp_attendance_rules = attendance_rules_map
-                .get(&employee_id)
-                .cloned()
-                .unwrap_or_else(|| crate::models::AttendanceRules {
+            let emp_attendance_rules = attendance_rules_map.get(&employee_id).cloned().unwrap_or(
+                crate::models::AttendanceRules {
                     work_unit_minutes: 30,
-                    rounding_policy: "floor".to_string(),
+                    rounding_policy: crate::models::RoundingPolicy::Floor,
                     early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
                     grace_period_minutes: None,
-                });
+                },
+            );
             let mut employee_total_std = 0i32;
             let mut employee_total_ot = 0i32;
 
@@ -262,7 +261,7 @@ impl ReportService {
                     daily.break_is_overtime().unwrap_or(false),
                 );
                 let rules = PolicyResolver::apply_shift_overrides(base_rules, &overrides);
-                let (std_units, ot_units) = Self::calculate_day_units(CalculateDayUnitsArgs {
+                let (std_units, ot_units) = Self::calculate_day_units(&CalculateDayUnitsArgs {
                     day_entries,
                     daily,
                     date,
@@ -271,7 +270,7 @@ impl ReportService {
                     workspace_id: workspace.id(),
                     rules,
                     work_unit_minutes: emp_attendance_rules.work_unit_minutes,
-                    rounding_policy: &emp_attendance_rules.rounding_policy,
+                    rounding_policy: emp_attendance_rules.rounding_policy,
                 });
 
                 employee_total_std += std_units;

@@ -53,7 +53,7 @@ impl From<AttendancePolicyVersionEntity> for AttendancePolicyVersion {
             policy_id: val.policy_id,
             rules: serde_json::from_value(val.rules).unwrap_or_else(|_| AttendanceRules {
                 work_unit_minutes: 0,
-                rounding_policy: "none".to_string(),
+                rounding_policy: crate::models::RoundingPolicy::None,
                 early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
                 grace_period_minutes: None,
             }),
@@ -148,7 +148,11 @@ mod tests {
         assert_eq!(version.id, id);
         assert_eq!(version.policy_id, policy_id);
         assert_eq!(version.rules.work_unit_minutes, 15);
-        assert_eq!(version.rules.rounding_policy, "round_down");
+        // Unrecognized legacy value ("round_down") tolerantly falls back to None.
+        assert_eq!(
+            version.rules.rounding_policy,
+            crate::models::RoundingPolicy::None
+        );
         assert_eq!(version.created_by, Some(user_id));
         assert_eq!(version.created_at, now);
     }
@@ -175,7 +179,10 @@ mod tests {
         let version: AttendancePolicyVersion = entity.into();
         assert_eq!(version.id, id);
         assert_eq!(version.rules.work_unit_minutes, 0);
-        assert_eq!(version.rules.rounding_policy, "none");
+        assert_eq!(
+            version.rules.rounding_policy,
+            crate::models::RoundingPolicy::None
+        );
     }
 
     #[test]

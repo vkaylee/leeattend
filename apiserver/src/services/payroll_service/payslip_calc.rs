@@ -1,4 +1,5 @@
 use super::*;
+use crate::services::attendance_context::AttendanceContext;
 
 impl PayrollService {
     #[tracing::instrument(skip_all, err)]
@@ -9,6 +10,10 @@ impl PayrollService {
     ) -> Result<Payslip, AppError> {
         let employee_id = ctx.employee_id;
         let workspace_id = ctx.workspace.id();
+
+        // Build the attendance-only view once; the segment loop borrows it.
+        let att_ctx = AttendanceContext::from(&ctx);
+
         let active_emp = ctx
             .active_employments
             .iter()
@@ -106,7 +111,7 @@ impl PayrollService {
             // B. Attendance — delegated to AttendanceMatcher
             let att = AttendanceMatcher::process_segment_attendance(
                 crate::services::attendance_matcher::ProcessSegmentAttendanceArgs {
-                    ctx: &ctx,
+                    ctx: &att_ctx,
                     seg_start,
                     seg_end,
                     segment_total_base,

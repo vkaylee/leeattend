@@ -44,7 +44,7 @@ pub struct CalculateDayUnitsArgs<'a, 'b> {
     pub workspace_id: Uuid,
     pub work_unit_minutes: i32,
     pub rules: crate::models::PolicyRules,
-    pub rounding_policy: &'a str,
+    pub rounding_policy: crate::models::RoundingPolicy,
 }
 
 pub struct ReportService {

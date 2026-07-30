@@ -134,11 +134,6 @@ async fn test_payroll_std_days_source_traceability() {
                     )),
                 ),
             ),
-            contract_repo: Arc::new(
-                apiserver::repositories::DieselEmployeeContractRepository::new(
-                    diesel_pools.clone(),
-                ),
-            ),
             employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
                 diesel_pools.clone(),
             )),
@@ -233,11 +228,6 @@ async fn test_payroll_std_days_source_traceability() {
                     )),
                 ),
             ),
-            contract_repo: Arc::new(
-                apiserver::repositories::DieselEmployeeContractRepository::new(
-                    diesel_pools.clone(),
-                ),
-            ),
             employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
                 diesel_pools.clone(),
             )),
@@ -325,11 +315,6 @@ async fn test_payroll_std_days_source_traceability() {
                     std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                         diesel_pools.clone(),
                     )),
-                ),
-            ),
-            contract_repo: Arc::new(
-                apiserver::repositories::DieselEmployeeContractRepository::new(
-                    diesel_pools.clone(),
                 ),
             ),
             employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
@@ -420,11 +405,6 @@ async fn test_payroll_std_days_source_traceability() {
                     std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                         diesel_pools.clone(),
                     )),
-                ),
-            ),
-            contract_repo: Arc::new(
-                apiserver::repositories::DieselEmployeeContractRepository::new(
-                    diesel_pools.clone(),
                 ),
             ),
             employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(

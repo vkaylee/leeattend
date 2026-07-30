@@ -194,7 +194,7 @@ impl ShiftSwapService {
             .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
 
         // Look up current effective shifts for both employees
-        let (requester_shift_id, _) = self
+        let (requester_shift_id, _, _) = self
             .roster_repo
             .get_effective_shift(auth_token, req_employment_id, req.swap_date)
             .await
@@ -203,7 +203,7 @@ impl ShiftSwapService {
                 AppError::Internal("Internal error".into())
             })?;
 
-        let (target_shift_id, _) = self
+        let (target_shift_id, _, _) = self
             .roster_repo
             .get_effective_shift(auth_token, tgt_employment_id, req.swap_date)
             .await
@@ -406,7 +406,7 @@ impl ShiftSwapService {
             .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
 
         // Look up effective shifts
-        let (requester_shift_id, _) = self
+        let (requester_shift_id, _, _) = self
             .roster_repo
             .get_effective_shift(auth_token, req_employment_id, req.swap_date)
             .await
@@ -415,7 +415,7 @@ impl ShiftSwapService {
                 AppError::Internal("Internal error".into())
             })?;
 
-        let (target_shift_id, _) = self
+        let (target_shift_id, _, _) = self
             .roster_repo
             .get_effective_shift(auth_token, tgt_employment_id, req.swap_date)
             .await
@@ -671,6 +671,7 @@ mod tests {
                     Ok((
                         Some(Uuid::new_v4()),
                         Vec::<crate::models::attendance::ScheduleTrace>::new(),
+                        std::sync::Arc::new(crate::cache::RosterData::default()),
                     ))
                 })
             });

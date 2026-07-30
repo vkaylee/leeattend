@@ -231,13 +231,13 @@ mod tests {
             allow_early_ot: false,
             max_early_ot_minutes: None,
             early_punch_in_grace_period_minutes: 0,
-            ot_aggregation_mode: "aggregate".to_string(),
+            ot_aggregation_mode: crate::services::attendance_calculator::OtAggregationMode::Aggregate,
             is_night_shift: false,
         };
 
         assert_eq!(seg.shift_id, Uuid::from_u128(1));
         assert_eq!(seg.source, "fixed");
-        assert_eq!(seg.ot_aggregation_mode, "aggregate");
+        assert_eq!(seg.ot_aggregation_mode, crate::services::attendance_calculator::OtAggregationMode::Aggregate);
         assert!(!seg.is_night_shift);
     }
 

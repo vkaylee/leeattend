@@ -94,7 +94,7 @@ mod tests {
                 config: crate::queue::ReportConfig {
                     report_type: crate::queue::ReportType::Summary,
                     timezone: "UTC".to_string(),
-                    rounding_policy: "floor".to_string(),
+                    rounding_policy: crate::models::RoundingPolicy::Floor,
                     work_unit_minutes: 30,
                 },
             }),
@@ -191,7 +191,15 @@ mod tests {
         let mut roster_repo = crate::repositories::roster::MockRosterRepository::new();
         roster_repo
             .expect_get_effective_shift()
-            .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+            .returning(|_, _, _| {
+                Box::pin(async {
+                    Ok((
+                        None,
+                        vec![],
+                        std::sync::Arc::new(crate::cache::RosterData::default()),
+                    ))
+                })
+            });
         roster_repo
             .expect_get_workspace_schedules()
             .returning(|_, _, _, _, _, _, _| Box::pin(async { Ok((vec![], 0)) }));

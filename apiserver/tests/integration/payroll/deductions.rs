@@ -133,11 +133,6 @@ async fn test_net_pay_formula_with_zero_deductions() {
                     )),
                 ),
             ),
-            contract_repo: Arc::new(
-                apiserver::repositories::DieselEmployeeContractRepository::new(
-                    diesel_pools.clone(),
-                ),
-            ),
             employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
                 diesel_pools.clone(),
             )),

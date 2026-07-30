@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use super::super::attendance_context::AttendanceContext;
 use super::super::financial_calculator::{IncentivePolicyWithTiers, RuleAssignmentWithTiers};
 
 // ---------------------------------------------------------------------------
@@ -44,8 +45,6 @@ pub struct PayrollContext {
     pub(crate) overtime_data:
         Arc<crate::repositories::overtime_policy_repository::WorkspaceOvertimeData>,
     pub(crate) ot_base_component_ids: std::collections::HashSet<Uuid>,
-    #[allow(dead_code)]
-    pub(crate) active_contracts: Vec<crate::models::contract::EmployeeContract>,
     pub(crate) active_assignments: Vec<crate::models::employee_assignment::EmployeeAssignment>,
     pub(crate) active_employments: Vec<crate::models::employment::Employment>,
     pub(crate) primary_location_id: Uuid,
@@ -122,53 +121,37 @@ pub(crate) struct ChunkSharedData {
 }
 
 // ---------------------------------------------------------------------------
-// Helper functions
+// AttendanceContext conversion — payroll → attendance bridge
 // ---------------------------------------------------------------------------
 
-#[allow(dead_code)]
-pub(crate) fn empty_batch_response() -> crate::models::BatchCalculatePayrollResponse {
-    crate::models::BatchCalculatePayrollResponse { results: vec![] }
-}
-
-pub(crate) fn month_boundaries(
-    year: i32,
-    month: u32,
-) -> Result<(NaiveDate, NaiveDate), crate::errors::AppError> {
-    let start_date = NaiveDate::from_ymd_opt(year, month, 1).ok_or_else(|| {
-        crate::errors::AppError::validation(crate::utils::i18n::I18nKey::InvalidYearMonth)
-    })?;
-    let next_month_date = if month == 12 {
-        NaiveDate::from_ymd_opt(year + 1, 1, 1)
-    } else {
-        NaiveDate::from_ymd_opt(year, month + 1, 1)
-    }
-    .ok_or_else(|| {
-        crate::errors::AppError::validation(crate::utils::i18n::I18nKey::InvalidYearMonth)
-    })?;
-    let end_date = next_month_date.pred_opt().ok_or_else(|| {
-        crate::errors::AppError::validation(crate::utils::i18n::I18nKey::InvalidYearMonth)
-    })?;
-    Ok((start_date, end_date))
-}
-
-pub(crate) fn default_attendance_rules() -> crate::models::AttendanceRules {
-    crate::models::AttendanceRules {
-        work_unit_minutes: 30,
-        rounding_policy: "floor".to_string(),
-        early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-        grace_period_minutes: None,
+impl From<&PayrollContext> for AttendanceContext {
+    fn from(pc: &PayrollContext) -> Self {
+        Self {
+            employee_id: pc.employee_id,
+            tz: pc.tz,
+            start_date: pc.start_date,
+            end_date: pc.end_date,
+            daily_entries_map: pc.daily_entries_map.clone(),
+            holidays_map: Arc::clone(&pc.holidays_map),
+            roster_data: Arc::clone(&pc.roster_data),
+            emp_id_number: pc.emp_id_number.clone(),
+            emp_tags: pc.emp_tags.clone(),
+            payroll_roster_map: pc.payroll_roster_map.clone(),
+            overtime_data: Arc::clone(&pc.overtime_data),
+            active_assignments: pc.active_assignments.clone(),
+            primary_location_id: pc.primary_location_id,
+            all_dept_history: pc.all_dept_history.clone(),
+            active_employments: pc.active_employments.clone(),
+            working_conditions: pc.working_conditions.clone(),
+            condition_type_catalog: Arc::clone(&pc.condition_type_catalog),
+        }
     }
 }
 
-#[allow(clippy::trivially_copy_pass_by_ref)]
-pub(crate) fn build_daily_entries_map(
-    entries: Vec<crate::models::TimeEntry>,
-    tz: &Tz,
-) -> HashMap<NaiveDate, Vec<crate::models::TimeEntry>> {
-    let mut map: HashMap<NaiveDate, Vec<crate::models::TimeEntry>> = HashMap::new();
-    for entry in entries {
-        let local_date = entry.punch_in_time().with_timezone(tz).date_naive();
-        map.entry(local_date).or_default().push(entry);
-    }
-    map
-}
+// ---------------------------------------------------------------------------
+// Helper functions (re-exported from attendance_context)
+// ---------------------------------------------------------------------------
+
+pub(crate) use super::super::attendance_context::{
+    build_daily_entries_map, default_attendance_rules, month_boundaries,
+};

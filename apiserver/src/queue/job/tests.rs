@@ -16,7 +16,7 @@ fn test_job_serialization() {
             config: ReportConfig {
                 report_type: ReportType::Summary,
                 timezone: "Asia/Ho_Chi_Minh".to_string(),
-                rounding_policy: "floor".to_string(),
+                rounding_policy: crate::models::RoundingPolicy::Floor,
                 work_unit_minutes: 30,
             },
         }),
@@ -70,7 +70,7 @@ fn test_retry_logic() {
             config: ReportConfig {
                 report_type: ReportType::Summary,
                 timezone: "UTC".to_string(),
-                rounding_policy: "floor".to_string(),
+                rounding_policy: crate::models::RoundingPolicy::Floor,
                 work_unit_minutes: 30,
             },
         }),
@@ -98,7 +98,7 @@ fn test_payload_helpers() {
             config: ReportConfig {
                 report_type: ReportType::Summary,
                 timezone: "UTC".to_string(),
-                rounding_policy: "floor".to_string(),
+                rounding_policy: crate::models::RoundingPolicy::Floor,
                 work_unit_minutes: 30,
             },
         }),
@@ -120,7 +120,7 @@ fn test_payload_helpers() {
             config: ReportConfig {
                 report_type: ReportType::Summary,
                 timezone: "UTC".to_string(),
-                rounding_policy: "floor".to_string(),
+                rounding_policy: crate::models::RoundingPolicy::Floor,
                 work_unit_minutes: 30,
             },
         }),
@@ -146,7 +146,7 @@ fn test_job_payload_serde_tagged_format() {
         config: ReportConfig {
             report_type: ReportType::Summary,
             timezone: "UTC".to_string(),
-            rounding_policy: "floor".to_string(),
+            rounding_policy: crate::models::RoundingPolicy::Floor,
             work_unit_minutes: 30,
         },
     });
@@ -170,7 +170,7 @@ fn test_merge_payload_serde_format() {
         config: ReportConfig {
             report_type: ReportType::Detail,
             timezone: "Asia/Ho_Chi_Minh".to_string(),
-            rounding_policy: "ceil".to_string(),
+            rounding_policy: crate::models::RoundingPolicy::Ceil,
             work_unit_minutes: 15,
         },
     });
@@ -201,7 +201,7 @@ fn test_payroll_report_payload_extraction() {
             config: ReportConfig {
                 report_type: ReportType::Summary,
                 timezone: "UTC".to_string(),
-                rounding_policy: "floor".to_string(),
+                rounding_policy: crate::models::RoundingPolicy::Floor,
                 work_unit_minutes: 30,
             },
         }),
@@ -237,7 +237,7 @@ fn test_full_job_serde_roundtrip() {
             config: ReportConfig {
                 report_type: ReportType::Detail,
                 timezone: "Asia/Tokyo".to_string(),
-                rounding_policy: "round".to_string(),
+                rounding_policy: crate::models::RoundingPolicy::Round,
                 work_unit_minutes: 15,
             },
         }),
@@ -284,7 +284,7 @@ fn test_job_new_defaults() {
             config: ReportConfig {
                 report_type: ReportType::Summary,
                 timezone: "UTC".to_string(),
-                rounding_policy: "floor".to_string(),
+                rounding_policy: crate::models::RoundingPolicy::Floor,
                 work_unit_minutes: 30,
             },
         }),
@@ -423,7 +423,7 @@ fn test_job_new_defaults_to_normal_priority() {
             config: ReportConfig {
                 report_type: ReportType::Summary,
                 timezone: "UTC".to_string(),
-                rounding_policy: "floor".to_string(),
+                rounding_policy: crate::models::RoundingPolicy::Floor,
                 work_unit_minutes: 30,
             },
         }),
@@ -600,7 +600,7 @@ fn test_log_ingestion_payload_helper_returns_none_for_other_types() {
             config: ReportConfig {
                 report_type: ReportType::Summary,
                 timezone: "UTC".to_string(),
-                rounding_policy: "floor".to_string(),
+                rounding_policy: crate::models::RoundingPolicy::Floor,
                 work_unit_minutes: 30,
             },
         }),
@@ -712,7 +712,7 @@ fn test_leave_import_payload_helper_returns_none_for_other_types() {
             config: ReportConfig {
                 report_type: ReportType::Summary,
                 timezone: "UTC".to_string(),
-                rounding_policy: "floor".to_string(),
+                rounding_policy: crate::models::RoundingPolicy::Floor,
                 work_unit_minutes: 30,
             },
         }),
@@ -811,7 +811,7 @@ fn test_employee_import_payload_helper_returns_none_for_other_types() {
             config: ReportConfig {
                 report_type: ReportType::Summary,
                 timezone: "UTC".to_string(),
-                rounding_policy: "floor".to_string(),
+                rounding_policy: crate::models::RoundingPolicy::Floor,
                 work_unit_minutes: 30,
             },
         }),

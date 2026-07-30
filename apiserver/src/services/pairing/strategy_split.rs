@@ -76,7 +76,7 @@ pub(crate) fn split_by_breaks(input: &SplitByBreaksInput<'_>) -> Vec<PairedSessi
             Some(seg_end),
             start_time,
             Some(end_time),
-            input.entry_type.clone(),
+            *input.entry_type,
             if j == 0 {
                 input.combined_note.cloned()
             } else {

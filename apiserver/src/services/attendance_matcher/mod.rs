@@ -7,8 +7,8 @@ use crate::repositories::overtime_policy_repository::OvertimePolicyRepositoryTra
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 
+use super::attendance_context::AttendanceContext;
 use super::financial_calculator::FinancialCalculator;
-use super::payroll_service::PayrollContext;
 
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -35,7 +35,7 @@ pub struct SegmentAttendanceResult {
 
 /// Arguments for [`AttendanceMatcher::process_segment_attendance`].
 pub struct ProcessSegmentAttendanceArgs<'a> {
-    pub ctx: &'a PayrollContext,
+    pub ctx: &'a AttendanceContext,
     pub seg_start: NaiveDate,
     pub seg_end: NaiveDate,
     pub segment_total_base: Decimal,

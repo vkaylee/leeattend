@@ -617,7 +617,7 @@ async fn test_overnight_recalculate_day1_reclaims_punches() {
         None,
         None,
         false,
-        "work".to_string(),
+        apiserver::services::pairing::types::EntryType::Work,
         None,
         Some(serde_json::json!({
             "log_ids": vec![log_out.id().to_string()]
@@ -793,7 +793,7 @@ async fn test_overnight_recalculate_range_reclaims_punches() {
         None,
         None,
         false,
-        "work".to_string(),
+        apiserver::services::pairing::types::EntryType::Work,
         None,
         Some(serde_json::json!({
             "log_ids": vec![log_out.id().to_string()]
@@ -961,7 +961,7 @@ async fn test_overnight_recalculate_day1_only_automatically_heals_day2() {
         None,
         None,
         false,
-        "work".to_string(),
+        apiserver::services::pairing::types::EntryType::Work,
         None,
         Some(serde_json::json!({
             "log_ids": vec![log_out.id().to_string()]
@@ -1187,7 +1187,7 @@ async fn test_overnight_recalculate_day1_next_day_has_shift_with_own_punches() {
         Some(punch_out_2_utc),
         None,
         false,
-        "work".to_string(),
+        apiserver::services::pairing::types::EntryType::Work,
         None,
         Some(serde_json::json!({
             "log_ids": vec![log_out_1.id().to_string(), log_out_2.id().to_string()]
@@ -1404,7 +1404,7 @@ async fn test_consecutive_overnight_shifts_propagation() {
         Some(punch_in_2_utc),
         None,
         false,
-        "work".to_string(),
+        apiserver::services::pairing::types::EntryType::Work,
         None,
         Some(serde_json::json!({
             "log_ids": vec![log_out_1.id().to_string(), log_in_2.id().to_string()]
@@ -1424,7 +1424,7 @@ async fn test_consecutive_overnight_shifts_propagation() {
         None,
         None,
         false,
-        "work".to_string(),
+        apiserver::services::pairing::types::EntryType::Work,
         None,
         Some(serde_json::json!({
             "log_ids": vec![log_out_2.id().to_string()]

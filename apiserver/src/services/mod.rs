@@ -2,8 +2,10 @@ pub mod agent_service;
 pub mod approval_workflow;
 pub mod attendance_adjustment_service;
 pub mod attendance_calculator;
+pub mod attendance_context;
 pub mod attendance_import_service;
 pub mod attendance_matcher;
+pub mod attendance_service;
 pub mod attendance_utils;
 pub mod audit_service;
 pub mod auth_service;
@@ -52,6 +54,9 @@ pub use approval_workflow::ApprovalWorkflowService;
 pub use attendance_calculator::AttendanceCalculator;
 pub use attendance_import_service::AttendanceImportService;
 pub use attendance_log_service::AttendanceLogService;
+pub use attendance_service::{
+    AttendanceService, ComputeDailyInput, DailyAttendanceResult, SegmentAttendanceResult,
+};
 pub use condition_type_service::ConditionTypeService;
 pub use custom_field_service::CustomFieldService;
 pub use employee_service::EmployeeService;

@@ -189,11 +189,6 @@ async fn test_payroll_holiday_work_with_multiplier() {
                         )),
                     ),
                 ),
-                contract_repo: Arc::new(
-                    apiserver::repositories::DieselEmployeeContractRepository::new(
-                        diesel_pools.clone(),
-                    ),
-                ),
             },
         )
     }
@@ -388,11 +383,6 @@ async fn test_payroll_holiday_work_no_credit() {
                         )),
                     ),
                 ),
-                contract_repo: Arc::new(
-                    apiserver::repositories::DieselEmployeeContractRepository::new(
-                        diesel_pools.clone(),
-                    ),
-                ),
             },
         )
     }
@@ -572,11 +562,6 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
                         std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                             diesel_pools.clone(),
                         )),
-                    ),
-                ),
-                contract_repo: Arc::new(
-                    apiserver::repositories::DieselEmployeeContractRepository::new(
-                        diesel_pools.clone(),
                     ),
                 ),
             },

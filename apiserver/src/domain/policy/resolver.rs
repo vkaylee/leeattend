@@ -751,7 +751,7 @@ mod tests {
 
         let attendance_rules = AttendanceRules {
             work_unit_minutes: 30,
-            rounding_policy: "floor".to_string(),
+            rounding_policy: crate::models::RoundingPolicy::Floor,
             early_arrival_strategy: EarlyArrivalStrategy::Block,
             grace_period_minutes: Some(10),
         };

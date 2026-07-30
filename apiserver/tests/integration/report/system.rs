@@ -26,7 +26,7 @@ async fn test_job_creation_pipeline_type_safety() {
             config: ReportConfig {
                 report_type: ReportType::Summary,
                 timezone: "UTC".to_string(),
-                rounding_policy: "none".to_string(),
+                rounding_policy: apiserver::models::RoundingPolicy::None,
                 work_unit_minutes: 60,
             },
         }),

@@ -499,11 +499,6 @@ async fn test_overtime_calculation_with_salary_base_group() {
                     )),
                 ),
             ),
-            contract_repo: Arc::new(
-                apiserver::repositories::DieselEmployeeContractRepository::new(
-                    diesel_pools.clone(),
-                ),
-            ),
             employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
                 diesel_pools.clone(),
             )),

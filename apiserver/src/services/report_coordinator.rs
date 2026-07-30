@@ -216,7 +216,7 @@ impl ReportCoordinator {
                         config: ReportConfig {
                             report_type: request.report_type.clone(),
                             timezone: workspace.timezone.clone(),
-                            rounding_policy: "floor".to_string(),
+                            rounding_policy: crate::models::RoundingPolicy::Floor,
                             work_unit_minutes: 30,
                         },
                     }),
@@ -427,7 +427,7 @@ impl ReportCoordinator {
                             config: ReportConfig {
                                 report_type: report_type.clone(),
                                 timezone: "UTC".to_string(),
-                                rounding_policy: "floor".to_string(),
+                                rounding_policy: crate::models::RoundingPolicy::Floor,
                                 work_unit_minutes: 30,
                             },
                         }),

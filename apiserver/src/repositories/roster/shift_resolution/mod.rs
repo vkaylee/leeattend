@@ -251,7 +251,7 @@ pub fn resolve_work_segments_from_data<S: ::std::hash::BuildHasher>(
                     max_early_ot_minutes: interval.max_early_ot_minutes,
                     early_punch_in_grace_period_minutes: interval
                         .early_punch_in_grace_period_minutes,
-                    ot_aggregation_mode: interval.ot_aggregation_mode.clone(),
+                    ot_aggregation_mode: interval.ot_aggregation_mode,
                     is_night_shift: interval.is_night_shift,
                     traces: traces.clone(),
                     is_holiday: false,

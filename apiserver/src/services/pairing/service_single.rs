@@ -114,16 +114,12 @@ pub(crate) async fn fetch_effective_shift_config(
     date: NaiveDate,
     context: &crate::services::pairing::types::PairingContext,
 ) -> Result<(Option<Uuid>, Option<PairingShiftConfig>, serde_json::Value), AppError> {
-    let (shift_id_opt, traces) = service
+    let (shift_id_opt, traces, roster_data) = service
         .roster_repo
         .get_effective_shift(auth_token, employment_id, date)
         .await?;
 
     let shift_config = if let Some(shift_id) = shift_id_opt {
-        let roster_data = service
-            .roster_repo
-            .get_raw_roster_data(auth_token.workspace_id())
-            .await?;
         let from_intervals = roster_data
             .shift_intervals
             .get(&shift_id)

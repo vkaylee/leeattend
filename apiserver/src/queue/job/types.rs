@@ -66,7 +66,7 @@ pub struct DateRange {
 pub struct ReportConfig {
     pub report_type: ReportType,
     pub timezone: String,
-    pub rounding_policy: String,
+    pub rounding_policy: crate::models::RoundingPolicy,
     pub work_unit_minutes: i32,
 }
 

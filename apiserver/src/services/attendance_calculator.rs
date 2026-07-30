@@ -1,4 +1,4 @@
-use crate::models::{EarlyArrivalStrategy, PolicyRules};
+use crate::models::{EarlyArrivalStrategy, PolicyRules, RoundingPolicy};
 use chrono::{DateTime, Duration, TimeZone, Timelike};
 use uuid::Uuid;
 
@@ -11,21 +11,50 @@ pub struct WorkBuckets {
 }
 
 /// Aggregation mode for OT calculation across multiple segments.
-#[derive(Debug, Clone, PartialEq, Eq)]
+///
+/// Persisted as lowercase snake_case (`"aggregate"`, `"per_segment"`, `"daily"`).
+/// The DB stores three legacy values; both `aggregate` and `daily` collapse to
+/// `Aggregate` here — the historical distinction was cosmetic.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "snake_case")]
 pub enum OtAggregationMode {
-    /// Sum all standard time across segments, then apply OT threshold once.
+    #[default]
     Aggregate,
-    /// Calculate OT independently per segment, then sum results.
     PerSegment,
 }
 
+impl std::fmt::Display for OtAggregationMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Aggregate => write!(f, "aggregate"),
+            Self::PerSegment => write!(f, "per_segment"),
+        }
+    }
+}
+
+impl std::str::FromStr for OtAggregationMode {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "per_segment" => Ok(Self::PerSegment),
+            "aggregate" | "daily" | "" => Ok(Self::Aggregate),
+            _ => Err(()),
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for OtAggregationMode {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(d)?;
+        Ok(s.parse().unwrap_or_default())
+    }
+}
+
 impl OtAggregationMode {
+    /// Kept for legacy call-sites; prefer `str::parse` or `FromStr`.
     #[must_use]
     pub fn from_mode(s: &str) -> Self {
-        match s {
-            "per_segment" => Self::PerSegment,
-            _ => Self::Aggregate,
-        }
+        s.parse().unwrap_or_default()
     }
 }
 
@@ -71,7 +100,7 @@ pub struct DailyCalcInput<T: TimeZone> {
     /// Break frame end (Fixed mode only).
     pub break_end: Option<DateTime<T>>,
     pub work_unit: i32,
-    pub rounding_policy: String,
+    pub rounding_policy: RoundingPolicy,
     pub rules: PolicyRules,
     pub ot_ceiling: Option<DateTime<T>>,
     pub max_early_ot_minutes: Option<i32>,
@@ -114,7 +143,7 @@ impl AttendanceCalculator {
                 .as_ref()
                 .map(|dt| Self::truncate_to_minute(dt.clone())),
             work_unit: input.work_unit,
-            rounding_policy: input.rounding_policy.clone(),
+            rounding_policy: input.rounding_policy,
             rules: input.rules.clone(),
             ot_ceiling: input
                 .ot_ceiling
@@ -122,7 +151,7 @@ impl AttendanceCalculator {
                 .map(|dt| Self::truncate_to_minute(dt.clone())),
             max_early_ot_minutes: input.max_early_ot_minutes,
             segment_id: input.segment_id,
-            ot_aggregation_mode: input.ot_aggregation_mode.clone(),
+            ot_aggregation_mode: input.ot_aggregation_mode,
         };
 
         let punch_in = &input.punch_in;
@@ -365,7 +394,7 @@ impl AttendanceCalculator {
 
     /// Unit Calculation Logic
     #[allow(clippy::cast_possible_truncation)]
-    pub fn calculate_units(minutes: i32, unit_size: i32, policy: &str) -> i32 {
+    pub fn calculate_units(minutes: i32, unit_size: i32, policy: RoundingPolicy) -> i32 {
         let size = if unit_size <= 1 {
             1.0
         } else {
@@ -374,10 +403,10 @@ impl AttendanceCalculator {
         let mins = f64::from(minutes);
 
         match policy {
-            "floor" => (mins / size).floor() as i32,
-            "ceil" => (mins / size).ceil() as i32,
-            "round" => (mins / size).round() as i32,
-            _ => (mins / size) as i32,
+            RoundingPolicy::Floor => (mins / size).floor() as i32,
+            RoundingPolicy::Ceil => (mins / size).ceil() as i32,
+            RoundingPolicy::Round => (mins / size).round() as i32,
+            RoundingPolicy::None => (mins / size) as i32,
         }
     }
 
@@ -389,12 +418,12 @@ impl AttendanceCalculator {
         let std_units = Self::calculate_units(
             buckets.standard_minutes,
             input.work_unit,
-            &input.rounding_policy,
+            input.rounding_policy,
         );
         let ot_units = Self::calculate_units(
             buckets.early_ot_minutes + buckets.late_ot_minutes + buckets.break_ot_minutes,
             input.work_unit,
-            &input.rounding_policy,
+            input.rounding_policy,
         );
 
         (std_units, ot_units)
@@ -435,12 +464,12 @@ impl AttendanceCalculator {
                 let std_units = Self::calculate_units(
                     total_std_minutes,
                     inputs[0].work_unit,
-                    &inputs[0].rounding_policy,
+                    inputs[0].rounding_policy,
                 );
                 let ot_units = Self::calculate_units(
                     total_ot_minutes,
                     inputs[0].work_unit,
-                    &inputs[0].rounding_policy,
+                    inputs[0].rounding_policy,
                 );
 
                 SegmentCalcResult {

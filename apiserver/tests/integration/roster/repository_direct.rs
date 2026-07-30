@@ -673,7 +673,7 @@ async fn test_get_effective_shift_from_roster() {
     .await
     .unwrap();
 
-    let (resolved_shift, traces) = repo
+    let (resolved_shift, traces, _roster_data) = repo
         .get_effective_shift(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             employment_id,
@@ -703,7 +703,7 @@ async fn test_get_effective_shift_no_assignment_returns_none() {
     );
     let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
 
-    let (resolved_shift, traces) = repo
+    let (resolved_shift, traces, _roster_data) = repo
         .get_effective_shift(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             employment_id,
@@ -740,7 +740,7 @@ async fn test_get_effective_shift_fixed_assignment() {
         .await;
 
     let date = NaiveDate::from_ymd_opt(2026, 3, 10).unwrap();
-    let (resolved_shift, traces) = repo
+    let (resolved_shift, traces, _roster_data) = repo
         .get_effective_shift(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             employment_id,

@@ -19,11 +19,24 @@ mod tests;
 
 pub struct DieselRosterRepository {
     diesel_pools: DieselPools,
+    #[allow(dead_code)]
+    roster_cache: Option<Arc<RosterCache>>,
 }
 
 impl DieselRosterRepository {
     pub fn new(diesel_pools: DieselPools) -> Self {
-        Self { diesel_pools }
+        Self {
+            diesel_pools,
+            roster_cache: None,
+        }
+    }
+
+    /// Inject a [`RosterCache`] for use by [`get_effective_shift`].
+    /// When set, shift resolution reads from the cache instead of
+    /// querying individual tables (P2–P5).
+    pub fn with_roster_cache(mut self, cache: Arc<RosterCache>) -> Self {
+        self.roster_cache = Some(cache);
+        self
     }
 }
 
@@ -145,7 +158,14 @@ impl RosterRepository for DieselRosterRepository {
         auth_token: &TenantAuthToken,
         employment_id: Uuid,
         date: NaiveDate,
-    ) -> Result<(Option<Uuid>, Vec<crate::models::ScheduleTrace>), AppError> {
+    ) -> Result<
+        (
+            Option<Uuid>,
+            Vec<crate::models::ScheduleTrace>,
+            std::sync::Arc<crate::cache::RosterData>,
+        ),
+        AppError,
+    > {
         self.get_effective_shift(auth_token, employment_id, date)
             .await
     }

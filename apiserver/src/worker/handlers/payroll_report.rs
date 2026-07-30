@@ -44,7 +44,7 @@ mod tests {
                 config: ReportConfig {
                     report_type: ReportType::Summary,
                     timezone: "UTC".to_string(),
-                    rounding_policy: "floor".to_string(),
+                    rounding_policy: crate::models::RoundingPolicy::Floor,
                     work_unit_minutes: 30,
                 },
             }),
@@ -87,7 +87,7 @@ mod tests {
                 config: ReportConfig {
                     report_type: ReportType::Summary,
                     timezone: "UTC".to_string(),
-                    rounding_policy: "floor".to_string(),
+                    rounding_policy: crate::models::RoundingPolicy::Floor,
                     work_unit_minutes: 30,
                 },
             }),

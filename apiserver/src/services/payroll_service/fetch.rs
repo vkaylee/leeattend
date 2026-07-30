@@ -115,7 +115,7 @@ impl PayrollService {
         } else {
             crate::models::AttendanceRules {
                 work_unit_minutes: 30,
-                rounding_policy: "floor".to_string(),
+                rounding_policy: crate::models::RoundingPolicy::Floor,
                 early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
                 grace_period_minutes: None,
             }
@@ -146,11 +146,6 @@ impl PayrollService {
         let overtime_data = self
             .overtime_policy_repo
             .get_workspace_overtime_data(workspace_id)
-            .await?;
-
-        let active_contracts = self
-            .contract_repo
-            .list_employee_contracts(auth_token, employee_id)
             .await?;
 
         let active_assignments = self
@@ -358,7 +353,6 @@ impl PayrollService {
             department_payroll_configs,
             overtime_data: Arc::new(overtime_data),
             ot_base_component_ids,
-            active_contracts,
             active_assignments,
             active_employments,
             primary_location_id,

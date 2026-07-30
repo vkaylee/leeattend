@@ -140,14 +140,10 @@ pub struct CreateIntervalRequest {
     pub allow_early_ot: bool,
     #[serde(default)]
     pub max_early_ot_minutes: Option<i32>,
-    #[serde(default = "default_aggregate")]
-    pub ot_aggregation_mode: String,
+    #[serde(default)]
+    pub ot_aggregation_mode: crate::services::attendance_calculator::OtAggregationMode,
     #[serde(default)]
     pub is_night_shift: bool,
-}
-
-fn default_aggregate() -> String {
-    "aggregate".to_string()
 }
 
 #[derive(Debug, Deserialize, utoipa::ToSchema)]

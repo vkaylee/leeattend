@@ -663,7 +663,7 @@ async fn test_batch_count_qualifying_days_for_workspace_success() {
                     None,
                     None,
                     false,
-                    "work".to_string(),
+                    crate::services::pairing::types::EntryType::Work,
                     None,
                     None,
                     chrono::Utc::now(),

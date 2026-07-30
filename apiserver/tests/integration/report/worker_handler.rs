@@ -96,7 +96,7 @@ async fn test_attendance_and_merge_handlers() {
             config: ReportConfig {
                 report_type: ReportType::Summary,
                 timezone: "Asia/Ho_Chi_Minh".to_string(),
-                rounding_policy: "none".to_string(),
+                rounding_policy: apiserver::models::RoundingPolicy::None,
                 work_unit_minutes: 60,
             },
         }),
@@ -129,7 +129,7 @@ async fn test_attendance_and_merge_handlers() {
             config: ReportConfig {
                 report_type: ReportType::Detail,
                 timezone: "UTC".to_string(),
-                rounding_policy: "nearest".to_string(),
+                rounding_policy: apiserver::models::RoundingPolicy::None,
                 work_unit_minutes: 60,
             },
         }),
@@ -161,7 +161,7 @@ async fn test_attendance_and_merge_handlers() {
             config: ReportConfig {
                 report_type: ReportType::Summary,
                 timezone: "UTC".to_string(),
-                rounding_policy: "none".to_string(),
+                rounding_policy: apiserver::models::RoundingPolicy::None,
                 work_unit_minutes: 60,
             },
         }),
@@ -185,7 +185,7 @@ async fn test_attendance_and_merge_handlers() {
             config: ReportConfig {
                 report_type: ReportType::Detail,
                 timezone: "UTC".to_string(),
-                rounding_policy: "none".to_string(),
+                rounding_policy: apiserver::models::RoundingPolicy::None,
                 work_unit_minutes: 60,
             },
         }),

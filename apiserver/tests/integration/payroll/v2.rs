@@ -144,11 +144,6 @@ async fn test_calculate_payroll_multi_segment() {
                     )),
                 ),
             ),
-            contract_repo: Arc::new(
-                apiserver::repositories::DieselEmployeeContractRepository::new(
-                    diesel_pools.clone(),
-                ),
-            ),
             employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
                 diesel_pools.clone(),
             )),

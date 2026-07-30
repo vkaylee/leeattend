@@ -18,12 +18,16 @@ pub(crate) const OVERNIGHT_REPROCESS_CUTOFF_HOUR: u32 = 12;
 pub(crate) const ADJACENT_ENTRY_SEARCH_DAYS: i64 = 2;
 
 /// Type-safe entry classification for paired sessions.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "snake_case")]
+///
+/// Strict parsing: unknown string values are rejected during deserialization
+/// (returns `Err` from `FromStr` and a serde error from `Deserialize`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, utoipa::ToSchema)]
+#[schema(as = EntryType, example = "work")]
 pub enum EntryType {
     #[default]
     Work,
     Break,
+    Overtime,
 }
 
 impl std::fmt::Display for EntryType {
@@ -31,7 +35,35 @@ impl std::fmt::Display for EntryType {
         match self {
             Self::Work => write!(f, "work"),
             Self::Break => write!(f, "break"),
+            Self::Overtime => write!(f, "overtime"),
         }
+    }
+}
+
+impl std::str::FromStr for EntryType {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "work" => Ok(Self::Work),
+            "break" => Ok(Self::Break),
+            "overtime" => Ok(Self::Overtime),
+            _ => Err(()),
+        }
+    }
+}
+
+impl serde::Serialize for EntryType {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for EntryType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(d)?;
+        s.parse().map_err(|()| {
+            serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"work|break|overtime")
+        })
     }
 }
 

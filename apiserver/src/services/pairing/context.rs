@@ -191,7 +191,7 @@ impl PairingContext {
                 end_dt_utc,
                 duration,
                 session.is_break_overtime(),
-                session.entry_type().to_string(),
+                *session.entry_type(),
                 session.note().map(std::string::ToString::to_string),
                 Some(final_metadata),
                 Utc::now(),

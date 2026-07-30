@@ -14,7 +14,14 @@ impl DieselRosterRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employment_id: Uuid,
         date: NaiveDate,
-    ) -> Result<(Option<Uuid>, Vec<ScheduleTrace>), AppError> {
+    ) -> Result<
+        (
+            Option<Uuid>,
+            Vec<ScheduleTrace>,
+            std::sync::Arc<crate::cache::RosterData>,
+        ),
+        AppError,
+    > {
         let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -24,9 +31,7 @@ impl DieselRosterRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let mut traces = Vec::new();
-
-        // 1. Resolve actual_employment_id (in case employee_id was passed)
+        // ── Phase 1: Resolve actual employment_id ──────────────────────
         let actual_employment_id = {
             let direct_exists = crate::schema::employments::table
                 .filter(crate::schema::employments::id.eq(employment_id))
@@ -41,7 +46,6 @@ impl DieselRosterRepository {
             if let Some(id) = direct_exists {
                 id
             } else {
-                // Try to find the active employment for this employee ID
                 let active_emp = crate::schema::employments::table
                     .filter(crate::schema::employments::employee_id.eq(employment_id))
                     .filter(crate::schema::employments::workspace_id.eq(workspace_id))
@@ -57,30 +61,7 @@ impl DieselRosterRepository {
             }
         };
 
-        // Priority 1: Shift Roster
-        let roster_shift: Option<Option<Uuid>> = crate::schema::shift_rosters::table
-            .inner_join(crate::schema::employments::table)
-            .filter(crate::schema::shift_rosters::employment_id.eq(actual_employment_id))
-            .filter(crate::schema::shift_rosters::date.eq(date))
-            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
-            .select(crate::schema::shift_rosters::template_id)
-            .first::<Option<Uuid>>(&mut *conn)
-            .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        if let Some(shift) = roster_shift {
-            traces.push(ScheduleTrace {
-                rule_id: None,
-                rule_name: "Manual Roster".to_string(),
-                priority: 100,
-                status: "applied".to_string(),
-                reason: Some("Directly assigned via roster".to_string()),
-            });
-            return Ok((shift, traces));
-        }
-
-        // Fetch the employee_id associated with this employment to check patterns and default shifts
+        // ── Phase 2: Fetch employee context (employee_id + tags + locations) ──
         let emp_info = crate::schema::employments::table
             .filter(crate::schema::employments::id.eq(actual_employment_id))
             .filter(crate::schema::employments::workspace_id.eq(workspace_id))
@@ -94,54 +75,7 @@ impl DieselRosterRepository {
             return Err(AppError::not_found(I18nKey::EmploymentNotFound));
         };
 
-        // Priority 2: Working Pattern
-        let dow =
-            i32::try_from(chrono::Datelike::weekday(&date).num_days_from_sunday()).unwrap_or(0);
-        let pattern_info: Option<(Option<Uuid>, Uuid)> =
-            crate::schema::working_pattern_details::table
-                .inner_join(
-                    crate::schema::employee_working_patterns::table
-                        .on(crate::schema::employee_working_patterns::pattern_id
-                            .eq(crate::schema::working_pattern_details::pattern_id)),
-                )
-                .inner_join(
-                    crate::schema::employments::table.on(crate::schema::employments::id
-                        .eq(crate::schema::employee_working_patterns::employment_id)),
-                )
-                .filter(
-                    crate::schema::employee_working_patterns::employment_id
-                        .eq(actual_employment_id),
-                )
-                .filter(crate::schema::employee_working_patterns::start_date.le(date))
-                .filter(
-                    crate::schema::employee_working_patterns::end_date
-                        .is_null()
-                        .or(crate::schema::employee_working_patterns::end_date.ge(date)),
-                )
-                .filter(crate::schema::working_pattern_details::schedule_day.eq(dow))
-                .filter(crate::schema::employments::workspace_id.eq(workspace_id))
-                .order(crate::schema::employee_working_patterns::created_at.desc())
-                .select((
-                    crate::schema::working_pattern_details::template_id,
-                    crate::schema::employee_working_patterns::pattern_id,
-                ))
-                .first::<(Option<Uuid>, Uuid)>(&mut *conn)
-                .await
-                .optional()
-                .map_err(AppError::from)?;
-
-        if let Some((shift_id, pattern_id)) = pattern_info {
-            traces.push(ScheduleTrace {
-                rule_id: Some(pattern_id),
-                rule_name: "Individual Pattern".to_string(),
-                priority: 80,
-                status: "applied".to_string(),
-                reason: Some("Assigned via individual working pattern".to_string()),
-            });
-            return Ok((shift_id, traces));
-        }
-
-        // Priority 3: Dynamic Assignment Rules
+        // Fetch employee details (id_number, tags, primary_location_id)
         let employee_full = crate::schema::employees::table
             .inner_join(crate::schema::employments::table)
             .filter(crate::schema::employees::id.eq(employee_id))
@@ -156,157 +90,121 @@ impl DieselRosterRepository {
             .select((
                 crate::schema::employees::employee_id_number,
                 crate::schema::employees::tags,
-                crate::schema::employments::department_id,
                 crate::schema::employments::primary_location_id,
             ))
-            .first::<(
-                String,
-                Option<Vec<Option<String>>>,
-                Option<Uuid>,
-                Option<Uuid>,
-            )>(&mut *conn)
+            .first::<(String, Option<Vec<Option<String>>>, Option<Uuid>)>(&mut *conn)
             .await
             .optional()
             .map(|opt| {
-                opt.map(|(num, tags, dept, primary_loc)| {
+                opt.map(|(num, tags, primary_loc)| {
                     (
                         num,
                         tags.map(|v| v.into_iter().flatten().collect()),
-                        dept,
                         primary_loc,
                     )
                 })
             })
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        if let Some((emp_id_num, tags, dept_id, primary_loc)) = employee_full {
-            let active_assignment: Option<Uuid> = crate::schema::employee_assignments::table
-                .inner_join(crate::schema::employments::table)
-                .filter(crate::schema::employments::id.eq(actual_employment_id))
-                .filter(crate::schema::employee_assignments::workspace_id.eq(workspace_id))
-                .filter(
-                    crate::schema::employee_assignments::status
-                        .eq(crate::models::employee_assignment::AssignmentStatusEnum::Active),
-                )
-                .filter(crate::schema::employee_assignments::start_date.le(date))
-                .filter(
-                    crate::schema::employee_assignments::end_date
-                        .is_null()
-                        .or(crate::schema::employee_assignments::end_date.ge(date)),
-                )
-                .select(crate::schema::employee_assignments::host_location_id)
-                .first::<Uuid>(&mut *conn)
-                .await
-                .optional()
-                .map_err(|e| AppError::Internal(format!("db select assignment: {e}")))?;
+        let (emp_id_number, tags, primary_loc) =
+            employee_full.unwrap_or_else(|| (String::new(), None, None));
 
-            let active_location_id = active_assignment.or(primary_loc);
-
-            let active_employer: Option<Uuid> = crate::schema::employee_contracts::table
-                .inner_join(crate::schema::employments::table)
-                .filter(crate::schema::employments::id.eq(actual_employment_id))
-                .filter(crate::schema::employee_contracts::workspace_id.eq(workspace_id))
-                .filter(
-                    crate::schema::employee_contracts::status
-                        .eq(crate::models::enums::ContractStatus::Active),
-                )
-                .filter(crate::schema::employee_contracts::deleted_at.is_null())
-                .filter(crate::schema::employee_contracts::start_date.le(date))
-                .filter(
-                    crate::schema::employee_contracts::end_date
-                        .is_null()
-                        .or(crate::schema::employee_contracts::end_date.ge(date)),
-                )
-                .select(crate::schema::employments::employer_id)
-                .first::<Uuid>(&mut *conn)
-                .await
-                .optional()
-                .map_err(|e| AppError::Internal(format!("db select contract: {e}")))?;
-
-            let rules_entities: Vec<crate::models::diesel::assignment_rule::AssignmentRuleEntity> =
-                crate::schema::assignment_rules::table
-                    .filter(crate::schema::assignment_rules::workspace_id.eq(workspace_id))
-                    .filter(crate::schema::assignment_rules::is_active.eq(true))
-                    .order((
-                        crate::schema::assignment_rules::priority.desc(),
-                        crate::schema::assignment_rules::created_at.asc(),
-                    ))
-                    .load(&mut *conn)
-                    .await
-                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-            let rules: Vec<crate::models::employee::AssignmentRule> =
-                rules_entities.into_iter().map(Into::into).collect();
-
-            if !rules.is_empty() {
-                let match_ctx = crate::services::rule_evaluator::EmployeeMatchContext {
-                    date,
-                    department_id: dept_id,
-                    employee_id_number: emp_id_num,
-                    tags: tags.unwrap_or_default(),
-                    location_id: active_location_id,
-                    employer_id: active_employer,
-                };
-
-                let (matched_rule, rule_traces) =
-                    crate::services::rule_evaluator::RuleEvaluator::resolve_with_trace(
-                        &match_ctx, &rules,
-                    );
-                traces.extend(rule_traces);
-
-                if let Some(rule) = matched_rule {
-                    let shift_id: Option<Option<Uuid>> =
-                        crate::schema::working_pattern_details::table
-                            .filter(
-                                crate::schema::working_pattern_details::pattern_id
-                                    .eq(rule.pattern_id()),
-                            )
-                            .filter(crate::schema::working_pattern_details::schedule_day.eq(dow))
-                            .select(crate::schema::working_pattern_details::template_id)
-                            .first::<Option<Uuid>>(&mut *conn)
-                            .await
-                            .optional()
-                            .map_err(AppError::from)?;
-
-                    if let Some(s) = shift_id {
-                        return Ok((s, traces));
-                    }
-                }
-            }
-        }
-
-        // Priority 5: Employee Default Shift
-        let employee_shift: Option<Uuid> = crate::schema::employee_shifts::table
-            .inner_join(crate::schema::employments::table.on(
-                crate::schema::employments::id.eq(crate::schema::employee_shifts::employment_id),
-            ))
-            .filter(crate::schema::employee_shifts::employment_id.eq(actual_employment_id))
-            .filter(crate::schema::employee_shifts::start_date.le(date))
+        // Fetch active location from assignments (overrides primary location)
+        let active_assignment: Option<Uuid> = crate::schema::employee_assignments::table
+            .inner_join(crate::schema::employments::table)
+            .filter(crate::schema::employments::id.eq(actual_employment_id))
+            .filter(crate::schema::employee_assignments::workspace_id.eq(workspace_id))
             .filter(
-                crate::schema::employee_shifts::end_date
-                    .is_null()
-                    .or(crate::schema::employee_shifts::end_date.ge(date)),
+                crate::schema::employee_assignments::status
+                    .eq(crate::models::employee_assignment::AssignmentStatusEnum::Active),
             )
-            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
-            .order(crate::schema::employee_shifts::created_at.desc())
-            .select(crate::schema::employee_shifts::template_id)
+            .filter(crate::schema::employee_assignments::start_date.le(date))
+            .filter(
+                crate::schema::employee_assignments::end_date
+                    .is_null()
+                    .or(crate::schema::employee_assignments::end_date.ge(date)),
+            )
+            .select(crate::schema::employee_assignments::host_location_id)
             .first::<Uuid>(&mut *conn)
             .await
             .optional()
-            .map_err(AppError::from)?;
+            .map_err(|e| AppError::Internal(format!("db select assignment: {e}")))?;
 
-        if let Some(shift) = employee_shift {
-            traces.push(ScheduleTrace {
-                rule_id: None,
-                rule_name: "Fixed Assignment".to_string(),
-                priority: 20,
-                status: "applied".to_string(),
-                reason: Some("Directly assigned shift".to_string()),
-            });
-            return Ok((Some(shift), traces));
-        }
+        let active_location_id = active_assignment.or(primary_loc);
 
-        Ok((None, traces))
+        // Fetch active employer from contracts
+        let active_employer: Option<Uuid> = crate::schema::employee_contracts::table
+            .inner_join(crate::schema::employments::table)
+            .filter(crate::schema::employments::id.eq(actual_employment_id))
+            .filter(crate::schema::employee_contracts::workspace_id.eq(workspace_id))
+            .filter(
+                crate::schema::employee_contracts::status
+                    .eq(crate::models::enums::ContractStatus::Active),
+            )
+            .filter(crate::schema::employee_contracts::deleted_at.is_null())
+            .filter(crate::schema::employee_contracts::start_date.le(date))
+            .filter(
+                crate::schema::employee_contracts::end_date
+                    .is_null()
+                    .or(crate::schema::employee_contracts::end_date.ge(date)),
+            )
+            .select(crate::schema::employments::employer_id)
+            .first::<Uuid>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db select contract: {e}")))?;
+
+        // ── Phase 3: Roster override map (P1) ─────────────────────────
+        let roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>> = {
+            let row = crate::schema::shift_rosters::table
+                .filter(crate::schema::shift_rosters::employment_id.eq(actual_employment_id))
+                .filter(crate::schema::shift_rosters::date.eq(date))
+                .select((
+                    crate::schema::shift_rosters::employment_id,
+                    crate::schema::shift_rosters::date,
+                    crate::schema::shift_rosters::template_id,
+                ))
+                .first::<(Uuid, NaiveDate, Option<Uuid>)>(&mut *conn)
+                .await
+                .optional()
+                .map_err(AppError::from)?;
+            let mut map = HashMap::new();
+            if let Some((emp_id, d, shift_opt)) = row {
+                map.insert((emp_id, d), shift_opt);
+            }
+            map
+        };
+
+        drop(conn); // release DB connection before cache access
+
+        // ── Phase 4: RosterData (cache hit or cold build) ─────────────
+        let roster_data = if let Some(ref cache) = self.roster_cache {
+            cache
+                .get_roster_data(workspace_id, &self.diesel_pools)
+                .await
+                .map_err(|e| AppError::Internal(format!("roster_cache: {e}")))?
+        } else {
+            crate::cache::build_roster_data(&self.diesel_pools, workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("roster: {e}")))?
+        };
+
+        // ── Phase 5: Delegate to pure resolver ────────────────────────
+        let (shift_ids, _source, traces) =
+            crate::repositories::roster::shift_resolution::resolve_effective_shift_from_data(
+                &roster_data,
+                &roster_map,
+                actual_employment_id,
+                employee_id,
+                &emp_id_number,
+                tags.as_ref(),
+                date,
+                active_location_id,
+                active_employer,
+            );
+
+        let shift_id = shift_ids.iter().next().copied().flatten();
+        Ok((shift_id, traces, roster_data))
     }
 
     pub(super) async fn get_raw_roster_data(

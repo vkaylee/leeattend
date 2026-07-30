@@ -901,7 +901,14 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
             _d: NaiveDate,
-        ) -> Result<(Option<Uuid>, Vec<ScheduleTrace>), AppError> {
+        ) -> Result<
+            (
+                Option<Uuid>,
+                Vec<ScheduleTrace>,
+                std::sync::Arc<crate::cache::RosterData>,
+            ),
+            AppError,
+        > {
             unimplemented!()
         }
         async fn delete_roster(
@@ -2149,7 +2156,14 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
             _d: NaiveDate,
-        ) -> Result<(Option<Uuid>, Vec<ScheduleTrace>), AppError> {
+        ) -> Result<
+            (
+                Option<Uuid>,
+                Vec<ScheduleTrace>,
+                std::sync::Arc<crate::cache::RosterData>,
+            ),
+            AppError,
+        > {
             unimplemented!()
         }
         async fn delete_roster(
@@ -2917,7 +2931,7 @@ mod tests {
                 Some(Utc.with_ymd_and_hms(2023, 1, 1, 17, 0, 0).unwrap()),
                 Some(480),
                 false,
-                "work".to_string(),
+                crate::services::pairing::types::EntryType::Work,
                 None,
                 None,
                 Utc::now(),

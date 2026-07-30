@@ -27,8 +27,6 @@ pub struct BatchMaps {
     /// Keyed by employee_id.
     pub unpaid_holidays_map: HashMap<Uuid, i64>,
     pub month_end_policies_map: HashMap<Uuid, crate::models::AttendancePolicyVersion>,
-    /// Keyed by employee_id.
-    pub contracts_map: HashMap<Uuid, Vec<crate::models::contract::EmployeeContract>>,
     pub assignments_map: HashMap<Uuid, Vec<crate::models::employee_assignment::EmployeeAssignment>>,
 }
 
@@ -174,7 +172,6 @@ pub fn build_payroll_contexts(
                 department_payroll_configs: emp_dept_payroll_configs,
                 overtime_data: Arc::clone(&d.overtime_data),
                 ot_base_component_ids: ot_base_comp_ids,
-                active_contracts: maps.contracts_map.remove(&emp_id).unwrap_or_default(),
                 active_assignments: maps
                     .assignments_map
                     .remove(employment_id)

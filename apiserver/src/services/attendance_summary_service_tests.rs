@@ -408,9 +408,20 @@ mod recalculate_daily_summary_leave_tests {
 
         let mut time_entry_repo = MockTimeEntryRepository::new();
         let mut roster_repo = MockRosterRepository::new();
-        let policy_repo = MockAttendancePolicyRepository::new();
+        let mut policy_repo = MockAttendancePolicyRepository::new();
         let mut workspace_repo = MockWorkspaceRepository::new();
         let mut employee_repo = MockEmployeeRepository::new();
+
+        // Mock get_employee_effective_policy - return None to use fallback rules
+        policy_repo
+            .expect_get_employee_effective_policy()
+            .returning(|_, _, _| Ok(None));
+
+        // Mock get_working_conditions_at - return empty vec (no special conditions)
+        employee_repo
+            .expect_get_working_conditions_at()
+            .returning(|_, _, _| Ok(vec![]));
+
         employee_repo
             .expect_get_employee_by_id()
             .returning(move |id, _| {
@@ -501,7 +512,7 @@ mod recalculate_daily_summary_leave_tests {
                     Some(punch_out),
                     Some(480),
                     false,
-                    "work".to_string(),
+                    crate::services::pairing::types::EntryType::Work,
                     None,
                     None,
                     Utc::now(),
@@ -580,9 +591,20 @@ mod recalculate_daily_summary_leave_tests {
 
         let mut time_entry_repo = MockTimeEntryRepository::new();
         let mut roster_repo = MockRosterRepository::new();
-        let policy_repo = MockAttendancePolicyRepository::new();
+        let mut policy_repo = MockAttendancePolicyRepository::new();
         let mut workspace_repo = MockWorkspaceRepository::new();
         let mut employee_repo = MockEmployeeRepository::new();
+
+        // Mock get_employee_effective_policy - return None to use fallback rules
+        policy_repo
+            .expect_get_employee_effective_policy()
+            .returning(|_, _, _| Ok(None));
+
+        // Mock get_working_conditions_at - return empty vec (no special conditions)
+        employee_repo
+            .expect_get_working_conditions_at()
+            .returning(|_, _, _| Ok(vec![]));
+
         employee_repo
             .expect_get_employee_by_id()
             .returning(move |id, _| {
@@ -669,7 +691,7 @@ mod recalculate_daily_summary_leave_tests {
                     Some(punch_out),
                     Some(480),
                     false,
-                    "work".to_string(),
+                    crate::services::pairing::types::EntryType::Work,
                     None,
                     None,
                     Utc::now(),
@@ -745,9 +767,20 @@ mod recalculate_daily_summary_leave_tests {
 
         let mut time_entry_repo = MockTimeEntryRepository::new();
         let mut roster_repo = MockRosterRepository::new();
-        let policy_repo = MockAttendancePolicyRepository::new();
+        let mut policy_repo = MockAttendancePolicyRepository::new();
         let mut workspace_repo = MockWorkspaceRepository::new();
         let mut employee_repo = MockEmployeeRepository::new();
+
+        // Mock get_employee_effective_policy - return None to use fallback rules
+        policy_repo
+            .expect_get_employee_effective_policy()
+            .returning(|_, _, _| Ok(None));
+
+        // Mock get_working_conditions_at - return empty vec (no special conditions)
+        employee_repo
+            .expect_get_working_conditions_at()
+            .returning(|_, _, _| Ok(vec![]));
+
         employee_repo
             .expect_get_employee_by_id()
             .returning(move |id, _| {
@@ -834,7 +867,7 @@ mod recalculate_daily_summary_leave_tests {
                     Some(punch_out),
                     Some(480),
                     false,
-                    "work".to_string(),
+                    crate::services::pairing::types::EntryType::Work,
                     None,
                     None,
                     Utc::now(),
@@ -911,9 +944,20 @@ mod recalculate_daily_summary_leave_tests {
 
         let mut time_entry_repo = MockTimeEntryRepository::new();
         let mut roster_repo = MockRosterRepository::new();
-        let policy_repo = MockAttendancePolicyRepository::new();
+        let mut policy_repo = MockAttendancePolicyRepository::new();
         let mut workspace_repo = MockWorkspaceRepository::new();
         let mut employee_repo = MockEmployeeRepository::new();
+
+        // Mock get_employee_effective_policy - return None to use fallback rules
+        policy_repo
+            .expect_get_employee_effective_policy()
+            .returning(|_, _, _| Ok(None));
+
+        // Mock get_working_conditions_at - return empty vec (no special conditions)
+        employee_repo
+            .expect_get_working_conditions_at()
+            .returning(|_, _, _| Ok(vec![]));
+
         employee_repo
             .expect_get_employee_by_id()
             .returning(move |id, _| {
@@ -1031,9 +1075,20 @@ mod recalculate_daily_summary_leave_tests {
 
         let mut time_entry_repo = MockTimeEntryRepository::new();
         let mut roster_repo = MockRosterRepository::new();
-        let policy_repo = MockAttendancePolicyRepository::new();
+        let mut policy_repo = MockAttendancePolicyRepository::new();
         let mut workspace_repo = MockWorkspaceRepository::new();
         let mut employee_repo = MockEmployeeRepository::new();
+
+        // Mock get_employee_effective_policy - return None to use fallback rules
+        policy_repo
+            .expect_get_employee_effective_policy()
+            .returning(|_, _, _| Ok(None));
+
+        // Mock get_working_conditions_at - return empty vec (no special conditions)
+        employee_repo
+            .expect_get_working_conditions_at()
+            .returning(|_, _, _| Ok(vec![]));
+
         employee_repo
             .expect_get_employee_by_id()
             .returning(move |id, _| {
@@ -1121,7 +1176,7 @@ mod recalculate_daily_summary_leave_tests {
                     Some(punch_out),
                     Some(480),
                     false,
-                    "work".to_string(),
+                    crate::services::pairing::types::EntryType::Work,
                     None,
                     None,
                     Utc::now(),
@@ -1177,12 +1232,22 @@ mod recalculate_daily_summary_leave_tests {
 
         let mut time_entry_repo = MockTimeEntryRepository::new();
         let mut roster_repo = MockRosterRepository::new();
-        let policy_repo = MockAttendancePolicyRepository::new();
+        let mut policy_repo = MockAttendancePolicyRepository::new();
         let mut workspace_repo = MockWorkspaceRepository::new();
-        let employee_repo = MockEmployeeRepository::new();
+        let mut employee_repo = MockEmployeeRepository::new();
         let mut holiday_repo = MockHolidayRepository::new();
         let mut leave_request_repo = MockLeaveRequestRepository::new();
         let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
+
+        // Mock get_employee_effective_policy - return None to use fallback rules
+        policy_repo
+            .expect_get_employee_effective_policy()
+            .returning(|_, _, _| Ok(None));
+
+        // Mock get_working_conditions_at - return empty vec (no special conditions)
+        employee_repo
+            .expect_get_working_conditions_at()
+            .returning(|_, _, _| Ok(vec![]));
 
         let emp_id = employee_id;
         let ws_id = workspace_id;

@@ -365,8 +365,19 @@ impl RosterRepository for MockRosterRepo {
         _auth_token: &crate::diesel_pool::TenantAuthToken,
         _e: Uuid,
         _d: NaiveDate,
-    ) -> Result<(Option<Uuid>, Vec<crate::models::ScheduleTrace>), AppError> {
-        Ok((None, vec![]))
+    ) -> Result<
+        (
+            Option<Uuid>,
+            Vec<crate::models::ScheduleTrace>,
+            std::sync::Arc<crate::cache::RosterData>,
+        ),
+        AppError,
+    > {
+        Ok((
+            None,
+            vec![],
+            std::sync::Arc::new(crate::cache::RosterData::default()),
+        ))
     }
     async fn delete_roster(
         &self,

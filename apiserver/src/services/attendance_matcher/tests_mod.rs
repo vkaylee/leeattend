@@ -3,6 +3,8 @@ use crate::cache::{RosterData, RosterShift};
 use crate::models::enums::EarlyArrivalStrategy;
 use crate::models::{AttendanceRules, Holiday, TimeEntry, Workspace};
 use crate::repositories::overtime_policy_repository::OvertimePolicyRepositoryTrait;
+use crate::services::attendance_context::AttendanceContext;
+use crate::services::payroll_service::PayrollContext;
 use chrono::{NaiveDate, NaiveTime, Utc};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -234,7 +236,7 @@ async fn test_process_segment_attendance_no_shift_fallback() {
         Some(punch_out),
         Some(240),
         false,
-        "work".to_string(),
+        crate::services::pairing::types::EntryType::Work,
         None,
         None,
         Utc::now(),
@@ -246,7 +248,7 @@ async fn test_process_segment_attendance_no_shift_fallback() {
 
     let attendance_rules = AttendanceRules {
         work_unit_minutes: 30,
-        rounding_policy: "floor".to_string(),
+        rounding_policy: crate::models::RoundingPolicy::Floor,
         early_arrival_strategy: EarlyArrivalStrategy::Block,
         grace_period_minutes: None,
     };
@@ -274,7 +276,7 @@ async fn test_process_segment_attendance_no_shift_fallback() {
         overtime_data: Arc::new(
             crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
         ),
-        active_contracts: vec![],
+
         active_assignments: vec![],
         active_employments: vec![],
         primary_location_id: Uuid::new_v4(),
@@ -282,7 +284,7 @@ async fn test_process_segment_attendance_no_shift_fallback() {
         month_end_payroll_settings: Arc::new(None),
         month_end_attendance_policy: crate::models::AttendanceRules {
             work_unit_minutes: 30,
-            rounding_policy: "floor".to_string(),
+            rounding_policy: crate::models::RoundingPolicy::Floor,
             early_arrival_strategy: EarlyArrivalStrategy::Block,
             grace_period_minutes: None,
         },
@@ -307,8 +309,9 @@ async fn test_process_segment_attendance_no_shift_fallback() {
     let overtime_policy_repo = MockOvertimePolicyRepository;
 
     // resolver doesn't get called because day_shifts is empty
+    let att_ctx = AttendanceContext::from(&ctx);
     let args = ProcessSegmentAttendanceArgs {
-        ctx: &ctx,
+        ctx: &att_ctx,
         seg_start: Utc::now().date_naive(),
         seg_end: Utc::now().date_naive(),
         segment_total_base: Decimal::new(1000, 0),
@@ -349,7 +352,7 @@ async fn test_process_segment_attendance_with_shift_matching() {
         Some(punch_out),
         Some(540),
         false,
-        "work".to_string(),
+        crate::services::pairing::types::EntryType::Work,
         None,
         None,
         Utc::now(),
@@ -383,7 +386,8 @@ async fn test_process_segment_attendance_with_shift_matching() {
             early_punch_in_grace_period_minutes: 0,
             allow_early_ot: false,
             max_early_ot_minutes: None,
-            ot_aggregation_mode: "aggregate".to_string(),
+            ot_aggregation_mode:
+                crate::services::attendance_calculator::OtAggregationMode::Aggregate,
             is_night_shift: false,
         }],
     );
@@ -420,7 +424,7 @@ async fn test_process_segment_attendance_with_shift_matching() {
 
     let attendance_rules = AttendanceRules {
         work_unit_minutes: 30,
-        rounding_policy: "floor".to_string(),
+        rounding_policy: crate::models::RoundingPolicy::Floor,
         early_arrival_strategy: EarlyArrivalStrategy::Block,
         grace_period_minutes: None,
     };
@@ -448,7 +452,7 @@ async fn test_process_segment_attendance_with_shift_matching() {
         overtime_data: Arc::new(
             crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
         ),
-        active_contracts: vec![],
+
         active_assignments: vec![],
         active_employments: vec![employment],
         primary_location_id: Uuid::new_v4(),
@@ -456,7 +460,7 @@ async fn test_process_segment_attendance_with_shift_matching() {
         month_end_payroll_settings: Arc::new(None),
         month_end_attendance_policy: crate::models::AttendanceRules {
             work_unit_minutes: 30,
-            rounding_policy: "floor".to_string(),
+            rounding_policy: crate::models::RoundingPolicy::Floor,
             early_arrival_strategy: EarlyArrivalStrategy::Block,
             grace_period_minutes: None,
         },
@@ -480,8 +484,9 @@ async fn test_process_segment_attendance_with_shift_matching() {
     let mut policy_cache = HashMap::new();
     let overtime_policy_repo = MockOvertimePolicyRepository;
 
+    let att_ctx = AttendanceContext::from(&ctx);
     let args = ProcessSegmentAttendanceArgs {
-        ctx: &ctx,
+        ctx: &att_ctx,
         seg_start: date,
         seg_end: date,
         segment_total_base: Decimal::new(1000, 0),
@@ -531,7 +536,7 @@ async fn test_process_segment_attendance_paid_holiday_no_work() {
 
     let attendance_rules = AttendanceRules {
         work_unit_minutes: 30,
-        rounding_policy: "floor".to_string(),
+        rounding_policy: crate::models::RoundingPolicy::Floor,
         early_arrival_strategy: EarlyArrivalStrategy::Block,
         grace_period_minutes: None,
     };
@@ -559,7 +564,7 @@ async fn test_process_segment_attendance_paid_holiday_no_work() {
         overtime_data: Arc::new(
             crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
         ),
-        active_contracts: vec![],
+
         active_assignments: vec![],
         active_employments: vec![],
         primary_location_id: Uuid::new_v4(),
@@ -567,7 +572,7 @@ async fn test_process_segment_attendance_paid_holiday_no_work() {
         month_end_payroll_settings: Arc::new(None),
         month_end_attendance_policy: crate::models::AttendanceRules {
             work_unit_minutes: 30,
-            rounding_policy: "floor".to_string(),
+            rounding_policy: crate::models::RoundingPolicy::Floor,
             early_arrival_strategy: EarlyArrivalStrategy::Block,
             grace_period_minutes: None,
         },
@@ -591,8 +596,9 @@ async fn test_process_segment_attendance_paid_holiday_no_work() {
     let mut policy_cache = HashMap::new();
     let overtime_policy_repo = MockOvertimePolicyRepository;
 
+    let att_ctx = AttendanceContext::from(&ctx);
     let args = ProcessSegmentAttendanceArgs {
-        ctx: &ctx,
+        ctx: &att_ctx,
         seg_start: date,
         seg_end: date,
         segment_total_base: Decimal::new(1000, 0),
@@ -632,7 +638,7 @@ async fn test_process_segment_attendance_holiday_work_compensation() {
         Some(punch_out),
         Some(540),
         false,
-        "work".to_string(),
+        crate::services::pairing::types::EntryType::Work,
         None,
         None,
         Utc::now(),
@@ -666,7 +672,8 @@ async fn test_process_segment_attendance_holiday_work_compensation() {
             early_punch_in_grace_period_minutes: 0,
             allow_early_ot: false,
             max_early_ot_minutes: None,
-            ot_aggregation_mode: "aggregate".to_string(),
+            ot_aggregation_mode:
+                crate::services::attendance_calculator::OtAggregationMode::Aggregate,
             is_night_shift: false,
         }],
     );
@@ -724,7 +731,7 @@ async fn test_process_segment_attendance_holiday_work_compensation() {
 
     let attendance_rules = AttendanceRules {
         work_unit_minutes: 30,
-        rounding_policy: "floor".to_string(),
+        rounding_policy: crate::models::RoundingPolicy::Floor,
         early_arrival_strategy: EarlyArrivalStrategy::Block,
         grace_period_minutes: None,
     };
@@ -752,7 +759,7 @@ async fn test_process_segment_attendance_holiday_work_compensation() {
         overtime_data: Arc::new(
             crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
         ),
-        active_contracts: vec![],
+
         active_assignments: vec![],
         active_employments: vec![employment],
         primary_location_id: Uuid::new_v4(),
@@ -760,7 +767,7 @@ async fn test_process_segment_attendance_holiday_work_compensation() {
         month_end_payroll_settings: Arc::new(None),
         month_end_attendance_policy: crate::models::AttendanceRules {
             work_unit_minutes: 30,
-            rounding_policy: "floor".to_string(),
+            rounding_policy: crate::models::RoundingPolicy::Floor,
             early_arrival_strategy: EarlyArrivalStrategy::Block,
             grace_period_minutes: None,
         },
@@ -784,8 +791,9 @@ async fn test_process_segment_attendance_holiday_work_compensation() {
     let mut policy_cache = HashMap::new();
     let overtime_policy_repo = MockOvertimePolicyRepository;
 
+    let att_ctx = AttendanceContext::from(&ctx);
     let args = ProcessSegmentAttendanceArgs {
-        ctx: &ctx,
+        ctx: &att_ctx,
         seg_start: date,
         seg_end: date,
         segment_total_base: Decimal::new(1000, 0),
@@ -833,7 +841,7 @@ async fn test_process_segment_attendance_with_overtime_pay() {
         Some(punch_out),
         Some(660),
         false,
-        "work".to_string(),
+        crate::services::pairing::types::EntryType::Work,
         None,
         None,
         Utc::now(),
@@ -867,7 +875,8 @@ async fn test_process_segment_attendance_with_overtime_pay() {
             early_punch_in_grace_period_minutes: 0,
             allow_early_ot: false,
             max_early_ot_minutes: None,
-            ot_aggregation_mode: "aggregate".to_string(),
+            ot_aggregation_mode:
+                crate::services::attendance_calculator::OtAggregationMode::Aggregate,
             is_night_shift: false,
         }],
     );
@@ -904,7 +913,7 @@ async fn test_process_segment_attendance_with_overtime_pay() {
 
     let attendance_rules = AttendanceRules {
         work_unit_minutes: 30,
-        rounding_policy: "floor".to_string(),
+        rounding_policy: crate::models::RoundingPolicy::Floor,
         early_arrival_strategy: EarlyArrivalStrategy::Block,
         grace_period_minutes: None,
     };
@@ -970,7 +979,7 @@ async fn test_process_segment_attendance_with_overtime_pay() {
         ws_payroll_settings_history: Arc::new(vec![]),
         department_payroll_configs: HashMap::new(),
         overtime_data: Arc::new(overtime_data),
-        active_contracts: vec![],
+
         active_assignments: vec![],
         active_employments: vec![employment],
         primary_location_id: Uuid::new_v4(),
@@ -978,7 +987,7 @@ async fn test_process_segment_attendance_with_overtime_pay() {
         month_end_payroll_settings: Arc::new(None),
         month_end_attendance_policy: crate::models::AttendanceRules {
             work_unit_minutes: 30,
-            rounding_policy: "floor".to_string(),
+            rounding_policy: crate::models::RoundingPolicy::Floor,
             early_arrival_strategy: EarlyArrivalStrategy::Block,
             grace_period_minutes: None,
         },
@@ -1005,8 +1014,9 @@ async fn test_process_segment_attendance_with_overtime_pay() {
     };
 
     let mut policy_cache = HashMap::new();
+    let att_ctx = AttendanceContext::from(&ctx);
     let args = ProcessSegmentAttendanceArgs {
-        ctx: &ctx,
+        ctx: &att_ctx,
         seg_start: date,
         seg_end: date,
         segment_total_base: Decimal::new(1760, 0),
@@ -1051,7 +1061,7 @@ async fn test_process_segment_attendance_with_shift_break_is_overtime(
         Some(punch_out),
         Some(540),
         false,
-        "work".to_string(),
+        crate::services::pairing::types::EntryType::Work,
         None,
         None,
         Utc::now(),
@@ -1085,7 +1095,8 @@ async fn test_process_segment_attendance_with_shift_break_is_overtime(
             early_punch_in_grace_period_minutes: 0,
             allow_early_ot: false,
             max_early_ot_minutes: None,
-            ot_aggregation_mode: "aggregate".to_string(),
+            ot_aggregation_mode:
+                crate::services::attendance_calculator::OtAggregationMode::Aggregate,
             is_night_shift: false,
         }],
     );
@@ -1122,7 +1133,7 @@ async fn test_process_segment_attendance_with_shift_break_is_overtime(
 
     let attendance_rules = AttendanceRules {
         work_unit_minutes: 30,
-        rounding_policy: "floor".to_string(),
+        rounding_policy: crate::models::RoundingPolicy::Floor,
         early_arrival_strategy: EarlyArrivalStrategy::Block,
         grace_period_minutes: None,
     };
@@ -1150,7 +1161,7 @@ async fn test_process_segment_attendance_with_shift_break_is_overtime(
         overtime_data: Arc::new(
             crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
         ),
-        active_contracts: vec![],
+
         active_assignments: vec![],
         active_employments: vec![employment],
         primary_location_id: Uuid::new_v4(),
@@ -1158,7 +1169,7 @@ async fn test_process_segment_attendance_with_shift_break_is_overtime(
         month_end_payroll_settings: Arc::new(None),
         month_end_attendance_policy: crate::models::AttendanceRules {
             work_unit_minutes: 30,
-            rounding_policy: "floor".to_string(),
+            rounding_policy: crate::models::RoundingPolicy::Floor,
             early_arrival_strategy: EarlyArrivalStrategy::Block,
             grace_period_minutes: None,
         },
@@ -1182,8 +1193,9 @@ async fn test_process_segment_attendance_with_shift_break_is_overtime(
     let mut policy_cache = HashMap::new();
     let overtime_policy_repo = MockOvertimePolicyRepository;
 
+    let att_ctx = AttendanceContext::from(&ctx);
     let args = ProcessSegmentAttendanceArgs {
-        ctx: &ctx,
+        ctx: &att_ctx,
         seg_start: date,
         seg_end: date,
         segment_total_base: Decimal::new(1000, 0),

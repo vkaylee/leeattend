@@ -57,7 +57,11 @@ impl AppState {
                 .map(|p| Arc::new(p) as Arc<dyn crate::agent_manager::PresenceStore>),
         );
 
-        let repos = build_repositories(&diesel_pools, &crypto_service)?;
+        let roster_cache = redis_pool
+            .as_ref()
+            .map(|rpool| Arc::new(crate::cache::RosterCache::new(rpool.clone())));
+
+        let repos = build_repositories(&diesel_pools, &crypto_service, roster_cache.clone())?;
 
         // Create pairing notification channel: process_log sends lightweight
         // notifications after each INSERT; PairingScheduler drains them every
@@ -75,10 +79,6 @@ impl AppState {
             registry,
         )
         .await?;
-
-        let roster_cache = redis_pool
-            .as_ref()
-            .map(|rpool| Arc::new(crate::cache::RosterCache::new(rpool.clone())));
 
         let (coordinator, workers) = build_workers(
             &diesel_pools,

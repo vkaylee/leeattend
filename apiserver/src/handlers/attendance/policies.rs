@@ -13,7 +13,7 @@ use crate::{
 #[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 pub struct UpdateAttendanceRulesRequest {
     pub work_unit_minutes: Option<i32>,
-    pub rounding_policy: Option<String>,
+    pub rounding_policy: Option<crate::models::RoundingPolicy>,
     /// ISO 8601 date string for when this version takes effect.
     pub valid_from: Option<String>,
     pub early_arrival_strategy: Option<crate::models::enums::EarlyArrivalStrategy>,
@@ -25,7 +25,7 @@ pub struct UpdateAttendanceRulesRequest {
 pub struct AttendancePolicyVersionResponse {
     pub id: String,
     pub work_unit_minutes: i32,
-    pub rounding_policy: String,
+    pub rounding_policy: crate::models::RoundingPolicy,
     pub early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy,
     pub grace_period_minutes: i32,
     pub valid_from: String,
@@ -65,7 +65,7 @@ pub async fn get_default_attendance_rules(
         Some(r) => Ok(Json(r)),
         None => Ok(Json(AttendanceRules {
             work_unit_minutes: 15,
-            rounding_policy: "none".to_string(),
+            rounding_policy: crate::models::RoundingPolicy::None,
             early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
             grace_period_minutes: None,
         })),

@@ -943,7 +943,9 @@ async fn test_reprocess_daily_attendance_no_logs() {
     mock_roster_repo
         .expect_get_effective_shift()
         .times(1)
-        .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+        .returning(|_, _, _| {
+            Box::pin(async { Ok((None, vec![], Arc::new(RosterData::default()))) })
+        });
 
     let mut mock_raw_repo = MockRawAttendanceLogRepository::new();
     mock_raw_repo
@@ -993,7 +995,9 @@ async fn test_reprocess_daily_attendance_excludes_already_paired_logs() {
     mock_roster_repo
         .expect_get_effective_shift()
         .times(1)
-        .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+        .returning(|_, _, _| {
+            Box::pin(async { Ok((None, vec![], Arc::new(RosterData::default()))) })
+        });
 
     let paired_log_id = Uuid::new_v4();
     let fresh_log_id = Uuid::new_v4();
@@ -1014,7 +1018,7 @@ async fn test_reprocess_daily_attendance_excludes_already_paired_logs() {
         None,
         None,
         false,
-        "work".to_string(),
+        crate::services::pairing::types::EntryType::Work,
         None,
         Some(serde_json::json!({ "log_ids": vec![paired_log_id.to_string()] })),
         adjacent_time,
@@ -1658,7 +1662,9 @@ async fn test_range_reprocess_handles_overnight_tail() {
         });
     mock_roster_combined
         .expect_get_effective_shift()
-        .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+        .returning(|_, _, _| {
+            Box::pin(async { Ok((None, vec![], Arc::new(RosterData::default()))) })
+        });
 
     let service = PairingService::new(PairingServiceArgs::new(
         Arc::new(mock_time_entry_repo),
@@ -2175,16 +2181,7 @@ async fn test_fetch_shift_config_falls_back_when_no_intervals() {
     // --- Mocks ---
     let mut mock_roster = MockRosterRepository::new();
 
-    // get_effective_shift → returns a valid shift_id
-    mock_roster
-        .expect_get_effective_shift()
-        .times(1)
-        .returning(move |_, _, _| {
-            let sid = shift_id;
-            Box::pin(async move { Ok((Some(sid), vec![])) })
-        });
-
-    // get_raw_roster_data → shift exists but NO intervals
+    // get_effective_shift → returns a valid shift_id + RosterData with NO intervals
     let roster_data = Arc::new({
         let mut d = RosterData::default();
         d.shifts.insert(
@@ -2195,11 +2192,12 @@ async fn test_fetch_shift_config_falls_back_when_no_intervals() {
         d
     });
     mock_roster
-        .expect_get_raw_roster_data()
+        .expect_get_effective_shift()
         .times(1)
-        .returning(move |_| {
+        .returning(move |_, _, _| {
+            let sid = shift_id;
             let rd = Arc::clone(&roster_data);
-            Box::pin(async move { Ok(rd) })
+            Box::pin(async move { Ok((Some(sid), vec![], rd)) })
         });
 
     // get_workspace_schedules → fallback path — returns schedule WITH break
@@ -2298,16 +2296,7 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
     let mut mock_time_entry = MockTimeEntryRepository::new();
     let mut mock_summary = MockSummaryRecalculator::new();
 
-    // get_effective_shift → valid shift_id
-    mock_roster
-        .expect_get_effective_shift()
-        .times(1)
-        .returning(move |_, _, _| {
-            let sid = shift_id;
-            Box::pin(async move { Ok((Some(sid), vec![])) })
-        });
-
-    // get_raw_roster_data → shift exists but NO intervals
+    // get_effective_shift → valid shift_id + RosterData with NO intervals
     let roster_data2 = Arc::new({
         let mut d = RosterData::default();
         d.shifts.insert(
@@ -2317,11 +2306,12 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
         d
     });
     mock_roster
-        .expect_get_raw_roster_data()
+        .expect_get_effective_shift()
         .times(1)
-        .returning(move |_| {
+        .returning(move |_, _, _| {
+            let sid = shift_id;
             let rd = Arc::clone(&roster_data2);
-            Box::pin(async move { Ok(rd) })
+            Box::pin(async move { Ok((Some(sid), vec![], rd)) })
         });
 
     // get_workspace_schedules → fallback path with break

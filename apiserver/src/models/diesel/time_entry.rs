@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::models::TimeEntry;
 use crate::schema::time_entries;
+use crate::services::pairing::types::EntryType;
 
 #[derive(Debug, Clone, Queryable, Selectable, Insertable, Identifiable, AsChangeset)]
 #[diesel(table_name = time_entries)]
@@ -26,6 +27,14 @@ pub struct TimeEntryEntity {
 
 impl From<TimeEntryEntity> for TimeEntry {
     fn from(val: TimeEntryEntity) -> Self {
+        let entry_type = val.entry_type.parse::<EntryType>().unwrap_or_else(|()| {
+            tracing::warn!(
+                entry_id = %val.id,
+                raw_value = %val.entry_type,
+                "Unrecognized entry_type value from database, falling back to Work"
+            );
+            EntryType::default()
+        });
         TimeEntry::new(
             val.id,
             val.employment_id,
@@ -36,7 +45,7 @@ impl From<TimeEntryEntity> for TimeEntry {
             val.punch_out_time,
             val.duration_minutes,
             val.is_break_overtime,
-            val.entry_type,
+            entry_type,
             val.note,
             val.generation_metadata,
             val.created_at.unwrap_or_else(Utc::now),

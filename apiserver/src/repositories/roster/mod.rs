@@ -81,12 +81,24 @@ pub trait RosterRepository: Send + Sync {
         items: Vec<crate::models::RosterItem>,
     ) -> Result<(), AppError>;
 
+    /// Returns the effective shift ID, resolution traces, and the cached
+    /// [`RosterData`] that was used during resolution.  Callers that also
+    /// need interval configuration (start/end times, break info, grace
+    /// periods) can use the returned [`RosterData`] directly instead of
+    /// making a second `get_raw_roster_data` call.
     async fn get_effective_shift(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employment_id: Uuid,
         date: NaiveDate,
-    ) -> Result<(Option<Uuid>, Vec<crate::models::ScheduleTrace>), AppError>;
+    ) -> Result<
+        (
+            Option<Uuid>,
+            Vec<crate::models::ScheduleTrace>,
+            std::sync::Arc<crate::cache::RosterData>,
+        ),
+        AppError,
+    >;
 
     async fn delete_roster(
         &self,

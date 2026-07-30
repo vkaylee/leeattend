@@ -2,7 +2,7 @@ use super::{AttendanceReportArgs, CalculateDayUnitsArgs, ReportService};
 use crate::domain::policy::resolver::{PolicyResolver, ShiftPolicyOverrides};
 use crate::errors::AppError;
 use crate::models::{DailyAttendanceReport, PaginatedResponse};
-use crate::services::{AttendanceCalculator, PolicyResolverService};
+use crate::services::PolicyResolverService;
 use crate::utils::i18n::I18nKey;
 use chrono::{NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
@@ -27,88 +27,34 @@ pub(crate) fn filter_by_shift_type(
 
 impl ReportService {
     /// Shared calculation for a single day's standard/OT units.
-    pub(crate) fn calculate_day_units(args: CalculateDayUnitsArgs<'_, '_>) -> (i32, i32) {
+    ///
+    /// Delegates to [`AttendanceService`] — the same code path used by
+    /// payroll, summary recalculation, and worker handlers.
+    pub(crate) fn calculate_day_units(args: &CalculateDayUnitsArgs<'_, '_>) -> (i32, i32) {
         if args.daily.shift_id().is_none() {
             return (0, 0);
         }
 
-        let actual_punch_in = args
-            .day_entries
-            .first()
-            .map(|e| e.punch_in_time().with_timezone(&args.tz));
-        let actual_punch_out = args
-            .day_entries
-            .last()
-            .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&args.tz)));
+        let result = crate::services::AttendanceService::compute_daily_attendance(
+            crate::services::ComputeDailyInput {
+                daily: args.daily,
+                day_entries: args.day_entries,
+                date: args.date,
+                tz: &args.tz,
+                rules: &args.rules,
+                work_unit_minutes: args.work_unit_minutes,
+                rounding_policy: args.rounding_policy,
+                max_early_ot_minutes: args.daily.max_early_ot_minutes(),
+                ot_ceiling: None,
+                segment_id: None,
+                ot_aggregation_mode:
+                    crate::services::attendance_calculator::OtAggregationMode::Aggregate,
+            },
+        );
 
-        if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
-            let actual_break_minutes: i32 = args
-                .day_entries
-                .iter()
-                .filter(|e| e.entry_type() == "break")
-                .map(|e| e.duration_minutes().unwrap_or(0))
-                .sum();
-
-            let shift_start_dt = args
-                .daily
-                .start_time()
-                .and_then(|t| args.tz.from_local_datetime(&args.date.and_time(t)).single());
-            let shift_end_dt = args
-                .daily
-                .end_time()
-                .and_then(|t| args.tz.from_local_datetime(&args.date.and_time(t)).single());
-
-            let break_start_dt = args
-                .daily
-                .break_start()
-                .and_then(|t| args.tz.from_local_datetime(&args.date.and_time(t)).single());
-            let break_end_dt = args
-                .daily
-                .break_end()
-                .and_then(|t| args.tz.from_local_datetime(&args.date.and_time(t)).single());
-
-            let (shift_start, shift_end) =
-                if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
-                    if args.daily.end_time() < args.daily.start_time() {
-                        end += chrono::Duration::days(1);
-                    }
-                    (Some(start), Some(end))
-                } else {
-                    (None, None)
-                };
-
-            let (break_start, break_end) =
-                if let (Some(bs), Some(mut be)) = (break_start_dt, break_end_dt) {
-                    if args.daily.break_end() < args.daily.break_start() {
-                        be += chrono::Duration::days(1);
-                    }
-                    (Some(bs), Some(be))
-                } else {
-                    (None, None)
-                };
-
-            AttendanceCalculator::calculate_daily_units(
-                &crate::services::attendance_calculator::DailyCalcInput {
-                    punch_in,
-                    punch_out,
-                    shift_start,
-                    shift_end,
-                    scheduled_break_minutes: args.daily.break_duration_minutes().unwrap_or(0),
-                    actual_break_minutes,
-                    break_start,
-                    break_end,
-                    work_unit: args.work_unit_minutes,
-                    rounding_policy: args.rounding_policy.to_string(),
-                    rules: args.rules,
-                    ot_ceiling: None,
-                    max_early_ot_minutes: args.daily.max_early_ot_minutes(),
-                    segment_id: None,
-                    ot_aggregation_mode:
-                        crate::services::attendance_calculator::OtAggregationMode::Aggregate,
-                },
-            )
-        } else {
-            (0, 0)
+        match result {
+            Some(r) => r.into_units(args.work_unit_minutes, args.rounding_policy),
+            None => (0, 0),
         }
     }
 
@@ -342,9 +288,9 @@ impl ReportService {
                 let emp_attendance_rules = attendance_rules_map
                     .get(&employee_id)
                     .cloned()
-                    .unwrap_or_else(|| crate::models::AttendanceRules {
+                    .unwrap_or(crate::models::AttendanceRules {
                         work_unit_minutes: 30,
-                        rounding_policy: "floor".to_string(),
+                        rounding_policy: crate::models::RoundingPolicy::Floor,
                         early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
                         grace_period_minutes: None,
                     });
@@ -379,7 +325,7 @@ impl ReportService {
                 let grace_minutes = rules.grace_period_minutes();
 
                 let (std_work_units, ot_work_units) =
-                    Self::calculate_day_units(CalculateDayUnitsArgs {
+                    Self::calculate_day_units(&CalculateDayUnitsArgs {
                         day_entries,
                         daily,
                         date,
@@ -388,7 +334,7 @@ impl ReportService {
                         workspace_id: workspace.id(),
                         rules: rules.clone(),
                         work_unit_minutes: emp_attendance_rules.work_unit_minutes,
-                        rounding_policy: &emp_attendance_rules.rounding_policy,
+                        rounding_policy: emp_attendance_rules.rounding_policy,
                     });
 
                 let holiday_entry = holidays_map.get(&date);
@@ -741,15 +687,14 @@ impl ReportService {
                 }
             }
 
-            let emp_attendance_rules = attendance_rules_map
-                .get(&employee_id)
-                .cloned()
-                .unwrap_or_else(|| crate::models::AttendanceRules {
+            let emp_attendance_rules = attendance_rules_map.get(&employee_id).cloned().unwrap_or(
+                crate::models::AttendanceRules {
                     work_unit_minutes: 30,
-                    rounding_policy: "floor".to_string(),
+                    rounding_policy: crate::models::RoundingPolicy::Floor,
                     early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
                     grace_period_minutes: None,
-                });
+                },
+            );
 
             let emp_working_conditions = working_conditions_map
                 .get(&employee_id)
@@ -836,54 +781,42 @@ impl ReportService {
 
                     let actual_break_minutes: i32 = matched
                         .iter()
-                        .filter(|e| e.entry_type() == "break")
+                        .filter(|e| {
+                            e.entry_type() == crate::services::pairing::types::EntryType::Break
+                        })
                         .map(|e| e.duration_minutes().unwrap_or(0))
                         .sum();
 
                     segment_calc_inputs.push(
                         crate::services::attendance_calculator::DailyCalcInput {
-                            punch_in: actual_punch_in.unwrap_or_else(|| tz.from_utc_datetime(&Utc::now().naive_utc())),
-                        punch_out: actual_punch_out.unwrap_or_else(|| tz.from_utc_datetime(&Utc::now().naive_utc())),
+                            punch_in: actual_punch_in
+                                .unwrap_or_else(|| tz.from_utc_datetime(&Utc::now().naive_utc())),
+                            punch_out: actual_punch_out
+                                .unwrap_or_else(|| tz.from_utc_datetime(&Utc::now().naive_utc())),
                             shift_start: shift_start_dt,
                             shift_end: shift_end_dt,
                             scheduled_break_minutes: seg.break_duration_minutes.unwrap_or(0),
                             actual_break_minutes,
-                            break_start: seg.break_start.and_then(|t| {
-                                tz.from_local_datetime(&date.and_time(t)).single()
-                            }),
-                            break_end: seg.break_end.and_then(|t| {
-                                tz.from_local_datetime(&date.and_time(t)).single()
-                            }),
+                            break_start: seg
+                                .break_start
+                                .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single()),
+                            break_end: seg
+                                .break_end
+                                .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single()),
                             work_unit: emp_attendance_rules.work_unit_minutes,
-                            rounding_policy: emp_attendance_rules.rounding_policy.clone(),
+                            rounding_policy: emp_attendance_rules.rounding_policy,
                             rules: rules.clone(),
                             ot_ceiling,
                             max_early_ot_minutes: seg.max_early_ot_minutes,
                             segment_id: seg.interval_id,
-                            ot_aggregation_mode: match seg.ot_aggregation_mode.as_str() {
-                                "per_segment" => crate::services::attendance_calculator::OtAggregationMode::PerSegment,
-                                _ => crate::services::attendance_calculator::OtAggregationMode::Aggregate,
-                            },
+                            ot_aggregation_mode: seg.ot_aggregation_mode,
                         },
                     );
                 }
 
-                // Calculate units (per-segment or aggregated depending on mode)
-                let calc_result = if segment_calc_inputs.len() > 1 {
-                    crate::services::AttendanceCalculator::calculate_segment_units(
-                        &segment_calc_inputs,
-                    )
-                } else {
-                    let (std_units, ot_units) =
-                        crate::services::AttendanceCalculator::calculate_daily_units(
-                            &segment_calc_inputs[0],
-                        );
-                    crate::services::attendance_calculator::SegmentCalcResult {
-                        total_standard_units: std_units,
-                        total_ot_units: ot_units,
-                        per_segment_buckets: Vec::new(),
-                    }
-                };
+                let segment_result = crate::services::AttendanceService::compute_segment_attendance(
+                    &segment_calc_inputs,
+                );
 
                 // Build report rows for each segment
                 for (seg_idx, seg) in day_segs.iter().enumerate() {
@@ -895,24 +828,11 @@ impl ReportService {
                         .last()
                         .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&Utc)));
 
-                    let (seg_std, seg_ot) = calc_result
-                        .per_segment_buckets
-                        .get(seg_idx)
-                        .map(|(_, buckets)| {
-                            let std_mins = i64::from(buckets.standard_minutes);
-                            let ot_mins = i64::from(
-                                buckets.early_ot_minutes
-                                    + buckets.late_ot_minutes
-                                    + buckets.break_ot_minutes,
-                            );
-                            let work_unit = i64::from(emp_attendance_rules.work_unit_minutes);
-                            let std_units =
-                                i32::try_from((std_mins + work_unit - 1) / work_unit).unwrap_or(0);
-                            let ot_units =
-                                i32::try_from((ot_mins + work_unit - 1) / work_unit).unwrap_or(0);
-                            (std_units, ot_units)
-                        })
-                        .unwrap_or((calc_result.total_standard_units, calc_result.total_ot_units));
+                    let (seg_std, seg_ot) = segment_result.segment_units(
+                        seg_idx,
+                        emp_attendance_rules.work_unit_minutes,
+                        emp_attendance_rules.rounding_policy,
+                    );
 
                     // Resolved late/absence grace for this segment row (default 15).
                     let segment_grace = emp_attendance_rules
@@ -1051,7 +971,7 @@ mod tests {
     fn make_test_entry(
         punch_in_utc: chrono::DateTime<Utc>,
         punch_out_utc: Option<chrono::DateTime<Utc>>,
-        entry_type: &str,
+        entry_type: crate::services::pairing::types::EntryType,
     ) -> TimeEntry {
         TimeEntry::new(
             Uuid::new_v4(),
@@ -1063,7 +983,7 @@ mod tests {
             punch_out_utc,
             Some(60),
             false,
-            entry_type.to_string(),
+            entry_type,
             None,
             None,
             Utc::now(),
@@ -1092,7 +1012,8 @@ mod tests {
             allow_early_ot: false,
             max_early_ot_minutes: None,
             early_punch_in_grace_period_minutes: 0,
-            ot_aggregation_mode: "aggregate".to_string(),
+            ot_aggregation_mode:
+                crate::services::attendance_calculator::OtAggregationMode::Aggregate,
             is_night_shift: false,
             traces: vec![],
             is_holiday: false,
@@ -1123,7 +1044,11 @@ mod tests {
             .unwrap()
             .with_timezone(&Utc);
 
-        let entry = make_test_entry(punch_in, Some(punch_out), "work");
+        let entry = make_test_entry(
+            punch_in,
+            Some(punch_out),
+            crate::services::pairing::types::EntryType::Work,
+        );
         let entries = vec![&entry];
 
         let matched = ReportService::match_entries_to_segment(&entries, &seg, date, tz);
@@ -1146,7 +1071,11 @@ mod tests {
             .unwrap()
             .with_timezone(&Utc);
 
-        let entry = make_test_entry(punch_in, Some(punch_out), "work");
+        let entry = make_test_entry(
+            punch_in,
+            Some(punch_out),
+            crate::services::pairing::types::EntryType::Work,
+        );
         let entries = vec![&entry];
 
         let matched = ReportService::match_entries_to_segment(&entries, &seg, date, tz);
@@ -1169,7 +1098,11 @@ mod tests {
             .unwrap()
             .with_timezone(&Utc);
 
-        let entry = make_test_entry(punch_in, None, "work");
+        let entry = make_test_entry(
+            punch_in,
+            None,
+            crate::services::pairing::types::EntryType::Work,
+        );
         let entries = vec![&entry];
 
         let matched = ReportService::match_entries_to_segment(&entries, &seg, date, tz);
@@ -1185,7 +1118,11 @@ mod tests {
             .unwrap()
             .with_timezone(&Utc);
 
-        let entry = make_test_entry(punch_in, None, "work");
+        let entry = make_test_entry(
+            punch_in,
+            None,
+            crate::services::pairing::types::EntryType::Work,
+        );
         let entries = vec![&entry];
 
         let matched = ReportService::match_entries_to_segment(&entries, &seg, date, tz);
@@ -1219,8 +1156,16 @@ mod tests {
             .unwrap()
             .with_timezone(&Utc);
 
-        let entry1 = make_test_entry(e1_in, Some(e1_out), "work");
-        let entry2 = make_test_entry(e2_in, Some(e2_out), "work");
+        let entry1 = make_test_entry(
+            e1_in,
+            Some(e1_out),
+            crate::services::pairing::types::EntryType::Work,
+        );
+        let entry2 = make_test_entry(
+            e2_in,
+            Some(e2_out),
+            crate::services::pairing::types::EntryType::Work,
+        );
         let entries = vec![&entry1, &entry2];
 
         let matched = ReportService::match_entries_to_segment(&entries, &seg, date, tz);
@@ -1244,7 +1189,11 @@ mod tests {
             .unwrap()
             .with_timezone(&Utc);
 
-        let break_entry = make_test_entry(break_in, Some(break_out), "break");
+        let break_entry = make_test_entry(
+            break_in,
+            Some(break_out),
+            crate::services::pairing::types::EntryType::Break,
+        );
         let entries = vec![&break_entry];
 
         let matched = ReportService::match_entries_to_segment(&entries, &seg, date, tz);
@@ -1267,7 +1216,11 @@ mod tests {
             .unwrap()
             .with_timezone(&Utc);
 
-        let entry = make_test_entry(punch_in, Some(punch_out), "work");
+        let entry = make_test_entry(
+            punch_in,
+            Some(punch_out),
+            crate::services::pairing::types::EntryType::Work,
+        );
         let entries = vec![&entry];
 
         let matched = ReportService::match_entries_to_segment(&entries, &seg, date, tz);
@@ -1286,7 +1239,11 @@ mod tests {
             .with_ymd_and_hms(2026, 6, 15, 23, 0, 0)
             .unwrap()
             .with_timezone(&Utc);
-        let entry = make_test_entry(punch_in, None, "work");
+        let entry = make_test_entry(
+            punch_in,
+            None,
+            crate::services::pairing::types::EntryType::Work,
+        );
         let entries = vec![&entry];
 
         let matched = ReportService::match_entries_to_segment(&entries, &seg, date, tz);
@@ -1297,7 +1254,11 @@ mod tests {
             .with_ymd_and_hms(2026, 6, 16, 3, 0, 0)
             .unwrap()
             .with_timezone(&Utc);
-        let entry = make_test_entry(punch_in, None, "work");
+        let entry = make_test_entry(
+            punch_in,
+            None,
+            crate::services::pairing::types::EntryType::Work,
+        );
         let entries = vec![&entry];
 
         let matched = ReportService::match_entries_to_segment(&entries, &seg, date, tz);
@@ -1312,7 +1273,11 @@ mod tests {
             .with_ymd_and_hms(2026, 6, 15, 8, 0, 0)
             .unwrap()
             .with_timezone(&Utc);
-        let entry = make_test_entry(punch_in, None, "work");
+        let entry = make_test_entry(
+            punch_in,
+            None,
+            crate::services::pairing::types::EntryType::Work,
+        );
         let entries = vec![&entry];
 
         let matched = ReportService::match_entries_to_segment(&entries, &seg, date, tz);
@@ -1333,7 +1298,11 @@ mod tests {
             .with_ymd_and_hms(2026, 6, 15, 12, 30, 0)
             .unwrap()
             .with_timezone(&Utc);
-        let entry = make_test_entry(punch_in, None, "work");
+        let entry = make_test_entry(
+            punch_in,
+            None,
+            crate::services::pairing::types::EntryType::Work,
+        );
         let entries = vec![&entry];
 
         let matched_morning = ReportService::match_entries_to_segment(&entries, &morning, date, tz);
@@ -1381,8 +1350,16 @@ mod tests {
             .unwrap()
             .with_timezone(&Utc);
 
-        let entry1 = make_test_entry(e1_in, Some(e1_out), "work");
-        let entry2 = make_test_entry(e2_in, Some(e2_out), "work");
+        let entry1 = make_test_entry(
+            e1_in,
+            Some(e1_out),
+            crate::services::pairing::types::EntryType::Work,
+        );
+        let entry2 = make_test_entry(
+            e2_in,
+            Some(e2_out),
+            crate::services::pairing::types::EntryType::Work,
+        );
         let entries = vec![&entry1, &entry2];
 
         let matched_morning = ReportService::match_entries_to_segment(&entries, &morning, date, tz);

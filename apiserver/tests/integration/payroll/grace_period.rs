@@ -166,11 +166,6 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
                     )),
                 ),
             ),
-            contract_repo: Arc::new(
-                apiserver::repositories::DieselEmployeeContractRepository::new(
-                    diesel_pools.clone(),
-                ),
-            ),
             employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
                 diesel_pools.clone(),
             )),
@@ -342,11 +337,6 @@ async fn test_grace_period_nonzero_shift_overrides() {
                     std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                         diesel_pools.clone(),
                     )),
-                ),
-            ),
-            contract_repo: Arc::new(
-                apiserver::repositories::DieselEmployeeContractRepository::new(
-                    diesel_pools.clone(),
                 ),
             ),
             employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(

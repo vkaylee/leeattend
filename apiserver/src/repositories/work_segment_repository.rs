@@ -1,3 +1,9 @@
+// TODO(ADR-00X): work_segments table exists (migration + backfill from
+// shift_rosters) but has no read paths. This trait has 0 implementations
+// and 0 callers. It was superseded by the RosterData /
+// resolve_work_segments_from_data path. Decide: finish migration or
+// remove dead code in next cleanup phase.
+// See: .agent/rules/change-management.md for ADR template.
 use crate::errors::AppError;
 use crate::models::{
     CreateWorkSegmentRequest, UpdateWorkSegmentRequest, WorkSegment, WorkSegmentFilter,

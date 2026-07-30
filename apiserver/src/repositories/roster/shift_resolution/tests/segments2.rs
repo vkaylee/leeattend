@@ -40,7 +40,7 @@ use chrono::NaiveDate;
                     early_punch_in_grace_period_minutes: 0,
                     allow_early_ot: false,
                     max_early_ot_minutes: None,
-                    ot_aggregation_mode: "aggregate".to_string(),
+                    ot_aggregation_mode: crate::services::attendance_calculator::OtAggregationMode::Aggregate,
                     is_night_shift: false,
                 },
                 RosterInterval {
@@ -57,7 +57,7 @@ use chrono::NaiveDate;
                     early_punch_in_grace_period_minutes: 0,
                     allow_early_ot: false,
                     max_early_ot_minutes: None,
-                    ot_aggregation_mode: "aggregate".to_string(),
+                    ot_aggregation_mode: crate::services::attendance_calculator::OtAggregationMode::Aggregate,
                     is_night_shift: false,
                 },
             ],
@@ -142,7 +142,7 @@ use chrono::NaiveDate;
                 early_punch_in_grace_period_minutes: 15,
                 allow_early_ot: true,
                 max_early_ot_minutes: Some(120),
-                ot_aggregation_mode: "per_segment".to_string(),
+                ot_aggregation_mode: crate::services::attendance_calculator::OtAggregationMode::PerSegment,
                 is_night_shift: false,
             }],
         );
@@ -208,7 +208,7 @@ use chrono::NaiveDate;
                 early_punch_in_grace_period_minutes: 5,
                 allow_early_ot: false,
                 max_early_ot_minutes: None,
-                ot_aggregation_mode: "aggregate".to_string(),
+                ot_aggregation_mode: crate::services::attendance_calculator::OtAggregationMode::Aggregate,
                 is_night_shift: false,
             }],
         );
@@ -266,7 +266,7 @@ use chrono::NaiveDate;
                 early_punch_in_grace_period_minutes: 0,
                 allow_early_ot: false,
                 max_early_ot_minutes: None,
-                ot_aggregation_mode: "aggregate".to_string(),
+                ot_aggregation_mode: crate::services::attendance_calculator::OtAggregationMode::Aggregate,
                 is_night_shift: false,
             }],
         );
@@ -287,7 +287,7 @@ use chrono::NaiveDate;
                 early_punch_in_grace_period_minutes: 0,
                 allow_early_ot: false,
                 max_early_ot_minutes: None,
-                ot_aggregation_mode: "aggregate".to_string(),
+                ot_aggregation_mode: crate::services::attendance_calculator::OtAggregationMode::Aggregate,
                 is_night_shift: false,
             }],
         );

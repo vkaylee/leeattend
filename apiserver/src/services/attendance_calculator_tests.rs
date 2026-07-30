@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::models::{EarlyArrivalStrategy, PolicyRules};
+    use crate::models::{EarlyArrivalStrategy, PolicyRules, RoundingPolicy};
     use crate::services::attendance_calculator::{
         AttendanceCalculator, BreakDeductionInput, DailyCalcInput, OtAggregationMode, WorkBuckets,
     };
@@ -57,7 +57,7 @@ mod tests {
         break_start: Option<DateTime<Utc>>,
         break_end: Option<DateTime<Utc>>,
         work_unit: i32,
-        rounding_policy: String,
+        rounding_policy: RoundingPolicy,
         rules: PolicyRules,
         ot_ceiling: Option<DateTime<Utc>>,
         max_early_ot_minutes: Option<i32>,
@@ -78,7 +78,7 @@ mod tests {
                 break_start: None,
                 break_end: None,
                 work_unit: 0,
-                rounding_policy: String::new(),
+                rounding_policy: RoundingPolicy::None,
                 rules: mock_rules(),
                 ot_ceiling: None,
                 max_early_ot_minutes: None,
@@ -148,9 +148,9 @@ mod tests {
             self
         }
 
-        fn work_unit_cfg(mut self, unit: i32, policy: &str) -> Self {
+        fn work_unit_cfg(mut self, unit: i32, policy: RoundingPolicy) -> Self {
             self.work_unit = unit;
-            self.rounding_policy = policy.to_string();
+            self.rounding_policy = policy;
             self
         }
 
@@ -275,7 +275,7 @@ mod tests {
         fn daily_units_no_shift_returns_nonzero_proving_guard_needed() {
             let (std, ot) = TestInputBuilder::new()
                 .no_shift()
-                .work_unit_cfg(30, "floor")
+                .work_unit_cfg(30, RoundingPolicy::Floor)
                 .daily_units();
             assert_eq!(
                 std, 18,
@@ -290,7 +290,7 @@ mod tests {
                 .no_shift()
                 .scheduled_break(60)
                 .rules_mut(|r| r.set_is_break_auto_deduct(true))
-                .work_unit_cfg(30, "floor")
+                .work_unit_cfg(30, RoundingPolicy::Floor)
                 .daily_units();
             assert_eq!(std, 18);
             assert_eq!(ot, 0);
@@ -301,7 +301,7 @@ mod tests {
             let (std, ot) = TestInputBuilder::new()
                 .punch(7, 55, 8, 0)
                 .no_shift()
-                .work_unit_cfg(30, "floor")
+                .work_unit_cfg(30, RoundingPolicy::Floor)
                 .daily_units();
             assert_eq!(std, 0, "5-min accidental session rounds to 0 units");
             assert_eq!(ot, 0);
@@ -595,7 +595,7 @@ mod tests {
                 .punch(7, 0, 19, 0)
                 .scheduled_break(60)
                 .rules_mut(|r| r.set_allow_early_ot(true))
-                .work_unit_cfg(30, "floor")
+                .work_unit_cfg(30, RoundingPolicy::Floor)
                 .daily_units();
             assert_eq!(std, 18);
             assert_eq!(ot, 6);
@@ -610,7 +610,7 @@ mod tests {
                     r.set_allow_early_ot(true);
                     r.set_is_break_auto_deduct(true);
                 })
-                .work_unit_cfg(30, "floor")
+                .work_unit_cfg(30, RoundingPolicy::Floor)
                 .daily_units();
             assert_eq!(std, 16);
             assert_eq!(ot, 6);
@@ -1063,64 +1063,129 @@ mod tests {
 
         #[test]
         fn floor_rounding() {
-            assert_eq!(AttendanceCalculator::calculate_units(75, 30, "floor"), 2);
-            assert_eq!(AttendanceCalculator::calculate_units(90, 30, "floor"), 3);
-            assert_eq!(AttendanceCalculator::calculate_units(29, 30, "floor"), 0);
+            assert_eq!(
+                AttendanceCalculator::calculate_units(75, 30, RoundingPolicy::Floor),
+                2
+            );
+            assert_eq!(
+                AttendanceCalculator::calculate_units(90, 30, RoundingPolicy::Floor),
+                3
+            );
+            assert_eq!(
+                AttendanceCalculator::calculate_units(29, 30, RoundingPolicy::Floor),
+                0
+            );
         }
 
         #[test]
         fn ceil_rounding() {
-            assert_eq!(AttendanceCalculator::calculate_units(75, 30, "ceil"), 3);
-            assert_eq!(AttendanceCalculator::calculate_units(90, 30, "ceil"), 3);
-            assert_eq!(AttendanceCalculator::calculate_units(1, 30, "ceil"), 1);
+            assert_eq!(
+                AttendanceCalculator::calculate_units(75, 30, RoundingPolicy::Ceil),
+                3
+            );
+            assert_eq!(
+                AttendanceCalculator::calculate_units(90, 30, RoundingPolicy::Ceil),
+                3
+            );
+            assert_eq!(
+                AttendanceCalculator::calculate_units(1, 30, RoundingPolicy::Ceil),
+                1
+            );
         }
 
         #[test]
         fn round_rounding() {
-            assert_eq!(AttendanceCalculator::calculate_units(75, 30, "round"), 3);
-            assert_eq!(AttendanceCalculator::calculate_units(44, 30, "round"), 1);
-            assert_eq!(AttendanceCalculator::calculate_units(46, 30, "round"), 2);
+            assert_eq!(
+                AttendanceCalculator::calculate_units(75, 30, RoundingPolicy::Round),
+                3
+            );
+            assert_eq!(
+                AttendanceCalculator::calculate_units(44, 30, RoundingPolicy::Round),
+                1
+            );
+            assert_eq!(
+                AttendanceCalculator::calculate_units(46, 30, RoundingPolicy::Round),
+                2
+            );
         }
 
         #[test]
         fn zero_minutes() {
-            assert_eq!(AttendanceCalculator::calculate_units(0, 30, "floor"), 0);
-            assert_eq!(AttendanceCalculator::calculate_units(0, 30, "ceil"), 0);
-            assert_eq!(AttendanceCalculator::calculate_units(0, 30, "round"), 0);
+            assert_eq!(
+                AttendanceCalculator::calculate_units(0, 30, RoundingPolicy::Floor),
+                0
+            );
+            assert_eq!(
+                AttendanceCalculator::calculate_units(0, 30, RoundingPolicy::Ceil),
+                0
+            );
+            assert_eq!(
+                AttendanceCalculator::calculate_units(0, 30, RoundingPolicy::Round),
+                0
+            );
         }
 
         #[test]
-        fn default_rounding() {
-            assert_eq!(AttendanceCalculator::calculate_units(75, 30, "unknown"), 2);
+        fn none_policy_truncates() {
+            assert_eq!(
+                AttendanceCalculator::calculate_units(75, 30, RoundingPolicy::None),
+                2
+            );
         }
 
         #[test]
         fn unit_size_1() {
-            assert_eq!(AttendanceCalculator::calculate_units(480, 1, "floor"), 480);
-            assert_eq!(AttendanceCalculator::calculate_units(480, 0, "floor"), 480);
+            assert_eq!(
+                AttendanceCalculator::calculate_units(480, 1, RoundingPolicy::Floor),
+                480
+            );
+            assert_eq!(
+                AttendanceCalculator::calculate_units(480, 0, RoundingPolicy::Floor),
+                480
+            );
         }
 
         #[test]
         fn unit_size_15() {
-            assert_eq!(AttendanceCalculator::calculate_units(480, 15, "floor"), 32);
-            assert_eq!(AttendanceCalculator::calculate_units(481, 15, "floor"), 32);
-            assert_eq!(AttendanceCalculator::calculate_units(481, 15, "ceil"), 33);
+            assert_eq!(
+                AttendanceCalculator::calculate_units(480, 15, RoundingPolicy::Floor),
+                32
+            );
+            assert_eq!(
+                AttendanceCalculator::calculate_units(481, 15, RoundingPolicy::Floor),
+                32
+            );
+            assert_eq!(
+                AttendanceCalculator::calculate_units(481, 15, RoundingPolicy::Ceil),
+                33
+            );
         }
 
         #[test]
         fn unit_size_45() {
-            assert_eq!(AttendanceCalculator::calculate_units(480, 45, "floor"), 10);
-            assert_eq!(AttendanceCalculator::calculate_units(480, 45, "ceil"), 11);
-            assert_eq!(AttendanceCalculator::calculate_units(480, 45, "round"), 11);
+            assert_eq!(
+                AttendanceCalculator::calculate_units(480, 45, RoundingPolicy::Floor),
+                10
+            );
+            assert_eq!(
+                AttendanceCalculator::calculate_units(480, 45, RoundingPolicy::Ceil),
+                11
+            );
+            assert_eq!(
+                AttendanceCalculator::calculate_units(480, 45, RoundingPolicy::Round),
+                11
+            );
         }
 
         #[test]
         fn work_unit_edge_cases() {
-            assert_eq!(AttendanceCalculator::calculate_units(480, 0, "floor"), 480);
-            assert_eq!(AttendanceCalculator::calculate_units(480, 1, "floor"), 480);
             assert_eq!(
-                AttendanceCalculator::calculate_units(75, 30, "invalid_policy"),
-                2
+                AttendanceCalculator::calculate_units(480, 0, RoundingPolicy::Floor),
+                480
+            );
+            assert_eq!(
+                AttendanceCalculator::calculate_units(480, 1, RoundingPolicy::Floor),
+                480
             );
         }
 
@@ -1130,7 +1195,7 @@ mod tests {
         fn daily_calc_via_builder() {
             let (std, ot) = TestInputBuilder::new()
                 .scheduled_break(60)
-                .work_unit_cfg(30, "floor")
+                .work_unit_cfg(30, RoundingPolicy::Floor)
                 .daily_units();
             assert_eq!(std, 18);
             assert_eq!(ot, 0);
@@ -1141,7 +1206,7 @@ mod tests {
             let (std, _) = TestInputBuilder::new()
                 .scheduled_break(60)
                 .rules_mut(|r| r.set_is_break_auto_deduct(true))
-                .work_unit_cfg(30, "floor")
+                .work_unit_cfg(30, RoundingPolicy::Floor)
                 .daily_units();
             assert_eq!(std, 16);
         }
@@ -1151,7 +1216,7 @@ mod tests {
             let (std, _) = TestInputBuilder::new()
                 .punch(8, 0, 16, 55)
                 .scheduled_break(60)
-                .work_unit_cfg(30, "floor")
+                .work_unit_cfg(30, RoundingPolicy::Floor)
                 .daily_units();
             assert_eq!(std, 17);
 
@@ -1159,7 +1224,7 @@ mod tests {
                 .punch(8, 0, 16, 55)
                 .scheduled_break(60)
                 .rules_mut(|r| r.set_is_break_auto_deduct(true))
-                .work_unit_cfg(30, "floor")
+                .work_unit_cfg(30, RoundingPolicy::Floor)
                 .daily_units();
             assert_eq!(std2, 15);
         }
@@ -1183,7 +1248,7 @@ mod tests {
                 .scheduled_break(60)
                 .fixed_break(11, 30, 12, 30)
                 .rules_mut(|r| r.set_is_break_auto_deduct(true))
-                .work_unit_cfg(30, "floor")
+                .work_unit_cfg(30, RoundingPolicy::Floor)
                 .build();
 
             let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units(&input);

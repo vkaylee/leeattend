@@ -49,7 +49,6 @@ pub struct PayrollServiceArgs {
     pub salary_base_repo:
         Arc<dyn crate::repositories::salary_base_repository::SalaryBaseRepository>,
     pub roster_provider: Arc<dyn RosterDataProvider>,
-    pub contract_repo: Arc<dyn crate::repositories::EmployeeContractRepository>,
     pub employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
 }
 
@@ -67,7 +66,6 @@ pub struct PayrollService {
     overtime_policy_repo: Arc<dyn OvertimePolicyRepositoryTrait>,
     salary_base_repo: Arc<dyn crate::repositories::salary_base_repository::SalaryBaseRepository>,
     roster_provider: Arc<dyn RosterDataProvider>,
-    contract_repo: Arc<dyn crate::repositories::EmployeeContractRepository>,
     employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
 }
 
@@ -87,7 +85,6 @@ impl PayrollService {
             overtime_policy_repo: args.overtime_policy_repo,
             salary_base_repo: args.salary_base_repo,
             roster_provider: args.roster_provider,
-            contract_repo: args.contract_repo,
             employment_repo: args.employment_repo,
         }
     }

@@ -98,7 +98,7 @@ pub struct RosterInterval {
     pub early_punch_in_grace_period_minutes: i32,
     pub allow_early_ot: bool,
     pub max_early_ot_minutes: Option<i32>,
-    pub ot_aggregation_mode: String,
+    pub ot_aggregation_mode: crate::services::attendance_calculator::OtAggregationMode,
     pub is_night_shift: bool,
 }
 
@@ -378,7 +378,10 @@ pub async fn build_roster_data(
                     .early_punch_in_grace_period_minutes,
                 allow_early_ot: interval_entity.allow_early_ot,
                 max_early_ot_minutes: interval_entity.max_early_ot_minutes,
-                ot_aggregation_mode: interval_entity.ot_aggregation_mode,
+                ot_aggregation_mode: interval_entity
+                    .ot_aggregation_mode
+                    .parse()
+                    .unwrap_or_default(),
                 is_night_shift,
             });
     }

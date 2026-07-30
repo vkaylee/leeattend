@@ -197,7 +197,15 @@ mod tests {
         let mut roster_repo = MockRosterRepository::new();
         roster_repo
             .expect_get_effective_shift()
-            .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+            .returning(|_, _, _| {
+                Box::pin(async {
+                    Ok((
+                        None,
+                        vec![],
+                        std::sync::Arc::new(crate::cache::RosterData::default()),
+                    ))
+                })
+            });
 
         let sched_emp_id = emp_id;
         let sched_employment_id = employment_id;
@@ -371,6 +379,18 @@ mod tests {
             .returning(|_, _, _| Box::pin(async { Ok(std::collections::HashMap::new()) }));
         builder.holiday_repo = holiday_repo;
 
+        // Mock get_employee_effective_policy - return None to use fallback rules
+        builder
+            .policy_repo
+            .expect_get_employee_effective_policy()
+            .returning(|_, _, _| Ok(None));
+
+        // Mock get_working_conditions_at - return empty vec (no special conditions)
+        builder
+            .employee_repo
+            .expect_get_working_conditions_at()
+            .returning(|_, _, _| Ok(vec![]));
+
         builder.build()
     }
 
@@ -505,7 +525,15 @@ mod tests {
         let mut roster_repo = MockRosterRepository::new();
         roster_repo
             .expect_get_effective_shift()
-            .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+            .returning(|_, _, _| {
+                Box::pin(async {
+                    Ok((
+                        None,
+                        vec![],
+                        std::sync::Arc::new(crate::cache::RosterData::default()),
+                    ))
+                })
+            });
         roster_repo
             .expect_get_workspace_schedules()
             .returning(move |_, _, _, _, _, _, _| Box::pin(async { Ok((vec![], 0)) }));
@@ -645,7 +673,15 @@ mod tests {
         let mut roster_repo = MockRosterRepository::new();
         roster_repo
             .expect_get_effective_shift()
-            .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+            .returning(|_, _, _| {
+                Box::pin(async {
+                    Ok((
+                        None,
+                        vec![],
+                        std::sync::Arc::new(crate::cache::RosterData::default()),
+                    ))
+                })
+            });
         roster_repo
             .expect_get_workspace_schedules()
             .returning(move |_, _, _, _, _, _, _| Box::pin(async { Ok((vec![], 0)) }));

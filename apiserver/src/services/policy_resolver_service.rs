@@ -74,7 +74,7 @@ impl PolicyResolverService {
         } else {
             Ok(AttendanceRules {
                 work_unit_minutes: 30,
-                rounding_policy: "floor".to_string(),
+                rounding_policy: crate::models::RoundingPolicy::Floor,
                 early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
                 grace_period_minutes: None,
             })
@@ -98,7 +98,7 @@ impl PolicyResolverService {
         } else {
             Ok(AttendanceRules {
                 work_unit_minutes: 30,
-                rounding_policy: "floor".to_string(),
+                rounding_policy: crate::models::RoundingPolicy::Floor,
                 early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
                 grace_period_minutes: None,
             })
@@ -130,7 +130,7 @@ impl PolicyResolverService {
                     id,
                     AttendanceRules {
                         work_unit_minutes: 30,
-                        rounding_policy: "floor".to_string(),
+                        rounding_policy: crate::models::RoundingPolicy::Floor,
                         early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
                         grace_period_minutes: None,
                     },
@@ -166,7 +166,7 @@ impl PolicyResolverService {
                     id,
                     AttendanceRules {
                         work_unit_minutes: 30,
-                        rounding_policy: "floor".to_string(),
+                        rounding_policy: crate::models::RoundingPolicy::Floor,
                         early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
                         grace_period_minutes: None,
                     },
@@ -412,7 +412,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(rules.work_unit_minutes, 30);
-        assert_eq!(rules.rounding_policy, "floor");
+        assert_eq!(rules.rounding_policy, crate::models::RoundingPolicy::Floor);
     }
 
     #[tokio::test]

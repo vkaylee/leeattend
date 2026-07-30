@@ -215,7 +215,7 @@ pub async fn get_shifts(
                                         .early_punch_in_grace_period_minutes,
                                     allow_early_ot: iv.allow_early_ot,
                                     max_early_ot_minutes: iv.max_early_ot_minutes,
-                                    ot_aggregation_mode: iv.ot_aggregation_mode.clone(),
+                                    ot_aggregation_mode: iv.ot_aggregation_mode.to_string(),
                                     is_night_shift: iv.is_night_shift,
                                     created_at: None,
                                     updated_at: None,

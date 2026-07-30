@@ -209,6 +209,53 @@ pub struct DailyAttendanceReport {
     pub segment_count: Option<i32>,
 }
 
+/// ZKTeco `punch` codes stored in [`RawAttendanceLog::punch`].
+///
+/// These integers are transmitted verbatim by ZKTeco biometric terminals
+/// (fingerprint / face-recognition devices) using the ZKTeco Standalone
+/// SDK protocol. They flow through the ingestion pipeline unchanged so
+/// that the raw payload can be replayed or audited.
+pub mod raw_log_punch {
+    /// Employee is checking in (start of a work interval).
+    pub const CHECK_IN: i32 = 0;
+    /// Employee is checking out (end of a work interval).
+    pub const CHECK_OUT: i32 = 1;
+    /// Employee is starting a break.
+    pub const BREAK_OUT: i32 = 2;
+    /// Employee is returning from a break.
+    pub const BREAK_IN: i32 = 3;
+    /// Overtime start (device-flagged).
+    pub const OT_IN: i32 = 4;
+    /// Overtime end (device-flagged).
+    pub const OT_OUT: i32 = 5;
+}
+
+/// ZKTeco `status` codes stored in [`RawAttendanceLog::status`].
+///
+/// Verification method reported by the device — how the employee's
+/// identity was confirmed at punch time. Preserved verbatim from the
+/// ZKTeco SDK payload for audit and biometric-attack investigation.
+pub mod raw_log_status {
+    /// Normal / password verification.
+    pub const NORMAL: i32 = 0;
+    /// Fingerprint verification.
+    pub const FINGERPRINT: i32 = 1;
+    /// Password verification (explicit).
+    pub const PASSWORD: i32 = 2;
+    /// RFID / proximity card verification.
+    pub const CARD: i32 = 3;
+    /// Face-recognition verification.
+    pub const FACE: i32 = 15;
+}
+
+/// A raw punch event captured directly from an attendance device (or an
+/// equivalent source, e.g. the ESS web portal).
+///
+/// The `punch` and `status` fields carry ZKTeco protocol codes forwarded
+/// verbatim from the device. Use the [`raw_log_punch`] and
+/// [`raw_log_status`] constants when comparing or writing these values.
+/// Unrecognized codes are tolerated so that firmware upgrades that add
+/// new codes do not break ingestion.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RawAttendanceLog {
     id: Uuid,
@@ -218,7 +265,10 @@ pub struct RawAttendanceLog {
     source: LogSource,
     device_id: Option<String>,
     raw_data: Option<serde_json::Value>,
+    /// ZKTeco punch code (see [`raw_log_punch`]): 0=IN, 1=OUT, 2/3=break, 4/5=OT.
     punch: i32,
+    /// ZKTeco verification method (see [`raw_log_status`]): 0=normal, 1=fingerprint,
+    /// 2=password, 3=card, 15=face.
     status: i32,
     created_at: DateTime<Utc>,
 }
@@ -384,10 +434,63 @@ pub struct AttendancePolicyVersion {
     pub created_at: DateTime<Utc>,
 }
 
+/// Rounding strategy for converting work minutes into work units.
+///
+/// Serialized as lowercase snake_case (`"floor"`, `"round"`, `"ceil"`, `"none"`).
+/// Deserialization is tolerant: unknown legacy values (e.g. `"round_down"`) fall
+/// back to `None`, which truncates like the previous string-matching code did.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum RoundingPolicy {
+    #[default]
+    Floor,
+    Round,
+    Ceil,
+    None,
+}
+
+impl std::fmt::Display for RoundingPolicy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Floor => write!(f, "floor"),
+            Self::Round => write!(f, "round"),
+            Self::Ceil => write!(f, "ceil"),
+            Self::None => write!(f, "none"),
+        }
+    }
+}
+
+impl std::str::FromStr for RoundingPolicy {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "floor" => Ok(Self::Floor),
+            "round" => Ok(Self::Round),
+            "ceil" => Ok(Self::Ceil),
+            "none" => Ok(Self::None),
+            _ => Err(()),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for RoundingPolicy {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(d)?;
+        // Tolerant: preserves prior "unknown → truncate" (== Floor for positives)
+        // semantics found in `AttendanceCalculator::calculate_units`.
+        Ok(match s.as_str() {
+            "floor" => Self::Floor,
+            "round" => Self::Round,
+            "ceil" => Self::Ceil,
+            _ => Self::None,
+        })
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AttendanceRules {
     pub work_unit_minutes: i32,
-    pub rounding_policy: String,
+    pub rounding_policy: RoundingPolicy,
     #[serde(default)]
     pub early_arrival_strategy: EarlyArrivalStrategy,
     #[serde(default)]

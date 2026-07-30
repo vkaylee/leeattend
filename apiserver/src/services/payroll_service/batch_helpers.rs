@@ -182,7 +182,6 @@ impl PayrollService {
             overtime_policy_repo: Arc::clone(&self.overtime_policy_repo),
             salary_base_repo: Arc::clone(&self.salary_base_repo),
             roster_provider: Arc::clone(&self.roster_provider),
-            contract_repo: Arc::clone(&self.contract_repo),
             employment_repo: Arc::clone(&self.employment_repo),
         }
     }
