@@ -6,7 +6,7 @@
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 
-use super::attendance_context::AttendanceContext;
+use super::attendance_context::AttendanceMatcherContext;
 
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -33,7 +33,7 @@ pub struct SegmentAttendanceResult {
 
 /// Arguments for [`AttendanceMatcher::process_segment_attendance`].
 pub struct ProcessSegmentAttendanceArgs<'a> {
-    pub ctx: &'a AttendanceContext,
+    pub ctx: &'a AttendanceMatcherContext,
     pub seg_start: NaiveDate,
     pub seg_end: NaiveDate,
     pub segment_total_base: Decimal,

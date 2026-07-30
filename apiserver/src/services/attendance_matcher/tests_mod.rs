@@ -2,7 +2,7 @@ use super::*;
 use crate::cache::{RosterData, RosterShift};
 use crate::models::enums::EarlyArrivalStrategy;
 use crate::models::{AttendanceRules, Holiday, TimeEntry};
-use crate::services::attendance_context::AttendanceContext;
+use crate::services::attendance_context::AttendanceMatcherContext;
 use chrono::{NaiveDate, NaiveTime, Utc};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -54,11 +54,9 @@ async fn test_process_segment_attendance_no_shift_fallback() {
         grace_period_minutes: None,
     };
 
-    let att_ctx = AttendanceContext::builder()
+    let att_ctx = AttendanceMatcherContext::builder()
         .employee_id(employee_id)
         .tz(chrono_tz::UTC)
-        .start_date(Utc::now().date_naive())
-        .end_date(Utc::now().date_naive())
         .daily_entries_map(daily_entries_map)
         .emp_id_number("EMP001".to_string())
         .primary_location_id(Uuid::new_v4())
@@ -189,11 +187,9 @@ async fn test_process_segment_attendance_with_shift_matching() {
         grace_period_minutes: None,
     };
 
-    let att_ctx = AttendanceContext::builder()
+    let att_ctx = AttendanceMatcherContext::builder()
         .employee_id(employee_id)
         .tz(chrono_tz::UTC)
-        .start_date(date)
-        .end_date(date)
         .daily_entries_map(daily_entries_map)
         .roster_data(Arc::new(roster_data))
         .emp_id_number("EMP001".to_string())
@@ -263,11 +259,9 @@ async fn test_process_segment_attendance_paid_holiday_no_work() {
         grace_period_minutes: None,
     };
 
-    let att_ctx = AttendanceContext::builder()
+    let att_ctx = AttendanceMatcherContext::builder()
         .employee_id(employee_id)
         .tz(chrono_tz::UTC)
-        .start_date(date)
-        .end_date(date)
         .holidays_map(Arc::new(holidays_map))
         .emp_id_number("EMP001".to_string())
         .primary_location_id(Uuid::new_v4())
@@ -417,11 +411,9 @@ async fn test_process_segment_attendance_holiday_work_compensation() {
         grace_period_minutes: None,
     };
 
-    let att_ctx = AttendanceContext::builder()
+    let att_ctx = AttendanceMatcherContext::builder()
         .employee_id(employee_id)
         .tz(chrono_tz::UTC)
-        .start_date(date)
-        .end_date(date)
         .daily_entries_map(daily_entries_map)
         .holidays_map(Arc::new(holidays_map))
         .roster_data(Arc::new(roster_data))
@@ -602,11 +594,9 @@ async fn test_process_segment_attendance_with_overtime_pay() {
         assignments,
     };
 
-    let att_ctx = AttendanceContext::builder()
+    let att_ctx = AttendanceMatcherContext::builder()
         .employee_id(employee_id)
         .tz(chrono_tz::UTC)
-        .start_date(date)
-        .end_date(date)
         .daily_entries_map(daily_entries_map)
         .roster_data(Arc::new(roster_data))
         .emp_id_number("EMP001".to_string())
@@ -743,11 +733,9 @@ async fn test_process_segment_attendance_with_shift_break_is_overtime(
         grace_period_minutes: None,
     };
 
-    let att_ctx = AttendanceContext::builder()
+    let att_ctx = AttendanceMatcherContext::builder()
         .employee_id(employee_id)
         .tz(chrono_tz::UTC)
-        .start_date(date)
-        .end_date(date)
         .daily_entries_map(daily_entries_map)
         .roster_data(Arc::new(roster_data))
         .emp_id_number("EMP001".to_string())

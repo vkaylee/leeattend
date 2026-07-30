@@ -9,7 +9,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use super::super::attendance_context::AttendanceContext;
 use super::super::financial_calculator::{IncentivePolicyWithTiers, RuleAssignmentWithTiers};
 
 // ---------------------------------------------------------------------------
@@ -119,39 +118,3 @@ pub(crate) struct ChunkSharedData {
     pub(crate) active_policies_with_tiers: Arc<Vec<IncentivePolicyWithTiers>>,
     pub(crate) salary_base_groups: Arc<Vec<crate::models::SalaryBaseGroup>>,
 }
-
-// ---------------------------------------------------------------------------
-// AttendanceContext conversion — payroll → attendance bridge
-// ---------------------------------------------------------------------------
-
-impl From<&PayrollContext> for AttendanceContext {
-    fn from(pc: &PayrollContext) -> Self {
-        AttendanceContext::builder()
-            .employee_id(pc.employee_id)
-            .tz(pc.tz)
-            .start_date(pc.start_date)
-            .end_date(pc.end_date)
-            .daily_entries_map(pc.daily_entries_map.clone())
-            .holidays_map(Arc::clone(&pc.holidays_map))
-            .roster_data(Arc::clone(&pc.roster_data))
-            .emp_id_number(pc.emp_id_number.clone())
-            .emp_tags(pc.emp_tags.clone())
-            .payroll_roster_map(pc.payroll_roster_map.clone())
-            .overtime_data(Arc::clone(&pc.overtime_data))
-            .active_assignments(pc.active_assignments.clone())
-            .primary_location_id(pc.primary_location_id)
-            .all_dept_history(pc.all_dept_history.clone())
-            .active_employments(pc.active_employments.clone())
-            .working_conditions(pc.working_conditions.clone())
-            .condition_type_catalog(Arc::clone(&pc.condition_type_catalog))
-            .build()
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Helper functions (re-exported from attendance_context)
-// ---------------------------------------------------------------------------
-
-pub(crate) use super::super::attendance_context::{
-    build_daily_entries_map, default_attendance_rules, month_boundaries,
-};

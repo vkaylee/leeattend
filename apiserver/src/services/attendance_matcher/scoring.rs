@@ -21,7 +21,7 @@ use uuid::Uuid;
 /// is assigned.
 #[allow(clippy::too_many_arguments)]
 fn compute_ot_pay_for_entry(
-    ctx: &AttendanceContext,
+    ctx: &AttendanceMatcherContext,
     employee_id: Uuid,
     current_date: NaiveDate,
     punch_in: chrono::DateTime<chrono_tz::Tz>,
@@ -122,7 +122,7 @@ impl AttendanceMatcher {
     /// Returns `(std_u, ot_u, ot_pay_delta, holiday_premium_delta, is_violation)`.
     #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
     pub(super) fn process_matched_entry(
-        ctx: &AttendanceContext,
+        ctx: &AttendanceMatcherContext,
         employee_id: Uuid,
         entry: &TimeEntry,
         shift_start: chrono::DateTime<chrono_tz::Tz>,
@@ -262,7 +262,7 @@ impl AttendanceMatcher {
     /// Returns `(std_units, ot_units, ot_pay, holiday_premium, violation_count)`.
     #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
     pub(super) fn process_daily_entries(
-        ctx: &AttendanceContext,
+        ctx: &AttendanceMatcherContext,
         employee_id: Uuid,
         current_date: NaiveDate,
         day_shifts: &[(Uuid, &RosterInterval)],
