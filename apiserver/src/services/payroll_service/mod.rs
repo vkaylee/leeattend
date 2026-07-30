@@ -13,6 +13,7 @@ use uuid::Uuid;
 
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::Payslip;
+use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
 use crate::repositories::department_repository::DepartmentRepository;
 use crate::repositories::holiday_repository::HolidayRepository;
 use crate::repositories::leave_request_repository::LeaveRequestRepository;
@@ -49,6 +50,7 @@ pub struct PayrollServiceArgs {
         Arc<dyn crate::repositories::salary_base_repository::SalaryBaseRepository>,
     pub roster_provider: Arc<dyn RosterDataProvider>,
     pub employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
+    pub daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
 }
 
 pub struct PayrollService {
@@ -66,6 +68,7 @@ pub struct PayrollService {
     salary_base_repo: Arc<dyn crate::repositories::salary_base_repository::SalaryBaseRepository>,
     roster_provider: Arc<dyn RosterDataProvider>,
     employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
+    daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
 }
 
 impl PayrollService {
@@ -85,6 +88,7 @@ impl PayrollService {
             salary_base_repo: args.salary_base_repo,
             roster_provider: args.roster_provider,
             employment_repo: args.employment_repo,
+            daily_summary_repo: args.daily_summary_repo,
         }
     }
 }

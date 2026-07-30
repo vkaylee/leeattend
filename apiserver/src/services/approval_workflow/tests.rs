@@ -1893,6 +1893,11 @@ mod tests {
             _date: NaiveDate,
             _actual_work_minutes: i32,
             _system_detected_ot_minutes: i32,
+            _standard_minutes: i32,
+            _early_ot_minutes: i32,
+            _late_ot_minutes: i32,
+            _break_ot_minutes: i32,
+            _is_weekend: bool,
             _new_status: crate::models::OtStatus,
             _is_holiday: bool,
             _holiday_name: Option<String>,
@@ -1996,6 +2001,16 @@ mod tests {
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _ids: &[Uuid],
+        ) -> Result<Vec<crate::models::AttendanceDailySummary>, AppError> {
+            Ok(vec![])
+        }
+
+        async fn get_summaries_for_period(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employment_id: Uuid,
+            _start_date: NaiveDate,
+            _end_date: NaiveDate,
         ) -> Result<Vec<crate::models::AttendanceDailySummary>, AppError> {
             Ok(vec![])
         }

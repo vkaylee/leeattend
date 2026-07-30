@@ -84,6 +84,11 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         date: NaiveDate,
         actual_work_minutes: i32,
         system_detected_ot_minutes: i32,
+        standard_minutes: i32,
+        early_ot_minutes: i32,
+        late_ot_minutes: i32,
+        break_ot_minutes: i32,
+        is_weekend: bool,
         new_status: OtStatus,
         is_holiday: bool,
         holiday_name: Option<String>,
@@ -106,6 +111,11 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
                 ads::date.eq(date),
                 ads::actual_work_minutes.eq(actual_work_minutes),
                 ads::system_detected_ot_minutes.eq(system_detected_ot_minutes),
+                ads::standard_minutes.eq(standard_minutes),
+                ads::early_ot_minutes.eq(early_ot_minutes),
+                ads::late_ot_minutes.eq(late_ot_minutes),
+                ads::break_ot_minutes.eq(break_ot_minutes),
+                ads::is_weekend.eq(is_weekend),
                 ads::ot_status.eq(new_status),
                 ads::is_holiday.eq(is_holiday),
                 ads::holiday_name.eq(holiday_name),
@@ -115,6 +125,11 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .set((
                 ads::actual_work_minutes.eq(excluded(ads::actual_work_minutes)),
                 ads::system_detected_ot_minutes.eq(excluded(ads::system_detected_ot_minutes)),
+                ads::standard_minutes.eq(excluded(ads::standard_minutes)),
+                ads::early_ot_minutes.eq(excluded(ads::early_ot_minutes)),
+                ads::late_ot_minutes.eq(excluded(ads::late_ot_minutes)),
+                ads::break_ot_minutes.eq(excluded(ads::break_ot_minutes)),
+                ads::is_weekend.eq(excluded(ads::is_weekend)),
                 ads::is_holiday.eq(excluded(ads::is_holiday)),
                 ads::holiday_name.eq(excluded(ads::holiday_name)),
                 ads::ot_status.eq(diesel::dsl::sql::<crate::schema::sql_types::OtStatusType>(
@@ -340,6 +355,37 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         query
             .order_by((ads::date.asc(), ads::employment_id.asc()))
+            .load::<AttendanceDailySummaryEntity>(&mut *conn)
+            .await
+            .map(|list| list.into_iter().map(Into::into).collect())
+            .map_err(AppError::from)
+    }
+
+    async fn get_summaries_for_period(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<Vec<AttendanceDailySummary>, AppError> {
+        let workspace_id = auth_token.workspace_id();
+        use crate::schema::attendance_daily_summaries::dsl as ads;
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
+
+        use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
+
+        ads::attendance_daily_summaries
+            .filter(ads::workspace_id.eq(workspace_id))
+            .filter(ads::employment_id.eq(employment_id))
+            .filter(ads::date.ge(start_date))
+            .filter(ads::date.le(end_date))
+            .order_by(ads::date.asc())
             .load::<AttendanceDailySummaryEntity>(&mut *conn)
             .await
             .map(|list| list.into_iter().map(Into::into).collect())

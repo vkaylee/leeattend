@@ -58,6 +58,11 @@ pub struct AttendanceDailySummaryEntity {
     pub is_holiday: bool,
     pub holiday_name: Option<String>,
     pub employment_id: Uuid,
+    pub standard_minutes: i32,
+    pub early_ot_minutes: i32,
+    pub late_ot_minutes: i32,
+    pub break_ot_minutes: i32,
+    pub is_weekend: bool,
 }
 
 impl From<AttendanceDailySummaryEntity> for AttendanceDailySummary {
@@ -82,6 +87,11 @@ impl From<AttendanceDailySummaryEntity> for AttendanceDailySummary {
             holiday_name: val.holiday_name,
             created_at: val.created_at,
             updated_at: val.updated_at,
+            standard_minutes: val.standard_minutes,
+            early_ot_minutes: val.early_ot_minutes,
+            late_ot_minutes: val.late_ot_minutes,
+            break_ot_minutes: val.break_ot_minutes,
+            is_weekend: val.is_weekend,
         }
     }
 }

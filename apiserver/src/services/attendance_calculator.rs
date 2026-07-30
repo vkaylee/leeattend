@@ -2,7 +2,7 @@ use crate::models::{EarlyArrivalStrategy, PolicyRules, RoundingPolicy};
 use chrono::{DateTime, Duration, TimeZone, Timelike};
 use uuid::Uuid;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct WorkBuckets {
     pub standard_minutes: i32,
     pub early_ot_minutes: i32,

@@ -186,6 +186,7 @@ pub fn build_payroll_contexts(
                 salary_base_groups: Arc::clone(&d.salary_base_groups),
                 unpaid_holiday_days,
                 rule_assignments_with_tiers,
+                daily_summaries: d.daily_summaries.clone(),
             }),
         ));
     }

@@ -165,6 +165,7 @@ fn make_chunk_shared_data() -> Arc<ChunkSharedData> {
         month_end_payroll_settings: Arc::new(None),
         active_policies_with_tiers: Arc::new(Vec::new()),
         salary_base_groups: Arc::new(Vec::new()),
+        daily_summaries: HashMap::new(),
     })
 }
 

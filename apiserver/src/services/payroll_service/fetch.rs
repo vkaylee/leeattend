@@ -331,6 +331,14 @@ impl PayrollService {
             })
             .collect();
 
+        // Fetch daily summaries for all active employments in the pay period.
+        // These are the single source of truth for standard/OT unit computation.
+        let employment_ids: Vec<Uuid> = active_employments.iter().map(|e| e.id()).collect();
+        let daily_summaries = self
+            .daily_summary_repo
+            .get_summaries_by_employments_batch(auth_token, &employment_ids, start_date, end_date)
+            .await?;
+
         Ok(PayrollContext {
             employee_id,
             workspace,
@@ -363,6 +371,7 @@ impl PayrollService {
             salary_base_groups: Arc::new(salary_base_groups),
             unpaid_holiday_days,
             rule_assignments_with_tiers,
+            daily_summaries,
         })
     }
 }

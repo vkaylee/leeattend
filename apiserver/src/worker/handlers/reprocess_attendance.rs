@@ -186,7 +186,7 @@ mod tests {
         let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
         daily_summary_repo
             .expect_upsert_calculated_summary()
-            .returning(|_, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
         daily_summary_repo
             .expect_get_summary()
             .returning(|_, _, _| Ok(None));
@@ -514,7 +514,7 @@ mod tests {
         let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
         daily_summary_repo
             .expect_upsert_calculated_summary()
-            .returning(|_, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
         daily_summary_repo
             .expect_get_summary()
             .returning(|_, _, _| Ok(None));
@@ -662,7 +662,7 @@ mod tests {
         let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
         daily_summary_repo
             .expect_upsert_calculated_summary()
-            .returning(|_, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
         daily_summary_repo
             .expect_get_summary()
             .returning(|_, _, _| Ok(None));

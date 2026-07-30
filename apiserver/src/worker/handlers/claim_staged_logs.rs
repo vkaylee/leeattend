@@ -199,7 +199,7 @@ mod tests {
         let mut daily_summary_repo = crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository::new();
         daily_summary_repo
             .expect_upsert_calculated_summary()
-            .returning(|_, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
 
         let mut builder = MockWorkerDepsBuilder::new();
         builder

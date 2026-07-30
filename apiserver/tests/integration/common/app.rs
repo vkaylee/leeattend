@@ -459,6 +459,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             roster_provider: std::sync::Arc::new(
                 apiserver::services::payroll_service::DirectRosterDataProvider(roster_repo.clone()),
             ),
+            daily_summary_repo: attendance_summary_repo.clone(),
         },
     ));
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(
@@ -1202,6 +1203,7 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
             roster_provider: std::sync::Arc::new(
                 apiserver::services::payroll_service::DirectRosterDataProvider(roster_repo.clone()),
             ),
+            daily_summary_repo: attendance_summary_repo.clone(),
         },
     ));
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(
@@ -1994,6 +1996,7 @@ pub async fn setup_app_tower_internal_extended(
             roster_provider: std::sync::Arc::new(
                 apiserver::services::payroll_service::DirectRosterDataProvider(roster_repo.clone()),
             ),
+            daily_summary_repo: attendance_daily_summary_repo.clone(),
         },
     ));
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(

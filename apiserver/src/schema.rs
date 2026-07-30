@@ -206,6 +206,11 @@ diesel::table! {
         #[max_length = 255]
         holiday_name -> Nullable<Varchar>,
         employment_id -> Uuid,
+        standard_minutes -> Int4,
+        early_ot_minutes -> Int4,
+        late_ot_minutes -> Int4,
+        break_ot_minutes -> Int4,
+        is_weekend -> Bool,
     }
 }
 

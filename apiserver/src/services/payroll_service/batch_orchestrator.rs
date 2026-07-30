@@ -111,6 +111,12 @@ impl PayrollService {
             });
 
         // ── Phase 2: Process chunks ─────────────────────────────────
+        // Pre-fetch daily summaries for all employments in the batch.
+        let daily_summaries = self
+            .daily_summary_repo
+            .get_summaries_by_employments_batch(token, &employment_ids, start_date, end_date)
+            .await?;
+
         let shared_data = Arc::new(ChunkSharedData {
             workspace: workspace.clone(),
             tz,
@@ -127,6 +133,7 @@ impl PayrollService {
             month_end_payroll_settings: Arc::new(month_end_payroll_settings),
             active_policies_with_tiers: Arc::new(active_policies_with_tiers),
             salary_base_groups: Arc::new(salary_base_groups),
+            daily_summaries,
         });
 
         let mut results = Vec::new();

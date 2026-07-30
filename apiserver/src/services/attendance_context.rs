@@ -378,6 +378,7 @@ mod tests {
             salary_base_groups: Arc::new(vec![]),
             unpaid_holiday_days: 0,
             rule_assignments_with_tiers: vec![],
+            daily_summaries: HashMap::new(),
         };
 
         let att = AttendanceMatcherContext::from_payroll(&pc);

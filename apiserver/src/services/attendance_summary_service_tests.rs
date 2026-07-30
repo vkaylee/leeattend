@@ -71,6 +71,11 @@ fn create_dummy_summary(sys_ot: i32, status: OtStatus) -> AttendanceDailySummary
         holiday_name: None,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
+        standard_minutes: 0,
+        early_ot_minutes: 0,
+        late_ot_minutes: 0,
+        break_ot_minutes: 0,
+        is_weekend: false,
     }
 }
 
@@ -556,7 +561,7 @@ mod recalculate_daily_summary_leave_tests {
         daily_summary_repo
             .expect_upsert_calculated_summary()
             .times(1)
-            .returning(|_, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
 
         // Construct service
         let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
@@ -734,7 +739,7 @@ mod recalculate_daily_summary_leave_tests {
         daily_summary_repo
             .expect_upsert_calculated_summary()
             .times(1)
-            .returning(|_, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
 
         let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
             time_entry_repo: Arc::new(time_entry_repo),
@@ -911,7 +916,7 @@ mod recalculate_daily_summary_leave_tests {
         daily_summary_repo
             .expect_upsert_calculated_summary()
             .times(1)
-            .returning(|_, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
 
         let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
             time_entry_repo: Arc::new(time_entry_repo),
@@ -1042,7 +1047,7 @@ mod recalculate_daily_summary_leave_tests {
         daily_summary_repo
             .expect_upsert_calculated_summary()
             .times(1)
-            .returning(|_, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
 
         let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
             time_entry_repo: Arc::new(time_entry_repo),
@@ -1198,7 +1203,7 @@ mod recalculate_daily_summary_leave_tests {
         daily_summary_repo
             .expect_upsert_calculated_summary()
             .times(1)
-            .returning(|_, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
 
         let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
             time_entry_repo: Arc::new(time_entry_repo),
@@ -1335,7 +1340,7 @@ mod recalculate_daily_summary_leave_tests {
         daily_summary_repo
             .expect_upsert_calculated_summary()
             .times(2)
-            .returning(|_, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
 
         let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
             time_entry_repo: Arc::new(time_entry_repo),
@@ -1356,6 +1361,192 @@ mod recalculate_daily_summary_leave_tests {
                 employee_id,
                 date,
                 date2,
+            )
+            .await;
+        assert!(result.is_ok());
+    }
+}
+
+// =========================================================================
+// persist-workbuckets: is_weekend verification
+// =========================================================================
+mod persist_workbuckets_tests {
+    use super::*;
+    use crate::models::Workspace;
+    use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
+    use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
+    use crate::repositories::employee::MockEmployeeRepository;
+    use crate::repositories::holiday_repository::MockHolidayRepository;
+    use crate::repositories::leave_request_repository::MockLeaveRequestRepository;
+    use crate::repositories::roster::MockRosterRepository;
+    use crate::repositories::time_entry_repository::MockTimeEntryRepository;
+    use crate::repositories::workspace_repository::MockWorkspaceRepository;
+    use chrono::Utc;
+
+    fn test_workspace(workspace_id: Uuid) -> Workspace {
+        Workspace::new(
+            workspace_id, "Test".to_string(), "YYYY-MM-DD".to_string(),
+            "HH:mm".to_string(), "UTC".to_string(), "indigo".to_string(),
+            "vi".to_string(), None, None, "std".to_string(),
+            rust_decimal::Decimal::ONE, Utc::now(), None,
+        )
+    }
+
+    /// Monday 2024-01-01 → is_weekend must be false
+    #[tokio::test]
+    async fn is_weekend_false_for_monday() {
+        let employee_id = Uuid::new_v4();
+        let workspace_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+
+        let mut time_entry_repo = MockTimeEntryRepository::new();
+        let mut roster_repo = MockRosterRepository::new();
+        let mut policy_repo = MockAttendancePolicyRepository::new();
+        let mut workspace_repo = MockWorkspaceRepository::new();
+        let mut employee_repo = MockEmployeeRepository::new();
+
+        policy_repo.expect_get_employee_effective_policy().returning(|_, _, _| Ok(None));
+        employee_repo.expect_get_working_conditions_at().returning(|_, _, _| Ok(vec![]));
+        employee_repo.expect_get_employee_by_id().returning(move |id, _| {
+            Ok(Some(crate::models::Employee::new(
+                id, workspace_id, None, "John Doe".to_string(), "EMP001".to_string(),
+                vec![], chrono::Utc::now(), chrono::Utc::now(), None,
+            )))
+        });
+
+        let mut holiday_repo = MockHolidayRepository::new();
+        let mut leave_request_repo = MockLeaveRequestRepository::new();
+        let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
+
+        workspace_repo.expect_get_workspace_by_id()
+            .returning(move |_| Box::pin(async move { Ok(Some(test_workspace(workspace_id))) }));
+        holiday_repo.expect_is_holiday()
+            .returning(move |_, _, _| Box::pin(async move { Ok(None) }));
+
+        let shift_id = Uuid::new_v4();
+        roster_repo.expect_get_workspace_schedules().returning(move |_, _, _, _, _, _, _| {
+            Box::pin(async move {
+                Ok((vec![crate::models::EmployeeSchedule::new(
+                    employee_id, employee_id, "EMP001".to_string(), "John Doe".to_string(),
+                    vec![crate::models::EffectiveSchedule::new(
+                        date, Some(shift_id), "pattern".to_string(),
+                        None, None, None, None, None, None, None,
+                        None, None, None, None, None,
+                        vec![], false, false, None,
+                    )],
+                )], 1))
+            })
+        });
+
+        time_entry_repo.expect_get_employment_time_entries().returning(|_, _, _, _| Ok(vec![]));
+        leave_request_repo.expect_get_employee_leave_requests()
+            .returning(|_, _| Box::pin(async { Ok(vec![]) }));
+        daily_summary_repo.expect_get_summary().returning(|_, _, _| Ok(None));
+
+        daily_summary_repo
+            .expect_upsert_calculated_summary()
+            .times(1)
+            .withf(|_, _, _, _, _, _, _, _, _, is_we, _, _, _| !is_we)
+            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+
+        let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
+            time_entry_repo: Arc::new(time_entry_repo),
+            roster_repo: Arc::new(roster_repo),
+            policy_repo: Arc::new(policy_repo),
+            condition_type_repo: empty_condition_type_repo(),
+            workspace_repo: Arc::new(workspace_repo),
+            employee_repo: Arc::new(employee_repo),
+            employment_repo: Arc::new(mock_employment_repo()),
+            holiday_repo: Arc::new(holiday_repo),
+            leave_request_repo: Arc::new(leave_request_repo),
+            daily_summary_repo: Arc::new(daily_summary_repo),
+        });
+
+        let result = svc
+            .recalculate_daily_summary(
+                &TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                date,
+            )
+            .await;
+        assert!(result.is_ok());
+    }
+
+    /// Saturday 2024-01-06 → is_weekend must be true
+    #[tokio::test]
+    async fn is_weekend_true_for_saturday() {
+        let employee_id = Uuid::new_v4();
+        let workspace_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2024, 1, 6).unwrap();
+
+        let mut time_entry_repo = MockTimeEntryRepository::new();
+        let mut roster_repo = MockRosterRepository::new();
+        let mut policy_repo = MockAttendancePolicyRepository::new();
+        let mut workspace_repo = MockWorkspaceRepository::new();
+        let mut employee_repo = MockEmployeeRepository::new();
+
+        policy_repo.expect_get_employee_effective_policy().returning(|_, _, _| Ok(None));
+        employee_repo.expect_get_working_conditions_at().returning(|_, _, _| Ok(vec![]));
+        employee_repo.expect_get_employee_by_id().returning(move |id, _| {
+            Ok(Some(crate::models::Employee::new(
+                id, workspace_id, None, "John Doe".to_string(), "EMP001".to_string(),
+                vec![], chrono::Utc::now(), chrono::Utc::now(), None,
+            )))
+        });
+
+        let mut holiday_repo = MockHolidayRepository::new();
+        let mut leave_request_repo = MockLeaveRequestRepository::new();
+        let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
+
+        workspace_repo.expect_get_workspace_by_id()
+            .returning(move |_| Box::pin(async move { Ok(Some(test_workspace(workspace_id))) }));
+        holiday_repo.expect_is_holiday()
+            .returning(move |_, _, _| Box::pin(async move { Ok(None) }));
+
+        let shift_id = Uuid::new_v4();
+        roster_repo.expect_get_workspace_schedules().returning(move |_, _, _, _, _, _, _| {
+            Box::pin(async move {
+                Ok((vec![crate::models::EmployeeSchedule::new(
+                    employee_id, employee_id, "EMP001".to_string(), "John Doe".to_string(),
+                    vec![crate::models::EffectiveSchedule::new(
+                        date, Some(shift_id), "pattern".to_string(),
+                        None, None, None, None, None, None, None,
+                        None, None, None, None, None,
+                        vec![], false, false, None,
+                    )],
+                )], 1))
+            })
+        });
+
+        time_entry_repo.expect_get_employment_time_entries().returning(|_, _, _, _| Ok(vec![]));
+        leave_request_repo.expect_get_employee_leave_requests()
+            .returning(|_, _| Box::pin(async { Ok(vec![]) }));
+        daily_summary_repo.expect_get_summary().returning(|_, _, _| Ok(None));
+
+        daily_summary_repo
+            .expect_upsert_calculated_summary()
+            .times(1)
+            .withf(|_, _, _, _, _, _, _, _, _, is_we, _, _, _| *is_we)
+            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+
+        let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
+            time_entry_repo: Arc::new(time_entry_repo),
+            roster_repo: Arc::new(roster_repo),
+            policy_repo: Arc::new(policy_repo),
+            condition_type_repo: empty_condition_type_repo(),
+            workspace_repo: Arc::new(workspace_repo),
+            employee_repo: Arc::new(employee_repo),
+            employment_repo: Arc::new(mock_employment_repo()),
+            holiday_repo: Arc::new(holiday_repo),
+            leave_request_repo: Arc::new(leave_request_repo),
+            daily_summary_repo: Arc::new(daily_summary_repo),
+        });
+
+        let result = svc
+            .recalculate_daily_summary(
+                &TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                date,
             )
             .await;
         assert!(result.is_ok());

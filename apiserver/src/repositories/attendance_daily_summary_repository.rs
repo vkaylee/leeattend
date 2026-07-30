@@ -28,6 +28,11 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
         date: NaiveDate,
         actual_work_minutes: i32,
         system_detected_ot_minutes: i32,
+        standard_minutes: i32,
+        early_ot_minutes: i32,
+        late_ot_minutes: i32,
+        break_ot_minutes: i32,
+        is_weekend: bool,
         new_status: OtStatus,
         is_holiday: bool,
         holiday_name: Option<String>,
@@ -76,6 +81,15 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employment_id: Option<Uuid>,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<Vec<AttendanceDailySummary>, AppError>;
+
+    /// Fetch summaries for a single employment in a date range, ordered by date.
+    async fn get_summaries_for_period(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<AttendanceDailySummary>, AppError>;

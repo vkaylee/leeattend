@@ -24,8 +24,6 @@ mod tests_mod;
 
 /// Result of processing attendance for a single payroll segment.
 pub struct SegmentAttendanceResult {
-    pub std_units: i32,
-    pub ot_units: i32,
     pub ot_pay: Decimal,
     pub holiday_work_premium: Decimal,
     pub late_early_count: i32,
@@ -60,8 +58,6 @@ impl AttendanceMatcher {
     ) -> SegmentAttendanceResult {
         let employee_id = args.ctx.employee_id();
 
-        let mut segment_std_units = 0i32;
-        let mut segment_ot_units = 0i32;
         let mut segment_ot_pay = Decimal::ZERO;
         let mut holiday_work_premium = Decimal::ZERO;
         let mut late_early_count = 0i32;
@@ -90,7 +86,7 @@ impl AttendanceMatcher {
             );
 
             if let Some(entries) = args.ctx.daily_entries_map().get(&current_date) {
-                let (day_std, day_ot, day_ot_pay, day_premium, day_violations) =
+                let (_day_std, _day_ot, day_ot_pay, day_premium, day_violations) =
                     Self::process_daily_entries(
                         args.ctx,
                         employee_id,
@@ -104,16 +100,9 @@ impl AttendanceMatcher {
                         args.std_config,
                         args.policy_cache,
                     );
-                segment_std_units += day_std;
-                segment_ot_units += day_ot;
                 segment_ot_pay += day_ot_pay;
                 holiday_work_premium += day_premium;
                 late_early_count += day_violations;
-            } else if let Some(holiday) = args.ctx.holidays_map().get(&current_date) {
-                // Paid holiday with no attendance → auto-credit standard day
-                if holiday.is_paid() {
-                    segment_std_units += Self::credit_paid_holiday(holiday, args.seg_units_per_day);
-                }
             }
 
             current_date = match current_date.succ_opt() {
@@ -123,8 +112,6 @@ impl AttendanceMatcher {
         }
 
         SegmentAttendanceResult {
-            std_units: segment_std_units,
-            ot_units: segment_ot_units,
             ot_pay: segment_ot_pay,
             holiday_work_premium,
             late_early_count,

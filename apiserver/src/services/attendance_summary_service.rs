@@ -2,7 +2,7 @@ use crate::errors::{AppError, AppResult};
 use crate::utils::i18n::I18nKey;
 use std::sync::Arc;
 
-use chrono::NaiveDate;
+use chrono::{Datelike, NaiveDate};
 use chrono_tz::Tz;
 
 use uuid::Uuid;
@@ -20,6 +20,7 @@ use crate::repositories::roster::RosterRepository;
 use crate::repositories::AttendancePolicyRepository;
 use crate::repositories::EmployeeRepository;
 use crate::repositories::{workspace_repository::WorkspaceRepository, TimeEntryRepository};
+use crate::services::attendance_calculator::WorkBuckets;
 use crate::services::PolicyResolverService;
 use crate::utils::chrono_helpers::local_to_utc as local_midnight_to_utc;
 
@@ -163,7 +164,7 @@ impl AttendanceSummaryService {
         }
 
         // 2. Calculate work minutes and OT
-        let (actual_work_minutes, system_detected_ot_minutes) = self
+        let buckets = self
             .calculate_work_and_ot(
                 &tz,
                 date,
@@ -173,6 +174,13 @@ impl AttendanceSummaryService {
                 &day_entries,
             )
             .await?;
+        let actual_work_minutes = buckets.standard_minutes
+            + buckets.early_ot_minutes
+            + buckets.late_ot_minutes
+            + buckets.break_ot_minutes;
+        let system_detected_ot_minutes = buckets.early_ot_minutes
+            + buckets.late_ot_minutes
+            + buckets.break_ot_minutes;
 
         // 3. Holiday leave conflict detection
         let (is_holiday, holiday_name) = self
@@ -190,6 +198,9 @@ impl AttendanceSummaryService {
             .determine_ot_status(auth_token, employee_id, date, system_detected_ot_minutes)
             .await?;
 
+        let weekday = date.weekday().num_days_from_monday(); // 0=Mon, 6=Sun
+        let is_weekend = weekday >= 5; // Default: Sat+Sun — configurable per workspace later
+
         // 5. Persist
         self.daily_summary_repo
             .upsert_calculated_summary(
@@ -198,6 +209,11 @@ impl AttendanceSummaryService {
                 date,
                 actual_work_minutes,
                 system_detected_ot_minutes,
+                buckets.standard_minutes,
+                buckets.early_ot_minutes,
+                buckets.late_ot_minutes,
+                buckets.break_ot_minutes,
+                is_weekend,
                 new_status,
                 is_holiday,
                 holiday_name,
@@ -314,7 +330,7 @@ impl AttendanceSummaryService {
                 }
 
                 // 6b. Calculate work minutes and OT
-                let (actual_work_minutes, system_detected_ot_minutes) = self
+                let buckets = self
                     .calculate_work_and_ot(
                         &tz,
                         curr_date,
@@ -324,6 +340,13 @@ impl AttendanceSummaryService {
                         &day_entries,
                     )
                     .await?;
+                let actual_work_minutes = buckets.standard_minutes
+                    + buckets.early_ot_minutes
+                    + buckets.late_ot_minutes
+                    + buckets.break_ot_minutes;
+                let system_detected_ot_minutes = buckets.early_ot_minutes
+                    + buckets.late_ot_minutes
+                    + buckets.break_ot_minutes;
 
                 // 6c. Holiday leave conflict check
                 let holiday = holidays_map.get(&curr_date);
@@ -380,6 +403,9 @@ impl AttendanceSummaryService {
                 };
 
                 // 6e. Persist summary
+                let weekday = curr_date.weekday().num_days_from_monday();
+                let is_weekend = weekday >= 5;
+
                 self.daily_summary_repo
                     .upsert_calculated_summary(
                         auth_token,
@@ -387,6 +413,11 @@ impl AttendanceSummaryService {
                         curr_date,
                         actual_work_minutes,
                         system_detected_ot_minutes,
+                        buckets.standard_minutes,
+                        buckets.early_ot_minutes,
+                        buckets.late_ot_minutes,
+                        buckets.break_ot_minutes,
+                        is_weekend,
                         new_status,
                         is_holiday,
                         holiday_name,
@@ -481,7 +512,7 @@ impl AttendanceSummaryService {
         auth_token: &TenantAuthToken,
         daily_schedule: &crate::models::EffectiveSchedule,
         day_entries: &[crate::models::TimeEntry],
-    ) -> AppResult<(i32, i32)> {
+    ) -> AppResult<WorkBuckets> {
         // Resolve policy rules (was previously in the now-removed
         // calculate_ot_buckets helper).
         let base_rules = PolicyResolverService::resolve_attendance_rules(
@@ -532,8 +563,8 @@ impl AttendanceSummaryService {
         );
 
         match result {
-            Some(r) => Ok((r.actual_work_minutes(), r.system_detected_ot_minutes())),
-            None => Ok((0, 0)),
+            Some(r) => Ok(r.work_buckets().clone()),
+            None => Ok(WorkBuckets::default()),
         }
     }
 

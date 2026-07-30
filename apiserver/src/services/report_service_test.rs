@@ -1251,6 +1251,11 @@ mod tests {
             _d: NaiveDate,
             _a: i32,
             _s: i32,
+            _std: i32,
+            _early: i32,
+            _late: i32,
+            _break: i32,
+            _wknd: bool,
             _n: OtStatus,
             _i: bool,
             _h: Option<String>,
@@ -1343,6 +1348,15 @@ mod tests {
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _ids: &[Uuid],
+        ) -> Result<Vec<AttendanceDailySummary>, AppError> {
+            unimplemented!()
+        }
+        async fn get_summaries_for_period(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employment_id: Uuid,
+            _start_date: NaiveDate,
+            _end_date: NaiveDate,
         ) -> Result<Vec<AttendanceDailySummary>, AppError> {
             unimplemented!()
         }
@@ -2393,6 +2407,11 @@ mod tests {
             _d: NaiveDate,
             _a: i32,
             _s: i32,
+            _std: i32,
+            _early: i32,
+            _late: i32,
+            _break: i32,
+            _wknd: bool,
             _n: OtStatus,
             _i: bool,
             _h: Option<String>,
@@ -2485,6 +2504,15 @@ mod tests {
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _ids: &[Uuid],
+        ) -> Result<Vec<AttendanceDailySummary>, AppError> {
+            unimplemented!()
+        }
+        async fn get_summaries_for_period(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employment_id: Uuid,
+            _start_date: NaiveDate,
+            _end_date: NaiveDate,
         ) -> Result<Vec<AttendanceDailySummary>, AppError> {
             unimplemented!()
         }

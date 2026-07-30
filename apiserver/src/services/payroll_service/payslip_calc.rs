@@ -1,5 +1,6 @@
 use super::*;
 use crate::services::attendance_context::AttendanceMatcherContext;
+use rust_decimal::prelude::ToPrimitive;
 
 impl PayrollService {
     #[tracing::instrument(skip_all, err)]
@@ -124,19 +125,88 @@ impl PayrollService {
             )
             .await;
 
-            // C. Financials
-            let worked_days_dec = Decimal::from(att.std_units) / seg_units_per_day;
+            // C. Financials — units from persisted daily summaries (single source of truth)
+            let mut seg_std_units = 0i32;
+            let mut seg_ot_units = 0i32;
+            let mut seg_holiday_premium = Decimal::ZERO;
+
+            // Find the active employment for this segment date range
+            let seg_emp_id = ctx
+                .active_employments
+                .iter()
+                .find(|e| {
+                    e.start_date() <= seg_start
+                        && e.end_date().is_none_or(|end| end >= seg_start)
+                })
+                .map(|e| e.id());
+
             let daily_rate = FinancialCalculator::calculate_daily_rate(
                 segment_total_base,
                 std_config.std_working_days(),
             );
+
+            if let Some(emp_id) = seg_emp_id {
+                for ((eid, date), summary) in &ctx.daily_summaries {
+                    if *eid == emp_id && *date >= seg_start && *date <= seg_end {
+                        let std_u = crate::services::attendance_calculator::AttendanceCalculator::calculate_units(
+                            summary.standard_minutes,
+                            attendance_policy.work_unit_minutes,
+                            attendance_policy.rounding_policy,
+                        );
+                        seg_std_units += std_u;
+                        seg_ot_units += crate::services::attendance_calculator::AttendanceCalculator::calculate_units(
+                            summary.early_ot_minutes
+                                + summary.late_ot_minutes
+                                + summary.break_ot_minutes,
+                            attendance_policy.work_unit_minutes,
+                            attendance_policy.rounding_policy,
+                        );
+
+                        // Holiday work premium from summary data
+                        if let Some(holiday) = ctx.holidays_map.get(date) {
+                            if holiday.is_credit_on_work() {
+                                seg_std_units += seg_units_per_day.to_i32().unwrap_or(0);
+                            }
+                            let multiplier = holiday.ot_multiplier().unwrap_or_else(|| Decimal::from(3));
+                            if multiplier > Decimal::ONE && std_u > 0 {
+                                let worked_fraction = Decimal::from(std_u) / seg_units_per_day;
+                                seg_holiday_premium +=
+                                    worked_fraction * daily_rate * (multiplier - Decimal::ONE);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Paid holiday auto-credit: if no entries exist for a paid holiday date
+            // in this segment, credit a full standard day.
+            if let Some(_emp_id) = seg_emp_id {
+                let mut curr = seg_start;
+                while curr <= seg_end {
+                    let has_entries = ctx.daily_entries_map.get(&curr).is_some_and(|e| !e.is_empty());
+                    if !has_entries {
+                        if let Some(holiday) = ctx.holidays_map.get(&curr) {
+                            if holiday.is_paid() {
+                                seg_std_units += seg_units_per_day.to_i32().unwrap_or(0);
+                            }
+                        }
+                    }
+                    curr = match curr.succ_opt() {
+                        Some(d) => d,
+                        None => break,
+                    };
+                }
+            }
+
+            let worked_days_dec = Decimal::from(seg_std_units) / seg_units_per_day;
+
             let segment_amount = daily_rate * worked_days_dec;
 
             total_base_pay += segment_amount;
-            total_std_units += att.std_units;
-            total_ot_units += att.ot_units;
+            total_std_units += seg_std_units;
+            total_ot_units += seg_ot_units;
             total_overtime_pay += att.ot_pay;
-            total_holiday_work_premium += att.holiday_work_premium;
+            total_holiday_work_premium += att.holiday_work_premium + seg_holiday_premium;
             total_late_early_count += att.late_early_count;
 
             segment_snapshots.push(SegmentSnapshot {

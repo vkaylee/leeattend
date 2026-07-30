@@ -395,6 +395,11 @@ pub struct AttendanceDailySummary {
     pub holiday_name: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub standard_minutes: i32,
+    pub early_ot_minutes: i32,
+    pub late_ot_minutes: i32,
+    pub break_ot_minutes: i32,
+    pub is_weekend: bool,
 }
 
 // Bulk OT Upload Models

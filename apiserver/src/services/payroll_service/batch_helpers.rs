@@ -183,6 +183,7 @@ impl PayrollService {
             salary_base_repo: Arc::clone(&self.salary_base_repo),
             roster_provider: Arc::clone(&self.roster_provider),
             employment_repo: Arc::clone(&self.employment_repo),
+            daily_summary_repo: Arc::clone(&self.daily_summary_repo),
         }
     }
 }

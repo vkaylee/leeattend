@@ -92,6 +92,7 @@ pub async fn build_services(
             salary_base_repo: Arc::clone(&repos.salary_base),
             roster_provider,
             employment_repo: Arc::clone(&repos.employment),
+            daily_summary_repo: Arc::clone(&repos.attendance_daily_summary),
         },
     ));
 
