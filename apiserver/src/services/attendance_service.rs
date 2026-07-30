@@ -408,9 +408,428 @@ fn shift_naive_to_dt(
 }
 
 #[cfg(test)]
+#[allow(dead_code)]
 mod tests {
     use super::*;
-    use chrono::{NaiveTime, Timelike};
+    use crate::models::EarlyArrivalStrategy;
+    use crate::models::{EffectiveSchedule, PolicyRules, RoundingPolicy, TimeEntry};
+    use crate::services::attendance_calculator::{
+        DailyCalcInput, OtAggregationMode, SegmentCalcResult, WorkBuckets,
+    };
+    use crate::services::pairing::types::EntryType;
+    use chrono::{NaiveTime, TimeZone, Timelike, Utc};
+    use uuid::Uuid;
+
+    // =========================================================================
+    // Test helpers
+    // =========================================================================
+
+    const TEST_DATE: NaiveDate = match NaiveDate::from_ymd_opt(2026, 1, 1) {
+        Some(d) => d,
+        None => panic!("invalid test date"),
+    };
+
+    fn dt(h: u32, m: u32) -> chrono::DateTime<Utc> {
+        Utc.from_local_datetime(&TEST_DATE.and_time(NaiveTime::from_hms_opt(h, m, 0).unwrap()))
+            .single()
+            .expect("non-ambiguous UTC time")
+    }
+
+    fn dt_tz(tz: Tz, h: u32, m: u32) -> chrono::DateTime<Tz> {
+        tz.from_local_datetime(&TEST_DATE.and_time(NaiveTime::from_hms_opt(h, m, 0).unwrap()))
+            .single()
+            .expect("non-ambiguous time")
+    }
+
+    fn dt_utc_d2(h: u32, m: u32) -> chrono::DateTime<Utc> {
+        let d2 = TEST_DATE.succ_opt().unwrap();
+        Utc.from_local_datetime(&d2.and_time(NaiveTime::from_hms_opt(h, m, 0).unwrap()))
+            .single()
+            .expect("non-ambiguous UTC time")
+    }
+
+    fn tz_utc() -> Tz {
+        chrono_tz::UTC
+    }
+
+    fn tz_hcm() -> Tz {
+        "Asia/Ho_Chi_Minh".parse().unwrap()
+    }
+
+    fn mock_rules() -> PolicyRules {
+        PolicyRules::new(
+            0,                           // grace_period_minutes
+            0,                           // authorized_early_leave_minutes
+            false,                       // is_early_leave_paid
+            EarlyArrivalStrategy::Allow, // early_arrival_strategy
+            false,                       // is_break_auto_deduct
+            false,                       // is_break_overtime
+            false,                       // allow_early_ot
+        )
+    }
+
+    fn mock_work_entry(
+        punch_in: chrono::DateTime<Utc>,
+        punch_out: chrono::DateTime<Utc>,
+        duration: i32,
+    ) -> TimeEntry {
+        TimeEntry::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            None,
+            None,
+            punch_in,
+            Some(punch_out),
+            Some(duration),
+            false,
+            EntryType::Work,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        )
+    }
+
+    fn mock_break_entry(
+        punch_in: chrono::DateTime<Utc>,
+        punch_out: chrono::DateTime<Utc>,
+        duration: i32,
+    ) -> TimeEntry {
+        TimeEntry::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            None,
+            None,
+            punch_in,
+            Some(punch_out),
+            Some(duration),
+            false,
+            EntryType::Break,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        )
+    }
+
+    /// Build a schedule with a scheduled break duration (no fixed break frame).
+    fn mock_schedule_with_scheduled_break(
+        start_h: u32,
+        start_m: u32,
+        end_h: u32,
+        end_m: u32,
+        break_minutes: i32,
+    ) -> EffectiveSchedule {
+        EffectiveSchedule::new(
+            TEST_DATE,
+            Some(Uuid::new_v4()),
+            "test".to_string(),
+            Some("Test Shift".to_string()),
+            Some("T".to_string()),
+            NaiveTime::from_hms_opt(start_h, start_m, 0),
+            NaiveTime::from_hms_opt(end_h, end_m, 0),
+            Some(break_minutes),
+            None,   // break_start
+            None,   // break_end
+            None,   // is_break_auto_deduct
+            None,   // early_punch_in_grace_period_minutes
+            None,   // allow_early_ot
+            None,   // break_is_overtime
+            None,   // max_early_ot_minutes
+            vec![], // traces
+            false,  // is_holiday
+            false,  // is_holiday_paid
+            None,   // holiday_name
+        )
+    }
+    /// Build an `EffectiveSchedule` with sensible defaults for test use.
+    /// Defaults: date=TEST_DATE, source="test", shift 08:00–17:00, no break,
+    /// no auto-deduct, no OT flags, no holiday.
+    fn mock_schedule(start_h: u32, start_m: u32, end_h: u32, end_m: u32) -> EffectiveSchedule {
+        EffectiveSchedule::new(
+            TEST_DATE,
+            Some(Uuid::new_v4()),
+            "test".to_string(),
+            Some("Test Shift".to_string()),
+            Some("T".to_string()),
+            NaiveTime::from_hms_opt(start_h, start_m, 0),
+            NaiveTime::from_hms_opt(end_h, end_m, 0),
+            None,   // break_duration_minutes
+            None,   // break_start
+            None,   // break_end
+            None,   // is_break_auto_deduct
+            None,   // early_punch_in_grace_period_minutes
+            None,   // allow_early_ot
+            None,   // break_is_overtime
+            None,   // max_early_ot_minutes
+            vec![], // traces
+            false,  // is_holiday
+            false,  // is_holiday_paid
+            None,   // holiday_name
+        )
+    }
+
+    /// Build an `EffectiveSchedule` with a fixed break window.
+    fn mock_schedule_with_break(
+        start_h: u32,
+        start_m: u32,
+        end_h: u32,
+        end_m: u32,
+        break_start_h: u32,
+        break_start_m: u32,
+        break_end_h: u32,
+        break_end_m: u32,
+        break_dur: i32,
+    ) -> EffectiveSchedule {
+        EffectiveSchedule::new(
+            TEST_DATE,
+            Some(Uuid::new_v4()),
+            "test".to_string(),
+            Some("Test Shift".to_string()),
+            Some("T".to_string()),
+            NaiveTime::from_hms_opt(start_h, start_m, 0),
+            NaiveTime::from_hms_opt(end_h, end_m, 0),
+            Some(break_dur),
+            NaiveTime::from_hms_opt(break_start_h, break_start_m, 0),
+            NaiveTime::from_hms_opt(break_end_h, break_end_m, 0),
+            None,   // is_break_auto_deduct
+            None,   // early_punch_in_grace_period_minutes
+            None,   // allow_early_ot
+            None,   // break_is_overtime
+            None,   // max_early_ot_minutes
+            vec![], // traces
+            false,  // is_holiday
+            false,  // is_holiday_paid
+            None,   // holiday_name
+        )
+    }
+
+    /// Build an overnight `EffectiveSchedule` (end < start).
+    fn mock_overnight_schedule(
+        start_h: u32,
+        start_m: u32,
+        end_h: u32,
+        end_m: u32,
+    ) -> EffectiveSchedule {
+        EffectiveSchedule::new(
+            TEST_DATE,
+            Some(Uuid::new_v4()),
+            "test".to_string(),
+            Some("Overnight Shift".to_string()),
+            Some("N".to_string()),
+            NaiveTime::from_hms_opt(start_h, start_m, 0),
+            NaiveTime::from_hms_opt(end_h, end_m, 0),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            vec![],
+            false,
+            false,
+            None,
+        )
+    }
+
+    /// Build a no-shift `EffectiveSchedule` (day off / holiday).
+    fn mock_no_shift_schedule() -> EffectiveSchedule {
+        EffectiveSchedule::new(
+            TEST_DATE,
+            None, // shift_id = None → no shift
+            "none".to_string(),
+            None,
+            None,
+            None, // start_time
+            None, // end_time
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            vec![],
+            false,
+            false,
+            None,
+        )
+    }
+
+    // =========================================================================
+    // ComputeDailyInputBuilder
+    // =========================================================================
+
+    /// Test builder for `ComputeDailyInput`. Owns the data so references
+    /// remain valid during the `compute()` call.
+    struct ComputeDailyInputBuilder {
+        schedule: EffectiveSchedule,
+        entries: Vec<TimeEntry>,
+        date: NaiveDate,
+        tz: Tz,
+        rules: PolicyRules,
+        work_unit_minutes: i32,
+        rounding_policy: RoundingPolicy,
+        max_early_ot_minutes: Option<i32>,
+        ot_ceiling: Option<chrono::DateTime<Tz>>,
+        segment_id: Option<Uuid>,
+        ot_aggregation_mode: OtAggregationMode,
+    }
+
+    impl ComputeDailyInputBuilder {
+        fn new() -> Self {
+            Self {
+                schedule: mock_schedule(8, 0, 17, 0),
+                entries: Vec::new(),
+                date: TEST_DATE,
+                tz: tz_utc(),
+                rules: mock_rules(),
+                work_unit_minutes: 30,
+                rounding_policy: RoundingPolicy::Floor,
+                max_early_ot_minutes: None,
+                ot_ceiling: None,
+                segment_id: None,
+                ot_aggregation_mode: OtAggregationMode::Aggregate,
+            }
+        }
+
+        fn schedule(mut self, s: EffectiveSchedule) -> Self {
+            self.schedule = s;
+            self
+        }
+
+        fn schedule_mut(mut self, f: impl FnOnce(&mut EffectiveSchedule)) -> Self {
+            f(&mut self.schedule);
+            self
+        }
+
+        fn entries(mut self, entries: Vec<TimeEntry>) -> Self {
+            self.entries = entries;
+            self
+        }
+
+        fn work_entry(
+            mut self,
+            punch_in: chrono::DateTime<Utc>,
+            punch_out: chrono::DateTime<Utc>,
+        ) -> Self {
+            let dur = (punch_out - punch_in).num_minutes() as i32;
+            self.entries.push(mock_work_entry(punch_in, punch_out, dur));
+            self
+        }
+
+        fn break_entry(
+            mut self,
+            punch_in: chrono::DateTime<Utc>,
+            punch_out: chrono::DateTime<Utc>,
+            dur: i32,
+        ) -> Self {
+            self.entries
+                .push(mock_break_entry(punch_in, punch_out, dur));
+            self
+        }
+
+        fn tz(mut self, tz: Tz) -> Self {
+            self.tz = tz;
+            self
+        }
+
+        fn rules_mut(mut self, f: impl FnOnce(&mut PolicyRules)) -> Self {
+            f(&mut self.rules);
+            self
+        }
+
+        fn work_unit(mut self, minutes: i32) -> Self {
+            self.work_unit_minutes = minutes;
+            self
+        }
+
+        fn rounding(mut self, policy: RoundingPolicy) -> Self {
+            self.rounding_policy = policy;
+            self
+        }
+
+        fn max_early_ot(mut self, minutes: i32) -> Self {
+            self.max_early_ot_minutes = Some(minutes);
+            self
+        }
+
+        fn ot_ceiling_at(mut self, h: u32, m: u32) -> Self {
+            self.ot_ceiling = Some(dt_tz(self.tz, h, m));
+            self
+        }
+
+        fn segment_id(mut self, id: Uuid) -> Self {
+            self.segment_id = Some(id);
+            self
+        }
+
+        fn ot_aggregation_mode(mut self, mode: OtAggregationMode) -> Self {
+            self.ot_aggregation_mode = mode;
+            self
+        }
+
+        /// Build `ComputeDailyInput` and call `compute_daily_attendance`.
+        fn compute(&self) -> Option<DailyAttendanceResult> {
+            let entry_refs: Vec<&TimeEntry> = self.entries.iter().collect();
+            let input = ComputeDailyInput {
+                daily: &self.schedule,
+                day_entries: &entry_refs,
+                date: self.date,
+                tz: &self.tz,
+                rules: &self.rules,
+                work_unit_minutes: self.work_unit_minutes,
+                rounding_policy: self.rounding_policy,
+                max_early_ot_minutes: self.max_early_ot_minutes,
+                ot_ceiling: self.ot_ceiling,
+                segment_id: self.segment_id,
+                ot_aggregation_mode: self.ot_aggregation_mode,
+            };
+            AttendanceService::compute_daily_attendance(input)
+        }
+    }
+
+    // =========================================================================
+    // Helper: build a DailyCalcInput for segment_attendance tests
+    // =========================================================================
+
+    fn make_calc_input(
+        punch_in: chrono::DateTime<Tz>,
+        punch_out: chrono::DateTime<Tz>,
+        shift_start: chrono::DateTime<Tz>,
+        shift_end: chrono::DateTime<Tz>,
+        work_unit: i32,
+        rules: &PolicyRules,
+        ot_ceiling: Option<chrono::DateTime<Tz>>,
+        segment_id: Option<Uuid>,
+    ) -> DailyCalcInput<Tz> {
+        DailyCalcInput {
+            punch_in,
+            punch_out,
+            shift_start: Some(shift_start),
+            shift_end: Some(shift_end),
+            scheduled_break_minutes: 0,
+            actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
+            work_unit,
+            rounding_policy: RoundingPolicy::Floor,
+            rules: rules.clone(),
+            ot_ceiling,
+            max_early_ot_minutes: None,
+            segment_id,
+            ot_aggregation_mode: OtAggregationMode::Aggregate,
+        }
+    }
+
+    // =========================================================================
+    // Existing helper tests (kept)
+    // =========================================================================
 
     #[test]
     fn shift_naive_to_dt_basic() {
@@ -419,9 +838,9 @@ mod tests {
         let t = NaiveTime::from_hms_opt(8, 0, 0).unwrap();
         let result = shift_naive_to_dt(Some(t), date, tz);
         assert!(result.is_some());
-        let dt = result.unwrap();
-        assert_eq!(dt.hour(), 8);
-        assert_eq!(dt.minute(), 0);
+        let dt_val = result.unwrap();
+        assert_eq!(dt_val.hour(), 8);
+        assert_eq!(dt_val.minute(), 0);
     }
 
     #[test]
@@ -429,5 +848,1337 @@ mod tests {
         let tz: Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
         let date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
         assert!(shift_naive_to_dt(None, date, tz).is_none());
+    }
+
+    // =========================================================================
+    // Module B: DailyAttendanceResult accessor tests
+    // =========================================================================
+
+    mod daily_result_accessors {
+        use super::*;
+
+        fn make_result(std: i32, early: i32, late: i32, brk: i32) -> DailyAttendanceResult {
+            DailyAttendanceResult {
+                work_buckets: WorkBuckets {
+                    standard_minutes: std,
+                    early_ot_minutes: early,
+                    late_ot_minutes: late,
+                    break_ot_minutes: brk,
+                },
+            }
+        }
+
+        #[test]
+        fn standard_minutes_returns_correct_value() {
+            let r = make_result(500, 30, 20, 10);
+            assert_eq!(r.standard_minutes(), 500);
+        }
+
+        #[test]
+        fn ot_minutes_sums_all_ot_buckets() {
+            let r = make_result(500, 30, 20, 10);
+            assert_eq!(r.ot_minutes(), 60);
+        }
+
+        #[test]
+        fn actual_work_minutes_sums_std_and_ot() {
+            let r = make_result(500, 30, 20, 10);
+            assert_eq!(r.actual_work_minutes(), 560);
+        }
+
+        #[test]
+        fn system_detected_ot_equals_ot_minutes() {
+            let r = make_result(500, 30, 20, 10);
+            assert_eq!(r.system_detected_ot_minutes(), 60);
+        }
+
+        #[test]
+        fn work_buckets_returns_reference() {
+            let r = make_result(500, 30, 20, 10);
+            assert_eq!(r.work_buckets().standard_minutes, 500);
+            assert_eq!(r.work_buckets().early_ot_minutes, 30);
+        }
+
+        #[test]
+        fn standard_units_floor() {
+            let r = make_result(500, 0, 0, 0);
+            assert_eq!(r.standard_units(30, RoundingPolicy::Floor), 16);
+        }
+
+        #[test]
+        fn standard_units_ceil() {
+            let r = make_result(500, 0, 0, 0);
+            assert_eq!(r.standard_units(30, RoundingPolicy::Ceil), 17);
+        }
+
+        #[test]
+        fn standard_units_round() {
+            let r = make_result(495, 0, 0, 0);
+            // 495/30 = 16.5 → rounds to 17
+            assert_eq!(r.standard_units(30, RoundingPolicy::Round), 17);
+        }
+
+        #[test]
+        fn standard_units_none_truncates() {
+            let r = make_result(500, 0, 0, 0);
+            assert_eq!(r.standard_units(30, RoundingPolicy::None), 16);
+        }
+
+        #[test]
+        fn ot_units_with_rounding() {
+            let r = make_result(0, 30, 30, 15);
+            assert_eq!(r.ot_units(30, RoundingPolicy::Ceil), 3);
+        }
+
+        #[test]
+        fn into_units_returns_tuple() {
+            let r = make_result(500, 0, 75, 0);
+            let (std, ot) = r.into_units(30, RoundingPolicy::Floor);
+            assert_eq!(std, 16);
+            assert_eq!(ot, 2);
+        }
+
+        #[test]
+        fn into_minutes_returns_tuple() {
+            let r = make_result(500, 0, 75, 0);
+            let (std, ot) = r.into_minutes();
+            assert_eq!(std, 500);
+            assert_eq!(ot, 75);
+        }
+
+        #[test]
+        fn all_zero_buckets() {
+            let r = make_result(0, 0, 0, 0);
+            assert_eq!(r.standard_minutes(), 0);
+            assert_eq!(r.ot_minutes(), 0);
+            assert_eq!(r.actual_work_minutes(), 0);
+            assert_eq!(r.standard_units(30, RoundingPolicy::Floor), 0);
+        }
+    }
+
+    // =========================================================================
+    // Module D: SegmentAttendanceResult accessor tests
+    // =========================================================================
+
+    mod segment_result_accessors {
+        use super::*;
+
+        fn make_calc(
+            total_std: i32,
+            total_ot: i32,
+            buckets: Vec<(Option<Uuid>, WorkBuckets)>,
+        ) -> SegmentCalcResult {
+            SegmentCalcResult {
+                total_standard_units: total_std,
+                total_ot_units: total_ot,
+                per_segment_buckets: buckets,
+            }
+        }
+
+        fn make_result(
+            total_std: i32,
+            total_ot: i32,
+            buckets: Vec<(Option<Uuid>, WorkBuckets)>,
+        ) -> SegmentAttendanceResult {
+            SegmentAttendanceResult {
+                calc_result: make_calc(total_std, total_ot, buckets),
+            }
+        }
+
+        fn make_buckets(std: i32, early: i32, late: i32, brk: i32) -> WorkBuckets {
+            WorkBuckets {
+                standard_minutes: std,
+                early_ot_minutes: early,
+                late_ot_minutes: late,
+                break_ot_minutes: brk,
+            }
+        }
+
+        #[test]
+        fn total_standard_units() {
+            let r = make_result(20, 5, vec![]);
+            assert_eq!(r.total_standard_units(), 20);
+        }
+
+        #[test]
+        fn total_ot_units() {
+            let r = make_result(20, 5, vec![]);
+            assert_eq!(r.total_ot_units(), 5);
+        }
+
+        #[test]
+        fn segment_units_valid_index() {
+            let id0 = Uuid::new_v4();
+            let id1 = Uuid::new_v4();
+            let r = make_result(
+                30,
+                8,
+                vec![
+                    (Some(id0), make_buckets(480, 0, 0, 0)),  // 16 std, 0 ot
+                    (Some(id1), make_buckets(240, 60, 0, 0)), // 8 std, 2 ot
+                ],
+            );
+
+            let (s0, o0) = r.segment_units(0, 30, RoundingPolicy::Floor);
+            assert_eq!(s0, 16);
+            assert_eq!(o0, 0);
+
+            let (s1, o1) = r.segment_units(1, 30, RoundingPolicy::Floor);
+            assert_eq!(s1, 8);
+            assert_eq!(o1, 2);
+        }
+
+        #[test]
+        fn segment_units_out_of_range_falls_back_to_totals() {
+            let r = make_result(
+                20,
+                5,
+                vec![(Some(Uuid::new_v4()), make_buckets(100, 0, 0, 0))],
+            );
+            let (s, o) = r.segment_units(99, 30, RoundingPolicy::Floor);
+            assert_eq!(s, 20);
+            assert_eq!(o, 5);
+        }
+
+        #[test]
+        fn segment_units_empty_vec_falls_back() {
+            let r = make_result(10, 2, vec![]);
+            let (s, o) = r.segment_units(0, 30, RoundingPolicy::Floor);
+            assert_eq!(s, 10);
+            assert_eq!(o, 2);
+        }
+
+        #[test]
+        fn into_total_units_consumes() {
+            let r = make_result(20, 5, vec![]);
+            assert_eq!(r.into_total_units(), (20, 5));
+        }
+
+        #[test]
+        fn calc_result_returns_reference() {
+            let r = make_result(20, 5, vec![]);
+            assert_eq!(r.calc_result().total_standard_units, 20);
+        }
+
+        #[test]
+        fn per_segment_buckets_empty_by_default() {
+            let r = SegmentAttendanceResult {
+                calc_result: SegmentCalcResult::default(),
+            };
+            assert!(r.per_segment_buckets().is_empty());
+            assert_eq!(r.total_standard_units(), 0);
+        }
+    }
+
+    // =========================================================================
+    // Module A: compute_daily_attendance pipeline tests
+    // =========================================================================
+
+    mod pipeline {
+        use super::*;
+
+        mod basic_work {
+            use super::*;
+
+            #[test]
+            fn single_work_entry_within_bounds() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(8, 0), dt(17, 0))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.standard_minutes(), 540);
+                assert_eq!(r.ot_minutes(), 0);
+                assert_eq!(r.actual_work_minutes(), 540);
+            }
+
+            #[test]
+            fn single_work_entry_partial_shift() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(9, 0), dt(16, 0))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.standard_minutes(), 420);
+                assert_eq!(r.ot_minutes(), 0);
+            }
+
+            #[test]
+            fn exact_shift_boundaries() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(8, 0), dt(17, 0))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.standard_minutes(), 540);
+                assert_eq!(r.ot_minutes(), 0);
+            }
+        }
+
+        mod break_entries {
+            use super::*;
+
+            #[test]
+            fn two_punch_no_break_entries() {
+                // Pipeline uses first punch_in and last punch_out only.
+                // Without auto-deduct or Break entries, no break deduction applies.
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_schedule(8, 0, 17, 0))
+                    .entries(vec![
+                        mock_work_entry(dt(8, 0), dt(12, 0), 240),
+                        mock_work_entry(dt(13, 0), dt(17, 0), 240),
+                    ])
+                    .compute()
+                    .unwrap();
+                // actual_break_minutes = 0 (no Break entries)
+                // shift has no auto-deduct → standard = 540 (9h * 60)
+                assert_eq!(r.standard_minutes(), 540);
+            }
+
+            #[test]
+            fn four_punch_with_break_entry() {
+                let r = ComputeDailyInputBuilder::new()
+                    .entries(vec![
+                        mock_work_entry(dt(8, 0), dt(12, 0), 240),
+                        mock_break_entry(dt(12, 0), dt(13, 0), 60),
+                        mock_work_entry(dt(13, 0), dt(17, 0), 240),
+                    ])
+                    .compute()
+                    .unwrap();
+                // actual_break=60 passed to calculator; no auto-deduct → no additional deduction
+                assert_eq!(r.standard_minutes(), 480);
+            }
+
+            #[test]
+            fn break_entry_duration_summed() {
+                let r = ComputeDailyInputBuilder::new()
+                    .entries(vec![
+                        mock_work_entry(dt(8, 0), dt(12, 0), 240),
+                        mock_break_entry(dt(12, 0), dt(12, 30), 30),
+                        mock_break_entry(dt(12, 30), dt(13, 0), 30),
+                        mock_work_entry(dt(13, 0), dt(17, 0), 240),
+                    ])
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.standard_minutes(), 480);
+            }
+
+            #[test]
+            fn break_entry_zero_duration() {
+                // Break entry with duration_minutes=None should contribute 0
+                let entry = TimeEntry::new(
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    None,
+                    None,
+                    dt(12, 0),
+                    Some(dt(13, 0)),
+                    None, // duration = None → unwrap_or(0)
+                    false,
+                    EntryType::Break,
+                    None,
+                    None,
+                    Utc::now(),
+                    Utc::now(),
+                );
+                let r = ComputeDailyInputBuilder::new()
+                    .entries(vec![
+                        mock_work_entry(dt(8, 0), dt(12, 0), 240),
+                        entry,
+                        mock_work_entry(dt(13, 0), dt(17, 0), 240),
+                    ])
+                    .rules_mut(|r| r.set_is_break_auto_deduct(true))
+                    .compute()
+                    .unwrap();
+                // duration=None → break contribution=0, auto-deduct finds 0 actual break
+                // and falls back to scheduled_break=0 → no deduction → 540
+                assert_eq!(r.standard_minutes(), 540);
+            }
+        }
+
+        mod overnight_shift {
+            use super::*;
+
+            #[test]
+            fn end_less_than_start_adds_one_day() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_overnight_schedule(22, 0, 6, 0))
+                    .work_entry(dt(22, 0), dt_utc_d2(6, 0))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.standard_minutes(), 480);
+                assert_eq!(r.work_buckets().late_ot_minutes, 0);
+            }
+
+            #[test]
+            fn overnight_with_ot() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_overnight_schedule(22, 0, 6, 0))
+                    .work_entry(dt(21, 0), dt_utc_d2(6, 0))
+                    .rules_mut(|r| r.set_allow_early_ot(true))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.standard_minutes(), 480);
+                assert_eq!(r.work_buckets().early_ot_minutes, 60);
+            }
+
+            #[test]
+            fn overnight_punch_in_respected() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_overnight_schedule(22, 0, 6, 0))
+                    .work_entry(dt(22, 0), dt_utc_d2(6, 0))
+                    .compute()
+                    .unwrap();
+                // 8 hours = 480 minutes standard
+                assert_eq!(r.standard_minutes(), 480);
+            }
+        }
+
+        mod missing_punches {
+            use super::*;
+
+            #[test]
+            fn empty_entries_returns_none() {
+                let r = ComputeDailyInputBuilder::new().compute();
+                assert!(r.is_none());
+            }
+
+            #[test]
+            fn missing_punch_out_returns_none() {
+                let entry = TimeEntry::new(
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    None,
+                    None,
+                    dt(8, 0),
+                    None, // no punch_out
+                    None,
+                    false,
+                    EntryType::Work,
+                    None,
+                    None,
+                    Utc::now(),
+                    Utc::now(),
+                );
+                let r = ComputeDailyInputBuilder::new()
+                    .entries(vec![entry])
+                    .compute();
+                assert!(r.is_none());
+            }
+
+            #[test]
+            fn single_entry_with_punch_out_returns_some() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(8, 0), dt(12, 0))
+                    .compute();
+                assert!(r.is_some());
+            }
+        }
+
+        mod no_shift {
+            use super::*;
+
+            #[test]
+            fn all_standard_minutes() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_no_shift_schedule())
+                    .work_entry(dt(8, 0), dt(17, 0))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.standard_minutes(), 540);
+                assert_eq!(r.ot_minutes(), 0);
+            }
+
+            #[test]
+            fn short_session() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_no_shift_schedule())
+                    .work_entry(dt(9, 0), dt(9, 15))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.standard_minutes(), 15);
+            }
+
+            #[test]
+            fn with_break_entries() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_no_shift_schedule())
+                    .entries(vec![
+                        mock_work_entry(dt(8, 0), dt(12, 0), 240),
+                        mock_break_entry(dt(12, 0), dt(13, 0), 60),
+                        mock_work_entry(dt(13, 0), dt(17, 0), 240),
+                    ])
+                    .compute()
+                    .unwrap();
+                // No shift → all standard (break minutes still computed from entries)
+                assert_eq!(r.standard_minutes(), 540);
+            }
+        }
+
+        mod early_ot {
+            use super::*;
+
+            #[test]
+            fn early_arrival_ot_when_enabled() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(6, 0), dt(17, 0))
+                    .rules_mut(|r| r.set_allow_early_ot(true))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.standard_minutes(), 540);
+                assert_eq!(r.work_buckets().early_ot_minutes, 120);
+            }
+
+            #[test]
+            fn early_arrival_blocked_when_disabled() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(6, 0), dt(17, 0))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.work_buckets().early_ot_minutes, 0);
+                assert_eq!(r.standard_minutes(), 540);
+            }
+
+            #[test]
+            fn early_ot_at_exact_shift_start_is_zero() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(8, 0), dt(17, 0))
+                    .rules_mut(|r| r.set_allow_early_ot(true))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.work_buckets().early_ot_minutes, 0);
+            }
+        }
+
+        mod late_ot {
+            use super::*;
+
+            #[test]
+            fn uncapped_late_ot() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(8, 0), dt(20, 0))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.standard_minutes(), 540);
+                assert_eq!(r.work_buckets().late_ot_minutes, 180);
+            }
+
+            #[test]
+            fn exact_shift_end_zero_ot() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(8, 0), dt(17, 0))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.work_buckets().late_ot_minutes, 0);
+            }
+
+            #[test]
+            fn one_minute_over() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(8, 0), dt(17, 1))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.work_buckets().late_ot_minutes, 1);
+            }
+        }
+
+        mod break_overtime {
+            use super::*;
+
+            #[test]
+            fn fixed_worked_through_break() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_schedule_with_break(8, 0, 17, 0, 12, 0, 13, 0, 60))
+                    .work_entry(dt(8, 0), dt(17, 0))
+                    .rules_mut(|r| r.set_is_break_overtime(true))
+                    .compute()
+                    .unwrap();
+                // No actual break taken → break_ot earned
+                assert_eq!(r.standard_minutes(), 480);
+                assert_eq!(r.work_buckets().break_ot_minutes, 60);
+            }
+
+            #[test]
+            fn fixed_break_taken() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_schedule_with_break(8, 0, 17, 0, 12, 0, 13, 0, 60))
+                    .entries(vec![
+                        mock_work_entry(dt(8, 0), dt(12, 0), 240),
+                        mock_break_entry(dt(12, 0), dt(13, 0), 60),
+                        mock_work_entry(dt(13, 0), dt(17, 0), 240),
+                    ])
+                    .rules_mut(|r| r.set_is_break_overtime(true))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.standard_minutes(), 480);
+                assert_eq!(r.work_buckets().break_ot_minutes, 0);
+            }
+
+            #[test]
+            fn flexible_break_worked() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_schedule_with_scheduled_break(8, 0, 17, 0, 60))
+                    .rules_mut(|r| {
+                        r.set_is_break_overtime(true);
+                        r.set_is_break_auto_deduct(true);
+                    })
+                    .work_entry(dt(8, 0), dt(17, 0))
+                    .compute()
+                    .unwrap();
+                // Flexible mode: no frame → scheduled_break used as overlap
+                assert_eq!(r.standard_minutes(), 480);
+                assert_eq!(r.work_buckets().break_ot_minutes, 60);
+            }
+        }
+
+        mod ot_ceiling_tests {
+            use super::*;
+
+            #[test]
+            fn caps_late_ot() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_schedule(8, 0, 12, 0))
+                    .work_entry(dt(8, 0), dt(13, 30))
+                    .ot_ceiling_at(13, 0)
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.standard_minutes(), 240);
+                // Late OT: punch_out=13:30, shift_end=12:00, ceiling=13:00
+                // effective_punch_out = min(13:30, 13:00) = 13:00
+                // late = 13:00 - 12:00 = 60
+                assert_eq!(r.work_buckets().late_ot_minutes, 60);
+            }
+
+            #[test]
+            fn ceiling_exact_boundary() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_schedule(8, 0, 12, 0))
+                    .work_entry(dt(8, 0), dt(13, 0))
+                    .ot_ceiling_at(13, 0)
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.standard_minutes(), 240);
+                assert_eq!(r.work_buckets().late_ot_minutes, 60);
+            }
+
+            #[test]
+            fn ceiling_1min_before_punch_out() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_schedule(8, 0, 12, 0))
+                    .work_entry(dt(8, 0), dt(12, 59))
+                    .ot_ceiling_at(13, 0)
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.work_buckets().late_ot_minutes, 59);
+            }
+
+            #[test]
+            fn no_ceiling_unlimited_ot() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_schedule(8, 0, 12, 0))
+                    .work_entry(dt(8, 0), dt(13, 30))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.standard_minutes(), 240);
+                assert_eq!(r.work_buckets().late_ot_minutes, 90);
+            }
+        }
+
+        mod max_early_ot_cap {
+            use super::*;
+
+            #[test]
+            fn caps_early_ot() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(5, 0), dt(17, 0))
+                    .rules_mut(|r| r.set_allow_early_ot(true))
+                    .max_early_ot(120)
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.work_buckets().early_ot_minutes, 120);
+            }
+
+            #[test]
+            fn cap_zero() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(5, 0), dt(17, 0))
+                    .rules_mut(|r| r.set_allow_early_ot(true))
+                    .max_early_ot(0)
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.work_buckets().early_ot_minutes, 0);
+            }
+
+            #[test]
+            fn cap_higher_than_actual_not_limiting() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(5, 0), dt(17, 0))
+                    .rules_mut(|r| r.set_allow_early_ot(true))
+                    .max_early_ot(240)
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.work_buckets().early_ot_minutes, 180);
+            }
+
+            #[test]
+            fn no_cap_unlimited() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(5, 0), dt(17, 0))
+                    .rules_mut(|r| r.set_allow_early_ot(true))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.work_buckets().early_ot_minutes, 180);
+            }
+        }
+
+        mod early_leave {
+            use super::*;
+
+            #[test]
+            fn extends_standard_when_paid() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(8, 0), dt(16, 30))
+                    .rules_mut(|r| {
+                        r.set_authorized_early_leave_minutes(60);
+                        r.set_is_early_leave_paid(true);
+                    })
+                    .compute()
+                    .unwrap();
+                // Exit 30min early, paid up to 60 → full shift
+                assert_eq!(r.standard_minutes(), 540);
+            }
+
+            #[test]
+            fn not_paid_when_flag_disabled() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(8, 0), dt(16, 30))
+                    .rules_mut(|r| {
+                        r.set_authorized_early_leave_minutes(60);
+                        r.set_is_early_leave_paid(false);
+                    })
+                    .compute()
+                    .unwrap();
+                // Exit 30min early, not paid → 510 standard (8.5h)
+                assert_eq!(r.standard_minutes(), 510);
+            }
+
+            #[test]
+            fn exceeds_allowance() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(8, 0), dt(15, 0))
+                    .rules_mut(|r| {
+                        r.set_authorized_early_leave_minutes(60);
+                        r.set_is_early_leave_paid(true);
+                    })
+                    .compute()
+                    .unwrap();
+                // Exit 120min early, only 60min covered → 420 (7h)
+                assert_eq!(r.standard_minutes(), 420);
+            }
+        }
+
+        mod grace_period {
+            use super::*;
+
+            #[test]
+            fn within_grace_window_no_ot() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_schedule(7, 30, 17, 0))
+                    .work_entry(dt(7, 15), dt(17, 0))
+                    .rules_mut(|r| {
+                        r.set_grace_period_minutes(30);
+                        r.set_allow_early_ot(true);
+                    })
+                    .compute()
+                    .unwrap();
+                // 7:15 is within 30-min grace before 7:30 → no early OT
+                assert_eq!(r.work_buckets().early_ot_minutes, 0);
+            }
+
+            #[test]
+            fn outside_grace_window() {
+                // Punch at 6:59, grace threshold is 7:00, Allow strategy
+                // 6:59 < 7:00 (grace threshold) → effective_ot_start = 6:59
+                // early_ot = 7:30 - 6:59 = 31 minutes
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_schedule(7, 30, 17, 0))
+                    .work_entry(dt(6, 59), dt(17, 0))
+                    .rules_mut(|r| {
+                        r.set_grace_period_minutes(30);
+                        r.set_allow_early_ot(true);
+                    })
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.work_buckets().early_ot_minutes, 31);
+            }
+
+            #[test]
+            fn clamp_strategy_caps_at_grace() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(6, 45), dt(17, 0))
+                    .rules_mut(|r| {
+                        r.set_grace_period_minutes(30);
+                        r.set_allow_early_ot(true);
+                        r.set_early_arrival_strategy(EarlyArrivalStrategy::Clamp);
+                    })
+                    .compute()
+                    .unwrap();
+                // Clamp: effective_ot_start = max(punch_in, grace_threshold)
+                // grace_threshold = 8:00 - 30min = 7:30
+                // effective_ot_start = max(6:45, 7:30) = 7:30
+                // early_ot = shift_start(8:00) - 7:30 = 30
+                assert_eq!(r.work_buckets().early_ot_minutes, 30);
+            }
+
+            #[test]
+            fn block_strategy_within_grace_no_ot() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(7, 45), dt(17, 0))
+                    .rules_mut(|r| {
+                        r.set_grace_period_minutes(30);
+                        r.set_allow_early_ot(true);
+                        r.set_early_arrival_strategy(EarlyArrivalStrategy::Block);
+                    })
+                    .compute()
+                    .unwrap();
+                // Block: within grace → effective_ot_start = shift_start, so early_ot = 0
+                assert_eq!(r.work_buckets().early_ot_minutes, 0);
+            }
+
+            #[test]
+            fn block_strategy_out_of_grace() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(6, 45), dt(17, 0))
+                    .rules_mut(|r| {
+                        r.set_grace_period_minutes(30);
+                        r.set_allow_early_ot(true);
+                        r.set_early_arrival_strategy(EarlyArrivalStrategy::Block);
+                    })
+                    .compute()
+                    .unwrap();
+                // Block: out of grace → effective_ot_start = punch_in(6:45)
+                // early_ot = shift_start(8:00) - 6:45 = 75
+                assert_eq!(r.work_buckets().early_ot_minutes, 75);
+            }
+        }
+
+        mod frame_intersection {
+            use super::*;
+
+            #[test]
+            fn full_overlap() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_schedule_with_break(8, 0, 17, 0, 11, 30, 12, 30, 60))
+                    .work_entry(dt(8, 0), dt(17, 0))
+                    .rules_mut(|r| r.set_is_break_auto_deduct(true))
+                    .compute()
+                    .unwrap();
+                // Full overlap: 60min break fully overlaps with work → deduct 60
+                assert_eq!(r.standard_minutes(), 480);
+            }
+
+            #[test]
+            fn partial_overlap_leave_during_break() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_schedule_with_break(8, 0, 17, 0, 11, 30, 12, 30, 60))
+                    .work_entry(dt(8, 0), dt(12, 0))
+                    .rules_mut(|r| r.set_is_break_auto_deduct(true))
+                    .compute()
+                    .unwrap();
+                // Punch 8:00-12:00, break 11:30-12:30
+                // Overlap: 11:30-12:00 = 30min
+                // Standard: 4h - 30min = 210
+                assert_eq!(r.standard_minutes(), 210);
+            }
+
+            #[test]
+            fn no_overlap_leave_before_break() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_schedule_with_break(8, 0, 17, 0, 11, 30, 12, 30, 60))
+                    .work_entry(dt(8, 0), dt(11, 0))
+                    .rules_mut(|r| r.set_is_break_auto_deduct(true))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.standard_minutes(), 180);
+            }
+
+            #[test]
+            fn arrive_during_break() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_schedule_with_break(8, 0, 17, 0, 11, 30, 12, 30, 60))
+                    .work_entry(dt(12, 0), dt(17, 0))
+                    .rules_mut(|r| r.set_is_break_auto_deduct(true))
+                    .compute()
+                    .unwrap();
+                // Punch 12:00-17:00, break 11:30-12:30 → overlap 12:00-12:30 = 30
+                assert_eq!(r.standard_minutes(), 270);
+            }
+        }
+
+        mod auto_deduct {
+            use super::*;
+
+            #[test]
+            fn deducts_scheduled_when_no_actual() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_schedule_with_scheduled_break(8, 0, 17, 0, 60))
+                    .work_entry(dt(8, 0), dt(17, 0))
+                    .rules_mut(|r| r.set_is_break_auto_deduct(true))
+                    .compute()
+                    .unwrap();
+                // 540 - 60 = 480
+                assert_eq!(r.standard_minutes(), 480);
+            }
+
+            #[test]
+            fn actual_break_takes_precedence() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_schedule_with_scheduled_break(8, 0, 17, 0, 60))
+                    .entries(vec![
+                        mock_work_entry(dt(8, 0), dt(12, 0), 240),
+                        mock_break_entry(dt(12, 0), dt(12, 45), 45),
+                        mock_work_entry(dt(12, 45), dt(17, 0), 255),
+                    ])
+                    .rules_mut(|r| r.set_is_break_auto_deduct(true))
+                    .compute()
+                    .unwrap();
+                // actual_break=45, so deduction=45 (not the scheduled 60)
+                assert_eq!(r.standard_minutes(), 495);
+            }
+
+            #[test]
+            fn disabled_no_deduction() {
+                let r = ComputeDailyInputBuilder::new()
+                    .schedule(mock_schedule_with_scheduled_break(8, 0, 17, 0, 60))
+                    .work_entry(dt(8, 0), dt(17, 0))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.standard_minutes(), 540);
+            }
+
+            #[test]
+            fn zero_scheduled_no_deduction() {
+                let r = ComputeDailyInputBuilder::new()
+                    .work_entry(dt(8, 0), dt(17, 0))
+                    .rules_mut(|r| r.set_is_break_auto_deduct(true))
+                    .compute()
+                    .unwrap();
+                assert_eq!(r.standard_minutes(), 540);
+            }
+        }
+    }
+
+    // =========================================================================
+    // Module C: compute_segment_attendance tests
+    // =========================================================================
+
+    mod segment_attendance {
+        use super::*;
+
+        mod empty {
+            use super::*;
+
+            #[test]
+            fn empty_inputs_returns_default() {
+                let r = AttendanceService::compute_segment_attendance(&[]);
+                assert_eq!(r.total_standard_units(), 0);
+                assert_eq!(r.total_ot_units(), 0);
+                assert!(r.per_segment_buckets().is_empty());
+            }
+        }
+
+        mod single_segment {
+            use super::*;
+
+            #[test]
+            fn routes_to_daily_units() {
+                let tz = tz_utc();
+                let rules = mock_rules();
+                let input = make_calc_input(
+                    dt_tz(tz, 8, 0),
+                    dt_tz(tz, 17, 0),
+                    dt_tz(tz, 8, 0),
+                    dt_tz(tz, 17, 0),
+                    30,
+                    &rules,
+                    None,
+                    None,
+                );
+                let r = AttendanceService::compute_segment_attendance(&[input]);
+                assert_eq!(r.total_standard_units(), 18);
+                assert_eq!(r.total_ot_units(), 0);
+                assert_eq!(r.per_segment_buckets().len(), 1);
+            }
+
+            #[test]
+            fn populates_per_segment_with_id() {
+                let tz = tz_utc();
+                let seg_id = Uuid::new_v4();
+                let rules = mock_rules();
+                let input = make_calc_input(
+                    dt_tz(tz, 8, 0),
+                    dt_tz(tz, 17, 0),
+                    dt_tz(tz, 8, 0),
+                    dt_tz(tz, 17, 0),
+                    30,
+                    &rules,
+                    None,
+                    Some(seg_id),
+                );
+                let r = AttendanceService::compute_segment_attendance(&[input]);
+                assert_eq!(r.per_segment_buckets()[0].0, Some(seg_id));
+            }
+
+            #[test]
+            fn with_ot() {
+                let tz = tz_utc();
+                let mut rules = mock_rules();
+                rules.set_allow_early_ot(true);
+                let input = make_calc_input(
+                    dt_tz(tz, 7, 0),
+                    dt_tz(tz, 17, 0),
+                    dt_tz(tz, 8, 0),
+                    dt_tz(tz, 17, 0),
+                    30,
+                    &rules,
+                    None,
+                    None,
+                );
+                let r = AttendanceService::compute_segment_attendance(&[input]);
+                assert_eq!(r.total_standard_units(), 18);
+                assert_eq!(r.total_ot_units(), 2);
+            }
+        }
+
+        mod multi_segment {
+            use super::*;
+
+            #[test]
+            fn two_segments_aggregate() {
+                let tz = tz_utc();
+                let rules = mock_rules();
+                let input1 = make_calc_input(
+                    dt_tz(tz, 8, 0),
+                    dt_tz(tz, 12, 0),
+                    dt_tz(tz, 8, 0),
+                    dt_tz(tz, 12, 0),
+                    30,
+                    &rules,
+                    None,
+                    None,
+                );
+                let input2 = make_calc_input(
+                    dt_tz(tz, 13, 0),
+                    dt_tz(tz, 17, 0),
+                    dt_tz(tz, 13, 0),
+                    dt_tz(tz, 17, 0),
+                    30,
+                    &rules,
+                    None,
+                    None,
+                );
+                let r = AttendanceService::compute_segment_attendance(&[input1, input2]);
+                assert_eq!(r.total_standard_units(), 16); // 480/30
+                assert_eq!(r.per_segment_buckets().len(), 2);
+            }
+
+            #[test]
+            fn two_segments_aggregate_with_ot() {
+                let tz = tz_utc();
+                let rules = mock_rules();
+                let input1 = make_calc_input(
+                    dt_tz(tz, 8, 0),
+                    dt_tz(tz, 12, 0),
+                    dt_tz(tz, 8, 0),
+                    dt_tz(tz, 12, 0),
+                    30,
+                    &rules,
+                    None,
+                    None,
+                );
+                // Seg2 ends at 19:00 → 60min late OT
+                let input2 = make_calc_input(
+                    dt_tz(tz, 13, 0),
+                    dt_tz(tz, 19, 0),
+                    dt_tz(tz, 13, 0),
+                    dt_tz(tz, 17, 0),
+                    30,
+                    &rules,
+                    None,
+                    None,
+                );
+                let r = AttendanceService::compute_segment_attendance(&[input1, input2]);
+                // 240 + 360 = 600 std mins → 600/30 = 20. No wait, seg2 has shift_end=17:00 but punch_out=19:00
+                // So seg2: standard = 240, late_ot = 120
+                // Aggregate: std = 240 + 240 = 480/30 = 16, ot = 120/30 = 4
+                // Wait, actually seg2 punch_out=19:00, shift_end=17:00 → late_ot=120
+                // But standard is capped at shift_end, so seg2_std = 240, seg2_late_ot = 120
+                // Total: std = 240 + 240 = 480, ot = 120
+                // But with Aggregate mode, the total OT minutes (120) is aggregated, and 120/30 = 4
+                // Hmm, Aggregate sums all standard and all OT minutes across segments, then applies unit conversion
+                assert_eq!(r.total_standard_units(), 16);
+                assert_eq!(r.total_ot_units(), 4);
+            }
+
+            #[test]
+            fn per_segment_buckets_match_ids() {
+                let tz = tz_utc();
+                let rules = mock_rules();
+                let seg0 = Uuid::new_v4();
+                let seg1 = Uuid::new_v4();
+                let input1 = make_calc_input(
+                    dt_tz(tz, 8, 0),
+                    dt_tz(tz, 12, 0),
+                    dt_tz(tz, 8, 0),
+                    dt_tz(tz, 12, 0),
+                    30,
+                    &rules,
+                    None,
+                    Some(seg0),
+                );
+                let input2 = make_calc_input(
+                    dt_tz(tz, 13, 0),
+                    dt_tz(tz, 17, 0),
+                    dt_tz(tz, 13, 0),
+                    dt_tz(tz, 17, 0),
+                    30,
+                    &rules,
+                    None,
+                    Some(seg1),
+                );
+                let r = AttendanceService::compute_segment_attendance(&[input1, input2]);
+                assert_eq!(r.per_segment_buckets()[0].0, Some(seg0));
+                assert_eq!(r.per_segment_buckets()[1].0, Some(seg1));
+            }
+        }
+    }
+
+    // =========================================================================
+    // Module E: Edge cases
+    // =========================================================================
+
+    mod edge_cases {
+        use super::*;
+
+        #[test]
+        fn timezone_hcm_gives_same_standard_minutes() {
+            let tz = tz_hcm();
+            // Build TimeEntry with HCM-local times (08:00 HCM → UTC, 17:00 HCM → UTC)
+            let hcm_8am = tz
+                .from_local_datetime(&TEST_DATE.and_hms_opt(8, 0, 0).unwrap())
+                .single()
+                .expect("valid HCM time")
+                .with_timezone(&Utc);
+            let hcm_5pm = tz
+                .from_local_datetime(&TEST_DATE.and_hms_opt(17, 0, 0).unwrap())
+                .single()
+                .expect("valid HCM time")
+                .with_timezone(&Utc);
+            let dur = (hcm_5pm - hcm_8am).num_minutes() as i32;
+
+            let schedule = EffectiveSchedule::new(
+                TEST_DATE,
+                Some(Uuid::new_v4()),
+                "test".to_string(),
+                Some("Test".to_string()),
+                None,
+                NaiveTime::from_hms_opt(8, 0, 0),
+                NaiveTime::from_hms_opt(17, 0, 0),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                vec![],
+                false,
+                false,
+                None,
+            );
+            let entry = TimeEntry::new(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                None,
+                None,
+                hcm_8am,
+                Some(hcm_5pm),
+                Some(dur),
+                false,
+                EntryType::Work,
+                None,
+                None,
+                Utc::now(),
+                Utc::now(),
+            );
+            let rules = mock_rules();
+
+            let entry_refs: Vec<&TimeEntry> = vec![&entry];
+            let input = ComputeDailyInput {
+                daily: &schedule,
+                day_entries: &entry_refs,
+                date: TEST_DATE,
+                tz: &tz,
+                rules: &rules,
+                work_unit_minutes: 30,
+                rounding_policy: RoundingPolicy::Floor,
+                max_early_ot_minutes: None,
+                ot_ceiling: None,
+                segment_id: None,
+                ot_aggregation_mode: OtAggregationMode::Aggregate,
+            };
+            let r = AttendanceService::compute_daily_attendance(input).unwrap();
+            // 9 hours (08:00-17:00 HCM) = 540 minutes standard
+            assert_eq!(r.standard_minutes(), 540);
+        }
+
+        #[test]
+        fn shift_start_none_but_end_some_becomes_none_shift() {
+            // If start_time is None, shift_naive_to_dt returns None,
+            // and the if-let (Some(start), Some(end)) fails → (None, None)
+            let schedule = EffectiveSchedule::new(
+                TEST_DATE,
+                Some(Uuid::new_v4()),
+                "test".to_string(),
+                None,
+                None,
+                None,                              // start_time = None
+                NaiveTime::from_hms_opt(17, 0, 0), // end_time = Some
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                vec![],
+                false,
+                false,
+                None,
+            );
+            let builder = ComputeDailyInputBuilder::new()
+                .schedule(schedule)
+                .work_entry(dt(8, 0), dt(17, 0));
+            // Should NOT panic — pipeline handles partial shift gracefully
+            let r = builder.compute().unwrap();
+            // No shift → all standard
+            assert_eq!(r.standard_minutes(), 540);
+        }
+
+        #[test]
+        fn break_start_some_end_none_becomes_none_break() {
+            let schedule = EffectiveSchedule::new(
+                TEST_DATE,
+                Some(Uuid::new_v4()),
+                "test".to_string(),
+                None,
+                None,
+                NaiveTime::from_hms_opt(8, 0, 0),
+                NaiveTime::from_hms_opt(17, 0, 0),
+                Some(60),
+                NaiveTime::from_hms_opt(12, 0, 0), // break_start = Some
+                None,                              // break_end = None
+                Some(true),
+                None,
+                None,
+                None,
+                None,
+                vec![],
+                false,
+                false,
+                None,
+            );
+            let builder = ComputeDailyInputBuilder::new()
+                .schedule(schedule)
+                .rules_mut(|r| r.set_is_break_auto_deduct(true))
+                .work_entry(dt(8, 0), dt(17, 0));
+            // if-let (Some(bs), Some(be)) fails → break_start/end both None
+            let r = builder.compute().unwrap();
+            assert_eq!(r.standard_minutes(), 480); // flat deduction of 60
+        }
+
+        #[test]
+        fn overtime_entries_not_summed_as_breaks() {
+            let ot_entry = TimeEntry::new(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                None,
+                None,
+                dt(17, 0),
+                Some(dt(18, 0)),
+                Some(60),
+                false,
+                EntryType::Overtime,
+                None,
+                None,
+                Utc::now(),
+                Utc::now(),
+            );
+            let r = ComputeDailyInputBuilder::new()
+                .entries(vec![
+                    mock_work_entry(dt(8, 0), dt(12, 0), 240),
+                    mock_break_entry(dt(12, 0), dt(13, 0), 60),
+                    mock_work_entry(dt(13, 0), dt(17, 0), 240),
+                    ot_entry,
+                ])
+                .compute()
+                .unwrap();
+            // Overtime entry not counted as Break → actual_break = 60 from Break entry
+            assert_eq!(r.standard_minutes(), 480);
+        }
+
+        #[test]
+        fn mixed_work_break_entries_order_respected() {
+            // First entry's punch_in → punch_in, last entry's punch_out → punch_out
+            let r = ComputeDailyInputBuilder::new()
+                .entries(vec![
+                    mock_work_entry(dt(8, 0), dt(12, 0), 240),
+                    mock_break_entry(dt(12, 0), dt(13, 0), 60),
+                    mock_work_entry(dt(13, 0), dt(17, 0), 240),
+                ])
+                .compute()
+                .unwrap();
+            assert_eq!(r.standard_minutes(), 480); // 540 - 60 break
+        }
+
+        #[test]
+        fn overnight_break_end_less_than_start_adds_day() {
+            // Shift 22:00-06:00, break 01:00-00:30 (break_end < break_start)
+            let schedule = EffectiveSchedule::new(
+                TEST_DATE,
+                Some(Uuid::new_v4()),
+                "test".to_string(),
+                Some("Night".to_string()),
+                None,
+                NaiveTime::from_hms_opt(22, 0, 0),
+                NaiveTime::from_hms_opt(6, 0, 0),
+                Some(30),
+                NaiveTime::from_hms_opt(1, 0, 0), // break_start = 01:00
+                NaiveTime::from_hms_opt(0, 30, 0), // break_end = 00:30 (next day)
+                Some(true),
+                None,
+                None,
+                None,
+                None,
+                vec![],
+                false,
+                false,
+                None,
+            );
+            let builder = ComputeDailyInputBuilder::new()
+                .schedule(schedule)
+                .rules_mut(|r| r.set_is_break_auto_deduct(true))
+                .work_entry(dt(22, 0), dt_utc_d2(6, 0));
+            let r = builder.compute().unwrap();
+            // break after adjustment: end=date+1 00:30 → overlap calc should work
+            // shift is 22:00-06:00(+1) → 8h = 480 min
+            assert!(
+                r.standard_minutes() > 0,
+                "overnight shift with overnight break should compute"
+            );
+        }
     }
 }
