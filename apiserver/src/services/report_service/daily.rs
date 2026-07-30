@@ -2,8 +2,6 @@ use super::{AttendanceReportArgs, CalculateDayUnitsArgs, ReportService};
 use crate::domain::policy::resolver::{PolicyResolver, ShiftPolicyOverrides};
 use crate::errors::AppError;
 use crate::models::{DailyAttendanceReport, PaginatedResponse};
-use crate::services::PolicyResolverService;
-use crate::utils::i18n::I18nKey;
 use chrono::{NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use uuid::Uuid;
@@ -65,23 +63,15 @@ impl ReportService {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         args: AttendanceReportArgs,
     ) -> Result<PaginatedResponse<DailyAttendanceReport>, AppError> {
-        let workspace = self
-            .workspace_repo
-            .get_workspace_by_id(args.workspace_id)
-            .await
-            .map_err(|e| {
-                tracing::error!("Error fetching workspace: {}", e);
-                AppError::Internal("Internal error".into())
-            })?
-            .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
-
-        let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
-
-        let page = args.page.unwrap_or(1);
-        let limit = args.limit.unwrap_or(20);
-
-        // Shift-type filter (comma-separated shift names), applied post-join to keep
-        // pagination at employee level. Mirrors the existing `employee_ids` split.
+        let preamble = self.fetch_preamble(auth_token, &args, None).await?;
+        if preamble.paginated_employees.is_empty() {
+            return Ok(PaginatedResponse {
+                data: Vec::new(),
+                total: usize::try_from(preamble.total_employees).unwrap_or(0),
+                page: i64::try_from(preamble.page).unwrap_or(1),
+                limit: i64::try_from(preamble.limit).unwrap_or(20),
+            });
+        }
         let shift_names: Option<Vec<String>> = args.shift_type.as_ref().map(|s| {
             s.split(',')
                 .map(str::trim)
@@ -89,95 +79,7 @@ impl ReportService {
                 .map(String::from)
                 .collect()
         });
-
-        let (paginated_employees, total_employees, employments, paginated_employment_ids) =
-            if let Some(specific_employment_id) = args.employment_id {
-                let emp = self
-                    .employment_repo
-                    .get_employment_by_id(auth_token, specific_employment_id)
-                    .await?
-                    .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
-
-                let employee = self
-                    .employee_repo
-                    .get_employees_by_ids(&[emp.employee_id()], auth_token)
-                    .await?
-                    .into_iter()
-                    .next()
-                    .map(|e| crate::repositories::employee::EmployeeBasicInfo {
-                        id: e.id(),
-                        full_name: e.full_name().to_string(),
-                        employee_id_number: e.employee_id_number().to_string(),
-                    })
-                    .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
-
-                (
-                    vec![employee],
-                    1i64,
-                    vec![emp],
-                    vec![specific_employment_id],
-                )
-            } else {
-                let (paginated_employees, total_employees) = self
-                    .employee_repo
-                    .get_paginated_employee_ids(
-                        auth_token,
-                        crate::models::EmployeePaginationArgs::new(
-                            args.employee_ids.as_ref(),
-                            args.department_id,
-                            page,
-                            limit,
-                            false,
-                            Some((args.start_date, args.end_date)),
-                            args.employee_status.clone(),
-                        ),
-                    )
-                    .await
-                    .map_err(|e| {
-                        tracing::error!("Error fetching paginated employees: {}", e);
-                        AppError::Internal("Internal error".into())
-                    })?;
-
-                if paginated_employees.is_empty() {
-                    return Ok(PaginatedResponse {
-                        data: Vec::new(),
-                        total: usize::try_from(total_employees).unwrap_or(0),
-                        page,
-                        limit,
-                    });
-                }
-
-                let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
-
-                let employments = self
-                    .employment_repo
-                    .get_employments_for_employees(auth_token, &emp_ids)
-                    .await?;
-
-                let selection = super::employment_selection::select_report_employments(
-                    &employments,
-                    &emp_ids,
-                    args.start_date,
-                    args.end_date,
-                    args.employer_id,
-                )?;
-                let paginated_employment_ids = selection.employment_ids;
-
-                (
-                    paginated_employees,
-                    total_employees,
-                    employments,
-                    paginated_employment_ids,
-                )
-            };
-
-        // Map employment_id -> employee_id
-        let mut employment_to_employee = std::collections::HashMap::new();
-        for emp in &employments {
-            employment_to_employee.insert(emp.id(), emp.employee_id());
-        }
-
-        let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
+        let tz = preamble.workspace_tz;
 
         let (schedules, _) = self
             .roster_repo
@@ -186,26 +88,9 @@ impl ReportService {
                 auth_token,
                 args.start_date,
                 args.end_date,
-                Some(&paginated_employment_ids),
+                Some(&preamble.paginated_employment_ids),
                 None,
                 None,
-            )
-            .await?;
-
-        let (start_dt, end_dt) = crate::services::attendance_utils::date_range_to_utc_checked(
-            tz,
-            args.start_date,
-            args.end_date,
-        )
-        .ok_or_else(|| AppError::validation(I18nKey::Validation))?;
-
-        let entries_map = self
-            .time_entry_repo
-            .get_workspace_time_entries_batch_by_employments(
-                auth_token,
-                &paginated_employment_ids,
-                start_dt,
-                end_dt,
             )
             .await?;
 
@@ -218,7 +103,7 @@ impl ReportService {
             .attendance_daily_summary_repo
             .get_batch_ot_statuses(
                 auth_token,
-                &paginated_employment_ids,
+                &preamble.paginated_employment_ids,
                 args.start_date,
                 args.end_date,
             )
@@ -226,41 +111,22 @@ impl ReportService {
 
         let leave_details_map = self
             .leave_repo
-            .get_approved_leave_details(auth_token, &emp_ids, args.start_date, args.end_date)
+            .get_approved_leave_details(
+                auth_token,
+                &preamble.emp_ids,
+                args.start_date,
+                args.end_date,
+            )
             .await?;
 
         let leave_date_set: std::collections::HashSet<(Uuid, NaiveDate)> =
             leave_details_map.keys().copied().collect();
 
-        let attendance_rules_map = PolicyResolverService::resolve_attendance_policy_batch(
-            &*self.policy_repo,
-            &emp_ids,
-            auth_token,
-            args.start_date,
-        )
-        .await?;
-
-        let working_conditions_map = PolicyResolverService::resolve_attendance_rules_batch(
-            &*self.employee_repo,
-            &emp_ids,
-            auth_token,
-            args.start_date,
-            args.end_date,
-        )
-        .await?;
-        let condition_type_catalog = PolicyResolverService::load_condition_type_catalog(
-            self.condition_type_repo.as_ref(),
-            auth_token,
-        )
-        .await?;
-
-        // Fetch all employers to get names
-        let employer_name_map = self.fetch_all_employers(auth_token).await?;
-
         let mut reports = Vec::new();
 
         for emp_sched in schedules {
-            let Some(employee_id) = employment_to_employee
+            let Some(employee_id) = preamble
+                .employment_to_employee
                 .get(&emp_sched.employment_id())
                 .copied()
             else {
@@ -271,7 +137,8 @@ impl ReportService {
                 continue;
             };
 
-            let entries = entries_map
+            let entries = preamble
+                .entries_map
                 .get(&emp_sched.employment_id())
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
             let entries_by_date =
@@ -291,7 +158,8 @@ impl ReportService {
                     .last()
                     .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&tz)));
 
-                let emp_attendance_rules = attendance_rules_map
+                let emp_attendance_rules = preamble
+                    .attendance_rules_map
                     .get(&employee_id)
                     .cloned()
                     .unwrap_or(crate::models::AttendanceRules {
@@ -301,7 +169,8 @@ impl ReportService {
                         grace_period_minutes: None,
                     });
 
-                let emp_working_conditions = working_conditions_map
+                let emp_working_conditions = preamble
+                    .working_conditions_map
                     .get(&employee_id)
                     .map_or_else(Default::default, std::vec::Vec::as_slice);
 
@@ -312,7 +181,7 @@ impl ReportService {
                     emp_attendance_rules
                         .grace_period_minutes
                         .unwrap_or(crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES),
-                    Some(&condition_type_catalog),
+                    Some(&preamble.condition_type_catalog),
                 );
 
                 let overrides = ShiftPolicyOverrides::new(
@@ -337,7 +206,7 @@ impl ReportService {
                         date,
                         tz,
                         employee_id,
-                        workspace_id: workspace.id(),
+                        workspace_id: preamble.workspace_id,
                         rules: rules.clone(),
                         work_unit_minutes: emp_attendance_rules.work_unit_minutes,
                         rounding_policy: emp_attendance_rules.rounding_policy,
@@ -384,11 +253,13 @@ impl ReportService {
                     Some(serde_json::Value::Object(metadata_map))
                 };
 
-                let employer_id = employments
+                let employer_id = preamble
+                    .employments
                     .iter()
                     .find(|e| e.id() == emp_sched.employment_id())
                     .map(crate::models::Employment::employer_id);
-                let employer_name = employer_id.and_then(|id| employer_name_map.get(&id).cloned());
+                let employer_name =
+                    employer_id.and_then(|id| preamble.employer_name_map.get(&id).cloned());
 
                 reports.push(DailyAttendanceReport {
                     date,
@@ -445,9 +316,9 @@ impl ReportService {
 
         Ok(PaginatedResponse {
             data: reports,
-            total: usize::try_from(total_employees).unwrap_or(0),
-            page,
-            limit,
+            total: usize::try_from(preamble.total_employees).unwrap_or(0),
+            page: i64::try_from(preamble.page).unwrap_or(1),
+            limit: i64::try_from(preamble.limit).unwrap_or(20),
         })
     }
 
@@ -465,23 +336,15 @@ impl ReportService {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         args: AttendanceReportArgs,
     ) -> Result<PaginatedResponse<DailyAttendanceReport>, AppError> {
-        let workspace = self
-            .workspace_repo
-            .get_workspace_by_id(args.workspace_id)
-            .await
-            .map_err(|e| {
-                tracing::error!("Error fetching workspace: {}", e);
-                AppError::Internal("Internal error".into())
-            })?
-            .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
-
-        let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
-
-        let page = args.page.unwrap_or(1);
-        let limit = args.limit.unwrap_or(20);
-
-        // Shift-type filter (comma-separated shift names), applied post-join to keep
-        // pagination at employee level. Mirrors the existing `employee_ids` split.
+        let preamble = self.fetch_preamble(auth_token, &args, None).await?;
+        if preamble.paginated_employees.is_empty() {
+            return Ok(PaginatedResponse {
+                data: Vec::new(),
+                total: usize::try_from(preamble.total_employees).unwrap_or(0),
+                page: i64::try_from(preamble.page).unwrap_or(1),
+                limit: i64::try_from(preamble.limit).unwrap_or(20),
+            });
+        }
         let shift_names: Option<Vec<String>> = args.shift_type.as_ref().map(|s| {
             s.split(',')
                 .map(str::trim)
@@ -489,87 +352,7 @@ impl ReportService {
                 .map(String::from)
                 .collect()
         });
-
-        // Fetch segments (segment-centric data path)
-        let (paginated_employees, total_employees, employments, paginated_employment_ids) =
-            if let Some(specific_employment_id) = args.employment_id {
-                let emp = self
-                    .employment_repo
-                    .get_employment_by_id(auth_token, specific_employment_id)
-                    .await?
-                    .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
-                let employee = self
-                    .employee_repo
-                    .get_employees_by_ids(&[emp.employee_id()], auth_token)
-                    .await?
-                    .into_iter()
-                    .next()
-                    .map(|e| crate::repositories::employee::EmployeeBasicInfo {
-                        id: e.id(),
-                        full_name: e.full_name().to_string(),
-                        employee_id_number: e.employee_id_number().to_string(),
-                    })
-                    .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
-                (
-                    vec![employee],
-                    1i64,
-                    vec![emp],
-                    vec![specific_employment_id],
-                )
-            } else {
-                let (paginated_employees, total_employees) = self
-                    .employee_repo
-                    .get_paginated_employee_ids(
-                        auth_token,
-                        crate::models::EmployeePaginationArgs::new(
-                            args.employee_ids.as_ref(),
-                            args.department_id,
-                            page,
-                            limit,
-                            false,
-                            Some((args.start_date, args.end_date)),
-                            args.employee_status.clone(),
-                        ),
-                    )
-                    .await
-                    .map_err(|e| {
-                        tracing::error!("Error fetching paginated employees: {}", e);
-                        AppError::Internal("Internal error".into())
-                    })?;
-                if paginated_employees.is_empty() {
-                    return Ok(PaginatedResponse {
-                        data: Vec::new(),
-                        total: usize::try_from(total_employees).unwrap_or(0),
-                        page,
-                        limit,
-                    });
-                }
-                let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
-                let employments = self
-                    .employment_repo
-                    .get_employments_for_employees(auth_token, &emp_ids)
-                    .await?;
-                let selection = super::employment_selection::select_report_employments(
-                    &employments,
-                    &emp_ids,
-                    args.start_date,
-                    args.end_date,
-                    args.employer_id,
-                )?;
-                let paginated_employment_ids = selection.employment_ids;
-                (
-                    paginated_employees,
-                    total_employees,
-                    employments,
-                    paginated_employment_ids,
-                )
-            };
-
-        let mut employment_to_employee = std::collections::HashMap::new();
-        for emp in &employments {
-            employment_to_employee.insert(emp.id(), emp.employee_id());
-        }
-        let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
+        let tz = preamble.workspace_tz;
 
         // ── Segment-centric schedule resolution ──
         let (employee_segments, _) = self
@@ -579,26 +362,9 @@ impl ReportService {
                 auth_token,
                 args.start_date,
                 args.end_date,
-                Some(&paginated_employment_ids),
+                Some(&preamble.paginated_employment_ids),
                 None,
                 None,
-            )
-            .await?;
-
-        let (start_dt, end_dt) = crate::services::attendance_utils::date_range_to_utc_checked(
-            tz,
-            args.start_date,
-            args.end_date,
-        )
-        .ok_or_else(|| AppError::validation(I18nKey::Validation))?;
-
-        let entries_map = self
-            .time_entry_repo
-            .get_workspace_time_entries_batch_by_employments(
-                auth_token,
-                &paginated_employment_ids,
-                start_dt,
-                end_dt,
             )
             .await?;
 
@@ -611,7 +377,7 @@ impl ReportService {
             .attendance_daily_summary_repo
             .get_batch_ot_statuses(
                 auth_token,
-                &paginated_employment_ids,
+                &preamble.paginated_employment_ids,
                 args.start_date,
                 args.end_date,
             )
@@ -619,60 +385,23 @@ impl ReportService {
 
         let leave_details_map = self
             .leave_repo
-            .get_approved_leave_details(auth_token, &emp_ids, args.start_date, args.end_date)
+            .get_approved_leave_details(
+                auth_token,
+                &preamble.emp_ids,
+                args.start_date,
+                args.end_date,
+            )
             .await?;
 
         let leave_date_set: std::collections::HashSet<(Uuid, NaiveDate)> =
             leave_details_map.keys().copied().collect();
 
-        let attendance_rules_map = PolicyResolverService::resolve_attendance_policy_batch(
-            &*self.policy_repo,
-            &emp_ids,
-            auth_token,
-            args.start_date,
-        )
-        .await?;
-
-        let working_conditions_map = PolicyResolverService::resolve_attendance_rules_batch(
-            &*self.employee_repo,
-            &emp_ids,
-            auth_token,
-            args.start_date,
-            args.end_date,
-        )
-        .await?;
-        let condition_type_catalog = PolicyResolverService::load_condition_type_catalog(
-            self.condition_type_repo.as_ref(),
-            auth_token,
-        )
-        .await?;
-
-        let mut all_employers = Vec::new();
-        let mut page = 1;
-        loop {
-            let (employers, total) = self
-                .employer_repo
-                .get_employers(auth_token, page, 1000)
-                .await?;
-            if employers.is_empty() {
-                break;
-            }
-            all_employers.extend(employers);
-            if u64::try_from(all_employers.len()).unwrap_or(u64::MAX)
-                >= u64::try_from(total).unwrap_or(0)
-            {
-                break;
-            }
-            page += 1;
-        }
-        let employer_name_map: std::collections::HashMap<Uuid, String> =
-            all_employers.into_iter().map(|e| (e.id, e.name)).collect();
-
         // ── Build segment-centric report rows ──
         let mut reports = Vec::new();
 
         for emp_segs in &employee_segments {
-            let Some(employee_id) = employment_to_employee
+            let Some(employee_id) = preamble
+                .employment_to_employee
                 .get(&emp_segs.employment_id())
                 .copied()
             else {
@@ -683,7 +412,8 @@ impl ReportService {
                 continue;
             };
 
-            let entries = entries_map
+            let entries = preamble
+                .entries_map
                 .get(&emp_segs.employment_id())
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
             let entries_by_date =
@@ -699,16 +429,19 @@ impl ReportService {
                 }
             }
 
-            let emp_attendance_rules = attendance_rules_map.get(&employee_id).cloned().unwrap_or(
-                crate::models::AttendanceRules {
+            let emp_attendance_rules = preamble
+                .attendance_rules_map
+                .get(&employee_id)
+                .cloned()
+                .unwrap_or(crate::models::AttendanceRules {
                     work_unit_minutes: 30,
                     rounding_policy: crate::models::RoundingPolicy::Floor,
                     early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
                     grace_period_minutes: None,
-                },
-            );
+                });
 
-            let emp_working_conditions = working_conditions_map
+            let emp_working_conditions = preamble
+                .working_conditions_map
                 .get(&employee_id)
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
 
@@ -731,10 +464,14 @@ impl ReportService {
 
                 let segment_count = i32::try_from(day_segs.len()).unwrap_or(1);
 
-                // Build per-segment calc inputs
+                // Build per-segment calc inputs, caching matched entries and resolved
+                // rules per segment so the report-row loop below can reuse them without
+                // recomputing (eliminating the previous duplicate match_entries_to_segment call).
                 let mut segment_calc_inputs: Vec<
                     crate::services::attendance_calculator::DailyCalcInput<chrono_tz::Tz>,
                 > = Vec::new();
+                let mut cached_matched: Vec<Vec<&crate::models::TimeEntry>> = Vec::new();
+                let mut cached_rules: Vec<crate::models::PolicyRules> = Vec::new();
 
                 for seg in &day_segs {
                     let matched = Self::match_entries_to_segment(day_entries, seg, *date, tz);
@@ -769,7 +506,7 @@ impl ReportService {
                         emp_attendance_rules.grace_period_minutes.unwrap_or(
                             crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES,
                         ),
-                        Some(&condition_type_catalog),
+                        Some(&preamble.condition_type_catalog),
                     );
 
                     let overrides = ShiftPolicyOverrides::new(
@@ -799,12 +536,37 @@ impl ReportService {
                         .map(|e| e.duration_minutes().unwrap_or(0))
                         .sum();
 
+                    // Cache matched entries and resolved rules for the report-row loop below.
+                    cached_matched.push(matched.clone());
+                    cached_rules.push(rules.clone());
+
                     // Skip segments with no punch data — no fake timestamps
-                    let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) else {
+                    let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out)
+                    else {
                         segment_calc_inputs.push(
                             crate::services::attendance_calculator::DailyCalcInput {
-                                punch_in: shift_start_dt.unwrap_or_else(|| tz.from_utc_datetime(&date.and_hms_opt(0, 0, 0).unwrap().and_utc().naive_utc())),
-                                punch_out: shift_start_dt.unwrap_or_else(|| tz.from_utc_datetime(&date.and_hms_opt(0, 0, 0).unwrap().and_utc().naive_utc())),
+                                punch_in: shift_start_dt.unwrap_or_else(|| {
+                                    tz.from_utc_datetime(
+                                        &date
+                                            .and_time(
+                                                chrono::NaiveTime::from_hms_opt(0, 0, 0)
+                                                    .unwrap_or_default(),
+                                            )
+                                            .and_utc()
+                                            .naive_utc(),
+                                    )
+                                }),
+                                punch_out: shift_start_dt.unwrap_or_else(|| {
+                                    tz.from_utc_datetime(
+                                        &date
+                                            .and_time(
+                                                chrono::NaiveTime::from_hms_opt(0, 0, 0)
+                                                    .unwrap_or_default(),
+                                            )
+                                            .and_utc()
+                                            .naive_utc(),
+                                    )
+                                }),
                                 shift_start: shift_start_dt,
                                 shift_end: shift_end_dt,
                                 scheduled_break_minutes: seg.break_duration_minutes.unwrap_or(0),
@@ -852,9 +614,12 @@ impl ReportService {
                     &segment_calc_inputs,
                 );
 
-                // Build report rows for each segment
+                // Build report rows for each segment, reusing cached matched entries
+                // and resolved rules from the calc-inputs loop above (no redundant re-match).
                 for (seg_idx, seg) in day_segs.iter().enumerate() {
-                    let matched = Self::match_entries_to_segment(day_entries, seg, *date, tz);
+                    let matched = &cached_matched[seg_idx];
+                    let seg_rules = &cached_rules[seg_idx];
+
                     let actual_punch_in = matched
                         .first()
                         .map(|e| e.punch_in_time().with_timezone(&Utc));
@@ -868,10 +633,10 @@ impl ReportService {
                         emp_attendance_rules.rounding_policy,
                     );
 
-                    // Resolved late/absence grace for this segment row (default 15).
-                    let segment_grace = emp_attendance_rules
-                        .grace_period_minutes
-                        .unwrap_or(crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES);
+                    // Resolved late/absence grace for this segment row: uses the fully-resolved
+                    // rules (which include shift-level overrides via apply_shift_overrides),
+                    // matching the daily report's behavior. Previously this bypassed shift overrides.
+                    let segment_grace = seg_rules.grace_period_minutes();
 
                     let status = crate::services::attendance_utils::determine_daily_status(
                         &crate::services::attendance_utils::DailyStatusInput::new(
@@ -886,12 +651,13 @@ impl ReportService {
                         ),
                     );
 
-                    let employer_id = employments
+                    let employer_id = preamble
+                        .employments
                         .iter()
                         .find(|e| e.id() == emp_segs.employment_id())
                         .map(crate::models::Employment::employer_id);
                     let employer_name =
-                        employer_id.and_then(|id| employer_name_map.get(&id).cloned());
+                        employer_id.and_then(|id| preamble.employer_name_map.get(&id).cloned());
 
                     let unit_coeff = f64::from(emp_attendance_rules.work_unit_minutes) / 60.0;
 
@@ -948,9 +714,9 @@ impl ReportService {
 
         Ok(PaginatedResponse {
             data: reports,
-            total: usize::try_from(total_employees).unwrap_or(0),
-            page,
-            limit,
+            total: usize::try_from(preamble.total_employees).unwrap_or(0),
+            page: i64::try_from(preamble.page).unwrap_or(1),
+            limit: i64::try_from(preamble.limit).unwrap_or(20),
         })
     }
 

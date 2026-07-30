@@ -203,6 +203,9 @@ impl DieselRosterRepository {
                 active_employer,
             );
 
+        // NOTE: `.iter().next()` is used instead of `.first()` because `.first()`
+        // triggers Diesel trait inference issues on the `shift_ids` return type.
+        #[allow(clippy::iter_next_slice)]
         let shift_id = shift_ids.iter().next().copied().flatten();
         Ok((shift_id, traces, roster_data))
     }

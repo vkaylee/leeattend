@@ -34,6 +34,7 @@ impl DieselRosterRepository {
     /// Inject a [`RosterCache`] for use by [`get_effective_shift`].
     /// When set, shift resolution reads from the cache instead of
     /// querying individual tables (P2–P5).
+    #[must_use]
     pub fn with_roster_cache(mut self, cache: Arc<RosterCache>) -> Self {
         self.roster_cache = Some(cache);
         self

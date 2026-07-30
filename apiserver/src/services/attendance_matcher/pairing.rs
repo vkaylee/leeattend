@@ -26,7 +26,11 @@ impl AttendanceMatcher {
         let active_employer_id = active_employment.map(crate::models::Employment::employer_id);
         let Some(active_employment_id) = active_employment
             .map(crate::models::Employment::id)
-            .or_else(|| ctx.active_employments().first().map(crate::models::Employment::id))
+            .or_else(|| {
+                ctx.active_employments()
+                    .first()
+                    .map(crate::models::Employment::id)
+            })
         else {
             tracing::warn!(
                 employee_id = %ctx.employee_id(),

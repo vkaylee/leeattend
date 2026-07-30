@@ -51,7 +51,7 @@ impl From<AttendancePolicyVersionEntity> for AttendancePolicyVersion {
         AttendancePolicyVersion {
             id: val.id,
             policy_id: val.policy_id,
-            rules: serde_json::from_value(val.rules).unwrap_or_else(|_| AttendanceRules {
+            rules: serde_json::from_value(val.rules).unwrap_or(AttendanceRules {
                 work_unit_minutes: 0,
                 rounding_policy: crate::models::RoundingPolicy::None,
                 early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,

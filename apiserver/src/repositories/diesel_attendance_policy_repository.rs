@@ -173,7 +173,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         Ok(row.map(|r| AttendancePolicyVersion {
             id: r.id,
             policy_id: r.policy_id,
-            rules: serde_json::from_value(r.rules).unwrap_or_else(|_| AttendanceRules {
+            rules: serde_json::from_value(r.rules).unwrap_or(AttendanceRules {
                 work_unit_minutes: 0,
                 rounding_policy: crate::models::RoundingPolicy::None,
                 early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
@@ -306,7 +306,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                 AttendancePolicyVersion {
                     id: row.id,
                     policy_id: row.policy_id,
-                    rules: serde_json::from_value(row.rules).unwrap_or_else(|_| AttendanceRules {
+                    rules: serde_json::from_value(row.rules).unwrap_or(AttendanceRules {
                         work_unit_minutes: 0,
                         rounding_policy: crate::models::RoundingPolicy::None,
                         early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
@@ -423,7 +423,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         Ok(row.map(|r| AttendancePolicyVersion {
             id: r.id,
             policy_id: r.policy_id,
-            rules: serde_json::from_value(r.rules).unwrap_or_else(|_| AttendanceRules {
+            rules: serde_json::from_value(r.rules).unwrap_or(AttendanceRules {
                 work_unit_minutes: 0,
                 rounding_policy: crate::models::RoundingPolicy::None,
                 early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
@@ -566,7 +566,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                 AttendancePolicyVersion {
                     id: row.id,
                     policy_id: row.policy_id,
-                    rules: serde_json::from_value(row.rules).unwrap_or_else(|_| AttendanceRules {
+                    rules: serde_json::from_value(row.rules).unwrap_or(AttendanceRules {
                         work_unit_minutes: 0,
                         rounding_policy: crate::models::RoundingPolicy::None,
                         early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
@@ -620,13 +620,11 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
         match rules {
-            Some(r) => Ok(Some(serde_json::from_value(r).unwrap_or_else(|_| {
-                AttendanceRules {
-                    work_unit_minutes: 15,
-                    rounding_policy: crate::models::RoundingPolicy::None,
-                    early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
-                    grace_period_minutes: None,
-                }
+            Some(r) => Ok(Some(serde_json::from_value(r).unwrap_or(AttendanceRules {
+                work_unit_minutes: 15,
+                rounding_policy: crate::models::RoundingPolicy::None,
+                early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+                grace_period_minutes: None,
             }))),
             None => Ok(None),
         }
@@ -725,7 +723,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                         .map_err(|e| AppError::Internal(e.to_string()))?;
 
                 let mut new_rules = match current_rules_val {
-                    Some(v) => serde_json::from_value(v).unwrap_or_else(|_| AttendanceRules {
+                    Some(v) => serde_json::from_value(v).unwrap_or(AttendanceRules {
                         work_unit_minutes: 15,
                         rounding_policy: crate::models::RoundingPolicy::None,
                         early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
@@ -890,7 +888,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                     target_id: row.target_id.to_string(),
                     valid_from: row.valid_from.to_rfc3339(),
                     valid_to: row.valid_to.map(|d| d.to_rfc3339()),
-                    rules: serde_json::from_value(row.rules).unwrap_or_else(|_| AttendanceRules {
+                    rules: serde_json::from_value(row.rules).unwrap_or(AttendanceRules {
                         work_unit_minutes: 0,
                         rounding_policy: crate::models::RoundingPolicy::None,
                         early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,

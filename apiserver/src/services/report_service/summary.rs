@@ -2,7 +2,6 @@ use super::{AttendanceReportArgs, CalculateDayUnitsArgs, ReportService};
 use crate::domain::policy::resolver::{PolicyResolver, ShiftPolicyOverrides};
 use crate::errors::AppError;
 use crate::models::{AttendanceReportSort, AttendanceSummary, PaginatedResponse};
-use crate::services::PolicyResolverService;
 use crate::utils::i18n::I18nKey;
 use chrono_tz::Tz;
 use std::collections::HashMap;
@@ -16,21 +15,6 @@ impl ReportService {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         args: AttendanceReportArgs,
     ) -> Result<PaginatedResponse<AttendanceSummary>, AppError> {
-        let workspace = self
-            .workspace_repo
-            .get_workspace_by_id(args.workspace_id)
-            .await
-            .map_err(|e| {
-                tracing::error!("Error fetching workspace: {}", e);
-                AppError::Internal("Internal error".into())
-            })?
-            .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
-
-        let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
-
-        let page = args.page.unwrap_or(1);
-        let limit = args.limit.unwrap_or(20);
-
         let sort_desc = matches!(args.sort, Some(AttendanceReportSort::NameDesc));
 
         let is_computed_sort = matches!(
@@ -47,7 +31,25 @@ impl ReportService {
             )
         );
 
-        let (paginated_employees, total_employees) = if is_computed_sort {
+        // ── Employee resolution ──
+        // Computed-sort needs ALL employees for in-memory sorting, so it cannot use
+        // fetch_preamble (which paginates at the DB level). Non-computed-sort reuses
+        // fetch_preamble to eliminate the duplicated setup code.
+        let (paginated_employees, total_employees, preamble) = if is_computed_sort {
+            let workspace = self
+                .workspace_repo
+                .get_workspace_by_id(args.workspace_id)
+                .await
+                .map_err(|e| {
+                    tracing::error!("Error fetching workspace: {}", e);
+                    AppError::Internal("Internal error".into())
+                })?
+                .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
+            let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
+
+            let page = args.page.unwrap_or(1);
+            let limit = args.limit.unwrap_or(20);
+
             let (_, total) = self
                 .employee_repo
                 .get_paginated_employee_ids(
@@ -69,38 +71,23 @@ impl ReportService {
                 })?;
 
             if total == 0 {
-                (Vec::new(), 0)
-            } else {
-                let (emps, _) = self
-                    .employee_repo
-                    .get_paginated_employee_ids(
-                        auth_token,
-                        crate::models::EmployeePaginationArgs::new(
-                            args.employee_ids.as_ref(),
-                            args.department_id,
-                            1,
-                            total,
-                            sort_desc,
-                            Some((args.start_date, args.end_date)),
-                            args.employee_status.clone(),
-                        ),
-                    )
-                    .await
-                    .map_err(|e| {
-                        tracing::error!("Error fetching all employees: {}", e);
-                        AppError::Internal("Internal error".into())
-                    })?;
-                (emps, total)
+                return Ok(PaginatedResponse {
+                    data: Vec::new(),
+                    total: 0,
+                    page,
+                    limit,
+                });
             }
-        } else {
-            self.employee_repo
+
+            let (emps, _) = self
+                .employee_repo
                 .get_paginated_employee_ids(
                     auth_token,
                     crate::models::EmployeePaginationArgs::new(
                         args.employee_ids.as_ref(),
                         args.department_id,
-                        page,
-                        limit,
+                        1,
+                        total,
                         sort_desc,
                         Some((args.start_date, args.end_date)),
                         args.employee_status.clone(),
@@ -108,46 +95,143 @@ impl ReportService {
                 )
                 .await
                 .map_err(|e| {
-                    tracing::error!("Error fetching paginated employees: {}", e);
+                    tracing::error!("Error fetching all employees: {}", e);
                     AppError::Internal("Internal error".into())
-                })?
-        };
+                })?;
 
-        if paginated_employees.is_empty() {
-            return Ok(PaginatedResponse {
-                data: Vec::new(),
-                total: usize::try_from(total_employees).unwrap_or(0),
+            let emp_ids: Vec<Uuid> = emps.iter().map(|e| e.id).collect();
+            let employments = self
+                .employment_repo
+                .get_employments_for_employees(auth_token, &emp_ids)
+                .await?;
+            let employments: Vec<_> = employments
+                .into_iter()
+                .filter(|emp| args.employment_id.is_none_or(|id| emp.id() == id))
+                .collect();
+            let selection = super::employment_selection::select_report_employments(
+                &employments,
+                &emp_ids,
+                args.start_date,
+                args.end_date,
+                args.employer_id,
+            )?;
+            let paginated_employment_ids = selection.employment_ids.clone();
+
+            let mut employment_to_employee = std::collections::HashMap::new();
+            for emp in &employments {
+                employment_to_employee.insert(emp.id(), emp.employee_id());
+            }
+
+            let (schedules, _) = self
+                .roster_repo
+                .get_workspace_schedules(
+                    None,
+                    auth_token,
+                    args.start_date,
+                    args.end_date,
+                    Some(&paginated_employment_ids),
+                    None,
+                    None,
+                )
+                .await?;
+
+            let (start_dt, end_dt) = crate::services::attendance_utils::date_range_to_utc_checked(
+                tz,
+                args.start_date,
+                args.end_date,
+            )
+            .ok_or_else(|| AppError::validation(I18nKey::Validation))?;
+
+            let entries_map = self
+                .time_entry_repo
+                .get_workspace_time_entries_batch_by_employments(
+                    auth_token,
+                    &paginated_employment_ids,
+                    start_dt,
+                    end_dt,
+                )
+                .await?;
+
+            let leave_data = self
+                .leave_repo
+                .get_batch_leave_days(auth_token, &emp_ids, args.start_date, args.end_date)
+                .await?;
+
+            let (attendance_rules_map, working_conditions_map, condition_type_catalog) = self
+                .fetch_policy_trio(auth_token, &emp_ids, args.start_date, args.end_date)
+                .await?;
+
+            let employer_name_map = self.fetch_all_employers(auth_token).await?;
+
+            let employee_totals = Self::accumulate_employee_totals(
+                &schedules,
+                &entries_map,
+                &employment_to_employee,
+                &attendance_rules_map,
+                &working_conditions_map,
+                &condition_type_catalog,
+                tz,
+                args.workspace_id,
+            );
+
+            let results = Self::build_summary_results(
+                &selection,
+                &emps,
+                &employee_totals,
+                &leave_data,
+                &employer_name_map,
+            );
+
+            return Ok(Self::finalize_summary(
+                results,
+                args.sort,
+                is_computed_sort,
+                total,
                 page,
                 limit,
+            ));
+        } else {
+            let preamble = self
+                .fetch_preamble(auth_token, &args, args.employment_id)
+                .await?;
+            if preamble.paginated_employees.is_empty() {
+                return Ok(PaginatedResponse {
+                    data: Vec::new(),
+                    total: usize::try_from(preamble.total_employees).unwrap_or(0),
+                    page: i64::try_from(preamble.page).unwrap_or(1),
+                    limit: i64::try_from(preamble.limit).unwrap_or(20),
+                });
+            }
+            (
+                preamble.paginated_employees.clone(),
+                preamble.total_employees,
+                Some(preamble),
+            )
+        };
+
+        // Non-computed-sort path: use preamble data.
+        // Safety: the else-branch always sets preamble to Some; the empty-employee
+        // check above returns early before reaching this point.
+        let Some(preamble) = preamble else {
+            return Ok(PaginatedResponse {
+                data: Vec::new(),
+                total: 0,
+                page: 1,
+                limit: 20,
             });
-        }
+        };
+        let page = i64::try_from(preamble.page).unwrap_or(1);
+        let limit = i64::try_from(preamble.limit).unwrap_or(20);
 
         let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
 
-        // Fetch employments to build maps
-        let employments = self
-            .employment_repo
-            .get_employments_for_employees(auth_token, &emp_ids)
-            .await?;
-
-        let employments: Vec<_> = employments
-            .into_iter()
-            .filter(|emp| args.employment_id.is_none_or(|id| emp.id() == id))
-            .collect();
         let selection = super::employment_selection::select_report_employments(
-            &employments,
+            &preamble.employments,
             &emp_ids,
             args.start_date,
             args.end_date,
             args.employer_id,
         )?;
-        let paginated_employment_ids = selection.employment_ids.clone();
-
-        // Map employment_id -> employee_id
-        let mut employment_to_employee = std::collections::HashMap::new();
-        for emp in &employments {
-            employment_to_employee.insert(emp.id(), emp.employee_id());
-        }
 
         let (schedules, _) = self
             .roster_repo
@@ -156,26 +240,9 @@ impl ReportService {
                 auth_token,
                 args.start_date,
                 args.end_date,
-                Some(&paginated_employment_ids),
+                Some(&selection.employment_ids),
                 None,
                 None,
-            )
-            .await?;
-
-        let (start_dt, end_dt) = crate::services::attendance_utils::date_range_to_utc_checked(
-            tz,
-            args.start_date,
-            args.end_date,
-        )
-        .ok_or_else(|| AppError::validation(I18nKey::Validation))?;
-
-        let entries_map = self
-            .time_entry_repo
-            .get_workspace_time_entries_batch_by_employments(
-                auth_token,
-                &paginated_employment_ids,
-                start_dt,
-                end_dt,
             )
             .await?;
 
@@ -184,28 +251,52 @@ impl ReportService {
             .get_batch_leave_days(auth_token, &emp_ids, args.start_date, args.end_date)
             .await?;
 
-        let attendance_rules_map = PolicyResolverService::resolve_attendance_policy_batch(
-            &*self.policy_repo,
-            &emp_ids,
-            auth_token,
-            args.start_date,
-        )
-        .await?;
+        let employee_totals = Self::accumulate_employee_totals(
+            &schedules,
+            &preamble.entries_map,
+            &preamble.employment_to_employee,
+            &preamble.attendance_rules_map,
+            &preamble.working_conditions_map,
+            &preamble.condition_type_catalog,
+            preamble.workspace_tz,
+            preamble.workspace_id,
+        );
 
-        let working_conditions_map = PolicyResolverService::resolve_attendance_rules_batch(
-            &*self.employee_repo,
-            &emp_ids,
-            auth_token,
-            args.start_date,
-            args.end_date,
-        )
-        .await?;
-        let condition_type_catalog = PolicyResolverService::load_condition_type_catalog(
-            self.condition_type_repo.as_ref(),
-            auth_token,
-        )
-        .await?;
+        let results = Self::build_summary_results(
+            &selection,
+            &paginated_employees,
+            &employee_totals,
+            &leave_data,
+            &preamble.employer_name_map,
+        );
 
+        Ok(Self::finalize_summary(
+            results,
+            args.sort,
+            is_computed_sort,
+            total_employees,
+            page,
+            limit,
+        ))
+    }
+
+    /// Accumulate per-employment (std_units, ot_units, work_unit_minutes) from schedules.
+    fn accumulate_employee_totals(
+        schedules: &[crate::models::EmployeeSchedule],
+        entries_map: &std::collections::HashMap<Uuid, Vec<crate::models::TimeEntry>>,
+        employment_to_employee: &std::collections::HashMap<Uuid, Uuid>,
+        attendance_rules_map: &std::collections::HashMap<Uuid, crate::models::AttendanceRules>,
+        working_conditions_map: &std::collections::HashMap<
+            Uuid,
+            Vec<crate::models::WorkingCondition>,
+        >,
+        condition_type_catalog: &std::collections::HashMap<
+            String,
+            crate::models::ConditionTypeDefinition,
+        >,
+        tz: Tz,
+        workspace_id: Uuid,
+    ) -> HashMap<Uuid, (i32, i32, i32)> {
         let mut employee_totals: HashMap<Uuid, (i32, i32, i32)> = HashMap::new();
 
         for emp_sched in schedules {
@@ -240,7 +331,6 @@ impl ReportService {
 
             for daily in emp_sched.schedules() {
                 let date = daily.date();
-
                 let day_entries = entries_by_date
                     .get(&date)
                     .map_or_else(Default::default, std::vec::Vec::as_slice);
@@ -256,9 +346,8 @@ impl ReportService {
                     emp_attendance_rules
                         .grace_period_minutes
                         .unwrap_or(crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES),
-                    Some(&condition_type_catalog),
+                    Some(condition_type_catalog),
                 );
-
                 let overrides = ShiftPolicyOverrides::new(
                     daily.early_punch_in_grace_period_minutes(),
                     daily.is_break_auto_deduct(),
@@ -273,7 +362,7 @@ impl ReportService {
                     date,
                     tz,
                     employee_id,
-                    workspace_id: workspace.id(),
+                    workspace_id,
                     rules,
                     work_unit_minutes: emp_attendance_rules.work_unit_minutes,
                     rounding_policy: emp_attendance_rules.rounding_policy,
@@ -293,30 +382,17 @@ impl ReportService {
             );
         }
 
-        // Fetch all employers to get names
-        let mut all_employers = Vec::new();
-        let mut page = 1;
-        loop {
-            let (employers, total) = self
-                .employer_repo
-                .get_employers(auth_token, page, 1000)
-                .await?;
-            if employers.is_empty() {
-                break;
-            }
-            all_employers.extend(employers);
-            if u64::try_from(all_employers.len()).unwrap_or(u64::MAX)
-                >= u64::try_from(total).unwrap_or(0)
-            {
-                break;
-            }
-            page += 1;
-        }
+        employee_totals
+    }
 
-        let employer_name_map: HashMap<Uuid, String> =
-            all_employers.into_iter().map(|e| (e.id, e.name)).collect();
-
-        // Create a map from employee_id to EmployeeBasicInfo info so we can lookup full name & employee_id_number
+    /// Build `AttendanceSummary` rows from employment groups and accumulated totals.
+    fn build_summary_results(
+        selection: &super::employment_selection::EmploymentSelection,
+        paginated_employees: &[crate::repositories::employee::EmployeeBasicInfo],
+        employee_totals: &HashMap<Uuid, (i32, i32, i32)>,
+        leave_data: &HashMap<Uuid, i64>,
+        employer_name_map: &HashMap<Uuid, String>,
+    ) -> Vec<AttendanceSummary> {
         let employee_map: HashMap<Uuid, &crate::repositories::employee::EmployeeBasicInfo> =
             paginated_employees
                 .iter()
@@ -324,7 +400,6 @@ impl ReportService {
                 .collect();
 
         let mut results = Vec::new();
-
         for group in &selection.groups {
             let Some(emp_info) = employee_map.get(&group.employee_id) else {
                 continue;
@@ -367,20 +442,35 @@ impl ReportService {
                 employer_name: employer_name_map.get(&group.employer_id).cloned(),
             });
         }
+        results
+    }
 
+    /// Apply sorting and pagination to the summary results.
+    fn finalize_summary(
+        mut results: Vec<AttendanceSummary>,
+        sort: Option<AttendanceReportSort>,
+        is_computed_sort: bool,
+        total_employees: i64,
+        page: i64,
+        limit: i64,
+    ) -> PaginatedResponse<AttendanceSummary> {
         let logical_total = results.len();
 
-        if let Some(s) = &args.sort {
+        if let Some(s) = sort {
             match s {
                 AttendanceReportSort::NameAsc | AttendanceReportSort::NameDesc => {}
-                AttendanceReportSort::WorkHoursAsc => results.sort_by(|a, b| {
-                    (a.total_std_units + a.total_ot_units)
-                        .cmp(&(b.total_std_units + b.total_ot_units))
-                }),
-                AttendanceReportSort::WorkHoursDesc => results.sort_by(|a, b| {
-                    (b.total_std_units + b.total_ot_units)
-                        .cmp(&(a.total_std_units + a.total_ot_units))
-                }),
+                AttendanceReportSort::WorkHoursAsc | AttendanceReportSort::TotalHoursAsc => {
+                    results.sort_by(|a, b| {
+                        (a.total_std_units + a.total_ot_units)
+                            .cmp(&(b.total_std_units + b.total_ot_units))
+                    });
+                }
+                AttendanceReportSort::WorkHoursDesc | AttendanceReportSort::TotalHoursDesc => {
+                    results.sort_by(|a, b| {
+                        (b.total_std_units + b.total_ot_units)
+                            .cmp(&(a.total_std_units + a.total_ot_units))
+                    });
+                }
                 AttendanceReportSort::LeaveDaysAsc => {
                     results.sort_by(|a, b| a.total_leave_days.cmp(&b.total_leave_days));
                 }
@@ -393,14 +483,6 @@ impl ReportService {
                 AttendanceReportSort::OtHoursDesc => {
                     results.sort_by(|a, b| b.total_ot_units.cmp(&a.total_ot_units));
                 }
-                AttendanceReportSort::TotalHoursAsc => results.sort_by(|a, b| {
-                    (a.total_std_units + a.total_ot_units)
-                        .cmp(&(b.total_std_units + b.total_ot_units))
-                }),
-                AttendanceReportSort::TotalHoursDesc => results.sort_by(|a, b| {
-                    (b.total_std_units + b.total_ot_units)
-                        .cmp(&(a.total_std_units + a.total_ot_units))
-                }),
             }
         }
 
@@ -418,7 +500,7 @@ impl ReportService {
             }
         }
 
-        Ok(PaginatedResponse {
+        PaginatedResponse {
             data: results,
             total: if is_computed_sort {
                 logical_total
@@ -427,6 +509,6 @@ impl ReportService {
             },
             page,
             limit,
-        })
+        }
     }
 }
