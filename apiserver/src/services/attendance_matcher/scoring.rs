@@ -5,6 +5,7 @@ use crate::domain::policy::overtime::OvertimeEngine;
 use crate::domain::policy::resolver::{PolicyResolver, ShiftPolicyOverrides, StandardMonthConfig};
 use crate::models::TimeEntry;
 use crate::services::attendance_calculator::DailyCalcInput;
+use crate::services::financial_calculator::FinancialCalculator;
 use crate::services::AttendanceCalculator;
 use chrono::{NaiveDate, TimeZone};
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
@@ -34,16 +35,16 @@ fn compute_ot_pay_for_entry(
     work_unit_minutes: i32,
     policy_cache: &mut HashMap<Uuid, Vec<crate::models::OvertimeRule>>,
 ) -> Decimal {
-    if let Some(policy_id) = ctx.overtime_data.resolve_policy_for_employee(
+    if let Some(policy_id) = ctx.overtime_data().resolve_policy_for_employee(
         employee_id,
         current_date,
-        &ctx.all_dept_history,
+        ctx.all_dept_history(),
     ) {
         let rules = if let Some(r) = policy_cache.get(&policy_id) {
             r.clone()
         } else {
             let r = ctx
-                .overtime_data
+                .overtime_data()
                 .policies
                 .get(&policy_id)
                 .map(|(_, rules)| rules.clone())
@@ -63,9 +64,9 @@ fn compute_ot_pay_for_entry(
         // Early OT: punched in before shift start
         if punch_in < shift_start {
             let ot_end = std::cmp::min(punch_out, shift_start);
-            let daily_splits = OvertimeEngine::split_interval_by_day(&punch_in, &ot_end, &ctx.tz);
+            let daily_splits = OvertimeEngine::split_interval_by_day(&punch_in, &ot_end, &ctx.tz());
             for (date, intervals) in daily_splits {
-                let day_is_holiday = ctx.holidays_map.contains_key(&date);
+                let day_is_holiday = ctx.holidays_map().contains_key(&date);
                 total_ot_pay += OvertimeEngine::calculate_overtime_pay_from_times(
                     &rules,
                     date,
@@ -84,9 +85,9 @@ fn compute_ot_pay_for_entry(
                 None => punch_out,
             };
             let daily_splits =
-                OvertimeEngine::split_interval_by_day(&ot_start, &ot_end_for_pay, &ctx.tz);
+                OvertimeEngine::split_interval_by_day(&ot_start, &ot_end_for_pay, &ctx.tz());
             for (date, intervals) in daily_splits {
-                let day_is_holiday = ctx.holidays_map.contains_key(&date);
+                let day_is_holiday = ctx.holidays_map().contains_key(&date);
                 total_ot_pay += OvertimeEngine::calculate_overtime_pay_from_times(
                     &rules,
                     date,
@@ -137,19 +138,19 @@ impl AttendanceMatcher {
         std_config: &StandardMonthConfig,
         policy_cache: &mut HashMap<Uuid, Vec<crate::models::OvertimeRule>>,
     ) -> (i32, i32, Decimal, Decimal, bool) {
-        let punch_in = entry.punch_in_time().with_timezone(&ctx.tz);
+        let punch_in = entry.punch_in_time().with_timezone(&ctx.tz());
         let punch_out_raw = entry.punch_out_time();
         let punch_out = match punch_out_raw {
-            Some(po) => po.with_timezone(&ctx.tz),
+            Some(po) => po.with_timezone(&ctx.tz()),
             None => return (0, 0, Decimal::ZERO, Decimal::ZERO, false),
         };
 
         // Resolve effective attendance rules with shift-level overrides
         let rules = PolicyResolver::resolve_with_shift_overrides_pure(
             Some(attendance_rules.clone()),
-            ctx.working_conditions.clone(),
+            ctx.working_conditions().to_vec(),
             current_date,
-            Some(&ctx.condition_type_catalog),
+            Some(ctx.condition_type_catalog()),
             &ShiftPolicyOverrides::new(
                 Some(interval.early_punch_in_grace_period_minutes),
                 Some(interval.is_break_auto_deduct),
@@ -161,13 +162,13 @@ impl AttendanceMatcher {
 
         // Construct break times as timezone-aware datetimes
         let break_start = interval.break_start.and_then(|t| {
-            ctx.tz
+            ctx.tz()
                 .from_local_datetime(&current_date.and_time(t))
                 .single()
         });
         let break_end = interval.break_end.and_then(|t| {
             let mut dt = ctx
-                .tz
+                .tz()
                 .from_local_datetime(&current_date.and_time(t))
                 .single()?;
             if interval.break_end < interval.break_start {
@@ -198,7 +199,7 @@ impl AttendanceMatcher {
         let mut holiday_premium = Decimal::ZERO;
         let mut std_extra = 0i32;
 
-        if let Some(holiday) = ctx.holidays_map.get(&current_date) {
+        if let Some(holiday) = ctx.holidays_map().get(&current_date) {
             let daily_rate = FinancialCalculator::calculate_daily_rate(
                 segment_total_base,
                 std_config.std_working_days(),
@@ -235,7 +236,7 @@ impl AttendanceMatcher {
         };
 
         // ── Violation detection ────────────────────────────────────
-        let is_holiday = ctx.holidays_map.contains_key(&current_date);
+        let is_holiday = ctx.holidays_map().contains_key(&current_date);
         let is_violation = Self::check_late_early(
             punch_in,
             punch_out,
@@ -295,17 +296,17 @@ impl AttendanceMatcher {
         // Process each shift with OT ceiling = next shift's start
         for (shift_idx, (_shift_id, interval)) in day_shifts.iter().enumerate() {
             let ot_ceiling = day_shifts.get(shift_idx + 1).and_then(|(_, next_i)| {
-                ctx.tz
+                ctx.tz()
                     .from_local_datetime(&current_date.and_time(next_i.start_time))
                     .single()
             });
 
             let start_dt = ctx
-                .tz
+                .tz()
                 .from_local_datetime(&current_date.and_time(interval.start_time))
                 .single();
             let end_dt = ctx
-                .tz
+                .tz()
                 .from_local_datetime(&current_date.and_time(interval.end_time))
                 .single();
 
@@ -318,10 +319,10 @@ impl AttendanceMatcher {
                 let matching_entries: Vec<_> = work_entries
                     .iter()
                     .filter(|entry| {
-                        let punch_in = entry.punch_in_time().with_timezone(&ctx.tz);
+                        let punch_in = entry.punch_in_time().with_timezone(&ctx.tz());
                         let prev_end = if shift_idx > 0 {
                             day_shifts.get(shift_idx - 1).and_then(|(_, prev_i)| {
-                                ctx.tz
+                                ctx.tz()
                                     .from_local_datetime(&current_date.and_time(prev_i.end_time))
                                     .single()
                             })
@@ -367,9 +368,9 @@ impl AttendanceMatcher {
         // Fallback: entries with no matching shift (day_shifts is empty)
         if day_shifts.is_empty() {
             for entry in &work_entries {
-                let punch_in = entry.punch_in_time().with_timezone(&ctx.tz);
+                let punch_in = entry.punch_in_time().with_timezone(&ctx.tz());
                 if let Some(punch_out_raw) = entry.punch_out_time() {
-                    let punch_out = punch_out_raw.with_timezone(&ctx.tz);
+                    let punch_out = punch_out_raw.with_timezone(&ctx.tz());
                     day_std += AttendanceCalculator::calculate_units(
                         i32::try_from((punch_out - punch_in).num_minutes()).unwrap_or(0),
                         attendance_rules.work_unit_minutes,

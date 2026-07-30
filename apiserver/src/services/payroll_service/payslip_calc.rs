@@ -120,7 +120,6 @@ impl PayrollService {
                     attendance_rules: &attendance_policy,
                     seg_units_per_day,
                     policy_cache: &mut policy_cache,
-                    overtime_policy_repo: &*self.overtime_policy_repo,
                 },
             )
             .await;

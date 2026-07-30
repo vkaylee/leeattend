@@ -3,12 +3,10 @@
 //!
 //! Extracted from `PayrollService::calculate_monthly_payslip` to satisfy SRP.
 
-use crate::repositories::overtime_policy_repository::OvertimePolicyRepositoryTrait;
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 
 use super::attendance_context::AttendanceContext;
-use super::financial_calculator::FinancialCalculator;
 
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -44,7 +42,6 @@ pub struct ProcessSegmentAttendanceArgs<'a> {
     pub attendance_rules: &'a crate::models::AttendanceRules,
     pub seg_units_per_day: Decimal,
     pub policy_cache: &'a mut HashMap<Uuid, Vec<crate::models::OvertimeRule>>,
-    pub overtime_policy_repo: &'a dyn OvertimePolicyRepositoryTrait,
 }
 
 // ── Public API ──────────────────────────────────────────────────────────
@@ -61,7 +58,7 @@ impl AttendanceMatcher {
     pub async fn process_segment_attendance(
         args: ProcessSegmentAttendanceArgs<'_>,
     ) -> SegmentAttendanceResult {
-        let employee_id = args.ctx.employee_id;
+        let employee_id = args.ctx.employee_id();
 
         let mut segment_std_units = 0i32;
         let mut segment_ot_units = 0i32;
@@ -85,7 +82,7 @@ impl AttendanceMatcher {
                 current_date,
             );
 
-            if let Some(entries) = args.ctx.daily_entries_map.get(&current_date) {
+            if let Some(entries) = args.ctx.daily_entries_map().get(&current_date) {
                 let (day_std, day_ot, day_ot_pay, day_premium, day_violations) =
                     Self::process_daily_entries(
                         args.ctx,
@@ -105,7 +102,7 @@ impl AttendanceMatcher {
                 segment_ot_pay += day_ot_pay;
                 holiday_work_premium += day_premium;
                 late_early_count += day_violations;
-            } else if let Some(holiday) = args.ctx.holidays_map.get(&current_date) {
+            } else if let Some(holiday) = args.ctx.holidays_map().get(&current_date) {
                 // Paid holiday with no attendance → auto-credit standard day
                 if holiday.is_paid() {
                     segment_std_units += Self::credit_paid_holiday(holiday, args.seg_units_per_day);
