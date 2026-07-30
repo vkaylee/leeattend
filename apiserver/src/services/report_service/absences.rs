@@ -108,10 +108,16 @@ impl ReportService {
         let unassigned_id = Uuid::nil();
 
         for emp_sched in &schedules {
-            let employee_id = emp_id_to_employee_id
+            let Some(employee_id) = emp_id_to_employee_id
                 .get(&emp_sched.employment_id())
                 .copied()
-                .unwrap_or_else(Uuid::nil);
+            else {
+                tracing::warn!(
+                    employment_id = %emp_sched.employment_id(),
+                    "employment→employee mapping miss — skipping row"
+                );
+                continue;
+            };
 
             let entries = entries_map
                 .get(&emp_sched.employment_id())

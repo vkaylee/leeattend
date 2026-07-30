@@ -41,11 +41,17 @@ impl AttendanceHandler {
             leave_details_map.keys().copied().collect();
 
         for emp_sched in args.schedules {
-            let employee_id = args
+            let Some(employee_id) = args
                 .employment_to_employee
                 .get(&emp_sched.employment_id())
                 .copied()
-                .unwrap_or_else(Uuid::nil);
+            else {
+                tracing::warn!(
+                    employment_id = %emp_sched.employment_id(),
+                    "employment→employee mapping miss — skipping row"
+                );
+                continue;
+            };
 
             let employer_name = args
                 .employment_to_employer

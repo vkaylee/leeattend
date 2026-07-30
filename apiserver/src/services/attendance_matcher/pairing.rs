@@ -7,11 +7,12 @@ impl AttendanceMatcher {
     /// Resolve active employment, employer, and assignment/location for a
     /// single calendar date.
     ///
-    /// Returns `(active_employer_id, active_employment_id, active_location_id)`.
+    /// Returns `Some((active_employer_id, active_employment_id, active_location_id))`
+    /// or `None` when no active employment exists for the given date.
     pub(super) fn resolve_day_context(
         ctx: &AttendanceMatcherContext,
         current_date: NaiveDate,
-    ) -> (Option<Uuid>, Uuid, Uuid) {
+    ) -> Option<(Option<Uuid>, Uuid, Uuid)> {
         // Find active employment on current_date
         let active_employment = ctx
             .active_employments()
@@ -23,14 +24,17 @@ impl AttendanceMatcher {
             })
             .max_by_key(|e| e.start_date());
         let active_employer_id = active_employment.map(crate::models::Employment::employer_id);
-        let active_employment_id = active_employment
+        let Some(active_employment_id) = active_employment
             .map(crate::models::Employment::id)
-            .unwrap_or_else(|| {
-                ctx.active_employments()
-                    .first()
-                    .map(crate::models::Employment::id)
-                    .unwrap_or_else(Uuid::nil)
-            });
+            .or_else(|| ctx.active_employments().first().map(crate::models::Employment::id))
+        else {
+            tracing::warn!(
+                employee_id = %ctx.employee_id(),
+                current_date = %current_date,
+                "No active employment found for payroll matching — skipping day"
+            );
+            return None;
+        };
 
         // Find active assignment on current_date
         let active_assignment = ctx
@@ -46,7 +50,7 @@ impl AttendanceMatcher {
             .map(|a| a.host_location_id)
             .unwrap_or_else(|| ctx.primary_location_id());
 
-        (active_employer_id, active_employment_id, active_location_id)
+        Some((active_employer_id, active_employment_id, active_location_id))
     }
 
     /// Resolve shifts from pre-loaded roster data for a calendar date, then

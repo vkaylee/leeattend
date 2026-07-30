@@ -39,11 +39,17 @@ impl AttendanceHandler {
         .map_err(|e| format!("Failed to fetch attendance rules: {e}"))?;
 
         for emp_sched in args.schedules {
-            let employee_id = args
+            let Some(employee_id) = args
                 .employment_to_employee
                 .get(&emp_sched.employment_id())
                 .copied()
-                .unwrap_or_else(Uuid::nil);
+            else {
+                tracing::warn!(
+                    employment_id = %emp_sched.employment_id(),
+                    "employment→employee mapping miss — skipping row"
+                );
+                continue;
+            };
 
             let entries = args
                 .entries_map

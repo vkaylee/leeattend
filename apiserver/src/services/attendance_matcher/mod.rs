@@ -69,8 +69,15 @@ impl AttendanceMatcher {
         let mut current_date = args.seg_start;
         while current_date <= args.seg_end {
             // Resolve active employment, employer, and location for this date
-            let (active_employer_id, active_employment_id, active_location_id) =
-                Self::resolve_day_context(args.ctx, current_date);
+            let Some((active_employer_id, active_employment_id, active_location_id)) =
+                Self::resolve_day_context(args.ctx, current_date)
+            else {
+                current_date = match current_date.succ_opt() {
+                    Some(d) => d,
+                    None => break,
+                };
+                continue;
+            };
 
             // Collect and sort shifts from pre-loaded roster data
             let day_shifts = Self::collect_sorted_day_shifts(

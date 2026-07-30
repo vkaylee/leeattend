@@ -59,6 +59,24 @@ async fn test_process_segment_attendance_no_shift_fallback() {
         .tz(chrono_tz::UTC)
         .daily_entries_map(daily_entries_map)
         .emp_id_number("EMP001".to_string())
+        .active_employments(vec![crate::models::employment::Employment::new(
+            Uuid::new_v4(),
+            ws_id,
+            employee_id,
+            Uuid::new_v4(),
+            None,
+            None,
+            "active".to_string(),
+            Utc::now().date_naive() - chrono::Duration::days(10),
+            None,
+            None,
+            "full_time".to_string(),
+            None,
+            Utc::now(),
+            Utc::now(),
+            None,
+            None,
+        )])
         .primary_location_id(Uuid::new_v4())
         .build();
 
@@ -264,6 +282,24 @@ async fn test_process_segment_attendance_paid_holiday_no_work() {
         .tz(chrono_tz::UTC)
         .holidays_map(Arc::new(holidays_map))
         .emp_id_number("EMP001".to_string())
+        .active_employments(vec![crate::models::employment::Employment::new(
+            Uuid::new_v4(),
+            ws_id,
+            employee_id,
+            Uuid::new_v4(),
+            None,
+            None,
+            "active".to_string(),
+            date - chrono::Duration::days(10),
+            None,
+            None,
+            "full_time".to_string(),
+            None,
+            Utc::now(),
+            Utc::now(),
+            None,
+            None,
+        )])
         .primary_location_id(Uuid::new_v4())
         .build();
 
@@ -768,4 +804,270 @@ async fn test_process_segment_attendance_with_shift_break_is_overtime(
     assert_eq!(result.std_units, 16);
     assert_eq!(result.ot_units, 2);
     Ok(())
+}
+
+// ── Fix 3: resolve_day_context returns Option ──────────────────────────
+
+#[tokio::test]
+async fn test_resolve_day_context_no_employments_graceful_skip() {
+    let employee_id = Uuid::new_v4();
+    let date = NaiveDate::from_ymd_opt(2026, 7, 30).unwrap();
+
+    // Create time entries for an employee who has NO active employments
+    let punch_in = date.and_hms_opt(9, 0, 0).unwrap().and_utc();
+    let punch_out = date.and_hms_opt(18, 0, 0).unwrap().and_utc();
+
+    let entry = TimeEntry::new(
+        Uuid::new_v4(),
+        employee_id,
+        Uuid::new_v4(),
+        None,
+        None,
+        punch_in,
+        Some(punch_out),
+        Some(540),
+        false,
+        crate::services::pairing::types::EntryType::Work,
+        None,
+        None,
+        Utc::now(),
+        Utc::now(),
+    );
+
+    let mut daily_entries_map = HashMap::new();
+    daily_entries_map.insert(date, vec![entry]);
+
+    let attendance_rules = AttendanceRules {
+        work_unit_minutes: 30,
+        rounding_policy: crate::models::RoundingPolicy::Floor,
+        early_arrival_strategy: EarlyArrivalStrategy::Block,
+        grace_period_minutes: None,
+    };
+
+    // Context with NO active employments — this is the key setup
+    let att_ctx = AttendanceMatcherContext::builder()
+        .employee_id(employee_id)
+        .tz(chrono_tz::UTC)
+        .daily_entries_map(daily_entries_map)
+        .emp_id_number("EMP001".to_string())
+        .primary_location_id(Uuid::new_v4())
+        // .active_employments(vec![]) — intentionally empty
+        .build();
+
+    let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
+        Decimal::new(22, 0),
+        Decimal::new(8, 0),
+        "workspace".to_string(),
+    );
+
+    let mut policy_cache = HashMap::new();
+
+    let args = ProcessSegmentAttendanceArgs {
+        ctx: &att_ctx,
+        seg_start: date,
+        seg_end: date,
+        segment_total_base: Decimal::new(1000, 0),
+        segment_ot_base: Decimal::new(1000, 0),
+        std_config: &std_config,
+        attendance_rules: &attendance_rules,
+        seg_units_per_day: Decimal::new(16, 0),
+        policy_cache: &mut policy_cache,
+    };
+
+    let result = AttendanceMatcher::process_segment_attendance(args).await;
+    // No active employment → date loop skips → zero units (no panic, no Uuid::nil)
+    assert_eq!(result.std_units, 0);
+    assert_eq!(result.ot_units, 0);
+    assert_eq!(result.ot_pay, Decimal::ZERO);
+}
+
+#[tokio::test]
+async fn test_resolve_day_context_inactive_employment_falls_back_to_first() {
+    let employee_id = Uuid::new_v4();
+    let ws_id = Uuid::new_v4();
+    let employer_id = Uuid::new_v4();
+    let employment_id = Uuid::new_v4();
+    let date = NaiveDate::from_ymd_opt(2026, 7, 30).unwrap();
+
+    // Time entry: 09:00–13:00 = 4 hours = 8 units
+    let punch_in = date.and_hms_opt(9, 0, 0).unwrap().and_utc();
+    let punch_out = date.and_hms_opt(13, 0, 0).unwrap().and_utc();
+
+    let entry = TimeEntry::new(
+        Uuid::new_v4(),
+        employee_id,
+        ws_id,
+        None,
+        None,
+        punch_in,
+        Some(punch_out),
+        Some(240),
+        false,
+        crate::services::pairing::types::EntryType::Work,
+        None,
+        None,
+        Utc::now(),
+        Utc::now(),
+    );
+
+    let mut daily_entries_map = HashMap::new();
+    daily_entries_map.insert(date, vec![entry]);
+
+    // Employment exists but is "terminated" and ended before current_date —
+    // the active+date filter rejects it, but the or_else(|| .first()) fallback
+    // still picks it up as a last-resort employment context.
+    let employment = crate::models::employment::Employment::new(
+        employment_id,
+        ws_id,
+        employee_id,
+        employer_id,
+        None,
+        None,
+        "terminated".to_string(),
+        date - chrono::Duration::days(30),
+        Some(date - chrono::Duration::days(5)),
+        None,
+        "full_time".to_string(),
+        None,
+        Utc::now(),
+        Utc::now(),
+        None,
+        None,
+    );
+
+    let attendance_rules = AttendanceRules {
+        work_unit_minutes: 30,
+        rounding_policy: crate::models::RoundingPolicy::Floor,
+        early_arrival_strategy: EarlyArrivalStrategy::Block,
+        grace_period_minutes: None,
+    };
+
+    let att_ctx = AttendanceMatcherContext::builder()
+        .employee_id(employee_id)
+        .tz(chrono_tz::UTC)
+        .daily_entries_map(daily_entries_map)
+        .emp_id_number("EMP001".to_string())
+        .active_employments(vec![employment])
+        .primary_location_id(Uuid::new_v4())
+        .build();
+
+    let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
+        Decimal::new(22, 0),
+        Decimal::new(8, 0),
+        "workspace".to_string(),
+    );
+
+    let mut policy_cache = HashMap::new();
+
+    let args = ProcessSegmentAttendanceArgs {
+        ctx: &att_ctx,
+        seg_start: date,
+        seg_end: date,
+        segment_total_base: Decimal::new(1000, 0),
+        segment_ot_base: Decimal::new(1000, 0),
+        std_config: &std_config,
+        attendance_rules: &attendance_rules,
+        seg_units_per_day: Decimal::new(16, 0),
+        policy_cache: &mut policy_cache,
+    };
+
+    let result = AttendanceMatcher::process_segment_attendance(args).await;
+    // Terminated employment is used via or_else(|| .first()) fallback →
+    // processing continues (no-shift fallback: 240 mins / 30 = 8 units)
+    assert_eq!(result.std_units, 8);
+    assert_eq!(result.ot_units, 0);
+}
+
+#[tokio::test]
+async fn test_resolve_day_context_with_active_employment_still_works() {
+    let employee_id = Uuid::new_v4();
+    let ws_id = Uuid::new_v4();
+    let employer_id = Uuid::new_v4();
+    let employment_id = Uuid::new_v4();
+    let date = NaiveDate::from_ymd_opt(2026, 7, 30).unwrap();
+
+    // Time entry: 09:00–13:00 = 4 hours = 8 units
+    let punch_in = date.and_hms_opt(9, 0, 0).unwrap().and_utc();
+    let punch_out = date.and_hms_opt(13, 0, 0).unwrap().and_utc();
+
+    let entry = TimeEntry::new(
+        Uuid::new_v4(),
+        employee_id,
+        ws_id,
+        None,
+        None,
+        punch_in,
+        Some(punch_out),
+        Some(240),
+        false,
+        crate::services::pairing::types::EntryType::Work,
+        None,
+        None,
+        Utc::now(),
+        Utc::now(),
+    );
+
+    let mut daily_entries_map = HashMap::new();
+    daily_entries_map.insert(date, vec![entry]);
+
+    let employment = crate::models::employment::Employment::new(
+        employment_id,
+        ws_id,
+        employee_id,
+        employer_id,
+        None,
+        None,
+        "active".to_string(),
+        date - chrono::Duration::days(10),
+        None, // no end date — still active
+        None,
+        "full_time".to_string(),
+        None,
+        Utc::now(),
+        Utc::now(),
+        None,
+        None,
+    );
+
+    let attendance_rules = AttendanceRules {
+        work_unit_minutes: 30,
+        rounding_policy: crate::models::RoundingPolicy::Floor,
+        early_arrival_strategy: EarlyArrivalStrategy::Block,
+        grace_period_minutes: None,
+    };
+
+    let att_ctx = AttendanceMatcherContext::builder()
+        .employee_id(employee_id)
+        .tz(chrono_tz::UTC)
+        .daily_entries_map(daily_entries_map)
+        .emp_id_number("EMP001".to_string())
+        .active_employments(vec![employment])
+        .primary_location_id(Uuid::new_v4())
+        .build();
+
+    let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
+        Decimal::new(22, 0),
+        Decimal::new(8, 0),
+        "workspace".to_string(),
+    );
+
+    let mut policy_cache = HashMap::new();
+
+    let args = ProcessSegmentAttendanceArgs {
+        ctx: &att_ctx,
+        seg_start: date,
+        seg_end: date,
+        segment_total_base: Decimal::new(1000, 0),
+        segment_ot_base: Decimal::new(1000, 0),
+        std_config: &std_config,
+        attendance_rules: &attendance_rules,
+        seg_units_per_day: Decimal::new(16, 0),
+        policy_cache: &mut policy_cache,
+    };
+
+    let result = AttendanceMatcher::process_segment_attendance(args).await;
+    // Active employment exists → no-shift fallback processes entries normally
+    // 240 mins / 30 mins = 8 units
+    assert_eq!(result.std_units, 8);
+    assert_eq!(result.ot_units, 0);
 }

@@ -260,10 +260,16 @@ impl ReportService {
         let mut reports = Vec::new();
 
         for emp_sched in schedules {
-            let employee_id = employment_to_employee
+            let Some(employee_id) = employment_to_employee
                 .get(&emp_sched.employment_id())
                 .copied()
-                .unwrap_or_else(Uuid::nil);
+            else {
+                tracing::warn!(
+                    employment_id = %emp_sched.employment_id(),
+                    "employment→employee mapping miss — skipping row"
+                );
+                continue;
+            };
 
             let entries = entries_map
                 .get(&emp_sched.employment_id())
@@ -666,10 +672,16 @@ impl ReportService {
         let mut reports = Vec::new();
 
         for emp_segs in &employee_segments {
-            let employee_id = employment_to_employee
+            let Some(employee_id) = employment_to_employee
                 .get(&emp_segs.employment_id())
                 .copied()
-                .unwrap_or_else(Uuid::nil);
+            else {
+                tracing::warn!(
+                    employment_id = %emp_segs.employment_id(),
+                    "employment→employee mapping miss — skipping row"
+                );
+                continue;
+            };
 
             let entries = entries_map
                 .get(&emp_segs.employment_id())
@@ -787,12 +799,34 @@ impl ReportService {
                         .map(|e| e.duration_minutes().unwrap_or(0))
                         .sum();
 
+                    // Skip segments with no punch data — no fake timestamps
+                    let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) else {
+                        segment_calc_inputs.push(
+                            crate::services::attendance_calculator::DailyCalcInput {
+                                punch_in: shift_start_dt.unwrap_or_else(|| tz.from_utc_datetime(&date.and_hms_opt(0, 0, 0).unwrap().and_utc().naive_utc())),
+                                punch_out: shift_start_dt.unwrap_or_else(|| tz.from_utc_datetime(&date.and_hms_opt(0, 0, 0).unwrap().and_utc().naive_utc())),
+                                shift_start: shift_start_dt,
+                                shift_end: shift_end_dt,
+                                scheduled_break_minutes: seg.break_duration_minutes.unwrap_or(0),
+                                actual_break_minutes: 0,
+                                break_start: None,
+                                break_end: None,
+                                work_unit: emp_attendance_rules.work_unit_minutes,
+                                rounding_policy: emp_attendance_rules.rounding_policy,
+                                rules: rules.clone(),
+                                ot_ceiling,
+                                max_early_ot_minutes: seg.max_early_ot_minutes,
+                                segment_id: seg.interval_id,
+                                ot_aggregation_mode: seg.ot_aggregation_mode,
+                            },
+                        );
+                        continue;
+                    };
+
                     segment_calc_inputs.push(
                         crate::services::attendance_calculator::DailyCalcInput {
-                            punch_in: actual_punch_in
-                                .unwrap_or_else(|| tz.from_utc_datetime(&Utc::now().naive_utc())),
-                            punch_out: actual_punch_out
-                                .unwrap_or_else(|| tz.from_utc_datetime(&Utc::now().naive_utc())),
+                            punch_in,
+                            punch_out,
                             shift_start: shift_start_dt,
                             shift_end: shift_end_dt,
                             scheduled_break_minutes: seg.break_duration_minutes.unwrap_or(0),

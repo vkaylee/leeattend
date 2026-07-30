@@ -209,10 +209,16 @@ impl ReportService {
         let mut employee_totals: HashMap<Uuid, (i32, i32, i32)> = HashMap::new();
 
         for emp_sched in schedules {
-            let employee_id = employment_to_employee
+            let Some(employee_id) = employment_to_employee
                 .get(&emp_sched.employment_id())
                 .copied()
-                .unwrap_or_else(Uuid::nil);
+            else {
+                tracing::warn!(
+                    employment_id = %emp_sched.employment_id(),
+                    "employment→employee mapping miss — skipping row"
+                );
+                continue;
+            };
 
             let entries = entries_map
                 .get(&emp_sched.employment_id())

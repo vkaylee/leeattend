@@ -121,7 +121,7 @@ pub async fn get_attendance_logs(
         } else {
             None
         };
-        Some(active_id.unwrap_or_else(Uuid::nil))
+        active_id
     } else {
         None
     };
@@ -189,7 +189,7 @@ pub async fn get_raw_attendance_logs(
         } else {
             None
         };
-        Some(active_id.unwrap_or_else(Uuid::nil))
+        active_id
     } else {
         None
     };
