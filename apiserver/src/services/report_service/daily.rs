@@ -29,20 +29,20 @@ impl ReportService {
     /// Delegates to [`AttendanceService`] — the same code path used by
     /// payroll, summary recalculation, and worker handlers.
     pub(crate) fn calculate_day_units(args: &CalculateDayUnitsArgs<'_, '_>) -> (i32, i32) {
-        if args.daily.shift_id().is_none() {
+        if args.daily().shift_id().is_none() {
             return (0, 0);
         }
 
         let result = crate::services::AttendanceService::compute_daily_attendance(
             crate::services::ComputeDailyInput {
-                daily: args.daily,
-                day_entries: args.day_entries,
-                date: args.date,
-                tz: &args.tz,
-                rules: &args.rules,
-                work_unit_minutes: args.work_unit_minutes,
-                rounding_policy: args.rounding_policy,
-                max_early_ot_minutes: args.daily.max_early_ot_minutes(),
+                daily: args.daily(),
+                day_entries: args.day_entries(),
+                date: args.date(),
+                tz: args.tz(),
+                rules: args.rules(),
+                work_unit_minutes: args.work_unit_minutes(),
+                rounding_policy: args.rounding_policy(),
+                max_early_ot_minutes: args.daily().max_early_ot_minutes(),
                 ot_ceiling: None,
                 segment_id: None,
                 ot_aggregation_mode:
@@ -51,7 +51,7 @@ impl ReportService {
         );
 
         match result {
-            Some(r) => r.into_units(args.work_unit_minutes, args.rounding_policy),
+            Some(r) => r.into_units(args.work_unit_minutes(), args.rounding_policy()),
             None => (0, 0),
         }
     }
@@ -64,12 +64,12 @@ impl ReportService {
         args: AttendanceReportArgs,
     ) -> Result<PaginatedResponse<DailyAttendanceReport>, AppError> {
         let preamble = self.fetch_preamble(auth_token, &args, None).await?;
-        if preamble.paginated_employees.is_empty() {
+        if preamble.paginated_employees().is_empty() {
             return Ok(PaginatedResponse {
                 data: Vec::new(),
-                total: usize::try_from(preamble.total_employees).unwrap_or(0),
-                page: i64::try_from(preamble.page).unwrap_or(1),
-                limit: i64::try_from(preamble.limit).unwrap_or(20),
+                total: usize::try_from(preamble.total_employees()).unwrap_or(0),
+                page: i64::try_from(preamble.page()).unwrap_or(1),
+                limit: i64::try_from(preamble.limit()).unwrap_or(20),
             });
         }
         let shift_names: Option<Vec<String>> = args.shift_type.as_ref().map(|s| {
@@ -79,7 +79,7 @@ impl ReportService {
                 .map(String::from)
                 .collect()
         });
-        let tz = preamble.workspace_tz;
+        let tz = preamble.workspace_tz();
 
         let (schedules, _) = self
             .roster_repo
@@ -88,7 +88,7 @@ impl ReportService {
                 auth_token,
                 args.start_date,
                 args.end_date,
-                Some(&preamble.paginated_employment_ids),
+                Some(preamble.paginated_employment_ids()),
                 None,
                 None,
             )
@@ -103,7 +103,7 @@ impl ReportService {
             .attendance_daily_summary_repo
             .get_batch_ot_statuses(
                 auth_token,
-                &preamble.paginated_employment_ids,
+                preamble.paginated_employment_ids(),
                 args.start_date,
                 args.end_date,
             )
@@ -113,7 +113,7 @@ impl ReportService {
             .leave_repo
             .get_approved_leave_details(
                 auth_token,
-                &preamble.emp_ids,
+                preamble.emp_ids(),
                 args.start_date,
                 args.end_date,
             )
@@ -126,7 +126,7 @@ impl ReportService {
 
         for emp_sched in schedules {
             let Some(employee_id) = preamble
-                .employment_to_employee
+                .employment_to_employee()
                 .get(&emp_sched.employment_id())
                 .copied()
             else {
@@ -138,7 +138,7 @@ impl ReportService {
             };
 
             let entries = preamble
-                .entries_map
+                .entries_map()
                 .get(&emp_sched.employment_id())
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
             let entries_by_date =
@@ -159,7 +159,7 @@ impl ReportService {
                     .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&tz)));
 
                 let emp_attendance_rules = preamble
-                    .attendance_rules_map
+                    .attendance_rules_map()
                     .get(&employee_id)
                     .cloned()
                     .unwrap_or(crate::models::AttendanceRules {
@@ -170,7 +170,7 @@ impl ReportService {
                     });
 
                 let emp_working_conditions = preamble
-                    .working_conditions_map
+                    .working_conditions_map()
                     .get(&employee_id)
                     .map_or_else(Default::default, std::vec::Vec::as_slice);
 
@@ -181,7 +181,7 @@ impl ReportService {
                     emp_attendance_rules
                         .grace_period_minutes
                         .unwrap_or(crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES),
-                    Some(&preamble.condition_type_catalog),
+                    Some(preamble.condition_type_catalog()),
                 );
 
                 let overrides = ShiftPolicyOverrides::new(
@@ -200,17 +200,17 @@ impl ReportService {
                 let grace_minutes = rules.grace_period_minutes();
 
                 let (std_work_units, ot_work_units) =
-                    Self::calculate_day_units(&CalculateDayUnitsArgs {
+                    Self::calculate_day_units(&CalculateDayUnitsArgs::new(
                         day_entries,
                         daily,
                         date,
                         tz,
                         employee_id,
-                        workspace_id: preamble.workspace_id,
-                        rules: rules.clone(),
-                        work_unit_minutes: emp_attendance_rules.work_unit_minutes,
-                        rounding_policy: emp_attendance_rules.rounding_policy,
-                    });
+                        preamble.workspace_id(),
+                        emp_attendance_rules.work_unit_minutes,
+                        rules.clone(),
+                        emp_attendance_rules.rounding_policy,
+                    ));
 
                 let holiday_entry = holidays_map.get(&date);
                 let is_hol = holiday_entry.is_some();
@@ -254,12 +254,12 @@ impl ReportService {
                 };
 
                 let employer_id = preamble
-                    .employments
+                    .employments()
                     .iter()
                     .find(|e| e.id() == emp_sched.employment_id())
                     .map(crate::models::Employment::employer_id);
                 let employer_name =
-                    employer_id.and_then(|id| preamble.employer_name_map.get(&id).cloned());
+                    employer_id.and_then(|id| preamble.employer_name_map().get(&id).cloned());
 
                 reports.push(DailyAttendanceReport {
                     date,
@@ -316,9 +316,9 @@ impl ReportService {
 
         Ok(PaginatedResponse {
             data: reports,
-            total: usize::try_from(preamble.total_employees).unwrap_or(0),
-            page: i64::try_from(preamble.page).unwrap_or(1),
-            limit: i64::try_from(preamble.limit).unwrap_or(20),
+            total: usize::try_from(preamble.total_employees()).unwrap_or(0),
+            page: i64::try_from(preamble.page()).unwrap_or(1),
+            limit: i64::try_from(preamble.limit()).unwrap_or(20),
         })
     }
 
@@ -337,12 +337,12 @@ impl ReportService {
         args: AttendanceReportArgs,
     ) -> Result<PaginatedResponse<DailyAttendanceReport>, AppError> {
         let preamble = self.fetch_preamble(auth_token, &args, None).await?;
-        if preamble.paginated_employees.is_empty() {
+        if preamble.paginated_employees().is_empty() {
             return Ok(PaginatedResponse {
                 data: Vec::new(),
-                total: usize::try_from(preamble.total_employees).unwrap_or(0),
-                page: i64::try_from(preamble.page).unwrap_or(1),
-                limit: i64::try_from(preamble.limit).unwrap_or(20),
+                total: usize::try_from(preamble.total_employees()).unwrap_or(0),
+                page: i64::try_from(preamble.page()).unwrap_or(1),
+                limit: i64::try_from(preamble.limit()).unwrap_or(20),
             });
         }
         let shift_names: Option<Vec<String>> = args.shift_type.as_ref().map(|s| {
@@ -352,7 +352,7 @@ impl ReportService {
                 .map(String::from)
                 .collect()
         });
-        let tz = preamble.workspace_tz;
+        let tz = preamble.workspace_tz();
 
         // ── Segment-centric schedule resolution ──
         let (employee_segments, _) = self
@@ -362,7 +362,7 @@ impl ReportService {
                 auth_token,
                 args.start_date,
                 args.end_date,
-                Some(&preamble.paginated_employment_ids),
+                Some(preamble.paginated_employment_ids()),
                 None,
                 None,
             )
@@ -377,7 +377,7 @@ impl ReportService {
             .attendance_daily_summary_repo
             .get_batch_ot_statuses(
                 auth_token,
-                &preamble.paginated_employment_ids,
+                preamble.paginated_employment_ids(),
                 args.start_date,
                 args.end_date,
             )
@@ -387,7 +387,7 @@ impl ReportService {
             .leave_repo
             .get_approved_leave_details(
                 auth_token,
-                &preamble.emp_ids,
+                preamble.emp_ids(),
                 args.start_date,
                 args.end_date,
             )
@@ -401,7 +401,7 @@ impl ReportService {
 
         for emp_segs in &employee_segments {
             let Some(employee_id) = preamble
-                .employment_to_employee
+                .employment_to_employee()
                 .get(&emp_segs.employment_id())
                 .copied()
             else {
@@ -413,7 +413,7 @@ impl ReportService {
             };
 
             let entries = preamble
-                .entries_map
+                .entries_map()
                 .get(&emp_segs.employment_id())
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
             let entries_by_date =
@@ -430,7 +430,7 @@ impl ReportService {
             }
 
             let emp_attendance_rules = preamble
-                .attendance_rules_map
+                .attendance_rules_map()
                 .get(&employee_id)
                 .cloned()
                 .unwrap_or(crate::models::AttendanceRules {
@@ -441,7 +441,7 @@ impl ReportService {
                 });
 
             let emp_working_conditions = preamble
-                .working_conditions_map
+                .working_conditions_map()
                 .get(&employee_id)
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
 
@@ -506,7 +506,7 @@ impl ReportService {
                         emp_attendance_rules.grace_period_minutes.unwrap_or(
                             crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES,
                         ),
-                        Some(&preamble.condition_type_catalog),
+                        Some(preamble.condition_type_catalog()),
                     );
 
                     let overrides = ShiftPolicyOverrides::new(
@@ -652,12 +652,12 @@ impl ReportService {
                     );
 
                     let employer_id = preamble
-                        .employments
+                        .employments()
                         .iter()
                         .find(|e| e.id() == emp_segs.employment_id())
                         .map(crate::models::Employment::employer_id);
                     let employer_name =
-                        employer_id.and_then(|id| preamble.employer_name_map.get(&id).cloned());
+                        employer_id.and_then(|id| preamble.employer_name_map().get(&id).cloned());
 
                     let unit_coeff = f64::from(emp_attendance_rules.work_unit_minutes) / 60.0;
 
@@ -714,9 +714,9 @@ impl ReportService {
 
         Ok(PaginatedResponse {
             data: reports,
-            total: usize::try_from(preamble.total_employees).unwrap_or(0),
-            page: i64::try_from(preamble.page).unwrap_or(1),
-            limit: i64::try_from(preamble.limit).unwrap_or(20),
+            total: usize::try_from(preamble.total_employees()).unwrap_or(0),
+            page: i64::try_from(preamble.page()).unwrap_or(1),
+            limit: i64::try_from(preamble.limit()).unwrap_or(20),
         })
     }
 

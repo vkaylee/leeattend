@@ -194,17 +194,17 @@ impl ReportService {
             let preamble = self
                 .fetch_preamble(auth_token, &args, args.employment_id)
                 .await?;
-            if preamble.paginated_employees.is_empty() {
+            if preamble.paginated_employees().is_empty() {
                 return Ok(PaginatedResponse {
                     data: Vec::new(),
-                    total: usize::try_from(preamble.total_employees).unwrap_or(0),
-                    page: i64::try_from(preamble.page).unwrap_or(1),
-                    limit: i64::try_from(preamble.limit).unwrap_or(20),
+                    total: usize::try_from(preamble.total_employees()).unwrap_or(0),
+                    page: i64::try_from(preamble.page()).unwrap_or(1),
+                    limit: i64::try_from(preamble.limit()).unwrap_or(20),
                 });
             }
             (
-                preamble.paginated_employees.clone(),
-                preamble.total_employees,
+                preamble.paginated_employees().to_vec(),
+                preamble.total_employees(),
                 Some(preamble),
             )
         };
@@ -220,13 +220,13 @@ impl ReportService {
                 limit: 20,
             });
         };
-        let page = i64::try_from(preamble.page).unwrap_or(1);
-        let limit = i64::try_from(preamble.limit).unwrap_or(20);
+        let page = i64::try_from(preamble.page()).unwrap_or(1);
+        let limit = i64::try_from(preamble.limit()).unwrap_or(20);
 
         let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
 
         let selection = super::employment_selection::select_report_employments(
-            &preamble.employments,
+            preamble.employments(),
             &emp_ids,
             args.start_date,
             args.end_date,
@@ -253,13 +253,13 @@ impl ReportService {
 
         let employee_totals = Self::accumulate_employee_totals(
             &schedules,
-            &preamble.entries_map,
-            &preamble.employment_to_employee,
-            &preamble.attendance_rules_map,
-            &preamble.working_conditions_map,
-            &preamble.condition_type_catalog,
-            preamble.workspace_tz,
-            preamble.workspace_id,
+            preamble.entries_map(),
+            preamble.employment_to_employee(),
+            preamble.attendance_rules_map(),
+            preamble.working_conditions_map(),
+            preamble.condition_type_catalog(),
+            preamble.workspace_tz(),
+            preamble.workspace_id(),
         );
 
         let results = Self::build_summary_results(
@@ -267,7 +267,7 @@ impl ReportService {
             &paginated_employees,
             &employee_totals,
             &leave_data,
-            &preamble.employer_name_map,
+            preamble.employer_name_map(),
         );
 
         Ok(Self::finalize_summary(
@@ -356,17 +356,17 @@ impl ReportService {
                     daily.break_is_overtime().unwrap_or(false),
                 );
                 let rules = PolicyResolver::apply_shift_overrides(base_rules, &overrides);
-                let (std_units, ot_units) = Self::calculate_day_units(&CalculateDayUnitsArgs {
+                let (std_units, ot_units) = Self::calculate_day_units(&CalculateDayUnitsArgs::new(
                     day_entries,
                     daily,
                     date,
                     tz,
                     employee_id,
                     workspace_id,
+                    emp_attendance_rules.work_unit_minutes,
                     rules,
-                    work_unit_minutes: emp_attendance_rules.work_unit_minutes,
-                    rounding_policy: emp_attendance_rules.rounding_policy,
-                });
+                    emp_attendance_rules.rounding_policy,
+                ));
 
                 employee_total_std += std_units;
                 employee_total_ot += ot_units;
