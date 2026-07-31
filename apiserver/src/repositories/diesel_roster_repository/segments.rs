@@ -378,6 +378,7 @@ impl DieselRosterRepository {
                 let pools = self.diesel_pools.clone();
                 let ws_id = workspace_id;
                 tokio::spawn(async move {
+                    let start = std::time::Instant::now();
                     let conn_result = pools.tenants_tx.get_connection(&ws_id).await;
                     let mut conn = match conn_result {
                         Ok(c) => crate::diesel_pool::TransactionConn(c),
@@ -399,17 +400,19 @@ impl DieselRosterRepository {
                     .await;
                     match inserted {
                         Ok(n) => {
-                            tracing::debug!(
+                            tracing::info!(
                                 workspace_id = %ws_id,
                                 segments_attempted = all_new_entities.len(),
                                 segments_inserted = n,
-                                "write-through: persisted segments"
+                                elapsed_ms = start.elapsed().as_millis() as u64,
+                                "work_segments.write_through.completed"
                             );
                         }
                         Err(e) => {
                             tracing::warn!(
                                 workspace_id = %ws_id,
                                 error = %e,
+                                elapsed_ms = start.elapsed().as_millis() as u64,
                                 "write-through: failed to persist segments"
                             );
                         }

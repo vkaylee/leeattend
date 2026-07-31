@@ -122,6 +122,10 @@ pub async fn create_holiday(
             }
         })?;
 
+    if let Some(cache) = state.infra().roster_cache() {
+        cache.invalidate(ctx.workspace_id).await;
+    }
+
     Ok((axum::http::StatusCode::CREATED, Json(holiday)))
 }
 
@@ -153,6 +157,10 @@ pub async fn update_holiday(
         .await?
         .ok_or_else(|| AppError::not_found(I18nKey::HolidayNotFound))?;
 
+    if let Some(cache) = state.infra().roster_cache() {
+        cache.invalidate(ctx.workspace_id).await;
+    }
+
     Ok(Json(holiday))
 }
 
@@ -180,6 +188,10 @@ pub async fn delete_holiday(
         .holiday_repo()
         .delete(&ctx.auth_token, id)
         .await?;
+
+    if let Some(cache) = state.infra().roster_cache() {
+        cache.invalidate(ctx.workspace_id).await;
+    }
 
     if deleted {
         Ok(axum::http::StatusCode::NO_CONTENT)

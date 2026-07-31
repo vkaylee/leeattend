@@ -222,7 +222,7 @@ pub async fn get_attendance_report(
     let end_date = NaiveDate::parse_from_str(&params.end_date, "%Y-%m-%d")
         .map_err(|_e| AppError::validation(I18nKey::InvalidEndDateValue))?;
 
-    let use_segments = params.segment_centric.unwrap_or(false)
+    let use_segments = params.segment_centric.unwrap_or(true)
         || state
             .payroll()
             .feature_flag_repo()

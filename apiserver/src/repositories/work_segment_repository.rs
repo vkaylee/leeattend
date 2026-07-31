@@ -56,4 +56,16 @@ pub trait WorkSegmentRepository: Send + Sync {
         segments: &[CreateWorkSegmentRequest],
         replace_existing: bool,
     ) -> Result<Vec<WorkSegment>, AppError>;
+
+    /// Delete all persisted segments matching the given employment_ids within the
+    /// optional date range. Returns the count of deleted rows. Called when roster
+    /// source data changes (shifts, patterns, rosters, holidays, etc.) to force
+    /// re-resolution on next read.
+    async fn delete_segments_for_employments(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_ids: &[Uuid],
+        start_date: Option<NaiveDate>,
+        end_date: Option<NaiveDate>,
+    ) -> Result<u64, AppError>;
 }

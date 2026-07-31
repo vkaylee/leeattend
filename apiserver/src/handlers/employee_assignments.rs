@@ -178,6 +178,11 @@ pub async fn create_employee_assignment(
     let created = repo
         .create_employee_assignment(&ctx.auth_token, &new_assignment)
         .await?;
+
+    if let Some(cache) = state.infra().roster_cache() {
+        cache.invalidate(ctx.workspace_id).await;
+    }
+
     Ok(Json(created))
 }
 
@@ -229,6 +234,11 @@ pub async fn update_employee_assignment(
     let updated = repo
         .update_employee_assignment(&ctx.auth_token, employment_id_val, assignment_id, &payload)
         .await?;
+
+    if let Some(cache) = state.infra().roster_cache() {
+        cache.invalidate(ctx.workspace_id).await;
+    }
+
     Ok(Json(updated))
 }
 
@@ -278,6 +288,10 @@ pub async fn delete_employee_assignment(
     let deleted_count = repo
         .delete_employee_assignment(&ctx.auth_token, employment_id_val, assignment_id)
         .await?;
+
+    if let Some(cache) = state.infra().roster_cache() {
+        cache.invalidate(ctx.workspace_id).await;
+    }
 
     if deleted_count == 0 {
         return Err(AppError::not_found(I18nKey::EmployeeAssignmentNotFound));

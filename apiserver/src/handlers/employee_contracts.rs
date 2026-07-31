@@ -183,6 +183,10 @@ pub async fn create_contract(
 
     dispatch_sync_hire_date(&state, workspace_id, employee_id, contract.id()).await;
 
+    if let Some(cache) = state.infra().roster_cache() {
+        cache.invalidate(ctx.workspace_id).await;
+    }
+
     Ok((StatusCode::CREATED, Json(contract)))
 }
 
@@ -225,6 +229,10 @@ pub async fn update_contract(
 
     dispatch_sync_hire_date(&state, workspace_id, employee_id, contract.id()).await;
 
+    if let Some(cache) = state.infra().roster_cache() {
+        cache.invalidate(ctx.workspace_id).await;
+    }
+
     Ok(Json(contract))
 }
 
@@ -256,6 +264,10 @@ pub async fn delete_contract(
         .await?;
 
     dispatch_sync_hire_date(&state, workspace_id, employee_id, contract_id).await;
+
+    if let Some(cache) = state.infra().roster_cache() {
+        cache.invalidate(ctx.workspace_id).await;
+    }
 
     Ok(StatusCode::NO_CONTENT)
 }

@@ -605,19 +605,14 @@ fn build_segment_calc_inputs<'a>(
             .last()
             .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&tz)));
 
-        let shift_start_dt = tz
-            .from_local_datetime(&date.and_time(seg.scheduled_start))
-            .single();
-        let shift_end_dt = {
-            let raw = tz
-                .from_local_datetime(&date.and_time(seg.scheduled_end))
-                .single();
-            if seg.scheduled_end < seg.scheduled_start {
-                raw.map(|dt| dt + chrono::Duration::days(1))
-            } else {
-                raw
-            }
-        };
+        let shift_start_dt =
+            crate::utils::tz::naive_time_to_tz(seg.scheduled_start, date, tz);
+        let shift_end_dt = crate::utils::tz::naive_time_to_tz_overnight(
+            seg.scheduled_end,
+            seg.scheduled_start,
+            date,
+            tz,
+        );
 
         let rules = ReportService::resolve_policy_rules(
             working_conditions,
@@ -636,8 +631,7 @@ fn build_segment_calc_inputs<'a>(
             .filter(|s| s.scheduled_start > seg.scheduled_start)
             .min_by_key(|s| s.scheduled_start)
             .and_then(|next| {
-                tz.from_local_datetime(&date.and_time(next.scheduled_start))
-                    .single()
+                crate::utils::tz::naive_time_to_tz(next.scheduled_start, date, tz)
             });
 
         let actual_break_minutes: i32 = matched
@@ -681,10 +675,10 @@ fn build_segment_calc_inputs<'a>(
             actual_break_minutes,
             break_start: seg
                 .break_start
-                .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single()),
+                .and_then(|t| crate::utils::tz::naive_time_to_tz(t, date, tz)),
             break_end: seg
                 .break_end
-                .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single()),
+                .and_then(|t| crate::utils::tz::naive_time_to_tz(t, date, tz)),
             work_unit: att_rules.work_unit_minutes,
             rounding_policy: att_rules.rounding_policy,
             rules: rules.clone(),
@@ -828,78 +822,10 @@ impl ReportService {
             )
             .await?;
 
-        // DB-first segment read with compute fallback.
-        // When work_segment_repo is available, try reading pre-resolved segments from
-        // the work_segments table. If the DB returns nothing (no segments persisted yet
-        // for this date range) or errors, fall back to the existing compute path which
-        // resolves segments on-the-fly from rosters (and write-through persists them).
-        let employee_segments = if let Some(ws_repo) = self.work_segment_repo() {
-            match self
-                .build_employee_segments_from_db(
-                    ws_repo,
-                    auth_token,
-                    &preamble,
-                    args.start_date,
-                    args.end_date,
-                )
-                .await
-            {
-                Ok(emps) if !emps.is_empty() => emps,
-                Ok(_) => {
-                    // Empty DB result — fall back to compute
-                    tracing::info!(
-                        "DB segment read returned empty for date range {}..{}, falling back to compute",
-                        args.start_date,
-                        args.end_date,
-                    );
-                    let (emps, _) = self
-                        .roster_repo
-                        .get_workspace_segments(
-                            None,
-                            auth_token,
-                            args.start_date,
-                            args.end_date,
-                            Some(preamble.paginated_employment_ids()),
-                            None,
-                            None,
-                        )
-                        .await?;
-                    emps
-                }
-                Err(e) => {
-                    tracing::warn!(
-                        "DB segment read failed, falling back to compute: {e}"
-                    );
-                    let (emps, _) = self
-                        .roster_repo
-                        .get_workspace_segments(
-                            None,
-                            auth_token,
-                            args.start_date,
-                            args.end_date,
-                            Some(preamble.paginated_employment_ids()),
-                            None,
-                            None,
-                        )
-                        .await?;
-                    emps
-                }
-            }
-        } else {
-            let (emps, _) = self
-                .roster_repo
-                .get_workspace_segments(
-                    None,
-                    auth_token,
-                    args.start_date,
-                    args.end_date,
-                    Some(preamble.paginated_employment_ids()),
-                    None,
-                    None,
-                )
-                .await?;
-            emps
-        };
+        // Resolve segments: DB-first with compute fallback.
+        let employee_segments = self
+            .resolve_employee_segments(auth_token, &preamble, args.start_date, args.end_date)
+            .await?;
 
         let mut reports = Vec::new();
 
@@ -991,19 +917,14 @@ impl ReportService {
         date: NaiveDate,
         tz: Tz,
     ) -> Vec<&'a crate::models::TimeEntry> {
-        let seg_start_dt = tz
-            .from_local_datetime(&date.and_time(segment.scheduled_start))
-            .single();
-        let seg_end_dt = {
-            let raw = tz
-                .from_local_datetime(&date.and_time(segment.scheduled_end))
-                .single();
-            if segment.scheduled_end < segment.scheduled_start {
-                raw.map(|dt| dt + chrono::Duration::days(1))
-            } else {
-                raw
-            }
-        };
+        let seg_start_dt =
+            crate::utils::tz::naive_time_to_tz(segment.scheduled_start, date, tz);
+        let seg_end_dt = crate::utils::tz::naive_time_to_tz_overnight(
+            segment.scheduled_end,
+            segment.scheduled_start,
+            date,
+            tz,
+        );
 
         let (Some(start), Some(end)) = (seg_start_dt, seg_end_dt) else {
             return Vec::new();
@@ -1084,6 +1005,63 @@ impl ReportService {
         }
 
         Ok(result)
+    }
+
+    /// Resolve employee segments via DB-first with compute fallback.
+    ///
+    /// When `work_segment_repo` is available and returns non-empty data, uses
+    /// pre-resolved segments from the database. Otherwise falls back to
+    /// on-the-fly segment resolution from roster data.
+    ///
+    /// Logs the resolution source (`database` or `compute`) for observability.
+    async fn resolve_employee_segments(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        preamble: &super::ReportDataPreamble,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<Vec<crate::models::EmployeeSegments>, AppError> {
+        // Try DB path first
+        if let Some(ws_repo) = self.work_segment_repo() {
+            match self
+                .build_employee_segments_from_db(ws_repo, auth_token, preamble, start_date, end_date)
+                .await
+            {
+                Ok(emps) if !emps.is_empty() => {
+                    tracing::info!(
+                        workspace_id = %auth_token.workspace_id(),
+                        segment_source = "database",
+                        segment_count = emps.len(),
+                        date_range = %format!("{start_date}..{end_date}"),
+                        "segment_report.source"
+                    );
+                    return Ok(emps);
+                }
+                Ok(_) => {
+                    tracing::info!(
+                        "DB segment read returned empty for date range {start_date}..{end_date}, falling back to compute",
+                    );
+                }
+                Err(e) => {
+                    tracing::warn!("DB segment read failed, falling back to compute: {e}");
+                }
+            }
+        }
+
+        // Compute fallback
+        let (emps, _) = self
+            .roster_repo
+            .get_workspace_segments(
+                None,
+                auth_token,
+                start_date,
+                end_date,
+                Some(preamble.paginated_employment_ids()),
+                None,
+                None,
+            )
+            .await?;
+        Ok(emps)
     }
 }
 

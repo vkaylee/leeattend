@@ -344,6 +344,52 @@ impl WorkSegmentRepository for DieselWorkSegmentRepository {
         Ok(())
     }
 
+    // ── delete_segments_for_employments ───────────────────────────────────────
+    async fn delete_segments_for_employments(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_ids: &[Uuid],
+        start_date: Option<NaiveDate>,
+        end_date: Option<NaiveDate>,
+    ) -> Result<u64, AppError> {
+        let workspace_id = auth_token.workspace_id();
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let ids_vec = employment_ids.to_vec();
+        let mut query = diesel::delete(work_segments::table)
+            .filter(work_segments::workspace_id.eq(workspace_id))
+            .filter(work_segments::employment_id.eq_any(ids_vec))
+            .into_boxed();
+
+        if let Some(start) = start_date {
+            query = query.filter(work_segments::date.ge(start));
+        }
+        if let Some(end) = end_date {
+            query = query.filter(work_segments::date.le(end));
+        }
+
+        let deleted = query
+            .execute(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("delete segments: {e}")))?;
+
+        tracing::debug!(
+            workspace_id = %workspace_id,
+            employment_count = employment_ids.len(),
+            deleted_count = deleted,
+            "Invalidated persisted work segments"
+        );
+
+        Ok(deleted as u64)
+    }
+
     // ── bulk_create_segments ──────────────────────────────────────────────────
     async fn bulk_create_segments(
         &self,
@@ -858,5 +904,95 @@ mod tests {
 
         // Cleanup
         let _ = repo.delete_segment(&auth, created.id).await;
+    }
+
+    // ── Test 6: delete_segments_for_employments ──────────────────────────
+
+    #[tokio::test]
+    async fn test_delete_segments_for_employments() {
+        let pools = test_pools();
+        if !db_available(&pools).await {
+            eprintln!("SKIP test_delete_segments_for_employments: no test database available");
+            return;
+        }
+        let repo = DieselWorkSegmentRepository::new(pools);
+        let auth = test_auth_token();
+
+        let emp_a = Uuid::new_v4();
+        let emp_b = Uuid::new_v4();
+        let tmpl_id = Uuid::new_v4();
+        let date1 = NaiveDate::from_ymd_opt(2026, 7, 10).unwrap();
+        let date2 = NaiveDate::from_ymd_opt(2026, 7, 15).unwrap();
+        let date3 = NaiveDate::from_ymd_opt(2026, 7, 20).unwrap();
+
+        // Create segments for 2 employees across 3 dates
+        let mut created = Vec::new();
+        for (emp_id, date) in &[
+            (emp_a, date1),
+            (emp_a, date2),
+            (emp_a, date3),
+            (emp_b, date1),
+            (emp_b, date3),
+        ] {
+            let req = make_create_request(*emp_id, *date, tmpl_id);
+            let seg = repo
+                .create_segment(&auth, &req)
+                .await
+                .expect("create failed");
+            created.push(seg);
+        }
+        assert_eq!(created.len(), 5);
+
+        // Delete emp_a segments in date range [date1, date2] — should delete 2
+        let deleted = repo
+            .delete_segments_for_employments(
+                &auth,
+                &[emp_a],
+                Some(date1),
+                Some(date2),
+            )
+            .await
+            .expect("delete_segments_for_employments failed");
+        assert_eq!(deleted, 2, "should delete only emp_a's date1+date2 segments");
+
+        // emp_a's date3 segment should still exist (outside date range)
+        let remaining_a = repo
+            .get_segments_by_date_range(&auth, &[emp_a], date3, date3)
+            .await
+            .expect("get remaining failed");
+        assert_eq!(remaining_a.len(), 1, "emp_a date3 should survive");
+
+        // emp_b should be untouched (different employment_id)
+        let remaining_b = repo
+            .get_segments_by_date_range(&auth, &[emp_b], date1, date3)
+            .await
+            .expect("get emp_b failed");
+        assert_eq!(remaining_b.len(), 2, "emp_b segments should be untouched");
+
+        // Delete emp_b without date range — all 2 should go
+        let deleted_b = repo
+            .delete_segments_for_employments(&auth, &[emp_b], None, None)
+            .await
+            .expect("delete emp_b failed");
+        assert_eq!(deleted_b, 2);
+
+        // Verify emp_b is now empty
+        let after_b = repo
+            .get_segments_by_date_range(&auth, &[emp_b], date1, date3)
+            .await
+            .expect("get after delete failed");
+        assert!(after_b.is_empty(), "emp_b should have no segments left");
+
+        // Delete with empty employment_ids — should delete 0 rows
+        let deleted_none = repo
+            .delete_segments_for_employments(&auth, &[], None, None)
+            .await
+            .expect("delete empty failed");
+        assert_eq!(deleted_none, 0);
+
+        // Cleanup remaining emp_a date3
+        for seg in &remaining_a {
+            let _ = repo.delete_segment(&auth, seg.id).await;
+        }
     }
 }

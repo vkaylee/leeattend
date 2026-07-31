@@ -155,6 +155,14 @@ use utoipa::OpenApi;
         crate::handlers::bulk_upsert_roster,
         crate::handlers::delete_roster,
 
+        // Work Segments
+        crate::handlers::list_work_segments,
+        crate::handlers::get_work_segment,
+        crate::handlers::create_work_segment,
+        crate::handlers::update_work_segment,
+        crate::handlers::delete_work_segment,
+        crate::handlers::bulk_create_work_segments,
+
         crate::handlers::working_patterns::create_pattern,
         crate::handlers::working_patterns::list_patterns,
         crate::handlers::working_patterns::get_pattern_details,
