@@ -56,6 +56,7 @@ pub struct Repositories {
     pub error: Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository>,
     pub condition_type: Arc<dyn crate::repositories::ConditionTypeRepository>,
     pub compliance: Arc<dyn crate::repositories::ComplianceRepository>,
+    pub work_segment: Arc<dyn crate::repositories::work_segment_repository::WorkSegmentRepository>,
 }
 
 #[allow(clippy::too_many_lines)]
@@ -235,6 +236,9 @@ pub fn build_repositories(
     let compliance = Arc::new(crate::repositories::DieselComplianceRepository::new(
         diesel_pools.clone(),
     ));
+    let work_segment = Arc::new(crate::repositories::DieselWorkSegmentRepository::new(
+        diesel_pools.clone(),
+    ));
 
     Ok(Repositories {
         agent,
@@ -289,5 +293,6 @@ pub fn build_repositories(
         error,
         condition_type,
         compliance,
+        work_segment,
     })
 }

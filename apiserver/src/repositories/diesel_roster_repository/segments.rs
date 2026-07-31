@@ -352,6 +352,72 @@ impl DieselRosterRepository {
             ));
         }
 
+        // ── Write-through: persist resolved segments to work_segments ──
+        // Fire-and-forget: does not block the read path.
+        // ON CONFLICT DO NOTHING preserves segments already in DB (immutable per date).
+        {
+            use crate::models::diesel::work_segment::resolved_segment_to_new_entity;
+
+            let all_new_entities: Vec<_> = result
+                .iter()
+                .flat_map(|emp_segs| {
+                    emp_segs
+                        .segments()
+                        .iter()
+                        .map(|seg| {
+                            resolved_segment_to_new_entity(
+                                seg,
+                                workspace_id,
+                                emp_segs.employment_id(),
+                            )
+                        })
+                })
+                .collect();
+
+            if !all_new_entities.is_empty() {
+                let pools = self.diesel_pools.clone();
+                let ws_id = workspace_id;
+                tokio::spawn(async move {
+                    let conn_result = pools.tenants_tx.get_connection(&ws_id).await;
+                    let mut conn = match conn_result {
+                        Ok(c) => crate::diesel_pool::TransactionConn(c),
+                        Err(e) => {
+                            tracing::warn!(
+                                workspace_id = %ws_id,
+                                error = %e,
+                                "write-through: failed to get connection"
+                            );
+                            return;
+                        }
+                    };
+                    let inserted = diesel::insert_into(
+                        crate::schema::work_segments::table,
+                    )
+                    .values(&all_new_entities)
+                    .on_conflict_do_nothing()
+                    .execute(&mut *conn)
+                    .await;
+                    match inserted {
+                        Ok(n) => {
+                            tracing::debug!(
+                                workspace_id = %ws_id,
+                                segments_attempted = all_new_entities.len(),
+                                segments_inserted = n,
+                                "write-through: persisted segments"
+                            );
+                        }
+                        Err(e) => {
+                            tracing::warn!(
+                                workspace_id = %ws_id,
+                                error = %e,
+                                "write-through: failed to persist segments"
+                            );
+                        }
+                    }
+                });
+            }
+        }
+
         let total = if page.is_some() || limit.is_some() {
             total
         } else {

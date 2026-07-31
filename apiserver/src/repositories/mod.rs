@@ -28,6 +28,8 @@ pub use payroll_repository::PayrollRepository;
 pub mod raw_attendance_log_repository;
 pub mod roster;
 pub use roster::RosterRepository;
+pub mod diesel_work_segment_repository;
+pub use diesel_work_segment_repository::DieselWorkSegmentRepository;
 pub mod shift_interval_repository;
 pub mod shift_repository;
 pub mod shift_swap_repository;

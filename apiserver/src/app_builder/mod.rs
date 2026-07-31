@@ -125,6 +125,7 @@ impl AppState {
                 repos.assignment_rule,
                 repos.working_pattern,
                 services.compliance,
+                repos.work_segment,
             ),
             crate::LeaveState::new(
                 services.leave,

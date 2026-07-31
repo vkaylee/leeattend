@@ -992,7 +992,7 @@ mod tests {
 
     fn make_test_segment(start_h: u32, start_m: u32, end_h: u32, end_m: u32) -> ResolvedSegment {
         ResolvedSegment {
-            shift_id: Uuid::new_v4(),
+            template_id: Uuid::new_v4(),
             interval_id: None,
             sort_order: 0,
             scheduled_start: NaiveTime::from_hms_opt(start_h, start_m, 0).unwrap(),

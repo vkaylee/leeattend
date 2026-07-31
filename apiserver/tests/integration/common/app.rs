@@ -719,6 +719,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             assignment_rule_repo.clone(),
             working_pattern_repo.clone(),
             compliance_service.clone(),
+            Arc::new(apiserver::repositories::DieselWorkSegmentRepository::new(diesel_pools.clone())),
         ),
         apiserver::LeaveState::new(
             leave_service,
@@ -1465,6 +1466,7 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
             assignment_rule_repo.clone(),
             working_pattern_repo.clone(),
             compliance_service.clone(),
+            Arc::new(apiserver::repositories::DieselWorkSegmentRepository::new(diesel_pools.clone())),
         ),
         apiserver::LeaveState::new(
             leave_service,
@@ -2264,6 +2266,7 @@ pub async fn setup_app_tower_internal_extended(
             assignment_rule_repo.clone(),
             working_pattern_repo.clone(),
             compliance_service.clone(),
+            Arc::new(apiserver::repositories::DieselWorkSegmentRepository::new(diesel_pools.clone())),
         ),
         apiserver::LeaveState::new(
             leave_service,

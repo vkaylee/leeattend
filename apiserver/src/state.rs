@@ -21,6 +21,7 @@ use crate::repositories::shift_swap_repository::ShiftSwapRepository;
 use crate::repositories::staging_log_repository::StagingLogRepository;
 use crate::repositories::time_entry_repository::TimeEntryRepository;
 use crate::repositories::user_repository::UserRepository;
+use crate::repositories::work_segment_repository::WorkSegmentRepository;
 use crate::repositories::workspace_stats_repository::WorkspaceStatsRepository;
 use crate::repositories::{
     AgentRepository, BehalfAssignmentRepository, EmployeeRepository, WorkspaceRepository,
@@ -228,6 +229,7 @@ pub struct ShiftState {
     working_pattern_repo:
         Arc<dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait>,
     compliance: Arc<crate::services::compliance_validation_service::ComplianceValidationService>,
+    work_segment_repo: Arc<dyn WorkSegmentRepository>,
 }
 
 impl ShiftState {
@@ -244,6 +246,7 @@ impl ShiftState {
         compliance: Arc<
             crate::services::compliance_validation_service::ComplianceValidationService,
         >,
+        work_segment_repo: Arc<dyn WorkSegmentRepository>,
     ) -> Self {
         Self {
             service,
@@ -254,6 +257,7 @@ impl ShiftState {
             assignment_rule_repo,
             working_pattern_repo,
             compliance,
+            work_segment_repo,
         }
     }
 
@@ -292,6 +296,10 @@ impl ShiftState {
         &self,
     ) -> &Arc<crate::services::compliance_validation_service::ComplianceValidationService> {
         &self.compliance
+    }
+
+    pub fn work_segment_repo(&self) -> &Arc<dyn WorkSegmentRepository> {
+        &self.work_segment_repo
     }
 }
 
