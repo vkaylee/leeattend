@@ -2036,6 +2036,7 @@ diesel::table! {
         generation_metadata -> Nullable<Jsonb>,
         workspace_id -> Uuid,
         employment_id -> Uuid,
+        segment_id -> Nullable<Uuid>,
     }
 }
 
@@ -2436,6 +2437,7 @@ diesel::joinable!(system_audit_logs -> users (actor_id));
 diesel::joinable!(shift_default_intervals -> shift_versions (version_id));
 diesel::joinable!(time_entries -> employments (employment_id));
 diesel::joinable!(time_entries -> shift_templates (template_id));
+diesel::joinable!(time_entries -> work_segments (segment_id));
 diesel::joinable!(work_segments -> employments (employment_id));
 diesel::joinable!(work_segments -> shift_default_intervals (interval_id));
 diesel::joinable!(work_segments -> shift_templates (template_id));

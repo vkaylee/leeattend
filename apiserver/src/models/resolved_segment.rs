@@ -8,7 +8,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct ResolvedSegment {
-    pub shift_id: Uuid,
+    pub template_id: Uuid,
     pub interval_id: Option<Uuid>,
     pub sort_order: i32,
     pub scheduled_start: NaiveTime,

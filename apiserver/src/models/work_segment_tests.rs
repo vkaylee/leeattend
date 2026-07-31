@@ -13,7 +13,7 @@ mod tests {
             workspace_id: Uuid::from_u128(100),
             employment_id: Uuid::from_u128(200),
             date: NaiveDate::from_ymd_opt(2026, 6, 24).unwrap(),
-            shift_id: Uuid::from_u128(300),
+            template_id: Uuid::from_u128(300),
             interval_id: Some(Uuid::from_u128(400)),
             sort_order: 0,
             scheduled_start: NaiveTime::from_hms_opt(7, 0, 0).unwrap(),
@@ -52,7 +52,7 @@ mod tests {
             workspace_id: Uuid::new_v4(),
             employment_id: Uuid::new_v4(),
             date: NaiveDate::from_ymd_opt(2026, 6, 24).unwrap(),
-            shift_id: Uuid::new_v4(),
+            template_id: Uuid::new_v4(),
             interval_id: None,
             sort_order: 1,
             scheduled_start: NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
@@ -85,7 +85,7 @@ mod tests {
             workspace_id: Uuid::new_v4(),
             employment_id: Uuid::new_v4(),
             date: NaiveDate::from_ymd_opt(2026, 6, 24).unwrap(),
-            shift_id: Uuid::new_v4(),
+            template_id: Uuid::new_v4(),
             interval_id: None,
             sort_order: 2,
             scheduled_start: NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
@@ -116,7 +116,7 @@ mod tests {
         let json = serde_json::json!({
             "employment_id": "00000000-0000-0000-0000-000000000001",
             "date": "2026-06-24",
-            "shift_id": "00000000-0000-0000-0000-000000000002",
+            "template_id": "00000000-0000-0000-0000-000000000002",
             "scheduled_start": "07:00:00",
             "scheduled_end": "11:00:00"
         });
@@ -137,7 +137,7 @@ mod tests {
         let json = serde_json::json!({
             "employment_id": "00000000-0000-0000-0000-000000000001",
             "date": "2026-06-24",
-            "shift_id": "00000000-0000-0000-0000-000000000002",
+            "template_id": "00000000-0000-0000-0000-000000000002",
             "scheduled_start": "07:00:00",
             "scheduled_end": "11:00:00",
             "segment_type": "training",
@@ -217,7 +217,7 @@ mod tests {
     #[test]
     fn test_resolved_segment_defaults() {
         let seg = ResolvedSegment {
-            shift_id: Uuid::from_u128(1),
+            template_id: Uuid::from_u128(1),
             interval_id: None,
             sort_order: 0,
             scheduled_start: NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
@@ -235,7 +235,7 @@ mod tests {
             is_night_shift: false,
         };
 
-        assert_eq!(seg.shift_id, Uuid::from_u128(1));
+        assert_eq!(seg.template_id, Uuid::from_u128(1));
         assert_eq!(seg.source, "fixed");
         assert_eq!(seg.ot_aggregation_mode, crate::services::attendance_calculator::OtAggregationMode::Aggregate);
         assert!(!seg.is_night_shift);
@@ -280,7 +280,7 @@ mod tests {
                 workspace_id: Uuid::new_v4(),
                 employment_id: Uuid::new_v4(),
                 date: NaiveDate::from_ymd_opt(2026, 6, 24).unwrap(),
-                shift_id: Uuid::new_v4(),
+                template_id: Uuid::new_v4(),
                 interval_id: None,
                 sort_order: 0,
                 scheduled_start: NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
@@ -312,7 +312,7 @@ mod tests {
                 workspace_id: Uuid::new_v4(),
                 employment_id: Uuid::new_v4(),
                 date: NaiveDate::from_ymd_opt(2026, 6, 24).unwrap(),
-                shift_id: Uuid::new_v4(),
+                template_id: Uuid::new_v4(),
                 interval_id: None,
                 sort_order: 0,
                 scheduled_start: NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
@@ -345,7 +345,7 @@ mod tests {
                 workspace_id: Uuid::new_v4(),
                 employment_id: Uuid::new_v4(),
                 date: NaiveDate::from_ymd_opt(2026, 6, 24).unwrap(),
-                shift_id: Uuid::new_v4(),
+                template_id: Uuid::new_v4(),
                 interval_id: None,
                 sort_order: 0,
                 scheduled_start: NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
@@ -380,7 +380,7 @@ mod tests {
             workspace_id: Uuid::new_v4(),
             employment_id: Uuid::new_v4(),
             date: NaiveDate::from_ymd_opt(2026, 6, 24).unwrap(),
-            shift_id: Uuid::new_v4(),
+            template_id: Uuid::new_v4(),
             interval_id: None,
             sort_order: 0,
             scheduled_start: NaiveTime::from_hms_opt(8, 0, 0).unwrap(),

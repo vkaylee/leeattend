@@ -231,7 +231,7 @@ pub fn resolve_work_segments_from_data<S: ::std::hash::BuildHasher>(
         if let Some(intervals) = roster_data.shift_intervals.get(&shift_id) {
             for interval in intervals {
                 segments.push(ResolvedSegment {
-                    shift_id,
+                    template_id: shift_id,
                     interval_id: Some(interval.interval_id),
                     sort_order: i32::try_from(idx).unwrap_or(i32::MAX),
                     scheduled_start: interval.start_time,

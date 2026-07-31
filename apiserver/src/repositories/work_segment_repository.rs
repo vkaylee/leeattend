@@ -1,9 +1,3 @@
-// TODO(ADR-00X): work_segments table exists (migration + backfill from
-// shift_rosters) but has no read paths. This trait has 0 implementations
-// and 0 callers. It was superseded by the RosterData /
-// resolve_work_segments_from_data path. Decide: finish migration or
-// remove dead code in next cleanup phase.
-// See: .agent/rules/change-management.md for ADR template.
 use crate::errors::AppError;
 use crate::models::{
     CreateWorkSegmentRequest, UpdateWorkSegmentRequest, WorkSegment, WorkSegmentFilter,
@@ -61,13 +55,5 @@ pub trait WorkSegmentRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         segments: &[CreateWorkSegmentRequest],
         replace_existing: bool,
-    ) -> Result<Vec<WorkSegment>, AppError>;
-
-    async fn get_schedule(
-        &self,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        employment_ids: &[Uuid],
-        start_date: NaiveDate,
-        end_date: NaiveDate,
     ) -> Result<Vec<WorkSegment>, AppError>;
 }

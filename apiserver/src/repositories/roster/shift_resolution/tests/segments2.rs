@@ -99,8 +99,8 @@ use chrono::NaiveDate;
         assert_eq!(segments[1].sort_order, 1);
 
         // Both inherit shift metadata
-        assert_eq!(segments[0].shift_id, shift_id);
-        assert_eq!(segments[1].shift_id, shift_id);
+        assert_eq!(segments[0].template_id, shift_id);
+        assert_eq!(segments[1].template_id, shift_id);
         assert_eq!(segments[0].shift_name.as_deref(), Some("Split Shift"));
         assert_eq!(segments[1].shift_name.as_deref(), Some("Split Shift"));
         assert_eq!(segments[0].segment_type, "work");
@@ -221,7 +221,7 @@ use chrono::NaiveDate;
         assert_eq!(segments.len(), 1);
         let seg = &segments[0];
         // Enriched fields from ResolvedSegment
-        assert_eq!(seg.shift_id, shift_id);
+        assert_eq!(seg.template_id, shift_id);
         assert_eq!(seg.shift_name.as_deref(), Some("Enriched Test"));
         assert_eq!(seg.shift_symbol.as_deref(), Some("ET"));
         assert_eq!(seg.interval_name.as_deref(), Some("Early"));
@@ -308,7 +308,7 @@ use chrono::NaiveDate;
 
         // Shift B is assigned — should get B's interval, NOT A's
         assert_eq!(segments.len(), 1);
-        assert_eq!(segments[0].shift_id, shift_b);
+        assert_eq!(segments[0].template_id, shift_b);
         assert_eq!(segments[0].interval_id, Some(interval_b));
         assert_eq!(segments[0].interval_name.as_deref(), Some("B-Afternoon"));
         assert_eq!(

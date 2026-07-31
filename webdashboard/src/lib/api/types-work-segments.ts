@@ -15,7 +15,7 @@ export interface WorkSegmentSourceDetail {
   pattern_id?: string;
   roster_id?: string;
   rule_id?: string;
-  shift_id?: string;
+  template_id?: string;
 }
 
 /** Override config for break behavior on a specific day/segment. */
@@ -52,7 +52,7 @@ export interface WorkSegment {
   scheduled_start: string;
   segment_status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
   segment_type: 'work' | 'standby' | 'on_call' | 'training' | 'travel';
-  shift_id: string;
+  template_id: string;
   sort_order: number;
   source: 'roster' | 'pattern' | 'rule' | 'fixed' | 'manual' | 'auto';
   source_detail: WorkSegmentSourceDetail;
@@ -74,7 +74,7 @@ export interface CreateWorkSegmentRequest {
   scheduled_start: string;
   segment_status?: string;
   segment_type?: string;
-  shift_id: string;
+  template_id: string;
   sort_order?: number;
   source?: string;
   source_detail?: WorkSegmentSourceDetail;
@@ -92,7 +92,7 @@ export interface UpdateWorkSegmentRequest {
   scheduled_start?: string | null;
   segment_status?: string | null;
   segment_type?: string | null;
-  shift_id?: string | null;
+  template_id?: string | null;
   sort_order?: number | null;
   source?: string | null;
   source_detail?: WorkSegmentSourceDetail | null;

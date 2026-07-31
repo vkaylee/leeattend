@@ -40,7 +40,7 @@ use chrono::NaiveDate;
 
         let segments = resolve_work_segments_wrapper(&data2, &roster_map, emp, date(2026, 3, 3));
         assert_eq!(segments.len(), 1, "Fixed assignment → 1 segment");
-        assert_eq!(segments[0].shift_id, shift_id);
+        assert_eq!(segments[0].template_id, shift_id);
         assert_eq!(segments[0].source, "fixed");
         assert_eq!(
             segments[0].scheduled_start,
@@ -97,8 +97,8 @@ use chrono::NaiveDate;
         let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, target_date);
 
         assert_eq!(segments.len(), 2, "Split shift → 2 segments");
-        assert_eq!(segments[0].shift_id, morning_id);
-        assert_eq!(segments[1].shift_id, evening_id);
+        assert_eq!(segments[0].template_id, morning_id);
+        assert_eq!(segments[1].template_id, evening_id);
         assert_eq!(segments[0].source, "pattern");
         assert_eq!(segments[1].source, "pattern");
         // Segments must be sorted by scheduled_start
@@ -134,7 +134,7 @@ use chrono::NaiveDate;
         let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, date(2026, 3, 3));
 
         assert_eq!(segments.len(), 1, "Roster override → 1 segment");
-        assert_eq!(segments[0].shift_id, shift_id);
+        assert_eq!(segments[0].template_id, shift_id);
         assert_eq!(segments[0].source, "roster");
     }
 

@@ -23,6 +23,7 @@ pub struct TimeEntryEntity {
     pub generation_metadata: Option<Value>,
     pub workspace_id: Uuid,
     pub employment_id: Uuid,
+    pub segment_id: Option<Uuid>,
 }
 
 impl From<TimeEntryEntity> for TimeEntry {
@@ -40,7 +41,7 @@ impl From<TimeEntryEntity> for TimeEntry {
             val.employment_id,
             val.workspace_id,
             val.template_id,
-            None,
+            val.segment_id,
             val.punch_in_time,
             val.punch_out_time,
             val.duration_minutes,

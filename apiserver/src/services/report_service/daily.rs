@@ -535,7 +535,7 @@ fn build_segment_report_rows(
 
         // Segment-specific fields
         row.segment_id = seg.interval_id;
-        row.shift_id = Some(seg.shift_id);
+        row.shift_id = Some(seg.template_id);
         row.interval_id = seg.interval_id;
         row.interval_name.clone_from(&seg.interval_name);
         row.segment_type = Some(seg.segment_type.clone());

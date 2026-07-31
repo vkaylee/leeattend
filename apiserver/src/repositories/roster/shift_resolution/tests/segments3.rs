@@ -58,7 +58,7 @@ use chrono::NaiveDate;
             "single interval should produce 1 segment, not split"
         );
         let seg = &segments[0];
-        assert_eq!(seg.shift_id, shift_id);
+        assert_eq!(seg.template_id, shift_id);
         assert_eq!(seg.interval_id, Some(interval_id));
         assert_eq!(
             seg.scheduled_start,

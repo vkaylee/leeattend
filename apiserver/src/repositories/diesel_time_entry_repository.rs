@@ -508,6 +508,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
                             workspace_id: entry.workspace_id(),
                             employment_id: entry.employment_id(),
                             template_id: entry.shift_id(),
+                            segment_id: entry.segment_id(),
                             punch_in_time: entry.punch_in_time(),
                             punch_out_time: entry.punch_out_time(),
                             duration_minutes: entry.duration_minutes(),

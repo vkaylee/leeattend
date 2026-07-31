@@ -82,7 +82,7 @@ export function PunchCard({
                   key={seg.id ?? i}
                 >
                   <span>
-                    {seg.shift_id ? `Segment ${i + 1}` : t("work_segments.segment", "Segment")} {i + 1}
+                    {seg.template_id ? `Segment ${i + 1}` : t("work_segments.segment", "Segment")} {i + 1}
                   </span>
                   <span className="font-mono text-[10px]">
                     {seg.scheduled_start?.substring(0, 5)} – {seg.scheduled_end?.substring(0, 5)}

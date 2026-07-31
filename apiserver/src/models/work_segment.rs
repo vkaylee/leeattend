@@ -8,7 +8,7 @@ pub struct WorkSegment {
     pub workspace_id: Uuid,
     pub employment_id: Uuid,
     pub date: NaiveDate,
-    pub shift_id: Uuid,
+    pub template_id: Uuid,
     pub interval_id: Option<Uuid>,
     pub sort_order: i32,
     pub scheduled_start: NaiveTime,
@@ -32,7 +32,7 @@ pub struct WorkSegment {
 pub struct CreateWorkSegmentRequest {
     pub employment_id: Uuid,
     pub date: NaiveDate,
-    pub shift_id: Uuid,
+    pub template_id: Uuid,
     #[serde(default)]
     pub interval_id: Option<Uuid>,
     #[serde(default)]
@@ -64,7 +64,7 @@ pub struct CreateWorkSegmentRequest {
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpdateWorkSegmentRequest {
     #[serde(default)]
-    pub shift_id: Option<Uuid>,
+    pub template_id: Option<Uuid>,
     #[serde(default)]
     pub interval_id: Option<Uuid>,
     #[serde(default)]

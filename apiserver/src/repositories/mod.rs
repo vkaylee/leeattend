@@ -32,7 +32,7 @@ pub mod shift_interval_repository;
 pub mod shift_repository;
 pub mod shift_swap_repository;
 pub mod time_entry_repository;
-pub mod work_segment_repository; // TODO: dead code — consider removal
+pub mod work_segment_repository;
 pub use time_entry_repository::TimeEntryRepository;
 
 pub mod payroll_rule_repository;
