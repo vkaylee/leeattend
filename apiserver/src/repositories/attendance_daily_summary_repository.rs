@@ -4,6 +4,22 @@ use async_trait::async_trait;
 use chrono::NaiveDate;
 use uuid::Uuid;
 
+/// Input for a single day's batch upsert. Used by
+/// [`AttendanceDailySummaryRepository::batch_upsert_calculated_summaries`].
+pub struct BatchSummaryInput {
+    pub date: NaiveDate,
+    pub actual_work_minutes: i32,
+    pub system_detected_ot_minutes: i32,
+    pub standard_minutes: i32,
+    pub early_ot_minutes: i32,
+    pub late_ot_minutes: i32,
+    pub break_ot_minutes: i32,
+    pub is_weekend: bool,
+    pub ot_status: OtStatus,
+    pub is_holiday: bool,
+    pub holiday_name: Option<String>,
+}
+
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait AttendanceDailySummaryRepository: Send + Sync {
@@ -36,6 +52,17 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
         new_status: OtStatus,
         is_holiday: bool,
         holiday_name: Option<String>,
+    ) -> Result<(), AppError>;
+
+    /// Batch upsert multiple daily summaries in a single transaction.
+    ///
+    /// Semantically equivalent to calling [`upsert_calculated_summary`] for each entry,
+    /// but executes within one DB transaction to eliminate per-row connection overhead.
+    async fn batch_upsert_calculated_summaries(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_id: Uuid,
+        summaries: &[BatchSummaryInput],
     ) -> Result<(), AppError>;
 
     async fn claim_ot(

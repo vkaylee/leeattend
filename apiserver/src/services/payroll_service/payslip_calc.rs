@@ -138,7 +138,7 @@ impl PayrollService {
                     e.start_date() <= seg_start
                         && e.end_date().is_none_or(|end| end >= seg_start)
                 })
-                .map(|e| e.id());
+                .map(crate::models::Employment::id);
 
             let daily_rate = FinancialCalculator::calculate_daily_rate(
                 segment_total_base,

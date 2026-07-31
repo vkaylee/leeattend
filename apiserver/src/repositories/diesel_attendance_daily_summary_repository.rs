@@ -147,6 +147,74 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         Ok(())
     }
 
+    async fn batch_upsert_calculated_summaries(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_id: Uuid,
+        summaries: &[crate::repositories::attendance_daily_summary_repository::BatchSummaryInput],
+    ) -> Result<(), AppError> {
+        if summaries.is_empty() {
+            return Ok(());
+        }
+
+        let workspace_id = auth_token.workspace_id();
+        use crate::schema::attendance_daily_summaries::dsl as ads;
+        use diesel::upsert::excluded;
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
+
+        for s in summaries {
+            diesel::insert_into(ads::attendance_daily_summaries)
+                .values((
+                    ads::workspace_id.eq(workspace_id),
+                    ads::employment_id.eq(employment_id),
+                    ads::date.eq(s.date),
+                    ads::actual_work_minutes.eq(s.actual_work_minutes),
+                    ads::system_detected_ot_minutes.eq(s.system_detected_ot_minutes),
+                    ads::standard_minutes.eq(s.standard_minutes),
+                    ads::early_ot_minutes.eq(s.early_ot_minutes),
+                    ads::late_ot_minutes.eq(s.late_ot_minutes),
+                    ads::break_ot_minutes.eq(s.break_ot_minutes),
+                    ads::is_weekend.eq(s.is_weekend),
+                    ads::ot_status.eq(s.ot_status),
+                    ads::is_holiday.eq(s.is_holiday),
+                    ads::holiday_name.eq(&s.holiday_name),
+                ))
+                .on_conflict((ads::employment_id, ads::date))
+                .do_update()
+                .set((
+                    ads::actual_work_minutes.eq(excluded(ads::actual_work_minutes)),
+                    ads::system_detected_ot_minutes
+                        .eq(excluded(ads::system_detected_ot_minutes)),
+                    ads::standard_minutes.eq(excluded(ads::standard_minutes)),
+                    ads::early_ot_minutes.eq(excluded(ads::early_ot_minutes)),
+                    ads::late_ot_minutes.eq(excluded(ads::late_ot_minutes)),
+                    ads::break_ot_minutes.eq(excluded(ads::break_ot_minutes)),
+                    ads::is_weekend.eq(excluded(ads::is_weekend)),
+                    ads::is_holiday.eq(excluded(ads::is_holiday)),
+                    ads::holiday_name.eq(excluded(ads::holiday_name)),
+                    ads::ot_status
+                        .eq(diesel::dsl::sql::<crate::schema::sql_types::OtStatusType>(
+                            "CASE
+                        WHEN attendance_daily_summaries.ot_status = 'none'::ot_status_type AND EXCLUDED.system_detected_ot_minutes > 0 THEN 'pending_employee'::ot_status_type
+                        ELSE attendance_daily_summaries.ot_status
+                    END",
+                        )),
+                    ads::updated_at.eq(diesel::dsl::now),
+                ))
+                .execute(&mut *conn)
+                .await
+                .map_err(AppError::from)?;
+        }
+
+        Ok(())
+    }
+
     async fn claim_ot(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

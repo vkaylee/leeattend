@@ -1262,6 +1262,14 @@ mod tests {
         ) -> Result<(), AppError> {
             unimplemented!()
         }
+        async fn batch_upsert_calculated_summaries(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employment_id: uuid::Uuid,
+            _summaries: &[crate::repositories::attendance_daily_summary_repository::BatchSummaryInput],
+        ) -> Result<(), crate::errors::AppError> {
+            Ok(())
+        }
         async fn claim_ot(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -2417,6 +2425,14 @@ mod tests {
             _h: Option<String>,
         ) -> Result<(), AppError> {
             unimplemented!()
+        }
+        async fn batch_upsert_calculated_summaries(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employment_id: uuid::Uuid,
+            _summaries: &[crate::repositories::attendance_daily_summary_repository::BatchSummaryInput],
+        ) -> Result<(), crate::errors::AppError> {
+            Ok(())
         }
         async fn claim_ot(
             &self,

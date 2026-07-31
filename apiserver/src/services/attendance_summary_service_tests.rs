@@ -1249,10 +1249,10 @@ mod recalculate_daily_summary_leave_tests {
             .expect_get_employee_effective_policy()
             .returning(|_, _, _| Ok(None));
 
-        // Mock get_working_conditions_at - return empty vec (no special conditions)
+        // Mock get_working_conditions_batch_by_employments - return empty map (no special conditions)
         employee_repo
-            .expect_get_working_conditions_at()
-            .returning(|_, _, _| Ok(vec![]));
+            .expect_get_working_conditions_batch_by_employments()
+            .returning(|_, _, _, _| Ok(std::collections::HashMap::new()));
 
         let emp_id = employee_id;
         let ws_id = workspace_id;
@@ -1338,9 +1338,9 @@ mod recalculate_daily_summary_leave_tests {
             .returning(|_, _, _, _| Ok(vec![]));
 
         daily_summary_repo
-            .expect_upsert_calculated_summary()
-            .times(2)
-            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+            .expect_batch_upsert_calculated_summaries()
+            .times(1)
+            .returning(|_, _, _| Ok(()));
 
         let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
             time_entry_repo: Arc::new(time_entry_repo),
