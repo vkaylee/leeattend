@@ -92,4 +92,19 @@ pub fn router() -> Router<Arc<AppState>> {
             "/workspaces/:ws_id/employees/:id/rosters/:date",
             delete(handlers::delete_roster),
         )
+        // Work segments
+        .route(
+            "/workspaces/:ws_id/work-segments",
+            get(handlers::list_work_segments).post(handlers::create_work_segment),
+        )
+        .route(
+            "/workspaces/:ws_id/work-segments/bulk",
+            post(handlers::bulk_create_work_segments),
+        )
+        .route(
+            "/workspaces/:ws_id/work-segments/:segment_id",
+            get(handlers::get_work_segment)
+                .put(handlers::update_work_segment)
+                .delete(handlers::delete_work_segment),
+        )
 }

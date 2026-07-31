@@ -117,6 +117,7 @@ pub async fn build_attendance_services(
             holiday_repo: Arc::clone(&repos.holiday),
             workspace_repo: Arc::clone(&repos.workspace),
             employer_repo: Arc::clone(&repos.employer),
+            work_segment_repo: Some(Arc::clone(&repos.work_segment)),
         },
     ));
 

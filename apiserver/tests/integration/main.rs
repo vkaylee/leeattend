@@ -44,3 +44,5 @@ pub mod tenant_provisioner_tests;
 pub mod workflow_callback;
 pub mod workspace;
 pub mod workspace_config;
+pub mod work_segments_api;
+pub mod work_segment;

@@ -71,6 +71,7 @@ async fn test_daily_report_employee_filtering() {
             employer_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselEmployerRepository::new(diesel_pools.clone()),
             ),
+            work_segment_repo: None,
         });
 
     let emp1_employment_id: uuid::Uuid = crate::test_query_scalar_uuid!(
@@ -198,6 +199,7 @@ async fn test_attendance_report_resigned_employee_filtering() {
             employer_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselEmployerRepository::new(diesel_pools.clone()),
             ),
+            work_segment_repo: None,
         });
 
     // Case 1: Report date range is [2026-01-01, 2026-01-31], status filter is "active"
@@ -391,6 +393,7 @@ async fn test_report_multi_employment_and_employer() {
             employer_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselEmployerRepository::new(diesel_pools.clone()),
             ),
+            work_segment_repo: None,
         });
 
     let date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();

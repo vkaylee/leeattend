@@ -203,6 +203,9 @@ i18n_table! {
     TerminationDateBeforeStart => "error.termination_date_before_start" => ("Termination date cannot be before employment start date ({start_date})", "Ngày nghỉ việc không được trước ngày bắt đầu làm việc ({start_date})", "离职日期不能早于雇佣开始日期 ({start_date})"),
     TerminationReasonInvalid => "error.termination_reason_invalid" => ("Invalid termination reason: '{reason}'. Valid values: {valid}", "Lý do nghỉ việc không hợp lệ: '{reason}'. Các giá trị hợp lệ: {valid}", "无效的离职原因: '{reason}'。有效值: {valid}"),
     TerminationDuplicateCode => "error.termination_duplicate_code" => ("Duplicate employee code in the file", "Mã nhân viên bị lặp lại trong tệp", "文件中员工代码重复"),
+    // Work Segments
+    WorkSegmentNotFound => "error.work_segment_not_found" => ("Work segment not found", "Không tìm thấy work segment", "未找到工作段"),
+    WorkSegmentBatchTooLarge => "error.work_segment_batch_too_large" => ("Too many segments in one bulk request. Please reduce the batch size.", "Quá nhiều segment trong một yêu cầu hàng loạt. Vui lòng giảm kích thước lô.", "批量请求中的段数过多。请减少批次大小。"),
 }
 
 // ---------------------------------------------------------------------------

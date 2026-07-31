@@ -313,6 +313,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
                 diesel_pools.clone(),
             )),
             employer_repo: employer_repo.clone(),
+            work_segment_repo: Some(Arc::new(
+                apiserver::repositories::DieselWorkSegmentRepository::new(diesel_pools.clone()),
+            )),
         },
     ));
     let raw_log_repo: Arc<
@@ -1060,6 +1063,9 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
                 diesel_pools.clone(),
             )),
             employer_repo: employer_repo.clone(),
+            work_segment_repo: Some(Arc::new(
+                apiserver::repositories::DieselWorkSegmentRepository::new(diesel_pools.clone()),
+            )),
         },
     ));
     let raw_log_repo: Arc<
@@ -1851,6 +1857,9 @@ pub async fn setup_app_tower_internal_extended(
                 diesel_pools.clone(),
             )),
             employer_repo: employer_repo.clone(),
+            work_segment_repo: Some(Arc::new(
+                apiserver::repositories::DieselWorkSegmentRepository::new(diesel_pools.clone()),
+            )),
         },
     ));
     let raw_log_repo: Arc<

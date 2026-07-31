@@ -1615,6 +1615,7 @@ mod tests {
             attendance_daily_summary_repo: Arc::new(DummyDailySummaryRepo),
             holiday_repo: Arc::new(DummyHolidayRepo),
             employer_repo: Arc::new(MockEmployerRepo),
+            work_segment_repo: None,
         });
 
         let args = AttendanceReportArgs {
@@ -2839,6 +2840,7 @@ mod tests {
             attendance_daily_summary_repo: Arc::new(EmptyDailySummaryRepo),
             holiday_repo: Arc::new(EmptyHolidayRepo),
             employer_repo: Arc::new(MockEmployerRepo),
+            work_segment_repo: None,
         });
 
         let args = AttendanceReportArgs {
@@ -3020,6 +3022,7 @@ mod tests {
             attendance_daily_summary_repo: Arc::new(EmptyDailySummaryRepo),
             holiday_repo: Arc::new(EmptyHolidayRepo),
             employer_repo: Arc::new(MockEmployerRepo),
+            work_segment_repo: None,
         });
 
         let args = AttendanceReportArgs {
@@ -3071,6 +3074,7 @@ mod tests {
             attendance_daily_summary_repo: Arc::new(EmptyDailySummaryRepo),
             holiday_repo: Arc::new(EmptyHolidayRepo),
             employer_repo: Arc::new(MockEmployerRepo),
+            work_segment_repo: None,
         });
 
         let args = AttendanceReportArgs {

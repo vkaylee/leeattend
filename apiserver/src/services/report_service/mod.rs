@@ -274,6 +274,9 @@ pub struct ReportService {
     workspace_repo: Arc<dyn WorkspaceRepository>,
     holiday_repo: Arc<dyn HolidayRepository>,
     employer_repo: Arc<dyn crate::repositories::EmployerRepository>,
+    work_segment_repo: Option<
+        Arc<dyn crate::repositories::work_segment_repository::WorkSegmentRepository>,
+    >,
 }
 
 pub struct ReportServiceArgs {
@@ -288,6 +291,9 @@ pub struct ReportServiceArgs {
     pub workspace_repo: Arc<dyn WorkspaceRepository>,
     pub holiday_repo: Arc<dyn HolidayRepository>,
     pub employer_repo: Arc<dyn crate::repositories::EmployerRepository>,
+    pub work_segment_repo: Option<
+        Arc<dyn crate::repositories::work_segment_repository::WorkSegmentRepository>,
+    >,
 }
 
 impl ReportService {
@@ -304,6 +310,7 @@ impl ReportService {
             workspace_repo: args.workspace_repo,
             holiday_repo: args.holiday_repo,
             employer_repo: args.employer_repo,
+            work_segment_repo: args.work_segment_repo,
         }
     }
 }
@@ -359,6 +366,14 @@ impl ReportService {
 
     fn employer_repo(&self) -> &dyn crate::repositories::EmployerRepository {
         &*self.employer_repo
+    }
+
+    pub(crate) fn work_segment_repo(
+        &self,
+    ) -> Option<
+        &dyn crate::repositories::work_segment_repository::WorkSegmentRepository,
+    > {
+        self.work_segment_repo.as_deref()
     }
 }
 

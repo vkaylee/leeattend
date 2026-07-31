@@ -38,7 +38,6 @@ pub enum SegmentType {
 impl SegmentType {
     pub fn from_domain_str(s: &str) -> Self {
         match s {
-            "work" => Self::Work,
             "standby" => Self::Standby,
             "on_call" => Self::OnCall,
             "training" => Self::Training,
@@ -106,7 +105,6 @@ pub enum SegmentStatusType {
 impl SegmentStatusType {
     pub fn from_domain_str(s: &str) -> Self {
         match s {
-            "scheduled" => Self::Scheduled,
             "in_progress" => Self::InProgress,
             "completed" => Self::Completed,
             "cancelled" => Self::Cancelled,
@@ -170,7 +168,6 @@ pub enum GapCompensationType {
 impl GapCompensationType {
     pub fn from_domain_str(s: &str) -> Self {
         match s {
-            "unpaid" => Self::Unpaid,
             "standby" => Self::Standby,
             "break" => Self::Break,
             _ => Self::Unpaid,

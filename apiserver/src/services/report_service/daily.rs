@@ -828,18 +828,78 @@ impl ReportService {
             )
             .await?;
 
-        let (employee_segments, _) = self
-            .roster_repo
-            .get_workspace_segments(
-                None,
-                auth_token,
-                args.start_date,
-                args.end_date,
-                Some(preamble.paginated_employment_ids()),
-                None,
-                None,
-            )
-            .await?;
+        // DB-first segment read with compute fallback.
+        // When work_segment_repo is available, try reading pre-resolved segments from
+        // the work_segments table. If the DB returns nothing (no segments persisted yet
+        // for this date range) or errors, fall back to the existing compute path which
+        // resolves segments on-the-fly from rosters (and write-through persists them).
+        let employee_segments = if let Some(ws_repo) = self.work_segment_repo() {
+            match self
+                .build_employee_segments_from_db(
+                    ws_repo,
+                    auth_token,
+                    &preamble,
+                    args.start_date,
+                    args.end_date,
+                )
+                .await
+            {
+                Ok(emps) if !emps.is_empty() => emps,
+                Ok(_) => {
+                    // Empty DB result — fall back to compute
+                    tracing::info!(
+                        "DB segment read returned empty for date range {}..{}, falling back to compute",
+                        args.start_date,
+                        args.end_date,
+                    );
+                    let (emps, _) = self
+                        .roster_repo
+                        .get_workspace_segments(
+                            None,
+                            auth_token,
+                            args.start_date,
+                            args.end_date,
+                            Some(preamble.paginated_employment_ids()),
+                            None,
+                            None,
+                        )
+                        .await?;
+                    emps
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "DB segment read failed, falling back to compute: {e}"
+                    );
+                    let (emps, _) = self
+                        .roster_repo
+                        .get_workspace_segments(
+                            None,
+                            auth_token,
+                            args.start_date,
+                            args.end_date,
+                            Some(preamble.paginated_employment_ids()),
+                            None,
+                            None,
+                        )
+                        .await?;
+                    emps
+                }
+            }
+        } else {
+            let (emps, _) = self
+                .roster_repo
+                .get_workspace_segments(
+                    None,
+                    auth_token,
+                    args.start_date,
+                    args.end_date,
+                    Some(preamble.paginated_employment_ids()),
+                    None,
+                    None,
+                )
+                .await?;
+            emps
+        };
 
         let mut reports = Vec::new();
 
@@ -957,6 +1017,108 @@ impl ReportService {
             })
             .copied()
             .collect()
+    }
+
+    /// Read pre-computed WorkSegments from DB and map them into EmployeeSegments
+    /// for the segment-centric report path.
+    async fn build_employee_segments_from_db(
+        &self,
+        ws_repo: &dyn crate::repositories::work_segment_repository::WorkSegmentRepository,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        preamble: &super::ReportDataPreamble,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<Vec<crate::models::EmployeeSegments>, AppError> {
+        let employment_ids = preamble.paginated_employment_ids();
+        if employment_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let work_segments = ws_repo
+            .get_segments_by_date_range(auth_token, employment_ids, start_date, end_date)
+            .await?;
+
+        if work_segments.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let employment_to_employee = preamble.employment_to_employee();
+
+        // Build employee info lookup from preamble's paginated_employees
+        let employee_info_lookup: HashMap<Uuid, (String, String)> = preamble
+            .paginated_employees()
+            .iter()
+            .map(|emp| {
+                (
+                    emp.id,
+                    (emp.employee_id_number.clone(), emp.full_name.clone()),
+                )
+            })
+            .collect();
+
+        // Group work segments by employment_id
+        let mut by_employment: HashMap<Uuid, Vec<crate::models::WorkSegment>> = HashMap::new();
+        for ws in work_segments {
+            by_employment.entry(ws.employment_id).or_default().push(ws);
+        }
+
+        let mut result = Vec::new();
+        for (employment_id, segments) in by_employment {
+            let Some(&employee_id) = employment_to_employee.get(&employment_id) else {
+                continue;
+            };
+            let Some((id_number, full_name)) = employee_info_lookup.get(&employee_id) else {
+                continue;
+            };
+
+            let resolved_segments: Vec<crate::models::ResolvedSegment> =
+                segments.iter().map(work_segment_to_resolved).collect();
+
+            result.push(crate::models::EmployeeSegments::new(
+                employment_id,
+                employee_id,
+                id_number.clone(),
+                full_name.clone(),
+                resolved_segments,
+            ));
+        }
+
+        Ok(result)
+    }
+}
+
+/// Convert a persisted WorkSegment into a ResolvedSegment for the report pipeline.
+///
+/// Many ResolvedSegment fields (break config, OT config, holiday flags, traces) are
+/// not stored on WorkSegment. These are left as None/false/defaults — the report
+/// row builder enriches them from `ReportExtras` and `ReportDataPreamble` anyway.
+fn work_segment_to_resolved(ws: &crate::models::WorkSegment) -> crate::models::ResolvedSegment {
+    crate::models::ResolvedSegment {
+        template_id: ws.template_id,
+        interval_id: ws.interval_id,
+        sort_order: ws.sort_order,
+        scheduled_start: ws.scheduled_start,
+        scheduled_end: ws.scheduled_end,
+        source: ws.source.clone(),
+        date: Some(ws.date),
+        shift_name: None,
+        shift_symbol: None,
+        interval_name: None,
+        segment_type: ws.segment_type.clone(),
+        break_duration_minutes: None,
+        break_start: None,
+        break_end: None,
+        is_break_auto_deduct: None,
+        break_is_overtime: None,
+        allow_early_ot: false,
+        max_early_ot_minutes: None,
+        early_punch_in_grace_period_minutes: 0,
+        ot_aggregation_mode: crate::services::attendance_calculator::OtAggregationMode::default(),
+        is_night_shift: false,
+        traces: Vec::new(),
+        is_holiday: false,
+        is_holiday_paid: false,
+        holiday_name: None,
     }
 }
 
