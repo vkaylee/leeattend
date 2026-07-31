@@ -1073,3 +1073,274 @@ async fn test_resolve_day_context_with_active_employment_still_works() {
     // Units now from summaries - assert_eq!(result.std_units, 8);
     // Units now from summaries - assert_eq!(result.ot_units, 0);
 }
+
+// ── Pure scoring helper tests ───────────────────────────────────────────
+
+mod scoring_helpers {
+    use super::super::scoring::{
+        compute_early_minutes, compute_late_minutes, detect_absence, resolve_shift_window,
+        ScoringContext,
+    };
+    use crate::cache::RosterInterval;
+    use chrono::{NaiveDate, NaiveTime};
+    use std::collections::HashMap;
+
+    fn tz() -> chrono_tz::Tz {
+        chrono_tz::UTC
+    }
+
+    fn dt(date: NaiveDate, h: u32, m: u32) -> chrono::DateTime<chrono_tz::Tz> {
+        use chrono::TimeZone;
+        tz().from_local_datetime(&date.and_hms_opt(h, m, 0).unwrap())
+            .unwrap()
+    }
+
+    fn test_interval(
+        start: NaiveTime,
+        end: NaiveTime,
+        grace: i32,
+    ) -> RosterInterval {
+        RosterInterval {
+            interval_id: uuid::Uuid::new_v4(),
+            sort_order: 0,
+            interval_name: None,
+            start_time: start,
+            end_time: end,
+            break_duration_minutes: 0,
+            break_start: None,
+            break_end: None,
+            is_break_auto_deduct: false,
+            break_is_overtime: false,
+            early_punch_in_grace_period_minutes: grace,
+            allow_early_ot: false,
+            max_early_ot_minutes: None,
+            ot_aggregation_mode:
+                crate::services::attendance_calculator::OtAggregationMode::Aggregate,
+            is_night_shift: false,
+        }
+    }
+
+    // ── compute_late_minutes ──
+
+    #[test]
+    fn late_minutes_on_time_returns_zero() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        assert_eq!(
+            compute_late_minutes(dt(date, 9, 0), dt(date, 9, 0), 5, false),
+            0
+        );
+    }
+
+    #[test]
+    fn late_minutes_within_grace_returns_zero() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        assert_eq!(
+            compute_late_minutes(dt(date, 9, 5), dt(date, 9, 0), 5, false),
+            0
+        );
+    }
+
+    #[test]
+    fn late_minutes_beyond_grace_returns_diff() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        assert_eq!(
+            compute_late_minutes(dt(date, 9, 15), dt(date, 9, 0), 5, false),
+            10
+        );
+    }
+
+    #[test]
+    fn late_minutes_early_arrival_returns_zero() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        assert_eq!(
+            compute_late_minutes(dt(date, 8, 45), dt(date, 9, 0), 5, false),
+            0
+        );
+    }
+
+    #[test]
+    fn late_minutes_holiday_returns_zero() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        assert_eq!(
+            compute_late_minutes(dt(date, 10, 0), dt(date, 9, 0), 0, true),
+            0
+        );
+    }
+
+    #[test]
+    fn late_minutes_zero_grace() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        assert_eq!(
+            compute_late_minutes(dt(date, 9, 1), dt(date, 9, 0), 0, false),
+            1
+        );
+    }
+
+    // ── compute_early_minutes ──
+
+    #[test]
+    fn early_minutes_not_early_returns_zero() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        assert_eq!(
+            compute_early_minutes(dt(date, 18, 0), dt(date, 18, 0), false),
+            0
+        );
+    }
+
+    #[test]
+    fn early_minutes_left_early_returns_diff() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        assert_eq!(
+            compute_early_minutes(dt(date, 17, 45), dt(date, 18, 0), false),
+            15
+        );
+    }
+
+    #[test]
+    fn early_minutes_stayed_late_returns_zero() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        assert_eq!(
+            compute_early_minutes(dt(date, 19, 0), dt(date, 18, 0), false),
+            0
+        );
+    }
+
+    #[test]
+    fn early_minutes_holiday_returns_zero() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        assert_eq!(
+            compute_early_minutes(dt(date, 17, 0), dt(date, 18, 0), true),
+            0
+        );
+    }
+
+    // ── detect_absence ──
+
+    #[test]
+    fn absence_no_violation() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        assert!(!detect_absence(
+            dt(date, 9, 0),
+            dt(date, 18, 0),
+            dt(date, 9, 0),
+            dt(date, 18, 0),
+            5,
+            false
+        ));
+    }
+
+    #[test]
+    fn absence_late_beyond_grace() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        assert!(detect_absence(
+            dt(date, 9, 10),
+            dt(date, 18, 0),
+            dt(date, 9, 0),
+            dt(date, 18, 0),
+            5,
+            false
+        ));
+    }
+
+    #[test]
+    fn absence_early_departure() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        assert!(detect_absence(
+            dt(date, 9, 0),
+            dt(date, 17, 30),
+            dt(date, 9, 0),
+            dt(date, 18, 0),
+            5,
+            false
+        ));
+    }
+
+    #[test]
+    fn absence_holiday_always_false() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        assert!(!detect_absence(
+            dt(date, 11, 0),
+            dt(date, 15, 0),
+            dt(date, 9, 0),
+            dt(date, 18, 0),
+            0,
+            true
+        ));
+    }
+
+    #[test]
+    fn absence_both_late_and_early() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        assert!(detect_absence(
+            dt(date, 9, 20),
+            dt(date, 17, 0),
+            dt(date, 9, 0),
+            dt(date, 18, 0),
+            5,
+            false
+        ));
+    }
+
+    // ── resolve_shift_window ──
+
+    #[test]
+    fn shift_window_normal_day() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        let interval = test_interval(
+            NaiveTime::from_hms_opt(9, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(18, 0, 0).unwrap(),
+            0,
+        );
+        let (start, end) = resolve_shift_window(tz(), date, &interval).unwrap();
+        assert_eq!(start, dt(date, 9, 0));
+        assert_eq!(end, dt(date, 18, 0));
+    }
+
+    #[test]
+    fn shift_window_overnight_adds_day() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        let interval = test_interval(
+            NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
+            0,
+        );
+        let (start, end) = resolve_shift_window(tz(), date, &interval).unwrap();
+        assert_eq!(start, dt(date, 22, 0));
+        assert_eq!(end, dt(date + chrono::Duration::days(1), 6, 0));
+    }
+
+    // ── ScoringContext construction ──
+
+    #[test]
+    fn scoring_context_from_arc_refs() {
+        use std::sync::Arc;
+
+        let holidays = Arc::new(HashMap::new());
+        let catalog = Arc::new(HashMap::new());
+        let conditions: Vec<crate::models::WorkingCondition> = vec![];
+
+        let ctx = ScoringContext::new(
+            chrono_tz::UTC,
+            &conditions,
+            &*holidays,
+            &*catalog,
+        );
+        assert_eq!(ctx.tz(), chrono_tz::UTC);
+        assert!(ctx.holidays_map().is_empty());
+    }
+
+    #[test]
+    fn scoring_context_from_plain_refs() {
+        let holidays = HashMap::new();
+        let catalog = HashMap::new();
+        let conditions: Vec<crate::models::WorkingCondition> = vec![];
+
+        let ctx = ScoringContext::new(
+            chrono_tz::UTC,
+            &conditions,
+            &holidays,
+            &catalog,
+        );
+        assert_eq!(ctx.tz(), chrono_tz::UTC);
+    }
+}

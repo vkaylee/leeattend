@@ -13,7 +13,6 @@ use uuid::Uuid;
 
 // ── Sub-modules ─────────────────────────────────────────────────────────
 
-mod conflict;
 mod pairing;
 mod scoring;
 
@@ -86,19 +85,19 @@ impl AttendanceMatcher {
             );
 
             if let Some(entries) = args.ctx.daily_entries_map().get(&current_date) {
+                let scoring_ctx = scoring::ScoringContext::new(
+                    args.ctx.tz(),
+                    args.ctx.working_conditions(),
+                    args.ctx.holidays_map(),
+                    args.ctx.condition_type_catalog(),
+                );
                 let (_day_std, _day_ot, day_ot_pay, day_premium, day_violations) =
                     Self::process_daily_entries(
-                        args.ctx,
-                        employee_id,
+                        &scoring_ctx,
                         current_date,
                         &day_shifts,
                         entries,
                         args.attendance_rules,
-                        args.seg_units_per_day,
-                        args.segment_total_base,
-                        args.segment_ot_base,
-                        args.std_config,
-                        args.policy_cache,
                     );
                 segment_ot_pay += day_ot_pay;
                 holiday_work_premium += day_premium;
