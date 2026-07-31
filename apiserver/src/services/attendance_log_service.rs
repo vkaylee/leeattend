@@ -117,114 +117,194 @@ impl AttendanceLogService {
     /// - Case 3: Parse/validation error → insert to attendance_log_errors → Ok(false)
     /// - Case 4: Database connection error → Err(msg) (agent should retry)
     #[tracing::instrument(skip_all, err)]
-    #[allow(clippy::too_many_lines)]
     pub async fn process_log(
         &self,
         args: ProcessLogArgs<'_>,
     ) -> Result<bool, crate::errors::AppError> {
-        // Sanitize raw_data to strip null bytes that PostgreSQL jsonb rejects
-        let raw_data = args.raw_data.map(AgentLogEntry::sanitize_json_value);
-        let normalized_emp_id = crate::utils::normalize_employee_id(args.employee_id_number);
-        // 1. Resolve employee_id from employee_id_number and workspace_id
+        // Destructure args to allow independent ownership of moved fields
+        // (device_id, raw_data) while keeping Copy references available.
+        let ProcessLogArgs {
+            workspace_id,
+            auth_token,
+            employee_id_number,
+            punch_time_raw,
+            source,
+            device_id,
+            raw_data: raw_data_arg,
+            timezone,
+            date_fmt,
+            time_fmt,
+        } = args;
+
+        // 0. Sanitize raw_data and normalize employee ID
+        let raw_data = raw_data_arg.map(AgentLogEntry::sanitize_json_value);
+        let normalized_emp_id = crate::utils::normalize_employee_id(employee_id_number);
+        let fingerprint = Self::calculate_fingerprint(
+            device_id.as_deref(),
+            &normalized_emp_id,
+            punch_time_raw,
+            raw_data.as_ref(),
+        );
+
+        // 1. Resolve employee from device mapping
         let employee = match self
             .employee_repo
-            .find_by_number(args.auth_token, &normalized_emp_id)
+            .find_by_number(auth_token, &normalized_emp_id)
             .await
         {
             Ok(Some(emp)) => emp,
             Ok(None) => {
-                // Case 2: Unknown user → Stage for later review (NOT an error)
-                let fingerprint = Self::calculate_fingerprint(
-                    args.device_id.as_deref(),
-                    &normalized_emp_id,
-                    args.punch_time_raw,
-                    raw_data.as_ref(),
-                );
-
-                // Parse timestamp for staging (best effort)
-                let punch_time = parse_datetime_with_tz(
-                    args.punch_time_raw,
-                    args.timezone,
-                    args.date_fmt,
-                    args.time_fmt,
-                )
-                .unwrap_or_else(|_| Utc::now());
-
-                let _ = self
-                    .staging_repo
-                    .create_staging_log(
-                        args.workspace_id,
-                        args.device_id.clone(),
+                return self
+                    .stage_unknown_employee(
+                        workspace_id,
+                        device_id,
+                        punch_time_raw,
+                        timezone,
+                        date_fmt,
+                        time_fmt,
                         &normalized_emp_id,
-                        punch_time,
                         raw_data,
                         &fingerprint,
-                        StagingStatus::Pending,
                     )
                     .await;
-
-                warn!(
-                    "Unknown user {} staged for workspace {} (fingerprint: {})",
-                    normalized_emp_id,
-                    args.workspace_id,
-                    &fingerprint[..8]
-                );
-                return Ok(false); // SUCCESS - don't retry
             }
             Err(e) => {
-                // Case 4: Database error → Agent should retry
                 let msg = format!("Database error finding employee: {e}");
                 error!("{}", msg);
                 return Err(crate::errors::AppError::Internal(msg));
             }
         };
 
-        // 2. Parse punch_time with workspace configuration
+        // 2. Parse timestamp
         let punch_time = match parse_datetime_with_tz(
-            args.punch_time_raw,
-            args.timezone,
-            args.date_fmt,
-            args.time_fmt,
+            punch_time_raw, timezone, date_fmt, time_fmt,
         ) {
             Ok(dt) => dt,
             Err(e) => {
-                // Case 3: Validation error → Log with fingerprint (NOT retry)
-                let msg = format!("Failed to parse timestamp '{}': {}", args.punch_time_raw, e);
-                error!("{}", msg);
-
-                let fingerprint = Self::calculate_fingerprint(
-                    args.device_id.as_deref(),
-                    &normalized_emp_id,
-                    args.punch_time_raw,
-                    raw_data.as_ref(),
-                );
-
-                let _ = self
-                    .error_repo
-                    .create_error_log_with_fingerprint(
-                        args.auth_token,
-                        args.device_id.clone(),
-                        raw_data,
-                        &msg,
-                        &format!("{:?}", args.source),
-                        &fingerprint,
-                    )
-                    .await;
-
-                return Ok(false); // SUCCESS - don't retry
+                self.stage_parse_error(
+                    auth_token, device_id, source, punch_time_raw,
+                    raw_data, &fingerprint, &e,
+                )
+                .await;
+                return Ok(false);
             }
         };
 
-        // Resolve employment effective on the local punch date (NOT current active).
-        // Use the timezone from args to derive the local date, then query the repo
-        // without a hard status = "active" filter so terminated employments whose
-        // date range covers the punch date are still valid for historical ingestion.
-        let punch_tz: chrono_tz::Tz = parse_workspace_tz(args.timezone);
+        // 3. Resolve employment effective on the local punch date
+        let punch_tz: chrono_tz::Tz = parse_workspace_tz(timezone);
         let local_punch_date = punch_time.with_timezone(&punch_tz).date_naive();
+        let Some(resolved_employment_id) = self
+            .resolve_employment_or_stage(
+                auth_token, workspace_id, device_id.as_deref(), source,
+                &normalized_emp_id, employee.id(), local_punch_date,
+                punch_time, raw_data.as_ref(), &fingerprint,
+            )
+            .await?
+        else {
+            return Ok(false); // Staged (not-found or ambiguous) — don't retry
+        };
 
+        // 4. Build and persist RawAttendanceLog
+        self.build_and_persist_log(
+            workspace_id, device_id, source, &normalized_emp_id,
+            resolved_employment_id, punch_time, raw_data,
+        )
+        .await
+    }
+
+    /// Stage a log for an unknown employee (not found in the system).
+    /// Returns Ok(false) — not an error, do not retry.
+    async fn stage_unknown_employee(
+        &self,
+        workspace_id: Uuid,
+        device_id: Option<String>,
+        punch_time_raw: &str,
+        timezone: &str,
+        date_fmt: Option<&str>,
+        time_fmt: Option<&str>,
+        normalized_emp_id: &str,
+        raw_data: Option<serde_json::Value>,
+        fingerprint: &str,
+    ) -> Result<bool, crate::errors::AppError> {
+        let punch_time = parse_datetime_with_tz(
+            punch_time_raw, timezone, date_fmt, time_fmt,
+        )
+        .unwrap_or_else(|_| Utc::now());
+
+        let _ = self
+            .staging_repo
+            .create_staging_log(
+                workspace_id,
+                device_id,
+                normalized_emp_id,
+                punch_time,
+                raw_data,
+                fingerprint,
+                StagingStatus::Pending,
+            )
+            .await;
+
+        warn!(
+            "Unknown user {} staged for workspace {} (fingerprint: {})",
+            normalized_emp_id,
+            workspace_id,
+            &fingerprint[..8]
+        );
+        Ok(false)
+    }
+
+    /// Stage a parse/validation error log. Returns nothing — always Ok(false) upstream.
+    async fn stage_parse_error(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        device_id: Option<String>,
+        source: LogSource,
+        punch_time_raw: &str,
+        raw_data: Option<serde_json::Value>,
+        fingerprint: &str,
+        parse_error_msg: &str,
+    ) {
+        let msg = format!("Failed to parse timestamp '{punch_time_raw}': {parse_error_msg}");
+        error!("{}", msg);
+
+        let source_debug = format!("{source:?}");
+        let _ = self
+            .error_repo
+            .create_error_log_with_fingerprint(
+                auth_token,
+                device_id,
+                raw_data,
+                &msg,
+                &source_debug,
+                fingerprint,
+            )
+            .await;
+    }
+
+    /// Resolve the employment record for a punch date, staging an error or
+    /// ambiguous-employment record when resolution fails.
+    ///
+    /// Returns:
+    /// - `Ok(Some(employment_id))` — resolved successfully
+    /// - `Ok(None)` — staged (not-found or ambiguous); caller should return `Ok(false)`
+    /// - `Err(_)` — database error; caller should propagate
+    #[allow(clippy::too_many_arguments)]
+    async fn resolve_employment_or_stage(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workspace_id: Uuid,
+        device_id: Option<&str>,
+        source: LogSource,
+        normalized_emp_id: &str,
+        employee_id: Uuid,
+        local_punch_date: chrono::NaiveDate,
+        punch_time: DateTime<Utc>,
+        raw_data: Option<&serde_json::Value>,
+        fingerprint: &str,
+    ) -> Result<Option<Uuid>, crate::errors::AppError> {
         let resolution = match self
             .employment_repo
-            .resolve_employment_on_date(args.auth_token, employee.id(), local_punch_date)
+            .resolve_employment_on_date(auth_token, employee_id, local_punch_date)
             .await
         {
             Ok(res) => res,
@@ -235,93 +315,83 @@ impl AttendanceLogService {
             }
         };
 
-        let resolved_employment_id = match resolution {
-            EmploymentResolution::Resolved(emp) => emp.id(),
+        match resolution {
+            EmploymentResolution::Resolved(emp) => Ok(Some(emp.id())),
             EmploymentResolution::NotFound => {
-                // No employment covers the punch date → stage as error (NOT retry)
                 let msg = format!(
-                    "No employment covers punch date {} (local: {}) for employee {}",
-                    punch_time,
-                    local_punch_date,
-                    employee.id()
+                    "No employment covers punch date {punch_time} (local: {local_punch_date}) for employee {employee_id}"
                 );
                 warn!("{}", msg);
-
-                let fingerprint = Self::calculate_fingerprint(
-                    args.device_id.as_deref(),
-                    &normalized_emp_id,
-                    args.punch_time_raw,
-                    raw_data.as_ref(),
-                );
 
                 let _ = self
                     .error_repo
                     .create_error_log_with_fingerprint(
-                        args.auth_token,
-                        args.device_id.clone(),
-                        raw_data,
+                        auth_token,
+                        device_id.map(String::from),
+                        raw_data.cloned(),
                         &msg,
-                        &format!("{:?}", args.source),
-                        &fingerprint,
+                        &format!("{source:?}"),
+                        fingerprint,
                     )
                     .await;
 
-                return Ok(false); // SUCCESS - don't retry
+                Ok(None)
             }
             EmploymentResolution::Ambiguous(candidates) => {
-                // Several employments cover the punch date. Guessing one would
-                // silently attribute attendance (and payroll) to the wrong
-                // employer, so park the punch for a human decision instead.
                 warn!(
-                    employee_id = %employee.id(),
+                    employee_id = %employee_id,
                     local_punch_date = %local_punch_date,
                     candidate_count = candidates.len(),
                     "Ambiguous employment for punch — staged for manual resolution"
                 );
 
-                let fingerprint = Self::calculate_fingerprint(
-                    args.device_id.as_deref(),
-                    &normalized_emp_id,
-                    args.punch_time_raw,
-                    raw_data.as_ref(),
-                );
-
                 self.staging_repo
                     .create_staging_log(
-                        args.workspace_id,
-                        args.device_id.clone(),
-                        &normalized_emp_id,
+                        workspace_id,
+                        device_id.map(String::from),
+                        normalized_emp_id,
                         punch_time,
-                        raw_data,
-                        &fingerprint,
+                        raw_data.cloned(),
+                        fingerprint,
                         StagingStatus::Ambiguous,
                     )
                     .await?;
 
-                return Ok(false); // SUCCESS - don't retry
+                Ok(None)
             }
-        };
+        }
+    }
 
-        // 3. Create RawAttendanceLog
+    /// Build a RawAttendanceLog, persist it, and trigger post-processing
+    /// (fire-and-forget pairing notification on successful insert).
+    #[allow(clippy::too_many_arguments)]
+    async fn build_and_persist_log(
+        &self,
+        workspace_id: Uuid,
+        device_id: Option<String>,
+        source: LogSource,
+        normalized_emp_id: &str,
+        employment_id: Uuid,
+        punch_time: DateTime<Utc>,
+        raw_data: Option<serde_json::Value>,
+    ) -> Result<bool, crate::errors::AppError> {
         let (punch, status) = Self::extract_punch_status(raw_data.as_ref());
-
         let raw_log = RawAttendanceLog::new(
             new_id(),
-            args.workspace_id,
-            resolved_employment_id,
+            workspace_id,
+            employment_id,
             punch_time,
-            args.source,
-            args.device_id,
+            source,
+            device_id,
             raw_data,
             punch,
             status,
             Utc::now(),
         );
 
-        // 4. Save to DB (Handle duplicates with ON CONFLICT DO NOTHING)
         match self
             .raw_log_repo
-            .create_raw_log(args.workspace_id, &raw_log)
+            .create_raw_log(workspace_id, &raw_log)
             .await
         {
             Ok(true) => {
@@ -331,11 +401,8 @@ impl AttendanceLogService {
                     punch_time,
                     *raw_log.source()
                 );
-
-                // Notify PairingScheduler (fire-and-forget) — pairing is deferred
-                // to a background batch sweep to avoid advisory-lock contention.
                 if let Some(notifier) = &self.notifier {
-                    notifier.notify(args.workspace_id, resolved_employment_id, punch_time);
+                    notifier.notify(workspace_id, employment_id, punch_time);
                 }
                 Ok(true)
             }
