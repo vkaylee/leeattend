@@ -3,6 +3,7 @@ mod adjustment_extended;
 mod api_log;
 mod api_log_details;
 mod api_upload;
+mod batch_summary_upsert;
 mod claim_staged_logs;
 mod import;
 mod import_claim_logs;

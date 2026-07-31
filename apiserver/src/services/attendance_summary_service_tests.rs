@@ -1552,3 +1552,272 @@ mod persist_workbuckets_tests {
         assert!(result.is_ok());
     }
 }
+
+// =========================================================================
+// pure-helpers: unit tests for zero-DB batch-path functions
+// =========================================================================
+
+mod pure_helpers_tests {
+    use super::*;
+    use crate::models::{AttendanceRules, EarlyArrivalStrategy, PolicyRules, RoundingPolicy};
+
+    // ── determine_ot_status_pure ────────────────────────────────────────
+
+    #[test]
+    fn pure_status_none_when_no_existing_and_no_ot() {
+        let status = AttendanceSummaryService::determine_ot_status_pure(None, 0);
+        assert_eq!(status, OtStatus::None);
+    }
+
+    #[test]
+    fn pure_status_pending_when_no_existing_and_has_ot() {
+        let status = AttendanceSummaryService::determine_ot_status_pure(None, 60);
+        assert_eq!(status, OtStatus::PendingEmployee);
+    }
+
+    #[test]
+    fn pure_status_pending_when_existing_none_and_has_ot() {
+        let existing = create_dummy_summary(0, OtStatus::None);
+        let status =
+            AttendanceSummaryService::determine_ot_status_pure(Some(&existing), 60);
+        assert_eq!(status, OtStatus::PendingEmployee);
+    }
+
+    #[test]
+    fn pure_status_preserved_when_already_claimed() {
+        let existing = create_dummy_summary(60, OtStatus::PendingManager);
+        let status =
+            AttendanceSummaryService::determine_ot_status_pure(Some(&existing), 120);
+        assert_eq!(status, OtStatus::PendingManager);
+    }
+
+    #[test]
+    fn pure_status_preserved_when_approved_even_with_new_ot() {
+        let existing = create_dummy_summary(60, OtStatus::Approved);
+        let status =
+            AttendanceSummaryService::determine_ot_status_pure(Some(&existing), 30);
+        assert_eq!(status, OtStatus::Approved);
+    }
+
+    // ── should_reverse_holiday_leave ────────────────────────────────────
+
+    fn make_holiday(threshold_pct: i32) -> crate::models::Holiday {
+        crate::models::Holiday::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            "Test Holiday".to_string(),
+            dummy_date(),
+            "public".to_string(),
+            true,
+            None,
+            None,
+            None,
+            Some(threshold_pct),
+            false,
+            chrono::Utc::now(),
+            chrono::Utc::now(),
+            None,
+        )
+    }
+
+    fn make_schedule_8h() -> crate::models::EffectiveSchedule {
+        crate::models::EffectiveSchedule::new(
+            dummy_date(),
+            None,                                                      // shift_id
+            "pattern".to_string(),                                     // source
+            None,                                                      // shift_name
+            None,                                                      // shift_symbol
+            Some(chrono::NaiveTime::from_hms_opt(8, 0, 0).unwrap()),   // start_time
+            Some(chrono::NaiveTime::from_hms_opt(17, 0, 0).unwrap()),  // end_time
+            Some(60),                                                  // break_duration_minutes
+            None,                                                      // break_start
+            None,                                                      // break_end
+            None,                                                      // is_break_auto_deduct
+            None,                                                      // early_punch_in_grace
+            None,                                                      // allow_early_ot
+            None,                                                      // break_is_overtime
+            None,                                                      // max_early_ot_minutes
+            vec![],                                                    // traces
+            false,                                                     // is_holiday
+            false,                                                     // is_holiday_paid
+            None,                                                      // holiday_name
+        )
+    }
+
+    #[test]
+    fn reverse_returns_none_when_work_below_threshold() {
+        let holiday = make_holiday(50); // 50% threshold
+        let schedule = make_schedule_8h(); // 480 - 60 = 420 net minutes
+        let result = AttendanceSummaryService::should_reverse_holiday_leave(
+            &[],
+            Uuid::new_v4(),
+            dummy_date(),
+            126, // 30% of 420 — below threshold
+            &schedule,
+            &holiday,
+        );
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn reverse_returns_leave_id_when_work_above_threshold() {
+        let holiday = make_holiday(50);
+        let schedule = make_schedule_8h();
+        let leave_id = Uuid::new_v4();
+
+        let leave = crate::models::LeaveRequest::new(
+            leave_id,
+            Uuid::new_v4(), // employment_id
+            Uuid::new_v4(), // leave_type_id
+            dummy_date(),
+            dummy_date(),
+            None,
+            crate::models::enums::LeaveStatus::Approved,
+            crate::models::enums::LeaveDurationType::FullDay,
+            None,
+            None,
+            None,
+            None,
+            chrono::Utc::now(),
+            chrono::Utc::now(),
+            None,
+        );
+
+        let result = AttendanceSummaryService::should_reverse_holiday_leave(
+            &[leave],
+            Uuid::new_v4(),
+            dummy_date(),
+            336, // 80% of 420 — above threshold
+            &schedule,
+            &holiday,
+        );
+        assert_eq!(result, Some(leave_id));
+    }
+
+    #[test]
+    fn reverse_returns_none_when_no_matching_leave() {
+        let holiday = make_holiday(50);
+        let schedule = make_schedule_8h();
+
+        let result = AttendanceSummaryService::should_reverse_holiday_leave(
+            &[],
+            Uuid::new_v4(),
+            dummy_date(),
+            400,
+            &schedule,
+            &holiday,
+        );
+        assert!(result.is_none());
+    }
+
+    // ── calculate_work_and_ot_pure ──────────────────────────────────────
+
+    fn default_rules() -> PolicyRules {
+        PolicyRules::new(5, 0, false, EarlyArrivalStrategy::Block, true, false, false)
+    }
+
+    #[test]
+    fn pure_calc_no_entries_returns_empty_buckets() {
+        let schedule = make_schedule_8h();
+        let tz: chrono_tz::Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
+        let rules = default_rules();
+
+        let buckets = AttendanceSummaryService::calculate_work_and_ot_pure(
+            tz,
+            dummy_date(),
+            &schedule,
+            &[],
+            &rules,
+        );
+
+        assert_eq!(buckets.standard_minutes, 0);
+        assert_eq!(buckets.early_ot_minutes, 0);
+        assert_eq!(buckets.late_ot_minutes, 0);
+        assert_eq!(buckets.break_ot_minutes, 0);
+    }
+
+    // ── compute_single_day ──────────────────────────────────────────────
+
+    #[test]
+    fn compute_day_no_entries_returns_zero_work() {
+        let schedule = make_schedule_8h();
+        let tz: chrono_tz::Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
+        let attendance_rules = AttendanceRules {
+            work_unit_minutes: 30,
+            rounding_policy: RoundingPolicy::Floor,
+            early_arrival_strategy: EarlyArrivalStrategy::Block,
+            grace_period_minutes: Some(5),
+        };
+        let catalog = std::collections::HashMap::new();
+
+        let result = AttendanceSummaryService::compute_single_day(
+            dummy_date(),
+            &schedule,
+            &[],
+            &attendance_rules,
+            &[],
+            &catalog,
+            EarlyArrivalStrategy::Block,
+            tz,
+            None,
+            &[],
+        );
+
+        assert_eq!(result.date, dummy_date());
+        assert_eq!(result.actual_work_minutes, 0);
+        assert_eq!(result.system_detected_ot_minutes, 0);
+        assert!(!result.is_holiday);
+        assert_eq!(result.ot_status, OtStatus::None);
+    }
+
+    #[test]
+    fn compute_day_with_holiday_marks_is_holiday() {
+        let schedule = crate::models::EffectiveSchedule::new(
+            dummy_date(),
+            None,
+            "holiday".to_string(),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            vec![],
+            true,
+            false,
+            None,
+        );
+        let tz: chrono_tz::Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
+        let attendance_rules = AttendanceRules {
+            work_unit_minutes: 30,
+            rounding_policy: RoundingPolicy::Floor,
+            early_arrival_strategy: EarlyArrivalStrategy::Block,
+            grace_period_minutes: Some(5),
+        };
+        let catalog = std::collections::HashMap::new();
+        let holiday = make_holiday(50);
+
+        let result = AttendanceSummaryService::compute_single_day(
+            dummy_date(),
+            &schedule,
+            &[],
+            &attendance_rules,
+            &[],
+            &catalog,
+            EarlyArrivalStrategy::Block,
+            tz,
+            Some(&holiday),
+            &[],
+        );
+
+        assert!(result.is_holiday);
+        assert_eq!(result.holiday_name, Some("Test Holiday".to_string()));
+        assert_eq!(result.actual_work_minutes, 0);
+    }
+}
