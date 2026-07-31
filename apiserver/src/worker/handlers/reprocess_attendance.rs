@@ -193,6 +193,9 @@ mod tests {
         daily_summary_repo
             .expect_get_summaries()
             .returning(|_, _, _, _| Ok(vec![]));
+        daily_summary_repo
+            .expect_batch_upsert_calculated_summaries()
+            .returning(|_, _, _| Ok(()));
 
         let mut roster_repo = MockRosterRepository::new();
         roster_repo
@@ -391,6 +394,14 @@ mod tests {
             .expect_get_working_conditions_at()
             .returning(|_, _, _| Ok(vec![]));
 
+        // Mock get_working_conditions_batch_by_employments - called by
+        // AttendanceSummaryService::fetch_range_preamble via
+        // PolicyResolverService::resolve_attendance_rules_batch_by_employment.
+        builder
+            .employee_repo
+            .expect_get_working_conditions_batch_by_employments()
+            .returning(|_, _, _, _| Ok(std::collections::HashMap::new()));
+
         builder.build()
     }
 
@@ -521,6 +532,9 @@ mod tests {
         daily_summary_repo
             .expect_get_summaries()
             .returning(|_, _, _, _| Ok(vec![]));
+        daily_summary_repo
+            .expect_batch_upsert_calculated_summaries()
+            .returning(|_, _, _| Ok(()));
 
         let mut roster_repo = MockRosterRepository::new();
         roster_repo
@@ -669,6 +683,9 @@ mod tests {
         daily_summary_repo
             .expect_get_summaries()
             .returning(|_, _, _, _| Ok(vec![]));
+        daily_summary_repo
+            .expect_batch_upsert_calculated_summaries()
+            .returning(|_, _, _| Ok(()));
 
         let mut roster_repo = MockRosterRepository::new();
         roster_repo

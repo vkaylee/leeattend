@@ -137,7 +137,11 @@ async fn test_payroll_std_days_source_traceability() {
             employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
                 diesel_pools.clone(),
             )),
-            daily_summary_repo: std::sync::Arc::new(apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone())),
+            daily_summary_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
         })
     }
     .calculate_monthly_payslip(
@@ -232,7 +236,11 @@ async fn test_payroll_std_days_source_traceability() {
             employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
                 diesel_pools.clone(),
             )),
-            daily_summary_repo: std::sync::Arc::new(apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone())),
+            daily_summary_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
         })
     }
     .calculate_monthly_payslip(
@@ -322,7 +330,11 @@ async fn test_payroll_std_days_source_traceability() {
             employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
                 diesel_pools.clone(),
             )),
-            daily_summary_repo: std::sync::Arc::new(apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone())),
+            daily_summary_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
         })
     }
     .calculate_monthly_payslip(
@@ -413,7 +425,11 @@ async fn test_payroll_std_days_source_traceability() {
             employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
                 diesel_pools.clone(),
             )),
-            daily_summary_repo: std::sync::Arc::new(apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone())),
+            daily_summary_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
         })
     }
     .calculate_monthly_payslip(

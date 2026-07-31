@@ -178,8 +178,8 @@ impl AttendanceMatcher {
         );
 
         (
-            0, // std_units — now from summaries (Phase 7)
-            0, // ot_units — now from summaries (Phase 7)
+            0,             // std_units — now from summaries (Phase 7)
+            0,             // ot_units — now from summaries (Phase 7)
             Decimal::ZERO, // ot_pay — kept for OT pay chain (Formula Engine)
             Decimal::ZERO, // holiday_premium — now from summaries (Phase 7)
             is_violation,
@@ -223,16 +223,15 @@ impl AttendanceMatcher {
             );
 
             for entry in matching_entries {
-                let (_std_u, _ot_u, ot_pay_delta, premium, violation) =
-                    Self::process_matched_entry(
-                        scoring_ctx,
-                        entry,
-                        start,
-                        end,
-                        interval,
-                        current_date,
-                        attendance_rules,
-                    );
+                let (_std_u, _ot_u, ot_pay_delta, premium, violation) = Self::process_matched_entry(
+                    scoring_ctx,
+                    entry,
+                    start,
+                    end,
+                    interval,
+                    current_date,
+                    attendance_rules,
+                );
                 day_ot_pay += ot_pay_delta;
                 day_holiday_premium += premium;
                 if violation {

@@ -184,7 +184,9 @@ impl ReportDataPreamble {
         self.limit
     }
 
-    pub(crate) fn paginated_employees(&self) -> &[crate::repositories::employee::EmployeeBasicInfo] {
+    pub(crate) fn paginated_employees(
+        &self,
+    ) -> &[crate::repositories::employee::EmployeeBasicInfo] {
         &self.paginated_employees
     }
 
@@ -266,11 +268,9 @@ pub struct ReportService {
     policy_repo: Arc<dyn AttendancePolicyRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
     condition_type_repo: Arc<dyn crate::repositories::ConditionTypeRepository>,
-    employment_repo:
-        Arc<dyn crate::repositories::employment_repository::EmploymentRepository>,
+    employment_repo: Arc<dyn crate::repositories::employment_repository::EmploymentRepository>,
     attendance_daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
-    leave_repo:
-        Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
+    leave_repo: Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
     workspace_repo: Arc<dyn WorkspaceRepository>,
     holiday_repo: Arc<dyn HolidayRepository>,
     employer_repo: Arc<dyn crate::repositories::EmployerRepository>,
@@ -486,9 +486,10 @@ impl ReportService {
                 total_employees: 1,
                 employments: vec![emp],
                 paginated_employment_ids: vec![specific_employment_id],
-                employment_to_employee: std::collections::HashMap::from([
-                    (specific_employment_id, employee_id),
-                ]),
+                employment_to_employee: std::collections::HashMap::from([(
+                    specific_employment_id,
+                    employee_id,
+                )]),
                 emp_ids: vec![employee_id],
             });
         }
@@ -515,7 +516,10 @@ impl ReportService {
             })?;
 
         if paginated_employees.is_empty() {
-            return Ok(EmployeeResolution::empty(paginated_employees, total_employees));
+            return Ok(EmployeeResolution::empty(
+                paginated_employees,
+                total_employees,
+            ));
         }
 
         let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
@@ -561,14 +565,8 @@ impl ReportService {
         end_date: NaiveDate,
     ) -> Result<std::collections::HashMap<Uuid, Vec<TimeEntry>>, AppError> {
         let (start_dt, end_dt) =
-            crate::services::attendance_utils::date_range_to_utc_checked(
-                tz,
-                start_date,
-                end_date,
-            )
-            .ok_or_else(|| {
-                AppError::validation(crate::utils::i18n::I18nKey::Validation)
-            })?;
+            crate::services::attendance_utils::date_range_to_utc_checked(tz, start_date, end_date)
+                .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::Validation))?;
         self.time_entry_repo
             .get_workspace_time_entries_batch_by_employments(
                 auth_token,

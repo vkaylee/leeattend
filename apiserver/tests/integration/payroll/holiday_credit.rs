@@ -143,7 +143,11 @@ async fn test_payroll_credits_paid_holiday() {
             employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
                 diesel_pools.clone(),
             )),
-            daily_summary_repo: std::sync::Arc::new(apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone())),
+            daily_summary_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
         })
     }
     .calculate_monthly_payslip(

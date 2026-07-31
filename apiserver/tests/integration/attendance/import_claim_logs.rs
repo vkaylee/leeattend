@@ -78,19 +78,21 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
             diesel_pools.clone(),
         ));
     let import_service = AttendanceImportService::new(
-        import_repo.clone(),
-        adj_repo,
-        emp_repo.clone(),
-        te_repo,
-        std::sync::Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
-            diesel_pools.clone(),
-        )),
-        std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-            diesel_pools.clone(),
-        )),
-        std::sync::Arc::new(apiserver::repositories::DieselStagingLogRepository::new(
-            diesel_pools.clone(),
-        )),
+        apiserver::services::attendance_import_service::ImportServiceDeps {
+            import_repo: import_repo.clone(),
+            adj_repo,
+            employee_repo: emp_repo.clone(),
+            time_entry_repo: te_repo,
+            workspace_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
+            ),
+            dept_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselDepartmentRepository::new(diesel_pools.clone()),
+            ),
+            staging_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselStagingLogRepository::new(diesel_pools.clone()),
+            ),
+        },
         apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone()),
         None, // log_svc
     );
@@ -235,19 +237,21 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
             diesel_pools.clone(),
         ));
     let import_service = AttendanceImportService::new(
-        import_repo.clone(),
-        adj_repo,
-        emp_repo.clone(),
-        te_repo,
-        std::sync::Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
-            diesel_pools.clone(),
-        )),
-        std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-            diesel_pools.clone(),
-        )),
-        std::sync::Arc::new(apiserver::repositories::DieselStagingLogRepository::new(
-            diesel_pools.clone(),
-        )),
+        apiserver::services::attendance_import_service::ImportServiceDeps {
+            import_repo: import_repo.clone(),
+            adj_repo,
+            employee_repo: emp_repo.clone(),
+            time_entry_repo: te_repo,
+            workspace_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
+            ),
+            dept_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselDepartmentRepository::new(diesel_pools.clone()),
+            ),
+            staging_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselStagingLogRepository::new(diesel_pools.clone()),
+            ),
+        },
         apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone()),
         None, // log_svc
     );

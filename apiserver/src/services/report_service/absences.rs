@@ -157,7 +157,11 @@ impl ReportService {
                     entries_by_date.contains_key(&date),
                     None, // Not needed for unexcused calculation
                     daily.start_time(),
-                    if daily.is_holiday() { HolidayKind::Unpaid } else { HolidayKind::NotHoliday },
+                    if daily.is_holiday() {
+                        HolidayKind::Unpaid
+                    } else {
+                        HolidayKind::NotHoliday
+                    },
                     daily.shift_id().is_some(),
                     is_on_leave,
                     None,

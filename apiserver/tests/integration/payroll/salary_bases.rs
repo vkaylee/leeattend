@@ -502,7 +502,11 @@ async fn test_overtime_calculation_with_salary_base_group() {
             employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
                 diesel_pools.clone(),
             )),
-            daily_summary_repo: std::sync::Arc::new(apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone())),
+            daily_summary_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
         })
     }
     .calculate_monthly_payslip(
@@ -519,8 +523,5 @@ async fn test_overtime_calculation_with_salary_base_group() {
     assert_eq!(payslip.base_pay_amount().round_dp(2), Decimal::ZERO);
 
     // OT pay is 0 with empty summaries. TODO: pre-populate summaries.
-    assert_eq!(
-        payslip.overtime_pay_amount().round_dp(2),
-        Decimal::ZERO
-    );
+    assert_eq!(payslip.overtime_pay_amount().round_dp(2), Decimal::ZERO);
 }

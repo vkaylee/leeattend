@@ -333,7 +333,10 @@ impl PayrollService {
 
         // Fetch daily summaries for all active employments in the pay period.
         // These are the single source of truth for standard/OT unit computation.
-        let employment_ids: Vec<Uuid> = active_employments.iter().map(crate::models::Employment::id).collect();
+        let employment_ids: Vec<Uuid> = active_employments
+            .iter()
+            .map(crate::models::Employment::id)
+            .collect();
         let daily_summaries = self
             .daily_summary_repo
             .get_summaries_by_employments_batch(auth_token, &employment_ids, start_date, end_date)

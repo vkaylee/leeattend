@@ -212,9 +212,8 @@ impl AttendanceSummaryService {
             + buckets.early_ot_minutes
             + buckets.late_ot_minutes
             + buckets.break_ot_minutes;
-        let system_detected_ot_minutes = buckets.early_ot_minutes
-            + buckets.late_ot_minutes
-            + buckets.break_ot_minutes;
+        let system_detected_ot_minutes =
+            buckets.early_ot_minutes + buckets.late_ot_minutes + buckets.break_ot_minutes;
 
         // 3. Holiday leave conflict detection
         let (is_holiday, holiday_name) = self
@@ -460,20 +459,24 @@ impl AttendanceSummaryService {
         )
         .await?;
 
-        let conditions_map =
-            PolicyResolverService::resolve_attendance_rules_batch_by_employment(
-                &*self.employee_repo,
-                &[employment_id],
-                auth_token,
-                start_date,
-                end_date,
-            )
-            .await?;
-        let conditions = conditions_map.get(&employment_id).cloned().unwrap_or_default();
+        let conditions_map = PolicyResolverService::resolve_attendance_rules_batch_by_employment(
+            &*self.employee_repo,
+            &[employment_id],
+            auth_token,
+            start_date,
+            end_date,
+        )
+        .await?;
+        let conditions = conditions_map
+            .get(&employment_id)
+            .cloned()
+            .unwrap_or_default();
 
-        let catalog =
-            PolicyResolverService::load_condition_type_catalog(&*self.condition_type_repo, auth_token)
-                .await?;
+        let catalog = PolicyResolverService::load_condition_type_catalog(
+            &*self.condition_type_repo,
+            auth_token,
+        )
+        .await?;
 
         Ok(RangePrefetchData {
             employment,

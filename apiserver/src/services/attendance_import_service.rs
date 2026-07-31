@@ -452,7 +452,8 @@ impl PunchImportStrategy {
                 ],
             )));
         };
-        self.emp_cache.insert(row.emp_id_number.clone(), emp.clone());
+        self.emp_cache
+            .insert(row.emp_id_number.clone(), emp.clone());
         Ok(emp)
     }
 
@@ -635,7 +636,8 @@ impl ImportStrategy for PunchImportStrategy {
             .await?;
 
         if job.target_type == ImportTargetType::Log {
-            self.process_log_punch(job.workspace_id, &employee, row).await
+            self.process_log_punch(job.workspace_id, &employee, row)
+                .await
         } else {
             self.process_adjustment_punch(deps, job, &employee, row)
                 .await

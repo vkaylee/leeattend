@@ -147,7 +147,11 @@ async fn test_calculate_payroll_multi_segment() {
             employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
                 diesel_pools.clone(),
             )),
-            daily_summary_repo: std::sync::Arc::new(apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone())),
+            daily_summary_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
         })
     }
     .calculate_monthly_payslip(

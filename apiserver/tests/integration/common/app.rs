@@ -384,15 +384,17 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     );
     let import_service = Arc::new(
         apiserver::services::attendance_import_service::AttendanceImportService::new(
-            import_repo.clone(),
-            adj_repo.clone(),
-            employee_repo.clone(),
-            time_entry_repo.clone(),
-            workspace_repo.clone(),
-            Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-                diesel_pools.clone(),
-            )),
-            staging_repo.clone(),
+            apiserver::services::attendance_import_service::ImportServiceDeps {
+                import_repo: import_repo.clone(),
+                adj_repo: adj_repo.clone(),
+                employee_repo: employee_repo.clone(),
+                time_entry_repo: time_entry_repo.clone(),
+                workspace_repo: workspace_repo.clone(),
+                dept_repo: Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+                    diesel_pools.clone(),
+                )),
+                staging_repo: staging_repo.clone(),
+            },
             apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone()),
             None, // log_svc
         ),
@@ -1128,15 +1130,17 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
     );
     let import_service = Arc::new(
         apiserver::services::attendance_import_service::AttendanceImportService::new(
-            import_repo.clone(),
-            adj_repo.clone(),
-            employee_repo.clone(),
-            time_entry_repo.clone(),
-            workspace_repo.clone(),
-            Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-                diesel_pools.clone(),
-            )),
-            staging_repo.clone(),
+            apiserver::services::attendance_import_service::ImportServiceDeps {
+                import_repo: import_repo.clone(),
+                adj_repo: adj_repo.clone(),
+                employee_repo: employee_repo.clone(),
+                time_entry_repo: time_entry_repo.clone(),
+                workspace_repo: workspace_repo.clone(),
+                dept_repo: Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+                    diesel_pools.clone(),
+                )),
+                staging_repo: staging_repo.clone(),
+            },
             apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone()),
             None, // log_svc
         ),
@@ -1921,15 +1925,17 @@ pub async fn setup_app_tower_internal_extended(
     );
     let import_service = Arc::new(
         apiserver::services::attendance_import_service::AttendanceImportService::new(
-            import_repo.clone(),
-            adj_repo.clone(),
-            employee_repo.clone(),
-            time_entry_repo.clone(),
-            workspace_repo.clone(),
-            Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-                diesel_pools.clone(),
-            )),
-            staging_repo.clone(),
+            apiserver::services::attendance_import_service::ImportServiceDeps {
+                import_repo: import_repo.clone(),
+                adj_repo: adj_repo.clone(),
+                employee_repo: employee_repo.clone(),
+                time_entry_repo: time_entry_repo.clone(),
+                workspace_repo: workspace_repo.clone(),
+                dept_repo: Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+                    diesel_pools.clone(),
+                )),
+                staging_repo: staging_repo.clone(),
+            },
             apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone()),
             None, // log_svc
         ),

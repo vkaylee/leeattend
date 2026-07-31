@@ -136,7 +136,11 @@ async fn test_net_pay_formula_with_zero_deductions() {
             employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
                 diesel_pools.clone(),
             )),
-            daily_summary_repo: std::sync::Arc::new(apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone())),
+            daily_summary_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
         })
     }
     .calculate_monthly_payslip(

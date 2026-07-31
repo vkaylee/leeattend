@@ -666,7 +666,7 @@ async fn test_process_segment_attendance_with_overtime_pay() {
     // 8 hours std + 2 hours OT
     // Units now from summaries - assert_eq!(result.std_units, 16);
     // Units now from summaries - assert_eq!(result.ot_units, 4); // 2 hours = 4 units
-                                    // OT pay is now computed in calculate_payslip_with_context from summary
+    // OT pay is now computed in calculate_payslip_with_context from summary
     // data. The matcher's per-entry OT pay chain is preserved for Formula Engine.
     assert_eq!(result.ot_pay, Decimal::ZERO);
 }
@@ -1095,11 +1095,7 @@ mod scoring_helpers {
             .unwrap()
     }
 
-    fn test_interval(
-        start: NaiveTime,
-        end: NaiveTime,
-        grace: i32,
-    ) -> RosterInterval {
+    fn test_interval(start: NaiveTime, end: NaiveTime, grace: i32) -> RosterInterval {
         RosterInterval {
             interval_id: uuid::Uuid::new_v4(),
             sort_order: 0,
@@ -1319,12 +1315,7 @@ mod scoring_helpers {
         let catalog = Arc::new(HashMap::new());
         let conditions: Vec<crate::models::WorkingCondition> = vec![];
 
-        let ctx = ScoringContext::new(
-            chrono_tz::UTC,
-            &conditions,
-            &*holidays,
-            &*catalog,
-        );
+        let ctx = ScoringContext::new(chrono_tz::UTC, &conditions, &*holidays, &*catalog);
         assert_eq!(ctx.tz(), chrono_tz::UTC);
         assert!(ctx.holidays_map().is_empty());
     }
@@ -1335,12 +1326,7 @@ mod scoring_helpers {
         let catalog = HashMap::new();
         let conditions: Vec<crate::models::WorkingCondition> = vec![];
 
-        let ctx = ScoringContext::new(
-            chrono_tz::UTC,
-            &conditions,
-            &holidays,
-            &catalog,
-        );
+        let ctx = ScoringContext::new(chrono_tz::UTC, &conditions, &holidays, &catalog);
         assert_eq!(ctx.tz(), chrono_tz::UTC);
     }
 }

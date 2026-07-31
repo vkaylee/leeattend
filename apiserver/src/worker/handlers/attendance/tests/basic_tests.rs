@@ -53,7 +53,13 @@ fn test_status_determination_absent() {
 #[test]
 fn test_status_determination_off() {
     let status = determine_daily_status(&DailyStatusInput::new(
-        false, None, None, HolidayKind::NotHoliday, false, false, None,
+        false,
+        None,
+        None,
+        HolidayKind::NotHoliday,
+        false,
+        false,
+        None,
     ));
     assert_eq!(status, AttendanceStatus::Off);
     assert_eq!(status.to_string(), "off");

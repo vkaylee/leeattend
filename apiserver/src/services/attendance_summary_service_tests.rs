@@ -1385,10 +1385,19 @@ mod persist_workbuckets_tests {
 
     fn test_workspace(workspace_id: Uuid) -> Workspace {
         Workspace::new(
-            workspace_id, "Test".to_string(), "YYYY-MM-DD".to_string(),
-            "HH:mm".to_string(), "UTC".to_string(), "indigo".to_string(),
-            "vi".to_string(), None, None, "std".to_string(),
-            rust_decimal::Decimal::ONE, Utc::now(), None,
+            workspace_id,
+            "Test".to_string(),
+            "YYYY-MM-DD".to_string(),
+            "HH:mm".to_string(),
+            "UTC".to_string(),
+            "indigo".to_string(),
+            "vi".to_string(),
+            None,
+            None,
+            "std".to_string(),
+            rust_decimal::Decimal::ONE,
+            Utc::now(),
+            None,
         )
     }
 
@@ -1405,43 +1414,86 @@ mod persist_workbuckets_tests {
         let mut workspace_repo = MockWorkspaceRepository::new();
         let mut employee_repo = MockEmployeeRepository::new();
 
-        policy_repo.expect_get_employee_effective_policy().returning(|_, _, _| Ok(None));
-        employee_repo.expect_get_working_conditions_at().returning(|_, _, _| Ok(vec![]));
-        employee_repo.expect_get_employee_by_id().returning(move |id, _| {
-            Ok(Some(crate::models::Employee::new(
-                id, workspace_id, None, "John Doe".to_string(), "EMP001".to_string(),
-                vec![], chrono::Utc::now(), chrono::Utc::now(), None,
-            )))
-        });
+        policy_repo
+            .expect_get_employee_effective_policy()
+            .returning(|_, _, _| Ok(None));
+        employee_repo
+            .expect_get_working_conditions_at()
+            .returning(|_, _, _| Ok(vec![]));
+        employee_repo
+            .expect_get_employee_by_id()
+            .returning(move |id, _| {
+                Ok(Some(crate::models::Employee::new(
+                    id,
+                    workspace_id,
+                    None,
+                    "John Doe".to_string(),
+                    "EMP001".to_string(),
+                    vec![],
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                    None,
+                )))
+            });
 
         let mut holiday_repo = MockHolidayRepository::new();
         let mut leave_request_repo = MockLeaveRequestRepository::new();
         let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
 
-        workspace_repo.expect_get_workspace_by_id()
+        workspace_repo
+            .expect_get_workspace_by_id()
             .returning(move |_| Box::pin(async move { Ok(Some(test_workspace(workspace_id))) }));
-        holiday_repo.expect_is_holiday()
+        holiday_repo
+            .expect_is_holiday()
             .returning(move |_, _, _| Box::pin(async move { Ok(None) }));
 
         let shift_id = Uuid::new_v4();
-        roster_repo.expect_get_workspace_schedules().returning(move |_, _, _, _, _, _, _| {
-            Box::pin(async move {
-                Ok((vec![crate::models::EmployeeSchedule::new(
-                    employee_id, employee_id, "EMP001".to_string(), "John Doe".to_string(),
-                    vec![crate::models::EffectiveSchedule::new(
-                        date, Some(shift_id), "pattern".to_string(),
-                        None, None, None, None, None, None, None,
-                        None, None, None, None, None,
-                        vec![], false, false, None,
-                    )],
-                )], 1))
-            })
-        });
+        roster_repo
+            .expect_get_workspace_schedules()
+            .returning(move |_, _, _, _, _, _, _| {
+                Box::pin(async move {
+                    Ok((
+                        vec![crate::models::EmployeeSchedule::new(
+                            employee_id,
+                            employee_id,
+                            "EMP001".to_string(),
+                            "John Doe".to_string(),
+                            vec![crate::models::EffectiveSchedule::new(
+                                date,
+                                Some(shift_id),
+                                "pattern".to_string(),
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                vec![],
+                                false,
+                                false,
+                                None,
+                            )],
+                        )],
+                        1,
+                    ))
+                })
+            });
 
-        time_entry_repo.expect_get_employment_time_entries().returning(|_, _, _, _| Ok(vec![]));
-        leave_request_repo.expect_get_employee_leave_requests()
+        time_entry_repo
+            .expect_get_employment_time_entries()
+            .returning(|_, _, _, _| Ok(vec![]));
+        leave_request_repo
+            .expect_get_employee_leave_requests()
             .returning(|_, _| Box::pin(async { Ok(vec![]) }));
-        daily_summary_repo.expect_get_summary().returning(|_, _, _| Ok(None));
+        daily_summary_repo
+            .expect_get_summary()
+            .returning(|_, _, _| Ok(None));
 
         daily_summary_repo
             .expect_upsert_calculated_summary()
@@ -1485,43 +1537,86 @@ mod persist_workbuckets_tests {
         let mut workspace_repo = MockWorkspaceRepository::new();
         let mut employee_repo = MockEmployeeRepository::new();
 
-        policy_repo.expect_get_employee_effective_policy().returning(|_, _, _| Ok(None));
-        employee_repo.expect_get_working_conditions_at().returning(|_, _, _| Ok(vec![]));
-        employee_repo.expect_get_employee_by_id().returning(move |id, _| {
-            Ok(Some(crate::models::Employee::new(
-                id, workspace_id, None, "John Doe".to_string(), "EMP001".to_string(),
-                vec![], chrono::Utc::now(), chrono::Utc::now(), None,
-            )))
-        });
+        policy_repo
+            .expect_get_employee_effective_policy()
+            .returning(|_, _, _| Ok(None));
+        employee_repo
+            .expect_get_working_conditions_at()
+            .returning(|_, _, _| Ok(vec![]));
+        employee_repo
+            .expect_get_employee_by_id()
+            .returning(move |id, _| {
+                Ok(Some(crate::models::Employee::new(
+                    id,
+                    workspace_id,
+                    None,
+                    "John Doe".to_string(),
+                    "EMP001".to_string(),
+                    vec![],
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                    None,
+                )))
+            });
 
         let mut holiday_repo = MockHolidayRepository::new();
         let mut leave_request_repo = MockLeaveRequestRepository::new();
         let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
 
-        workspace_repo.expect_get_workspace_by_id()
+        workspace_repo
+            .expect_get_workspace_by_id()
             .returning(move |_| Box::pin(async move { Ok(Some(test_workspace(workspace_id))) }));
-        holiday_repo.expect_is_holiday()
+        holiday_repo
+            .expect_is_holiday()
             .returning(move |_, _, _| Box::pin(async move { Ok(None) }));
 
         let shift_id = Uuid::new_v4();
-        roster_repo.expect_get_workspace_schedules().returning(move |_, _, _, _, _, _, _| {
-            Box::pin(async move {
-                Ok((vec![crate::models::EmployeeSchedule::new(
-                    employee_id, employee_id, "EMP001".to_string(), "John Doe".to_string(),
-                    vec![crate::models::EffectiveSchedule::new(
-                        date, Some(shift_id), "pattern".to_string(),
-                        None, None, None, None, None, None, None,
-                        None, None, None, None, None,
-                        vec![], false, false, None,
-                    )],
-                )], 1))
-            })
-        });
+        roster_repo
+            .expect_get_workspace_schedules()
+            .returning(move |_, _, _, _, _, _, _| {
+                Box::pin(async move {
+                    Ok((
+                        vec![crate::models::EmployeeSchedule::new(
+                            employee_id,
+                            employee_id,
+                            "EMP001".to_string(),
+                            "John Doe".to_string(),
+                            vec![crate::models::EffectiveSchedule::new(
+                                date,
+                                Some(shift_id),
+                                "pattern".to_string(),
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                vec![],
+                                false,
+                                false,
+                                None,
+                            )],
+                        )],
+                        1,
+                    ))
+                })
+            });
 
-        time_entry_repo.expect_get_employment_time_entries().returning(|_, _, _, _| Ok(vec![]));
-        leave_request_repo.expect_get_employee_leave_requests()
+        time_entry_repo
+            .expect_get_employment_time_entries()
+            .returning(|_, _, _, _| Ok(vec![]));
+        leave_request_repo
+            .expect_get_employee_leave_requests()
             .returning(|_, _| Box::pin(async { Ok(vec![]) }));
-        daily_summary_repo.expect_get_summary().returning(|_, _, _| Ok(None));
+        daily_summary_repo
+            .expect_get_summary()
+            .returning(|_, _, _| Ok(None));
 
         daily_summary_repo
             .expect_upsert_calculated_summary()
@@ -1578,24 +1673,21 @@ mod pure_helpers_tests {
     #[test]
     fn pure_status_pending_when_existing_none_and_has_ot() {
         let existing = create_dummy_summary(0, OtStatus::None);
-        let status =
-            AttendanceSummaryService::determine_ot_status_pure(Some(&existing), 60);
+        let status = AttendanceSummaryService::determine_ot_status_pure(Some(&existing), 60);
         assert_eq!(status, OtStatus::PendingEmployee);
     }
 
     #[test]
     fn pure_status_preserved_when_already_claimed() {
         let existing = create_dummy_summary(60, OtStatus::PendingManager);
-        let status =
-            AttendanceSummaryService::determine_ot_status_pure(Some(&existing), 120);
+        let status = AttendanceSummaryService::determine_ot_status_pure(Some(&existing), 120);
         assert_eq!(status, OtStatus::PendingManager);
     }
 
     #[test]
     fn pure_status_preserved_when_approved_even_with_new_ot() {
         let existing = create_dummy_summary(60, OtStatus::Approved);
-        let status =
-            AttendanceSummaryService::determine_ot_status_pure(Some(&existing), 30);
+        let status = AttendanceSummaryService::determine_ot_status_pure(Some(&existing), 30);
         assert_eq!(status, OtStatus::Approved);
     }
 
@@ -1623,24 +1715,24 @@ mod pure_helpers_tests {
     fn make_schedule_8h() -> crate::models::EffectiveSchedule {
         crate::models::EffectiveSchedule::new(
             dummy_date(),
-            None,                                                      // shift_id
-            "pattern".to_string(),                                     // source
-            None,                                                      // shift_name
-            None,                                                      // shift_symbol
-            Some(chrono::NaiveTime::from_hms_opt(8, 0, 0).unwrap()),   // start_time
-            Some(chrono::NaiveTime::from_hms_opt(17, 0, 0).unwrap()),  // end_time
-            Some(60),                                                  // break_duration_minutes
-            None,                                                      // break_start
-            None,                                                      // break_end
-            None,                                                      // is_break_auto_deduct
-            None,                                                      // early_punch_in_grace
-            None,                                                      // allow_early_ot
-            None,                                                      // break_is_overtime
-            None,                                                      // max_early_ot_minutes
-            vec![],                                                    // traces
-            false,                                                     // is_holiday
-            false,                                                     // is_holiday_paid
-            None,                                                      // holiday_name
+            None,                                                     // shift_id
+            "pattern".to_string(),                                    // source
+            None,                                                     // shift_name
+            None,                                                     // shift_symbol
+            Some(chrono::NaiveTime::from_hms_opt(8, 0, 0).unwrap()),  // start_time
+            Some(chrono::NaiveTime::from_hms_opt(17, 0, 0).unwrap()), // end_time
+            Some(60),                                                 // break_duration_minutes
+            None,                                                     // break_start
+            None,                                                     // break_end
+            None,                                                     // is_break_auto_deduct
+            None,                                                     // early_punch_in_grace
+            None,                                                     // allow_early_ot
+            None,                                                     // break_is_overtime
+            None,                                                     // max_early_ot_minutes
+            vec![],                                                   // traces
+            false,                                                    // is_holiday
+            false,                                                    // is_holiday_paid
+            None,                                                     // holiday_name
         )
     }
 

@@ -57,8 +57,7 @@ pub struct PayrollContext {
     /// Pre-fetched daily summaries for all active employments in the pay period.
     /// Keyed by (employment_id, date). Used as the single source of truth for
     /// standard/OT unit computation, replacing the old re-computation path.
-    pub(crate) daily_summaries:
-        HashMap<(Uuid, NaiveDate), crate::models::AttendanceDailySummary>,
+    pub(crate) daily_summaries: HashMap<(Uuid, NaiveDate), crate::models::AttendanceDailySummary>,
 }
 
 /// Named record for a payroll segment snapshot.
@@ -122,6 +121,5 @@ pub(crate) struct ChunkSharedData {
     pub(crate) month_end_payroll_settings: Arc<Option<crate::models::PayrollSettings>>,
     pub(crate) active_policies_with_tiers: Arc<Vec<IncentivePolicyWithTiers>>,
     pub(crate) salary_base_groups: Arc<Vec<crate::models::SalaryBaseGroup>>,
-    pub(crate) daily_summaries:
-        HashMap<(Uuid, NaiveDate), crate::models::AttendanceDailySummary>,
+    pub(crate) daily_summaries: HashMap<(Uuid, NaiveDate), crate::models::AttendanceDailySummary>,
 }

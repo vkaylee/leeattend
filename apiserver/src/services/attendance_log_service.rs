@@ -176,14 +176,18 @@ impl AttendanceLogService {
         };
 
         // 2. Parse timestamp
-        let punch_time = match parse_datetime_with_tz(
-            punch_time_raw, timezone, date_fmt, time_fmt,
-        ) {
+        let punch_time = match parse_datetime_with_tz(punch_time_raw, timezone, date_fmt, time_fmt)
+        {
             Ok(dt) => dt,
             Err(e) => {
                 self.stage_parse_error(
-                    auth_token, device_id, source, punch_time_raw,
-                    raw_data, &fingerprint, &e,
+                    auth_token,
+                    device_id,
+                    source,
+                    punch_time_raw,
+                    raw_data,
+                    &fingerprint,
+                    &e,
                 )
                 .await;
                 return Ok(false);
@@ -195,9 +199,16 @@ impl AttendanceLogService {
         let local_punch_date = punch_time.with_timezone(&punch_tz).date_naive();
         let Some(resolved_employment_id) = self
             .resolve_employment_or_stage(
-                auth_token, workspace_id, device_id.as_deref(), source,
-                &normalized_emp_id, employee.id(), local_punch_date,
-                punch_time, raw_data.as_ref(), &fingerprint,
+                auth_token,
+                workspace_id,
+                device_id.as_deref(),
+                source,
+                &normalized_emp_id,
+                employee.id(),
+                local_punch_date,
+                punch_time,
+                raw_data.as_ref(),
+                &fingerprint,
             )
             .await?
         else {
@@ -206,8 +217,13 @@ impl AttendanceLogService {
 
         // 4. Build and persist RawAttendanceLog
         self.build_and_persist_log(
-            workspace_id, device_id, source, &normalized_emp_id,
-            resolved_employment_id, punch_time, raw_data,
+            workspace_id,
+            device_id,
+            source,
+            &normalized_emp_id,
+            resolved_employment_id,
+            punch_time,
+            raw_data,
         )
         .await
     }
@@ -226,10 +242,8 @@ impl AttendanceLogService {
         raw_data: Option<serde_json::Value>,
         fingerprint: &str,
     ) -> Result<bool, crate::errors::AppError> {
-        let punch_time = parse_datetime_with_tz(
-            punch_time_raw, timezone, date_fmt, time_fmt,
-        )
-        .unwrap_or_else(|_| Utc::now());
+        let punch_time = parse_datetime_with_tz(punch_time_raw, timezone, date_fmt, time_fmt)
+            .unwrap_or_else(|_| Utc::now());
 
         let _ = self
             .staging_repo

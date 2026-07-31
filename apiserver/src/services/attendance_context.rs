@@ -206,68 +206,80 @@ impl Default for AttendanceMatcherContextBuilder {
 }
 
 #[cfg(test)]
-#[allow(clippy::return_self_not_must_use)]
 impl AttendanceMatcherContextBuilder {
+    #[must_use]
     pub fn employee_id(mut self, v: Uuid) -> Self {
         self.employee_id = v;
         self
     }
 
+    #[must_use]
     pub fn tz(mut self, v: Tz) -> Self {
         self.tz = v;
         self
     }
 
+    #[must_use]
     pub fn daily_entries_map(mut self, v: HashMap<NaiveDate, Vec<TimeEntry>>) -> Self {
         self.daily_entries_map = v;
         self
     }
 
+    #[must_use]
     pub fn holidays_map(mut self, v: Arc<HashMap<NaiveDate, Holiday>>) -> Self {
         self.holidays_map = v;
         self
     }
 
+    #[must_use]
     pub fn roster_data(mut self, v: Arc<RosterData>) -> Self {
         self.roster_data = v;
         self
     }
 
+    #[must_use]
     pub fn emp_id_number(mut self, v: String) -> Self {
         self.emp_id_number = v;
         self
     }
 
+    #[must_use]
     pub fn emp_tags(mut self, v: Option<Vec<String>>) -> Self {
         self.emp_tags = v;
         self
     }
 
+    #[must_use]
     pub fn payroll_roster_map(mut self, v: HashMap<(Uuid, NaiveDate), Option<Uuid>>) -> Self {
         self.payroll_roster_map = v;
         self
     }
 
+    #[must_use]
     pub fn overtime_data(mut self, v: Arc<WorkspaceOvertimeData>) -> Self {
         self.overtime_data = v;
         self
     }
 
+    #[must_use]
     pub fn active_assignments(mut self, v: Vec<EmployeeAssignment>) -> Self {
         self.active_assignments = v;
         self
     }
 
+    #[must_use]
     pub fn primary_location_id(mut self, v: Uuid) -> Self {
         self.primary_location_id = v;
         self
     }
 
+    #[must_use]
     pub fn active_employments(mut self, v: Vec<Employment>) -> Self {
         self.active_employments = v;
         self
     }
 
+    #[must_use]
     pub fn build(self) -> AttendanceMatcherContext {
         AttendanceMatcherContext {
             employee_id: self.employee_id,

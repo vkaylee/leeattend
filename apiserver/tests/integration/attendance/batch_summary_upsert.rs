@@ -101,15 +101,27 @@ async fn test_batch_upsert_persists_multiple_days() {
 
     assert_eq!(summaries.len(), 3);
     assert_eq!(
-        summaries.iter().find(|s| s.date == date1).unwrap().actual_work_minutes,
+        summaries
+            .iter()
+            .find(|s| s.date == date1)
+            .unwrap()
+            .actual_work_minutes,
         480
     );
     assert_eq!(
-        summaries.iter().find(|s| s.date == date2).unwrap().actual_work_minutes,
+        summaries
+            .iter()
+            .find(|s| s.date == date2)
+            .unwrap()
+            .actual_work_minutes,
         420
     );
     assert_eq!(
-        summaries.iter().find(|s| s.date == date3).unwrap().actual_work_minutes,
+        summaries
+            .iter()
+            .find(|s| s.date == date3)
+            .unwrap()
+            .actual_work_minutes,
         360
     );
 }
