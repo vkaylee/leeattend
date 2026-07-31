@@ -586,22 +586,17 @@ impl AttendanceSummaryService {
         )
         .await?;
 
-        let rules = PolicyResolverService::resolve_with_shift_overrides(
-            &*self.policy_repo,
-            &*self.employee_repo,
-            &*self.condition_type_repo,
-            employee_id,
-            auth_token,
-            date,
+        let early_arrival_strategy = base_rules.early_arrival_strategy();
+        let rules = PolicyResolver::apply_shift_overrides(
+            base_rules,
             &ShiftPolicyOverrides::new(
                 daily_schedule.early_punch_in_grace_period_minutes(),
                 daily_schedule.is_break_auto_deduct(),
                 daily_schedule.allow_early_ot(),
-                base_rules.early_arrival_strategy(),
+                early_arrival_strategy,
                 daily_schedule.break_is_overtime().unwrap_or(false),
             ),
-        )
-        .await?;
+        );
 
         // Convert &[TimeEntry] to &[&TimeEntry] for the shared service.
         let entry_refs: Vec<&crate::models::TimeEntry> = day_entries.iter().collect();
