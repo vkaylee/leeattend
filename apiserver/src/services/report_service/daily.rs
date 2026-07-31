@@ -124,6 +124,19 @@ impl ReportService {
 // ─── Utility helpers ────────────────────────────────────────────────────────
 
 impl ReportService {
+    /// Parse a comma-separated shift-type filter string into a `Vec<String>`.
+    /// Returns `None` when the input is `None`.
+    fn parse_shift_names(shift_type: Option<&str>) -> Option<Vec<String>> {
+        let s = shift_type?;
+        Some(
+            s.split(',')
+                .map(str::trim)
+                .filter(|p| !p.is_empty())
+                .map(String::from)
+                .collect(),
+        )
+    }
+
     /// Build an empty paginated response preserving pagination metadata from
     /// the preamble.
     fn empty_paginated_response(
@@ -605,8 +618,7 @@ fn build_segment_calc_inputs<'a>(
             .last()
             .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&tz)));
 
-        let shift_start_dt =
-            crate::utils::tz::naive_time_to_tz(seg.scheduled_start, date, tz);
+        let shift_start_dt = crate::utils::tz::naive_time_to_tz(seg.scheduled_start, date, tz);
         let shift_end_dt = crate::utils::tz::naive_time_to_tz_overnight(
             seg.scheduled_end,
             seg.scheduled_start,
@@ -630,9 +642,7 @@ fn build_segment_calc_inputs<'a>(
             .iter()
             .filter(|s| s.scheduled_start > seg.scheduled_start)
             .min_by_key(|s| s.scheduled_start)
-            .and_then(|next| {
-                crate::utils::tz::naive_time_to_tz(next.scheduled_start, date, tz)
-            });
+            .and_then(|next| crate::utils::tz::naive_time_to_tz(next.scheduled_start, date, tz));
 
         let actual_break_minutes: i32 = matched
             .iter()
@@ -706,13 +716,7 @@ impl ReportService {
             return Ok(Self::empty_paginated_response(&preamble));
         }
 
-        let shift_names = args.shift_type.as_deref().map(|s| {
-            s.split(',')
-                .map(str::trim)
-                .filter(|p| !p.is_empty())
-                .map(String::from)
-                .collect()
-        });
+        let shift_names = Self::parse_shift_names(args.shift_type.as_deref());
         let tz = preamble.workspace_tz();
         let extras = self
             .fetch_report_extras(
@@ -793,7 +797,6 @@ impl ReportService {
     /// overlap, and [`AttendanceCalculator::calculate_segment_units`] is used
     /// for multi-segment days.
     #[tracing::instrument(skip_all, err)]
-    #[allow(clippy::too_many_lines)]
     pub async fn get_segment_attendance_report(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -804,13 +807,7 @@ impl ReportService {
             return Ok(Self::empty_paginated_response(&preamble));
         }
 
-        let shift_names = args.shift_type.as_deref().map(|s| {
-            s.split(',')
-                .map(str::trim)
-                .filter(|p| !p.is_empty())
-                .map(String::from)
-                .collect()
-        });
+        let shift_names = Self::parse_shift_names(args.shift_type.as_deref());
         let tz = preamble.workspace_tz();
         let extras = self
             .fetch_report_extras(
@@ -917,8 +914,7 @@ impl ReportService {
         date: NaiveDate,
         tz: Tz,
     ) -> Vec<&'a crate::models::TimeEntry> {
-        let seg_start_dt =
-            crate::utils::tz::naive_time_to_tz(segment.scheduled_start, date, tz);
+        let seg_start_dt = crate::utils::tz::naive_time_to_tz(segment.scheduled_start, date, tz);
         let seg_end_dt = crate::utils::tz::naive_time_to_tz_overnight(
             segment.scheduled_end,
             segment.scheduled_start,
@@ -1024,7 +1020,9 @@ impl ReportService {
         // Try DB path first
         if let Some(ws_repo) = self.work_segment_repo() {
             match self
-                .build_employee_segments_from_db(ws_repo, auth_token, preamble, start_date, end_date)
+                .build_employee_segments_from_db(
+                    ws_repo, auth_token, preamble, start_date, end_date,
+                )
                 .await
             {
                 Ok(emps) if !emps.is_empty() => {
@@ -1510,5 +1508,51 @@ mod tests {
         // Verify each segment gets the correct entry
         assert_eq!(matched_morning[0].punch_in_time(), e1_in);
         assert_eq!(matched_afternoon[0].punch_in_time(), e2_in);
+    }
+
+    // ── parse_shift_names tests ──────────────────────────────────────────
+
+    #[test]
+    fn test_parse_shift_names_none() {
+        assert!(ReportService::parse_shift_names(None).is_none());
+    }
+
+    #[test]
+    fn test_parse_shift_names_single() {
+        let result = ReportService::parse_shift_names(Some("Morning Shift"));
+        assert_eq!(result, Some(vec!["Morning Shift".to_string()]));
+    }
+
+    #[test]
+    fn test_parse_shift_names_multiple() {
+        let result = ReportService::parse_shift_names(Some("Morning, Night"));
+        assert_eq!(
+            result,
+            Some(vec!["Morning".to_string(), "Night".to_string()])
+        );
+    }
+
+    #[test]
+    fn test_parse_shift_names_trims_whitespace() {
+        let result = ReportService::parse_shift_names(Some("  A , B , C  "));
+        assert_eq!(
+            result,
+            Some(vec!["A".to_string(), "B".to_string(), "C".to_string()])
+        );
+    }
+
+    #[test]
+    fn test_parse_shift_names_filters_empty() {
+        let result = ReportService::parse_shift_names(Some("A,,B, ,C"));
+        assert_eq!(
+            result,
+            Some(vec!["A".to_string(), "B".to_string(), "C".to_string()])
+        );
+    }
+
+    #[test]
+    fn test_parse_shift_names_empty_string() {
+        let result = ReportService::parse_shift_names(Some(""));
+        assert_eq!(result, Some(vec![]));
     }
 }

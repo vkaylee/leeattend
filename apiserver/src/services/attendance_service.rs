@@ -23,7 +23,7 @@
 //! // result.standard_minutes(), result, ot_minutes(), result.standard_units(), etc.
 //! ```
 
-use chrono::{NaiveDate, NaiveTime, TimeZone};
+use chrono::{NaiveDate, NaiveTime};
 use chrono_tz::Tz;
 use uuid::Uuid;
 
@@ -404,7 +404,7 @@ fn shift_naive_to_dt(
     date: NaiveDate,
     tz: Tz,
 ) -> Option<chrono::DateTime<Tz>> {
-    naive_time_opt.and_then(|t| tz.from_local_datetime(&date.and_time(t)).single())
+    naive_time_opt.and_then(|t| crate::utils::tz::naive_time_to_tz(t, date, tz))
 }
 
 #[cfg(test)]

@@ -8,7 +8,7 @@
 //! All other modules should import from here instead of implementing
 //! inline timezone logic.
 
-use chrono::{DateTime, Duration, NaiveDate, TimeZone, Utc};
+use chrono::{DateTime, Duration, NaiveDate, NaiveTime, TimeZone, Timelike, Utc};
 use chrono_tz::Tz;
 
 // ---------------------------------------------------------------------------
@@ -101,6 +101,44 @@ pub fn local_to_tz(
                 .ok_or_else(|| "Cannot resolve DST gap".to_string())
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// naive_time_to_tz — NaiveTime → DateTime<Tz> with DST handling
+// ---------------------------------------------------------------------------
+
+/// Convert a `NaiveTime` on a given `NaiveDate` to a timezone-aware `DateTime<Tz>`.
+///
+/// Uses the same unified DST strategy as [`local_to_tz`]:
+/// - `Single` → direct conversion
+/// - `Ambiguous` → pick the first (pre-transition) instant
+/// - `None` (gap) → shift forward by 1 hour
+///
+/// Returns `None` only when the time components are invalid (should not happen
+/// with well-formed `NaiveTime` values).
+///
+/// Replaces the inline `tz.from_local_datetime(&date.and_time(t)).single()`
+/// pattern that silently returned `None` on DST ambiguity.
+pub fn naive_time_to_tz(time: NaiveTime, date: NaiveDate, tz: Tz) -> Option<DateTime<Tz>> {
+    local_to_tz(&tz, date, time.hour(), time.minute(), time.second()).ok()
+}
+
+/// Like [`naive_time_to_tz`], but adds 1 day when `time < ref_time` (overnight shift).
+///
+/// Typical usage: converting shift-end or break-end times where the end may
+/// cross midnight (e.g., shift 22:00–06:00). Pass the shift's start time as
+/// `ref_time` so the function knows to advance the date.
+pub fn naive_time_to_tz_overnight(
+    time: NaiveTime,
+    ref_time: NaiveTime,
+    date: NaiveDate,
+    tz: Tz,
+) -> Option<DateTime<Tz>> {
+    let mut dt = naive_time_to_tz(time, date, tz)?;
+    if time < ref_time {
+        dt += Duration::days(1);
+    }
+    Some(dt)
 }
 
 // ---------------------------------------------------------------------------
@@ -766,5 +804,138 @@ mod tests {
             tokyo < ny,
             "Tokyo start of day should be before NY start of day"
         );
+    }
+
+    // =========================================================================
+    // naive_time_to_tz
+    // =========================================================================
+
+    #[test]
+    fn test_naive_time_to_tz_basic() {
+        use chrono::NaiveTime;
+        let tz: Tz = "Asia/Ho_Chi_Minh".parse().expect("valid tz");
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid date");
+        let time = NaiveTime::from_hms_opt(8, 30, 0).expect("valid time");
+
+        let dt = naive_time_to_tz(time, date, tz).expect("should resolve");
+        assert_eq!(dt.hour(), 8);
+        assert_eq!(dt.minute(), 30);
+        // 08:30 ICT (UTC+7) = 01:30 UTC
+        assert_eq!(dt.with_timezone(&Utc).hour(), 1);
+    }
+
+    #[test]
+    fn test_naive_time_to_tz_dst_gap() {
+        use chrono::NaiveTime;
+        // America/New_York DST starts 2026-03-08 at 02:00 → clocks jump to 03:00
+        // 02:30 does not exist — should be shifted forward
+        let tz: Tz = "America/New_York".parse().expect("valid tz");
+        let date = NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid date");
+        let time = NaiveTime::from_hms_opt(2, 30, 0).expect("valid time");
+
+        let dt = naive_time_to_tz(time, date, tz);
+        assert!(
+            dt.is_some(),
+            "naive_time_to_tz should resolve DST gap, not return None"
+        );
+    }
+
+    #[test]
+    fn test_naive_time_to_tz_dst_ambiguous() {
+        use chrono::NaiveTime;
+        // America/New_York DST ends 2026-11-01 at 02:00 → clocks fall back to 01:00
+        // 01:30 exists twice — should pick first occurrence (EDT)
+        let tz: Tz = "America/New_York".parse().expect("valid tz");
+        let date = NaiveDate::from_ymd_opt(2026, 11, 1).expect("valid date");
+        let time = NaiveTime::from_hms_opt(1, 30, 0).expect("valid time");
+
+        let dt = naive_time_to_tz(time, date, tz);
+        assert!(
+            dt.is_some(),
+            "naive_time_to_tz should resolve DST ambiguity, not return None"
+        );
+        // First occurrence: EDT (UTC-4) → 01:30 + 4 = 05:30 UTC
+        let dt = dt.expect("should resolve");
+        assert_eq!(dt.with_timezone(&Utc).hour(), 5);
+        assert_eq!(dt.with_timezone(&Utc).minute(), 30);
+    }
+
+    #[test]
+    fn test_naive_time_to_tz_consistency_with_local_to_tz() {
+        use chrono::NaiveTime;
+        let tz: Tz = "Europe/Berlin".parse().expect("valid tz");
+        let date = NaiveDate::from_ymd_opt(2026, 7, 15).expect("valid date");
+        let time = NaiveTime::from_hms_opt(14, 30, 0).expect("valid time");
+
+        let from_helper = naive_time_to_tz(time, date, tz).expect("helper");
+        let from_direct = local_to_tz(&tz, date, 14, 30, 0).expect("direct");
+
+        assert_eq!(
+            from_helper, from_direct,
+            "naive_time_to_tz should produce same result as local_to_tz"
+        );
+    }
+
+    // =========================================================================
+    // naive_time_to_tz_overnight
+    // =========================================================================
+
+    #[test]
+    fn test_naive_time_to_tz_overnight_no_rollover() {
+        use chrono::NaiveTime;
+        let tz: Tz = "UTC".parse().expect("valid tz");
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid date");
+        let start = NaiveTime::from_hms_opt(8, 0, 0).expect("valid");
+        let end = NaiveTime::from_hms_opt(17, 0, 0).expect("valid");
+
+        let dt = naive_time_to_tz_overnight(end, start, date, tz).expect("should resolve");
+        // 17:00 > 08:00 → no overnight → same date
+        assert_eq!(dt.date_naive(), date);
+        assert_eq!(dt.hour(), 17);
+    }
+
+    #[test]
+    fn test_naive_time_to_tz_overnight_rollover() {
+        use chrono::NaiveTime;
+        let tz: Tz = "UTC".parse().expect("valid tz");
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid date");
+        let start = NaiveTime::from_hms_opt(22, 0, 0).expect("valid");
+        let end = NaiveTime::from_hms_opt(6, 0, 0).expect("valid");
+
+        let dt = naive_time_to_tz_overnight(end, start, date, tz).expect("should resolve");
+        // 06:00 < 22:00 → overnight → next day
+        assert_eq!(
+            dt.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 6, 16).expect("valid"),
+            "overnight end should advance to next day"
+        );
+        assert_eq!(dt.hour(), 6);
+    }
+
+    #[test]
+    fn test_naive_time_to_tz_overnight_equal_times() {
+        use chrono::NaiveTime;
+        let tz: Tz = "UTC".parse().expect("valid tz");
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid date");
+        let time = NaiveTime::from_hms_opt(12, 0, 0).expect("valid");
+
+        let dt = naive_time_to_tz_overnight(time, time, date, tz).expect("should resolve");
+        // Equal times → not overnight → same date
+        assert_eq!(dt.date_naive(), date);
+    }
+
+    #[test]
+    fn test_naive_time_to_tz_overnight_dst_gap() {
+        use chrono::NaiveTime;
+        // Overnight shift crossing a DST gap should still resolve
+        let tz: Tz = "America/New_York".parse().expect("valid tz");
+        let date = NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid date");
+        let start = NaiveTime::from_hms_opt(22, 0, 0).expect("valid");
+        // End at 03:30 — but 02:00-03:00 is a DST gap on this date
+        // The overnight adjustment adds 1 day, then DST gap is handled
+        let end = NaiveTime::from_hms_opt(3, 30, 0).expect("valid");
+
+        let dt = naive_time_to_tz_overnight(end, start, date, tz);
+        assert!(dt.is_some(), "overnight + DST gap should resolve");
     }
 }

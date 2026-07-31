@@ -50,10 +50,7 @@ async fn test_work_segment_crud_lifecycle() {
         setup_app_tower().await;
 
     let admin_id = factory.user().create().await;
-    let ws_id = factory
-        .workspace()
-        .create_with_owner(admin_id)
-        .await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
     let employment_id: uuid::Uuid = crate::test_query_scalar_uuid!(
         &factory.diesel_pools.api,
@@ -94,7 +91,10 @@ async fn test_work_segment_crud_lifecycle() {
 
     let segment = body_json(response).await;
     let segment_id = segment["id"].as_str().unwrap();
-    assert_eq!(segment["employment_id"].as_str().unwrap(), employment_id.to_string());
+    assert_eq!(
+        segment["employment_id"].as_str().unwrap(),
+        employment_id.to_string()
+    );
     assert_eq!(segment["date"].as_str().unwrap(), "2026-07-31");
     assert_eq!(segment["source"].as_str().unwrap(), "manual");
 
@@ -130,7 +130,11 @@ async fn test_work_segment_crud_lifecycle() {
         ))
         .await
         .unwrap();
-    assert_eq!(response.status(), StatusCode::OK, "UPDATE should return 200");
+    assert_eq!(
+        response.status(),
+        StatusCode::OK,
+        "UPDATE should return 200"
+    );
 
     let updated = body_json(response).await;
     assert_eq!(updated["notes"].as_str().unwrap(), "Updated for testing");
@@ -201,10 +205,7 @@ async fn test_bulk_create_work_segments() {
         setup_app_tower().await;
 
     let admin_id = factory.user().create().await;
-    let ws_id = factory
-        .workspace()
-        .create_with_owner(admin_id)
-        .await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
     let employment_id: uuid::Uuid = crate::test_query_scalar_uuid!(
         &factory.diesel_pools.api,
@@ -269,10 +270,7 @@ async fn test_get_nonexistent_segment_returns_404() {
         setup_app_tower().await;
 
     let admin_id = factory.user().create().await;
-    let ws_id = factory
-        .workspace()
-        .create_with_owner(admin_id)
-        .await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
     let fake_id = uuid::Uuid::new_v4();
 
     let response = app
@@ -300,10 +298,7 @@ async fn test_delete_nonexistent_segment_returns_404() {
         setup_app_tower().await;
 
     let admin_id = factory.user().create().await;
-    let ws_id = factory
-        .workspace()
-        .create_with_owner(admin_id)
-        .await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
     let fake_id = uuid::Uuid::new_v4();
 
     let response = app
@@ -331,10 +326,7 @@ async fn test_list_with_employment_filter() {
         setup_app_tower().await;
 
     let admin_id = factory.user().create().await;
-    let ws_id = factory
-        .workspace()
-        .create_with_owner(admin_id)
-        .await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
     // Create two employees
     let emp1_id = factory.employee().with_workspace(ws_id).create().await;
@@ -354,7 +346,10 @@ async fn test_list_with_employment_filter() {
     let shift_id = factory.shift().with_workspace(ws_id).create().await;
 
     // Create segments for both employees
-    for (eid, date) in [(employment1_id, "2026-08-10"), (employment2_id, "2026-08-10")] {
+    for (eid, date) in [
+        (employment1_id, "2026-08-10"),
+        (employment2_id, "2026-08-10"),
+    ] {
         let body = serde_json::json!({
             "employment_id": eid,
             "date": date,
@@ -384,9 +379,7 @@ async fn test_list_with_employment_filter() {
         .clone()
         .oneshot(build_request(
             "GET",
-            &format!(
-                "/api/v1/workspaces/{ws_id}/work-segments?employment_ids={employment1_id}"
-            ),
+            &format!("/api/v1/workspaces/{ws_id}/work-segments?employment_ids={employment1_id}"),
             ws_id,
             admin_id,
             None,
