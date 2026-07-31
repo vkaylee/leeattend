@@ -1,9 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  Calculator, 
-  CheckCircle2, 
-  AlertCircle, 
-  Loader2, 
+import {
+  Calculator,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
   User,
 } from "lucide-react";
 import React, { useState } from "react";
@@ -17,6 +17,7 @@ import { Typography } from "@/components/ui/typography";
 import { calculateBatchPayslips } from "@/lib/api";
 import { BatchCalculateResult } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
+import { usePayrollPeriod } from "@/pages/payroll/hooks/use-payroll-period";
 
 interface BatchCalculationModalProps {
   employeeIds: string[];
@@ -106,16 +107,8 @@ export default function BatchCalculationModal({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
-  
-  const [calcYear, setCalcYear] = useState(() => {
-    const d = new Date(); d.setMonth(d.getMonth() - 1);
-    return d.getFullYear();
-  });
-  const [calcMonth, setCalcMonth] = useState(() => {
-    const d = new Date(); d.setMonth(d.getMonth() - 1);
-    return d.getMonth() + 1;
-  });
-  
+  const { calcYear, calcMonth, setCalcYear, setCalcMonth } = usePayrollPeriod();
+
   const [results, setResults] = useState<BatchCalculateResult[] | null>(null);
 
   const batchMutation = useMutation({

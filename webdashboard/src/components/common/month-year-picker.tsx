@@ -3,6 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import { useMonthPair } from "@/hooks/use-month-pair";
 import { cn } from "@/lib/utils";
 
 interface MonthYearPickerProps {
@@ -27,15 +28,7 @@ export function MonthYearPicker({
   className,
 }: MonthYearPickerProps) {
   const { t } = useTranslation();
-
-  const now = new Date();
-  const curMonth = now.getMonth() + 1;
-  const curYear = now.getFullYear();
-
-  const prev = new Date(now);
-  prev.setMonth(prev.getMonth() - 1);
-  const prevMonth = prev.getMonth() + 1;
-  const prevYear = prev.getFullYear();
+  const { curMonth, curYear, prevMonth, prevYear } = useMonthPair();
 
   const handleYearChange = (delta: number) => { onChange(month, year + delta); };
   const handleMonthClick = (m: number) => { onChange(m, year); };

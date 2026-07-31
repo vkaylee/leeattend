@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent } from "@testing-library/react";
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterEach, describe, it, expect, vi, beforeEach } from "vitest";
 
 import * as dashboardHooks from "@/hooks/use-dashboard";
 
@@ -263,5 +263,69 @@ describe("TurnoverAnalyticsChart", () => {
 
         // Should show empty state, not crash
         expect(screen.getByText("common.no_data")).toBeInTheDocument();
+    });
+});
+
+describe("TurnoverAnalyticsChart — day-31 date arithmetic", () => {
+    beforeEach(() => {
+        vi.useFakeTimers();
+        vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it("passes correct 6-month start date when today is July 31 (should be Jan 1, not Jul 1)", () => {
+        vi.setSystemTime(new Date("2026-07-31T12:00:00"));
+
+        const mockHook = vi.mocked(dashboardHooks.useTurnoverAnalytics);
+        mockHook.mockReturnValue({
+            data: mockData,
+            isLoading: false,
+        } as unknown as ReturnType<typeof dashboardHooks.useTurnoverAnalytics>);
+
+        renderWithProviders(<TurnoverAnalyticsChart />);
+
+        // Default period is "6m". useTurnoverAnalytics(startDate, endDate).
+        // 6 months back from July 31 = Jan 1, 2026. Bug would give Jul 1 from rollover.
+        const startDates = mockHook.mock.calls.map(c => c[0]);
+        expect(startDates).toContain("2026-01-01");
+    });
+
+    it("passes correct 6-month start date when today is August 31 (should be Feb 1, not Aug 1)", () => {
+        vi.setSystemTime(new Date("2026-08-31T12:00:00"));
+
+        const mockHook = vi.mocked(dashboardHooks.useTurnoverAnalytics);
+        mockHook.mockReturnValue({
+            data: mockData,
+            isLoading: false,
+        } as unknown as ReturnType<typeof dashboardHooks.useTurnoverAnalytics>);
+
+        renderWithProviders(<TurnoverAnalyticsChart />);
+
+        // 6 months back from Aug 31 = Feb 1 (not Aug 1 from rollover)
+        const startDates = mockHook.mock.calls.map(c => c[0]);
+        expect(startDates).toContain("2026-02-01");
+    });
+
+    it("passes correct 3-month start date when today is March 31 (should be Dec 1 of prev year)", () => {
+        vi.setSystemTime(new Date("2026-03-31T12:00:00"));
+
+        const mockHook = vi.mocked(dashboardHooks.useTurnoverAnalytics);
+        mockHook.mockReturnValue({
+            data: mockData,
+            isLoading: false,
+        } as unknown as ReturnType<typeof dashboardHooks.useTurnoverAnalytics>);
+
+        renderWithProviders(<TurnoverAnalyticsChart />);
+
+        // Switch to 3-month period
+        const select = screen.getByRole("combobox");
+        fireEvent.change(select, { target: { value: "3m" } });
+
+        // 3 months back from March 31 = Dec 1, 2025 (not March 1 from rollover)
+        const startDates = mockHook.mock.calls.map(c => c[0]);
+        expect(startDates).toContain("2025-12-01");
     });
 });

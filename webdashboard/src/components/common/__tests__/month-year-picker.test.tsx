@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 
-import { describe, it, expect, vi } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 
 import { MonthYearPicker } from "../month-year-picker";
 
@@ -52,8 +52,7 @@ describe("MonthYearPicker", () => {
   it("sets last month when shortcut is clicked", () => {
     render(<MonthYearPicker month={5} onChange={onChange} year={2026} />);
 
-    const d = new Date();
-    d.setMonth(d.getMonth() - 1);
+    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1);
     const prevMonth = d.getMonth() + 1;
     const prevYear = d.getFullYear();
 
@@ -70,5 +69,51 @@ describe("MonthYearPicker", () => {
 
     fireEvent.click(screen.getByText(`Tháng ${curMonth}/${curYear}`));
     expect(onChange).toHaveBeenCalledWith(curMonth, curYear);
+  });
+});
+
+describe("MonthYearPicker — day-31 month arithmetic", () => {
+  const onChange = vi.fn();
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("last-month shortcut shows June when today is July 31", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-31T12:00:00"));
+
+    render(<MonthYearPicker month={7} onChange={onChange} year={2026} />);
+
+    // Previous month should be June (6), NOT July (7)
+    expect(screen.getByText("Tháng 6/2026")).toBeDefined();
+    expect(screen.getByText("Tháng 7/2026")).toBeDefined();
+
+    fireEvent.click(screen.getByText("Tháng 6/2026"));
+    expect(onChange).toHaveBeenCalledWith(6, 2026);
+  });
+
+  it("last-month shortcut shows February when today is March 31", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-31T12:00:00"));
+
+    render(<MonthYearPicker month={3} onChange={onChange} year={2026} />);
+
+    expect(screen.getByText("Tháng 2/2026")).toBeDefined();
+
+    fireEvent.click(screen.getByText("Tháng 2/2026"));
+    expect(onChange).toHaveBeenCalledWith(2, 2026);
+  });
+
+  it("last-month shortcut shows December of previous year when today is January 31", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-31T12:00:00"));
+
+    render(<MonthYearPicker month={1} onChange={onChange} year={2026} />);
+
+    expect(screen.getByText("Tháng 12/2025")).toBeDefined();
+
+    fireEvent.click(screen.getByText("Tháng 12/2025"));
+    expect(onChange).toHaveBeenCalledWith(12, 2025);
   });
 });

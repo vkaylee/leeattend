@@ -1,15 +1,10 @@
-import { Calendar, CalendarRange, Building2, Briefcase } from "lucide-react";
+import { Calendar, Building2, Briefcase } from "lucide-react";
 import React from "react";
 
 import type { Department, Employer } from "@/lib/api/types";
 
-import { MonthYearPicker } from "@/components/common/month-year-picker";
+import { FilterModeButtons } from "@/components/common/filter-mode-buttons";
 import Button from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { FilterTrigger } from "@/components/ui/filter-trigger";
 import { cn } from "@/lib/utils";
@@ -34,84 +29,6 @@ interface ReportFiltersProps {
   selectedEmployerId?: string | null;
   specificMonth: { month: number; year: number };
   t: (key: string) => string;
-}
-
-function FilterModeSelector({
-  filterMode,
-  onFilterModeChange,
-  onSpecificMonthChange,
-  specificMonth,
-  t,
-}: {
-  filterMode: ReportFiltersProps["filterMode"];
-  onFilterModeChange: ReportFiltersProps["onFilterModeChange"];
-  onSpecificMonthChange: ReportFiltersProps["onSpecificMonthChange"];
-  specificMonth: ReportFiltersProps["specificMonth"];
-  t: ReportFiltersProps["t"];
-}) {
-  const now = new Date();
-  const curMonth = now.getMonth() + 1; const curYear = now.getFullYear();
-  const prev = new Date(now); prev.setMonth(prev.getMonth() - 1);
-  const prevMonth = prev.getMonth() + 1; const prevYear = prev.getFullYear();
-  const modeLabel = (mode: string) => mode === "this_month" ? `THÁNG ${curMonth}/${curYear}` : `THÁNG ${prevMonth}/${prevYear}`;
-
-  return (
-    <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-700/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200 dark:border-slate-700/50">
-      {(["this_month", "last_month"] as const).map(mode => (
-        <Button
-          className={cn(
-            "px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all h-auto",
-            filterMode === mode
-              ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-          )}
-          key={mode}
-          onClick={() => { onFilterModeChange(mode); }}
-          variant="ghost"
-        >
-          {modeLabel(mode)}
-        </Button>
-      ))}
-      <div className="h-6 w-px bg-slate-200 dark:bg-slate-600 mx-2 opacity-50" />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            className={cn(
-              "flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all h-auto",
-              filterMode === "specific_month"
-                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-            )}
-            variant="ghost"
-          >
-            <CalendarRange size={14} />
-            {filterMode === "specific_month"
-              ? `${specificMonth.month}/${specificMonth.year}`
-              : t("common.filters.specific_month").toUpperCase()}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          className="w-80 p-4 rounded-[2.5rem] shadow-premium-2xl border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/95 backdrop-blur-xl"
-          sideOffset={12}
-        >
-          <MonthYearPicker month={specificMonth.month} onChange={onSpecificMonthChange} year={specificMonth.year} />
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <Button
-        className={cn(
-          "px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all h-auto",
-          filterMode === "custom"
-            ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-        )}
-        onClick={() => { onFilterModeChange("custom"); }}
-        variant="ghost"
-      >
-        {t("common.filters.custom").toUpperCase()}
-      </Button>
-    </div>
-  );
 }
 
 function StatusFilterSelector({
@@ -249,7 +166,7 @@ export default function ReportFilters({
     <>
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
         <div className="flex flex-col md:flex-row md:items-center gap-6 bg-white dark:bg-slate-900 p-3 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-900/5">
-          <FilterModeSelector filterMode={filterMode} onFilterModeChange={onFilterModeChange} onSpecificMonthChange={onSpecificMonthChange} specificMonth={specificMonth} t={t} />
+          <FilterModeButtons className="rounded-[1.5rem] p-1.5" filterMode={filterMode} onFilterModeChange={onFilterModeChange} onSpecificMonthChange={onSpecificMonthChange} specificMonth={specificMonth} t={t} uppercase />
           <div className="hidden md:block w-px h-8 bg-slate-200 dark:bg-slate-800 self-center" />
           <StatusFilterSelector employeeStatus={employeeStatus} onEmployeeStatusChange={onEmployeeStatusChange} t={t} />
           {!!employers && employers.length > 0 && (

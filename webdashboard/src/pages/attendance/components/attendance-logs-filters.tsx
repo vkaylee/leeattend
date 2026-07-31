@@ -1,11 +1,11 @@
-import { Calendar, CalendarRange, Users } from "lucide-react";
+import { Calendar, Users } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
 import type { Department } from "@/lib/api/types";
 
 import { EmployeeSearch } from "@/components/common/employee-search";
-import { MonthYearPicker } from "@/components/common/month-year-picker";
+import { FilterModeButtons } from "@/components/common/filter-mode-buttons";
 import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import ResponsiveToolbar from "@/components/ui/responsive-toolbar";
@@ -24,28 +24,6 @@ interface AttendanceLogsFiltersProps {
   setEmployeeId: (id: string) => void;
   specificMonth: { month: number; year: number };
   wsId: string | null;
-}
-
-function DateFilterButtons({ filterMode, handleFilterModeChange, specificMonth, handleSpecificMonthChange }: { filterMode: FilterMode, handleFilterModeChange: (mode: FilterMode) => void, specificMonth: { month: number, year: number }, handleSpecificMonthChange: (m: number, y: number) => void }) {
-  const { t } = useTranslation();
-  const now = new Date();
-  const curMonth = now.getMonth() + 1; const curYear = now.getFullYear();
-  const prev = new Date(now); prev.setMonth(prev.getMonth() - 1);
-  const prevMonth = prev.getMonth() + 1; const prevYear = prev.getFullYear();
-  const modeLabel = (mode: string) => mode === "this_month" ? `Tháng ${curMonth}/${curYear}` : `Tháng ${prevMonth}/${prevYear}`;
-  return (
-    <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-700/50 rounded-2xl p-1 shadow-inner border border-slate-200 dark:border-slate-700/50">
-      {(["this_month", "last_month"] as const).map((mode) => (
-        <Button className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === mode ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200")} key={mode} onClick={() => { handleFilterModeChange(mode); }} type="button" variant="ghost">{modeLabel(mode)}</Button>
-      ))}
-      <div className="h-6 w-px bg-slate-200 dark:bg-slate-600 mx-1" />
-      <div className="relative group">
-        <Button className={cn("flex items-center gap-2 px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === "specific_month" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200")} type="button" variant="ghost"><CalendarRange size={14} /> {filterMode === "specific_month" ? `T${specificMonth.month}/${specificMonth.year}` : t("common.filters.specific_month")}</Button>
-        <div className="absolute left-0 top-full mt-2 z-[100] hidden group-hover:block animate-in zoom-in-95 duration-200 origin-top-left"><MonthYearPicker month={specificMonth.month} onChange={handleSpecificMonthChange} year={specificMonth.year} /></div>
-      </div>
-      <Button className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === "custom" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200")} onClick={() => { handleFilterModeChange("custom"); }} type="button" variant="ghost">{t("common.filters.custom")}</Button>
-    </div>
-  );
 }
 
 function CustomRangeFilter({ dateRange, setDateRange }: { dateRange: { start: string, end: string }, setDateRange: React.Dispatch<React.SetStateAction<{ start: string, end: string }>> }) {
@@ -84,7 +62,7 @@ export function AttendanceLogsFilters(props: AttendanceLogsFiltersProps) {
       searchSlot={employeeSearch}
     >
       <div className="space-y-4">
-        <DateFilterButtons filterMode={filterMode} handleFilterModeChange={handleFilterModeChange} handleSpecificMonthChange={handleSpecificMonthChange} specificMonth={specificMonth} />
+        <FilterModeButtons filterMode={filterMode} onFilterModeChange={handleFilterModeChange} onSpecificMonthChange={handleSpecificMonthChange} specificMonth={specificMonth} t={t} />
         <div className="lg:hidden">{employeeSearch}</div>
         {filterMode === "custom" ? <CustomRangeFilter dateRange={dateRange} setDateRange={setDateRange} /> : null}
       </div>

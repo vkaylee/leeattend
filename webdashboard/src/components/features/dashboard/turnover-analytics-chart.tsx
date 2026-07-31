@@ -37,11 +37,8 @@ function getPeriodOptions(t: (key: string) => string): PeriodOption[] {
     const today = new Date();
     const endDate = formatDate(today);
 
-    const months3 = new Date(today);
-    months3.setMonth(months3.getMonth() - 3);
-
-    const months6 = new Date(today);
-    months6.setMonth(months6.getMonth() - 6);
+    const months3 = new Date(today.getFullYear(), today.getMonth() - 3, 1);
+    const months6 = new Date(today.getFullYear(), today.getMonth() - 6, 1);
 
     const year1 = new Date(today);
     year1.setFullYear(year1.getFullYear() - 1);

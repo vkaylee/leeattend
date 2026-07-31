@@ -1,16 +1,10 @@
 import { useState } from "react";
 
+import { getMonthPair } from "@/hooks/use-month-pair";
+
 export function usePayrollPeriod() {
-  const [calcYear, setCalcYear] = useState(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - 1);
-    return d.getFullYear();
-  });
-  const [calcMonth, setCalcMonth] = useState(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - 1);
-    return d.getMonth() + 1;
-  });
+  const [calcYear, setCalcYear] = useState(() => getMonthPair().prevYear);
+  const [calcMonth, setCalcMonth] = useState(() => getMonthPair().prevMonth);
 
   const changeMonth = (delta: number) => {
     let nextMonth = calcMonth + delta;
