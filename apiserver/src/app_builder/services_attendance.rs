@@ -86,15 +86,18 @@ pub async fn build_attendance_services(
     let attendance = AttendanceLogService::new(deps, notifier.clone());
     let attendance = Arc::new(attendance);
 
+    let import_deps = crate::services::attendance_import_service::ImportServiceDeps {
+        import_repo: Arc::clone(&repos.import),
+        adj_repo: Arc::clone(&repos.adj),
+        employee_repo: Arc::clone(&repos.employee),
+        time_entry_repo: Arc::clone(&repos.time_entry),
+        workspace_repo: Arc::clone(&repos.workspace),
+        dept_repo: Arc::clone(&repos.department),
+        staging_repo: Arc::clone(&repos.staging),
+    };
     let import = Arc::new(
         crate::services::attendance_import_service::AttendanceImportService::new(
-            Arc::clone(&repos.import),
-            Arc::clone(&repos.adj),
-            Arc::clone(&repos.employee),
-            Arc::clone(&repos.time_entry),
-            Arc::clone(&repos.workspace),
-            Arc::clone(&repos.department),
-            Arc::clone(&repos.staging),
+            import_deps,
             crate::worker::deps::WorkerDeps::new_with_crypto(diesel_pools, crypto_service.clone()),
             Some(Arc::clone(&attendance)),
         ),

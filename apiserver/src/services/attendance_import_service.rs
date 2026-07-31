@@ -22,6 +22,18 @@ use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::services::import_messages::{fmt_msg, AttendanceImportMessages};
 use std::collections::HashMap;
 
+/// Dependency injection struct for AttendanceImportService.
+/// Follows the pattern established by AttendanceLogServiceDeps.
+pub struct ImportServiceDeps {
+    pub import_repo: Arc<dyn ImportJobRepository>,
+    pub adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
+    pub employee_repo: Arc<dyn EmployeeRepository>,
+    pub time_entry_repo: Arc<dyn TimeEntryRepository>,
+    pub workspace_repo: Arc<dyn crate::repositories::workspace_repository::WorkspaceRepository>,
+    pub dept_repo: Arc<dyn crate::repositories::department_repository::DepartmentRepository>,
+    pub staging_repo: Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository>,
+}
+
 #[derive(Clone)]
 struct PendingRow {
     emp_id_number: String,
@@ -50,7 +62,180 @@ pub struct EmployeeImportStrategy {
     pub newly_added_emps: std::collections::HashSet<String>,
 }
 
-#[allow(clippy::too_many_lines)]
+impl EmployeeImportStrategy {
+    /// Collect employee IDs and department names from rows for bulk lookup.
+    fn collect_row_identifiers(rows: &[PendingEmployee]) -> (Vec<String>, Vec<String>) {
+        let mut emp_ids = Vec::with_capacity(rows.len());
+        let mut dept_names = Vec::new();
+        for row in rows {
+            emp_ids.push(row.id_number.clone());
+            if let Some(dept) = &row.department_name {
+                dept_names.push(dept.clone());
+            }
+        }
+        (emp_ids, dept_names)
+    }
+
+    /// Load existing departments and employees into caches.
+    async fn load_existing_caches(
+        &mut self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        emp_ids: &[String],
+        dept_names: &[String],
+    ) {
+        if let Ok(existing_depts) = self
+            .department_repo
+            .get_department_ids_by_names(auth_token, dept_names)
+            .await
+        {
+            for (name, id) in existing_depts {
+                self.dept_cache.insert(name, id);
+            }
+        }
+
+        if let Ok(existing_emps) = self
+            .employee_repo
+            .get_employee_ids_by_numbers(auth_token, emp_ids)
+            .await
+        {
+            for (num, id) in existing_emps {
+                self.emp_cache.insert(num.to_lowercase(), id);
+            }
+        }
+    }
+
+    /// Bulk create departments that don't exist and update cache.
+    async fn bulk_create_departments(
+        &mut self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workspace_id: Uuid,
+        dept_names: Vec<String>,
+    ) {
+        let mut new_depts = Vec::new();
+        let mut unique_dept_names = std::collections::HashSet::new();
+        for name in dept_names {
+            let key = name.to_lowercase();
+            if !self.dept_cache.contains_key(&key) && unique_dept_names.insert(key.clone()) {
+                let dept_id = Uuid::new_v4();
+                new_depts.push(crate::models::Department::new(
+                    dept_id,
+                    workspace_id,
+                    name.clone(),
+                    None,
+                    None,
+                    Utc::now(),
+                    Utc::now(),
+                    0,
+                ));
+                self.dept_cache.insert(key, dept_id);
+            }
+        }
+        if !new_depts.is_empty() {
+            let _ = self
+                .department_repo
+                .bulk_create_departments_skip_duplicates(auth_token, &new_depts)
+                .await;
+            let newly_inserted_names: Vec<String> = new_depts
+                .into_iter()
+                .map(|d| d.name().to_string())
+                .collect();
+            if let Ok(existing_depts) = self
+                .department_repo
+                .get_department_ids_by_names(auth_token, &newly_inserted_names)
+                .await
+            {
+                for (name, id) in existing_depts {
+                    self.dept_cache.insert(name, id);
+                }
+            }
+        }
+    }
+
+    /// Bulk create employees that don't exist and update cache.
+    async fn bulk_create_employees(
+        &mut self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workspace_id: Uuid,
+        rows: &[PendingEmployee],
+    ) -> Result<(), AppError> {
+        let mut new_emps = Vec::new();
+        let mut unique_emp_ids = std::collections::HashSet::new();
+        for row in rows {
+            let key = row.id_number.to_lowercase();
+            if !self.emp_cache.contains_key(&key) && unique_emp_ids.insert(key.clone()) {
+                let emp_id = Uuid::new_v4();
+                let hire_date_dt = row
+                    .hire_date
+                    .and_hms_opt(0, 0, 0)
+                    .and_then(|t| t.and_local_timezone(Utc).single())
+                    .unwrap_or_else(Utc::now);
+
+                new_emps.push(crate::models::Employee::new(
+                    emp_id,
+                    workspace_id,
+                    None,
+                    row.full_name.clone(),
+                    row.id_number.clone(),
+                    Vec::new(),
+                    hire_date_dt,
+                    Utc::now(),
+                    None,
+                ));
+                self.emp_cache.insert(key.clone(), emp_id);
+                self.newly_added_emps.insert(key);
+            }
+        }
+        if !new_emps.is_empty() {
+            self.employee_repo
+                .bulk_create_employees_skip_duplicates(auth_token, &new_emps)
+                .await?;
+            let newly_inserted_ids: Vec<String> = new_emps
+                .into_iter()
+                .map(|e| e.employee_id_number().to_string())
+                .collect();
+            if let Ok(existing_emps) = self
+                .employee_repo
+                .get_employee_ids_by_numbers(auth_token, &newly_inserted_ids)
+                .await
+            {
+                for (num, id) in existing_emps {
+                    self.emp_cache.insert(num.to_lowercase(), id);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Attempt to transfer employee to department if specified.
+    async fn try_transfer_department(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+        emp: &PendingEmployee,
+    ) -> bool {
+        let Some(ref dept_name) = emp.department_name else {
+            return false;
+        };
+        let dept_key = dept_name.to_lowercase();
+        let Some(&dept_id) = self.dept_cache.get(&dept_key) else {
+            return false;
+        };
+        if dept_id.is_nil() {
+            return false;
+        }
+        self.department_repo
+            .transfer_employee(
+                auth_token,
+                employee_id,
+                dept_id,
+                emp.hire_date,
+                Some("Auto-assigned via bulk import".to_string()),
+            )
+            .await
+            .is_ok()
+    }
+}
+
 #[async_trait::async_trait]
 impl ImportStrategy for EmployeeImportStrategy {
     type RowData = PendingEmployee;
@@ -159,75 +344,17 @@ impl ImportStrategy for EmployeeImportStrategy {
         }
 
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id);
+        let (emp_ids, dept_names) = Self::collect_row_identifiers(rows);
 
-        let mut emp_ids = Vec::new();
-        let mut dept_names = Vec::new();
-        for row in rows {
-            emp_ids.push(row.id_number.clone());
-            if let Some(dept) = &row.department_name {
-                dept_names.push(dept.clone());
-            }
-        }
+        // Load existing departments and employees into caches
+        self.load_existing_caches(&auth_token, &emp_ids, &dept_names)
+            .await;
 
-        if let Ok(existing_depts) = self
-            .department_repo
-            .get_department_ids_by_names(&auth_token, &dept_names)
-            .await
-        {
-            for (name, id) in existing_depts {
-                self.dept_cache.insert(name, id);
-            }
-        }
+        // Bulk create any missing departments
+        self.bulk_create_departments(&auth_token, job.workspace_id, dept_names)
+            .await;
 
-        if let Ok(existing_emps) = self
-            .employee_repo
-            .get_employee_ids_by_numbers(&auth_token, &emp_ids)
-            .await
-        {
-            for (num, id) in existing_emps {
-                self.emp_cache.insert(num.to_lowercase(), id);
-            }
-        }
-
-        let mut new_depts = Vec::new();
-        let mut unique_dept_names = std::collections::HashSet::new();
-        for name in dept_names {
-            let key = name.to_lowercase();
-            if !self.dept_cache.contains_key(&key) && unique_dept_names.insert(key.clone()) {
-                let dept_id = Uuid::new_v4();
-                new_depts.push(crate::models::Department::new(
-                    dept_id,
-                    job.workspace_id,
-                    name.clone(),
-                    None,
-                    None,
-                    Utc::now(),
-                    Utc::now(),
-                    0,
-                ));
-                self.dept_cache.insert(key, dept_id);
-            }
-        }
-        if !new_depts.is_empty() {
-            let _ = self
-                .department_repo
-                .bulk_create_departments_skip_duplicates(&auth_token, &new_depts)
-                .await;
-            let newly_inserted_names: Vec<String> = new_depts
-                .into_iter()
-                .map(|d| d.name().to_string())
-                .collect();
-            if let Ok(existing_depts) = self
-                .department_repo
-                .get_department_ids_by_names(&auth_token, &newly_inserted_names)
-                .await
-            {
-                for (name, id) in existing_depts {
-                    self.dept_cache.insert(name, id);
-                }
-            }
-        }
-
+        // Verify workspace headquarters location exists
         let Ok(Some(_)) =
             EmployeeCoreRepository::get_headquarters_location_id(&*self.employee_repo, &auth_token)
                 .await
@@ -237,51 +364,9 @@ impl ImportStrategy for EmployeeImportStrategy {
             ));
         };
 
-        let mut new_emps = Vec::new();
-        let mut unique_emp_ids = std::collections::HashSet::new();
-        for row in rows {
-            let key = row.id_number.to_lowercase();
-            if !self.emp_cache.contains_key(&key) && unique_emp_ids.insert(key.clone()) {
-                let emp_id = Uuid::new_v4();
-                let hire_date_dt = row
-                    .hire_date
-                    .and_hms_opt(0, 0, 0)
-                    .and_then(|t| t.and_local_timezone(Utc).single())
-                    .unwrap_or_else(Utc::now);
-
-                new_emps.push(crate::models::Employee::new(
-                    emp_id,
-                    job.workspace_id,
-                    None,
-                    row.full_name.clone(),
-                    row.id_number.clone(),
-                    Vec::new(),
-                    hire_date_dt,
-                    Utc::now(),
-                    None,
-                ));
-                self.emp_cache.insert(key.clone(), emp_id);
-                self.newly_added_emps.insert(key);
-            }
-        }
-        if !new_emps.is_empty() {
-            self.employee_repo
-                .bulk_create_employees_skip_duplicates(&auth_token, &new_emps)
-                .await?;
-            let newly_inserted_ids: Vec<String> = new_emps
-                .into_iter()
-                .map(|e| e.employee_id_number().to_string())
-                .collect();
-            if let Ok(existing_emps) = self
-                .employee_repo
-                .get_employee_ids_by_numbers(&auth_token, &newly_inserted_ids)
-                .await
-            {
-                for (num, id) in existing_emps {
-                    self.emp_cache.insert(num.to_lowercase(), id);
-                }
-            }
-        }
+        // Bulk create any missing employees
+        self.bulk_create_employees(&auth_token, job.workspace_id, rows)
+            .await?;
 
         Ok(())
     }
@@ -293,8 +378,9 @@ impl ImportStrategy for EmployeeImportStrategy {
         emp: &Self::RowData,
     ) -> Result<Option<Uuid>, AppError> {
         let emp_key = emp.id_number.to_lowercase();
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id);
+
         // pre_process_chunk has already populated emp_cache and inserted new employees to DB.
-        // We just fetch from cache.
         let Some(&employee_id) = self.emp_cache.get(&emp_key) else {
             return Err(AppError::Internal(fmt_msg(
                 self.msgs.db_save_error,
@@ -309,35 +395,10 @@ impl ImportStrategy for EmployeeImportStrategy {
             )));
         };
 
-        // For this refactor, we still need to determine if it "was_new" to return Ok(Some(id))
-        // We track newly inserted employees during pre_process_chunk in self.newly_added_emps
         let was_new = self.newly_added_emps.contains(&emp_key);
-
-        let mut department_updated = false;
-        if let Some(ref dept_name) = emp.department_name {
-            let dept_key = dept_name.to_lowercase();
-            let dept_id = if let Some(&cached_id) = self.dept_cache.get(&dept_key) {
-                cached_id
-            } else {
-                Uuid::nil()
-            };
-
-            if !dept_id.is_nil()
-                && self
-                    .department_repo
-                    .transfer_employee(
-                        &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
-                        employee_id,
-                        dept_id,
-                        emp.hire_date,
-                        Some("Auto-assigned via bulk import".to_string()),
-                    )
-                    .await
-                    .is_ok()
-            {
-                department_updated = true;
-            }
-        }
+        let department_updated = self
+            .try_transfer_department(&auth_token, employee_id, emp)
+            .await;
 
         // Claim staged logs directly
         let _ = self
@@ -361,6 +422,136 @@ struct PunchImportStrategy {
     employee_repo: Arc<dyn EmployeeRepository>,
     log_svc: Option<Arc<crate::services::attendance_log_service::AttendanceLogService>>,
     emp_cache: std::collections::HashMap<String, Employee>,
+}
+
+impl PunchImportStrategy {
+    /// Look up employee from cache or fetch from database.
+    /// Returns the employee or an error if not found.
+    async fn validate_employee_mapping(
+        &mut self,
+        workspace_id: Uuid,
+        row: &PendingRow,
+    ) -> Result<Employee, AppError> {
+        if let Some(e) = self.emp_cache.get(&row.emp_id_number) {
+            return Ok(e.clone());
+        }
+
+        let Ok(Some(emp)) = self
+            .employee_repo
+            .get_employee_by_id_number(
+                &row.emp_id_number,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            )
+            .await
+        else {
+            return Err(AppError::Internal(fmt_msg(
+                self.msgs.system_save_error,
+                &[
+                    ("emp", &row.emp_id_number),
+                    ("line", &row.line_number.to_string()),
+                ],
+            )));
+        };
+        self.emp_cache.insert(row.emp_id_number.clone(), emp.clone());
+        Ok(emp)
+    }
+
+    /// Process a punch as an attendance log entry.
+    async fn process_log_punch(
+        &self,
+        workspace_id: Uuid,
+        employee: &Employee,
+        row: &PendingRow,
+    ) -> Result<Option<Uuid>, AppError> {
+        let Some(log_svc) = self.log_svc.as_ref() else {
+            return Err(AppError::Internal(fmt_msg(
+                self.msgs.system_save_error,
+                &[
+                    ("emp", &row.emp_id_number),
+                    ("line", &row.line_number.to_string()),
+                ],
+            )));
+        };
+
+        match log_svc
+            .process_parsed_log(
+                workspace_id,
+                employee.id(),
+                row.punch_time,
+                LogSource::Import,
+                None,
+                None,
+            )
+            .await
+        {
+            Ok(true) => Ok(Some(Uuid::new_v4())),
+            Ok(false) => Ok(None),
+            Err(e) => {
+                error!("UNIFIED_LOG_SERVICE_ERROR: {}", e);
+                Err(AppError::Internal(fmt_msg(
+                    self.msgs.system_save_error,
+                    &[
+                        ("emp", &row.emp_id_number),
+                        ("line", &row.line_number.to_string()),
+                    ],
+                )))
+            }
+        }
+    }
+
+    /// Process a punch as an attendance adjustment request.
+    async fn process_adjustment_punch(
+        &self,
+        deps: &crate::worker::deps::WorkerDeps,
+        job: &AttendanceImportJob,
+        employee: &Employee,
+        row: &PendingRow,
+    ) -> Result<Option<Uuid>, AppError> {
+        let Some(employment_id) = employee.active_employment_id() else {
+            return Err(AppError::not_found(I18nKey::NoActiveEmployment));
+        };
+
+        let req = CreateAttendanceAdjustmentRequest {
+            employment_id,
+            time_entry_id: None,
+            requested_punch_time: row.punch_time,
+            reason: Some("Import from Excel/CSV".to_string()),
+            attachment_file_ids: None,
+        };
+
+        let adj_svc = AttendanceAdjustmentService::new(
+            Arc::clone(&self.adj_repo),
+            Arc::clone(&deps.raw_log_repo),
+            deps.pairing_service(),
+        );
+
+        match adj_svc
+            .submit_request(job.workspace_id, job.user_id, req)
+            .await
+        {
+            Ok(adjustment) => {
+                let _ = adj_svc
+                    .approve_request(
+                        job.workspace_id,
+                        job.user_id,
+                        adjustment.id(),
+                        AdjustmentStatus::Approved,
+                    )
+                    .await;
+                Ok(Some(adjustment.id()))
+            }
+            Err(e) => {
+                error!("ADJUSTMENT_SUBMIT_ERROR: {}", e);
+                Err(AppError::Internal(fmt_msg(
+                    self.msgs.system_save_error,
+                    &[
+                        ("emp", &row.emp_id_number),
+                        ("line", &row.line_number.to_string()),
+                    ],
+                )))
+            }
+        }
+    }
 }
 
 #[async_trait::async_trait]
@@ -433,116 +624,21 @@ impl ImportStrategy for PunchImportStrategy {
         Ok(())
     }
 
-    #[allow(clippy::too_many_lines)]
     async fn process_row(
         &mut self,
         deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
         row: &Self::RowData,
     ) -> Result<Option<Uuid>, AppError> {
-        let employee = if let Some(e) = self.emp_cache.get(&row.emp_id_number) {
-            e.clone()
-        } else {
-            let Ok(Some(emp)) = self
-                .employee_repo
-                .get_employee_by_id_number(
-                    &row.emp_id_number,
-                    &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
-                )
-                .await
-            else {
-                return Err(AppError::Internal(fmt_msg(
-                    self.msgs.system_save_error,
-                    &[
-                        ("emp", &row.emp_id_number),
-                        ("line", &row.line_number.to_string()),
-                    ],
-                )));
-            };
-            self.emp_cache
-                .insert(row.emp_id_number.clone(), emp.clone());
-            emp
-        };
+        let employee = self
+            .validate_employee_mapping(job.workspace_id, row)
+            .await?;
 
         if job.target_type == ImportTargetType::Log {
-            let Some(log_svc) = self.log_svc.as_ref() else {
-                return Err(AppError::Internal(fmt_msg(
-                    self.msgs.system_save_error,
-                    &[
-                        ("emp", &row.emp_id_number),
-                        ("line", &row.line_number.to_string()),
-                    ],
-                )));
-            };
-            match log_svc
-                .process_parsed_log(
-                    job.workspace_id,
-                    employee.id(),
-                    row.punch_time,
-                    LogSource::Import,
-                    None,
-                    None,
-                )
-                .await
-            {
-                Ok(true) => Ok(Some(Uuid::new_v4())),
-                Ok(false) => Ok(None),
-                Err(e) => {
-                    error!("UNIFIED_LOG_SERVICE_ERROR: {}", e);
-                    Err(AppError::Internal(fmt_msg(
-                        self.msgs.system_save_error,
-                        &[
-                            ("emp", &row.emp_id_number),
-                            ("line", &row.line_number.to_string()),
-                        ],
-                    )))
-                }
-            }
+            self.process_log_punch(job.workspace_id, &employee, row).await
         } else {
-            let Some(employment_id) = employee.active_employment_id() else {
-                return Err(AppError::not_found(I18nKey::NoActiveEmployment));
-            };
-
-            let req = CreateAttendanceAdjustmentRequest {
-                employment_id,
-                time_entry_id: None,
-                requested_punch_time: row.punch_time,
-                reason: Some("Import from Excel/CSV".to_string()),
-                attachment_file_ids: None,
-            };
-
-            let adj_svc = AttendanceAdjustmentService::new(
-                Arc::clone(&self.adj_repo),
-                Arc::clone(&deps.raw_log_repo),
-                deps.pairing_service(),
-            );
-
-            match adj_svc
-                .submit_request(job.workspace_id, job.user_id, req)
+            self.process_adjustment_punch(deps, job, &employee, row)
                 .await
-            {
-                Ok(adjustment) => {
-                    let _ = adj_svc
-                        .approve_request(
-                            job.workspace_id,
-                            job.user_id,
-                            adjustment.id(),
-                            AdjustmentStatus::Approved,
-                        )
-                        .await;
-                    Ok(Some(adjustment.id()))
-                }
-                Err(e) => {
-                    error!("ADJUSTMENT_SUBMIT_ERROR: {}", e);
-                    Err(AppError::Internal(fmt_msg(
-                        self.msgs.system_save_error,
-                        &[
-                            ("emp", &row.emp_id_number),
-                            ("line", &row.line_number.to_string()),
-                        ],
-                    )))
-                }
-            }
         }
     }
 }
@@ -561,26 +657,19 @@ pub struct AttendanceImportService {
 }
 
 impl AttendanceImportService {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
-        import_repo: Arc<dyn ImportJobRepository>,
-        adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
-        employee_repo: Arc<dyn EmployeeRepository>,
-        time_entry_repo: Arc<dyn TimeEntryRepository>,
-        workspace_repo: Arc<dyn crate::repositories::workspace_repository::WorkspaceRepository>,
-        dept_repo: Arc<dyn crate::repositories::department_repository::DepartmentRepository>,
-        staging_repo: Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository>,
+        repo_deps: ImportServiceDeps,
         deps: crate::worker::deps::WorkerDeps,
         log_svc: Option<Arc<crate::services::attendance_log_service::AttendanceLogService>>,
     ) -> Self {
         Self {
-            import_repo,
-            adj_repo,
-            employee_repo,
-            _time_entry_repo: time_entry_repo,
-            workspace_repo,
-            dept_repo,
-            staging_repo,
+            import_repo: repo_deps.import_repo,
+            adj_repo: repo_deps.adj_repo,
+            employee_repo: repo_deps.employee_repo,
+            _time_entry_repo: repo_deps.time_entry_repo,
+            workspace_repo: repo_deps.workspace_repo,
+            dept_repo: repo_deps.dept_repo,
+            staging_repo: repo_deps.staging_repo,
             deps,
             log_svc,
         }
