@@ -1,10 +1,13 @@
-use super::{AttendanceReportArgs, CalculateDayUnitsArgs, ReportService};
+use super::{AttendanceReportArgs, CalculateDayUnitsArgs, ReportDataPreamble, ReportService};
 use crate::domain::policy::resolver::{PolicyResolver, ShiftPolicyOverrides};
 use crate::errors::AppError;
 use crate::models::{DailyAttendanceReport, PaginatedResponse};
 use chrono::{NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
+use std::collections::{BTreeMap, HashMap, HashSet};
 use uuid::Uuid;
+
+// ─── Pure post-filter ───────────────────────────────────────────────────────
 
 /// Pure post-join shift-type filter. Applied to the already-built report rows
 /// (after status computation) so pagination counts stay correct. O(rows).
@@ -22,6 +25,35 @@ pub(crate) fn filter_by_shift_type(
         reports
     }
 }
+
+// ─── Report extras (holidays + OT + leave) ──────────────────────────────────
+
+/// Extra data shared between daily and segment report builders.
+/// Fetched once after the preamble, before per-employee iteration.
+pub(crate) struct ReportExtras {
+    holidays_map: HashMap<NaiveDate, crate::models::Holiday>,
+    ot_status_map: HashMap<(Uuid, NaiveDate), String>,
+    leave_date_set: HashSet<(Uuid, NaiveDate)>,
+    leave_details_map: HashMap<(Uuid, NaiveDate), bool>,
+}
+
+impl ReportExtras {
+    fn new(
+        holidays_map: HashMap<NaiveDate, crate::models::Holiday>,
+        ot_status_map: HashMap<(Uuid, NaiveDate), String>,
+        leave_details_map: HashMap<(Uuid, NaiveDate), bool>,
+    ) -> Self {
+        let leave_date_set = leave_details_map.keys().copied().collect();
+        Self {
+            holidays_map,
+            ot_status_map,
+            leave_date_set,
+            leave_details_map,
+        }
+    }
+}
+
+// ─── ReportService: calculation + data fetching ─────────────────────────────
 
 impl ReportService {
     /// Shared calculation for a single day's standard/OT units.
@@ -56,8 +88,621 @@ impl ReportService {
         }
     }
 
+    /// Fetch holidays, OT claim statuses, and leave details — the three extra
+    /// DB calls that both daily and segment reports need after the preamble.
+    async fn fetch_report_extras(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_ids: &[Uuid],
+        emp_ids: &[Uuid],
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<ReportExtras, AppError> {
+        let holidays_map = self
+            .holiday_repo
+            .get_holidays_in_range(auth_token, start_date, end_date)
+            .await?;
+
+        let ot_status_map = self
+            .attendance_daily_summary_repo
+            .get_batch_ot_statuses(auth_token, employment_ids, start_date, end_date)
+            .await?;
+
+        let leave_details_map = self
+            .leave_repo
+            .get_approved_leave_details(auth_token, emp_ids, start_date, end_date)
+            .await?;
+
+        Ok(ReportExtras::new(holidays_map, ot_status_map, leave_details_map))
+    }
+}
+
+// ─── Utility helpers ────────────────────────────────────────────────────────
+
+impl ReportService {
+    /// Build an empty paginated response preserving pagination metadata from
+    /// the preamble.
+    fn empty_paginated_response(
+        preamble: &ReportDataPreamble,
+    ) -> PaginatedResponse<DailyAttendanceReport> {
+        PaginatedResponse {
+            data: Vec::new(),
+            total: usize::try_from(preamble.total_employees()).unwrap_or(0),
+            page: i64::try_from(preamble.page()).unwrap_or(1),
+            limit: i64::try_from(preamble.limit()).unwrap_or(20),
+        }
+    }
+
+    /// Build the final paginated response from collected report rows.
+    fn build_paginated_response(
+        preamble: &ReportDataPreamble,
+        reports: Vec<DailyAttendanceReport>,
+        shift_names: Option<Vec<String>>,
+    ) -> PaginatedResponse<DailyAttendanceReport> {
+        let reports = filter_by_shift_type(reports, shift_names);
+        PaginatedResponse {
+            data: reports,
+            total: usize::try_from(preamble.total_employees()).unwrap_or(0),
+            page: i64::try_from(preamble.page()).unwrap_or(1),
+            limit: i64::try_from(preamble.limit()).unwrap_or(20),
+        }
+    }
+
+    /// Look up attendance rules for an employee, falling back to defaults.
+    fn resolve_attendance_rules(
+        preamble: &ReportDataPreamble,
+        employee_id: Uuid,
+    ) -> crate::models::AttendanceRules {
+        preamble
+            .attendance_rules_map()
+            .get(&employee_id)
+            .cloned()
+            .unwrap_or(crate::models::AttendanceRules {
+                work_unit_minutes: 30,
+                rounding_policy: crate::models::RoundingPolicy::Floor,
+                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                grace_period_minutes: None,
+            })
+    }
+
+    /// Resolve policy rules from working conditions + shift-level overrides.
+    fn resolve_policy_rules(
+        working_conditions: &[crate::models::WorkingCondition],
+        date: NaiveDate,
+        attendance_rules: &crate::models::AttendanceRules,
+        grace_period_minutes: Option<i32>,
+        is_break_auto_deduct: Option<bool>,
+        allow_early_ot: Option<bool>,
+        break_is_overtime: bool,
+        condition_type_catalog: &HashMap<String, crate::models::ConditionTypeDefinition>,
+    ) -> crate::models::PolicyRules {
+        let base_rules = PolicyResolver::build_rules_from_conditions(
+            working_conditions,
+            date,
+            attendance_rules.early_arrival_strategy,
+            grace_period_minutes
+                .unwrap_or(crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES),
+            Some(condition_type_catalog),
+        );
+        let overrides = ShiftPolicyOverrides::new(
+            grace_period_minutes,
+            is_break_auto_deduct,
+            allow_early_ot,
+            attendance_rules.early_arrival_strategy,
+            break_is_overtime,
+        );
+        PolicyResolver::apply_shift_overrides(base_rules, &overrides)
+    }
+
+    /// Determine attendance status from punch data and schedule context.
+    fn determine_status(
+        has_punch_in: bool,
+        punch_in_time: Option<chrono::NaiveTime>,
+        scheduled_start: Option<chrono::NaiveTime>,
+        holiday_entry: Option<&crate::models::Holiday>,
+        has_shift: bool,
+        is_on_leave: bool,
+        grace_minutes: i32,
+    ) -> crate::services::attendance_utils::AttendanceStatus {
+        crate::services::attendance_utils::determine_daily_status(
+            &crate::services::attendance_utils::DailyStatusInput::new(
+                has_punch_in,
+                punch_in_time,
+                scheduled_start,
+                holiday_entry.is_some(),
+                holiday_entry.is_none_or(crate::models::Holiday::is_paid),
+                has_shift,
+                is_on_leave,
+                Some(grace_minutes),
+            ),
+        )
+    }
+}
+
+// ─── Report row builders (free functions — pure, no &self) ──────────────────
+
+/// Build the shared base of a `DailyAttendanceReport` row.
+///
+/// Fills all fields common to both the daily (legacy) and segment paths.
+/// Callers add the path-specific fields (segment identifiers, per-path units).
+fn build_base_report_row(
+    date: NaiveDate,
+    employment_id: Uuid,
+    employee_id: Uuid,
+    employee_name: &str,
+    employee_id_number: &str,
+    shift_symbol: Option<String>,
+    shift_name: Option<String>,
+    scheduled_start: Option<chrono::NaiveTime>,
+    scheduled_end: Option<chrono::NaiveTime>,
+    grace_period_minutes: i32,
+    break_duration_minutes: Option<i32>,
+    break_start: Option<chrono::NaiveTime>,
+    break_end: Option<chrono::NaiveTime>,
+    is_break_auto_deduct: Option<bool>,
+    actual_punch_in: Option<chrono::DateTime<Utc>>,
+    actual_punch_out: Option<chrono::DateTime<Utc>>,
+    std_work_units: i32,
+    ot_work_units: i32,
+    ot_claim_status: Option<String>,
+    work_unit_minutes: i32,
+    status: crate::services::attendance_utils::AttendanceStatus,
+    holiday_entry: Option<&crate::models::Holiday>,
+    generation_metadata: Option<serde_json::Value>,
+    is_leave_paid: Option<bool>,
+    employer_name: Option<String>,
+) -> DailyAttendanceReport {
+    let unit_coeff = f64::from(work_unit_minutes) / 60.0;
+    DailyAttendanceReport {
+        date,
+        employment_id,
+        employee_id,
+        employee_name: employee_name.to_string(),
+        employee_id_number: employee_id_number.to_string(),
+        shift_symbol,
+        shift_name,
+        scheduled_start,
+        scheduled_end,
+        grace_period_minutes: Some(grace_period_minutes),
+        break_duration_minutes,
+        break_start,
+        break_end,
+        is_break_auto_deduct,
+        actual_punch_in,
+        actual_punch_out,
+        std_work_units,
+        ot_work_units,
+        ot_claim_status,
+        unit_type: crate::models::enums::TimekeepingUnit::DAY,
+        unit_coefficient_hours: unit_coeff,
+        computed_std_hours: f64::from(std_work_units) * unit_coeff,
+        computed_ot_hours: f64::from(ot_work_units) * unit_coeff,
+        status,
+        is_holiday: holiday_entry.is_some(),
+        is_unscheduled: status
+            == crate::services::attendance_utils::AttendanceStatus::Unscheduled,
+        holiday_name: holiday_entry.map(|h| h.name().to_string()),
+        generation_metadata,
+        is_leave_paid,
+        employer_name,
+        timezone: None,
+        // Segment fields — overridden by the segment path
+        segment_id: None,
+        shift_id: None,
+        interval_id: None,
+        interval_name: None,
+        segment_type: None,
+        sort_order: None,
+        segment_count: None,
+    }
+}
+
+/// Build optional generation metadata from day entries and schedule traces.
+fn build_daily_metadata(
+    day_entries: &[&crate::models::TimeEntry],
+    daily: &crate::models::EffectiveSchedule,
+) -> Option<serde_json::Value> {
+    let mut m = serde_json::Map::new();
+    if !day_entries.is_empty() {
+        m.insert("time_entries".to_string(), serde_json::json!(day_entries));
+    }
+    if !daily.traces().is_empty() {
+        m.insert("schedule_traces".to_string(), serde_json::json!(daily.traces()));
+    }
+    if m.is_empty() { None } else { Some(serde_json::Value::Object(m)) }
+}
+
+/// Build a single daily-attendance report row for one employee-day.
+///
+/// Encapsulates the full pipeline: policy resolution → unit calculation →
+/// status determination → row construction. Pure function — no I/O.
+fn build_daily_report_row(
+    employee_id: Uuid,
+    employment_id: Uuid,
+    daily: &crate::models::EffectiveSchedule,
+    day_entries: &[&crate::models::TimeEntry],
+    tz: Tz,
+    preamble: &ReportDataPreamble,
+    extras: &ReportExtras,
+    employee_name: &str,
+    employee_id_number: &str,
+) -> DailyAttendanceReport {
+    let date = daily.date();
+
+    let actual_punch_in = day_entries
+        .first()
+        .map(|e| e.punch_in_time().with_timezone(&tz));
+    let actual_punch_out = day_entries
+        .last()
+        .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&tz)));
+
+    let att_rules = ReportService::resolve_attendance_rules(preamble, employee_id);
+
+    let emp_working_conditions = preamble
+        .working_conditions_map()
+        .get(&employee_id)
+        .map_or_else(Default::default, std::vec::Vec::as_slice);
+
+    let rules = ReportService::resolve_policy_rules(
+        emp_working_conditions,
+        date,
+        &att_rules,
+        daily.early_punch_in_grace_period_minutes(),
+        daily.is_break_auto_deduct(),
+        daily.allow_early_ot(),
+        daily.break_is_overtime().unwrap_or(false),
+        preamble.condition_type_catalog(),
+    );
+
+    let grace_minutes = rules.grace_period_minutes();
+
+    let (std_work_units, ot_work_units) =
+        ReportService::calculate_day_units(&CalculateDayUnitsArgs::new(
+            day_entries,
+            daily,
+            date,
+            tz,
+            employee_id,
+            preamble.workspace_id(),
+            att_rules.work_unit_minutes,
+            rules,
+            att_rules.rounding_policy,
+        ));
+
+    let holiday_entry = extras.holidays_map.get(&date);
+    let is_on_leave = extras.leave_date_set.contains(&(employee_id, date));
+    let is_leave_paid = if is_on_leave {
+        extras.leave_details_map.get(&(employee_id, date)).copied()
+    } else {
+        None
+    };
+
+    let status = ReportService::determine_status(
+        actual_punch_in.is_some(),
+        actual_punch_in.map(|p| p.time()),
+        daily.start_time(),
+        holiday_entry,
+        daily.shift_id().is_some(),
+        is_on_leave,
+        grace_minutes,
+    );
+
+    let combined_metadata = build_daily_metadata(day_entries, daily);
+
+    // Employer lookup
+    let employer_name = preamble
+        .employments()
+        .iter()
+        .find(|e| e.id() == employment_id)
+        .map(crate::models::Employment::employer_id)
+        .and_then(|id| preamble.employer_name_map().get(&id).cloned());
+
+    build_base_report_row(
+        date,
+        employment_id,
+        employee_id,
+        employee_name,
+        employee_id_number,
+        daily.shift_symbol().map(String::from),
+        daily.shift_name().map(String::from),
+        daily.start_time(),
+        daily.end_time(),
+        grace_minutes,
+        daily.break_duration_minutes(),
+        daily.break_start(),
+        daily.break_end(),
+        daily.is_break_auto_deduct(),
+        actual_punch_in.map(|t| t.with_timezone(&Utc)),
+        actual_punch_out.map(|t| t.with_timezone(&Utc)),
+        std_work_units,
+        ot_work_units,
+        extras
+            .ot_status_map
+            .get(&(employment_id, date))
+            .cloned(),
+        att_rules.work_unit_minutes,
+        status,
+        holiday_entry,
+        combined_metadata,
+        is_leave_paid,
+        employer_name,
+    )
+}
+
+/// Build report rows for all segments of one employee-day.
+///
+/// Handles status determination and row construction for each segment,
+/// reusing pre-computed matched entries and resolved rules from
+/// [`build_segment_calc_inputs`].
+fn build_segment_report_rows(
+    employee_id: Uuid,
+    employment_id: Uuid,
+    date: NaiveDate,
+    day_segs: &[&crate::models::ResolvedSegment],
+    cached_matched: &[Vec<&crate::models::TimeEntry>],
+    cached_rules: &[crate::models::PolicyRules],
+    segment_result: &crate::services::SegmentAttendanceResult,
+    att_rules: &crate::models::AttendanceRules,
+    preamble: &ReportDataPreamble,
+    extras: &ReportExtras,
+    employee_name: &str,
+    employee_id_number: &str,
+    tz: Tz,
+) -> Vec<DailyAttendanceReport> {
+    let holiday_entry = extras.holidays_map.get(&date);
+    let is_on_leave = extras.leave_date_set.contains(&(employee_id, date));
+    let is_leave_paid = if is_on_leave {
+        extras
+            .leave_details_map
+            .get(&(employee_id, date))
+            .copied()
+    } else {
+        None
+    };
+    let segment_count = i32::try_from(day_segs.len()).unwrap_or(1);
+    let employer_name = preamble
+        .employments()
+        .iter()
+        .find(|e| e.id() == employment_id)
+        .map(crate::models::Employment::employer_id)
+        .and_then(|id| preamble.employer_name_map().get(&id).cloned());
+
+    let mut rows = Vec::new();
+
+    for (seg_idx, seg) in day_segs.iter().enumerate() {
+        let matched = &cached_matched[seg_idx];
+        let seg_rules = &cached_rules[seg_idx];
+
+        let actual_punch_in = matched
+            .first()
+            .map(|e| e.punch_in_time().with_timezone(&Utc));
+        let actual_punch_out = matched
+            .last()
+            .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&Utc)));
+
+        let (seg_std, seg_ot) = segment_result.segment_units(
+            seg_idx,
+            att_rules.work_unit_minutes,
+            att_rules.rounding_policy,
+        );
+
+        let segment_grace = seg_rules.grace_period_minutes();
+
+        let status = ReportService::determine_status(
+            actual_punch_in.is_some(),
+            actual_punch_in.map(|p| p.with_timezone(&tz).time()),
+            Some(seg.scheduled_start),
+            holiday_entry,
+            true,
+            is_on_leave,
+            segment_grace,
+        );
+
+        let mut row = build_base_report_row(
+            date,
+            employment_id,
+            employee_id,
+            employee_name,
+            employee_id_number,
+            seg.shift_symbol.clone(),
+            seg.shift_name.clone(),
+            Some(seg.scheduled_start),
+            Some(seg.scheduled_end),
+            segment_grace,
+            seg.break_duration_minutes,
+            seg.break_start,
+            seg.break_end,
+            seg.is_break_auto_deduct,
+            actual_punch_in,
+            actual_punch_out,
+            seg_std,
+            seg_ot,
+            extras
+                .ot_status_map
+                .get(&(employment_id, date))
+                .cloned(),
+            att_rules.work_unit_minutes,
+            status,
+            holiday_entry,
+            None,
+            is_leave_paid,
+            employer_name.clone(),
+        );
+
+        // Segment-specific fields
+        row.segment_id = seg.interval_id;
+        row.shift_id = Some(seg.shift_id);
+        row.interval_id = seg.interval_id;
+        row.interval_name.clone_from(&seg.interval_name);
+        row.segment_type = Some(seg.segment_type.clone());
+        row.sort_order = Some(i32::try_from(seg_idx).unwrap_or(0));
+        row.segment_count = Some(segment_count);
+
+        rows.push(row);
+    }
+
+    rows
+}
+
+/// Group segment indices by their date field for per-day processing.
+fn group_segments_by_date(
+    segments: &[crate::models::ResolvedSegment],
+) -> BTreeMap<NaiveDate, Vec<usize>> {
+    let mut map: BTreeMap<NaiveDate, Vec<usize>> = BTreeMap::new();
+    for (i, seg) in segments.iter().enumerate() {
+        if let Some(date) = seg.date {
+            map.entry(date).or_default().push(i);
+        }
+    }
+    map
+}
+
+/// Midnight fallback datetime for segments with no punch data.
+fn midnight_datetime(date: NaiveDate, tz: Tz) -> chrono::DateTime<Tz> {
+    tz.from_utc_datetime(
+        &date
+            .and_time(chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap_or_default())
+            .and_utc()
+            .naive_utc(),
+    )
+}
+
+/// Build per-segment calculation inputs for one employee-day.
+///
+/// Matches time entries to each segment, resolves policy rules, and constructs
+/// `DailyCalcInput` values for [`AttendanceService::compute_segment_attendance`].
+/// Returns `(matched_entries, resolved_rules, calc_inputs)` — the first two are
+/// cached for reuse in the report-row builder.
+fn build_segment_calc_inputs<'a>(
+    day_segs: &[&crate::models::ResolvedSegment],
+    day_entries: &[&'a crate::models::TimeEntry],
+    date: NaiveDate,
+    tz: Tz,
+    working_conditions: &[crate::models::WorkingCondition],
+    att_rules: &crate::models::AttendanceRules,
+    condition_type_catalog: &HashMap<String, crate::models::ConditionTypeDefinition>,
+) -> (
+    Vec<Vec<&'a crate::models::TimeEntry>>,
+    Vec<crate::models::PolicyRules>,
+    Vec<crate::services::attendance_calculator::DailyCalcInput<Tz>>,
+) {
+    let mut cached_matched: Vec<Vec<&crate::models::TimeEntry>> = Vec::new();
+    let mut cached_rules: Vec<crate::models::PolicyRules> = Vec::new();
+    let mut segment_calc_inputs: Vec<
+        crate::services::attendance_calculator::DailyCalcInput<Tz>,
+    > = Vec::new();
+
+    for seg in day_segs {
+        let matched = ReportService::match_entries_to_segment(day_entries, seg, date, tz);
+
+        let actual_punch_in = matched
+            .first()
+            .map(|e| e.punch_in_time().with_timezone(&tz));
+        let actual_punch_out = matched
+            .last()
+            .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&tz)));
+
+        let shift_start_dt = tz
+            .from_local_datetime(&date.and_time(seg.scheduled_start))
+            .single();
+        let shift_end_dt = {
+            let raw = tz
+                .from_local_datetime(&date.and_time(seg.scheduled_end))
+                .single();
+            if seg.scheduled_end < seg.scheduled_start {
+                raw.map(|dt| dt + chrono::Duration::days(1))
+            } else {
+                raw
+            }
+        };
+
+        let rules = ReportService::resolve_policy_rules(
+            working_conditions,
+            date,
+            att_rules,
+            Some(seg.early_punch_in_grace_period_minutes),
+            seg.is_break_auto_deduct,
+            Some(seg.allow_early_ot),
+            seg.break_is_overtime.unwrap_or(false),
+            condition_type_catalog,
+        );
+
+        // OT ceiling from next segment
+        let ot_ceiling = day_segs
+            .iter()
+            .filter(|s| s.scheduled_start > seg.scheduled_start)
+            .min_by_key(|s| s.scheduled_start)
+            .and_then(|next| {
+                tz.from_local_datetime(&date.and_time(next.scheduled_start))
+                    .single()
+            });
+
+        let actual_break_minutes: i32 = matched
+            .iter()
+            .filter(|e| e.entry_type() == crate::services::pairing::types::EntryType::Break)
+            .map(|e| e.duration_minutes().unwrap_or(0))
+            .sum();
+
+        cached_matched.push(matched.clone());
+        cached_rules.push(rules.clone());
+
+        let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) else {
+            // No punch data — use shift start as fallback
+            let no_punch = shift_start_dt.unwrap_or_else(|| midnight_datetime(date, tz));
+            segment_calc_inputs.push(
+                crate::services::attendance_calculator::DailyCalcInput {
+                    punch_in: no_punch,
+                    punch_out: no_punch,
+                    shift_start: shift_start_dt,
+                    shift_end: shift_end_dt,
+                    scheduled_break_minutes: seg.break_duration_minutes.unwrap_or(0),
+                    actual_break_minutes: 0,
+                    break_start: None,
+                    break_end: None,
+                    work_unit: att_rules.work_unit_minutes,
+                    rounding_policy: att_rules.rounding_policy,
+                    rules: rules.clone(),
+                    ot_ceiling,
+                    max_early_ot_minutes: seg.max_early_ot_minutes,
+                    segment_id: seg.interval_id,
+                    ot_aggregation_mode: seg.ot_aggregation_mode,
+                },
+            );
+            continue;
+        };
+
+        segment_calc_inputs.push(
+            crate::services::attendance_calculator::DailyCalcInput {
+                punch_in,
+                punch_out,
+                shift_start: shift_start_dt,
+                shift_end: shift_end_dt,
+                scheduled_break_minutes: seg.break_duration_minutes.unwrap_or(0),
+                actual_break_minutes,
+                break_start: seg
+                    .break_start
+                    .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single()),
+                break_end: seg
+                    .break_end
+                    .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single()),
+                work_unit: att_rules.work_unit_minutes,
+                rounding_policy: att_rules.rounding_policy,
+                rules: rules.clone(),
+                ot_ceiling,
+                max_early_ot_minutes: seg.max_early_ot_minutes,
+                segment_id: seg.interval_id,
+                ot_aggregation_mode: seg.ot_aggregation_mode,
+            },
+        );
+    }
+
+    (cached_matched, cached_rules, segment_calc_inputs)
+}
+
+// ─── Public report methods ──────────────────────────────────────────────────
+
+impl ReportService {
     #[tracing::instrument(skip_all, err)]
-    #[allow(clippy::too_many_lines)]
     pub async fn get_daily_attendance_report(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -65,14 +710,10 @@ impl ReportService {
     ) -> Result<PaginatedResponse<DailyAttendanceReport>, AppError> {
         let preamble = self.fetch_preamble(auth_token, &args, None).await?;
         if preamble.paginated_employees().is_empty() {
-            return Ok(PaginatedResponse {
-                data: Vec::new(),
-                total: usize::try_from(preamble.total_employees()).unwrap_or(0),
-                page: i64::try_from(preamble.page()).unwrap_or(1),
-                limit: i64::try_from(preamble.limit()).unwrap_or(20),
-            });
+            return Ok(Self::empty_paginated_response(&preamble));
         }
-        let shift_names: Option<Vec<String>> = args.shift_type.as_ref().map(|s| {
+
+        let shift_names = args.shift_type.as_deref().map(|s| {
             s.split(',')
                 .map(str::trim)
                 .filter(|p| !p.is_empty())
@@ -80,6 +721,15 @@ impl ReportService {
                 .collect()
         });
         let tz = preamble.workspace_tz();
+        let extras = self
+            .fetch_report_extras(
+                auth_token,
+                preamble.paginated_employment_ids(),
+                preamble.emp_ids(),
+                args.start_date,
+                args.end_date,
+            )
+            .await?;
 
         let (schedules, _) = self
             .roster_repo
@@ -93,34 +743,6 @@ impl ReportService {
                 None,
             )
             .await?;
-
-        let holidays_map = self
-            .holiday_repo
-            .get_holidays_in_range(auth_token, args.start_date, args.end_date)
-            .await?;
-
-        let ot_status_map = self
-            .attendance_daily_summary_repo
-            .get_batch_ot_statuses(
-                auth_token,
-                preamble.paginated_employment_ids(),
-                args.start_date,
-                args.end_date,
-            )
-            .await?;
-
-        let leave_details_map = self
-            .leave_repo
-            .get_approved_leave_details(
-                auth_token,
-                preamble.emp_ids(),
-                args.start_date,
-                args.end_date,
-            )
-            .await?;
-
-        let leave_date_set: std::collections::HashSet<(Uuid, NaiveDate)> =
-            leave_details_map.keys().copied().collect();
 
         let mut reports = Vec::new();
 
@@ -145,181 +767,25 @@ impl ReportService {
                 crate::services::attendance_utils::group_entries_by_date(entries, tz);
 
             for daily in emp_sched.schedules() {
-                let date = daily.date();
-
                 let day_entries = entries_by_date
-                    .get(&date)
+                    .get(&daily.date())
                     .map_or_else(Default::default, std::vec::Vec::as_slice);
 
-                let actual_punch_in = day_entries
-                    .first()
-                    .map(|e| e.punch_in_time().with_timezone(&tz));
-                let actual_punch_out = day_entries
-                    .last()
-                    .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&tz)));
-
-                let emp_attendance_rules = preamble
-                    .attendance_rules_map()
-                    .get(&employee_id)
-                    .cloned()
-                    .unwrap_or(crate::models::AttendanceRules {
-                        work_unit_minutes: 30,
-                        rounding_policy: crate::models::RoundingPolicy::Floor,
-                        early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-                        grace_period_minutes: None,
-                    });
-
-                let emp_working_conditions = preamble
-                    .working_conditions_map()
-                    .get(&employee_id)
-                    .map_or_else(Default::default, std::vec::Vec::as_slice);
-
-                let base_rules = PolicyResolver::build_rules_from_conditions(
-                    emp_working_conditions,
-                    date,
-                    emp_attendance_rules.early_arrival_strategy,
-                    emp_attendance_rules
-                        .grace_period_minutes
-                        .unwrap_or(crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES),
-                    Some(preamble.condition_type_catalog()),
-                );
-
-                let overrides = ShiftPolicyOverrides::new(
-                    daily.early_punch_in_grace_period_minutes(),
-                    daily.is_break_auto_deduct(),
-                    daily.allow_early_ot(),
-                    emp_attendance_rules.early_arrival_strategy,
-                    daily.break_is_overtime().unwrap_or(false),
-                );
-                let rules = PolicyResolver::apply_shift_overrides(base_rules, &overrides);
-
-                // Resolved late/absence grace for this employee-day (default 15 when the
-                // attendance policy leaves it unset). Captured once and reused both for
-                // status determination and as the row-level `grace_period_minutes` field
-                // so the frontend computes A/B/C no-show zones with the *same* value.
-                let grace_minutes = rules.grace_period_minutes();
-
-                let (std_work_units, ot_work_units) =
-                    Self::calculate_day_units(&CalculateDayUnitsArgs::new(
-                        day_entries,
-                        daily,
-                        date,
-                        tz,
-                        employee_id,
-                        preamble.workspace_id(),
-                        emp_attendance_rules.work_unit_minutes,
-                        rules.clone(),
-                        emp_attendance_rules.rounding_policy,
-                    ));
-
-                let holiday_entry = holidays_map.get(&date);
-                let is_hol = holiday_entry.is_some();
-                let is_on_leave = leave_date_set.contains(&(employee_id, date));
-                let is_leave_paid = if is_on_leave {
-                    leave_details_map.get(&(employee_id, date)).copied()
-                } else {
-                    None
-                };
-
-                let status = crate::services::attendance_utils::determine_daily_status(
-                    &crate::services::attendance_utils::DailyStatusInput::new(
-                        actual_punch_in.is_some(),
-                        actual_punch_in.map(|p| p.time()),
-                        daily.start_time(),
-                        is_hol,
-                        holiday_entry.is_none_or(crate::models::Holiday::is_paid),
-                        daily.shift_id().is_some(),
-                        is_on_leave,
-                        Some(grace_minutes),
-                    ),
-                );
-
-                let mut metadata_map = serde_json::Map::new();
-
-                if !day_entries.is_empty() {
-                    metadata_map.insert("time_entries".to_string(), serde_json::json!(day_entries));
-                }
-
-                if !daily.traces().is_empty() {
-                    metadata_map.insert(
-                        "schedule_traces".to_string(),
-                        serde_json::json!(daily.traces()),
-                    );
-                }
-
-                let combined_metadata = if metadata_map.is_empty() {
-                    None
-                } else {
-                    Some(serde_json::Value::Object(metadata_map))
-                };
-
-                let employer_id = preamble
-                    .employments()
-                    .iter()
-                    .find(|e| e.id() == emp_sched.employment_id())
-                    .map(crate::models::Employment::employer_id);
-                let employer_name =
-                    employer_id.and_then(|id| preamble.employer_name_map().get(&id).cloned());
-
-                reports.push(DailyAttendanceReport {
-                    date,
-                    employment_id: emp_sched.employment_id(),
+                reports.push(build_daily_report_row(
                     employee_id,
-                    employee_name: emp_sched.full_name().to_string(),
-                    employee_id_number: emp_sched.employee_id_number().to_string(),
-                    shift_symbol: daily.shift_symbol().map(String::from),
-                    shift_name: daily.shift_name().map(String::from),
-                    scheduled_start: daily.start_time(),
-                    scheduled_end: daily.end_time(),
-                    grace_period_minutes: Some(grace_minutes),
-                    break_duration_minutes: daily.break_duration_minutes(),
-                    break_start: daily.break_start(),
-                    break_end: daily.break_end(),
-                    is_break_auto_deduct: daily.is_break_auto_deduct(),
-                    actual_punch_in: actual_punch_in.map(|t| t.with_timezone(&Utc)),
-                    actual_punch_out: actual_punch_out.map(|t| t.with_timezone(&Utc)),
-                    std_work_units,
-                    // Segment fields (legacy path — none)
-                    segment_id: None,
-                    shift_id: None,
-                    interval_id: None,
-                    interval_name: None,
-                    segment_type: None,
-                    sort_order: None,
-                    segment_count: None,
-                    ot_work_units,
-                    ot_claim_status: ot_status_map
-                        .get(&(emp_sched.employment_id(), date))
-                        .cloned(),
-                    unit_type: crate::models::enums::TimekeepingUnit::DAY,
-                    unit_coefficient_hours: f64::from(emp_attendance_rules.work_unit_minutes)
-                        / 60.0,
-                    computed_std_hours: f64::from(std_work_units)
-                        * (f64::from(emp_attendance_rules.work_unit_minutes) / 60.0),
-                    computed_ot_hours: f64::from(ot_work_units)
-                        * (f64::from(emp_attendance_rules.work_unit_minutes) / 60.0),
-                    status,
-                    is_holiday: is_hol,
-                    is_unscheduled: status
-                        == crate::services::attendance_utils::AttendanceStatus::Unscheduled,
-                    holiday_name: holiday_entry.map(|h| h.name().to_string()),
-                    generation_metadata: combined_metadata,
-                    is_leave_paid,
-                    employer_name,
-                    timezone: None,
-                });
+                    emp_sched.employment_id(),
+                    daily,
+                    day_entries,
+                    tz,
+                    &preamble,
+                    &extras,
+                    emp_sched.full_name(),
+                    emp_sched.employee_id_number(),
+                ));
             }
         }
 
-        // Post-join shift-type filter (O(rows), mirrors the existing employer_id filter).
-        let reports = filter_by_shift_type(reports, shift_names);
-
-        Ok(PaginatedResponse {
-            data: reports,
-            total: usize::try_from(preamble.total_employees()).unwrap_or(0),
-            page: i64::try_from(preamble.page()).unwrap_or(1),
-            limit: i64::try_from(preamble.limit()).unwrap_or(20),
-        })
+        Ok(Self::build_paginated_response(&preamble, reports, shift_names))
     }
 
     /// Segment-centric daily attendance report.
@@ -330,7 +796,6 @@ impl ReportService {
     /// overlap, and [`AttendanceCalculator::calculate_segment_units`] is used
     /// for multi-segment days.
     #[tracing::instrument(skip_all, err)]
-    #[allow(clippy::too_many_lines)]
     pub async fn get_segment_attendance_report(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -338,14 +803,10 @@ impl ReportService {
     ) -> Result<PaginatedResponse<DailyAttendanceReport>, AppError> {
         let preamble = self.fetch_preamble(auth_token, &args, None).await?;
         if preamble.paginated_employees().is_empty() {
-            return Ok(PaginatedResponse {
-                data: Vec::new(),
-                total: usize::try_from(preamble.total_employees()).unwrap_or(0),
-                page: i64::try_from(preamble.page()).unwrap_or(1),
-                limit: i64::try_from(preamble.limit()).unwrap_or(20),
-            });
+            return Ok(Self::empty_paginated_response(&preamble));
         }
-        let shift_names: Option<Vec<String>> = args.shift_type.as_ref().map(|s| {
+
+        let shift_names = args.shift_type.as_deref().map(|s| {
             s.split(',')
                 .map(str::trim)
                 .filter(|p| !p.is_empty())
@@ -353,8 +814,16 @@ impl ReportService {
                 .collect()
         });
         let tz = preamble.workspace_tz();
+        let extras = self
+            .fetch_report_extras(
+                auth_token,
+                preamble.paginated_employment_ids(),
+                preamble.emp_ids(),
+                args.start_date,
+                args.end_date,
+            )
+            .await?;
 
-        // ── Segment-centric schedule resolution ──
         let (employee_segments, _) = self
             .roster_repo
             .get_workspace_segments(
@@ -368,35 +837,6 @@ impl ReportService {
             )
             .await?;
 
-        let holidays_map = self
-            .holiday_repo
-            .get_holidays_in_range(auth_token, args.start_date, args.end_date)
-            .await?;
-
-        let ot_status_map = self
-            .attendance_daily_summary_repo
-            .get_batch_ot_statuses(
-                auth_token,
-                preamble.paginated_employment_ids(),
-                args.start_date,
-                args.end_date,
-            )
-            .await?;
-
-        let leave_details_map = self
-            .leave_repo
-            .get_approved_leave_details(
-                auth_token,
-                preamble.emp_ids(),
-                args.start_date,
-                args.end_date,
-            )
-            .await?;
-
-        let leave_date_set: std::collections::HashSet<(Uuid, NaiveDate)> =
-            leave_details_map.keys().copied().collect();
-
-        // ── Build segment-centric report rows ──
         let mut reports = Vec::new();
 
         for emp_segs in &employee_segments {
@@ -419,305 +859,58 @@ impl ReportService {
             let entries_by_date =
                 crate::services::attendance_utils::group_entries_by_date(entries, tz);
 
-            // Group segments by date for per-day context
-            let mut segments_by_date: std::collections::BTreeMap<NaiveDate, Vec<usize>> =
-                std::collections::BTreeMap::new();
+            // Group segments by date
+            let segments_by_date = group_segments_by_date(emp_segs.segments());
             let all_segs = emp_segs.segments();
-            for (i, seg) in all_segs.iter().enumerate() {
-                if let Some(date) = seg.date {
-                    segments_by_date.entry(date).or_default().push(i);
-                }
-            }
 
-            let emp_attendance_rules = preamble
-                .attendance_rules_map()
-                .get(&employee_id)
-                .cloned()
-                .unwrap_or(crate::models::AttendanceRules {
-                    work_unit_minutes: 30,
-                    rounding_policy: crate::models::RoundingPolicy::Floor,
-                    early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-                    grace_period_minutes: None,
-                });
-
+            let att_rules = Self::resolve_attendance_rules(&preamble, employee_id);
             let emp_working_conditions = preamble
                 .working_conditions_map()
                 .get(&employee_id)
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
 
             for (date, seg_indices) in &segments_by_date {
-                let day_entries = entries_by_date
-                    .get(date)
-                    .map_or_else(Default::default, std::vec::Vec::as_slice);
-
-                let holiday_entry = holidays_map.get(date);
-                let is_hol = holiday_entry.is_some();
-                let is_on_leave = leave_date_set.contains(&(employee_id, *date));
-                let is_leave_paid = if is_on_leave {
-                    leave_details_map.get(&(employee_id, *date)).copied()
-                } else {
-                    None
-                };
-
                 let day_segs: Vec<&crate::models::ResolvedSegment> =
                     seg_indices.iter().map(|&i| &all_segs[i]).collect();
 
-                let segment_count = i32::try_from(day_segs.len()).unwrap_or(1);
-
-                // Build per-segment calc inputs, caching matched entries and resolved
-                // rules per segment so the report-row loop below can reuse them without
-                // recomputing (eliminating the previous duplicate match_entries_to_segment call).
-                let mut segment_calc_inputs: Vec<
-                    crate::services::attendance_calculator::DailyCalcInput<chrono_tz::Tz>,
-                > = Vec::new();
-                let mut cached_matched: Vec<Vec<&crate::models::TimeEntry>> = Vec::new();
-                let mut cached_rules: Vec<crate::models::PolicyRules> = Vec::new();
-
-                for seg in &day_segs {
-                    let matched = Self::match_entries_to_segment(day_entries, seg, *date, tz);
-
-                    let actual_punch_in = matched
-                        .first()
-                        .map(|e| e.punch_in_time().with_timezone(&tz));
-                    let actual_punch_out = matched
-                        .last()
-                        .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&tz)));
-
-                    let shift_start_dt = tz
-                        .from_local_datetime(&date.and_time(seg.scheduled_start))
-                        .single();
-                    let shift_end_dt = {
-                        if seg.scheduled_end < seg.scheduled_start {
-                            // overnight segment
-                            let raw = tz
-                                .from_local_datetime(&date.and_time(seg.scheduled_end))
-                                .single();
-                            raw.map(|dt| dt + chrono::Duration::days(1))
-                        } else {
-                            tz.from_local_datetime(&date.and_time(seg.scheduled_end))
-                                .single()
-                        }
-                    };
-
-                    let base_rules = PolicyResolver::build_rules_from_conditions(
-                        emp_working_conditions,
+                let (cached_matched, cached_rules, segment_calc_inputs) =
+                    build_segment_calc_inputs(
+                        &day_segs,
+                        entries_by_date
+                            .get(date)
+                            .map_or_else(Default::default, std::vec::Vec::as_slice),
                         *date,
-                        emp_attendance_rules.early_arrival_strategy,
-                        emp_attendance_rules.grace_period_minutes.unwrap_or(
-                            crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES,
-                        ),
-                        Some(preamble.condition_type_catalog()),
+                        tz,
+                        emp_working_conditions,
+                        &att_rules,
+                        preamble.condition_type_catalog(),
                     );
 
-                    let overrides = ShiftPolicyOverrides::new(
-                        Some(seg.early_punch_in_grace_period_minutes),
-                        seg.is_break_auto_deduct,
-                        Some(seg.allow_early_ot),
-                        emp_attendance_rules.early_arrival_strategy,
-                        seg.break_is_overtime.unwrap_or(false),
+                let segment_result =
+                    crate::services::AttendanceService::compute_segment_attendance(
+                        &segment_calc_inputs,
                     );
-                    let rules = PolicyResolver::apply_shift_overrides(base_rules, &overrides);
 
-                    // Compute OT ceiling from next segment
-                    let ot_ceiling = day_segs
-                        .iter()
-                        .filter(|s| s.scheduled_start > seg.scheduled_start)
-                        .min_by_key(|s| s.scheduled_start)
-                        .and_then(|next| {
-                            tz.from_local_datetime(&date.and_time(next.scheduled_start))
-                                .single()
-                        });
-
-                    let actual_break_minutes: i32 = matched
-                        .iter()
-                        .filter(|e| {
-                            e.entry_type() == crate::services::pairing::types::EntryType::Break
-                        })
-                        .map(|e| e.duration_minutes().unwrap_or(0))
-                        .sum();
-
-                    // Cache matched entries and resolved rules for the report-row loop below.
-                    cached_matched.push(matched.clone());
-                    cached_rules.push(rules.clone());
-
-                    // Skip segments with no punch data — no fake timestamps
-                    let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out)
-                    else {
-                        segment_calc_inputs.push(
-                            crate::services::attendance_calculator::DailyCalcInput {
-                                punch_in: shift_start_dt.unwrap_or_else(|| {
-                                    tz.from_utc_datetime(
-                                        &date
-                                            .and_time(
-                                                chrono::NaiveTime::from_hms_opt(0, 0, 0)
-                                                    .unwrap_or_default(),
-                                            )
-                                            .and_utc()
-                                            .naive_utc(),
-                                    )
-                                }),
-                                punch_out: shift_start_dt.unwrap_or_else(|| {
-                                    tz.from_utc_datetime(
-                                        &date
-                                            .and_time(
-                                                chrono::NaiveTime::from_hms_opt(0, 0, 0)
-                                                    .unwrap_or_default(),
-                                            )
-                                            .and_utc()
-                                            .naive_utc(),
-                                    )
-                                }),
-                                shift_start: shift_start_dt,
-                                shift_end: shift_end_dt,
-                                scheduled_break_minutes: seg.break_duration_minutes.unwrap_or(0),
-                                actual_break_minutes: 0,
-                                break_start: None,
-                                break_end: None,
-                                work_unit: emp_attendance_rules.work_unit_minutes,
-                                rounding_policy: emp_attendance_rules.rounding_policy,
-                                rules: rules.clone(),
-                                ot_ceiling,
-                                max_early_ot_minutes: seg.max_early_ot_minutes,
-                                segment_id: seg.interval_id,
-                                ot_aggregation_mode: seg.ot_aggregation_mode,
-                            },
-                        );
-                        continue;
-                    };
-
-                    segment_calc_inputs.push(
-                        crate::services::attendance_calculator::DailyCalcInput {
-                            punch_in,
-                            punch_out,
-                            shift_start: shift_start_dt,
-                            shift_end: shift_end_dt,
-                            scheduled_break_minutes: seg.break_duration_minutes.unwrap_or(0),
-                            actual_break_minutes,
-                            break_start: seg
-                                .break_start
-                                .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single()),
-                            break_end: seg
-                                .break_end
-                                .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single()),
-                            work_unit: emp_attendance_rules.work_unit_minutes,
-                            rounding_policy: emp_attendance_rules.rounding_policy,
-                            rules: rules.clone(),
-                            ot_ceiling,
-                            max_early_ot_minutes: seg.max_early_ot_minutes,
-                            segment_id: seg.interval_id,
-                            ot_aggregation_mode: seg.ot_aggregation_mode,
-                        },
-                    );
-                }
-
-                let segment_result = crate::services::AttendanceService::compute_segment_attendance(
-                    &segment_calc_inputs,
+                let seg_rows = build_segment_report_rows(
+                    employee_id,
+                    emp_segs.employment_id(),
+                    *date,
+                    &day_segs,
+                    &cached_matched,
+                    &cached_rules,
+                    &segment_result,
+                    &att_rules,
+                    &preamble,
+                    &extras,
+                    emp_segs.full_name(),
+                    emp_segs.employee_id_number(),
+                    tz,
                 );
-
-                // Build report rows for each segment, reusing cached matched entries
-                // and resolved rules from the calc-inputs loop above (no redundant re-match).
-                for (seg_idx, seg) in day_segs.iter().enumerate() {
-                    let matched = &cached_matched[seg_idx];
-                    let seg_rules = &cached_rules[seg_idx];
-
-                    let actual_punch_in = matched
-                        .first()
-                        .map(|e| e.punch_in_time().with_timezone(&Utc));
-                    let actual_punch_out = matched
-                        .last()
-                        .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&Utc)));
-
-                    let (seg_std, seg_ot) = segment_result.segment_units(
-                        seg_idx,
-                        emp_attendance_rules.work_unit_minutes,
-                        emp_attendance_rules.rounding_policy,
-                    );
-
-                    // Resolved late/absence grace for this segment row: uses the fully-resolved
-                    // rules (which include shift-level overrides via apply_shift_overrides),
-                    // matching the daily report's behavior. Previously this bypassed shift overrides.
-                    let segment_grace = seg_rules.grace_period_minutes();
-
-                    let status = crate::services::attendance_utils::determine_daily_status(
-                        &crate::services::attendance_utils::DailyStatusInput::new(
-                            actual_punch_in.is_some(),
-                            actual_punch_in.map(|p| p.with_timezone(&tz).time()),
-                            Some(seg.scheduled_start),
-                            is_hol,
-                            holiday_entry.is_none_or(crate::models::Holiday::is_paid),
-                            true,
-                            is_on_leave,
-                            Some(segment_grace),
-                        ),
-                    );
-
-                    let employer_id = preamble
-                        .employments()
-                        .iter()
-                        .find(|e| e.id() == emp_segs.employment_id())
-                        .map(crate::models::Employment::employer_id);
-                    let employer_name =
-                        employer_id.and_then(|id| preamble.employer_name_map().get(&id).cloned());
-
-                    let unit_coeff = f64::from(emp_attendance_rules.work_unit_minutes) / 60.0;
-
-                    reports.push(DailyAttendanceReport {
-                        date: *date,
-                        employment_id: emp_segs.employment_id(),
-                        employee_id,
-                        employee_name: emp_segs.full_name().to_string(),
-                        employee_id_number: emp_segs.employee_id_number().to_string(),
-                        shift_symbol: seg.shift_symbol.clone(),
-                        shift_name: seg.shift_name.clone(),
-                        scheduled_start: Some(seg.scheduled_start),
-                        scheduled_end: Some(seg.scheduled_end),
-                        grace_period_minutes: Some(segment_grace),
-                        break_duration_minutes: seg.break_duration_minutes,
-                        break_start: seg.break_start,
-                        break_end: seg.break_end,
-                        is_break_auto_deduct: seg.is_break_auto_deduct,
-                        actual_punch_in,
-                        actual_punch_out,
-                        std_work_units: seg_std,
-                        ot_work_units: seg_ot,
-                        ot_claim_status: ot_status_map
-                            .get(&(emp_segs.employment_id(), *date))
-                            .cloned(),
-                        unit_type: crate::models::enums::TimekeepingUnit::DAY,
-                        unit_coefficient_hours: unit_coeff,
-                        computed_std_hours: f64::from(seg_std) * unit_coeff,
-                        computed_ot_hours: f64::from(seg_ot) * unit_coeff,
-                        status,
-                        is_holiday: is_hol,
-                        is_unscheduled: status
-                            == crate::services::attendance_utils::AttendanceStatus::Unscheduled,
-                        holiday_name: holiday_entry.map(|h| h.name().to_string()),
-                        generation_metadata: None,
-                        is_leave_paid,
-                        employer_name,
-                        timezone: None,
-                        // Segment fields
-                        segment_id: seg.interval_id,
-                        shift_id: Some(seg.shift_id),
-                        interval_id: seg.interval_id,
-                        interval_name: seg.interval_name.clone(),
-                        segment_type: Some(seg.segment_type.clone()),
-                        sort_order: Some(i32::try_from(seg_idx).unwrap_or(0)),
-                        segment_count: Some(segment_count),
-                    });
-                }
+                reports.extend(seg_rows);
             }
         }
 
-        // Post-join shift-type filter (O(rows), mirrors the existing employer_id filter).
-        let reports = filter_by_shift_type(reports, shift_names);
-
-        Ok(PaginatedResponse {
-            data: reports,
-            total: usize::try_from(preamble.total_employees()).unwrap_or(0),
-            page: i64::try_from(preamble.page()).unwrap_or(1),
-            limit: i64::try_from(preamble.limit()).unwrap_or(20),
-        })
+        Ok(Self::build_paginated_response(&preamble, reports, shift_names))
     }
 
     /// Match time entries to a segment by time-range overlap.
