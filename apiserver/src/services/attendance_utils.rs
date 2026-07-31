@@ -80,30 +80,45 @@ impl AttendanceStatus {
 }
 
 // ---------------------------------------------------------------------------
+// HolidayKind — replaces is_holiday + is_holiday_paid boolean pair
+// ---------------------------------------------------------------------------
+
+/// Whether a day is a holiday and whether that holiday is paid.
+///
+/// Replaces the error-prone `(is_holiday: bool, is_holiday_paid: bool)` pair
+/// where `is_holiday_paid` was meaningless when `is_holiday` was `false`.
+/// The enum makes the invalid state unrepresentable.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum HolidayKind {
+    /// Not a holiday — regular working day or day off.
+    NotHoliday,
+    /// Holiday without pay (no paid-holiday policy for this day).
+    Unpaid,
+    /// Paid holiday — employee receives pay even without working.
+    Paid,
+}
+
+// ---------------------------------------------------------------------------
 // determine_daily_status — single source of truth for status determination
 // ---------------------------------------------------------------------------
 
 /// Input for status determination — extracted from schedule/entries/holidays.
-#[allow(clippy::struct_excessive_bools)]
 pub struct DailyStatusInput {
     has_punch_in: bool,
     punch_in_time: Option<NaiveTime>,
     scheduled_start: Option<NaiveTime>,
-    is_holiday: bool,
-    is_holiday_paid: bool,
+    holiday_kind: HolidayKind,
     has_shift: bool,
     is_on_leave: bool,
     grace_period_minutes: Option<i32>,
 }
 
 impl DailyStatusInput {
-    #[allow(clippy::fn_params_excessive_bools)]
     pub fn new(
         has_punch_in: bool,
         punch_in_time: Option<NaiveTime>,
         scheduled_start: Option<NaiveTime>,
-        is_holiday: bool,
-        is_holiday_paid: bool,
+        holiday_kind: HolidayKind,
         has_shift: bool,
         is_on_leave: bool,
         grace_period_minutes: Option<i32>,
@@ -112,8 +127,7 @@ impl DailyStatusInput {
             has_punch_in,
             punch_in_time,
             scheduled_start,
-            is_holiday,
-            is_holiday_paid,
+            holiday_kind,
             has_shift,
             is_on_leave,
             grace_period_minutes,
@@ -132,12 +146,8 @@ impl DailyStatusInput {
         self.scheduled_start
     }
 
-    pub fn is_holiday(&self) -> bool {
-        self.is_holiday
-    }
-
-    pub fn is_holiday_paid(&self) -> bool {
-        self.is_holiday_paid
+    pub fn holiday_kind(&self) -> HolidayKind {
+        self.holiday_kind
     }
 
     pub fn has_shift(&self) -> bool {
@@ -167,7 +177,7 @@ impl DailyStatusInput {
 /// 4. Otherwise → `Absent`
 pub fn determine_daily_status(input: &DailyStatusInput) -> AttendanceStatus {
     if input.has_punch_in() {
-        if input.is_holiday() {
+        if input.holiday_kind() != HolidayKind::NotHoliday {
             return AttendanceStatus::HolidayWork;
         }
         if !input.has_shift() {
@@ -192,14 +202,13 @@ pub fn determine_daily_status(input: &DailyStatusInput) -> AttendanceStatus {
         return AttendanceStatus::Present;
     }
 
-    if input.is_holiday() {
-        if input.is_holiday_paid() {
-            return AttendanceStatus::HolidayPaid;
-        }
-        if input.is_on_leave() {
+    match input.holiday_kind() {
+        HolidayKind::Paid => return AttendanceStatus::HolidayPaid,
+        HolidayKind::Unpaid if input.is_on_leave() => {
             return AttendanceStatus::HolidayLeave;
         }
-        return AttendanceStatus::HolidayUnpaid;
+        HolidayKind::Unpaid => return AttendanceStatus::HolidayUnpaid,
+        HolidayKind::NotHoliday => {}
     }
 
     if input.is_on_leave() {
@@ -343,8 +352,7 @@ mod tests {
             has_punch_in: true,
             punch_in_time: Some(NaiveTime::from_hms_opt(8, 0, 0).expect("valid time")),
             scheduled_start: Some(NaiveTime::from_hms_opt(8, 30, 0).expect("valid time")),
-            is_holiday: false,
-            is_holiday_paid: false,
+            holiday_kind: HolidayKind::NotHoliday,
             has_shift: true,
             is_on_leave: false,
             grace_period_minutes: None,
@@ -358,8 +366,7 @@ mod tests {
             has_punch_in: true,
             punch_in_time: Some(NaiveTime::from_hms_opt(9, 0, 0).expect("valid time")),
             scheduled_start: None,
-            is_holiday: false,
-            is_holiday_paid: false,
+            holiday_kind: HolidayKind::NotHoliday,
             has_shift: false,
             is_on_leave: false,
             grace_period_minutes: None,
@@ -376,8 +383,7 @@ mod tests {
             has_punch_in: true,
             punch_in_time: Some(NaiveTime::from_hms_opt(9, 0, 0).expect("valid time")),
             scheduled_start: Some(NaiveTime::from_hms_opt(8, 30, 0).expect("valid time")),
-            is_holiday: false,
-            is_holiday_paid: false,
+            holiday_kind: HolidayKind::NotHoliday,
             has_shift: true,
             is_on_leave: false,
             grace_period_minutes: None,
@@ -392,8 +398,7 @@ mod tests {
             has_punch_in: true,
             punch_in_time: Some(NaiveTime::from_hms_opt(8, 35, 0).expect("valid time")),
             scheduled_start: Some(NaiveTime::from_hms_opt(8, 30, 0).expect("valid time")),
-            is_holiday: false,
-            is_holiday_paid: false,
+            holiday_kind: HolidayKind::NotHoliday,
             has_shift: true,
             is_on_leave: false,
             grace_period_minutes: None,
@@ -407,8 +412,7 @@ mod tests {
             has_punch_in: true,
             punch_in_time: Some(NaiveTime::from_hms_opt(8, 0, 0).expect("valid time")),
             scheduled_start: Some(NaiveTime::from_hms_opt(8, 30, 0).expect("valid time")),
-            is_holiday: true,
-            is_holiday_paid: true,
+            holiday_kind: HolidayKind::Paid,
             has_shift: true,
             is_on_leave: false,
             grace_period_minutes: None,
@@ -425,8 +429,7 @@ mod tests {
             has_punch_in: false,
             punch_in_time: None,
             scheduled_start: Some(NaiveTime::from_hms_opt(8, 30, 0).expect("valid time")),
-            is_holiday: true,
-            is_holiday_paid: true,
+            holiday_kind: HolidayKind::Paid,
             has_shift: true,
             is_on_leave: false,
             grace_period_minutes: None,
@@ -443,8 +446,7 @@ mod tests {
             has_punch_in: false,
             punch_in_time: None,
             scheduled_start: None,
-            is_holiday: true,
-            is_holiday_paid: false,
+            holiday_kind: HolidayKind::Unpaid,
             has_shift: true,
             is_on_leave: false,
             grace_period_minutes: None,
@@ -461,8 +463,7 @@ mod tests {
             has_punch_in: false,
             punch_in_time: None,
             scheduled_start: None,
-            is_holiday: true,
-            is_holiday_paid: false,
+            holiday_kind: HolidayKind::Unpaid,
             has_shift: true,
             is_on_leave: true,
             grace_period_minutes: None,
@@ -479,8 +480,7 @@ mod tests {
             has_punch_in: false,
             punch_in_time: None,
             scheduled_start: None,
-            is_holiday: false,
-            is_holiday_paid: false,
+            holiday_kind: HolidayKind::NotHoliday,
             has_shift: false,
             is_on_leave: false,
             grace_period_minutes: None,
@@ -494,8 +494,7 @@ mod tests {
             has_punch_in: false,
             punch_in_time: None,
             scheduled_start: Some(NaiveTime::from_hms_opt(8, 30, 0).expect("valid time")),
-            is_holiday: false,
-            is_holiday_paid: false,
+            holiday_kind: HolidayKind::NotHoliday,
             has_shift: true,
             is_on_leave: false,
             grace_period_minutes: None,
@@ -510,8 +509,7 @@ mod tests {
             has_punch_in: false,
             punch_in_time: None,
             scheduled_start: Some(NaiveTime::from_hms_opt(8, 30, 0).expect("valid time")),
-            is_holiday: false,
-            is_holiday_paid: false,
+            holiday_kind: HolidayKind::NotHoliday,
             has_shift: true,
             is_on_leave: true,
             grace_period_minutes: None,
@@ -525,8 +523,7 @@ mod tests {
             has_punch_in: false,
             punch_in_time: None,
             scheduled_start: None,
-            is_holiday: false,
-            is_holiday_paid: false,
+            holiday_kind: HolidayKind::NotHoliday,
             has_shift: false,
             is_on_leave: true,
             grace_period_minutes: None,
@@ -542,8 +539,7 @@ mod tests {
             has_punch_in: true,
             punch_in_time: Some(NaiveTime::from_hms_opt(7, 31, 0).expect("valid time")),
             scheduled_start: Some(NaiveTime::from_hms_opt(7, 30, 0).expect("valid time")),
-            is_holiday: false,
-            is_holiday_paid: false,
+            holiday_kind: HolidayKind::NotHoliday,
             has_shift: true,
             is_on_leave: false,
             grace_period_minutes: Some(0),
@@ -559,8 +555,7 @@ mod tests {
             has_punch_in: true,
             punch_in_time: Some(NaiveTime::from_hms_opt(7, 31, 0).expect("valid time")),
             scheduled_start: Some(NaiveTime::from_hms_opt(7, 30, 0).expect("valid time")),
-            is_holiday: false,
-            is_holiday_paid: false,
+            holiday_kind: HolidayKind::NotHoliday,
             has_shift: true,
             is_on_leave: false,
             grace_period_minutes: Some(1),
@@ -576,8 +571,7 @@ mod tests {
             has_punch_in: true,
             punch_in_time: Some(NaiveTime::from_hms_opt(7, 30, 10).expect("valid time")),
             scheduled_start: Some(NaiveTime::from_hms_opt(7, 30, 0).expect("valid time")),
-            is_holiday: false,
-            is_holiday_paid: false,
+            holiday_kind: HolidayKind::NotHoliday,
             has_shift: true,
             is_on_leave: false,
             grace_period_minutes: Some(0),

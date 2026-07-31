@@ -209,8 +209,11 @@ impl ReportService {
                 has_punch_in,
                 punch_in_time,
                 scheduled_start,
-                holiday_entry.is_some(),
-                holiday_entry.is_none_or(crate::models::Holiday::is_paid),
+                match holiday_entry {
+                    Some(h) if h.is_paid() => crate::services::attendance_utils::HolidayKind::Paid,
+                    Some(_) => crate::services::attendance_utils::HolidayKind::Unpaid,
+                    None => crate::services::attendance_utils::HolidayKind::NotHoliday,
+                },
                 has_shift,
                 is_on_leave,
                 Some(grace_minutes),

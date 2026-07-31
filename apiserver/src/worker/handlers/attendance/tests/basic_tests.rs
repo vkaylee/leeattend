@@ -1,7 +1,7 @@
 use super::super::*;
 use crate::models::DailyAttendanceReport;
 use crate::services::attendance_utils::{
-    determine_daily_status, AttendanceStatus, DailyStatusInput,
+    determine_daily_status, AttendanceStatus, DailyStatusInput, HolidayKind,
 };
 use chrono::NaiveTime;
 
@@ -11,8 +11,7 @@ fn test_status_determination_present() {
         true,
         Some(NaiveTime::from_hms_opt(8, 0, 0).unwrap()),
         Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()),
-        false,
-        false,
+        HolidayKind::NotHoliday,
         true,
         false,
         None,
@@ -27,8 +26,7 @@ fn test_status_determination_late() {
         true,
         Some(NaiveTime::from_hms_opt(9, 0, 0).unwrap()),
         Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()),
-        false,
-        false,
+        HolidayKind::NotHoliday,
         true,
         false,
         None,
@@ -43,8 +41,7 @@ fn test_status_determination_absent() {
         false,
         None,
         Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()),
-        false,
-        false,
+        HolidayKind::NotHoliday,
         true,
         false,
         None,
@@ -56,7 +53,7 @@ fn test_status_determination_absent() {
 #[test]
 fn test_status_determination_off() {
     let status = determine_daily_status(&DailyStatusInput::new(
-        false, None, None, false, false, false, false, None,
+        false, None, None, HolidayKind::NotHoliday, false, false, None,
     ));
     assert_eq!(status, AttendanceStatus::Off);
     assert_eq!(status.to_string(), "off");

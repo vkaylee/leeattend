@@ -16,7 +16,7 @@ impl ReportService {
         group_by: &str,
     ) -> Result<Vec<UnexcusedAbsencesPoint>, AppError> {
         use crate::services::attendance_utils::{
-            self, determine_daily_status, AttendanceStatus, DailyStatusInput,
+            self, determine_daily_status, AttendanceStatus, DailyStatusInput, HolidayKind,
         };
         use chrono_tz::Tz;
         use std::collections::HashMap;
@@ -157,8 +157,7 @@ impl ReportService {
                     entries_by_date.contains_key(&date),
                     None, // Not needed for unexcused calculation
                     daily.start_time(),
-                    daily.is_holiday(),
-                    false, // Not needed for unexcused calculation
+                    if daily.is_holiday() { HolidayKind::Unpaid } else { HolidayKind::NotHoliday },
                     daily.shift_id().is_some(),
                     is_on_leave,
                     None,

@@ -166,8 +166,15 @@ impl AttendanceHandler {
                         actual_punch_in.is_some(),
                         actual_punch_in.map(|p| p.time()),
                         daily.start_time(),
-                        daily.is_holiday(),
-                        daily.is_holiday_paid(),
+                        if daily.is_holiday() {
+                            if daily.is_holiday_paid() {
+                                crate::services::attendance_utils::HolidayKind::Paid
+                            } else {
+                                crate::services::attendance_utils::HolidayKind::Unpaid
+                            }
+                        } else {
+                            crate::services::attendance_utils::HolidayKind::NotHoliday
+                        },
                         daily.shift_id().is_some(),
                         is_on_leave,
                         grace_period_minutes,
