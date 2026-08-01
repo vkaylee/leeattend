@@ -890,6 +890,72 @@ impl ReportService {
             }
         }
 
+        // Generate default no-shift rows for employments without any segments.
+        // This mirrors the legacy schedule path which creates a row per day even
+        // when no shift is assigned (status = Off).
+        let segmented_employment_ids: std::collections::HashSet<Uuid> = employee_segments
+            .iter()
+            .filter(|e| !e.segments().is_empty())
+            .map(|e| e.employment_id())
+            .collect();
+
+        let employee_map: std::collections::HashMap<Uuid, &crate::repositories::employee::EmployeeBasicInfo> =
+            preamble.paginated_employees().iter().map(|e| (e.id, e)).collect();
+
+        for &employment_id in preamble.paginated_employment_ids() {
+            if segmented_employment_ids.contains(&employment_id) {
+                continue;
+            }
+            let Some(employee_id) = preamble.employment_to_employee().get(&employment_id).copied()
+            else {
+                continue;
+            };
+            let Some(emp_info) = employee_map.get(&employee_id) else {
+                continue;
+            };
+
+            let att_rules = Self::resolve_attendance_rules(&preamble, employee_id);
+            let grace_minutes = att_rules.grace_period_minutes.unwrap_or(0);
+            let employer_name = preamble
+                .employments()
+                .iter()
+                .find(|e| e.id() == employment_id)
+                .and_then(|e| preamble.employer_name_map().get(&e.employer_id()).cloned());
+
+            let mut date = args.start_date;
+            while date <= args.end_date {
+                let row = build_base_report_row(
+                    date,
+                    employment_id,
+                    employee_id,
+                    &emp_info.full_name,
+                    &emp_info.employee_id_number,
+                    None, // shift_symbol
+                    None, // shift_name
+                    None, // scheduled_start
+                    None, // scheduled_end
+                    grace_minutes,
+                    None, // break_duration_minutes
+                    None, // break_start
+                    None, // break_end
+                    None, // is_break_auto_deduct
+                    None, // actual_punch_in
+                    None, // actual_punch_out
+                    0,    // std_work_units
+                    0,    // ot_work_units
+                    None, // ot_claim_status
+                    att_rules.work_unit_minutes,
+                    crate::services::attendance_utils::AttendanceStatus::Off,
+                    None, // holiday_entry
+                    None, // generation_metadata
+                    None, // is_leave_paid
+                    employer_name.clone(),
+                );
+                reports.push(row);
+                date = date.succ_opt().unwrap_or(date);
+            }
+        }
+
         Ok(Self::build_paginated_response(
             &preamble,
             reports,

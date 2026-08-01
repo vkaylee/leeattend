@@ -14,6 +14,7 @@ mod paper_forms;
 mod policies;
 mod policy_assignments;
 mod policy_resolver;
+mod rbac;
 mod reprocess;
 mod service;
 mod staging;
