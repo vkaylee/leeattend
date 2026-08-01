@@ -36,6 +36,7 @@ import { useTranslation } from "react-i18next";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useProfile } from "@/hooks/use-profile";
 import { getCurrentWorkspaceId } from "@/lib/api";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 import { ROUTES } from "@/lib/routes";
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -105,7 +106,7 @@ export function useNavMenuItems(): NavMenuStructure {
         { to: ROUTES.PEOPLE, icon: Users, label: t("members.title", { defaultValue: "Directory" }), testId: "sidebar-link-people", permissions: ["members:read"] },
         { to: ROUTES.DEPARTMENTS, icon: Building2, label: t("common.departments"), testId: "sidebar-link-departments", permissions: ["departments:read"] },
         { to: ROUTES.ORG_CHART, icon: FolderTree, label: t("common.org_chart"), testId: "sidebar-link-org-chart", permissions: ["departments:read"] },
-        { to: ROUTES.ECONTRACTS, icon: Scale, label: t("common.econtracts", { defaultValue: "e-Contracts Hub" }), testId: "sidebar-link-econtracts", permissions: ["employees:update"] },
+        ...(isFeatureEnabled("ff_econtracts") ? [{ to: ROUTES.ECONTRACTS, icon: Scale, label: t("common.econtracts", { defaultValue: "e-Contracts Hub" }), testId: "sidebar-link-econtracts", permissions: ["employees:update"] }] : []),
       ],
     },
     {

@@ -14,6 +14,7 @@ import { useMyPermissions } from "@/hooks/use-permissions";
 import { useProfile } from "@/hooks/use-profile";
 import { useQuickAccess } from "@/hooks/use-quick-access";
 import { APP_REGISTRY, GROUP_LABEL_KEYS, type AppDefinition } from "@/lib/app-registry";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -23,6 +24,9 @@ function filterApps(
   systemRoles: string[],
 ): AppDefinition[] {
   return apps.filter((app) => {
+    if (app.featureFlag && !isFeatureEnabled(app.featureFlag)) {
+      return false;
+    }
     if (app.systemRoles && app.systemRoles.length > 0) {
       return app.systemRoles.some((role) => systemRoles.includes(role));
     }

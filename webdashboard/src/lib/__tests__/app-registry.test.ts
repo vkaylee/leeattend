@@ -1,10 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 
 import {
   APP_REGISTRY,
   GROUP_LABEL_KEYS,
   type AppDefinition,
 } from "@/lib/app-registry";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 import { ROUTES } from "@/lib/routes";
 
 describe("APP_REGISTRY", () => {
@@ -109,6 +110,9 @@ function filterApps(
     perms.length === 0 || perms.some((p) => permSet.has(p));
 
   return apps.filter((app) => {
+    if (app.featureFlag && !isFeatureEnabled(app.featureFlag)) {
+      return false;
+    }
     if (app.systemRoles && app.systemRoles.length > 0) {
       return app.systemRoles.some((role) => systemRoles.includes(role));
     }
@@ -120,6 +124,29 @@ function filterApps(
 }
 
 describe("app filtering logic", () => {
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it("hides feature-flagged apps by default even with matching permissions", () => {
+    const visible = filterApps(APP_REGISTRY, ["employees:update"], []);
+
+    expect(visible.find((a) => a.id === "econtracts")).toBeUndefined();
+  });
+
+  it("shows a feature-flagged app when the flag is enabled", () => {
+    localStorage.setItem("ff_econtracts", "true");
+
+    const visible = filterApps(APP_REGISTRY, ["employees:update"], []);
+    expect(visible.find((a) => a.id === "econtracts")).toBeDefined();
+  });
+
+  it("registers the econtracts feature flag on the app definition", () => {
+    const econtracts = APP_REGISTRY.find((a) => a.id === "econtracts");
+    expect(econtracts).toBeDefined();
+    expect(econtracts!.featureFlag).toBe("ff_econtracts");
+  });
+
   it("non-privileged employee sees only dashboard + ESS apps", () => {
     const visible = filterApps(
       APP_REGISTRY,

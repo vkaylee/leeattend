@@ -1,3 +1,5 @@
+/* eslint-disable max-lines -- static app registry (one entry per app); splitting would obscure the master list */
+
 import type React from "react";
 
 import {
@@ -28,6 +30,7 @@ import {
 } from "lucide-react";
 
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
+import type { FeatureFlagName } from "@/lib/feature-flags";
 
 import { ROUTES } from "@/lib/routes";
 
@@ -35,6 +38,7 @@ import { ROUTES } from "@/lib/routes";
 
 export interface AppDefinition {
   descriptionKey: string;
+  featureFlag?: FeatureFlagName;
   group: NavGroup;
   icon: React.ElementType;
   id: string;
@@ -124,6 +128,9 @@ export const APP_REGISTRY: AppDefinition[] = [
     to: ROUTES.ECONTRACTS,
     group: "org",
     permissions: ["employees:update"],
+    // Backend not wired yet (see plans/webdashboard-tech-debt-plan.md TD-1).
+    // Hidden by default; remove the flag after full rollout.
+    featureFlag: "ff_econtracts",
     testId: "app-card-econtracts",
   },
 
@@ -223,7 +230,6 @@ export const APP_REGISTRY: AppDefinition[] = [
 
   // ── Payroll ────────────────────────────────────────────────────
   {
-  // eslint-disable-next-line max-lines
     id: "payroll",
     icon: DollarSign,
     labelKey: "payroll.title",
