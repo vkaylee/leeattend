@@ -90,10 +90,22 @@ impl AttendanceHandler {
                     .get(&date)
                     .map_or_else(Default::default, std::vec::Vec::as_slice);
 
-                let actual_punch_in = day_entries
+                // Filter work entries (non-Break, with punch_out) for display.
+                // Break entries describe non-working intervals and must not
+                // leak into first-to-last punch extraction.
+                let work_entries: Vec<&TimeEntry> = day_entries
+                    .iter()
+                    .filter(|e| {
+                        e.entry_type() != crate::services::pairing::types::EntryType::Break
+                            && e.punch_out_time().is_some()
+                    })
+                    .copied()
+                    .collect();
+
+                let actual_punch_in = work_entries
                     .first()
                     .map(|e| e.punch_in_time().with_timezone(&args.tz));
-                let actual_punch_out = day_entries
+                let actual_punch_out = work_entries
                     .last()
                     .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&args.tz)));
 
@@ -102,8 +114,6 @@ impl AttendanceHandler {
                 let mut grace_period_minutes = None;
 
                 // Only calculate hours when a shift exists.
-                // Without shift boundaries the calculator treats all punch time
-                // as "standard" minutes, inflating the report for unscheduled days.
                 if daily.shift_id().is_some() {
                     // Build rules from pre-fetched conditions (no DB call)
                     let mut rules = PolicyResolver::build_rules_from_conditions(
@@ -128,33 +138,62 @@ impl AttendanceHandler {
 
                     grace_period_minutes = Some(rules.grace_period_minutes());
 
-                    // Delegate to shared AttendanceService instead of
-                    // building DailyCalcInput manually.
-                    let result = crate::services::AttendanceService::compute_daily_attendance(
-                        crate::services::ComputeDailyInput {
-                            daily,
-                            day_entries,
-                            date,
-                            tz: &args.tz,
-                            rules: &rules,
-                            work_unit_minutes: emp_attendance_rules.work_unit_minutes,
-                            rounding_policy: emp_attendance_rules.rounding_policy,
-                            max_early_ot_minutes: daily.max_early_ot_minutes(),
-                            ot_ceiling: None,
-                            segment_id: None,
-                            ot_aggregation_mode:
-                                crate::services::attendance_calculator::OtAggregationMode::Aggregate,
-                        },
-                    );
+                    // Delegate to the shared session-aware calculator.
+                    // Each work entry becomes an independent DailyCalcInput
+                    // so gaps between sessions are never counted as work.
+                    let shift_start_dt = daily
+                        .start_time()
+                        .and_then(|t| crate::utils::tz::naive_time_to_tz(t, date, args.tz));
+                    let shift_end_dt = daily.start_time().and_then(|start| {
+                        daily.end_time().and_then(|end| {
+                            crate::utils::tz::naive_time_to_tz_overnight(end, start, date, args.tz)
+                        })
+                    });
+                    let (shift_start, shift_end) =
+                        if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
+                            if daily.end_time() < daily.start_time() {
+                                end += chrono::Duration::days(1);
+                            }
+                            (Some(start), Some(end))
+                        } else {
+                            (None, None)
+                        };
 
-                    if let Some(r) = result {
-                        let (std_units, ot_units) = r.into_units(
+                    let break_start_dt = daily
+                        .break_start()
+                        .and_then(|t| crate::utils::tz::naive_time_to_tz(t, date, args.tz));
+                    let break_end_dt = daily
+                        .break_end()
+                        .and_then(|t| crate::utils::tz::naive_time_to_tz(t, date, args.tz));
+                    let (break_start, break_end) =
+                        if let (Some(bs), Some(mut be)) = (break_start_dt, break_end_dt) {
+                            if daily.break_end() < daily.break_start() {
+                                be += chrono::Duration::days(1);
+                            }
+                            (Some(bs), Some(be))
+                        } else {
+                            (None, None)
+                        };
+
+                    let result =
+                        crate::services::AttendanceService::compute_session_attendance(
+                            day_entries,
+                            args.tz,
+                            shift_start,
+                            shift_end,
+                            break_start,
+                            break_end,
+                            daily.break_duration_minutes().unwrap_or(0),
                             emp_attendance_rules.work_unit_minutes,
                             emp_attendance_rules.rounding_policy,
+                            &rules,
+                            None,
+                            daily.max_early_ot_minutes(),
+                            None,
+                            crate::services::attendance_calculator::OtAggregationMode::Aggregate,
                         );
-                        std_work_units = std_units;
-                        ot_work_units = ot_units;
-                    }
+                    std_work_units = result.total_standard_units();
+                    ot_work_units = result.total_ot_units();
                 }
 
                 let status = crate::services::attendance_utils::determine_daily_status(

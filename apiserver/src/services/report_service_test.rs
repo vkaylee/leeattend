@@ -2140,6 +2140,55 @@ mod tests {
             let total = list.len() as i64;
             Ok((list, total))
         }
+        async fn get_workspace_segments(
+            &self,
+            _c: Option<&crate::cache::RosterCache>,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _s: NaiveDate,
+            _e: NaiveDate,
+            _emp: Option<&Vec<Uuid>>,
+            _page: Option<i64>,
+            _limit: Option<i64>,
+        ) -> Result<
+            (Vec<crate::models::schedule::EmployeeSegments>, i64),
+            AppError,
+        > {
+            let segment = crate::models::ResolvedSegment {
+                template_id: Uuid::nil(),
+                interval_id: None,
+                sort_order: 0,
+                scheduled_start: chrono::NaiveTime::from_hms_opt(9, 0, 0).unwrap(),
+                scheduled_end: chrono::NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+                source: "fixed".into(),
+                date: Some(NaiveDate::from_ymd_opt(2023, 1, 1).unwrap()),
+                shift_name: Some("Day Shift".into()),
+                shift_symbol: Some("D".into()),
+                interval_name: None,
+                segment_type: "work".into(),
+                break_duration_minutes: Some(60),
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: Some(true),
+                break_is_overtime: Some(false),
+                allow_early_ot: false,
+                max_early_ot_minutes: None,
+                early_punch_in_grace_period_minutes: 0,
+                ot_aggregation_mode: Default::default(),
+                is_night_shift: false,
+                traces: vec![],
+                is_holiday: false,
+                is_holiday_paid: false,
+                holiday_name: None,
+            };
+            let emp_seg = crate::models::schedule::EmployeeSegments::new(
+                Uuid::nil(),
+                Uuid::nil(),
+                "EMP001".into(),
+                "Test User".into(),
+                vec![segment],
+            );
+            Ok((vec![emp_seg], 1))
+        }
         async fn get_assignment_history(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -3105,5 +3154,224 @@ mod tests {
         assert_eq!(summary_item.employee_name, "Test User");
         assert!(summary_item.total_std_units > 0);
         assert_eq!(summary_item.total_leave_days, 0);
+    }
+
+    /// Time entry repo that returns two work sessions with a break in
+    /// between. Morning: 09:00–12:00, Break: 12:00–13:00,
+    /// Afternoon: 13:00–17:00. Total work: 420 min = 14 units.
+    struct MultiSessionTimeEntryRepo;
+    #[async_trait]
+    impl crate::repositories::TimeEntryRepository for MultiSessionTimeEntryRepo {
+        async fn create_time_entry(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: &TimeEntry,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn get_time_entry_by_id(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _i: Uuid,
+        ) -> Result<Option<TimeEntry>, AppError> {
+            unimplemented!()
+        }
+        async fn get_active_time_entry(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: Uuid,
+        ) -> Result<Option<TimeEntry>, AppError> {
+            unimplemented!()
+        }
+        async fn get_latest_active_entry(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: Uuid,
+        ) -> Result<Option<TimeEntry>, AppError> {
+            unimplemented!()
+        }
+        async fn get_latest_entry_for_employment(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employment_id: Uuid,
+        ) -> Result<Option<TimeEntry>, AppError> {
+            unimplemented!()
+        }
+        async fn update_time_entry(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: &TimeEntry,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn delete_time_entry(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _i: Uuid,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn get_employment_time_entries(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employment_id: Uuid,
+            _f: DateTime<Utc>,
+            _t: DateTime<Utc>,
+        ) -> Result<Vec<TimeEntry>, AppError> {
+            unimplemented!()
+        }
+        async fn get_paginated_logs(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _f: crate::models::TimeEntryLogFilter,
+        ) -> Result<Vec<TimeEntryWithEmployee>, AppError> {
+            unimplemented!()
+        }
+        async fn count_logs(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: Option<Uuid>,
+            _f: Option<DateTime<Utc>>,
+            _t: Option<DateTime<Utc>>,
+        ) -> Result<i64, AppError> {
+            unimplemented!()
+        }
+        async fn get_workspace_time_entries_batch_by_employments(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employment_ids: &[Uuid],
+            _f: DateTime<Utc>,
+            _t: DateTime<Utc>,
+        ) -> Result<HashMap<Uuid, Vec<TimeEntry>>, AppError> {
+            use chrono::TimeZone;
+            let mut map = HashMap::new();
+
+            let morning = TimeEntry::new(
+                Uuid::new_v4(),
+                Uuid::nil(),
+                Uuid::nil(),
+                Some(Uuid::nil()),
+                None,
+                Utc.with_ymd_and_hms(2023, 1, 1, 9, 0, 0).unwrap(),
+                Some(Utc.with_ymd_and_hms(2023, 1, 1, 12, 0, 0).unwrap()),
+                Some(180),
+                false,
+                crate::services::pairing::types::EntryType::Work,
+                None,
+                None,
+                Utc::now(),
+                Utc::now(),
+            );
+
+            let lunch = TimeEntry::new(
+                Uuid::new_v4(),
+                Uuid::nil(),
+                Uuid::nil(),
+                Some(Uuid::nil()),
+                None,
+                Utc.with_ymd_and_hms(2023, 1, 1, 12, 0, 0).unwrap(),
+                Some(Utc.with_ymd_and_hms(2023, 1, 1, 13, 0, 0).unwrap()),
+                Some(60),
+                false,
+                crate::services::pairing::types::EntryType::Break,
+                None,
+                None,
+                Utc::now(),
+                Utc::now(),
+            );
+
+            let afternoon = TimeEntry::new(
+                Uuid::new_v4(),
+                Uuid::nil(),
+                Uuid::nil(),
+                Some(Uuid::nil()),
+                None,
+                Utc.with_ymd_and_hms(2023, 1, 1, 13, 0, 0).unwrap(),
+                Some(Utc.with_ymd_and_hms(2023, 1, 1, 17, 0, 0).unwrap()),
+                Some(240),
+                false,
+                crate::services::pairing::types::EntryType::Work,
+                None,
+                None,
+                Utc::now(),
+                Utc::now(),
+            );
+
+            map.insert(Uuid::nil(), vec![morning, lunch, afternoon]);
+            Ok(map)
+        }
+        async fn replace_time_entries(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: Uuid,
+            _s: DateTime<Utc>,
+            _en: DateTime<Utc>,
+            _ent: Vec<TimeEntry>,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn get_distinct_work_days(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employment_id: Uuid,
+            _start: DateTime<Utc>,
+            _end: DateTime<Utc>,
+            _tz: &str,
+        ) -> Result<Vec<NaiveDate>, AppError> {
+            Ok(vec![])
+        }
+    }
+
+    /// Multi-session daily report: two work sessions separated by a lunch
+    /// break. The one-hour gap must NOT be counted as work.
+    /// 420 minutes ÷ 30 min/unit = 14 units (7 hours).
+    #[tokio::test]
+    async fn test_daily_report_multi_session_gap_not_counted() {
+        let report_service = ReportService::new(ReportServiceArgs {
+            workspace_repo: Arc::new(MockWorkspaceRepo),
+            employee_repo: Arc::new(AbsentEmployeeRepo),
+            condition_type_repo: empty_condition_type_repo(),
+            employment_repo: Arc::new(DummyEmploymentRepo),
+            time_entry_repo: Arc::new(MultiSessionTimeEntryRepo),
+            roster_repo: Arc::new(ScheduleRosterRepo),
+            policy_repo: Arc::new(EmptyPolicyRepo),
+            leave_repo: Arc::new(EmptyLeaveRepo),
+            attendance_daily_summary_repo: Arc::new(EmptyDailySummaryRepo),
+            holiday_repo: Arc::new(EmptyHolidayRepo),
+            employer_repo: Arc::new(MockEmployerRepo),
+            work_segment_repo: None,
+        });
+
+        let args = AttendanceReportArgs {
+            workspace_id: Uuid::new_v4(),
+            start_date: NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+            page: Some(1),
+            limit: Some(20),
+            employee_ids: None,
+            department_id: None,
+            sort: None,
+            employee_status: None,
+            employer_id: None,
+            employment_id: None,
+            shift_type: None,
+        };
+
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id);
+        let result = report_service
+            .get_daily_attendance_report(&auth_token, args)
+            .await
+            .unwrap();
+
+        assert_eq!(result.total, 1);
+        let report_item = &result.data[0];
+        // 420 min ÷ 30 min/unit = 14 units (no gap leakage)
+        assert_eq!(report_item.std_work_units, 14);
+        assert_eq!(report_item.ot_work_units, 0);
+        // The actual_punch_in must be the first work session (09:00),
+        // not the break (12:00) nor the afternoon session (13:00).
+        assert!(report_item.actual_punch_in.is_some());
+        assert!(report_item.actual_punch_out.is_some());
+        assert_eq!(report_item.status.to_string(), "present");
     }
 }

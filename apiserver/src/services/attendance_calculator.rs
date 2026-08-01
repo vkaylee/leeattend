@@ -85,7 +85,7 @@ pub struct BreakDeductionInput<'a, T: TimeZone> {
 ///
 /// Replaces the 10-parameter function signatures in `calculate_daily_units`
 /// and `calculate_buckets`, improving readability at call sites.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DailyCalcInput<T: TimeZone> {
     pub punch_in: DateTime<T>,
     pub punch_out: DateTime<T>,

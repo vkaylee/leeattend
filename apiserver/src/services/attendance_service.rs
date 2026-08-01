@@ -23,11 +23,12 @@
 //! // result.standard_minutes(), result, ot_minutes(), result.standard_units(), etc.
 //! ```
 
-use chrono::{NaiveDate, NaiveTime};
+use chrono::{DateTime, NaiveDate, NaiveTime};
 use chrono_tz::Tz;
 use uuid::Uuid;
 
 use crate::models::{PolicyRules, RoundingPolicy, TimeEntry};
+use crate::services::pairing::types::EntryType;
 use crate::services::attendance_calculator::{
     DailyCalcInput, OtAggregationMode, SegmentCalcResult, WorkBuckets,
 };
@@ -371,25 +372,216 @@ impl AttendanceService {
     /// segment-specific concerns that live in the report service.
     #[must_use]
     pub fn compute_segment_attendance(inputs: &[DailyCalcInput<Tz>]) -> SegmentAttendanceResult {
-        if inputs.is_empty() {
+        let input_groups: Vec<&[DailyCalcInput<Tz>]> = inputs
+            .iter()
+            .map(|input| std::slice::from_ref(input))
+            .collect();
+
+        Self::compute_segment_attendance_sessions(&input_groups)
+    }
+
+    /// Compute segment attendance from the actual punch sessions belonging to
+    /// each segment. A segment can contain several work/overtime entries; each
+    /// entry is calculated independently so gaps between sessions are never
+    /// counted as worked time.
+    #[must_use]
+    pub fn compute_segment_attendance_sessions(
+        input_groups: &[&[DailyCalcInput<Tz>]],
+    ) -> SegmentAttendanceResult {
+        let Some(first_input) = input_groups.iter().flat_map(|group| group.iter()).next() else {
+            return SegmentAttendanceResult {
+                calc_result: SegmentCalcResult::default(),
+            };
+        };
+
+        let per_segment_buckets: Vec<(Option<Uuid>, WorkBuckets)> = input_groups
+            .iter()
+            .map(|group| {
+                let buckets = Self::aggregate_session_buckets(group);
+                let segment_id = group.first().and_then(|input| input.segment_id);
+                (segment_id, buckets)
+            })
+            .collect();
+
+        let total_standard_minutes = per_segment_buckets
+            .iter()
+            .map(|(_, buckets)| buckets.standard_minutes)
+            .sum();
+        let total_ot_minutes = per_segment_buckets
+            .iter()
+            .map(|(_, buckets)| {
+                buckets.early_ot_minutes + buckets.late_ot_minutes + buckets.break_ot_minutes
+            })
+            .sum();
+
+        let (total_standard_units, total_ot_units) = match first_input.ot_aggregation_mode {
+            OtAggregationMode::Aggregate => (
+                AttendanceCalculator::calculate_units(
+                    total_standard_minutes,
+                    first_input.work_unit,
+                    first_input.rounding_policy,
+                ),
+                AttendanceCalculator::calculate_units(
+                    total_ot_minutes,
+                    first_input.work_unit,
+                    first_input.rounding_policy,
+                ),
+            ),
+            OtAggregationMode::PerSegment => per_segment_buckets.iter().fold(
+                (0, 0),
+                |(std_units, ot_units), (_, buckets)| {
+                    (
+                        std_units
+                            + AttendanceCalculator::calculate_units(
+                                buckets.standard_minutes,
+                                first_input.work_unit,
+                                first_input.rounding_policy,
+                            ),
+                        ot_units
+                            + AttendanceCalculator::calculate_units(
+                                buckets.early_ot_minutes
+                                    + buckets.late_ot_minutes
+                                    + buckets.break_ot_minutes,
+                                first_input.work_unit,
+                                first_input.rounding_policy,
+                            ),
+                    )
+                },
+            ),
+        };
+
+        SegmentAttendanceResult {
+            calc_result: SegmentCalcResult {
+                total_standard_units,
+                total_ot_units,
+                per_segment_buckets,
+            },
+        }
+    }
+
+    fn aggregate_session_buckets(inputs: &[DailyCalcInput<Tz>]) -> WorkBuckets {
+        let mut total = WorkBuckets::default();
+
+        for input in inputs {
+            // The early-OT ceiling belongs to the segment, not to each punch
+            // session. Calculate sessions uncapped, then apply it once below.
+            let mut uncapped_input = input.clone();
+            uncapped_input.max_early_ot_minutes = None;
+            let buckets = AttendanceCalculator::calculate_buckets(&uncapped_input);
+            total.standard_minutes += buckets.standard_minutes;
+            total.early_ot_minutes += buckets.early_ot_minutes;
+            total.late_ot_minutes += buckets.late_ot_minutes;
+            total.break_ot_minutes += buckets.break_ot_minutes;
+        }
+
+        if let Some(max_early_ot_minutes) = inputs
+            .first()
+            .and_then(|input| input.max_early_ot_minutes)
+        {
+            total.early_ot_minutes = total.early_ot_minutes.min(max_early_ot_minutes);
+        }
+
+        total
+    }
+
+    /// Compute attendance from time entries by splitting them into individual
+    /// work sessions. Break entries are filtered out and gaps between sessions
+    /// are never counted as worked time.
+    ///
+    /// This is the shared implementation used by the daily report path, the
+    /// segment report path, and the Excel export worker.
+    #[must_use]
+    pub fn compute_session_attendance(
+        day_entries: &[&TimeEntry],
+        tz: Tz,
+        shift_start: Option<DateTime<Tz>>,
+        shift_end: Option<DateTime<Tz>>,
+        break_start: Option<DateTime<Tz>>,
+        break_end: Option<DateTime<Tz>>,
+        scheduled_break_minutes: i32,
+        work_unit_minutes: i32,
+        rounding_policy: RoundingPolicy,
+        rules: &PolicyRules,
+        ot_ceiling: Option<DateTime<Tz>>,
+        max_early_ot_minutes: Option<i32>,
+        segment_id: Option<Uuid>,
+        ot_aggregation_mode: OtAggregationMode,
+    ) -> SegmentAttendanceResult {
+        let work_entries: Vec<&TimeEntry> = day_entries
+            .iter()
+            .filter(|e| {
+                e.entry_type() != EntryType::Break && e.punch_out_time().is_some()
+            })
+            .copied()
+            .collect();
+
+        let break_entries: Vec<&TimeEntry> = day_entries
+            .iter()
+            .filter(|e| e.entry_type() == EntryType::Break)
+            .copied()
+            .collect();
+
+        if work_entries.is_empty() {
             return SegmentAttendanceResult {
                 calc_result: SegmentCalcResult::default(),
             };
         }
 
-        let calc_result = if inputs.len() > 1 {
-            AttendanceCalculator::calculate_segment_units(inputs)
-        } else {
-            let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units(&inputs[0]);
-            let buckets = AttendanceCalculator::calculate_buckets(&inputs[0]);
-            SegmentCalcResult {
-                total_standard_units: std_units,
-                total_ot_units: ot_units,
-                per_segment_buckets: vec![(inputs[0].segment_id, buckets)],
-            }
+        let break_overlap = |session: &TimeEntry| -> i32 {
+            let Some(session_out) = session.punch_out_time() else {
+                return 0;
+            };
+            let session_in = session.punch_in_time();
+
+            break_entries
+                .iter()
+                .filter_map(|break_entry| {
+                    let break_out = break_entry.punch_out_time()?;
+                    let overlap_start =
+                        std::cmp::max(session_in, break_entry.punch_in_time());
+                    let overlap_end = std::cmp::min(session_out, break_out);
+                    (overlap_end > overlap_start).then(|| {
+                        i32::try_from(
+                            overlap_end
+                                .signed_duration_since(overlap_start)
+                                .num_minutes(),
+                        )
+                        .unwrap_or(0)
+                    })
+                })
+                .sum()
         };
 
-        SegmentAttendanceResult { calc_result }
+        let session_inputs: Vec<DailyCalcInput<Tz>> = work_entries
+            .iter()
+            .map(|entry| DailyCalcInput {
+                punch_in: entry.punch_in_time().with_timezone(&tz),
+                punch_out: entry
+                    .punch_out_time()
+                    .expect("work_entries are filtered to closed punches")
+                    .with_timezone(&tz),
+                shift_start,
+                shift_end,
+                scheduled_break_minutes: if work_entries.len() == 1 {
+                    scheduled_break_minutes
+                } else {
+                    0
+                },
+                actual_break_minutes: break_overlap(entry),
+                break_start,
+                break_end,
+                work_unit: work_unit_minutes,
+                rounding_policy,
+                rules: rules.clone(),
+                ot_ceiling,
+                max_early_ot_minutes,
+                segment_id,
+                ot_aggregation_mode,
+            })
+            .collect();
+
+        let input_groups: Vec<&[DailyCalcInput<Tz>]> = vec![session_inputs.as_slice()];
+        Self::compute_segment_attendance_sessions(&input_groups)
     }
 }
 
@@ -1784,6 +1976,144 @@ mod tests {
                 assert_eq!(r.total_ot_units(), 0);
                 assert!(r.per_segment_buckets().is_empty());
             }
+        }
+
+        #[test]
+        fn multiple_sessions_do_not_count_the_gap_as_work() {
+            let tz = tz_utc();
+            let rules = mock_rules();
+
+            let mut morning = make_calc_input(
+                dt_tz(tz, 8, 5),
+                dt_tz(tz, 12, 0),
+                dt_tz(tz, 8, 0),
+                dt_tz(tz, 17, 0),
+                30,
+                &rules,
+                None,
+                None,
+            );
+            let mut afternoon = make_calc_input(
+                dt_tz(tz, 13, 0),
+                dt_tz(tz, 17, 0),
+                dt_tz(tz, 8, 0),
+                dt_tz(tz, 17, 0),
+                30,
+                &rules,
+                None,
+                None,
+            );
+            morning.rounding_policy = RoundingPolicy::Round;
+            afternoon.rounding_policy = RoundingPolicy::Round;
+
+            let sessions = vec![morning, afternoon];
+            let groups = vec![sessions.as_slice()];
+            let result = AttendanceService::compute_segment_attendance_sessions(&groups);
+
+            // 08:05-12:00 + 13:00-17:00 = 475 minutes. The one-hour gap
+            // must not be counted; rounding 475 minutes to 30-minute units
+            // yields the expected eight hours (16 units).
+            assert_eq!(result.total_standard_units(), 16);
+            assert_eq!(result.total_ot_units(), 0);
+            assert_eq!(result.per_segment_buckets()[0].1.standard_minutes, 475);
+        }
+
+        // ── compute_session_attendance (shared function) tests ──────────
+
+        #[test]
+        fn shared_multi_session_excludes_gap() {
+            let tz = tz_utc();
+            let rules = mock_rules();
+
+            let morning = mock_work_entry(
+                dt_tz(tz, 9, 0).with_timezone(&Utc),
+                dt_tz(tz, 12, 0).with_timezone(&Utc),
+                180,
+            );
+            let lunch = mock_break_entry(
+                dt_tz(tz, 12, 0).with_timezone(&Utc),
+                dt_tz(tz, 13, 0).with_timezone(&Utc),
+                60,
+            );
+            let afternoon = mock_work_entry(
+                dt_tz(tz, 13, 0).with_timezone(&Utc),
+                dt_tz(tz, 17, 0).with_timezone(&Utc),
+                240,
+            );
+
+            let entries: Vec<&TimeEntry> = vec![&morning, &lunch, &afternoon];
+            let shift_start = Some(dt_tz(tz, 9, 0));
+            let shift_end = Some(dt_tz(tz, 17, 0));
+
+            let result = AttendanceService::compute_session_attendance(
+                &entries,
+                tz,
+                shift_start,
+                shift_end,
+                None,       // break_start
+                None,       // break_end
+                60,         // scheduled_break_minutes (ignored for multi-session)
+                30,
+                RoundingPolicy::Round,
+                &rules,
+                None,       // ot_ceiling
+                None,       // max_early_ot_minutes
+                None,       // segment_id
+                OtAggregationMode::Aggregate,
+            );
+
+            // 09:00-12:00 + 13:00-17:00 = 420 minutes
+            // 420 / 30 = 14 units = 7h
+            assert_eq!(result.total_standard_units(), 14);
+            assert_eq!(result.total_ot_units(), 0);
+            assert_eq!(result.per_segment_buckets()[0].1.standard_minutes, 420);
+        }
+
+        #[test]
+        fn shared_single_session_still_works() {
+            let tz = tz_utc();
+            let rules = mock_rules();
+
+            let entry = mock_work_entry(
+                dt_tz(tz, 9, 0).with_timezone(&Utc),
+                dt_tz(tz, 17, 0).with_timezone(&Utc),
+                480,
+            );
+            let entries: Vec<&TimeEntry> = vec![&entry];
+            let shift_start = Some(dt_tz(tz, 9, 0));
+            let shift_end = Some(dt_tz(tz, 17, 0));
+
+            let result = AttendanceService::compute_session_attendance(
+                &entries,
+                tz,
+                shift_start,
+                shift_end,
+                None, None, 0, 30, RoundingPolicy::Floor, &rules,
+                None, None, None, OtAggregationMode::Aggregate,
+            );
+
+            // 09:00-17:00 = 480 min → 16 units with Floor rounding
+            assert_eq!(result.total_standard_units(), 16);
+            assert_eq!(result.total_ot_units(), 0);
+        }
+
+        #[test]
+        fn shared_empty_entries_returns_zero() {
+            let tz = tz_utc();
+            let rules = mock_rules();
+            let entries: Vec<&TimeEntry> = vec![];
+
+            let result = AttendanceService::compute_session_attendance(
+                &entries,
+                tz,
+                Some(dt_tz(tz, 9, 0)),
+                Some(dt_tz(tz, 17, 0)),
+                None, None, 0, 30, RoundingPolicy::Floor, &rules,
+                None, None, None, OtAggregationMode::Aggregate,
+            );
+
+            assert_eq!(result.total_standard_units(), 0);
+            assert_eq!(result.total_ot_units(), 0);
         }
 
         mod single_segment {

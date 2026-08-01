@@ -20,6 +20,11 @@ interface UseDailyDrawerQueriesProps {
     workspaceId: string;
 }
 
+interface DrawerDayTotals {
+    computed_ot_hours?: number;
+    computed_std_hours?: number;
+}
+
 export function useDailyDrawerQueries({
     workspaceId,
     employeeId,
@@ -107,8 +112,35 @@ export function useDailyDrawerQueries({
     );
 
     const { totalStdHours, totalOtHours } = useMemo(() => {
-        const stdHours = reportData.reduce((sum: number, r: DailyAttendanceReport) => sum + (r.computed_std_hours || 0), 0);
-        const otHours = reportData.reduce((sum: number, r: DailyAttendanceReport) => sum + (r.computed_ot_hours || 0), 0);
+        const authoritativeTotals = new Map<string, DrawerDayTotals>();
+
+        reportData.forEach((row: DailyAttendanceReport) => {
+            const metadata = row.generation_metadata as { day_totals?: DrawerDayTotals } | undefined;
+            const dayTotals = metadata?.day_totals;
+            if (!dayTotals) return;
+
+            const key = `${row.employment_id}-${row.date}`;
+            // Every segment row for a day carries the same backend-calculated
+            // total. Keep one copy so split segments cannot be counted twice.
+            if (!authoritativeTotals.has(key)) authoritativeTotals.set(key, dayTotals);
+        });
+
+        const { stdHours, otHours } = authoritativeTotals.size > 0
+            ? Array.from(authoritativeTotals.values()).reduce(
+                (totals, dayTotals) => ({
+                    stdHours: totals.stdHours + (dayTotals.computed_std_hours || 0),
+                    otHours: totals.otHours + (dayTotals.computed_ot_hours || 0),
+                }),
+                { stdHours: 0, otHours: 0 },
+            )
+            : reportData.reduce(
+                (totals, row: DailyAttendanceReport) => ({
+                    stdHours: totals.stdHours + (row.computed_std_hours || 0),
+                    otHours: totals.otHours + (row.computed_ot_hours || 0),
+                }),
+                { stdHours: 0, otHours: 0 },
+            );
+
         return {
             totalStdHours: formatHours(stdHours),
             totalOtHours: formatHours(otHours),

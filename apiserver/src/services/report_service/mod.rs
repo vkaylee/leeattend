@@ -24,6 +24,7 @@ mod employment_selection;
 pub mod no_show;
 pub mod summary;
 
+#[derive(Clone)]
 pub struct AttendanceReportArgs {
     pub workspace_id: Uuid,
     pub start_date: NaiveDate,
@@ -39,6 +40,7 @@ pub struct AttendanceReportArgs {
     pub shift_type: Option<String>,
 }
 
+#[allow(dead_code)]
 pub struct CalculateDayUnitsArgs<'a, 'b> {
     day_entries: &'a [&'a crate::models::TimeEntry],
     daily: &'b crate::models::EffectiveSchedule,
@@ -53,6 +55,7 @@ pub struct CalculateDayUnitsArgs<'a, 'b> {
     rounding_policy: crate::models::RoundingPolicy,
 }
 
+#[allow(dead_code)]
 impl<'a, 'b> CalculateDayUnitsArgs<'a, 'b> {
     pub(crate) fn new(
         day_entries: &'a [&'a crate::models::TimeEntry],
@@ -121,6 +124,7 @@ impl<'a, 'b> CalculateDayUnitsArgs<'a, 'b> {
 /// Built by `fetch_preamble`, consumed by daily/segment/summary iterations.
 pub(crate) struct ReportDataPreamble {
     workspace_tz: Tz,
+    #[allow(dead_code)]
     workspace_id: Uuid,
     page: usize,
     limit: usize,
@@ -172,6 +176,7 @@ impl ReportDataPreamble {
         self.workspace_tz
     }
 
+    #[allow(dead_code)]
     pub(crate) fn workspace_id(&self) -> Uuid {
         self.workspace_id
     }
