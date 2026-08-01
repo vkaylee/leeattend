@@ -4,7 +4,7 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use crate::models::{
-    AttendancePolicy, AttendancePolicyAssignment, AttendancePolicyVersion, AttendanceRules,
+    AttendancePolicy, AttendancePolicyAssignment, AttendancePolicyVersion,
 };
 use crate::schema::{
     attendance_policies, attendance_policy_assignments, attendance_policy_versions,
@@ -51,12 +51,16 @@ impl From<AttendancePolicyVersionEntity> for AttendancePolicyVersion {
         AttendancePolicyVersion {
             id: val.id,
             policy_id: val.policy_id,
-            rules: serde_json::from_value(val.rules).unwrap_or(AttendanceRules {
-                work_unit_minutes: 0,
-                rounding_policy: crate::models::RoundingPolicy::None,
-                early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
-                grace_period_minutes: None,
-            }),
+            rules: serde_json::from_value(val.rules)
+                .map_err(|e| {
+                    tracing::warn!(
+                        error = %e,
+                        policy_version_id = %val.id,
+                        "Corrupted AttendanceRules JSONB in entity mapping — using defaults"
+                    );
+                    e
+                })
+                .unwrap_or_default(),
             valid_from: val.valid_from,
             valid_to: val.valid_to,
             created_by: val.created_by,
@@ -178,11 +182,11 @@ mod tests {
 
         let version: AttendancePolicyVersion = entity.into();
         assert_eq!(version.id, id);
-        assert_eq!(version.rules.work_unit_minutes, 0);
-        assert_eq!(
+        assert_eq!(version.rules.work_unit_minutes, 30); // Default, not 0
+        assert!(matches!(
             version.rules.rounding_policy,
-            crate::models::RoundingPolicy::None
-        );
+            crate::models::RoundingPolicy::Floor
+        ));
     }
 
     #[test]

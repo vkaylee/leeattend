@@ -104,7 +104,8 @@ pub async fn get_attendance_logs(
     ctx: MemberContext,
     Query(query): Query<AttendanceLogQuery>,
 ) -> AppResult<Json<serde_json::Value>> {
-    let _workspace_id = ctx.workspace_id;
+    // RBAC: reading attendance logs requires AttendanceLogsRead permission
+    ctx.require_permission(Permission::AttendanceLogsRead)?;
 
     let limit = query.limit.unwrap_or(20).clamp(1, 100);
     let page = query.page.unwrap_or(1).max(1);
@@ -173,6 +174,9 @@ pub async fn get_raw_attendance_logs(
     Query(query): Query<AttendanceLogQuery>,
 ) -> AppResult<Json<serde_json::Value>> {
     let workspace_id = ctx.workspace_id;
+
+    // RBAC: reading raw attendance logs requires AttendanceLogsRead permission
+    ctx.require_permission(Permission::AttendanceLogsRead)?;
 
     let limit = query.limit.unwrap_or(20).clamp(1, 100);
     let page = query.page.unwrap_or(1).max(1);

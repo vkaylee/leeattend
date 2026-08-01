@@ -315,14 +315,10 @@ impl ReportService {
                 .get(&emp_sched.employment_id())
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
 
-            let emp_attendance_rules = attendance_rules_map.get(&employee_id).cloned().unwrap_or(
-                crate::models::AttendanceRules {
-                    work_unit_minutes: 30,
-                    rounding_policy: crate::models::RoundingPolicy::Floor,
-                    early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-                    grace_period_minutes: None,
-                },
-            );
+            let emp_attendance_rules = attendance_rules_map
+                .get(&employee_id)
+                .cloned()
+                .unwrap_or_default();
             let mut employee_total_std = 0i32;
             let mut employee_total_ot = 0i32;
 

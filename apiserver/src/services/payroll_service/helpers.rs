@@ -9,7 +9,6 @@ use std::collections::HashMap;
 
 use crate::errors::AppError;
 use crate::models::attendance::AttendanceRules;
-use crate::models::enums::EarlyArrivalStrategy;
 use crate::models::TimeEntry;
 use crate::utils::i18n::I18nKey;
 
@@ -31,12 +30,7 @@ pub fn month_boundaries(year: i32, month: u32) -> Result<(NaiveDate, NaiveDate),
 
 /// Fallback attendance rules used when no policy is assigned.
 pub fn default_attendance_rules() -> AttendanceRules {
-    AttendanceRules {
-        work_unit_minutes: 30,
-        rounding_policy: crate::models::RoundingPolicy::Floor,
-        early_arrival_strategy: EarlyArrivalStrategy::Block,
-        grace_period_minutes: None,
-    }
+    AttendanceRules::default()
 }
 
 /// Group time entries by local calendar date.
@@ -56,6 +50,7 @@ pub fn build_daily_entries_map(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::enums::EarlyArrivalStrategy;
 
     #[test]
     fn test_month_boundaries_january() {

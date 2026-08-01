@@ -113,12 +113,7 @@ impl PayrollService {
         let attendance_policy = if let Some(pv) = policy_version {
             pv.rules
         } else {
-            crate::models::AttendanceRules {
-                work_unit_minutes: 30,
-                rounding_policy: crate::models::RoundingPolicy::Floor,
-                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-                grace_period_minutes: None,
-            }
+            crate::models::AttendanceRules::default()
         };
 
         let emp_payroll_configs = self

@@ -53,7 +53,8 @@ pub async fn get_default_attendance_rules(
     ctx: MemberContext,
     Path(_ws_id): Path<Uuid>,
 ) -> AppResult<Json<AttendanceRules>> {
-    let _workspace_id = ctx.workspace_id;
+    // RBAC: reading workspace attendance rules requires WorkspaceSettingsRead
+    ctx.require_permission(Permission::WorkspaceSettingsRead)?;
 
     let rules = state
         .attendance()
@@ -63,12 +64,7 @@ pub async fn get_default_attendance_rules(
 
     match rules {
         Some(r) => Ok(Json(r)),
-        None => Ok(Json(AttendanceRules {
-            work_unit_minutes: 15,
-            rounding_policy: crate::models::RoundingPolicy::None,
-            early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
-            grace_period_minutes: None,
-        })),
+        None => Ok(Json(AttendanceRules::default())),
     }
 }
 
@@ -92,7 +88,8 @@ pub async fn list_default_attendance_policy_versions(
     ctx: MemberContext,
     Path(_ws_id): Path<Uuid>,
 ) -> AppResult<Json<Vec<AttendancePolicyVersionResponse>>> {
-    let _workspace_id = ctx.workspace_id;
+    // RBAC: reading policy version history requires WorkspaceSettingsRead
+    ctx.require_permission(Permission::WorkspaceSettingsRead)?;
 
     let versions = state
         .attendance()

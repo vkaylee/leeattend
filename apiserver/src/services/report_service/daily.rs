@@ -174,12 +174,7 @@ impl ReportService {
             .attendance_rules_map()
             .get(&employee_id)
             .cloned()
-            .unwrap_or(crate::models::AttendanceRules {
-                work_unit_minutes: 30,
-                rounding_policy: crate::models::RoundingPolicy::Floor,
-                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-                grace_period_minutes: None,
-            })
+            .unwrap_or_default()
     }
 
     /// Resolve policy rules from working conditions + shift-level overrides.

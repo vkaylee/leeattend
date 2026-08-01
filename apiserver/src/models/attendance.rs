@@ -502,6 +502,22 @@ pub struct AttendanceRules {
     pub grace_period_minutes: Option<i32>,
 }
 
+/// Default attendance rules used across LeeAttend.
+///
+/// - `work_unit_minutes: 30` — standard 30-minute work units
+/// - `rounding_policy: Floor` — conservative rounding (employee-friendly)
+/// - `early_arrival_strategy: Block` — no early OT by default
+impl Default for AttendanceRules {
+    fn default() -> Self {
+        Self {
+            work_unit_minutes: 30,
+            rounding_policy: RoundingPolicy::Floor,
+            early_arrival_strategy: EarlyArrivalStrategy::Block,
+            grace_period_minutes: None,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AttendancePolicyAssignment {
     pub id: Uuid,
@@ -565,5 +581,43 @@ mod tests {
         let deserialized: AttendanceSummary = serde_json::from_str(&serialized).unwrap();
         assert!((deserialized.computed_ot_hours - 160.0).abs() < f64::EPSILON);
         assert!((deserialized.unit_coefficient_hours - 8.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn attendance_rules_default_values() {
+        let rules = AttendanceRules::default();
+        assert_eq!(rules.work_unit_minutes, 30);
+        assert!(matches!(rules.rounding_policy, RoundingPolicy::Floor));
+        assert!(matches!(
+            rules.early_arrival_strategy,
+            EarlyArrivalStrategy::Block
+        ));
+        assert_eq!(rules.grace_period_minutes, None);
+    }
+
+    #[test]
+    fn attendance_rules_default_is_consistent() {
+        let manual = AttendanceRules {
+            work_unit_minutes: 30,
+            rounding_policy: RoundingPolicy::Floor,
+            early_arrival_strategy: EarlyArrivalStrategy::Block,
+            grace_period_minutes: None,
+        };
+        let defaulted = AttendanceRules::default();
+        assert_eq!(manual.work_unit_minutes, defaulted.work_unit_minutes);
+        assert_eq!(manual.rounding_policy, defaulted.rounding_policy);
+        assert_eq!(
+            manual.early_arrival_strategy,
+            defaulted.early_arrival_strategy
+        );
+        assert_eq!(manual.grace_period_minutes, defaulted.grace_period_minutes);
+    }
+
+    #[test]
+    fn corrupted_json_falls_back_to_default_not_zero() {
+        let bad_json = serde_json::json!({"unknown_field": "garbage"});
+        let result: AttendanceRules = serde_json::from_value(bad_json).unwrap_or_default();
+        assert_eq!(result.work_unit_minutes, 30);
+        assert!(matches!(result.rounding_policy, RoundingPolicy::Floor));
     }
 }

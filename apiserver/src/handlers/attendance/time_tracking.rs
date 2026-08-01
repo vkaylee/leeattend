@@ -8,6 +8,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{PunchInRequest, PunchOutRequest, TimeEntry, UpdateTimeEntryRequest};
@@ -37,6 +38,9 @@ pub async fn punch_in(
     ctx: MemberContext,
     Json(req): Json<PunchInRequest>,
 ) -> AppResult<(StatusCode, Json<TimeEntry>)> {
+    // RBAC: self-service punch requires EssClock permission
+    ctx.require_permission(Permission::EssClock)?;
+
     let entry = state
         .attendance()
         .time_tracking_service()
@@ -71,7 +75,9 @@ pub async fn punch_out(
     Json(req): Json<PunchOutRequest>,
 ) -> AppResult<Json<TimeEntry>> {
     let (_workspace_id, employee_id) = params;
-    let _workspace_id = ctx.workspace_id;
+
+    // RBAC: force punch-out for another employee is admin-only
+    ctx.require_permission(Permission::AttendanceForceClockOut)?;
 
     let employee = state
         .employees()
@@ -118,7 +124,20 @@ pub async fn get_time_history(
     Query(query): Query<HistoryQuery>,
 ) -> AppResult<Json<Vec<TimeEntry>>> {
     let (_workspace_id, employee_id) = params;
-    let _workspace_id = ctx.workspace_id;
+
+    // RBAC: admin can read any employee's history; employee can only read own.
+    let has_read_perm = ctx.has_permission(Permission::AttendanceLogsRead);
+    if !has_read_perm {
+        let my_employee_id = state
+            .employees()
+            .repo()
+            .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
+            .await?
+            .ok_or_else(|| AppError::forbidden(I18nKey::Forbidden))?;
+        if employee_id != my_employee_id {
+            return Err(AppError::forbidden(I18nKey::Forbidden));
+        }
+    }
 
     let employee = state
         .employees()
@@ -168,7 +187,9 @@ pub async fn update_time_entry(
     Json(req): Json<UpdateTimeEntryRequest>,
 ) -> AppResult<Json<TimeEntry>> {
     let (_, id) = __path_params;
-    let _workspace_id = ctx.workspace_id;
+
+    // RBAC: updating time entries is admin-only
+    ctx.require_permission(Permission::AttendanceLogsImport)?;
 
     let entry = state
         .attendance()
@@ -200,7 +221,9 @@ pub async fn delete_time_entry(
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     let (_, id) = __path_params;
-    let _workspace_id = ctx.workspace_id;
+
+    // RBAC: deleting time entries is admin-only
+    ctx.require_permission(Permission::AttendanceLogsImport)?;
 
     state
         .attendance()

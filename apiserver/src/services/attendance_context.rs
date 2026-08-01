@@ -316,7 +316,6 @@ impl AttendanceMatcherContext {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::enums::EarlyArrivalStrategy;
     use chrono::Utc;
 
     #[test]
@@ -360,12 +359,7 @@ mod tests {
             payroll_roster_map: HashMap::new(),
             working_conditions: vec![],
             condition_type_catalog: Arc::new(HashMap::new()),
-            attendance_policy: crate::models::AttendanceRules {
-                work_unit_minutes: 30,
-                rounding_policy: crate::models::RoundingPolicy::Floor,
-                early_arrival_strategy: EarlyArrivalStrategy::Block,
-                grace_period_minutes: None,
-            },
+            attendance_policy: crate::models::AttendanceRules::default(),
             emp_payroll_configs: vec![],
             ws_payroll_settings_history: Arc::new(vec![]),
             department_payroll_configs: HashMap::new(),
@@ -375,12 +369,7 @@ mod tests {
             active_employments: vec![],
             primary_location_id: loc_id,
             month_end_payroll_settings: Arc::new(None),
-            month_end_attendance_policy: crate::models::AttendanceRules {
-                work_unit_minutes: 30,
-                rounding_policy: crate::models::RoundingPolicy::Floor,
-                early_arrival_strategy: EarlyArrivalStrategy::Block,
-                grace_period_minutes: None,
-            },
+            month_end_attendance_policy: crate::models::AttendanceRules::default(),
             leave_breakdown: crate::repositories::leave_request_repository::LeaveBreakdown {
                 total_days: 0.0,
                 unpaid_days: 0.0,

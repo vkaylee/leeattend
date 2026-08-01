@@ -173,12 +173,16 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         Ok(row.map(|r| AttendancePolicyVersion {
             id: r.id,
             policy_id: r.policy_id,
-            rules: serde_json::from_value(r.rules).unwrap_or(AttendanceRules {
-                work_unit_minutes: 0,
-                rounding_policy: crate::models::RoundingPolicy::None,
-                early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
-                grace_period_minutes: None,
-            }),
+            rules: serde_json::from_value(r.rules)
+                .map_err(|e| {
+                    tracing::warn!(
+                        error = %e,
+                        policy_version_id = %r.id,
+                        "Corrupted AttendanceRules JSONB — using defaults"
+                    );
+                    e
+                })
+                .unwrap_or_default(),
             valid_from: r.valid_from,
             valid_to: r.valid_to,
             created_by: r.created_by,
@@ -306,12 +310,17 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                 AttendancePolicyVersion {
                     id: row.id,
                     policy_id: row.policy_id,
-                    rules: serde_json::from_value(row.rules).unwrap_or(AttendanceRules {
-                        work_unit_minutes: 0,
-                        rounding_policy: crate::models::RoundingPolicy::None,
-                        early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
-                        grace_period_minutes: None,
-                    }),
+                    rules: serde_json::from_value(row.rules)
+                        .map_err(|e| {
+                            tracing::warn!(
+                                error = %e,
+                                policy_version_id = %row.id,
+                                employee_id = %row.employee_id,
+                                "Corrupted AttendanceRules JSONB — using defaults"
+                            );
+                            e
+                        })
+                        .unwrap_or_default(),
                     valid_from: row.valid_from,
                     valid_to: row.valid_to,
                     created_by: row.created_by,
@@ -423,12 +432,16 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         Ok(row.map(|r| AttendancePolicyVersion {
             id: r.id,
             policy_id: r.policy_id,
-            rules: serde_json::from_value(r.rules).unwrap_or(AttendanceRules {
-                work_unit_minutes: 0,
-                rounding_policy: crate::models::RoundingPolicy::None,
-                early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
-                grace_period_minutes: None,
-            }),
+            rules: serde_json::from_value(r.rules)
+                .map_err(|e| {
+                    tracing::warn!(
+                        error = %e,
+                        policy_version_id = %r.id,
+                        "Corrupted AttendanceRules JSONB — using defaults"
+                    );
+                    e
+                })
+                .unwrap_or_default(),
             valid_from: r.valid_from,
             valid_to: r.valid_to,
             created_by: r.created_by,
@@ -566,12 +579,17 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                 AttendancePolicyVersion {
                     id: row.id,
                     policy_id: row.policy_id,
-                    rules: serde_json::from_value(row.rules).unwrap_or(AttendanceRules {
-                        work_unit_minutes: 0,
-                        rounding_policy: crate::models::RoundingPolicy::None,
-                        early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
-                        grace_period_minutes: None,
-                    }),
+                    rules: serde_json::from_value(row.rules)
+                        .map_err(|e| {
+                            tracing::warn!(
+                                error = %e,
+                                policy_version_id = %row.id,
+                                employment_id = %row.employment_id,
+                                "Corrupted AttendanceRules JSONB — using defaults"
+                            );
+                            e
+                        })
+                        .unwrap_or_default(),
                     valid_from: row.valid_from,
                     valid_to: row.valid_to,
                     created_by: row.created_by,
@@ -620,12 +638,17 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
         match rules {
-            Some(r) => Ok(Some(serde_json::from_value(r).unwrap_or(AttendanceRules {
-                work_unit_minutes: 15,
-                rounding_policy: crate::models::RoundingPolicy::None,
-                early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
-                grace_period_minutes: None,
-            }))),
+            Some(r) => Ok(Some(
+                serde_json::from_value(r)
+                    .map_err(|e| {
+                        tracing::warn!(
+                            error = %e,
+                            "Corrupted AttendanceRules JSONB in default policy — using defaults"
+                        );
+                        e
+                    })
+                    .unwrap_or_default(),
+            )),
             None => Ok(None),
         }
     }
@@ -723,18 +746,17 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                         .map_err(|e| AppError::Internal(e.to_string()))?;
 
                 let mut new_rules = match current_rules_val {
-                    Some(v) => serde_json::from_value(v).unwrap_or(AttendanceRules {
-                        work_unit_minutes: 15,
-                        rounding_policy: crate::models::RoundingPolicy::None,
-                        early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
-                        grace_period_minutes: None,
-                    }),
-                    None => AttendanceRules {
-                        work_unit_minutes: 15,
-                        rounding_policy: crate::models::RoundingPolicy::None,
-                        early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
-                        grace_period_minutes: None,
-                    },
+                    Some(v) => serde_json::from_value(v)
+                        .map_err(|e| {
+                            tracing::warn!(
+                                error = %e,
+                                policy_id = %policy_id,
+                                "Corrupted AttendanceRules JSONB in default policy — using defaults"
+                            );
+                            e
+                        })
+                        .unwrap_or_default(),
+                    None => AttendanceRules::default(),
                 };
 
                 if let Some(w) = req.work_unit_minutes {
@@ -782,7 +804,11 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                     crate::models::diesel::attendance_policy::AttendancePolicyVersionEntity {
                         id: version_id,
                         policy_id,
-                        rules: serde_json::to_value(&new_rules).unwrap_or_default(),
+                        rules: serde_json::to_value(&new_rules).map_err(|e| {
+                            AppError::Internal(format!(
+                                "Failed to serialize AttendanceRules: {e}"
+                            ))
+                        })?,
                         valid_from,
                         valid_to: None,
                         created_by: Some(user_id),
@@ -888,12 +914,16 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                     target_id: row.target_id.to_string(),
                     valid_from: row.valid_from.to_rfc3339(),
                     valid_to: row.valid_to.map(|d| d.to_rfc3339()),
-                    rules: serde_json::from_value(row.rules).unwrap_or(AttendanceRules {
-                        work_unit_minutes: 0,
-                        rounding_policy: crate::models::RoundingPolicy::None,
-                        early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
-                        grace_period_minutes: None,
-                    }),
+                    rules: serde_json::from_value(row.rules)
+                        .map_err(|e| {
+                            tracing::warn!(
+                                error = %e,
+                                assignment_id = %row.id,
+                                "Corrupted AttendanceRules JSONB in policy assignment — using defaults"
+                            );
+                            e
+                        })
+                        .unwrap_or_default(),
                 },
             )
             .collect();
@@ -1007,7 +1037,11 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                 let version_entity = crate::models::diesel::attendance_policy::AttendancePolicyVersionEntity {
                     id: version_id,
                     policy_id,
-                    rules: serde_json::to_value(&rules).unwrap_or_default(),
+                    rules: serde_json::to_value(&rules).map_err(|e| {
+                        AppError::Internal(format!(
+                            "Failed to serialize AttendanceRules: {e}"
+                        ))
+                    })?,
                     valid_from,
                     valid_to: None,
                     created_by: Some(user_id),

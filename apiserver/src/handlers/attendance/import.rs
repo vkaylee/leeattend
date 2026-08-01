@@ -209,7 +209,8 @@ pub async fn get_latest_import_job(
     ctx: MemberContext,
     axum::extract::Query(query): axum::extract::Query<ImportJobQuery>,
 ) -> AppResult<Json<Option<AttendanceImportJob>>> {
-    let _workspace_id = ctx.workspace_id;
+    // RBAC: viewing import jobs requires AttendanceLogsImport permission
+    ctx.require_permission(Permission::AttendanceLogsImport)?;
 
     let mut job_opt = state
         .attendance()
@@ -274,7 +275,9 @@ pub async fn get_import_job_status(
     Path(__path_params): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<AttendanceImportJob>> {
     let (_, job_id) = __path_params;
-    let _workspace_id = ctx.workspace_id;
+
+    // RBAC: viewing import job status requires AttendanceLogsImport permission
+    ctx.require_permission(Permission::AttendanceLogsImport)?;
 
     let mut job = state
         .attendance()
@@ -339,6 +342,9 @@ pub async fn download_import_error_file(
 ) -> AppResult<impl axum::response::IntoResponse> {
     let (_, job_id) = __path_params;
     let workspace_id = ctx.workspace_id;
+
+    // RBAC: downloading error files requires AttendanceLogsImport permission
+    ctx.require_permission(Permission::AttendanceLogsImport)?;
 
     let job = state
         .attendance()

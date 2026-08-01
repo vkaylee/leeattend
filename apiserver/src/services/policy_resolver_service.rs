@@ -72,12 +72,7 @@ impl PolicyResolverService {
         if let Some(pv) = policy_version {
             Ok(pv.rules)
         } else {
-            Ok(AttendanceRules {
-                work_unit_minutes: 30,
-                rounding_policy: crate::models::RoundingPolicy::Floor,
-                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-                grace_period_minutes: None,
-            })
+            Ok(AttendanceRules::default())
         }
     }
 
@@ -96,12 +91,7 @@ impl PolicyResolverService {
         if let Some(pv) = policy_version {
             Ok(pv.rules)
         } else {
-            Ok(AttendanceRules {
-                work_unit_minutes: 30,
-                rounding_policy: crate::models::RoundingPolicy::Floor,
-                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-                grace_period_minutes: None,
-            })
+            Ok(AttendanceRules::default())
         }
     }
 
@@ -128,12 +118,7 @@ impl PolicyResolverService {
             } else {
                 result.insert(
                     id,
-                    AttendanceRules {
-                        work_unit_minutes: 30,
-                        rounding_policy: crate::models::RoundingPolicy::Floor,
-                        early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-                        grace_period_minutes: None,
-                    },
+                    AttendanceRules::default(),
                 );
             }
         }
@@ -164,12 +149,7 @@ impl PolicyResolverService {
             } else {
                 result.insert(
                     id,
-                    AttendanceRules {
-                        work_unit_minutes: 30,
-                        rounding_policy: crate::models::RoundingPolicy::Floor,
-                        early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-                        grace_period_minutes: None,
-                    },
+                    AttendanceRules::default(),
                 );
             }
         }

@@ -41,6 +41,9 @@ pub async fn submit_attendance_adjustment(
 ) -> AppResult<(StatusCode, Json<AttendanceAdjustmentRequest>)> {
     let workspace_id = ctx.workspace_id;
 
+    // RBAC: submitting adjustments requires AttendanceAdjustmentsSubmit permission
+    ctx.require_permission(Permission::AttendanceAdjustmentsSubmit)?;
+
     let target_employment = state
         .employees()
         .employment_repo()
@@ -184,6 +187,20 @@ pub async fn get_my_attendance_adjustments(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<AttendanceAdjustmentRequest>>> {
+    // RBAC: admin can read any employee's adjustments; employee can only read own.
+    let has_admin_perm = ctx.has_permission(Permission::AttendanceAdjustmentsApprove);
+    if !has_admin_perm {
+        let my_employee_id = state
+            .employees()
+            .repo()
+            .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
+            .await?
+            .ok_or_else(|| AppError::forbidden(I18nKey::Forbidden))?;
+        if id != my_employee_id {
+            return Err(AppError::forbidden(I18nKey::Forbidden));
+        }
+    }
+
     let requests = state
         .attendance()
         .adjustment_service()
@@ -230,6 +247,9 @@ pub async fn get_workspace_attendance_adjustments(
     Query(query): Query<AdjustmentStatusQuery>,
 ) -> AppResult<Json<PaginatedAttendanceAdjustments>> {
     let workspace_id = ctx.workspace_id;
+
+    // RBAC: listing workspace-wide adjustments requires AttendanceAdjustmentsApprove
+    ctx.require_permission(Permission::AttendanceAdjustmentsApprove)?;
 
     let limit = query.limit.unwrap_or(20).clamp(1, 100);
     let page = query.page.unwrap_or(1).max(1);

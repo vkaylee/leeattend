@@ -68,14 +68,10 @@ impl AttendanceHandler {
                 .get(&employee_id)
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
 
-            let emp_attendance_rules = attendance_rules_map.get(&employee_id).cloned().unwrap_or(
-                crate::models::AttendanceRules {
-                    work_unit_minutes: 30,
-                    rounding_policy: crate::models::RoundingPolicy::Floor,
-                    early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-                    grace_period_minutes: None,
-                },
-            );
+            let emp_attendance_rules = attendance_rules_map
+                .get(&employee_id)
+                .cloned()
+                .unwrap_or_default();
 
             // Pre-group entries by date once — O(entries) instead of O(entries × days)
             let entries_by_date =

@@ -140,12 +140,7 @@ mod tests {
             payroll_roster_map: HashMap::new(),
             working_conditions: Vec::new(),
             condition_type_catalog: Arc::new(HashMap::new()),
-            attendance_policy: crate::models::AttendanceRules {
-                work_unit_minutes: 30,
-                rounding_policy: crate::models::RoundingPolicy::Floor,
-                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-                grace_period_minutes: None,
-            },
+            attendance_policy: crate::models::AttendanceRules::default(),
             emp_payroll_configs: Vec::new(),
             ws_payroll_settings_history: Arc::new(Vec::new()),
             department_payroll_configs: HashMap::new(),
@@ -160,12 +155,7 @@ mod tests {
             active_employments: Vec::new(),
             primary_location_id: Uuid::new_v4(),
             month_end_payroll_settings: Arc::new(None),
-            month_end_attendance_policy: crate::models::AttendanceRules {
-                work_unit_minutes: 30,
-                rounding_policy: crate::models::RoundingPolicy::Floor,
-                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-                grace_period_minutes: None,
-            },
+            month_end_attendance_policy: crate::models::AttendanceRules::default(),
             leave_breakdown: crate::repositories::leave_request_repository::LeaveBreakdown {
                 total_days: 0.0,
                 unpaid_days: 0.0,
