@@ -18,6 +18,17 @@ impl DieselAttendanceDailySummaryRepository {
     }
 }
 
+/// Raw SQL CASE for OT status transition on upsert:
+/// - If current status is 'none' AND new system_detected_ot > 0 → 'pending_employee'
+/// - Otherwise keep existing status
+const OT_STATUS_UPSERT_CASE_SQL: &str = "\
+    CASE \
+        WHEN attendance_daily_summaries.ot_status = 'none'::ot_status_type \
+             AND EXCLUDED.system_detected_ot_minutes > 0 \
+        THEN 'pending_employee'::ot_status_type \
+        ELSE attendance_daily_summaries.ot_status \
+    END";
+
 #[async_trait]
 impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository {
     async fn get_summary(
@@ -95,7 +106,6 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
-        use diesel::upsert::excluded;
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -123,20 +133,18 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .on_conflict((ads::employment_id, ads::date))
             .do_update()
             .set((
-                ads::actual_work_minutes.eq(excluded(ads::actual_work_minutes)),
-                ads::system_detected_ot_minutes.eq(excluded(ads::system_detected_ot_minutes)),
-                ads::standard_minutes.eq(excluded(ads::standard_minutes)),
-                ads::early_ot_minutes.eq(excluded(ads::early_ot_minutes)),
-                ads::late_ot_minutes.eq(excluded(ads::late_ot_minutes)),
-                ads::break_ot_minutes.eq(excluded(ads::break_ot_minutes)),
-                ads::is_weekend.eq(excluded(ads::is_weekend)),
-                ads::is_holiday.eq(excluded(ads::is_holiday)),
-                ads::holiday_name.eq(excluded(ads::holiday_name)),
+                ads::actual_work_minutes.eq(diesel::dsl::sql("EXCLUDED.actual_work_minutes")),
+                ads::system_detected_ot_minutes
+                    .eq(diesel::dsl::sql("EXCLUDED.system_detected_ot_minutes")),
+                ads::standard_minutes.eq(diesel::dsl::sql("EXCLUDED.standard_minutes")),
+                ads::early_ot_minutes.eq(diesel::dsl::sql("EXCLUDED.early_ot_minutes")),
+                ads::late_ot_minutes.eq(diesel::dsl::sql("EXCLUDED.late_ot_minutes")),
+                ads::break_ot_minutes.eq(diesel::dsl::sql("EXCLUDED.break_ot_minutes")),
+                ads::is_weekend.eq(diesel::dsl::sql("EXCLUDED.is_weekend")),
+                ads::is_holiday.eq(diesel::dsl::sql("EXCLUDED.is_holiday")),
+                ads::holiday_name.eq(diesel::dsl::sql("EXCLUDED.holiday_name")),
                 ads::ot_status.eq(diesel::dsl::sql::<crate::schema::sql_types::OtStatusType>(
-                    "CASE
-                        WHEN attendance_daily_summaries.ot_status = 'none'::ot_status_type AND EXCLUDED.system_detected_ot_minutes > 0 THEN 'pending_employee'::ot_status_type
-                        ELSE attendance_daily_summaries.ot_status
-                    END"
+                    OT_STATUS_UPSERT_CASE_SQL,
                 )),
                 ads::updated_at.eq(diesel::dsl::now),
             ))
@@ -147,6 +155,12 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         Ok(())
     }
 
+    /// Batch-upserts calculated attendance summaries in a single SQL statement.
+    ///
+    /// Uses multi-row `INSERT ... ON CONFLICT ... DO UPDATE` to persist all
+    /// summaries in one DB round-trip, regardless of range size.
+    /// The `ot_status` CASE expression preserves employee-approved OT status:
+    /// only transitions `none` → `pending_employee` when new OT is detected.
     async fn batch_upsert_calculated_summaries(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -159,7 +173,6 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
-        use diesel::upsert::excluded;
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -168,9 +181,11 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
                 .await?,
         );
 
-        for s in summaries {
-            diesel::insert_into(ads::attendance_daily_summaries)
-                .values((
+        // Build batch values — one tuple per summary row
+        let values: Vec<_> = summaries
+            .iter()
+            .map(|s| {
+                (
                     ads::workspace_id.eq(workspace_id),
                     ads::employment_id.eq(employment_id),
                     ads::date.eq(s.date),
@@ -184,33 +199,34 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
                     ads::ot_status.eq(s.ot_status),
                     ads::is_holiday.eq(s.is_holiday),
                     ads::holiday_name.eq(&s.holiday_name),
-                ))
-                .on_conflict((ads::employment_id, ads::date))
-                .do_update()
-                .set((
-                    ads::actual_work_minutes.eq(excluded(ads::actual_work_minutes)),
-                    ads::system_detected_ot_minutes
-                        .eq(excluded(ads::system_detected_ot_minutes)),
-                    ads::standard_minutes.eq(excluded(ads::standard_minutes)),
-                    ads::early_ot_minutes.eq(excluded(ads::early_ot_minutes)),
-                    ads::late_ot_minutes.eq(excluded(ads::late_ot_minutes)),
-                    ads::break_ot_minutes.eq(excluded(ads::break_ot_minutes)),
-                    ads::is_weekend.eq(excluded(ads::is_weekend)),
-                    ads::is_holiday.eq(excluded(ads::is_holiday)),
-                    ads::holiday_name.eq(excluded(ads::holiday_name)),
-                    ads::ot_status
-                        .eq(diesel::dsl::sql::<crate::schema::sql_types::OtStatusType>(
-                            "CASE
-                        WHEN attendance_daily_summaries.ot_status = 'none'::ot_status_type AND EXCLUDED.system_detected_ot_minutes > 0 THEN 'pending_employee'::ot_status_type
-                        ELSE attendance_daily_summaries.ot_status
-                    END",
-                        )),
-                    ads::updated_at.eq(diesel::dsl::now),
-                ))
-                .execute(&mut *conn)
-                .await
-                .map_err(AppError::from)?;
-        }
+                )
+            })
+            .collect();
+
+        // Single multi-row INSERT ... ON CONFLICT ... DO UPDATE
+        diesel::insert_into(ads::attendance_daily_summaries)
+            .values(&values)
+            .on_conflict((ads::employment_id, ads::date))
+            .do_update()
+            .set((
+                ads::actual_work_minutes.eq(diesel::dsl::sql("EXCLUDED.actual_work_minutes")),
+                ads::system_detected_ot_minutes
+                    .eq(diesel::dsl::sql("EXCLUDED.system_detected_ot_minutes")),
+                ads::standard_minutes.eq(diesel::dsl::sql("EXCLUDED.standard_minutes")),
+                ads::early_ot_minutes.eq(diesel::dsl::sql("EXCLUDED.early_ot_minutes")),
+                ads::late_ot_minutes.eq(diesel::dsl::sql("EXCLUDED.late_ot_minutes")),
+                ads::break_ot_minutes.eq(diesel::dsl::sql("EXCLUDED.break_ot_minutes")),
+                ads::is_weekend.eq(diesel::dsl::sql("EXCLUDED.is_weekend")),
+                ads::is_holiday.eq(diesel::dsl::sql("EXCLUDED.is_holiday")),
+                ads::holiday_name.eq(diesel::dsl::sql("EXCLUDED.holiday_name")),
+                ads::ot_status.eq(diesel::dsl::sql::<crate::schema::sql_types::OtStatusType>(
+                    OT_STATUS_UPSERT_CASE_SQL,
+                )),
+                ads::updated_at.eq(diesel::dsl::now),
+            ))
+            .execute(&mut *conn)
+            .await
+            .map_err(AppError::from)?;
 
         Ok(())
     }
