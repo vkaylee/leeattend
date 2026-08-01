@@ -8,7 +8,7 @@ interface UseDragCellSelectionProps {
   /** Setter for selected cells — called by the drag-paint reducer. */
   setSelectedCells: React.Dispatch<React.SetStateAction<Set<string>>>;
   /** Ordered employee schedule rows (for employee-index lookup). */
-  filteredSchedules: Array<{ employee_id: string }>;
+  filteredSchedules: { employee_id: string }[];
   /** Month day Date objects (for date-index lookup). */
   monthDays: Date[];
 }

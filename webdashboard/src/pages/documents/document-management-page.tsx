@@ -17,7 +17,6 @@ export function DocumentManagementPage() {
   const { data: folders = [] } = useFolders(workspace?.id);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
-  // Use correct type definition instead of any[]
   const files: WorkspaceFile[] = [];
 
   return (

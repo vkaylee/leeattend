@@ -27,9 +27,12 @@ export function useMonthlyRosterKeyboard({
   setSelectedCells,
   onClearOverrides,
 }: UseMonthlyRosterKeyboardProps): void {
-  // Stable callback refs so the effect doesn't need them in the dep array.
+  // Stable callback ref so the keydown effect always calls the latest handler.
   const onClearRef = useRef(onClearOverrides);
-  onClearRef.current = onClearOverrides;
+
+  useEffect(() => {
+    onClearRef.current = onClearOverrides;
+  });
 
   useEffect(() => {
     if (selectedCells.size === 0) return;

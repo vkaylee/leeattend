@@ -82,7 +82,7 @@ export interface UseShiftsReturn {
   newShiftName: string;
   newShiftStart: string;
   newShiftSymbol: string;
-  onComplianceOverride: (reason: string) => void;
+  onComplianceOverride: (reason: string) => Promise<void>;
   openEditModal: (shift: Shift) => void;
   patterns: WorkingPattern[] | undefined;
   refetchEmployees: () => Promise<unknown>;

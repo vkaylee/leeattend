@@ -9,8 +9,6 @@ export { useDebounce } from "@/hooks/use-debounce";
 export { useMyProfile, useMyLeave, useMyAttendance, useMyDocuments } from "@/hooks/use-ess";
 export { essKeys } from "@/hooks/use-ess-keys";
 export { useFileUpload } from "@/hooks/use-file-upload";
-export { useFilterParams } from "@/hooks/common/use-filter-params";
-export type { UseFilterParamsOptions } from "@/hooks/common/use-filter-params";
 export { useFocusTrap } from "@/hooks/use-focus-trap";
 export { useHeaderActions } from "@/hooks/use-header-actions";
 export { useI18nSync } from "@/hooks/use-i18n-sync";

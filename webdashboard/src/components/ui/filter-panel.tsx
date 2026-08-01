@@ -237,7 +237,6 @@ function OptionList({
           <div className="flex items-center border-b border-slate-50 dark:border-slate-800 px-3 pb-3 mb-1">
             <Search className="mr-3 h-4 w-4 shrink-0 text-slate-300 dark:text-slate-500" />
             <Command.Input
-              autoFocus
               className="flex h-10 w-full rounded-md bg-transparent text-sm text-primary-700 dark:text-primary-300 outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600 font-bold"
               onValueChange={setSearch}
               placeholder={searchPlaceholder ?? t("common.combobox.search")}
