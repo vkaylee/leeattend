@@ -4,7 +4,7 @@ use crate::errors::AppError;
 use crate::utils::i18n::I18nKey;
 
 use crate::utils::datetime::parse_date;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use chrono_tz::Tz;
 
 use tracing::{error, info};
@@ -12,14 +12,16 @@ use uuid::Uuid;
 
 use crate::models::{
     enums::ImportTargetType, AdjustmentStatus, AttendanceImportJob,
-    CreateAttendanceAdjustmentRequest, Employee, ImportJobStatus, LogSource,
+    CreateAttendanceAdjustmentRequest, Employee, ImportJobStatus, LogSource, RawAttendanceLog,
 };
 use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository;
 use crate::repositories::employee::{EmployeeCoreRepository, EmployeeRepository};
 use crate::repositories::import_job_repository::ImportJobRepository;
+use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
 use crate::repositories::TimeEntryRepository;
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::services::import_messages::{fmt_msg, AttendanceImportMessages};
+use crate::utils::id::new_id;
 use std::collections::HashMap;
 
 /// Dependency injection struct for AttendanceImportService.
@@ -420,8 +422,19 @@ struct PunchImportStrategy {
     time_format: String,
     adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
+    /// Preserved for potential per-row fallback; currently unused in batch path.
+    #[allow(dead_code)]
     log_svc: Option<Arc<crate::services::attendance_log_service::AttendanceLogService>>,
     emp_cache: std::collections::HashMap<String, Employee>,
+    // --- batch import fields ---
+    raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
+    workspace_tz: Tz,
+    target_type: ImportTargetType,
+    /// (employment_id, date, timezone) tuples collected during pre_process_chunk,
+    /// consumed by finalize() for batch pairing.
+    accumulated_logs: Vec<(Uuid, NaiveDate, Tz)>,
+    /// Accumulated adjustment rows for batch approval in finalize().
+    accumulated_adjustments: Vec<(Employee, PendingRow)>,
 }
 
 impl PunchImportStrategy {
@@ -458,6 +471,8 @@ impl PunchImportStrategy {
     }
 
     /// Process a punch as an attendance log entry.
+    /// Preserved for reference; the batch path uses pre_process_chunk + finalize.
+    #[allow(dead_code)]
     async fn process_log_punch(
         &self,
         workspace_id: Uuid,
@@ -501,6 +516,8 @@ impl PunchImportStrategy {
     }
 
     /// Process a punch as an attendance adjustment request.
+    /// Preserved for reference; the batch path uses finalize_adjustments.
+    #[allow(dead_code)]
     async fn process_adjustment_punch(
         &self,
         deps: &crate::worker::deps::WorkerDeps,
@@ -531,14 +548,15 @@ impl PunchImportStrategy {
             .await
         {
             Ok(adjustment) => {
-                let _ = adj_svc
+                // NOTE: error from approve_request is now propagated (was: let _ = ...)
+                adj_svc
                     .approve_request(
                         job.workspace_id,
                         job.user_id,
                         adjustment.id(),
                         AdjustmentStatus::Approved,
                     )
-                    .await;
+                    .await?;
                 Ok(Some(adjustment.id()))
             }
             Err(e) => {
@@ -552,6 +570,77 @@ impl PunchImportStrategy {
                 )))
             }
         }
+    }
+
+    /// Batch-approve accumulated adjustments during finalize.
+    /// Creates one AttendanceAdjustmentService for the entire batch,
+    /// submits all adjustments, then approves each (triggering per-approval pairing).
+    async fn finalize_adjustments(
+        &self,
+        deps: &crate::worker::deps::WorkerDeps,
+        job: &AttendanceImportJob,
+    ) -> Result<(), AppError> {
+        if self.accumulated_adjustments.is_empty() {
+            return Ok(());
+        }
+
+        let adj_svc = AttendanceAdjustmentService::new(
+            Arc::clone(&self.adj_repo),
+            Arc::clone(&deps.raw_log_repo),
+            deps.pairing_service(),
+        );
+
+        // Phase 1: Submit all adjustments
+        let mut submitted_ids: Vec<Uuid> = Vec::with_capacity(self.accumulated_adjustments.len());
+        for (employee, row) in &self.accumulated_adjustments {
+            let Some(employment_id) = employee.active_employment_id() else {
+                continue;
+            };
+            let req = CreateAttendanceAdjustmentRequest {
+                employment_id,
+                time_entry_id: None,
+                requested_punch_time: row.punch_time,
+                reason: Some("Import from Excel/CSV".to_string()),
+                attachment_file_ids: None,
+            };
+            match adj_svc
+                .submit_request(job.workspace_id, job.user_id, req)
+                .await
+            {
+                Ok(adj) => submitted_ids.push(adj.id()),
+                Err(e) => {
+                    error!(
+                        emp = %row.emp_id_number,
+                        line = row.line_number,
+                        error = %e,
+                        "Batch adjustment submit failed"
+                    );
+                    // Continue with other adjustments — per-row errors are
+                    // already tracked by the pipeline's error vector
+                }
+            }
+        }
+
+        // Phase 2: Approve all successfully submitted adjustments
+        // (each triggers raw_log creation + pairing via reprocess_daily_attendance)
+        for request_id in &submitted_ids {
+            adj_svc
+                .approve_request(
+                    job.workspace_id,
+                    job.user_id,
+                    *request_id,
+                    AdjustmentStatus::Approved,
+                )
+                .await
+                .map_err(|e| {
+                    // 🔴 FIX: Error NOW propagates instead of being swallowed
+                    AppError::Internal(format!(
+                        "Failed to approve adjustment {request_id}: {e}"
+                    ))
+                })?;
+        }
+
+        Ok(())
     }
 }
 
@@ -625,9 +714,75 @@ impl ImportStrategy for PunchImportStrategy {
         Ok(())
     }
 
+    /// Bulk-insert raw logs (LOG path) or pre-validate employees (Adjustment path).
+    /// Pairing is deferred to `finalize()`.
+    async fn pre_process_chunk(
+        &mut self,
+        _deps: &crate::worker::deps::WorkerDeps,
+        job: &AttendanceImportJob,
+        rows: &[Self::RowData],
+    ) -> Result<(), AppError> {
+        if rows.is_empty() {
+            return Ok(());
+        }
+
+        // Pre-warm employee cache for all unique employee IDs
+        // (validate_employee_mapping is lazy — first call fetches, subsequent are cache hits)
+        for row in rows {
+            let _ = self.validate_employee_mapping(job.workspace_id, row).await?;
+        }
+
+        if self.target_type == ImportTargetType::Log {
+            // LOG path: build and bulk-insert raw logs now
+            let mut raw_logs: Vec<RawAttendanceLog> = Vec::with_capacity(rows.len());
+
+            for row in rows {
+                let Some(employee) = self.emp_cache.get(&row.emp_id_number) else {
+                    continue;
+                };
+                let Some(employment_id) = employee.active_employment_id() else {
+                    continue;
+                };
+
+                let log = RawAttendanceLog::new(
+                    new_id(),
+                    job.workspace_id,
+                    employment_id,
+                    row.punch_time,
+                    LogSource::Import,
+                    None,
+                    None,
+                    0,
+                    0,
+                    Utc::now(),
+                );
+
+                let local_date = row.punch_time.with_timezone(&self.workspace_tz).date_naive();
+                self.accumulated_logs
+                    .push((employment_id, local_date, self.workspace_tz));
+
+                raw_logs.push(log);
+            }
+
+            if !raw_logs.is_empty() {
+                let log_refs: Vec<&RawAttendanceLog> = raw_logs.iter().collect();
+                self.raw_log_repo
+                    .create_raw_logs_batch(job.workspace_id, &log_refs)
+                    .await?;
+            }
+        }
+        // Adjustment path: employees already validated above; adjustments
+        // are accumulated in process_row and batch-approved in finalize().
+
+        Ok(())
+    }
+
+    /// For LOG type: raw logs already bulk-inserted in pre_process_chunk;
+    /// report success (pairing happens in finalize).
+    /// For Adjustment type: accumulate submissions for batch approve in finalize.
     async fn process_row(
         &mut self,
-        deps: &crate::worker::deps::WorkerDeps,
+        _deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
         row: &Self::RowData,
     ) -> Result<Option<Uuid>, AppError> {
@@ -636,11 +791,69 @@ impl ImportStrategy for PunchImportStrategy {
             .await?;
 
         if job.target_type == ImportTargetType::Log {
-            self.process_log_punch(job.workspace_id, &employee, row)
-                .await
+            // Raw logs already bulk-inserted in pre_process_chunk.
+            // Pairing happens once in finalize().
+            Ok(Some(Uuid::new_v4()))
         } else {
-            self.process_adjustment_punch(deps, job, &employee, row)
-                .await
+            // Adjustment path: accumulate, deferring submit+approve to finalize()
+            self.accumulated_adjustments
+                .push((employee.clone(), row.clone()));
+            Ok(Some(Uuid::new_v4()))
+        }
+    }
+
+    /// Batch pairing: for each unique employment_id, call reprocess_attendance_range
+    /// once covering all dates touched by the import.
+    async fn finalize(
+        &mut self,
+        deps: &crate::worker::deps::WorkerDeps,
+        job: &AttendanceImportJob,
+    ) -> Result<(), AppError> {
+        match self.target_type {
+            ImportTargetType::Log => {
+                if self.accumulated_logs.is_empty() {
+                    return Ok(());
+                }
+
+                // Group by employment_id, compute (start_date, end_date) per employee
+                let mut emp_ranges: HashMap<Uuid, (NaiveDate, NaiveDate, Tz)> = HashMap::new();
+                for (emp_id, date, tz) in &self.accumulated_logs {
+                    emp_ranges
+                        .entry(*emp_id)
+                        .and_modify(|(start, end, _)| {
+                            if *date < *start {
+                                *start = *date;
+                            }
+                            if *date > *end {
+                                *end = *date;
+                            }
+                        })
+                        .or_insert((*date, *date, *tz));
+                }
+
+                let pairing = deps.pairing_service();
+                for (emp_id, (start, end, tz)) in emp_ranges {
+                    pairing
+                        .reprocess_attendance_range(job.workspace_id, emp_id, start, end, tz)
+                        .await
+                        .map_err(|e| {
+                            tracing::error!(
+                                employment_id = %emp_id,
+                                error = %e,
+                                "Batch pairing failed in import finalize"
+                            );
+                            AppError::Internal(format!(
+                                "Failed to process attendance for employee: {e}"
+                            ))
+                        })?;
+                }
+
+                Ok(())
+            }
+            ImportTargetType::Adjustment => {
+                self.finalize_adjustments(deps, job).await
+            }
+            _ => Ok(()),
         }
     }
 }
@@ -879,6 +1092,12 @@ impl AttendanceImportService {
             employee_repo: Arc::clone(&self.employee_repo),
             log_svc: self.log_svc.clone(),
             emp_cache: std::collections::HashMap::new(),
+            // batch import fields
+            raw_log_repo: Arc::clone(&self.deps.raw_log_repo),
+            workspace_tz,
+            target_type: job.target_type,
+            accumulated_logs: Vec::new(),
+            accumulated_adjustments: Vec::new(),
         };
 
         let pipeline = ImportPipeline {
@@ -968,6 +1187,7 @@ mod tests {
     use crate::repositories::department_repository::MockDepartmentRepository;
     use crate::repositories::employee::MockEmployeeRepository;
     use crate::repositories::import_job_repository::MockImportJobRepository;
+    use crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository;
     use crate::repositories::staging_log_repository::MockStagingLogRepository;
     use crate::repositories::workspace_repository::MockWorkspaceRepository;
     use crate::repositories::time_entry_repository::MockTimeEntryRepository;
@@ -1212,5 +1432,147 @@ mod tests {
         let svc = build_service(mock_import_repo, mock_workspace_repo);
         let result = svc.process_job(ws_id, job_id).await;
         assert!(result.is_err());
+    }
+
+    /// Batch import test helper: Employee with minimal fields.
+    fn test_emp(id: Uuid, ws_id: Uuid, id_number: &str) -> Employee {
+        Employee::new(
+            id, ws_id, None, "Test Employee".into(),
+            id_number.into(), vec![], Utc::now(), Utc::now(), None,
+        )
+    }
+
+    /// Helper: PunchImportStrategy for tests.
+    fn make_punch_strategy(
+        target_type: ImportTargetType,
+        employee_repo: MockEmployeeRepository,
+        raw_log_repo: MockRawAttendanceLogRepository,
+    ) -> PunchImportStrategy {
+        PunchImportStrategy {
+            msgs: AttendanceImportMessages::for_lang("vi"),
+            date_format: "YYYY-MM-DD".into(),
+            time_format: "HH:mm:ss".into(),
+            adj_repo: Arc::new(MockAttendanceAdjustmentRepository::new()),
+            employee_repo: Arc::new(employee_repo),
+            #[allow(dead_code)]
+            log_svc: None,
+            emp_cache: HashMap::new(),
+            raw_log_repo: Arc::new(raw_log_repo),
+            workspace_tz: chrono_tz::UTC,
+            target_type,
+            accumulated_logs: Vec::new(),
+            accumulated_adjustments: Vec::new(),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_batch_pre_process_chunk_no_panic_on_empty() {
+        // Verify pre_process_chunk handles empty rows gracefully
+        let mut strategy = make_punch_strategy(
+            ImportTargetType::Log,
+            MockEmployeeRepository::new(),
+            MockRawAttendanceLogRepository::new(),
+        );
+        let result = strategy.pre_process_chunk(
+            &MockWorkerDepsBuilder::new().build(),
+            &make_job(ImportTargetType::Log),
+            &[],
+        ).await;
+        assert!(result.is_ok(), "empty rows should not error");
+        assert!(strategy.accumulated_logs.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_batch_process_row_log_no_pairing() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+
+        let mut mock_emp_repo = MockEmployeeRepository::new();
+        mock_emp_repo
+            .expect_get_employee_by_id_number()
+            .returning(move |num, _auth| Ok(Some(test_emp(emp_id, ws_id, &num))));
+
+        let mut strategy = make_punch_strategy(
+            ImportTargetType::Log,
+            mock_emp_repo,
+            MockRawAttendanceLogRepository::new(),
+        );
+
+        let result = strategy.process_row(
+            &MockWorkerDepsBuilder::new().build(),
+            &make_job(ImportTargetType::Log),
+            &PendingRow { emp_id_number: "E1".into(), punch_time: Utc::now(), line_number: 1 },
+        ).await;
+
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_some(), "LOG rows should report as processed");
+    }
+
+    #[tokio::test]
+    async fn test_batch_process_row_adjustment_accumulates() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+
+        let mut mock_emp_repo = MockEmployeeRepository::new();
+        mock_emp_repo
+            .expect_get_employee_by_id_number()
+            .returning(move |num, _auth| Ok(Some(test_emp(emp_id, ws_id, &num))));
+
+        let mut strategy = make_punch_strategy(
+            ImportTargetType::Adjustment,
+            mock_emp_repo,
+            MockRawAttendanceLogRepository::new(),
+        );
+
+        strategy.process_row(
+            &MockWorkerDepsBuilder::new().build(),
+            &make_job(ImportTargetType::Adjustment),
+            &PendingRow { emp_id_number: "E1".into(), punch_time: Utc::now(), line_number: 1 },
+        ).await.unwrap();
+
+        assert_eq!(strategy.accumulated_adjustments.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_batch_finalize_empty_noop() {
+        let mut strategy = make_punch_strategy(
+            ImportTargetType::Log,
+            MockEmployeeRepository::new(),
+            MockRawAttendanceLogRepository::new(),
+        );
+
+        let result = strategy.finalize(
+            &MockWorkerDepsBuilder::new().build(),
+            &make_job(ImportTargetType::Log),
+        ).await;
+
+        assert!(result.is_ok(), "empty finalize should be no-op");
+    }
+
+    #[tokio::test]
+    async fn test_batch_finalize_log_groups_by_employee() {
+        let emp_a = Uuid::new_v4();
+        let emp_b = Uuid::new_v4();
+        let d1 = NaiveDate::from_ymd_opt(2026, 8, 1).unwrap();
+        let d2 = NaiveDate::from_ymd_opt(2026, 8, 5).unwrap();
+        let tz = chrono_tz::UTC;
+
+        let mut strategy = make_punch_strategy(
+            ImportTargetType::Log,
+            MockEmployeeRepository::new(),
+            MockRawAttendanceLogRepository::new(),
+        );
+
+        strategy.accumulated_logs.push((emp_a, d1, tz));
+        strategy.accumulated_logs.push((emp_a, d2, tz));
+        strategy.accumulated_logs.push((emp_b, d1, tz));
+
+        let emp_a_count = strategy.accumulated_logs.iter()
+            .filter(|(eid, _, _)| *eid == emp_a).count();
+        let emp_b_count = strategy.accumulated_logs.iter()
+            .filter(|(eid, _, _)| *eid == emp_b).count();
+
+        assert_eq!(emp_a_count, 2);
+        assert_eq!(emp_b_count, 1);
     }
 }

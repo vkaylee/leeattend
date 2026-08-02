@@ -48,6 +48,19 @@ pub trait ImportStrategy: Send + Sync {
     ) -> Result<(), crate::errors::AppError> {
         Ok(())
     }
+
+    /// Optional hook called after ALL rows have been processed.
+    /// Use for batch finalization that should run once after the row loop
+    /// (e.g., bulk pairing, recalculations).
+    /// Only called for non-chunked imports; chunk-based imports finalize
+    /// through the separate FinalizeImport handler.
+    async fn finalize(
+        &mut self,
+        _deps: &crate::worker::deps::WorkerDeps,
+        _job: &AttendanceImportJob,
+    ) -> Result<(), crate::errors::AppError> {
+        Ok(())
+    }
 }
 
 pub struct ImportPipeline<'a, S: ImportStrategy> {
@@ -182,7 +195,9 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                     skipped_rows += 1;
                     failed_rows_data.push((
                         raw_row_data,
-                        "Bỏ qua (Trùng lặp hoặc đã tồn tại)".to_string(),
+                        // i18n: use short English default; the skip count summary
+                        // below (L305 area) already provides the localized message
+                        "Skipped (duplicate or already exists)".to_string(),
                     ));
                 }
                 Err(e) => {
@@ -211,6 +226,28 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                         )
                         .await;
                 }
+            }
+        }
+
+        // ── Finalize: batch completion hook (pairing, etc.) ───
+        if !self.is_chunk {
+            if let Err(e) = self.strategy.finalize(&self.deps, self.job).await {
+                let translated_err = e.translate(&lang);
+                errors.push(translated_err.clone());
+                // Finalization failure: mark job Failed immediately
+                let _ = self
+                    .import_repo
+                    .update_job_progress(
+                        &crate::diesel_pool::TenantAuthToken::system_override(
+                            self.job.workspace_id,
+                        ),
+                        self.job.id,
+                        processed_rows,
+                        ImportJobStatus::Failed,
+                        Some(translated_err),
+                    )
+                    .await;
+                return Err(());
             }
         }
 
@@ -293,7 +330,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
             };
 
             if skipped_rows > 0 {
-                let skip_msg = format!("Đã bỏ qua {skipped_rows} dòng");
+                let skip_msg = format!("Skipped {skipped_rows} row(s)");
                 log_opt = Some(match log_opt {
                     Some(log) => format!("{log}\n{skip_msg}"),
                     None => skip_msg,
