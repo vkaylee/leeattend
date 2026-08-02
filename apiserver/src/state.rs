@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use uuid::Uuid;
+
 use crate::agent_manager::AgentManager;
 
 use crate::repositories::assignment_rule_repository::AssignmentRuleRepository;
@@ -753,6 +755,23 @@ impl InfraState {
 
     pub fn cache(&self) -> Option<&Arc<dyn crate::repositories::CacheRepository>> {
         self.cache.as_ref()
+    }
+
+    /// Invalidate the cached workspace config (holds the workspace timezone used
+    /// by the Excel-export worker). Called after workspace settings change so the
+    /// worker never computes with a stale timezone for the cache TTL.
+    pub async fn invalidate_workspace_cache(&self, workspace_id: Uuid) {
+        let Some(cache) = &self.cache else {
+            return;
+        };
+        let key = crate::cache::WorkspaceCache::key(workspace_id);
+        if let Err(e) = cache.delete(&key).await {
+            tracing::warn!(
+                workspace_id = %workspace_id,
+                error = %e,
+                "Failed to invalidate workspace cache"
+            );
+        }
     }
 
     pub fn roster_cache(&self) -> Option<&Arc<crate::cache::RosterCache>> {

@@ -3,9 +3,7 @@ use diesel::prelude::*;
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::models::{
-    AttendancePolicy, AttendancePolicyAssignment, AttendancePolicyVersion,
-};
+use crate::models::{AttendancePolicy, AttendancePolicyAssignment, AttendancePolicyVersion};
 use crate::schema::{
     attendance_policies, attendance_policy_assignments, attendance_policy_versions,
 };

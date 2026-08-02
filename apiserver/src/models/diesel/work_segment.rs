@@ -318,9 +318,7 @@ impl From<&crate::models::CreateWorkSegmentRequest> for NewWorkSegmentEntity {
             gap_compensation_before: GapCompensationType::from_domain_str(
                 &req.gap_compensation_before,
             ),
-            gap_compensation_rate_before: f64_to_bigdecimal(
-                req.gap_compensation_rate_before,
-            ),
+            gap_compensation_rate_before: f64_to_bigdecimal(req.gap_compensation_rate_before),
             break_config_override: req.break_config_override.clone(),
             ot_config_override: req.ot_config_override.clone(),
             source: req.source.clone(),
@@ -332,11 +330,40 @@ impl From<&crate::models::CreateWorkSegmentRequest> for NewWorkSegmentEntity {
 }
 
 /// Convert a `ResolvedSegment` into a `NewWorkSegmentEntity` for write-through persistence.
+///
+/// Serializes break and OT/policy configuration into `break_config_override` and
+/// `ot_config_override` JSON fields so the data survives a DB round-trip and can
+/// be recovered by `work_segment_to_resolved`.
 pub fn resolved_segment_to_new_entity(
     seg: &crate::models::ResolvedSegment,
     workspace_id: Uuid,
     employment_id: Uuid,
 ) -> NewWorkSegmentEntity {
+    let break_config_override = if seg.break_duration_minutes.is_some()
+        || seg.break_start.is_some()
+        || seg.break_end.is_some()
+        || seg.is_break_auto_deduct.is_some()
+        || seg.break_is_overtime.is_some()
+    {
+        Some(serde_json::json!({
+            "break_duration_minutes": seg.break_duration_minutes,
+            "break_start": seg.break_start.map(|t| t.to_string()),
+            "break_end": seg.break_end.map(|t| t.to_string()),
+            "is_break_auto_deduct": seg.is_break_auto_deduct,
+            "break_is_overtime": seg.break_is_overtime,
+        }))
+    } else {
+        None
+    };
+
+    let ot_config_override = Some(serde_json::json!({
+        "allow_early_ot": seg.allow_early_ot,
+        "max_early_ot_minutes": seg.max_early_ot_minutes,
+        "early_punch_in_grace_period_minutes": seg.early_punch_in_grace_period_minutes,
+        "ot_aggregation_mode": seg.ot_aggregation_mode.to_string(),
+        "is_night_shift": seg.is_night_shift,
+    }));
+
     NewWorkSegmentEntity {
         id: Uuid::new_v4(),
         workspace_id,
@@ -352,8 +379,8 @@ pub fn resolved_segment_to_new_entity(
         compensation_rate: BigDecimal::from(1),
         gap_compensation_before: GapCompensationType::Unpaid,
         gap_compensation_rate_before: BigDecimal::from(0),
-        break_config_override: None,
-        ot_config_override: None,
+        break_config_override,
+        ot_config_override,
         source: seg.source.clone(),
         source_detail: serde_json::json!({
             "traces": seg.traces,

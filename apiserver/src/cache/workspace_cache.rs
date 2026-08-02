@@ -30,7 +30,7 @@ impl WorkspaceCache {
     }
 
     /// Generate cache key for a workspace.
-    fn key(workspace_id: Uuid) -> String {
+    pub fn key(workspace_id: Uuid) -> String {
         format!("cache:workspace:{workspace_id}")
     }
 

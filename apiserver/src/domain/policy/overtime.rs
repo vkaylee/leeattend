@@ -176,25 +176,10 @@ impl OvertimeEngine {
 
         while current < end_tz {
             let date = current.date_naive();
-            // 23:59:59 is always valid; DST can make from_local ambiguous but we pick first
-            let day_end =
-                match tz.from_local_datetime(&date.and_hms_opt(23, 59, 59).unwrap_or_default()) {
-                    chrono::LocalResult::Single(dt) | chrono::LocalResult::Ambiguous(dt, _) => dt,
-                    chrono::LocalResult::None => {
-                        // Rare: DST gap at 23:59:59 - use 22:59:59 + 1 hour
-                        let shifted = date.and_hms_opt(22, 59, 59).unwrap_or_default()
-                            + chrono::Duration::hours(1);
-                        tz.from_local_datetime(&shifted).single().unwrap_or(current)
-                    }
-                };
+            // End of day in local time — delegate to tz.rs for DST handling
+            let day_end = crate::utils::tz::local_to_tz(tz, date, 23, 59, 59).unwrap_or(current);
 
-            let segment_end = if day_end < end_tz {
-                // We add 1 second to day_end to reach the next day boundary roughly
-                // But NaiveTime max is better
-                day_end
-            } else {
-                end_tz
-            };
+            let segment_end = if day_end < end_tz { day_end } else { end_tz };
 
             let mut daily_intervals = Vec::new();
 
@@ -215,21 +200,11 @@ impl OvertimeEngine {
             if segment_end >= end_tz {
                 break;
             }
-            // Move to next day
+            // Move to next day — delegate to tz.rs for DST handling at midnight
             let Some(next_date) = date.succ_opt() else {
                 break;
             };
-            current =
-                match tz.from_local_datetime(&next_date.and_hms_opt(0, 0, 0).unwrap_or_default()) {
-                    chrono::LocalResult::Single(dt) | chrono::LocalResult::Ambiguous(dt, _) => dt,
-                    chrono::LocalResult::None => {
-                        // DST gap at midnight - advance by 1 hour
-                        let shifted = next_date.and_hms_opt(1, 0, 0).unwrap_or_default();
-                        tz.from_local_datetime(&shifted)
-                            .single()
-                            .unwrap_or(segment_end)
-                    }
-                };
+            current = crate::utils::tz::local_to_tz(tz, next_date, 0, 0, 0).unwrap_or(segment_end);
         }
 
         result
