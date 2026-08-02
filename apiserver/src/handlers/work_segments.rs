@@ -10,8 +10,8 @@ use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
-    BulkCreateWorkSegmentsRequest, CreateWorkSegmentRequest, UpdateWorkSegmentRequest,
-    WorkSegment, WorkSegmentFilter, WorkSegmentListResponse,
+    BulkCreateWorkSegmentsRequest, CreateWorkSegmentRequest, UpdateWorkSegmentRequest, WorkSegment,
+    WorkSegmentFilter, WorkSegmentListResponse,
 };
 use crate::utils::i18n::I18nKey;
 use crate::AppState;

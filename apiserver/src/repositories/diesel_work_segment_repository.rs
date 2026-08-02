@@ -8,8 +8,7 @@ use uuid::Uuid;
 use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
 use crate::models::diesel::work_segment::{
-    GapCompensationType, NewWorkSegmentEntity, SegmentStatusType, SegmentType,
-    WorkSegmentEntity,
+    GapCompensationType, NewWorkSegmentEntity, SegmentStatusType, SegmentType, WorkSegmentEntity,
 };
 use crate::models::{
     CreateWorkSegmentRequest, UpdateWorkSegmentRequest, WorkSegment, WorkSegmentFilter,
@@ -239,10 +238,8 @@ impl WorkSegmentRepository for DieselWorkSegmentRepository {
                 let template_id = req.template_id.unwrap_or(existing.template_id);
                 let interval_id = req.interval_id.or(existing.interval_id);
                 let sort_order = req.sort_order.unwrap_or(existing.sort_order);
-                let scheduled_start =
-                    req.scheduled_start.unwrap_or(existing.scheduled_start);
-                let scheduled_end =
-                    req.scheduled_end.unwrap_or(existing.scheduled_end);
+                let scheduled_start = req.scheduled_start.unwrap_or(existing.scheduled_start);
+                let scheduled_end = req.scheduled_end.unwrap_or(existing.scheduled_end);
                 let segment_type = req
                     .segment_type
                     .as_deref()
@@ -275,10 +272,7 @@ impl WorkSegmentRepository for DieselWorkSegmentRepository {
                     .clone()
                     .or(existing.ot_config_override);
                 let source = req.source.clone().unwrap_or(existing.source);
-                let source_detail = req
-                    .source_detail
-                    .clone()
-                    .unwrap_or(existing.source_detail);
+                let source_detail = req.source_detail.clone().unwrap_or(existing.source_detail);
                 let notes = req.notes.clone().or(existing.notes);
 
                 let updated = diesel::update(work_segments::table.find(segment_id))
@@ -496,10 +490,9 @@ mod tests {
     use uuid::Uuid;
 
     fn test_pools() -> DieselPools {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| {
-                "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
-            });
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
         DieselPools::for_test(&test_db_url)
     }
 
@@ -804,13 +797,17 @@ mod tests {
 
         // Insert segments for 2 employees across 3 dates
         let mut all_created = Vec::new();
-        for (emp_id, date) in &[(emp_a, date1), (emp_a, date2), (emp_b, date2), (emp_b, date3)]
-        {
+        for (emp_id, date) in &[
+            (emp_a, date1),
+            (emp_a, date2),
+            (emp_b, date2),
+            (emp_b, date3),
+        ] {
             let req = make_create_request(*emp_id, *date, tmpl_id);
             let created = repo
-            .create_segment(&auth, &req)
-            .await
-            .expect("create failed");
+                .create_segment(&auth, &req)
+                .await
+                .expect("create failed");
             all_created.push(created);
         }
 
@@ -945,15 +942,13 @@ mod tests {
 
         // Delete emp_a segments in date range [date1, date2] — should delete 2
         let deleted = repo
-            .delete_segments_for_employments(
-                &auth,
-                &[emp_a],
-                Some(date1),
-                Some(date2),
-            )
+            .delete_segments_for_employments(&auth, &[emp_a], Some(date1), Some(date2))
             .await
             .expect("delete_segments_for_employments failed");
-        assert_eq!(deleted, 2, "should delete only emp_a's date1+date2 segments");
+        assert_eq!(
+            deleted, 2,
+            "should delete only emp_a's date1+date2 segments"
+        );
 
         // emp_a's date3 segment should still exist (outside date range)
         let remaining_a = repo

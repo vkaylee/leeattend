@@ -354,23 +354,18 @@ impl DieselRosterRepository {
 
         // ── Write-through: persist resolved segments to work_segments ──
         // Fire-and-forget: does not block the read path.
-        // ON CONFLICT DO NOTHING preserves segments already in DB (immutable per date).
+        // Strategy: DELETE stale interval-based segments, then INSERT new ones.
+        // This handles shift template reconfigurations (intervals added/removed).
+        // Manual segments (source='manual') are preserved.
         {
             use crate::models::diesel::work_segment::resolved_segment_to_new_entity;
 
             let all_new_entities: Vec<_> = result
                 .iter()
                 .flat_map(|emp_segs| {
-                    emp_segs
-                        .segments()
-                        .iter()
-                        .map(|seg| {
-                            resolved_segment_to_new_entity(
-                                seg,
-                                workspace_id,
-                                emp_segs.employment_id(),
-                            )
-                        })
+                    emp_segs.segments().iter().map(|seg| {
+                        resolved_segment_to_new_entity(seg, workspace_id, emp_segs.employment_id())
+                    })
                 })
                 .collect();
 
@@ -391,19 +386,79 @@ impl DieselRosterRepository {
                             return;
                         }
                     };
-                    let inserted = diesel::insert_into(
-                        crate::schema::work_segments::table,
-                    )
-                    .values(&all_new_entities)
-                    .on_conflict_do_nothing()
-                    .execute(&mut *conn)
-                    .await;
+
+                    // Collect unique (employment_id, date) pairs for cleanup
+                    let affected_pairs: Vec<(Uuid, chrono::NaiveDate)> = {
+                        let mut pairs: Vec<_> = all_new_entities
+                            .iter()
+                            .map(|e| (e.employment_id, e.date))
+                            .collect();
+                        pairs.sort();
+                        pairs.dedup();
+                        pairs
+                    };
+
+                    // Collect interval_ids from new entities (only non-NULL)
+                    let new_interval_ids: Vec<Uuid> = all_new_entities
+                        .iter()
+                        .filter_map(|e| e.interval_id)
+                        .collect();
+
+                    // DELETE stale segments for each affected (employment_id, date) pair
+                    // Only delete non-manual segments with interval_id that's NOT in new set
+                    let mut deleted = 0u64;
+                    if !new_interval_ids.is_empty() {
+                        for (emp_id, date) in &affected_pairs {
+                            let delete_result = diesel::delete(
+                                crate::schema::work_segments::table
+                                    .filter(crate::schema::work_segments::workspace_id.eq(ws_id))
+                                    .filter(crate::schema::work_segments::employment_id.eq(emp_id))
+                                    .filter(crate::schema::work_segments::date.eq(date))
+                                    .filter(crate::schema::work_segments::source.ne("manual"))
+                                    .filter(crate::schema::work_segments::interval_id.is_not_null())
+                                    .filter(
+                                        crate::schema::work_segments::interval_id
+                                            .ne_all(&new_interval_ids),
+                                    ),
+                            )
+                            .execute(&mut *conn)
+                            .await;
+
+                            match delete_result {
+                                Ok(n) => deleted += n as u64,
+                                Err(e) => {
+                                    tracing::warn!(
+                                        workspace_id = %ws_id,
+                                        employment_id = %emp_id,
+                                        date = %date,
+                                        error = %e,
+                                        "write-through: failed to cleanup stale segments"
+                                    );
+                                }
+                            }
+                        }
+
+                        if deleted > 0 {
+                            tracing::info!(
+                                workspace_id = %ws_id,
+                                segments_deleted = deleted,
+                                "work_segments.write_through.cleanup"
+                            );
+                        }
+                    }
+
+                    let inserted = diesel::insert_into(crate::schema::work_segments::table)
+                        .values(&all_new_entities)
+                        .on_conflict_do_nothing()
+                        .execute(&mut *conn)
+                        .await;
                     match inserted {
                         Ok(n) => {
                             tracing::info!(
                                 workspace_id = %ws_id,
                                 segments_attempted = all_new_entities.len(),
                                 segments_inserted = n,
+                                segments_deleted = deleted,
                                 elapsed_ms = start.elapsed().as_millis() as u64,
                                 "work_segments.write_through.completed"
                             );

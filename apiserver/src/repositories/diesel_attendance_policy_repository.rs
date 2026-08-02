@@ -805,9 +805,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                         id: version_id,
                         policy_id,
                         rules: serde_json::to_value(&new_rules).map_err(|e| {
-                            AppError::Internal(format!(
-                                "Failed to serialize AttendanceRules: {e}"
-                            ))
+                            AppError::Internal(format!("Failed to serialize AttendanceRules: {e}"))
                         })?,
                         valid_from,
                         valid_to: None,
