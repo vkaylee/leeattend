@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   clearChunkRetry,
   isChunkLoadError,
+  scheduleChunkRetryReset,
   shouldRetryChunkLoad,
 } from "../chunk-error";
 
@@ -96,5 +97,49 @@ describe("clearChunkRetry", () => {
     // A successful mount clears the counter — the next deploy gets full budget.
     clearChunkRetry();
     expect(shouldRetryChunkLoad()).toBe(true);
+  });
+});
+
+describe("scheduleChunkRetryReset", () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    sessionStorage.clear();
+  });
+
+  it("keeps the retry budget during the stability window", () => {
+    shouldRetryChunkLoad();
+    shouldRetryChunkLoad();
+
+    scheduleChunkRetryReset(60_000);
+    vi.advanceTimersByTime(59_999);
+
+    expect(sessionStorage.getItem("chunkRetry")).toBe("2");
+    expect(shouldRetryChunkLoad()).toBe(true);
+  });
+
+  it("resets the retry budget after the app remains stable", () => {
+    shouldRetryChunkLoad();
+    shouldRetryChunkLoad();
+    scheduleChunkRetryReset(60_000);
+
+    vi.advanceTimersByTime(60_000);
+
+    expect(sessionStorage.getItem("chunkRetry")).toBeNull();
+    expect(shouldRetryChunkLoad()).toBe(true);
+  });
+
+  it("allows the scheduled reset to be cancelled", () => {
+    shouldRetryChunkLoad();
+    const cancel = scheduleChunkRetryReset(60_000);
+
+    cancel();
+    vi.advanceTimersByTime(60_000);
+
+    expect(sessionStorage.getItem("chunkRetry")).toBe("1");
   });
 });

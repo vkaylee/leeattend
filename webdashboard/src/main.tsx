@@ -8,8 +8,8 @@ import "@fontsource/inter";
 
 import "./i18n/config";
 import {
-  clearChunkRetry,
   isChunkLoadError,
+  scheduleChunkRetryReset,
   shouldRetryChunkLoad,
 } from "./lib/chunk-error";
 import { initSentry } from "./lib/sentry";
@@ -46,7 +46,7 @@ if (rootElement) {
       </ToastProvider>
     </React.StrictMode>,
   );
-  // App mounted successfully — clear the chunk-reload counter so a future
-  // deploy gets a fresh set of retries instead of a stale cumulative count.
-  clearChunkRetry();
+  // A lazy chunk can still fail after the root mounts. Keep the retry budget
+  // alive until the app has remained stable long enough to be trusted.
+  scheduleChunkRetryReset();
 }

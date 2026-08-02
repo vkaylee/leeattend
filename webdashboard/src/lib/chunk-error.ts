@@ -18,6 +18,7 @@ export function isChunkLoadError(reason: Error | undefined): boolean {
 
 const CHUNK_RETRY_KEY = "chunkRetry";
 const MAX_CHUNK_RETRIES = 3;
+const STABLE_RUNTIME_MS = 60_000;
 
 // Records one more chunk-load reload attempt and reports whether another
 // reload is still within budget. Returns false once the cap is reached so a
@@ -46,4 +47,16 @@ export function clearChunkRetry(): void {
   } catch {
     // ignore
   }
+}
+
+/**
+ * Reset the retry budget only after the mounted application has stayed alive.
+ * A chunk can fail after React mounts, so clearing the budget synchronously
+ * would allow a stale deploy to reload forever.
+ */
+export function scheduleChunkRetryReset(
+  delayMs = STABLE_RUNTIME_MS,
+): () => void {
+  const timerId = window.setTimeout(clearChunkRetry, delayMs);
+  return () => window.clearTimeout(timerId);
 }
