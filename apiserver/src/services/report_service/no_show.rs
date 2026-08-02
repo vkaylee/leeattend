@@ -285,6 +285,7 @@ mod tests {
             segment_type: None,
             sort_order: None,
             segment_count: None,
+            break_split: None,
         }
     }
 

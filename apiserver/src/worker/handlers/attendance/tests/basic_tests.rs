@@ -181,6 +181,7 @@ fn test_detail_report_serialization() {
         segment_type: None,
         sort_order: None,
         segment_count: None,
+        break_split: None,
     }];
 
     let json = serde_json::to_string(&reports).unwrap();

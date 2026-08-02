@@ -150,6 +150,7 @@ async fn test_merge_detail_sorting() {
         segment_type: None,
         sort_order: None,
         segment_count: None,
+        break_split: None,
     };
     let report2 = DailyAttendanceReport {
         date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
@@ -190,6 +191,7 @@ async fn test_merge_detail_sorting() {
         segment_type: None,
         sort_order: None,
         segment_count: None,
+        break_split: None,
     };
 
     let batch_results: Vec<(String, String)> = vec![
@@ -380,6 +382,7 @@ async fn test_merge_detail_returns_accurate_total_records() {
         segment_type: None,
         sort_order: None,
         segment_count: None,
+        break_split: None,
     };
 
     let b1 = vec![
@@ -484,6 +487,7 @@ fn test_daily_attendance_report_serialization_preserves_employee_id_number() {
         segment_type: None,
         sort_order: None,
         segment_count: None,
+        break_split: None,
     };
     let json = serde_json::to_string(&report).unwrap();
     assert!(json.contains("EMP-002"));
@@ -699,6 +703,7 @@ async fn test_merge_handler_handle_inner_detail_with_mocks() {
             segment_type: None,
             sort_order: None,
             segment_count: None,
+            break_split: None,
         };
         let json = serde_json::to_string(&vec![report]).unwrap();
         Ok(vec![

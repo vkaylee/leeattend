@@ -309,6 +309,7 @@ fn build_base_report_row(
         segment_type: None,
         sort_order: None,
         segment_count: None,
+        break_split: None,
     }
 }
 
@@ -478,6 +479,124 @@ fn build_daily_report_row(
     )
 }
 
+/// Extract the `break_split` discriminator from a time entry's generation metadata.
+///
+/// Returns `Some("first_half")`, `Some("second_half")`, or `None` for entries
+/// that are not split (or legacy entries without the metadata).
+pub(super) fn entry_break_split(entry: &crate::models::TimeEntry) -> Option<String> {
+    entry
+        .generation_metadata()
+        .and_then(|m| m.get("break_split"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+}
+
+/// Build a `sessions` JSON array for break-split segments.
+///
+/// Each session is a self-contained half with its own punch times, computed
+/// units, status, and scheduled window. Returns `None` when the segment has
+/// no break-split entries (no metadata → no extra payload).
+pub(super) fn build_break_split_sessions_json(
+    seg: &crate::models::ResolvedSegment,
+    matched: &[&crate::models::TimeEntry],
+    calc_inputs: &[crate::services::attendance_calculator::DailyCalcInput<Tz>],
+    att_rules: &crate::models::AttendanceRules,
+    tz: Tz,
+    holiday_entry: Option<&crate::models::Holiday>,
+    is_on_leave: bool,
+    segment_grace: i32,
+) -> Option<serde_json::Value> {
+    let session_entries: Vec<&&crate::models::TimeEntry> = matched
+        .iter()
+        .filter(|e| {
+            e.entry_type() != crate::services::pairing::types::EntryType::Break
+                && e.punch_out_time().is_some()
+        })
+        .collect();
+
+    // Only produce sessions payload when at least one entry carries break_split.
+    let has_break_split = session_entries
+        .iter()
+        .any(|e| entry_break_split(e).is_some());
+    if !has_break_split {
+        return None;
+    }
+
+    let unit_coeff = f64::from(att_rules.work_unit_minutes) / 60.0;
+    let sessions: Vec<serde_json::Value> = session_entries
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, entry)| {
+            let break_split = entry_break_split(entry)?;
+            let calc_input = calc_inputs.get(idx)?;
+
+            let buckets =
+                crate::services::attendance_calculator::AttendanceCalculator::calculate_buckets(
+                    calc_input,
+                );
+            let std_units =
+                crate::services::attendance_calculator::AttendanceCalculator::calculate_units(
+                    buckets.standard_minutes,
+                    att_rules.work_unit_minutes,
+                    att_rules.rounding_policy,
+                );
+            let ot_mins = buckets.early_ot_minutes
+                + buckets.late_ot_minutes
+                + buckets.break_ot_minutes;
+            let ot_units =
+                crate::services::attendance_calculator::AttendanceCalculator::calculate_units(
+                    ot_mins,
+                    att_rules.work_unit_minutes,
+                    att_rules.rounding_policy,
+                );
+
+            let punch_in_utc = entry.punch_in_time();
+            let punch_out_utc = entry.punch_out_time();
+
+            // Status per half: first_half → shift_start, second_half → break_end.
+            let reference_start = match break_split.as_str() {
+                "second_half" => seg.break_end,
+                _ => Some(seg.scheduled_start),
+            };
+            let session_status = ReportService::determine_status(
+                true,
+                Some(punch_in_utc.with_timezone(&tz).time()),
+                reference_start,
+                holiday_entry,
+                true,
+                is_on_leave,
+                segment_grace,
+            );
+
+            // Scheduled window for this half.
+            let (sched_start, sched_end) = match break_split.as_str() {
+                "first_half" => (Some(seg.scheduled_start), seg.break_start),
+                "second_half" => (seg.break_end, Some(seg.scheduled_end)),
+                _ => (Some(seg.scheduled_start), Some(seg.scheduled_end)),
+            };
+
+            Some(serde_json::json!({
+                "break_split": break_split,
+                "punch_in": punch_in_utc,
+                "punch_out": punch_out_utc,
+                "std_work_units": std_units,
+                "ot_work_units": ot_units,
+                "computed_std_hours": f64::from(std_units) * unit_coeff,
+                "computed_ot_hours": f64::from(ot_units) * unit_coeff,
+                "status": session_status,
+                "scheduled_start": sched_start,
+                "scheduled_end": sched_end,
+            }))
+        })
+        .collect();
+
+    if sessions.is_empty() {
+        None
+    } else {
+        Some(serde_json::Value::Array(sessions))
+    }
+}
+
 /// Build report rows for all segments of one employee-day.
 ///
 /// Handles status determination and row construction for each segment,
@@ -491,6 +610,7 @@ fn build_segment_report_rows(
     cached_matched: &[Vec<&crate::models::TimeEntry>],
     cached_rules: &[crate::models::PolicyRules],
     segment_result: &crate::services::SegmentAttendanceResult,
+    segment_calc_inputs: &[Vec<crate::services::attendance_calculator::DailyCalcInput<Tz>>],
     att_rules: &crate::models::AttendanceRules,
     preamble: &ReportDataPreamble,
     extras: &ReportExtras,
@@ -592,10 +712,21 @@ fn build_segment_report_rows(
         row.segment_type = Some(seg.segment_type.clone());
         row.sort_order = Some(i32::try_from(seg_idx).unwrap_or(0));
         row.segment_count = Some(segment_count);
+
+        // ── Build generation_metadata with optional sessions breakdown ──
         let mut generation_metadata = serde_json::Map::new();
         if !matched.is_empty() {
             generation_metadata.insert("time_entries".to_string(), serde_json::json!(matched));
         }
+
+        // If this segment has break-split entries, attach per-session detail
+        // so the frontend can render a session breakdown tooltip / expand row.
+        if let Some(sessions_json) =
+            build_break_split_sessions_json(seg, matched, &segment_calc_inputs[seg_idx], att_rules, tz, holiday_entry, is_on_leave, segment_grace)
+        {
+            generation_metadata.insert("sessions".to_string(), sessions_json);
+        }
+
         generation_metadata.insert("day_totals".to_string(), day_totals.clone());
         row.generation_metadata = Some(serde_json::Value::Object(generation_metadata));
 
@@ -1017,6 +1148,7 @@ impl ReportService {
                     &cached_matched,
                     &cached_rules,
                     &segment_result,
+                    &segment_calc_inputs,
                     &att_rules,
                     &preamble,
                     &extras,
@@ -1138,7 +1270,17 @@ impl ReportService {
             .iter()
             .filter(|e| {
                 let punch_in = e.punch_in_time().with_timezone(&tz);
-                punch_in >= start && punch_in < end
+                // Overlap-based matching: include entries whose work period
+                // intersects the segment window. This handles break-split
+                // entries where the first_half punch_in may precede the
+                // segment start (e.g. early punch before shift).
+                match e.punch_out_time() {
+                    Some(out) => {
+                        let punch_out = out.with_timezone(&tz);
+                        punch_in < end && punch_out > start
+                    }
+                    None => punch_in >= start && punch_in < end,
+                }
             })
             .copied()
             .collect()
@@ -1467,7 +1609,7 @@ mod tests {
         let date = NaiveDate::from_ymd_opt(2026, 6, 15).unwrap();
         let seg = make_test_segment(8, 0, 12, 0);
 
-        // Punch in at 07:50 ICT (before segment start)
+        // Punch in at 07:50 ICT (before segment start), out at 11:00 ICT (within segment)
         let punch_in = tz
             .with_ymd_and_hms(2026, 6, 15, 7, 50, 0)
             .unwrap()
@@ -1487,8 +1629,57 @@ mod tests {
         let matched = ReportService::match_entries_to_segment(&entries, &seg, date, tz);
         assert_eq!(
             matched.len(),
-            0,
-            "entry starting before segment should NOT match"
+            1,
+            "entry overlapping segment (starts before, ends within) should match"
+        );
+    }
+
+    /// Regression: break-split first_half entry that starts well before
+    /// segment start must still be matched via overlap detection.
+    #[test]
+    fn test_break_split_first_half_matches_segment() {
+        let tz = hcm_tz();
+        let date = NaiveDate::from_ymd_opt(2026, 7, 1).unwrap();
+        // Shift 07:30-16:30
+        let seg = make_test_segment(7, 30, 16, 30);
+
+        // first_half: punch_in at 05:30 ICT (well before shift), punch_out at 11:30 ICT (break start)
+        let first_in = tz
+            .with_ymd_and_hms(2026, 7, 1, 5, 30, 0)
+            .unwrap()
+            .with_timezone(&Utc);
+        let first_out = tz
+            .with_ymd_and_hms(2026, 7, 1, 11, 30, 0)
+            .unwrap()
+            .with_timezone(&Utc);
+
+        // second_half: punch_in at 12:30 ICT (break end), punch_out at 16:32 ICT
+        let second_in = tz
+            .with_ymd_and_hms(2026, 7, 1, 12, 30, 0)
+            .unwrap()
+            .with_timezone(&Utc);
+        let second_out = tz
+            .with_ymd_and_hms(2026, 7, 1, 16, 32, 0)
+            .unwrap()
+            .with_timezone(&Utc);
+
+        let first_half = make_test_entry(
+            first_in,
+            Some(first_out),
+            crate::services::pairing::types::EntryType::Work,
+        );
+        let second_half = make_test_entry(
+            second_in,
+            Some(second_out),
+            crate::services::pairing::types::EntryType::Work,
+        );
+        let entries = vec![&first_half, &second_half];
+
+        let matched = ReportService::match_entries_to_segment(&entries, &seg, date, tz);
+        assert_eq!(
+            matched.len(),
+            2,
+            "both break-split halves should match the segment via overlap"
         );
     }
 

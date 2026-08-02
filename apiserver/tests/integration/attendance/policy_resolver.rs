@@ -94,6 +94,7 @@ async fn test_resolve_attendance_policy_hierarchy() {
         employee_id,
         &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
         test_date,
+        chrono_tz::Tz::UTC,
     )
     .await
     .unwrap();
@@ -125,6 +126,7 @@ async fn test_resolve_attendance_policy_hierarchy() {
         employee_id,
         &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
         test_date,
+        chrono_tz::Tz::UTC,
     )
     .await
     .unwrap();
@@ -155,6 +157,7 @@ async fn test_resolve_attendance_policy_hierarchy() {
         employee_id,
         &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
         test_date,
+        chrono_tz::Tz::UTC,
     )
     .await
     .unwrap();
@@ -194,6 +197,7 @@ async fn test_resolve_attendance_policy_hierarchy() {
         employment_id,
         &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
         test_date,
+        chrono_tz::Tz::UTC,
     )
     .await
     .unwrap();
@@ -209,6 +213,7 @@ async fn test_resolve_attendance_policy_hierarchy() {
         &[employment_id],
         &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
         test_date,
+        chrono_tz::Tz::UTC,
     )
     .await
     .unwrap();

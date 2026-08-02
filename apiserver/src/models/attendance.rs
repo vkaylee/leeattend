@@ -207,6 +207,10 @@ pub struct DailyAttendanceReport {
     pub sort_order: Option<i32>,
     #[serde(default)]
     pub segment_count: Option<i32>,
+    /// Identifies this row as one half of a break-split shift session.
+    /// Values: `"first_half"`, `"second_half"`, or `None` for non-split rows.
+    #[serde(default)]
+    pub break_split: Option<String>,
 }
 
 /// ZKTeco `punch` codes stored in [`RawAttendanceLog::punch`].

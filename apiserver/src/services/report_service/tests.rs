@@ -75,6 +75,7 @@ fn make_report(has_punch_in: bool, has_shift: bool) -> DailyAttendanceReport {
         segment_type: None,
         sort_order: None,
         segment_count: None,
+        break_split: None,
     }
 }
 
@@ -551,5 +552,263 @@ mod segment_break_split_tests {
             8,
             "Break-split scenario: 4h morning + 4h afternoon = 8h total"
         );
+    }
+
+    /// Create a TimeEntry with `break_split` generation metadata so the
+    /// report layer can detect and decompose break-split sessions.
+    fn make_break_split_entry(
+        punch_in_utc: chrono::DateTime<Utc>,
+        punch_out_utc: chrono::DateTime<Utc>,
+        split_half: &str,
+    ) -> TimeEntry {
+        TimeEntry::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            None,
+            None,
+            punch_in_utc,
+            Some(punch_out_utc),
+            None,
+            false,
+            EntryType::Work,
+            None,
+            Some(serde_json::json!({
+                "break_split": split_half
+            })),
+            Utc::now(),
+            Utc::now(),
+        )
+    }
+
+    fn make_vp_segment() -> ResolvedSegment {
+        ResolvedSegment {
+            template_id: Uuid::new_v4(),
+            interval_id: Some(Uuid::new_v4()),
+            sort_order: 0,
+            scheduled_start: NaiveTime::from_hms_opt(7, 30, 0).unwrap(),
+            scheduled_end: NaiveTime::from_hms_opt(16, 30, 0).unwrap(),
+            source: "roster".to_string(),
+            date: Some(NaiveDate::from_ymd_opt(2026, 7, 1).unwrap()),
+            shift_name: Some("VP".to_string()),
+            shift_symbol: Some("VP".to_string()),
+            interval_name: Some("Ca VP".to_string()),
+            segment_type: "work".to_string(),
+            break_duration_minutes: Some(60),
+            break_start: Some(NaiveTime::from_hms_opt(11, 30, 0).unwrap()),
+            break_end: Some(NaiveTime::from_hms_opt(12, 30, 0).unwrap()),
+            is_break_auto_deduct: Some(true),
+            break_is_overtime: Some(false),
+            allow_early_ot: false,
+            max_early_ot_minutes: None,
+            early_punch_in_grace_period_minutes: 15,
+            ot_aggregation_mode: Default::default(),
+            is_night_shift: false,
+            traces: vec![],
+            is_holiday: false,
+            is_holiday_paid: false,
+            holiday_name: None,
+        }
+    }
+
+    #[test]
+    fn test_break_split_sessions_json_two_halves() {
+        use crate::services::report_service::daily::build_break_split_sessions_json;
+
+        let date = NaiveDate::from_ymd_opt(2026, 7, 1).unwrap();
+        let tz = Ho_Chi_Minh;
+        let segment = make_vp_segment();
+
+        // Morning: 07:30–11:30 HCM = 00:30–04:30 UTC
+        let morning = make_break_split_entry(
+            Utc.with_ymd_and_hms(2026, 7, 1, 0, 30, 0).unwrap(),
+            Utc.with_ymd_and_hms(2026, 7, 1, 4, 30, 0).unwrap(),
+            "first_half",
+        );
+        // Afternoon: 12:30–16:30 HCM = 05:30–09:30 UTC
+        let afternoon = make_break_split_entry(
+            Utc.with_ymd_and_hms(2026, 7, 1, 5, 30, 0).unwrap(),
+            Utc.with_ymd_and_hms(2026, 7, 1, 9, 30, 0).unwrap(),
+            "second_half",
+        );
+
+        let entries = vec![morning, afternoon];
+        let entry_refs: Vec<&TimeEntry> = entries.iter().collect();
+
+        // Build calc inputs matching the entries
+        let att_rules = AttendanceRules {
+            work_unit_minutes: 60,
+            rounding_policy: Default::default(),
+            early_arrival_strategy: Default::default(),
+            grace_period_minutes: None,
+        };
+
+        let (_matched, _rules, segment_calc_inputs) = build_segment_calc_inputs(
+            &[&segment],
+            &entry_refs,
+            date,
+            tz,
+            &[],
+            &att_rules,
+            &HashMap::new(),
+        );
+
+        let sessions = build_break_split_sessions_json(
+            &segment,
+            &entry_refs,
+            &segment_calc_inputs[0],
+            &att_rules,
+            tz,
+            None,  // no holiday
+            false, // not on leave
+            15,    // grace period
+        )
+        .expect("break-split entries must produce sessions");
+
+        let arr = sessions.as_array().expect("sessions must be array");
+        assert_eq!(arr.len(), 2);
+
+        // First half
+        assert_eq!(arr[0]["break_split"], "first_half");
+        assert_eq!(arr[0]["status"], "present");
+        assert_eq!(arr[0]["std_work_units"], 4);
+        assert_eq!(arr[0]["computed_std_hours"], 4.0);
+        assert_eq!(arr[0]["scheduled_start"], "07:30:00");
+        assert_eq!(arr[0]["scheduled_end"], "11:30:00");
+
+        // Second half
+        assert_eq!(arr[1]["break_split"], "second_half");
+        assert_eq!(arr[1]["status"], "present");
+        assert_eq!(arr[1]["std_work_units"], 4);
+        assert_eq!(arr[1]["computed_std_hours"], 4.0);
+        assert_eq!(arr[1]["scheduled_start"], "12:30:00");
+        assert_eq!(arr[1]["scheduled_end"], "16:30:00");
+    }
+
+    #[test]
+    fn test_break_split_sessions_status_late_second_half() {
+        use crate::services::report_service::daily::build_break_split_sessions_json;
+
+        let date = NaiveDate::from_ymd_opt(2026, 7, 1).unwrap();
+        let tz = Ho_Chi_Minh;
+        let segment = make_vp_segment();
+
+        // Morning: on time
+        let morning = make_break_split_entry(
+            Utc.with_ymd_and_hms(2026, 7, 1, 0, 30, 0).unwrap(),
+            Utc.with_ymd_and_hms(2026, 7, 1, 4, 30, 0).unwrap(),
+            "first_half",
+        );
+        // Afternoon: late — punch-in at 12:45 instead of 12:30
+        let afternoon = make_break_split_entry(
+            Utc.with_ymd_and_hms(2026, 7, 1, 5, 45, 0).unwrap(),
+            Utc.with_ymd_and_hms(2026, 7, 1, 9, 30, 0).unwrap(),
+            "second_half",
+        );
+
+        let entries = vec![morning, afternoon];
+        let entry_refs: Vec<&TimeEntry> = entries.iter().collect();
+
+        let att_rules = AttendanceRules {
+            work_unit_minutes: 60,
+            rounding_policy: Default::default(),
+            early_arrival_strategy: Default::default(),
+            grace_period_minutes: None,
+        };
+
+        let (_matched, _rules, segment_calc_inputs) = build_segment_calc_inputs(
+            &[&segment],
+            &entry_refs,
+            date,
+            tz,
+            &[],
+            &att_rules,
+            &HashMap::new(),
+        );
+
+        let sessions = build_break_split_sessions_json(
+            &segment,
+            &entry_refs,
+            &segment_calc_inputs[0],
+            &att_rules,
+            tz,
+            None,
+            false,
+            5, // grace: 5 min — 12:45 vs 12:30 = 15 min late > grace
+        )
+        .expect("must produce sessions");
+
+        let arr = sessions.as_array().unwrap();
+
+        // Morning: on time
+        assert_eq!(arr[0]["status"], "present");
+
+        // Afternoon: 15 min late with 5-min grace → "late"
+        assert_eq!(arr[1]["status"], "late");
+    }
+
+    #[test]
+    fn test_non_break_split_segment_no_sessions() {
+        use crate::services::report_service::daily::build_break_split_sessions_json;
+
+        let tz = Ho_Chi_Minh;
+        let segment = make_vp_segment();
+
+        // Normal entry — no break_split metadata
+        let entry = make_time_entry(
+            Utc.with_ymd_and_hms(2026, 7, 1, 0, 30, 0).unwrap(),
+            Utc.with_ymd_and_hms(2026, 7, 1, 9, 30, 0).unwrap(),
+        );
+
+        let entries = vec![entry];
+        let entry_refs: Vec<&TimeEntry> = entries.iter().collect();
+
+        let att_rules = AttendanceRules {
+            work_unit_minutes: 60,
+            rounding_policy: Default::default(),
+            early_arrival_strategy: Default::default(),
+            grace_period_minutes: None,
+        };
+
+        let sessions = build_break_split_sessions_json(
+            &segment,
+            &entry_refs,
+            &[], // no matched calc inputs needed for the None path
+            &att_rules,
+            tz,
+            None,
+            false,
+            15,
+        );
+
+        assert!(
+            sessions.is_none(),
+            "Non-break-split segment must return None (no sessions)"
+        );
+    }
+
+    #[test]
+    fn test_entry_break_split_helper() {
+        use crate::services::report_service::daily::entry_break_split;
+
+        let e = make_break_split_entry(
+            Utc.with_ymd_and_hms(2026, 7, 1, 0, 30, 0).unwrap(),
+            Utc.with_ymd_and_hms(2026, 7, 1, 4, 30, 0).unwrap(),
+            "first_half",
+        );
+        assert_eq!(entry_break_split(&e).as_deref(), Some("first_half"));
+
+        let e2 = make_break_split_entry(
+            Utc.with_ymd_and_hms(2026, 7, 1, 5, 30, 0).unwrap(),
+            Utc.with_ymd_and_hms(2026, 7, 1, 9, 30, 0).unwrap(),
+            "second_half",
+        );
+        assert_eq!(entry_break_split(&e2).as_deref(), Some("second_half"));
+
+        let normal = make_time_entry(
+            Utc.with_ymd_and_hms(2026, 7, 1, 0, 30, 0).unwrap(),
+            Utc.with_ymd_and_hms(2026, 7, 1, 9, 30, 0).unwrap(),
+        );
+        assert_eq!(entry_break_split(&normal), None);
     }
 }
