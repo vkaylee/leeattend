@@ -211,9 +211,12 @@ impl CentralClient {
                 // Cache batch timestamp: all logs in this cycle share the same send time
                 let batch_timestamp = sync_time.corrected_now().to_rfc3339();
                 for log in logs {
-                    // Convert Unix timestamp to formatted string
+                    // Convert Unix timestamp to RFC 3339 string WITH offset so the
+                    // apiserver's `parse_datetime_with_tz` correctly identifies it
+                    // as UTC at its first parse step instead of re-interpreting
+                    // the naive value through the workspace timezone (double-shift).
                     let timestamp_str = chrono::DateTime::from_timestamp(log.timestamp, 0)
-                        .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
+                        .map(|dt| dt.to_rfc3339())
                         .unwrap_or_else(|| format!("invalid_{}", log.timestamp));
 
                     let msg = CentralMessage::Attendance {

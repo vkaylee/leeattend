@@ -16,10 +16,19 @@ impl RedbStore {
             .map_err(|e| StoreError::DbError(e.to_string()))?
         {
             let d = StoredDevice::from_bytes(g.value())?;
-            Ok(d.timezone
-                .parse::<chrono_tz::Tz>()
-                .unwrap_or(chrono_tz::UTC))
+            Ok(d.timezone.parse::<chrono_tz::Tz>().unwrap_or_else(|_| {
+                log::warn!(
+                    "Invalid timezone '{}' for device '{}', falling back to UTC",
+                    d.timezone,
+                    device_id
+                );
+                chrono_tz::UTC
+            }))
         } else {
+            log::warn!(
+                "Device '{}' not found in store, defaulting to UTC",
+                device_id
+            );
             Ok(chrono_tz::UTC)
         }
     }
@@ -28,14 +37,23 @@ impl RedbStore {
         local_time_str: &str,
         tz: chrono_tz::Tz,
     ) -> Result<i64, String> {
-        use chrono::{NaiveDateTime, TimeZone};
+        use chrono::{Duration, NaiveDateTime, TimeZone};
         let naive_dt = NaiveDateTime::parse_from_str(local_time_str, "%Y-%m-%d %H:%M:%S")
             .or_else(|_| NaiveDateTime::parse_from_str(local_time_str, "%Y-%m-%dT%H:%M:%SZ"))
             .map_err(|e| format!("Failed to parse timestamp: {e}"))?;
-        let local_dt = tz
-            .from_local_datetime(&naive_dt)
-            .single()
-            .ok_or_else(|| format!("Ambiguous local time: {local_time_str}"))?;
+        // Unified DST strategy (matches apiserver/src/utils/tz.rs):
+        // - Single → direct conversion
+        // - Ambiguous → pick first (pre-transition / standard-time) instant
+        // - None (gap) → shift forward by 1 hour and retry
+        let local_dt = match tz.from_local_datetime(&naive_dt) {
+            chrono::LocalResult::Single(dt) | chrono::LocalResult::Ambiguous(dt, _) => dt,
+            chrono::LocalResult::None => {
+                let shifted = naive_dt + Duration::hours(1);
+                tz.from_local_datetime(&shifted)
+                    .single()
+                    .ok_or_else(|| format!("Cannot resolve DST gap: {local_time_str}"))?
+            }
+        };
         Ok(local_dt.with_timezone(&chrono::Utc).timestamp())
     }
 
@@ -628,6 +646,7 @@ impl RedbStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Timelike;
 
     fn make_store() -> RedbStore {
         RedbStore::new(":memory:", 90).expect("in-memory store")
@@ -957,6 +976,151 @@ mod tests {
     fn test_parse_local_to_utc_timestamp_invalid() {
         let result = RedbStore::parse_local_to_utc_timestamp("not-a-date", chrono_tz::UTC);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_local_to_utc_dst_ambiguous() {
+        // America/New_York DST ends 2026-11-01 at 02:00 → clocks fall back to 01:00
+        // 01:30 exists twice — should pick first (EDT, UTC-4)
+        let result = RedbStore::parse_local_to_utc_timestamp(
+            "2026-11-01 01:30:00",
+            chrono_tz::America::New_York,
+        );
+        assert!(
+            result.is_ok(),
+            "Ambiguous time should be resolved, not rejected"
+        );
+        let ts = result.unwrap();
+        // First occurrence: EDT (UTC-4) → 01:30 + 4 = 05:30 UTC
+        let utc_dt = chrono::DateTime::from_timestamp(ts, 0).unwrap();
+        assert_eq!(utc_dt.hour(), 5);
+        assert_eq!(utc_dt.minute(), 30);
+    }
+
+    #[test]
+    fn test_parse_local_to_utc_dst_gap() {
+        // America/New_York DST starts 2026-03-08 at 02:00 → clocks jump to 03:00
+        // 02:30 does not exist — should shift forward to 03:30 EDT (UTC-4)
+        let result = RedbStore::parse_local_to_utc_timestamp(
+            "2026-03-08 02:30:00",
+            chrono_tz::America::New_York,
+        );
+        assert!(result.is_ok(), "DST gap should be resolved by shifting");
+        let ts = result.unwrap();
+        // After shift: 03:30 EDT (UTC-4) = 07:30 UTC
+        let utc_dt = chrono::DateTime::from_timestamp(ts, 0).unwrap();
+        assert_eq!(utc_dt.hour(), 7);
+        assert_eq!(utc_dt.minute(), 30);
+    }
+
+    #[test]
+    fn test_parse_local_to_utc_hcm_common_case() {
+        // Vietnam (UTC+7) — no DST, most common timezone for this system
+        let ts = RedbStore::parse_local_to_utc_timestamp(
+            "2026-06-15 08:00:00",
+            chrono_tz::Asia::Ho_Chi_Minh,
+        )
+        .unwrap();
+        // 08:00 ICT = 01:00 UTC
+        let utc_dt = chrono::DateTime::from_timestamp(ts, 0).unwrap();
+        assert_eq!(utc_dt.hour(), 1);
+        assert_eq!(utc_dt.minute(), 0);
+    }
+
+    #[test]
+    fn test_parse_local_to_utc_kolkata_half_hour_offset() {
+        // India (UTC+5:30) — half-hour offset
+        let ts = RedbStore::parse_local_to_utc_timestamp(
+            "2026-03-15 12:00:00",
+            chrono_tz::Asia::Kolkata,
+        )
+        .unwrap();
+        // 12:00 IST = 06:30 UTC
+        let utc_dt = chrono::DateTime::from_timestamp(ts, 0).unwrap();
+        assert_eq!(utc_dt.hour(), 6);
+        assert_eq!(utc_dt.minute(), 30);
+    }
+
+    #[test]
+    fn test_parse_local_to_utc_european_dst_gap() {
+        // Europe/Berlin DST starts 2026-03-29 at 02:00 → clocks jump to 03:00
+        let result = RedbStore::parse_local_to_utc_timestamp(
+            "2026-03-29 02:30:00",
+            chrono_tz::Europe::Berlin,
+        );
+        assert!(result.is_ok(), "European DST gap should be resolved");
+        let ts = result.unwrap();
+        // After shift: 03:30 CEST (UTC+2) = 01:30 UTC
+        let utc_dt = chrono::DateTime::from_timestamp(ts, 0).unwrap();
+        assert_eq!(utc_dt.hour(), 1);
+        assert_eq!(utc_dt.minute(), 30);
+    }
+
+    #[test]
+    fn test_parse_local_to_utc_negative_offset_date_boundary() {
+        // America/Los_Angeles (UTC-8 in winter)
+        // 23:00 PT on Jan 15 = 07:00 UTC on Jan 16 (next day)
+        let ts = RedbStore::parse_local_to_utc_timestamp(
+            "2026-01-15 23:00:00",
+            chrono_tz::America::Los_Angeles,
+        )
+        .unwrap();
+        let utc_dt = chrono::DateTime::from_timestamp(ts, 0).unwrap();
+        assert_eq!(
+            utc_dt.date_naive(),
+            chrono::NaiveDate::from_ymd_opt(2026, 1, 16).unwrap()
+        );
+        assert_eq!(utc_dt.hour(), 7);
+    }
+
+    #[test]
+    fn test_parse_local_to_utc_iso_format_fallback() {
+        // Test the ISO T-format fallback
+        let ts = RedbStore::parse_local_to_utc_timestamp("2026-01-16T08:00:00Z", chrono_tz::UTC)
+            .unwrap();
+        let utc_dt = chrono::DateTime::from_timestamp(ts, 0).unwrap();
+        assert_eq!(utc_dt.hour(), 8);
+    }
+
+    #[test]
+    fn test_parse_local_to_utc_consistency_across_methods() {
+        // Verify agent produces same UTC instant for same input as a manual conversion
+        let tz = chrono_tz::Asia::Ho_Chi_Minh;
+        let ts = RedbStore::parse_local_to_utc_timestamp("2026-06-15 14:30:00", tz).unwrap();
+        // Manual: 14:30 ICT (UTC+7) = 07:30 UTC
+        let expected = chrono::NaiveDate::from_ymd_opt(2026, 6, 15)
+            .unwrap()
+            .and_hms_opt(7, 30, 0)
+            .unwrap()
+            .and_utc()
+            .timestamp();
+        assert_eq!(ts, expected);
+    }
+
+    #[test]
+    fn test_parse_local_to_utc_australian_dst_gap() {
+        // Australia/Sydney DST starts first Sunday of October
+        // 2026-10-04 at 02:00 AEST → clocks jump to 03:00 AEDT
+        let result = RedbStore::parse_local_to_utc_timestamp(
+            "2026-10-04 02:30:00",
+            chrono_tz::Australia::Sydney,
+        );
+        assert!(result.is_ok(), "Australian DST gap should be resolved");
+    }
+
+    #[test]
+    fn test_parse_local_to_utc_dst_fall_back_picks_first() {
+        // Europe/Berlin DST ends 2026-10-25 at 03:00 CEST → falls back to 02:00 CET
+        // 02:30 exists twice — should pick first (CEST, UTC+2)
+        let ts = RedbStore::parse_local_to_utc_timestamp(
+            "2026-10-25 02:30:00",
+            chrono_tz::Europe::Berlin,
+        )
+        .unwrap();
+        let utc_dt = chrono::DateTime::from_timestamp(ts, 0).unwrap();
+        // First occurrence: CEST (UTC+2) → 02:30 - 2 = 00:30 UTC
+        assert_eq!(utc_dt.hour(), 0);
+        assert_eq!(utc_dt.minute(), 30);
     }
 
     #[test]
