@@ -8,16 +8,17 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
+use apiserver::diesel_pool::TenantAuthToken;
 use apiserver::models::{CreateWorkSegmentRequest, UpdateWorkSegmentRequest, WorkSegmentFilter};
 use apiserver::repositories::work_segment_repository::WorkSegmentRepository;
 use apiserver::AppState;
-use apiserver::diesel_pool::TenantAuthToken;
 use chrono::{NaiveDate, NaiveTime};
 use std::sync::Arc;
 use uuid::Uuid;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
+/// Build a `CreateWorkSegmentRequest` with reasonable defaults.
 fn make_request(
     employment_id: Uuid,
     date: NaiveDate,
@@ -28,7 +29,7 @@ fn make_request(
         employment_id,
         date,
         template_id,
-        interval_id: Some(Uuid::new_v4()),
+        interval_id: None,
         sort_order,
         scheduled_start: NaiveTime::from_hms_opt(8 + sort_order as u32, 0, 0).unwrap(),
         scheduled_end: NaiveTime::from_hms_opt(17 + sort_order as u32, 0, 0).unwrap(),
@@ -49,6 +50,22 @@ fn system_token(workspace_id: Uuid) -> TenantAuthToken {
     TenantAuthToken::system_override(workspace_id)
 }
 
+/// Resolve the real `employments.id` for a given `employees.id`. The
+/// `work_segments.employment_id` FK points to `employments.id`, not
+/// `employees.id`. `EmployeeBuilder::create()` creates both rows but returns
+/// only `employees.id`, so every test must query the correct FK target.
+async fn employment_id_for(
+    diesel_pools: &apiserver::diesel_pool::DieselPools,
+    employee_id: Uuid,
+) -> Uuid {
+    crate::test_query_scalar_uuid!(
+        &diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        employee_id
+    )
+}
+
 // ── Test: CRUD through wired repository ──────────────────────────────────────
 
 #[tokio::test]
@@ -58,18 +75,24 @@ async fn test_work_segment_crud_integration() {
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
-    let emp_id = factory.employee().with_workspace(ws_id).with_user(user_id).create().await;
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_user(user_id)
+        .create()
+        .await;
+    let employment_id = employment_id_for(&factory.diesel_pools, emp_id).await;
+    let tmpl_id = factory.shift().with_workspace(ws_id).create().await;
 
     let auth = system_token(ws_id);
     let repo = state.shifts().work_segment_repo();
 
-    let tmpl_id = Uuid::new_v4();
     let date = NaiveDate::from_ymd_opt(2026, 8, 1).unwrap();
 
     // 1. Create
-    let req = make_request(emp_id, date, tmpl_id, 0);
+    let req = make_request(employment_id, date, tmpl_id, 0);
     let created = repo.create_segment(&auth, &req).await.expect("create");
-    assert_eq!(created.employment_id, emp_id);
+    assert_eq!(created.employment_id, employment_id);
     assert_eq!(created.date, date);
     assert_eq!(created.template_id, tmpl_id);
 
@@ -83,12 +106,15 @@ async fn test_work_segment_crud_integration() {
 
     // 3. List — should include our segment
     let filter = WorkSegmentFilter {
-        employment_ids: Some(vec![emp_id]),
+        employment_ids: Some(vec![employment_id]),
         start_date: Some(date),
         end_date: Some(date),
         ..Default::default()
     };
-    let (results, total) = repo.list_segments(&auth, &filter, 1, 10).await.expect("list");
+    let (results, total) = repo
+        .list_segments(&auth, &filter, 1, 10)
+        .await
+        .expect("list");
     assert!(total >= 1);
     assert!(results.iter().any(|s| s.id == created.id));
 
@@ -117,7 +143,9 @@ async fn test_work_segment_crud_integration() {
     assert_eq!(updated.sort_order, 42);
 
     // 5. Delete
-    repo.delete_segment(&auth, created.id).await.expect("delete");
+    repo.delete_segment(&auth, created.id)
+        .await
+        .expect("delete");
     let after = repo
         .get_segment_by_id(&auth, created.id)
         .await
@@ -134,30 +162,33 @@ async fn test_manual_segment_not_overwritten() {
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
-    let emp_id = factory.employee().with_workspace(ws_id).with_user(user_id).create().await;
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_user(user_id)
+        .create()
+        .await;
+    let employment_id = employment_id_for(&factory.diesel_pools, emp_id).await;
+    let tmpl_id = factory.shift().with_workspace(ws_id).create().await;
 
     let auth = system_token(ws_id);
     let repo = state.shifts().work_segment_repo();
 
-    let tmpl_id = Uuid::new_v4();
-    let interval_id = Uuid::new_v4();
     let date = NaiveDate::from_ymd_opt(2026, 8, 2).unwrap();
 
-    // Manually create a segment (source="manual")
-    let mut manual_req = make_request(emp_id, date, tmpl_id, 0);
-    manual_req.interval_id = Some(interval_id);
+    // Manually create a segment (source="manual") using a stable sort_order to
+    // distinguish it from the write-through segment below.
+    let manual_req = make_request(employment_id, date, tmpl_id, 0);
     let manual = repo
         .create_segment(&auth, &manual_req)
         .await
         .expect("create manual");
 
-    // Simulate what write-through does: try inserting same (employment_id, date, interval_id)
-    // Since ON CONFLICT DO NOTHING is used, the existing manual segment should be preserved.
+    // Simulate what write-through does: try inserting same (employment_id, date,
+    // sort_order, template_id). Since ON CONFLICT DO NOTHING is used, the existing
+    // manual segment should be preserved.
     let same_reqs = vec![
-        CreateWorkSegmentRequest {
-            interval_id: Some(interval_id), // SAME interval_id triggers unique index
-            ..make_request(emp_id, date, tmpl_id, 99)
-        },
+        make_request(employment_id, date, tmpl_id, 0), // same sort_order
     ];
 
     let _result = repo
@@ -173,8 +204,14 @@ async fn test_manual_segment_not_overwritten() {
         .expect("manual segment must still exist");
 
     // Original values must be preserved (ON CONFLICT DO NOTHING prevents overwrite)
-    assert_eq!(refetched.sort_order, 0, "manual sort_order must be preserved");
-    assert_eq!(refetched.source, "manual", "manual source must be preserved");
+    assert_eq!(
+        refetched.sort_order, 0,
+        "manual sort_order must be preserved"
+    );
+    assert_eq!(
+        refetched.source, "manual",
+        "manual source must be preserved"
+    );
 
     // Cleanup
     let _ = repo.delete_segment(&auth, manual.id).await;
@@ -189,17 +226,24 @@ async fn test_bulk_create_replace_deletes_old() {
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
-    let emp_id = factory.employee().with_workspace(ws_id).with_user(user_id).create().await;
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_user(user_id)
+        .create()
+        .await;
+    let employment_id = employment_id_for(&factory.diesel_pools, emp_id).await;
+
+    let tmpl_id = factory.shift().with_workspace(ws_id).create().await;
 
     let auth = system_token(ws_id);
     let repo = state.shifts().work_segment_repo();
 
-    let tmpl_id = Uuid::new_v4();
     let date = NaiveDate::from_ymd_opt(2026, 8, 3).unwrap();
 
     // Insert 3 segments manually
     let initial: Vec<CreateWorkSegmentRequest> = (0..3)
-        .map(|i| make_request(emp_id, date, tmpl_id, i))
+        .map(|i| make_request(employment_id, date, tmpl_id, i))
         .collect();
     let created = repo
         .bulk_create_segments(&auth, &initial, false)
@@ -207,23 +251,24 @@ async fn test_bulk_create_replace_deletes_old() {
         .expect("initial bulk create");
     assert_eq!(created.len(), 3);
 
-    // Replace with 2 different segments
+    // Replace with 2 different segments (sort_order gap = 5, stays within 0-23h)
     let replacements: Vec<CreateWorkSegmentRequest> = (0..2)
-        .map(|i| make_request(emp_id, date, tmpl_id, i * 10))
+        .map(|i| make_request(employment_id, date, tmpl_id, i * 5))
         .collect();
     let replaced = repo
         .bulk_create_segments(&auth, &replacements, true)
         .await
         .expect("replace bulk create");
 
-    assert_eq!(replaced.len(), 2, "should have exactly 2 segments after replace");
+    assert_eq!(
+        replaced.len(),
+        2,
+        "should have exactly 2 segments after replace"
+    );
 
     // Old segments should be deleted
     for old in &created {
-        let check = repo
-            .get_segment_by_id(&auth, old.id)
-            .await
-            .expect("get");
+        let check = repo.get_segment_by_id(&auth, old.id).await.expect("get");
         assert!(
             check.is_none(),
             "old segment {} should be deleted after replace_existing=true",
@@ -233,7 +278,10 @@ async fn test_bulk_create_replace_deletes_old() {
 
     // New segments should exist
     for new in &replaced {
-        assert!(new.sort_order % 10 == 0, "new segment should have new sort_order");
+        assert!(
+            (0..=5).contains(&new.sort_order),
+            "new segment should have new sort_order"
+        );
         let _ = repo.delete_segment(&auth, new.id).await;
     }
 }
@@ -247,21 +295,30 @@ async fn test_list_segments_filter_by_type() {
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
-    let emp_id = factory.employee().with_workspace(ws_id).with_user(user_id).create().await;
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_user(user_id)
+        .create()
+        .await;
+    let employment_id = employment_id_for(&factory.diesel_pools, emp_id).await;
+    let tmpl_id = factory.shift().with_workspace(ws_id).create().await;
 
     let auth = system_token(ws_id);
     let repo = state.shifts().work_segment_repo();
 
-    let tmpl_id = Uuid::new_v4();
     let date = NaiveDate::from_ymd_opt(2026, 8, 4).unwrap();
 
     // Create a work segment
-    let mut work_req = make_request(emp_id, date, tmpl_id, 0);
+    let mut work_req = make_request(employment_id, date, tmpl_id, 0);
     work_req.segment_type = "work".to_string();
-    let work_seg = repo.create_segment(&auth, &work_req).await.expect("create work");
+    let work_seg = repo
+        .create_segment(&auth, &work_req)
+        .await
+        .expect("create work");
 
     // Create a standby segment
-    let mut stdby_req = make_request(emp_id, date, tmpl_id, 1);
+    let mut stdby_req = make_request(employment_id, date, tmpl_id, 1);
     stdby_req.segment_type = "standby".to_string();
     let standby_seg = repo
         .create_segment(&auth, &stdby_req)
@@ -273,10 +330,13 @@ async fn test_list_segments_filter_by_type() {
         segment_type: Some("work".to_string()),
         ..Default::default()
     };
-    let (results, _) = repo.list_segments(&auth, &filter, 1, 10).await.expect("list");
+    let (results, _) = repo
+        .list_segments(&auth, &filter, 1, 10)
+        .await
+        .expect("list");
     // All results should be work type (note: may include segments from other tests)
     for seg in &results {
-        if seg.employment_id == emp_id && seg.date == date {
+        if seg.employment_id == employment_id && seg.date == date {
             assert_eq!(seg.segment_type, "work");
         }
     }
@@ -284,12 +344,15 @@ async fn test_list_segments_filter_by_type() {
     // Filter by segment_status
     let filter = WorkSegmentFilter {
         segment_status: Some("scheduled".to_string()),
-        employment_ids: Some(vec![emp_id]),
+        employment_ids: Some(vec![employment_id]),
         start_date: Some(date),
         end_date: Some(date),
         ..Default::default()
     };
-    let (results, _) = repo.list_segments(&auth, &filter, 1, 10).await.expect("list status");
+    let (results, _) = repo
+        .list_segments(&auth, &filter, 1, 10)
+        .await
+        .expect("list status");
     for seg in &results {
         assert_eq!(seg.segment_status, "scheduled");
     }
@@ -308,33 +371,39 @@ async fn test_get_segments_by_date_range() {
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
-    let emp_id = factory.employee().with_workspace(ws_id).with_user(user_id).create().await;
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_user(user_id)
+        .create()
+        .await;
+    let employment_id = employment_id_for(&factory.diesel_pools, emp_id).await;
+    let tmpl_id = factory.shift().with_workspace(ws_id).create().await;
 
     let auth = system_token(ws_id);
     let repo = state.shifts().work_segment_repo();
 
-    let tmpl_id = Uuid::new_v4();
     let july1 = NaiveDate::from_ymd_opt(2026, 7, 1).unwrap();
     let july15 = NaiveDate::from_ymd_opt(2026, 7, 15).unwrap();
     let aug1 = NaiveDate::from_ymd_opt(2026, 8, 1).unwrap();
 
     // Create segments on 3 different dates
     let seg_july1 = repo
-        .create_segment(&auth, &make_request(emp_id, july1, tmpl_id, 0))
+        .create_segment(&auth, &make_request(employment_id, july1, tmpl_id, 0))
         .await
         .expect("july1");
     let seg_july15 = repo
-        .create_segment(&auth, &make_request(emp_id, july15, tmpl_id, 1))
+        .create_segment(&auth, &make_request(employment_id, july15, tmpl_id, 1))
         .await
         .expect("july15");
     let seg_aug1 = repo
-        .create_segment(&auth, &make_request(emp_id, aug1, tmpl_id, 2))
+        .create_segment(&auth, &make_request(employment_id, aug1, tmpl_id, 2))
         .await
         .expect("aug1");
 
     // Query July range
     let results = repo
-        .get_segments_by_date_range(&auth, &[emp_id], july1, july15)
+        .get_segments_by_date_range(&auth, &[employment_id], july1, july15)
         .await
         .expect("date range");
 
@@ -361,15 +430,21 @@ async fn test_template_id_roundtrip_integration() {
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
-    let emp_id = factory.employee().with_workspace(ws_id).with_user(user_id).create().await;
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_user(user_id)
+        .create()
+        .await;
+    let employment_id = employment_id_for(&factory.diesel_pools, emp_id).await;
+    let tmpl_id = factory.shift().with_workspace(ws_id).create().await; // known value
 
     let auth = system_token(ws_id);
     let repo = state.shifts().work_segment_repo();
 
-    let tmpl_id = Uuid::new_v4(); // known value
     let date = NaiveDate::from_ymd_opt(2026, 8, 10).unwrap();
 
-    let req = make_request(emp_id, date, tmpl_id, 0);
+    let req = make_request(employment_id, date, tmpl_id, 0);
     let created = repo.create_segment(&auth, &req).await.expect("create");
 
     assert_eq!(
@@ -379,12 +454,15 @@ async fn test_template_id_roundtrip_integration() {
 
     // Also verify through list
     let filter = WorkSegmentFilter {
-        employment_ids: Some(vec![emp_id]),
+        employment_ids: Some(vec![employment_id]),
         start_date: Some(date),
         end_date: Some(date),
         ..Default::default()
     };
-    let (results, _) = repo.list_segments(&auth, &filter, 1, 10).await.expect("list");
+    let (results, _) = repo
+        .list_segments(&auth, &filter, 1, 10)
+        .await
+        .expect("list");
     let found = results.iter().find(|s| s.id == created.id).expect("found");
     assert_eq!(
         found.template_id, tmpl_id,

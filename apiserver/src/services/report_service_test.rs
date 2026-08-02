@@ -2149,10 +2149,7 @@ mod tests {
             _emp: Option<&Vec<Uuid>>,
             _page: Option<i64>,
             _limit: Option<i64>,
-        ) -> Result<
-            (Vec<crate::models::schedule::EmployeeSegments>, i64),
-            AppError,
-        > {
+        ) -> Result<(Vec<crate::models::schedule::EmployeeSegments>, i64), AppError> {
             let segment = crate::models::ResolvedSegment {
                 template_id: Uuid::nil(),
                 interval_id: None,
@@ -3373,5 +3370,67 @@ mod tests {
         assert!(report_item.actual_punch_in.is_some());
         assert!(report_item.actual_punch_out.is_some());
         assert_eq!(report_item.status.to_string(), "present");
+    }
+
+    /// Segment report: same multi-session data as the daily test above.
+    /// The segment-centric path (default in API handler since
+    /// `segment_centric.unwrap_or(true)`) must produce the same day totals.
+    #[tokio::test]
+    async fn test_segment_report_multi_session_via_segments() {
+        let report_service = ReportService::new(ReportServiceArgs {
+            workspace_repo: Arc::new(MockWorkspaceRepo),
+            employee_repo: Arc::new(AbsentEmployeeRepo),
+            condition_type_repo: empty_condition_type_repo(),
+            employment_repo: Arc::new(DummyEmploymentRepo),
+            time_entry_repo: Arc::new(MultiSessionTimeEntryRepo),
+            roster_repo: Arc::new(ScheduleRosterRepo),
+            policy_repo: Arc::new(EmptyPolicyRepo),
+            leave_repo: Arc::new(EmptyLeaveRepo),
+            attendance_daily_summary_repo: Arc::new(EmptyDailySummaryRepo),
+            holiday_repo: Arc::new(EmptyHolidayRepo),
+            employer_repo: Arc::new(MockEmployerRepo),
+            work_segment_repo: None, // ← compute fallback via get_workspace_segments
+        });
+
+        let args = AttendanceReportArgs {
+            workspace_id: Uuid::new_v4(),
+            start_date: NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+            page: Some(1),
+            limit: Some(20),
+            employee_ids: None,
+            department_id: None,
+            sort: None,
+            employee_status: None,
+            employer_id: None,
+            employment_id: None,
+            shift_type: None,
+        };
+
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id);
+        let result = report_service
+            .get_segment_attendance_report(&auth_token, args)
+            .await
+            .unwrap();
+
+        assert_eq!(result.total, 1);
+        let report_item = &result.data[0];
+
+        // 09:00-12:00 + 13:00-17:00 = 420 min → 14 units (7h).
+        // segment_units(0) = total since there is 1 segment.
+        assert_eq!(report_item.std_work_units, 14);
+        assert_eq!(report_item.ot_work_units, 0);
+        assert_eq!(report_item.status.to_string(), "present");
+
+        // day_totals in generation_metadata must match the row.
+        let meta = report_item
+            .generation_metadata
+            .as_ref()
+            .expect("segment rows carry generation_metadata");
+        let day_totals = meta
+            .get("day_totals")
+            .expect("generation_metadata includes day_totals");
+        assert_eq!(day_totals["std_work_units"].as_i64(), Some(14));
+        assert_eq!(day_totals["ot_work_units"].as_i64(), Some(0));
     }
 }

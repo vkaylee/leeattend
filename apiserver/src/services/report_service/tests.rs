@@ -290,3 +290,266 @@ fn test_shift_type_filter_handles_null_shift_name() {
         "rows with null shift_name are excluded by a shift filter"
     );
 }
+
+// ── Segment report: break-split scenario (issue #092523baa) ──
+
+#[cfg(test)]
+mod segment_break_split_tests {
+    use crate::models::{AttendanceRules, ResolvedSegment, TimeEntry};
+    use crate::services::pairing::types::EntryType;
+    use crate::services::report_service::daily::build_segment_calc_inputs;
+    use chrono::{NaiveDate, NaiveTime, TimeZone, Utc};
+    use chrono_tz::Asia::Ho_Chi_Minh;
+    use std::collections::HashMap;
+    use uuid::Uuid;
+
+    fn make_time_entry(
+        punch_in_utc: chrono::DateTime<Utc>,
+        punch_out_utc: chrono::DateTime<Utc>,
+    ) -> TimeEntry {
+        TimeEntry::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            None,
+            None,
+            punch_in_utc,
+            Some(punch_out_utc),
+            None,
+            false,
+            EntryType::Work,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        )
+    }
+
+    #[test]
+    fn test_build_segment_calc_inputs_with_break_split() {
+        // Shift: 07:30-16:30 HCM with break 11:30-12:30
+        // Two sessions: morning (07:30-11:30) and afternoon (12:30-16:30)
+        let date = NaiveDate::from_ymd_opt(2026, 7, 1).unwrap();
+        let tz = Ho_Chi_Minh;
+
+        // Morning entry: 07:30-11:30 HCM = 00:30-04:30 UTC
+        let morning = make_time_entry(
+            Utc.with_ymd_and_hms(2026, 7, 1, 0, 30, 0).unwrap(),
+            Utc.with_ymd_and_hms(2026, 7, 1, 4, 30, 0).unwrap(),
+        );
+
+        // Afternoon entry: 12:30-16:30 HCM = 05:30-09:30 UTC
+        let afternoon = make_time_entry(
+            Utc.with_ymd_and_hms(2026, 7, 1, 5, 30, 0).unwrap(),
+            Utc.with_ymd_and_hms(2026, 7, 1, 9, 30, 0).unwrap(),
+        );
+
+        let entries = vec![morning, afternoon];
+        let entry_refs: Vec<&TimeEntry> = entries.iter().collect();
+
+        // Single segment covering full shift
+        let segment = ResolvedSegment {
+            template_id: Uuid::new_v4(),
+            interval_id: Some(Uuid::new_v4()),
+            sort_order: 0,
+            scheduled_start: NaiveTime::from_hms_opt(7, 30, 0).unwrap(),
+            scheduled_end: NaiveTime::from_hms_opt(16, 30, 0).unwrap(),
+            source: "roster".to_string(),
+            date: Some(date),
+            shift_name: None,
+            shift_symbol: None,
+            interval_name: None,
+            segment_type: "work".to_string(),
+            break_duration_minutes: Some(60),
+            break_start: Some(NaiveTime::from_hms_opt(11, 30, 0).unwrap()),
+            break_end: Some(NaiveTime::from_hms_opt(12, 30, 0).unwrap()),
+            is_break_auto_deduct: Some(true),
+            break_is_overtime: Some(false),
+            allow_early_ot: false,
+            max_early_ot_minutes: None,
+            early_punch_in_grace_period_minutes: 15,
+            ot_aggregation_mode: Default::default(),
+            is_night_shift: false,
+            traces: vec![],
+            is_holiday: false,
+            is_holiday_paid: false,
+            holiday_name: None,
+        };
+
+        let segments = vec![&segment];
+        let working_conditions = vec![];
+        let att_rules = AttendanceRules {
+            work_unit_minutes: 60, // Match daily path
+            rounding_policy: Default::default(),
+            early_arrival_strategy: Default::default(),
+            grace_period_minutes: None,
+        };
+        let condition_type_catalog = HashMap::new();
+
+        let (matched, _rules, calc_inputs) = build_segment_calc_inputs(
+            &segments,
+            &entry_refs,
+            date,
+            tz,
+            &working_conditions,
+            &att_rules,
+            &condition_type_catalog,
+        );
+
+        assert_eq!(matched.len(), 1, "One segment");
+        assert_eq!(matched[0].len(), 2, "Two entries matched");
+        assert_eq!(calc_inputs.len(), 1, "One segment's calc inputs");
+        assert_eq!(
+            calc_inputs[0].len(),
+            2,
+            "Two DailyCalcInput (one per session entry)"
+        );
+
+        // Verify scheduled_break_minutes is 0 for multi-session
+        for input in &calc_inputs[0] {
+            assert_eq!(
+                input.scheduled_break_minutes, 0,
+                "Multi-session: scheduled_break_minutes must be 0 (gap already excluded)"
+            );
+        }
+    }
+
+    #[test]
+    fn test_segment_vs_daily_path_consistency() {
+        // Both paths should produce the same std_work_units for the same input
+        use crate::services::AttendanceService;
+
+        let date = NaiveDate::from_ymd_opt(2026, 7, 1).unwrap();
+        let tz = Ho_Chi_Minh;
+
+        // Morning entry: 07:30-11:30 HCM = 00:30-04:30 UTC
+        let morning = make_time_entry(
+            Utc.with_ymd_and_hms(2026, 7, 1, 0, 30, 0).unwrap(),
+            Utc.with_ymd_and_hms(2026, 7, 1, 4, 30, 0).unwrap(),
+        );
+
+        // Afternoon entry: 12:30-16:30 HCM = 05:30-09:30 UTC
+        let afternoon = make_time_entry(
+            Utc.with_ymd_and_hms(2026, 7, 1, 5, 30, 0).unwrap(),
+            Utc.with_ymd_and_hms(2026, 7, 1, 9, 30, 0).unwrap(),
+        );
+
+        let entries = vec![morning, afternoon];
+        let entry_refs: Vec<&TimeEntry> = entries.iter().collect();
+
+        // Daily path: compute_session_attendance with all entries
+        let shift_start = Some(
+            tz.with_ymd_and_hms(2026, 7, 1, 7, 30, 0)
+                .unwrap()
+                .with_timezone(&tz),
+        );
+        let shift_end = Some(
+            tz.with_ymd_and_hms(2026, 7, 1, 16, 30, 0)
+                .unwrap()
+                .with_timezone(&tz),
+        );
+        let break_start = Some(
+            tz.with_ymd_and_hms(2026, 7, 1, 11, 30, 0)
+                .unwrap()
+                .with_timezone(&tz),
+        );
+        let break_end = Some(
+            tz.with_ymd_and_hms(2026, 7, 1, 12, 30, 0)
+                .unwrap()
+                .with_timezone(&tz),
+        );
+
+        let daily_result = AttendanceService::compute_session_attendance(
+            &entry_refs,
+            tz,
+            shift_start,
+            shift_end,
+            break_start,
+            break_end,
+            60, // scheduled_break_minutes
+            60, // work_unit_minutes (1 unit = 1 hour)
+            Default::default(),
+            &crate::models::PolicyRules::new(
+                15,    // grace_period_minutes
+                0,     // authorized_early_leave_minutes
+                false, // is_early_leave_paid
+                crate::models::EarlyArrivalStrategy::Allow,
+                true,  // is_break_auto_deduct
+                false, // is_break_overtime
+                false, // allow_early_ot
+            ),
+            None,
+            None,
+            None,
+            Default::default(),
+        );
+
+        // Segment path: build_segment_calc_inputs + compute_segment_attendance_sessions
+        let segment = ResolvedSegment {
+            template_id: Uuid::new_v4(),
+            interval_id: Some(Uuid::new_v4()),
+            sort_order: 0,
+            scheduled_start: NaiveTime::from_hms_opt(7, 30, 0).unwrap(),
+            scheduled_end: NaiveTime::from_hms_opt(16, 30, 0).unwrap(),
+            source: "roster".to_string(),
+            date: Some(date),
+            shift_name: None,
+            shift_symbol: None,
+            interval_name: None,
+            segment_type: "work".to_string(),
+            break_duration_minutes: Some(60),
+            break_start: Some(NaiveTime::from_hms_opt(11, 30, 0).unwrap()),
+            break_end: Some(NaiveTime::from_hms_opt(12, 30, 0).unwrap()),
+            is_break_auto_deduct: Some(true),
+            break_is_overtime: Some(false),
+            allow_early_ot: false,
+            max_early_ot_minutes: None,
+            early_punch_in_grace_period_minutes: 15,
+            ot_aggregation_mode: Default::default(),
+            is_night_shift: false,
+            traces: vec![],
+            is_holiday: false,
+            is_holiday_paid: false,
+            holiday_name: None,
+        };
+
+        let segments = vec![&segment];
+        let working_conditions = vec![];
+        let att_rules = AttendanceRules {
+            work_unit_minutes: 60, // Match daily path
+            rounding_policy: Default::default(),
+            early_arrival_strategy: Default::default(),
+            grace_period_minutes: None,
+        };
+        let condition_type_catalog = HashMap::new();
+
+        let (_matched, _rules, calc_inputs) = build_segment_calc_inputs(
+            &segments,
+            &entry_refs,
+            date,
+            tz,
+            &working_conditions,
+            &att_rules,
+            &condition_type_catalog,
+        );
+
+        let input_groups: Vec<&[crate::services::attendance_calculator::DailyCalcInput<_>]> =
+            calc_inputs.iter().map(|v| v.as_slice()).collect();
+
+        let segment_result = AttendanceService::compute_segment_attendance_sessions(&input_groups);
+
+        // Both paths should produce the same standard units
+        assert_eq!(
+            daily_result.total_standard_units(),
+            segment_result.total_standard_units(),
+            "Daily and segment paths must produce the same std_work_units"
+        );
+
+        // Expected: 8 hours = 480 minutes = 8 units (with work_unit_minutes=60)
+        assert_eq!(
+            segment_result.total_standard_units(),
+            8,
+            "Break-split scenario: 4h morning + 4h afternoon = 8h total"
+        );
+    }
+}

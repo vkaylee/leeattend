@@ -935,4 +935,246 @@ mod tests {
         assert_eq!(group2.len(), 1);
         assert_eq!(group2[0].punch_in_time(), t3);
     }
+
+    // =========================================================================
+    // DST-aware date range tests
+    // =========================================================================
+
+    #[test]
+    fn test_date_range_to_utc_dst_spring_forward() {
+        // America/New_York DST spring-forward on 2026-03-08
+        let tz: Tz = "America/New_York".parse().expect("valid tz");
+        let start = NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid");
+        let end = NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid");
+        let (s, e) = date_range_to_utc(tz, start, end).expect("valid range");
+
+        // Start: 00:00 EST (UTC-5) = 05:00 UTC
+        assert_eq!(s.hour(), 5);
+        assert_eq!(
+            s.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid")
+        );
+
+        // End: 23:59:59 EDT (UTC-4) = 03:59:59 UTC next day
+        assert_eq!(e.hour(), 3);
+        assert_eq!(e.minute(), 59);
+        assert_eq!(
+            e.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 3, 9).expect("valid")
+        );
+    }
+
+    #[test]
+    fn test_date_range_to_utc_dst_fall_back() {
+        // America/New_York DST fall-back on 2026-11-01
+        let tz: Tz = "America/New_York".parse().expect("valid tz");
+        let start = NaiveDate::from_ymd_opt(2026, 11, 1).expect("valid");
+        let end = NaiveDate::from_ymd_opt(2026, 11, 1).expect("valid");
+        let (s, e) = date_range_to_utc(tz, start, end).expect("valid range");
+
+        // Start: 00:00 EDT (UTC-4) = 04:00 UTC
+        assert_eq!(s.hour(), 4);
+
+        // End: 23:59:59 EST (UTC-5) = 04:59:59 UTC next day
+        assert_eq!(e.hour(), 4);
+        assert_eq!(e.minute(), 59);
+    }
+
+    #[test]
+    fn test_date_range_to_utc_negative_offset_spans_two_utc_dates() {
+        // America/Los_Angeles (UTC-8): Jan 15 local day starts on Jan 14 UTC
+        let tz: Tz = "America/Los_Angeles".parse().expect("valid tz");
+        let start = NaiveDate::from_ymd_opt(2026, 1, 15).expect("valid");
+        let end = NaiveDate::from_ymd_opt(2026, 1, 15).expect("valid");
+        let (s, e) = date_range_to_utc(tz, start, end).expect("valid range");
+
+        // Start: 00:00 PST (UTC-8) = 08:00 UTC on Jan 15
+        assert_eq!(s.hour(), 8);
+        assert_eq!(
+            s.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 1, 15).expect("valid")
+        );
+
+        // End: 23:59:59 PST (UTC-8) = 07:59:59 UTC on Jan 16
+        assert_eq!(
+            e.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 1, 16).expect("valid")
+        );
+        assert_eq!(e.hour(), 7);
+    }
+
+    #[test]
+    fn test_date_range_to_utc_positive_offset_starts_previous_utc_day() {
+        // Asia/Ho_Chi_Minh (UTC+7): Jan 15 local day starts on Jan 14 UTC
+        let tz: Tz = "Asia/Ho_Chi_Minh".parse().expect("valid tz");
+        let start = NaiveDate::from_ymd_opt(2026, 1, 15).expect("valid");
+        let end = NaiveDate::from_ymd_opt(2026, 1, 15).expect("valid");
+        let (s, e) = date_range_to_utc(tz, start, end).expect("valid range");
+
+        // Start: 00:00 ICT (UTC+7) = 17:00 UTC on Jan 14
+        assert_eq!(
+            s.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 1, 14).expect("valid")
+        );
+        assert_eq!(s.hour(), 17);
+
+        // End: 23:59:59 ICT (UTC+7) = 16:59:59 UTC on Jan 15
+        assert_eq!(
+            e.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 1, 15).expect("valid")
+        );
+        assert_eq!(e.hour(), 16);
+    }
+
+    #[test]
+    fn test_date_range_to_utc_multi_day_range_with_dst() {
+        // Range spanning a DST transition
+        let tz: Tz = "America/New_York".parse().expect("valid tz");
+        let start = NaiveDate::from_ymd_opt(2026, 3, 6).expect("valid");
+        let end = NaiveDate::from_ymd_opt(2026, 3, 10).expect("valid");
+        let (s, e) = date_range_to_utc(tz, start, end).expect("valid range");
+
+        assert!(s < e, "Start must be before end");
+        // Start: Mar 6 00:00 EST (UTC-5) = 05:00 UTC Mar 6
+        assert_eq!(
+            s.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 3, 6).expect("valid")
+        );
+        assert_eq!(s.hour(), 5);
+        // End: Mar 10 23:59:59 EDT (UTC-4) = 03:59:59 UTC Mar 11
+        assert_eq!(
+            e.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 3, 11).expect("valid")
+        );
+    }
+
+    #[test]
+    fn test_date_range_to_utc_checked_returns_none_for_invalid_date() {
+        let tz: Tz = "UTC".parse().expect("valid tz");
+        // Valid dates should return Some
+        let result = date_range_to_utc_checked(
+            tz,
+            NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid"),
+            NaiveDate::from_ymd_opt(2026, 6, 20).expect("valid"),
+        );
+        assert!(result.is_some());
+    }
+
+    // =========================================================================
+    // group_entries_by_date: DST-aware grouping
+    // =========================================================================
+
+    #[test]
+    fn test_group_entries_by_date_dst_boundary() {
+        use crate::models::TimeEntry;
+        use uuid::Uuid;
+
+        let tz: Tz = "America/New_York".parse().expect("valid tz");
+        let workspace_id = Uuid::new_v4();
+        let employee_id = Uuid::new_v4();
+
+        // Entry at UTC 2026-03-08 04:30 → EST (UTC-5) = 2026-03-07 23:30 local (Mar 7)
+        let t_before_dst = "2026-03-08T04:30:00Z".parse::<DateTime<Utc>>().unwrap();
+        // Entry at UTC 2026-03-08 10:00 → EDT (UTC-4) = 2026-03-08 06:00 local (Mar 8, DST day)
+        let t_on_dst = "2026-03-08T10:00:00Z".parse::<DateTime<Utc>>().unwrap();
+
+        let entry1 = TimeEntry::new(
+            Uuid::new_v4(),
+            employee_id,
+            workspace_id,
+            None,
+            None,
+            t_before_dst,
+            None,
+            None,
+            false,
+            crate::services::pairing::types::EntryType::Work,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+        let entry2 = TimeEntry::new(
+            Uuid::new_v4(),
+            employee_id,
+            workspace_id,
+            None,
+            None,
+            t_on_dst,
+            None,
+            None,
+            false,
+            crate::services::pairing::types::EntryType::Work,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        let entries = vec![entry1, entry2];
+        let grouped = super::group_entries_by_date(&entries, tz);
+
+        let mar7 = NaiveDate::from_ymd_opt(2026, 3, 7).unwrap();
+        let mar8 = NaiveDate::from_ymd_opt(2026, 3, 8).unwrap();
+
+        assert_eq!(grouped.get(&mar7).map(Vec::len).unwrap_or(0), 1);
+        assert_eq!(grouped.get(&mar8).map(Vec::len).unwrap_or(0), 1);
+    }
+
+    #[test]
+    fn test_group_entries_by_date_positive_offset_next_day() {
+        use crate::models::TimeEntry;
+        use uuid::Uuid;
+
+        let tz: Tz = "Asia/Ho_Chi_Minh".parse().expect("valid tz"); // UTC+7
+        let workspace_id = Uuid::new_v4();
+        let employee_id = Uuid::new_v4();
+
+        // UTC 2026-06-15 18:00 → HCM = 2026-06-16 01:00 (next day!)
+        let t_next_day = "2026-06-15T18:00:00Z".parse::<DateTime<Utc>>().unwrap();
+        // UTC 2026-06-15 01:00 → HCM = 2026-06-15 08:00 (same day)
+        let t_same_day = "2026-06-15T01:00:00Z".parse::<DateTime<Utc>>().unwrap();
+
+        let entry1 = TimeEntry::new(
+            Uuid::new_v4(),
+            employee_id,
+            workspace_id,
+            None,
+            None,
+            t_next_day,
+            None,
+            None,
+            false,
+            crate::services::pairing::types::EntryType::Work,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+        let entry2 = TimeEntry::new(
+            Uuid::new_v4(),
+            employee_id,
+            workspace_id,
+            None,
+            None,
+            t_same_day,
+            None,
+            None,
+            false,
+            crate::services::pairing::types::EntryType::Work,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        let entries = vec![entry1, entry2];
+        let grouped = super::group_entries_by_date(&entries, tz);
+
+        let jun15 = NaiveDate::from_ymd_opt(2026, 6, 15).unwrap();
+        let jun16 = NaiveDate::from_ymd_opt(2026, 6, 16).unwrap();
+
+        assert_eq!(grouped.get(&jun15).map(Vec::len).unwrap_or(0), 1);
+        assert_eq!(grouped.get(&jun16).map(Vec::len).unwrap_or(0), 1);
+    }
 }

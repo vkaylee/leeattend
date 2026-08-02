@@ -44,7 +44,15 @@ fn req(
 }
 
 /// Helper: create a workspace with owner + a member (Employee role, no admin perms).
-async fn setup_ws_with_member() -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router, Uuid, Uuid, Uuid) {
+async fn setup_ws_with_member() -> (
+    TestDatabase,
+    TestFactory,
+    Arc<AppState>,
+    axum::Router,
+    Uuid,
+    Uuid,
+    Uuid,
+) {
     let (test_db, factory, state, app) = setup_app_tower().await;
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
@@ -152,7 +160,10 @@ async fn test_get_time_history_other_employee_returns_403() {
         .await;
 
     let now = chrono::Utc::now();
-    let start = (now - chrono::Duration::days(7)).to_rfc3339().replace(':', "%3A").replace('+', "%2B");
+    let start = (now - chrono::Duration::days(7))
+        .to_rfc3339()
+        .replace(':', "%3A")
+        .replace('+', "%2B");
     let end = now.to_rfc3339().replace(':', "%3A").replace('+', "%2B");
 
     // Accessing another employee's history → 403

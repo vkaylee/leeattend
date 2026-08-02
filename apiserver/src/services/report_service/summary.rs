@@ -54,7 +54,11 @@ impl ReportService {
             }
 
             let total = preamble.total_employees();
-            let emp_ids: Vec<Uuid> = preamble.paginated_employees().iter().map(|e| e.id).collect();
+            let emp_ids: Vec<Uuid> = preamble
+                .paginated_employees()
+                .iter()
+                .map(|e| e.id)
+                .collect();
 
             let leave_data = self
                 .leave_repo
@@ -62,12 +66,7 @@ impl ReportService {
                 .await?;
 
             let employee_totals = self
-                .accumulate_segment_totals(
-                    auth_token,
-                    &preamble,
-                    args.start_date,
-                    args.end_date,
-                )
+                .accumulate_segment_totals(auth_token, &preamble, args.start_date, args.end_date)
                 .await?;
 
             let selection = super::employment_selection::select_report_employments(
@@ -143,12 +142,7 @@ impl ReportService {
             .await?;
 
         let employee_totals = self
-            .accumulate_segment_totals(
-                auth_token,
-                &preamble,
-                args.start_date,
-                args.end_date,
-            )
+            .accumulate_segment_totals(auth_token, &preamble, args.start_date, args.end_date)
             .await?;
 
         let results = Self::build_summary_results(
@@ -203,8 +197,7 @@ impl ReportService {
             let entries_by_date =
                 crate::services::attendance_utils::group_entries_by_date(entries, tz);
 
-            let segments_by_date =
-                super::daily::group_segments_by_date(emp_segs.segments());
+            let segments_by_date = super::daily::group_segments_by_date(emp_segs.segments());
             let all_segs = emp_segs.segments();
 
             let att_rules = Self::resolve_attendance_rules(preamble, employee_id);
