@@ -13,6 +13,14 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
+// Mock useWorkspace — DailyReportTimeline (rendered inside the table row)
+// now reads workspace.timezone for correct punch positioning.
+vi.mock("@/hooks/use-workspace", () => ({
+    useWorkspace: () => ({
+        workspace: { timezone: "UTC" },
+    }),
+}));
+
 describe("DailyReportTable", () => {
     const mockT = (key: string) => key;
     const mockFormatDate = (date: string) => date;

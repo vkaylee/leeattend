@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 
+import { useWorkspace } from "@/hooks/use-workspace";
 import {
     DailyAttendanceReport,
     AttendanceAdjustmentRequest,
@@ -21,6 +22,8 @@ export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
     const { isOpen, workspaceId, employeeId, dateRange, employerId } = props;
     const [viewMode, setViewMode] = useState<"daily" | "raw">("daily");
     const [selectedEmployerId, setSelectedEmployerId] = useState<string | undefined>(employerId);
+    const { workspace } = useWorkspace(workspaceId);
+    const timezone = workspace?.timezone ?? "UTC";
 
     const [previousSelection, setPreviousSelection] = useState<{
         employeeId: string;
@@ -141,8 +144,8 @@ export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
         } else {
             const modifiedRow = {
                 ...row,
-                actual_punch_in: createIsoFromLocal(row.date, punchIn),
-                actual_punch_out: createIsoFromLocal(row.date, punchOut),
+                actual_punch_in: createIsoFromLocal(row.date, punchIn, timezone),
+                actual_punch_out: createIsoFromLocal(row.date, punchOut, timezone),
             };
             confirmMutation.mutate({ row: modifiedRow, reason });
         }

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
 
 import { ActionButtons, ExistingRequestBanner, ReasonInput } from "./confirm-attendance-modal-sections";
@@ -18,13 +19,29 @@ export interface ConfirmAttendanceModalProps {
     row: DailyAttendanceReport | null;
 }
 
-const utcToLocalHHmm = (iso: string | null | undefined): string => {
+// Render a UTC punch timestamp in the workspace timezone (Excel parity), not
+// the viewer's browser timezone. Falls back to UTC when the timezone is invalid.
+const utcToLocalHHmm = (iso: string | null | undefined, timezone: string): string => {
     if (!iso) { return ""; }
     const d = new Date(iso);
     if (isNaN(d.getTime())) {
         return iso.substring(0, 5);
     }
-    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    try {
+        return new Intl.DateTimeFormat("en-GB", {
+            timeZone: timezone,
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+        }).format(d);
+    } catch {
+        return new Intl.DateTimeFormat("en-GB", {
+            timeZone: "UTC",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+        }).format(d);
+    }
 };
 
 function PunchInputs({
@@ -95,16 +112,16 @@ function EmployeeInfo({ row, t, formatDate }: { row: DailyAttendanceReport; t: (
     );
 }
 
-function getInitialPunchIn(existingRequest?: AttendanceAdjustmentRequest, row?: DailyAttendanceReport | null) {
-    if (existingRequest?.requested_punch_in_time) return utcToLocalHHmm(existingRequest.requested_punch_in_time);
-    if (row?.actual_punch_in) return utcToLocalHHmm(row.actual_punch_in);
+function getInitialPunchIn(existingRequest: AttendanceAdjustmentRequest | undefined, row: DailyAttendanceReport | null | undefined, timezone: string) {
+    if (existingRequest?.requested_punch_in_time) return utcToLocalHHmm(existingRequest.requested_punch_in_time, timezone);
+    if (row?.actual_punch_in) return utcToLocalHHmm(row.actual_punch_in, timezone);
     if (row?.scheduled_start) return row.scheduled_start.substring(0, 5);
     return "";
 }
 
-function getInitialPunchOut(existingRequest?: AttendanceAdjustmentRequest, row?: DailyAttendanceReport | null) {
-    if (existingRequest?.requested_punch_out_time) return utcToLocalHHmm(existingRequest.requested_punch_out_time);
-    if (row?.actual_punch_out) return utcToLocalHHmm(row.actual_punch_out);
+function getInitialPunchOut(existingRequest: AttendanceAdjustmentRequest | undefined, row: DailyAttendanceReport | null | undefined, timezone: string) {
+    if (existingRequest?.requested_punch_out_time) return utcToLocalHHmm(existingRequest.requested_punch_out_time, timezone);
+    if (row?.actual_punch_out) return utcToLocalHHmm(row.actual_punch_out, timezone);
     if (row?.scheduled_end) return row.scheduled_end.substring(0, 5);
     return "";
 }
@@ -119,9 +136,11 @@ export default function ConfirmAttendanceModal({
 }: ConfirmAttendanceModalProps) {
     const { t } = useTranslation();
     const { formatDate } = useDateTimeFormatter();
+    const { workspace } = useWorkspace();
+    const timezone = workspace?.timezone ?? "UTC";
 
-    const [punchIn, setPunchIn] = useState(getInitialPunchIn(existingRequest, row));
-    const [punchOut, setPunchOut] = useState(getInitialPunchOut(existingRequest, row));
+    const [punchIn, setPunchIn] = useState(getInitialPunchIn(existingRequest, row, timezone));
+    const [punchOut, setPunchOut] = useState(getInitialPunchOut(existingRequest, row, timezone));
     const [reason, setReason] = useState(existingRequest?.reason ?? "");
 
     if (!row) { return null; }

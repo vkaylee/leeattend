@@ -27,6 +27,14 @@ vi.mock("lucide-react", () => ({
     ChevronRight: ({ className }: { className?: string }) => <span className={className}>▶</span>,
 }));
 
+// Mock useWorkspace — DailyReportTimeline (rendered inside the row)
+// now reads workspace.timezone for correct punch positioning.
+vi.mock("@/hooks/use-workspace", () => ({
+    useWorkspace: () => ({
+        workspace: { timezone: "UTC" },
+    }),
+}));
+
 describe("DailyReportTableRow — Segment Cells", () => {
     const mockFormatDate = (date: string) => date;
     const mockFormatTime = (time: string | null) => time ?? "---";

@@ -12,6 +12,14 @@ vi.mock("react-i18next", () => ({
     }),
 }));
 
+// Mock useWorkspace — timeline now reads workspace.timezone for correct
+// punch positioning in the workspace timezone (Excel parity).
+vi.mock("@/hooks/use-workspace", () => ({
+    useWorkspace: () => ({
+        workspace: { timezone: "UTC" },
+    }),
+}));
+
 // Mock lucide-react
 vi.mock("lucide-react", () => ({
     RefreshCw: () => null,

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-conversion, complexity */
 import React from "react";
 
+import { useWorkspace } from "@/hooks/use-workspace";
 import { DailyAttendanceReport } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -14,11 +15,39 @@ export interface TimeEntry {
   punch_out_time: string | null;
 }
 
-function getMinutesFromDayStart(isoString: string, baseDateStr: string) {
+// Minutes since the base date's midnight, measured in the WORKSPACE timezone
+// (not the viewer's browser timezone). Keeps timeline positions aligned with
+// the Excel export and the report table.
+function getMinutesFromDayStart(isoString: string, baseDateStr: string, timezone: string) {
   const d = new Date(isoString);
+  let parts: Intl.DateTimeFormatPart[];
+  try {
+    parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: timezone,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(d);
+  } catch {
+    parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "UTC",
+      hourCycle: "h23",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(d);
+  }
+  const p = (type: string) => Number(parts.find((x) => x.type === type)?.value ?? 0);
   const [yr, mo, dy] = baseDateStr.split("-").map(Number);
   const baseDate = new Date(yr, mo - 1, dy);
-  const localD = new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds());
+  const localD = new Date(p("year"), p("month") - 1, p("day"), p("hour"), p("minute"), 0);
   return Math.round((localD.getTime() - baseDate.getTime()) / 60000);
 }
 
@@ -34,6 +63,9 @@ function formatMinutesToTime(totalMins: number) {
 }
 
 function useTimelineBounds(row: DailyAttendanceReport) {
+  const { workspace } = useWorkspace();
+  const timezone = workspace?.timezone ?? "UTC";
+
   const startMin = parseTimeToMinutes(row.scheduled_start);
   let endMin = parseTimeToMinutes(row.scheduled_end);
   let bStart = parseTimeToMinutes(row.break_start);
@@ -48,8 +80,8 @@ function useTimelineBounds(row: DailyAttendanceReport) {
   const metadata = row.generation_metadata as { time_entries?: TimeEntry[] } | undefined;
   const rawEntries = metadata?.time_entries ?? [];
   const timeEntries = rawEntries.map((e) => {
-    const inMin = getMinutesFromDayStart(e.punch_in_time, row.date);
-    const outMin = e.punch_out_time ? getMinutesFromDayStart(e.punch_out_time, row.date) : null;
+    const inMin = getMinutesFromDayStart(e.punch_in_time, row.date, timezone);
+    const outMin = e.punch_out_time ? getMinutesFromDayStart(e.punch_out_time, row.date, timezone) : null;
     return { ...e, inMin, outMin };
   }).sort((a, b) => a.inMin - b.inMin);
 
