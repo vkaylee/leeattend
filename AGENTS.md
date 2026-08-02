@@ -21,7 +21,7 @@ trigger: always_on
 3. **Structured Errors:** Use domain-specific error types (`AppError`). NEVER throw generic `Error` or `unwrap()` blindly.
 4. **Boy Scout Rule:** If you see a typo, bad pattern, or visible bug nearby, FIX IT IMMEDIATELY. Never say "it's out of scope".
 5. **PTY Safety & File Creation (CRITICAL):** 
-   - **Execution Pattern:** For ALL terminal commands, you **MUST** append ` > logs/run_{command_slug}.log 2>&1 </dev/null` directly inside the `CommandLine` argument. Always prefix with `mkdir -p logs &&`. Example: `CommandLine: "mkdir -p logs && ls -la > logs/run_ls.log 2>&1 </dev/null"`.
+   - **Execution Pattern:** At the beginning of each task/session, ensure the `logs/` directory exists once with `mkdir -p logs`. For ALL terminal commands after that, you **MUST** append ` > logs/run_{command_slug}.log 2>&1 </dev/null` directly inside the `CommandLine` argument; do not repeat `mkdir -p logs &&` unless the directory may have been removed. Example: `CommandLine: "ls -la > logs/run_ls.log 2>&1 </dev/null"`.
    - **Anti-pattern:** Leaving stdout/stderr un-redirected, which hangs the system.
    - **Script Execution Pattern (2-Step Workflow):** Any code execution (Python, Bash, JS) MUST follow a strict 2-step workflow:
      1. Use the native `write_to_file` tool to create a temporary script (e.g., `scratch/temp_script.py` or `scratch/commit_msg.txt`).
