@@ -285,3 +285,292 @@ impl AttendanceMatcher {
             .collect()
     }
 }
+
+// =========================================================================
+// Unit tests for pure scoring functions
+// =========================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cache::RosterInterval;
+    use crate::services::attendance_calculator::OtAggregationMode;
+    use chrono::{NaiveDate, NaiveTime};
+    use chrono_tz::Tz;
+
+    const TEST_DATE: NaiveDate = match NaiveDate::from_ymd_opt(2026, 1, 15) {
+        Some(d) => d,
+        None => panic!("invalid test date"),
+    };
+
+    fn utc() -> Tz {
+        chrono_tz::UTC
+    }
+
+    fn hcm() -> Tz {
+        "Asia/Ho_Chi_Minh".parse().unwrap()
+    }
+
+    fn dt(tz: Tz, h: u32, m: u32) -> DateTime<Tz> {
+        use chrono::TimeZone;
+        tz.from_local_datetime(&TEST_DATE.and_time(NaiveTime::from_hms_opt(h, m, 0).unwrap()))
+            .single()
+            .expect("non-ambiguous time")
+    }
+
+    fn dt_next_day(tz: Tz, h: u32, m: u32) -> DateTime<Tz> {
+        use chrono::TimeZone;
+        let next = TEST_DATE.succ_opt().unwrap();
+        tz.from_local_datetime(&next.and_time(NaiveTime::from_hms_opt(h, m, 0).unwrap()))
+            .single()
+            .expect("non-ambiguous time")
+    }
+
+    fn make_interval(start: NaiveTime, end: NaiveTime) -> RosterInterval {
+        RosterInterval {
+            interval_id: Uuid::new_v4(),
+            sort_order: 0,
+            interval_name: None,
+            start_time: start,
+            end_time: end,
+            break_duration_minutes: 0,
+            break_start: None,
+            break_end: None,
+            is_break_auto_deduct: false,
+            break_is_overtime: false,
+            early_punch_in_grace_period_minutes: 0,
+            allow_early_ot: false,
+            max_early_ot_minutes: None,
+            ot_aggregation_mode: OtAggregationMode::Aggregate,
+            is_night_shift: false,
+        }
+    }
+
+    // ── compute_late_minutes ──────────────────────────────────────────
+
+    mod compute_late_minutes_tests {
+        use super::*;
+
+        #[test]
+        fn on_time_returns_zero() {
+            let shift_start = dt(utc(), 8, 0);
+            let punch_in = dt(utc(), 8, 0);
+            assert_eq!(compute_late_minutes(punch_in, shift_start, 0, false), 0);
+        }
+
+        #[test]
+        fn late_by_15_minutes_no_grace() {
+            let shift_start = dt(utc(), 8, 0);
+            let punch_in = dt(utc(), 8, 15);
+            assert_eq!(compute_late_minutes(punch_in, shift_start, 0, false), 15);
+        }
+
+        #[test]
+        fn within_grace_period_returns_zero() {
+            let shift_start = dt(utc(), 8, 0);
+            let punch_in = dt(utc(), 8, 5);
+            assert_eq!(compute_late_minutes(punch_in, shift_start, 10, false), 0);
+        }
+
+        #[test]
+        fn exactly_at_grace_boundary_returns_zero() {
+            let shift_start = dt(utc(), 8, 0);
+            let punch_in = dt(utc(), 8, 10);
+            assert_eq!(compute_late_minutes(punch_in, shift_start, 10, false), 0);
+        }
+
+        #[test]
+        fn one_minute_past_grace() {
+            let shift_start = dt(utc(), 8, 0);
+            let punch_in = dt(utc(), 8, 11);
+            assert_eq!(compute_late_minutes(punch_in, shift_start, 10, false), 1);
+        }
+
+        #[test]
+        fn holiday_returns_zero_regardless() {
+            let shift_start = dt(utc(), 8, 0);
+            let punch_in = dt(utc(), 9, 30); // 90 minutes late
+            assert_eq!(compute_late_minutes(punch_in, shift_start, 0, true), 0);
+        }
+
+        #[test]
+        fn early_arrival_returns_zero() {
+            let shift_start = dt(utc(), 8, 0);
+            let punch_in = dt(utc(), 7, 45);
+            assert_eq!(compute_late_minutes(punch_in, shift_start, 0, false), 0);
+        }
+
+        #[test]
+        fn large_late_value() {
+            let shift_start = dt(utc(), 8, 0);
+            let punch_in = dt(utc(), 12, 0); // 4 hours late
+            assert_eq!(compute_late_minutes(punch_in, shift_start, 0, false), 240);
+        }
+    }
+
+    // ── compute_early_minutes ─────────────────────────────────────────
+
+    mod compute_early_minutes_tests {
+        use super::*;
+
+        #[test]
+        fn on_time_returns_zero() {
+            let shift_end = dt(utc(), 17, 0);
+            let punch_out = dt(utc(), 17, 0);
+            assert_eq!(compute_early_minutes(punch_out, shift_end, false), 0);
+        }
+
+        #[test]
+        fn early_by_10_minutes() {
+            let shift_end = dt(utc(), 17, 0);
+            let punch_out = dt(utc(), 16, 50);
+            assert_eq!(compute_early_minutes(punch_out, shift_end, false), 10);
+        }
+
+        #[test]
+        fn overtime_returns_zero() {
+            let shift_end = dt(utc(), 17, 0);
+            let punch_out = dt(utc(), 18, 0);
+            assert_eq!(compute_early_minutes(punch_out, shift_end, false), 0);
+        }
+
+        #[test]
+        fn holiday_returns_zero() {
+            let shift_end = dt(utc(), 17, 0);
+            let punch_out = dt(utc(), 15, 0); // 2 hours early
+            assert_eq!(compute_early_minutes(punch_out, shift_end, true), 0);
+        }
+
+        #[test]
+        fn exactly_at_shift_end() {
+            let shift_end = dt(utc(), 17, 0);
+            let punch_out = dt(utc(), 17, 0);
+            assert_eq!(compute_early_minutes(punch_out, shift_end, false), 0);
+        }
+
+        #[test]
+        fn large_early_value() {
+            let shift_end = dt(utc(), 17, 0);
+            let punch_out = dt(utc(), 12, 0); // 5 hours early
+            assert_eq!(compute_early_minutes(punch_out, shift_end, false), 300);
+        }
+    }
+
+    // ── detect_absence ────────────────────────────────────────────────
+
+    mod detect_absence_tests {
+        use super::*;
+
+        #[test]
+        fn perfect_attendance_false() {
+            let shift_start = dt(utc(), 8, 0);
+            let shift_end = dt(utc(), 17, 0);
+            let punch_in = dt(utc(), 7, 55);
+            let punch_out = dt(utc(), 17, 5);
+            assert!(!detect_absence(punch_in, punch_out, shift_start, shift_end, 0, false));
+        }
+
+        #[test]
+        fn late_in_only_true() {
+            let shift_start = dt(utc(), 8, 0);
+            let shift_end = dt(utc(), 17, 0);
+            let punch_in = dt(utc(), 8, 10);
+            let punch_out = dt(utc(), 17, 0);
+            assert!(detect_absence(punch_in, punch_out, shift_start, shift_end, 0, false));
+        }
+
+        #[test]
+        fn early_out_only_true() {
+            let shift_start = dt(utc(), 8, 0);
+            let shift_end = dt(utc(), 17, 0);
+            let punch_in = dt(utc(), 8, 0);
+            let punch_out = dt(utc(), 16, 50);
+            assert!(detect_absence(punch_in, punch_out, shift_start, shift_end, 0, false));
+        }
+
+        #[test]
+        fn both_late_and_early_true() {
+            let shift_start = dt(utc(), 8, 0);
+            let shift_end = dt(utc(), 17, 0);
+            let punch_in = dt(utc(), 8, 10);
+            let punch_out = dt(utc(), 16, 50);
+            assert!(detect_absence(punch_in, punch_out, shift_start, shift_end, 0, false));
+        }
+
+        #[test]
+        fn holiday_always_false() {
+            let shift_start = dt(utc(), 8, 0);
+            let shift_end = dt(utc(), 17, 0);
+            let punch_in = dt(utc(), 9, 30); // very late
+            let punch_out = dt(utc(), 14, 0); // very early
+            assert!(!detect_absence(punch_in, punch_out, shift_start, shift_end, 0, true));
+        }
+
+        #[test]
+        fn within_grace_not_absent() {
+            let shift_start = dt(utc(), 8, 0);
+            let shift_end = dt(utc(), 17, 0);
+            let punch_in = dt(utc(), 8, 5); // 5 min late but grace = 10
+            let punch_out = dt(utc(), 17, 0);
+            assert!(!detect_absence(punch_in, punch_out, shift_start, shift_end, 10, false));
+        }
+    }
+
+    // ── resolve_shift_window ──────────────────────────────────────────
+
+    mod resolve_shift_window_tests {
+        use super::*;
+
+        #[test]
+        fn normal_day_shift() {
+            let interval = make_interval(
+                NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+                NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+            );
+            let (start, end) = resolve_shift_window(utc(), TEST_DATE, &interval).unwrap();
+
+            assert_eq!(start, dt(utc(), 8, 0));
+            assert_eq!(end, dt(utc(), 17, 0));
+        }
+
+        #[test]
+        fn overnight_shift_end_next_day() {
+            let interval = make_interval(
+                NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
+                NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
+            );
+            let (start, end) = resolve_shift_window(utc(), TEST_DATE, &interval).unwrap();
+
+            assert_eq!(start, dt(utc(), 22, 0));
+            // end should be on the next calendar day
+            assert_eq!(end, dt_next_day(utc(), 6, 0));
+        }
+
+        #[test]
+        fn timezone_aware_hcm() {
+            let interval = make_interval(
+                NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+                NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+            );
+            let tz = hcm();
+            let (start, end) = resolve_shift_window(tz, TEST_DATE, &interval).unwrap();
+
+            // Both should be in HCM timezone
+            assert_eq!(start, dt(tz, 8, 0));
+            assert_eq!(end, dt(tz, 17, 0));
+        }
+
+        #[test]
+        fn overnight_shift_hcm_timezone() {
+            let interval = make_interval(
+                NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
+                NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
+            );
+            let tz = hcm();
+            let (start, end) = resolve_shift_window(tz, TEST_DATE, &interval).unwrap();
+
+            assert_eq!(start, dt(tz, 22, 0));
+            assert_eq!(end, dt_next_day(tz, 6, 0));
+        }
+    }
+}

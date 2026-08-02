@@ -964,23 +964,253 @@ impl AttendanceImportService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::repositories::attendance_adjustment_repository::MockAttendanceAdjustmentRepository;
+    use crate::repositories::department_repository::MockDepartmentRepository;
+    use crate::repositories::employee::MockEmployeeRepository;
+    use crate::repositories::import_job_repository::MockImportJobRepository;
+    use crate::repositories::staging_log_repository::MockStagingLogRepository;
+    use crate::repositories::workspace_repository::MockWorkspaceRepository;
+    use crate::repositories::time_entry_repository::MockTimeEntryRepository;
+    use crate::worker::test_utils::MockWorkerDepsBuilder;
+
+    fn make_job(target_type: ImportTargetType) -> AttendanceImportJob {
+        AttendanceImportJob {
+            id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            user_id: Uuid::new_v4(),
+            status: ImportJobStatus::Processing,
+            total_rows: 0,
+            processed_rows: 0,
+            file_path: None,
+            error_log: None,
+            target_type,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    fn build_service(
+        import_repo: MockImportJobRepository,
+        workspace_repo: MockWorkspaceRepository,
+    ) -> AttendanceImportService {
+        let repo_deps = ImportServiceDeps {
+            import_repo: Arc::new(import_repo),
+            adj_repo: Arc::new(MockAttendanceAdjustmentRepository::new()),
+            employee_repo: Arc::new(MockEmployeeRepository::new()),
+            time_entry_repo: Arc::new(MockTimeEntryRepository::new()),
+            workspace_repo: Arc::new(workspace_repo),
+            dept_repo: Arc::new(MockDepartmentRepository::new()),
+            staging_repo: Arc::new(MockStagingLogRepository::new()),
+        };
+        let worker_deps = MockWorkerDepsBuilder::new().build();
+        AttendanceImportService::new(repo_deps, worker_deps, None)
+    }
+
+    fn mock_workspace(id: Uuid) -> crate::models::Workspace {
+        crate::models::Workspace::new(
+            id,
+            "Test Workspace".into(),
+            "YYYY-MM-DD".into(),
+            "HH:mm:ss".into(),
+            "UTC".into(),
+            "#000000".into(),
+            "vi".into(),
+            None,
+            None,
+            "split".into(),
+            rust_decimal::Decimal::new(15, 1),
+            Utc::now(),
+            None,
+        )
+    }
 
     #[test]
     fn test_should_resume_job() {
-        // Jobs that should be resumed by the API server
         assert!(AttendanceImportService::should_resume_job(
             &ImportTargetType::Log
         ));
         assert!(AttendanceImportService::should_resume_job(
             &ImportTargetType::Adjustment
         ));
-
-        // Jobs handled by Worker Queue (should NOT be resumed by API server)
         assert!(!AttendanceImportService::should_resume_job(
             &ImportTargetType::Employee
         ));
         assert!(!AttendanceImportService::should_resume_job(
             &ImportTargetType::LeaveImport
         ));
+    }
+
+    #[tokio::test]
+    async fn test_process_job_not_found_returns_err() {
+        let mut mock_import_repo = MockImportJobRepository::new();
+        mock_import_repo
+            .expect_get_job_by_id()
+            .returning(|_, _| Ok(None));
+
+        let mock_workspace_repo = MockWorkspaceRepository::new();
+        let svc = build_service(mock_import_repo, mock_workspace_repo);
+
+        let result = svc.process_job(Uuid::new_v4(), Uuid::new_v4()).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_process_job_workspace_not_found_marks_failed() {
+        let job = make_job(ImportTargetType::Log);
+        let ws_id = job.workspace_id;
+        let job_id = job.id;
+
+        let mut mock_import_repo = MockImportJobRepository::new();
+        let job_clone = job.clone();
+        mock_import_repo
+            .expect_get_job_by_id()
+            .returning(move |_, _| Ok(Some(job_clone.clone())));
+        mock_import_repo
+            .expect_update_job_progress()
+            .with(
+                mockall::predicate::always(),
+                mockall::predicate::eq(job_id),
+                mockall::predicate::always(),
+                mockall::predicate::eq(ImportJobStatus::Failed),
+                mockall::predicate::always(),
+            )
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let mut mock_workspace_repo = MockWorkspaceRepository::new();
+        mock_workspace_repo
+            .expect_get_workspace_by_id()
+            .returning(|_| Box::pin(async move { Ok(None) }));
+
+        let svc = build_service(mock_import_repo, mock_workspace_repo);
+        let result = svc.process_job(ws_id, job_id).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_process_job_missing_file_path_returns_err() {
+        let mut job = make_job(ImportTargetType::Log);
+        job.file_path = None;
+        let ws_id = job.workspace_id;
+        let job_id = job.id;
+
+        let mut mock_import_repo = MockImportJobRepository::new();
+        let job_clone = job.clone();
+        mock_import_repo
+            .expect_get_job_by_id()
+            .returning(move |_, _| Ok(Some(job_clone.clone())));
+
+        let mut mock_workspace_repo = MockWorkspaceRepository::new();
+        let ws_id_clone = ws_id;
+        mock_workspace_repo
+            .expect_get_workspace_by_id()
+            .returning(move |_| {
+                let ws = mock_workspace(ws_id_clone);
+                Box::pin(async move { Ok(Some(ws)) })
+            });
+
+        let svc = build_service(mock_import_repo, mock_workspace_repo);
+        let result = svc.process_job(ws_id, job_id).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_process_job_file_read_error_marks_failed() {
+        let mut job = make_job(ImportTargetType::Adjustment);
+        job.file_path = Some("/nonexistent/path/file.xlsx".to_string());
+        let ws_id = job.workspace_id;
+        let job_id = job.id;
+
+        let mut mock_import_repo = MockImportJobRepository::new();
+        let job_clone = job.clone();
+        mock_import_repo
+            .expect_get_job_by_id()
+            .returning(move |_, _| Ok(Some(job_clone.clone())));
+        mock_import_repo
+            .expect_update_job_progress()
+            .with(
+                mockall::predicate::always(),
+                mockall::predicate::eq(job_id),
+                mockall::predicate::always(),
+                mockall::predicate::eq(ImportJobStatus::Failed),
+                mockall::predicate::always(),
+            )
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let mut mock_workspace_repo = MockWorkspaceRepository::new();
+        let ws_id_clone = ws_id;
+        mock_workspace_repo
+            .expect_get_workspace_by_id()
+            .returning(move |_| {
+                let ws = mock_workspace(ws_id_clone);
+                Box::pin(async move { Ok(Some(ws)) })
+            });
+
+        let svc = build_service(mock_import_repo, mock_workspace_repo);
+        let result = svc.process_job(ws_id, job_id).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_process_job_employee_target_missing_file_path() {
+        let mut job = make_job(ImportTargetType::Employee);
+        job.file_path = None;
+        let ws_id = job.workspace_id;
+        let job_id = job.id;
+
+        let mut mock_import_repo = MockImportJobRepository::new();
+        let job_clone = job.clone();
+        mock_import_repo
+            .expect_get_job_by_id()
+            .returning(move |_, _| Ok(Some(job_clone.clone())));
+
+        let mut mock_workspace_repo = MockWorkspaceRepository::new();
+        let ws_id_clone = ws_id;
+        mock_workspace_repo
+            .expect_get_workspace_by_id()
+            .returning(move |_| {
+                let ws = mock_workspace(ws_id_clone);
+                Box::pin(async move { Ok(Some(ws)) })
+            });
+
+        let svc = build_service(mock_import_repo, mock_workspace_repo);
+        let result = svc.process_job(ws_id, job_id).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_process_job_employee_file_read_error_marks_failed() {
+        let mut job = make_job(ImportTargetType::Employee);
+        job.file_path = Some("/nonexistent/employee_file.xlsx".to_string());
+        let ws_id = job.workspace_id;
+        let job_id = job.id;
+
+        let mut mock_import_repo = MockImportJobRepository::new();
+        let job_clone = job.clone();
+        mock_import_repo
+            .expect_get_job_by_id()
+            .returning(move |_, _| Ok(Some(job_clone.clone())));
+        mock_import_repo
+            .expect_update_job_progress()
+            .with(
+                mockall::predicate::always(),
+                mockall::predicate::eq(job_id),
+                mockall::predicate::eq(0),
+                mockall::predicate::eq(ImportJobStatus::Failed),
+                mockall::predicate::always(),
+            )
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let mut mock_workspace_repo = MockWorkspaceRepository::new();
+        let ws_id_clone = ws_id;
+        mock_workspace_repo
+            .expect_get_workspace_by_id()
+            .returning(move |_| {
+                let ws = mock_workspace(ws_id_clone);
+                Box::pin(async move { Ok(Some(ws)) })
+            });
+
+        let svc = build_service(mock_import_repo, mock_workspace_repo);
+        let result = svc.process_job(ws_id, job_id).await;
+        assert!(result.is_err());
     }
 }

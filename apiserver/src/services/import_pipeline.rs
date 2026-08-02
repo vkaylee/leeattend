@@ -387,6 +387,69 @@ mod tests {
     use crate::worker::test_utils::MockWorkerDepsBuilder;
     use std::sync::Arc;
 
+    // ── Test helpers ──────────────────────────────────────────────────
+
+    fn create_xlsx_bytes(headers: &[&str], rows: &[Vec<&str>]) -> Vec<u8> {
+        let mut workbook = rust_xlsxwriter::Workbook::new();
+        let sheet = workbook.add_worksheet();
+        for (col, header) in headers.iter().enumerate() {
+            sheet.write_string(0, col as u16, *header).unwrap();
+        }
+        for (row_idx, row) in rows.iter().enumerate() {
+            for (col_idx, val) in row.iter().enumerate() {
+                sheet
+                    .write_string((row_idx + 1) as u32, col_idx as u16, *val)
+                    .unwrap();
+            }
+        }
+        workbook.save_to_buffer().unwrap()
+    }
+
+    fn make_job(target_type: crate::models::enums::ImportTargetType) -> AttendanceImportJob {
+        AttendanceImportJob {
+            id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            user_id: Uuid::new_v4(),
+            status: ImportJobStatus::Pending,
+            total_rows: 0,
+            processed_rows: 0,
+            error_log: None,
+            file_path: None,
+            created_at: chrono::Utc::now(),
+            target_type,
+            updated_at: chrono::Utc::now(),
+        }
+    }
+
+    fn build_deps_with_workspace() -> WorkerDeps {
+        let mut builder = MockWorkerDepsBuilder::new();
+        builder
+            .workspace_repo
+            .expect_get_workspace_by_id()
+            .returning(|id| {
+                Box::pin(async move {
+                    Ok(Some(crate::models::Workspace::new(
+                        id,
+                        "Mocked Workspace".into(),
+                        "YYYY-MM-DD".into(),
+                        "HH:mm:ss".into(),
+                        "UTC".into(),
+                        "#000000".into(),
+                        "vi".into(),
+                        None,
+                        None,
+                        "split".into(),
+                        rust_decimal::Decimal::new(15, 1),
+                        chrono::Utc::now(),
+                        None,
+                    )))
+                })
+            });
+        builder.build()
+    }
+
+    // ── DummyStrategy (existing) ─────────────────────────────────────
+
     struct DummyStrategy {
         headers: &'static [&'static str],
         process_result: Result<Option<Uuid>, String>,
@@ -430,6 +493,108 @@ mod tests {
         }
     }
 
+    // ── ConfigurableStrategy ─────────────────────────────────────────
+
+    struct ConfigurableStrategy {
+        headers: &'static [&'static str],
+        init_result: Result<(), String>,
+        pre_process_result: Result<(), String>,
+        map_row_result: Result<String, String>,
+        process_result: Result<Option<Uuid>, String>,
+    }
+
+    impl ConfigurableStrategy {
+        fn success(headers: &'static [&'static str]) -> Self {
+            Self {
+                headers,
+                init_result: Ok(()),
+                pre_process_result: Ok(()),
+                map_row_result: Ok("mapped".to_string()),
+                process_result: Ok(Some(Uuid::new_v4())),
+            }
+        }
+
+        fn with_init_error(mut self, msg: &str) -> Self {
+            self.init_result = Err(msg.to_string());
+            self
+        }
+
+        fn with_pre_process_error(mut self, msg: &str) -> Self {
+            self.pre_process_result = Err(msg.to_string());
+            self
+        }
+
+        fn with_map_row_error(mut self, msg: &str) -> Self {
+            self.map_row_result = Err(msg.to_string());
+            self
+        }
+
+        fn with_process_skip(mut self) -> Self {
+            self.process_result = Ok(None);
+            self
+        }
+
+        fn with_process_error(mut self, msg: &str) -> Self {
+            self.process_result = Err(msg.to_string());
+            self
+        }
+    }
+
+    #[async_trait]
+    impl ImportStrategy for ConfigurableStrategy {
+        type RowData = String;
+
+        fn expected_headers(&self) -> &'static [&'static str] {
+            self.headers
+        }
+
+        fn map_row(
+            &mut self,
+            _row_data: &HashMap<String, String>,
+            _current_line: usize,
+            _workspace_tz: Tz,
+        ) -> Result<Self::RowData, crate::errors::AppError> {
+            self.map_row_result
+                .clone()
+                .map_err(crate::errors::AppError::Internal)
+        }
+
+        async fn init(
+            &mut self,
+            _deps: &WorkerDeps,
+            _job: &AttendanceImportJob,
+            _rows: &[Self::RowData],
+        ) -> Result<(), crate::errors::AppError> {
+            self.init_result
+                .clone()
+                .map_err(crate::errors::AppError::Internal)
+        }
+
+        async fn pre_process_chunk(
+            &mut self,
+            _deps: &WorkerDeps,
+            _job: &AttendanceImportJob,
+            _rows: &[Self::RowData],
+        ) -> Result<(), crate::errors::AppError> {
+            self.pre_process_result
+                .clone()
+                .map_err(crate::errors::AppError::Internal)
+        }
+
+        async fn process_row(
+            &mut self,
+            _deps: &WorkerDeps,
+            _job: &AttendanceImportJob,
+            _row: &Self::RowData,
+        ) -> Result<Option<Uuid>, crate::errors::AppError> {
+            self.process_result
+                .clone()
+                .map_err(crate::errors::AppError::Internal)
+        }
+    }
+
+    // ── Tests: original ──────────────────────────────────────────────
+
     #[tokio::test]
     async fn test_import_pipeline_run_success() {
         let mut mock_import_repo = MockImportJobRepository::new();
@@ -448,25 +613,7 @@ mod tests {
             .expect_update_job_progress()
             .returning(|_, _, _, _, _| Ok(()));
 
-        let job = AttendanceImportJob {
-            id: Uuid::new_v4(),
-            workspace_id: Uuid::new_v4(),
-            user_id: Uuid::new_v4(),
-            status: ImportJobStatus::Pending,
-            total_rows: 0,
-            processed_rows: 0,
-            error_log: None,
-            file_path: None,
-            created_at: chrono::Utc::now(),
-            target_type: crate::models::enums::ImportTargetType::Employee,
-            updated_at: chrono::Utc::now(),
-        };
-
-        // Create a dummy xlsx byte array... actually we might not be able to easily create a valid xlsx bytes.
-        // Wait, file_parser::extract_mapped_rows needs a valid Excel file or CSV.
-        // It might be easier to test chunk processing behavior.
-        // But extracting mapped rows will fail if bytes are invalid, pushing an error and finishing the pipeline!
-        // Let's test the error path then.
+        let job = make_job(crate::models::enums::ImportTargetType::Employee);
 
         let file_bytes = vec![0u8; 10]; // invalid excel file
         let strategy = DummyStrategy {
@@ -474,7 +621,6 @@ mod tests {
             process_result: Ok(Some(Uuid::new_v4())),
         };
 
-        // For non-chunk, it updates total rows and final progress
         mock_import_repo
             .expect_update_job_progress()
             .with(
@@ -482,35 +628,11 @@ mod tests {
                 mockall::predicate::eq(job.id),
                 mockall::predicate::eq(0),
                 mockall::predicate::eq(ImportJobStatus::Failed),
-                mockall::predicate::always(), // should contain error log
+                mockall::predicate::always(),
             )
             .returning(|_, _, _, _, _| Ok(()));
 
-        // Create dummy deps
-        let mut builder = MockWorkerDepsBuilder::new();
-        builder
-            .workspace_repo
-            .expect_get_workspace_by_id()
-            .returning(|id| {
-                Box::pin(async move {
-                    Ok(Some(crate::models::Workspace::new(
-                        id,
-                        "Mocked Workspace".into(),
-                        "YYYY-MM-DD".into(),
-                        "HH:mm:ss".into(),
-                        "UTC".into(),
-                        "#000000".into(),
-                        "vi".into(),
-                        None,
-                        None,
-                        "split".into(),
-                        rust_decimal::Decimal::new(15, 1),
-                        chrono::Utc::now(),
-                        None,
-                    )))
-                })
-            });
-        let deps = builder.build();
+        let deps = build_deps_with_workspace();
 
         let pipeline = ImportPipeline {
             strategy,
@@ -526,6 +648,278 @@ mod tests {
         };
 
         let result = pipeline.run().await;
-        assert!(result.is_err()); // because extracting mapped rows fails with invalid excel
+        assert!(result.is_err());
+    }
+
+    // ── Tests: init & pre_process failures ───────────────────────────
+
+    #[tokio::test]
+    async fn test_init_failure_marks_job_failed() {
+        let mut mock_import_repo = MockImportJobRepository::new();
+        mock_import_repo
+            .expect_update_job_progress()
+            .with(
+                mockall::predicate::always(),
+                mockall::predicate::always(),
+                mockall::predicate::eq(0),
+                mockall::predicate::eq(ImportJobStatus::Failed),
+                mockall::predicate::always(),
+            )
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let job = make_job(crate::models::enums::ImportTargetType::Log);
+        let file_bytes = create_xlsx_bytes(&["name"], &[vec!["Alice"]]);
+        let strategy = ConfigurableStrategy::success(&["name"]).with_init_error("init boom");
+        let deps = build_deps_with_workspace();
+
+        let pipeline = ImportPipeline {
+            strategy,
+            deps,
+            import_repo: &mock_import_repo,
+            job: &job,
+            file_bytes,
+            workspace_tz: chrono_tz::UTC,
+            start_index: None,
+            end_index: None,
+            is_chunk: false,
+            queue_repo: None,
+        };
+
+        let result = pipeline.run().await;
+        assert!(result.is_err(), "init failure should return Err");
+    }
+
+    #[tokio::test]
+    async fn test_pre_process_chunk_failure_marks_job_failed() {
+        let mut mock_import_repo = MockImportJobRepository::new();
+        mock_import_repo
+            .expect_update_job_progress()
+            .with(
+                mockall::predicate::always(),
+                mockall::predicate::always(),
+                mockall::predicate::eq(0),
+                mockall::predicate::eq(ImportJobStatus::Failed),
+                mockall::predicate::always(),
+            )
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let job = make_job(crate::models::enums::ImportTargetType::Log);
+        let file_bytes = create_xlsx_bytes(&["name"], &[vec!["Alice"]]);
+        let strategy =
+            ConfigurableStrategy::success(&["name"]).with_pre_process_error("chunk boom");
+        let deps = build_deps_with_workspace();
+
+        let pipeline = ImportPipeline {
+            strategy,
+            deps,
+            import_repo: &mock_import_repo,
+            job: &job,
+            file_bytes,
+            workspace_tz: chrono_tz::UTC,
+            start_index: None,
+            end_index: None,
+            is_chunk: false,
+            queue_repo: None,
+        };
+
+        let result = pipeline.run().await;
+        assert!(result.is_err(), "pre_process failure should return Err");
+    }
+
+    // ── Tests: row processing ────────────────────────────────────────
+
+    #[tokio::test]
+    async fn test_map_row_error_goes_to_failed_rows() {
+        let mut mock_import_repo = MockImportJobRepository::new();
+        mock_import_repo
+            .expect_update_job_total_rows()
+            .returning(|_, _, _| Ok(()));
+        // Final status: errors exist + processed_rows=0 → Failed
+        mock_import_repo
+            .expect_update_job_progress()
+            .with(
+                mockall::predicate::always(),
+                mockall::predicate::always(),
+                mockall::predicate::eq(0), // 0 processed
+                mockall::predicate::eq(ImportJobStatus::Failed),
+                mockall::predicate::always(),
+            )
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let job = make_job(crate::models::enums::ImportTargetType::Log);
+        let file_bytes = create_xlsx_bytes(&["name"], &[vec!["Alice"], vec!["Bob"]]);
+        let strategy = ConfigurableStrategy::success(&["name"]).with_map_row_error("bad row");
+        let deps = build_deps_with_workspace();
+
+        let pipeline = ImportPipeline {
+            strategy,
+            deps,
+            import_repo: &mock_import_repo,
+            job: &job,
+            file_bytes,
+            workspace_tz: chrono_tz::UTC,
+            start_index: None,
+            end_index: None,
+            is_chunk: false,
+            queue_repo: None,
+        };
+
+        // Pipeline returns Err because all rows failed mapping
+        let result = pipeline.run().await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_process_row_skip_increments_skipped() {
+        let mut mock_import_repo = MockImportJobRepository::new();
+        mock_import_repo
+            .expect_update_job_total_rows()
+            .returning(|_, _, _| Ok(()));
+        // skipped > 0, processed = 0, no errors → status = Failed in DB
+        // But pipeline returns Ok because errors.is_empty()
+        mock_import_repo
+            .expect_update_job_progress()
+            .with(
+                mockall::predicate::always(),
+                mockall::predicate::always(),
+                mockall::predicate::eq(0), // 0 processed
+                mockall::predicate::eq(ImportJobStatus::Failed),
+                mockall::predicate::always(), // contains skip message
+            )
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let job = make_job(crate::models::enums::ImportTargetType::Log);
+        let file_bytes = create_xlsx_bytes(&["name"], &[vec!["Alice"], vec!["Bob"]]);
+        let strategy = ConfigurableStrategy::success(&["name"]).with_process_skip();
+        let deps = build_deps_with_workspace();
+
+        let pipeline = ImportPipeline {
+            strategy,
+            deps,
+            import_repo: &mock_import_repo,
+            job: &job,
+            file_bytes,
+            workspace_tz: chrono_tz::UTC,
+            start_index: None,
+            end_index: None,
+            is_chunk: false,
+            queue_repo: None,
+        };
+
+        // No pipeline errors → Ok, but job status stored as Failed in DB
+        let result = pipeline.run().await;
+        assert!(result.is_ok(), "skip-only pipeline returns Ok (no errors)");
+    }
+
+    #[tokio::test]
+    async fn test_all_rows_processed_successfully() {
+        let mut mock_import_repo = MockImportJobRepository::new();
+        mock_import_repo
+            .expect_update_job_total_rows()
+            .returning(|_, _, _| Ok(()));
+        // Final call: processed_rows=2, status=Completed
+        mock_import_repo
+            .expect_update_job_progress()
+            .with(
+                mockall::predicate::always(),
+                mockall::predicate::always(),
+                mockall::predicate::eq(2),
+                mockall::predicate::eq(ImportJobStatus::Completed),
+                mockall::predicate::always(),
+            )
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let job = make_job(crate::models::enums::ImportTargetType::Log);
+        let file_bytes = create_xlsx_bytes(&["name"], &[vec!["Alice"], vec!["Bob"]]);
+        let strategy = ConfigurableStrategy::success(&["name"]);
+        let deps = build_deps_with_workspace();
+
+        let pipeline = ImportPipeline {
+            strategy,
+            deps,
+            import_repo: &mock_import_repo,
+            job: &job,
+            file_bytes,
+            workspace_tz: chrono_tz::UTC,
+            start_index: None,
+            end_index: None,
+            is_chunk: false,
+            queue_repo: None,
+        };
+
+        let result = pipeline.run().await;
+        assert!(result.is_ok(), "all rows success should return Ok");
+    }
+
+    // ── Tests: chunk mode ────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn test_chunk_mode_uses_queue_progress() {
+        let mock_import_repo = MockImportJobRepository::new();
+        let mut mock_queue_repo = MockQueueRepository::new();
+
+        // Chunk mode should use queue_repo.increment_progress
+        mock_queue_repo
+            .expect_increment_progress()
+            .returning(|_, _| Ok(()));
+
+        let job = make_job(crate::models::enums::ImportTargetType::Log);
+        // 12 rows → increment_progress called at row 10, then remainder 2
+        let rows: Vec<Vec<&str>> = (0..12).map(|_| vec!["A"]).collect();
+        let file_bytes = create_xlsx_bytes(&["name"], &rows);
+        let strategy = ConfigurableStrategy::success(&["name"]);
+        let deps = build_deps_with_workspace();
+
+        let pipeline = ImportPipeline {
+            strategy,
+            deps,
+            import_repo: &mock_import_repo,
+            job: &job,
+            file_bytes,
+            workspace_tz: chrono_tz::UTC,
+            start_index: Some(1),
+            end_index: Some(12),
+            is_chunk: true,
+            queue_repo: Some(Arc::new(mock_queue_repo)),
+        };
+
+        let result = pipeline.run().await;
+        assert!(result.is_ok(), "chunk mode success should return Ok");
+    }
+
+    #[tokio::test]
+    async fn test_chunk_mode_stores_errors_in_queue() {
+        let mock_import_repo = MockImportJobRepository::new();
+        let mut mock_queue_repo = MockQueueRepository::new();
+
+        mock_queue_repo
+            .expect_increment_progress()
+            .returning(|_, _| Ok(()));
+        // When errors exist in chunk mode, store_import_error should be called
+        mock_queue_repo
+            .expect_store_import_error()
+            .returning(|_, _, _| Ok(()));
+
+        let job = make_job(crate::models::enums::ImportTargetType::Log);
+        let file_bytes = create_xlsx_bytes(&["name"], &[vec!["Alice"]]);
+        let strategy = ConfigurableStrategy::success(&["name"]).with_process_error("row failed");
+        let deps = build_deps_with_workspace();
+
+        let pipeline = ImportPipeline {
+            strategy,
+            deps,
+            import_repo: &mock_import_repo,
+            job: &job,
+            file_bytes,
+            workspace_tz: chrono_tz::UTC,
+            start_index: Some(1),
+            end_index: Some(1),
+            is_chunk: true,
+            queue_repo: Some(Arc::new(mock_queue_repo)),
+        };
+
+        let result = pipeline.run().await;
+        // Chunk mode always returns Ok
+        assert!(result.is_ok());
     }
 }

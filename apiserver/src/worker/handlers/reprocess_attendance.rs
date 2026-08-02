@@ -841,4 +841,143 @@ mod tests {
             "Error message should mention ambiguous employments, got: {err_msg}"
         );
     }
+
+    /// Single-day reprocess (start == end) should succeed and count as 1 day.
+    #[tokio::test]
+    async fn test_reprocess_single_day_range() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+
+        let mut queue = MockQueueRepository::new();
+        queue.expect_get_job_metadata().returning(|_| Ok(None));
+
+        let deps = build_deps(
+            emp_id,
+            employment_id,
+            ws_id,
+            &EmploymentResolution::ViaDateRange,
+        );
+
+        let mut job = reprocess_job(ws_id, emp_id, None);
+        // Override date range to a single day (start == end)
+        if let JobPayload::ReprocessAttendance(ref mut payload) = job.payload {
+            let single_day = NaiveDate::from_ymd_opt(2026, 3, 15).unwrap();
+            payload.date_range.start = single_day;
+            payload.date_range.end = single_day;
+        }
+
+        let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
+        let result = ReprocessAttendanceHandler::handle(&queue_arc, &job, &deps).await;
+
+        assert!(
+            result.is_ok(),
+            "Single-day reprocess should succeed, got: {:?}",
+            result.err()
+        );
+    }
+
+    /// When the job has no reprocess payload, the handler should return an error.
+    #[tokio::test]
+    async fn test_reprocess_missing_payload_returns_error() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+
+        let mut queue = MockQueueRepository::new();
+        queue.expect_get_job_metadata().returning(|_| Ok(None));
+
+        let deps = build_deps(
+            emp_id,
+            employment_id,
+            ws_id,
+            &EmploymentResolution::ViaDateRange,
+        );
+
+        // Create a job with the wrong payload type (not ReprocessAttendance)
+        let job = Job {
+            job_id: Uuid::new_v4(),
+            parent_job_id: Uuid::new_v4(),
+            batch_index: 0,
+            task_type: TaskType::ReprocessAttendance,
+            workspace_id: ws_id,
+            payload: JobPayload::FinalizeImport(crate::queue::FinalizeImportPayload {
+                import_job_id: Uuid::new_v4(),
+            }),
+            priority: crate::queue::JobPriority::Normal,
+            created_at: Utc::now(),
+            retry_count: 0,
+            max_retries: 3,
+            trace_context: None,
+        };
+
+        let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
+        let result = ReprocessAttendanceHandler::handle(&queue_arc, &job, &deps).await;
+
+        assert!(
+            result.is_err(),
+            "Missing reprocess payload should return error"
+        );
+        assert!(
+            result.unwrap_err().contains("Missing reprocess payload"),
+            "Error should mention missing payload"
+        );
+    }
+
+    /// When pinned employment belongs to a different workspace, handler should error.
+    #[tokio::test]
+    async fn test_reprocess_pinned_employment_wrong_workspace() {
+        let ws_id = Uuid::new_v4();
+        let other_ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+
+        let mut queue = MockQueueRepository::new();
+        queue.expect_get_job_metadata().returning(|_| Ok(None));
+
+        // Build deps with a different workspace for the employment
+        let mut builder = MockWorkerDepsBuilder::new();
+
+        let mut employment_repo =
+            crate::repositories::employment_repository::MockEmploymentRepository::new();
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(move |_, eid| {
+                Ok(Some(crate::models::employment::Employment::new(
+                    eid,
+                    other_ws_id, // Different workspace!
+                    emp_id,
+                    uuid::Uuid::new_v4(),
+                    None,
+                    None,
+                    "active".to_string(),
+                    chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                    None,
+                    None,
+                    "full_time".to_string(),
+                    None,
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                    None,
+                    None,
+                )))
+            });
+        builder.employment_repo = employment_repo;
+
+        let deps = builder.build();
+        let job = reprocess_job(ws_id, emp_id, Some(employment_id));
+
+        let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
+        let result = ReprocessAttendanceHandler::handle(&queue_arc, &job, &deps).await;
+
+        assert!(
+            result.is_err(),
+            "Pinned employment with wrong workspace should return error"
+        );
+        let err_msg = result.unwrap_err();
+        assert!(
+            err_msg.contains("does not belong to workspace"),
+            "Error should mention workspace mismatch, got: {err_msg}"
+        );
+    }
 }
