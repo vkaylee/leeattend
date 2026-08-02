@@ -23,15 +23,17 @@
 //! // result.standard_minutes(), result, ot_minutes(), result.standard_units(), etc.
 //! ```
 
-use chrono::{DateTime, NaiveDate, NaiveTime};
+use chrono::{DateTime, NaiveDate};
+#[cfg(test)]
+use chrono::NaiveTime;
 use chrono_tz::Tz;
 use uuid::Uuid;
 
 use crate::models::{PolicyRules, RoundingPolicy, TimeEntry};
-use crate::services::pairing::types::EntryType;
 use crate::services::attendance_calculator::{
     DailyCalcInput, OtAggregationMode, SegmentCalcResult, WorkBuckets,
 };
+use crate::services::pairing::types::EntryType;
 use crate::services::AttendanceCalculator;
 
 // ── Result ────────────────────────────────────────────────────────────
@@ -307,34 +309,16 @@ impl AttendanceService {
             .map(|e| e.duration_minutes().unwrap_or(0))
             .sum();
 
-        // ── 3. Convert shift times: NaiveTime → DateTime<Tz> ─────────
-        let shift_start_dt = shift_naive_to_dt(daily.start_time(), date, *tz);
-        let shift_end_dt = shift_naive_to_dt(daily.end_time(), date, *tz);
-
-        // Handle overnight shift (end < start → end += 1 day)
-        let (shift_start, shift_end) =
-            if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
-                if daily.end_time() < daily.start_time() {
-                    end += chrono::Duration::days(1);
-                }
-                (Some(start), Some(end))
-            } else {
-                (None, None)
-            };
-
-        // ── 4. Convert break times: NaiveTime → DateTime<Tz> ─────────
-        let break_start_dt = shift_naive_to_dt(daily.break_start(), date, *tz);
-        let break_end_dt = shift_naive_to_dt(daily.break_end(), date, *tz);
-
-        let (break_start, break_end) =
-            if let (Some(bs), Some(mut be)) = (break_start_dt, break_end_dt) {
-                if daily.break_end() < daily.break_start() {
-                    be += chrono::Duration::days(1);
-                }
-                (Some(bs), Some(be))
-            } else {
-                (None, None)
-            };
+        // ── 3–4. Convert shift & break times: NaiveTime → DateTime<Tz> ──
+        let (shift_start, shift_end, break_start, break_end) =
+            crate::utils::tz::resolve_shift_times(
+                daily.start_time(),
+                daily.end_time(),
+                daily.break_start(),
+                daily.break_end(),
+                date,
+                *tz,
+            );
 
         // ── 5. Build input & call calculator ─────────────────────────
         let calc_input: DailyCalcInput<Tz> = DailyCalcInput {
@@ -427,27 +411,28 @@ impl AttendanceService {
                     first_input.rounding_policy,
                 ),
             ),
-            OtAggregationMode::PerSegment => per_segment_buckets.iter().fold(
-                (0, 0),
-                |(std_units, ot_units), (_, buckets)| {
-                    (
-                        std_units
-                            + AttendanceCalculator::calculate_units(
-                                buckets.standard_minutes,
-                                first_input.work_unit,
-                                first_input.rounding_policy,
-                            ),
-                        ot_units
-                            + AttendanceCalculator::calculate_units(
-                                buckets.early_ot_minutes
-                                    + buckets.late_ot_minutes
-                                    + buckets.break_ot_minutes,
-                                first_input.work_unit,
-                                first_input.rounding_policy,
-                            ),
-                    )
-                },
-            ),
+            OtAggregationMode::PerSegment => {
+                per_segment_buckets
+                    .iter()
+                    .fold((0, 0), |(std_units, ot_units), (_, buckets)| {
+                        (
+                            std_units
+                                + AttendanceCalculator::calculate_units(
+                                    buckets.standard_minutes,
+                                    first_input.work_unit,
+                                    first_input.rounding_policy,
+                                ),
+                            ot_units
+                                + AttendanceCalculator::calculate_units(
+                                    buckets.early_ot_minutes
+                                        + buckets.late_ot_minutes
+                                        + buckets.break_ot_minutes,
+                                    first_input.work_unit,
+                                    first_input.rounding_policy,
+                                ),
+                        )
+                    })
+            }
         };
 
         SegmentAttendanceResult {
@@ -474,9 +459,8 @@ impl AttendanceService {
             total.break_ot_minutes += buckets.break_ot_minutes;
         }
 
-        if let Some(max_early_ot_minutes) = inputs
-            .first()
-            .and_then(|input| input.max_early_ot_minutes)
+        if let Some(max_early_ot_minutes) =
+            inputs.first().and_then(|input| input.max_early_ot_minutes)
         {
             total.early_ot_minutes = total.early_ot_minutes.min(max_early_ot_minutes);
         }
@@ -509,9 +493,7 @@ impl AttendanceService {
     ) -> SegmentAttendanceResult {
         let work_entries: Vec<&TimeEntry> = day_entries
             .iter()
-            .filter(|e| {
-                e.entry_type() != EntryType::Break && e.punch_out_time().is_some()
-            })
+            .filter(|e| e.entry_type() != EntryType::Break && e.punch_out_time().is_some())
             .copied()
             .collect();
 
@@ -537,8 +519,7 @@ impl AttendanceService {
                 .iter()
                 .filter_map(|break_entry| {
                     let break_out = break_entry.punch_out_time()?;
-                    let overlap_start =
-                        std::cmp::max(session_in, break_entry.punch_in_time());
+                    let overlap_start = std::cmp::max(session_in, break_entry.punch_in_time());
                     let overlap_end = std::cmp::min(session_out, break_out);
                     (overlap_end > overlap_start).then(|| {
                         i32::try_from(
@@ -591,6 +572,7 @@ impl AttendanceService {
 ///
 /// Returns `None` when the time is ambiguous (e.g., DST fall-back) or
 /// invalid in the target timezone.
+#[cfg(test)]
 fn shift_naive_to_dt(
     naive_time_opt: Option<NaiveTime>,
     date: NaiveDate,
@@ -966,6 +948,11 @@ mod tests {
             self
         }
 
+        fn date(mut self, date: NaiveDate) -> Self {
+            self.date = date;
+            self
+        }
+
         /// Build `ComputeDailyInput` and call `compute_daily_attendance`.
         fn compute(&self) -> Option<DailyAttendanceResult> {
             let entry_refs: Vec<&TimeEntry> = self.entries.iter().collect();
@@ -1040,6 +1027,86 @@ mod tests {
         let tz: Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
         let date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
         assert!(shift_naive_to_dt(None, date, tz).is_none());
+    }
+
+    #[test]
+    fn shift_naive_to_dt_dst_gap_resolves() {
+        // America/New_York DST starts 2026-03-08 at 02:00 → 03:00
+        // shift_naive_to_dt delegates to naive_time_to_tz which delegates to local_to_tz
+        let tz: Tz = "America/New_York".parse().unwrap();
+        let date = NaiveDate::from_ymd_opt(2026, 3, 8).unwrap();
+        let t = NaiveTime::from_hms_opt(2, 30, 0).unwrap();
+        let result = shift_naive_to_dt(Some(t), date, tz);
+        assert!(
+            result.is_some(),
+            "DST gap time should resolve via shift_naive_to_dt"
+        );
+    }
+
+    #[test]
+    fn shift_naive_to_dt_dst_ambiguous_resolves() {
+        // America/New_York DST ends 2026-11-01 at 02:00 → 01:00
+        // 01:30 exists twice — should pick first (EDT)
+        let tz: Tz = "America/New_York".parse().unwrap();
+        let date = NaiveDate::from_ymd_opt(2026, 11, 1).unwrap();
+        let t = NaiveTime::from_hms_opt(1, 30, 0).unwrap();
+        let result = shift_naive_to_dt(Some(t), date, tz);
+        assert!(
+            result.is_some(),
+            "DST ambiguous time should resolve via shift_naive_to_dt"
+        );
+        let dt = result.unwrap();
+        // First occurrence: EDT (UTC-4) → 01:30 + 4 = 05:30 UTC
+        assert_eq!(dt.with_timezone(&Utc).hour(), 5);
+        assert_eq!(dt.with_timezone(&Utc).minute(), 30);
+    }
+
+    #[test]
+    fn shift_naive_to_dt_overnight_manual_check() {
+        // Verify the pattern used in compute_daily_attendance:
+        // shift_naive_to_dt does NOT handle overnight — caller does it manually
+        let tz: Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).unwrap();
+        let start_time = NaiveTime::from_hms_opt(22, 0, 0).unwrap();
+        let end_time = NaiveTime::from_hms_opt(6, 0, 0).unwrap();
+
+        let start_dt = shift_naive_to_dt(Some(start_time), date, tz).unwrap();
+        let mut end_dt = shift_naive_to_dt(Some(end_time), date, tz).unwrap();
+
+        // Manual overnight check (same pattern as compute_daily_attendance)
+        if end_time < start_time {
+            end_dt += chrono::Duration::days(1);
+        }
+
+        assert_eq!(start_dt.date_naive(), date);
+        assert_eq!(
+            end_dt.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 6, 16).unwrap()
+        );
+        // Duration should be 8 hours
+        let duration = end_dt.signed_duration_since(start_dt);
+        assert_eq!(duration.num_hours(), 8);
+    }
+
+    #[test]
+    fn shift_naive_to_dt_various_timezones() {
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).unwrap();
+        let t = NaiveTime::from_hms_opt(9, 0, 0).unwrap();
+
+        // HCM (UTC+7): 09:00 local = 02:00 UTC
+        let tz_hcm: Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
+        let dt_hcm = shift_naive_to_dt(Some(t), date, tz_hcm).unwrap();
+        assert_eq!(dt_hcm.with_timezone(&Utc).hour(), 2);
+
+        // Tokyo (UTC+9): 09:00 local = 00:00 UTC
+        let tz_tokyo: Tz = "Asia/Tokyo".parse().unwrap();
+        let dt_tokyo = shift_naive_to_dt(Some(t), date, tz_tokyo).unwrap();
+        assert_eq!(dt_tokyo.with_timezone(&Utc).hour(), 0);
+
+        // London (UTC+1 BST in summer): 09:00 local = 08:00 UTC
+        let tz_london: Tz = "Europe/London".parse().unwrap();
+        let dt_london = shift_naive_to_dt(Some(t), date, tz_london).unwrap();
+        assert_eq!(dt_london.with_timezone(&Utc).hour(), 8);
     }
 
     // =========================================================================
@@ -2050,15 +2117,15 @@ mod tests {
                 tz,
                 shift_start,
                 shift_end,
-                None,       // break_start
-                None,       // break_end
-                60,         // scheduled_break_minutes (ignored for multi-session)
+                None, // break_start
+                None, // break_end
+                60,   // scheduled_break_minutes (ignored for multi-session)
                 30,
                 RoundingPolicy::Round,
                 &rules,
-                None,       // ot_ceiling
-                None,       // max_early_ot_minutes
-                None,       // segment_id
+                None, // ot_ceiling
+                None, // max_early_ot_minutes
+                None, // segment_id
                 OtAggregationMode::Aggregate,
             );
 
@@ -2088,8 +2155,16 @@ mod tests {
                 tz,
                 shift_start,
                 shift_end,
-                None, None, 0, 30, RoundingPolicy::Floor, &rules,
-                None, None, None, OtAggregationMode::Aggregate,
+                None,
+                None,
+                0,
+                30,
+                RoundingPolicy::Floor,
+                &rules,
+                None,
+                None,
+                None,
+                OtAggregationMode::Aggregate,
             );
 
             // 09:00-17:00 = 480 min → 16 units with Floor rounding
@@ -2108,8 +2183,16 @@ mod tests {
                 tz,
                 Some(dt_tz(tz, 9, 0)),
                 Some(dt_tz(tz, 17, 0)),
-                None, None, 0, 30, RoundingPolicy::Floor, &rules,
-                None, None, None, OtAggregationMode::Aggregate,
+                None,
+                None,
+                0,
+                30,
+                RoundingPolicy::Floor,
+                &rules,
+                None,
+                None,
+                None,
+                OtAggregationMode::Aggregate,
             );
 
             assert_eq!(result.total_standard_units(), 0);
@@ -2508,6 +2591,151 @@ mod tests {
             assert!(
                 r.standard_minutes() > 0,
                 "overnight shift with overnight break should compute"
+            );
+        }
+    }
+
+    // =========================================================================
+    // DST pipeline tests — verify compute_daily_attendance on transition days
+    // =========================================================================
+
+    mod dst_pipeline {
+        use super::*;
+
+        fn ny() -> Tz {
+            "America/New_York".parse().unwrap()
+        }
+
+        /// Construct a UTC DateTime from a local date/time in a specific timezone.
+        fn dt_local(tz: Tz, date: NaiveDate, h: u32, m: u32) -> chrono::DateTime<Utc> {
+            crate::utils::tz::naive_time_to_tz(
+                NaiveTime::from_hms_opt(h, m, 0).unwrap(),
+                date,
+                tz,
+            )
+            .expect("valid local time")
+            .with_timezone(&Utc)
+        }
+
+        #[test]
+        fn overnight_shift_spring_forward_7h() {
+            // Shift 22:00-06:00 on Mar 7 NY (day before spring-forward).
+            // Punch: 22:00 EST Mar 7 → 06:00 EDT Mar 8 = 7 real hours.
+            let tz = ny();
+            let date = NaiveDate::from_ymd_opt(2026, 3, 7).unwrap();
+
+            let punch_in = dt_local(tz, date, 22, 0); // 22:00 EST = 03:00 UTC Mar 8
+            let punch_out = dt_local(
+                tz,
+                NaiveDate::from_ymd_opt(2026, 3, 8).unwrap(),
+                6,
+                0,
+            ); // 06:00 EDT = 10:00 UTC Mar 8
+
+            let r = ComputeDailyInputBuilder::new()
+                .tz(tz)
+                .date(date)
+                .schedule(mock_schedule(22, 0, 6, 0))
+                .work_entry(punch_in, punch_out)
+                .compute()
+                .unwrap();
+
+            // 7 real hours = 420 minutes (spring-forward lost 1h)
+            assert_eq!(
+                r.standard_minutes(),
+                420,
+                "overnight spring-forward shift should be 7h, got {}min",
+                r.standard_minutes()
+            );
+        }
+
+        #[test]
+        fn overnight_shift_fall_back_9h() {
+            // Shift 22:00-06:00 on Oct 31 NY (day before fall-back).
+            // Punch: 22:00 EDT Oct 31 → 06:00 EST Nov 1 = 9 real hours.
+            let tz = ny();
+            let date = NaiveDate::from_ymd_opt(2026, 10, 31).unwrap();
+
+            let punch_in = dt_local(tz, date, 22, 0); // 22:00 EDT = 02:00 UTC Nov 1
+            let punch_out = dt_local(
+                tz,
+                NaiveDate::from_ymd_opt(2026, 11, 1).unwrap(),
+                6,
+                0,
+            ); // 06:00 EST = 11:00 UTC Nov 1
+
+            let r = ComputeDailyInputBuilder::new()
+                .tz(tz)
+                .date(date)
+                .schedule(mock_schedule(22, 0, 6, 0))
+                .work_entry(punch_in, punch_out)
+                .compute()
+                .unwrap();
+
+            // 9 real hours = 540 minutes (fall-back gained 1h)
+            assert_eq!(
+                r.standard_minutes(),
+                540,
+                "overnight fall-back shift should be 9h, got {}min",
+                r.standard_minutes()
+            );
+        }
+
+        #[test]
+        fn normal_day_shift_on_spring_forward_day() {
+            // Shift 08:00-17:00 on Mar 8 NY (spring-forward day itself).
+            // DST gap at 02:00-03:00 doesn't affect 08:00-17:00 shift.
+            let tz = ny();
+            let date = NaiveDate::from_ymd_opt(2026, 3, 8).unwrap();
+
+            let punch_in = dt_local(tz, date, 8, 0);
+            let punch_out = dt_local(tz, date, 17, 0);
+
+            let r = ComputeDailyInputBuilder::new()
+                .tz(tz)
+                .date(date)
+                .schedule(mock_schedule(8, 0, 17, 0))
+                .work_entry(punch_in, punch_out)
+                .compute()
+                .unwrap();
+
+            // 9 hours = 540 minutes (gap is outside shift, so unaffected)
+            assert_eq!(
+                r.standard_minutes(),
+                540,
+                "day shift on spring-forward day should be 9h, got {}min",
+                r.standard_minutes()
+            );
+        }
+
+        #[test]
+        fn overnight_shift_no_dst() {
+            // Normal overnight shift 22:00-06:00, no DST transition.
+            let tz = ny();
+            let date = NaiveDate::from_ymd_opt(2026, 6, 15).unwrap();
+
+            let punch_in = dt_local(tz, date, 22, 0);
+            let punch_out = dt_local(
+                tz,
+                NaiveDate::from_ymd_opt(2026, 6, 16).unwrap(),
+                6,
+                0,
+            );
+
+            let r = ComputeDailyInputBuilder::new()
+                .tz(tz)
+                .date(date)
+                .schedule(mock_schedule(22, 0, 6, 0))
+                .work_entry(punch_in, punch_out)
+                .compute()
+                .unwrap();
+
+            // 8 hours = 480 minutes
+            assert_eq!(
+                r.standard_minutes(),
+                480,
+                "normal overnight shift should be 8h, got {}min",
+                r.standard_minutes()
             );
         }
     }

@@ -3,7 +3,7 @@ use crate::errors::AppError;
 use crate::models::{DailyAttendanceReport, PaginatedResponse};
 use crate::utils::i18n::I18nKey;
 use crate::utils::tz::parse_workspace_tz;
-use chrono::{DateTime, Duration, NaiveDate, NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, Duration, NaiveDate, Timelike, Utc};
 use chrono_tz::Tz;
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -127,15 +127,15 @@ impl ReportService {
 
 /// Convert a shift's wall-clock start/end (date + time in the employee's TZ)
 /// to an absolute UTC `DateTime`.
+///
+/// Delegates to `tz::local_to_utc` for unified DST handling (ambiguous → first,
+/// gap → shift +1h).
 fn shift_boundary_to_utc(
     date: NaiveDate,
     time: chrono::NaiveTime,
     tz: Tz,
 ) -> Option<DateTime<Utc>> {
-    let naive = NaiveDateTime::new(date, time);
-    tz.from_local_datetime(&naive)
-        .single()
-        .map(|dt| dt.with_timezone(&Utc))
+    crate::utils::tz::local_to_utc(&tz, date, time.hour(), time.minute(), time.second()).ok()
 }
 
 /// Compute the absolute UTC start of the shift, anchored to the shift's
@@ -163,11 +163,10 @@ fn shift_end_utc(
 
 /// The UTC instant corresponding to 00:00:00 on `target_date` in the given
 /// timezone. Used as the left boundary of the calendar day.
+///
+/// Delegates to `tz::start_of_day_utc` for unified DST handling.
 fn day_start_utc(target_date: NaiveDate, tz: Tz) -> Option<DateTime<Utc>> {
-    let midnight = NaiveDateTime::new(target_date, chrono::NaiveTime::from_hms_opt(0, 0, 0)?);
-    tz.from_local_datetime(&midnight)
-        .single()
-        .map(|dt| dt.with_timezone(&Utc))
+    crate::utils::tz::start_of_day_utc(&tz, target_date).ok()
 }
 
 /// Pure predicate: should this report row be included in the no-show list?
@@ -214,7 +213,8 @@ pub(crate) fn should_include_in_no_show(
     let Some(day_start) = day_start_utc(target_date, emp_tz) else {
         return false;
     };
-    let day_end = day_start + Duration::hours(24);
+    let day_end = crate::utils::tz::start_of_next_day_utc(&emp_tz, target_date)
+        .unwrap_or_else(|_| day_start + Duration::hours(24));
     let overlaps_day = end_abs > day_start && start_abs < day_end;
     if !overlaps_day {
         return false;
@@ -233,7 +233,7 @@ pub(crate) fn should_include_in_no_show(
 mod tests {
     use super::*;
     use crate::services::attendance_utils::AttendanceStatus;
-    use chrono::NaiveTime;
+    use chrono::{NaiveTime, TimeZone};
     use uuid::Uuid;
 
     fn hcm() -> Tz {
@@ -494,5 +494,58 @@ mod tests {
         let start = day_start_utc(NaiveDate::from_ymd_opt(2026, 7, 13).unwrap(), hcm());
         // 00:00 HCM on 07-13 = 2026-07-12 17:00 UTC
         assert_eq!(start, Some(at_utc(2026, 7, 12, 17, 0)));
+    }
+
+    // ── DST boundary tests ──────────────────────────────────────────────────
+
+    fn ny() -> Tz {
+        "America/New_York".parse().unwrap()
+    }
+
+    #[test]
+    fn day_boundary_spring_forward_23h_day() {
+        // Mar 8 2026 in NY: clocks skip 02:00→03:00 (23h day).
+        // day_end should be midnight of Mar 9, not day_start + 24h.
+        let date = NaiveDate::from_ymd_opt(2026, 3, 8).unwrap();
+        let day_start = day_start_utc(date, ny()).unwrap();
+        let day_end = crate::utils::tz::start_of_next_day_utc(&ny(), date)
+            .unwrap_or_else(|_| day_start + Duration::hours(24));
+
+        // day_start: 00:00 EST = 05:00 UTC
+        assert_eq!(day_start, at_utc(2026, 3, 8, 5, 0));
+        // day_end: 00:00 EDT (Mar 9) = 04:00 UTC (Mar 9)
+        assert_eq!(day_end, at_utc(2026, 3, 9, 4, 0));
+
+        // Duration should be 23h (not 24h)
+        let hours = day_end.signed_duration_since(day_start).num_hours();
+        assert_eq!(hours, 23, "Spring-forward day should be 23h, got {hours}h");
+    }
+
+    #[test]
+    fn day_boundary_fall_back_25h_day() {
+        // Nov 1 2026 in NY: clocks fall back 02:00→01:00 (25h day).
+        let date = NaiveDate::from_ymd_opt(2026, 11, 1).unwrap();
+        let day_start = day_start_utc(date, ny()).unwrap();
+        let day_end = crate::utils::tz::start_of_next_day_utc(&ny(), date)
+            .unwrap_or_else(|_| day_start + Duration::hours(24));
+
+        // day_start: 00:00 EDT = 04:00 UTC
+        assert_eq!(day_start, at_utc(2026, 11, 1, 4, 0));
+        // day_end: 00:00 EST (Nov 2) = 05:00 UTC (Nov 2)
+        assert_eq!(day_end, at_utc(2026, 11, 2, 5, 0));
+
+        // Duration should be 25h (not 24h)
+        let hours = day_end.signed_duration_since(day_start).num_hours();
+        assert_eq!(hours, 25, "Fall-back day should be 25h, got {hours}h");
+    }
+
+    #[test]
+    fn no_show_shift_overlaps_spring_forward_day() {
+        // Shift 22:00-06:00 on Mar 7 (day before spring-forward).
+        // The shift ends at 06:00 EDT on Mar 8. Must overlap Mar 8.
+        let row = row_with("2026-03-07", "22:00:00", "06:00:00", AttendanceStatus::Absent);
+        let target = NaiveDate::from_ymd_opt(2026, 3, 8).unwrap();
+        let now = at_utc(2026, 3, 8, 12, 0); // well past shift end
+        assert!(should_include_in_no_show(&row, target, ny(), now));
     }
 }

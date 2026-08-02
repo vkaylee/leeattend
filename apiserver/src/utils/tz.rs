@@ -123,22 +123,107 @@ pub fn naive_time_to_tz(time: NaiveTime, date: NaiveDate, tz: Tz) -> Option<Date
     local_to_tz(&tz, date, time.hour(), time.minute(), time.second()).ok()
 }
 
-/// Like [`naive_time_to_tz`], but adds 1 day when `time < ref_time` (overnight shift).
+/// Like [`naive_time_to_tz`], but resolves on the next *calendar* day when
+/// `time < ref_time` (overnight shift).
 ///
 /// Typical usage: converting shift-end or break-end times where the end may
 /// cross midnight (e.g., shift 22:00–06:00). Pass the shift's start time as
 /// `ref_time` so the function knows to advance the date.
+///
+/// **DST-safe:** Uses `NaiveDate` arithmetic to advance by exactly 1 calendar
+/// day, then resolves the wall-clock time on that date. This preserves the
+/// intended wall-clock time (e.g., 06:00) regardless of DST transitions
+/// (which would make the day 23 or 25 hours long).
 pub fn naive_time_to_tz_overnight(
     time: NaiveTime,
     ref_time: NaiveTime,
     date: NaiveDate,
     tz: Tz,
 ) -> Option<DateTime<Tz>> {
-    let mut dt = naive_time_to_tz(time, date, tz)?;
     if time < ref_time {
-        dt += Duration::days(1);
+        // Overnight: resolve the same wall-clock time on the next *calendar* day.
+        // Using NaiveDate arithmetic ensures exactly 1 calendar day is added,
+        // regardless of DST (which would make Duration::days(1) on DateTime<Tz>
+        // overshoot/undershoot by the DST offset).
+        let next_date = date + Duration::days(1);
+        naive_time_to_tz(time, next_date, tz)
+    } else {
+        naive_time_to_tz(time, date, tz)
     }
-    Some(dt)
+}
+
+// ---------------------------------------------------------------------------
+// resolve_shift_times — unified shift + break window resolution
+// ---------------------------------------------------------------------------
+
+/// Resolve shift (and optionally break) start/end times to timezone-aware
+/// `DateTime<Tz>`, handling overnight shifts in one place.
+///
+/// This is the **single source of truth** for the "convert NaiveTime shift
+/// boundaries to DateTime" pattern used across report generation, worker
+/// handlers, and attendance calculation.
+///
+/// **Overnight detection:** `end < start` → end is resolved on the next
+/// *calendar* day (via `NaiveDate + Duration::days(1)`), preserving the
+/// wall-clock time regardless of DST transitions. Same for breaks.
+///
+/// Returns `(shift_start, shift_end, break_start, break_end)` — all `None`
+/// when the corresponding input is `None`.
+pub fn resolve_shift_times(
+    start: Option<NaiveTime>,
+    end: Option<NaiveTime>,
+    break_start: Option<NaiveTime>,
+    break_end: Option<NaiveTime>,
+    date: NaiveDate,
+    tz: Tz,
+) -> (
+    Option<DateTime<Tz>>,
+    Option<DateTime<Tz>>,
+    Option<DateTime<Tz>>,
+    Option<DateTime<Tz>>,
+) {
+    let shift_start = start.and_then(|t| naive_time_to_tz(t, date, tz));
+    let shift_end = if let (Some(s), Some(e)) = (start, end) {
+        if e < s {
+            // Overnight: resolve on next calendar day (DST-safe via NaiveDate arithmetic)
+            let next_date = date + Duration::days(1);
+            naive_time_to_tz(e, next_date, tz)
+        } else {
+            naive_time_to_tz(e, date, tz)
+        }
+    } else {
+        end.and_then(|t| naive_time_to_tz(t, date, tz))
+    };
+
+    // Detect overnight shift: break times < shift_start belong to next calendar day
+    let is_overnight_shift = match (start, end) {
+        (Some(s), Some(e)) => e < s,
+        _ => false,
+    };
+
+    let brk_start = break_start.and_then(|t| {
+        if is_overnight_shift && start.is_some_and(|s| t < s) {
+            let next_date = date + Duration::days(1);
+            naive_time_to_tz(t, next_date, tz)
+        } else {
+            naive_time_to_tz(t, date, tz)
+        }
+    });
+    let brk_end = break_end.and_then(|t| {
+        if is_overnight_shift && start.is_some_and(|s| t < s) {
+            // In overnight shift context, time < shift_start → next calendar day
+            let next_date = date + Duration::days(1);
+            naive_time_to_tz(t, next_date, tz)
+        } else if break_start.is_some_and(|bs| t < bs) {
+            // Overnight break in non-overnight shift (e.g., break 23:00–01:00 in 06:00–22:00)
+            let next_date = date + Duration::days(1);
+            naive_time_to_tz(t, next_date, tz)
+        } else {
+            naive_time_to_tz(t, date, tz)
+        }
+    });
+
+    (shift_start, shift_end, brk_start, brk_end)
 }
 
 // ---------------------------------------------------------------------------
@@ -157,6 +242,34 @@ pub fn start_of_day_utc(tz: &Tz, date: NaiveDate) -> Result<DateTime<Utc>, Strin
 /// Handles DST gaps at end-of-day (rare but possible).
 pub fn end_of_day_utc(tz: &Tz, date: NaiveDate) -> Result<DateTime<Utc>, String> {
     local_to_utc(tz, date, 23, 59, 59)
+}
+
+/// Get the UTC instant for the start of the *next* local calendar day (00:00:00).
+///
+/// Uses `NaiveDate` arithmetic to advance by exactly 1 calendar day, then
+/// resolves midnight of that date through the timezone — making it correct
+/// on DST transition days (23h or 25h days).
+///
+/// Replaces the `(start_of_day + Duration::hours(24))` and
+/// `(start_of_day_local + Duration::days(1)).with_timezone(&Utc)` patterns
+/// that produce wrong boundaries when DST changes the day length.
+pub fn start_of_next_day_utc(tz: &Tz, date: NaiveDate) -> Result<DateTime<Utc>, String> {
+    let next_date = date + Duration::days(1);
+    local_to_utc(tz, next_date, 0, 0, 0)
+}
+
+// ---------------------------------------------------------------------------
+// Current-date helper
+// ---------------------------------------------------------------------------
+
+/// Get the current calendar date in the given timezone.
+///
+/// Replaces the widespread `Utc::now().date_naive()` anti-pattern which
+/// returns the UTC date — potentially one day behind the local date for
+/// workspaces east of UTC (e.g., Vietnam at 01:00 local is still 18:00 UTC
+/// the previous day).
+pub fn utc_now_date_in_tz(tz: &Tz) -> NaiveDate {
+    Utc::now().with_timezone(tz).date_naive()
 }
 
 // ---------------------------------------------------------------------------
@@ -937,5 +1050,717 @@ mod tests {
 
         let dt = naive_time_to_tz_overnight(end, start, date, tz);
         assert!(dt.is_some(), "overnight + DST gap should resolve");
+    }
+
+    // =========================================================================
+    // Roundtrip consistency: local → UTC → local
+    // =========================================================================
+
+    #[test]
+    fn test_roundtrip_local_to_utc_to_local_vn() {
+        let tz: Tz = "Asia/Ho_Chi_Minh".parse().expect("valid");
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid");
+        let h = 14;
+        let m = 30;
+        let s = 0;
+
+        let utc = local_to_utc(&tz, date, h, m, s).expect("valid");
+        let back = utc.with_timezone(&tz);
+        assert_eq!(back.hour(), h);
+        assert_eq!(back.minute(), m);
+        assert_eq!(back.second(), s);
+        assert_eq!(back.date_naive(), date);
+    }
+
+    #[test]
+    fn test_roundtrip_local_to_utc_to_local_negative_offset() {
+        let tz: Tz = "America/Los_Angeles".parse().expect("valid");
+        let date = NaiveDate::from_ymd_opt(2026, 7, 4).expect("valid");
+        let h = 9;
+        let m = 15;
+        let s = 30;
+
+        let utc = local_to_utc(&tz, date, h, m, s).expect("valid");
+        let back = utc.with_timezone(&tz);
+        assert_eq!(back.hour(), h);
+        assert_eq!(back.minute(), m);
+        assert_eq!(back.second(), s);
+    }
+
+    #[test]
+    fn test_roundtrip_local_to_utc_to_local_half_hour_offset() {
+        let tz: Tz = "Asia/Kolkata".parse().expect("valid");
+        let date = NaiveDate::from_ymd_opt(2026, 3, 10).expect("valid");
+        let h = 18;
+        let m = 45;
+        let s = 0;
+
+        let utc = local_to_utc(&tz, date, h, m, s).expect("valid");
+        let back = utc.with_timezone(&tz);
+        assert_eq!(back.hour(), h);
+        assert_eq!(back.minute(), m);
+    }
+
+    // =========================================================================
+    // DST day length: 23-hour day (spring-forward) and 25-hour day (fall-back)
+    // =========================================================================
+
+    #[test]
+    fn test_spring_forward_day_is_23_hours() {
+        // 2026-03-08 in America/New_York: clocks skip 02:00→03:00 (23 hours)
+        let tz: Tz = "America/New_York".parse().expect("valid");
+        let date = NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid");
+        let start = start_of_day_utc(&tz, date).expect("valid start");
+        let end = end_of_day_utc(&tz, date).expect("valid end");
+        let duration = end.signed_duration_since(start);
+        // 23 hours + 59 minutes + 59 seconds = 86399 seconds
+        // (end_of_day is 23:59:59, so the span is just under 24h on a normal day,
+        //  but on a 23-hour day it's just under 23h)
+        assert!(
+            duration.num_hours() == 22,
+            "Spring-forward day should span ~23h (got {}h {}m)",
+            duration.num_hours(),
+            duration.num_minutes() % 60
+        );
+    }
+
+    #[test]
+    fn test_fall_back_day_is_25_hours() {
+        // 2026-11-01 in America/New_York: clocks repeat 01:00→02:00 (25 hours)
+        let tz: Tz = "America/New_York".parse().expect("valid");
+        let date = NaiveDate::from_ymd_opt(2026, 11, 1).expect("valid");
+        let start = start_of_day_utc(&tz, date).expect("valid start");
+        let end = end_of_day_utc(&tz, date).expect("valid end");
+        let duration = end.signed_duration_since(start);
+        // On a 25-hour day, the span should be ~25h
+        assert!(
+            duration.num_hours() == 24,
+            "Fall-back day should span ~25h (got {}h {}m)",
+            duration.num_hours(),
+            duration.num_minutes() % 60
+        );
+    }
+
+    #[test]
+    fn test_normal_day_is_24_hours() {
+        let tz: Tz = "America/New_York".parse().expect("valid");
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid");
+        let start = start_of_day_utc(&tz, date).expect("valid start");
+        let end = end_of_day_utc(&tz, date).expect("valid end");
+        let duration = end.signed_duration_since(start);
+        assert_eq!(duration.num_hours(), 23);
+        assert_eq!(duration.num_minutes() % 60, 59);
+    }
+
+    // =========================================================================
+    // Extreme timezones: UTC+14 and UTC-12
+    // =========================================================================
+
+    #[test]
+    fn test_extreme_positive_offset_kiritimati() {
+        // Pacific/Kiritimati is UTC+14 — the earliest timezone
+        let tz: Tz = "Pacific/Kiritimati".parse().expect("valid");
+        let date = NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid");
+        let utc = local_to_utc(&tz, date, 0, 0, 0).expect("valid");
+        // 00:00 UTC+14 = 10:00 UTC previous day (Dec 31)
+        assert_eq!(
+            utc.date_naive(),
+            NaiveDate::from_ymd_opt(2025, 12, 31).expect("valid")
+        );
+        assert_eq!(utc.hour(), 10);
+    }
+
+    #[test]
+    fn test_midway_atoll_utc_minus_11() {
+        // Pacific/Midway is UTC-11
+        let tz: Tz = "Pacific/Midway".parse().expect("valid");
+        let date = NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid");
+        let utc = local_to_utc(&tz, date, 23, 0, 0).expect("valid");
+        // 23:00 UTC-11 = 10:00 UTC next day (Jan 2)
+        assert_eq!(
+            utc.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 1, 2).expect("valid")
+        );
+        assert_eq!(utc.hour(), 10);
+    }
+
+    // =========================================================================
+    // naive_time_to_tz_overnight: DST fall-back during overnight
+    // =========================================================================
+
+    #[test]
+    fn test_naive_time_to_tz_overnight_dst_fall_back() {
+        use chrono::NaiveTime;
+        // Overnight shift on DST fall-back day: 22:00 → 01:30
+        // Nov 1 is DST fall-back day in America/New_York (02:00 EDT → 01:00 EST).
+        // After fix: resolves 01:30 on next *calendar* day (Nov 2), preserving
+        // the wall-clock time regardless of DST offset.
+        let tz: Tz = "America/New_York".parse().expect("valid");
+        let date = NaiveDate::from_ymd_opt(2026, 11, 1).expect("valid");
+        let start = NaiveTime::from_hms_opt(22, 0, 0).expect("valid");
+        let end = NaiveTime::from_hms_opt(1, 30, 0).expect("valid");
+
+        let dt = naive_time_to_tz_overnight(end, start, date, tz);
+        assert!(dt.is_some(), "overnight + DST fall-back should resolve");
+        let dt = dt.expect("should resolve");
+        assert_eq!(
+            dt.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 11, 2).expect("valid")
+        );
+        // Wall-clock preserved: 01:30 on Nov 2 (EST, UTC-5)
+        assert_eq!(dt.hour(), 1);
+        assert_eq!(dt.minute(), 30);
+
+        // Verify UTC: 01:30 EST = 06:30 UTC on Nov 2
+        let utc = dt.with_timezone(&Utc);
+        assert_eq!(utc.hour(), 6);
+        assert_eq!(utc.minute(), 30);
+    }
+
+    // =========================================================================
+    // Day boundary ordering across all timezone extremes
+    // =========================================================================
+
+    #[test]
+    fn test_start_of_day_ordering_extreme_east_vs_west() {
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid");
+
+        let earliest =
+            start_of_day_utc(&"Pacific/Kiritimati".parse().expect("valid"), date).expect("valid");
+        let latest =
+            start_of_day_utc(&"Pacific/Midway".parse().expect("valid"), date).expect("valid");
+
+        // Kiritimati (UTC+14) starts its day 25 hours before Midway (UTC-11)
+        assert!(
+            earliest < latest,
+            "Extreme-east start of day should be before extreme-west"
+        );
+        let gap = latest.signed_duration_since(earliest);
+        assert_eq!(gap.num_hours(), 25);
+    }
+
+    // =========================================================================
+    // local_to_tz vs local_to_utc: both produce same UTC instant
+    // =========================================================================
+
+    #[test]
+    fn test_consistency_across_all_representative_zones() {
+        let zones = [
+            "UTC",
+            "Asia/Ho_Chi_Minh",
+            "Asia/Kolkata",
+            "Asia/Tokyo",
+            "America/New_York",
+            "America/Los_Angeles",
+            "Europe/London",
+            "Europe/Berlin",
+            "Australia/Sydney",
+            "Pacific/Auckland",
+        ];
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid");
+
+        for zone in &zones {
+            let tz: Tz = zone.parse().expect("valid tz");
+            for h in [0, 6, 12, 18, 23] {
+                let utc_result = local_to_utc(&tz, date, h, 0, 0);
+                let tz_result = local_to_tz(&tz, date, h, 0, 0);
+                assert!(
+                    utc_result.is_ok(),
+                    "local_to_utc failed for {zone} at {h}:00"
+                );
+                assert!(tz_result.is_ok(), "local_to_tz failed for {zone} at {h}:00");
+                assert_eq!(
+                    utc_result.unwrap(),
+                    tz_result.unwrap().with_timezone(&Utc),
+                    "Mismatch for {zone} at {h}:00"
+                );
+            }
+        }
+    }
+
+    // =========================================================================
+    // parse_workspace_tz: edge cases
+    // =========================================================================
+
+    #[test]
+    fn test_parse_workspace_tz_offset_string_fails() {
+        // Offset-style strings like "+07:00" are not valid IANA zone names
+        let tz = parse_workspace_tz("+07:00");
+        assert_eq!(tz, chrono_tz::UTC);
+    }
+
+    #[test]
+    fn test_parse_workspace_tz_abbreviation_resolves() {
+        // chrono-tz accepts some abbreviations like "EST", "UTC" as valid
+        let tz = parse_workspace_tz("EST");
+        // EST is a valid chrono-tz zone (fixed UTC-5, no DST)
+        assert_ne!(tz, chrono_tz::UTC, "EST should resolve to a non-UTC zone");
+    }
+
+    #[test]
+    fn test_parse_workspace_tz_trailing_whitespace_fails() {
+        let tz = parse_workspace_tz("Asia/Ho_Chi_Minh ");
+        assert_eq!(tz, chrono_tz::UTC);
+    }
+
+    // =========================================================================
+    // start_of_day_utc / end_of_day_utc: start < end invariant for all zones
+    // =========================================================================
+
+    #[test]
+    fn test_start_before_end_for_many_zones_and_dates() {
+        let zones = [
+            "UTC",
+            "Asia/Ho_Chi_Minh",
+            "America/New_York",
+            "Europe/Berlin",
+            "Australia/Sydney",
+        ];
+        // Include DST transition dates and normal dates
+        let dates = [
+            NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(),
+            NaiveDate::from_ymd_opt(2026, 3, 8).unwrap(), // US DST spring
+            NaiveDate::from_ymd_opt(2026, 3, 29).unwrap(), // EU DST spring
+            NaiveDate::from_ymd_opt(2026, 6, 15).unwrap(),
+            NaiveDate::from_ymd_opt(2026, 10, 4).unwrap(), // AU DST spring
+            NaiveDate::from_ymd_opt(2026, 11, 1).unwrap(), // US DST fall
+            NaiveDate::from_ymd_opt(2026, 12, 31).unwrap(),
+        ];
+
+        for zone in &zones {
+            let tz: Tz = zone.parse().expect("valid tz");
+            for date in &dates {
+                let start = start_of_day_utc(&tz, *date)
+                    .unwrap_or_else(|_| panic!("start_of_day failed for {zone} on {date}"));
+                let end = end_of_day_utc(&tz, *date)
+                    .unwrap_or_else(|_| panic!("end_of_day failed for {zone} on {date}"));
+                assert!(
+                    start < end,
+                    "start_of_day must be before end_of_day for {zone} on {date}"
+                );
+            }
+        }
+    }
+
+    // =========================================================================
+    // resolve_shift_times
+    // =========================================================================
+
+    #[test]
+    fn test_resolve_shift_times_normal_day_shift() {
+        let tz: Tz = "Asia/Ho_Chi_Minh".parse().expect("valid");
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid");
+        let start = Some(NaiveTime::from_hms_opt(8, 0, 0).expect("valid"));
+        let end = Some(NaiveTime::from_hms_opt(17, 0, 0).expect("valid"));
+
+        let (s, e, bs, be) = resolve_shift_times(start, end, None, None, date, tz);
+        assert!(s.is_some());
+        assert!(e.is_some());
+        assert!(bs.is_none());
+        assert!(be.is_none());
+        assert_eq!(s.unwrap().date_naive(), date);
+        assert_eq!(e.unwrap().date_naive(), date);
+    }
+
+    #[test]
+    fn test_resolve_shift_times_overnight() {
+        let tz: Tz = "Asia/Ho_Chi_Minh".parse().expect("valid");
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid");
+        let start = Some(NaiveTime::from_hms_opt(22, 0, 0).expect("valid"));
+        let end = Some(NaiveTime::from_hms_opt(6, 0, 0).expect("valid"));
+
+        let (s, e, _, _) = resolve_shift_times(start, end, None, None, date, tz);
+        let s = s.expect("start");
+        let e = e.expect("end");
+
+        assert_eq!(s.date_naive(), date);
+        assert_eq!(
+            e.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 6, 16).expect("valid")
+        );
+        // Duration should be 8 hours
+        assert_eq!(e.signed_duration_since(s).num_hours(), 8);
+    }
+
+    #[test]
+    fn test_resolve_shift_times_with_break() {
+        let tz: Tz = "UTC".parse().expect("valid");
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid");
+        let start = Some(NaiveTime::from_hms_opt(9, 0, 0).expect("valid"));
+        let end = Some(NaiveTime::from_hms_opt(18, 0, 0).expect("valid"));
+        let bs = Some(NaiveTime::from_hms_opt(12, 0, 0).expect("valid"));
+        let be = Some(NaiveTime::from_hms_opt(13, 0, 0).expect("valid"));
+
+        let (s, e, brk_s, brk_e) = resolve_shift_times(start, end, bs, be, date, tz);
+        assert!(s.is_some());
+        assert!(e.is_some());
+        assert!(brk_s.is_some());
+        assert!(brk_e.is_some());
+        assert_eq!(brk_s.unwrap().hour(), 12);
+        assert_eq!(brk_e.unwrap().hour(), 13);
+    }
+
+    #[test]
+    fn test_resolve_shift_times_overnight_break() {
+        let tz: Tz = "UTC".parse().expect("valid");
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid");
+        let start = Some(NaiveTime::from_hms_opt(22, 0, 0).expect("valid"));
+        let end = Some(NaiveTime::from_hms_opt(6, 0, 0).expect("valid"));
+        let bs = Some(NaiveTime::from_hms_opt(1, 0, 0).expect("valid"));
+        let be = Some(NaiveTime::from_hms_opt(1, 30, 0).expect("valid"));
+
+        let (_, _, brk_s, brk_e) = resolve_shift_times(start, end, bs, be, date, tz);
+        let brk_s = brk_s.expect("break start");
+        let brk_e = brk_e.expect("break end");
+        // Break 01:00-01:30 within overnight shift 22:00-06:00 — both on next calendar day
+        let next_day = date + Duration::days(1);
+        assert_eq!(brk_s.date_naive(), next_day);
+        assert_eq!(brk_e.date_naive(), next_day);
+    }
+
+    #[test]
+    fn test_resolve_shift_times_none_inputs() {
+        let tz: Tz = "UTC".parse().expect("valid");
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid");
+
+        let (s, e, bs, be) = resolve_shift_times(None, None, None, None, date, tz);
+        assert!(s.is_none());
+        assert!(e.is_none());
+        assert!(bs.is_none());
+        assert!(be.is_none());
+    }
+
+    #[test]
+    fn test_resolve_shift_times_dst_gap() {
+        // America/New_York DST starts 2026-03-08 at 02:00 → 03:00
+        let tz: Tz = "America/New_York".parse().expect("valid");
+        let date = NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid");
+        let start = Some(NaiveTime::from_hms_opt(2, 0, 0).expect("valid"));
+        let end = Some(NaiveTime::from_hms_opt(10, 0, 0).expect("valid"));
+
+        let (s, e, _, _) = resolve_shift_times(start, end, None, None, date, tz);
+        // DST gap at 02:00 should resolve (not return None)
+        assert!(s.is_some(), "DST gap at shift start should resolve");
+        assert!(e.is_some(), "shift end should resolve");
+    }
+
+    #[test]
+    fn test_resolve_shift_times_consistency_with_individual_calls() {
+        // Verify resolve_shift_times produces same results as calling
+        // naive_time_to_tz + manual overnight check individually
+        let tz: Tz = "Asia/Ho_Chi_Minh".parse().expect("valid");
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid");
+        let start = NaiveTime::from_hms_opt(22, 0, 0).expect("valid");
+        let end = NaiveTime::from_hms_opt(6, 0, 0).expect("valid");
+
+        // Individual approach (DST-safe: use NaiveDate arithmetic, not DateTime += days)
+        let ind_start = naive_time_to_tz(start, date, tz).expect("start");
+        let ind_end = if end < start {
+            let next_date = date + Duration::days(1);
+            naive_time_to_tz(end, next_date, tz).expect("end next day")
+        } else {
+            naive_time_to_tz(end, date, tz).expect("end same day")
+        };
+
+        // Helper approach
+        let (s, e, _, _) = resolve_shift_times(Some(start), Some(end), None, None, date, tz);
+        assert_eq!(s.unwrap(), ind_start);
+        assert_eq!(e.unwrap(), ind_end);
+    }
+
+    // =========================================================================
+    // Overnight shifts on DST transition days — wall-clock preservation
+    // =========================================================================
+
+    /// DST date constants for America/New_York 2026
+    const NY_SPRING_FORWARD_DATE: NaiveDate = match NaiveDate::from_ymd_opt(2026, 3, 8) {
+        Some(d) => d,
+        None => unreachable!(),
+    };
+    const NY_FALL_BACK_DATE: NaiveDate = match NaiveDate::from_ymd_opt(2026, 11, 1) {
+        Some(d) => d,
+        None => unreachable!(),
+    };
+    /// Day before DST transitions — for overnight shift tests
+    const NY_DAY_BEFORE_SPRING_FORWARD: NaiveDate = match NaiveDate::from_ymd_opt(2026, 3, 7) {
+        Some(d) => d,
+        None => unreachable!(),
+    };
+    const NY_DAY_BEFORE_FALL_BACK: NaiveDate = match NaiveDate::from_ymd_opt(2026, 10, 31) {
+        Some(d) => d,
+        None => unreachable!(),
+    };
+
+    fn ny() -> Tz {
+        "America/New_York".parse().expect("valid tz")
+    }
+
+    fn sydney() -> Tz {
+        "Australia/Sydney".parse().expect("valid tz")
+    }
+
+    #[test]
+    fn test_overnight_shift_spring_forward() {
+        use chrono::NaiveTime;
+        // Overnight shift 22:00-06:00 crossing spring-forward day.
+        // Date: Mar 7 (day before DST). DST transition: Mar 8 at 02:00 EST → 03:00 EDT.
+        // Expected: shift end = 06:00 EDT on Mar 8 (wall-clock preserved).
+        // Duration: 7 real hours (1 hour lost to spring-forward).
+        let tz = ny();
+        let date = NY_DAY_BEFORE_SPRING_FORWARD;
+        let start = NaiveTime::from_hms_opt(22, 0, 0).expect("valid");
+        let end = NaiveTime::from_hms_opt(6, 0, 0).expect("valid");
+
+        let dt = naive_time_to_tz_overnight(end, start, date, tz);
+        let dt = dt.expect("should resolve");
+
+        // Wall-clock: 06:00 on Mar 8
+        assert_eq!(dt.date_naive(), NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid"));
+        assert_eq!(dt.hour(), 6);
+        assert_eq!(dt.minute(), 0);
+
+        // Duration: 7 hours (spring-forward lost 1h)
+        let shift_start = naive_time_to_tz(start, date, tz).expect("start");
+        let hours = dt.signed_duration_since(shift_start).num_hours();
+        assert_eq!(hours, 7, "spring-forward overnight shift should be 7h, got {hours}h");
+    }
+
+    #[test]
+    fn test_overnight_shift_fall_back() {
+        use chrono::NaiveTime;
+        // Overnight shift 22:00-06:00 crossing fall-back day.
+        // Date: Oct 31 (day before DST). DST transition: Nov 1 at 02:00 EDT → 01:00 EST.
+        // Expected: shift end = 06:00 EST on Nov 1 (wall-clock preserved).
+        // Duration: 9 real hours (1 extra hour from fall-back).
+        let tz = ny();
+        let date = NY_DAY_BEFORE_FALL_BACK;
+        let start = NaiveTime::from_hms_opt(22, 0, 0).expect("valid");
+        let end = NaiveTime::from_hms_opt(6, 0, 0).expect("valid");
+
+        let dt = naive_time_to_tz_overnight(end, start, date, tz);
+        let dt = dt.expect("should resolve");
+
+        // Wall-clock: 06:00 on Nov 1
+        assert_eq!(dt.date_naive(), NaiveDate::from_ymd_opt(2026, 11, 1).expect("valid"));
+        assert_eq!(dt.hour(), 6);
+        assert_eq!(dt.minute(), 0);
+
+        // Duration: 9 hours (fall-back gained 1h)
+        let shift_start = naive_time_to_tz(start, date, tz).expect("start");
+        let hours = dt.signed_duration_since(shift_start).num_hours();
+        assert_eq!(hours, 9, "fall-back overnight shift should be 9h, got {hours}h");
+    }
+
+    #[test]
+    fn test_overnight_shift_no_dst() {
+        use chrono::NaiveTime;
+        // Normal overnight shift 22:00-06:00, no DST transition.
+        let tz = ny();
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid");
+        let start = NaiveTime::from_hms_opt(22, 0, 0).expect("valid");
+        let end = NaiveTime::from_hms_opt(6, 0, 0).expect("valid");
+
+        let dt = naive_time_to_tz_overnight(end, start, date, tz);
+        let dt = dt.expect("should resolve");
+
+        assert_eq!(dt.date_naive(), NaiveDate::from_ymd_opt(2026, 6, 16).expect("valid"));
+        assert_eq!(dt.hour(), 6);
+
+        let shift_start = naive_time_to_tz(start, date, tz).expect("start");
+        assert_eq!(dt.signed_duration_since(shift_start).num_hours(), 8);
+    }
+
+    #[test]
+    fn test_resolve_shift_times_overnight_spring_forward() {
+        // Full resolve_shift_times with overnight shift on spring-forward day
+        let tz = ny();
+        let date = NY_DAY_BEFORE_SPRING_FORWARD;
+        let start = Some(NaiveTime::from_hms_opt(22, 0, 0).expect("valid"));
+        let end = Some(NaiveTime::from_hms_opt(6, 0, 0).expect("valid"));
+
+        let (s, e, _, _) = resolve_shift_times(start, end, None, None, date, tz);
+        let s = s.expect("start");
+        let e = e.expect("end");
+
+        // Shift start: 22:00 EST Mar 7
+        assert_eq!(s.date_naive(), date);
+        assert_eq!(s.hour(), 22);
+
+        // Shift end: 06:00 EDT Mar 8 (wall-clock preserved, not 07:00)
+        assert_eq!(e.date_naive(), NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid"));
+        assert_eq!(e.hour(), 6);
+
+        // Duration: 7 hours (spring-forward)
+        assert_eq!(e.signed_duration_since(s).num_hours(), 7);
+    }
+
+    #[test]
+    fn test_resolve_shift_times_overnight_fall_back() {
+        // Full resolve_shift_times with overnight shift on fall-back day
+        let tz = ny();
+        let date = NY_DAY_BEFORE_FALL_BACK;
+        let start = Some(NaiveTime::from_hms_opt(22, 0, 0).expect("valid"));
+        let end = Some(NaiveTime::from_hms_opt(6, 0, 0).expect("valid"));
+
+        let (s, e, _, _) = resolve_shift_times(start, end, None, None, date, tz);
+        let s = s.expect("start");
+        let e = e.expect("end");
+
+        // Shift start: 22:00 EDT Oct 31
+        assert_eq!(s.date_naive(), date);
+        assert_eq!(s.hour(), 22);
+
+        // Shift end: 06:00 EST Nov 1 (wall-clock preserved, not 05:00)
+        assert_eq!(e.date_naive(), NaiveDate::from_ymd_opt(2026, 11, 1).expect("valid"));
+        assert_eq!(e.hour(), 6);
+
+        // Duration: 9 hours (fall-back)
+        assert_eq!(e.signed_duration_since(s).num_hours(), 9);
+    }
+
+    // =========================================================================
+    // start_of_next_day_utc — DST-safe next-day boundary
+    // =========================================================================
+
+    #[test]
+    fn test_start_of_next_day_utc_spring_forward() {
+        let tz = ny();
+        // Mar 8 is spring-forward day (23h day). Next day starts at normal midnight.
+        let date = NY_SPRING_FORWARD_DATE;
+        let next = start_of_next_day_utc(&tz, date).expect("valid");
+
+        // Mar 9 midnight EDT = 04:00 UTC
+        assert_eq!(next.date_naive(), NaiveDate::from_ymd_opt(2026, 3, 9).expect("valid"));
+        let utc = next.with_timezone(&Utc);
+        assert_eq!(utc.hour(), 4); // EDT = UTC-4
+        assert_eq!(utc.minute(), 0);
+    }
+
+    #[test]
+    fn test_start_of_next_day_utc_fall_back() {
+        let tz = ny();
+        // Nov 1 is fall-back day (25h day). Next day starts at normal midnight.
+        let date = NY_FALL_BACK_DATE;
+        let next = start_of_next_day_utc(&tz, date).expect("valid");
+
+        // Nov 2 midnight EST = 05:00 UTC
+        let utc = next.with_timezone(&Utc);
+        assert_eq!(utc.hour(), 5); // EST = UTC-5
+        assert_eq!(utc.minute(), 0);
+    }
+
+    #[test]
+    fn test_start_of_next_day_utc_normal() {
+        let tz: Tz = "Asia/Ho_Chi_Minh".parse().expect("valid");
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid");
+        let next = start_of_next_day_utc(&tz, date).expect("valid");
+
+        // Jun 16 midnight ICT (UTC+7) = 17:00 UTC Jun 15
+        let utc = next.with_timezone(&Utc);
+        assert_eq!(utc.date_naive(), NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid"));
+        assert_eq!(utc.hour(), 17);
+    }
+
+    // =========================================================================
+    // utc_now_date_in_tz
+    // =========================================================================
+
+    #[test]
+    fn test_utc_now_date_in_tz() {
+        // Just verify it returns a valid date — the exact value depends on
+        // when the test runs. We verify the function doesn't panic and returns
+        // a date within a reasonable range.
+        let tz: Tz = "Asia/Ho_Chi_Minh".parse().expect("valid");
+        let date = utc_now_date_in_tz(&tz);
+        let utc_date = Utc::now().date_naive();
+
+        // Vietnam (UTC+7) date should be same as UTC or 1 day ahead
+        let diff = date.signed_duration_since(utc_date).num_days();
+        assert!(
+            (0..=1).contains(&diff),
+            "Vietnam date should be UTC date or UTC+1, got diff={diff}"
+        );
+    }
+
+    // =========================================================================
+    // Overnight shift in extreme timezones
+    // =========================================================================
+
+    #[test]
+    fn test_overnight_shift_extreme_east() {
+        use chrono::NaiveTime;
+        // Pacific/Kiritimati (UTC+14, no DST) — overnight shift
+        let tz: Tz = "Pacific/Kiritimati".parse().expect("valid");
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid");
+        let start = NaiveTime::from_hms_opt(22, 0, 0).expect("valid");
+        let end = NaiveTime::from_hms_opt(6, 0, 0).expect("valid");
+
+        let dt = naive_time_to_tz_overnight(end, start, date, tz);
+        let dt = dt.expect("should resolve");
+
+        assert_eq!(dt.date_naive(), NaiveDate::from_ymd_opt(2026, 6, 16).expect("valid"));
+        assert_eq!(dt.hour(), 6);
+
+        let shift_start = naive_time_to_tz(start, date, tz).expect("start");
+        assert_eq!(dt.signed_duration_since(shift_start).num_hours(), 8);
+    }
+
+    // =========================================================================
+    // Southern hemisphere DST (Australia/Sydney)
+    // =========================================================================
+
+    #[test]
+    fn test_overnight_shift_sydney_spring_forward() {
+        use chrono::NaiveTime;
+        // Sydney DST starts first Sunday of October: 2026-10-04 at 02:00 AEST → 03:00 AEDT
+        let tz = sydney();
+        let date = NaiveDate::from_ymd_opt(2026, 10, 3).expect("valid");
+        let start = NaiveTime::from_hms_opt(22, 0, 0).expect("valid");
+        let end = NaiveTime::from_hms_opt(6, 0, 0).expect("valid");
+
+        let dt = naive_time_to_tz_overnight(end, start, date, tz);
+        let dt = dt.expect("should resolve");
+
+        // Wall-clock: 06:00 AEDT on Oct 4
+        assert_eq!(dt.date_naive(), NaiveDate::from_ymd_opt(2026, 10, 4).expect("valid"));
+        assert_eq!(dt.hour(), 6);
+
+        // Duration: 7 hours (spring-forward lost 1h)
+        let shift_start = naive_time_to_tz(start, date, tz).expect("start");
+        assert_eq!(dt.signed_duration_since(shift_start).num_hours(), 7);
+    }
+
+    // =========================================================================
+    // Overnight break on DST transition day
+    // =========================================================================
+
+    #[test]
+    fn test_resolve_shift_times_overnight_break_spring_forward() {
+        // Shift 22:00-06:00 with break 01:00-01:30, crossing spring-forward day.
+        // DST gap at 02:00 on Mar 8 in NY. Break at 01:00 is before the gap.
+        let tz = ny();
+        let date = NY_DAY_BEFORE_SPRING_FORWARD;
+        let start = Some(NaiveTime::from_hms_opt(22, 0, 0).expect("valid"));
+        let end = Some(NaiveTime::from_hms_opt(6, 0, 0).expect("valid"));
+        let bs = Some(NaiveTime::from_hms_opt(1, 0, 0).expect("valid"));
+        let be = Some(NaiveTime::from_hms_opt(1, 30, 0).expect("valid"));
+
+        let (s, e, brk_s, brk_e) = resolve_shift_times(start, end, bs, be, date, tz);
+        let s = s.expect("shift start");
+        let e = e.expect("shift end");
+        let brk_s = brk_s.expect("break start");
+        let brk_e = brk_e.expect("break end");
+
+        // Shift: 22:00 EST Mar 7 → 06:00 EDT Mar 8 (7h due to spring-forward)
+        assert_eq!(e.signed_duration_since(s).num_hours(), 7);
+
+        // Break: 01:00-01:30 EST on Mar 8 (before DST gap)
+        assert_eq!(brk_s.date_naive(), NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid"));
+        assert_eq!(brk_s.hour(), 1);
+        assert_eq!(brk_e.hour(), 1);
+        assert_eq!(brk_e.minute(), 30);
+
+        // Break duration: 30 minutes
+        assert_eq!(brk_e.signed_duration_since(brk_s).num_minutes(), 30);
     }
 }

@@ -60,9 +60,11 @@ impl PolicyResolverService {
         employee_id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
+        tz: chrono_tz::Tz,
     ) -> Result<AttendanceRules, AppError> {
-        // Convert NaiveDate to UTC start of day
-        let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
+        // Convert NaiveDate to local midnight in workspace tz → UTC
+        let effective_time = crate::utils::tz::start_of_day_utc(&tz, date)
+            .unwrap_or_else(|_| date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc());
 
         let policy_version = policy_repo
             .get_employee_effective_policy(auth_token, employee_id, effective_time)
@@ -81,8 +83,10 @@ impl PolicyResolverService {
         employment_id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
+        tz: chrono_tz::Tz,
     ) -> Result<AttendanceRules, AppError> {
-        let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
+        let effective_time = crate::utils::tz::start_of_day_utc(&tz, date)
+            .unwrap_or_else(|_| date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc());
 
         let policy_version = policy_repo
             .get_employment_effective_policy(auth_token, employment_id, effective_time)
@@ -100,12 +104,14 @@ impl PolicyResolverService {
         employee_ids: &[Uuid],
         auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
+        tz: chrono_tz::Tz,
     ) -> Result<HashMap<Uuid, AttendanceRules>, AppError> {
         if employee_ids.is_empty() {
             return Ok(HashMap::new());
         }
 
-        let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
+        let effective_time = crate::utils::tz::start_of_day_utc(&tz, date)
+            .unwrap_or_else(|_| date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc());
 
         let versions = policy_repo
             .get_employee_effective_policies_batch(auth_token, employee_ids, effective_time)
@@ -116,10 +122,7 @@ impl PolicyResolverService {
             if let Some(pv) = versions.get(&id) {
                 result.insert(id, pv.rules.clone());
             } else {
-                result.insert(
-                    id,
-                    AttendanceRules::default(),
-                );
+                result.insert(id, AttendanceRules::default());
             }
         }
 
@@ -131,12 +134,14 @@ impl PolicyResolverService {
         employment_ids: &[Uuid],
         auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
+        tz: chrono_tz::Tz,
     ) -> Result<HashMap<Uuid, AttendanceRules>, AppError> {
         if employment_ids.is_empty() {
             return Ok(HashMap::new());
         }
 
-        let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
+        let effective_time = crate::utils::tz::start_of_day_utc(&tz, date)
+            .unwrap_or_else(|_| date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc());
 
         let versions = policy_repo
             .get_employment_effective_policies_batch(auth_token, employment_ids, effective_time)
@@ -147,10 +152,7 @@ impl PolicyResolverService {
             if let Some(pv) = versions.get(&id) {
                 result.insert(id, pv.rules.clone());
             } else {
-                result.insert(
-                    id,
-                    AttendanceRules::default(),
-                );
+                result.insert(id, AttendanceRules::default());
             }
         }
 
@@ -164,10 +166,11 @@ impl PolicyResolverService {
         employee_id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
+        tz: chrono_tz::Tz,
     ) -> Result<PolicyRules, AppError> {
         // 1. Get Attendance Policy rules
         let attendance_rules =
-            Self::resolve_attendance_policy(policy_repo, employee_id, auth_token, date).await?;
+            Self::resolve_attendance_policy(policy_repo, employee_id, auth_token, date, tz).await?;
 
         // 2. Get Employee Special Conditions
         let conditions = employee_repo
@@ -190,6 +193,7 @@ impl PolicyResolverService {
         employment_id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
+        tz: chrono_tz::Tz,
     ) -> Result<PolicyRules, AppError> {
         // 1. Get Attendance Policy rules by employment_id
         let attendance_rules = Self::resolve_attendance_policy_by_employment(
@@ -197,6 +201,7 @@ impl PolicyResolverService {
             employment_id,
             auth_token,
             date,
+            tz,
         )
         .await?;
 
@@ -277,6 +282,7 @@ impl PolicyResolverService {
         employee_id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
+        tz: chrono_tz::Tz,
         overrides: &ShiftPolicyOverrides,
     ) -> Result<PolicyRules, AppError> {
         let rules = Self::resolve_attendance_rules(
@@ -286,6 +292,7 @@ impl PolicyResolverService {
             employee_id,
             auth_token,
             date,
+            tz,
         )
         .await?;
 
@@ -299,6 +306,7 @@ impl PolicyResolverService {
         employment_id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
+        tz: chrono_tz::Tz,
         overrides: &ShiftPolicyOverrides,
     ) -> Result<PolicyRules, AppError> {
         let rules = Self::resolve_attendance_rules_by_employment(
@@ -308,6 +316,7 @@ impl PolicyResolverService {
             employment_id,
             auth_token,
             date,
+            tz,
         )
         .await?;
 
@@ -323,7 +332,7 @@ mod tests {
     use crate::repositories::condition_type_repository::MockConditionTypeRepository;
     use crate::repositories::employee::MockEmployeeRepository;
     use crate::repositories::payroll_repository::MockPayrollRepository;
-    use chrono::NaiveDate;
+    use chrono::{NaiveDate, Timelike};
     use std::collections::HashMap;
     use uuid::Uuid;
 
@@ -387,6 +396,7 @@ mod tests {
             emp_id,
             &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
+            chrono_tz::UTC,
         )
         .await
         .unwrap();
@@ -411,6 +421,7 @@ mod tests {
             employment_id,
             &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
+            chrono_tz::UTC,
         )
         .await
         .unwrap();
@@ -431,6 +442,7 @@ mod tests {
             &[],
             &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
+            chrono_tz::UTC,
         )
         .await
         .unwrap();
@@ -445,6 +457,7 @@ mod tests {
             &[emp_id],
             &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
+            chrono_tz::UTC,
         )
         .await
         .unwrap();
@@ -465,6 +478,7 @@ mod tests {
             &[],
             &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
+            chrono_tz::UTC,
         )
         .await
         .unwrap();
@@ -479,6 +493,7 @@ mod tests {
             &[employment_id],
             &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
+            chrono_tz::UTC,
         )
         .await
         .unwrap();
@@ -516,6 +531,7 @@ mod tests {
             emp_id,
             &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
+            chrono_tz::UTC,
         )
         .await
         .unwrap();
@@ -587,6 +603,7 @@ mod tests {
             employee_id,
             &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
+            chrono_tz::UTC,
         )
         .await
         .unwrap();
@@ -619,6 +636,7 @@ mod tests {
             employment_id,
             &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
+            chrono_tz::UTC,
         )
         .await
         .unwrap();
@@ -703,6 +721,7 @@ mod tests {
             emp_id,
             &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
+            chrono_tz::UTC,
             &overrides,
         )
         .await
@@ -724,10 +743,132 @@ mod tests {
             Uuid::new_v4(),
             &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
             date,
+            chrono_tz::UTC,
             &overrides,
         )
         .await
         .unwrap();
         assert_eq!(rules_emp.grace_period_minutes(), 15);
+    }
+
+    // ── DST-aware policy resolution tests ───────────────────────────────────
+
+    #[tokio::test]
+    async fn test_resolve_policy_uses_local_midnight_not_utc() {
+        // Vietnam (UTC+7): midnight 2026-01-01 local = 2025-12-31 17:00 UTC.
+        // Verify the effective_time passed to the repo is local midnight, not UTC midnight.
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+        let tz: chrono_tz::Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
+
+        let mut policy_repo = MockAttendancePolicyRepository::new();
+        policy_repo
+            .expect_get_employee_effective_policy()
+            .withf(move |_, _, effective_time| {
+                // Local midnight: 2025-12-31 17:00 UTC (NOT 2026-01-01 00:00 UTC)
+                effective_time.hour() == 17
+                    && effective_time.date_naive()
+                        == NaiveDate::from_ymd_opt(2025, 12, 31).unwrap()
+            })
+            .returning(|_, _, _| Ok(None));
+
+        PolicyResolverService::resolve_attendance_policy(
+            &policy_repo,
+            emp_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
+            date,
+            tz,
+        )
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_resolve_policy_dst_spring_forward() {
+        // NY spring-forward Mar 8 2026: midnight EST = 05:00 UTC.
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2026, 3, 8).unwrap();
+        let tz: chrono_tz::Tz = "America/New_York".parse().unwrap();
+
+        let mut policy_repo = MockAttendancePolicyRepository::new();
+        policy_repo
+            .expect_get_employee_effective_policy()
+            .withf(move |_, _, effective_time| {
+                // Midnight EST (UTC-5) = 05:00 UTC
+                effective_time.hour() == 5
+                    && effective_time.date_naive() == NaiveDate::from_ymd_opt(2026, 3, 8).unwrap()
+            })
+            .returning(|_, _, _| Ok(None));
+
+        PolicyResolverService::resolve_attendance_policy(
+            &policy_repo,
+            emp_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
+            date,
+            tz,
+        )
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_resolve_policy_dst_fall_back() {
+        // NY fall-back Nov 1 2026: midnight EDT = 04:00 UTC.
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2026, 11, 1).unwrap();
+        let tz: chrono_tz::Tz = "America/New_York".parse().unwrap();
+
+        let mut policy_repo = MockAttendancePolicyRepository::new();
+        policy_repo
+            .expect_get_employee_effective_policy()
+            .withf(move |_, _, effective_time| {
+                // Midnight EDT (UTC-4) = 04:00 UTC
+                effective_time.hour() == 4
+                    && effective_time.date_naive() == NaiveDate::from_ymd_opt(2026, 11, 1).unwrap()
+            })
+            .returning(|_, _, _| Ok(None));
+
+        PolicyResolverService::resolve_attendance_policy(
+            &policy_repo,
+            emp_id,
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
+            date,
+            tz,
+        )
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_resolve_policy_batch_uses_local_midnight() {
+        // Verify batch resolution also uses local midnight.
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).unwrap();
+        let tz: chrono_tz::Tz = "Asia/Tokyo".parse().unwrap(); // UTC+9
+
+        let mut policy_repo = MockAttendancePolicyRepository::new();
+        policy_repo
+            .expect_get_employee_effective_policies_batch()
+            .withf(move |_, _, effective_time| {
+                // Tokyo midnight (UTC+9) = 15:00 UTC previous day
+                effective_time.hour() == 15
+                    && effective_time.date_naive()
+                        == NaiveDate::from_ymd_opt(2026, 6, 14).unwrap()
+            })
+            .returning(|_, _, _| Ok(HashMap::new()));
+
+        PolicyResolverService::resolve_attendance_policy_batch(
+            &policy_repo,
+            &[emp_id],
+            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
+            date,
+            tz,
+        )
+        .await
+        .unwrap();
     }
 }

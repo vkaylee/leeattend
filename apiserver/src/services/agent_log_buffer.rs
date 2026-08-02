@@ -17,6 +17,7 @@ use crate::utils::id::new_id;
 
 use crate::repositories::{
     employee::EmployeeRepository, raw_attendance_log_repository::RawAttendanceLogRepository,
+    workspace_repository::WorkspaceRepository,
 };
 use crate::services::pairing::PairingProcessor;
 use crate::utils::datetime::parse_datetime_with_tz;
@@ -132,6 +133,7 @@ pub async fn run_log_worker(
     employee_repo: Arc<dyn EmployeeRepository>,
     raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
     pairing_service: Arc<dyn PairingProcessor>,
+    workspace_repo: Arc<dyn WorkspaceRepository>,
     mut receiver: mpsc::Receiver<AgentLogEntry>,
     batch_size: usize,
     flush_interval_ms: u64,
@@ -151,13 +153,13 @@ pub async fn run_log_worker(
                 if let Some(log_entry) = entry {
                     batch.push(log_entry);
                     if batch.len() >= batch_size {
-                        process_batch(&*employee_repo, &*raw_log_repo, &*pairing_service, &mut batch).await;
+                        process_batch(&*employee_repo, &*raw_log_repo, &*pairing_service, &*workspace_repo, &mut batch).await;
                     }
                 } else {
                     // Channel closed, drain remaining logs
                     info!("Agent log buffer closed, draining {} remaining logs", batch.len());
                     if !batch.is_empty() {
-                        process_batch(&*employee_repo, &*raw_log_repo, &*pairing_service, &mut batch).await;
+                        process_batch(&*employee_repo, &*raw_log_repo, &*pairing_service, &*workspace_repo, &mut batch).await;
                     }
                     break;
                 }
@@ -165,7 +167,7 @@ pub async fn run_log_worker(
             // Flush timer tick
             _ = flush_timer.tick() => {
                 if !batch.is_empty() {
-                    process_batch(&*employee_repo, &*raw_log_repo, &*pairing_service, &mut batch).await;
+                    process_batch(&*employee_repo, &*raw_log_repo, &*pairing_service, &*workspace_repo, &mut batch).await;
                 }
             }
         }
@@ -179,6 +181,7 @@ async fn process_batch(
     employee_repo: &dyn EmployeeRepository,
     raw_log_repo: &dyn RawAttendanceLogRepository,
     pairing_service: &dyn PairingProcessor,
+    workspace_repo: &dyn WorkspaceRepository,
     batch: &mut Vec<AgentLogEntry>,
 ) {
     if batch.is_empty() {
@@ -247,44 +250,65 @@ async fn process_batch(
     // Trigger pairing grouped by (workspace_id, employment_id, date) to eliminate N+1 queries.
     // Instead of calling process_new_raw_log per-log, we group logs and call
     // reprocess_daily_attendance once per unique (workspace_id, employment_id, date) key.
-    trigger_batch_pairing(pairing_service, &parsed_logs).await;
+    trigger_batch_pairing(pairing_service, workspace_repo, &parsed_logs).await;
 }
 
-/// Group parsed logs by `(workspace_id, employment_id, UTC date)` and trigger
+/// Group parsed logs by `(workspace_id, employment_id, local date)` and trigger
 /// `reprocess_daily_attendance` once per unique key (or `reprocess_attendance_range`
 /// when multiple dates exist for the same employee).
 ///
-/// This eliminates N+1 queries that occurred when calling `process_new_raw_log` per-log.
-/// Each `process_new_raw_log` call previously triggered ~5+ DB queries internally;
-/// with 100 logs, this caused 500+ queries. The grouped approach reduces this to
-/// ~10 queries per unique (employee, date) key.
+/// Resolves workspace timezone for correct local-date grouping instead of
+/// approximating with UTC date.
 async fn trigger_batch_pairing(
     pairing_service: &dyn PairingProcessor,
+    workspace_repo: &dyn WorkspaceRepository,
     parsed_logs: &[ParsedLogEntry],
 ) {
     use std::collections::{BTreeSet, HashMap};
 
-    // Group by (workspace_id, employment_id) → sorted set of dates
+    // Collect unique workspace IDs and resolve their timezones
+    let workspace_ids: std::collections::HashSet<Uuid> = parsed_logs
+        .iter()
+        .map(|p| p.raw_log.workspace_id())
+        .collect();
+
+    let mut tz_cache: HashMap<Uuid, chrono_tz::Tz> = HashMap::new();
+    for ws_id in &workspace_ids {
+        let tz = match workspace_repo.get_workspace_by_id(*ws_id).await {
+            Ok(Some(ws)) => crate::utils::tz::parse_workspace_tz(ws.timezone()),
+            Ok(None) | Err(_) => chrono_tz::UTC,
+        };
+        tz_cache.insert(*ws_id, tz);
+    }
+
+    // Group by (workspace_id, employment_id) → sorted set of local dates
     let mut groups: HashMap<(Uuid, Uuid), BTreeSet<chrono::NaiveDate>> = HashMap::new();
 
     for parsed in parsed_logs {
         let log = &parsed.raw_log;
-        // Use UTC date as approximation; reprocess_daily_attendance will
-        // resolve the correct local date via get_employee_timezone_fallback
-        let utc_date = log.punch_time().date_naive();
+        let tz = tz_cache
+            .get(&log.workspace_id())
+            .copied()
+            .unwrap_or(chrono_tz::UTC);
+        let local_date = log.punch_time().with_timezone(&tz).date_naive();
         groups
             .entry((log.workspace_id(), log.employment_id()))
             .or_default()
-            .insert(utc_date);
+            .insert(local_date);
     }
 
     for ((workspace_id, employment_id), dates) in &groups {
+        let tz = tz_cache
+            .get(workspace_id)
+            .copied()
+            .unwrap_or(chrono_tz::UTC);
+
         if dates.len() == 1 {
             let Some(&date) = dates.iter().next() else {
                 continue;
             };
             if let Err(e) = pairing_service
-                .reprocess_daily_attendance(*workspace_id, *employment_id, date, chrono_tz::UTC)
+                .reprocess_daily_attendance(*workspace_id, *employment_id, date, tz)
                 .await
             {
                 error!(
@@ -307,7 +331,7 @@ async fn trigger_batch_pairing(
                     *employment_id,
                     min_date,
                     max_date,
-                    chrono_tz::UTC,
+                    tz,
                 )
                 .await
             {

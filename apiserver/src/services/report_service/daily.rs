@@ -393,57 +393,31 @@ fn build_daily_report_row(
     // Delegate to the shared session-aware calculator.
     // Each work entry becomes an independent DailyCalcInput so gaps
     // between sessions (e.g. lunch) are never counted as worked time.
-    let shift_start_dt = daily
-        .start_time()
-        .and_then(|t| crate::utils::tz::naive_time_to_tz(t, date, tz));
-    let shift_end_dt = daily.start_time().and_then(|start| {
-        daily.end_time().and_then(|end| {
-            crate::utils::tz::naive_time_to_tz_overnight(end, start, date, tz)
-        })
-    });
-    let (shift_start, shift_end) =
-        if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
-            if daily.end_time() < daily.start_time() {
-                end += chrono::Duration::days(1);
-            }
-            (Some(start), Some(end))
-        } else {
-            (None, None)
-        };
+    let (shift_start, shift_end, break_start, break_end) = crate::utils::tz::resolve_shift_times(
+        daily.start_time(),
+        daily.end_time(),
+        daily.break_start(),
+        daily.break_end(),
+        date,
+        tz,
+    );
 
-    let break_start_dt = daily
-        .break_start()
-        .and_then(|t| crate::utils::tz::naive_time_to_tz(t, date, tz));
-    let break_end_dt = daily
-        .break_end()
-        .and_then(|t| crate::utils::tz::naive_time_to_tz(t, date, tz));
-    let (break_start, break_end) =
-        if let (Some(bs), Some(mut be)) = (break_start_dt, break_end_dt) {
-            if daily.break_end() < daily.break_start() {
-                be += chrono::Duration::days(1);
-            }
-            (Some(bs), Some(be))
-        } else {
-            (None, None)
-        };
-
-    let session_result =
-        crate::services::AttendanceService::compute_session_attendance(
-            day_entries,
-            tz,
-            shift_start,
-            shift_end,
-            break_start,
-            break_end,
-            daily.break_duration_minutes().unwrap_or(0),
-            att_rules.work_unit_minutes,
-            att_rules.rounding_policy,
-            &rules,
-            None,
-            daily.max_early_ot_minutes(),
-            None,
-            crate::services::attendance_calculator::OtAggregationMode::Aggregate,
-        );
+    let session_result = crate::services::AttendanceService::compute_session_attendance(
+        day_entries,
+        tz,
+        shift_start,
+        shift_end,
+        break_start,
+        break_end,
+        daily.break_duration_minutes().unwrap_or(0),
+        att_rules.work_unit_minutes,
+        att_rules.rounding_policy,
+        &rules,
+        None,
+        daily.max_early_ot_minutes(),
+        None,
+        crate::services::attendance_calculator::OtAggregationMode::Aggregate,
+    );
     let std_work_units = session_result.total_standard_units();
     let ot_work_units = session_result.total_ot_units();
 
@@ -556,16 +530,12 @@ fn build_segment_report_rows(
 
         let actual_punch_in = matched
             .iter()
-            .find(|entry| {
-                entry.entry_type() != crate::services::pairing::types::EntryType::Break
-            })
+            .find(|entry| entry.entry_type() != crate::services::pairing::types::EntryType::Break)
             .map(|e| e.punch_in_time().with_timezone(&Utc));
         let actual_punch_out = matched
             .iter()
             .rev()
-            .find(|entry| {
-                entry.entry_type() != crate::services::pairing::types::EntryType::Break
-            })
+            .find(|entry| entry.entry_type() != crate::services::pairing::types::EntryType::Break)
             .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&Utc)));
 
         let (seg_std, seg_ot) = segment_result.segment_units(
@@ -649,13 +619,23 @@ pub(super) fn group_segments_by_date(
 }
 
 /// Midnight fallback datetime for segments with no punch data.
+///
+/// Resolves midnight **in the given timezone** (not UTC midnight converted to tz),
+/// so DST gaps at midnight are handled correctly.
 fn midnight_datetime(date: NaiveDate, tz: Tz) -> chrono::DateTime<Tz> {
-    tz.from_utc_datetime(
-        &date
-            .and_time(chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap_or_default())
-            .and_utc()
-            .naive_utc(),
+    crate::utils::tz::naive_time_to_tz(
+        chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap_or_default(),
+        date,
+        tz,
     )
+    .unwrap_or_else(|| {
+        tz.from_utc_datetime(
+            &date
+                .and_time(chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap_or_default())
+                .and_utc()
+                .naive_utc(),
+        )
+    })
 }
 
 /// Build per-segment calculation inputs for one employee-day.
@@ -679,8 +659,9 @@ pub(super) fn build_segment_calc_inputs<'a>(
 ) {
     let mut cached_matched: Vec<Vec<&crate::models::TimeEntry>> = Vec::new();
     let mut cached_rules: Vec<crate::models::PolicyRules> = Vec::new();
-    let mut segment_calc_inputs:
-        Vec<Vec<crate::services::attendance_calculator::DailyCalcInput<Tz>>> = Vec::new();
+    let mut segment_calc_inputs: Vec<
+        Vec<crate::services::attendance_calculator::DailyCalcInput<Tz>>,
+    > = Vec::new();
 
     for seg in day_segs {
         let matched = ReportService::match_entries_to_segment(day_entries, seg, date, tz);
@@ -698,9 +679,7 @@ pub(super) fn build_segment_calc_inputs<'a>(
             .collect();
         let break_entries: Vec<&crate::models::TimeEntry> = matched
             .iter()
-            .filter(|entry| {
-                entry.entry_type() == crate::services::pairing::types::EntryType::Break
-            })
+            .filter(|entry| entry.entry_type() == crate::services::pairing::types::EntryType::Break)
             .copied()
             .collect();
 
@@ -780,39 +759,69 @@ pub(super) fn build_segment_calc_inputs<'a>(
         } else {
             session_entries
                 .iter()
-                .map(|entry| crate::services::attendance_calculator::DailyCalcInput {
-                    punch_in: entry.punch_in_time().with_timezone(&tz),
-                    punch_out: entry
-                        .punch_out_time()
-                        .expect("session entries are filtered to closed punches")
-                        .with_timezone(&tz),
-                    shift_start: shift_start_dt,
-                    shift_end: shift_end_dt,
-                    // With multiple sessions the gap is already excluded from
-                    // the calculation, so a flexible scheduled break must not
-                    // be deducted a second time. Fixed break frames remain in
-                    // the input so work performed during the frame is handled
-                    // by the existing break policy.
-                    scheduled_break_minutes: if session_entries.len() == 1 {
-                        seg.break_duration_minutes.unwrap_or(0)
-                    } else {
-                        0
+                .map(
+                    |entry| crate::services::attendance_calculator::DailyCalcInput {
+                        punch_in: entry.punch_in_time().with_timezone(&tz),
+                        punch_out: entry
+                            .punch_out_time()
+                            .expect("session entries are filtered to closed punches")
+                            .with_timezone(&tz),
+                        shift_start: shift_start_dt,
+                        shift_end: shift_end_dt,
+                        // With multiple sessions the gap is already excluded from
+                        // the calculation, so a flexible scheduled break must not
+                        // be deducted a second time. Fixed break frames remain in
+                        // the input so work performed during the frame is handled
+                        // by the existing break policy.
+                        scheduled_break_minutes: if session_entries.len() == 1 {
+                            seg.break_duration_minutes.unwrap_or(0)
+                        } else {
+                            0
+                        },
+                        actual_break_minutes: break_minutes_overlapping_session(entry),
+                        break_start: seg.break_start.and_then(|t| {
+                            // Overnight segment: break times < shift_start belong to next calendar day
+                            if seg.scheduled_end < seg.scheduled_start
+                                && t < seg.scheduled_start
+                            {
+                                crate::utils::tz::naive_time_to_tz(
+                                    t,
+                                    date + chrono::Duration::days(1),
+                                    tz,
+                                )
+                            } else {
+                                crate::utils::tz::naive_time_to_tz(t, date, tz)
+                            }
+                        }),
+                        break_end: seg.break_end.and_then(|t| {
+                            if seg.scheduled_end < seg.scheduled_start
+                                && t < seg.scheduled_start
+                            {
+                                crate::utils::tz::naive_time_to_tz(
+                                    t,
+                                    date + chrono::Duration::days(1),
+                                    tz,
+                                )
+                            } else if seg.break_start.is_some_and(|bs| t < bs) {
+                                // Overnight break in non-overnight segment
+                                crate::utils::tz::naive_time_to_tz(
+                                    t,
+                                    date + chrono::Duration::days(1),
+                                    tz,
+                                )
+                            } else {
+                                crate::utils::tz::naive_time_to_tz(t, date, tz)
+                            }
+                        }),
+                        work_unit: att_rules.work_unit_minutes,
+                        rounding_policy: att_rules.rounding_policy,
+                        rules: rules.clone(),
+                        ot_ceiling,
+                        max_early_ot_minutes: seg.max_early_ot_minutes,
+                        segment_id: seg.interval_id,
+                        ot_aggregation_mode: seg.ot_aggregation_mode,
                     },
-                    actual_break_minutes: break_minutes_overlapping_session(entry),
-                    break_start: seg
-                        .break_start
-                        .and_then(|t| crate::utils::tz::naive_time_to_tz(t, date, tz)),
-                    break_end: seg
-                        .break_end
-                        .and_then(|t| crate::utils::tz::naive_time_to_tz(t, date, tz)),
-                    work_unit: att_rules.work_unit_minutes,
-                    rounding_policy: att_rules.rounding_policy,
-                    rules: rules.clone(),
-                    ot_ceiling,
-                    max_early_ot_minutes: seg.max_early_ot_minutes,
-                    segment_id: seg.interval_id,
-                    ot_aggregation_mode: seg.ot_aggregation_mode,
-                })
+                )
                 .collect()
         };
 
@@ -1028,14 +1037,23 @@ impl ReportService {
             .map(|e| e.employment_id())
             .collect();
 
-        let employee_map: std::collections::HashMap<Uuid, &crate::repositories::employee::EmployeeBasicInfo> =
-            preamble.paginated_employees().iter().map(|e| (e.id, e)).collect();
+        let employee_map: std::collections::HashMap<
+            Uuid,
+            &crate::repositories::employee::EmployeeBasicInfo,
+        > = preamble
+            .paginated_employees()
+            .iter()
+            .map(|e| (e.id, e))
+            .collect();
 
         for &employment_id in preamble.paginated_employment_ids() {
             if segmented_employment_ids.contains(&employment_id) {
                 continue;
             }
-            let Some(employee_id) = preamble.employment_to_employee().get(&employment_id).copied()
+            let Some(employee_id) = preamble
+                .employment_to_employee()
+                .get(&employment_id)
+                .copied()
             else {
                 continue;
             };
@@ -1128,6 +1146,11 @@ impl ReportService {
 
     /// Read pre-computed WorkSegments from DB and map them into EmployeeSegments
     /// for the segment-centric report path.
+    ///
+    /// Currently unused: `resolve_employee_segments` always uses the compute
+    /// path for correctness. Reserved for future use when the DB path is
+    /// re-enabled with proper interval enrichment.
+    #[allow(dead_code)]
     async fn build_employee_segments_from_db(
         &self,
         ws_repo: &dyn crate::repositories::work_segment_repository::WorkSegmentRepository,
@@ -1193,13 +1216,18 @@ impl ReportService {
         Ok(result)
     }
 
-    /// Resolve employee segments via DB-first with compute fallback.
+    /// Resolve employee segments via on-the-fly computation from roster data.
     ///
-    /// When `work_segment_repo` is available and returns non-empty data, uses
-    /// pre-resolved segments from the database. Otherwise falls back to
-    /// on-the-fly segment resolution from roster data.
+    /// Always uses the compute path ([`RosterRepository::get_workspace_segments`])
+    /// which resolves segments from `shift_default_intervals` with full break
+    /// and policy data. The compute path also triggers a write-through that
+    /// persists resolved segments to the `work_segments` table for other
+    /// consumers.
     ///
-    /// Logs the resolution source (`database` or `compute`) for observability.
+    /// The DB-first path was disabled because persisted `WorkSegment` rows do
+    /// not carry break/policy fields (those live on `shift_default_intervals`),
+    /// and stale segments from template reconfigurations or the initial
+    /// migration could silently produce incorrect report rows.
     pub(super) async fn resolve_employee_segments(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -1207,36 +1235,6 @@ impl ReportService {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<crate::models::EmployeeSegments>, AppError> {
-        // Try DB path first
-        if let Some(ws_repo) = self.work_segment_repo() {
-            match self
-                .build_employee_segments_from_db(
-                    ws_repo, auth_token, preamble, start_date, end_date,
-                )
-                .await
-            {
-                Ok(emps) if !emps.is_empty() => {
-                    tracing::info!(
-                        workspace_id = %auth_token.workspace_id(),
-                        segment_source = "database",
-                        segment_count = emps.len(),
-                        date_range = %format!("{start_date}..{end_date}"),
-                        "segment_report.source"
-                    );
-                    return Ok(emps);
-                }
-                Ok(_) => {
-                    tracing::info!(
-                        "DB segment read returned empty for date range {start_date}..{end_date}, falling back to compute",
-                    );
-                }
-                Err(e) => {
-                    tracing::warn!("DB segment read failed, falling back to compute: {e}");
-                }
-            }
-        }
-
-        // Compute fallback
         let (emps, _) = self
             .roster_repo
             .get_workspace_segments(
@@ -1249,16 +1247,97 @@ impl ReportService {
                 None,
             )
             .await?;
+
+        tracing::info!(
+            workspace_id = %auth_token.workspace_id(),
+            segment_source = "compute",
+            segment_count = emps.len(),
+            date_range = %format!("{start_date}..{end_date}"),
+            "segment_report.source"
+        );
+
         Ok(emps)
     }
 }
 
 /// Convert a persisted WorkSegment into a ResolvedSegment for the report pipeline.
 ///
-/// Many ResolvedSegment fields (break config, OT config, holiday flags, traces) are
-/// not stored on WorkSegment. These are left as None/false/defaults — the report
-/// row builder enriches them from `ReportExtras` and `ReportDataPreamble` anyway.
+/// Extracts break and policy configuration from `break_config_override` (JSON)
+/// and shift metadata from `source_detail` (JSON). Fields not present in either
+/// source fall back to None/false/defaults — the report row builder enriches
+/// them from `ReportExtras` and `ReportDataPreamble` anyway.
+///
+/// Currently unused: reserved for future use when the DB-first segment path
+/// is re-enabled with proper interval enrichment.
+#[allow(dead_code, clippy::cast_possible_truncation)]
 fn work_segment_to_resolved(ws: &crate::models::WorkSegment) -> crate::models::ResolvedSegment {
+    // Extract break config from override JSON, if present.
+    let break_cfg = ws.break_config_override.as_ref();
+    let break_duration_minutes = break_cfg
+        .and_then(|v| v.get("break_duration_minutes"))
+        .and_then(serde_json::Value::as_i64)
+        .map(|v| v as i32);
+    let break_start = break_cfg
+        .and_then(|v| v.get("break_start"))
+        .and_then(serde_json::Value::as_str)
+        .and_then(|s| chrono::NaiveTime::parse_from_str(s, "%H:%M:%S").ok());
+    let break_end = break_cfg
+        .and_then(|v| v.get("break_end"))
+        .and_then(serde_json::Value::as_str)
+        .and_then(|s| chrono::NaiveTime::parse_from_str(s, "%H:%M:%S").ok());
+    let is_break_auto_deduct = break_cfg
+        .and_then(|v| v.get("is_break_auto_deduct"))
+        .and_then(serde_json::Value::as_bool);
+    let break_is_overtime = break_cfg
+        .and_then(|v| v.get("break_is_overtime"))
+        .and_then(serde_json::Value::as_bool);
+
+    // Extract OT/policy config from override JSON.
+    let ot_cfg = ws.ot_config_override.as_ref();
+    let allow_early_ot = ot_cfg
+        .and_then(|v| v.get("allow_early_ot"))
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false);
+    let max_early_ot_minutes = ot_cfg
+        .and_then(|v| v.get("max_early_ot_minutes"))
+        .and_then(serde_json::Value::as_i64)
+        .map(|v| v as i32);
+    let early_punch_in_grace_period_minutes = ot_cfg
+        .and_then(|v| v.get("early_punch_in_grace_period_minutes"))
+        .and_then(serde_json::Value::as_i64)
+        .map(|v| v as i32)
+        .unwrap_or(0);
+    let ot_aggregation_mode = ot_cfg
+        .and_then(|v| v.get("ot_aggregation_mode"))
+        .and_then(serde_json::Value::as_str)
+        .and_then(|s| s.parse().ok())
+        .unwrap_or_default();
+    let is_night_shift = ot_cfg
+        .and_then(|v| v.get("is_night_shift"))
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false);
+
+    // Extract shift metadata from source_detail JSON.
+    let detail = &ws.source_detail;
+    let shift_name = detail
+        .get("shift_name")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+    let shift_symbol = detail
+        .get("shift_symbol")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+    let interval_name = detail
+        .get("interval_name")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+
+    // Extract traces from source_detail.
+    let traces = detail
+        .get("traces")
+        .and_then(|v| serde_json::from_value::<Vec<crate::models::ScheduleTrace>>(v.clone()).ok())
+        .unwrap_or_default();
+
     crate::models::ResolvedSegment {
         template_id: ws.template_id,
         interval_id: ws.interval_id,
@@ -1267,21 +1346,21 @@ fn work_segment_to_resolved(ws: &crate::models::WorkSegment) -> crate::models::R
         scheduled_end: ws.scheduled_end,
         source: ws.source.clone(),
         date: Some(ws.date),
-        shift_name: None,
-        shift_symbol: None,
-        interval_name: None,
+        shift_name,
+        shift_symbol,
+        interval_name,
         segment_type: ws.segment_type.clone(),
-        break_duration_minutes: None,
-        break_start: None,
-        break_end: None,
-        is_break_auto_deduct: None,
-        break_is_overtime: None,
-        allow_early_ot: false,
-        max_early_ot_minutes: None,
-        early_punch_in_grace_period_minutes: 0,
-        ot_aggregation_mode: crate::services::attendance_calculator::OtAggregationMode::default(),
-        is_night_shift: false,
-        traces: Vec::new(),
+        break_duration_minutes,
+        break_start,
+        break_end,
+        is_break_auto_deduct,
+        break_is_overtime,
+        allow_early_ot,
+        max_early_ot_minutes,
+        early_punch_in_grace_period_minutes,
+        ot_aggregation_mode,
+        is_night_shift,
+        traces,
         is_holiday: false,
         is_holiday_paid: false,
         holiday_name: None,
@@ -1292,7 +1371,7 @@ fn work_segment_to_resolved(ws: &crate::models::WorkSegment) -> crate::models::R
 mod tests {
     use super::*;
     use crate::models::{ResolvedSegment, TimeEntry};
-    use chrono::{NaiveDate, NaiveTime, TimeZone, Utc};
+    use chrono::{NaiveDate, NaiveTime, TimeZone, Timelike, Utc};
     use chrono_tz::Tz;
 
     fn make_test_entry(
@@ -1744,5 +1823,43 @@ mod tests {
     fn test_parse_shift_names_empty_string() {
         let result = ReportService::parse_shift_names(Some(""));
         assert_eq!(result, Some(vec![]));
+    }
+
+    // ── midnight_datetime DST tests ─────────────────────────────────────────
+
+    #[test]
+    fn test_midnight_datetime_normal() {
+        let tz: chrono_tz::Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).unwrap();
+        let dt = super::midnight_datetime(date, tz);
+        assert_eq!(dt.hour(), 0);
+        assert_eq!(dt.minute(), 0);
+        assert_eq!(dt.date_naive(), date);
+    }
+
+    #[test]
+    fn test_midnight_datetime_preserves_wall_clock() {
+        // Midnight in NY on a normal day should be 00:00 local, not shifted
+        let tz: chrono_tz::Tz = "America/New_York".parse().unwrap();
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).unwrap();
+        let dt = super::midnight_datetime(date, tz);
+        assert_eq!(dt.hour(), 0);
+        assert_eq!(dt.date_naive(), date);
+        // 00:00 EDT (UTC-4) = 04:00 UTC
+        let utc = dt.with_timezone(&chrono::Utc);
+        assert_eq!(utc.hour(), 4);
+    }
+
+    #[test]
+    fn test_midnight_datetime_dst_spring_forward() {
+        // Midnight on spring-forward day in NY — no gap at midnight, should resolve fine
+        let tz: chrono_tz::Tz = "America/New_York".parse().unwrap();
+        let date = NaiveDate::from_ymd_opt(2026, 3, 8).unwrap();
+        let dt = super::midnight_datetime(date, tz);
+        assert_eq!(dt.hour(), 0);
+        assert_eq!(dt.date_naive(), date);
+        // 00:00 EST (UTC-5) = 05:00 UTC
+        let utc = dt.with_timezone(&chrono::Utc);
+        assert_eq!(utc.hour(), 5);
     }
 }

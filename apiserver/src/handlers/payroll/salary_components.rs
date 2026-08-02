@@ -93,8 +93,16 @@ pub async fn get_employment_salary_components(
     let (_, employment_id) = params;
     let _workspace_id = ctx.workspace_id;
 
+    let workspace_tz = state
+        .core()
+        .workspace_repo()
+        .get_workspace_by_id(ctx.workspace_id)
+        .await?
+        .map(|ws| crate::utils::tz::parse_workspace_tz(ws.timezone()))
+        .unwrap_or(chrono_tz::UTC);
+
     // Note: This returns latest components for effective_date = now
-    let now = chrono::Utc::now().date_naive();
+    let now = crate::utils::tz::utc_now_date_in_tz(&workspace_tz);
     let components = state
         .payroll()
         .repo()

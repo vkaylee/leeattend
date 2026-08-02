@@ -230,21 +230,26 @@ pub async fn get_my_attendance(
     employee: EmployeeContext,
     axum::extract::Query(query): axum::extract::Query<AttendanceQuery>,
 ) -> AppResult<Json<Vec<TimeEntry>>> {
+    // Resolve workspace timezone for correct local-date boundaries
+    let tz = state
+        .core()
+        .workspace_repo()
+        .get_workspace_by_id(employee.workspace_id)
+        .await?
+        .map(|ws| crate::utils::tz::parse_workspace_tz(ws.timezone()))
+        .unwrap_or(chrono_tz::UTC);
+
     let start = query
         .start_date
-        .unwrap_or_else(|| chrono::Utc::now().date_naive() - chrono::Duration::days(30));
+        .unwrap_or_else(|| crate::utils::tz::utc_now_date_in_tz(&tz) - chrono::Duration::days(30));
     let end = query
         .end_date
-        .unwrap_or_else(|| chrono::Utc::now().date_naive());
+        .unwrap_or_else(|| crate::utils::tz::utc_now_date_in_tz(&tz));
 
-    let from = start
-        .and_hms_opt(0, 0, 0)
-        .map(|t| t.and_utc())
-        .ok_or_else(|| AppError::Internal("Invalid start date".to_string()))?;
-    let to = end
-        .and_hms_opt(23, 59, 59)
-        .map(|t| t.and_utc())
-        .ok_or_else(|| AppError::Internal("Invalid end date".to_string()))?;
+    let from = crate::utils::tz::start_of_day_utc(&tz, start)
+        .map_err(|_| AppError::Internal("Invalid start date".to_string()))?;
+    let to = crate::utils::tz::end_of_day_utc(&tz, end)
+        .map_err(|_| AppError::Internal("Invalid end date".to_string()))?;
 
     let emp = state
         .employees()

@@ -669,7 +669,14 @@ pub async fn get_my_behalf_targets_handler(
         .any(|a| a.target_department_id().is_some());
 
     let dept_map = if has_dept {
-        let today = chrono::Utc::now().date_naive();
+        let workspace_tz = state
+            .core()
+            .workspace_repo()
+            .get_workspace_by_id(ctx.workspace_id)
+            .await?
+            .map(|ws| crate::utils::tz::parse_workspace_tz(ws.timezone()))
+            .unwrap_or(chrono_tz::UTC);
+        let today = crate::utils::tz::utc_now_date_in_tz(&workspace_tz);
         state
             .employees()
             .repo()

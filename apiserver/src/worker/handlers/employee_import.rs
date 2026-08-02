@@ -251,7 +251,7 @@ impl EmployeeImportChunkHandler {
             .await
         {
             Ok(Some(ws)) => (
-                ws.timezone().parse::<Tz>().unwrap_or(Tz::UTC),
+                crate::utils::tz::parse_workspace_tz(ws.timezone()),
                 AttendanceImportMessages::for_lang(ws.default_language()),
             ),
             _ => (Tz::UTC, AttendanceImportMessages::for_lang("vi")),

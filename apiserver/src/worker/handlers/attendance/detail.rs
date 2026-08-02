@@ -22,6 +22,7 @@ impl AttendanceHandler {
             emp_ids,
             &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
             args.start_date, // Using start_date as proxy for the report period
+            args.tz,
         )
         .await
         .map_err(|e| format!("Failed to fetch attendance rules: {e}"))?;
@@ -141,57 +142,32 @@ impl AttendanceHandler {
                     // Delegate to the shared session-aware calculator.
                     // Each work entry becomes an independent DailyCalcInput
                     // so gaps between sessions are never counted as work.
-                    let shift_start_dt = daily
-                        .start_time()
-                        .and_then(|t| crate::utils::tz::naive_time_to_tz(t, date, args.tz));
-                    let shift_end_dt = daily.start_time().and_then(|start| {
-                        daily.end_time().and_then(|end| {
-                            crate::utils::tz::naive_time_to_tz_overnight(end, start, date, args.tz)
-                        })
-                    });
-                    let (shift_start, shift_end) =
-                        if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
-                            if daily.end_time() < daily.start_time() {
-                                end += chrono::Duration::days(1);
-                            }
-                            (Some(start), Some(end))
-                        } else {
-                            (None, None)
-                        };
-
-                    let break_start_dt = daily
-                        .break_start()
-                        .and_then(|t| crate::utils::tz::naive_time_to_tz(t, date, args.tz));
-                    let break_end_dt = daily
-                        .break_end()
-                        .and_then(|t| crate::utils::tz::naive_time_to_tz(t, date, args.tz));
-                    let (break_start, break_end) =
-                        if let (Some(bs), Some(mut be)) = (break_start_dt, break_end_dt) {
-                            if daily.break_end() < daily.break_start() {
-                                be += chrono::Duration::days(1);
-                            }
-                            (Some(bs), Some(be))
-                        } else {
-                            (None, None)
-                        };
-
-                    let result =
-                        crate::services::AttendanceService::compute_session_attendance(
-                            day_entries,
+                    let (shift_start, shift_end, break_start, break_end) =
+                        crate::utils::tz::resolve_shift_times(
+                            daily.start_time(),
+                            daily.end_time(),
+                            daily.break_start(),
+                            daily.break_end(),
+                            date,
                             args.tz,
-                            shift_start,
-                            shift_end,
-                            break_start,
-                            break_end,
-                            daily.break_duration_minutes().unwrap_or(0),
-                            emp_attendance_rules.work_unit_minutes,
-                            emp_attendance_rules.rounding_policy,
-                            &rules,
-                            None,
-                            daily.max_early_ot_minutes(),
-                            None,
-                            crate::services::attendance_calculator::OtAggregationMode::Aggregate,
                         );
+
+                    let result = crate::services::AttendanceService::compute_session_attendance(
+                        day_entries,
+                        args.tz,
+                        shift_start,
+                        shift_end,
+                        break_start,
+                        break_end,
+                        daily.break_duration_minutes().unwrap_or(0),
+                        emp_attendance_rules.work_unit_minutes,
+                        emp_attendance_rules.rounding_policy,
+                        &rules,
+                        None,
+                        daily.max_early_ot_minutes(),
+                        None,
+                        crate::services::attendance_calculator::OtAggregationMode::Aggregate,
+                    );
                     std_work_units = result.total_standard_units();
                     ot_work_units = result.total_ot_units();
                 }

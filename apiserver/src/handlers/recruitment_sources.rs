@@ -191,9 +191,14 @@ pub async fn get_turnover_analytics(
     ctx: MemberContext,
     axum::extract::Query(params): axum::extract::Query<TurnoverQueryParams>,
 ) -> AppResult<Json<crate::models::TurnoverAnalytics>> {
-    let _workspace_id = ctx.workspace_id;
-
-    let today = chrono::Utc::now().date_naive();
+    let workspace_tz = state
+        .core()
+        .workspace_repo()
+        .get_workspace_by_id(ctx.workspace_id)
+        .await?
+        .map(|ws| crate::utils::tz::parse_workspace_tz(ws.timezone()))
+        .unwrap_or(chrono_tz::UTC);
+    let today = crate::utils::tz::utc_now_date_in_tz(&workspace_tz);
     let start = params
         .start
         .and_then(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok())

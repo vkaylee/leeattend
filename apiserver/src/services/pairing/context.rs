@@ -101,7 +101,8 @@ impl PairingContext {
             (s_utc, e_utc)
         } else {
             let s_utc = start_of_day_local.with_timezone(&Utc);
-            let e_utc = s_utc + Duration::hours(24);
+            let e_utc = crate::utils::tz::start_of_next_day_utc(&self.tz, self.date)
+                .unwrap_or_else(|_| s_utc + Duration::hours(24));
             (s_utc, e_utc)
         };
 
@@ -245,4 +246,51 @@ fn build_config_from_times(
         },
         None,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fetch_window_no_shift_is_full_day_spring_forward() {
+        // No shift config → window should be [midnight, next-midnight).
+        // On spring-forward day (23h), end should NOT be start + 24h.
+        let tz: chrono_tz::Tz = "America/New_York".parse().unwrap();
+        let date = NaiveDate::from_ymd_opt(2026, 3, 8).unwrap();
+        let ctx = PairingContext::new(date, tz);
+
+        let (s, e) = ctx.calculate_fetch_window(None).unwrap();
+
+        // Duration should be 23h (spring-forward)
+        let hours = e.signed_duration_since(s).num_hours();
+        assert_eq!(hours, 23, "Spring-forward fetch window should be 23h, got {hours}h");
+    }
+
+    #[test]
+    fn fetch_window_no_shift_is_full_day_fall_back() {
+        // On fall-back day (25h), window should span 25h.
+        let tz: chrono_tz::Tz = "America/New_York".parse().unwrap();
+        let date = NaiveDate::from_ymd_opt(2026, 11, 1).unwrap();
+        let ctx = PairingContext::new(date, tz);
+
+        let (s, e) = ctx.calculate_fetch_window(None).unwrap();
+
+        // Duration should be 25h (fall-back)
+        let hours = e.signed_duration_since(s).num_hours();
+        assert_eq!(hours, 25, "Fall-back fetch window should be 25h, got {hours}h");
+    }
+
+    #[test]
+    fn fetch_window_no_shift_normal_day() {
+        let tz: chrono_tz::Tz = "America/New_York".parse().unwrap();
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).unwrap();
+        let ctx = PairingContext::new(date, tz);
+
+        let (s, e) = ctx.calculate_fetch_window(None).unwrap();
+
+        // Duration should be 24h
+        let hours = e.signed_duration_since(s).num_hours();
+        assert_eq!(hours, 24, "Normal day fetch window should be 24h, got {hours}h");
+    }
 }

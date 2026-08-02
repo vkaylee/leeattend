@@ -11,11 +11,8 @@ impl PayrollService {
     ) -> Vec<crate::models::BatchCalculateResult> {
         const MAX_CONCURRENT_PAYROLL: usize = 10;
 
-        let effective_time = d
-            .start_date
-            .and_hms_opt(0, 0, 0)
-            .unwrap_or_default()
-            .and_utc();
+        let effective_time = crate::utils::tz::start_of_day_utc(&d.tz, d.start_date)
+            .unwrap_or_else(|_| d.start_date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc());
 
         // Resolve employments → employee mapping
         let employments_history = self

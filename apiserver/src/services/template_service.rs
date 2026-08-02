@@ -72,7 +72,14 @@ impl TemplateService {
         }
 
         // 3. Fetch Employment (Active on today or fallback to first employment in list)
-        let today = chrono::Utc::now().date_naive();
+        let workspace_tz = workspace_repo
+            .get_workspace_by_id(auth_token.workspace_id())
+            .await
+            .ok()
+            .flatten()
+            .map(|ws| crate::utils::tz::parse_workspace_tz(ws.timezone()))
+            .unwrap_or(chrono_tz::UTC);
+        let today = crate::utils::tz::utc_now_date_in_tz(&workspace_tz);
         let employment = if let Ok(Some(emp)) = employment_repo
             .get_active_employment_on_date(auth_token, employee_id, today)
             .await

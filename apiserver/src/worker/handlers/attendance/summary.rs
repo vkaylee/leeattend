@@ -34,6 +34,7 @@ impl AttendanceHandler {
             emp_ids,
             &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
             args.start_date, // Using start_date as proxy for the report period
+            args.tz,
         )
         .await
         .map_err(|e| format!("Failed to fetch attendance rules: {e}"))?;

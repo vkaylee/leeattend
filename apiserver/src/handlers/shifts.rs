@@ -570,11 +570,12 @@ pub async fn get_employee_rosters(
     Query(query): Query<EmployeeRostersQuery>,
 ) -> AppResult<Json<PaginatedResponse<ShiftRoster>>> {
     let (_workspace_id, employee_id) = params;
+    let ws_tz = workspace_tz(&state, ctx.workspace_id).await;
     let start_date = query
         .start_date
         .as_deref()
         .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
-        .unwrap_or_else(|| chrono::Utc::now().date_naive());
+        .unwrap_or_else(|| crate::utils::tz::utc_now_date_in_tz(&ws_tz));
 
     let end_date = query
         .end_date

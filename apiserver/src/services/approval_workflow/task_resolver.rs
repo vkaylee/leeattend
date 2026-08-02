@@ -1,7 +1,6 @@
 use super::ApprovalWorkflowService;
 use crate::errors::AppResult;
 use crate::models::ApprovalWorkflowTask;
-use chrono::Utc;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -71,7 +70,15 @@ impl ApprovalWorkflowService {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         user_id: Uuid,
     ) -> Vec<Uuid> {
-        let today = Utc::now().date_naive();
+        let workspace_tz = self
+            .workspace_repo
+            .get_workspace_by_id(auth_token.workspace_id())
+            .await
+            .ok()
+            .flatten()
+            .map(|ws| crate::utils::tz::parse_workspace_tz(ws.timezone()))
+            .unwrap_or(chrono_tz::UTC);
+        let today = crate::utils::tz::utc_now_date_in_tz(&workspace_tz);
         self.workspace_config_repo
             .get_effective_delegations(auth_token, auth_token.workspace_id(), user_id, today)
             .await

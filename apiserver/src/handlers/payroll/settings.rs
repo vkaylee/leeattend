@@ -1,5 +1,4 @@
 use axum::{extract::State, response::Json};
-use chrono::Utc;
 use std::sync::Arc;
 
 use crate::errors::{AppError, AppResult};
@@ -80,10 +79,18 @@ pub async fn update_payroll_settings(
 ) -> AppResult<Json<PayrollSettings>> {
     let workspace_id = ctx.workspace_id;
 
+    let workspace_tz = state
+        .core()
+        .workspace_repo()
+        .get_workspace_by_id(workspace_id)
+        .await?
+        .map(|ws| crate::utils::tz::parse_workspace_tz(ws.timezone()))
+        .unwrap_or(chrono_tz::UTC);
+
     // Get current settings first to fill in missing fields if needed
     let effective_date = req
         .effective_date
-        .unwrap_or_else(|| Utc::now().date_naive());
+        .unwrap_or_else(|| crate::utils::tz::utc_now_date_in_tz(&workspace_tz));
     let current = state
         .payroll()
         .repo()

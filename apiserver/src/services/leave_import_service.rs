@@ -304,7 +304,7 @@ impl LeaveImportService {
         let lang = workspace.default_language().to_string();
         let tz_str = workspace.timezone().to_string();
 
-        let workspace_tz: chrono_tz::Tz = tz_str.parse().unwrap_or(chrono_tz::UTC);
+        let workspace_tz: chrono_tz::Tz = crate::utils::tz::parse_workspace_tz(&tz_str);
 
         let msgs = LeaveImportMessages::for_lang(&lang);
 

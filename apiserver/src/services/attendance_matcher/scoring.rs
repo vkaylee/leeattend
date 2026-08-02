@@ -2,7 +2,7 @@ use super::*;
 use crate::cache::RosterInterval;
 use crate::domain::policy::resolver::{PolicyResolver, ShiftPolicyOverrides};
 use crate::models::{Holiday, PolicyRules, TimeEntry, WorkingCondition};
-use chrono::{DateTime, NaiveDate, TimeZone};
+use chrono::{DateTime, NaiveDate};
 use rust_decimal::Decimal;
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -117,22 +117,24 @@ fn resolve_shift_policy(
 }
 
 /// Resolve shift start/end `DateTime` from naive times, adjusting for
-/// overnight shifts (end_time < start_time → end += 1 day).
+/// overnight shifts (end_time < start_time → end on next calendar day).
+///
+/// Delegates to `tz::resolve_shift_times` for unified DST handling
+/// (ambiguous → first, gap → shift +1h, overnight → NaiveDate arithmetic).
 pub(super) fn resolve_shift_window(
     tz: chrono_tz::Tz,
     date: NaiveDate,
     interval: &RosterInterval,
 ) -> Option<(DateTime<chrono_tz::Tz>, DateTime<chrono_tz::Tz>)> {
-    let start = tz
-        .from_local_datetime(&date.and_time(interval.start_time))
-        .single()?;
-    let mut end = tz
-        .from_local_datetime(&date.and_time(interval.end_time))
-        .single()?;
-    if interval.end_time < interval.start_time {
-        end += chrono::Duration::days(1);
-    }
-    Some((start, end))
+    let (start, end, _, _) = crate::utils::tz::resolve_shift_times(
+        Some(interval.start_time),
+        Some(interval.end_time),
+        None,
+        None,
+        date,
+        tz,
+    );
+    Some((start?, end?))
 }
 
 // ── AttendanceMatcher Scoring ───────────────────────────────────────────
@@ -264,8 +266,13 @@ impl AttendanceMatcher {
                 let punch_in = entry.punch_in_time().with_timezone(&tz);
                 let prev_end = if shift_idx > 0 {
                     day_shifts.get(shift_idx - 1).and_then(|(_, prev_i)| {
-                        tz.from_local_datetime(&current_date.and_time(prev_i.end_time))
-                            .single()
+                        // DST-safe: use naive_time_to_tz with calendar-day overnight detection
+                        if prev_i.end_time < prev_i.start_time {
+                            let next_date = current_date + chrono::Duration::days(1);
+                            crate::utils::tz::naive_time_to_tz(prev_i.end_time, next_date, tz)
+                        } else {
+                            crate::utils::tz::naive_time_to_tz(prev_i.end_time, current_date, tz)
+                        }
                     })
                 } else {
                     None

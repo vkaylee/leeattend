@@ -23,9 +23,18 @@ impl ClaimStagedLogsHandler {
             .await
             .map_err(|e| format!("Failed to fetch staged logs: {e}"))?;
 
+        // Resolve workspace timezone for correct local-date grouping
+        let tz = deps
+            .workspace_repo
+            .get_workspace_by_id(payload.workspace_id)
+            .await
+            .map_err(|e| format!("Failed to fetch workspace: {e}"))?
+            .map(|ws| crate::utils::tz::parse_workspace_tz(ws.timezone()))
+            .unwrap_or(chrono_tz::UTC);
+
         let dates_to_reprocess: std::collections::HashSet<chrono::NaiveDate> = staged_logs
             .iter()
-            .map(|log| log.punch_time.date_naive())
+            .map(|log| log.punch_time.with_timezone(&tz).date_naive())
             .collect();
 
         // 2. Atomic claim: INSERT raw logs + UPDATE staging status in one transaction
@@ -48,7 +57,6 @@ impl ClaimStagedLogsHandler {
         // 3. Trigger pairing reprocessing for affected dates (best-effort, non-fatal)
         if claimed > 0 {
             let pairing_svc = deps.pairing_service();
-            let tz = chrono_tz::UTC;
 
             for date in dates_to_reprocess {
                 if let Err(e) = pairing_svc

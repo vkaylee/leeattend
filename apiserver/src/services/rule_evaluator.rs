@@ -143,7 +143,7 @@ mod tests {
 
     fn make_ctx(dept: Option<Uuid>, id_number: &str, tags: Vec<&str>) -> EmployeeMatchContext {
         EmployeeMatchContext {
-            date: Utc::now().date_naive(),
+            date: crate::utils::tz::utc_now_date_in_tz(&chrono_tz::UTC),
             department_id: dept,
             employee_id_number: id_number.to_string(),
             tags: tags

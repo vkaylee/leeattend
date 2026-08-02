@@ -128,6 +128,7 @@ impl TimeTrackingService {
                     employment_id,
                     auth_token,
                     today,
+                    tz,
                 )
                 .await?;
 

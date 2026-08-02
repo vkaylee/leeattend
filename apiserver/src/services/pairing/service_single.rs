@@ -1,7 +1,7 @@
 use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
 use crate::models::{RawAttendanceLog, TimeEntry};
-use chrono::{DateTime, Duration, NaiveDate, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use chrono_tz::Tz;
 use tracing::info;
 use uuid::Uuid;
@@ -35,7 +35,7 @@ pub(crate) async fn reprocess_single_day(
     // 2. Fetch raw logs
     let start_of_day_local = crate::utils::tz::local_to_tz(&tz, date, 0, 0, 0)?;
     let start_of_day_utc = start_of_day_local.with_timezone(&Utc);
-    let next_day_utc = (start_of_day_local + Duration::days(1)).with_timezone(&Utc);
+    let next_day_utc = crate::utils::tz::start_of_next_day_utc(&tz, date)?;
 
     let (window_start_utc, window_end_utc) =
         context.calculate_fetch_window(shift_config.as_ref())?;

@@ -1,7 +1,7 @@
 use super::ReportService;
 use crate::errors::AppError;
 use crate::models::UnexcusedAbsencesPoint;
-use chrono::{NaiveDate, Utc};
+use chrono::NaiveDate;
 use uuid::Uuid;
 
 impl ReportService {
@@ -21,9 +21,7 @@ impl ReportService {
         use chrono_tz::Tz;
         use std::collections::HashMap;
 
-        let today = Utc::now().date_naive();
-
-        // 1. Get workspace timezone
+        // 1. Get workspace timezone (needed for correct "today")
         let workspace = self
             .workspace_repo
             .get_workspace_by_id(workspace_id)
@@ -32,6 +30,7 @@ impl ReportService {
             .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::NotFound))?;
 
         let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
+        let today = crate::utils::tz::utc_now_date_in_tz(&tz);
 
         // 2. Get schedules for ALL active employees (reuses 5-tier priority resolution)
         let (schedules, _) = self

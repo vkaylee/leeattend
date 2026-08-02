@@ -279,9 +279,8 @@ pub struct ReportService {
     workspace_repo: Arc<dyn WorkspaceRepository>,
     holiday_repo: Arc<dyn HolidayRepository>,
     employer_repo: Arc<dyn crate::repositories::EmployerRepository>,
-    work_segment_repo: Option<
-        Arc<dyn crate::repositories::work_segment_repository::WorkSegmentRepository>,
-    >,
+    work_segment_repo:
+        Option<Arc<dyn crate::repositories::work_segment_repository::WorkSegmentRepository>>,
 }
 
 pub struct ReportServiceArgs {
@@ -296,9 +295,8 @@ pub struct ReportServiceArgs {
     pub workspace_repo: Arc<dyn WorkspaceRepository>,
     pub holiday_repo: Arc<dyn HolidayRepository>,
     pub employer_repo: Arc<dyn crate::repositories::EmployerRepository>,
-    pub work_segment_repo: Option<
-        Arc<dyn crate::repositories::work_segment_repository::WorkSegmentRepository>,
-    >,
+    pub work_segment_repo:
+        Option<Arc<dyn crate::repositories::work_segment_repository::WorkSegmentRepository>>,
 }
 
 impl ReportService {
@@ -375,9 +373,7 @@ impl ReportService {
 
     pub(crate) fn work_segment_repo(
         &self,
-    ) -> Option<
-        &dyn crate::repositories::work_segment_repository::WorkSegmentRepository,
-    > {
+    ) -> Option<&dyn crate::repositories::work_segment_repository::WorkSegmentRepository> {
         self.work_segment_repo.as_deref()
     }
 }
@@ -420,6 +416,7 @@ impl ReportService {
         emp_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,
+        tz: Tz,
     ) -> Result<
         (
             std::collections::HashMap<Uuid, AttendanceRules>,
@@ -433,6 +430,7 @@ impl ReportService {
             emp_ids,
             auth_token,
             start_date,
+            tz,
         )
         .await?;
         let working_conditions_map = PolicyResolverService::resolve_attendance_rules_batch(
@@ -642,6 +640,7 @@ impl ReportService {
                 &resolution.emp_ids,
                 args.start_date,
                 args.end_date,
+                workspace_tz,
             )
             .await?;
         let employer_name_map = self.fetch_all_employers(auth_token).await?;

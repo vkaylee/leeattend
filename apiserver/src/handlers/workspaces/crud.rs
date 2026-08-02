@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, Query, State},
     response::Json,
 };
-use chrono::{NaiveDate, Utc};
+use chrono::NaiveDate;
 use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -100,7 +100,15 @@ pub async fn get_unexcused_absences(
 ) -> AppResult<Json<Vec<UnexcusedAbsencesPoint>>> {
     let workspace_id = ctx.workspace_id;
 
-    let today = Utc::now().date_naive();
+    // Resolve workspace tz for correct local "today"
+    let workspace_tz = state
+        .core()
+        .workspace_repo()
+        .get_workspace_by_id(workspace_id)
+        .await?
+        .map(|ws| crate::utils::tz::parse_workspace_tz(ws.timezone()))
+        .unwrap_or(chrono_tz::UTC);
+    let today = crate::utils::tz::utc_now_date_in_tz(&workspace_tz);
 
     let end_date = params
         .end_date
@@ -353,7 +361,7 @@ pub async fn update_workspace(
     Json(req): Json<UpdateWorkspaceRequest>,
 ) -> AppResult<Json<Workspace>> {
     ctx.require_permission(Permission::WorkspaceSettingsWrite)?;
-    state
+    let updated = state
         .core()
         .workspace_service()
         .update_workspace(
@@ -372,6 +380,15 @@ pub async fn update_workspace(
                 default_holiday_ot_multiplier: req.default_holiday_ot_multiplier,
             },
         )
-        .await
-        .map(Json)
+        .await?;
+
+    // Drop the stale workspace config (timezone) from cache so the Excel-export
+    // worker and the report paths never compute with different timezones for the
+    // cache TTL after a settings change.
+    state
+        .infra()
+        .invalidate_workspace_cache(ctx.auth_token.workspace_id())
+        .await;
+
+    Ok(Json(updated))
 }

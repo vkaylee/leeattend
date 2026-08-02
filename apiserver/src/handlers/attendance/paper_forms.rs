@@ -169,7 +169,14 @@ pub async fn bulk_upload_paper_ot(
     let mut summary_pairs: Vec<(Uuid, NaiveDate)> = Vec::new();
     let mut valid_parsed: Vec<&ParsedBulkOtRow> = Vec::new();
 
-    let today = chrono::Utc::now().date_naive();
+    let workspace_tz = state
+        .core()
+        .workspace_repo()
+        .get_workspace_by_id(ctx.workspace_id)
+        .await?
+        .map(|ws| crate::utils::tz::parse_workspace_tz(ws.timezone()))
+        .unwrap_or(chrono_tz::UTC);
+    let today = crate::utils::tz::utc_now_date_in_tz(&workspace_tz);
 
     for row in &parsed_rows {
         let Some(employee) = employees_by_code.get(&row.employee_id_str) else {

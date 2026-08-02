@@ -208,6 +208,7 @@ impl PayrollService {
             employee_id,
             auth_token,
             end_date,
+            tz,
         )
         .await?;
 

@@ -456,6 +456,7 @@ impl AttendanceSummaryService {
             employee_id,
             auth_token,
             start_date,
+            tz,
         )
         .await?;
 
@@ -583,6 +584,7 @@ impl AttendanceSummaryService {
             employee_id,
             auth_token,
             date,
+            *tz,
         )
         .await?;
 

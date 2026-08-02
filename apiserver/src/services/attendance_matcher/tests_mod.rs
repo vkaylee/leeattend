@@ -1082,7 +1082,7 @@ mod scoring_helpers {
         ScoringContext,
     };
     use crate::cache::RosterInterval;
-    use chrono::{NaiveDate, NaiveTime};
+    use chrono::{NaiveDate, NaiveTime, Timelike};
     use std::collections::HashMap;
 
     fn tz() -> chrono_tz::Tz {
@@ -1328,5 +1328,56 @@ mod scoring_helpers {
 
         let ctx = ScoringContext::new(chrono_tz::UTC, &conditions, &holidays, &catalog);
         assert_eq!(ctx.tz(), chrono_tz::UTC);
+    }
+
+    // ── resolve_shift_window DST tests ──────────────────────────────────────
+
+    #[test]
+    fn resolve_shift_window_overnight_spring_forward() {
+        // Shift 22:00-06:00 on Mar 7 (day before spring-forward in NY).
+        // End should be 06:00 EDT on Mar 8, duration = 7h (not 8h).
+        let ny_tz: chrono_tz::Tz = "America/New_York".parse().unwrap();
+        let date = NaiveDate::from_ymd_opt(2026, 3, 7).unwrap();
+        let interval = test_interval(
+            NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
+            0,
+        );
+
+        let (start, end) =
+            resolve_shift_window(ny_tz, date, &interval).expect("should resolve");
+
+        assert_eq!(start.date_naive(), date);
+        assert_eq!(start.hour(), 22);
+
+        // Wall-clock preserved: 06:00 on Mar 8 (EDT)
+        assert_eq!(end.date_naive(), NaiveDate::from_ymd_opt(2026, 3, 8).unwrap());
+        assert_eq!(end.hour(), 6);
+
+        // Duration: 7h (spring-forward lost 1h)
+        assert_eq!(end.signed_duration_since(start).num_hours(), 7);
+    }
+
+    #[test]
+    fn resolve_shift_window_overnight_fall_back() {
+        // Shift 22:00-06:00 on Oct 31 (day before fall-back in NY).
+        // End should be 06:00 EST on Nov 1, duration = 9h (not 8h).
+        let ny_tz: chrono_tz::Tz = "America/New_York".parse().unwrap();
+        let date = NaiveDate::from_ymd_opt(2026, 10, 31).unwrap();
+        let interval = test_interval(
+            NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
+            0,
+        );
+
+        let (start, end) =
+            resolve_shift_window(ny_tz, date, &interval).expect("should resolve");
+
+        assert_eq!(start.date_naive(), date);
+        assert_eq!(end.date_naive(), NaiveDate::from_ymd_opt(2026, 11, 1).unwrap());
+        assert_eq!(end.hour(), 6);
+
+        // Duration: 9h (fall-back gained 1h)
+        assert_eq!(end.signed_duration_since(start).num_hours(), 9);
     }
 }

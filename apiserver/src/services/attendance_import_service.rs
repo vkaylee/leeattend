@@ -869,7 +869,7 @@ impl AttendanceImportService {
             }
         };
 
-        let workspace_tz = timezone.parse::<Tz>().unwrap_or(Tz::UTC);
+        let workspace_tz = crate::utils::tz::parse_workspace_tz(&timezone);
 
         let strategy = PunchImportStrategy {
             msgs: msgs.clone(),
@@ -908,7 +908,7 @@ impl AttendanceImportService {
             .get_workspace_by_id(job.workspace_id)
             .await
         {
-            Ok(Some(ws)) => ws.timezone().parse::<Tz>().unwrap_or(Tz::UTC),
+            Ok(Some(ws)) => crate::utils::tz::parse_workspace_tz(ws.timezone()),
             _ => Tz::UTC,
         };
 

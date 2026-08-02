@@ -131,10 +131,18 @@ async fn resolve_behalf_employee_ids(
             .get_active_employees(&ctx.auth_token)
             .await?;
 
+        let workspace_tz = state
+            .core()
+            .workspace_repo()
+            .get_workspace_by_id(ctx.workspace_id)
+            .await?
+            .map(|ws| crate::utils::tz::parse_workspace_tz(ws.timezone()))
+            .unwrap_or(chrono_tz::UTC);
+
         let dept_map = state
             .employees()
             .repo()
-            .get_employee_departments_at(&ctx.auth_token, chrono::Utc::now().date_naive())
+            .get_employee_departments_at(&ctx.auth_token, crate::utils::tz::utc_now_date_in_tz(&workspace_tz))
             .await?;
 
         for emp in &active_employees {

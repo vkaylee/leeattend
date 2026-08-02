@@ -135,13 +135,21 @@ pub async fn create_employee_assignment(
         .await?
         .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
 
+    let workspace_tz = state
+        .core()
+        .workspace_repo()
+        .get_workspace_by_id(ctx.workspace_id)
+        .await?
+        .map(|ws| crate::utils::tz::parse_workspace_tz(ws.timezone()))
+        .unwrap_or(chrono_tz::UTC);
+
     let active_employment = state
         .employees()
         .employment_repo()
         .get_active_employment_on_date(
             &ctx.auth_token,
             employee_id,
-            chrono::Utc::now().date_naive(),
+            crate::utils::tz::utc_now_date_in_tz(&workspace_tz),
         )
         .await?
         .ok_or_else(|| AppError::validation(I18nKey::NoActiveEmployment))?;
