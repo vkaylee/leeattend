@@ -7,7 +7,7 @@ import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
-import { fetchLeavePolicies, createLeavePolicy, deleteLeavePolicy, updateLeavePolicy, fetchLeaveTypes } from "@/lib/api/leaves";
+import { fetchLeavePolicies, createLeavePolicy, deleteLeavePolicy, updateLeavePolicy, fetchLeaveTypes, type CreateLeavePolicyRequestBody, type UpdateLeavePolicyRequestBody } from "@/lib/api/leaves";
 import { LeavePolicy } from "@/lib/api/types";
 
 import { PolicyCard } from "./policy-card";
@@ -53,8 +53,10 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
   };
 
   const mutation = useMutation({
-    mutationFn: (data: Partial<LeavePolicy>) => 
-      editingPolicy ? updateLeavePolicy(wsId, editingPolicy.id, data) : createLeavePolicy(wsId, data),
+    mutationFn: (data: Partial<LeavePolicy>) =>
+      editingPolicy
+        ? updateLeavePolicy(wsId, editingPolicy.id, data as Record<string, unknown> as UpdateLeavePolicyRequestBody)
+        : createLeavePolicy(wsId, data as Record<string, unknown> as CreateLeavePolicyRequestBody),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leave-policies"] });
       toast.success(editingPolicy ? t("settings.leave.policy_manager.success_update", "Policy updated") : t("settings.leave.policy_manager.success_create", "Policy created"));

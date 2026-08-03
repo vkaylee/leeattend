@@ -790,6 +790,7 @@ use utoipa::OpenApi;
             ApprovalWorkflow,
             crate::handlers::approval_workflow::PaginatedApprovalWorkflows,
             CreateWorkflowRequest,
+            UpdateWorkflowRequest,
             crate::handlers::approval_workflow::ProcessApprovalRequest,
             ApprovalActionLog,
             ApprovalWorkflowTask,

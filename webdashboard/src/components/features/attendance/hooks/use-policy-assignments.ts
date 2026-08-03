@@ -28,7 +28,7 @@ export function usePolicyAssignments(wsId: string) {
   const [targetType, setTargetType] = useState<"USER" | "GROUP">("GROUP");
   const [targetId, setTargetId] = useState("");
   const [workUnitMinutes, setWorkUnitMinutes] = useState(1);
-  const [roundingPolicy, setRoundingPolicy] = useState("none");
+  const [roundingPolicy, setRoundingPolicy] = useState<"none" | "floor" | "round" | "ceil">("none");
   const [earlyArrivalStrategy, setEarlyArrivalStrategy] = useState<StrategyType>("allow");
   const [validFrom, setValidFrom] = useState(() => new Date().toISOString().split("T")[0]);
   const [gracePeriodMinutes, setGracePeriodMinutes] = useState<number | undefined>(undefined);

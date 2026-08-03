@@ -3362,6 +3362,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{workspace_id}/work-segments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List work segments with optional filters and pagination. */
+        get: operations["list_work_segments"];
+        put?: never;
+        /** Create a new work segment. */
+        post: operations["create_work_segment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/work-segments/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bulk-create work segments, optionally replacing existing ones. */
+        post: operations["bulk_create_work_segments"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/work-segments/{segment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single work segment by ID. */
+        get: operations["get_work_segment"];
+        /** Update an existing work segment. */
+        put: operations["update_work_segment"];
+        post?: never;
+        /** Delete a work segment. */
+        delete: operations["delete_work_segment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{workspace_id}/working-patterns": {
         parameters: {
             query?: never;
@@ -3504,7 +3558,11 @@ export interface paths {
         };
         /** GET /workspaces/{ws_id}/approval-workflows/{id} */
         get: operations["get_workflow"];
-        /** PUT /workspaces/{ws_id}/approval-workflows/{id} */
+        /**
+         * PUT /workspaces/{ws_id}/approval-workflows/{id}
+         *     Partially updates workflow metadata (name, description, is_active).
+         *     Steps are NOT updated through this endpoint — use create with full replace for step changes.
+         */
         put: operations["update_workflow"];
         post?: never;
         /** DELETE /workspaces/{ws_id}/approval-workflows/{id} */
@@ -4655,10 +4713,14 @@ export interface components {
             component_definition_id: string;
         };
         AssignPatternRequest: {
+            /** @description If true, soft compliance warnings are accepted */
+            allow_warnings?: boolean;
             /** Format: date */
             anchor_date?: string | null;
             /** Format: date */
             end_date?: string | null;
+            /** @description Manager-provided override reason */
+            override_reason?: string | null;
             /** Format: uuid */
             pattern_id: string;
             /** Format: date */
@@ -4702,10 +4764,14 @@ export interface components {
             effective_date: string;
         };
         AssignShiftRequest: {
+            /** @description If true, soft compliance warnings are accepted without override reason */
+            allow_warnings?: boolean;
             /** Format: uuid */
             employment_id: string;
             /** Format: date */
             end_date?: string | null;
+            /** @description Manager-provided reason to override soft compliance violations */
+            override_reason?: string | null;
             /** Format: uuid */
             shift_id: string;
             /** Format: date */
@@ -4789,6 +4855,8 @@ export interface components {
             actual_work_minutes: number;
             /** Format: int32 */
             approved_ot_minutes: number;
+            /** Format: int32 */
+            break_ot_minutes: number;
             /** Format: date-time */
             claim_entered_at?: string | null;
             /** Format: uuid */
@@ -4799,6 +4867,8 @@ export interface components {
             created_at: string;
             /** Format: date */
             date: string;
+            /** Format: int32 */
+            early_ot_minutes: number;
             /** Format: uuid */
             employment_id: string;
             entered_via?: string | null;
@@ -4806,10 +4876,15 @@ export interface components {
             /** Format: uuid */
             id: string;
             is_holiday: boolean;
+            is_weekend: boolean;
+            /** Format: int32 */
+            late_ot_minutes: number;
             manager_note?: string | null;
             ot_reason?: string | null;
             ot_status: components["schemas"]["OtStatus"];
             paper_form_photo_url?: string | null;
+            /** Format: int32 */
+            standard_minutes: number;
             /** Format: int32 */
             system_detected_ot_minutes: number;
             /** Format: date-time */
@@ -4845,7 +4920,7 @@ export interface components {
             /** Format: int32 */
             grace_period_minutes: number;
             id: string;
-            rounding_policy: string;
+            rounding_policy: components["schemas"]["RoundingPolicy"];
             valid_from: string;
             valid_to?: string | null;
             /** Format: int32 */
@@ -4855,7 +4930,7 @@ export interface components {
             early_arrival_strategy?: components["schemas"]["EarlyArrivalStrategy"];
             /** Format: int32 */
             grace_period_minutes?: number | null;
-            rounding_policy: string;
+            rounding_policy: components["schemas"]["RoundingPolicy"];
             /** Format: int32 */
             work_unit_minutes: number;
         };
@@ -4968,11 +5043,15 @@ export interface components {
             workspace_id: string;
         };
         BulkAssignPatternRequest: {
+            /** @description If true, soft compliance warnings are accepted */
+            allow_warnings?: boolean;
             /** Format: date */
             anchor_date?: string | null;
             employment_ids: string[];
             /** Format: date */
             end_date?: string | null;
+            /** @description Manager-provided override reason */
+            override_reason?: string | null;
             /** Format: uuid */
             pattern_id: string;
             /** Format: date */
@@ -4981,6 +5060,11 @@ export interface components {
         BulkAssignResponse: {
             failed_employees: string[];
             success_count: number;
+        };
+        BulkCreateWorkSegmentsRequest: {
+            /** @description If true, replaces all existing segments for the given dates/employments */
+            replace_existing?: boolean;
+            segments: components["schemas"]["CreateWorkSegmentRequest"][];
         };
         BulkOtEntryError: {
             employment_id: string;
@@ -4994,7 +5078,16 @@ export interface components {
             total_rows: number;
         };
         BulkRosterRequest: {
+            /** @description If true, soft compliance warnings are accepted */
+            allow_warnings?: boolean;
+            /**
+             * Format: uuid
+             * @description Employment ID for bulk roster operations
+             */
+            employment_id?: string | null;
             items: components["schemas"]["RosterItem"][];
+            /** @description Manager-provided override reason */
+            override_reason?: string | null;
         };
         BulkSetCustomFieldValuesRequest: {
             values: components["schemas"]["SetCustomFieldValueRequest"][];
@@ -5361,7 +5454,7 @@ export interface components {
             is_night_shift?: boolean;
             /** Format: int32 */
             max_early_ot_minutes?: number | null;
-            ot_aggregation_mode?: string;
+            ot_aggregation_mode?: components["schemas"]["OtAggregationMode"];
             start_time: string;
         };
         CreateLeavePolicyRequest: {
@@ -5454,11 +5547,15 @@ export interface components {
             source_type: components["schemas"]["RecruitmentSourceType"];
         };
         CreateRosterRequest: {
+            /** @description If true, soft compliance warnings are accepted */
+            allow_warnings?: boolean;
             /** Format: date */
             date: string;
             /** Format: uuid */
             employment_id: string;
             notes?: string | null;
+            /** @description Manager-provided override reason */
+            override_reason?: string | null;
             /** Format: uuid */
             shift_id?: string | null;
         };
@@ -5541,6 +5638,32 @@ export interface components {
             name: string;
             status?: string | null;
             timezone?: string | null;
+        };
+        CreateWorkSegmentRequest: {
+            break_config_override?: unknown;
+            /** Format: double */
+            compensation_rate?: number;
+            /** Format: date */
+            date: string;
+            /** Format: uuid */
+            employment_id: string;
+            gap_compensation_before?: string;
+            /** Format: double */
+            gap_compensation_rate_before?: number;
+            /** Format: uuid */
+            interval_id?: string | null;
+            notes?: string | null;
+            ot_config_override?: unknown;
+            scheduled_end: string;
+            scheduled_start: string;
+            segment_status?: string;
+            segment_type?: string;
+            /** Format: int32 */
+            sort_order?: number;
+            source?: string;
+            source_detail?: unknown;
+            /** Format: uuid */
+            template_id: string;
         };
         CreateWorkflowRequest: {
             description?: string | null;
@@ -6071,6 +6194,15 @@ export interface components {
             paper_form_photo_url?: string | null;
             reason: string;
         };
+        /**
+         * @description Type-safe entry classification for paired sessions.
+         *
+         *     Strict parsing: unknown string values are rejected during deserialization
+         *     (returns `Err` from `FromStr` and a serde error from `Deserialize`).
+         * @example work
+         * @enum {string}
+         */
+        EntryType: "Work" | "Break" | "Overtime";
         /** @description Employee creates a swap request (requester_id comes from EmployeeContext) */
         EssCreateShiftSwapRequest: {
             reason?: string | null;
@@ -6686,6 +6818,15 @@ export interface components {
             /** Format: int64 */
             unread_count: number;
         };
+        /**
+         * @description Aggregation mode for OT calculation across multiple segments.
+         *
+         *     Persisted as lowercase snake_case (`"aggregate"`, `"per_segment"`, `"daily"`).
+         *     The DB stores three legacy values; both `aggregate` and `daily` collapse to
+         *     `Aggregate` here — the historical distinction was cosmetic.
+         * @enum {string}
+         */
+        OtAggregationMode: "aggregate" | "per_segment";
         /** @enum {string} */
         OtRequestStatus: "draft" | "pending_approval" | "approved" | "partially_accepted" | "active" | "completed" | "cancelled" | "rejected";
         /** @enum {string} */
@@ -7181,7 +7322,7 @@ export interface components {
         PunchInRequest: {
             /** Format: uuid */
             employment_id: string;
-            entry_type?: string | null;
+            entry_type?: null | components["schemas"]["EntryType"];
             is_break_overtime?: boolean | null;
             note?: string | null;
             /** Format: uuid */
@@ -7253,6 +7394,12 @@ export interface components {
         ResolveStagingLogRequest: {
             /** Format: uuid */
             employee_id: string;
+            /**
+             * Format: uuid
+             * @description Which employment owns this punch. Required only when several employments
+             *     cover the punch date; otherwise it is resolved from the date.
+             */
+            employment_id?: string | null;
         };
         ResolvedConfig: {
             key: string;
@@ -7280,6 +7427,15 @@ export interface components {
             /** Format: uuid */
             shift_id?: string | null;
         };
+        /**
+         * @description Rounding strategy for converting work minutes into work units.
+         *
+         *     Serialized as lowercase snake_case (`"floor"`, `"round"`, `"ceil"`, `"none"`).
+         *     Deserialization is tolerant: unknown legacy values (e.g. `"round_down"`) fall
+         *     back to `None`, which truncates like the previous string-matching code did.
+         * @enum {string}
+         */
+        RoundingPolicy: "floor" | "round" | "ceil" | "none";
         /** @enum {string} */
         RuleAppliesTo: "employee" | "employer";
         SalaryBaseGroup: {
@@ -7704,7 +7860,7 @@ export interface components {
             duration_minutes?: number | null;
             /** Format: uuid */
             employment_id: string;
-            entry_type: string;
+            entry_type: components["schemas"]["EntryType"];
             generation_metadata?: unknown;
             /** Format: uuid */
             id: string;
@@ -7804,7 +7960,7 @@ export interface components {
             early_arrival_strategy?: null | components["schemas"]["EarlyArrivalStrategy"];
             /** Format: int32 */
             grace_period_minutes?: number | null;
-            rounding_policy?: string | null;
+            rounding_policy?: null | components["schemas"]["RoundingPolicy"];
             /** @description ISO 8601 date string for when this version takes effect. */
             valid_from?: string | null;
             /** Format: int32 */
@@ -8087,7 +8243,7 @@ export interface components {
             database_url: string;
         };
         UpdateTimeEntryRequest: {
-            entry_type?: string | null;
+            entry_type?: null | components["schemas"]["EntryType"];
             note?: string | null;
             /** Format: date-time */
             punch_in_time?: string | null;
@@ -8108,6 +8264,37 @@ export interface components {
             name?: string | null;
             status?: string | null;
             timezone?: string | null;
+        };
+        UpdateWorkSegmentRequest: {
+            break_config_override?: unknown;
+            /** Format: double */
+            compensation_rate?: number | null;
+            gap_compensation_before?: string | null;
+            /** Format: double */
+            gap_compensation_rate_before?: number | null;
+            /** Format: uuid */
+            interval_id?: string | null;
+            notes?: string | null;
+            ot_config_override?: unknown;
+            scheduled_end?: string | null;
+            scheduled_start?: string | null;
+            segment_status?: string | null;
+            segment_type?: string | null;
+            /** Format: int32 */
+            sort_order?: number | null;
+            source?: string | null;
+            source_detail?: unknown;
+            /** Format: uuid */
+            template_id?: string | null;
+        };
+        /**
+         * @description Partial update request for an approval workflow.
+         *     All fields are optional — only provided values are applied.
+         */
+        UpdateWorkflowRequest: {
+            description?: string | null;
+            is_active?: boolean | null;
+            name?: string | null;
         };
         UpdateWorkspaceRequest: {
             date_format?: string | null;
@@ -8146,7 +8333,7 @@ export interface components {
             early_arrival_strategy: components["schemas"]["EarlyArrivalStrategy"];
             /** Format: int32 */
             grace_period_minutes?: number | null;
-            rounding_policy: string;
+            rounding_policy: components["schemas"]["RoundingPolicy"];
             /** Format: uuid */
             target_id: string;
             target_type: string;
@@ -8199,6 +8386,46 @@ export interface components {
             updated_at: string;
             /** Format: uuid */
             workspace_id: string;
+        };
+        WorkSegment: {
+            break_config_override?: unknown;
+            /** Format: double */
+            compensation_rate: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date */
+            date: string;
+            /** Format: uuid */
+            employment_id: string;
+            gap_compensation_before: string;
+            /** Format: double */
+            gap_compensation_rate_before: number;
+            generation_metadata: unknown;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            interval_id?: string | null;
+            notes?: string | null;
+            ot_config_override?: unknown;
+            scheduled_end: string;
+            scheduled_start: string;
+            segment_status: string;
+            segment_type: string;
+            /** Format: int32 */
+            sort_order: number;
+            source: string;
+            source_detail: unknown;
+            /** Format: uuid */
+            template_id: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        WorkSegmentListResponse: {
+            segments: components["schemas"]["WorkSegment"][];
+            /** Format: int64 */
+            total_count: number;
         };
         /** @description Worker heartbeat payload stored in Redis */
         WorkerHeartbeat: {
@@ -11498,7 +11725,10 @@ export interface operations {
     };
     get_staging_logs: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number | null;
+                limit?: number | null;
+            };
             header?: never;
             path: {
                 /** @description Workspace ID */
@@ -15632,6 +15862,196 @@ export interface operations {
             };
         };
     };
+    list_work_segments: {
+        parameters: {
+            query?: {
+                /** @description Comma-separated employment UUIDs */
+                employment_ids?: string | null;
+                /** @description Start date in YYYY-MM-DD format */
+                start_date?: string | null;
+                /** @description End date in YYYY-MM-DD format */
+                end_date?: string | null;
+                /** @description Segment type filter: work | standby | on_call | training | travel */
+                segment_type?: string | null;
+                /** @description Segment status filter: scheduled | in_progress | completed | cancelled */
+                segment_status?: string | null;
+                /** @description Source filter: roster | pattern | rule | fixed | manual | auto */
+                source?: string | null;
+                page?: number | null;
+                limit?: number | null;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated list of work segments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSegmentListResponse"];
+                };
+            };
+        };
+    };
+    create_work_segment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWorkSegmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Work segment created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSegment"];
+                };
+            };
+        };
+    };
+    bulk_create_work_segments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkCreateWorkSegmentsRequest"];
+            };
+        };
+        responses: {
+            /** @description Work segments created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSegment"][];
+                };
+            };
+        };
+    };
+    get_work_segment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Work segment ID */
+                segment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Work segment details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSegment"];
+                };
+            };
+            /** @description Work segment not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_work_segment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Work segment ID */
+                segment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateWorkSegmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Work segment updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSegment"];
+                };
+            };
+            /** @description Work segment not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_work_segment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Work segment ID */
+                segment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Work segment deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Work segment not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_patterns: {
         parameters: {
             query?: never;
@@ -16007,7 +16427,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateWorkflowRequest"];
+                "application/json": components["schemas"]["UpdateWorkflowRequest"];
             };
         };
         responses: {

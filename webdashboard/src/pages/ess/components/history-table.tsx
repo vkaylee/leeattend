@@ -99,12 +99,12 @@ export function HistoryTable({ entries }: HistoryTableProps) {
                         <span
                           className={cn(
                             "rounded-lg border px-2 py-0.5 text-[8px] font-bold uppercase tracking-tighter",
-                            entry.entry_type === "break"
+                            entry.entry_type === "Break"
                               ? "border-amber-100 bg-amber-50 text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
                               : "border-primary-100 bg-primary-50 text-primary-600 dark:border-primary-800 dark:bg-primary-950 dark:text-primary-400",
                           )}
                         >
-                          {entry.entry_type === "break" ? t("common.break") : t("common.work")}
+                          {entry.entry_type === "Break" ? t("common.break") : t("common.work")}
                         </span>
                       </div>
                     </td>
@@ -120,12 +120,12 @@ export function HistoryTable({ entries }: HistoryTableProps) {
                         <span
                           className={cn(
                             "animate-pulse rounded-lg px-2 py-1 text-[9px] font-bold uppercase tracking-tighter",
-                            entry.entry_type === "break"
+                            entry.entry_type === "Break"
                               ? "bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300"
                               : "bg-primary-50 text-primary-600 dark:bg-primary-950 dark:text-primary-400",
                           )}
                         >
-                          {entry.entry_type === "break"
+                          {entry.entry_type === "Break"
                             ? t("time_tracking.status.on_break")
                             : t("time_tracking.status.working")}
                         </span>

@@ -18,6 +18,8 @@ type AdjustBalanceRequestBody = components["schemas"]["AdjustBalanceRequest"];
 type CreateLeaveTypeRequestBody = components["schemas"]["CreateLeaveTypeRequest"];
 type AssignLeavePolicyRequestBody = components["schemas"]["AssignLeavePolicyRequest"];
 type TriggerAccrualRequestBody = components["schemas"]["TriggerAccrualRequest"];
+export type CreateLeavePolicyRequestBody = components["schemas"]["CreateLeavePolicyRequest"];
+export type UpdateLeavePolicyRequestBody = components["schemas"]["UpdateLeavePolicyRequest"];
 
 export async function submitLeaveRequest(
   wsId: string,
@@ -145,11 +147,10 @@ export async function fetchLeavePolicies(wsId: string): Promise<LeavePolicy[]> {
 
 export async function createLeavePolicy(
   wsId: string,
-  data: Partial<LeavePolicy>
+  data: CreateLeavePolicyRequestBody
 ): Promise<LeavePolicy> {
   const { data: resData } = await client.POST("/workspaces/{ws_id}/leave/policies", {
     params: { path: { ws_id: wsId } },
-    // @ts-expect-error — caller passes Partial<LeavePolicy> which differs from CreateLeavePolicyRequest schema type
     body: data,
   });
   return resData as LeavePolicy;
@@ -158,11 +159,10 @@ export async function createLeavePolicy(
 export async function updateLeavePolicy(
   wsId: string,
   policyId: string,
-  data: Partial<LeavePolicy>
+  data: UpdateLeavePolicyRequestBody
 ): Promise<LeavePolicy> {
   const { data: resData } = await client.PATCH("/workspaces/{ws_id}/leave/policies/{policy_id}", {
     params: { path: { ws_id: wsId, policy_id: policyId } },
-    // @ts-expect-error — caller passes Partial<LeavePolicy> which differs from UpdateLeavePolicyRequest schema type
     body: data,
   });
   return resData as LeavePolicy;
@@ -347,10 +347,9 @@ export async function fetchLatestLeaveImport(
   return resData as LeaveImportJob | null;
 }
 
-/** Fetch a specific import job by its ID (for polling). */
+/** Fetch the latest leave import job (for polling). */
 export async function fetchLeaveImportStatus(
   wsId: string,
-  _jobId: string,
 ): Promise<LeaveImportJob | null> {
   const { data: resData } = await client.GET("/workspaces/{ws_id}/leave/import/latest", {
     params: {

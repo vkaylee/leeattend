@@ -42,8 +42,7 @@ export function useWorkspace(wsId?: string) {
     queryKey: ["workspace", activeWsId],
     queryFn: async () => {
       const res = await fetchWorkspace(activeWsId ?? "");
-      const maybeRes = ((): typeof res | undefined => res)();
-      return maybeRes ?? null;
+      return res ?? null;
     },
     enabled: !!activeWsId,
   });

@@ -139,13 +139,13 @@ export async function fetchStagingLogs(
   page = 1,
   limit = 50
 ): Promise<StagingLogsResponse> {
-  // TODO: Use client.GET() when the OpenAPI schema adds page/limit query params to get_staging_logs
-  const { data: resData } = await fetch<StagingLogsResponse>(
-    "GET",
-    "/v1/workspaces/{ws_id}/attendance/staging-logs",
-    { params: { path: { ws_id: wsId }, query: { page, limit } } },
-  );
-  return resData;
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/staging-logs", {
+    params: {
+      path: { ws_id: wsId },
+      query: { page, limit },
+    },
+  });
+  return resData as StagingLogsResponse;
 }
 
 export async function resolveStagingLog(

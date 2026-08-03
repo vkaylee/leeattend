@@ -78,6 +78,7 @@ export type AssignEmployeePhaseRequest = components["schemas"]["AssignEmployeePh
 export type UpdateEmployeePhaseStatusRequest = components["schemas"]["UpdateEmployeePhaseStatusRequest"];
 export type WorkspaceConfigEntry = components["schemas"]["WorkspaceConfigEntry"];
 export type CreateWorkflowRequest = components["schemas"]["CreateWorkflowRequest"];
+export type UpdateWorkflowRequest = components["schemas"]["UpdateWorkflowRequest"];
 export type ApprovalActionLog = components["schemas"]["ApprovalActionLog"];
 export type ProcessApprovalRequest = components["schemas"]["ProcessApprovalRequest"];
 export type OvertimeRequestEmployee = components["schemas"]["OvertimeRequestEmployee"];

@@ -9,7 +9,7 @@ import {
 
 export async function punchIn(
   wsId: string,
-  data: { employment_id: string; entry_type?: string; note?: string },
+  data: { employment_id: string; entry_type?: "Work" | "Break" | "Overtime"; note?: string },
 ): Promise<TimeEntry> {
   const { data: resData } = await client.POST("/workspaces/{workspace_id}/time/punch-in", {
     params: {

@@ -22,7 +22,7 @@ interface CreateVersionModalProps {
   setEarlyArrivalStrategy: (v: "allow" | "block" | "clamp") => void;
   setGracePeriodMinutes: (v: number) => void;
   setNewValidFrom: (v: string) => void;
-  setRoundingPolicy: (v: string) => void;
+  setRoundingPolicy: (v: "none" | "floor" | "round" | "ceil") => void;
   setWorkUnit: (v: number) => void;
   t: TFunction;
   workUnit: number;
@@ -184,7 +184,7 @@ function RoundingPolicyInput({
   t,
 }: {
   roundingPolicy: string;
-  setRoundingPolicy: (v: string) => void;
+  setRoundingPolicy: (v: "none" | "floor" | "round" | "ceil") => void;
   t: TFunction;
 }) {
   return (
@@ -192,7 +192,7 @@ function RoundingPolicyInput({
       <label className={LABEL_BASE}>{t("common.workspace_settings.rounding_policy")}</label>
       <Combobox
         className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14"
-        onChange={setRoundingPolicy}
+        onChange={(v) => setRoundingPolicy(v as "none" | "floor" | "round" | "ceil")}
         options={[
           {
             icon: <ShieldAlert size={14} />,

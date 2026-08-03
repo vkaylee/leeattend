@@ -49,6 +49,15 @@ pub struct CreateWorkflowRequest {
     pub steps: Vec<WorkflowStepRequest>,
 }
 
+/// Partial update request for an approval workflow.
+/// All fields are optional — only provided values are applied.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct UpdateWorkflowRequest {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub is_active: Option<bool>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct WorkflowStepRequest {
     pub step_order: i32,

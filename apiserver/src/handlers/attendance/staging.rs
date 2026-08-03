@@ -15,7 +15,7 @@ use crate::repositories::staging_log_repository::StagingLog;
 use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::IntoParams)]
 pub struct StagingLogsQuery {
     pub page: Option<i64>,
     pub limit: Option<i64>,
@@ -62,7 +62,8 @@ pub struct StagingLogsResponse {
     get,
     path = "/v1/workspaces/{ws_id}/attendance/staging-logs",
     params(
-        ("ws_id" = Uuid, Path, description = "Workspace ID")
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        StagingLogsQuery
     ),
     responses(
         (status = 200, description = "List pending staging logs", body = StagingLogsResponse)

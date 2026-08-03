@@ -1,9 +1,11 @@
 import { client } from "./client";
 
+type RoundingPolicy = "none" | "floor" | "round" | "ceil";
+
 export interface AttendanceRules {
   early_arrival_strategy?: "allow" | "block" | "clamp" | null;
   grace_period_minutes?: number | null;
-  rounding_policy: string;
+  rounding_policy: RoundingPolicy;
   work_unit_minutes: number;
 }
 
@@ -13,7 +15,7 @@ export interface AttendancePolicyVersion {
   early_arrival_strategy: "allow" | "block" | "clamp";
   grace_period_minutes: number;
   id: string;
-  rounding_policy: string;
+  rounding_policy: RoundingPolicy;
   valid_from: string;
   valid_to?: string | null;
   work_unit_minutes: number;
@@ -22,7 +24,7 @@ export interface AttendancePolicyVersion {
 export interface UpdateAttendanceRulesRequest {
   early_arrival_strategy?: "allow" | "block" | "clamp";
   grace_period_minutes?: number;
-  rounding_policy?: string;
+  rounding_policy?: RoundingPolicy;
   valid_from?: string;
   work_unit_minutes?: number;
 }
@@ -53,7 +55,7 @@ export interface PolicyAssignmentResponse {
 export interface UpsertPolicyAssignmentRequest {
   early_arrival_strategy: "allow" | "block" | "clamp";
   grace_period_minutes?: number | null;
-  rounding_policy: string;
+  rounding_policy: RoundingPolicy;
   target_id: string;
   target_type: "USER" | "GROUP";
   valid_from?: string;

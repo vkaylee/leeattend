@@ -305,7 +305,7 @@ describe("leaves API", () => {
   it("fetchLeaveImportStatus: returns import job or null", async () => {
     const mock = { id: "j-1", status: "failed" };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchLeaveImportStatus("ws-1", "j-1");
+    const result = await fetchLeaveImportStatus("ws-1");
     expect(result).toEqual(mock);
   });
 

@@ -120,7 +120,7 @@ export function createMockUseMyClockReturn(overrides?: Partial<UseMyClockReturn>
     punch: async () => Promise.resolve({
       id: 'entry-123',
       employment_id: 'employment-123',
-      entry_type: 'regular',
+      entry_type: 'Work',
       is_break_overtime: false,
       punch_in_time: new Date().toISOString(),
       workspace_id: 'ws-123',

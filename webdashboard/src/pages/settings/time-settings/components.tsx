@@ -48,11 +48,11 @@ interface TabContentProps {
   reprocessEndSetter: (v: string) => void;
   reprocessStart: string;
   reprocessStartSetter: (v: string) => void;
-  roundingPolicy: string;
+  roundingPolicy: AttendancePolicyVersion["rounding_policy"];
   setEarlyArrivalStrategy: (v: "allow" | "block" | "clamp") => void;
   setGracePeriodMinutes: (v: number) => void;
   setNewValidFrom: (v: string) => void;
-  setRoundingPolicy: (v: string) => void;
+  setRoundingPolicy: (v: AttendancePolicyVersion["rounding_policy"]) => void;
   setShowCreateModal: (v: boolean) => void;
   setShowReprocessConfirm: (v: boolean) => void;
   setWorkUnit: (v: number) => void;

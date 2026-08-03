@@ -5,21 +5,6 @@ import type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster, CreateShi
 import { client } from "./client";
 import { ApiError, type AppErrorResponse, ComplianceConflictError, parseComplianceConflict } from "./errors";
 import { apiFetch, TIMEOUT } from "./helpers";
-
-// ── Schema-gap override type ────────────────────────────────────────────────
-// The generated CreateRosterRequest schema lacks allow_warnings + override_reason
-// fields that the backend accepts. This extension bridges the gap until the
-// OpenAPI schema is updated and api-generated.ts is regenerated.
-// TODO: Add allow_warnings + override_reason to the backend OpenAPI schema,
-//       regenerate api-generated.ts, then delete this type and use
-//       components["schemas"]["CreateRosterRequest"] directly.
-
-type UpsertRosterRequestBody = components["schemas"]["CreateRosterRequest"] & {
-  allow_warnings?: boolean | undefined;
-  override_reason?: string | undefined;
-};
-
-
 export async function fetchShifts(wsId: string): Promise<Shift[]> {
   const { data } = await client.GET("/workspaces/{workspace_id}/shifts", {
     params: {
@@ -115,9 +100,9 @@ export const fetchEmployeeRosters = async (
 export async function upsertRoster(
   wsId: string,
   employeeId: string,
-  data: Omit<UpsertRosterRequest, 'employment_id'> & { allow_warnings?: boolean; override_reason?: string }
+  data: Omit<components["schemas"]["CreateRosterRequest"], 'employment_id'>
 ): Promise<ShiftRoster> {
-  const body: UpsertRosterRequestBody = { ...data, employment_id: employeeId };
+  const body: components["schemas"]["CreateRosterRequest"] = { ...data, employment_id: employeeId };
   // Only include override fields when explicitly set so they don't pollute normal requests.
   if (data.allow_warnings !== undefined) body.allow_warnings = data.allow_warnings;
   if (data.override_reason !== undefined) body.override_reason = data.override_reason;

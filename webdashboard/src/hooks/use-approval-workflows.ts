@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import type { UpdateWorkflowRequest } from '@/lib/api/approval-workflows';
-import type { CreateWorkflowRequest } from '@/lib/api/types';
+import type { CreateWorkflowRequest, UpdateWorkflowRequest } from '@/lib/api/types';
 
 import { useWorkspace } from '@/hooks/use-workspace';
 import { approvalWorkflowsApi } from '@/lib/api/approval-workflows';

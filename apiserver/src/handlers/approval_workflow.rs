@@ -4,7 +4,7 @@ use crate::{
     handlers::common::MemberContext,
     models::{
         ApprovalAction, ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowTask,
-        CreateWorkflowRequest, PaginatedResponse,
+        CreateWorkflowRequest, UpdateWorkflowRequest, PaginatedResponse,
     },
     utils::i18n::I18nKey,
     AppState,
@@ -148,6 +148,8 @@ pub async fn get_workflow(
 }
 
 /// PUT /workspaces/{ws_id}/approval-workflows/{id}
+/// Partially updates workflow metadata (name, description, is_active).
+/// Steps are NOT updated through this endpoint — use create with full replace for step changes.
 #[utoipa::path(
     put,
     path = "/workspaces/{ws_id}/approval-workflows/{id}",
@@ -155,7 +157,7 @@ pub async fn get_workflow(
         ("ws_id" = Uuid, Path, description = "Workspace ID"),
         ("id" = Uuid, Path, description = "Workflow ID")
     ),
-    request_body = CreateWorkflowRequest,
+    request_body = UpdateWorkflowRequest,
     responses(
         (status = 200, description = "Updated approval workflow", body = ApprovalWorkflow)
     )
@@ -164,23 +166,38 @@ pub async fn update_workflow(
     State(state): State<Arc<AppState>>,
     Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
-    Json(req): Json<CreateWorkflowRequest>,
+    Json(req): Json<UpdateWorkflowRequest>,
 ) -> AppResult<Json<serde_json::Value>> {
     let (_, id) = params;
     ctx.require_permission(Permission::ApprovalWorkflowsManage)?;
 
-    let (workflow, steps) = build_workflow_and_steps(ctx.workspace_id, ctx.user_id, id, req);
-
-    let (updated_wf, created_steps) = state
+    // Fetch existing workflow + steps
+    let (mut existing_wf, existing_steps) = state
         .core()
         .approval_workflow_service()
-        .update_workflow_definition(&ctx.auth_token, workflow, steps)
+        .get_workflow(&ctx.auth_token, id)
+        .await?
+        .ok_or_else(|| AppError::not_found(I18nKey::WorkflowNotFound))?;
+
+    // Merge partial fields
+    if let Some(name) = req.name {
+        existing_wf.name = name;
+    }
+    if let Some(description) = req.description {
+        existing_wf.description = Some(description);
+    }
+    if let Some(is_active) = req.is_active {
+        existing_wf.is_active = is_active;
+    }
+    existing_wf.updated_at = chrono::Utc::now();
+
+    let (updated_wf, updated_steps) = state
+        .core()
+        .approval_workflow_service()
+        .update_workflow_definition(&ctx.auth_token, existing_wf, existing_steps.clone())
         .await?;
 
-    Ok(Json(serialize_workflow_with_steps(
-        &updated_wf,
-        &created_steps,
-    )?))
+    Ok(Json(serialize_workflow_with_steps(&updated_wf, &updated_steps)?))
 }
 
 /// DELETE /workspaces/{ws_id}/approval-workflows/{id}

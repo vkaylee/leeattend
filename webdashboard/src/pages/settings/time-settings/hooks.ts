@@ -10,15 +10,16 @@ import {
   reprocessAllAttendance,
   checkReprocessStatus,
   updateDefaultAttendanceRules,
-  UpdateAttendanceRulesRequest,
 } from "@/lib/api";
+import type { UpdateAttendanceRulesRequest } from "@/lib/api/attendance-rules";
+type RoundingPolicy = "none" | "floor" | "round" | "ceil";
 
 export function useTimeSettingsRules(
   wsId: string,
   t: TFunction,
   params: {
     earlyArrivalStrategy: "allow" | "block" | "clamp";
-    roundingPolicy: string;
+    roundingPolicy: RoundingPolicy;
     valid_from: string;
     work_unit_minutes: number;
     grace_period_minutes: number;
