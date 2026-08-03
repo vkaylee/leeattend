@@ -5,6 +5,7 @@ import AgentEditModal from "@/components/features/agents/agent-edit-modal";
 import { useToast } from "@/components/ui/toast";
 import { useAuthorizedAgents, useAgentsStatus } from "@/hooks/use-agents";
 import { useDevices } from "@/hooks/use-devices";
+import { AuthorizedAgent, Device } from "@/lib/api";
 
 import { AddAgentForm } from "./add-agent-form";
 import { AddEditDeviceModal } from "./add-edit-device-modal";
@@ -36,6 +37,46 @@ export default function ConnectivityTopology() {
     t, toast, updateDevice
   });
 
+  const handleDeleteAgent = async (agent: AuthorizedAgent) => {
+    try {
+      await deleteAgent(agent.id);
+    } catch {
+      toast.error(t('connectivity.action_failed'));
+    } finally {
+      void refetchAgents();
+    }
+  };
+
+  const handleDeleteDevice = async (id: string) => {
+    try {
+      await deleteDevice(id);
+    } catch {
+      toast.error(t('connectivity.action_failed'));
+    } finally {
+      void refetchStatus();
+    }
+  };
+
+  const handleToggleTrust = async (agent: AuthorizedAgent) => {
+    try {
+      await updateTrust({ id: agent.id, is_trusted: !agent.is_trusted });
+    } catch {
+      toast.error(t('connectivity.action_failed'));
+    } finally {
+      void refetchAgents();
+    }
+  };
+
+  const handleUpdateDevice = async (id: string, data: Partial<Device>) => {
+    try {
+      await updateDevice(id, data);
+    } catch {
+      toast.error(t('connectivity.action_failed'));
+    } finally {
+      void refetchStatus();
+    }
+  };
+
   if (agentsLoading || devicesLoading) {
     return <div className="p-8 animate-pulse text-slate-400 font-bold uppercase tracking-widest">{t("common.loading")}</div>;
   }
@@ -66,21 +107,21 @@ export default function ConnectivityTopology() {
           agentOnlineMap={maps.agentOnlineMap} agents={agents} deviceStatuses={maps.deviceStatuses}
           expandedAgents={state.expandedAgents} groupedDevices={maps.groupedDevices}
           onAddDevice={(agentId) => { state.setNewDevice({ ...state.newDevice, agent_id: agentId }); state.setShowAddDeviceForm(true); }}
-          onDeleteAgent={async (a) => { await deleteAgent(a.id); void refetchAgents(); }}
-          onDeleteDevice={async (id) => { await deleteDevice(id); void refetchStatus(); }}
+          onDeleteAgent={handleDeleteAgent}
+          onDeleteDevice={handleDeleteDevice}
           onEditAgent={(a) => { state.setEditingAgent(a); }}
           onEditDevice={(device) => { state.setEditingDevice(device); state.setShowAddDeviceForm(true); }}
           onRefreshDevice={handleRefreshDevice} onToggleExpand={(id) => { state.toggleAgent(id); }}
-          onToggleTrust={async (a) => { await updateTrust({ id: a.id, is_trusted: !a.is_trusted }); void refetchAgents(); }}
-          onUpdateDevice={async (id, data) => { await updateDevice(id, data); void refetchStatus(); }}
+          onToggleTrust={handleToggleTrust}
+          onUpdateDevice={handleUpdateDevice}
         />
       )}
 
       {maps.unassignedDevices.length > 0 ? (
         <UnassignedDevicesSection
-          onDeleteDevice={async (id) => { await deleteDevice(id); void refetchStatus(); }}
+          onDeleteDevice={handleDeleteDevice}
           onEditDevice={(device) => { state.setEditingDevice(device); state.setShowAddDeviceForm(true); }}
-          onUpdateDevice={async (id, data) => { await updateDevice(id, data); void refetchStatus(); }}
+          onUpdateDevice={handleUpdateDevice}
           unassignedDevices={maps.unassignedDevices}
         />
       ) : null}

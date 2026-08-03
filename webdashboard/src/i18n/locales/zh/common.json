@@ -148,6 +148,9 @@
     "collapse": "折叠",
     "collapse_all": "全部折叠",
     "collapse_sidebar": "收起侧边栏",
+    "connectivity": {
+      "action_failed": "操作失败。请重试。"
+    },
     "colors": {
       "amber": "琥珀色",
       "black": "黑色",

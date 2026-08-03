@@ -148,6 +148,9 @@
     "collapse": "Thu gọn",
     "collapse_all": "Thu gọn tất cả",
     "collapse_sidebar": "Thu gọn menu",
+    "connectivity": {
+      "action_failed": "Thao tác thất bại. Vui lòng thử lại."
+    },
     "colors": {
       "amber": "Hổ phách",
       "black": "Đen",

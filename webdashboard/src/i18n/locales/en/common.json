@@ -148,6 +148,9 @@
     "collapse": "Collapse",
     "collapse_all": "Collapse All",
     "collapse_sidebar": "Collapse Sidebar",
+    "connectivity": {
+      "action_failed": "Action failed. Please try again."
+    },
     "colors": {
       "amber": "Amber",
       "black": "Black",
