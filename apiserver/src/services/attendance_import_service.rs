@@ -7,6 +7,8 @@ use crate::utils::datetime::parse_date;
 use chrono::{DateTime, NaiveDate, Utc};
 use chrono_tz::Tz;
 
+use futures_util::FutureExt;
+use tokio::task::JoinSet;
 use tracing::{error, info};
 use uuid::Uuid;
 
@@ -979,6 +981,10 @@ pub struct AttendanceImportService {
     staging_repo: Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository>,
     deps: crate::worker::deps::WorkerDeps,
     log_svc: Option<Arc<crate::services::attendance_log_service::AttendanceLogService>>,
+    /// Tracks in-flight import tasks spawned via [`Self::spawn_import_job`].
+    /// Enables graceful shutdown via [`Self::shutdown`] and structured error
+    /// logging on panic/error.
+    active_jobs: Arc<std::sync::Mutex<JoinSet<()>>>,
 }
 
 impl AttendanceImportService {
@@ -997,8 +1003,99 @@ impl AttendanceImportService {
             staging_repo: repo_deps.staging_repo,
             deps,
             log_svc,
+            active_jobs: Arc::new(std::sync::Mutex::new(JoinSet::new())),
         }
     }
+
+    /// Spawn an import job into the task registry with structured error logging.
+    ///
+    /// Unlike the previous `tokio::spawn` + `let _ =` pattern, this method:
+    /// - Registers the task in [`Self::active_jobs`] so [`Self::shutdown`] can await it
+    /// - Catches panics via [`std::panic::catch_unwind`] and logs them at `ERROR` level
+    /// - Logs `process_job` error returns at `ERROR` level with `job_id` and `workspace_id`
+    fn spawn_import_job(&self, workspace_id: Uuid, job_id: Uuid) {
+        let svc = self.clone();
+        let mut guard = match self.active_jobs.lock() {
+            Ok(g) => g,
+            Err(e) => {
+                tracing::error!(
+                    error = %e,
+                    job_id = %job_id,
+                    workspace_id = %workspace_id,
+                    "active_jobs lock poisoned, cannot spawn import job"
+                );
+                return;
+            }
+        };
+        guard.spawn(async move {
+            use std::panic::AssertUnwindSafe;
+            let result = AssertUnwindSafe(async move {
+                svc.process_job(workspace_id, job_id).await
+            })
+            .catch_unwind()
+            .await;
+            match result {
+                Ok(Ok(())) => {}
+                Ok(Err(())) => {
+                    tracing::error!(
+                        job_id = %job_id,
+                        workspace_id = %workspace_id,
+                        "Import job returned error"
+                    );
+                }
+                Err(panic_payload) => {
+                    let msg = panic_payload
+                        .downcast_ref::<&str>()
+                        .copied()
+                        .or_else(|| {
+                            panic_payload
+                                .downcast_ref::<String>()
+                                .map(|s| s.as_str())
+                        })
+                        .unwrap_or("<unknown panic payload>");
+                    tracing::error!(
+                        job_id = %job_id,
+                        workspace_id = %workspace_id,
+                        panic = msg,
+                        "Import job panicked"
+                    );
+                }
+            }
+        });
+    }
+
+    /// Await all currently-active import jobs.
+    ///
+    /// Swaps out the internal [`JoinSet`] so that new tasks can still be
+    /// spawned after calling this (they land in a fresh set). Any panicking
+    /// task is logged at `ERROR` level.
+    ///
+    /// Call this during graceful shutdown to ensure no in-flight imports
+    /// are abandoned.
+    pub async fn shutdown(&self) {
+        let mut jobs = {
+            let mut guard = match self.active_jobs.lock() {
+                Ok(g) => g,
+                Err(e) => {
+                    tracing::error!(
+                        error = %e,
+                        "active_jobs lock poisoned during shutdown"
+                    );
+                    return;
+                }
+            };
+            std::mem::replace(&mut *guard, JoinSet::new())
+        };
+        while let Some(result) = jobs.join_next().await {
+            if let Err(e) = result {
+                tracing::error!(
+                    error = %e,
+                    "Import job panicked (caught during shutdown join)"
+                );
+            }
+        }
+    }
+
     #[tracing::instrument(skip_all, err)]
     pub async fn batch_import_from_file(
         &self,
@@ -1034,10 +1131,7 @@ impl AttendanceImportService {
                 AppError::Internal("Internal error".into())
             })?;
 
-        let svc = self.clone();
-        tokio::spawn(async move {
-            let _ = svc.process_job(workspace_id, job_id).await;
-        });
+        self.spawn_import_job(workspace_id, job_id);
 
         Ok(job_id)
     }
@@ -1107,10 +1201,7 @@ impl AttendanceImportService {
                         job.id,
                         job.target_type.to_string()
                     );
-                    let svc = self.clone();
-                    tokio::spawn(async move {
-                        let _ = svc.process_job(ws_id, job.id).await;
-                    });
+                    self.spawn_import_job(ws_id, job.id);
                 }
 
                 if !failed_jobs.is_empty() {
