@@ -5,6 +5,7 @@ use crate::models::{DailyAttendanceReport, PaginatedResponse};
 use chrono::{NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use std::collections::{BTreeMap, HashMap, HashSet};
+use tracing::error;
 use uuid::Uuid;
 
 // ─── Pure post-filter ───────────────────────────────────────────────────────
@@ -901,7 +902,13 @@ pub(super) fn build_segment_calc_inputs<'a>(
                         punch_in: entry.punch_in_time().with_timezone(&tz),
                         punch_out: entry
                             .punch_out_time()
-                            .expect("session entries are filtered to closed punches")
+                            .unwrap_or_else(|| {
+                                error!(
+                                    entry_id = %entry.id(),
+                                    "punch_out_time is None despite pre-filter — data inconsistency"
+                                );
+                                entry.punch_in_time()
+                            })
                             .with_timezone(&tz),
                         shift_start: shift_start_dt,
                         shift_end: shift_end_dt,

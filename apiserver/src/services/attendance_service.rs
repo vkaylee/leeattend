@@ -27,6 +27,7 @@
 use chrono::NaiveTime;
 use chrono::{DateTime, NaiveDate};
 use chrono_tz::Tz;
+use tracing::error;
 use uuid::Uuid;
 
 use crate::models::{PolicyRules, RoundingPolicy, TimeEntry};
@@ -539,7 +540,13 @@ impl AttendanceService {
                 punch_in: entry.punch_in_time().with_timezone(&tz),
                 punch_out: entry
                     .punch_out_time()
-                    .expect("work_entries are filtered to closed punches")
+                    .unwrap_or_else(|| {
+                        error!(
+                            entry_id = %entry.id(),
+                            "punch_out_time is None despite pre-filter — data inconsistency"
+                        );
+                        entry.punch_in_time()
+                    })
                     .with_timezone(&tz),
                 shift_start,
                 shift_end,
