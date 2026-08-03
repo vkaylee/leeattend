@@ -3,8 +3,10 @@ use chrono_tz::Tz;
 use std::collections::HashMap;
 use uuid::Uuid;
 
+use crate::errors::AppError;
 use crate::models::{AttendanceImportJob, ImportJobStatus};
 use crate::repositories::import_job_repository::ImportJobRepository;
+use crate::repositories::queue_repository::QueueRepository;
 
 #[async_trait]
 pub trait ImportStrategy: Send + Sync {
@@ -81,188 +83,221 @@ pub struct ImportPipeline<'a, S: ImportStrategy> {
 struct FailedRow {
     data: HashMap<String, String>,
     reason: String,
-    row_status: &'static str, // "error" or "skipped"
+    row_status: &'static str,
+}
+
+/// Per-10-row progress reporter for import pipelines.
+/// Non-critical by design: failures are logged at WARN level and never propagated.
+struct ProgressTracker<'a> {
+    import_repo: &'a dyn ImportJobRepository,
+    queue_repo: Option<std::sync::Arc<dyn QueueRepository>>,
+    job_id: Uuid,
+    workspace_id: Uuid,
+    is_chunk: bool,
+}
+
+impl ProgressTracker<'_> {
+    async fn tick(&self, processed_rows: i32) {
+        if self.is_chunk {
+            if let Some(ref q) = self.queue_repo {
+                if let Err(e) = q.increment_progress(self.job_id, 10).await {
+                    tracing::warn!(job_id = %self.job_id, error = %e, "Failed to increment chunk import progress");
+                }
+            }
+        } else {
+            let auth = crate::diesel_pool::TenantAuthToken::system_override(self.workspace_id);
+            if let Err(e) = self.import_repo.update_job_progress(&auth, self.job_id, processed_rows, ImportJobStatus::Processing, None).await {
+                tracing::warn!(job_id = %self.job_id, error = %e, "Failed to update import progress");
+            }
+        }
+    }
+
+    async fn finish(&self, processed_rows: i32, skipped_rows: i32) {
+        if !self.is_chunk { return; }
+        let remainder = (processed_rows + skipped_rows) % 10;
+        if remainder > 0 {
+            if let Some(ref q) = self.queue_repo {
+                if let Err(e) = q.increment_progress(self.job_id, u32::try_from(remainder).unwrap_or(0)).await {
+                    tracing::warn!(job_id = %self.job_id, error = %e, "Failed to flush chunk import progress remainder");
+                }
+            }
+        }
+    }
 }
 
 impl<S: ImportStrategy> ImportPipeline<'_, S> {
-    #[allow(clippy::too_many_lines)]
-    pub async fn run(mut self) -> Result<(), ()> {
-        let mut errors = Vec::new();
+    pub async fn run(mut self) -> Result<(), AppError> {
+        let mut errors: Vec<String> = Vec::new();
         let mut failed_rows_data: Vec<FailedRow> = Vec::new();
-        let mut pending_rows: Vec<(S::RowData, HashMap<String, String>)> = Vec::new();
 
-        let lang = match self
-            .deps
-            .workspace_repo
-            .get_workspace_by_id(self.job.workspace_id)
-            .await
-        {
-            Ok(Some(ws)) => ws.default_language().to_string(),
-            _ => "vi".to_string(),
-        };
+        let lang = self.resolve_language().await;
 
-        match crate::utils::file_parser::extract_mapped_rows(
-            &self.file_bytes,
-            self.strategy.expected_headers(),
-        ) {
-            Ok(rows) => {
-                for (current_line, row_data) in rows {
-                    if let Some(start) = self.start_index {
-                        if current_line < start {
-                            continue;
-                        }
-                    }
-                    if let Some(end) = self.end_index {
-                        if current_line > end {
-                            continue;
-                        }
-                    }
-
-                    match self
-                        .strategy
-                        .map_row(&row_data, current_line, self.workspace_tz)
-                    {
-                        Ok(mapped_data) => {
-                            pending_rows.push((mapped_data, row_data));
-                        }
-                        Err(e) => {
-                            let translated_err = e.translate(&lang);
-                            errors.push(translated_err.clone());
-                            failed_rows_data.push(FailedRow {
-                                data: row_data,
-                                reason: translated_err,
-                                row_status: "error",
-                            });
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                errors.push(e.translate(&lang));
-            }
-        }
+        let pending_rows = self.parse_and_map_rows(&lang, &mut errors, &mut failed_rows_data);
 
         let parsed_rows: Vec<S::RowData> = pending_rows.iter().map(|(r, _)| r).cloned().collect();
-        if let Err(e) = self.strategy.init(&self.deps, self.job, &parsed_rows).await {
-            let translated_err = e.translate(&lang);
-            let _ = self
-                .import_repo
-                .update_job_progress(
-                    &crate::diesel_pool::TenantAuthToken::system_override(self.job.workspace_id),
-                    self.job.id,
-                    0,
-                    ImportJobStatus::Failed,
-                    Some(translated_err),
-                )
-                .await;
-            return Err(());
-        }
-
-        if let Err(e) = self
-            .strategy
-            .pre_process_chunk(&self.deps, self.job, &parsed_rows)
-            .await
-        {
-            let translated_err = e.translate(&lang);
-            let _ = self
-                .import_repo
-                .update_job_progress(
-                    &crate::diesel_pool::TenantAuthToken::system_override(self.job.workspace_id),
-                    self.job.id,
-                    0,
-                    ImportJobStatus::Failed,
-                    Some(translated_err),
-                )
-                .await;
-            return Err(());
-        }
+        self.run_strategy_hooks(&lang, &parsed_rows).await?;
 
         if !self.is_chunk {
             let total_rows = i32::try_from(pending_rows.len()).unwrap_or(0)
                 + i32::try_from(failed_rows_data.len()).unwrap_or(0);
-            let _ = self
-                .import_repo
-                .update_job_total_rows(
-                    &crate::diesel_pool::TenantAuthToken::system_override(self.job.workspace_id),
-                    self.job.id,
-                    total_rows,
-                )
-                .await;
+            let auth = crate::diesel_pool::TenantAuthToken::system_override(self.job.workspace_id);
+            if let Err(e) = self.import_repo.update_job_total_rows(&auth, self.job.id, total_rows).await {
+                tracing::warn!(job_id = %self.job.id, error = %e, "Failed to set import total rows");
+            }
         }
 
-        let mut processed_rows = 0;
-        let mut skipped_rows = 0;
+        let progress = ProgressTracker {
+            import_repo: self.import_repo,
+            queue_repo: self.queue_repo.clone(),
+            job_id: self.job.id,
+            workspace_id: self.job.workspace_id,
+            is_chunk: self.is_chunk,
+        };
+        let (processed_rows, skipped_rows) = Self::process_rows_loop(
+            &mut self.strategy, &self.deps, self.job,
+            pending_rows, &lang, &mut errors, &mut failed_rows_data, &progress,
+        ).await;
+        progress.finish(processed_rows, skipped_rows).await;
 
-        for (row_data_parsed, raw_row_data) in pending_rows {
-            match self
-                .strategy
-                .process_row(&self.deps, self.job, &row_data_parsed)
-                .await
-            {
-                Ok(Some(_id)) => {
-                    processed_rows += 1;
+        let error_file_path_opt = self.generate_error_file(&failed_rows_data).await;
+
+        self.finalize_and_update_status(
+            processed_rows, skipped_rows, errors, failed_rows_data,
+            error_file_path_opt, &lang,
+        ).await
+    }
+
+    async fn resolve_language(&self) -> String {
+        match self.deps.workspace_repo.get_workspace_by_id(self.job.workspace_id).await {
+            Ok(Some(ws)) => ws.default_language().to_string(),
+            _ => "vi".to_string(),
+        }
+    }
+
+    fn parse_and_map_rows(
+        &mut self, lang: &str, errors: &mut Vec<String>, failed_rows_data: &mut Vec<FailedRow>,
+    ) -> Vec<(S::RowData, HashMap<String, String>)> {
+        let mut pending_rows = Vec::new();
+        match crate::utils::file_parser::extract_mapped_rows(&self.file_bytes, self.strategy.expected_headers()) {
+            Ok(rows) => {
+                for (current_line, row_data) in rows {
+                    if let Some(start) = self.start_index { if current_line < start { continue; } }
+                    if let Some(end) = self.end_index { if current_line > end { continue; } }
+                    match self.strategy.map_row(&row_data, current_line, self.workspace_tz) {
+                        Ok(mapped_data) => pending_rows.push((mapped_data, row_data)),
+                        Err(e) => {
+                            let translated_err = e.translate(lang);
+                            errors.push(translated_err.clone());
+                            failed_rows_data.push(FailedRow { data: row_data, reason: translated_err, row_status: "error" });
+                        }
+                    }
                 }
+            }
+            Err(e) => { errors.push(e.translate(lang)); }
+        }
+        pending_rows
+    }
+
+    async fn run_strategy_hooks(&mut self, lang: &str, parsed_rows: &[S::RowData]) -> Result<(), AppError> {
+        if let Err(e) = self.strategy.init(&self.deps, self.job, parsed_rows).await {
+            let translated_err = e.translate(lang);
+            tracing::error!(job_id = %self.job.id, error = %translated_err, "Import strategy init failed");
+            self.update_job_to_failed(0, &translated_err).await;
+            return Err(AppError::Internal(format!("Strategy init failed: {translated_err}")));
+        }
+        if let Err(e) = self.strategy.pre_process_chunk(&self.deps, self.job, parsed_rows).await {
+            let translated_err = e.translate(lang);
+            tracing::error!(job_id = %self.job.id, error = %translated_err, "Import strategy pre_process_chunk failed");
+            self.update_job_to_failed(0, &translated_err).await;
+            return Err(AppError::Internal(format!("Strategy pre_process_chunk failed: {translated_err}")));
+        }
+        Ok(())
+    }
+
+    async fn update_job_to_failed(&self, processed_rows: i32, error_msg: &str) {
+        let auth = crate::diesel_pool::TenantAuthToken::system_override(self.job.workspace_id);
+        if let Err(e) = self.import_repo.update_job_progress(&auth, self.job.id, processed_rows, ImportJobStatus::Failed, Some(error_msg.to_string())).await {
+            tracing::error!(job_id = %self.job.id, error = %e, "Failed to mark import job as Failed (DB may be unreachable)");
+        }
+    }
+
+    async fn process_rows_loop(
+        strategy: &mut S,
+        deps: &crate::worker::deps::WorkerDeps,
+        job: &AttendanceImportJob,
+        pending_rows: Vec<(S::RowData, HashMap<String, String>)>,
+        lang: &str,
+        errors: &mut Vec<String>,
+        failed_rows_data: &mut Vec<FailedRow>,
+        progress: &ProgressTracker<'_>,
+    ) -> (i32, i32) {
+        let mut processed = 0i32;
+        let mut skipped = 0i32;
+        for (row_data_parsed, raw_row_data) in pending_rows {
+            match strategy.process_row(deps, job, &row_data_parsed).await {
+                Ok(Some(_id)) => processed += 1,
                 Ok(None) => {
-                    skipped_rows += 1;
-                    failed_rows_data.push(FailedRow {
-                        data: raw_row_data,
-                        reason:
-                            "Skipped (duplicate or already exists)".to_string(),
-                        row_status: "skipped",
-                    });
+                    skipped += 1;
+                    failed_rows_data.push(FailedRow { data: raw_row_data, reason: "Skipped (duplicate or already exists)".to_string(), row_status: "skipped" });
                 }
                 Err(e) => {
-                    let translated_err = e.translate(&lang);
+                    let translated_err = e.translate(lang);
                     errors.push(translated_err.clone());
-                    failed_rows_data.push(FailedRow {
-                        data: raw_row_data,
-                        reason: translated_err,
-                        row_status: "error",
-                    });
+                    failed_rows_data.push(FailedRow { data: raw_row_data, reason: translated_err, row_status: "error" });
                 }
             }
-
-            if (processed_rows + skipped_rows) % 10 == 0 {
-                if self.is_chunk {
-                    if let Some(ref q) = self.queue_repo {
-                        let _ = q.increment_progress(self.job.id, 10).await;
-                    }
-                } else {
-                    let _ = self
-                        .import_repo
-                        .update_job_progress(
-                            &crate::diesel_pool::TenantAuthToken::system_override(
-                                self.job.workspace_id,
-                            ),
-                            self.job.id,
-                            processed_rows,
-                            ImportJobStatus::Processing,
-                            None,
-                        )
-                        .await;
-                }
-            }
+            if (processed + skipped) % 10 == 0 { progress.tick(processed).await; }
         }
+        (processed, skipped)
+    }
 
-        // ── Finalize: batch completion hook (pairing, etc.) ───
+    async fn generate_error_file(&self, failed_rows_data: &[FailedRow]) -> Option<String> {
+        if failed_rows_data.is_empty() { return None; }
+        let base_dir = crate::utils::get_storage_dir();
+        let path = format!("{base_dir}/imports/error_{}.xlsx", self.job.id);
+        let headers = self.strategy.expected_headers().to_vec();
+        let rows = failed_rows_data.to_vec();
+        let path_clone = path.clone();
+
+        let result = tokio::task::spawn_blocking(move || {
+            use rust_xlsxwriter::{Color, Format, Workbook};
+            let mut workbook = Workbook::new();
+            let worksheet = workbook.add_worksheet();
+            let header_format = Format::new().set_bold().set_font_color(Color::White).set_background_color(Color::Red);
+            let mut all_headers = headers.clone();
+            all_headers.push("status"); all_headers.push("error_reason");
+            for (col, header) in all_headers.iter().enumerate() {
+                let _ = worksheet.write_string_with_format(0, u16::try_from(col).unwrap_or(0), *header, &header_format);
+            }
+            for (row_idx, failed_row) in rows.iter().enumerate() {
+                let row = u32::try_from(row_idx + 1).unwrap_or(0);
+                for (col, header) in headers.iter().enumerate() {
+                    let _ = worksheet.write_string(row, u16::try_from(col).unwrap_or(0), failed_row.data.get(*header).unwrap_or(&String::new()));
+                }
+                let _ = worksheet.write_string(row, u16::try_from(all_headers.len().saturating_sub(2)).unwrap_or(0), failed_row.row_status);
+                let _ = worksheet.write_string(row, u16::try_from(all_headers.len().saturating_sub(1)).unwrap_or(0), &failed_row.reason);
+            }
+            if workbook.save(&path_clone).is_ok() { Some(path_clone) } else { None }
+        }).await;
+
+        match result {
+            Ok(Some(p)) => Some(p),
+            Ok(None) => { tracing::error!(job_id = %self.job.id, "Failed to save error xlsx file to disk"); None }
+            Err(join_err) => { tracing::error!(job_id = %self.job.id, error = %join_err, "spawn_blocking panicked during error file generation"); None }
+        }
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn finalize_and_update_status(
+        mut self, processed_rows: i32, skipped_rows: i32, errors: Vec<String>,
+        failed_rows_data: Vec<FailedRow>, error_file_path_opt: Option<String>, lang: &str,
+    ) -> Result<(), AppError> {
         if !self.is_chunk {
             if let Err(e) = self.strategy.finalize(&self.deps, self.job).await {
-                let translated_err = e.translate(&lang);
-                errors.push(translated_err.clone());
-                // Finalization failure: mark job Failed immediately
-                let _ = self
-                    .import_repo
-                    .update_job_progress(
-                        &crate::diesel_pool::TenantAuthToken::system_override(
-                            self.job.workspace_id,
-                        ),
-                        self.job.id,
-                        processed_rows,
-                        ImportJobStatus::Failed,
-                        Some(translated_err),
-                    )
-                    .await;
-                return Err(());
+                let translated_err = e.translate(lang);
+                tracing::error!(job_id = %self.job.id, error = %translated_err, "Import strategy finalize failed");
+                self.update_job_to_failed(processed_rows, &translated_err).await;
+                return Err(AppError::Internal(format!("Strategy finalize failed: {translated_err}")));
             }
         }
 
@@ -274,164 +309,62 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
             ImportJobStatus::Failed
         };
 
-        let mut has_error_file = false;
-        let base_dir = crate::utils::get_storage_dir();
-        let error_file_path = format!("{base_dir}/imports/error_{}.xlsx", self.job.id);
+        let final_log = Self::build_final_log(
+            self.job, processed_rows, skipped_rows, &errors, &failed_rows_data, error_file_path_opt.as_ref(),
+        );
 
-        if !failed_rows_data.is_empty() {
-            use rust_xlsxwriter::{Color, Format, Workbook};
-            let mut workbook = Workbook::new();
-            let worksheet = workbook.add_worksheet();
-
-            let header_format = Format::new()
-                .set_bold()
-                .set_font_color(Color::White)
-                .set_background_color(Color::Red);
-
-            // Dynamically write headers based on what was provided in failed rows
-            let mut all_headers = self.strategy.expected_headers().to_vec();
-            all_headers.push("status");
-            all_headers.push("error_reason");
-
-            for (col, header) in all_headers.iter().enumerate() {
-                let _ = worksheet.write_string_with_format(
-                    0,
-                    u16::try_from(col).unwrap_or(0),
-                    *header,
-                    &header_format,
-                );
-            }
-
-            for (row_idx, failed_row) in failed_rows_data.iter().enumerate() {
-                let row = u32::try_from(row_idx + 1).unwrap_or(0);
-                for (col, header) in self.strategy.expected_headers().iter().enumerate() {
-                    let _ = worksheet.write_string(
-                        row,
-                        u16::try_from(col).unwrap_or(0),
-                        failed_row.data.get(*header).unwrap_or(&String::new()),
-                    );
+        if self.is_chunk {
+            if let Some(ref final_msg) = final_log {
+                if let Some(ref q) = self.queue_repo {
+                    let field = format!("chunk_{}_{}", self.start_index.unwrap_or(0), self.end_index.unwrap_or(0));
+                    if let Err(e) = q.store_import_error(self.job.id, &field, final_msg).await {
+                        tracing::error!(job_id = %self.job.id, field = %field, error = %e, "Failed to persist import error — original error may be lost");
+                    }
                 }
-                // Write status in the second-to-last column
-                let _ = worksheet.write_string(
-                    row,
-                    u16::try_from(all_headers.len().saturating_sub(2)).unwrap_or(0),
-                    failed_row.row_status,
-                );
-                // Write error reason in the last column
-                let _ = worksheet.write_string(
-                    row,
-                    u16::try_from(all_headers.len().saturating_sub(1)).unwrap_or(0),
-                    &failed_row.reason,
-                );
             }
-
-            if workbook.save(&error_file_path).is_ok() {
-                has_error_file = true;
+            Ok(())
+        } else {
+            let auth = crate::diesel_pool::TenantAuthToken::system_override(self.job.workspace_id);
+            if let Err(e) = self.import_repo.update_job_progress(&auth, self.job.id, processed_rows, status, final_log).await {
+                tracing::error!(job_id = %self.job.id, error = %e, "Failed to update final job status in database");
+                return Err(AppError::Internal(format!("Failed to update final job status: {e}")));
             }
+            if let Some(file_path) = &self.job.file_path {
+                if let Err(e) = tokio::fs::remove_file(file_path).await {
+                    tracing::warn!(job_id = %self.job.id, file_path = %file_path, error = %e, "Failed to delete import file after completion");
+                }
+            }
+            if errors.is_empty() && skipped_rows == 0 { Ok(()) }
+            else { Err(AppError::Internal("Import completed with errors".to_string())) }
         }
+    }
 
-        let final_log = if self.job.target_type
-            == crate::models::enums::ImportTargetType::LeaveImport
-        {
+    fn build_final_log(
+        job: &AttendanceImportJob, processed_rows: i32, skipped_rows: i32,
+        errors: &[String], failed_rows_data: &[FailedRow], error_file_path_opt: Option<&String>,
+    ) -> Option<String> {
+        if job.target_type == crate::models::enums::ImportTargetType::LeaveImport {
             if !failed_rows_data.is_empty() || skipped_rows > 0 || !errors.is_empty() {
                 let error_count = i32::try_from(failed_rows_data.len()).unwrap_or(0);
                 let json_log = serde_json::json!({
                     "success_count": processed_rows,
                     "error_count": error_count,
-                    "error_file_path": if has_error_file { Some(error_file_path) } else { None },
+                    "error_file_path": error_file_path_opt,
                 });
                 Some(json_log.to_string())
-            } else {
-                None
-            }
+            } else { None }
         } else {
-            let mut log_opt = if errors.is_empty() {
-                None
-            } else {
-                Some(errors.join("\n"))
-            };
-
+            let mut log_opt = if errors.is_empty() { None } else { Some(errors.join("\n")) };
             if skipped_rows > 0 {
                 let skip_msg = format!("Skipped {skipped_rows} row(s)");
-                log_opt = Some(match log_opt {
-                    Some(log) => format!("{log}\n{skip_msg}"),
-                    None => skip_msg,
-                });
+                log_opt = Some(match log_opt { Some(log) => format!("{log}\n{skip_msg}"), None => skip_msg });
             }
-
-            if has_error_file {
-                let download_link = format!(
-                    "/api/v1/workspaces/{}/attendance/import-jobs/{}/error-file",
-                    self.job.workspace_id, self.job.id
-                );
+            if error_file_path_opt.is_some() {
+                let download_link = format!("/api/v1/workspaces/{}/attendance/import-jobs/{}/error-file", job.workspace_id, job.id);
                 let link_msg = format!("DL_LINK:{download_link}");
-                log_opt = Some(match log_opt {
-                    Some(log) => format!("{link_msg}\n{log}"),
-                    None => link_msg,
-                });
+                log_opt = Some(match log_opt { Some(log) => format!("{link_msg}\n{log}"), None => link_msg });
             }
             log_opt
-        };
-
-        if self.is_chunk {
-            // Push errors to Redis if any
-            if let Some(final_msg) = final_log {
-                if let Some(ref q) = self.queue_repo {
-                    let field = format!(
-                        "chunk_{}_{}",
-                        self.start_index.unwrap_or(0),
-                        self.end_index.unwrap_or(0)
-                    );
-                    if let Err(e) = q.store_import_error(self.job.id, &field, &final_msg).await {
-                        tracing::error!(
-                            job_id = %self.job.id,
-                            field = %field,
-                            error = %e,
-                            "Failed to persist import error — original error may be lost"
-                        );
-                    }
-                }
-            }
-
-            // Add any remainder to progress
-            let remainder = (processed_rows + skipped_rows) % 10;
-            if remainder > 0 {
-                if let Some(ref q) = self.queue_repo {
-                    if let Err(e) = q
-                        .increment_progress(self.job.id, u32::try_from(remainder).unwrap_or(0))
-                        .await
-                    {
-                        tracing::warn!(
-                            job_id = %self.job.id,
-                            error = %e,
-                            "Failed to update import progress"
-                        );
-                    }
-                }
-            }
-
-            Ok(())
-        } else {
-            let _ = self
-                .import_repo
-                .update_job_progress(
-                    &crate::diesel_pool::TenantAuthToken::system_override(self.job.workspace_id),
-                    self.job.id,
-                    processed_rows,
-                    status,
-                    final_log,
-                )
-                .await;
-
-            if let Some(file_path) = &self.job.file_path {
-                let _ = tokio::fs::remove_file(file_path).await;
-            }
-
-            if errors.is_empty() && skipped_rows == 0 {
-                Ok(())
-            } else {
-                Err(())
-            }
         }
     }
 }
@@ -886,7 +819,10 @@ mod tests {
 
         // Pipeline returns Err because skipped_rows > 0
         let result = pipeline.run().await;
-        assert!(result.is_err(), "skip-only pipeline returns Err (has skips)");
+        assert!(
+            result.is_err(),
+            "skip-only pipeline returns Err (has skips)"
+        );
     }
 
     #[tokio::test]
@@ -1024,8 +960,7 @@ mod tests {
         let job = make_job(crate::models::enums::ImportTargetType::Log);
         let file_bytes = create_xlsx_bytes(&["name"], &[vec!["Alice"], vec!["Bob"]]);
         // 1st row succeeds, 2nd row fails
-        let strategy =
-            ConfigurableStrategy::success(&["name"]).with_mixed_process(1, "row failed");
+        let strategy = ConfigurableStrategy::success(&["name"]).with_mixed_process(1, "row failed");
         let deps = build_deps_with_workspace();
 
         let pipeline = ImportPipeline {
@@ -1061,9 +996,7 @@ mod tests {
                 mockall::predicate::eq(ImportJobStatus::PartiallyFailed),
                 mockall::predicate::function(|log: &Option<String>| {
                     if let Some(log) = log {
-                        if let Ok(parsed) =
-                            serde_json::from_str::<serde_json::Value>(log)
-                        {
+                        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(log) {
                             let error_count = parsed["error_count"].as_i64().unwrap_or(-1);
                             let success_count = parsed["success_count"].as_i64().unwrap_or(-1);
                             // 1 error row, 1 success — no double-counting
@@ -1076,10 +1009,13 @@ mod tests {
             .returning(|_, _, _, _, _| Ok(()));
 
         let job = make_job(crate::models::enums::ImportTargetType::LeaveImport);
-        let file_bytes = create_xlsx_bytes(&["name", "employee_id"], &[vec!["Alice", "E1"], vec!["Bob", "E2"]]);
+        let file_bytes = create_xlsx_bytes(
+            &["name", "employee_id"],
+            &[vec!["Alice", "E1"], vec!["Bob", "E2"]],
+        );
         // 1st row succeeds, 2nd row fails
-        let strategy =
-            ConfigurableStrategy::success(&["name", "employee_id"]).with_mixed_process(1, "row failed");
+        let strategy = ConfigurableStrategy::success(&["name", "employee_id"])
+            .with_mixed_process(1, "row failed");
         let deps = build_deps_with_workspace();
 
         let pipeline = ImportPipeline {

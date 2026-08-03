@@ -1515,14 +1515,20 @@ mod tests {
         let dt = dt.expect("should resolve");
 
         // Wall-clock: 06:00 on Mar 8
-        assert_eq!(dt.date_naive(), NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid"));
+        assert_eq!(
+            dt.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid")
+        );
         assert_eq!(dt.hour(), 6);
         assert_eq!(dt.minute(), 0);
 
         // Duration: 7 hours (spring-forward lost 1h)
         let shift_start = naive_time_to_tz(start, date, tz).expect("start");
         let hours = dt.signed_duration_since(shift_start).num_hours();
-        assert_eq!(hours, 7, "spring-forward overnight shift should be 7h, got {hours}h");
+        assert_eq!(
+            hours, 7,
+            "spring-forward overnight shift should be 7h, got {hours}h"
+        );
     }
 
     #[test]
@@ -1541,14 +1547,20 @@ mod tests {
         let dt = dt.expect("should resolve");
 
         // Wall-clock: 06:00 on Nov 1
-        assert_eq!(dt.date_naive(), NaiveDate::from_ymd_opt(2026, 11, 1).expect("valid"));
+        assert_eq!(
+            dt.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 11, 1).expect("valid")
+        );
         assert_eq!(dt.hour(), 6);
         assert_eq!(dt.minute(), 0);
 
         // Duration: 9 hours (fall-back gained 1h)
         let shift_start = naive_time_to_tz(start, date, tz).expect("start");
         let hours = dt.signed_duration_since(shift_start).num_hours();
-        assert_eq!(hours, 9, "fall-back overnight shift should be 9h, got {hours}h");
+        assert_eq!(
+            hours, 9,
+            "fall-back overnight shift should be 9h, got {hours}h"
+        );
     }
 
     #[test]
@@ -1563,7 +1575,10 @@ mod tests {
         let dt = naive_time_to_tz_overnight(end, start, date, tz);
         let dt = dt.expect("should resolve");
 
-        assert_eq!(dt.date_naive(), NaiveDate::from_ymd_opt(2026, 6, 16).expect("valid"));
+        assert_eq!(
+            dt.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 6, 16).expect("valid")
+        );
         assert_eq!(dt.hour(), 6);
 
         let shift_start = naive_time_to_tz(start, date, tz).expect("start");
@@ -1587,7 +1602,10 @@ mod tests {
         assert_eq!(s.hour(), 22);
 
         // Shift end: 06:00 EDT Mar 8 (wall-clock preserved, not 07:00)
-        assert_eq!(e.date_naive(), NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid"));
+        assert_eq!(
+            e.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid")
+        );
         assert_eq!(e.hour(), 6);
 
         // Duration: 7 hours (spring-forward)
@@ -1611,7 +1629,10 @@ mod tests {
         assert_eq!(s.hour(), 22);
 
         // Shift end: 06:00 EST Nov 1 (wall-clock preserved, not 05:00)
-        assert_eq!(e.date_naive(), NaiveDate::from_ymd_opt(2026, 11, 1).expect("valid"));
+        assert_eq!(
+            e.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 11, 1).expect("valid")
+        );
         assert_eq!(e.hour(), 6);
 
         // Duration: 9 hours (fall-back)
@@ -1630,7 +1651,10 @@ mod tests {
         let next = start_of_next_day_utc(&tz, date).expect("valid");
 
         // Mar 9 midnight EDT = 04:00 UTC
-        assert_eq!(next.date_naive(), NaiveDate::from_ymd_opt(2026, 3, 9).expect("valid"));
+        assert_eq!(
+            next.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 3, 9).expect("valid")
+        );
         let utc = next.with_timezone(&Utc);
         assert_eq!(utc.hour(), 4); // EDT = UTC-4
         assert_eq!(utc.minute(), 0);
@@ -1657,7 +1681,10 @@ mod tests {
 
         // Jun 16 midnight ICT (UTC+7) = 17:00 UTC Jun 15
         let utc = next.with_timezone(&Utc);
-        assert_eq!(utc.date_naive(), NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid"));
+        assert_eq!(
+            utc.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid")
+        );
         assert_eq!(utc.hour(), 17);
     }
 
@@ -1698,7 +1725,10 @@ mod tests {
         let dt = naive_time_to_tz_overnight(end, start, date, tz);
         let dt = dt.expect("should resolve");
 
-        assert_eq!(dt.date_naive(), NaiveDate::from_ymd_opt(2026, 6, 16).expect("valid"));
+        assert_eq!(
+            dt.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 6, 16).expect("valid")
+        );
         assert_eq!(dt.hour(), 6);
 
         let shift_start = naive_time_to_tz(start, date, tz).expect("start");
@@ -1722,7 +1752,10 @@ mod tests {
         let dt = dt.expect("should resolve");
 
         // Wall-clock: 06:00 AEDT on Oct 4
-        assert_eq!(dt.date_naive(), NaiveDate::from_ymd_opt(2026, 10, 4).expect("valid"));
+        assert_eq!(
+            dt.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 10, 4).expect("valid")
+        );
         assert_eq!(dt.hour(), 6);
 
         // Duration: 7 hours (spring-forward lost 1h)
@@ -1755,7 +1788,10 @@ mod tests {
         assert_eq!(e.signed_duration_since(s).num_hours(), 7);
 
         // Break: 01:00-01:30 EST on Mar 8 (before DST gap)
-        assert_eq!(brk_s.date_naive(), NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid"));
+        assert_eq!(
+            brk_s.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid")
+        );
         assert_eq!(brk_s.hour(), 1);
         assert_eq!(brk_e.hour(), 1);
         assert_eq!(brk_e.minute(), 30);

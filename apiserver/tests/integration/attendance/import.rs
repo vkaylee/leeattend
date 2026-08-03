@@ -38,7 +38,7 @@ async fn test_import_csv_with_line_errors() {
     sheet.write_string(0, 2, "punch_time").unwrap();
     sheet.write_string(1, 0, emp_id_number).unwrap();
     sheet.write_string(1, 1, "User 1").unwrap();
-    sheet.write_string(1, 2, "14/01/2026 08:00").unwrap();
+    sheet.write_string(1, 2, "invalid-date-here").unwrap();
     sheet.write_string(2, 0, emp_id_number).unwrap();
     sheet.write_string(2, 1, "User 1").unwrap();
     sheet.write_string(2, 2, "not-a-date").unwrap();

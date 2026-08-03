@@ -35,7 +35,15 @@ impl FinalizeImportHandler {
             .parse()
             .unwrap_or(0);
 
-        let errors_map = cache.hgetall(&errors_key).await.unwrap_or_default();
+        let errors_map = cache.hgetall(&errors_key).await.map_err(|e| {
+            tracing::error!(
+                import_job_id = %payload.import_job_id,
+                workspace_id = %job.workspace_id,
+                error = %e,
+                "Redis hgetall failed for import errors"
+            );
+            format!("Redis error fetching import errors: {e}")
+        })?;
 
         // Load import job info & cleanup uploaded file
         let import_job = if let Ok(Some(job_info)) = import_repo
@@ -98,7 +106,7 @@ impl FinalizeImportHandler {
             ImportJobStatus::Failed
         };
 
-        let _ = import_repo
+        if let Err(e) = import_repo
             .update_job_progress(
                 &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
                 payload.import_job_id,
@@ -106,17 +114,54 @@ impl FinalizeImportHandler {
                 status,
                 final_log,
             )
-            .await;
+            .await
+        {
+            tracing::error!(
+                import_job_id = %payload.import_job_id,
+                workspace_id = %job.workspace_id,
+                error = %e,
+                "Final import job status update failed — job may be stuck in Processing"
+            );
+            return Err(format!("Final status update failed: {e}"));
+        }
 
-        // Cleanup Redis keys
-        let _ = cache.delete(&progress_key).await;
-        let _ = cache.delete(&errors_key).await;
-        let _ = cache
+        // Cleanup Redis keys (best-effort: log warnings but don't fail)
+        if let Err(e) = cache.delete(&progress_key).await {
+            tracing::warn!(
+                import_job_id = %payload.import_job_id,
+                key = %progress_key,
+                error = %e,
+                "Failed to cleanup Redis progress key"
+            );
+        }
+        if let Err(e) = cache.delete(&errors_key).await {
+            tracing::warn!(
+                import_job_id = %payload.import_job_id,
+                key = %errors_key,
+                error = %e,
+                "Failed to cleanup Redis errors key"
+            );
+        }
+        if let Err(e) = cache
             .delete(&format!("import_chunks_done:{}", payload.import_job_id))
-            .await;
-        let _ = cache
+            .await
+        {
+            tracing::warn!(
+                import_job_id = %payload.import_job_id,
+                error = %e,
+                "Failed to cleanup Redis chunks_done key"
+            );
+        }
+        if let Err(e) = cache
             .delete(&format!("import_total_chunks:{}", payload.import_job_id))
-            .await;
+            .await
+        {
+            tracing::warn!(
+                import_job_id = %payload.import_job_id,
+                error = %e,
+                "Failed to cleanup Redis total_chunks key"
+            );
+        }
 
         tracing::info!(
             import_job_id = %payload.import_job_id,

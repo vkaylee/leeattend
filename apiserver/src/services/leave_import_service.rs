@@ -346,7 +346,9 @@ impl LeaveImportService {
             queue_repo: None,
         };
 
-        pipeline.run().await
+        pipeline.run().await.map_err(|e| {
+            tracing::error!(%e, "Leave import pipeline failed");
+        })
     }
 
     /// Generate a template Excel for HR to fill in.

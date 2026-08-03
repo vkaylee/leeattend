@@ -653,8 +653,7 @@ impl PunchImportStrategy {
                     // ── Compensation loop ──────────────────────────────
                     // Reject all remaining submitted-but-not-yet-approved adjustments
                     // to prevent orphaned "Pending" records.
-                    let remaining: Vec<&Uuid> =
-                        submitted_ids.iter().skip(i + 1).collect();
+                    let remaining: Vec<&Uuid> = submitted_ids.iter().skip(i + 1).collect();
                     let mut compensation_cancelled: usize = 0;
 
                     for &remaining_id in &remaining {
@@ -790,7 +789,9 @@ impl ImportStrategy for PunchImportStrategy {
         // Pre-warm employee cache for all unique employee IDs
         // (validate_employee_mapping is lazy — first call fetches, subsequent are cache hits)
         for row in rows {
-            let _ = self.validate_employee_mapping(job.workspace_id, row).await?;
+            let _ = self
+                .validate_employee_mapping(job.workspace_id, row)
+                .await?;
         }
 
         if self.target_type == ImportTargetType::Log {
@@ -818,7 +819,10 @@ impl ImportStrategy for PunchImportStrategy {
                     Utc::now(),
                 );
 
-                let local_date = row.punch_time.with_timezone(&self.workspace_tz).date_naive();
+                let local_date = row
+                    .punch_time
+                    .with_timezone(&self.workspace_tz)
+                    .date_naive();
                 self.accumulated_logs
                     .push((employment_id, local_date, self.workspace_tz));
 
@@ -962,9 +966,7 @@ impl ImportStrategy for PunchImportStrategy {
 
                 Ok(())
             }
-            ImportTargetType::Adjustment => {
-                self.finalize_adjustments(deps, job).await
-            }
+            ImportTargetType::Adjustment => self.finalize_adjustments(deps, job).await,
             _ => Ok(()),
         }
     }
@@ -1029,11 +1031,10 @@ impl AttendanceImportService {
         };
         guard.spawn(async move {
             use std::panic::AssertUnwindSafe;
-            let result = AssertUnwindSafe(async move {
-                svc.process_job(workspace_id, job_id).await
-            })
-            .catch_unwind()
-            .await;
+            let result =
+                AssertUnwindSafe(async move { svc.process_job(workspace_id, job_id).await })
+                    .catch_unwind()
+                    .await;
             match result {
                 Ok(Ok(())) => {}
                 Ok(Err(())) => {
@@ -1047,11 +1048,7 @@ impl AttendanceImportService {
                     let msg = panic_payload
                         .downcast_ref::<&str>()
                         .copied()
-                        .or_else(|| {
-                            panic_payload
-                                .downcast_ref::<String>()
-                                .map(|s| s.as_str())
-                        })
+                        .or_else(|| panic_payload.downcast_ref::<String>().map(|s| s.as_str()))
                         .unwrap_or("<unknown panic payload>");
                     tracing::error!(
                         job_id = %job_id,
@@ -1314,7 +1311,9 @@ impl AttendanceImportService {
             queue_repo: None,
         };
 
-        pipeline.run().await
+        pipeline.run().await.map_err(|e| {
+            tracing::error!(%e, "Attendance import pipeline failed");
+        })
     }
 
     async fn process_employee_job(
@@ -1377,7 +1376,9 @@ impl AttendanceImportService {
             queue_repo: None,
         };
 
-        pipeline.run().await
+        pipeline.run().await.map_err(|e| {
+            tracing::error!(%e, "Employee import pipeline failed");
+        })
     }
 }
 
@@ -1390,8 +1391,8 @@ mod tests {
     use crate::repositories::import_job_repository::MockImportJobRepository;
     use crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository;
     use crate::repositories::staging_log_repository::MockStagingLogRepository;
-    use crate::repositories::workspace_repository::MockWorkspaceRepository;
     use crate::repositories::time_entry_repository::MockTimeEntryRepository;
+    use crate::repositories::workspace_repository::MockWorkspaceRepository;
     use crate::worker::test_utils::MockWorkerDepsBuilder;
 
     fn make_job(target_type: ImportTargetType) -> AttendanceImportJob {
@@ -1638,8 +1639,15 @@ mod tests {
     /// Batch import test helper: Employee with minimal fields.
     fn test_emp(id: Uuid, ws_id: Uuid, id_number: &str) -> Employee {
         Employee::new(
-            id, ws_id, None, "Test Employee".into(),
-            id_number.into(), vec![], Utc::now(), Utc::now(), None,
+            id,
+            ws_id,
+            None,
+            "Test Employee".into(),
+            id_number.into(),
+            vec![],
+            Utc::now(),
+            Utc::now(),
+            None,
         )
     }
 
@@ -1674,11 +1682,13 @@ mod tests {
             MockEmployeeRepository::new(),
             MockRawAttendanceLogRepository::new(),
         );
-        let result = strategy.pre_process_chunk(
-            &MockWorkerDepsBuilder::new().build(),
-            &make_job(ImportTargetType::Log),
-            &[],
-        ).await;
+        let result = strategy
+            .pre_process_chunk(
+                &MockWorkerDepsBuilder::new().build(),
+                &make_job(ImportTargetType::Log),
+                &[],
+            )
+            .await;
         assert!(result.is_ok(), "empty rows should not error");
         assert!(strategy.accumulated_logs.is_empty());
     }
@@ -1699,14 +1709,23 @@ mod tests {
             MockRawAttendanceLogRepository::new(),
         );
 
-        let result = strategy.process_row(
-            &MockWorkerDepsBuilder::new().build(),
-            &make_job(ImportTargetType::Log),
-            &PendingRow { emp_id_number: "E1".into(), punch_time: Utc::now(), line_number: 1 },
-        ).await;
+        let result = strategy
+            .process_row(
+                &MockWorkerDepsBuilder::new().build(),
+                &make_job(ImportTargetType::Log),
+                &PendingRow {
+                    emp_id_number: "E1".into(),
+                    punch_time: Utc::now(),
+                    line_number: 1,
+                },
+            )
+            .await;
 
         assert!(result.is_ok());
-        assert!(result.unwrap().is_some(), "LOG rows should report as processed");
+        assert!(
+            result.unwrap().is_some(),
+            "LOG rows should report as processed"
+        );
     }
 
     #[tokio::test]
@@ -1725,11 +1744,18 @@ mod tests {
             MockRawAttendanceLogRepository::new(),
         );
 
-        strategy.process_row(
-            &MockWorkerDepsBuilder::new().build(),
-            &make_job(ImportTargetType::Adjustment),
-            &PendingRow { emp_id_number: "E1".into(), punch_time: Utc::now(), line_number: 1 },
-        ).await.unwrap();
+        strategy
+            .process_row(
+                &MockWorkerDepsBuilder::new().build(),
+                &make_job(ImportTargetType::Adjustment),
+                &PendingRow {
+                    emp_id_number: "E1".into(),
+                    punch_time: Utc::now(),
+                    line_number: 1,
+                },
+            )
+            .await
+            .unwrap();
 
         assert_eq!(strategy.accumulated_adjustments.len(), 1);
     }
@@ -1742,10 +1768,12 @@ mod tests {
             MockRawAttendanceLogRepository::new(),
         );
 
-        let result = strategy.finalize(
-            &MockWorkerDepsBuilder::new().build(),
-            &make_job(ImportTargetType::Log),
-        ).await;
+        let result = strategy
+            .finalize(
+                &MockWorkerDepsBuilder::new().build(),
+                &make_job(ImportTargetType::Log),
+            )
+            .await;
 
         assert!(result.is_ok(), "empty finalize should be no-op");
     }
@@ -1768,10 +1796,16 @@ mod tests {
         strategy.accumulated_logs.push((emp_a, d2, tz));
         strategy.accumulated_logs.push((emp_b, d1, tz));
 
-        let emp_a_count = strategy.accumulated_logs.iter()
-            .filter(|(eid, _, _)| *eid == emp_a).count();
-        let emp_b_count = strategy.accumulated_logs.iter()
-            .filter(|(eid, _, _)| *eid == emp_b).count();
+        let emp_a_count = strategy
+            .accumulated_logs
+            .iter()
+            .filter(|(eid, _, _)| *eid == emp_a)
+            .count();
+        let emp_b_count = strategy
+            .accumulated_logs
+            .iter()
+            .filter(|(eid, _, _)| *eid == emp_b)
+            .count();
 
         assert_eq!(emp_a_count, 2);
         assert_eq!(emp_b_count, 1);
@@ -1793,12 +1827,9 @@ mod tests {
         let emp2_id = Uuid::new_v4();
         let emp3_id = Uuid::new_v4();
 
-        let emp1 = test_emp(emp1_id, ws_id, "001")
-            .with_employment_info(Some(emp1_id), None, None);
-        let emp2 = test_emp(emp2_id, ws_id, "002")
-            .with_employment_info(Some(emp2_id), None, None);
-        let emp3 = test_emp(emp3_id, ws_id, "003")
-            .with_employment_info(Some(emp3_id), None, None);
+        let emp1 = test_emp(emp1_id, ws_id, "001").with_employment_info(Some(emp1_id), None, None);
+        let emp2 = test_emp(emp2_id, ws_id, "002").with_employment_info(Some(emp2_id), None, None);
+        let emp3 = test_emp(emp3_id, ws_id, "003").with_employment_info(Some(emp3_id), None, None);
 
         let job = make_job(ImportTargetType::Adjustment);
 

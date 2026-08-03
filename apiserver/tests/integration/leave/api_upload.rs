@@ -365,7 +365,10 @@ async fn test_leave_import_progress_and_error_formatting_api() {
         state.infra().redis().unwrap().clone(),
     ));
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
-    let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools);
+    let mut deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools);
+    // Override import_job_repo to use the same instance as the app state,
+    // so the handler reads/writes to the same tenant schema as the test.
+    deps.import_job_repo = state.attendance().import_repo().clone();
 
     let res = apiserver::worker::handlers::FinalizeImportHandler::handle(
         &finalize_job,
@@ -387,7 +390,8 @@ async fn test_leave_import_progress_and_error_formatting_api() {
         .unwrap()
         .unwrap();
 
-    assert_eq!(finalized_job.status, ImportJobStatus::Completed);
+    // Handler sets PartiallyFailed when errors exist in Redis
+    assert_eq!(finalized_job.status, ImportJobStatus::PartiallyFailed);
     let error_log_str = finalized_job.error_log.unwrap();
     let error_log_json: serde_json::Value = serde_json::from_str(&error_log_str).unwrap();
     assert_eq!(error_log_json["success_count"], 4);
