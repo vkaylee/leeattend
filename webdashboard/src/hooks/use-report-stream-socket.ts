@@ -1,18 +1,19 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
+
+import type { StreamStatus } from "@/types/report-stream";
 
 import { clearAuthSession } from "@/lib/api/helpers";
 import { ROUTES } from "@/lib/routes";
 import { maybeNull } from "@/types/api-overrides";
 
+import { useReconnectionBackoff } from "./use-reconnection-backoff";
 import {
   buildWebSocketUrl,
-  getBackoffDelay,
   tryRefreshToken,
 } from "./use-report-stream-handlers";
+import { reduceSocketState } from "./use-report-stream-reducer";
 
 // ── Types ─────────────────────────────────────────────────────────────────
-
-type StreamStatus = "idle" | "connecting" | "streaming" | "completed" | "error";
 
 interface UseReportStreamSocketProps {
   chunksRef: React.RefObject<unknown[]>;
@@ -33,11 +34,10 @@ interface UseReportStreamSocketProps {
 // ── Hook ──────────────────────────────────────────────────────────────────
 
 /**
- * Single-responsibility hook: manages the full WebSocket lifecycle for
- * report streaming — connect, disconnect, reconnect, ping keep-alive,
- * auth-error recovery, exponential backoff, and max-retry enforcement.
- *
- * Cleanup (close + abort) is performed in the useEffect return.
+ * Manages the WebSocket lifecycle for report streaming: connect, disconnect,
+ * ping keep-alive and auth-error recovery. Close-event decisions are delegated
+ * to the pure `reduceSocketState` machine; reconnection backoff is delegated
+ * to `useReconnectionBackoff`. Cleanup (close + abort) runs on unmount.
  */
 export function useReportStreamSocket({
   jobId,
@@ -64,9 +64,10 @@ export function useReportStreamSocket({
   const handleAuthError = useCallback(async () => {
     retryCountRef.current++;
     try {
-      const ref = await tryRefreshToken();
-      if (ref && shouldReconnectRef.current) connectRef.current();
-      else {
+      const refreshed = await tryRefreshToken();
+      if (refreshed && shouldReconnectRef.current) {
+        connectRef.current();
+      } else {
         clearAuthSession();
         if (window.location.pathname !== ROUTES.LOGIN) window.location.href = ROUTES.LOGIN;
       }
@@ -78,46 +79,59 @@ export function useReportStreamSocket({
 
   // ── Reconnection scheduling ──────────────────────────────────────────
 
-  const scheduleReconnect = useCallback(() => {
-    const delay = getBackoffDelay(retryCountRef.current);
-    retryCountRef.current += 1;
-    setTimeout(() => { if (shouldReconnectRef.current) connectRef.current(); }, delay);
-  }, [retryCountRef, shouldReconnectRef]);
-
   const handleMaxRetriesExceeded = useCallback(() => {
     setStatus("error");
     setError("Connection lost. Max retries exceeded.");
     onErrorRef.current?.("Connection lost. Max retries exceeded.");
-  }, [setError, setStatus, onErrorRef]);
+  }, [onErrorRef, setError, setStatus]);
 
-  // ── Close handler ────────────────────────────────────────────────────
+  const attemptReconnect = useCallback(() => {
+    connectRef.current();
+  }, []);
+
+  const { scheduleReconnect, reset } = useReconnectionBackoff({
+    retryCountRef,
+    shouldReconnectRef,
+    onReconnect: attemptReconnect,
+  });
 
   const handleClose = useCallback((event: CloseEvent, connectionTimeoutId: NodeJS.Timeout) => {
     clearTimeout(connectionTimeoutId);
-
-    const isAuthErr = event.code === 1006 && retryCountRef.current === 0 && statusRef.current === "connecting";
-    if (isAuthErr) {
-      void handleAuthError();
-      return;
+    const decision = reduceSocketState(
+      {
+        status: statusRef.current,
+        retryCount: retryCountRef.current,
+        shouldReconnect: shouldReconnectRef.current,
+        maxRetries,
+      },
+      { type: "close", code: event.code },
+    );
+    switch (decision.type) {
+      case "auth_error":
+        void handleAuthError();
+        break;
+      case "reconnect":
+        scheduleReconnect();
+        break;
+      case "give_up":
+        handleMaxRetriesExceeded();
+        break;
+      case "ignore":
+        break;
     }
-
-    const isTerminal = statusRef.current === "completed" || statusRef.current === "error";
-    if (isTerminal) return;
-
-    if (shouldReconnectRef.current && retryCountRef.current < maxRetries) {
-      scheduleReconnect();
-    } else if (retryCountRef.current >= maxRetries) {
-      handleMaxRetriesExceeded();
-    }
-  }, [maxRetries, retryCountRef, shouldReconnectRef, statusRef, handleAuthError, scheduleReconnect, handleMaxRetriesExceeded]);
+  }, [handleAuthError, handleMaxRetriesExceeded, maxRetries, retryCountRef, scheduleReconnect, shouldReconnectRef, statusRef]);
 
   // ── Connect ──────────────────────────────────────────────────────────
 
   const connect = useCallback(() => {
     if (!jobId) return;
-    if (socketRef.current) { socketRef.current.close(); socketRef.current = null; }
+    if (socketRef.current) {
+      socketRef.current.close();
+      socketRef.current = null;
+    }
     const url = buildWebSocketUrl(jobId);
-    setStatus("connecting"); setError(null);
+    setStatus("connecting");
+    setError(null);
     try {
       const socket = new WebSocket(url);
       socketRef.current = socket;
@@ -125,15 +139,22 @@ export function useReportStreamSocket({
         if (socket.readyState === WebSocket.CONNECTING) socket.close();
       }, 3000);
       socket.onopen = () => {
-        clearTimeout(connectionTimeoutId); setStatus("streaming"); retryCountRef.current = 0;
+        clearTimeout(connectionTimeoutId);
+        setStatus("streaming");
+        reset();
         pingIntervalRef.current = setInterval(() => {
           if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "ping" }));
         }, 30000);
       };
       socket.onmessage = handleMessage;
-      socket.onclose = (event) => { handleClose(event, connectionTimeoutId); };
-    } catch { setStatus("error"); setError("Failed to establish connection"); }
-  }, [jobId, handleMessage, setError, setStatus, retryCountRef, handleClose]);
+      socket.onclose = (event) => {
+        handleClose(event, connectionTimeoutId);
+      };
+    } catch {
+      setStatus("error");
+      setError("Failed to establish connection");
+    }
+  }, [handleClose, handleMessage, jobId, reset, setError, setStatus]);
 
   useEffect(() => {
     connectRef.current = connect;
@@ -156,14 +177,14 @@ export function useReportStreamSocket({
   // ── Reconnect (manual) ───────────────────────────────────────────────
 
   const reconnect = useCallback(() => {
-    retryCountRef.current = 0;
+    reset();
     shouldReconnectRef.current = true;
     chunksRef.current = [];
     setChunks([]);
     setProgress(0);
     setError(null);
     connect();
-  }, [connect, chunksRef, setChunks, setError, setProgress, retryCountRef, shouldReconnectRef]);
+  }, [chunksRef, connect, reset, setChunks, setError, setProgress, shouldReconnectRef]);
 
   // ── Lifecycle: connect on mount / jobId change, cleanup on unmount ───
 
@@ -182,7 +203,7 @@ export function useReportStreamSocket({
     return () => {
       disconnect();
     };
-  }, [jobId, connect, disconnect, chunksRef, retryCountRef, shouldReconnectRef, totalBatchesRef]);
+  }, [chunksRef, connect, disconnect, jobId, retryCountRef, shouldReconnectRef, totalBatchesRef]);
 
   return { connect, disconnect, reconnect };
 }
