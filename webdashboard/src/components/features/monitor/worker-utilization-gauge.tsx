@@ -77,7 +77,6 @@ export default function WorkerUtilizationGauge({ data, isLoading }: Props) {
                 "text-3xl font-black tracking-tighter tabular-nums transition-colors duration-500",
                 percentColor
               )}
-              style={{ fontVariantNumeric: "tabular-nums" }}
             >
               {data.percent}%
             </span>

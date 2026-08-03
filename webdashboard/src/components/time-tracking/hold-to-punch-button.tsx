@@ -58,7 +58,7 @@ export function HoldToPunchButton({ onPunch, isPunching, label, isActive }: Hold
   }, [isPunching]);
 
   return (
-    <Button className={`relative w-full overflow-hidden py-6 rounded-[1.5rem] font-bold uppercase tracking-widest text-xs transition-all shadow-2xl z-10 disabled:opacity-50 select-none ${
+    <Button className={`relative w-full overflow-hidden py-6 rounded-[1.5rem] font-bold uppercase tracking-widest text-xs transition-all shadow-2xl z-10 disabled:opacity-50 select-none touch-none ${
         isActive 
           ? 'bg-rose-600 text-white shadow-rose-200 dark:shadow-rose-900/20 hover:bg-rose-700' 
           : 'bg-primary-600 text-white shadow-primary-200 dark:shadow-primary-900/20 hover:bg-primary-700'
@@ -87,7 +87,6 @@ export function HoldToPunchButton({ onPunch, isPunching, label, isActive }: Hold
         }
         endHold();
       }}
-      style={{ touchAction: "none" }} // Prevent scrolling while holding
       variant="ghost"
     >
       <div 

@@ -9,10 +9,10 @@ export function DashboardMockup() {
       className="w-full max-w-[400px] mx-auto"
     >
       {/* App window chrome */}
-      <div className="rounded-2xl overflow-hidden shadow-2xl border border-white/10" style={{ background: "rgba(255,255,255,0.06)", backdropFilter: "blur(12px)" }}>
+      <div className="rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-white/[0.06] backdrop-blur-[12px]">
 
         {/* Title bar */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-white/8" style={{ background: "rgba(255,255,255,0.04)" }}>
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-white/8 bg-white/[0.04]">
           <div className="flex gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-rose-400/60" />
             <div className="w-2.5 h-2.5 rounded-full bg-amber-400/60" />
@@ -27,9 +27,8 @@ export function DashboardMockup() {
           <div className="grid grid-cols-3 gap-2">
             {STAT_CARDS.map(({ value, label, color, border }) => (
               <div
-                className={`rounded-xl p-3 bg-gradient-to-br ${color} border ${border}`}
+                className={`rounded-xl p-3 bg-gradient-to-br ${color} border ${border} animate-[auth-fade-in_0.5s_ease-out_both]`}
                 key={label}
-                style={{ animation: "auth-fade-in 0.5s ease-out both" }}
               >
                 <Typography className="text-white font-bold text-lg leading-none" variant="p">{value}</Typography>
                 <Typography className="text-white/50 text-[10px] font-medium mt-1 uppercase tracking-wide" variant="p">{label}</Typography>
@@ -38,7 +37,7 @@ export function DashboardMockup() {
           </div>
 
           {/* Attendance chart */}
-          <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
+          <div className="rounded-xl p-3 bg-white/[0.04]">
             <Typography className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-3" variant="p">Weekly Attendance</Typography>
             <div className="flex items-end gap-1.5 h-14">
               {ATTENDANCE_BARS.map((h, i) => (

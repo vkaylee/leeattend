@@ -95,7 +95,7 @@ function ProgressBar({ percentage, status }: { percentage: number; status: strin
   return (
     <div className="h-2.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner border border-slate-200 dark:border-slate-700/50 relative">
       <div className={cn("h-full transition-all duration-1000 shadow-xl", status === "failed" ? "bg-rose-400 dark:bg-rose-500" : status === "partially_failed" ? "bg-amber-400 dark:bg-amber-500" : "bg-primary-600")} style={{ width: `${percentage.toString()}%` }}>
-         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
+         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer bg-[length:200%_100%]" />
       </div>
     </div>
   );

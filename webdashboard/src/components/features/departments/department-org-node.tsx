@@ -123,16 +123,16 @@ const DepartmentNodeHandles = ({
     <>
       {targetPosition === "left" ? (
         <Handle
+          className="!top-[46px] !bg-slate-300 !border !border-slate-400 !w-2 !h-2"
           id="left-target"
           position={Position.Left}
-          style={{ top: "46px", background: "#cbd5e1", border: "1px solid #94a3b8", width: "8px", height: "8px" }}
           type="target"
         />
       ) : (
         <Handle
+          className="!left-1/2 !bg-slate-300 !border !border-slate-400 !w-2 !h-2"
           id="top-target"
           position={Position.Top}
-          style={{ left: "50%", background: "#cbd5e1", border: "1px solid #94a3b8", width: "8px", height: "8px" }}
           type="target"
         />
       )}
@@ -140,16 +140,16 @@ const DepartmentNodeHandles = ({
       {hasSource ? (
         sourcePosition === "left" ? (
           <Handle
+            className="!top-[46px] !bg-slate-300 !border !border-slate-400 !w-2 !h-2"
             id="left-source"
             position={Position.Left}
-            style={{ top: "46px", background: "#cbd5e1", border: "1px solid #94a3b8", width: "8px", height: "8px" }}
             type="source"
           />
         ) : (
           <Handle
+            className="!left-1/2 !bg-slate-300 !border !border-slate-400 !w-2 !h-2"
             id="bottom-source"
             position={Position.Bottom}
-            style={{ left: "50%", background: "#cbd5e1", border: "1px solid #94a3b8", width: "8px", height: "8px" }}
             type="source"
           />
         )
@@ -180,7 +180,7 @@ export const DepartmentNode = ({ data }: { data: DepartmentNodeData }) => {
   const hasChildren = node.children.length > 0;
 
   return (
-    <div className="relative text-left" style={{ width: "260px" }}>
+    <div className="relative text-left w-[260px]">
       <DepartmentNodeHandles
         hasSource={hasSource}
         sourcePosition={sourcePosition}

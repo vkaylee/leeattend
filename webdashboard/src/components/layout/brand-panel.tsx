@@ -22,18 +22,15 @@ export function BrandPanel() {
       {/* Decorative blobs */}
       <div
         aria-hidden="true"
-        className="absolute top-[-15%] right-[-25%] w-[70%] h-[55%] rounded-full blur-[140px] pointer-events-none"
-        style={{ background: "var(--primary-600)", opacity: 0.18 }}
+        className="absolute top-[-15%] right-[-25%] w-[70%] h-[55%] rounded-full blur-[140px] pointer-events-none bg-[var(--primary-600)] opacity-[0.18]"
       />
       <div
         aria-hidden="true"
-        className="absolute bottom-[-20%] left-[-15%] w-[55%] h-[55%] rounded-full blur-[120px] pointer-events-none"
-        style={{ background: "var(--primary-500)", opacity: 0.12 }}
+        className="absolute bottom-[-20%] left-[-15%] w-[55%] h-[55%] rounded-full blur-[120px] pointer-events-none bg-[var(--primary-500)] opacity-[0.12]"
       />
       <div
         aria-hidden="true"
-        className="absolute top-[40%] left-[10%] w-[40%] h-[30%] rounded-full blur-[80px] pointer-events-none"
-        style={{ background: "var(--primary-400)", opacity: 0.08 }}
+        className="absolute top-[40%] left-[10%] w-[40%] h-[30%] rounded-full blur-[80px] pointer-events-none bg-[var(--primary-400)] opacity-[0.08]"
       />
 
       {/* Content */}
@@ -50,18 +47,13 @@ export function BrandPanel() {
         {/* Headline */}
         <div>
           <Typography
-            className="text-white font-bold leading-tight tracking-tight"
-            style={{
-              fontSize: "clamp(1.6rem, 2.2vw, 2.4rem)",
-              animation: "auth-fade-in 0.6s ease-out both",
-            }}
+            className="text-white font-bold leading-tight tracking-tight text-[clamp(1.6rem,2.2vw,2.4rem)] animate-[auth-fade-in_0.6s_ease-out_both]"
             variant="h2"
           >
             {t("auth.brand.headline")}
           </Typography>
           <Typography
-            className="text-white/40 text-xs font-semibold uppercase tracking-[0.25em] mt-2"
-            style={{ animation: "auth-fade-in 0.6s ease-out 0.1s both" }}
+            className="text-white/40 text-xs font-semibold uppercase tracking-[0.25em] mt-2 animate-[auth-fade-in_0.6s_ease-out_0.1s_both]"
             variant="p"
           >
             {t("auth.brand.subline")}
@@ -70,8 +62,7 @@ export function BrandPanel() {
 
         {/* Dashboard mockup */}
         <div
-          className="flex-1 flex items-center"
-          style={{ animation: "auth-fade-in 0.7s ease-out 0.2s both" }}
+          className="flex-1 flex items-center animate-[auth-fade-in_0.7s_ease-out_0.2s_both]"
         >
           <DashboardMockup />
         </div>

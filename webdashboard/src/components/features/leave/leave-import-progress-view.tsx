@@ -163,7 +163,7 @@ export function LeaveImportProgressView({ importJob, isProcessing, isFinished, w
           )}
           style={{ width: `${importJob.total_rows ? (importJob.processed_rows / importJob.total_rows) * 100 : (isProcessing ? 15 : 0)}%` }}
         >
-          {isProcessing ? <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%' }} /> : null}
+          {isProcessing ? <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer bg-[length:200%_100%]" /> : null}
         </div>
       </div>
 

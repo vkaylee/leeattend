@@ -206,7 +206,7 @@ export default function TurnoverAnalyticsChart() {
                     {t("common.no_data")}
                 </div>
             ) : (
-                <div style={{ height: 320 }}>
+                <div className="h-[320px]">
                     {activeTab === "tenure" && <TenureChart data={data.tenure_distribution} />}
                     {activeTab === "source" && <SourceChart data={data.by_source} t={t} />}
                     {activeTab === "department" && <DepartmentChart data={data.by_department} />}

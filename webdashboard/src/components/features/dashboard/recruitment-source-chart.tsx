@@ -119,7 +119,7 @@ export default function RecruitmentSourceChart() {
             <RecruitmentHeader t={t} />
 
             <div className="flex flex-col lg:flex-row items-center gap-4">
-                <div className="w-full lg:w-1/2" style={{ height: 260 }}>
+                <div className="w-full lg:w-1/2 h-[260px]">
                     <ResponsiveContainer height="100%" width="100%">
                         <PieChart>
                             <Pie

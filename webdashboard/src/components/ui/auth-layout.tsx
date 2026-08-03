@@ -38,13 +38,11 @@ export function AuthLayout({ children }: AuthLayoutProps) {
           {/* Subtle background glow — mobile only */}
           <div
             aria-hidden="true"
-            className="absolute top-[-15%] left-[-15%] w-[60%] h-[60%] rounded-full blur-[120px] opacity-40 lg:hidden"
-            style={{ background: "var(--primary-100)" }}
+            className="absolute top-[-15%] left-[-15%] w-[60%] h-[60%] rounded-full blur-[120px] opacity-40 lg:hidden bg-[var(--primary-100)]"
           />
           <div
             aria-hidden="true"
-            className="absolute bottom-[-15%] right-[-15%] w-[60%] h-[60%] rounded-full blur-[100px] opacity-30 lg:hidden"
-            style={{ background: "color-mix(in oklch, var(--primary-100) 40%, transparent)" }}
+            className="absolute bottom-[-15%] right-[-15%] w-[60%] h-[60%] rounded-full blur-[100px] opacity-30 lg:hidden bg-[color-mix(in_oklch,var(--primary-100)_40%,transparent)]"
           />
 
           {/* Language switcher — top-right corner, pre-auth safe */}

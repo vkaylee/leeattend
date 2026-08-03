@@ -71,11 +71,11 @@ const Modal = memo(function Modal({
             "modal-content",
             "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[10000]",
             "bg-white dark:bg-slate-900 w-full rounded-[3rem] shadow-premium-2xl border border-white/60 dark:border-slate-700/60 animate-in zoom-in-95 duration-500 overflow-hidden",
+            "max-h-[90vh] flex flex-col",
             maxWidthMap[maxWidth],
             className
           )}
           data-testid={testId}
-          style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
         >
           {!title && <Dialog.Title className="sr-only">Dialog</Dialog.Title>}
           {!subtitle && <Dialog.Description className="sr-only">{title ? `${title} description` : "Dialog description"}</Dialog.Description>}
@@ -118,7 +118,7 @@ const Modal = memo(function Modal({
           )}
 
           {/* Body — scrollable area */}
-          <div className="p-8" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
+          <div className="p-8 overflow-y-auto flex-1 min-h-0">
             {children}
           </div>
         </Dialog.Content>
