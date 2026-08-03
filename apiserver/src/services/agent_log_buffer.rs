@@ -326,13 +326,7 @@ async fn trigger_batch_pairing(
                 continue;
             };
             if let Err(e) = pairing_service
-                .reprocess_attendance_range(
-                    *workspace_id,
-                    *employment_id,
-                    min_date,
-                    max_date,
-                    tz,
-                )
+                .reprocess_attendance_range(*workspace_id, *employment_id, min_date, max_date, tz)
                 .await
             {
                 error!(

@@ -142,7 +142,10 @@ async fn resolve_behalf_employee_ids(
         let dept_map = state
             .employees()
             .repo()
-            .get_employee_departments_at(&ctx.auth_token, crate::utils::tz::utc_now_date_in_tz(&workspace_tz))
+            .get_employee_departments_at(
+                &ctx.auth_token,
+                crate::utils::tz::utc_now_date_in_tz(&workspace_tz),
+            )
             .await?;
 
         for emp in &active_employees {

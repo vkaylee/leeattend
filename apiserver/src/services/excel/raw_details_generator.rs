@@ -143,11 +143,12 @@ pub fn generate(
         worksheet.write_string(row, 4, report.segment_type.as_deref().unwrap_or(""))?;
         worksheet.write_string(row, 5, report.interval_name.as_deref().unwrap_or(""))?;
         worksheet.write_string_with_format(
-            row, 6, format_time(report.scheduled_start), &time_fmt,
+            row,
+            6,
+            format_time(report.scheduled_start),
+            &time_fmt,
         )?;
-        worksheet.write_string_with_format(
-            row, 7, format_time(report.scheduled_end), &time_fmt,
-        )?;
+        worksheet.write_string_with_format(row, 7, format_time(report.scheduled_end), &time_fmt)?;
         // Multi-punch columns (8-13): In 1 / Out 1 / In 2 / Out 2 / In 3 / Out 3
         worksheet.write_string_with_format(row, 8, &in1, &time_fmt)?;
         worksheet.write_string_with_format(row, 9, &out1, &time_fmt)?;

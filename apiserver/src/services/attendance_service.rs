@@ -23,9 +23,9 @@
 //! // result.standard_minutes(), result, ot_minutes(), result.standard_units(), etc.
 //! ```
 
-use chrono::{DateTime, NaiveDate};
 #[cfg(test)]
 use chrono::NaiveTime;
+use chrono::{DateTime, NaiveDate};
 use chrono_tz::Tz;
 use uuid::Uuid;
 
@@ -2608,13 +2608,9 @@ mod tests {
 
         /// Construct a UTC DateTime from a local date/time in a specific timezone.
         fn dt_local(tz: Tz, date: NaiveDate, h: u32, m: u32) -> chrono::DateTime<Utc> {
-            crate::utils::tz::naive_time_to_tz(
-                NaiveTime::from_hms_opt(h, m, 0).unwrap(),
-                date,
-                tz,
-            )
-            .expect("valid local time")
-            .with_timezone(&Utc)
+            crate::utils::tz::naive_time_to_tz(NaiveTime::from_hms_opt(h, m, 0).unwrap(), date, tz)
+                .expect("valid local time")
+                .with_timezone(&Utc)
         }
 
         #[test]
@@ -2625,12 +2621,7 @@ mod tests {
             let date = NaiveDate::from_ymd_opt(2026, 3, 7).unwrap();
 
             let punch_in = dt_local(tz, date, 22, 0); // 22:00 EST = 03:00 UTC Mar 8
-            let punch_out = dt_local(
-                tz,
-                NaiveDate::from_ymd_opt(2026, 3, 8).unwrap(),
-                6,
-                0,
-            ); // 06:00 EDT = 10:00 UTC Mar 8
+            let punch_out = dt_local(tz, NaiveDate::from_ymd_opt(2026, 3, 8).unwrap(), 6, 0); // 06:00 EDT = 10:00 UTC Mar 8
 
             let r = ComputeDailyInputBuilder::new()
                 .tz(tz)
@@ -2657,12 +2648,7 @@ mod tests {
             let date = NaiveDate::from_ymd_opt(2026, 10, 31).unwrap();
 
             let punch_in = dt_local(tz, date, 22, 0); // 22:00 EDT = 02:00 UTC Nov 1
-            let punch_out = dt_local(
-                tz,
-                NaiveDate::from_ymd_opt(2026, 11, 1).unwrap(),
-                6,
-                0,
-            ); // 06:00 EST = 11:00 UTC Nov 1
+            let punch_out = dt_local(tz, NaiveDate::from_ymd_opt(2026, 11, 1).unwrap(), 6, 0); // 06:00 EST = 11:00 UTC Nov 1
 
             let r = ComputeDailyInputBuilder::new()
                 .tz(tz)
@@ -2715,12 +2701,7 @@ mod tests {
             let date = NaiveDate::from_ymd_opt(2026, 6, 15).unwrap();
 
             let punch_in = dt_local(tz, date, 22, 0);
-            let punch_out = dt_local(
-                tz,
-                NaiveDate::from_ymd_opt(2026, 6, 16).unwrap(),
-                6,
-                0,
-            );
+            let punch_out = dt_local(tz, NaiveDate::from_ymd_opt(2026, 6, 16).unwrap(), 6, 0);
 
             let r = ComputeDailyInputBuilder::new()
                 .tz(tz)

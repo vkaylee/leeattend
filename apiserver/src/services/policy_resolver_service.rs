@@ -768,8 +768,7 @@ mod tests {
             .withf(move |_, _, effective_time| {
                 // Local midnight: 2025-12-31 17:00 UTC (NOT 2026-01-01 00:00 UTC)
                 effective_time.hour() == 17
-                    && effective_time.date_naive()
-                        == NaiveDate::from_ymd_opt(2025, 12, 31).unwrap()
+                    && effective_time.date_naive() == NaiveDate::from_ymd_opt(2025, 12, 31).unwrap()
             })
             .returning(|_, _, _| Ok(None));
 
@@ -856,8 +855,7 @@ mod tests {
             .withf(move |_, _, effective_time| {
                 // Tokyo midnight (UTC+9) = 15:00 UTC previous day
                 effective_time.hour() == 15
-                    && effective_time.date_naive()
-                        == NaiveDate::from_ymd_opt(2026, 6, 14).unwrap()
+                    && effective_time.date_naive() == NaiveDate::from_ymd_opt(2026, 6, 14).unwrap()
             })
             .returning(|_, _, _| Ok(HashMap::new()));
 

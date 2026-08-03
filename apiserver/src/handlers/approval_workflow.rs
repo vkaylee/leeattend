@@ -4,7 +4,7 @@ use crate::{
     handlers::common::MemberContext,
     models::{
         ApprovalAction, ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowTask,
-        CreateWorkflowRequest, UpdateWorkflowRequest, PaginatedResponse,
+        CreateWorkflowRequest, PaginatedResponse, UpdateWorkflowRequest,
     },
     utils::i18n::I18nKey,
     AppState,
@@ -197,7 +197,10 @@ pub async fn update_workflow(
         .update_workflow_definition(&ctx.auth_token, existing_wf, existing_steps.clone())
         .await?;
 
-    Ok(Json(serialize_workflow_with_steps(&updated_wf, &updated_steps)?))
+    Ok(Json(serialize_workflow_with_steps(
+        &updated_wf,
+        &updated_steps,
+    )?))
 }
 
 /// DELETE /workspaces/{ws_id}/approval-workflows/{id}

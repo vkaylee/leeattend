@@ -540,9 +540,8 @@ pub(super) fn build_break_split_sessions_json(
                     att_rules.work_unit_minutes,
                     att_rules.rounding_policy,
                 );
-            let ot_mins = buckets.early_ot_minutes
-                + buckets.late_ot_minutes
-                + buckets.break_ot_minutes;
+            let ot_mins =
+                buckets.early_ot_minutes + buckets.late_ot_minutes + buckets.break_ot_minutes;
             let ot_units =
                 crate::services::attendance_calculator::AttendanceCalculator::calculate_units(
                     ot_mins,
@@ -721,9 +720,16 @@ fn build_segment_report_rows(
 
         // If this segment has break-split entries, attach per-session detail
         // so the frontend can render a session breakdown tooltip / expand row.
-        if let Some(sessions_json) =
-            build_break_split_sessions_json(seg, matched, &segment_calc_inputs[seg_idx], att_rules, tz, holiday_entry, is_on_leave, segment_grace)
-        {
+        if let Some(sessions_json) = build_break_split_sessions_json(
+            seg,
+            matched,
+            &segment_calc_inputs[seg_idx],
+            att_rules,
+            tz,
+            holiday_entry,
+            is_on_leave,
+            segment_grace,
+        ) {
             generation_metadata.insert("sessions".to_string(), sessions_json);
         }
 
@@ -912,9 +918,7 @@ pub(super) fn build_segment_calc_inputs<'a>(
                         actual_break_minutes: break_minutes_overlapping_session(entry),
                         break_start: seg.break_start.and_then(|t| {
                             // Overnight segment: break times < shift_start belong to next calendar day
-                            if seg.scheduled_end < seg.scheduled_start
-                                && t < seg.scheduled_start
-                            {
+                            if seg.scheduled_end < seg.scheduled_start && t < seg.scheduled_start {
                                 crate::utils::tz::naive_time_to_tz(
                                     t,
                                     date + chrono::Duration::days(1),
@@ -925,9 +929,7 @@ pub(super) fn build_segment_calc_inputs<'a>(
                             }
                         }),
                         break_end: seg.break_end.and_then(|t| {
-                            if seg.scheduled_end < seg.scheduled_start
-                                && t < seg.scheduled_start
-                            {
+                            if seg.scheduled_end < seg.scheduled_start && t < seg.scheduled_start {
                                 crate::utils::tz::naive_time_to_tz(
                                     t,
                                     date + chrono::Duration::days(1),

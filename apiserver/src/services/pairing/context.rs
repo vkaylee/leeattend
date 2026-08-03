@@ -264,7 +264,10 @@ mod tests {
 
         // Duration should be 23h (spring-forward)
         let hours = e.signed_duration_since(s).num_hours();
-        assert_eq!(hours, 23, "Spring-forward fetch window should be 23h, got {hours}h");
+        assert_eq!(
+            hours, 23,
+            "Spring-forward fetch window should be 23h, got {hours}h"
+        );
     }
 
     #[test]
@@ -278,7 +281,10 @@ mod tests {
 
         // Duration should be 25h (fall-back)
         let hours = e.signed_duration_since(s).num_hours();
-        assert_eq!(hours, 25, "Fall-back fetch window should be 25h, got {hours}h");
+        assert_eq!(
+            hours, 25,
+            "Fall-back fetch window should be 25h, got {hours}h"
+        );
     }
 
     #[test]
@@ -291,6 +297,9 @@ mod tests {
 
         // Duration should be 24h
         let hours = e.signed_duration_since(s).num_hours();
-        assert_eq!(hours, 24, "Normal day fetch window should be 24h, got {hours}h");
+        assert_eq!(
+            hours, 24,
+            "Normal day fetch window should be 24h, got {hours}h"
+        );
     }
 }

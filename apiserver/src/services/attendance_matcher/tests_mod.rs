@@ -1344,14 +1344,16 @@ mod scoring_helpers {
             0,
         );
 
-        let (start, end) =
-            resolve_shift_window(ny_tz, date, &interval).expect("should resolve");
+        let (start, end) = resolve_shift_window(ny_tz, date, &interval).expect("should resolve");
 
         assert_eq!(start.date_naive(), date);
         assert_eq!(start.hour(), 22);
 
         // Wall-clock preserved: 06:00 on Mar 8 (EDT)
-        assert_eq!(end.date_naive(), NaiveDate::from_ymd_opt(2026, 3, 8).unwrap());
+        assert_eq!(
+            end.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 3, 8).unwrap()
+        );
         assert_eq!(end.hour(), 6);
 
         // Duration: 7h (spring-forward lost 1h)
@@ -1370,11 +1372,13 @@ mod scoring_helpers {
             0,
         );
 
-        let (start, end) =
-            resolve_shift_window(ny_tz, date, &interval).expect("should resolve");
+        let (start, end) = resolve_shift_window(ny_tz, date, &interval).expect("should resolve");
 
         assert_eq!(start.date_naive(), date);
-        assert_eq!(end.date_naive(), NaiveDate::from_ymd_opt(2026, 11, 1).unwrap());
+        assert_eq!(
+            end.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 11, 1).unwrap()
+        );
         assert_eq!(end.hour(), 6);
 
         // Duration: 9h (fall-back gained 1h)

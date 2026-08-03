@@ -467,7 +467,14 @@ mod tests {
             let shift_end = dt(utc(), 17, 0);
             let punch_in = dt(utc(), 7, 55);
             let punch_out = dt(utc(), 17, 5);
-            assert!(!detect_absence(punch_in, punch_out, shift_start, shift_end, 0, false));
+            assert!(!detect_absence(
+                punch_in,
+                punch_out,
+                shift_start,
+                shift_end,
+                0,
+                false
+            ));
         }
 
         #[test]
@@ -476,7 +483,14 @@ mod tests {
             let shift_end = dt(utc(), 17, 0);
             let punch_in = dt(utc(), 8, 10);
             let punch_out = dt(utc(), 17, 0);
-            assert!(detect_absence(punch_in, punch_out, shift_start, shift_end, 0, false));
+            assert!(detect_absence(
+                punch_in,
+                punch_out,
+                shift_start,
+                shift_end,
+                0,
+                false
+            ));
         }
 
         #[test]
@@ -485,7 +499,14 @@ mod tests {
             let shift_end = dt(utc(), 17, 0);
             let punch_in = dt(utc(), 8, 0);
             let punch_out = dt(utc(), 16, 50);
-            assert!(detect_absence(punch_in, punch_out, shift_start, shift_end, 0, false));
+            assert!(detect_absence(
+                punch_in,
+                punch_out,
+                shift_start,
+                shift_end,
+                0,
+                false
+            ));
         }
 
         #[test]
@@ -494,7 +515,14 @@ mod tests {
             let shift_end = dt(utc(), 17, 0);
             let punch_in = dt(utc(), 8, 10);
             let punch_out = dt(utc(), 16, 50);
-            assert!(detect_absence(punch_in, punch_out, shift_start, shift_end, 0, false));
+            assert!(detect_absence(
+                punch_in,
+                punch_out,
+                shift_start,
+                shift_end,
+                0,
+                false
+            ));
         }
 
         #[test]
@@ -503,7 +531,14 @@ mod tests {
             let shift_end = dt(utc(), 17, 0);
             let punch_in = dt(utc(), 9, 30); // very late
             let punch_out = dt(utc(), 14, 0); // very early
-            assert!(!detect_absence(punch_in, punch_out, shift_start, shift_end, 0, true));
+            assert!(!detect_absence(
+                punch_in,
+                punch_out,
+                shift_start,
+                shift_end,
+                0,
+                true
+            ));
         }
 
         #[test]
@@ -512,7 +547,14 @@ mod tests {
             let shift_end = dt(utc(), 17, 0);
             let punch_in = dt(utc(), 8, 5); // 5 min late but grace = 10
             let punch_out = dt(utc(), 17, 0);
-            assert!(!detect_absence(punch_in, punch_out, shift_start, shift_end, 10, false));
+            assert!(!detect_absence(
+                punch_in,
+                punch_out,
+                shift_start,
+                shift_end,
+                10,
+                false
+            ));
         }
     }
 

@@ -544,7 +544,12 @@ mod tests {
     fn no_show_shift_overlaps_spring_forward_day() {
         // Shift 22:00-06:00 on Mar 7 (day before spring-forward).
         // The shift ends at 06:00 EDT on Mar 8. Must overlap Mar 8.
-        let row = row_with("2026-03-07", "22:00:00", "06:00:00", AttendanceStatus::Absent);
+        let row = row_with(
+            "2026-03-07",
+            "22:00:00",
+            "06:00:00",
+            AttendanceStatus::Absent,
+        );
         let target = NaiveDate::from_ymd_opt(2026, 3, 8).unwrap();
         let now = at_utc(2026, 3, 8, 12, 0); // well past shift end
         assert!(should_include_in_no_show(&row, target, ny(), now));
