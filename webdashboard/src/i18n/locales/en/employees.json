@@ -494,6 +494,9 @@
       "start_date": "Start Date",
       "end_date": "End Date",
       "no_end_date": "Indefinite"
+    },
+    "lifecycle": {
+      "select_template_placeholder": "Select a template to assign..."
     }
   },
   "profile": {

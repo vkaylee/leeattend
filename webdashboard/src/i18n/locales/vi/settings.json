@@ -727,6 +727,10 @@
         "section_legal": "Thông tin pháp lý",
         "business_type_label": "Loại hình doanh nghiệp",
         "business_type_placeholder": "Chọn loại hình...",
+        "business_type_llc": "Công ty TNHH",
+        "business_type_corporation": "Công ty Cổ phần",
+        "business_type_sole_proprietorship": "Doanh nghiệp Tư nhân",
+        "business_type_partnership": "Công ty Hợp danh",
         "registration_number_label": "Số đăng ký kinh doanh",
         "registration_number_placeholder": "Nhập số ĐKKD...",
         "incorporation_date_label": "Ngày thành lập",
@@ -748,6 +752,20 @@
       "financial": "Khu vực tài chính",
       "error_country_code_invalid": "Mã quốc gia phải gồm đúng 3 ký tự (Ví dụ: VNM, USA)",
       "error_currency_code_invalid": "Mã tiền tệ phải gồm đúng 3 ký tự (Ví dụ: VND, USD)"
+    },
+    "lifecycle": {
+      "template": {
+        "category_hr_admin": "HR Admin",
+        "category_it_setup": "IT Setup",
+        "category_documentation": "Tài liệu",
+        "category_training": "Đào tạo",
+        "category_equipment": "Thiết bị",
+        "assignee_hr_manager": "Quản lý Nhân sự",
+        "assignee_direct_manager": "Quản lý Trực tiếp",
+        "assignee_it_admin": "Quản trị CNTT",
+        "assignee_employee": "Tự làm (Nhân viên)",
+        "assignee_specific_user": "Người dùng Cụ thể"
+      }
     },
     "expand_sidebar": "Mở rộng thanh bên",
     "collapse_sidebar": "Thu gọn thanh bên",

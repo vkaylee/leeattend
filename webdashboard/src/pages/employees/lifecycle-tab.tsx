@@ -1,12 +1,13 @@
 import { ClipboardList, Plus } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import type { LifecycleChecklistItem } from "@/lib/api/types";
 
-import { maybeNull } from "@/types/api-overrides";
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
+import { maybeNull } from "@/types/api-overrides";
 
 import { useLifecycleChecklistState } from "./hooks/use-lifecycle-checklist-state";
 import { formatChecklistType, ChecklistHeader, ChecklistItemRow } from "./lifecycle-checklist-components";
@@ -17,6 +18,7 @@ interface EmployeeLifecycleTabProps {
 }
 
 export default function EmployeeLifecycleTab({ employmentId }: EmployeeLifecycleTabProps) {
+  const { t } = useTranslation();
   const state = useLifecycleChecklistState(employmentId ?? "");
 
   if (!employmentId) {
@@ -46,7 +48,7 @@ export default function EmployeeLifecycleTab({ employmentId }: EmployeeLifecycle
             onChange={(e) => { state.setSelectedTemplateId(e.target.value); }}
             value={state.selectedTemplateId}
           >
-            <option value="">Select a template to assign...</option>
+            <option value="">{t("employees.lifecycle.select_template_placeholder", { defaultValue: "Select a template to assign..." })}</option>
             {state.availableTemplates.map((temp) => (
               <option key={temp.id} value={temp.id}>
                 {temp.name} ({formatChecklistType(temp.checklist_type)})

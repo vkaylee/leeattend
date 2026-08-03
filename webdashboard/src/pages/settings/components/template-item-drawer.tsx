@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import type {
   LifecycleChecklistTemplateItem,
@@ -49,6 +50,7 @@ interface TemplateItemDrawerProps {
 
   // eslint-disable-next-line max-lines-per-function
 export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }: TemplateItemDrawerProps) {
+  const { t } = useTranslation();
   const toast = useToast();
   const createMutation = useCreateLifecycleTemplateItem(templateId);
   const updateMutation = useUpdateLifecycleTemplateItem(templateId);
@@ -156,11 +158,11 @@ export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }:
               onChange={(e) => { setForm(prev => ({ ...prev, category: e.target.value as ChecklistCategory })); }}
               value={form.category}
             >
-              <option value="hr_admin">HR Admin</option>
-              <option value="it_setup">IT Setup</option>
-              <option value="documentation">Documentation</option>
-              <option value="training">Training</option>
-              <option value="equipment">Equipment</option>
+              <option value="hr_admin">{t("settings.lifecycle.template.category_hr_admin", { defaultValue: "HR Admin" })}</option>
+              <option value="it_setup">{t("settings.lifecycle.template.category_it_setup", { defaultValue: "IT Setup" })}</option>
+              <option value="documentation">{t("settings.lifecycle.template.category_documentation", { defaultValue: "Documentation" })}</option>
+              <option value="training">{t("settings.lifecycle.template.category_training", { defaultValue: "Training" })}</option>
+              <option value="equipment">{t("settings.lifecycle.template.category_equipment", { defaultValue: "Equipment" })}</option>
             </select>
           </div>
 
@@ -174,11 +176,11 @@ export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }:
               onChange={(e) => { setForm(prev => ({ ...prev, assigneeType: e.target.value as ChecklistAssigneeType })); }}
               value={form.assigneeType}
             >
-              <option value="hr_manager">HR Manager</option>
-              <option value="direct_manager">Direct Manager</option>
-              <option value="it_admin">IT Admin</option>
-              <option value="employee">Self (Employee)</option>
-              <option value="specific_user">Specific Workspace User</option>
+              <option value="hr_manager">{t("settings.lifecycle.template.assignee_hr_manager", { defaultValue: "HR Manager" })}</option>
+              <option value="direct_manager">{t("settings.lifecycle.template.assignee_direct_manager", { defaultValue: "Direct Manager" })}</option>
+              <option value="it_admin">{t("settings.lifecycle.template.assignee_it_admin", { defaultValue: "IT Admin" })}</option>
+              <option value="employee">{t("settings.lifecycle.template.assignee_employee", { defaultValue: "Self (Employee)" })}</option>
+              <option value="specific_user">{t("settings.lifecycle.template.assignee_specific_user", { defaultValue: "Specific Workspace User" })}</option>
             </select>
           </div>
         </div>

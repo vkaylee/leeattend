@@ -5,6 +5,7 @@ import type { LifecycleChecklistItem } from "@/lib/api/types";
 import Button from "@/components/ui/button";
 import FormField from "@/components/ui/form-field";
 import { Typography } from "@/components/ui/typography";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { cn } from "@/lib/utils";
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -14,6 +15,7 @@ export function formatChecklistType(raw: string): string {
 
 /** Checklist progress bar + status badge. */
 export function ChecklistHeader({ checklist }: { checklist: { checklist_type: string; progress_percent: number; started_at: string; status: string } }) {
+  const { formatDate } = useDateTimeFormatter();
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-50 dark:border-slate-800/60 pb-6">
       <div className="space-y-1">
@@ -21,7 +23,7 @@ export function ChecklistHeader({ checklist }: { checklist: { checklist_type: st
           {formatChecklistType(checklist.checklist_type)} CHECKLIST
         </Typography>
         <Typography className="text-xs text-slate-400" variant="p">
-          Started on {new Date(checklist.started_at).toLocaleDateString()}
+          Started on {formatDate(checklist.started_at)}
         </Typography>
       </div>
 
@@ -152,6 +154,7 @@ export function ChecklistItemRow({
   onNotesChange: (value: string) => void;
 }) {
   const isCompleted = item.status === "completed";
+  const { formatDate } = useDateTimeFormatter();
   const rowBg = isCompleted
     ? "bg-slate-50/20 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800/50 opacity-80"
     : "bg-white dark:bg-slate-950 border-slate-100 dark:border-slate-800 hover:border-slate-200 hover:shadow-sm";
@@ -198,7 +201,7 @@ export function ChecklistItemRow({
           {!!item.due_date && (
             <div className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
               <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
-              <span>Due: {new Date(item.due_date).toLocaleDateString()}</span>
+              <span>Due: {formatDate(item.due_date)}</span>
             </div>
           )}
 

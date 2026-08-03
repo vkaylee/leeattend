@@ -727,6 +727,10 @@
         "section_legal": "法律信息",
         "business_type_label": "企业类型",
         "business_type_placeholder": "请选择类型...",
+        "business_type_llc": "有限责任公司 (LLC)",
+        "business_type_corporation": "股份公司",
+        "business_type_sole_proprietorship": "个体工商户",
+        "business_type_partnership": "合伙企业",
         "registration_number_label": "工商注册号",
         "registration_number_placeholder": "请输入注册号...",
         "incorporation_date_label": "成立日期",
@@ -748,6 +752,20 @@
       "financial": "财务区域",
       "error_country_code_invalid": "国家代码必须恰好是3个字符（例如：VNM、USA）",
       "error_currency_code_invalid": "货币代码必须恰好是3个字符（例如：VND、USD）"
+    },
+    "lifecycle": {
+      "template": {
+        "category_hr_admin": "人事管理",
+        "category_it_setup": "IT 配置",
+        "category_documentation": "文档",
+        "category_training": "培训",
+        "category_equipment": "设备",
+        "assignee_hr_manager": "人事经理",
+        "assignee_direct_manager": "直属经理",
+        "assignee_it_admin": "IT 管理员",
+        "assignee_employee": "本人（员工）",
+        "assignee_specific_user": "指定工作区用户"
+      }
     },
     "expand_sidebar": "展开侧边栏",
     "collapse_sidebar": "收起侧边栏",

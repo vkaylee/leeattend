@@ -494,6 +494,9 @@
       "start_date": "Ngày bắt đầu",
       "end_date": "Ngày kết thúc",
       "no_end_date": "Vô thời hạn"
+    },
+    "lifecycle": {
+      "select_template_placeholder": "Chọn mẫu để gán..."
     }
   },
   "profile": {

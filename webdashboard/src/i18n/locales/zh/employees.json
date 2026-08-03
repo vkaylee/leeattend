@@ -494,6 +494,9 @@
       "start_date": "开始日期",
       "end_date": "结束日期",
       "no_end_date": "无限期"
+    },
+    "lifecycle": {
+      "select_template_placeholder": "选择要分配的模板..."
     }
   },
   "profile": {

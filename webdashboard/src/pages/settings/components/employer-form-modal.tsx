@@ -180,10 +180,10 @@ export function EmployerFormModal({
                 value={formData.business_type}
               >
                 <option value="">{t("settings.employers.form.business_type_placeholder", { defaultValue: "Chọn loại hình..." })}</option>
-                <option value="llc">LLC (TNHH)</option>
-                <option value="corporation">Corporation (Cổ phần)</option>
-                <option value="sole_proprietorship">Sole Proprietorship (Tư nhân)</option>
-                <option value="partnership">Partnership (Hợp danh)</option>
+                <option value="llc">{t("settings.employers.form.business_type_llc", { defaultValue: "LLC (TNHH)" })}</option>
+                <option value="corporation">{t("settings.employers.form.business_type_corporation", { defaultValue: "Corporation (Cổ phần)" })}</option>
+                <option value="sole_proprietorship">{t("settings.employers.form.business_type_sole_proprietorship", { defaultValue: "Sole Proprietorship (Tư nhân)" })}</option>
+                <option value="partnership">{t("settings.employers.form.business_type_partnership", { defaultValue: "Partnership (Hợp danh)" })}</option>
               </select>
             </div>
 

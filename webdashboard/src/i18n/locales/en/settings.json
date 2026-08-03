@@ -727,6 +727,10 @@
         "section_legal": "Legal Information",
         "business_type_label": "Business Type",
         "business_type_placeholder": "Select type...",
+        "business_type_llc": "Limited Liability Company (LLC)",
+        "business_type_corporation": "Corporation / Joint Stock",
+        "business_type_sole_proprietorship": "Sole Proprietorship",
+        "business_type_partnership": "Partnership",
         "registration_number_label": "Registration Number",
         "registration_number_placeholder": "Enter registration number...",
         "incorporation_date_label": "Incorporation Date",
@@ -748,6 +752,20 @@
       "financial": "Financial Region",
       "error_country_code_invalid": "Country code must be exactly 3 characters (e.g., VNM, USA)",
       "error_currency_code_invalid": "Currency code must be exactly 3 characters (e.g., VND, USD)"
+    },
+    "lifecycle": {
+      "template": {
+        "category_hr_admin": "HR Admin",
+        "category_it_setup": "IT Setup",
+        "category_documentation": "Documentation",
+        "category_training": "Training",
+        "category_equipment": "Equipment",
+        "assignee_hr_manager": "HR Manager",
+        "assignee_direct_manager": "Direct Manager",
+        "assignee_it_admin": "IT Admin",
+        "assignee_employee": "Self (Employee)",
+        "assignee_specific_user": "Specific Workspace User"
+      }
     },
     "expand_sidebar": "Expand sidebar",
     "collapse_sidebar": "Collapse sidebar",
