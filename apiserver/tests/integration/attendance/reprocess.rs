@@ -78,7 +78,7 @@ async fn test_force_reprocess_attendance_api() {
         "Entries should be empty before reprocessing"
     );
 
-    // 3. Call the reprocess endpoint
+    // 3. Call the reprocess endpoint — now async, returns 202 ACCEPTED with job_id
     let res = app
         .oneshot(
             Request::builder()
@@ -94,7 +94,46 @@ async fn test_force_reprocess_attendance_api() {
         .await
         .unwrap();
 
-    assert_eq!(res.status(), StatusCode::OK);
+    assert_eq!(res.status(), StatusCode::ACCEPTED);
+
+    let body_bytes = axum::body::to_bytes(res.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body_json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    let parent_job_id = body_json["job_id"]
+        .as_str()
+        .unwrap()
+        .parse::<Uuid>()
+        .unwrap();
+
+    // Process the child job synchronously against test DB (same pattern as bulk test)
+    let redis = _state.infra().redis().unwrap();
+    let queue_repo: Arc<dyn apiserver::repositories::queue_repository::QueueRepository> = Arc::new(
+        apiserver::repositories::queue_repository::RedisQueueRepository::new(redis.clone()),
+    );
+    let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools);
+    let job = apiserver::queue::Job::with_priority(
+        parent_job_id,
+        0,
+        apiserver::queue::TaskType::ReprocessAttendance,
+        ws_id,
+        apiserver::queue::JobPayload::ReprocessAttendance(apiserver::queue::ReprocessPayload {
+            employment_id: Some(emp_employment_id),
+            employee_id: emp_id,
+            date_range: apiserver::queue::DateRange {
+                start: base_date,
+                end: base_date,
+            },
+        }),
+        apiserver::queue::JobPriority::Normal,
+    );
+    apiserver::worker::handlers::reprocess_attendance::ReprocessAttendanceHandler::handle(
+        &queue_repo,
+        &job,
+        &deps,
+    )
+    .await
+    .unwrap();
 
     // 4. Verify time_entries are now created correctly
     let entries = time_entry_repo
@@ -391,7 +430,7 @@ async fn test_force_reprocess_attendance_no_location_fallback_api() {
         "Entries should be empty before reprocessing"
     );
 
-    // 3. Call the reprocess endpoint
+    // 3. Call the reprocess endpoint — now async, returns 202 ACCEPTED with job_id
     let res = app
         .oneshot(
             Request::builder()
@@ -407,7 +446,46 @@ async fn test_force_reprocess_attendance_no_location_fallback_api() {
         .await
         .unwrap();
 
-    assert_eq!(res.status(), StatusCode::OK);
+    assert_eq!(res.status(), StatusCode::ACCEPTED);
+
+    let body_bytes = axum::body::to_bytes(res.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body_json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    let parent_job_id = body_json["job_id"]
+        .as_str()
+        .unwrap()
+        .parse::<Uuid>()
+        .unwrap();
+
+    // Process the child job synchronously against test DB
+    let redis = _state.infra().redis().unwrap();
+    let queue_repo: Arc<dyn apiserver::repositories::queue_repository::QueueRepository> = Arc::new(
+        apiserver::repositories::queue_repository::RedisQueueRepository::new(redis.clone()),
+    );
+    let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools);
+    let job = apiserver::queue::Job::with_priority(
+        parent_job_id,
+        0,
+        apiserver::queue::TaskType::ReprocessAttendance,
+        ws_id,
+        apiserver::queue::JobPayload::ReprocessAttendance(apiserver::queue::ReprocessPayload {
+            employment_id: Some(emp_employment_id),
+            employee_id: emp_id,
+            date_range: apiserver::queue::DateRange {
+                start: base_date,
+                end: base_date,
+            },
+        }),
+        apiserver::queue::JobPriority::Normal,
+    );
+    apiserver::worker::handlers::reprocess_attendance::ReprocessAttendanceHandler::handle(
+        &queue_repo,
+        &job,
+        &deps,
+    )
+    .await
+    .unwrap();
 
     // 4. Verify time_entries are now created correctly (verifying fallback worked)
     let entries = time_entry_repo
@@ -620,8 +698,72 @@ async fn test_concurrent_reprocess_does_not_double_insert_sessions() {
     };
 
     let (status1, status2) = tokio::join!(make_request(), make_request());
-    assert_eq!(status1, StatusCode::OK, "First reprocess must succeed");
-    assert_eq!(status2, StatusCode::OK, "Second reprocess must succeed");
+    assert_eq!(
+        status1,
+        StatusCode::ACCEPTED,
+        "First reprocess must accept"
+    );
+    assert_eq!(
+        status2,
+        StatusCode::ACCEPTED,
+        "Second reprocess must accept"
+    );
+
+    // Process both child jobs concurrently against the test DB, simulating
+    // what the background worker would do. The advisory lock in
+    // replace_time_entries must serialise them so we never get > 2 sessions.
+    let redis = _state.infra().redis().unwrap();
+    let queue_repo: Arc<dyn apiserver::repositories::queue_repository::QueueRepository> = Arc::new(
+        apiserver::repositories::queue_repository::RedisQueueRepository::new(redis.clone()),
+    );
+    let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools);
+    let date_range = apiserver::queue::DateRange {
+        start: base_date,
+        end: base_date,
+    };
+    let job1 = apiserver::queue::Job::with_priority(
+        Uuid::new_v4(),
+        0,
+        apiserver::queue::TaskType::ReprocessAttendance,
+        ws_id,
+        apiserver::queue::JobPayload::ReprocessAttendance(
+            apiserver::queue::ReprocessPayload {
+                employment_id: Some(emp_employment_id),
+                employee_id: emp_id,
+                date_range,
+            },
+        ),
+        apiserver::queue::JobPriority::Normal,
+    );
+    let date_range2 = apiserver::queue::DateRange {
+        start: base_date,
+        end: base_date,
+    };
+    let job2 = apiserver::queue::Job::with_priority(
+        Uuid::new_v4(),
+        0,
+        apiserver::queue::TaskType::ReprocessAttendance,
+        ws_id,
+        apiserver::queue::JobPayload::ReprocessAttendance(
+            apiserver::queue::ReprocessPayload {
+                employment_id: Some(emp_employment_id),
+                employee_id: emp_id,
+                date_range: date_range2,
+            },
+        ),
+        apiserver::queue::JobPriority::Normal,
+    );
+
+    let (r1, r2) = tokio::join!(
+        apiserver::worker::handlers::reprocess_attendance::ReprocessAttendanceHandler::handle(
+            &queue_repo, &job1, &deps
+        ),
+        apiserver::worker::handlers::reprocess_attendance::ReprocessAttendanceHandler::handle(
+            &queue_repo, &job2, &deps
+        ),
+    );
+    r1.unwrap();
+    r2.unwrap();
 
     // 4. Verify exactly 2 time entries were written: morning (07:22 -> 11:30)
     //    and afternoon (12:30 -> 16:45). No quadrupling.

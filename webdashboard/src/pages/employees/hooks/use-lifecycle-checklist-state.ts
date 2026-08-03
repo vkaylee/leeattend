@@ -9,7 +9,11 @@ import {
   useUpdateLifecycleChecklistItem,
   useLifecycleTemplates,
 } from "@/hooks/use-lifecycle";
-import { maybeNull } from "@/types/api-overrides";
+function getSortedItems(activeChecklist: { items?: LifecycleChecklistItem[] } | undefined): LifecycleChecklistItem[] {
+  const items = activeChecklist?.items;
+  if (!items || items.length === 0) return [];
+  return [...items].sort((a: LifecycleChecklistItem, b: LifecycleChecklistItem) => a.display_order - b.display_order);
+}
 
 export function useLifecycleChecklistState(employmentId: string) {
   const toast = useToast();
@@ -94,9 +98,7 @@ export function useLifecycleChecklistState(employmentId: string) {
     );
   }, [updateItemStatusMutation, toast, itemNotes]);
 
-  const sortedItems = maybeNull(activeChecklist)?.items
-    ? [...activeChecklist.items].sort((a: LifecycleChecklistItem, b: LifecycleChecklistItem) => a.display_order - b.display_order)
-    : [];
+  const sortedItems = getSortedItems(activeChecklist);
 
   return {
     // State
