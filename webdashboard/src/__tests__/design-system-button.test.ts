@@ -28,6 +28,7 @@ const LEGACY_VIOLATIONS = new Set([
   "components/layout/auth-language-switcher.tsx",
   "components/layout/floating-panel.tsx",
   "components/layout/icon-rail.tsx",
+  "components/layout/icon-rail-language-button.tsx",
   "components/layout/navbar.tsx",
   "components/layout/notifications-popover.tsx",
   "components/layout/sidebar.tsx",

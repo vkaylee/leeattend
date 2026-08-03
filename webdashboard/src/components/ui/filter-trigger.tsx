@@ -51,6 +51,39 @@ function CountBadge({ count, variant }: { count: number; variant: FilterTriggerV
   );
 }
 
+// ── Internal: IconButton variant renderer ──────────────────────────────
+
+function IconButtonTrigger({
+  label,
+  icon,
+  hasActive,
+  activeCount,
+  className,
+  ref,
+  ...restProps
+}: FilterTriggerProps & { ref: React.Ref<HTMLButtonElement> }) {
+  return (
+    <Button
+      aria-label={label}
+      className={cn(
+        "relative h-5 w-5 rounded transition-colors p-0 border-none shadow-none hover:bg-transparent",
+        hasActive
+          ? "text-primary-600 dark:text-primary-400"
+          : "text-slate-400 dark:text-slate-500 opacity-60 hover:opacity-100 hover:text-primary-600",
+        className,
+      )}
+      ref={ref}
+      title={label}
+      type="button"
+      variant="ghost"
+      {...restProps}
+    >
+      {icon ?? null}
+      <CountBadge count={activeCount} variant="icon-button" />
+    </Button>
+  );
+}
+
 // ── Component ────────────────────────────────────────────────────────
 
 /**
@@ -84,24 +117,20 @@ const FilterTrigger = forwardRef<HTMLButtonElement, FilterTriggerProps>(function
 
   if (variant === "icon-button") {
     return (
-      <Button
-        aria-label={label}
-        className={cn(
-          "relative h-5 w-5 rounded transition-colors p-0 border-none shadow-none hover:bg-transparent",
-          hasActive
-            ? "text-primary-600 dark:text-primary-400"
-            : "text-slate-400 dark:text-slate-500 opacity-60 hover:opacity-100 hover:text-primary-600",
+      <IconButtonTrigger
+        {...{
+          variant,
+          label,
+          icon,
+          activeCount,
+          hasActive,
+          chevron,
           className,
-        )}
+          children,
+          ...restProps,
+        }}
         ref={ref}
-        title={label}
-        type="button"
-        variant="ghost"
-        {...restProps}
-      >
-        {icon ?? null}
-        <CountBadge count={activeCount} variant="icon-button" />
-      </Button>
+      />
     );
   }
 
