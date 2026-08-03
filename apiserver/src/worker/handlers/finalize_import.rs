@@ -90,8 +90,10 @@ impl FinalizeImportHandler {
             }
         };
 
-        let status = if final_log.is_none() || processed_rows > 0 {
+        let status = if final_log.is_none() {
             ImportJobStatus::Completed
+        } else if processed_rows > 0 {
+            ImportJobStatus::PartiallyFailed
         } else {
             ImportJobStatus::Failed
         };

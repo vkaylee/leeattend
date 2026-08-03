@@ -66,7 +66,7 @@ function useLeaveImportStatus(wsId: string | null, isOpen: boolean, onImportComp
   }, [importJob?.status, wsId, startPolling]);
 
   const isProcessing = Boolean(importJob && (importJob.status === "processing" || importJob.status === "pending"));
-  const isFinished = Boolean(importJob && (importJob.status === "completed" || importJob.status === "failed"));
+  const isFinished = Boolean(importJob && (importJob.status === "completed" || importJob.status === "failed" || importJob.status === "partially_failed"));
 
   return { importJob, setImportJob, startPolling, isProcessing, isFinished };
 }

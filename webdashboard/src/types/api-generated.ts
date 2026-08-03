@@ -6346,7 +6346,7 @@ export interface components {
             };
         };
         /** @enum {string} */
-        ImportJobStatus: "pending" | "processing" | "completed" | "failed";
+        ImportJobStatus: "pending" | "processing" | "partially_failed" | "completed" | "failed";
         /** @enum {string} */
         ImportTargetType: "log" | "adjustment" | "employee" | "leave_import";
         IncentiveEvaluationResult: {

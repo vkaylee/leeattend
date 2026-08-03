@@ -318,7 +318,7 @@ export interface LeaveImportJob {
   error_log: string | null;
   id: string;
   processed_rows: number;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'partially_failed' | 'completed' | 'failed';
   total_rows: number;
   updated_at: string;
 }

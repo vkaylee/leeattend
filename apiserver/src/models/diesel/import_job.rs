@@ -20,6 +20,7 @@ impl ToSql<ImportJobStatusType, Pg> for ImportJobStatus {
         match *self {
             ImportJobStatus::Pending => out.write_all(b"pending")?,
             ImportJobStatus::Processing => out.write_all(b"processing")?,
+            ImportJobStatus::PartiallyFailed => out.write_all(b"partially_failed")?,
             ImportJobStatus::Completed => out.write_all(b"completed")?,
             ImportJobStatus::Failed => out.write_all(b"failed")?,
         }
@@ -32,9 +33,13 @@ impl FromSql<ImportJobStatusType, Pg> for ImportJobStatus {
         match bytes.as_bytes() {
             b"pending" => Ok(ImportJobStatus::Pending),
             b"processing" => Ok(ImportJobStatus::Processing),
+            b"partially_failed" => Ok(ImportJobStatus::PartiallyFailed),
             b"completed" => Ok(ImportJobStatus::Completed),
             b"failed" => Ok(ImportJobStatus::Failed),
-            _ => Err("Unrecognized enum variant".into()),
+            _ => {
+                tracing::warn!("Unknown ImportJobStatus from DB, treating as Failed");
+                Ok(ImportJobStatus::Failed)
+            }
         }
     }
 }

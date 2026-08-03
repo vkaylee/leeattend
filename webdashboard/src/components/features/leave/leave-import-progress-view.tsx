@@ -25,6 +25,7 @@ function getStatusIcon(status: string, hasError: boolean, isProcessing: boolean)
   if (isProcessing) return <Loader2 className="text-primary-600 dark:text-primary-400 animate-spin" size={20} />;
   if (status === "completed" && !hasError) return <CheckCircle2 className="text-emerald-500" size={20} />;
   if (status === "completed" && hasError) return <AlertTriangle className="text-amber-500" size={20} />;
+  if (status === "partially_failed") return <AlertTriangle className="text-amber-500" size={20} />;
   return <XCircle className="text-rose-500" size={20} />;
 }
 
@@ -32,6 +33,7 @@ function getStatusText(status: string, hasError: boolean, isProcessing: boolean,
   if (isProcessing) return t("leave_import.status.processing", "Đang xử lý...");
   if (status === "completed" && !hasError) return t("leave_import.status.completed", "Import thành công");
   if (status === "completed" && hasError) return t("leave_import.status.partial", "Import có lỗi");
+  if (status === "partially_failed") return t("leave_import.status.partially_failed", "Import một phần thành công");
   return t("leave_import.status.failed", "Import thất bại");
 }
 
@@ -134,7 +136,7 @@ function FailedDetails({ errorLog, importJob, t, wsId }: { errorLog: string; imp
 }
 
 function ErrorDetails({ getErrorInfo, importJob, t, wsId }: { getErrorInfo: (job: LeaveImportJob) => { success_count?: number; error_count?: number; error_file_path?: string } | null; importJob: LeaveImportJob; t: TFunction; wsId: string | null }) {
-  if (importJob.status === "completed" && importJob.error_log) {
+  if ((importJob.status === "completed" || importJob.status === "partially_failed") && importJob.error_log) {
     return <PartialSuccessDetails importJob={importJob} info={getErrorInfo(importJob)} t={t} wsId={wsId} />;
   }
   if (importJob.status === "failed" && importJob.error_log) {
@@ -155,7 +157,7 @@ export function LeaveImportProgressView({ importJob, isProcessing, isFinished, w
             "h-full transition-all duration-1000 shadow-xl",
             importJob.status === "failed"
               ? "bg-rose-400 dark:bg-rose-500"
-              : importJob.status === "completed" && importJob.error_log
+              : (importJob.status === "completed" && importJob.error_log) || importJob.status === "partially_failed"
                 ? "bg-amber-400 dark:bg-amber-500"
                 : "bg-primary-600"
           )}

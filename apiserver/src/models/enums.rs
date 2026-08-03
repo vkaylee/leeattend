@@ -156,6 +156,7 @@ pub enum LogSource {
 pub enum ImportJobStatus {
     Pending,
     Processing,
+    PartiallyFailed,
     Completed,
     Failed,
 }
@@ -710,6 +711,7 @@ mod tests {
         for status in [
             ImportJobStatus::Pending,
             ImportJobStatus::Processing,
+            ImportJobStatus::PartiallyFailed,
             ImportJobStatus::Completed,
             ImportJobStatus::Failed,
         ] {

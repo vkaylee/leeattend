@@ -60,7 +60,7 @@ function SuccessState({ importJob, t }: { importJob: LeaveImportJob; t: TFunctio
 }
 
 function PartialSuccessState({ importJob, wsId, t }: { importJob: LeaveImportJob; wsId: string; t: TFunction }) {
-  if (importJob.status !== 'completed' || !importJob.error_log) return null;
+  if ((importJob.status !== 'completed' && importJob.status !== 'partially_failed') || !importJob.error_log) return null;
   const info = getImportErrorInfo(importJob);
   const successCount = info?.success_count ?? importJob.processed_rows;
   const errorCount = info?.error_count ?? 0;
@@ -123,7 +123,7 @@ function getBannerClassName(job: LeaveImportJob) {
   if (job.status === 'completed' && !job.error_log) {
     return "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50";
   }
-  if (job.status === 'completed' && job.error_log) {
+  if (job.status === 'partially_failed' || (job.status === 'completed' && job.error_log)) {
     return "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50";
   }
   return "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50";

@@ -77,11 +77,18 @@ pub struct ImportPipeline<'a, S: ImportStrategy> {
         Option<std::sync::Arc<dyn crate::repositories::queue_repository::QueueRepository>>,
 }
 
+#[derive(Debug, Clone)]
+struct FailedRow {
+    data: HashMap<String, String>,
+    reason: String,
+    row_status: &'static str, // "error" or "skipped"
+}
+
 impl<S: ImportStrategy> ImportPipeline<'_, S> {
     #[allow(clippy::too_many_lines)]
     pub async fn run(mut self) -> Result<(), ()> {
         let mut errors = Vec::new();
-        let mut failed_rows_data: Vec<(HashMap<String, String>, String)> = Vec::new();
+        let mut failed_rows_data: Vec<FailedRow> = Vec::new();
         let mut pending_rows: Vec<(S::RowData, HashMap<String, String>)> = Vec::new();
 
         let lang = match self
@@ -121,7 +128,11 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                         Err(e) => {
                             let translated_err = e.translate(&lang);
                             errors.push(translated_err.clone());
-                            failed_rows_data.push((row_data, translated_err));
+                            failed_rows_data.push(FailedRow {
+                                data: row_data,
+                                reason: translated_err,
+                                row_status: "error",
+                            });
                         }
                     }
                 }
@@ -193,17 +204,21 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                 }
                 Ok(None) => {
                     skipped_rows += 1;
-                    failed_rows_data.push((
-                        raw_row_data,
-                        // i18n: use short English default; the skip count summary
-                        // below (L305 area) already provides the localized message
-                        "Skipped (duplicate or already exists)".to_string(),
-                    ));
+                    failed_rows_data.push(FailedRow {
+                        data: raw_row_data,
+                        reason:
+                            "Skipped (duplicate or already exists)".to_string(),
+                        row_status: "skipped",
+                    });
                 }
                 Err(e) => {
                     let translated_err = e.translate(&lang);
                     errors.push(translated_err.clone());
-                    failed_rows_data.push((raw_row_data, translated_err));
+                    failed_rows_data.push(FailedRow {
+                        data: raw_row_data,
+                        reason: translated_err,
+                        row_status: "error",
+                    });
                 }
             }
 
@@ -251,8 +266,10 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
             }
         }
 
-        let status = if (errors.is_empty() && skipped_rows == 0) || processed_rows > 0 {
+        let status = if errors.is_empty() && skipped_rows == 0 {
             ImportJobStatus::Completed
+        } else if processed_rows > 0 {
+            ImportJobStatus::PartiallyFailed
         } else {
             ImportJobStatus::Failed
         };
@@ -273,6 +290,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
 
             // Dynamically write headers based on what was provided in failed rows
             let mut all_headers = self.strategy.expected_headers().to_vec();
+            all_headers.push("status");
             all_headers.push("error_reason");
 
             for (col, header) in all_headers.iter().enumerate() {
@@ -284,20 +302,26 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                 );
             }
 
-            for (row_idx, (data, err)) in failed_rows_data.iter().enumerate() {
+            for (row_idx, failed_row) in failed_rows_data.iter().enumerate() {
                 let row = u32::try_from(row_idx + 1).unwrap_or(0);
                 for (col, header) in self.strategy.expected_headers().iter().enumerate() {
                     let _ = worksheet.write_string(
                         row,
                         u16::try_from(col).unwrap_or(0),
-                        data.get(*header).unwrap_or(&String::new()),
+                        failed_row.data.get(*header).unwrap_or(&String::new()),
                     );
                 }
+                // Write status in the second-to-last column
+                let _ = worksheet.write_string(
+                    row,
+                    u16::try_from(all_headers.len().saturating_sub(2)).unwrap_or(0),
+                    failed_row.row_status,
+                );
                 // Write error reason in the last column
                 let _ = worksheet.write_string(
                     row,
                     u16::try_from(all_headers.len().saturating_sub(1)).unwrap_or(0),
-                    err,
+                    &failed_row.reason,
                 );
             }
 
@@ -310,9 +334,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
             == crate::models::enums::ImportTargetType::LeaveImport
         {
             if !failed_rows_data.is_empty() || skipped_rows > 0 || !errors.is_empty() {
-                let error_count = i32::try_from(errors.len()).unwrap_or(0)
-                    + i32::try_from(failed_rows_data.len()).unwrap_or(0)
-                    + skipped_rows;
+                let error_count = i32::try_from(failed_rows_data.len()).unwrap_or(0);
                 let json_log = serde_json::json!({
                     "success_count": processed_rows,
                     "error_count": error_count,
@@ -405,7 +427,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                 let _ = tokio::fs::remove_file(file_path).await;
             }
 
-            if errors.is_empty() {
+            if errors.is_empty() && skipped_rows == 0 {
                 Ok(())
             } else {
                 Err(())
@@ -538,6 +560,9 @@ mod tests {
         pre_process_result: Result<(), String>,
         map_row_result: Result<String, String>,
         process_result: Result<Option<Uuid>, String>,
+        /// If set, process_row succeeds for this many calls then switches to error.
+        process_fail_after: Option<usize>,
+        process_call_count: usize,
     }
 
     impl ConfigurableStrategy {
@@ -548,6 +573,8 @@ mod tests {
                 pre_process_result: Ok(()),
                 map_row_result: Ok("mapped".to_string()),
                 process_result: Ok(Some(Uuid::new_v4())),
+                process_fail_after: None,
+                process_call_count: 0,
             }
         }
 
@@ -572,6 +599,13 @@ mod tests {
         }
 
         fn with_process_error(mut self, msg: &str) -> Self {
+            self.process_result = Err(msg.to_string());
+            self
+        }
+
+        /// First `fail_after` calls to process_row succeed; remaining calls fail with `msg`.
+        fn with_mixed_process(mut self, fail_after: usize, msg: &str) -> Self {
+            self.process_fail_after = Some(fail_after);
             self.process_result = Err(msg.to_string());
             self
         }
@@ -624,6 +658,13 @@ mod tests {
             _job: &AttendanceImportJob,
             _row: &Self::RowData,
         ) -> Result<Option<Uuid>, crate::errors::AppError> {
+            if let Some(fail_after) = self.process_fail_after {
+                if self.process_call_count < fail_after {
+                    self.process_call_count += 1;
+                    return Ok(Some(Uuid::new_v4()));
+                }
+                self.process_call_count += 1;
+            }
             self.process_result
                 .clone()
                 .map_err(crate::errors::AppError::Internal)
@@ -812,8 +853,8 @@ mod tests {
         mock_import_repo
             .expect_update_job_total_rows()
             .returning(|_, _, _| Ok(()));
-        // skipped > 0, processed = 0, no errors → status = Failed in DB
-        // But pipeline returns Ok because errors.is_empty()
+        // skipped > 0, processed = 0, no errors → status = Failed
+        // Pipeline returns Err because skipped_rows > 0
         mock_import_repo
             .expect_update_job_progress()
             .with(
@@ -843,9 +884,9 @@ mod tests {
             queue_repo: None,
         };
 
-        // No pipeline errors → Ok, but job status stored as Failed in DB
+        // Pipeline returns Err because skipped_rows > 0
         let result = pipeline.run().await;
-        assert!(result.is_ok(), "skip-only pipeline returns Ok (no errors)");
+        assert!(result.is_err(), "skip-only pipeline returns Err (has skips)");
     }
 
     #[tokio::test]
@@ -958,5 +999,103 @@ mod tests {
         let result = pipeline.run().await;
         // Chunk mode always returns Ok
         assert!(result.is_ok());
+    }
+
+    // ── Tests: partial failure ────────────────────────────────────────
+
+    #[tokio::test]
+    async fn test_partial_failure_marks_partially_failed() {
+        let mut mock_import_repo = MockImportJobRepository::new();
+        mock_import_repo
+            .expect_update_job_total_rows()
+            .returning(|_, _, _| Ok(()));
+        // Final: processed_rows=1, 1 error → PartiallyFailed
+        mock_import_repo
+            .expect_update_job_progress()
+            .with(
+                mockall::predicate::always(),
+                mockall::predicate::always(),
+                mockall::predicate::eq(1), // 1 processed
+                mockall::predicate::eq(ImportJobStatus::PartiallyFailed),
+                mockall::predicate::always(),
+            )
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let job = make_job(crate::models::enums::ImportTargetType::Log);
+        let file_bytes = create_xlsx_bytes(&["name"], &[vec!["Alice"], vec!["Bob"]]);
+        // 1st row succeeds, 2nd row fails
+        let strategy =
+            ConfigurableStrategy::success(&["name"]).with_mixed_process(1, "row failed");
+        let deps = build_deps_with_workspace();
+
+        let pipeline = ImportPipeline {
+            strategy,
+            deps,
+            import_repo: &mock_import_repo,
+            job: &job,
+            file_bytes,
+            workspace_tz: chrono_tz::UTC,
+            start_index: None,
+            end_index: None,
+            is_chunk: false,
+            queue_repo: None,
+        };
+
+        let result = pipeline.run().await;
+        assert!(result.is_err(), "partial failure should return Err");
+    }
+
+    #[tokio::test]
+    async fn test_leave_import_error_count_no_double_count() {
+        let mut mock_import_repo = MockImportJobRepository::new();
+        mock_import_repo
+            .expect_update_job_total_rows()
+            .returning(|_, _, _| Ok(()));
+        // Final: 1 processed, 1 error → PartiallyFailed
+        mock_import_repo
+            .expect_update_job_progress()
+            .with(
+                mockall::predicate::always(),
+                mockall::predicate::always(),
+                mockall::predicate::eq(1),
+                mockall::predicate::eq(ImportJobStatus::PartiallyFailed),
+                mockall::predicate::function(|log: &Option<String>| {
+                    if let Some(log) = log {
+                        if let Ok(parsed) =
+                            serde_json::from_str::<serde_json::Value>(log)
+                        {
+                            let error_count = parsed["error_count"].as_i64().unwrap_or(-1);
+                            let success_count = parsed["success_count"].as_i64().unwrap_or(-1);
+                            // 1 error row, 1 success — no double-counting
+                            return error_count == 1 && success_count == 1;
+                        }
+                    }
+                    false
+                }),
+            )
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let job = make_job(crate::models::enums::ImportTargetType::LeaveImport);
+        let file_bytes = create_xlsx_bytes(&["name", "employee_id"], &[vec!["Alice", "E1"], vec!["Bob", "E2"]]);
+        // 1st row succeeds, 2nd row fails
+        let strategy =
+            ConfigurableStrategy::success(&["name", "employee_id"]).with_mixed_process(1, "row failed");
+        let deps = build_deps_with_workspace();
+
+        let pipeline = ImportPipeline {
+            strategy,
+            deps,
+            import_repo: &mock_import_repo,
+            job: &job,
+            file_bytes,
+            workspace_tz: chrono_tz::UTC,
+            start_index: None,
+            end_index: None,
+            is_chunk: false,
+            queue_repo: None,
+        };
+
+        let result = pipeline.run().await;
+        assert!(result.is_err(), "partial failure should return Err");
     }
 }

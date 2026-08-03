@@ -48,6 +48,11 @@ const getStatusConfig = (status: string | undefined, t: (key: string) => string)
         icon: <CheckCircle2 className="text-emerald-500" size={20} />,
         text: t("attendance_import.status.completed"),
       };
+    case "partially_failed":
+      return {
+        icon: <AlertCircle className="text-amber-500" size={20} />,
+        text: t("attendance_import.status.partially_failed"),
+      };
     case "failed":
       return {
         icon: <AlertCircle className="text-rose-500" size={20} />,
@@ -89,7 +94,7 @@ function ErrorLog({ errorLog, t }: { errorLog: string; t: (key: string) => strin
 function ProgressBar({ percentage, status }: { percentage: number; status: string | undefined }) {
   return (
     <div className="h-2.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner border border-slate-200 dark:border-slate-700/50 relative">
-      <div className={cn("h-full transition-all duration-1000 shadow-xl", status === "failed" ? "bg-rose-400 dark:bg-rose-500" : "bg-primary-600")} style={{ width: `${percentage.toString()}%` }}>
+      <div className={cn("h-full transition-all duration-1000 shadow-xl", status === "failed" ? "bg-rose-400 dark:bg-rose-500" : status === "partially_failed" ? "bg-amber-400 dark:bg-amber-500" : "bg-primary-600")} style={{ width: `${percentage.toString()}%` }}>
          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
       </div>
     </div>
@@ -317,7 +322,7 @@ export default function AttendanceImportDialog({
     } catch (error) { logError(error, { component: "AttendanceImport" }); } finally { setUploading(false); }
   };
 
-  const isFinished = jobStatus?.status === "completed" || jobStatus?.status === "failed";
+  const isFinished = jobStatus?.status === "completed" || jobStatus?.status === "failed" || jobStatus?.status === "partially_failed";
 
   return (
     <Modal icon={<Upload size={24} />} isOpen={isOpen} maxWidth="lg" onClose={onClose} subtitle={t("attendance_import.subtitle")} title={title}>
