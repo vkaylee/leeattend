@@ -6,7 +6,7 @@ import type {
   StreamStatus,
 } from "@/types/report-stream";
 
-import { useReportStreamConnection } from "./use-report-stream-connection";
+import { useReportStreamSocket } from "./use-report-stream-socket";
 import { useReportStreamHandlers } from "./use-report-stream-handlers";
 
 export interface UseReportStreamOptions {
@@ -24,11 +24,10 @@ export interface UseReportStreamResult {
   status: StreamStatus;
 }
 
-
-
 /**
- * Hook for WebSocket-based report streaming
- * Connects to the report WebSocket endpoint and accumulates chunks
+ * Internal state capsule for the report stream.
+ * Keeps all mutable state (values + refs) in one place so the
+ * orchestrating hook stays readable.
  */
 function useReportStreamState() {
   const [status, setStatus] = useState<StreamStatus>("idle");
@@ -55,6 +54,16 @@ function useReportStreamState() {
   };
 }
 
+/**
+ * Top-level orchestrating hook for WebSocket-based report streaming.
+ *
+ * Responsibilities:
+ * - Owns all stream state (status, progress, chunks, error).
+ * - Wires together two single-responsibility sub-hooks:
+ *   - {@link useReportStreamHandlers} — parses WS messages into state transitions.
+ *   - {@link useReportStreamSocket} — manages the WS lifecycle (connect, reconnect, ping, cleanup).
+ * - Resets state on jobId changes.
+ */
 export function useReportStream({
   jobId,
   onComplete,
@@ -75,7 +84,7 @@ export function useReportStream({
 
   const onCompleteRef = useRef(onComplete);
   const onErrorRef = useRef(onError);
-  
+
   useEffect(() => {
     onCompleteRef.current = onComplete;
     onErrorRef.current = onError;
@@ -94,7 +103,7 @@ export function useReportStream({
     totalBatchesRef,
   });
 
-  const { reconnect } = useReportStreamConnection({
+  const { reconnect } = useReportStreamSocket({
     jobId,
     maxRetries,
     setStatus,

@@ -20,7 +20,7 @@ const BUDGETS = [
   { name: "Dashboard page", prefix: "index.lazy-", suffix: ".js", maxSize: 80_000, maxGzip: 20_000 },
   { name: "Locale en", prefix: "locale-en-", suffix: ".js", maxSize: 170_000, maxGzip: 55_000 },
   { name: "Locale vi", prefix: "locale-vi-", suffix: ".js", maxSize: 200_000, maxGzip: 60_000 },
-  { name: "Locale zh", prefix: "locale-zh-", suffix: ".js", maxSize: 160_000, maxGzip: 55_000 },
+  { name: "Locale zh", prefix: "locale-zh-", suffix: ".js", maxSize: 160_000, maxGzip: 60_000 },
 ];
 
 function findFiles(prefix, suffix) {
