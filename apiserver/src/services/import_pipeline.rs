@@ -340,8 +340,12 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
     }
 
     fn build_final_log(
-        job: &AttendanceImportJob, processed_rows: i32, skipped_rows: i32,
-        errors: &[String], failed_rows_data: &[FailedRow], error_file_path_opt: Option<&String>,
+        job: &AttendanceImportJob,
+        processed_rows: i32,
+        skipped_rows: i32,
+        errors: &[String],
+        failed_rows_data: &[FailedRow],
+        error_file_path_opt: Option<&String>,
     ) -> Option<String> {
         if job.target_type == crate::models::enums::ImportTargetType::LeaveImport {
             if !failed_rows_data.is_empty() || skipped_rows > 0 || !errors.is_empty() {
@@ -352,17 +356,32 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                     "error_file_path": error_file_path_opt,
                 });
                 Some(json_log.to_string())
-            } else { None }
+            } else {
+                None
+            }
         } else {
-            let mut log_opt = if errors.is_empty() { None } else { Some(errors.join("\n")) };
+            let mut log_opt = if errors.is_empty() {
+                None
+            } else {
+                Some(errors.join("\n"))
+            };
             if skipped_rows > 0 {
                 let skip_msg = format!("Skipped {skipped_rows} row(s)");
-                log_opt = Some(match log_opt { Some(log) => format!("{log}\n{skip_msg}"), None => skip_msg });
+                log_opt = Some(match log_opt {
+                    Some(log) => format!("{log}\n{skip_msg}"),
+                    None => skip_msg,
+                });
             }
             if error_file_path_opt.is_some() {
-                let download_link = format!("/api/v1/workspaces/{}/attendance/import-jobs/{}/error-file", job.workspace_id, job.id);
+                let download_link = format!(
+                    "/api/v1/workspaces/{}/attendance/import-jobs/{}/error-file",
+                    job.workspace_id, job.id
+                );
                 let link_msg = format!("DL_LINK:{download_link}");
-                log_opt = Some(match log_opt { Some(log) => format!("{link_msg}\n{log}"), None => link_msg });
+                log_opt = Some(match log_opt {
+                    Some(log) => format!("{link_msg}\n{log}"),
+                    None => link_msg,
+                });
             }
             log_opt
         }

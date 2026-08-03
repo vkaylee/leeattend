@@ -54,7 +54,14 @@ impl FinalizeImportHandler {
             .await
         {
             if let Some(file_path) = &job_info.file_path {
-                let _ = tokio::fs::remove_file(file_path).await;
+                if let Err(e) = tokio::fs::remove_file(file_path).await {
+                    tracing::warn!(
+                        import_job_id = %payload.import_job_id,
+                        path = %file_path,
+                        error = %e,
+                        "Failed to cleanup uploaded file"
+                    );
+                }
             }
             Some(job_info)
         } else {
