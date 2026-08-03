@@ -380,8 +380,8 @@ mod recalculate_daily_summary_leave_tests {
             None,
             None,
             None,
-            chrono::Utc::now(),
-            chrono::Utc::now(),
+            Utc::now(),
+            Utc::now(),
             None,
         )
     }
@@ -894,8 +894,8 @@ mod recalculate_daily_summary_leave_tests {
             None,
             None,
             None,
-            chrono::Utc::now(),
-            chrono::Utc::now(),
+            Utc::now(),
+            Utc::now(),
             None,
         );
         leave_request_repo
@@ -1911,5 +1911,338 @@ mod pure_helpers_tests {
         assert!(result.is_holiday);
         assert_eq!(result.holiday_name, Some("Test Holiday".to_string()));
         assert_eq!(result.actual_work_minutes, 0);
+    }
+}
+
+// =========================================================================
+// compute_daily_recalculation_plan + execute_daily_recalculation_plan
+// =========================================================================
+
+mod compute_execute_plan_tests {
+    use super::*;
+
+    use chrono::Utc;
+    use crate::models::enums::{LeaveDurationType, LeaveStatus};
+    use crate::models::{LeaveRequest, TimeEntry, Workspace};
+    use crate::services::attendance_summary_service::DailyRecalculationPlan;
+
+    /// Helper: create a minimal DailyRecalculationPlan for testing execute.
+    fn make_plan(
+        employment_id: Uuid,
+        date: NaiveDate,
+        leave_to_cancel: Option<Uuid>,
+        holiday_leave_to_cancel: Option<Uuid>,
+    ) -> DailyRecalculationPlan {
+        DailyRecalculationPlan {
+            employment_id,
+            date,
+            actual_work_minutes: 480,
+            system_detected_ot_minutes: 0,
+            standard_minutes: 480,
+            early_ot_minutes: 0,
+            late_ot_minutes: 0,
+            break_ot_minutes: 0,
+            is_weekend: false,
+            ot_status: OtStatus::None,
+            is_holiday: false,
+            holiday_name: None,
+            leave_to_cancel,
+            holiday_leave_to_cancel,
+        }
+    }
+
+    fn make_workspace(workspace_id: Uuid) -> Workspace {
+        Workspace::new(
+            workspace_id,
+            "Test".to_string(),
+            "YYYY-MM-DD".to_string(),
+            "HH:mm".to_string(),
+            "UTC".to_string(),
+            "indigo".to_string(),
+            "vi".to_string(),
+            None,
+            None,
+            "std".to_string(),
+            rust_decimal::Decimal::ONE,
+            Utc::now(),
+            None,
+        )
+    }
+
+    fn make_approved_leave(
+        id: Uuid,
+        employee_id: Uuid,
+        start: NaiveDate,
+        end: NaiveDate,
+    ) -> LeaveRequest {
+        LeaveRequest::new(
+            id,
+            employee_id,
+            Uuid::new_v4(),
+            start,
+            end,
+            None,
+            LeaveStatus::Approved,
+            LeaveDurationType::FullDay,
+            None,
+            None,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+            None,
+        )
+    }
+
+    /// compute_daily_recalculation_plan MUST NOT call cancel_leave_request or
+    /// upsert_calculated_summary — it only returns a plan.
+    #[tokio::test]
+    async fn test_compute_plan_no_destructive_writes() {
+        let employee_id = Uuid::new_v4();
+        let workspace_id = Uuid::new_v4();
+        let date = dummy_date();
+        let leave_id = Uuid::new_v4();
+
+        let mut time_entry_repo = MockTimeEntryRepository::new();
+        let mut roster_repo = MockRosterRepository::new();
+        let mut policy_repo = MockAttendancePolicyRepository::new();
+        let mut workspace_repo = MockWorkspaceRepository::new();
+
+        policy_repo
+            .expect_get_employee_effective_policy()
+            .returning(|_, _, _| Ok(None));
+
+        // NOTE: no cancel_leave_request expectation set → mockall panics if called
+        // (proving compute phase makes NO destructive writes)
+
+        let mut employee_repo = MockEmployeeRepository::new();
+        employee_repo
+            .expect_get_working_conditions_at()
+            .returning(|_, _, _| Ok(vec![]));
+
+        let mut holiday_repo = MockHolidayRepository::new();
+        let mut leave_request_repo = MockLeaveRequestRepository::new();
+        let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
+
+        workspace_repo
+            .expect_get_workspace_by_id()
+            .returning(move |_| {
+                Box::pin(async move { Ok(Some(make_workspace(workspace_id))) })
+            });
+
+        holiday_repo
+            .expect_is_holiday()
+            .returning(move |_, _, _| Box::pin(async move { Ok(None) }));
+
+        let shift_id = Uuid::new_v4();
+        roster_repo
+            .expect_get_workspace_schedules()
+            .returning(move |_, _, _, _, _, _, _| {
+                Box::pin(async move {
+                    Ok((
+                        vec![crate::models::EmployeeSchedule::new(
+                            employee_id,
+                            employee_id,
+                            "EMP001".to_string(),
+                            "Test Employee".to_string(),
+                            vec![crate::models::EffectiveSchedule::new(
+                                date,
+                                Some(shift_id),
+                                "pattern".to_string(),
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                vec![],
+                                false,
+                                false,
+                                None,
+                            )],
+                        )],
+                        1,
+                    ))
+                })
+            });
+
+        // Employee worked (non-empty time entries) → should identify leave to cancel
+        time_entry_repo
+            .expect_get_employment_time_entries()
+            .returning(move |_, _, _, _| {
+                let punch_in = chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(
+                    date.and_hms_opt(8, 0, 0).unwrap(),
+                    chrono::Utc,
+                );
+                let punch_out = chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(
+                    date.and_hms_opt(17, 0, 0).unwrap(),
+                    chrono::Utc,
+                );
+                Ok(vec![TimeEntry::new(
+                    Uuid::new_v4(),
+                    employee_id,
+                    workspace_id,
+                    None,
+                    None,
+                    punch_in,
+                    Some(punch_out),
+                    Some(480),
+                    false,
+                    crate::services::pairing::types::EntryType::Work,
+                    None,
+                    None,
+                    Utc::now(),
+                    Utc::now(),
+                )])
+            });
+
+        // Has approved leave — should be collected in plan, NOT cancelled yet
+        leave_request_repo
+            .expect_get_employee_leave_requests()
+            .returning(move |_, _| {
+                Box::pin(async move {
+                    Ok(vec![make_approved_leave(
+                        leave_id,
+                        employee_id,
+                        date,
+                        date,
+                    )])
+                })
+            });
+
+        daily_summary_repo
+            .expect_get_summary()
+            .returning(|_, _, _| Ok(None));
+
+        let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
+            time_entry_repo: Arc::new(time_entry_repo),
+            roster_repo: Arc::new(roster_repo),
+            policy_repo: Arc::new(policy_repo),
+            condition_type_repo: empty_condition_type_repo(),
+            workspace_repo: Arc::new(workspace_repo),
+            employee_repo: Arc::new(employee_repo),
+            employment_repo: Arc::new(mock_employment_repo()),
+            holiday_repo: Arc::new(holiday_repo),
+            leave_request_repo: Arc::new(leave_request_repo),
+            daily_summary_repo: Arc::new(daily_summary_repo),
+        });
+
+        // Phase 1: compute — should succeed, no writes
+        let plan = svc
+            .compute_daily_recalculation_plan(
+                None,
+                &TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                date,
+            )
+            .await
+            .unwrap();
+
+        // Verify plan contains the correct leave-to-cancel
+        assert_eq!(plan.leave_to_cancel, Some(leave_id));
+        assert_eq!(plan.employment_id, employee_id);
+        assert!(plan.actual_work_minutes > 0);
+    }
+
+    /// execute_daily_recalculation_plan cancels the leaves specified in the plan
+    /// and upserts the summary.
+    #[tokio::test]
+    async fn test_execute_plan_cancels_leave() {
+        let workspace_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+        let date = dummy_date();
+        let leave_id = Uuid::new_v4();
+
+        let mut leave_request_repo = MockLeaveRequestRepository::new();
+        let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
+
+        // Expect cancel_leave_request called exactly once
+        leave_request_repo
+            .expect_cancel_leave_request()
+            .with(
+                mockall::predicate::always(),
+                mockall::predicate::eq(leave_id),
+            )
+            .times(1)
+            .returning(|_, _| Box::pin(async move { Ok(()) }));
+
+        // Expect upsert called exactly once
+        daily_summary_repo
+            .expect_upsert_calculated_summary()
+            .times(1)
+            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+
+        let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
+            time_entry_repo: Arc::new(MockTimeEntryRepository::new()),
+            roster_repo: Arc::new(MockRosterRepository::new()),
+            policy_repo: Arc::new(MockAttendancePolicyRepository::new()),
+            condition_type_repo: empty_condition_type_repo(),
+            workspace_repo: Arc::new(MockWorkspaceRepository::new()),
+            employee_repo: Arc::new(MockEmployeeRepository::new()),
+            employment_repo: Arc::new(mock_employment_repo()),
+            holiday_repo: Arc::new(MockHolidayRepository::new()),
+            leave_request_repo: Arc::new(leave_request_repo),
+            daily_summary_repo: Arc::new(daily_summary_repo),
+        });
+
+        let plan = make_plan(employment_id, date, Some(leave_id), None);
+
+        svc.execute_daily_recalculation_plan(
+            None,
+            &TenantAuthToken::system_override(workspace_id),
+            &plan,
+        )
+        .await
+        .unwrap();
+
+        // Mock expectations verify: cancel called once, upsert called once
+    }
+
+    /// When a plan has no leaves to cancel, execute still upserts the summary.
+    #[tokio::test]
+    async fn test_execute_plan_no_leaves_still_upserts() {
+        let workspace_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+        let date = dummy_date();
+
+        let leave_request_repo = MockLeaveRequestRepository::new();
+        let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
+
+        // cancel_leave_request must NOT be called (no expectation set)
+        daily_summary_repo
+            .expect_upsert_calculated_summary()
+            .times(1)
+            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+
+        let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
+            time_entry_repo: Arc::new(MockTimeEntryRepository::new()),
+            roster_repo: Arc::new(MockRosterRepository::new()),
+            policy_repo: Arc::new(MockAttendancePolicyRepository::new()),
+            condition_type_repo: empty_condition_type_repo(),
+            workspace_repo: Arc::new(MockWorkspaceRepository::new()),
+            employee_repo: Arc::new(MockEmployeeRepository::new()),
+            employment_repo: Arc::new(mock_employment_repo()),
+            holiday_repo: Arc::new(MockHolidayRepository::new()),
+            leave_request_repo: Arc::new(leave_request_repo),
+            daily_summary_repo: Arc::new(daily_summary_repo),
+        });
+
+        let plan = make_plan(employment_id, date, None, None);
+
+        svc.execute_daily_recalculation_plan(
+            None,
+            &TenantAuthToken::system_override(workspace_id),
+            &plan,
+        )
+        .await
+        .unwrap();
+
+        // upsert verified by mock expectation
     }
 }

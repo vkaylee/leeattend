@@ -14,6 +14,7 @@ use crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepo
 use crate::repositories::roster::MockRosterRepository;
 use crate::repositories::time_entry_repository::MockTimeEntryRepository;
 use crate::services::attendance_summary_service::MockSummaryRecalculator;
+use crate::services::attendance_summary_service::DailyRecalculationPlan;
 
 // --- Helper Functions for Strategy Tests ---
 
@@ -965,9 +966,30 @@ async fn test_reprocess_daily_attendance_no_logs() {
 
     let mut mock_summary_service = MockSummaryRecalculator::new();
     mock_summary_service
-        .expect_recalculate_daily_summary()
+        .expect_compute_daily_recalculation_plan()
         .times(1)
-        .returning(|_, _, _| Ok(()));
+        .returning(|_, _, d| {
+            Ok(DailyRecalculationPlan {
+                employment_id: Uuid::new_v4(),
+                date: d,
+                actual_work_minutes: 0,
+                system_detected_ot_minutes: 0,
+                standard_minutes: 0,
+                early_ot_minutes: 0,
+                late_ot_minutes: 0,
+                break_ot_minutes: 0,
+                is_weekend: false,
+                ot_status: crate::models::OtStatus::None,
+                is_holiday: false,
+                holiday_name: None,
+                leave_to_cancel: None,
+                holiday_leave_to_cancel: None,
+            })
+        });
+    mock_summary_service
+        .expect_execute_daily_recalculation_plan()
+        .times(1)
+        .returning(|_, _| Ok(()));
 
     let service = PairingService::new(PairingServiceArgs::new(
         Arc::new(mock_time_entry_repo),
@@ -1078,9 +1100,30 @@ async fn test_reprocess_daily_attendance_excludes_already_paired_logs() {
 
     let mut mock_summary_service = MockSummaryRecalculator::new();
     mock_summary_service
-        .expect_recalculate_daily_summary()
+        .expect_compute_daily_recalculation_plan()
         .times(1)
-        .returning(|_, _, _| Ok(()));
+        .returning(|_, _, d| {
+            Ok(DailyRecalculationPlan {
+                employment_id: Uuid::new_v4(),
+                date: d,
+                actual_work_minutes: 0,
+                system_detected_ot_minutes: 0,
+                standard_minutes: 0,
+                early_ot_minutes: 0,
+                late_ot_minutes: 0,
+                break_ot_minutes: 0,
+                is_weekend: false,
+                ot_status: crate::models::OtStatus::None,
+                is_holiday: false,
+                holiday_name: None,
+                leave_to_cancel: None,
+                holiday_leave_to_cancel: None,
+            })
+        });
+    mock_summary_service
+        .expect_execute_daily_recalculation_plan()
+        .times(1)
+        .returning(|_, _| Ok(()));
 
     let service = PairingService::new(PairingServiceArgs::new(
         Arc::new(mock_time_entry_repo),
@@ -1210,7 +1253,7 @@ async fn test_retry_with_log_returns_error_after_max_attempts() {
     let emp_id = Uuid::new_v4();
     let counter = std::sync::atomic::AtomicU32::new(0);
 
-    let result = retry_with_log("test_op", ws_id, emp_id, "test_context", 3, 1, || {
+    let result: Result<(), AppError> = retry_with_log("test_op", ws_id, emp_id, "test_context", 3, 1, || {
         counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         Box::pin(async { Err(AppError::Internal("test_err".to_string())) })
     })
@@ -1226,7 +1269,7 @@ async fn test_retry_with_log_succeeds_on_second_attempt() {
     let emp_id = Uuid::new_v4();
     let counter = std::sync::atomic::AtomicU32::new(0);
 
-    let result = retry_with_log("test_op", ws_id, emp_id, "test_context", 3, 1, || {
+    let result: Result<(), AppError> = retry_with_log("test_op", ws_id, emp_id, "test_context", 3, 1, || {
         let attempts = counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         Box::pin(async move {
             if attempts == 0 {
@@ -1240,6 +1283,83 @@ async fn test_retry_with_log_succeeds_on_second_attempt() {
 
     assert!(result.is_ok());
     assert_eq!(counter.load(std::sync::atomic::Ordering::SeqCst), 2);
+}
+
+/// Verify that recalculate_summary_with_retry retries only the compute phase
+/// and calls execute exactly once — protecting against double-refund on retry.
+#[tokio::test]
+async fn test_recalculate_summary_with_retry_compute_retried_execute_once() {
+    let ws_id = Uuid::new_v4();
+    let emp_id = Uuid::new_v4();
+    let date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+
+    let compute_counter = Arc::new(std::sync::atomic::AtomicU32::new(0));
+    let execute_counter = Arc::new(std::sync::atomic::AtomicU32::new(0));
+    let compute_clone = compute_counter.clone();
+    let execute_clone = execute_counter.clone();
+
+    let mut mock_summary = MockSummaryRecalculator::new();
+
+    // Compute: fail on attempt 1, succeed on attempt 2
+    mock_summary
+        .expect_compute_daily_recalculation_plan()
+        .times(2)
+        .returning({
+            move |_token, _emp_id, _d| {
+                let n = compute_counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                if n == 0 {
+                    Err(AppError::Internal("transient DB error".to_string()))
+                } else {
+                    Ok(DailyRecalculationPlan {
+                        employment_id: _emp_id,
+                        date: _d,
+                        actual_work_minutes: 480,
+                        system_detected_ot_minutes: 0,
+                        standard_minutes: 480,
+                        early_ot_minutes: 0,
+                        late_ot_minutes: 0,
+                        break_ot_minutes: 0,
+                        is_weekend: false,
+                        ot_status: crate::models::OtStatus::None,
+                        is_holiday: false,
+                        holiday_name: None,
+                        leave_to_cancel: None,
+                        holiday_leave_to_cancel: None,
+                    })
+                }
+            }
+        });
+
+    // Execute: MUST be called exactly once
+    mock_summary
+        .expect_execute_daily_recalculation_plan()
+        .times(1)
+        .returning({
+            move |_token, _plan| {
+                execute_counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                Ok(())
+            }
+        });
+
+    let service = PairingService::new(PairingServiceArgs::new(
+        Arc::new(MockTimeEntryRepository::new()),
+        Arc::new(MockRosterRepository::new()),
+        Arc::new(MockEmployeeRepository::new()),
+        Arc::new(MockRawAttendanceLogRepository::new()),
+        Arc::new(mock_summary),
+    ));
+
+    let result = service
+        .recalculate_summary_with_retry(
+            &TenantAuthToken::system_override(ws_id),
+            emp_id,
+            date,
+        )
+        .await;
+
+    assert!(result.is_ok(), "Expected success after compute retry, got: {:?}", result.err());
+    assert_eq!(compute_clone.load(std::sync::atomic::Ordering::SeqCst), 2);
+    assert_eq!(execute_clone.load(std::sync::atomic::Ordering::SeqCst), 1);
 }
 
 // =============================================================================
@@ -1589,8 +1709,28 @@ async fn test_range_reprocess_handles_overnight_tail() {
         .expect_recalculate_attendance_range()
         .returning(|_, _, _, _| Ok(()));
     mock_summary
-        .expect_recalculate_daily_summary()
-        .returning(|_, _, _| Ok(()));
+        .expect_compute_daily_recalculation_plan()
+        .returning(|_, _, d| {
+            Ok(DailyRecalculationPlan {
+                employment_id: Uuid::new_v4(),
+                date: d,
+                actual_work_minutes: 0,
+                system_detected_ot_minutes: 0,
+                standard_minutes: 0,
+                early_ot_minutes: 0,
+                late_ot_minutes: 0,
+                break_ot_minutes: 0,
+                is_weekend: false,
+                ot_status: crate::models::OtStatus::None,
+                is_holiday: false,
+                holiday_name: None,
+                leave_to_cancel: None,
+                holiday_leave_to_cancel: None,
+            })
+        });
+    mock_summary
+        .expect_execute_daily_recalculation_plan()
+        .returning(|_, _| Ok(()));
 
     // We can't easily set expectations for both range and single-day on same mock.
     // Instead, test that result is Ok — which proves handle_overnight_tail was invoked.
@@ -2446,11 +2586,32 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
             Box::pin(async move { Ok(logs) })
         });
 
-    // recalculate_daily_summary
+    // recalculate_summary_with_retry → compute + execute (Option C: separated for safe retry)
     mock_summary
-        .expect_recalculate_daily_summary()
+        .expect_compute_daily_recalculation_plan()
         .times(1)
-        .returning(|_, _, _| Ok(()));
+        .returning(move |_, _, d| {
+            Ok(DailyRecalculationPlan {
+                employment_id: emp_id,
+                date: d,
+                actual_work_minutes: 0,
+                system_detected_ot_minutes: 0,
+                standard_minutes: 0,
+                early_ot_minutes: 0,
+                late_ot_minutes: 0,
+                break_ot_minutes: 0,
+                is_weekend: false,
+                ot_status: crate::models::OtStatus::None,
+                is_holiday: false,
+                holiday_name: None,
+                leave_to_cancel: None,
+                holiday_leave_to_cancel: None,
+            })
+        });
+    mock_summary
+        .expect_execute_daily_recalculation_plan()
+        .times(1)
+        .returning(|_, _| Ok(()));
 
     let service = PairingService::new(PairingServiceArgs::new(
         Arc::new(mock_time_entry),

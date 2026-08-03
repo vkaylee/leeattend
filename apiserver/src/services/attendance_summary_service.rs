@@ -66,6 +66,30 @@ pub trait SummaryRecalculator: Send + Sync {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<(), AppError>;
+
+    /// Pure-compute phase of single-day recalculation.
+    ///
+    /// Performs all reads and computation but makes **no destructive writes**.
+    /// Safe to retry on transient failures — no leave cancellations or
+    /// summary upserts have been executed yet.
+    async fn compute_daily_recalculation_plan(
+        &self,
+        auth_token: &TenantAuthToken,
+        employment_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<DailyRecalculationPlan, AppError>;
+
+    /// Persist phase of single-day recalculation.
+    ///
+    /// Executes destructive writes (cancel leaves, upsert summary) based on
+    /// a pre-computed plan. **Must be called exactly once** after
+    /// [`compute_daily_recalculation_plan`](Self::compute_daily_recalculation_plan)
+    /// succeeds — never retry this method.
+    async fn execute_daily_recalculation_plan(
+        &self,
+        auth_token: &TenantAuthToken,
+        plan: &DailyRecalculationPlan,
+    ) -> Result<(), AppError>;
 }
 
 #[async_trait::async_trait]
@@ -113,6 +137,25 @@ impl SummaryRecalculator for AttendanceSummaryService {
         self.recalculate_attendance_range_tx(conn, auth_token, employment_id, start_date, end_date)
             .await
     }
+
+    async fn compute_daily_recalculation_plan(
+        &self,
+        auth_token: &TenantAuthToken,
+        employment_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<DailyRecalculationPlan, AppError> {
+        self.compute_daily_recalculation_plan(None, auth_token, employment_id, date)
+            .await
+    }
+
+    async fn execute_daily_recalculation_plan(
+        &self,
+        auth_token: &TenantAuthToken,
+        plan: &DailyRecalculationPlan,
+    ) -> Result<(), AppError> {
+        self.execute_daily_recalculation_plan(None, auth_token, plan)
+            .await
+    }
 }
 
 pub struct EnterPaperOtArgs {
@@ -141,6 +184,34 @@ pub(crate) struct DayComputationResult {
     ot_status: OtStatus,
     is_holiday: bool,
     holiday_name: Option<String>,
+}
+
+/// Plan produced by the pure-compute phase of single-day recalculation.
+///
+/// Separates side-effect-free computation from destructive writes
+/// (cancel leave, upsert summary) so that the computation can be safely
+/// retried without risk of double-refunding leave balances.
+///
+/// See: [`SummaryRecalculator::compute_daily_recalculation_plan`]
+/// and [`SummaryRecalculator::execute_daily_recalculation_plan`].
+#[derive(Debug, Clone)]
+pub struct DailyRecalculationPlan {
+    pub employment_id: Uuid,
+    pub date: NaiveDate,
+    pub actual_work_minutes: i32,
+    pub system_detected_ot_minutes: i32,
+    pub standard_minutes: i32,
+    pub early_ot_minutes: i32,
+    pub late_ot_minutes: i32,
+    pub break_ot_minutes: i32,
+    pub is_weekend: bool,
+    pub ot_status: OtStatus,
+    pub is_holiday: bool,
+    pub holiday_name: Option<String>,
+    /// Leave request to cancel because employee worked on a leave day.
+    pub leave_to_cancel: Option<Uuid>,
+    /// Holiday leave to reverse because employee worked above the threshold.
+    pub holiday_leave_to_cancel: Option<Uuid>,
 }
 
 /// All data pre-fetched by Phase A of [`AttendanceSummaryService::recalculate_attendance_range`].
@@ -229,17 +300,16 @@ impl AttendanceSummaryService {
             .await
     }
 
-    // `as_deref_mut` reborrows the optional conn for several sequential writes;
-    // the type is unchanged so the lint is a false positive here.
+    // `as_deref_mut` reborrows the optional conn for sequential calls;
+    // the temporary borrow is dropped between .await points so this is sound.
     #[allow(clippy::needless_option_as_deref, clippy::too_many_lines)]
-    async fn recalculate_daily_summary_with_conn(
+    async fn compute_daily_recalculation_plan(
         &self,
         mut conn: Option<&mut AsyncPgConnection>,
         auth_token: &TenantAuthToken,
         employment_id: Uuid,
         date: NaiveDate,
-    ) -> AppResult<()> {
-        let workspace_id = auth_token.workspace_id();
+    ) -> AppResult<DailyRecalculationPlan> {
         let employment = self
             .employment_repo
             .get_employment_by_id(auth_token, employment_id)
@@ -252,35 +322,29 @@ impl AttendanceSummaryService {
             .fetch_daily_schedule(conn.as_deref_mut(), auth_token, employment_id, date)
             .await?;
 
-        // Auto-cancel approved leave requests if the employee worked (day_entries is not empty) and it's not a holiday
-        if !daily_schedule.is_holiday() && !day_entries.is_empty() {
+        // 2. Identify leave to cancel (work-on-leave-day) — read only, no write
+        let leave_to_cancel = if !daily_schedule.is_holiday() && !day_entries.is_empty() {
             let leaves = self
                 .leave_request_repo
                 .get_employee_leave_requests(auth_token, employee_id)
                 .await?;
 
-            let leave_to_cancel = leaves.into_iter().find(|l| {
-                (l.status() == crate::models::enums::LeaveStatus::Approved
+            leaves.into_iter().find_map(|l| {
+                if (l.status() == crate::models::enums::LeaveStatus::Approved
                     || l.status() == crate::models::enums::LeaveStatus::PreApproved)
                     && l.start_date() <= date
                     && l.end_date() >= date
-            });
-
-            if let Some(req) = leave_to_cancel {
-                // Cancel the leave request (which updates status and refunds balance)
-                if let Some(c) = conn.as_deref_mut() {
-                    self.leave_request_repo
-                        .bulk_cancel_leave_requests_tx(c, auth_token, &[req.id()])
-                        .await?;
+                {
+                    Some(l.id())
                 } else {
-                    self.leave_request_repo
-                        .cancel_leave_request(auth_token, req.id())
-                        .await?;
+                    None
                 }
-            }
-        }
+            })
+        } else {
+            None
+        };
 
-        // 2. Calculate work minutes and OT
+        // 3. Calculate work minutes and OT
         let buckets = self
             .calculate_work_and_ot(
                 &tz,
@@ -298,10 +362,9 @@ impl AttendanceSummaryService {
         let system_detected_ot_minutes =
             buckets.early_ot_minutes + buckets.late_ot_minutes + buckets.break_ot_minutes;
 
-        // 3. Holiday leave conflict detection
-        let (is_holiday, holiday_name) = self
-            .handle_holiday_leave_conflict(
-                conn.as_deref_mut(),
+        // 4. Holiday leave conflict detection — read only, collect leave ID
+        let (is_holiday, holiday_name, holiday_leave_to_cancel) = self
+            .detect_holiday_leave_conflict(
                 auth_token,
                 employee_id,
                 date,
@@ -310,54 +373,133 @@ impl AttendanceSummaryService {
             )
             .await?;
 
-        // 4. Determine OT status
+        // 5. Determine OT status
         let new_status = self
             .determine_ot_status(auth_token, employee_id, date, system_detected_ot_minutes)
             .await?;
 
-        let weekday = date.weekday().num_days_from_monday(); // 0=Mon, 6=Sun
-        let is_weekend = weekday >= 5; // Default: Sat+Sun — configurable per workspace later
+        let weekday = date.weekday().num_days_from_monday();
+        let is_weekend = weekday >= 5;
 
-        // 5. Persist
+        Ok(DailyRecalculationPlan {
+            employment_id,
+            date,
+            actual_work_minutes,
+            system_detected_ot_minutes,
+            standard_minutes: buckets.standard_minutes,
+            early_ot_minutes: buckets.early_ot_minutes,
+            late_ot_minutes: buckets.late_ot_minutes,
+            break_ot_minutes: buckets.break_ot_minutes,
+            is_weekend,
+            ot_status: new_status,
+            is_holiday,
+            holiday_name,
+            leave_to_cancel,
+            holiday_leave_to_cancel,
+        })
+    }
+
+    /// Persist phase — executes destructive writes exactly once.
+    /// **Must NOT be retried.**
+    #[allow(clippy::needless_option_as_deref)]
+    async fn execute_daily_recalculation_plan(
+        &self,
+        mut conn: Option<&mut AsyncPgConnection>,
+        auth_token: &TenantAuthToken,
+        plan: &DailyRecalculationPlan,
+    ) -> AppResult<()> {
+        let workspace_id = auth_token.workspace_id();
+
+        // 1. Cancel work-on-leave-day leave
+        if let Some(leave_id) = plan.leave_to_cancel {
+            if let Some(c) = conn.as_deref_mut() {
+                self.leave_request_repo
+                    .bulk_cancel_leave_requests_tx(c, auth_token, &[leave_id])
+                    .await?;
+            } else {
+                self.leave_request_repo
+                    .cancel_leave_request(auth_token, leave_id)
+                    .await?;
+            }
+        }
+
+        // 2. Cancel holiday leave
+        if let Some(leave_id) = plan.holiday_leave_to_cancel {
+            if let Some(c) = conn.as_deref_mut() {
+                self.leave_request_repo
+                    .bulk_cancel_leave_requests_tx(c, auth_token, &[leave_id])
+                    .await?;
+            } else {
+                self.leave_request_repo
+                    .cancel_leave_request(auth_token, leave_id)
+                    .await?;
+            }
+        }
+
+        // 3. Upsert summary
         if let Some(c) = conn {
             self.daily_summary_repo
                 .upsert_calculated_summary_tx(
                     c,
                     workspace_id,
-                    employment_id,
-                    date,
-                    actual_work_minutes,
-                    system_detected_ot_minutes,
-                    buckets.standard_minutes,
-                    buckets.early_ot_minutes,
-                    buckets.late_ot_minutes,
-                    buckets.break_ot_minutes,
-                    is_weekend,
-                    new_status,
-                    is_holiday,
-                    holiday_name,
+                    plan.employment_id,
+                    plan.date,
+                    plan.actual_work_minutes,
+                    plan.system_detected_ot_minutes,
+                    plan.standard_minutes,
+                    plan.early_ot_minutes,
+                    plan.late_ot_minutes,
+                    plan.break_ot_minutes,
+                    plan.is_weekend,
+                    plan.ot_status,
+                    plan.is_holiday,
+                    plan.holiday_name.clone(),
                 )
                 .await?;
         } else {
             self.daily_summary_repo
                 .upsert_calculated_summary(
                     auth_token,
-                    employment_id,
-                    date,
-                    actual_work_minutes,
-                    system_detected_ot_minutes,
-                    buckets.standard_minutes,
-                    buckets.early_ot_minutes,
-                    buckets.late_ot_minutes,
-                    buckets.break_ot_minutes,
-                    is_weekend,
-                    new_status,
-                    is_holiday,
-                    holiday_name,
+                    plan.employment_id,
+                    plan.date,
+                    plan.actual_work_minutes,
+                    plan.system_detected_ot_minutes,
+                    plan.standard_minutes,
+                    plan.early_ot_minutes,
+                    plan.late_ot_minutes,
+                    plan.break_ot_minutes,
+                    plan.is_weekend,
+                    plan.ot_status,
+                    plan.is_holiday,
+                    plan.holiday_name.clone(),
                 )
                 .await?;
         }
         Ok(())
+    }
+
+    /// Compose compute → execute for backward compatibility with callers that
+    /// expect a single atomic call. When calling from a retry context, prefer
+    /// [`compute_daily_recalculation_plan`] + [`execute_daily_recalculation_plan`]
+    /// so that only the side-effect-free compute phase is retried.
+    #[allow(clippy::needless_option_as_deref, clippy::too_many_lines)]
+    async fn recalculate_daily_summary_with_conn(
+        &self,
+        mut conn: Option<&mut AsyncPgConnection>,
+        auth_token: &TenantAuthToken,
+        employment_id: Uuid,
+        date: NaiveDate,
+    ) -> AppResult<()> {
+        let plan = self
+            .compute_daily_recalculation_plan(
+                conn.as_deref_mut(),
+                auth_token,
+                employment_id,
+                date,
+            )
+            .await?;
+        self.execute_daily_recalculation_plan(conn, auth_token, &plan)
+            .await
     }
 
     /// Recalculates and persists the daily summaries for a specific employee and date range.
@@ -1002,16 +1144,19 @@ impl AttendanceSummaryService {
         }
     }
 
-    /// Check if the date is a holiday and handle leave conflict (reversal if employee worked enough).
-    async fn handle_holiday_leave_conflict(
+    /// Read-only holiday leave conflict detection.
+    ///
+    /// Returns `(is_holiday, holiday_name, Option<leave_id_to_reverse>)`.
+    /// Makes **no destructive writes** — the caller is responsible for persisting
+    /// the reversal via [`execute_daily_recalculation_plan`].
+    async fn detect_holiday_leave_conflict(
         &self,
-        conn: Option<&mut AsyncPgConnection>,
         auth_token: &TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
         actual_work_minutes: i32,
         daily_schedule: &crate::models::EffectiveSchedule,
-    ) -> AppResult<(bool, Option<String>)> {
+    ) -> AppResult<(bool, Option<String>, Option<Uuid>)> {
         let active_employment = self
             .employment_repo
             .get_active_employment_on_date(auth_token, employee_id, date)
@@ -1025,51 +1170,46 @@ impl AttendanceSummaryService {
         let is_holiday = holiday.is_some();
         let holiday_name = holiday.as_ref().map(|h| h.name().to_string());
 
-        if is_holiday && actual_work_minutes > 0 {
+        let holiday_leave_to_cancel = if is_holiday && actual_work_minutes > 0 {
             if let Some(ref hol) = holiday {
-                if let Err(e) = self
-                    .maybe_reverse_holiday_leave(
-                        conn,
-                        auth_token,
-                        employee_id,
-                        date,
-                        actual_work_minutes,
-                        daily_schedule,
-                        hol,
-                    )
-                    .await
-                {
-                    tracing::error!(
-                        error = %e,
-                        employee_id = %employee_id,
-                        date = %date,
-                        "CRITICAL: Failed to reverse holiday leave — employee may be double-charged"
-                    );
-                }
+                self.find_holiday_leave_to_reverse(
+                    auth_token,
+                    employee_id,
+                    date,
+                    actual_work_minutes,
+                    daily_schedule,
+                    hol,
+                )
+                .await?
+            } else {
+                None
             }
-        }
+        } else {
+            None
+        };
 
-        Ok((is_holiday, holiday_name))
+        Ok((is_holiday, holiday_name, holiday_leave_to_cancel))
     }
 
-    /// Reverse system-generated holiday leave if employee worked above the threshold.
-    async fn maybe_reverse_holiday_leave(
+    /// Read-only version of [`maybe_reverse_holiday_leave`].
+    /// Finds the system-generated holiday leave and checks the threshold,
+    /// but does **not** cancel anything. Returns the leave ID if it should be reversed.
+    async fn find_holiday_leave_to_reverse(
         &self,
-        conn: Option<&mut AsyncPgConnection>,
         auth_token: &TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
         actual_work_minutes: i32,
         daily_schedule: &crate::models::EffectiveSchedule,
         holiday: &crate::models::Holiday,
-    ) -> AppResult<()> {
+    ) -> AppResult<Option<Uuid>> {
         let system_leave = self
             .leave_request_repo
             .get_system_generated_holiday_leave(auth_token, employee_id, date)
             .await?;
 
         let Some((leave_request_id, _leave_type_id, _leave_code)) = system_leave else {
-            return Ok(());
+            return Ok(None);
         };
 
         let shift_minutes = daily_schedule
@@ -1096,24 +1236,14 @@ impl AttendanceSummaryService {
         };
 
         if work_percent >= threshold {
-            if let Some(c) = conn {
-                self.leave_request_repo
-                    .bulk_cancel_leave_requests_tx(c, auth_token, &[leave_request_id])
-                    .await?;
-            } else {
-                self.leave_request_repo
-                    .cancel_leave_request(auth_token, leave_request_id)
-                    .await?;
-            }
-
             tracing::info!(
                 employee_id = %employee_id,
                 date = %date,
                 work_percent = work_percent,
                 threshold = threshold,
-                "Holiday leave reversed: employee worked {}% (>= {}% threshold)",
-                work_percent, threshold
+                "Holiday leave reversal queued (single-day compute)"
             );
+            Ok(Some(leave_request_id))
         } else {
             tracing::info!(
                 employee_id = %employee_id,
@@ -1123,8 +1253,8 @@ impl AttendanceSummaryService {
                 "Holiday leave kept: employee worked {}% (< {}% threshold)",
                 work_percent, threshold
             );
+            Ok(None)
         }
-        Ok(())
     }
 
     /// Determine the OT status based on existing summary and detected OT.

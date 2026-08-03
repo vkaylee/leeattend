@@ -134,6 +134,13 @@ pub(crate) async fn clear_auto_entries_tx(
         .await
 }
 
+/// Recalculate the daily summary, retrying only the side-effect-free
+/// compute phase so that destructive writes (cancel leave, upsert summary)
+/// are executed at most once.
+///
+/// Without this split, a retry after `cancel_leave_request` succeeded but
+/// `upsert_summary` failed would cancel the same leave again, causing a
+/// double refund of the leave balance.
 pub(crate) async fn recalculate_summary_with_retry(
     service: &PairingService,
     auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -141,16 +148,23 @@ pub(crate) async fn recalculate_summary_with_retry(
     date: NaiveDate,
 ) -> Result<(), AppError> {
     let summary_service = &service.summary_service;
-    retry_with_log(
-        "recalculate_daily_summary",
+
+    // Phase 1: Compute (retry-safe — reads + pure computation, no destructive writes)
+    let plan = retry_with_log(
+        "compute_daily_recalculation",
         auth_token.workspace_id(),
         employment_id,
         &format!("date={date}"),
         3,
         100,
-        || summary_service.recalculate_daily_summary(auth_token, employment_id, date),
+        || summary_service.compute_daily_recalculation_plan(auth_token, employment_id, date),
     )
-    .await
+    .await?;
+
+    // Phase 2: Persist once — MUST NOT retry destructive writes
+    summary_service
+        .execute_daily_recalculation_plan(auth_token, &plan)
+        .await
 }
 
 /// Recalculate the daily summary inside an existing transaction, retrying the
@@ -302,7 +316,7 @@ pub(crate) async fn recalculate_range_summary_with_retry_tx(
 }
 
 /// Execute an async operation with retries and structured logging.
-pub(crate) async fn retry_with_log<F, Fut>(
+pub(crate) async fn retry_with_log<T, F, Fut>(
     operation_name: &str,
     workspace_id: Uuid,
     employment_id: Uuid,
@@ -310,16 +324,16 @@ pub(crate) async fn retry_with_log<F, Fut>(
     max_attempts: u32,
     delay_ms: u64,
     f: F,
-) -> Result<(), AppError>
+) -> Result<T, AppError>
 where
     F: Fn() -> Fut,
-    Fut: std::future::Future<Output = Result<(), AppError>>,
+    Fut: std::future::Future<Output = Result<T, AppError>>,
 {
     let mut attempts = 0;
     loop {
         attempts += 1;
         match f().await {
-            Ok(()) => return Ok(()),
+            Ok(val) => return Ok(val),
             Err(e) => {
                 if attempts >= max_attempts {
                     tracing::error!(
