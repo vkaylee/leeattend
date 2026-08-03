@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
+import { logError } from "@/lib/logger";
 
 import Modal from "../ui/modal";
 
@@ -31,7 +32,8 @@ export default function InviteMemberDialog({
       if (!selectedRoleId) throw new Error("No role selected");
       await addMember({ email, roleId: selectedRoleId });
       setEmail(""); setRoleId(""); onClose();
-    } catch {
+    } catch (e: unknown) {
+      logError(e, { component: 'InviteMemberDialog.submit' });
       setError(t("members.invite.error_message"));
     }
   }

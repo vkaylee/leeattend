@@ -32,7 +32,7 @@ function getMinutesFromDayStart(isoString: string, baseDateStr: string, timezone
       minute: "2-digit",
       hour12: false,
     }).formatToParts(d);
-  } catch {
+  } catch { /* invalid timezone — fall back to UTC */
     parts = new Intl.DateTimeFormat("en-GB", {
       timeZone: "UTC",
       hourCycle: "h23",

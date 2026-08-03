@@ -49,7 +49,7 @@ export const createIsoFromLocal = (dateString: string, hhmm: string, timezone: s
                 minute: "2-digit",
                 second: "2-digit",
             });
-        } catch {
+        } catch { /* invalid timezone — fall back to UTC */
             return new Intl.DateTimeFormat("en-US", {
                 timeZone: "UTC",
                 hour12: false,

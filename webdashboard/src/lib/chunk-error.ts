@@ -27,14 +27,12 @@ export function shouldRetryChunkLoad(): boolean {
   let retryCount = 0;
   try {
     retryCount = Number(sessionStorage.getItem(CHUNK_RETRY_KEY) ?? "0");
-  } catch {
-    return false;
+  } catch { /* sessionStorage unavailable (private browsing) — can't track retries, allow one reload */ return false;
   }
   if (retryCount >= MAX_CHUNK_RETRIES) return false;
   try {
     sessionStorage.setItem(CHUNK_RETRY_KEY, String(retryCount + 1));
-  } catch {
-    // sessionStorage unavailable — allow this one reload, can't persist count
+  } catch { /* sessionStorage unavailable — allow this one reload, can't persist count */
   }
   return true;
 }
@@ -44,8 +42,7 @@ export function shouldRetryChunkLoad(): boolean {
 export function clearChunkRetry(): void {
   try {
     sessionStorage.removeItem(CHUNK_RETRY_KEY);
-  } catch {
-    // ignore
+  } catch { /* sessionStorage unavailable — ignore */
   }
 }
 

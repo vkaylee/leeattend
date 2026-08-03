@@ -7,6 +7,7 @@ import {
 import React, { memo, useCallback, useMemo } from "react";
 
 import { cn } from "@/lib/utils";
+import { logError } from "@/lib/logger";
 import { maybeNull } from "@/types/api-overrides";
 
 import type { CellCoordinate, EditableCellValue } from "./types";
@@ -104,7 +105,7 @@ function SmartTableCellInner<T>({
       try {
         // eslint-disable-next-line react-hooks/immutability
         cell.getValue = (() => row.getValue(cell.column.id));
-      } catch { /* best-effort cleanup */ }
+      } catch (e: unknown) { logError(e, { component: 'SmartTableCell' }); /* best-effort cleanup */ }
       console.warn("Could not override cell.getValue", e instanceof Error ? e.message : "Unknown error");
     }
   }

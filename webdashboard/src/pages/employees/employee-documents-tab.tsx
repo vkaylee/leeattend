@@ -11,6 +11,7 @@ import { toast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { client } from "@/lib/api/client";
+import { logError } from "@/lib/logger";
 import { maybeNull } from "@/types/api-overrides";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
@@ -74,7 +75,8 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
       if (downloadUrl) {
         window.open(downloadUrl, "_blank");
       }
-    } catch {
+    } catch (e: unknown) {
+      logError(e, { component: 'EmployeeDocumentsTab.download' });
       toast.error("Download failed. Please try again.");
     }
   };
@@ -98,7 +100,8 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
       }
       toast.success(`${fileIds.length} file(s) deleted successfully.`);
       void queryClient.invalidateQueries({ queryKey: ["files", "employee", employeeId] });
-    } catch {
+    } catch (e: unknown) {
+      logError(e, { component: 'EmployeeDocumentsTab.delete' });
       toast.error("Failed to delete some files.");
     }
   };

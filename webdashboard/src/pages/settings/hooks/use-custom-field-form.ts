@@ -44,8 +44,7 @@ export function useCustomFieldForm(
           })
           .join("\n");
       }
-    } catch {
-      // Ignore
+    } catch { /* options array parsing failed — return empty string */
     }
     return "";
   };

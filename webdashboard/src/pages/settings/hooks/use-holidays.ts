@@ -8,6 +8,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { getCurrentWorkspaceId } from "@/lib/api";
 import { deleteHoliday, fetchHolidays } from "@/lib/api/holidays";
 import { fetchLeaveTypes } from "@/lib/api/leaves";
+import { logError } from "@/lib/logger";
 
 import { useHolidayForm } from "./use-holiday-form";
 
@@ -76,7 +77,8 @@ export function useHolidays() {
         try {
             await deleteHoliday(wsId, id);
             void loadHolidays();
-        } catch {
+        } catch (e: unknown) {
+            logError(e, { component: 'useHolidays.delete' });
             setError(t("holidays.messages.delete_error"));
         }
     };

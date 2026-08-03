@@ -43,8 +43,7 @@ export function formatShiftTime(timeStr: string | null | undefined): string {
     if (parts.length >= 2) {
       return `${parts[0].padStart(2, "0")}:${parts[1].padStart(2, "0")}`;
     }
-  } catch {
-    // fall through
+  } catch { /* split/padStart fails on unexpected input — return raw time string */
   }
   return timeStr;
 }

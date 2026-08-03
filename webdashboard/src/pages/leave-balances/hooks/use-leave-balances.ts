@@ -7,6 +7,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
 import { fetchWorkspaceLeaveBalances, getCurrentWorkspaceId, triggerAccrualRun, fetchJobStatus } from "@/lib/api";
+import { logError } from "@/lib/logger";
 import { WorkspaceLeaveBalance } from "@/lib/api/types";
 
 export function useLeaveBalances() {
@@ -52,7 +53,8 @@ export function useLeaveBalances() {
           toast.error(status.error_message ?? t("common.error"));
           return;
         }
-      } catch {
+      } catch (e: unknown) {
+        logError(e, { component: 'useLeaveBalances.pollJobStatus' });
         toast.error(t("common.error"));
         return;
       }

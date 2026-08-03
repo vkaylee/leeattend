@@ -22,7 +22,7 @@ export function readFrequentShifts(): FrequentMap {
       }
     }
     return result;
-  } catch {
+  } catch { /* localStorage unavailable or corrupt data — return empty map */
     return {};
   }
 }
@@ -32,9 +32,7 @@ export function writeFrequentShift(shiftId: string): void {
     const map = readFrequentShifts();
     map[shiftId] = (map[shiftId] ?? 0) + 1;
     localStorage.setItem(FREQUENT_SHIFTS_KEY, JSON.stringify(map));
-  } catch {
-    // localStorage may be unavailable; silently ignore.
-  }
+  } catch { /* localStorage may be unavailable — silently ignore */ }
 }
 
 export function getTopFrequentIds(map: FrequentMap): string[] {

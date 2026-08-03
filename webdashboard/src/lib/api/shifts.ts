@@ -5,6 +5,7 @@ import type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster, CreateShi
 import { client } from "./client";
 import { ApiError, type AppErrorResponse, ComplianceConflictError, parseComplianceConflict } from "./errors";
 import { apiFetch, TIMEOUT } from "./helpers";
+import { logError } from "@/lib/logger";
 export async function fetchShifts(wsId: string): Promise<Shift[]> {
   const { data } = await client.GET("/workspaces/{workspace_id}/shifts", {
     params: {
@@ -143,8 +144,9 @@ export async function bulkUpsertRoster(
     let parsedBody: unknown;
     try {
       parsedBody = JSON.parse(await response.clone().text());
-    } catch {
-      // Ignore parse failures — fall through to rejectResponse.
+    } catch (e: unknown) {
+      // Ignore parse failures — fall through to rejectResponse
+      logError(e, { component: 'bulkUpsertRoster.parseBody' });
     }
     const retry = parseComplianceConflict(parsedBody);
     if (retry) {

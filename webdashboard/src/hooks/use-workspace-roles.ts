@@ -9,6 +9,7 @@ import {
   updateRolePermissions,
   getCurrentWorkspaceId,
 } from "@/lib/api";
+import { logError } from "@/lib/logger";
 
 export const workspaceKeys = {
   all: ["workspaces"] as const,
@@ -111,7 +112,8 @@ export function useWorkspacePermissionsMatrix(wsId?: string) {
         try {
           const perms = await fetchRolePermissions((activeWsId ?? ""), role.id);
           matrix[role.id] = perms;
-        } catch {
+        } catch (e: unknown) {
+          logError(e, { component: 'useWorkspacePermissionsMatrix' });
           matrix[role.id] = [];
         }
       }));

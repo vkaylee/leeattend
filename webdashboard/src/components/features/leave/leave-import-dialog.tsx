@@ -6,6 +6,7 @@ import type { LeaveImportJob } from "@/lib/api/leaves";
 
 import Modal from "@/components/ui/modal";
 import { uploadLeaveExcel, fetchLatestLeaveImport, getCurrentWorkspaceId } from "@/lib/api";
+import { logError } from "@/lib/logger";
 
 import { LeaveImportProgressView } from "./leave-import-progress-view";
 import { LeaveImportUploadView } from "./leave-import-upload-view";
@@ -31,7 +32,7 @@ function useLeaveImportStatus(wsId: string | null, isOpen: boolean, onImportComp
           setImportJob(job);
         }
       }
-    }).catch(() => { /* empty */ });
+    }).catch((e: unknown) => { logError(e, { component: 'LeaveImportDialog.fetchLatest' }); });
   }, [isOpen, wsId]);
 
   // Polling for job status
@@ -49,8 +50,9 @@ function useLeaveImportStatus(wsId: string | null, isOpen: boolean, onImportComp
               onImportComplete?.();
             }
           }
-        } catch {
+        } catch (e: unknown) {
           // Network error — keep polling
+          logError(e, { component: 'LeaveImportDialog.polling' });
         }
       })();
     }, 2000);
@@ -75,7 +77,7 @@ function getErrorInfo(job: LeaveImportJob) {
   if (!job.error_log) return null;
   try {
     return JSON.parse(job.error_log) as { success_count?: number; error_count?: number; error_file_path?: string };
-  } catch { return null; }
+  } catch { /* JSON.parse on error_log — invalid JSON returns null gracefully */ return null; }
 }
 
 function useLeaveImportUpload({
@@ -109,8 +111,9 @@ function useLeaveImportUpload({
       });
       setFile(null);
       startPolling(wsId);
-    } catch {
-      // Error handled by toast in parent or here
+    } catch (e: unknown) {
+      // Upload failure — error shown by parent toast handler
+      logError(e, { component: 'LeaveImportDialog.upload' });
     } finally {
       setUploading(false);
     }

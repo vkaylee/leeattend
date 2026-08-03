@@ -27,7 +27,7 @@ export function useDepartmentTree({
       if (saved) {
         parentMap = JSON.parse(saved) as Record<string, string | null>;
       }
-    } catch {
+    } catch { /* localStorage unavailable or corrupt — use empty parent map */
       parentMap = {};
     }
 

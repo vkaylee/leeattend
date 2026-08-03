@@ -122,8 +122,7 @@ export class ApiError extends Error {
           errorBody = raw;
         }
       }
-    } catch {
-      // Ignore parse failures — fall through to the generic error below.
+    } catch { /* JSON.parse failure on response body — fall through to generic error */
     }
     throw new ApiError(
       res.status,

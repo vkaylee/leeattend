@@ -26,7 +26,7 @@ function useCollapsedState() {
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try {
       return localStorage.getItem(STORAGE_KEY) === "true";
-    } catch {
+    } catch { /* localStorage unavailable (private browsing) — default to expanded */
       return false;
     }
   });
@@ -36,8 +36,7 @@ function useCollapsedState() {
       const next = !prev;
       try {
         localStorage.setItem(STORAGE_KEY, String(next));
-      } catch {
-        // ignore
+      } catch { /* localStorage unavailable — toggle state won't persist across sessions */
       }
       return next;
     });

@@ -6,6 +6,7 @@ import { useCallback, useRef } from "react";
 import type { useToast } from "@/components/ui/toast";
 
 import { bulkUpsertRoster } from "@/lib/api";
+import { logError } from "@/lib/logger";
 
 import { runRosterBulk } from "./roster-bulk-utils";
 
@@ -72,9 +73,7 @@ export function useComplianceRetry({
             if (employmentId) {
               try {
                 await refetchAndPatchRow(employmentId);
-              } catch {
-                /* stale OK */
-              }
+              } catch (e: unknown) { logError(e, { component: 'useComplianceRetry.rowRefetch' }); /* stale OK */ }
             }
           },
           queryClient,

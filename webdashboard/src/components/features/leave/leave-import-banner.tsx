@@ -6,15 +6,17 @@ import React from "react";
 import type { LeaveImportJob } from "@/lib/api/leaves";
 
 import Button from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { downloadLeaveImportErrors } from "@/lib/api";
+import { logError } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
 function getImportErrorInfo(job: LeaveImportJob) {
   if (!job.error_log) return null;
   try {
     return JSON.parse(job.error_log) as { success_count?: number; error_count?: number; error_file_path?: string };
-  } catch { return null; }
+  } catch { /* JSON.parse on error_log — invalid JSON is benign, returns null to skip error detail rendering */ return null; }
 }
 
 export interface LeaveImportBannerProps {
@@ -77,7 +79,7 @@ function PartialSuccessState({ importJob, wsId, t }: { importJob: LeaveImportJob
       {info?.error_file_path ? (
         <Button
           className="ml-2 flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200 underline underline-offset-2 border-none shadow-none h-auto w-auto p-0 hover:bg-transparent"
-          onClick={() => { void downloadLeaveImportErrors(wsId, importJob.id).catch(() => { /* empty */ }); }}
+          onClick={() => { void downloadLeaveImportErrors(wsId, importJob.id).catch((e: unknown) => { logError(e, { component: 'LeaveImportBanner' }); toast.error(t("leave_requests.download_errors_failed", "Tải file lỗi thất bại")); }); }}
           variant="ghost"
         >
           <Download size={14} /> {t("leave_requests.download_errors", "Tải file lỗi")}
@@ -105,7 +107,7 @@ function FailedState({ importJob, wsId, t }: { importJob: LeaveImportJob; wsId: 
         {info?.error_file_path ? (
           <Button
             className="flex items-center gap-1.5 text-xs font-bold text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 underline underline-offset-2 border-none shadow-none h-auto w-auto p-0 hover:bg-transparent"
-            onClick={() => { void downloadLeaveImportErrors(wsId, importJob.id).catch(() => { /* empty */ }); }}
+            onClick={() => { void downloadLeaveImportErrors(wsId, importJob.id).catch((e: unknown) => { logError(e, { component: 'LeaveImportBanner' }); toast.error(t("leave_requests.download_errors_failed", "Tải file lỗi thất bại")); }); }}
             variant="ghost"
           >
             <Download size={14} /> {t("leave_requests.download_errors", "Tải file lỗi")}

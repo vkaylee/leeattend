@@ -57,7 +57,7 @@ export function DepartmentFormModal({
         return parsed as Record<string, string>;
       }
       return {};
-    } catch {
+    } catch { /* localStorage unavailable or corrupt — return empty fallback */
       return {};
     }
   }, [wsId]);

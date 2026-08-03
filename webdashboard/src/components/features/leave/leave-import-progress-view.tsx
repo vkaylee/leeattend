@@ -6,8 +6,10 @@ import React from "react";
 import type { LeaveImportJob } from "@/lib/api/leaves";
 
 import Button from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { downloadLeaveImportErrors } from "@/lib/api";
+import { logError } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
 export interface LeaveImportProgressViewProps {
@@ -82,7 +84,7 @@ function PartialSuccessDetails({ info, importJob, t, wsId }: { info: ErrorInfo |
           className="border-amber-200 bg-amber-100 text-[10px] text-amber-700 hover:bg-amber-200 dark:border-amber-800 dark:bg-amber-900/50 dark:text-amber-300 dark:hover:bg-amber-800/50"
           onClick={() => {
             if (wsId) {
-              void downloadLeaveImportErrors(wsId, importJob.id).catch(() => { /* empty */ });
+              void downloadLeaveImportErrors(wsId, importJob.id).catch((e: unknown) => { logError(e, { component: 'LeaveImportProgressView' }); toast.error(t("leave_import.download_errors_failed", "Tải file lỗi thất bại")); });
             }
           }}
           size="sm"
@@ -99,7 +101,7 @@ function FailedDetails({ errorLog, importJob, t, wsId }: { errorLog: string; imp
   let info: ErrorInfo | null = null;
   try {
     info = JSON.parse(errorLog) as ErrorInfo;
-  } catch { /* ignored */ }
+  } catch { /* JSON.parse on error_log — invalid JSON returns null to show raw error text */ }
 
   return (
     <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 border border-rose-200 dark:border-rose-900/50 shadow-sm">
@@ -116,7 +118,7 @@ function FailedDetails({ errorLog, importJob, t, wsId }: { errorLog: string; imp
               className="border-rose-200 bg-rose-50 text-[10px] text-rose-700 hover:bg-rose-100 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-900/50"
               onClick={() => {
                 if (wsId) {
-                  void downloadLeaveImportErrors(wsId, importJob.id).catch(() => { /* empty */ });
+                  void downloadLeaveImportErrors(wsId, importJob.id).catch((e: unknown) => { logError(e, { component: 'LeaveImportProgressView' }); toast.error(t("leave_import.download_errors_failed", "Tải file lỗi thất bại")); });
                 }
               }}
               size="sm"

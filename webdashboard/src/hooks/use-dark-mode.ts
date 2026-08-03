@@ -6,12 +6,12 @@ const STORAGE_KEY = 'theme_mode';
 /** Safe localStorage wrapper for private browsing / restricted environments */
 function readStorage(): ThemeMode {
   try { return (localStorage.getItem(STORAGE_KEY) as ThemeMode | null) ?? 'system'; }
-  catch { return 'system'; }
+  catch { /* localStorage unavailable (private browsing) — default to 'system' */ return 'system'; }
 }
 
 function writeStorage(value: ThemeMode) {
   try { localStorage.setItem(STORAGE_KEY, value); }
-  catch { /* private browsing — ignore */ }
+  catch { /* localStorage unavailable (private browsing) — preference won't persist */ }
 }
 
 function getSystemPreference(): 'light' | 'dark' {

@@ -16,6 +16,7 @@ import {
   PaginatedResponse,
   LeaveRequest,
 } from "@/lib/api";
+import { logError } from "@/lib/logger";
 import { useSearchPatch } from "@/lib/state";
 import { Route } from "@/routes/_authenticated/_workspace/leave-requests";
 
@@ -111,7 +112,7 @@ export function useLeaveRequests(wsId: string | null) {
           setImportBannerDismissedState(dismissedId === job.id);
         }
       }
-    }).catch(() => { /* empty */ });
+    }).catch((e: unknown) => { logError(e, { component: 'useLeaveRequests.fetchLatest' }); });
   }, [wsId]);
 
   const startPolling = useCallback((wsIdValue: string) => {
@@ -128,8 +129,9 @@ export function useLeaveRequests(wsId: string | null) {
               void queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
             }
           }
-        } catch {
-          // Network error — keep polling
+        } catch (e: unknown) {
+          // Network error — keep polling; log at debug level for observability
+          logError(e, { component: 'useLeaveRequests.polling' });
         }
       })();
     }, 3000);
@@ -151,7 +153,7 @@ export function useLeaveRequests(wsId: string | null) {
           setImportJob(job);
           setImportBannerDismissedState(false);
         }
-      }).catch(() => { /* empty */ });
+      }).catch((e: unknown) => { logError(e, { component: 'useLeaveRequests.importComplete' }); });
       void queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
     }
   }, [wsId, queryClient]);

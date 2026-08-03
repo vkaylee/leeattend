@@ -24,8 +24,7 @@ export function useDepartmentForm(wsId: string, editingDept: Department | null, 
           return (parentMap as Record<string, string>)[editingDept.id] ?? "";
         }
       }
-    } catch {
-      // Ignore
+    } catch { /* localStorage unavailable or corrupt — ignore parent map */
     }
     return "";
   };

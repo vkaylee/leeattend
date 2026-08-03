@@ -11,6 +11,7 @@ import type { AssignPatternRequest, Employee, EmployeeSchedule, EmployeeWorkingP
 import { translateRosterEntriesToMonth } from "@/components/shifts/roster/roster-utils";
 import { useToast } from "@/components/ui/toast";
 import { fetchWorkspaceSchedules, bulkUpsertRoster, deleteRoster } from "@/lib/api";
+import { logError } from "@/lib/logger";
 
 import { runRosterBulk } from "./roster-bulk-utils";
 import { useComplianceRetry } from "./use-compliance-retry";
@@ -110,9 +111,7 @@ export function useRosterHandlers({
         if (employmentId) {
           try {
             await refetchAndPatchRow(employmentId);
-          } catch {
-            /* row will refresh on next full load */
-          }
+          } catch (e: unknown) { logError(e, { component: 'useRosterHandlers.rowRefetch' }); /* row will refresh on next full load */ }
         }
       },
       queryClient,

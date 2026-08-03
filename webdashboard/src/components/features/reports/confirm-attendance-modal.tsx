@@ -34,7 +34,7 @@ const utcToLocalHHmm = (iso: string | null | undefined, timezone: string): strin
             minute: "2-digit",
             hour12: false,
         }).format(d);
-    } catch {
+    } catch { /* invalid timezone — fall back to UTC */
         return new Intl.DateTimeFormat("en-GB", {
             timeZone: "UTC",
             hour: "2-digit",

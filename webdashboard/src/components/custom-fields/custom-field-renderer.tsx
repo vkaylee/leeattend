@@ -58,7 +58,7 @@ function parseMultiselectList(val: unknown) {
         ? JSON.parse(val)
         : [];
     return { list: Array.isArray(parsed) ? parsed : [], isParseError: !Array.isArray(parsed) };
-  } catch {
+  } catch { /* JSON.parse on multiselect value — invalid JSON, treat as parse error */
     return { list: [] as unknown[], isParseError: true };
   }
 }

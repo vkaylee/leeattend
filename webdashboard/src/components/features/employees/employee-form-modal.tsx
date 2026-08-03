@@ -14,6 +14,7 @@ import {
   Employee, fetchEmployers, fetchEmployeeEmployments,
   updateEmployeeEmployment, Employment,
 } from "@/lib/api";
+import { logError } from "@/lib/logger";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 
 import EmployeeFormInputs from "./employee-form-inputs";
@@ -113,8 +114,9 @@ export default function EmployeeFormModal({
         try {
           const data = await fetchWorkspaceMembers(wsId);
           setMembers(data);
-        } catch {
-          /* empty */
+        } catch (e: unknown) {
+          logError(e, { component: 'EmployeeFormModal.loadMembers' });
+          /* proceed with empty member list */
         }
       };
       void loadMembers();

@@ -32,7 +32,7 @@ export function makeWorkspaceTzFormatter(timezone: string | undefined, hour12: b
       minute: "2-digit",
       hour12,
     });
-  } catch {
+  } catch { /* invalid timezone — fall back to UTC as backend does */
     return new Intl.DateTimeFormat("en-GB", {
       timeZone: UTC_TZ,
       hour: "2-digit",
@@ -51,7 +51,7 @@ export function makeWorkspaceDateFormatter(timezone: string | undefined): Intl.D
       month: "2-digit",
       day: "2-digit",
     });
-  } catch {
+  } catch { /* invalid timezone — fall back to UTC as backend does */
     return new Intl.DateTimeFormat("en-GB", {
       timeZone: UTC_TZ,
       year: "numeric",
@@ -83,7 +83,7 @@ export function formatDateOnly(date: string | Date | null | undefined, pattern: 
   if (!date) return "---";
   try {
     return format(new Date(date), pattern, { locale });
-  } catch {
+  } catch { /* invalid date — return raw string as best-effort display */
     return String(date);
   }
 }
@@ -110,7 +110,7 @@ export function formatTimeOnly(
       return format(dt, timePattern, { locale });
     }
     return formatInWorkspaceTz(d, timePattern, timezone);
-  } catch {
+  } catch { /* invalid date/time — return raw string as best-effort display */
     return String(date);
   }
 }
@@ -135,7 +135,7 @@ export function formatTime24hOnly(
       return format(dt, "HH:mm", { locale });
     }
     return formatInWorkspaceTz(d, "HH:mm", timezone);
-  } catch {
+  } catch { /* invalid date/time — return empty string as input placeholder */
     return "";
   }
 }
@@ -168,7 +168,7 @@ export function formatDateTimeOnly(
           ? `${yyyy}-${mm}-${dd}`
           : `${dd}/${mm}/${yyyy}`;
     return `${ordered} ${timePart}`;
-  } catch {
+  } catch { /* invalid date/time — return raw string as best-effort display */
     return String(date);
   }
 }
@@ -191,7 +191,7 @@ export function formatMonthYearOnly(
         ? "MM/yyyy"
         : "yyyy-MM";
     return format(new Date(date), pattern, { locale });
-  } catch {
+  } catch { /* invalid date — return raw string as best-effort display */
     return String(date);
   }
 }
@@ -213,7 +213,7 @@ export function formatDateTimeLocaleOnly(
       dateStyle: "medium",
       timeStyle: "medium",
     }).format(new Date(date));
-  } catch {
+  } catch { /* invalid date/locale — return raw string as best-effort display */
     return String(date);
   }
 }

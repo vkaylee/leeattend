@@ -9,6 +9,7 @@ import {
   useTestStorageConfig,
   useUpsertStorageConfig,
 } from "@/hooks/use-storage-settings";
+import { logError } from "@/lib/logger";
 import { maybeNull } from "@/types/api-overrides";
 
 import { StorageCredentialForm, StorageHeader } from "./storage-form-components";
@@ -61,7 +62,8 @@ export function StorageSettings() {
       });
       setTestResult("success");
       toast.success(t("settings.storage.test_success", "Connection successful!"));
-    } catch {
+    } catch (e: unknown) {
+      logError(e, { component: 'StorageSettings.testConnection' });
       setTestResult("error");
       toast.error(t("settings.storage.test_error", "Connection failed. Please check your credentials."));
     } finally {
@@ -87,7 +89,8 @@ export function StorageSettings() {
           presigned_ttl_secs: 3600,
         });
         toast.success(t("settings.storage.save_success", "Storage configuration saved."));
-      } catch {
+      } catch (e: unknown) {
+        logError(e, { component: 'StorageSettings.saveConfig' });
         toast.error(t("settings.storage.save_error", "Failed to save configuration."));
       }
     } else {
@@ -95,7 +98,8 @@ export function StorageSettings() {
         try {
           await deleteMutation.mutateAsync();
           toast.success(t("settings.storage.revert_success", "Reverted to Central Storage."));
-        } catch {
+        } catch (e: unknown) {
+          logError(e, { component: 'StorageSettings.revertConfig' });
           toast.error(t("settings.storage.revert_error", "Failed to revert configuration."));
         }
       }

@@ -6,6 +6,7 @@ import { useToast } from "@/components/ui/toast";
 import { useAuthorizedAgents, useAgentsStatus } from "@/hooks/use-agents";
 import { useDevices } from "@/hooks/use-devices";
 import { AuthorizedAgent, Device } from "@/lib/api";
+import { logError } from "@/lib/logger";
 
 import { AddAgentForm } from "./add-agent-form";
 import { AddEditDeviceModal } from "./add-edit-device-modal";
@@ -40,7 +41,8 @@ export default function ConnectivityTopology() {
   const handleDeleteAgent = async (agent: AuthorizedAgent) => {
     try {
       await deleteAgent(agent.id);
-    } catch {
+    } catch (e: unknown) {
+      logError(e, { component: 'ConnectivityTopology.deleteAgent' });
       toast.error(t('connectivity.action_failed'));
     } finally {
       void refetchAgents();
@@ -50,7 +52,8 @@ export default function ConnectivityTopology() {
   const handleDeleteDevice = async (id: string) => {
     try {
       await deleteDevice(id);
-    } catch {
+    } catch (e: unknown) {
+      logError(e, { component: 'ConnectivityTopology.deleteAgent' });
       toast.error(t('connectivity.action_failed'));
     } finally {
       void refetchStatus();
@@ -60,7 +63,8 @@ export default function ConnectivityTopology() {
   const handleToggleTrust = async (agent: AuthorizedAgent) => {
     try {
       await updateTrust({ id: agent.id, is_trusted: !agent.is_trusted });
-    } catch {
+    } catch (e: unknown) {
+      logError(e, { component: 'ConnectivityTopology.deleteAgent' });
       toast.error(t('connectivity.action_failed'));
     } finally {
       void refetchAgents();
@@ -70,7 +74,8 @@ export default function ConnectivityTopology() {
   const handleUpdateDevice = async (id: string, data: Partial<Device>) => {
     try {
       await updateDevice(id, data);
-    } catch {
+    } catch (e: unknown) {
+      logError(e, { component: 'ConnectivityTopology.deleteAgent' });
       toast.error(t('connectivity.action_failed'));
     } finally {
       void refetchStatus();

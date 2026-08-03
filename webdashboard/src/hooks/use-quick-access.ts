@@ -13,7 +13,7 @@ function getQuickAccess(): string[] {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
     return parsed.filter((id): id is string => typeof id === "string");
-  } catch {
+  } catch { /* localStorage unavailable or corrupt — return empty list */
     return [];
   }
 }
@@ -21,7 +21,7 @@ function getQuickAccess(): string[] {
 function setQuickAccess(ids: string[]): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(ids.slice(0, MAX_ITEMS)));
-  } catch { /* noop */ }
+  } catch { /* localStorage unavailable — quick-access won't persist */ /* noop */ }
 }
 
 // ── Hook ───────────────────────────────────────────────────────────

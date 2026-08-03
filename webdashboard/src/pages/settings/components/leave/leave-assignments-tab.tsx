@@ -12,6 +12,7 @@ import ResponsiveTable from "@/components/ui/responsive-table";
 import { toast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
+import { logError } from "@/lib/logger";
 
 import type { LeaveAssignment } from "../../hooks/use-leave-settings";
 
@@ -45,7 +46,8 @@ export function LeaveAssignmentsTab({
       try {
         await onDelete(deletingAssignmentId);
         toast.success(t("settings.leave.messages.delete_assignment_success"));
-      } catch {
+      } catch (e: unknown) {
+        logError(e, { component: 'LeaveAssignmentsTab.delete' });
         toast.error(t("settings.leave.messages.delete_assignment_error"));
       } finally {
         setDeletingAssignmentId(null);

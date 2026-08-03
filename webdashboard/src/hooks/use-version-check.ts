@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
+import { logError } from "@/lib/logger";
+
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
 const DISMISSED_VERSION_KEY = "dismissedVersion";
 const RELOAD_ATTEMPT_KEY = "versionReloadAttempt";
@@ -7,20 +9,34 @@ const RELOAD_ATTEMPT_TTL_MS = 10 * 60 * 1000;
 
 declare const __BUILD_HASH__: string;
 
-function getDismissedVersion(): string | null {
+// ── Safe sessionStorage wrapper ──────────────────────────────────────────────
+// sessionStorage throws in private browsing and some restricted environments.
+// This helper consolidates all get/set/remove with silent fallback on failure.
+
+function getSessionItem(key: string): string | null {
   try {
-    return sessionStorage.getItem(DISMISSED_VERSION_KEY);
-  } catch {
-    return null;
-  }
+    return sessionStorage.getItem(key);
+  } catch { /* sessionStorage unavailable (private browsing) */ return null; }
+}
+
+function setSessionItem(key: string, value: string): void {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch { /* sessionStorage unavailable — persist silently fails */ }
+}
+
+function removeSessionItem(key: string): void {
+  try {
+    sessionStorage.removeItem(key);
+  } catch { /* sessionStorage unavailable */ }
+}
+
+function getDismissedVersion(): string | null {
+  return getSessionItem(DISMISSED_VERSION_KEY);
 }
 
 function setDismissedVersion(hash: string): void {
-  try {
-    sessionStorage.setItem(DISMISSED_VERSION_KEY, hash);
-  } catch {
-    // sessionStorage unavailable (private mode) — dismiss won't persist
-  }
+  setSessionItem(DISMISSED_VERSION_KEY, hash);
 }
 
 interface ReloadAttempt {
@@ -29,38 +45,31 @@ interface ReloadAttempt {
 }
 
 function getReloadAttempt(): ReloadAttempt | null {
+  const raw = getSessionItem(RELOAD_ATTEMPT_KEY);
+  if (!raw) return null;
   try {
-    const raw = sessionStorage.getItem(RELOAD_ATTEMPT_KEY);
-    if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<ReloadAttempt>;
     if (typeof parsed.buildId !== "string" || typeof parsed.attemptedAt !== "number") {
-      sessionStorage.removeItem(RELOAD_ATTEMPT_KEY);
+      removeSessionItem(RELOAD_ATTEMPT_KEY);
       return null;
     }
     if (Date.now() - parsed.attemptedAt > RELOAD_ATTEMPT_TTL_MS) {
-      sessionStorage.removeItem(RELOAD_ATTEMPT_KEY);
+      removeSessionItem(RELOAD_ATTEMPT_KEY);
       return null;
     }
     return parsed as ReloadAttempt;
-  } catch {
+  } catch { /* JSON.parse on corrupted sessionStorage — clean up and move on */
+    removeSessionItem(RELOAD_ATTEMPT_KEY);
     return null;
   }
 }
 
 function setReloadAttempt(buildId: string): void {
-  try {
-    sessionStorage.setItem(RELOAD_ATTEMPT_KEY, JSON.stringify({ buildId, attemptedAt: Date.now() }));
-  } catch {
-    // sessionStorage unavailable; the reload still works without persistence.
-  }
+  setSessionItem(RELOAD_ATTEMPT_KEY, JSON.stringify({ buildId, attemptedAt: Date.now() }));
 }
 
 function clearReloadAttempt(): void {
-  try {
-    sessionStorage.removeItem(RELOAD_ATTEMPT_KEY);
-  } catch {
-    // sessionStorage unavailable.
-  }
+  removeSessionItem(RELOAD_ATTEMPT_KEY);
 }
 
 /** Extract and validate build ID from manifest JSON response. */
@@ -122,8 +131,9 @@ export function useVersionCheck() {
       if (serverHash !== getDismissedVersion()) {
         setHasNewVersion(true);
       }
-    } catch {
-      // network error — skip check
+    } catch (e: unknown) {
+      // Network error or fetch failure — skip this check cycle
+      logError(e, { component: 'useVersionCheck' });
     }
   }, []);
 

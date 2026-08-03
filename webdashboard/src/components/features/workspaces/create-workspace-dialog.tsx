@@ -6,6 +6,7 @@ import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
 import { useWorkspaces } from "@/hooks/use-workspace";
+import { logError } from "@/lib/logger";
 
 
 interface CreateWorkspaceDialogProps {
@@ -31,7 +32,8 @@ export default function CreateWorkspaceDialog({
     try {
       await createWorkspace({ name, database_url: databaseUrl });
       setName(""); setDatabaseUrl(""); onClose();
-    } catch {
+    } catch (e: unknown) {
+      logError(e, { component: 'CreateWorkspaceDialog.submit' });
       setError(t("common.create_workspace_error"));
     } finally { setIsSubmitting(false); }
   }

@@ -72,8 +72,7 @@ export function HoldToPunchButton({ onPunch, isPunching, label, isActive }: Hold
         const target = e.target as HTMLElement;
         try {
           target.setPointerCapture(e.pointerId);
-        } catch {
-          // Ignore in jsdom environments where setPointerCapture might not exist or throws
+        } catch { /* setPointerCapture unavailable in jsdom — ignore */
         }
         startHold();
       }}
@@ -82,8 +81,7 @@ export function HoldToPunchButton({ onPunch, isPunching, label, isActive }: Hold
         const target = e.target as HTMLElement;
         try {
           target.releasePointerCapture(e.pointerId);
-        } catch {
-          // Ignore
+        } catch { /* releasePointerCapture unavailable in jsdom — ignore */
         }
         endHold();
       }}

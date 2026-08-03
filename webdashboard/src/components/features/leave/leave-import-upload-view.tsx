@@ -4,8 +4,10 @@ import { Upload, FileText, Loader2, AlertCircle, Download } from "lucide-react";
 import React from "react";
 
 import Button from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { downloadLeaveImportTemplate } from "@/lib/api";
+import { logError } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
 export interface LeaveImportUploadViewProps {
@@ -128,7 +130,7 @@ export function LeaveImportUploadView({ file, setFile, wsId, i18n, t, uploading,
           setDownloadingTemplate(true);
           try {
             await downloadLeaveImportTemplate(wsId, i18n.language);
-          } catch { /* handled */ } finally {
+          } catch (e: unknown) { logError(e, { component: 'LeaveImportUploadView' }); toast.error(t("leave_import.download_template_failed", "Tải file mẫu thất bại")); } finally {
             setDownloadingTemplate(false);
           }
         }}

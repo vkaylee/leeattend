@@ -14,6 +14,7 @@ import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { fetchEmploymentPhases, fetchEmployeeEmployments } from "@/lib/api/employees";
+import { logError } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 import { useEmployeeContracts } from "@/pages/employees/hooks/use-employee-contracts";
 
@@ -232,7 +233,7 @@ export default function ContractFormModal({ isOpen, onClose, editingContract, ws
       const payload: CreateContractRequest = { ...data, employment_id: activeEmployment?.id ?? "", end_date: payloadDate, assign_phase_id: data.assign_phase_id ?? undefined };
       try { await createContract.mutateAsync(payload); toast.success("Đã tạo hợp đồng thành công"); onClose(); }
       catch (err: unknown) { const error = err as Error; if (error.message.includes("overlapping_contract_exists")) { setOverlapData(payload); setIsConfirmingOverlap(true); } else { toast.error(error.message || "Có lỗi xảy ra"); } }
-    } catch { toast.error("Có lỗi xảy ra"); }
+    } catch (e: unknown) { logError(e, { component: 'ContractFormModal.save' }); toast.error("Có lỗi xảy ra"); }
   };
 
   const handleConfirmOverlap = async () => {

@@ -39,7 +39,7 @@ function IndexPage() {
   const useLegacyDashboard = (() => {
     try {
       return localStorage.getItem("leeattend-legacy-dashboard") === "true";
-    } catch {
+    } catch { /* localStorage unavailable (private browsing) — default to new dashboard */
       return false;
     }
   })();

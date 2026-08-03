@@ -34,7 +34,7 @@ const PIN_STORAGE_KEY = "nav-rail-pinned";
 function getInitialPinned(): boolean {
   try {
     return localStorage.getItem(PIN_STORAGE_KEY) === "true";
-  } catch {
+  } catch { /* localStorage unavailable (private browsing) — default to unpinned */
     return false;
   }
 }
@@ -58,7 +58,7 @@ export function useNavSidebar(locationPathname: string): NavSidebarState {
   const togglePin = useCallback(() => {
     setIsPinned((prev) => {
       const next = !prev;
-      try { localStorage.setItem(PIN_STORAGE_KEY, String(next)); } catch { /* noop */ }
+      try { localStorage.setItem(PIN_STORAGE_KEY, String(next)); } catch { /* localStorage unavailable — pin state won't persist */ /* noop */ }
       return next;
     });
   }, []);

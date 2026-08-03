@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef } from "react";
 import type { StreamStatus } from "@/types/report-stream";
 
 import { clearAuthSession } from "@/lib/api/helpers";
+import { logError } from "@/lib/logger";
 import { ROUTES } from "@/lib/routes";
 import { maybeNull } from "@/types/api-overrides";
 
@@ -71,7 +72,8 @@ export function useReportStreamSocket({
         clearAuthSession();
         if (window.location.pathname !== ROUTES.LOGIN) window.location.href = ROUTES.LOGIN;
       }
-    } catch {
+    } catch (e: unknown) {
+      logError(e, { component: 'useReportStreamSocket.authError' });
       clearAuthSession();
       if (window.location.pathname !== ROUTES.LOGIN) window.location.href = ROUTES.LOGIN;
     }
@@ -150,7 +152,8 @@ export function useReportStreamSocket({
       socket.onclose = (event) => {
         handleClose(event, connectionTimeoutId);
       };
-    } catch {
+    } catch (e: unknown) {
+      logError(e, { component: 'useReportStreamSocket.connect' });
       setStatus("error");
       setError("Failed to establish connection");
     }

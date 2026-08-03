@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import type { WorkerMonitorStats } from "@/lib/api/types";
 
 import { getAccessToken } from "@/lib/api/helpers";
+import { logError } from "@/lib/logger";
 
 import { monitorKeys } from "./use-worker-monitor";
 
@@ -53,8 +54,9 @@ export function useMonitorStream() {
           queryClient.setQueryData(monitorKeys.overview(), data);
           setConnected(true);
           retryCount.current = 0;           // reset on success
-        } catch {
+        } catch (e: unknown) {
           // Malformed payload – ignore, wait for next tick
+          logError(e, { component: 'useMonitorStream' });
         }
       });
 

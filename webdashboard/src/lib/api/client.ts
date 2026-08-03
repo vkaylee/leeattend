@@ -53,8 +53,7 @@ async function extractRequestInfo(
             options.body = bodyBlob;
           }
         }
-      } catch {
-        // Ignore if body reading fails
+      } catch { /* body reading failed — skip body for this request */
       }
     }
   }
