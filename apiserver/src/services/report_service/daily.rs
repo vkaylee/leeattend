@@ -149,6 +149,8 @@ impl ReportService {
             total: usize::try_from(preamble.total_employees()).unwrap_or(0),
             page: i64::try_from(preamble.page()).unwrap_or(1),
             limit: i64::try_from(preamble.limit()).unwrap_or(20),
+
+            truncated: None,
         }
     }
 
@@ -164,6 +166,8 @@ impl ReportService {
             total: usize::try_from(preamble.total_employees()).unwrap_or(0),
             page: i64::try_from(preamble.page()).unwrap_or(1),
             limit: i64::try_from(preamble.limit()).unwrap_or(20),
+
+            truncated: None,
         }
     }
 

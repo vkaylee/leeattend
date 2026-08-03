@@ -70,6 +70,8 @@ pub async fn get_departments(
         total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
+
+        truncated: None,
     }))
 }
 

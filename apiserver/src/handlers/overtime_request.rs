@@ -186,6 +186,8 @@ pub async fn list_ot_requests(
         total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
+
+        truncated: None,
     }))
 }
 
@@ -453,6 +455,8 @@ pub async fn list_request_behalf_assignments(
         total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
+
+        truncated: None,
     }))
 }
 

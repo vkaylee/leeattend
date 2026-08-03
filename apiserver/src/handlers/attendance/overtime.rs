@@ -240,6 +240,8 @@ pub async fn get_attendance_summaries(
                 total: 0,
                 page: query.page.unwrap_or(1),
                 limit: query.limit.unwrap_or(50),
+
+                truncated: None,
             }));
         }
         active_emp_id
@@ -278,6 +280,8 @@ pub async fn get_attendance_summaries(
         total,
         page,
         limit,
+
+        truncated: None,
     }))
 }
 

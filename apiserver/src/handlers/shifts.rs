@@ -233,6 +233,8 @@ pub async fn get_shifts(
         total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
+
+        truncated: None,
     }))
 }
 
@@ -514,6 +516,8 @@ pub async fn get_workspace_schedules(
         total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
+
+        truncated: None,
     }))
 }
 
@@ -548,6 +552,8 @@ pub async fn get_assignment_history(
         total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
+
+        truncated: None,
     }))
 }
 
@@ -614,6 +620,8 @@ pub async fn get_employee_rosters(
         total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
+
+        truncated: None,
     }))
 }
 

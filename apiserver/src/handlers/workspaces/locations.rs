@@ -54,6 +54,8 @@ pub async fn list_locations(
         total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
+
+        truncated: None,
     }))
 }
 

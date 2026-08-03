@@ -53,6 +53,8 @@ pub async fn list_employers(
         total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
+
+        truncated: None,
     }))
 }
 

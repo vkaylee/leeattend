@@ -119,6 +119,8 @@ impl ReportService {
             total: daily.total,
             page: daily.page,
             limit: daily.limit,
+
+            truncated: None,
         })
     }
 }

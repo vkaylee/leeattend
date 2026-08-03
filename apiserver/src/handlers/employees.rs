@@ -66,6 +66,8 @@ pub async fn get_working_conditions(
         total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
+
+        truncated: None,
     }))
 }
 
@@ -244,6 +246,8 @@ pub async fn get_employees(
         total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
+
+        truncated: None,
     }))
 }
 

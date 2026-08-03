@@ -105,4 +105,53 @@ pub struct PaginatedResponse<T> {
     pub total: usize,
     pub page: i64,
     pub limit: i64,
+    /// `Some(true)` when results are capped by a safety ceiling (e.g. computed-sort
+    /// summary fetches at most 1 000 employees). `None` / absent in JSON otherwise.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub truncated: Option<bool>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_paginated_response_serialization_omits_truncated_none() {
+        let resp = PaginatedResponse::<String> {
+            data: vec!["a".into()],
+            total: 1,
+            page: 1,
+            limit: 20,
+            truncated: None,
+        };
+        let json = serde_json::to_string(&resp).unwrap();
+        assert!(!json.contains("truncated"), "truncated: None should be absent from JSON, got: {json}");
+    }
+
+    #[test]
+    fn test_paginated_response_serialization_includes_truncated_true() {
+        let resp = PaginatedResponse::<String> {
+            data: vec!["a".into()],
+            total: 1,
+            page: 1,
+            limit: 20,
+            truncated: Some(true),
+        };
+        let json = serde_json::to_string(&resp).unwrap();
+        assert!(json.contains("\"truncated\":true"), "truncated: true should appear in JSON, got: {json}");
+    }
+
+    #[test]
+    fn test_paginated_response_deserialization_defaults_truncated() {
+        let json = r#"{"data":[],"total":0,"page":1,"limit":20}"#;
+        let resp: PaginatedResponse<String> = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.truncated, None);
+    }
+
+    #[test]
+    fn test_paginated_response_deserialization_preserves_truncated_true() {
+        let json = r#"{"data":[],"total":0,"page":1,"limit":20,"truncated":true}"#;
+        let resp: PaginatedResponse<String> = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.truncated, Some(true));
+    }
 }

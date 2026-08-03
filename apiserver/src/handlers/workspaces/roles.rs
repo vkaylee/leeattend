@@ -243,6 +243,8 @@ pub async fn get_workspace_roles(
         total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
+
+        truncated: None,
     }))
 }
 

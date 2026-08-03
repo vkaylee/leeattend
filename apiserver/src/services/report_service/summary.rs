@@ -5,6 +5,17 @@ use chrono_tz::Tz;
 use std::collections::HashMap;
 use uuid::Uuid;
 
+/// Safety ceiling for computed-sort summary queries.
+///
+/// When sorting by computed fields (work hours, OT, leave days) the system must
+/// load every employee into memory, compute their aggregates, sort in-memory,
+/// and then paginate. This constant caps the maximum number of employees that
+/// will be fetched to prevent OOM on workspaces with 10 000+ employees.
+///
+/// When the workspace has more employees than this ceiling, the response is
+/// flagged with `truncated: true` so the frontend can warn the user.
+const MAX_COMPUTED_SORT_EMPLOYEES: i64 = 1_000;
+
 impl ReportService {
     #[tracing::instrument(skip_all, err)]
     #[allow(clippy::too_many_lines)]
@@ -38,7 +49,7 @@ impl ReportService {
             // Fetch ALL employees for in-memory sorting — override pagination.
             let all_args = AttendanceReportArgs {
                 page: Some(1),
-                limit: Some(10_000),
+                limit: Some(MAX_COMPUTED_SORT_EMPLOYEES),
                 ..args.clone()
             };
             let preamble = self
@@ -50,10 +61,21 @@ impl ReportService {
                     total: 0,
                     page,
                     limit,
+                    truncated: None,
                 });
             }
 
             let total = preamble.total_employees();
+            let truncated = total > MAX_COMPUTED_SORT_EMPLOYEES;
+            if truncated {
+                tracing::warn!(
+                    total_employees = %total,
+                    ceiling = %MAX_COMPUTED_SORT_EMPLOYEES,
+                    workspace_id = %args.workspace_id,
+                    "Report summary computed sort: employee count exceeds safety ceiling — results truncated"
+                );
+            }
+
             let emp_ids: Vec<Uuid> = preamble
                 .paginated_employees()
                 .iter()
@@ -92,6 +114,7 @@ impl ReportService {
                 total,
                 page,
                 limit,
+                truncated,
             ));
         } else {
             let preamble = self
@@ -103,6 +126,7 @@ impl ReportService {
                     total: usize::try_from(preamble.total_employees()).unwrap_or(0),
                     page: i64::try_from(preamble.page()).unwrap_or(1),
                     limit: i64::try_from(preamble.limit()).unwrap_or(20),
+                    truncated: None,
                 });
             }
             (
@@ -121,6 +145,7 @@ impl ReportService {
                 total: 0,
                 page: 1,
                 limit: 20,
+                truncated: None,
             });
         };
         let page = i64::try_from(preamble.page()).unwrap_or(1);
@@ -160,6 +185,7 @@ impl ReportService {
             total_employees,
             page,
             limit,
+            false,
         ))
     }
 
@@ -319,6 +345,7 @@ impl ReportService {
         total_employees: i64,
         page: i64,
         limit: i64,
+        truncated: bool,
     ) -> PaginatedResponse<AttendanceSummary> {
         let logical_total = results.len();
 
@@ -375,6 +402,183 @@ impl ReportService {
             },
             page,
             limit,
+            truncated: if truncated { Some(true) } else { None },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::enums::TimekeepingUnit;
+
+    fn make_summary(employee_id: Uuid, std_units: i32, ot_units: i32, leave_days: i64) -> AttendanceSummary {
+        AttendanceSummary {
+            employment_id: Uuid::new_v4(),
+            employee_id,
+            employee_name: format!("Employee {employee_id}"),
+            employee_id_number: format!("EMP{:03}", std_units),
+            total_std_units: std_units,
+            total_ot_units: ot_units,
+            total_leave_days: leave_days,
+            unit_type: TimekeepingUnit::DAY,
+            unit_coefficient_hours: 8.0,
+            computed_std_hours: f64::from(std_units) * 8.0,
+            computed_ot_hours: f64::from(ot_units) * 8.0,
+            employer_id: None,
+            employer_name: None,
+        }
+    }
+
+    #[test]
+    fn test_finalize_summary_truncated_true() {
+        let eid = Uuid::new_v4();
+        let results = vec![make_summary(eid, 10, 2, 1)];
+        let resp = ReportService::finalize_summary(
+            results,
+            Some(AttendanceReportSort::WorkHoursDesc),
+            true,  // is_computed_sort
+            1500,  // total_employees
+            1,     // page
+            20,    // limit
+            true,  // truncated
+        );
+        assert_eq!(resp.truncated, Some(true));
+        assert_eq!(resp.data.len(), 1);
+        assert_eq!(resp.total, 1);
+    }
+
+    #[test]
+    fn test_finalize_summary_truncated_false() {
+        let eid = Uuid::new_v4();
+        let results = vec![make_summary(eid, 10, 2, 1)];
+        let resp = ReportService::finalize_summary(
+            results,
+            None,
+            false, // is_computed_sort
+            42,    // total_employees
+            1,     // page
+            20,    // limit
+            false, // truncated
+        );
+        assert_eq!(resp.truncated, None);
+        // Non-computed sort: total comes from total_employees param, not results.len()
+        assert_eq!(resp.total, 42);
+    }
+
+    #[test]
+    fn test_finalize_summary_computed_sort_pagination() {
+        let eid = Uuid::new_v4();
+        // 5 results, page 2 with limit 2 → expect 2 items (3rd and 4th)
+        let results: Vec<_> = (0..5)
+            .map(|i| make_summary(eid, i * 10, i, i as i64))
+            .collect();
+
+        let resp = ReportService::finalize_summary(
+            results,
+            Some(AttendanceReportSort::WorkHoursAsc),
+            true,  // is_computed_sort
+            500,   // total_employees
+            2,     // page
+            2,     // limit
+            false, // truncated (under ceiling)
+        );
+
+        assert_eq!(resp.data.len(), 2);
+        assert_eq!(resp.total, 5); // logical total = results.len() pre-pagination
+        assert_eq!(resp.page, 2);
+        assert_eq!(resp.limit, 2);
+        assert_eq!(resp.truncated, None);
+
+        // First result on page 2 should be the 3rd element (index 2), sorted ascending by std+ot
+        assert_eq!(resp.data[0].total_std_units, 20);
+        assert_eq!(resp.data[1].total_std_units, 30);
+    }
+
+    #[test]
+    fn test_finalize_summary_offset_out_of_range_returns_empty() {
+        let eid = Uuid::new_v4();
+        let results = vec![make_summary(eid, 10, 2, 1)];
+        let resp = ReportService::finalize_summary(
+            results,
+            None,
+            true, // is_computed_sort
+            500,  // total_employees
+            10,   // page — way beyond range
+            20,   // limit
+            false,
+        );
+        assert!(resp.data.is_empty());
+        assert_eq!(resp.total, 1); // logical total still reflects original count
+    }
+
+    #[test]
+    fn test_finalize_summary_non_computed_sort_no_pagination() {
+        let eid = Uuid::new_v4();
+        let results = (0..3)
+            .map(|i| make_summary(eid, i * 5, 0, 0))
+            .collect::<Vec<_>>();
+
+        let resp = ReportService::finalize_summary(
+            results,
+            Some(AttendanceReportSort::NameAsc),
+            false, // non-computed sort
+            100,   // total_employees
+            1,     // page
+            20,    // limit
+            false,
+        );
+        // Non-computed sort: no manual pagination, all 3 results returned
+        assert_eq!(resp.data.len(), 3);
+        assert_eq!(resp.total, 100); // from total_employees
+        assert_eq!(resp.truncated, None);
+    }
+
+    #[test]
+    fn test_finalize_summary_leave_days_sort() {
+        let eid = Uuid::new_v4();
+        let results = vec![
+            make_summary(eid, 0, 0, 5),  // leave_days = 5
+            make_summary(eid, 0, 0, 1),  // leave_days = 1
+            make_summary(eid, 0, 0, 3),  // leave_days = 3
+        ];
+
+        let resp = ReportService::finalize_summary(
+            results,
+            Some(AttendanceReportSort::LeaveDaysAsc),
+            true,  // is_computed_sort
+            500,
+            1,
+            20,
+            false,
+        );
+
+        assert_eq!(resp.data[0].total_leave_days, 1);
+        assert_eq!(resp.data[1].total_leave_days, 3);
+        assert_eq!(resp.data[2].total_leave_days, 5);
+    }
+
+    #[test]
+    fn test_finalize_summary_ot_hours_sort_desc() {
+        let eid = Uuid::new_v4();
+        let results = vec![
+            make_summary(eid, 0, 2, 0),  // ot = 2
+            make_summary(eid, 0, 8, 0),  // ot = 8
+            make_summary(eid, 0, 1, 0),  // ot = 1
+        ];
+
+        let resp = ReportService::finalize_summary(
+            results,
+            Some(AttendanceReportSort::OtHoursDesc),
+            true,
+            500,
+            1,
+            20,
+            false,
+        );
+
+        assert_eq!(resp.data[0].total_ot_units, 8);
+        assert_eq!(resp.data[1].total_ot_units, 2);
+        assert_eq!(resp.data[2].total_ot_units, 1);
     }
 }

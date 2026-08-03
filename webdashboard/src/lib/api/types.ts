@@ -71,6 +71,8 @@ export interface PaginatedResponse<T> {
   limit: number;
   page: number;
   total: number;
+  /** `true` when results are capped by a server-side safety ceiling (e.g. report summary with computed sort). */
+  truncated?: boolean;
 }
 
 export interface MemberRolesResponse {

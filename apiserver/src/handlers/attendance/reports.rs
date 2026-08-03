@@ -55,6 +55,7 @@ fn empty_report_json(
             total: 0,
             page,
             limit,
+            truncated: None,
         })
     } else {
         serde_json::to_value(
@@ -63,6 +64,7 @@ fn empty_report_json(
                 total: 0,
                 page,
                 limit,
+                truncated: None,
             },
         )
     }
