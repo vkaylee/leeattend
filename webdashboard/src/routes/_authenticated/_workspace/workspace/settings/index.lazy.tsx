@@ -1,6 +1,7 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 import { Suspense, lazy } from "react";
 
+import { ErrorBoundary } from "@/components/common/error-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const SettingsHubPage = lazy(() => import("@/pages/settings/settings-hub-page"));
@@ -19,8 +20,10 @@ function SettingsHubFallback() {
 
 export const Route = createLazyFileRoute("/_authenticated/_workspace/workspace/settings/")({
   component: () => (
-    <Suspense fallback={<SettingsHubFallback />}>
-      <SettingsHubPage />
-    </Suspense>
+    <ErrorBoundary variant="full">
+      <Suspense fallback={<SettingsHubFallback />}>
+        <SettingsHubPage />
+      </Suspense>
+    </ErrorBoundary>
   ),
 });

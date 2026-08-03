@@ -1,6 +1,7 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 import { Suspense, lazy } from "react";
 
+import { ErrorBoundary } from "@/components/common/error-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const NotificationsPage = lazy(() => import("@/pages/notifications-page"));
@@ -35,8 +36,10 @@ function NotificationsFallback() {
 
 export const Route = createLazyFileRoute("/_authenticated/_workspace/notifications")({
   component: () => (
-    <Suspense fallback={<NotificationsFallback />}>
-      <NotificationsPage />
-    </Suspense>
+    <ErrorBoundary variant="full">
+      <Suspense fallback={<NotificationsFallback />}>
+        <NotificationsPage />
+      </Suspense>
+    </ErrorBoundary>
   ),
 });
