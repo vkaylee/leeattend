@@ -6,8 +6,8 @@ import {
 } from "@tanstack/react-table";
 import React, { memo, useCallback, useMemo } from "react";
 
-import { cn } from "@/lib/utils";
 import { logError } from "@/lib/logger";
+import { cn } from "@/lib/utils";
 import { maybeNull } from "@/types/api-overrides";
 
 import type { CellCoordinate, EditableCellValue } from "./types";

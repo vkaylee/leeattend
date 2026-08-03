@@ -130,8 +130,8 @@ export function useDailyDrawerQueries({
         const { stdHours, otHours } = authoritativeTotals.size > 0
             ? Array.from(authoritativeTotals.values()).reduce(
                 (totals, dayTotals) => ({
-                    stdHours: totals.stdHours + (dayTotals.computed_std_hours || 0),
-                    otHours: totals.otHours + (dayTotals.computed_ot_hours || 0),
+                    stdHours: totals.stdHours + (dayTotals.computed_std_hours ?? 0),
+                    otHours: totals.otHours + (dayTotals.computed_ot_hours ?? 0),
                 }),
                 { stdHours: 0, otHours: 0 },
             )

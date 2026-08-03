@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { SocketCloseState } from "../use-report-stream-reducer";
+
 import { reduceSocketState } from "../use-report-stream-reducer";
 
 function socketState(overrides: Partial<SocketCloseState> = {}): SocketCloseState {

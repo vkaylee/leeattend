@@ -92,11 +92,11 @@ export function ShiftMobileCard({
           {hasFixedBreak ? (
             <div className="flex items-center gap-2">
               <span className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-1 font-mono text-[10px] font-bold text-slate-600 shadow-inner dark:border-slate-800 dark:bg-slate-800 dark:text-slate-300">
-                {breakStart?.substring(0, 5)}
+                {breakStart.substring(0, 5)}
               </span>
               <span className="font-bold text-slate-300 dark:text-slate-600">-</span>
               <span className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-1 font-mono text-[10px] font-bold text-slate-600 shadow-inner dark:border-slate-800 dark:bg-slate-800 dark:text-slate-300">
-                {breakEnd?.substring(0, 5)}
+                {breakEnd.substring(0, 5)}
               </span>
               {isAutoDeduct ? (
                 <span className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-widest text-blue-500 opacity-80">

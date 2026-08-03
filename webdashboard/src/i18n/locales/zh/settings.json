@@ -286,7 +286,8 @@
     "label": "设备"
   },
   "connectivity": {
-    "empty_guide": "在您的本地网络上安装代理以连接考勤设备。从文档中下载安装程序。"
+    "empty_guide": "在您的本地网络上安装代理以连接考勤设备。从文档中下载安装程序。",
+    "action_failed": "操作失败。请重试。"
   },
   "settings": {
     "categories": {

@@ -11,8 +11,8 @@ import ConfirmDialog from "@/components/ui/confirm-dialog";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import { toast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { cn } from "@/lib/utils";
 import { logError } from "@/lib/logger";
+import { cn } from "@/lib/utils";
 
 import type { LeaveAssignment } from "../../hooks/use-leave-settings";
 

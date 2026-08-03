@@ -1,13 +1,13 @@
 import { ClipboardList, Circle, AlertCircle } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 import type { PendingTaskResponse } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyPendingTasks, useCompletePendingTask } from "@/hooks/use-lifecycle";
 import { cn } from "@/lib/utils";
 import { maybeNull } from "@/types/api-overrides";
@@ -79,7 +79,7 @@ export default function PendingTasksWidget() {
               <div className="flex items-start gap-3 flex-1">
                 <Button
                   className="text-slate-400 hover:text-emerald-500 transition-colors p-0 h-auto min-w-0"
-                  loading={!!completeTaskMutation.isPending && maybeNull(completeTaskMutation.variables)?.itemId === task.id}
+                  loading={completeTaskMutation.isPending && maybeNull(completeTaskMutation.variables)?.itemId === task.id ? true : undefined}
                   onClick={() => { handleCompleteTask(task); }}
                   variant="ghost"
                 >

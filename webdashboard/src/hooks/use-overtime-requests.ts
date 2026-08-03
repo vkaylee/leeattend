@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { useWorkspace } from '@/hooks/use-workspace';
 import { useWorkspaceQuery, useWorkspaceMutation } from '@/hooks/common/use-workspace-query';
+import { useWorkspace } from '@/hooks/use-workspace';
 import { overtimeRequestsApi, CreateOvertimeRequestPayload, ConsentStatus } from '@/lib/api/overtime-requests';
 
 export const overtimeRequestKeys = {
@@ -34,7 +34,7 @@ export const useOvertimeRequest = (id: string) => {
 };
 
 export const useCreateOvertimeRequest = () =>
-  useWorkspaceMutation<CreateOvertimeRequestPayload, unknown>({
+  useWorkspaceMutation<CreateOvertimeRequestPayload>({
     mutationFn: (wsId, payload) => overtimeRequestsApi.createRequest(wsId, payload),
     keys: [overtimeRequestKeys.all],
   });
@@ -42,7 +42,7 @@ export const useCreateOvertimeRequest = () =>
 export const useSubmitOvertimeRequest = () => {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
-  return useWorkspaceMutation<string, unknown>({
+  return useWorkspaceMutation<string>({
     mutationFn: (wsId, id) => overtimeRequestsApi.submitRequest(wsId, id),
     keys: [overtimeRequestKeys.all],
     onSuccess: (_, id) => {
@@ -56,7 +56,7 @@ export const useSubmitOvertimeRequest = () => {
 export const useCancelOvertimeRequest = () => {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
-  return useWorkspaceMutation<string, unknown>({
+  return useWorkspaceMutation<string>({
     mutationFn: (wsId, id) => overtimeRequestsApi.cancelRequest(wsId, id),
     keys: [overtimeRequestKeys.all],
     onSuccess: (_, id) => {
@@ -70,7 +70,7 @@ export const useCancelOvertimeRequest = () => {
 export const useEmployeeConsent = () => {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
-  return useWorkspaceMutation<{ id: string; employment_id: string; status: ConsentStatus; decline_reason?: string }, unknown>({
+  return useWorkspaceMutation<{ id: string; employment_id: string; status: ConsentStatus; decline_reason?: string }>({
     mutationFn: (wsId, vars) =>
       overtimeRequestsApi.employeeConsent(wsId, vars.id, {
         employment_id: vars.employment_id,

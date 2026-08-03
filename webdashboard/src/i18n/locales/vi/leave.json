@@ -173,6 +173,7 @@
     "upload_partial": "Thành công {{success}}/{{total}}. {{errors}} dòng lỗi.",
     "upload_failed": "Import thất bại",
     "download_errors": "Tải file lỗi",
+    "download_errors_failed": "Tải file lỗi thất bại",
     "import_excel": "Import Excel",
     "add": "Tạo yêu cầu",
     "upload_failed_count": "Import thất bại: {{errors}} dòng lỗi.",
@@ -191,6 +192,7 @@
     "req_col_f": "Cột duration_type: Loại thời gian",
     "req_format": "Định dạng: .xlsx, .xls",
     "download_template": "Tải file mẫu Excel",
+    "download_template_failed": "Tải file mẫu thất bại",
     "drop_prompt": "Nhấn để chọn file Excel",
     "drop_hint": "Hỗ trợ .xlsx, .xls",
     "ready": "SẴN SÀNG UPLOAD",
@@ -200,6 +202,7 @@
     "upload_another": "Upload file khác",
     "rows_label": "dòng đã xử lý",
     "download_errors": "Tải file lỗi",
+    "download_errors_failed": "Tải file lỗi thất bại",
     "error_detail": "Chi tiết lỗi",
     "partial_detail": "Thành công {{success}} dòng, {{errors}} dòng bị lỗi",
     "status": {

@@ -11,10 +11,10 @@ import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useProcessApproval } from "@/hooks/use-approval-workflows";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { overtimeRequestsApi } from "@/lib/api/overtime-requests";
 import { maybeNull } from "@/types/api-overrides";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 const PRE_OT_PAGE_SIZE = 20;
 
@@ -50,7 +50,7 @@ export function PreOtApprovalsTab({
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce((sum, p) => {
         const pageData: typeof p.data | undefined = p.data;
-        return sum + (maybeNull(pageData)?.length || 0);
+        return sum + (maybeNull(pageData)?.length ?? 0);
       }, 0);
       return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
     },

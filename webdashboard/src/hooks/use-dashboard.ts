@@ -32,16 +32,17 @@ export type {
 // ── Factory: reusable useQuery wrapper with workspace guard ────────────────
 
 interface DashboardQueryOptions {
-  /** Unique cache key segment (e.g. "workspace-stats"). */
-  key: string;
-  /** Lazily builds the API path (captures hook args in closure). */
-  getPath: () => string;
-  /** Extra values appended to the query key (e.g. range, dates). */
-  extraQueryKeyParams?: unknown[];
   /** Additional enabled condition ANDed with the workspace guard. */
   extraEnabled?: boolean;
+  /** Extra values appended to the query key (e.g. range, dates). */
+  extraQueryKeyParams?: unknown[];
+  /** Lazily builds the API path (captures hook args in closure). */
+  getPath: () => string;
+  /** Unique cache key segment (e.g. "workspace-stats"). */
+  key: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T determines return type through useQuery<T>
 function useDashboardQuery<T>(options: DashboardQueryOptions) {
   const { workspace } = useWorkspace();
 

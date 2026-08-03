@@ -1,7 +1,7 @@
 import type { CreateConfigEntryRequest } from '@/lib/api/types';
 
-import { useWorkspace } from '@/hooks/use-workspace';
 import { useWorkspaceQuery, useWorkspaceMutation } from '@/hooks/common/use-workspace-query';
+import { useWorkspace } from '@/hooks/use-workspace';
 import { workspaceConfigApi } from '@/lib/api/workspace-config';
 
 
@@ -31,13 +31,13 @@ export const useWorkspaceConfig = (key: string, date?: string) => {
 };
 
 export const useUpsertWorkspaceConfig = () =>
-  useWorkspaceMutation<CreateConfigEntryRequest, unknown>({
+  useWorkspaceMutation<CreateConfigEntryRequest>({
     mutationFn: (wsId, payload) => workspaceConfigApi.upsertConfig(wsId, payload),
     keys: [workspaceConfigKeys.all],
   });
 
 export const useDeleteWorkspaceConfig = () =>
-  useWorkspaceMutation<string, unknown>({
+  useWorkspaceMutation<string>({
     mutationFn: (wsId, id) => workspaceConfigApi.deleteConfig(wsId, id),
     keys: [workspaceConfigKeys.all],
   });

@@ -1,11 +1,11 @@
 import { FileIcon, FileText, Image as ImageIcon, FileArchive, FileCode, FileSpreadsheet, Download, Trash2 } from "lucide-react";
 import React from "react";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 import type { components } from "@/types/api-generated";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
 

@@ -7,8 +7,8 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
 import { fetchWorkspaceLeaveBalances, getCurrentWorkspaceId, triggerAccrualRun, fetchJobStatus } from "@/lib/api";
-import { logError } from "@/lib/logger";
 import { WorkspaceLeaveBalance } from "@/lib/api/types";
+import { logError } from "@/lib/logger";
 
 export function useLeaveBalances() {
   const { t } = useTranslation();

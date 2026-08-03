@@ -3,6 +3,7 @@ import { useMemo } from "react";
 
 import type { AttendanceDailySummary, PaginatedResponse } from "@/lib/api";
 
+import { useWorkspaceQuery, useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
 import {
   fetchAttendanceSummaries,
   fetchAttendanceSummariesPaginated,
@@ -12,7 +13,6 @@ import {
   claimOt,
 } from "@/lib/api";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
-import { useWorkspaceQuery, useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
 import { maybeNull } from "@/types/api-overrides";
 
 interface SummaryParams {
@@ -65,7 +65,7 @@ export function useAttendanceSummariesInfinite(
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce((sum, p) => {
         const pageData = p.data;
-        return sum + (maybeNull(pageData)?.length || 0);
+        return sum + (maybeNull(pageData)?.length ?? 0);
       }, 0);
       return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
     },
@@ -90,8 +90,7 @@ export function useAttendanceSummariesInfinite(
 
 export function useApproveOt() {
   const mutation = useWorkspaceMutation<
-    { employeeId: string; date: string; approved_minutes: number; manager_note?: string; status: "approved" | "rejected" },
-    void
+    { employeeId: string; date: string; approved_minutes: number; manager_note?: string; status: "approved" | "rejected" }
   >({
     mutationFn: (wsId, data) =>
       approveOt(wsId, data.employeeId, {
@@ -153,8 +152,7 @@ export function useBulkUploadPaperOt() {
 
 export function useClaimOt() {
   const mutation = useWorkspaceMutation<
-    { employeeId: string; date: string; claimed_minutes: number; reason?: string },
-    void
+    { employeeId: string; date: string; claimed_minutes: number; reason?: string }
   >({
     mutationFn: (wsId, data) =>
       claimOt(wsId, data.employeeId, {

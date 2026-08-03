@@ -1,9 +1,9 @@
 import { Clock, ArrowUpRight, ArrowDownRight, Calendar } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 import { Typography } from "@/components/ui/typography";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { LeaveHistoryItem } from "@/lib/api";
 import { cn } from "@/lib/utils";
 

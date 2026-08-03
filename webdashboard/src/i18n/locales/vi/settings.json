@@ -286,7 +286,8 @@
     "label": "Thiết bị"
   },
   "connectivity": {
-    "empty_guide": "Cài đặt Agent trên mạng nội bộ để kết nối thiết bị chấm công. Tải trình cài đặt từ tài liệu hướng dẫn."
+    "empty_guide": "Cài đặt Agent trên mạng nội bộ để kết nối thiết bị chấm công. Tải trình cài đặt từ tài liệu hướng dẫn.",
+    "action_failed": "Hành động thất bại. Vui lòng thử lại."
   },
   "settings": {
     "categories": {

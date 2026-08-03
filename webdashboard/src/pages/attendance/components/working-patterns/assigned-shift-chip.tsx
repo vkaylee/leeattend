@@ -108,7 +108,7 @@ export function AssignedShiftChip({ onRemove, shift }: AssignedShiftChipProps) {
         {timeLabel}
       </span>
 
-      {!!showSplitMarker && <span className="text-[8px] font-extrabold opacity-50">&nbsp;{t("shifts.picker.card.blocks", { count: intervals.length })}</span>}
+      {showSplitMarker ? <span className="text-[8px] font-extrabold opacity-50">&nbsp;{t("shifts.picker.card.blocks", { count: intervals.length })}</span> : null}
 
       {/* Remove button */}
       <Button

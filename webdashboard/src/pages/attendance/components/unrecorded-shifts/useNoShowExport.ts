@@ -72,7 +72,7 @@ export function useNoShowExport({
         pages: PaginatedResponse<DailyAttendanceReport>[];
         pageParams: readonly number[];
       }>(queryKey);
-      const allReportRows = fullCache?.pages?.flatMap((p) => p.data) ?? [];
+      const allReportRows = fullCache?.pages.flatMap((p) => p.data) ?? [];
 
       const rows = computeNoShowRows({
         rows: allReportRows,

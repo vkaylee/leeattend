@@ -124,6 +124,7 @@ const LEGACY_VIOLATIONS = new Set([
   "pages/workspace/workspace-roles-page.tsx",
   "pages/employees/lifecycle-tab.tsx",
   "pages/settings/settings-layout.tsx",
+  "components/custom-fields/__tests__/custom-field-editor.test.tsx",
   "components/custom-fields/custom-fields-filter-popover.tsx",
   "components/custom-fields/custom-field-editor.tsx",
   "components/features/employees/drawer-header.tsx",

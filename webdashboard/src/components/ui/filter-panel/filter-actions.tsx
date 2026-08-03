@@ -21,6 +21,7 @@ function FilterFooter({
   totalCount,
 }: FilterActionsProps) {
   const { t } = useTranslation();
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- booleans, || is correct OR logic
   const showFooter = showApplyButton || showSelectionCount;
   if (!showFooter) return null;
 

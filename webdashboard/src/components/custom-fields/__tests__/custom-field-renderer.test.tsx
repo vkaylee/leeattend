@@ -3,9 +3,9 @@ import React from "react";
 
 import { describe, it, expect } from "vitest";
 
-import { CustomFieldRenderer } from "../custom-field-renderer";
-
 import type { CustomFieldValueResponse } from "@/lib/api";
+
+import { CustomFieldRenderer } from "../custom-field-renderer";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

@@ -173,6 +173,7 @@
     "upload_partial": "Success {{success}}/{{total}}. {{errors}} rows with errors.",
     "upload_failed": "Import failed",
     "download_errors": "Download error file",
+    "download_errors_failed": "Failed to download error file",
     "import_excel": "Import Excel",
     "add": "Create Request",
     "upload_failed_count": "Import failed: {{errors}} rows with errors.",
@@ -191,6 +192,7 @@
     "req_col_f": "Column duration_type: Duration Type",
     "req_format": "Format: .xlsx, .xls",
     "download_template": "Download Excel Template",
+    "download_template_failed": "Failed to download template",
     "drop_prompt": "Click to select Excel file",
     "drop_hint": "Supports .xlsx, .xls",
     "ready": "READY TO UPLOAD",
@@ -200,6 +202,7 @@
     "upload_another": "Upload another file",
     "rows_label": "rows processed",
     "download_errors": "Download error file",
+    "download_errors_failed": "Failed to download error file",
     "error_detail": "Error details",
     "partial_detail": "{{success}} rows succeeded, {{errors}} rows failed",
     "status": {

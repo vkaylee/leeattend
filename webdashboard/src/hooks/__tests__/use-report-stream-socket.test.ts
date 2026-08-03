@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // ── Mocks for dependencies ─────────────────────────────────────────────────
@@ -46,7 +47,7 @@ const WS_CLOSED = 3;
 const WS_CONNECTING = 0;
 const WS_OPEN = 1;
 
-type SocketEventMap = Record<string, EventListenerOrEventListenerObject | null>;
+type _SocketEventMap = Record<string, EventListenerOrEventListenerObject | null>;
 
 function createMockWebSocketConstructor() {
   // Use a class-like function for `new` compatibility
@@ -144,13 +145,13 @@ describe("useReportStreamSocket", () => {
     mockBuildWebSocketUrl.mockReturnValue("ws://localhost/api/v1/ws/reports/job-123");
     mockGetBackoffDelay.mockReturnValue(2000);
     mockTryRefreshToken.mockResolvedValue(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     (globalThis as any).WebSocket = createMockWebSocketConstructor();
   });
 
   afterEach(() => {
     vi.useRealTimers();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     delete (globalThis as any).WebSocket;
   });
 
@@ -427,7 +428,7 @@ describe("useReportStreamSocket", () => {
   // ── Error handling ────────────────────────────────────────────────────
 
   it("handles WebSocket constructor throwing", () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     (globalThis as any).WebSocket = vi.fn(() => {
       throw new Error("Connection failed");
     });

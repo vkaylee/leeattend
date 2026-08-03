@@ -1,11 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-
-import { CustomFieldEditor } from "../custom-field-editor";
+import { describe, it, expect, vi } from "vitest";
 
 import type { CustomFieldDefinition } from "@/lib/api";
+
+import { CustomFieldEditor } from "../custom-field-editor";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -26,7 +26,8 @@ vi.mock("../multiselect-field-editor", () => ({
     <div data-testid="multiselect-editor">
       <span data-testid="ms-label">{definition.field_label}</span>
       <span data-testid="ms-options-count">{options.length}</span>
-      {error && <span data-testid="ms-error">{error}</span>}
+      {!!error && <span data-testid="ms-error">{error}</span>}
+      {/* eslint-disable-next-line react/forbid-elements -- test mock, native button is fine */}
       <button
         data-testid="ms-toggle"
         onClick={() => { onChange(Array.isArray(value) ? [] : ["opt-1"]); }}

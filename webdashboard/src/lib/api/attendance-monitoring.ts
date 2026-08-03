@@ -82,7 +82,8 @@ export async function fetchMonitorJobs(params: FetchMonitorJobsParams): Promise<
       },
     },
   });
-  return (resData) ?? { jobs: [], next_cursor: null };
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- SafeClient types say non-null but API may return null
+  return resData ?? { jobs: [], next_cursor: null };
 }
 
 // ── OT Claim Behalf Assignments (factory-generated CRUD) ────────────────────

@@ -173,6 +173,7 @@
     "upload_partial": "成功 {{success}}/{{total}}。{{errors}} 行有错误。",
     "upload_failed": "导入失败",
     "download_errors": "下载错误文件",
+    "download_errors_failed": "下载错误文件失败",
     "import_excel": "导入 Excel",
     "add": "创建申请",
     "upload_failed_count": "导入失败：{{errors}} 行有错误。",
@@ -191,6 +192,7 @@
     "req_col_f": "duration_type 列：时长类型",
     "req_format": "格式：.xlsx, .xls",
     "download_template": "下载Excel模板",
+    "download_template_failed": "下载模板失败",
     "drop_prompt": "点击选择Excel文件",
     "drop_hint": "支持 .xlsx, .xls",
     "ready": "准备上传",
@@ -200,6 +202,7 @@
     "upload_another": "上传其他文件",
     "rows_label": "行已处理",
     "download_errors": "下载错误文件",
+    "download_errors_failed": "下载错误文件失败",
     "error_detail": "错误详情",
     "partial_detail": "成功 {{success}} 行，失败 {{errors}} 行",
     "status": {

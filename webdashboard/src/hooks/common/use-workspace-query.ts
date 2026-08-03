@@ -20,10 +20,12 @@ import { useWorkspace } from "@/hooks/use-workspace";
 //   });
 
 interface WorkspaceQueryOptions<TData> {
-  queryKey: QueryKey;
-  queryFn: (wsId: string) => Promise<TData>;
   /** Additional gating ANDed with the workspace guard. */
   enabled?: boolean;
+  queryFn: (wsId: string) => Promise<TData>;
+  queryKey: QueryKey;
+  refetchInterval?: number;
+  refetchOnWindowFocus?: boolean;
   /**
    * When true and the workspace is present, the query immediately starts
    * loading (enabled=true). Useful for queries that should fire proactively
@@ -31,16 +33,14 @@ interface WorkspaceQueryOptions<TData> {
    * Default: true (query fires when workspace is available).
    */
   staleTime?: number;
-  refetchInterval?: number;
-  refetchOnWindowFocus?: boolean;
 }
 
 export function useWorkspaceQuery<TData>(
   options: WorkspaceQueryOptions<TData>,
-): UseQueryResult<TData, Error> {
+): UseQueryResult<TData> {
   const { workspace } = useWorkspace();
 
-  return useQuery<TData, Error>({
+  return useQuery<TData>({
     queryKey: options.queryKey,
     queryFn: () => {
       if (!workspace?.id) throw new Error("No workspace ID");
@@ -69,8 +69,8 @@ export function useWorkspaceQuery<TData>(
 //   });
 
 interface WorkspaceMutationOptions<TVars, TData> {
-  mutationFn: (wsId: string, vars: TVars) => Promise<TData>;
   keys: QueryKey[];
+  mutationFn: (wsId: string, vars: TVars) => Promise<TData>;
   onSuccess?: (data: TData, vars: TVars) => void;
 }
 

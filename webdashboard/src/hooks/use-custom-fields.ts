@@ -6,8 +6,8 @@ import type {
   UpdateCustomFieldDefinitionRequest,
 } from "@/lib/api/types";
 
-import { useWorkspace } from "@/hooks/use-workspace";
 import { useWorkspaceQuery, useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
+import { useWorkspace } from "@/hooks/use-workspace";
 import {
   createCustomFieldDefinition,
   deleteCustomFieldDefinition,
@@ -35,19 +35,19 @@ export const useCustomFieldDefinitions = (entityType?: string) => {
 };
 
 export const useCreateCustomFieldDefinition = () =>
-  useWorkspaceMutation<CreateCustomFieldDefinitionRequest, unknown>({
+  useWorkspaceMutation<CreateCustomFieldDefinitionRequest>({
     mutationFn: (wsId, payload) => createCustomFieldDefinition(wsId, payload),
     keys: [customFieldKeys.all],
   });
 
 export const useUpdateCustomFieldDefinition = () =>
-  useWorkspaceMutation<{ id: string; payload: UpdateCustomFieldDefinitionRequest }, unknown>({
+  useWorkspaceMutation<{ id: string; payload: UpdateCustomFieldDefinitionRequest }>({
     mutationFn: (wsId, { id, payload }) => updateCustomFieldDefinition(wsId, id, payload),
     keys: [customFieldKeys.all],
   });
 
 export const useDeleteCustomFieldDefinition = () =>
-  useWorkspaceMutation<string, unknown>({
+  useWorkspaceMutation<string>({
     mutationFn: (wsId, id) => deleteCustomFieldDefinition(wsId, id),
     keys: [customFieldKeys.all],
   });
@@ -62,9 +62,9 @@ export const useCustomFieldValues = (entityType: string, entityId: string) => {
 };
 
 export const useSetCustomFieldValues = (entityType: string, entityId: string) => {
-  const queryClient = useQueryClient();
+  const _queryClient = useQueryClient();
   const { workspace } = useWorkspace();
-  return useWorkspaceMutation<SetCustomFieldValueRequest[], unknown>({
+  return useWorkspaceMutation<SetCustomFieldValueRequest[]>({
     mutationFn: (wsId, values) => setCustomFieldValues(wsId, entityType, entityId, values),
     keys: [
       customFieldKeys.values(workspace?.id ?? "", entityType, entityId),

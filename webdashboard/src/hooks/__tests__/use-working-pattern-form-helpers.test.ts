@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 
+import type { WorkingPatternDetail } from "@/lib/api/types";
+
 import {
   initializeGridFromDetails,
   convertGridToDetails,
@@ -7,8 +9,6 @@ import {
   shouldInit,
   getFirstShiftId,
 } from "../use-working-pattern-form-helpers";
-
-import type { WorkingPatternDetail } from "@/lib/api/types";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

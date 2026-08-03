@@ -1,11 +1,12 @@
 import type { components } from "@/types/api-generated";
 
+import { logError } from "@/lib/logger";
+
 import type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster, CreateShiftRequest, UpdateShiftRequest, ShiftVersionHistoryItem } from "./types";
 
 import { client } from "./client";
 import { ApiError, type AppErrorResponse, ComplianceConflictError, parseComplianceConflict } from "./errors";
 import { apiFetch, TIMEOUT } from "./helpers";
-import { logError } from "@/lib/logger";
 export async function fetchShifts(wsId: string): Promise<Shift[]> {
   const { data } = await client.GET("/workspaces/{workspace_id}/shifts", {
     params: {

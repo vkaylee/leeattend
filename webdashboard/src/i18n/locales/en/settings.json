@@ -286,7 +286,8 @@
     "label": "Devices"
   },
   "connectivity": {
-    "empty_guide": "Install an Agent on your local network to connect attendance devices. Download the installer from the documentation."
+    "empty_guide": "Install an Agent on your local network to connect attendance devices. Download the installer from the documentation.",
+    "action_failed": "Action failed. Please try again."
   },
   "settings": {
     "categories": {

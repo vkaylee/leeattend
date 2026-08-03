@@ -21,8 +21,6 @@ import {
   lifecycleKeys,
 } from "../use-lifecycle";
 
-import { useWorkspace } from "@/hooks/use-workspace";
-
 const mockUseWorkspace = vi.hoisted(() => vi.fn());
 
 vi.mock("@/hooks/use-workspace", () => ({

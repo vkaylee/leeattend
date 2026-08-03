@@ -257,7 +257,7 @@ describe("useWorkspaceMutation", () => {
 
     const { result } = renderHook(
       () =>
-        useWorkspaceMutation<void, string>({
+        useWorkspaceMutation<string>({
           mutationFn,
           keys: [["x"]],
         }),

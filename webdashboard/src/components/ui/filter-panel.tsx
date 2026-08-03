@@ -134,7 +134,7 @@ export function FilterPanel({
             searchPlaceholder={searchPlaceholder}
             selected={effectiveSelected}
             showApplyButton={showApplyButton}
-            showClearButton={!!showClearButton && !showApplyButton}
+            showClearButton={showClearButton && !showApplyButton ? true : false}
             showSelectionCount={showSelectionCount}
             testId={testId}
           >

@@ -37,7 +37,8 @@ export const workspaceConfigApi = {
       },
     });
     // SafeClient types say non-null, but endpoint may return null for missing configs
-    return (resData) ?? null;
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    return resData ?? null;
   },
 
   // eslint-disable-next-line complexity

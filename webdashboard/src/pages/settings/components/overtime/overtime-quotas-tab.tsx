@@ -1,12 +1,12 @@
 import { Loader2, Plus, Edit2, Trash2, Calendar, Key } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useWorkspaceConfigs, useDeleteWorkspaceConfig } from "@/hooks/use-workspace-config";
 import { type WorkspaceConfigEntry } from "@/lib/api/types";
 

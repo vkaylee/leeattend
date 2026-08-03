@@ -14,8 +14,6 @@ import {
   attendanceKeys,
 } from "../use-attendance";
 
-import { useWorkspace } from "@/hooks/use-workspace";
-
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
 const mockUseWorkspace = vi.hoisted(() => vi.fn());

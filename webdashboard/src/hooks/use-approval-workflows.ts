@@ -1,9 +1,9 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 
 import type { CreateWorkflowRequest, UpdateWorkflowRequest } from '@/lib/api/types';
 
-import { useWorkspace } from '@/hooks/use-workspace';
 import { useWorkspaceQuery, useWorkspaceMutation } from '@/hooks/common/use-workspace-query';
+import { useWorkspace } from '@/hooks/use-workspace';
 import { approvalWorkflowsApi } from '@/lib/api/approval-workflows';
 
 
@@ -36,19 +36,19 @@ export const useApprovalWorkflow = (id: string) => {
 };
 
 export const useCreateApprovalWorkflow = () =>
-  useWorkspaceMutation<CreateWorkflowRequest, unknown>({
+  useWorkspaceMutation<CreateWorkflowRequest>({
     mutationFn: (wsId, payload) => approvalWorkflowsApi.createWorkflow(wsId, payload),
     keys: [approvalWorkflowKeys.all],
   });
 
 export const useUpdateApprovalWorkflow = (id: string) =>
-  useWorkspaceMutation<UpdateWorkflowRequest, unknown>({
+  useWorkspaceMutation<UpdateWorkflowRequest>({
     mutationFn: (wsId, payload) => approvalWorkflowsApi.updateWorkflow(wsId, id, payload),
     keys: [approvalWorkflowKeys.all],
   });
 
 export const useDeleteApprovalWorkflow = () =>
-  useWorkspaceMutation<string, unknown>({
+  useWorkspaceMutation<string>({
     mutationFn: (wsId, id) => approvalWorkflowsApi.deleteWorkflow(wsId, id),
     keys: [approvalWorkflowKeys.all],
   });
@@ -65,7 +65,7 @@ export const useApprovalHistory = (entityType: string, entityId: string) => {
 export const useProcessApproval = () => {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
-  return useWorkspaceMutation<{ entity_type: string; entity_id: string; action: string; note?: string }, unknown>({
+  return useWorkspaceMutation<{ entity_type: string; entity_id: string; action: string; note?: string }>({
     mutationFn: (wsId, payload) => approvalWorkflowsApi.processApproval(wsId, payload),
     keys: [], // Custom onSuccess handles invalidation
     onSuccess: (_, variables) => {
