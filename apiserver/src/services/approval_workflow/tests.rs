@@ -1914,6 +1914,36 @@ mod tests {
             Ok(())
         }
 
+        async fn upsert_calculated_summary_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _workspace_id: Uuid,
+            _employee_id: Uuid,
+            _date: NaiveDate,
+            _actual_work_minutes: i32,
+            _system_detected_ot_minutes: i32,
+            _standard_minutes: i32,
+            _early_ot_minutes: i32,
+            _late_ot_minutes: i32,
+            _break_ot_minutes: i32,
+            _is_weekend: bool,
+            _new_status: crate::models::OtStatus,
+            _is_holiday: bool,
+            _holiday_name: Option<String>,
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
+
+        async fn batch_upsert_calculated_summaries_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _workspace_id: Uuid,
+            _employment_id: uuid::Uuid,
+            _summaries: &[crate::repositories::attendance_daily_summary_repository::BatchSummaryInput],
+        ) -> Result<(), crate::errors::AppError> {
+            Ok(())
+        }
+
         async fn claim_ot(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,

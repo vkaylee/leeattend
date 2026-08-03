@@ -3,6 +3,7 @@ use crate::errors::AppError;
 use crate::models::{RawAttendanceLog, TimeEntry};
 use chrono::{Duration, NaiveDate, Utc};
 use chrono_tz::Tz;
+use diesel_async::{AsyncConnection, AsyncPgConnection};
 use tracing::info;
 use uuid::Uuid;
 
@@ -53,29 +54,63 @@ pub(crate) async fn reprocess_attendance_range(
         &adjacent_entries,
     )?;
 
-    save_range_entries(
-        service,
-        &auth_token,
-        workspace_id,
-        employment_id,
-        start_date,
-        end_date,
-        tz,
-        new_entries,
-    )
-    .await?;
+    // Entries replacement, range summary recalculation, and the overnight tail
+    // (next-day reprocessing + propagation) all run inside ONE transaction so a
+    // mid-pipeline failure rolls back the entire write set atomically.
+    if let Some(pools) = &service.diesel_pools {
+        let mut tx_conn = pools.tenant_transaction_conn(&auth_token).await?;
+        tx_conn
+            .transaction(|conn| {
+                Box::pin(async move {
+                    save_range_entries_tx(
+                        service,
+                        conn,
+                        &auth_token,
+                        workspace_id,
+                        employment_id,
+                        start_date,
+                        end_date,
+                        tz,
+                        new_entries,
+                    )
+                    .await?;
+                    handle_overnight_tail(
+                        service,
+                        Some(conn),
+                        workspace_id,
+                        employment_id,
+                        end_date,
+                        &emp_sched,
+                        tz,
+                    )
+                    .await
+                })
+            })
+            .await
+    } else {
+        save_range_entries(
+            service,
+            &auth_token,
+            workspace_id,
+            employment_id,
+            start_date,
+            end_date,
+            tz,
+            new_entries,
+        )
+        .await?;
 
-    handle_overnight_tail(
-        service,
-        workspace_id,
-        employment_id,
-        end_date,
-        &emp_sched,
-        tz,
-    )
-    .await?;
-
-    Ok(())
+        handle_overnight_tail(
+            service,
+            None,
+            workspace_id,
+            employment_id,
+            end_date,
+            &emp_sched,
+            tz,
+        )
+        .await
+    }
 }
 
 fn process_range_days(
@@ -189,16 +224,69 @@ pub(crate) async fn save_range_entries(
     tz: Tz,
     new_entries: Vec<TimeEntry>,
 ) -> Result<(), AppError> {
-    let range_start_local = crate::utils::tz::local_to_tz(&tz, start_date, 0, 0, 0)?;
-    let range_end_local =
-        crate::utils::tz::local_to_tz(&tz, end_date + Duration::days(1), 0, 0, 0)?;
-    let range_start_utc = range_start_local.with_timezone(&Utc);
-    let range_end_utc = range_end_local.with_timezone(&Utc);
+    if let Some(pools) = &service.diesel_pools {
+        let mut tx_conn = pools.tenant_transaction_conn(auth_token).await?;
+        tx_conn
+            .transaction(|conn| {
+                Box::pin(async move {
+                    save_range_entries_tx(
+                        service,
+                        conn,
+                        auth_token,
+                        auth_token.workspace_id(),
+                        employment_id,
+                        start_date,
+                        end_date,
+                        tz,
+                        new_entries,
+                    )
+                    .await
+                })
+            })
+            .await
+    } else {
+        let (range_start_utc, range_end_utc) = range_utc_bounds(tz, start_date, end_date)?;
+
+        service
+            .time_entry_repo
+            .replace_time_entries(
+                auth_token,
+                employment_id,
+                range_start_utc,
+                range_end_utc,
+                new_entries,
+            )
+            .await?;
+
+        service
+            .recalculate_range_summary_with_retry(auth_token, employment_id, start_date, end_date)
+            .await?;
+
+        Ok(())
+    }
+}
+
+/// [`save_range_entries`] variant that runs both writes on a caller-owned
+/// transaction connection. If the summary recalculation fails after the entries
+/// were replaced, the caller's transaction rollback undoes both.
+pub(crate) async fn save_range_entries_tx(
+    service: &PairingService,
+    conn: &mut AsyncPgConnection,
+    auth_token: &TenantAuthToken,
+    workspace_id: Uuid,
+    employment_id: Uuid,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    tz: Tz,
+    new_entries: Vec<TimeEntry>,
+) -> Result<(), AppError> {
+    let (range_start_utc, range_end_utc) = range_utc_bounds(tz, start_date, end_date)?;
 
     service
         .time_entry_repo
-        .replace_time_entries(
-            auth_token,
+        .replace_time_entries_tx(
+            conn,
+            workspace_id,
             employment_id,
             range_start_utc,
             range_end_utc,
@@ -207,14 +295,35 @@ pub(crate) async fn save_range_entries(
         .await?;
 
     service
-        .recalculate_range_summary_with_retry(auth_token, employment_id, start_date, end_date)
-        .await?;
-
-    Ok(())
+        .recalculate_range_summary_with_retry_tx(
+            conn,
+            auth_token,
+            employment_id,
+            start_date,
+            end_date,
+        )
+        .await
 }
 
+fn range_utc_bounds(
+    tz: Tz,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+) -> Result<(chrono::DateTime<Utc>, chrono::DateTime<Utc>), AppError> {
+    let range_start_local = crate::utils::tz::local_to_tz(&tz, start_date, 0, 0, 0)?;
+    let range_end_local =
+        crate::utils::tz::local_to_tz(&tz, end_date + Duration::days(1), 0, 0, 0)?;
+    let range_start_utc = range_start_local.with_timezone(&Utc);
+    let range_end_utc = range_end_local.with_timezone(&Utc);
+    Ok((range_start_utc, range_end_utc))
+}
+
+// `as_deref_mut` reborrows the `Option<&mut _>` for two sequential calls on the
+// same connection; the type is unchanged so the lint is a false positive here.
+#[allow(clippy::needless_option_as_deref)]
 async fn handle_overnight_tail(
     service: &PairingService,
+    mut conn: Option<&mut AsyncPgConnection>,
     workspace_id: Uuid,
     employment_id: Uuid,
     end_date: NaiveDate,
@@ -246,18 +355,26 @@ async fn handle_overnight_tail(
             next_date = %next_date,
             "Last day of range is overnight, triggering next day reprocessing for self-healing"
         );
-        let next_shift_config = service
-            .reprocess_single_day(workspace_id, employment_id, next_date, tz, None)
-            .await?;
-        service
-            .propagate_overnight_reprocess(
-                workspace_id,
-                employment_id,
-                next_date,
-                tz,
-                next_shift_config,
-            )
-            .await?;
+        let next_shift_config = super::service_single::reprocess_single_day_with_conn(
+            service,
+            conn.as_deref_mut(),
+            workspace_id,
+            employment_id,
+            next_date,
+            tz,
+            None,
+        )
+        .await?;
+        super::service_propagation::propagate_overnight_reprocess_with_conn(
+            service,
+            conn.as_deref_mut(),
+            workspace_id,
+            employment_id,
+            next_date,
+            tz,
+            next_shift_config,
+        )
+        .await?;
     }
 
     Ok(())

@@ -1,3 +1,4 @@
+use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
 use crate::models::RawAttendanceLog;
 use chrono::{DateTime, NaiveDate, Utc};
@@ -380,6 +381,10 @@ pub struct PairingServiceArgs {
     pub(crate) employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
     pub(crate) raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
     pub(crate) summary_service: Arc<dyn SummaryRecalculator>,
+    /// Connection pools used to wrap multi-write pipelines in explicit
+    /// transaction boundaries. `None` in unit tests (mock repos) — the pairing
+    /// pipeline then falls back to the legacy non-transactional write path.
+    pub(crate) diesel_pools: Option<DieselPools>,
 }
 
 impl PairingServiceArgs {
@@ -396,7 +401,15 @@ impl PairingServiceArgs {
             employee_repo,
             raw_log_repo,
             summary_service,
+            diesel_pools: None,
         }
+    }
+
+    /// Enable explicit transaction boundaries for the pairing write pipeline.
+    #[must_use]
+    pub fn with_diesel_pools(mut self, diesel_pools: DieselPools) -> Self {
+        self.diesel_pools = Some(diesel_pools);
+        self
     }
 }
 

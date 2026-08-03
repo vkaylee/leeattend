@@ -722,6 +722,27 @@ mod tests {
     struct DummyTimeEntryRepo;
     #[async_trait]
     impl crate::repositories::TimeEntryRepository for DummyTimeEntryRepo {
+        async fn replace_time_entries_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _workspace_id: Uuid,
+            _employment_id: Uuid,
+            _s: DateTime<Utc>,
+            _en: DateTime<Utc>,
+            _ent: Vec<TimeEntry>,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn get_employment_time_entries_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _workspace_id: Uuid,
+            _employment_id: Uuid,
+            _f: DateTime<Utc>,
+            _t: DateTime<Utc>,
+        ) -> Result<Vec<TimeEntry>, AppError> {
+            unimplemented!()
+        }
         async fn create_time_entry(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -1229,6 +1250,34 @@ mod tests {
     struct DummyDailySummaryRepo;
     #[async_trait]
     impl crate::repositories::AttendanceDailySummaryRepository for DummyDailySummaryRepo {
+        async fn upsert_calculated_summary_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _workspace_id: Uuid,
+            _e: Uuid,
+            _d: NaiveDate,
+            _a: i32,
+            _s: i32,
+            _std: i32,
+            _early: i32,
+            _late: i32,
+            _break: i32,
+            _wknd: bool,
+            _n: OtStatus,
+            _i: bool,
+            _h: Option<String>,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn batch_upsert_calculated_summaries_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _workspace_id: Uuid,
+            _employment_id: uuid::Uuid,
+            _summaries: &[crate::repositories::attendance_daily_summary_repository::BatchSummaryInput],
+        ) -> Result<(), crate::errors::AppError> {
+            Ok(())
+        }
         async fn get_summary(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -2248,6 +2297,27 @@ mod tests {
     struct EmptyTimeEntryRepo;
     #[async_trait]
     impl crate::repositories::TimeEntryRepository for EmptyTimeEntryRepo {
+        async fn replace_time_entries_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _workspace_id: Uuid,
+            _employment_id: Uuid,
+            _s: DateTime<Utc>,
+            _en: DateTime<Utc>,
+            _ent: Vec<TimeEntry>,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn get_employment_time_entries_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _workspace_id: Uuid,
+            _employment_id: Uuid,
+            _f: DateTime<Utc>,
+            _t: DateTime<Utc>,
+        ) -> Result<Vec<TimeEntry>, AppError> {
+            unimplemented!()
+        }
         async fn create_time_entry(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -2440,6 +2510,34 @@ mod tests {
     struct EmptyDailySummaryRepo;
     #[async_trait]
     impl crate::repositories::AttendanceDailySummaryRepository for EmptyDailySummaryRepo {
+        async fn upsert_calculated_summary_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _workspace_id: Uuid,
+            _e: Uuid,
+            _d: NaiveDate,
+            _a: i32,
+            _s: i32,
+            _std: i32,
+            _early: i32,
+            _late: i32,
+            _break: i32,
+            _wknd: bool,
+            _n: OtStatus,
+            _i: bool,
+            _h: Option<String>,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn batch_upsert_calculated_summaries_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _workspace_id: Uuid,
+            _employment_id: uuid::Uuid,
+            _summaries: &[crate::repositories::attendance_daily_summary_repository::BatchSummaryInput],
+        ) -> Result<(), crate::errors::AppError> {
+            Ok(())
+        }
         async fn get_summary(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -2930,6 +3028,27 @@ mod tests {
     struct PresentTimeEntryRepo;
     #[async_trait]
     impl crate::repositories::TimeEntryRepository for PresentTimeEntryRepo {
+        async fn replace_time_entries_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _workspace_id: Uuid,
+            _employment_id: Uuid,
+            _s: DateTime<Utc>,
+            _en: DateTime<Utc>,
+            _ent: Vec<TimeEntry>,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn get_employment_time_entries_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _workspace_id: Uuid,
+            _employment_id: Uuid,
+            _f: DateTime<Utc>,
+            _t: DateTime<Utc>,
+        ) -> Result<Vec<TimeEntry>, AppError> {
+            unimplemented!()
+        }
         async fn create_time_entry(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -3159,6 +3278,27 @@ mod tests {
     struct MultiSessionTimeEntryRepo;
     #[async_trait]
     impl crate::repositories::TimeEntryRepository for MultiSessionTimeEntryRepo {
+        async fn replace_time_entries_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _workspace_id: Uuid,
+            _employment_id: Uuid,
+            _s: DateTime<Utc>,
+            _en: DateTime<Utc>,
+            _ent: Vec<TimeEntry>,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn get_employment_time_entries_tx(
+            &self,
+            _conn: &mut diesel_async::AsyncPgConnection,
+            _workspace_id: Uuid,
+            _employment_id: Uuid,
+            _f: DateTime<Utc>,
+            _t: DateTime<Utc>,
+        ) -> Result<Vec<TimeEntry>, AppError> {
+            unimplemented!()
+        }
         async fn create_time_entry(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,

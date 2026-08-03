@@ -1,17 +1,41 @@
 use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
 use crate::models::{RawAttendanceLog, TimeEntry};
-use chrono::{DateTime, NaiveDate, Utc};
-use chrono_tz::Tz;
-use tracing::info;
-use uuid::Uuid;
-
 use crate::services::pairing::context_helpers;
 use crate::services::pairing::service::PairingService;
 use crate::services::pairing::types::PairingShiftConfig;
+use chrono::{DateTime, NaiveDate, Utc};
+use chrono_tz::Tz;
+use diesel_async::{AsyncConnection, AsyncPgConnection};
+use tracing::info;
+use uuid::Uuid;
 
 pub(crate) async fn reprocess_single_day(
     service: &PairingService,
+    workspace_id: Uuid,
+    employment_id: Uuid,
+    date: NaiveDate,
+    tz: Tz,
+    prefetched_adjacent: Option<&[TimeEntry]>,
+) -> Result<Option<PairingShiftConfig>, AppError> {
+    reprocess_single_day_with_conn(
+        service,
+        None,
+        workspace_id,
+        employment_id,
+        date,
+        tz,
+        prefetched_adjacent,
+    )
+    .await
+}
+
+/// [`reprocess_single_day`] variant that runs its write phase on a caller-owned
+/// transaction connection (`Some`) or acquires its own transaction (`None`
+/// with pools available), keeping multi-write pipelines atomic.
+pub(crate) async fn reprocess_single_day_with_conn(
+    service: &PairingService,
+    conn: Option<&mut AsyncPgConnection>,
     workspace_id: Uuid,
     employment_id: Uuid,
     date: NaiveDate,
@@ -74,13 +98,17 @@ pub(crate) async fn reprocess_single_day(
     let filtered_log_events = context.build_log_events(&filtered_raw_logs)?;
 
     if filtered_log_events.is_empty() {
-        service
-            .clear_auto_entries(&auth_token, employment_id, start_of_day_utc, next_day_utc)
-            .await?;
-
-        service
-            .recalculate_summary_with_retry(&auth_token, employment_id, date)
-            .await?;
+        clear_and_recalculate(
+            service,
+            conn,
+            &auth_token,
+            workspace_id,
+            employment_id,
+            date,
+            start_of_day_utc,
+            next_day_utc,
+        )
+        .await?;
 
         return Ok(shift_config);
     }
@@ -93,18 +121,91 @@ pub(crate) async fn reprocess_single_day(
     let new_entries =
         context.build_time_entries(workspace_id, employment_id, shift_id_opt, sessions, &traces)?;
 
-    save_paired_entries_and_update_summary(
-        service,
-        &auth_token,
-        employment_id,
-        date,
-        start_of_day_utc,
-        next_day_utc,
-        new_entries,
-    )
-    .await?;
+    if let Some(c) = conn {
+        save_paired_entries_and_update_summary_tx(
+            service,
+            c,
+            &auth_token,
+            workspace_id,
+            employment_id,
+            date,
+            start_of_day_utc,
+            next_day_utc,
+            new_entries,
+        )
+        .await?;
+    } else {
+        save_paired_entries_and_update_summary(
+            service,
+            &auth_token,
+            employment_id,
+            date,
+            start_of_day_utc,
+            next_day_utc,
+            new_entries,
+        )
+        .await?;
+    }
 
     Ok(shift_config)
+}
+
+/// Clear the day's auto entries and recalculate its summary.
+///
+/// When no caller-owned connection is provided but pools are available, the two
+/// writes run inside their own transaction so they commit (or roll back) as one
+/// unit. In tests (mock repos, no pools) it falls back to the legacy calls.
+async fn clear_and_recalculate(
+    service: &PairingService,
+    conn: Option<&mut AsyncPgConnection>,
+    auth_token: &TenantAuthToken,
+    workspace_id: Uuid,
+    employment_id: Uuid,
+    date: NaiveDate,
+    start_of_day_utc: DateTime<Utc>,
+    next_day_utc: DateTime<Utc>,
+) -> Result<(), AppError> {
+    if let Some(c) = conn {
+        service
+            .clear_auto_entries_tx(
+                c,
+                workspace_id,
+                employment_id,
+                start_of_day_utc,
+                next_day_utc,
+            )
+            .await?;
+        service
+            .recalculate_summary_with_retry_tx(c, auth_token, employment_id, date)
+            .await
+    } else if let Some(pools) = &service.diesel_pools {
+        let mut tx_conn = pools.tenant_transaction_conn(auth_token).await?;
+        tx_conn
+            .transaction(|c| {
+                Box::pin(async move {
+                    service
+                        .clear_auto_entries_tx(
+                            c,
+                            workspace_id,
+                            employment_id,
+                            start_of_day_utc,
+                            next_day_utc,
+                        )
+                        .await?;
+                    service
+                        .recalculate_summary_with_retry_tx(c, auth_token, employment_id, date)
+                        .await
+                })
+            })
+            .await
+    } else {
+        service
+            .clear_auto_entries(auth_token, employment_id, start_of_day_utc, next_day_utc)
+            .await?;
+        service
+            .recalculate_summary_with_retry(auth_token, employment_id, date)
+            .await
+    }
 }
 
 pub(crate) async fn fetch_effective_shift_config(
@@ -174,10 +275,65 @@ pub(crate) async fn save_paired_entries_and_update_summary(
     next_day_utc: DateTime<Utc>,
     new_entries: Vec<TimeEntry>,
 ) -> Result<(), AppError> {
+    if let Some(pools) = &service.diesel_pools {
+        let mut tx_conn = pools.tenant_transaction_conn(auth_token).await?;
+        tx_conn
+            .transaction(|conn| {
+                Box::pin(async move {
+                    save_paired_entries_and_update_summary_tx(
+                        service,
+                        conn,
+                        auth_token,
+                        auth_token.workspace_id(),
+                        employment_id,
+                        date,
+                        start_of_day_utc,
+                        next_day_utc,
+                        new_entries,
+                    )
+                    .await
+                })
+            })
+            .await
+    } else {
+        service
+            .time_entry_repo
+            .replace_time_entries(
+                auth_token,
+                employment_id,
+                start_of_day_utc,
+                next_day_utc,
+                new_entries,
+            )
+            .await?;
+
+        service
+            .recalculate_summary_with_retry(auth_token, employment_id, date)
+            .await?;
+
+        Ok(())
+    }
+}
+
+/// [`save_paired_entries_and_update_summary`] variant that runs both writes on a
+/// caller-owned transaction connection. If the summary recalculation fails after
+/// the entries were replaced, the caller's transaction rollback undoes both.
+pub(crate) async fn save_paired_entries_and_update_summary_tx(
+    service: &PairingService,
+    conn: &mut AsyncPgConnection,
+    auth_token: &TenantAuthToken,
+    workspace_id: Uuid,
+    employment_id: Uuid,
+    date: NaiveDate,
+    start_of_day_utc: DateTime<Utc>,
+    next_day_utc: DateTime<Utc>,
+    new_entries: Vec<TimeEntry>,
+) -> Result<(), AppError> {
     service
         .time_entry_repo
-        .replace_time_entries(
-            auth_token,
+        .replace_time_entries_tx(
+            conn,
+            workspace_id,
             employment_id,
             start_of_day_utc,
             next_day_utc,
@@ -186,8 +342,6 @@ pub(crate) async fn save_paired_entries_and_update_summary(
         .await?;
 
     service
-        .recalculate_summary_with_retry(auth_token, employment_id, date)
-        .await?;
-
-    Ok(())
+        .recalculate_summary_with_retry_tx(conn, auth_token, employment_id, date)
+        .await
 }

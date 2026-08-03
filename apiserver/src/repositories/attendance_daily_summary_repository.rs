@@ -2,6 +2,7 @@ use crate::errors::AppError;
 use crate::models::{AttendanceDailySummary, OtStatus};
 use async_trait::async_trait;
 use chrono::NaiveDate;
+use diesel_async::AsyncPgConnection;
 use uuid::Uuid;
 
 /// Input for a single day's batch upsert. Used by
@@ -158,4 +159,37 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         ids: &[Uuid],
     ) -> Result<Vec<AttendanceDailySummary>, AppError>;
+
+    /// Transaction-aware variant of [`upsert_calculated_summary`].
+    ///
+    /// Uses the provided connection instead of acquiring one from the pool,
+    /// allowing the caller to coordinate this write with other operations
+    /// inside a single database transaction.
+    #[allow(clippy::too_many_arguments)]
+    async fn upsert_calculated_summary_tx(
+        &self,
+        conn: &mut AsyncPgConnection,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        date: NaiveDate,
+        actual_work_minutes: i32,
+        system_detected_ot_minutes: i32,
+        standard_minutes: i32,
+        early_ot_minutes: i32,
+        late_ot_minutes: i32,
+        break_ot_minutes: i32,
+        is_weekend: bool,
+        new_status: OtStatus,
+        is_holiday: bool,
+        holiday_name: Option<String>,
+    ) -> Result<(), AppError>;
+
+    /// Transaction-aware variant of [`batch_upsert_calculated_summaries`].
+    async fn batch_upsert_calculated_summaries_tx(
+        &self,
+        conn: &mut AsyncPgConnection,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        summaries: &[BatchSummaryInput],
+    ) -> Result<(), AppError>;
 }

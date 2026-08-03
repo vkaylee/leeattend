@@ -3,6 +3,7 @@ use crate::errors::AppError;
 use crate::models::{RawAttendanceLog, TimeEntry};
 use chrono::{Duration, NaiveDate};
 use chrono_tz::Tz;
+use diesel_async::AsyncPgConnection;
 use tracing::info;
 use uuid::Uuid;
 
@@ -12,6 +13,31 @@ use crate::services::pairing::types::PairingShiftConfig;
 
 pub(crate) async fn propagate_overnight_reprocess(
     service: &PairingService,
+    workspace_id: Uuid,
+    employment_id: Uuid,
+    start_date: NaiveDate,
+    tz: Tz,
+    initial_shift_config: Option<PairingShiftConfig>,
+) -> Result<(), AppError> {
+    propagate_overnight_reprocess_with_conn(
+        service,
+        None,
+        workspace_id,
+        employment_id,
+        start_date,
+        tz,
+        initial_shift_config,
+    )
+    .await
+}
+
+/// [`propagate_overnight_reprocess`] variant that runs its save phase on a
+/// caller-owned transaction connection (`Some`) or acquires its own transaction
+/// (`None` with pools available).
+#[allow(clippy::too_many_lines)]
+pub(crate) async fn propagate_overnight_reprocess_with_conn(
+    service: &PairingService,
+    conn: Option<&mut AsyncPgConnection>,
     workspace_id: Uuid,
     employment_id: Uuid,
     start_date: NaiveDate,
@@ -111,17 +137,32 @@ pub(crate) async fn propagate_overnight_reprocess(
 
     // 4. If we actually reprocessed any dates, save the entries and update summaries in bulk
     if resolved_end_date > start_date {
-        super::service_range::save_range_entries(
-            service,
-            &auth_token,
-            workspace_id,
-            employment_id,
-            lookahead_start,
-            resolved_end_date,
-            tz,
-            new_entries_accumulated,
-        )
-        .await?;
+        if let Some(c) = conn {
+            super::service_range::save_range_entries_tx(
+                service,
+                c,
+                &auth_token,
+                workspace_id,
+                employment_id,
+                lookahead_start,
+                resolved_end_date,
+                tz,
+                new_entries_accumulated,
+            )
+            .await?;
+        } else {
+            super::service_range::save_range_entries(
+                service,
+                &auth_token,
+                workspace_id,
+                employment_id,
+                lookahead_start,
+                resolved_end_date,
+                tz,
+                new_entries_accumulated,
+            )
+            .await?;
+        }
     }
 
     Ok(())

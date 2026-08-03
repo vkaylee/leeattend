@@ -1,3 +1,4 @@
+use crate::diesel_pool::DieselPools;
 use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
 use crate::models::{RawAttendanceLog, TimeEntry};
@@ -21,6 +22,7 @@ pub struct PairingService {
     pub(crate) employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
     pub(crate) raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
     pub(crate) summary_service: Arc<dyn SummaryRecalculator>,
+    pub(crate) diesel_pools: Option<DieselPools>,
 }
 
 impl PairingService {
@@ -31,6 +33,7 @@ impl PairingService {
             employee_repo: args.employee_repo,
             raw_log_repo: args.raw_log_repo,
             summary_service: args.summary_service,
+            diesel_pools: args.diesel_pools,
         }
     }
 
@@ -236,6 +239,25 @@ impl PairingService {
             .await
     }
 
+    pub(crate) async fn clear_auto_entries_tx(
+        &self,
+        conn: &mut diesel_async::AsyncPgConnection,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+    ) -> Result<(), AppError> {
+        super::service_helpers::clear_auto_entries_tx(
+            self,
+            conn,
+            workspace_id,
+            employment_id,
+            start,
+            end,
+        )
+        .await
+    }
+
     pub(crate) async fn recalculate_summary_with_retry(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -244,6 +266,23 @@ impl PairingService {
     ) -> Result<(), AppError> {
         super::service_helpers::recalculate_summary_with_retry(
             self,
+            auth_token,
+            employment_id,
+            date,
+        )
+        .await
+    }
+
+    pub(crate) async fn recalculate_summary_with_retry_tx(
+        &self,
+        conn: &mut diesel_async::AsyncPgConnection,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<(), AppError> {
+        super::service_helpers::recalculate_summary_with_retry_tx(
+            self,
+            conn,
             auth_token,
             employment_id,
             date,
@@ -260,6 +299,25 @@ impl PairingService {
     ) -> Result<(), AppError> {
         super::service_helpers::recalculate_range_summary_with_retry(
             self,
+            auth_token,
+            employment_id,
+            start_date,
+            end_date,
+        )
+        .await
+    }
+
+    pub(crate) async fn recalculate_range_summary_with_retry_tx(
+        &self,
+        conn: &mut diesel_async::AsyncPgConnection,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<(), AppError> {
+        super::service_helpers::recalculate_range_summary_with_retry_tx(
+            self,
+            conn,
             auth_token,
             employment_id,
             start_date,

@@ -166,7 +166,8 @@ async fn test_dst_spring_forward() {
                 ),
             ),
             summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
-        ),
+        )
+        .with_diesel_pools(diesel_pools.clone()),
     )
     .reprocess_daily_attendance(ws_id, employment_id, shift_date, tz)
     .await
@@ -356,7 +357,8 @@ async fn test_dst_fall_back() {
                 ),
             ),
             summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
-        ),
+        )
+        .with_diesel_pools(diesel_pools.clone()),
     )
     .reprocess_daily_attendance(ws_id, employment_id, shift_date, tz)
     .await
@@ -545,7 +547,8 @@ async fn test_dst_fall_back_repeated_hour() {
                 ),
             ),
             summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
-        ),
+        )
+        .with_diesel_pools(diesel_pools.clone()),
     )
     .reprocess_daily_attendance(ws_id, employment_id, shift_date, tz)
     .await
@@ -730,7 +733,8 @@ async fn test_dst_spring_forward_day_shift() {
                 ),
             ),
             summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
-        ),
+        )
+        .with_diesel_pools(diesel_pools.clone()),
     )
     .reprocess_daily_attendance(ws_id, employment_id, shift_date, tz)
     .await

@@ -3,6 +3,7 @@ use crate::errors::AppError;
 use crate::models::{RawAttendanceLog, TimeEntry};
 use chrono::{DateTime, Duration, NaiveDate, Utc};
 use chrono_tz::Tz;
+use diesel_async::AsyncPgConnection;
 use uuid::Uuid;
 
 use crate::repositories::TimeEntryRepository;
@@ -118,6 +119,21 @@ pub(crate) async fn clear_auto_entries(
         .await
 }
 
+/// Clear auto-generated entries inside an existing transaction.
+pub(crate) async fn clear_auto_entries_tx(
+    service: &PairingService,
+    conn: &mut AsyncPgConnection,
+    workspace_id: Uuid,
+    employment_id: Uuid,
+    start: DateTime<Utc>,
+    end: DateTime<Utc>,
+) -> Result<(), AppError> {
+    service
+        .time_entry_repo
+        .replace_time_entries_tx(conn, workspace_id, employment_id, start, end, Vec::new())
+        .await
+}
+
 pub(crate) async fn recalculate_summary_with_retry(
     service: &PairingService,
     auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -135,6 +151,65 @@ pub(crate) async fn recalculate_summary_with_retry(
         || summary_service.recalculate_daily_summary(auth_token, employment_id, date),
     )
     .await
+}
+
+/// Recalculate the daily summary inside an existing transaction, retrying the
+/// recalculation on the same connection.
+///
+/// Each retry attempt runs in a nested transaction (SAVEPOINT), so a failed
+/// attempt rolls back its partial writes without aborting the outer
+/// transaction that holds the replaced time entries.
+pub(crate) async fn recalculate_summary_with_retry_tx(
+    service: &PairingService,
+    conn: &mut AsyncPgConnection,
+    auth_token: &crate::diesel_pool::TenantAuthToken,
+    employment_id: Uuid,
+    date: NaiveDate,
+) -> Result<(), AppError> {
+    let summary_service = &service.summary_service;
+    let workspace_id = auth_token.workspace_id();
+    let context = format!("date={date}");
+    let mut attempts = 0;
+    loop {
+        attempts += 1;
+        use diesel_async::AsyncConnection;
+        let result = conn
+            .transaction(|conn| {
+                Box::pin(async move {
+                    summary_service
+                        .recalculate_daily_summary_tx(conn, auth_token, employment_id, date)
+                        .await
+                })
+            })
+            .await;
+        match result {
+            Ok(()) => return Ok(()),
+            Err(e) => {
+                if attempts >= 3 {
+                    tracing::error!(
+                        workspace_id = %workspace_id,
+                        employment_id = %employment_id,
+                        context = %context,
+                        error = %e,
+                        "Failed recalculate_daily_summary after {} attempts",
+                        attempts,
+                    );
+                    return Err(e);
+                }
+                tracing::warn!(
+                    workspace_id = %workspace_id,
+                    employment_id = %employment_id,
+                    context = %context,
+                    error = %e,
+                    attempt = attempts,
+                    "Temporary failure in recalculate_daily_summary, retrying inside transaction...",
+                );
+                let base_delay = 100 * 2u64.pow(attempts - 1);
+                let jitter = rand::random::<u64>() % 50;
+                tokio::time::sleep(std::time::Duration::from_millis(base_delay + jitter)).await;
+            }
+        }
+    }
 }
 
 pub(crate) async fn recalculate_range_summary_with_retry(
@@ -162,6 +237,68 @@ pub(crate) async fn recalculate_range_summary_with_retry(
         },
     )
     .await
+}
+
+/// Recalculate a range of daily summaries inside an existing transaction,
+/// retrying the recalculation on the same connection via SAVEPOINTs.
+pub(crate) async fn recalculate_range_summary_with_retry_tx(
+    service: &PairingService,
+    conn: &mut AsyncPgConnection,
+    auth_token: &crate::diesel_pool::TenantAuthToken,
+    employment_id: Uuid,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+) -> Result<(), AppError> {
+    let summary_service = &service.summary_service;
+    let workspace_id = auth_token.workspace_id();
+    let context = format!("range={start_date}..{end_date}");
+    let mut attempts = 0;
+    loop {
+        attempts += 1;
+        use diesel_async::AsyncConnection;
+        let result = conn
+            .transaction(|conn| {
+                Box::pin(async move {
+                    summary_service
+                        .recalculate_attendance_range_tx(
+                            conn,
+                            auth_token,
+                            employment_id,
+                            start_date,
+                            end_date,
+                        )
+                        .await
+                })
+            })
+            .await;
+        match result {
+            Ok(()) => return Ok(()),
+            Err(e) => {
+                if attempts >= 3 {
+                    tracing::error!(
+                        workspace_id = %workspace_id,
+                        employment_id = %employment_id,
+                        context = %context,
+                        error = %e,
+                        "Failed recalculate_attendance_range after {} attempts",
+                        attempts,
+                    );
+                    return Err(e);
+                }
+                tracing::warn!(
+                    workspace_id = %workspace_id,
+                    employment_id = %employment_id,
+                    context = %context,
+                    error = %e,
+                    attempt = attempts,
+                    "Temporary failure in recalculate_attendance_range, retrying inside transaction...",
+                );
+                let base_delay = 100 * 2u64.pow(attempts - 1);
+                let jitter = rand::random::<u64>() % 50;
+                tokio::time::sleep(std::time::Duration::from_millis(base_delay + jitter)).await;
+            }
+        }
+    }
 }
 
 /// Execute an async operation with retries and structured logging.

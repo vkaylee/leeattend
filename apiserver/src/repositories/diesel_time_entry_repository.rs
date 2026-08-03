@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -241,17 +241,18 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let entries: Vec<TimeEntryEntity> = time_entries::table
-            .filter(time_entries::workspace_id.eq(workspace_id))
-            .filter(time_entries::employment_id.eq(employment_id))
-            .filter(time_entries::punch_in_time.ge(from))
-            .filter(time_entries::punch_in_time.le(to))
-            .order(time_entries::punch_in_time.desc())
-            .load(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        execute_get_employment_time_entries(&mut conn, workspace_id, employment_id, from, to).await
+    }
 
-        Ok(entries.into_iter().map(Into::into).collect())
+    async fn get_employment_time_entries_tx(
+        &self,
+        conn: &mut AsyncPgConnection,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        from: DateTime<Utc>,
+        to: DateTime<Utc>,
+    ) -> Result<Vec<TimeEntry>, AppError> {
+        execute_get_employment_time_entries(conn, workspace_id, employment_id, from, to).await
     }
 
     async fn get_paginated_logs(
@@ -476,58 +477,17 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        // Acquire a per-(employee, calendar-day) transaction advisory lock
-        // before mutating the row set. Concurrent reprocess runs targeting the
-        // same calendar day serialize here so a DELETE+INSERT cannot interleave
-        // into a double-inserted set of sessions. Auto-released on COMMIT/ROLLBACK.
-        // See `reprocess_advisory_lock_key` for derivation.
-        let lock_key = reprocess_advisory_lock_key(employment_id, start_time.date_naive());
-
         conn.transaction::<_, diesel::result::Error, _>(|conn| {
             Box::pin(async move {
-                diesel::sql_query("SELECT pg_advisory_xact_lock($1)")
-                    .bind::<diesel::sql_types::BigInt, _>(lock_key)
-                    .execute(conn)
-                    .await?;
-
-                diesel::delete(
-                    time_entries::table
-                        .filter(time_entries::workspace_id.eq(workspace_id))
-                        .filter(time_entries::employment_id.eq(employment_id))
-                        .filter(time_entries::punch_in_time.ge(start_time))
-                        .filter(time_entries::punch_in_time.lt(end_time)),
+                execute_replace_time_entries(
+                    conn,
+                    workspace_id,
+                    employment_id,
+                    start_time,
+                    end_time,
+                    entries,
                 )
-                .execute(conn)
-                .await?;
-
-                if !entries.is_empty() {
-                    let entities: Vec<TimeEntryEntity> = entries
-                        .into_iter()
-                        .map(|entry| TimeEntryEntity {
-                            id: entry.id(),
-                            workspace_id: entry.workspace_id(),
-                            employment_id: entry.employment_id(),
-                            template_id: entry.shift_id(),
-                            segment_id: entry.segment_id(),
-                            punch_in_time: entry.punch_in_time(),
-                            punch_out_time: entry.punch_out_time(),
-                            duration_minutes: entry.duration_minutes(),
-                            is_break_overtime: entry.is_break_overtime(),
-                            entry_type: entry.entry_type().to_string(),
-                            note: entry.note().map(String::from),
-                            generation_metadata: entry.generation_metadata().cloned(),
-                            created_at: Some(entry.created_at()),
-                            updated_at: Some(entry.updated_at()),
-                        })
-                        .collect();
-
-                    diesel::insert_into(time_entries::table)
-                        .values(&entities)
-                        .execute(conn)
-                        .await?;
-                }
-
-                Ok(())
+                .await
             })
         })
         .await
@@ -535,6 +495,114 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
 
         Ok(())
     }
+
+    async fn replace_time_entries_tx(
+        &self,
+        conn: &mut AsyncPgConnection,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        start_time: DateTime<Utc>,
+        end_time: DateTime<Utc>,
+        entries: Vec<TimeEntry>,
+    ) -> Result<(), AppError> {
+        execute_replace_time_entries(
+            conn,
+            workspace_id,
+            employment_id,
+            start_time,
+            end_time,
+            entries,
+        )
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(())
+    }
+}
+
+/// Core logic for reading a employment's time entries within a window.
+async fn execute_get_employment_time_entries(
+    conn: &mut AsyncPgConnection,
+    workspace_id: Uuid,
+    employment_id: Uuid,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+) -> Result<Vec<TimeEntry>, AppError> {
+    let entries: Vec<TimeEntryEntity> = time_entries::table
+        .filter(time_entries::workspace_id.eq(workspace_id))
+        .filter(time_entries::employment_id.eq(employment_id))
+        .filter(time_entries::punch_in_time.ge(from))
+        .filter(time_entries::punch_in_time.le(to))
+        .order(time_entries::punch_in_time.desc())
+        .load(conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+    Ok(entries.into_iter().map(Into::into).collect())
+}
+
+/// Core logic for replacing time entries within a transaction.
+///
+/// Acquires a per-(employee, calendar-day) advisory lock, deletes existing
+/// entries in the window, and inserts the new set. The advisory lock is
+/// auto-released on COMMIT/ROLLBACK. See [`reprocess_advisory_lock_key`]
+/// for derivation.
+async fn execute_replace_time_entries<C>(
+    conn: &mut C,
+    workspace_id: Uuid,
+    employment_id: Uuid,
+    start_time: DateTime<Utc>,
+    end_time: DateTime<Utc>,
+    entries: Vec<TimeEntry>,
+) -> Result<(), diesel::result::Error>
+where
+    C: diesel_async::AsyncConnection<Backend = diesel::pg::Pg> + Send,
+{
+    let lock_key = reprocess_advisory_lock_key(employment_id, start_time.date_naive());
+
+    diesel::sql_query("SELECT pg_advisory_xact_lock($1)")
+        .bind::<diesel::sql_types::BigInt, _>(lock_key)
+        .execute(conn)
+        .await?;
+
+    diesel::delete(
+        time_entries::table
+            .filter(time_entries::workspace_id.eq(workspace_id))
+            .filter(time_entries::employment_id.eq(employment_id))
+            .filter(time_entries::punch_in_time.ge(start_time))
+            .filter(time_entries::punch_in_time.lt(end_time)),
+    )
+    .execute(conn)
+    .await?;
+
+    if !entries.is_empty() {
+        let entities: Vec<TimeEntryEntity> = entries
+            .into_iter()
+            .map(|entry| TimeEntryEntity {
+                id: entry.id(),
+                workspace_id: entry.workspace_id(),
+                employment_id: entry.employment_id(),
+                template_id: entry.shift_id(),
+                segment_id: entry.segment_id(),
+                punch_in_time: entry.punch_in_time(),
+                punch_out_time: entry.punch_out_time(),
+                duration_minutes: entry.duration_minutes(),
+                is_break_overtime: entry.is_break_overtime(),
+                entry_type: entry.entry_type().to_string(),
+                note: entry.note().map(String::from),
+                generation_metadata: entry.generation_metadata().cloned(),
+                created_at: Some(entry.created_at()),
+                updated_at: Some(entry.updated_at()),
+            })
+            .collect();
+
+        diesel::insert_into(time_entries::table)
+            .values(&entities)
+            .execute(conn)
+            .await?;
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

@@ -2,6 +2,7 @@ use crate::errors::AppError;
 use crate::models::{TimeEntry, TimeEntryWithEmployee};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use diesel_async::AsyncPgConnection;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -89,4 +90,32 @@ pub trait TimeEntryRepository: Send + Sync {
         end_time: DateTime<Utc>,
         entries: Vec<TimeEntry>,
     ) -> Result<(), AppError>;
+
+    /// Transaction-aware variant of [`replace_time_entries`].
+    ///
+    /// Uses the provided connection instead of acquiring one from the pool,
+    /// allowing the caller to coordinate this write with other operations
+    /// inside a single database transaction.
+    async fn replace_time_entries_tx(
+        &self,
+        conn: &mut AsyncPgConnection,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        start_time: DateTime<Utc>,
+        end_time: DateTime<Utc>,
+        entries: Vec<TimeEntry>,
+    ) -> Result<(), AppError>;
+
+    /// Transaction-aware variant of [`get_employment_time_entries`].
+    ///
+    /// Reads on the provided connection so the caller sees writes made on the
+    /// same uncommitted transaction (read-your-writes).
+    async fn get_employment_time_entries_tx(
+        &self,
+        conn: &mut AsyncPgConnection,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        from: DateTime<Utc>,
+        to: DateTime<Utc>,
+    ) -> Result<Vec<TimeEntry>, AppError>;
 }

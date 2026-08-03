@@ -50,6 +50,10 @@ pub struct WorkerDeps {
     pub custom_field_repo: Arc<dyn crate::repositories::CustomFieldRepository>,
     pub employer_repo: Arc<dyn crate::repositories::EmployerRepository>,
     pub diesel_pools: crate::diesel_pool::DieselPools,
+    /// When true, [`Self::pairing_service`] wraps the pairing write pipeline in
+    /// explicit transaction boundaries via the diesel pools. Disabled in mock
+    /// test environments where no live database is available.
+    pub pairing_transactions_enabled: bool,
     /// Optional notifier for deferred pairing. When set, `log_service()` will
     /// pass it to `AttendanceLogService` so INSERTs fire notifications to the
     /// `PairingScheduler` instead of triggering inline `process_new_raw_log`.
@@ -72,6 +76,7 @@ impl WorkerDeps {
     ) -> Self {
         Self {
             diesel_pools: diesel.clone(),
+            pairing_transactions_enabled: true,
             time_entry_repo: Arc::new(crate::repositories::DieselTimeEntryRepository::new(
                 diesel.clone(),
             )),
@@ -194,15 +199,19 @@ impl WorkerDeps {
     /// Build a [`PairingService`](crate::services::pairing::PairingService)
     /// using the shared repository instances, returned as `dyn PairingProcessor`.
     pub fn pairing_service(&self) -> Arc<dyn crate::services::pairing::PairingProcessor> {
-        Arc::new(crate::services::pairing::PairingService::new(
-            crate::services::pairing::PairingServiceArgs::new(
-                Arc::clone(&self.time_entry_repo),
-                Arc::clone(&self.roster_repo),
-                Arc::clone(&self.employee_repo),
-                Arc::clone(&self.raw_log_repo),
-                self.summary_service() as Arc<dyn crate::services::SummaryRecalculator>,
-            ),
-        ))
+        let args = crate::services::pairing::PairingServiceArgs::new(
+            Arc::clone(&self.time_entry_repo),
+            Arc::clone(&self.roster_repo),
+            Arc::clone(&self.employee_repo),
+            Arc::clone(&self.raw_log_repo),
+            self.summary_service() as Arc<dyn crate::services::SummaryRecalculator>,
+        );
+        let args = if self.pairing_transactions_enabled {
+            args.with_diesel_pools(self.diesel_pools.clone())
+        } else {
+            args
+        };
+        Arc::new(crate::services::pairing::PairingService::new(args))
     }
 
     /// Build an [`AttendanceLogService`](crate::services::AttendanceLogService)

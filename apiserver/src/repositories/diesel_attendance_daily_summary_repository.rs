@@ -5,7 +5,7 @@ use crate::repositories::attendance_daily_summary_repository::AttendanceDailySum
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use uuid::Uuid;
 
 pub struct DieselAttendanceDailySummaryRepository {
@@ -105,7 +105,6 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         holiday_name: Option<String>,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        use crate::schema::attendance_daily_summaries::dsl as ads;
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -114,45 +113,23 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
                 .await?,
         );
 
-        diesel::insert_into(ads::attendance_daily_summaries)
-            .values((
-                ads::workspace_id.eq(workspace_id),
-                ads::employment_id.eq(employment_id),
-                ads::date.eq(date),
-                ads::actual_work_minutes.eq(actual_work_minutes),
-                ads::system_detected_ot_minutes.eq(system_detected_ot_minutes),
-                ads::standard_minutes.eq(standard_minutes),
-                ads::early_ot_minutes.eq(early_ot_minutes),
-                ads::late_ot_minutes.eq(late_ot_minutes),
-                ads::break_ot_minutes.eq(break_ot_minutes),
-                ads::is_weekend.eq(is_weekend),
-                ads::ot_status.eq(new_status),
-                ads::is_holiday.eq(is_holiday),
-                ads::holiday_name.eq(holiday_name),
-            ))
-            .on_conflict((ads::employment_id, ads::date))
-            .do_update()
-            .set((
-                ads::actual_work_minutes.eq(diesel::dsl::sql("EXCLUDED.actual_work_minutes")),
-                ads::system_detected_ot_minutes
-                    .eq(diesel::dsl::sql("EXCLUDED.system_detected_ot_minutes")),
-                ads::standard_minutes.eq(diesel::dsl::sql("EXCLUDED.standard_minutes")),
-                ads::early_ot_minutes.eq(diesel::dsl::sql("EXCLUDED.early_ot_minutes")),
-                ads::late_ot_minutes.eq(diesel::dsl::sql("EXCLUDED.late_ot_minutes")),
-                ads::break_ot_minutes.eq(diesel::dsl::sql("EXCLUDED.break_ot_minutes")),
-                ads::is_weekend.eq(diesel::dsl::sql("EXCLUDED.is_weekend")),
-                ads::is_holiday.eq(diesel::dsl::sql("EXCLUDED.is_holiday")),
-                ads::holiday_name.eq(diesel::dsl::sql("EXCLUDED.holiday_name")),
-                ads::ot_status.eq(diesel::dsl::sql::<crate::schema::sql_types::OtStatusType>(
-                    OT_STATUS_UPSERT_CASE_SQL,
-                )),
-                ads::updated_at.eq(diesel::dsl::now),
-            ))
-            .execute(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
-
-        Ok(())
+        execute_upsert_calculated_summary(
+            &mut conn,
+            workspace_id,
+            employment_id,
+            date,
+            actual_work_minutes,
+            system_detected_ot_minutes,
+            standard_minutes,
+            early_ot_minutes,
+            late_ot_minutes,
+            break_ot_minutes,
+            is_weekend,
+            new_status,
+            is_holiday,
+            holiday_name,
+        )
+        .await
     }
 
     /// Batch-upserts calculated attendance summaries in a single SQL statement.
@@ -172,7 +149,6 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         }
 
         let workspace_id = auth_token.workspace_id();
-        use crate::schema::attendance_daily_summaries::dsl as ads;
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -181,54 +157,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
                 .await?,
         );
 
-        // Build batch values — one tuple per summary row
-        let values: Vec<_> = summaries
-            .iter()
-            .map(|s| {
-                (
-                    ads::workspace_id.eq(workspace_id),
-                    ads::employment_id.eq(employment_id),
-                    ads::date.eq(s.date),
-                    ads::actual_work_minutes.eq(s.actual_work_minutes),
-                    ads::system_detected_ot_minutes.eq(s.system_detected_ot_minutes),
-                    ads::standard_minutes.eq(s.standard_minutes),
-                    ads::early_ot_minutes.eq(s.early_ot_minutes),
-                    ads::late_ot_minutes.eq(s.late_ot_minutes),
-                    ads::break_ot_minutes.eq(s.break_ot_minutes),
-                    ads::is_weekend.eq(s.is_weekend),
-                    ads::ot_status.eq(s.ot_status),
-                    ads::is_holiday.eq(s.is_holiday),
-                    ads::holiday_name.eq(&s.holiday_name),
-                )
-            })
-            .collect();
-
-        // Single multi-row INSERT ... ON CONFLICT ... DO UPDATE
-        diesel::insert_into(ads::attendance_daily_summaries)
-            .values(&values)
-            .on_conflict((ads::employment_id, ads::date))
-            .do_update()
-            .set((
-                ads::actual_work_minutes.eq(diesel::dsl::sql("EXCLUDED.actual_work_minutes")),
-                ads::system_detected_ot_minutes
-                    .eq(diesel::dsl::sql("EXCLUDED.system_detected_ot_minutes")),
-                ads::standard_minutes.eq(diesel::dsl::sql("EXCLUDED.standard_minutes")),
-                ads::early_ot_minutes.eq(diesel::dsl::sql("EXCLUDED.early_ot_minutes")),
-                ads::late_ot_minutes.eq(diesel::dsl::sql("EXCLUDED.late_ot_minutes")),
-                ads::break_ot_minutes.eq(diesel::dsl::sql("EXCLUDED.break_ot_minutes")),
-                ads::is_weekend.eq(diesel::dsl::sql("EXCLUDED.is_weekend")),
-                ads::is_holiday.eq(diesel::dsl::sql("EXCLUDED.is_holiday")),
-                ads::holiday_name.eq(diesel::dsl::sql("EXCLUDED.holiday_name")),
-                ads::ot_status.eq(diesel::dsl::sql::<crate::schema::sql_types::OtStatusType>(
-                    OT_STATUS_UPSERT_CASE_SQL,
-                )),
-                ads::updated_at.eq(diesel::dsl::now),
-            ))
-            .execute(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
-
-        Ok(())
+        execute_batch_upsert_summaries(&mut conn, workspace_id, employment_id, summaries).await
     }
 
     async fn claim_ot(
@@ -654,4 +583,172 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         Ok(rows.into_iter().map(Into::into).collect())
     }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn upsert_calculated_summary_tx(
+        &self,
+        conn: &mut AsyncPgConnection,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        date: NaiveDate,
+        actual_work_minutes: i32,
+        system_detected_ot_minutes: i32,
+        standard_minutes: i32,
+        early_ot_minutes: i32,
+        late_ot_minutes: i32,
+        break_ot_minutes: i32,
+        is_weekend: bool,
+        new_status: OtStatus,
+        is_holiday: bool,
+        holiday_name: Option<String>,
+    ) -> Result<(), AppError> {
+        execute_upsert_calculated_summary(
+            conn,
+            workspace_id,
+            employment_id,
+            date,
+            actual_work_minutes,
+            system_detected_ot_minutes,
+            standard_minutes,
+            early_ot_minutes,
+            late_ot_minutes,
+            break_ot_minutes,
+            is_weekend,
+            new_status,
+            is_holiday,
+            holiday_name,
+        )
+        .await
+    }
+
+    async fn batch_upsert_calculated_summaries_tx(
+        &self,
+        conn: &mut AsyncPgConnection,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        summaries: &[crate::repositories::attendance_daily_summary_repository::BatchSummaryInput],
+    ) -> Result<(), AppError> {
+        if summaries.is_empty() {
+            return Ok(());
+        }
+        execute_batch_upsert_summaries(conn, workspace_id, employment_id, summaries).await
+    }
+}
+
+/// Core logic for upserting a single calculated daily summary.
+#[allow(clippy::too_many_arguments)]
+async fn execute_upsert_calculated_summary(
+    conn: &mut AsyncPgConnection,
+    workspace_id: Uuid,
+    employment_id: Uuid,
+    date: NaiveDate,
+    actual_work_minutes: i32,
+    system_detected_ot_minutes: i32,
+    standard_minutes: i32,
+    early_ot_minutes: i32,
+    late_ot_minutes: i32,
+    break_ot_minutes: i32,
+    is_weekend: bool,
+    new_status: OtStatus,
+    is_holiday: bool,
+    holiday_name: Option<String>,
+) -> Result<(), AppError> {
+    use crate::schema::attendance_daily_summaries::dsl as ads;
+
+    diesel::insert_into(ads::attendance_daily_summaries)
+        .values((
+            ads::workspace_id.eq(workspace_id),
+            ads::employment_id.eq(employment_id),
+            ads::date.eq(date),
+            ads::actual_work_minutes.eq(actual_work_minutes),
+            ads::system_detected_ot_minutes.eq(system_detected_ot_minutes),
+            ads::standard_minutes.eq(standard_minutes),
+            ads::early_ot_minutes.eq(early_ot_minutes),
+            ads::late_ot_minutes.eq(late_ot_minutes),
+            ads::break_ot_minutes.eq(break_ot_minutes),
+            ads::is_weekend.eq(is_weekend),
+            ads::ot_status.eq(new_status),
+            ads::is_holiday.eq(is_holiday),
+            ads::holiday_name.eq(holiday_name),
+        ))
+        .on_conflict((ads::employment_id, ads::date))
+        .do_update()
+        .set((
+            ads::actual_work_minutes.eq(diesel::dsl::sql("EXCLUDED.actual_work_minutes")),
+            ads::system_detected_ot_minutes
+                .eq(diesel::dsl::sql("EXCLUDED.system_detected_ot_minutes")),
+            ads::standard_minutes.eq(diesel::dsl::sql("EXCLUDED.standard_minutes")),
+            ads::early_ot_minutes.eq(diesel::dsl::sql("EXCLUDED.early_ot_minutes")),
+            ads::late_ot_minutes.eq(diesel::dsl::sql("EXCLUDED.late_ot_minutes")),
+            ads::break_ot_minutes.eq(diesel::dsl::sql("EXCLUDED.break_ot_minutes")),
+            ads::is_weekend.eq(diesel::dsl::sql("EXCLUDED.is_weekend")),
+            ads::is_holiday.eq(diesel::dsl::sql("EXCLUDED.is_holiday")),
+            ads::holiday_name.eq(diesel::dsl::sql("EXCLUDED.holiday_name")),
+            ads::ot_status.eq(diesel::dsl::sql::<crate::schema::sql_types::OtStatusType>(
+                OT_STATUS_UPSERT_CASE_SQL,
+            )),
+            ads::updated_at.eq(diesel::dsl::now),
+        ))
+        .execute(conn)
+        .await
+        .map_err(AppError::from)?;
+
+    Ok(())
+}
+
+/// Core logic for batch-upserting calculated daily summaries.
+async fn execute_batch_upsert_summaries(
+    conn: &mut AsyncPgConnection,
+    workspace_id: Uuid,
+    employment_id: Uuid,
+    summaries: &[crate::repositories::attendance_daily_summary_repository::BatchSummaryInput],
+) -> Result<(), AppError> {
+    use crate::schema::attendance_daily_summaries::dsl as ads;
+
+    let values: Vec<_> = summaries
+        .iter()
+        .map(|s| {
+            (
+                ads::workspace_id.eq(workspace_id),
+                ads::employment_id.eq(employment_id),
+                ads::date.eq(s.date),
+                ads::actual_work_minutes.eq(s.actual_work_minutes),
+                ads::system_detected_ot_minutes.eq(s.system_detected_ot_minutes),
+                ads::standard_minutes.eq(s.standard_minutes),
+                ads::early_ot_minutes.eq(s.early_ot_minutes),
+                ads::late_ot_minutes.eq(s.late_ot_minutes),
+                ads::break_ot_minutes.eq(s.break_ot_minutes),
+                ads::is_weekend.eq(s.is_weekend),
+                ads::ot_status.eq(s.ot_status),
+                ads::is_holiday.eq(s.is_holiday),
+                ads::holiday_name.eq(&s.holiday_name),
+            )
+        })
+        .collect();
+
+    diesel::insert_into(ads::attendance_daily_summaries)
+        .values(&values)
+        .on_conflict((ads::employment_id, ads::date))
+        .do_update()
+        .set((
+            ads::actual_work_minutes.eq(diesel::dsl::sql("EXCLUDED.actual_work_minutes")),
+            ads::system_detected_ot_minutes
+                .eq(diesel::dsl::sql("EXCLUDED.system_detected_ot_minutes")),
+            ads::standard_minutes.eq(diesel::dsl::sql("EXCLUDED.standard_minutes")),
+            ads::early_ot_minutes.eq(diesel::dsl::sql("EXCLUDED.early_ot_minutes")),
+            ads::late_ot_minutes.eq(diesel::dsl::sql("EXCLUDED.late_ot_minutes")),
+            ads::break_ot_minutes.eq(diesel::dsl::sql("EXCLUDED.break_ot_minutes")),
+            ads::is_weekend.eq(diesel::dsl::sql("EXCLUDED.is_weekend")),
+            ads::is_holiday.eq(diesel::dsl::sql("EXCLUDED.is_holiday")),
+            ads::holiday_name.eq(diesel::dsl::sql("EXCLUDED.holiday_name")),
+            ads::ot_status.eq(diesel::dsl::sql::<crate::schema::sql_types::OtStatusType>(
+                OT_STATUS_UPSERT_CASE_SQL,
+            )),
+            ads::updated_at.eq(diesel::dsl::now),
+        ))
+        .execute(conn)
+        .await
+        .map_err(AppError::from)?;
+
+    Ok(())
 }

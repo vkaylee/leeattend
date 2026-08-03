@@ -62,7 +62,8 @@ pub async fn build_attendance_services(
                 Arc::clone(&repos.employee),
                 Arc::clone(&repos.raw_log),
                 Arc::clone(&attendance_summary) as Arc<dyn crate::services::SummaryRecalculator>,
-            ),
+            )
+            .with_diesel_pools(diesel_pools.clone()),
         ));
 
     let adjustment = Arc::new(

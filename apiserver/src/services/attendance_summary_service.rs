@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use chrono::{Datelike, NaiveDate};
 use chrono_tz::Tz;
+use diesel_async::AsyncPgConnection;
 
 use uuid::Uuid;
 
@@ -42,6 +43,29 @@ pub trait SummaryRecalculator: Send + Sync {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<(), AppError>;
+
+    /// Transaction-aware variant of [`recalculate_daily_summary`].
+    ///
+    /// Routes the critical time-entry read and all writes through the provided
+    /// connection so the caller can coordinate this recalculation with other
+    /// operations inside a single database transaction (read-your-writes).
+    async fn recalculate_daily_summary_tx(
+        &self,
+        conn: &mut AsyncPgConnection,
+        auth_token: &TenantAuthToken,
+        employment_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<(), AppError>;
+
+    /// Transaction-aware variant of [`recalculate_attendance_range`].
+    async fn recalculate_attendance_range_tx(
+        &self,
+        conn: &mut AsyncPgConnection,
+        auth_token: &TenantAuthToken,
+        employment_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<(), AppError>;
 }
 
 #[async_trait::async_trait]
@@ -64,6 +88,29 @@ impl SummaryRecalculator for AttendanceSummaryService {
         end_date: NaiveDate,
     ) -> Result<(), AppError> {
         self.recalculate_attendance_range(auth_token, employment_id, start_date, end_date)
+            .await
+    }
+
+    async fn recalculate_daily_summary_tx(
+        &self,
+        conn: &mut AsyncPgConnection,
+        auth_token: &TenantAuthToken,
+        employment_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<(), AppError> {
+        self.recalculate_daily_summary_tx(conn, auth_token, employment_id, date)
+            .await
+    }
+
+    async fn recalculate_attendance_range_tx(
+        &self,
+        conn: &mut AsyncPgConnection,
+        auth_token: &TenantAuthToken,
+        employment_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<(), AppError> {
+        self.recalculate_attendance_range_tx(conn, auth_token, employment_id, start_date, end_date)
             .await
     }
 }
@@ -162,7 +209,37 @@ impl AttendanceSummaryService {
         employment_id: Uuid,
         date: NaiveDate,
     ) -> AppResult<()> {
-        let _workspace_id = auth_token.workspace_id();
+        self.recalculate_daily_summary_with_conn(None, auth_token, employment_id, date)
+            .await
+    }
+
+    /// Transaction-aware variant of [`recalculate_daily_summary`].
+    ///
+    /// Routes the time-entry read and all writes through `conn` so the caller
+    /// can coordinate this recalculation with sibling writes in one transaction.
+    #[tracing::instrument(skip_all, err)]
+    pub async fn recalculate_daily_summary_tx(
+        &self,
+        conn: &mut AsyncPgConnection,
+        auth_token: &TenantAuthToken,
+        employment_id: Uuid,
+        date: NaiveDate,
+    ) -> AppResult<()> {
+        self.recalculate_daily_summary_with_conn(Some(conn), auth_token, employment_id, date)
+            .await
+    }
+
+    // `as_deref_mut` reborrows the optional conn for several sequential writes;
+    // the type is unchanged so the lint is a false positive here.
+    #[allow(clippy::needless_option_as_deref, clippy::too_many_lines)]
+    async fn recalculate_daily_summary_with_conn(
+        &self,
+        mut conn: Option<&mut AsyncPgConnection>,
+        auth_token: &TenantAuthToken,
+        employment_id: Uuid,
+        date: NaiveDate,
+    ) -> AppResult<()> {
+        let workspace_id = auth_token.workspace_id();
         let employment = self
             .employment_repo
             .get_employment_by_id(auth_token, employment_id)
@@ -172,7 +249,7 @@ impl AttendanceSummaryService {
 
         // 1. Fetch schedule & time entries
         let (tz, daily_schedule, day_entries) = self
-            .fetch_daily_schedule(auth_token, employment_id, date)
+            .fetch_daily_schedule(conn.as_deref_mut(), auth_token, employment_id, date)
             .await?;
 
         // Auto-cancel approved leave requests if the employee worked (day_entries is not empty) and it's not a holiday
@@ -191,9 +268,15 @@ impl AttendanceSummaryService {
 
             if let Some(req) = leave_to_cancel {
                 // Cancel the leave request (which updates status and refunds balance)
-                self.leave_request_repo
-                    .cancel_leave_request(auth_token, req.id())
-                    .await?;
+                if let Some(c) = conn.as_deref_mut() {
+                    self.leave_request_repo
+                        .bulk_cancel_leave_requests_tx(c, auth_token, &[req.id()])
+                        .await?;
+                } else {
+                    self.leave_request_repo
+                        .cancel_leave_request(auth_token, req.id())
+                        .await?;
+                }
             }
         }
 
@@ -218,6 +301,7 @@ impl AttendanceSummaryService {
         // 3. Holiday leave conflict detection
         let (is_holiday, holiday_name) = self
             .handle_holiday_leave_conflict(
+                conn.as_deref_mut(),
                 auth_token,
                 employee_id,
                 date,
@@ -235,23 +319,44 @@ impl AttendanceSummaryService {
         let is_weekend = weekday >= 5; // Default: Sat+Sun — configurable per workspace later
 
         // 5. Persist
-        self.daily_summary_repo
-            .upsert_calculated_summary(
-                auth_token,
-                employment_id,
-                date,
-                actual_work_minutes,
-                system_detected_ot_minutes,
-                buckets.standard_minutes,
-                buckets.early_ot_minutes,
-                buckets.late_ot_minutes,
-                buckets.break_ot_minutes,
-                is_weekend,
-                new_status,
-                is_holiday,
-                holiday_name,
-            )
-            .await?;
+        if let Some(c) = conn {
+            self.daily_summary_repo
+                .upsert_calculated_summary_tx(
+                    c,
+                    workspace_id,
+                    employment_id,
+                    date,
+                    actual_work_minutes,
+                    system_detected_ot_minutes,
+                    buckets.standard_minutes,
+                    buckets.early_ot_minutes,
+                    buckets.late_ot_minutes,
+                    buckets.break_ot_minutes,
+                    is_weekend,
+                    new_status,
+                    is_holiday,
+                    holiday_name,
+                )
+                .await?;
+        } else {
+            self.daily_summary_repo
+                .upsert_calculated_summary(
+                    auth_token,
+                    employment_id,
+                    date,
+                    actual_work_minutes,
+                    system_detected_ot_minutes,
+                    buckets.standard_minutes,
+                    buckets.early_ot_minutes,
+                    buckets.late_ot_minutes,
+                    buckets.break_ot_minutes,
+                    is_weekend,
+                    new_status,
+                    is_holiday,
+                    holiday_name,
+                )
+                .await?;
+        }
         Ok(())
     }
 
@@ -271,10 +376,61 @@ impl AttendanceSummaryService {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> AppResult<()> {
+        self.recalculate_attendance_range_with_conn(
+            None,
+            auth_token,
+            employment_id,
+            start_date,
+            end_date,
+        )
+        .await
+    }
+
+    /// Transaction-aware variant of [`recalculate_attendance_range`].
+    ///
+    /// Routes the time-entry read and all writes through `conn` so the caller
+    /// can coordinate this recalculation with sibling writes in one transaction.
+    #[tracing::instrument(skip_all, err)]
+    pub async fn recalculate_attendance_range_tx(
+        &self,
+        conn: &mut AsyncPgConnection,
+        auth_token: &TenantAuthToken,
+        employment_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> AppResult<()> {
+        self.recalculate_attendance_range_with_conn(
+            Some(conn),
+            auth_token,
+            employment_id,
+            start_date,
+            end_date,
+        )
+        .await
+    }
+
+    // `as_deref_mut` reborrows the optional conn for several sequential writes;
+    // the type is unchanged so the lint is a false positive here.
+    #[allow(clippy::needless_option_as_deref, clippy::too_many_lines)]
+    async fn recalculate_attendance_range_with_conn(
+        &self,
+        mut conn: Option<&mut AsyncPgConnection>,
+        auth_token: &TenantAuthToken,
+        employment_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> AppResult<()> {
         // ── Phase A: Pre-fetch all shared data ──────────────────────────
         let pf = self
-            .fetch_range_preamble(auth_token, employment_id, start_date, end_date)
+            .fetch_range_preamble(
+                conn.as_deref_mut(),
+                auth_token,
+                employment_id,
+                start_date,
+                end_date,
+            )
             .await?;
+        let workspace_id = auth_token.workspace_id();
         let employee_id = pf.employment.employee_id();
         let location_id = pf.employment.primary_location_id();
         let base_early_arrival_strategy = pf.attendance_rules.early_arrival_strategy;
@@ -351,9 +507,15 @@ impl AttendanceSummaryService {
 
         // ── Phase C: Batch writes ───────────────────────────────────────
         if !leave_ids_to_cancel.is_empty() {
-            self.leave_request_repo
-                .bulk_cancel_leave_requests(auth_token, &leave_ids_to_cancel)
-                .await?;
+            if let Some(c) = conn.as_deref_mut() {
+                self.leave_request_repo
+                    .bulk_cancel_leave_requests_tx(c, auth_token, &leave_ids_to_cancel)
+                    .await?;
+            } else {
+                self.leave_request_repo
+                    .bulk_cancel_leave_requests(auth_token, &leave_ids_to_cancel)
+                    .await?;
+            }
         }
 
         if !day_results.is_empty() {
@@ -374,9 +536,20 @@ impl AttendanceSummaryService {
                 })
                 .collect();
 
-            self.daily_summary_repo
-                .batch_upsert_calculated_summaries(auth_token, employment_id, &batch_inputs)
-                .await?;
+            if let Some(c) = conn {
+                self.daily_summary_repo
+                    .batch_upsert_calculated_summaries_tx(
+                        c,
+                        workspace_id,
+                        employment_id,
+                        &batch_inputs,
+                    )
+                    .await?;
+            } else {
+                self.daily_summary_repo
+                    .batch_upsert_calculated_summaries(auth_token, employment_id, &batch_inputs)
+                    .await?;
+            }
         }
 
         Ok(())
@@ -387,6 +560,7 @@ impl AttendanceSummaryService {
     /// schedules, time entries, leaves, holidays, and existing summaries.
     async fn fetch_range_preamble(
         &self,
+        conn: Option<&mut AsyncPgConnection>,
         auth_token: &TenantAuthToken,
         employment_id: Uuid,
         start_date: NaiveDate,
@@ -431,10 +605,21 @@ impl AttendanceSummaryService {
             local_midnight_to_utc(&tz, start_date, 0, 0, 0).map_err(AppError::Internal)?;
         let end_dt_utc =
             local_midnight_to_utc(&tz, end_date, 23, 59, 59).map_err(AppError::Internal)?;
-        let all_entries = self
-            .time_entry_repo
-            .get_employment_time_entries(auth_token, employment_id, start_dt_utc, end_dt_utc)
-            .await?;
+        let all_entries = if let Some(c) = conn {
+            self.time_entry_repo
+                .get_employment_time_entries_tx(
+                    c,
+                    workspace_id,
+                    employment_id,
+                    start_dt_utc,
+                    end_dt_utc,
+                )
+                .await?
+        } else {
+            self.time_entry_repo
+                .get_employment_time_entries(auth_token, employment_id, start_dt_utc, end_dt_utc)
+                .await?
+        };
 
         let leaves = self
             .leave_request_repo
@@ -496,6 +681,7 @@ impl AttendanceSummaryService {
     /// Fetch workspace timezone, the employee's schedule for the date, and time entries.
     async fn fetch_daily_schedule(
         &self,
+        conn: Option<&mut AsyncPgConnection>,
         auth_token: &TenantAuthToken,
         employment_id: Uuid,
         date: NaiveDate,
@@ -548,10 +734,21 @@ impl AttendanceSummaryService {
         let end_dt_utc =
             local_midnight_to_utc(&tz, date, 23, 59, 59).map_err(AppError::Internal)?;
 
-        let entries = self
-            .time_entry_repo
-            .get_employment_time_entries(auth_token, employment_id, start_dt_utc, end_dt_utc)
-            .await?;
+        let entries = if let Some(c) = conn {
+            self.time_entry_repo
+                .get_employment_time_entries_tx(
+                    c,
+                    workspace_id,
+                    employment_id,
+                    start_dt_utc,
+                    end_dt_utc,
+                )
+                .await?
+        } else {
+            self.time_entry_repo
+                .get_employment_time_entries(auth_token, employment_id, start_dt_utc, end_dt_utc)
+                .await?
+        };
 
         let day_entries: Vec<_> = entries
             .into_iter()
@@ -808,6 +1005,7 @@ impl AttendanceSummaryService {
     /// Check if the date is a holiday and handle leave conflict (reversal if employee worked enough).
     async fn handle_holiday_leave_conflict(
         &self,
+        conn: Option<&mut AsyncPgConnection>,
         auth_token: &TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
@@ -831,6 +1029,7 @@ impl AttendanceSummaryService {
             if let Some(ref hol) = holiday {
                 if let Err(e) = self
                     .maybe_reverse_holiday_leave(
+                        conn,
                         auth_token,
                         employee_id,
                         date,
@@ -856,6 +1055,7 @@ impl AttendanceSummaryService {
     /// Reverse system-generated holiday leave if employee worked above the threshold.
     async fn maybe_reverse_holiday_leave(
         &self,
+        conn: Option<&mut AsyncPgConnection>,
         auth_token: &TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
@@ -896,9 +1096,15 @@ impl AttendanceSummaryService {
         };
 
         if work_percent >= threshold {
-            self.leave_request_repo
-                .cancel_leave_request(auth_token, leave_request_id)
-                .await?;
+            if let Some(c) = conn {
+                self.leave_request_repo
+                    .bulk_cancel_leave_requests_tx(c, auth_token, &[leave_request_id])
+                    .await?;
+            } else {
+                self.leave_request_repo
+                    .cancel_leave_request(auth_token, leave_request_id)
+                    .await?;
+            }
 
             tracing::info!(
                 employee_id = %employee_id,

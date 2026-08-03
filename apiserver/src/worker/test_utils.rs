@@ -401,6 +401,7 @@ impl MockWorkerDepsBuilder {
             diesel_pools: crate::diesel_pool::DieselPools::for_test(
                 "postgres://user:pass@localhost:5432/leeattend_test_db",
             ),
+            pairing_transactions_enabled: false,
             pairing_notifier: None,
             leave_submission: None,
         }
