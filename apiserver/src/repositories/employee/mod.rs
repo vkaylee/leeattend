@@ -172,6 +172,17 @@ pub trait EmployeeCoreRepository: Send + Sync {
         tentative_date: chrono::NaiveDate,
     ) -> Result<chrono_tz::Tz, AppError>;
 
+    /// Batch variant of [`get_employee_timezone_fallback`]: resolves the
+    /// effective timezone for multiple employment IDs in a single query.
+    /// Returns a map from employment_id → timezone. Employment IDs not
+    /// found in the result set are omitted (callers should fall back to
+    /// the workspace default or UTC).
+    async fn get_employee_timezones_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, chrono_tz::Tz>, AppError>;
+
     async fn get_headquarters_location_id(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -530,6 +541,11 @@ mockall::mock! {
             employee_id: Uuid,
             tentative_date: chrono::NaiveDate,
         ) -> Result<chrono_tz::Tz, AppError>;
+        async fn get_employee_timezones_batch(
+            &self,
+            auth_token: &crate::diesel_pool::TenantAuthToken,
+            employment_ids: &[Uuid],
+        ) -> Result<std::collections::HashMap<Uuid, chrono_tz::Tz>, AppError>;
         async fn get_headquarters_location_id(
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,

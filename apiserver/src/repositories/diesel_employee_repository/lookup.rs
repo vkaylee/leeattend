@@ -394,6 +394,106 @@ impl DieselEmployeeRepository {
         Ok(crate::utils::tz::parse_workspace_tz(&tz_str))
     }
 
+    pub(super) async fn get_employee_timezones_batch_impl(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, chrono_tz::Tz>, AppError> {
+        if employment_ids.is_empty() {
+            return Ok(std::collections::HashMap::new());
+        }
+
+        let workspace_id = auth_token.workspace_id();
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        #[derive(Debug, diesel::QueryableByName)]
+        struct TzBatchRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            employment_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            timezone: String,
+        }
+
+        let query = r"
+            SELECT DISTINCT ON (emp.id) emp.id as employment_id, wl.timezone as timezone
+            FROM employments emp
+            JOIN work_locations wl ON wl.id = emp.primary_location_id
+            WHERE emp.id = ANY($1)
+              AND emp.workspace_id = $2
+              AND emp.deleted_at IS NULL
+            ORDER BY emp.id,
+                     CASE WHEN emp.status = 'active' THEN 0 ELSE 1 END,
+                     emp.start_date DESC
+        ";
+
+        let rows: Vec<TzBatchRow> = diesel::sql_query(query)
+            .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(employment_ids)
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+            .get_results(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db batch timezone: {e}")))?;
+
+        let mut map: std::collections::HashMap<Uuid, chrono_tz::Tz> = rows
+            .into_iter()
+            .map(|r| (r.employment_id, crate::utils::tz::parse_workspace_tz(&r.timezone)))
+            .collect();
+
+        // Fallback for employment IDs not found: query workspace timezone once
+        let missing: Vec<Uuid> = employment_ids
+            .iter()
+            .filter(|id| !map.contains_key(id))
+            .copied()
+            .collect();
+
+        if !missing.is_empty() {
+            let fallback_tz = {
+                let mut system_conn = self
+                    .diesel_pools
+                    .api
+                    .get()
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db api pool: {e}")))?;
+
+                #[derive(diesel::QueryableByName)]
+                struct WorkspaceTz {
+                    #[diesel(sql_type = diesel::sql_types::Text)]
+                    timezone: String,
+                }
+
+                let ws_tz: Result<WorkspaceTz, _> =
+                    diesel::sql_query("SELECT timezone::text FROM workspaces WHERE id = $1")
+                        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                        .get_result(&mut *system_conn)
+                        .await;
+
+                match ws_tz {
+                    Ok(w) => w.timezone,
+                    Err(e) => {
+                        tracing::warn!(
+                            "Failed to query workspace timezone fallback for workspace_id={}: {:?}. Defaulting to UTC.",
+                            workspace_id,
+                            e,
+                        );
+                        "UTC".to_string()
+                    }
+                }
+            };
+
+            let fallback = crate::utils::tz::parse_workspace_tz(&fallback_tz);
+            for id in missing {
+                map.insert(id, fallback);
+            }
+        }
+
+        Ok(map)
+    }
+
     pub(super) async fn get_headquarters_location_id_impl(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

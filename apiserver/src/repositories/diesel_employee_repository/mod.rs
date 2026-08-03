@@ -273,6 +273,15 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             .await
     }
 
+    async fn get_employee_timezones_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, chrono_tz::Tz>, AppError> {
+        self.get_employee_timezones_batch_impl(auth_token, employment_ids)
+            .await
+    }
+
     async fn get_headquarters_location_id(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

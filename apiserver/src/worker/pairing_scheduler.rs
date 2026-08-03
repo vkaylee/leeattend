@@ -149,7 +149,9 @@ impl PairingScheduler {
     }
 
     /// Drain all pending notifications, deduplicate by (employment, local_date),
-    /// and call `reprocess_daily_attendance` once per group.
+    /// batch-fetch timezones per workspace, and call `reprocess_attendance_range`
+    /// once per employment (which internally batches schedules + logs for the
+    /// entire date range).
     async fn sweep(&mut self) -> Result<(), AppError> {
         // 1. Drain the channel
         let mut notifications: Vec<PairingNotification> = Vec::new();
@@ -176,62 +178,101 @@ impl PairingScheduler {
         let mut date_groups = 0u64;
         let mut skipped = 0u64;
 
-        // 3. For each employment, resolve timezone and determine local dates
-        for ((workspace_id, employment_id), punch_times) in &by_employment {
+        // 3. Group employments by workspace for batch timezone resolution
+        let mut by_workspace: HashMap<Uuid, Vec<(Uuid, &Vec<DateTime<Utc>>)>> = HashMap::new();
+        for ((ws_id, emp_id), punch_times) in &by_employment {
+            by_workspace
+                .entry(*ws_id)
+                .or_default()
+                .push((*emp_id, punch_times));
+        }
+
+        // 4. For each workspace, batch-fetch timezones, then reprocess
+        for (workspace_id, emp_entries) in &by_workspace {
             let auth_token = TenantAuthToken::system_override(*workspace_id);
 
-            // Resolve fallback timezone for this employment (1 query per employment)
-            let tz: Tz = match self
+            // Batch timezone fetch: 1 query for ALL employments in this workspace
+            let emp_ids: Vec<Uuid> = emp_entries.iter().map(|(id, _)| *id).collect();
+            let timezones: HashMap<Uuid, Tz> = match self
                 .employee_repo
-                .get_employee_timezone_fallback(&auth_token, *employment_id)
+                .get_employee_timezones_batch(&auth_token, &emp_ids)
                 .await
             {
-                Ok(tz) => tz,
+                Ok(tzs) => tzs,
                 Err(e) => {
+                    let total_punches: u64 = emp_entries
+                        .iter()
+                        .map(|(_, pts)| pts.len() as u64)
+                        .sum();
                     warn!(
                         workspace_id = %workspace_id,
-                        employment_id = %employment_id,
                         error = %e,
-                        "Failed to resolve timezone, skipping pairing sweep"
+                        "Failed to batch-fetch timezones, skipping entire workspace sweep"
                     );
-                    skipped += punch_times.len() as u64;
+                    skipped += total_punches;
                     continue;
                 }
             };
 
-            // Group punch_times by local_date
-            let mut dates: HashSet<NaiveDate> = HashSet::new();
-            let mut prev_dates: HashSet<NaiveDate> = HashSet::new();
+            for (employment_id, punch_times) in emp_entries {
+                let employment_id = *employment_id;
 
-            for pt in punch_times {
-                let local_dt = pt.with_timezone(&tz);
-                let local_date = local_dt.date_naive();
-                dates.insert(local_date);
+                // Look up timezone from batch result
+                let tz: Tz = match timezones.get(&employment_id) {
+                    Some(tz) => *tz,
+                    None => {
+                        warn!(
+                            workspace_id = %workspace_id,
+                            employment_id = %employment_id,
+                            "Timezone not found in batch result, skipping"
+                        );
+                        skipped += punch_times.len() as u64;
+                        continue;
+                    }
+                };
 
-                // Overnight cutoff: if any punch is early morning, also
-                // reprocess the previous calendar day.
-                if local_dt.hour() < OVERNIGHT_CUTOFF_HOUR {
-                    prev_dates.insert(local_date - chrono::Duration::days(1));
+                // Group punch_times by local_date
+                let mut dates: HashSet<NaiveDate> = HashSet::new();
+                let mut prev_dates: HashSet<NaiveDate> = HashSet::new();
+
+                for pt in *punch_times {
+                    let local_dt = pt.with_timezone(&tz);
+                    let local_date = local_dt.date_naive();
+                    dates.insert(local_date);
+
+                    // Overnight cutoff: if any punch is early morning, also
+                    // reprocess the previous calendar day.
+                    if local_dt.hour() < OVERNIGHT_CUTOFF_HOUR {
+                        prev_dates.insert(local_date - chrono::Duration::days(1));
+                    }
                 }
-            }
 
-            // Merge overnight-triggered previous dates
-            dates.extend(prev_dates);
+                // Merge overnight-triggered previous dates
+                dates.extend(prev_dates);
 
-            // 4. Reprocess each (employment, date) group exactly once
-            for date in &dates {
+                if dates.is_empty() {
+                    continue;
+                }
+
+                // Determine date range and reprocess once per employment
+                // (reprocess_attendance_range internally batches schedules
+                // and logs for the entire range — no per-date N+1).
+                let min_date = *dates.iter().min().expect("dates non-empty");
+                let max_date = *dates.iter().max().expect("dates non-empty");
                 date_groups += 1;
+
                 if let Err(e) = self
                     .pairing_service
-                    .reprocess_daily_attendance(*workspace_id, *employment_id, *date, tz)
+                    .reprocess_attendance_range(*workspace_id, employment_id, min_date, max_date, tz)
                     .await
                 {
                     warn!(
                         workspace_id = %workspace_id,
                         employment_id = %employment_id,
-                        date = %date,
+                        min_date = %min_date,
+                        max_date = %max_date,
                         error = %e,
-                        "Pairing reprocess failed for group"
+                        "Pairing reprocess range failed for employment"
                     );
                 }
             }
@@ -269,18 +310,18 @@ mod tests {
     /// Minimal mock for [`PairingProcessor`] that records every call so we can
     /// assert deduplication and correct parameters.
     struct SpyPairingProcessor {
-        calls: Mutex<Vec<(Uuid, Uuid, NaiveDate)>>,
+        range_calls: Mutex<Vec<(Uuid, Uuid, NaiveDate, NaiveDate)>>,
     }
 
     impl SpyPairingProcessor {
         fn new() -> Self {
             Self {
-                calls: Mutex::new(Vec::new()),
+                range_calls: Mutex::new(Vec::new()),
             }
         }
 
-        fn take_calls(&self) -> Vec<(Uuid, Uuid, NaiveDate)> {
-            std::mem::take(&mut *self.calls.lock().unwrap())
+        fn take_range_calls(&self) -> Vec<(Uuid, Uuid, NaiveDate, NaiveDate)> {
+            std::mem::take(&mut *self.range_calls.lock().unwrap())
         }
     }
 
@@ -295,26 +336,26 @@ mod tests {
 
         async fn reprocess_daily_attendance(
             &self,
-            workspace_id: Uuid,
-            employment_id: Uuid,
-            date: NaiveDate,
+            _workspace_id: Uuid,
+            _employment_id: Uuid,
+            _date: NaiveDate,
             _tz: Tz,
         ) -> Result<(), AppError> {
-            self.calls
-                .lock()
-                .unwrap()
-                .push((workspace_id, employment_id, date));
             Ok(())
         }
 
         async fn reprocess_attendance_range(
             &self,
-            _workspace_id: Uuid,
-            _employment_id: Uuid,
-            _start_date: NaiveDate,
-            _end_date: NaiveDate,
+            workspace_id: Uuid,
+            employment_id: Uuid,
+            start_date: NaiveDate,
+            end_date: NaiveDate,
             _tz: Tz,
         ) -> Result<(), AppError> {
+            self.range_calls
+                .lock()
+                .unwrap()
+                .push((workspace_id, employment_id, start_date, end_date));
             Ok(())
         }
     }
@@ -328,9 +369,12 @@ mod tests {
         tz: Tz,
     ) -> (PairingScheduler, PairingNotifier) {
         let mut emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
+        let tz_clone = tz;
         emp_repo
-            .expect_get_employee_timezone_fallback()
-            .returning(move |_, _| Ok(tz));
+            .expect_get_employee_timezones_batch()
+            .returning(move |_, ids| {
+                Ok(ids.iter().map(|&id| (id, tz_clone)).collect())
+            });
 
         let (notifier, rx) = pairing_channel();
         let scheduler = PairingScheduler {
@@ -354,7 +398,7 @@ mod tests {
         scheduler.sweep().await.unwrap();
 
         assert!(
-            spy.take_calls().is_empty(),
+            spy.take_range_calls().is_empty(),
             "no calls when channel is empty"
         );
     }
@@ -373,10 +417,15 @@ mod tests {
         notifier.notify(ws, emp, punch);
         scheduler.sweep().await.unwrap();
 
-        let calls = spy.take_calls();
-        assert_eq!(calls.len(), 1, "one reprocess call expected");
-        assert_eq!(calls[0].0, ws);
-        assert_eq!(calls[0].1, emp);
+        let range_calls = spy.take_range_calls();
+        assert_eq!(range_calls.len(), 1, "one range reprocess call expected");
+        assert_eq!(range_calls[0].0, ws);
+        assert_eq!(range_calls[0].1, emp);
+        // Single date → start == end
+        assert_eq!(
+            range_calls[0].2, range_calls[0].3,
+            "single notification: start_date should equal end_date"
+        );
     }
 
     #[tokio::test]
@@ -403,11 +452,11 @@ mod tests {
 
         scheduler.sweep().await.unwrap();
 
-        let calls = spy.take_calls();
+        let range_calls = spy.take_range_calls();
         assert_eq!(
-            calls.len(),
+            range_calls.len(),
             1,
-            "10 logs for same (emp, date) should trigger exactly 1 reprocess"
+            "10 logs for same (emp, date) should trigger exactly 1 range reprocess"
         );
     }
 
@@ -434,11 +483,11 @@ mod tests {
 
         scheduler.sweep().await.unwrap();
 
-        let calls = spy.take_calls();
+        let range_calls = spy.take_range_calls();
         assert_eq!(
-            calls.len(),
+            range_calls.len(),
             2,
-            "two different employees → two reprocess calls"
+            "two different employees → two range reprocess calls"
         );
     }
 
@@ -462,12 +511,17 @@ mod tests {
         notifier.notify(ws, emp, early_morning_utc);
         scheduler.sweep().await.unwrap();
 
-        let calls = spy.take_calls();
+        let range_calls = spy.take_range_calls();
         assert_eq!(
-            calls.len(),
-            2,
-            "early-morning punch should trigger both current and previous date"
+            range_calls.len(),
+            1,
+            "early-morning punch: one range call spanning previous + current date"
         );
+        // Start should be prev_date (today - 1), end should be today
+        let today = chrono::Local::now().date_naive();
+        let prev_date = today - chrono::Duration::days(1);
+        assert_eq!(range_calls[0].2, prev_date, "range start = previous date");
+        assert_eq!(range_calls[0].3, today, "range end = current date");
     }
 
     #[tokio::test]
@@ -506,11 +560,15 @@ mod tests {
 
         scheduler.sweep().await.unwrap();
 
-        let calls = spy.take_calls();
+        let range_calls = spy.take_range_calls();
         assert_eq!(
-            calls.len(),
-            2,
-            "two different local dates → two separate reprocess calls"
+            range_calls.len(),
+            1,
+            "two different local dates for same emp → one range call"
         );
+        let day1 = NaiveDate::from_ymd_opt(2026, 7, 23).unwrap();
+        let day2 = NaiveDate::from_ymd_opt(2026, 7, 24).unwrap();
+        assert_eq!(range_calls[0].2, day1, "range start = day1");
+        assert_eq!(range_calls[0].3, day2, "range end = day2");
     }
 }

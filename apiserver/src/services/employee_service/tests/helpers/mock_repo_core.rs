@@ -181,6 +181,13 @@ impl EmployeeCoreRepository for MockEmployeeRepo {
     ) -> Result<chrono_tz::Tz, AppError> {
         Ok(chrono_tz::UTC)
     }
+    async fn get_employee_timezones_batch(
+        &self,
+        _a: &crate::diesel_pool::TenantAuthToken,
+        ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, chrono_tz::Tz>, AppError> {
+        Ok(ids.iter().map(|&id| (id, chrono_tz::UTC)).collect())
+    }
     async fn get_headquarters_location_id(
         &self,
         _a: &crate::diesel_pool::TenantAuthToken,
