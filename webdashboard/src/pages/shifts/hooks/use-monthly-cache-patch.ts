@@ -42,9 +42,9 @@ export function useMonthlyRosterCachePatch({
       const fresh = await fetchWorkspaceSchedules(wsId, monthStartStr, monthEndStr, [
         employmentId,
       ]);
+      if (fresh.length === 0) return;
       const freshRow =
         fresh.find((s) => s.employment_id === employmentId) ?? fresh[0];
-      if (!freshRow) return;
       queryClient.setQueriesData<EmployeeSchedule[]>(
         {
           predicate: (q) =>

@@ -20,6 +20,7 @@ export type UpdateEmployeeRequest = components["schemas"]["UpdateEmployeeRequest
 export type { Employment } from "./types";
 
 import { client } from "./client";
+import { downloadBlob } from "./download-helper";
 import { ApiError } from "./errors";
 import { apiFetch } from "./helpers";
 
@@ -265,17 +266,10 @@ export async function confirmTerminationImport(
 export async function downloadTerminationTemplate(wsId: string, lang = "en"): Promise<void> {
   const response = await apiFetch(`/v1/workspaces/${wsId}/employees/import-termination/template?lang=${lang}`);
   if (!response.ok) throw new Error("Failed to download template");
-  const blob = await response.blob();
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = lang === "vi"
+  const filename = lang === "vi"
     ? "mau_import_nghi_viec.xlsx"
     : lang === "zh"
     ? "employee_termination_template_zh.xlsx"
     : "employee_termination_template.xlsx";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  window.URL.revokeObjectURL(url);
+  downloadBlob(await response.blob(), filename);
 }

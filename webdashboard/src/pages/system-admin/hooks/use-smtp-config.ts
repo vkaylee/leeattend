@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
@@ -110,13 +110,18 @@ export function useSmtpConfig() {
 
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [testing, setTesting] = useState(false);
-  const [verifiedAt, setVerifiedAt] = useState<Date | null>(() =>
-    config?.last_verified_at ? new Date(config.last_verified_at) : null,
-  );
 
-  useEffect(() => {
-    setVerifiedAt(config?.last_verified_at ? new Date(config.last_verified_at) : null);
-  }, [config?.last_verified_at]);
+  // Derive verifiedAt from two sources:
+  //  1. config.last_verified_at (reactive — recomputes when config loads)
+  //  2. a post-test-success timestamp (state — set imperatively below)
+  // Splitting avoids a setState-in-effect by keeping the config-derived
+  // branch purely memoized.
+  const configVerifiedAt = useMemo<Date | null>(
+    () => (config?.last_verified_at ? new Date(config.last_verified_at) : null),
+    [config?.last_verified_at],
+  );
+  const [testVerifiedAt, setTestVerifiedAt] = useState<Date | null>(null);
+  const verifiedAt = testVerifiedAt ?? configVerifiedAt;
 
   const [overrides, setOverrides] = useState<Partial<SmtpConfigData>>({});
   const [httpOverrides, setHttpOverrides] = useState<Partial<HttpApiConfig>>({});
@@ -151,7 +156,7 @@ export function useSmtpConfig() {
       toast.success(t("common.saved_success"));
       void queryClient.invalidateQueries({ queryKey: ["smtp-config"] });
       setDirty(false);
-      setVerifiedAt(null);
+      setTestVerifiedAt(null);
       setTestResult(null);
     },
     onError: (err: Error) => {
@@ -172,7 +177,7 @@ export function useSmtpConfig() {
       const result = await testSmtp(testEmail.trim());
       setTestResult(result);
       if (result.success) {
-        setVerifiedAt(new Date());
+        setTestVerifiedAt(new Date());
       }
     } catch (err: unknown) {
       setTestResult({

@@ -1,6 +1,6 @@
 import type { components } from "@/types/api-generated";
 
-import type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster, CreateShiftRequest, UpdateShiftRequest, UpsertRosterRequest, ShiftVersionHistoryItem } from "./types";
+import type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster, CreateShiftRequest, UpdateShiftRequest, ShiftVersionHistoryItem } from "./types";
 
 import { client } from "./client";
 import { ApiError, type AppErrorResponse, ComplianceConflictError, parseComplianceConflict } from "./errors";

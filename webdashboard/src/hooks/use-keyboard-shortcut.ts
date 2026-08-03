@@ -1,12 +1,12 @@
 import { useEffect } from "react";
 
 interface UseKeyboardShortcutOptions {
-  /** Keyboard shortcut string like "Ctrl+Shift+D". Parsed case-insensitively. */
-  shortcut?: string;
-  /** Callback fired when the shortcut combination is pressed. */
-  onTrigger: () => void;
   /** When true, the shortcut is suppressed (e.g. panel already open). */
   disabled?: boolean;
+  /** Callback fired when the shortcut combination is pressed. */
+  onTrigger: () => void;
+  /** Keyboard shortcut string like "Ctrl+Shift+D". Parsed case-insensitively. */
+  shortcut?: string;
 }
 
 /**

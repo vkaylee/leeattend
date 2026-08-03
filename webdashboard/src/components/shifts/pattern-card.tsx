@@ -4,9 +4,9 @@ import { useTranslation } from "react-i18next";
 
 import type { Shift, WorkingPattern, WorkingPatternDetail  } from "@/lib/api/types";
 
-import { getShiftIntervals } from "@/lib/shift-card-metrics";
 import StatusBadge from "@/components/ui/status-badge";
 import { Typography } from "@/components/ui/typography";
+import { getShiftIntervals } from "@/lib/shift-card-metrics";
 
 interface PatternCardProps {
   details?: WorkingPatternDetail[];
@@ -30,7 +30,7 @@ function getDayShiftInfo(
   return shifts?.find((s) => s.id === dayDetail.shift_id);
 }
 
-// eslint-disable-next-line complexity -- day-pill renderer with 3 conditional styling branches; presentation-only
+ 
 function renderDayPill(shiftInfo: Shift | undefined | null, label: string, t: (k: string) => string) {
   const isOff = !shiftInfo;
   const dayLabel = label;

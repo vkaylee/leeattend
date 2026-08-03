@@ -90,22 +90,22 @@ export function NoShowFilterBar({
         <FilterPanel
           container="popover"
           mode="single"
+          onClear={() => { onDeptChange("__all__"); }}
+          onToggle={(val) => { onDeptChange(val); }}
           options={[
             { value: "__all__", label: t("unrecorded_shifts.all_departments") },
             ...departments.map(dept => ({ value: dept, label: dept })),
           ]}
           selected={selectedDept !== "__all__" ? [selectedDept] : []}
-          onToggle={(val) => { onDeptChange(val); }}
-          onClear={() => { onDeptChange("__all__"); }}
           trigger={
             <FilterTrigger
-              variant="pill-button"
+              chevron
+              hasActive={selectedDept !== "__all__"}
+              icon={<Building2 size={14} />}
               label={selectedDept === "__all__"
                 ? t("unrecorded_shifts.all_departments")
                 : selectedDept}
-              hasActive={selectedDept !== "__all__"}
-              icon={<Building2 size={14} />}
-              chevron
+              variant="pill-button"
             />
           }
         />

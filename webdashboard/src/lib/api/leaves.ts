@@ -1,10 +1,12 @@
 /* eslint-disable max-lines -- API wrapper: 400+ lines of thin exported functions; splitting would scatter imports */
 import type { components } from "@/types/api-generated";
 
-import type { LeavePolicyAssignmentDetail, LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, PaginatedResponse, BehalfAssignment, CreateBehalfAssignmentRequest } from './types';
+import type { LeavePolicyAssignmentDetail, LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, PaginatedResponse } from './types';
 
+import { createBehalfAssignmentApi } from "./behalf-assignment-factory";
 import { client, fetch } from "./client";
 import { API_BASE_URL } from './config';
+import { downloadBlob } from "./download-helper";
 import { ApiError } from "./errors";
 import { apiFetch } from "./helpers";
 
@@ -373,54 +375,22 @@ export function getLeaveImportTemplateUrl(wsId: string, lang = "en"): string {
 export async function downloadLeaveImportTemplate(wsId: string, lang = "en"): Promise<void> {
   const response = await apiFetch(`/v1/workspaces/${wsId}/leave/upload-template?lang=${lang}`);
   if (!response.ok) throw new Error("Failed to download template");
-  const blob = await response.blob();
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "leave_import_template.xlsx";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  window.URL.revokeObjectURL(url);
+  downloadBlob(await response.blob(), "leave_import_template.xlsx");
 }
 
 /** Download the error Excel file via authenticated fetch. */
 export async function downloadLeaveImportErrors(wsId: string, jobId: string): Promise<void> {
   const response = await apiFetch(`/v1/workspaces/${wsId}/leave/import/${jobId}/errors`);
   if (!response.ok) await ApiError.rejectResponse(response);
-  const blob = await response.blob();
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `leave_import_errors_${jobId}.xlsx`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  window.URL.revokeObjectURL(url);
+  downloadBlob(await response.blob(), `leave_import_errors_${jobId}.xlsx`);
 }
 
-export async function fetchLeaveBehalfAssignments(
-  wsId: string
-): Promise<BehalfAssignment[]> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/leave/behalf-assignments", {
-    params: { path: { ws_id: wsId } }
-  });
-  return resData;
-}
+// ── Leave Behalf Assignments (factory-generated CRUD) ─────────────────────
 
-export async function createLeaveBehalfAssignment(
-  wsId: string,
-  data: CreateBehalfAssignmentRequest
-): Promise<BehalfAssignment> {
-  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/leave/behalf-assignments", {
-    params: { path: { ws_id: wsId } },
-    body: data
-  });
-  return resData;
-}
+const leaveBehalfApi = createBehalfAssignmentApi({
+  basePath: "/v1/workspaces/{ws_id}/leave/behalf-assignments",
+});
 
-export async function deleteLeaveBehalfAssignment(wsId: string, id: string): Promise<void> {
-  await client.DELETE("/v1/workspaces/{ws_id}/leave/behalf-assignments/{id}", {
-    params: { path: { ws_id: wsId, id } }
-  });
-}
+export const fetchLeaveBehalfAssignments = (wsId: string) => leaveBehalfApi.list(wsId);
+export const createLeaveBehalfAssignment = (wsId: string, data: Parameters<typeof leaveBehalfApi.create>[1]) => leaveBehalfApi.create(wsId, data);
+export const deleteLeaveBehalfAssignment = (wsId: string, id: string) => leaveBehalfApi.delete(wsId, id);

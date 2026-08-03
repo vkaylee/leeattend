@@ -1,6 +1,7 @@
+import { Building2, UserX } from "lucide-react";
+
 import FloatingRecordBadge from "@/components/common/floating-record-badge";
 import { FilterChips } from "@/components/ui/filter-chips";
-import { Building2, UserX } from "lucide-react";
 
 import { EmployeeOverlays } from "./employees/components/employee-overlays";
 import { EmployeeTable } from "./employees/components/employee-table";
@@ -54,18 +55,18 @@ export default function EmployeesPage() {
 
       <FilterChips
         chips={activeChips}
-        onRemove={(key) => {
-          if (key.startsWith("status-")) page.setFilterStatus("active");
-          else if (key.startsWith("dept-")) page.toggleDeptFilter(key.replace("dept-", ""));
-          else if (key.startsWith("cf-")) page.updateCustomFieldFilter(key.replace("cf-", ""), "");
-        }}
+        data-testid="active-filter-chips"
+        label={t("employees.filtering_by", "Đang lọc")}
         onClearAll={() => {
           page.setFilterStatus("active");
           page.setFilterDeptIds([]);
           page.setCustomFieldFilters({});
         }}
-        label={t("employees.filtering_by", "Đang lọc")}
-        data-testid="active-filter-chips"
+        onRemove={(key) => {
+          if (key.startsWith("status-")) page.setFilterStatus("active");
+          else if (key.startsWith("dept-")) page.toggleDeptFilter(key.replace("dept-", ""));
+          else if (key.startsWith("cf-")) page.updateCustomFieldFilter(key.replace("cf-", ""), "");
+        }}
       />
 
       <EmployeeTable

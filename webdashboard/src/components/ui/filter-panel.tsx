@@ -2,6 +2,7 @@ import * as Popover from "@radix-ui/react-popover";
 import { Search, Check, X } from "lucide-react";
 import React, { useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+
 import { Command } from "cmdk";
 
 import Button from "@/components/ui/button";
@@ -18,73 +19,73 @@ import { cn } from "@/lib/utils";
 // ── Types ────────────────────────────────────────────────────────────
 
 export interface FilterOption {
-  value: string;
-  label: string;
-  icon?: React.ReactNode;
   disabled?: boolean;
+  icon?: React.ReactNode;
+  label: string;
+  value: string;
 }
 
 export type FilterMode = "multi" | "single";
 export type FilterContainer = "popover" | "dropdown";
 
 export interface FilterPanelProps {
-  /** Options to display */
-  options: FilterOption[];
-  /** Currently selected values */
-  selected: string[];
-  /** Called when a value is toggled (multi) or selected (single) */
-  onToggle: (value: string) => void;
-  /** Called to clear all selections */
-  onClear: () => void;
-  /** Selection mode */
-  mode: FilterMode;
+  // ── Layout ──
+  /** Popover alignment */
+  align?: "start" | "center" | "end";
+  // ── Custom content ──
+  /** Render custom content inside the panel instead of the default option list */
+  children?: React.ReactNode;
+  /** Additional CSS for the panel content */
+  className?: string;
   /** Container type */
   container: FilterContainer;
-
-  // ── Trigger ──
-  /** Trigger element (e.g., <FilterTrigger />). FilterPanel wraps it in the appropriate Radix trigger. */
-  trigger: React.ReactNode;
+  // ── Test ──
+  "data-testid"?: string;
+  /** Message when options list is empty */
+  emptyMessage?: string;
 
   // ── Display ──
   /** Header label shown at top of panel */
   headerLabel?: string;
-  /** Message when options list is empty */
-  emptyMessage?: string;
-  /** Show "Clear filter" button in panel */
-  showClearButton?: boolean;
 
+  // ── Keyboard ──
+  /** Keyboard shortcut to open the panel (e.g. "Ctrl+Shift+F"). Opt-in — no default. */
+  keyboardShortcut?: string;
+  /** Selection mode */
+  mode: FilterMode;
+  /** Called when Apply is clicked (receives the final selected values) */
+  onApply?: (selected: string[]) => void;
+
+  /** Called to clear all selections */
+  onClear: () => void;
+  /** Called when a value is toggled (multi) or selected (single) */
+  onToggle: (value: string) => void;
+
+  /** Options to display */
+  options: FilterOption[];
   // ── Search ──
   /** Enable cmdk-powered search */
   searchable?: boolean;
+
   /** Placeholder for search input */
   searchPlaceholder?: string;
 
+  /** Currently selected values */
+  selected: string[];
   // ── Confirmation ──
   /** Use Apply/Cancel buttons instead of live toggle. Draft state is internal. */
   showApplyButton?: boolean;
-  /** Called when Apply is clicked (receives the final selected values) */
-  onApply?: (selected: string[]) => void;
+
+  /** Show "Clear filter" button in panel */
+  showClearButton?: boolean;
 
   // ── Footer ──
   /** Show "Selected X/Y" count in footer */
   showSelectionCount?: boolean;
 
-  // ── Layout ──
-  /** Popover alignment */
-  align?: "start" | "center" | "end";
-  /** Additional CSS for the panel content */
-  className?: string;
-
-  // ── Custom content ──
-  /** Render custom content inside the panel instead of the default option list */
-  children?: React.ReactNode;
-
-  // ── Keyboard ──
-  /** Keyboard shortcut to open the panel (e.g. "Ctrl+Shift+F"). Opt-in — no default. */
-  keyboardShortcut?: string;
-
-  // ── Test ──
-  "data-testid"?: string;
+  // ── Trigger ──
+  /** Trigger element (e.g., <FilterTrigger />). FilterPanel wraps it in the appropriate Radix trigger. */
+  trigger: React.ReactNode;
 }
 
 // ── Option Row ───────────────────────────────────────────────────────
@@ -494,7 +495,7 @@ export function FilterPanel({
           searchable={searchable}
           searchPlaceholder={searchPlaceholder}
           selected={effectiveSelected}
-          showClearButton={showClearButton && !showApplyButton}
+          showClearButton={!!showClearButton && !showApplyButton}
           testId={testId}
         />
       )}

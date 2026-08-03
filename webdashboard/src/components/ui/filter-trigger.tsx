@@ -9,20 +9,20 @@ import { cn } from "@/lib/utils";
 export type FilterTriggerVariant = "pill-button" | "icon-button";
 
 export interface FilterTriggerProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
-  /** Visual variant */
-  variant: FilterTriggerVariant;
-  /** Accessible label (required for icon-button) */
-  label: string;
-  /** Custom icon override (default: Filter) */
-  icon?: React.ReactNode;
   /** Number shown in the count badge. Omit or pass 0 to hide badge. */
   activeCount?: number;
-  /** When true, applies primary/active tint styling */
-  hasActive?: boolean;
   /** Show a chevron-down indicator (for dropdown-style triggers) */
   chevron?: boolean;
   /** Custom trigger content (replaces default icon+label layout) */
   children?: React.ReactNode;
+  /** When true, applies primary/active tint styling */
+  hasActive?: boolean;
+  /** Custom icon override (default: Filter) */
+  icon?: React.ReactNode;
+  /** Accessible label (required for icon-button) */
+  label: string;
+  /** Visual variant */
+  variant: FilterTriggerVariant;
 }
 
 // ── Internal: Count Badge ────────────────────────────────────────────
@@ -33,8 +33,8 @@ function CountBadge({ count, variant }: { count: number; variant: FilterTriggerV
   if (variant === "icon-button") {
     return (
       <span
-        key={count}
         className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-0.5 flex items-center justify-center bg-primary-500 text-white text-[8px] font-bold rounded-full leading-none animate-in zoom-in"
+        key={count}
       >
         {count}
       </span>
@@ -43,8 +43,8 @@ function CountBadge({ count, variant }: { count: number; variant: FilterTriggerV
 
   return (
     <span
-      key={count}
       className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-600 dark:bg-primary-500 px-1.5 text-[10px] text-white animate-in zoom-in"
+      key={count}
     >
       {count}
     </span>
@@ -85,7 +85,6 @@ const FilterTrigger = forwardRef<HTMLButtonElement, FilterTriggerProps>(function
   if (variant === "icon-button") {
     return (
       <Button
-        ref={ref}
         aria-label={label}
         className={cn(
           "relative h-5 w-5 rounded transition-colors p-0 border-none shadow-none hover:bg-transparent",
@@ -94,6 +93,7 @@ const FilterTrigger = forwardRef<HTMLButtonElement, FilterTriggerProps>(function
             : "text-slate-400 dark:text-slate-500 opacity-60 hover:opacity-100 hover:text-primary-600",
           className,
         )}
+        ref={ref}
         title={label}
         type="button"
         variant="ghost"
@@ -108,7 +108,6 @@ const FilterTrigger = forwardRef<HTMLButtonElement, FilterTriggerProps>(function
   // pill-button variant
   return (
     <Button
-      ref={ref}
       aria-label={label}
       className={cn(
         "relative flex items-center gap-2 rounded-2xl border px-4 text-sm font-bold uppercase tracking-tight shadow-inner transition-all",
@@ -117,6 +116,7 @@ const FilterTrigger = forwardRef<HTMLButtonElement, FilterTriggerProps>(function
           : "border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:border-primary-200 dark:hover:border-primary-800",
         className,
       )}
+      ref={ref}
       type="button"
       variant="ghost"
       {...restProps}

@@ -52,10 +52,10 @@ export interface WorkSegment {
   scheduled_start: string;
   segment_status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
   segment_type: 'work' | 'standby' | 'on_call' | 'training' | 'travel';
-  template_id: string;
   sort_order: number;
   source: 'roster' | 'pattern' | 'rule' | 'fixed' | 'manual' | 'auto';
   source_detail: WorkSegmentSourceDetail;
+  template_id: string;
   updated_at: string;
   workspace_id: string;
 }
@@ -74,10 +74,10 @@ export interface CreateWorkSegmentRequest {
   scheduled_start: string;
   segment_status?: string;
   segment_type?: string;
-  template_id: string;
   sort_order?: number;
   source?: string;
   source_detail?: WorkSegmentSourceDetail;
+  template_id: string;
 }
 
 export interface UpdateWorkSegmentRequest {
@@ -92,10 +92,10 @@ export interface UpdateWorkSegmentRequest {
   scheduled_start?: string | null;
   segment_status?: string | null;
   segment_type?: string | null;
-  template_id?: string | null;
   sort_order?: number | null;
   source?: string | null;
   source_detail?: WorkSegmentSourceDetail | null;
+  template_id?: string | null;
 }
 
 export interface BulkCreateWorkSegmentsRequest {

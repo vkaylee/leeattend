@@ -126,19 +126,19 @@ function EmployerFilterSelector({
     <FilterPanel
       container="dropdown"
       mode="single"
+      onClear={() => onEmployerChange?.(null)}
+      onToggle={(val) => onEmployerChange?.(val === "__all__" ? null : val)}
       options={[
         { value: "__all__", label: t("reports.all_employers") },
         ...employers.map(e => ({ value: e.id, label: e.name })),
       ]}
       selected={selectedEmployerId ? [selectedEmployerId] : []}
-      onToggle={(val) => onEmployerChange?.(val === "__all__" ? null : val)}
-      onClear={() => onEmployerChange?.(null)}
       trigger={
         <FilterTrigger
-          variant="pill-button"
-          label={selectedEmployer ? selectedEmployer.name : t("reports.all_employers")}
           hasActive={!!selectedEmployerId}
           icon={<Briefcase size={14} />}
+          label={selectedEmployer ? selectedEmployer.name : t("reports.all_employers")}
+          variant="pill-button"
         />
       }
     />
@@ -203,7 +203,7 @@ export default function ReportFilters({
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-sm shadow-inner"
               onChange={(e) => { onDateRangeChange({ ...dateRange, end: e.target.value }); }}
               type="date"
-  // eslint-disable-next-line max-lines
+   
               value={dateRange.end}
             />
           </div>

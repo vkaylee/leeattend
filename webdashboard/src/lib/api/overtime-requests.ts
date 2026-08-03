@@ -1,5 +1,6 @@
-import type { ApprovalActionLog, BehalfAssignment, CreateBehalfAssignmentRequest, PaginatedResponse } from './types';
+import type { ApprovalActionLog, PaginatedResponse } from './types';
 
+import { createBehalfAssignmentApi } from './behalf-assignment-factory';
 import { client, fetch, fire } from './client';
 
 export interface OvertimeRequestQueryParams {
@@ -103,6 +104,11 @@ export interface QuotaSummary {
   yearly_used: number;
 }
 
+const otRequestBehalfApi = createBehalfAssignmentApi({
+  basePath: "/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments",
+  dataWrapper: true,
+});
+
 export const overtimeRequestsApi = {
   listRequests: async (workspaceId: string, params?: OvertimeRequestQueryParams): Promise<PaginatedResponse<OvertimeRequest>> => {
     const { data } = await fetch<PaginatedResponse<OvertimeRequest>>("GET", "/v1/workspaces/{ws_id}/overtime/requests", {
@@ -196,30 +202,12 @@ export const overtimeRequestsApi = {
     return data;
   },
 
-  listRequestBehalfAssignments: async (workspaceId: string): Promise<BehalfAssignment[]> => {
-    const { data } = await client.GET("/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments", {
-      params: {
-        path: { ws_id: workspaceId },
-      },
-    });
-    return data.data;
-  },
+  // ── OT Request Behalf Assignments (factory-generated CRUD) ──────────────
+  // The OT-request list endpoint wraps the response in { data: [...] },
+  // unlike the other three behalf domains.  The `dataWrapper` flag handles
+  // this backend inconsistency transparently.
 
-  createRequestBehalfAssignment: async (workspaceId: string, payload: CreateBehalfAssignmentRequest): Promise<BehalfAssignment> => {
-    const { data } = await client.POST("/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments", {
-      params: {
-        path: { ws_id: workspaceId },
-      },
-      body: payload,
-    });
-    return data;
-  },
-
-  deleteRequestBehalfAssignment: async (workspaceId: string, id: string): Promise<void> => {
-    await client.DELETE("/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments/{id}", {
-      params: {
-        path: { ws_id: workspaceId, id },
-      },
-    });
-  }
+  listRequestBehalfAssignments: (workspaceId: string) => otRequestBehalfApi.list(workspaceId),
+  createRequestBehalfAssignment: (workspaceId: string, payload: Parameters<typeof otRequestBehalfApi.create>[1]) => otRequestBehalfApi.create(workspaceId, payload),
+  deleteRequestBehalfAssignment: (workspaceId: string, id: string) => otRequestBehalfApi.delete(workspaceId, id),
 };

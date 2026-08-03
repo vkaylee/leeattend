@@ -251,7 +251,7 @@ function PolicyAssignmentsSectionContent({ wsId }: { wsId: string }) {
                 <label className={LABEL_BASE}>{t("common.workspace_settings.rounding_policy")}</label>
                 <Combobox 
                   className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-14" 
-                  onChange={(v) => setRoundingPolicy(v as "none" | "floor" | "round" | "ceil")}
+                  onChange={(v) => { setRoundingPolicy(v as "none" | "floor" | "round" | "ceil"); }}
                   options={["none", "floor", "ceil", "round"].map(v => ({ value: v, label: t(`common.workspace_settings.rounding_options.${v}`), icon: v === "none" ? <ShieldAlert size={14} /> : <Calculator size={14} /> }))} 
                   value={roundingPolicy} 
                 />

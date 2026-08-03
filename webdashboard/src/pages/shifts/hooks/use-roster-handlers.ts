@@ -12,10 +12,10 @@ import { translateRosterEntriesToMonth } from "@/components/shifts/roster/roster
 import { useToast } from "@/components/ui/toast";
 import { fetchWorkspaceSchedules, bulkUpsertRoster, deleteRoster } from "@/lib/api";
 
+import { runRosterBulk } from "./roster-bulk-utils";
 import { useComplianceRetry } from "./use-compliance-retry";
 import { useMonthlyRosterCachePatch } from "./use-monthly-cache-patch";
 import { useWeeklyRosterHandlers } from "./use-weekly-roster-handlers";
-import { runRosterBulk } from "./roster-bulk-utils";
 
 interface UseRosterHandlersProps {
   allSchedules: EmployeeSchedule[] | undefined;

@@ -1,12 +1,12 @@
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { ShiftPickerModal } from "@/components/shifts/shift-picker-modal";
 import { type Shift } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import { AddShiftTrigger } from "./working-patterns/add-shift-trigger";
 import { AssignedShiftChip } from "./working-patterns/assigned-shift-chip";
-import { ShiftPickerModal } from "@/components/shifts/shift-picker-modal";
 
 interface WeeklyDesignEditorProps {
   grid: string[][];
@@ -241,7 +241,7 @@ export function WorkingPatternDesignEditor({
 
       {pickerDayIndex !== null && (
         <ShiftPickerModal
-          isOpen={pickerDayIndex !== null}
+          isOpen
           onClose={handleClosePicker}
           onSelectShift={handleSelectShift}
           shifts={pickerShifts}

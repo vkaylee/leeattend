@@ -2,16 +2,14 @@ import { X, Clock } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { getShiftBadge } from "@/components/shifts/shift-badge-style";
 import Button from "@/components/ui/button";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Shift } from "@/lib/api";
 import {
-  getShiftCardMetrics,
   getShiftIntervals,
 } from "@/lib/shift-card-metrics";
 import { cn } from "@/lib/utils";
-
-import { getShiftBadge } from "@/components/shifts/shift-badge-style";
 
 /** ── Props ──────────────────────────────────────────────────────────── */
 
@@ -37,7 +35,6 @@ export function AssignedShiftChip({ onRemove, shift }: AssignedShiftChipProps) {
   const { t } = useTranslation();
   const { formatTime } = useDateTimeFormatter();
   const badge = getShiftBadge(shift, t);
-  const metrics = getShiftCardMetrics(shift);
   const intervals = getShiftIntervals(shift);
   const leavingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -94,13 +91,13 @@ export function AssignedShiftChip({ onRemove, shift }: AssignedShiftChipProps) {
 
       {/* Shift name + symbol */}
       <span className="flex items-center gap-1">
-        <Clock aria-hidden="true" size={10} className="opacity-60 flex-shrink-0" />
+        <Clock aria-hidden="true" className="opacity-60 flex-shrink-0" size={10} />
         <span className="text-[10px] font-extrabold uppercase tracking-tight truncate max-w-[10ch]">
           {shift.name}
         </span>
       </span>
 
-      {shift.report_symbol && (
+      {!!shift.report_symbol && (
         <span className="rounded-sm bg-white/60 dark:bg-black/30 px-1 py-px font-mono text-[8px] font-bold opacity-80 flex-shrink-0">
           {shift.report_symbol}
         </span>
@@ -111,9 +108,7 @@ export function AssignedShiftChip({ onRemove, shift }: AssignedShiftChipProps) {
         {timeLabel}
       </span>
 
-      {showSplitMarker && (
-        <span className="text-[8px] font-extrabold opacity-50">&nbsp;{t("shifts.picker.card.blocks", { count: intervals.length })}</span>
-      )}
+      {showSplitMarker && <span className="text-[8px] font-extrabold opacity-50">&nbsp;{t("shifts.picker.card.blocks", { count: intervals.length })}</span>}
 
       {/* Remove button */}
       <Button

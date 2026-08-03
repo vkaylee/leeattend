@@ -17,9 +17,9 @@ import { LeaveStatusFilterHeader } from "@/components/features/leave/leave-statu
 import { useLeaveRequests, TabType, LeaveStatusFilter } from "@/components/features/leave/use-leave-requests";
 import { PDFPreviewModal } from "@/components/files/pdf-preview-modal";
 import ApprovalListLayout from "@/components/templates/approval-list-layout";
+import Button from "@/components/ui/button";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { FilterTrigger } from "@/components/ui/filter-trigger";
-import Button from "@/components/ui/button";
 import { PageTabs, PageTab } from "@/components/ui/page-tabs";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import ResponsiveToolbar from "@/components/ui/responsive-toolbar";
@@ -38,6 +38,8 @@ function StatusFilterDropdown({ setStatusFilter, statusFilter }: { setStatusFilt
       <FilterPanel
         container="dropdown"
         mode="single"
+        onClear={() => { setStatusFilter("all"); }}
+        onToggle={(val) => { setStatusFilter(val as LeaveStatusFilter); }}
         options={[
           { value: "all", label: tLocal("common.all", "All").toUpperCase() },
           { value: "pending", label: tLocal("common.status_pending", "Pending").toUpperCase() },
@@ -46,14 +48,12 @@ function StatusFilterDropdown({ setStatusFilter, statusFilter }: { setStatusFilt
           { value: "rejected", label: tLocal("common.status_rejected", "Rejected").toUpperCase() },
         ]}
         selected={statusFilter !== "all" ? [statusFilter] : []}
-        onToggle={(val) => { setStatusFilter(val as LeaveStatusFilter); }}
-        onClear={() => { setStatusFilter("all"); }}
         trigger={
           <FilterTrigger
-            variant="pill-button"
-            label={tLocal(`common.status_${statusFilter}`).toUpperCase()}
-            hasActive={statusFilter !== "all"}
             chevron
+            hasActive={statusFilter !== "all"}
+            label={tLocal(`common.status_${statusFilter}`).toUpperCase()}
+            variant="pill-button"
           />
         }
       />

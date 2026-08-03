@@ -3,14 +3,14 @@ import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Button from "@/components/ui/button";
+import { FilterPanel } from "@/components/ui/filter-panel";
+import { FilterTrigger } from "@/components/ui/filter-trigger";
 
 import { useDebounce } from '../../hooks/use-debounce';
 import { useEmployeeSearch } from '../../hooks/use-employee-search';
 import { useEmployeeSelection } from '../../hooks/use-employee-selection';
 import { Department, Employee } from '../../lib/api/types';
 import { Combobox } from '../ui/combobox';
-import { FilterPanel } from "@/components/ui/filter-panel";
-import { FilterTrigger } from "@/components/ui/filter-trigger";
 
 interface EmployeeSearchProps {
   className?: string;
@@ -232,8 +232,7 @@ export function EmployeeSearch({
               <FilterPanel
                 container="dropdown"
                 mode="multi"
-                options={deptOptions}
-                selected={effectiveDeptIds}
+                onClear={() => { handleDeptChange([]); }}
                 onToggle={(id) => {
                   handleDeptChange(
                     effectiveDeptIds.includes(id)
@@ -241,14 +240,15 @@ export function EmployeeSearch({
                       : [...effectiveDeptIds, id]
                   );
                 }}
-                onClear={() => handleDeptChange([])}
+                options={deptOptions}
+                selected={effectiveDeptIds}
                 trigger={
                   <FilterTrigger
-                    variant="pill-button"
-                    label={t('common.filter_by_department', 'Filter by department')}
                     activeCount={effectiveDeptIds.length}
-                    hasActive={effectiveDeptIds.length > 0}
                     data-testid="employee-dept-filter"
+                    hasActive={effectiveDeptIds.length > 0}
+                    label={t('common.filter_by_department', 'Filter by department')}
+                    variant="pill-button"
                   />
                 }
               />

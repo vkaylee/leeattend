@@ -58,5 +58,5 @@ export function scheduleChunkRetryReset(
   delayMs = STABLE_RUNTIME_MS,
 ): () => void {
   const timerId = window.setTimeout(clearChunkRetry, delayMs);
-  return () => window.clearTimeout(timerId);
+  return () => { window.clearTimeout(timerId); };
 }

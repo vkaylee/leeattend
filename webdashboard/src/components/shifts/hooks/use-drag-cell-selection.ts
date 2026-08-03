@@ -3,23 +3,23 @@ import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 
 interface UseDragCellSelectionProps {
-  /** Currently selected cells (keyed "employeeId:dateStr"). */
-  selectedCells: Set<string>;
-  /** Setter for selected cells — called by the drag-paint reducer. */
-  setSelectedCells: React.Dispatch<React.SetStateAction<Set<string>>>;
   /** Ordered employee schedule rows (for employee-index lookup). */
   filteredSchedules: { employee_id: string }[];
   /** Month day Date objects (for date-index lookup). */
   monthDays: Date[];
+  /** Currently selected cells (keyed "employeeId:dateStr"). */
+  selectedCells: Set<string>;
+  /** Setter for selected cells — called by the drag-paint reducer. */
+  setSelectedCells: React.Dispatch<React.SetStateAction<Set<string>>>;
 }
 
 interface UseDragCellSelectionReturn {
-  /** Whether a drag-paint operation is currently in progress. */
-  isDragging: boolean;
   /** PointerDown handler — attach to each grid cell. */
   handleCellPointerDown: (employeeId: string, dateStr: string, e: React.PointerEvent) => void;
   /** PointerEnter handler — attach to each grid cell (no-op when not dragging). */
   handleCellPointerEnter: (employeeId: string, dateStr: string) => void;
+  /** Whether a drag-paint operation is currently in progress. */
+  isDragging: boolean;
 }
 
 /**

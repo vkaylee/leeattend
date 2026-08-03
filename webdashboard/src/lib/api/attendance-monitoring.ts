@@ -1,4 +1,5 @@
 import { submitAttendanceAdjustment, approveAttendanceAdjustment } from "./attendance-core";
+import { createBehalfAssignmentApi } from "./behalf-assignment-factory";
 import { client } from "./client";
 import { ApiError } from "./errors";
 import { apiFetch, TIMEOUT } from "./helpers";
@@ -84,7 +85,7 @@ export async function fetchMonitorJobs(params: FetchMonitorJobsParams): Promise<
   return resData ?? { jobs: [], next_cursor: null };
 }
 
-// --- OT Claim Behalf Assignments ---
+// ── OT Claim Behalf Assignments (factory-generated CRUD) ────────────────────
 
 export interface OtClaimBehalfAssignment {
   assignee_user_id: string;
@@ -97,35 +98,13 @@ export interface OtClaimBehalfAssignment {
   workspace_id: string;
 }
 
-export async function fetchBehalfAssignments(
-  wsId: string
-): Promise<OtClaimBehalfAssignment[]> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments", {
-    params: { path: { ws_id: wsId } }
-  });
-  return resData;
-}
+const otClaimBehalfApi = createBehalfAssignmentApi<OtClaimBehalfAssignment>({
+  basePath: "/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments",
+});
 
-export async function createBehalfAssignment(
-  wsId: string,
-  data: {
-    assignee_user_id: string;
-    target_department_id?: string | null;
-    target_employee_id?: string | null;
-  }
-): Promise<OtClaimBehalfAssignment> {
-  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments", {
-    params: { path: { ws_id: wsId } },
-    body: data
-  });
-  return resData;
-}
-
-export async function deleteBehalfAssignment(wsId: string, id: string): Promise<void> {
-  await client.DELETE("/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments/{id}", {
-    params: { path: { ws_id: wsId, id } }
-  });
-}
+export const fetchBehalfAssignments = (wsId: string) => otClaimBehalfApi.list(wsId);
+export const createBehalfAssignment = (wsId: string, data: Parameters<typeof otClaimBehalfApi.create>[1]) => otClaimBehalfApi.create(wsId, data);
+export const deleteBehalfAssignment = (wsId: string, id: string) => otClaimBehalfApi.delete(wsId, id);
 
 export async function claimOt(
   wsId: string,
@@ -183,34 +162,12 @@ export async function adminConfirmAttendance(
   await approveAttendanceAdjustment(wsId, requestId, { status: "approved" });
 }
 
-// ── Attendance Adjustment Behalf Assignments ─────────────────────
+// ── Attendance Adjustment Behalf Assignments (factory-generated CRUD) ──────
 
-export async function fetchAdjustmentBehalfAssignments(
-  wsId: string
-): Promise<OtClaimBehalfAssignment[]> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/adjustments/behalf-assignments", {
-    params: { path: { ws_id: wsId } }
-  });
-  return resData;
-}
+const adjustmentBehalfApi = createBehalfAssignmentApi<OtClaimBehalfAssignment>({
+  basePath: "/v1/workspaces/{ws_id}/attendance/adjustments/behalf-assignments",
+});
 
-export async function createAdjustmentBehalfAssignment(
-  wsId: string,
-  data: {
-    assignee_user_id: string;
-    target_department_id?: string | null;
-    target_employee_id?: string | null;
-  }
-): Promise<OtClaimBehalfAssignment> {
-  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/adjustments/behalf-assignments", {
-    params: { path: { ws_id: wsId } },
-    body: data
-  });
-  return resData;
-}
-
-export async function deleteAdjustmentBehalfAssignment(wsId: string, id: string): Promise<void> {
-  await client.DELETE("/v1/workspaces/{ws_id}/attendance/adjustments/behalf-assignments/{id}", {
-    params: { path: { ws_id: wsId, id } }
-  });
-}
+export const fetchAdjustmentBehalfAssignments = (wsId: string) => adjustmentBehalfApi.list(wsId);
+export const createAdjustmentBehalfAssignment = (wsId: string, data: Parameters<typeof adjustmentBehalfApi.create>[1]) => adjustmentBehalfApi.create(wsId, data);
+export const deleteAdjustmentBehalfAssignment = (wsId: string, id: string) => adjustmentBehalfApi.delete(wsId, id);

@@ -116,7 +116,7 @@ export class ApiError extends Error {
             retry: inner.retry,
           };
         } else {
-          errorBody = raw as AppErrorResponse;
+          errorBody = raw;
         }
       }
     } catch {

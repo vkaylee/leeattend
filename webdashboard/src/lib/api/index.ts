@@ -2,6 +2,8 @@ export * from "./config";
 // eslint-disable-next-line import-x/export -- types.ts/employees.ts both export Employment via barrel
 export * from "./types";
 export * from "./helpers";
+export * from "./download-helper";
+export * from "./behalf-assignment-factory";
 export * from "./auth";
 export * from "./documents";
 export * from "./agents";

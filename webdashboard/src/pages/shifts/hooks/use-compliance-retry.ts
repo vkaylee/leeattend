@@ -3,9 +3,8 @@ import type { TFunction } from "i18next";
 
 import { useCallback, useRef } from "react";
 
-import type { ComplianceViolation } from "@/lib/api/errors";
-
 import type { useToast } from "@/components/ui/toast";
+
 import { bulkUpsertRoster } from "@/lib/api";
 
 import { runRosterBulk } from "./roster-bulk-utils";
@@ -14,8 +13,8 @@ type ToastApi = ReturnType<typeof useToast>;
 
 interface ComplianceRetry {
   assignments: { employeeId: string; employmentId?: string; dates: string[] }[];
-  shiftId: string | null;
   onRowStatus?: (employeeId: string, status: "saving" | "saved" | "error") => void;
+  shiftId: string | null;
 }
 
 interface UseComplianceRetryProps {
@@ -29,10 +28,10 @@ interface UseComplianceRetryProps {
 }
 
 interface UseComplianceRetryReturn {
-  /** Ref that the bulk-assign handler writes to before opening the modal. */
-  pendingRetryRef: React.MutableRefObject<ComplianceRetry | null>;
   /** Callback invoked by the compliance-warning modal after user confirmation. */
   onComplianceOverride: (reason: string) => Promise<void>;
+  /** Ref that the bulk-assign handler writes to before opening the modal. */
+  pendingRetryRef: React.RefObject<ComplianceRetry | null>;
 }
 
 /**

@@ -2,15 +2,14 @@
  * interactive primitives (with state-driven custom tooltip portals and
  * absolute-positioned active indicators) that the design-system <Button>
  * does not yet support. */
+import * as Popover from "@radix-ui/react-popover";
 import { Link } from "@tanstack/react-router";
 import { Bell, Check, Globe, LogOut, Moon, Pin, PinOff, Sun, UserCircle } from "lucide-react";
 import React, { memo, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import * as Popover from "@radix-ui/react-popover";
-
-import type { NavGroup } from "@/hooks/use-nav-menu-items";
 import type { LanguageOption, SupportedLanguage } from "@/hooks/use-language";
+import type { NavGroup } from "@/hooks/use-nav-menu-items";
 
 import { VietnameseFlag, EnglishFlag, ChineseFlag } from "@/components/ui/icons/flags";
 import { useDarkModeContext } from "@/context/use-dark-mode-context";

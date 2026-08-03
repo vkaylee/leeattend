@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import { TFunction } from "i18next";
 
 import type { GenericJobStatus } from "@/lib/api/attendance";
+import type { UpdateAttendanceRulesRequest } from "@/lib/api/attendance-rules";
 
 import { useToast } from "@/components/ui/toast";
 import {
@@ -11,7 +12,6 @@ import {
   checkReprocessStatus,
   updateDefaultAttendanceRules,
 } from "@/lib/api";
-import type { UpdateAttendanceRulesRequest } from "@/lib/api/attendance-rules";
 type RoundingPolicy = "none" | "floor" | "round" | "ceil";
 
 export function useTimeSettingsRules(

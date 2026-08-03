@@ -3,13 +3,13 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
-import { toast } from "@/components/ui/toast";
 
 import type { Employee, Department } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import ResponsiveTable from "@/components/ui/responsive-table";
+import { toast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 

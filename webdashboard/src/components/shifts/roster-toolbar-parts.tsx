@@ -98,11 +98,6 @@ export const QuickShiftRow = memo(function QuickShiftRow({
 
         return (
           <Button
-            key={shift.id}
-            type="button"
-            disabled={isMutating}
-            onClick={() => { onApplyShift(shift.id); }}
-            title={tooltip}
             aria-label={`Assign ${shift.name} shift`}
             className={cn(
               "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 cursor-pointer h-auto min-w-0 shrink-0",
@@ -110,14 +105,17 @@ export const QuickShiftRow = memo(function QuickShiftRow({
               "active:scale-95 focus-visible:ring-2 focus-visible:ring-white/50",
               "text-white hover:text-white",
             )}
+            disabled={isMutating}
+            key={shift.id}
+            onClick={() => { onApplyShift(shift.id); }}
+            title={tooltip}
+            type="button"
             variant="ghost"
           >
-            <span className={cn("w-2 h-2 rounded-full shrink-0", accentColors.dot)} aria-hidden="true" />
+            <span aria-hidden="true" className={cn("w-2 h-2 rounded-full shrink-0", accentColors.dot)} />
             <span className="flex flex-col items-start leading-tight min-w-0">
               <span className="text-[11px] font-bold text-white truncate max-w-[100px]">{shift.name}</span>
-              {timeRange && (
-                <span className="text-[9px] text-white/60 font-medium tabular-nums">{timeRange}</span>
-              )}
+              {!!timeRange && <span className="text-[9px] text-white/60 font-medium tabular-nums">{timeRange}</span>}
             </span>
           </Button>
         );

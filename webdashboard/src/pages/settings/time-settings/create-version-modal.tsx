@@ -192,7 +192,7 @@ function RoundingPolicyInput({
       <label className={LABEL_BASE}>{t("common.workspace_settings.rounding_policy")}</label>
       <Combobox
         className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14"
-        onChange={(v) => setRoundingPolicy(v as "none" | "floor" | "round" | "ceil")}
+        onChange={(v) => { setRoundingPolicy(v as "none" | "floor" | "round" | "ceil"); }}
         options={[
           {
             icon: <ShieldAlert size={14} />,

@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 
-import { orderSchedulesBySelection } from "@/components/shifts/roster/roster-utils";
-
 import type { Employee, EmployeeSchedule } from "@/lib/api/types";
+
+import { orderSchedulesBySelection } from "@/components/shifts/roster/roster-utils";
 
 interface UseMonthlySchedulesProps {
   /** Full employee list from the workspace (may be undefined while loading). */
@@ -25,12 +25,12 @@ interface ScheduleRow {
 }
 
 interface UseMonthlySchedulesReturn {
-  /** Merged list of selected employees with resolved metadata. */
-  selectedEmployeesMeta: Employee[];
   /** All employees + selected extras, enriched with month schedules. */
   combinedSchedules: ScheduleRow[];
   /** `combinedSchedules` reordered to put selected employees first. */
   filteredSchedules: ScheduleRow[];
+  /** Merged list of selected employees with resolved metadata. */
+  selectedEmployeesMeta: Employee[];
 }
 
 /**

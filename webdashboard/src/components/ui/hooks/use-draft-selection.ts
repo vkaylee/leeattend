@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 
 interface UseDraftSelectionOptions {
-  /** Committed (external) selected values — the source of truth. */
-  selected: string[];
-  /** Whether the panel hosting the draft is currently open. */
-  isOpen: boolean;
   /** When false, draft mode is bypassed (live-toggle mode). */
   enabled: boolean;
+  /** Whether the panel hosting the draft is currently open. */
+  isOpen: boolean;
+  /** Committed (external) selected values — the source of truth. */
+  selected: string[];
 }
 
 interface UseDraftSelectionReturn {

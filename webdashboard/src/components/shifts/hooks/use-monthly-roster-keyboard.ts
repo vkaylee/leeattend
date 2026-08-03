@@ -1,14 +1,14 @@
 import { useEffect, useRef } from "react";
 
 interface UseMonthlyRosterKeyboardProps {
+  /** Clear roster overrides for the selected cells. */
+  onClearOverrides: () => void;
   /** Current selection — shortcuts are suppressed when empty. */
   selectedCells: Set<string>;
   /** Open the shift picker modal. */
   setIsShiftPickerOpen: (open: boolean) => void;
   /** Clear the current cell selection. */
   setSelectedCells: (cells: Set<string>) => void;
-  /** Clear roster overrides for the selected cells. */
-  onClearOverrides: () => void;
 }
 
 /**

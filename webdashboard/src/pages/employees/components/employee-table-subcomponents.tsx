@@ -51,19 +51,19 @@ export function StatusFilterHeader({
     <FilterPanel
       container="popover"
       data-testid="status-filter"
+      headerLabel={t("employees.filter_status", "Filter by status")}
       mode="single"
+      onClear={() => { setFilterStatus("active"); }}
+      onToggle={(val) => { setFilterStatus(val); }}
       options={statusOptions}
       selected={filterStatus !== "active" ? [filterStatus] : []}
-      onToggle={(val) => setFilterStatus(val)}
-      onClear={() => setFilterStatus("active")}
-      headerLabel={t("employees.filter_status", "Filter by status")}
       trigger={
         <FilterTrigger
-          variant="icon-button"
-          label={t("employees.filter_status", "Filter by status")}
+          data-testid="status-filter-btn"
           hasActive={filterStatus !== "active"}
           icon={<ListFilter size={12} />}
-          data-testid="status-filter-btn"
+          label={t("employees.filter_status", "Filter by status")}
+          variant="icon-button"
         />
       }
     />
@@ -93,22 +93,22 @@ export function DepartmentFilterHeader({
   return (
     <FilterPanel
       container="popover"
+      data-testid="dept-filter"
+      emptyMessage={t("employees.no_departments", "Chưa có phòng ban")}
+      headerLabel={t("employees.filter_department", "Filter by department")}
       mode="multi"
+      onClear={() => { setFilterDeptIds([]); }}
+      onToggle={toggleDeptFilter}
       options={deptOptions}
       selected={filterDeptIds}
-      onToggle={toggleDeptFilter}
-      onClear={() => setFilterDeptIds([])}
-      headerLabel={t("employees.filter_department", "Filter by department")}
-      emptyMessage={t("employees.no_departments", "Chưa có phòng ban")}
-      data-testid="dept-filter"
       trigger={
         <FilterTrigger
-          variant="icon-button"
-          label={t("employees.filter_department", "Filter by department")}
           activeCount={filterDeptIds.length}
+          data-testid="dept-filter-btn"
           hasActive={filterDeptIds.length > 0}
           icon={<ListFilter size={12} />}
-          data-testid="dept-filter-btn"
+          label={t("employees.filter_department", "Filter by department")}
+          variant="icon-button"
         />
       }
     />

@@ -6,6 +6,7 @@ import type {
   EditableCellValue,
   SmartTableColumnMeta,
 } from "../smart-table/types";
+
 import { computeCellNavigation } from "./cell-navigation";
 
 interface UseSmartTableKeyboardProps {
@@ -17,7 +18,7 @@ interface UseSmartTableKeyboardProps {
   validateCell?: (rowId: string, columnId: string, value: EditableCellValue) => string | null | undefined;
 }
 
-// eslint-disable-next-line max-lines-per-function -- keyboard navigation requires substantial key-binding logic
+ 
 export function useSmartTableKeyboard<TData>({
   rowCount,
   colCount,
