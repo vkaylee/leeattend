@@ -1,3 +1,5 @@
+import { unwrapDataArray } from "@/types/api-overrides";
+
 import type {
   EmploymentPhaseDefinition,
   EmployeePhase,
@@ -6,7 +8,6 @@ import type {
   UpdateEmployeePhaseStatusRequest,
 } from "./types";
 
-import { unwrapDataArray } from "@/types/api-overrides";
 import { client } from "./client";
 
 export async function fetchEmploymentPhases(wsId: string): Promise<EmploymentPhaseDefinition[]> {

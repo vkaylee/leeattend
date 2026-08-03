@@ -2,6 +2,7 @@ import { X, KeyRound, CheckCircle, Clock, Send, Download, FileSignature } from "
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+// @see TD-1 — eContracts backend not yet wired; UI is stub-only.
 import Button from "@/components/ui/button";
 import Sheet from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
@@ -181,7 +182,7 @@ export default function EContractDetailsDrawer({
               {t("econtract_drawer.resend_notif")}
             </Button>
 
-            {envelope.status === "completed" ? (
+            {import.meta.env.DEV && envelope.status === "completed" ? (
               <Button
                 className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest h-11"
                 icon={<Download size={14} />}
@@ -190,7 +191,8 @@ export default function EContractDetailsDrawer({
               >
                 {t("econtract_drawer.download_pdf")}
               </Button>
-            ) : isEmployeePending ? (
+            ) : null}
+            {isEmployeePending ? (
               <Button
                 className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest h-11 bg-primary-600 hover:bg-primary-700 text-white"
                 icon={<FileSignature size={14} />}

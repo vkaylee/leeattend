@@ -12,6 +12,8 @@ export { useFilterPanelState } from "./use-filter-panel-state";
 
 export type {
   UseFilterPanelStateOptions,
+} from "./types";
+export type {
   UseFilterPanelStateReturn,
 } from "./use-filter-panel-state";
 

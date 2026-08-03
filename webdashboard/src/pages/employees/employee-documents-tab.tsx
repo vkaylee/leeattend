@@ -7,11 +7,11 @@ import type { components } from "@/types/api-generated";
 import { FileList } from "@/components/files/file-list";
 import { FileUpload } from "@/components/files/file-upload";
 import Button from "@/components/ui/button";
-import { maybeNull } from "@/types/api-overrides";
 import { toast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { client } from "@/lib/api/client";
+import { maybeNull } from "@/types/api-overrides";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
 
@@ -44,7 +44,7 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
 
       if (error) {
         toast.error("Failed to load documents");
-        const docErr: { message?: string } | null | undefined = error as { message?: string } | null | undefined;
+        const docErr: { message?: string } | null | undefined = error;
         throw new Error(maybeNull(docErr)?.message ?? "Failed to load documents");
       }
 

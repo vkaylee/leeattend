@@ -4,10 +4,10 @@ import React from "react";
 import { TFunction } from "i18next";
 
 import { Typography } from "@/components/ui/typography";
-import { maybeNull } from "@/types/api-overrides";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { AttendancePolicyVersion } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { maybeNull } from "@/types/api-overrides";
 
 import { roundingLabel, workUnitLabel } from "./utils";
 

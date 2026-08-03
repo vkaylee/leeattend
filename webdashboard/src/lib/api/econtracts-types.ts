@@ -4,6 +4,7 @@
 // These types are consumed by the settings UI and employee detail drawer
 // which will activate once the backend endpoints are registered.
 // See: https://linear/leeattend/econtract-backend-wiring
+// @see TD-1
 
 export interface EContractConfig {
   api_url: string;

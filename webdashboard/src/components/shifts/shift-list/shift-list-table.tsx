@@ -5,10 +5,11 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
+import type { ShiftListTableProps } from "./types";
+
+import { isNightShift } from "../shift-utils";
 import { ScopeBadges } from "./scope-badges";
 import { ShiftListEmptyState } from "./shift-list-empty-state";
-import { isNightShift } from "../shift-utils";
-import type { ShiftListTableProps } from "./types";
 
 // ── ShiftListTable ─────────────────────────────────────────────────────
 

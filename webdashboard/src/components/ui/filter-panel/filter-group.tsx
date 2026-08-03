@@ -2,9 +2,10 @@ import React from "react";
 
 import { cn } from "@/lib/utils";
 
+import type { FilterGroupProps } from "./types";
+
 import { FilterFooter } from "./filter-actions";
 import { OptionList } from "./option-list";
-import type { FilterGroupProps } from "./types";
 
 // ── Filter Group ─────────────────────────────────────────────────────────
 

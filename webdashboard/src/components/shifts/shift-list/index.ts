@@ -16,7 +16,7 @@ export { useShiftListActions } from "./use-shift-list-actions";
 export type {
   UseShiftListActionsOptions,
   UseShiftListActionsReturn,
-} from "./use-shift-list-actions";
+} from "./types";
 
 export type {
   ListFilter,

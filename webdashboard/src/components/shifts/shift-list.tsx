@@ -4,22 +4,22 @@ import { useTranslation } from "react-i18next";
 
 import ResponsiveTable from "@/components/ui/responsive-table";
 
-import { useDateTimeFormatter } from "../../hooks/use-datetime";
 import type { Shift } from "../../lib/api";
-import { isNightShift, shiftMatchesQuery } from "./shift-utils";
+import type { ListFilter } from "./shift-list/types";
 
-import { ShiftMobileCard } from "./shift-list/shift-mobile-card";
+import { useDateTimeFormatter } from "../../hooks/use-datetime";
 import { ShiftListTable } from "./shift-list/shift-list-table";
 import { ShiftListToolbar } from "./shift-list/shift-list-toolbar";
-import type { ListFilter } from "./shift-list/types";
+import { ShiftMobileCard } from "./shift-list/shift-mobile-card";
+import { isNightShift, shiftMatchesQuery } from "./shift-utils";
 
 // ── Types ──────────────────────────────────────────────────────────────
 
 interface ShiftListProps {
-  shifts: Shift[] | undefined;
-  onEdit: (shift: Shift) => void;
   onDelete?: (shift: Shift) => void;
+  onEdit: (shift: Shift) => void;
   onViewHistory?: (shift: Shift) => void;
+  shifts: Shift[] | undefined;
 }
 
 // ── ShiftList ──────────────────────────────────────────────────────────

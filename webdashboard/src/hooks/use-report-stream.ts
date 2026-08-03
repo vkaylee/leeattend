@@ -6,8 +6,8 @@ import type {
   StreamStatus,
 } from "@/types/report-stream";
 
-import { useReportStreamSocket } from "./use-report-stream-socket";
 import { useReportStreamHandlers } from "./use-report-stream-handlers";
+import { useReportStreamSocket } from "./use-report-stream-socket";
 
 export interface UseReportStreamOptions {
   jobId: string | null;

@@ -9,9 +9,9 @@ import type { FilterOption } from "./types";
 // ── Multi-Select Option Row ────────────────────────────────────────────
 
 interface MultiOptionRowProps {
-  option: FilterOption;
   checked: boolean;
   onToggle: () => void;
+  option: FilterOption;
   stopPropagation?: boolean;
   testId?: string;
 }
@@ -61,9 +61,9 @@ export function MultiOptionRow({
 // ── Single-Select Option Row ───────────────────────────────────────────
 
 interface SingleOptionRowProps {
-  option: FilterOption;
   checked: boolean;
   onSelect: () => void;
+  option: FilterOption;
   stopPropagation?: boolean;
   testId?: string;
 }

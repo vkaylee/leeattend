@@ -6,6 +6,7 @@
 //
 // When wiring: replace stubs with real client.GET/POST calls targeting the
 // registered routes, and remove this comment block.
+// @see TD-1
 /* eslint-disable @typescript-eslint/require-await -- stubs; will await real API calls when backend is wired */
 
 import type { Employer } from "./types";
@@ -16,6 +17,7 @@ import {
   EContractEnvelope,
   SignerStatus,
 } from "./econtracts-types";
+import { toast } from "@/components/ui/toast";
 
 export type { EContractConfig, EContractRoutingRule, EContractEnvelope, SignerStatus };
 
@@ -57,7 +59,13 @@ export async function saveEContractRule(
   _rule: Omit<EContractRoutingRule, "id" | "created_at"> & { id?: string },
 ): Promise<EContractRoutingRule> {
   UNWIRED();
-  throw new Error("eContracts backend not wired — cannot save routing rule.");
+  toast.error("eContracts backend not wired — cannot save routing rule.");
+  // Return a graceful stub so callers don't crash.
+  return {
+    ..._rule,
+    id: _rule.id ?? `stub_rule_${Date.now()}`,
+    created_at: new Date().toISOString(),
+  } as EContractRoutingRule;
 }
 
 export async function deleteEContractRule(_wsId: string, _ruleId: string): Promise<void> {

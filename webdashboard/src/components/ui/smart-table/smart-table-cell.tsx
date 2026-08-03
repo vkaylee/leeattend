@@ -6,8 +6,8 @@ import {
 } from "@tanstack/react-table";
 import React, { memo, useCallback, useMemo } from "react";
 
-import { maybeNull } from "@/types/api-overrides";
 import { cn } from "@/lib/utils";
+import { maybeNull } from "@/types/api-overrides";
 
 import type { CellCoordinate, EditableCellValue } from "./types";
 
@@ -79,6 +79,7 @@ function SmartTableCellInner<T>({
     const key = `${rowIndex}-${colIndex}`;
     // ref-based keyboard nav requires mutable storage via .current assignment
     const refs = cellRefs.current;
+    // eslint-disable-next-line react-hooks/immutability -- cellRefs is a stable ref; mutation of .current is intentional
     if (maybeNull(refs)) refs[key] = el;
   // eslint-disable-next-line react-hooks/exhaustive-deps -- cellRefs is a stable ref; .current is intentionally excluded to match React Compiler inference
   }, [rowIndex, colIndex]);
@@ -102,7 +103,7 @@ function SmartTableCellInner<T>({
       // Revert partial cell overrides on mutation failure to keep consistent state
       try {
         // eslint-disable-next-line react-hooks/immutability
-        cell.getValue = (() => row.getValue(cell.column.id)) as () => never;
+        cell.getValue = (() => row.getValue(cell.column.id));
       } catch { /* best-effort cleanup */ }
       console.warn("Could not override cell.getValue", e instanceof Error ? e.message : "Unknown error");
     }

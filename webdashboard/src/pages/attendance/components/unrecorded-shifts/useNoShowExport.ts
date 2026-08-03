@@ -10,7 +10,6 @@ import {
 import { exportNoShowToExcel, type NoShowRow } from "@/lib/excel-no-show";
 
 import { computeNoShowRows } from "../../hooks/use-no-show-rows";
-import { maybeNull } from "@/types/api-overrides";
 import { zoneLabel } from "./utils";
 
 interface UseNoShowExportParams {

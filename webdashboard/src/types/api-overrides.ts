@@ -42,5 +42,5 @@ export type Nullable<T> = T | null | undefined;
  *   // After:  maybeNull(config.endpoint_url) ?? ""
  */
 export function maybeNull<T>(value: T): T | null | undefined {
-  return value as unknown as T | null | undefined;
+  return value;
 }

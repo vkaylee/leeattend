@@ -2,7 +2,6 @@ import { useState } from "react";
 
 import type { ChecklistItemStatus, LifecycleChecklistItem } from "@/lib/api/types";
 
-import { maybeNull } from "@/types/api-overrides";
 import { useToast } from "@/components/ui/toast";
 import {
   useLifecycleChecklists,
@@ -10,6 +9,7 @@ import {
   useUpdateLifecycleChecklistItem,
   useLifecycleTemplates,
 } from "@/hooks/use-lifecycle";
+import { maybeNull } from "@/types/api-overrides";
 
 export function useLifecycleChecklistState(employmentId: string) {
   const toast = useToast();
@@ -95,7 +95,7 @@ export function useLifecycleChecklistState(employmentId: string) {
   };
 
   const sortedItems = maybeNull(activeChecklist)?.items
-    ? [...activeChecklist!.items].sort((a: LifecycleChecklistItem, b: LifecycleChecklistItem) => a.display_order - b.display_order)
+    ? [...activeChecklist.items].sort((a: LifecycleChecklistItem, b: LifecycleChecklistItem) => a.display_order - b.display_order)
     : [];
 
   return {

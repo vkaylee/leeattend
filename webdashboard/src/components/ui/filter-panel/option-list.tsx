@@ -6,8 +6,9 @@ import { Command } from "cmdk";
 
 import Button from "@/components/ui/button";
 
-import { MultiOptionRow, SingleOptionRow } from "./filter-field-renderer";
 import type { OptionListProps } from "./types";
+
+import { MultiOptionRow, SingleOptionRow } from "./filter-field-renderer";
 
 // ── Option List ──────────────────────────────────────────────────────────
 

@@ -2,7 +2,6 @@ import { useMemo } from "react";
 
 import type { WorkingPatternDetail, Shift  } from "@/lib/api/types";
 
-import { maybeNull } from "@/types/api-overrides";
 import {
   checkRestHours,
   checkShiftOverlap,
@@ -11,6 +10,7 @@ import {
   type ComplianceIssue,
   type ShiftTimeBlock,
 } from "@/lib/utils/shift-compliance-utils";
+import { maybeNull } from "@/types/api-overrides";
 
 /** Group preview details by schedule_day, filtering out entries without a shift_id. */
 function groupByDay(details: WorkingPatternDetail[]): Map<number, WorkingPatternDetail[]> {

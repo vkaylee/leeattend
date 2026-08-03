@@ -1,6 +1,7 @@
+import { unwrapDataArray } from "@/types/api-overrides";
+
 import type { WorkingCondition, CreateWorkingConditionRequest } from "./types";
 
-import { unwrapDataArray } from "@/types/api-overrides";
 import { client } from "./client";
 
 export async function fetchWorkingConditions(wsId: string, employeeId: string): Promise<WorkingCondition[]> {

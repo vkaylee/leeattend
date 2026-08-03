@@ -95,33 +95,33 @@ export interface FilterActionsProps {
 }
 
 export interface FilterGroupProps {
-  className?: string;
   children?: React.ReactNode;
-  headerLabel?: string;
+  className?: string;
   // Option list props (used when no children)
   emptyMessage?: string;
+  headerLabel?: string;
   mode: FilterMode;
+  // Actions props
+  onApply?: () => void;
+  onCancel: () => void;
   onClear: () => void;
   onToggle: (value: string) => void;
   options: FilterOption[];
   searchable?: boolean;
   searchPlaceholder?: string;
   selected: string[];
-  showClearButton?: boolean;
-  testId?: string;
-  // Actions props
-  onApply?: () => void;
-  onCancel: () => void;
   showApplyButton?: boolean;
+  showClearButton?: boolean;
   showSelectionCount?: boolean;
+  testId?: string;
 }
 
 export interface UseFilterPanelStateOptions {
-  selected: string[];
-  onToggle: (value: string) => void;
-  onClear: () => void;
-  onApply?: (selected: string[]) => void;
-  mode: FilterMode;
-  showApplyButton: boolean;
   keyboardShortcut?: string;
+  mode: FilterMode;
+  onApply?: (selected: string[]) => void;
+  onClear: () => void;
+  onToggle: (value: string) => void;
+  selected: string[];
+  showApplyButton: boolean;
 }

@@ -1,16 +1,16 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "@/lib/utils";
-
 import Button from "@/components/ui/button";
 import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+
+import type { FilterMode, FilterOption } from "./types";
 
 import { DropdownActions } from "./filter-actions";
 import { MultiOptionRow, SingleOptionRow } from "./filter-field-renderer";
-import type { FilterMode, FilterOption } from "./types";
 
 // ── Dropdown Content ─────────────────────────────────────────────────────
 
@@ -18,10 +18,10 @@ interface FilterDropdownContentProps {
   align: "start" | "center" | "end";
   effectiveSelected: string[];
   mode: FilterMode;
-  onClear: () => void;
-  onDropdownToggle: (value: string) => void;
   onApply: () => void;
   onCancel: () => void;
+  onClear: () => void;
+  onDropdownToggle: (value: string) => void;
   options: FilterOption[];
   showApplyButton: boolean;
   testId?: string;

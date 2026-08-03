@@ -5,9 +5,9 @@ import { TFunction } from "i18next";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { PayrollRuleAssignment, Department } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 export const SCOPE_ICONS = {
   workspace: Globe,

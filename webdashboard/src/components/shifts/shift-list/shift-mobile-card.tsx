@@ -2,19 +2,20 @@ import { ChevronRight, Clock, History, Zap, Pencil, Trash2 } from "lucide-react"
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import Button from "@/components/ui/button";
 import type { Shift } from "@/lib/api";
 
-import { ScopeBadges } from "./scope-badges";
+import Button from "@/components/ui/button";
+
 import { isNightShift } from "../shift-utils";
+import { ScopeBadges } from "./scope-badges";
 
 // ── ShiftMobileCard ────────────────────────────────────────────────────
 
 interface ShiftMobileCardProps {
-  shift: Shift;
-  onEdit: (shift: Shift) => void;
   onDelete?: (shift: Shift) => void;
+  onEdit: (shift: Shift) => void;
   onViewHistory?: (shift: Shift) => void;
+  shift: Shift;
 }
 
 /**

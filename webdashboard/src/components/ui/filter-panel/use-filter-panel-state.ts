@@ -8,16 +8,16 @@ import type { UseFilterPanelStateOptions } from "./types";
 // ── Hook Return Type ────────────────────────────────────────────────────
 
 export interface UseFilterPanelStateReturn {
-  open: boolean;
-  setOpen: (open: boolean) => void;
-  effectiveSelected: string[];
   draftSelected: string[];
-  setDraftSelected: React.Dispatch<React.SetStateAction<string[]>>;
-  handleToggle: (value: string) => void;
-  handleDropdownToggle: (value: string) => void;
+  effectiveSelected: string[];
   handleApply: () => void;
   handleCancel: () => void;
   handleClear: () => void;
+  handleDropdownToggle: (value: string) => void;
+  handleToggle: (value: string) => void;
+  open: boolean;
+  setDraftSelected: React.Dispatch<React.SetStateAction<string[]>>;
+  setOpen: (open: boolean) => void;
 }
 
 /**

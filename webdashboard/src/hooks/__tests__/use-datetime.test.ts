@@ -1,9 +1,18 @@
 import { renderHook } from "@testing-library/react";
 
 import { format } from "date-fns";
+import { enUS, vi as viLocale } from "date-fns/locale";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { useDateTimeFormatter } from "../use-datetime";
+import {
+  formatDateOnly,
+  formatTimeOnly,
+  formatTime24hOnly,
+  formatDateTimeOnly,
+  formatMonthYearOnly,
+  formatDateTimeLocaleOnly,
+} from "../use-datetime-utils";
 import { useLanguage } from "../use-language";
 import { useWorkspace } from "../use-workspace";
 
@@ -160,5 +169,162 @@ describe("useDateTimeFormatter hook", () => {
     // If this test runs in a timezone > UTC, buggyString would be "2025-12-31"
     // We don't assert on buggyString because it depends on the runner's TZ,
     // but we ensure safeString ALWAYS returns the local date part.
+  });
+});
+
+// ── Pure formatting function tests ──────────────────────────────────────
+
+const T15_30_UTC = "2026-01-14T15:30:00Z";
+const T08_30_UTC = "2026-01-14T08:30:00Z";
+
+describe("formatDateOnly (pure)", () => {
+  it("formats a UTC timestamp with DD/MM/YYYY pattern", () => {
+    expect(formatDateOnly(new Date(T15_30_UTC), "dd/MM/yyyy", enUS)).toBe("14/01/2026");
+  });
+
+  it("formats with MM/DD/YYYY pattern", () => {
+    expect(formatDateOnly(new Date(T15_30_UTC), "MM/dd/yyyy", enUS)).toBe("01/14/2026");
+  });
+
+  it("formats with YYYY-MM-DD pattern", () => {
+    expect(formatDateOnly(new Date(T15_30_UTC), "yyyy-MM-dd", enUS)).toBe("2026-01-14");
+  });
+
+  it("returns '---' for null", () => {
+    expect(formatDateOnly(null, "dd/MM/yyyy", enUS)).toBe("---");
+  });
+
+  it("returns '---' for undefined", () => {
+    expect(formatDateOnly(undefined, "dd/MM/yyyy", enUS)).toBe("---");
+  });
+
+  it("uses Vietnamese locale for month names", () => {
+    // January in Vietnamese locale
+    const result = formatDateOnly(new Date(2026, 0, 15), "dd 'tháng' MM yyyy", viLocale);
+    expect(result).toContain("01");
+  });
+});
+
+describe("formatTimeOnly (pure)", () => {
+  it("formats UTC timestamp in Asia/Ho_Chi_Minh (24h)", () => {
+    // 15:30 UTC = 22:30 VN
+    expect(formatTimeOnly(new Date(T15_30_UTC), "HH:mm", "Asia/Ho_Chi_Minh", enUS)).toBe("22:30");
+  });
+
+  it("formats UTC timestamp in America/New_York (12h)", () => {
+    // 15:30 UTC = 10:30 AM EST
+    expect(formatTimeOnly(new Date(T15_30_UTC), "hh:mm a", "America/New_York", enUS)).toBe("10:30 AM");
+  });
+
+  it("handles naive HH:mm:ss strings without timezone shift", () => {
+    expect(formatTimeOnly("08:00:00", "hh:mm a", "Asia/Ho_Chi_Minh", enUS)).toBe("08:00 AM");
+    expect(formatTimeOnly("17:30:00", "HH:mm", "UTC", enUS)).toBe("17:30");
+  });
+
+  it("returns '---' for null", () => {
+    expect(formatTimeOnly(null, "HH:mm", "UTC", enUS)).toBe("---");
+  });
+
+  it("falls back to UTC when timezone is undefined", () => {
+    expect(formatTimeOnly(new Date(T08_30_UTC), "HH:mm", undefined, enUS)).toBe("08:30");
+  });
+});
+
+describe("formatTime24hOnly (pure)", () => {
+  it("formats UTC timestamp in workspace timezone", () => {
+    expect(formatTime24hOnly(new Date(T15_30_UTC), "Asia/Ho_Chi_Minh", enUS)).toBe("22:30");
+  });
+
+  it("returns '' for null (input placeholder)", () => {
+    expect(formatTime24hOnly(null, "UTC", enUS)).toBe("");
+  });
+
+  it("handles naive HH:mm:ss strings", () => {
+    expect(formatTime24hOnly("08:00:00", "Asia/Ho_Chi_Minh", enUS)).toBe("08:00");
+  });
+});
+
+describe("formatDateTimeOnly (pure)", () => {
+  it("formats combined date+time in DD/MM/YYYY workspace", () => {
+    // 15:30 UTC = 22:30 VN
+    const result = formatDateTimeOnly(
+      new Date(T15_30_UTC),
+      "DD/MM/YYYY",
+      "HH:mm",
+      "Asia/Ho_Chi_Minh",
+    );
+    expect(result).toBe("14/01/2026 22:30");
+  });
+
+  it("formats combined date+time in MM/DD/YYYY 12h workspace", () => {
+    const result = formatDateTimeOnly(
+      new Date(T15_30_UTC),
+      "MM/DD/YYYY",
+      "hh:mm a",
+      "America/New_York",
+    );
+    expect(result).toBe("01/14/2026 10:30 AM");
+  });
+
+  it("formats combined date+time in YYYY-MM-DD workspace", () => {
+    const result = formatDateTimeOnly(
+      new Date(T15_30_UTC),
+      "YYYY-MM-DD",
+      "HH:mm",
+      "UTC",
+    );
+    expect(result).toBe("2026-01-14 15:30");
+  });
+
+  it("returns '---' for null", () => {
+    expect(formatDateTimeOnly(null, "DD/MM/YYYY", "HH:mm", "UTC")).toBe("---");
+  });
+
+  it("returns raw string for unparseable dates", () => {
+    expect(formatDateTimeOnly("not-a-date", "DD/MM/YYYY", "HH:mm", "UTC")).toBe("not-a-date");
+  });
+});
+
+describe("formatMonthYearOnly (pure)", () => {
+  it("formats as MM/yyyy when pattern uses DD/MM", () => {
+    expect(formatMonthYearOnly(new Date(2026, 0, 1), "dd/MM/yyyy", enUS)).toBe("01/2026");
+  });
+
+  it("formats as MM/yyyy when pattern uses MM/DD", () => {
+    expect(formatMonthYearOnly(new Date(2026, 0, 1), "MM/dd/yyyy", enUS)).toBe("01/2026");
+  });
+
+  it("formats as yyyy-MM when pattern uses YYYY-MM-DD", () => {
+    expect(formatMonthYearOnly(new Date(2026, 0, 1), "yyyy-MM-dd", enUS)).toBe("2026-01");
+  });
+
+  it("returns '---' for null", () => {
+    expect(formatMonthYearOnly(null, "dd/MM/yyyy", enUS)).toBe("---");
+  });
+});
+
+describe("formatDateTimeLocaleOnly (pure)", () => {
+  it("formats with Vietnamese locale", () => {
+    const result = formatDateTimeLocaleOnly(new Date(T15_30_UTC), "vi");
+    expect(result).toBeTruthy();
+    expect(typeof result).toBe("string");
+    // Vietnamese medium format includes day and month
+    expect(result.length).toBeGreaterThan(5);
+  });
+
+  it("formats with English locale", () => {
+    const result = formatDateTimeLocaleOnly(new Date(T15_30_UTC), "en");
+    expect(result).toBeTruthy();
+    expect(typeof result).toBe("string");
+  });
+
+  it("falls back to en-US for unknown language", () => {
+    const result = formatDateTimeLocaleOnly(new Date(T15_30_UTC), "fr");
+    expect(result).toBeTruthy();
+    expect(typeof result).toBe("string");
+  });
+
+  it("returns '---' for null", () => {
+    expect(formatDateTimeLocaleOnly(null, "vi")).toBe("---");
   });
 });

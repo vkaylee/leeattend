@@ -55,7 +55,7 @@ export default function MyClockPage() {
     }
   };
 
-  // eslint-disable-next-line complexity
+   
   const handleAdjustmentSubmit = async (data: AdjustmentData) => {
     if (!wsId || !employee) {
       toast.error(t("common.error"));

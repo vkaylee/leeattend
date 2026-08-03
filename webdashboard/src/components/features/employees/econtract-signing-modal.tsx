@@ -2,6 +2,7 @@ import { ShieldAlert, Sparkles } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+// @see TD-1 — eContracts backend not yet wired; signing is stub-only.
 import Button from "@/components/ui/button";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";

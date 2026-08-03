@@ -6,13 +6,13 @@ import { TFunction } from "i18next";
 import type { GenericJobStatus } from "@/lib/api/attendance";
 import type { UpdateAttendanceRulesRequest } from "@/lib/api/attendance-rules";
 
-import { maybeNull } from "@/types/api-overrides";
 import { useToast } from "@/components/ui/toast";
 import {
   reprocessAllAttendance,
   checkReprocessStatus,
   updateDefaultAttendanceRules,
 } from "@/lib/api";
+import { maybeNull } from "@/types/api-overrides";
 type RoundingPolicy = "none" | "floor" | "round" | "ceil";
 
 export function useTimeSettingsRules(

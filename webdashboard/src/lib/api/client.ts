@@ -4,6 +4,7 @@ import type { PathsWithMethod, RequiredKeysOf } from "openapi-typescript-helpers
 import createClient from "openapi-fetch";
 
 import type { paths } from "@/types/api-generated";
+
 import { maybeNull } from "@/types/api-overrides";
 
 import { API_BASE_URL } from "./config";

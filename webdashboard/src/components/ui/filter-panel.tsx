@@ -1,18 +1,17 @@
 import * as Popover from "@radix-ui/react-popover";
 
-import { cn } from "@/lib/utils";
-
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+
+import type { FilterPanelProps } from "./filter-panel/types";
 
 import { FilterDropdownContent } from "./filter-panel/filter-dropdown-content";
 import { FilterGroup } from "./filter-panel/filter-group";
 import { useFilterPanelState } from "./filter-panel/use-filter-panel-state";
-
-import type { FilterPanelProps } from "./filter-panel/types";
 
 export type {
   FilterOption,
@@ -89,6 +88,7 @@ export function FilterPanel({
           sideOffset={8}
         >
           <FilterDropdownContent
+            align={align}
             effectiveSelected={effectiveSelected}
             mode={mode}
             onApply={handleApply}

@@ -12,25 +12,25 @@ export interface ChipDef {
 // ── ShiftListTable ─────────────────────────────────────────────────────
 
 export interface ShiftListTableProps {
-  shifts: Shift[];
-  onEdit: (shift: Shift) => void;
-  onDelete?: (shift: Shift) => void;
-  onViewHistory?: (shift: Shift) => void;
-  isFiltered: boolean;
   formatTime: (time: string) => string;
+  isFiltered: boolean;
+  onDelete?: (shift: Shift) => void;
+  onEdit: (shift: Shift) => void;
+  onViewHistory?: (shift: Shift) => void;
+  shifts: Shift[];
 }
 
 // ── useShiftListActions ────────────────────────────────────────────────
 
 export interface UseShiftListActionsOptions {
-  onEdit: (shift: Shift) => void;
   onDelete?: (shift: Shift) => void;
+  onEdit: (shift: Shift) => void;
   onViewHistory?: (shift: Shift) => void;
 }
 
 export interface UseShiftListActionsReturn {
-  handleEdit: (shift: Shift) => void;
   handleDelete: (shift: Shift) => void;
+  handleEdit: (shift: Shift) => void;
   handleViewHistory: (shift: Shift) => void;
 }
 

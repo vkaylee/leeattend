@@ -3,10 +3,10 @@ import { useTranslation } from "react-i18next";
 
 import type { TerminationPreviewResponse } from "@/lib/api/employees";
 
-import { maybeNull } from "@/types/api-overrides";
 import Button from "@/components/ui/button";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { maybeNull } from "@/types/api-overrides";
 
 interface Props {
   activeTab: "valid" | "invalid";

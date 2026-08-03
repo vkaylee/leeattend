@@ -1,7 +1,5 @@
 import type { components } from "@/types/api-generated";
 
-import type { Nullable } from "@/types/api-overrides";
-
 import type { WorkspaceConfigEntry, CreateConfigEntryRequest } from './types';
 
 import { client } from './client';
@@ -39,7 +37,7 @@ export const workspaceConfigApi = {
       },
     });
     // SafeClient types say non-null, but endpoint may return null for missing configs
-    return (resData as Nullable<components["schemas"]["ResolvedConfig"]>) ?? null;
+    return (resData) ?? null;
   },
 
   // eslint-disable-next-line complexity

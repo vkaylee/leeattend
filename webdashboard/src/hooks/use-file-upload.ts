@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { client, fetch } from '@/lib/api/client';
-import { maybeNull } from '@/types/api-overrides';
 import { components } from '@/types/api-generated';
+import { maybeNull } from '@/types/api-overrides';
 import { computeSHA256 } from '@/utils/hash';
 
 interface PresignedUploadResponse { file: WorkspaceFile; upload_url: string }

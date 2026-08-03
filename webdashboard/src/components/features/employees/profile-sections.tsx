@@ -4,10 +4,10 @@ import React from "react";
 import type { Department, Employee, WorkspaceMember, Employment } from "@/lib/api";
 import type { WorkLocation } from "@/lib/api/locations";
 
-import { maybeNull } from "@/types/api-overrides";
 import PermissionGate from "@/components/common/permission-gate";
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
+import { maybeNull } from "@/types/api-overrides";
 
 export interface DeptHistoryEntry {
     department_id: string;

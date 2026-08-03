@@ -3,11 +3,11 @@ import { useTranslation } from "react-i18next";
 
 import type { WorkSegment } from "@/lib/api/types";
 
-import { maybeNull } from "@/types/api-overrides";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { TimeEntry } from "@/lib/api";
+import { maybeNull } from "@/types/api-overrides";
 
 import { HoldToPunchButton } from "./hold-to-punch-button";
 

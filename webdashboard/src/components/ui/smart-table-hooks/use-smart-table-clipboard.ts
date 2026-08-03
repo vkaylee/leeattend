@@ -1,10 +1,10 @@
+import { maybeNull } from "@/types/api-overrides";
+
 import type {
   CellCoordinate,
   EditableCellValue,
   SmartTableColumnMeta,
 } from "../smart-table/types";
-
-import { maybeNull } from "@/types/api-overrides";
 
 interface ClipboardCell {
   column: {

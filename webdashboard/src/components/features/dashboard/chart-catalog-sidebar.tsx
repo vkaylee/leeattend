@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 
 import type { WidgetId } from "@/hooks/use-dashboard-layout";
 
-import { maybeNull } from "@/types/api-overrides";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import {
@@ -15,6 +14,7 @@ import {
   type ChartMeta,
 } from "@/lib/chart-category-metadata";
 import { cn } from "@/lib/utils";
+import { maybeNull } from "@/types/api-overrides";
 
 // Without noUncheckedIndexedAccess, TS assumes Record<K, V> index access always
 // succeeds. Runtime widget IDs may not be in the map — cast explicitly.

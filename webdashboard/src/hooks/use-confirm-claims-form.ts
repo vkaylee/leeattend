@@ -92,7 +92,8 @@ export function useConfirmClaimsForm({
     const file = e.target.files?.[0];
     if (file) {
       setFileName(file.name);
-      setPhotoUrl(`/uploads/mock_${file.name}`);
+      // Feature under development — paper OT photo upload is not yet wired.
+      toast.warning("Feature under development");
     }
   };
 

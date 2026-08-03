@@ -2,11 +2,11 @@ import { Check, X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
-import Button from "@/components/ui/button";
 import type { FilterActionsProps } from "./types";
 
 // ── Footer / Actions ────────────────────────────────────────────────────
@@ -69,10 +69,10 @@ function FilterFooter({
 // ── Dropdown Actions (inline, no footer wrapper) ────────────────────────
 
 interface DropdownActionsProps {
+  effectiveSelected: string[];
   onApply?: () => void;
   onCancel: () => void;
   onClear: () => void;
-  effectiveSelected: string[];
   showApplyButton?: boolean;
   testId?: string;
 }

@@ -6,7 +6,6 @@ import { useTranslation } from "react-i18next";
 import type { PaginatedResponse } from "@/lib/api";
 import type { OvertimeRequest } from "@/lib/api/overtime-requests";
 
-import { maybeNull } from "@/types/api-overrides";
 import SearchBox from "@/components/common/search-box";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -14,6 +13,7 @@ import { Typography } from "@/components/ui/typography";
 import { useProcessApproval } from "@/hooks/use-approval-workflows";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { overtimeRequestsApi } from "@/lib/api/overtime-requests";
+import { maybeNull } from "@/types/api-overrides";
 
 const PRE_OT_PAGE_SIZE = 20;
 

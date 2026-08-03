@@ -8,6 +8,7 @@ import type { ComplianceViolation } from "@/lib/api/errors";
 import type { EmployeeSchedule, Shift } from "@/lib/api/types";
 
 import { maybeNull } from "@/types/api-overrides";
+
 import { RosterCell } from "./roster-cell";
 import { getComplianceStatus, isWeekend } from "./roster-utils";
 
@@ -135,7 +136,7 @@ const RosterGridTable = memo(function RosterGridTable({
               .filter(Boolean)
               .join(" · ");
             const eid = maybeNull(empSchedule.employee_id) ?? "";
-            const status: "error" | "saving" | "saved" | undefined = rowStatus?.get(eid) as "error" | "saving" | "saved" | undefined;
+            const status: "error" | "saving" | "saved" | undefined = rowStatus?.get(eid);
 
             const rowKey: string = maybeNull(empSchedule.employee_id) ?? empSchedule.employment_id;
             return (

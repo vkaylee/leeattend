@@ -6,7 +6,6 @@ import React, { useState } from "react";
 import type { Department, Employee, WorkspaceMember } from "@/lib/api";
 import type { WorkLocation } from "@/lib/api/locations";
 
-import { maybeNull } from "@/types/api-overrides";
 import PermissionGate from "@/components/common/permission-gate";
 import { CustomFieldSection } from "@/components/custom-fields/custom-field-section";
 import EditTerminationModal from "@/components/features/employees/edit-termination-modal";
@@ -14,6 +13,7 @@ import UndoTerminationModal from "@/components/features/employees/undo-terminati
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
+import { maybeNull } from "@/types/api-overrides";
 
 import type { DeptHistoryEntry } from "./profile-sections";
 

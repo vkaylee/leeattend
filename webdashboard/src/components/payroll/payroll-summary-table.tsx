@@ -16,8 +16,8 @@ import { useTranslation } from "react-i18next";
 import PaginationControls from "@/components/common/pagination-controls";
 import ResponsiveTable, { type EditableCellValue } from "@/components/ui/responsive-table";
 import { useToast } from "@/components/ui/toast";
-import { useMyPermissions } from "@/hooks/use-permissions";
 import { useCurrency } from "@/hooks/use-currency";
+import { useMyPermissions } from "@/hooks/use-permissions";
 import { Employee, Payslip } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
