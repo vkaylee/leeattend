@@ -1,0 +1,11 @@
+{
+    "schema_version": 2,
+    "commit": "b687ac281a82186fbc0afb14c22adbeef9267c8a",
+    "indexed_at": "2026-08-01T12:25:57Z",
+    "project": "leeattend",
+    "nodes": 25938,
+    "edges": 113065,
+    "original_size": 47448064,
+    "compressed_size": 9217828,
+    "compression_level": 9
+}

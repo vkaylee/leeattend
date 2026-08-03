@@ -18,7 +18,6 @@ export type UpdateEmployeeRequest = components["schemas"]["UpdateEmployeeRequest
 // a duplicate when both modules are barrel-re-exported together.
 
 export type { Employment } from "./types";
-
 import { client } from "./client";
 
 export * from "./employee-phases";
@@ -96,12 +95,7 @@ export async function fetchEmployee(wsId: string, id: string): Promise<Employee>
   return data;
 }
 
-export async function fetchEmploymentHistory(
-  _wsId: string,
-  _id: string
-): Promise<EmploymentPeriod[]> {
-  return Promise.resolve([]);
-}
+export async function fetchEmploymentHistory(_wsId: string, _id: string): Promise<EmploymentPeriod[]> { return Promise.resolve([]); }
 
 export async function rehireEmployee(
   wsId: string,
@@ -172,11 +166,7 @@ export async function transferEmployee(
 }
 
 export async function fetchEmployeeDepartmentHistory(wsId: string, employeeId: string): Promise<EmployeeDepartmentHistory[]> {
-  const { data } = await client.GET("/workspaces/{workspace_id}/employees/{id}/departments", {
-    params: {
-      path: { workspace_id: wsId, id: employeeId },
-    },
-  });
+  const { data } = await client.GET("/workspaces/{workspace_id}/employees/{id}/departments", { params: { path: { workspace_id: wsId, id: employeeId } } });
   return data;
 }
 
