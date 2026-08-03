@@ -575,6 +575,12 @@ impl PunchImportStrategy {
     /// Batch-approve accumulated adjustments during finalize.
     /// Creates one AttendanceAdjustmentService for the entire batch,
     /// submits all adjustments, then approves each (triggering per-approval pairing).
+    ///
+    /// **Compensation pattern**: If any approve fails, all *remaining* submitted-but-not-yet-approved
+    /// adjustments are automatically rejected to prevent orphaned "Pending" records.
+    /// Already-approved adjustments remain committed (their side effects — raw_log creation +
+    /// pairing — cannot be undone), but the error log records exact counts so the operator
+    /// knows precisely what state the system is in.
     async fn finalize_adjustments(
         &self,
         deps: &crate::worker::deps::WorkerDeps,
@@ -590,10 +596,14 @@ impl PunchImportStrategy {
             deps.pairing_service(),
         );
 
+        let total = self.accumulated_adjustments.len();
+        let mut submit_failures: usize = 0;
+
         // Phase 1: Submit all adjustments
-        let mut submitted_ids: Vec<Uuid> = Vec::with_capacity(self.accumulated_adjustments.len());
+        let mut submitted_ids: Vec<Uuid> = Vec::with_capacity(total);
         for (employee, row) in &self.accumulated_adjustments {
             let Some(employment_id) = employee.active_employment_id() else {
+                submit_failures += 1;
                 continue;
             };
             let req = CreateAttendanceAdjustmentRequest {
@@ -609,22 +619,23 @@ impl PunchImportStrategy {
             {
                 Ok(adj) => submitted_ids.push(adj.id()),
                 Err(e) => {
+                    submit_failures += 1;
                     error!(
                         emp = %row.emp_id_number,
                         line = row.line_number,
                         error = %e,
                         "Batch adjustment submit failed"
                     );
-                    // Continue with other adjustments — per-row errors are
-                    // already tracked by the pipeline's error vector
                 }
             }
         }
 
         // Phase 2: Approve all successfully submitted adjustments
         // (each triggers raw_log creation + pairing via reprocess_daily_attendance)
-        for request_id in &submitted_ids {
-            adj_svc
+        let mut approved_count: usize = 0;
+
+        for (i, request_id) in submitted_ids.iter().enumerate() {
+            match adj_svc
                 .approve_request(
                     job.workspace_id,
                     job.user_id,
@@ -632,12 +643,60 @@ impl PunchImportStrategy {
                     AdjustmentStatus::Approved,
                 )
                 .await
-                .map_err(|e| {
-                    // 🔴 FIX: Error NOW propagates instead of being swallowed
-                    AppError::Internal(format!(
-                        "Failed to approve adjustment {request_id}: {e}"
-                    ))
-                })?;
+            {
+                Ok(()) => {
+                    approved_count += 1;
+                }
+                Err(approve_err) => {
+                    // ── Compensation loop ──────────────────────────────
+                    // Reject all remaining submitted-but-not-yet-approved adjustments
+                    // to prevent orphaned "Pending" records.
+                    let remaining: Vec<&Uuid> =
+                        submitted_ids.iter().skip(i + 1).collect();
+                    let mut compensation_cancelled: usize = 0;
+
+                    for &remaining_id in &remaining {
+                        match adj_svc
+                            .approve_request(
+                                job.workspace_id,
+                                job.user_id,
+                                *remaining_id,
+                                AdjustmentStatus::Rejected,
+                            )
+                            .await
+                        {
+                            Ok(()) => compensation_cancelled += 1,
+                            Err(reject_err) => {
+                                tracing::error!(
+                                    adjustment_id = %remaining_id,
+                                    error = %reject_err,
+                                    "Compensation reject failed for adjustment"
+                                );
+                            }
+                        }
+                    }
+
+                    tracing::error!(
+                        total,
+                        approved = approved_count,
+                        cancelled_as_compensation = compensation_cancelled,
+                        failed_to_submit = submit_failures,
+                        failed_approval = %approve_err,
+                        adjustment_id = %request_id,
+                        "Import adjustment finalize failed: \
+                         {approved_count}/{total} approved, \
+                         {compensation_cancelled}/{total} cancelled as compensation, \
+                         {submit_failures}/{total} failed to submit"
+                    );
+
+                    return Err(AppError::Internal(format!(
+                        "Adjustment finalize failed: \
+                         {approved_count}/{total} approved, \
+                         {compensation_cancelled}/{total} cancelled as compensation, \
+                         {submit_failures}/{total} failed to submit"
+                    )));
+                }
+            }
         }
 
         Ok(())
@@ -804,6 +863,16 @@ impl ImportStrategy for PunchImportStrategy {
 
     /// Batch pairing: for each unique employment_id, call reprocess_attendance_range
     /// once covering all dates touched by the import.
+    ///
+    /// **Idempotency note**: `reprocess_attendance_range` → `replace_time_entries`
+    /// uses a DELETE+INSERT transaction scoped to the employment_id + date range,
+    /// so retrying this phase is safe — raw_logs (the source of truth) remain intact
+    /// and re-processing the same range produces identical time entries.
+    ///
+    /// **Partial failure handling**: If some employees fail to reprocess, this method
+    /// continues processing the remaining employees (unlike the previous fail-fast
+    /// behavior) and returns a detailed error listing which succeeded and which failed.
+    /// Raw logs are never rolled back — they are the immutable source of truth.
     async fn finalize(
         &mut self,
         deps: &crate::worker::deps::WorkerDeps,
@@ -832,20 +901,61 @@ impl ImportStrategy for PunchImportStrategy {
                 }
 
                 let pairing = deps.pairing_service();
+                let mut succeeded: Vec<Uuid> = Vec::with_capacity(emp_ranges.len());
+                let mut failed: Vec<(Uuid, String)> = Vec::new();
+
                 for (emp_id, (start, end, tz)) in emp_ranges {
-                    pairing
+                    match pairing
                         .reprocess_attendance_range(job.workspace_id, emp_id, start, end, tz)
                         .await
-                        .map_err(|e| {
+                    {
+                        Ok(()) => {
+                            succeeded.push(emp_id);
+                        }
+                        Err(e) => {
                             tracing::error!(
                                 employment_id = %emp_id,
                                 error = %e,
-                                "Batch pairing failed in import finalize"
+                                "Batch pairing failed for employee in import finalize"
                             );
-                            AppError::Internal(format!(
-                                "Failed to process attendance for employee: {e}"
-                            ))
-                        })?;
+                            failed.push((emp_id, e.to_string()));
+                        }
+                    }
+                }
+
+                if !failed.is_empty() {
+                    let failed_ids: Vec<String> =
+                        failed.iter().map(|(id, _)| id.to_string()).collect();
+                    let succeeded_ids: Vec<String> =
+                        succeeded.iter().map(|id| id.to_string()).collect();
+
+                    tracing::warn!(
+                        total = succeeded.len() + failed.len(),
+                        succeeded_count = succeeded.len(),
+                        failed_count = failed.len(),
+                        succeeded_employees = ?succeeded_ids,
+                        failed_employees = ?failed_ids,
+                        "Import finalize partially failed: some employees could not be reprocessed"
+                    );
+
+                    let error_detail = serde_json::json!({
+                        "phase": "finalize",
+                        "succeeded_count": succeeded.len(),
+                        "failed_count": failed.len(),
+                        "partial_success_employment_ids": succeeded_ids,
+                        "failed_employment_ids": failed_ids,
+                        "failed_details": failed.iter().map(|(id, err)| {
+                            serde_json::json!({"employment_id": id.to_string(), "error": err})
+                        }).collect::<Vec<_>>(),
+                    });
+
+                    return Err(AppError::Internal(format!(
+                        "Import finalize partially failed: {}/{} employees reprocessed successfully, {} failed. Details: {}",
+                        succeeded.len(),
+                        succeeded.len() + failed.len(),
+                        failed.len(),
+                        error_detail
+                    )));
                 }
 
                 Ok(())
@@ -1574,5 +1684,149 @@ mod tests {
 
         assert_eq!(emp_a_count, 2);
         assert_eq!(emp_b_count, 1);
+    }
+
+    /// Verify that when `approve_request` fails partway through, the compensation
+    /// loop rejects the remaining submitted-but-not-yet-approved adjustments so
+    /// no orphaned Pending records are left behind.
+    #[tokio::test]
+    async fn finalize_adjustments_compensation_on_partial_failure() {
+        use crate::models::AttendanceAdjustmentRequest;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        let ws_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let now = Utc::now();
+
+        let emp1_id = Uuid::new_v4();
+        let emp2_id = Uuid::new_v4();
+        let emp3_id = Uuid::new_v4();
+
+        let emp1 = test_emp(emp1_id, ws_id, "001")
+            .with_employment_info(Some(emp1_id), None, None);
+        let emp2 = test_emp(emp2_id, ws_id, "002")
+            .with_employment_info(Some(emp2_id), None, None);
+        let emp3 = test_emp(emp3_id, ws_id, "003")
+            .with_employment_info(Some(emp3_id), None, None);
+
+        let job = make_job(ImportTargetType::Adjustment);
+
+        // ── Build mocks ───────────────────────────────────────────────
+        let mut builder = MockWorkerDepsBuilder::new();
+
+        // adjust: create_request succeeds for all 3
+        builder
+            .adjustment_repo
+            .expect_create_request()
+            .times(3)
+            .returning(|_, _| Ok(()));
+
+        // adjust: get_request_by_id returns a mock request
+        builder
+            .adjustment_repo
+            .expect_get_request_by_id()
+            .returning(move |_, id| {
+                let req = AttendanceAdjustmentRequest::new(
+                    id,
+                    id,
+                    None,
+                    now,
+                    Some("import".into()),
+                    AdjustmentStatus::Pending,
+                    Some(user_id),
+                    None,
+                    now,
+                    now,
+                    None,
+                );
+                Ok(Some(req))
+            });
+
+        // adjust: update_adjustment_status — first approve call fails,
+        // triggering compensation. Remaining calls are rejects.
+        // This happens BEFORE create_raw_log/process_new_raw_log, so
+        // no pairing pipeline mocks are needed.
+        let status_call_count = Arc::new(AtomicUsize::new(0));
+        let scc = Arc::clone(&status_call_count);
+        builder
+            .adjustment_repo
+            .expect_update_adjustment_status()
+            .returning(move |_, _id, status, _| {
+                scc.fetch_add(1, Ordering::SeqCst);
+                if status == AdjustmentStatus::Approved {
+                    // First (and only) approval attempt fails
+                    Err(AppError::Internal("Simulated approve failure".into()))
+                } else {
+                    // Compensation rejects succeed
+                    Ok(())
+                }
+            });
+
+        let deps = builder.build();
+
+        // ── Build strategy ────────────────────────────────────────────
+        let adj_repo_arc = Arc::clone(&deps.adjustment_repo);
+
+        let mut strategy = make_punch_strategy(
+            ImportTargetType::Adjustment,
+            MockEmployeeRepository::new(),
+            MockRawAttendanceLogRepository::new(),
+        );
+        strategy.adj_repo = adj_repo_arc;
+        strategy.accumulated_adjustments = vec![
+            (
+                emp1,
+                PendingRow {
+                    emp_id_number: "001".into(),
+                    punch_time: now,
+                    line_number: 1,
+                },
+            ),
+            (
+                emp2,
+                PendingRow {
+                    emp_id_number: "002".into(),
+                    punch_time: now,
+                    line_number: 2,
+                },
+            ),
+            (
+                emp3,
+                PendingRow {
+                    emp_id_number: "003".into(),
+                    punch_time: now,
+                    line_number: 3,
+                },
+            ),
+        ];
+
+        // ── Execute ───────────────────────────────────────────────────
+        let result = strategy.finalize(&deps, &job).await;
+
+        // ── Assert ────────────────────────────────────────────────────
+        assert!(
+            result.is_err(),
+            "Expected finalize to fail due to approval failure"
+        );
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("0/3 approved"),
+            "Error should mention 0/3 approved, got: {err_msg}"
+        );
+        assert!(
+            err_msg.contains("2/3 cancelled as compensation"),
+            "Error should mention 2/3 cancelled as compensation, got: {err_msg}"
+        );
+        assert!(
+            err_msg.contains("0/3 failed to submit"),
+            "Error should mention 0/3 failed to submit, got: {err_msg}"
+        );
+
+        // 1 call for the failed approve + 2 calls for compensation rejects = 3
+        assert_eq!(
+            status_call_count.load(Ordering::SeqCst),
+            3,
+            "Expected 3 update_adjustment_status calls (1 approve fail + 2 reject)"
+        );
     }
 }
