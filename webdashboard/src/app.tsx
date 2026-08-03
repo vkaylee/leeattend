@@ -6,7 +6,7 @@ import React, { Suspense } from "react";
 import { ErrorBoundary } from "./components/common/error-boundary";
 import { GlobalLoader } from "./components/common/global-loader";
 import { NewVersionBanner } from "./components/common/new-version-banner";
-import { toast } from "./components/ui/toast";
+import { toast } from "./components/ui/toast-imperative";
 import { DarkModeProvider } from "./context/dark-mode-context";
 import { DebugProvider } from "./context/debug-context";
 import { useVersionCheck } from "./hooks/use-version-check";

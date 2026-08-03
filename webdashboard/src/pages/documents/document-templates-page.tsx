@@ -2,7 +2,7 @@ import React from "react";
 
 import { TemplateEditor } from "@/components/documents/template-editor";
 import PageHeader from "@/components/ui/page-header";
-import { toast } from "@/components/ui/toast";
+import { toast } from "@/components/ui/toast-imperative";
 
 export function DocumentTemplatesPage() {
   return (

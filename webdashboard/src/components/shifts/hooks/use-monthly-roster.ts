@@ -120,7 +120,7 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
     selectedCells,
     setIsShiftPickerOpen,
     setSelectedCells,
-    onClearOverrides: handleClearSelectedOverrides,
+    onClearOverrides: () => { void handleClearSelectedOverrides(); },
   });
 
   return {

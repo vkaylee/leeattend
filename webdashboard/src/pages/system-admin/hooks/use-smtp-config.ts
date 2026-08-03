@@ -120,7 +120,7 @@ export function useSmtpConfig() {
   // branch purely memoized.
   const configVerifiedAt = useMemo<Date | null>(
     () => (config?.last_verified_at ? new Date(config.last_verified_at) : null),
-    [config?.last_verified_at],
+    [config],
   );
   const [testVerifiedAt, setTestVerifiedAt] = useState<Date | null>(null);
   const verifiedAt = testVerifiedAt ?? configVerifiedAt;

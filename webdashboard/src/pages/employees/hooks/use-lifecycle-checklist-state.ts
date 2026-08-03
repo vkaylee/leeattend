@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 import type { ChecklistItemStatus, LifecycleChecklistItem } from "@/lib/api/types";
 
@@ -35,7 +35,7 @@ export function useLifecycleChecklistState(employmentId: string) {
   // Filter templates that are active
   const availableTemplates = templates.filter(t => t.is_active);
 
-  const handleCreateChecklist = () => {
+  const handleCreateChecklist = useCallback(() => {
     if (!selectedTemplateId) {
       toast.error("Please select a checklist template");
       return;
@@ -53,9 +53,9 @@ export function useLifecycleChecklistState(employmentId: string) {
         },
       }
     );
-  };
+  }, [selectedTemplateId, createChecklistMutation, toast]);
 
-  const handleToggleItemStatus = (item: LifecycleChecklistItem) => {
+  const handleToggleItemStatus = useCallback((item: LifecycleChecklistItem) => {
     const newStatus: ChecklistItemStatus = item.status === "completed" ? "pending" : "completed";
     updateItemStatusMutation.mutate(
       {
@@ -69,14 +69,14 @@ export function useLifecycleChecklistState(employmentId: string) {
         },
       }
     );
-  };
+  }, [updateItemStatusMutation, toast]);
 
-  const handleEditNotes = (item: LifecycleChecklistItem) => {
+  const handleEditNotes = useCallback((item: LifecycleChecklistItem) => {
     setEditingNotesItemId(item.id);
     setItemNotes(item.notes ?? "");
-  };
+  }, []);
 
-  const handleSaveNotes = (item: LifecycleChecklistItem) => {
+  const handleSaveNotes = useCallback((item: LifecycleChecklistItem) => {
     updateItemStatusMutation.mutate(
       {
         itemId: item.id,
@@ -92,7 +92,7 @@ export function useLifecycleChecklistState(employmentId: string) {
         },
       }
     );
-  };
+  }, [updateItemStatusMutation, toast, itemNotes]);
 
   const sortedItems = maybeNull(activeChecklist)?.items
     ? [...activeChecklist.items].sort((a: LifecycleChecklistItem, b: LifecycleChecklistItem) => a.display_order - b.display_order)

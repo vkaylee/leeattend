@@ -6,7 +6,7 @@ import React from "react";
 import type { LeaveImportJob } from "@/lib/api/leaves";
 
 import Button from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
+import { toast } from "@/components/ui/toast-imperative";
 import { Typography } from "@/components/ui/typography";
 import { downloadLeaveImportErrors } from "@/lib/api";
 import { logError } from "@/lib/logger";

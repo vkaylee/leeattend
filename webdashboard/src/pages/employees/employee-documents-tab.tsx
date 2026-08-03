@@ -7,7 +7,7 @@ import type { components } from "@/types/api-generated";
 import { FileList } from "@/components/files/file-list";
 import { FileUpload } from "@/components/files/file-upload";
 import Button from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
+import { toast } from "@/components/ui/toast-imperative";
 import { Typography } from "@/components/ui/typography";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { client } from "@/lib/api/client";

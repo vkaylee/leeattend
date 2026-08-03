@@ -1,3 +1,12 @@
+export interface CellNavigationOptions {
+  colCount: number;
+  colIndex: number;
+  key: string;
+  rowCount: number;
+  rowIndex: number;
+  shiftKey: boolean;
+}
+
 export interface CellNavigationResult {
   /** Whether the key was recognized and handled. */
   handled: boolean;
@@ -17,14 +26,14 @@ export interface CellNavigationResult {
  * Returns `handled: false` for unrecognized keys — the caller should pass the
  * event through instead of consuming it.
  */
-export function computeCellNavigation(
-  key: string,
-  rowIndex: number,
-  colIndex: number,
-  shiftKey: boolean,
-  rowCount: number,
-  colCount: number,
-): CellNavigationResult {
+export function computeCellNavigation({
+  key,
+  rowIndex,
+  colIndex,
+  shiftKey,
+  rowCount,
+  colCount,
+}: CellNavigationOptions): CellNavigationResult {
   let nextRow = rowIndex;
   let nextCol = colIndex;
   let handled = false;

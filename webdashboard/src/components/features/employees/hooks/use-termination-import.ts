@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { toast } from "@/components/ui/toast";
+import { toast } from "@/components/ui/toast-imperative";
 import { downloadTerminationTemplate } from "@/lib/api/employees";
 import { logError } from "@/lib/logger";
 import { buildTerminationErrorWorkbook } from "@/lib/termination-error-export";

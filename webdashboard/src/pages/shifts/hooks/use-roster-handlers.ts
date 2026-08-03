@@ -3,16 +3,14 @@ import type { UseMutationResult } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
-import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
-
 import type { ComplianceViolation } from "@/lib/api/errors";
 import type { AssignPatternRequest, Employee, EmployeeSchedule, EmployeeWorkingPattern } from "@/lib/api/types";
 
-import { translateRosterEntriesToMonth } from "@/components/shifts/roster/roster-utils";
 import { useToast } from "@/components/ui/toast";
-import { fetchWorkspaceSchedules, bulkUpsertRoster, deleteRoster } from "@/lib/api";
+import { bulkUpsertRoster, deleteRoster } from "@/lib/api";
 import { logError } from "@/lib/logger";
 
+import { copyPreviousMonth as copyPrevMonthFn } from "./copy-previous-month";
 import { runRosterBulk } from "./roster-bulk-utils";
 import { useComplianceRetry } from "./use-compliance-retry";
 import { useMonthlyRosterCachePatch } from "./use-monthly-cache-patch";
@@ -161,47 +159,7 @@ export function useRosterHandlers({
   };
 
   const handleCopyPreviousMonth = async () => {
-    const prevMonth = subMonths(currentMonth, 1);
-    const prevStartStr = format(startOfMonth(prevMonth), "yyyy-MM-dd");
-    const prevEndStr = format(endOfMonth(prevMonth), "yyyy-MM-dd");
-
-    try {
-      const prevSchedules = await fetchWorkspaceSchedules(
-        wsId,
-        prevStartStr,
-        prevEndStr,
-      );
-      const currentYearMonth = format(currentMonth, "yyyy-MM");
-      const monthDayStrings = new Set(
-        monthDays.map((d) => format(d, "yyyy-MM-dd")),
-      );
-
-      const employeeEntries = translateRosterEntriesToMonth(
-        prevSchedules,
-        currentYearMonth,
-        monthDayStrings,
-      );
-
-      if (employeeEntries.length === 0) {
-        toast.warning(t("shifts.messages.no_previous_data"));
-        return;
-      }
-
-      await runRosterBulk({
-        items: employeeEntries,
-        worker: async ({ employeeId, rosterEntries }) => {
-          await bulkUpsertRoster(wsId, employeeId, rosterEntries);
-        },
-        queryClient,
-        invalidateKeys: [["schedules"], ["assignment_history"]],
-        toast,
-        t,
-        partialFailureKey: "shifts.messages.bulk_partial_failure",
-        successKey: "shifts.messages.bulk_update_success",
-      });
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : String(e));
-    }
+    await copyPrevMonthFn({ currentMonth, monthDays, wsId, queryClient, toast, t });
   };
 
   return {

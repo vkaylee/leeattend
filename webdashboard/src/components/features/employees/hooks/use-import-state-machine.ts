@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import type { ConfirmTerminationRow, TerminationPreviewResponse } from "@/lib/api/employees";
 
-import { toast } from "@/components/ui/toast";
+import { toast } from "@/components/ui/toast-imperative";
 import {
   confirmTerminationImport,
   uploadTerminationImportPreview,

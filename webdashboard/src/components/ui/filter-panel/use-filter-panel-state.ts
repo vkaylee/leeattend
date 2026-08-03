@@ -38,11 +38,16 @@ export function useFilterPanelState({
   const [open, setOpen] = useState(false);
 
   // Draft state for apply-button mode
-  const { draftSelected, setDraftSelected } = useDraftSelection({
+  const { draftSelected, setDraftSelected, resetDraft } = useDraftSelection({
     selected,
-    isOpen: open,
     enabled: showApplyButton,
   });
+
+  // Sync draft on open (replaces useEffect-based sync for cascading-render avoidance)
+  const handleOpenChange = useCallback((nextOpen: boolean) => {
+    if (nextOpen) resetDraft();
+    setOpen(nextOpen);
+  }, [resetDraft]);
 
   // Keyboard shortcut (opt-in, no default)
   useKeyboardShortcut({
@@ -114,7 +119,7 @@ export function useFilterPanelState({
 
   return {
     open,
-    setOpen,
+    setOpen: handleOpenChange,
     effectiveSelected,
     draftSelected,
     setDraftSelected,

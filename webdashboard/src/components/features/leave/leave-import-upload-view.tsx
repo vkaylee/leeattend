@@ -4,7 +4,7 @@ import { Upload, FileText, Loader2, AlertCircle, Download } from "lucide-react";
 import React from "react";
 
 import Button from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
+import { toast } from "@/components/ui/toast-imperative";
 import { Typography } from "@/components/ui/typography";
 import { downloadLeaveImportTemplate } from "@/lib/api";
 import { logError } from "@/lib/logger";

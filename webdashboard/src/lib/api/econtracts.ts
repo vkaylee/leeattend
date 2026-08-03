@@ -9,7 +9,7 @@
 // @see TD-1
 /* eslint-disable @typescript-eslint/require-await -- stubs; will await real API calls when backend is wired */
 
-import { toast } from "@/components/ui/toast";
+import { toast } from "@/components/ui/toast-imperative";
 
 import type { Employer } from "./types";
 

@@ -5,16 +5,9 @@ import SearchBox from "@/components/common/search-box";
 import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-import type { ListFilter, ChipDef } from "./types";
+import type { ListFilter } from "./types";
 
-// ── Filter chip definitions ────────────────────────────────────────────
-
-export const FILTER_CHIPS: ChipDef[] = [
-  { key: "all", labelKey: "shifts.picker.filter_all" },
-  { key: "active", labelKey: "common.status_active" },
-  { key: "inactive", labelKey: "common.status_inactive" },
-  { key: "night", labelKey: "shifts.picker.filter_night" },
-];
+import { FILTER_CHIPS } from "./shift-list-toolbar-constants";
 
 // ── ShiftListToolbar ───────────────────────────────────────────────────
 

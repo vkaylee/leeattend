@@ -96,7 +96,7 @@ export function useSmartTableKeyboard<TData>({
     colIndex: number,
     shiftKey: boolean,
   ): { nextCol: number; nextRow: number; handled: boolean } => {
-    return computeCellNavigation(key, rowIndex, colIndex, shiftKey, rowCount, colCount);
+    return computeCellNavigation({ key, rowIndex, colIndex, shiftKey, rowCount, colCount });
   };
 
   const handleCellKeyDown = (args: {

@@ -9,7 +9,7 @@ import type { Employee, Department } from "@/lib/api/types";
 import Button from "@/components/ui/button";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import ResponsiveTable from "@/components/ui/responsive-table";
-import { toast } from "@/components/ui/toast";
+import { toast } from "@/components/ui/toast-imperative";
 import { Typography } from "@/components/ui/typography";
 import { logError } from "@/lib/logger";
 import { cn } from "@/lib/utils";

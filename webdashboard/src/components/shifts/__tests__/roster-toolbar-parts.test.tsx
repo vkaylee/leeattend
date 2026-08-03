@@ -6,7 +6,8 @@ import "@testing-library/jest-dom";
 
 import { Shift } from "@/lib/api/types";
 
-import { RosterActionBar, formatShiftTimeRange } from "../roster-toolbar-parts";
+import { RosterActionBar } from "../roster-toolbar-parts";
+import { formatShiftTimeRange } from "../roster-toolbar-utils";
 
 // ── Mocks ────────────────────────────────────────────────────────────
 

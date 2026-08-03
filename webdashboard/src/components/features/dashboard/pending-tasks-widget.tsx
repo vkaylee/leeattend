@@ -12,10 +12,75 @@ import { useMyPendingTasks, useCompletePendingTask } from "@/hooks/use-lifecycle
 import { cn } from "@/lib/utils";
 import { maybeNull } from "@/types/api-overrides";
 
+// ── PendingTaskItem ──────────────────────────────────────────────────────
+
+interface PendingTaskItemProps {
+  isMutating: boolean;
+  onComplete: (task: PendingTaskResponse) => void;
+  task: PendingTaskResponse;
+}
+
+function PendingTaskItem({ task, isMutating, onComplete }: PendingTaskItemProps) {
+  const { t } = useTranslation();
+  const { formatDate } = useDateTimeFormatter();
+  const isOverdue = task.due_date && new Date(task.due_date) < new Date();
+
+  return (
+    <div
+      className="p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800/50 flex items-start justify-between gap-4 hover:border-slate-200 dark:hover:border-slate-800 hover:shadow-sm transition-all"
+      key={task.id}
+    >
+      <div className="flex items-start gap-3 flex-1">
+        <Button
+          className="text-slate-400 hover:text-emerald-500 transition-colors p-0 h-auto min-w-0"
+          loading={isMutating ? true : undefined}
+          onClick={() => { onComplete(task); }}
+          variant="ghost"
+        >
+          <Circle className="w-5 h-5" />
+        </Button>
+
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">
+              {task.title}
+            </span>
+            <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+              {task.category.replace("_", " ")}
+            </span>
+            {task.is_required ? (
+              <span className="bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                Required
+              </span>
+            ) : null}
+          </div>
+
+          <Typography className="text-xs text-slate-400 dark:text-slate-500" variant="p">
+            {t("dashboard.lifecycle.task_for_employee", { name: task.employee_name, defaultValue: `For ${task.employee_name}` })}
+            {!!task.description && ` • ${task.description}`}
+          </Typography>
+
+           {!!task.due_date && (
+            <div className="text-[10px] font-semibold flex items-center gap-1 mt-1">
+              <AlertCircle className={cn("w-3.5 h-3.5", isOverdue ? "text-rose-500 animate-pulse" : "text-amber-500")} />
+              <span className={cn(isOverdue ? "text-rose-500" : "text-slate-400")}>
+                {isOverdue
+                  ? t("dashboard.lifecycle.overdue", { date: formatDate(task.due_date), defaultValue: `Overdue: ${formatDate(task.due_date)}` })
+                  : t("dashboard.lifecycle.due", { date: formatDate(task.due_date), defaultValue: `Due: ${formatDate(task.due_date)}` })}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── PendingTasksWidget ───────────────────────────────────────────────────
+
 export default function PendingTasksWidget() {
   const { t } = useTranslation();
   const toast = useToast();
-  const { formatDate } = useDateTimeFormatter();
 
   const { data: tasks = [], isLoading, error } = useMyPendingTasks();
   const completeTaskMutation = useCompletePendingTask();
@@ -70,55 +135,14 @@ export default function PendingTasksWidget() {
 
       <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
         {tasks.map((task) => {
-          const isOverdue = task.due_date && new Date(task.due_date) < new Date();
+          const isMutating = completeTaskMutation.isPending && maybeNull(completeTaskMutation.variables)?.itemId === task.id;
           return (
-            <div
-              className="p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800/50 flex items-start justify-between gap-4 hover:border-slate-200 dark:hover:border-slate-800 hover:shadow-sm transition-all"
+            <PendingTaskItem
+              isMutating={isMutating}
               key={task.id}
-            >
-              <div className="flex items-start gap-3 flex-1">
-                <Button
-                  className="text-slate-400 hover:text-emerald-500 transition-colors p-0 h-auto min-w-0"
-                  loading={completeTaskMutation.isPending && maybeNull(completeTaskMutation.variables)?.itemId === task.id ? true : undefined}
-                  onClick={() => { handleCompleteTask(task); }}
-                  variant="ghost"
-                >
-                  <Circle className="w-5 h-5" />
-                </Button>
-
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">
-                      {task.title}
-                    </span>
-                    <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                      {task.category.replace("_", " ")}
-                    </span>
-                    {task.is_required ? (
-                      <span className="bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                        Required
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <Typography className="text-xs text-slate-400 dark:text-slate-500" variant="p">
-                    {t("dashboard.lifecycle.task_for_employee", { name: task.employee_name, defaultValue: `For ${task.employee_name}` })}
-                    {!!task.description && ` • ${task.description}`}
-                  </Typography>
-
-                   {!!task.due_date && (
-                    <div className="text-[10px] font-semibold flex items-center gap-1 mt-1">
-                      <AlertCircle className={cn("w-3.5 h-3.5", isOverdue ? "text-rose-500 animate-pulse" : "text-amber-500")} />
-                      <span className={cn(isOverdue ? "text-rose-500" : "text-slate-400")}>
-                        {isOverdue
-                          ? t("dashboard.lifecycle.overdue", { date: formatDate(task.due_date), defaultValue: `Overdue: ${formatDate(task.due_date)}` })
-                          : t("dashboard.lifecycle.due", { date: formatDate(task.due_date), defaultValue: `Due: ${formatDate(task.due_date)}` })}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+              onComplete={handleCompleteTask}
+              task={task}
+            />
           );
         })}
       </div>

@@ -125,3 +125,31 @@ export interface UseFilterPanelStateOptions {
   selected: string[];
   showApplyButton: boolean;
 }
+
+/** Props shared between DropdownFilterPanel and PopoverFilterPanel containers. */
+export interface FilterContainerProps {
+  align?: "start" | "center" | "end";
+  children?: React.ReactNode;
+  className?: string;
+  effectiveSelected: string[];
+  emptyMessage?: string;
+  handleApply: () => void;
+  handleCancel: () => void;
+  handleClear: () => void;
+  handleDropdownToggle: (value: string) => void;
+  handleToggle: (value: string) => void;
+  headerLabel?: string;
+  mode: FilterMode;
+  onClear: () => void;
+  open: boolean;
+  options: FilterOption[];
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  selected: string[];
+  setOpen: (open: boolean) => void;
+  showApplyButton?: boolean;
+  showClearButton?: boolean;
+  showSelectionCount?: boolean;
+  testId?: string;
+  trigger: React.ReactNode;
+}
