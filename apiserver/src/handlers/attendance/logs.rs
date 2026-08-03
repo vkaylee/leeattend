@@ -241,7 +241,7 @@ pub struct ReprocessQuery {
         ("end_date" = NaiveDate, Query, description = "End date")
     ),
     responses(
-        (status = 200, description = "Attendance reprocessed")
+        (status = 202, description = "Reprocess job queued", body = serde_json::Value)
     ),
     security(
         ("bearer_auth" = [])
@@ -254,7 +254,7 @@ pub async fn force_reprocess_attendance(
     Path(__path_params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Query(query): Query<ReprocessQuery>,
-) -> AppResult<StatusCode> {
+) -> AppResult<(StatusCode, Json<serde_json::Value>)> {
     let (_, path_id) = __path_params;
     ctx.require_permission(Permission::AttendanceReprocess)?;
 
@@ -374,26 +374,29 @@ pub async fn force_reprocess_attendance(
         }
     };
 
-    let tz: chrono_tz::Tz = state
-        .employees()
-        .repo()
-        .get_employee_timezone_fallback(&ctx.auth_token, target_employment_id)
-        .await?;
+    let queue = state.infra().job_queue()?;
 
-    state
-        .attendance()
-        .pairing_service()
-        .reprocess_attendance_range(
-            ctx.workspace_id,
-            target_employment_id,
-            query.start_date,
-            query.end_date,
-            tz,
-        )
-        .await
-        .map_err(|e| AppError::from(format!("Processing failed: {e}")))?;
+    let targets = vec![(_target_employee_id, Some(target_employment_id))];
 
-    Ok(StatusCode::OK)
+    let parent_job_id = enqueue_reprocess_jobs(
+        &queue,
+        ctx.workspace_id,
+        ctx.user_id,
+        &targets,
+        crate::queue::DateRange {
+            start: query.start_date,
+            end: query.end_date,
+        },
+    )
+    .await
+    .map_err(AppError::Internal)?;
+
+    tracing::info!(job_id = %parent_job_id, "Single employee reprocess job enqueued");
+
+    Ok((StatusCode::ACCEPTED, Json(serde_json::json!({
+        "message": "Reprocess job queued successfully",
+        "job_id": parent_job_id
+    }))))
 }
 
 #[utoipa::path(

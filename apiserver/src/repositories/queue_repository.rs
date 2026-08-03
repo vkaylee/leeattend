@@ -36,6 +36,9 @@ pub trait QueueRepository: Send + Sync {
     /// Increment a general progress counter (e.g. for import jobs)
     async fn increment_progress(&self, job_id: Uuid, amount: u32) -> Result<(), String>;
 
+    /// Read the current progress counter (e.g. for import jobs)
+    async fn get_import_progress(&self, job_id: Uuid) -> Result<Option<i32>, String>;
+
     /// Store an error string for a specific chunk/task (e.g. for import jobs)
     async fn store_import_error(
         &self,
@@ -151,6 +154,16 @@ impl QueueRepository for RedisQueueRepository {
             .await
             .map_err(|e| e.to_string())?;
         Ok(())
+    }
+
+    async fn get_import_progress(&self, job_id: Uuid) -> Result<Option<i32>, String> {
+        let mut conn = self.redis.conn();
+        let key = format!("import_progress:{job_id}");
+        redis::cmd("GET")
+            .arg(&key)
+            .query_async::<Option<i32>>(&mut conn)
+            .await
+            .map_err(|e| e.to_string())
     }
 
     async fn store_import_error(

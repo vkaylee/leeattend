@@ -9,6 +9,8 @@ use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{enums::ImportTargetType, AttendanceImportJob};
+use crate::repositories::import_job_repository::ImportJobRepository;
+use crate::repositories::queue_repository::QueueRepository;
 use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
@@ -184,6 +186,41 @@ pub async fn upload_employee_excel(
     Ok(Json(serde_json::json!({ "job_id": import_job_id })))
 }
 
+/// Check if a Processing import job has timed out (>10 min since last update)
+/// and rescue it (mark Failed). Also syncs live progress from the job queue
+/// into `job.processed_rows`.
+async fn check_and_rescue_timeout_job(
+    job: &mut AttendanceImportJob,
+    import_repo: &Arc<dyn ImportJobRepository>,
+    queue: Option<&Arc<dyn QueueRepository>>,
+    auth_token: &crate::diesel_pool::TenantAuthToken,
+) {
+    if job.status != crate::models::ImportJobStatus::Processing {
+        return;
+    }
+
+    let now = chrono::Utc::now();
+    let duration = now - job.updated_at;
+    if duration.num_minutes() > 10 {
+        let _ = import_repo
+            .update_job_progress(
+                auth_token,
+                job.id,
+                job.processed_rows,
+                crate::models::enums::ImportJobStatus::Failed,
+                Some("Import job timed out or background worker restarted.".to_string()),
+            )
+            .await;
+        job.status = crate::models::enums::ImportJobStatus::Failed;
+        job.error_log =
+            Some("Import job timed out or background worker restarted.".to_string());
+    } else if let Some(queue_repo) = queue {
+        if let Ok(Some(count)) = queue_repo.get_import_progress(job.id).await {
+            job.processed_rows = count;
+        }
+    }
+}
+
 #[derive(serde::Deserialize)]
 pub struct ImportJobQuery {
     pub target_type: Option<ImportTargetType>,
@@ -219,36 +256,13 @@ pub async fn get_latest_import_job(
         .await?;
 
     if let Some(ref mut job) = job_opt {
-        if job.status == crate::models::ImportJobStatus::Processing {
-            let now = chrono::Utc::now();
-            let duration = now - job.updated_at;
-            if duration.num_minutes() > 10 {
-                let _ = state
-                    .attendance()
-                    .import_repo()
-                    .update_job_progress(
-                        &ctx.auth_token,
-                        job.id,
-                        job.processed_rows,
-                        crate::models::enums::ImportJobStatus::Failed,
-                        Some("Import job timed out or background worker restarted.".to_string()),
-                    )
-                    .await;
-                job.status = crate::models::enums::ImportJobStatus::Failed;
-                job.error_log =
-                    Some("Import job timed out or background worker restarted.".to_string());
-            } else if let Some(redis) = state.infra().redis() {
-                let mut conn = redis.conn();
-                let key = format!("import_progress:{}", job.id);
-                if let Ok(Some(count)) = redis::cmd("GET")
-                    .arg(&key)
-                    .query_async::<Option<i32>>(&mut conn)
-                    .await
-                {
-                    job.processed_rows = count;
-                }
-            }
-        }
+        check_and_rescue_timeout_job(
+            job,
+            state.attendance().import_repo(),
+            state.infra().queue(),
+            &ctx.auth_token,
+        )
+        .await;
     }
 
     Ok(Json(job_opt))
@@ -286,36 +300,13 @@ pub async fn get_import_job_status(
         .await?
         .ok_or_else(|| AppError::not_found(I18nKey::JobNotFound))?;
 
-    if job.status == crate::models::ImportJobStatus::Processing {
-        let now = chrono::Utc::now();
-        let duration = now - job.updated_at;
-        if duration.num_minutes() > 10 {
-            let _ = state
-                .attendance()
-                .import_repo()
-                .update_job_progress(
-                    &ctx.auth_token,
-                    job.id,
-                    job.processed_rows,
-                    crate::models::enums::ImportJobStatus::Failed,
-                    Some("Import job timed out or background worker restarted.".to_string()),
-                )
-                .await;
-            job.status = crate::models::enums::ImportJobStatus::Failed;
-            job.error_log =
-                Some("Import job timed out or background worker restarted.".to_string());
-        } else if let Some(redis) = state.infra().redis() {
-            let mut conn = redis.conn();
-            let key = format!("import_progress:{}", job.id);
-            if let Ok(Some(count)) = redis::cmd("GET")
-                .arg(&key)
-                .query_async::<Option<i32>>(&mut conn)
-                .await
-            {
-                job.processed_rows = count;
-            }
-        }
-    }
+    check_and_rescue_timeout_job(
+        &mut job,
+        state.attendance().import_repo(),
+        state.infra().queue(),
+        &ctx.auth_token,
+    )
+    .await;
 
     Ok(Json(job))
 }
@@ -377,4 +368,285 @@ pub async fn download_import_error_file(
     ];
 
     Ok((headers, data))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::check_and_rescue_timeout_job;
+    use crate::diesel_pool::TenantAuthToken;
+    use crate::errors::AppError;
+    use crate::models::{AttendanceImportJob, ImportJobStatus};
+    use crate::repositories::import_job_repository::ImportJobRepository;
+    use crate::repositories::queue_repository::MockQueueRepository;
+    use async_trait::async_trait;
+    use chrono::{Duration, Utc};
+    use std::sync::{Arc, Mutex};
+    use uuid::Uuid;
+
+    // ── MockImportJobRepo ──────────────────────────────────────────────
+
+    struct MockImportJobInner {
+        last_update: Option<(Uuid, i32, ImportJobStatus, Option<String>)>,
+    }
+
+    struct MockImportJobRepo {
+        inner: Arc<Mutex<MockImportJobInner>>,
+    }
+
+    #[async_trait]
+    impl ImportJobRepository for MockImportJobRepo {
+        async fn create_job(
+            &self,
+            _auth_token: &TenantAuthToken,
+            _job: &AttendanceImportJob,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+
+        async fn update_job_progress(
+            &self,
+            _auth_token: &TenantAuthToken,
+            id: Uuid,
+            processed_rows: i32,
+            status: ImportJobStatus,
+            error_log: Option<String>,
+        ) -> Result<(), AppError> {
+            self.inner.lock().unwrap().last_update =
+                Some((id, processed_rows, status, error_log));
+            Ok(())
+        }
+
+        async fn batch_update_job_progress(
+            &self,
+            _auth_token: &TenantAuthToken,
+            _updates: Vec<(Uuid, i32, ImportJobStatus, Option<String>)>,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+
+        async fn get_job_by_id(
+            &self,
+            _auth_token: &TenantAuthToken,
+            _id: Uuid,
+        ) -> Result<Option<AttendanceImportJob>, AppError> {
+            unimplemented!()
+        }
+
+        async fn get_latest_job(
+            &self,
+            _auth_token: &TenantAuthToken,
+            _target_type: Option<crate::models::enums::ImportTargetType>,
+        ) -> Result<Option<AttendanceImportJob>, AppError> {
+            unimplemented!()
+        }
+
+        async fn get_pending_jobs(
+            &self,
+            _auth_token: &TenantAuthToken,
+        ) -> Result<Vec<AttendanceImportJob>, AppError> {
+            unimplemented!()
+        }
+
+        async fn update_job_total_rows(
+            &self,
+            _auth_token: &TenantAuthToken,
+            _id: Uuid,
+            _total_rows: i32,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────
+
+    fn make_auth_token() -> TenantAuthToken {
+        TenantAuthToken(Uuid::new_v4())
+    }
+
+    fn make_processing_job(updated_at: chrono::DateTime<Utc>) -> AttendanceImportJob {
+        let now = Utc::now();
+        AttendanceImportJob {
+            id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            user_id: Uuid::new_v4(),
+            status: ImportJobStatus::Processing,
+            total_rows: 100,
+            processed_rows: 42,
+            file_path: Some("/tmp/test.xlsx".to_string()),
+            error_log: None,
+            target_type: crate::models::enums::ImportTargetType::Log,
+            created_at: now - Duration::hours(1),
+            updated_at,
+        }
+    }
+
+    fn setup_mock_import_repo() -> (Arc<dyn ImportJobRepository>, Arc<Mutex<MockImportJobInner>>)
+    {
+        let inner = Arc::new(Mutex::new(MockImportJobInner { last_update: None }));
+        let repo: Arc<dyn ImportJobRepository> = Arc::new(MockImportJobRepo {
+            inner: inner.clone(),
+        });
+        (repo, inner)
+    }
+
+    // ── Tests ────────────────────────────────────────────────────────
+
+    /// Non-Processing jobs should be untouched (no DB write, no progress sync).
+    #[tokio::test]
+    async fn test_non_processing_job_is_noop() {
+        let (import_repo, inner) = setup_mock_import_repo();
+        let queue: Arc<dyn crate::repositories::QueueRepository> =
+            Arc::new(MockQueueRepository::new());
+        let auth = make_auth_token();
+
+        let mut job = make_processing_job(Utc::now());
+        job.status = ImportJobStatus::Completed;
+
+        check_and_rescue_timeout_job(&mut job, &import_repo, Some(&queue), &auth).await;
+
+        // Job status must NOT be changed
+        assert_eq!(job.status, ImportJobStatus::Completed);
+        // No DB write should have happened
+        assert!(inner.lock().unwrap().last_update.is_none());
+    }
+
+    /// A Processing job updated <10 min ago should only sync progress,
+    /// NOT be marked Failed.
+    #[tokio::test]
+    async fn test_processing_within_timeout_syncs_progress() {
+        let (import_repo, inner) = setup_mock_import_repo();
+        let mut queue = MockQueueRepository::new();
+        let auth = make_auth_token();
+
+        // Set up queue to return progress = 55
+        let job = make_processing_job(Utc::now() - Duration::minutes(3));
+        let job_id = job.id;
+        queue
+            .expect_get_import_progress()
+            .with(mockall::predicate::eq(job_id))
+            .returning(|_| Ok(Some(55)));
+
+        let queue: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
+        let mut job = job;
+
+        check_and_rescue_timeout_job(&mut job, &import_repo, Some(&queue), &auth).await;
+
+        // Status must remain Processing
+        assert_eq!(job.status, ImportJobStatus::Processing);
+        // Progress must be synced from queue
+        assert_eq!(job.processed_rows, 55);
+        // No DB write
+        assert!(inner.lock().unwrap().last_update.is_none());
+    }
+
+    /// A Processing job stale for >10 min must be rescued (marked Failed).
+    #[tokio::test]
+    async fn test_processing_beyond_timeout_marks_failed() {
+        let (import_repo, inner) = setup_mock_import_repo();
+        let queue: Arc<dyn crate::repositories::QueueRepository> =
+            Arc::new(MockQueueRepository::new());
+        let auth = make_auth_token();
+
+        let mut job = make_processing_job(Utc::now() - Duration::minutes(15));
+
+        check_and_rescue_timeout_job(&mut job, &import_repo, Some(&queue), &auth).await;
+
+        // Must be marked Failed
+        assert_eq!(job.status, ImportJobStatus::Failed);
+        assert!(job
+            .error_log
+            .as_deref()
+            .unwrap_or("")
+            .contains("timed out"));
+
+        // DB must have been updated
+        let update = inner
+            .lock()
+            .unwrap()
+            .last_update
+            .clone()
+            .expect("update_job_progress must be called");
+        assert_eq!(update.0, job.id);
+        assert_eq!(update.2, ImportJobStatus::Failed);
+    }
+
+    /// When no queue repo is available, timeout rescue should still work
+    /// (just without progress sync).
+    #[tokio::test]
+    async fn test_processing_beyond_timeout_without_queue() {
+        let (import_repo, inner) = setup_mock_import_repo();
+        let auth = make_auth_token();
+
+        let mut job = make_processing_job(Utc::now() - Duration::minutes(20));
+
+        // No queue available
+        check_and_rescue_timeout_job(&mut job, &import_repo, None, &auth).await;
+
+        // Must still be rescued
+        assert_eq!(job.status, ImportJobStatus::Failed);
+        assert!(inner.lock().unwrap().last_update.is_some());
+    }
+
+    /// When the queue repo returns an error, the handler should silently
+    /// skip the progress sync (not panic or propagate).
+    #[tokio::test]
+    async fn test_queue_error_is_silently_ignored() {
+        let (import_repo, _inner) = setup_mock_import_repo();
+        let mut queue = MockQueueRepository::new();
+        let auth = make_auth_token();
+
+        let job = make_processing_job(Utc::now() - Duration::minutes(3));
+        let job_id = job.id;
+        queue
+            .expect_get_import_progress()
+            .with(mockall::predicate::eq(job_id))
+            .returning(|_| Err("redis connection lost".to_string()));
+
+        let queue: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
+        let mut job = job;
+
+        check_and_rescue_timeout_job(&mut job, &import_repo, Some(&queue), &auth).await;
+
+        // Must NOT fail — just skip progress sync
+        assert_eq!(job.status, ImportJobStatus::Processing);
+        // processed_rows must stay at original value
+        assert_eq!(job.processed_rows, 42);
+    }
+
+    /// Pending jobs are non-Processing and should be a no-op.
+    #[tokio::test]
+    async fn test_pending_job_is_noop() {
+        let (import_repo, inner) = setup_mock_import_repo();
+        let queue: Arc<dyn crate::repositories::QueueRepository> =
+            Arc::new(MockQueueRepository::new());
+        let auth = make_auth_token();
+
+        let mut job = make_processing_job(Utc::now());
+        job.status = ImportJobStatus::Pending;
+
+        check_and_rescue_timeout_job(&mut job, &import_repo, Some(&queue), &auth).await;
+
+        assert_eq!(job.status, ImportJobStatus::Pending);
+        assert!(inner.lock().unwrap().last_update.is_none());
+    }
+
+    /// Failed jobs should not be double-rescued.
+    #[tokio::test]
+    async fn test_already_failed_job_is_noop() {
+        let (import_repo, inner) = setup_mock_import_repo();
+        let queue: Arc<dyn crate::repositories::QueueRepository> =
+            Arc::new(MockQueueRepository::new());
+        let auth = make_auth_token();
+
+        let mut job = make_processing_job(Utc::now() - Duration::minutes(30));
+        job.status = ImportJobStatus::Failed;
+        job.error_log = Some("already failed".to_string());
+
+        check_and_rescue_timeout_job(&mut job, &import_repo, Some(&queue), &auth).await;
+
+        // Must NOT be overwritten
+        assert_eq!(job.status, ImportJobStatus::Failed);
+        assert_eq!(job.error_log.as_deref(), Some("already failed"));
+        assert!(inner.lock().unwrap().last_update.is_none());
+    }
 }
