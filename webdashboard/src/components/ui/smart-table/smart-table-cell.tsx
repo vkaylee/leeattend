@@ -98,8 +98,13 @@ function SmartTableCellInner<T>({
       // need to override it to display error-highlighted cell values in validation mode.
       // eslint-disable-next-line react-hooks/immutability
       cell.renderValue = () => overrideValue;
-    } catch (e) {
-      console.warn("Could not override cell.getValue", e);
+    } catch (e: unknown) {
+      // Revert partial cell overrides on mutation failure to keep consistent state
+      try {
+        // eslint-disable-next-line react-hooks/immutability
+        cell.getValue = (() => row.getValue(cell.column.id)) as () => never;
+      } catch { /* best-effort cleanup */ }
+      console.warn("Could not override cell.getValue", e instanceof Error ? e.message : "Unknown error");
     }
   }
 

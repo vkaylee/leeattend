@@ -48,8 +48,9 @@ export function useWebSocket() {
       try {
         const data = JSON.parse(event.data as string) as WsMessage;
         setLastMessage(data);
-      } catch (e) {
+      } catch (e: unknown) {
         logError(e, { component: "WebSocket" });
+        setLastMessage(null);
       }
     };
 

@@ -52,7 +52,7 @@ export async function forceRefreshToken(): Promise<boolean> {
         // memory would be a security regression.
         return true;
       }
-    } catch (e) {
+    } catch (e: unknown) {
       logError(e, { component: "TokenRefresh" });
     }
     return false;

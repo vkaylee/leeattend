@@ -94,7 +94,7 @@ export function useComplianceRetry({
         });
         setComplianceModalOpen(false);
         pendingRetryRef.current = null;
-      } catch (e) {
+      } catch (e: unknown) {
         toast.error(e instanceof Error ? e.message : String(e));
       } finally {
         setIsComplianceResolving(false);

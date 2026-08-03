@@ -49,9 +49,9 @@ export default function MyClockPage() {
     try {
       await punch({});
       toast.success(t("ess.clock.punch_success", "Chấm công thành công"));
-    } catch (e) {
-      const err = e as { response?: { data?: { error?: string } }; message?: string };
-      toast.error(err.response?.data?.error ?? err.message ?? t("common.error"));
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      toast.error(message);
     }
   };
 
@@ -73,9 +73,9 @@ export default function MyClockPage() {
         time_entry_id: data.timeEntryId,
       });
       toast.success(t("ess.clock.adjustment_requested"));
-    } catch (e) {
-      const err = e as { response?: { data?: { error?: string } }; message?: string };
-      toast.error(err.response?.data?.error ?? err.message ?? t("common.error"));
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      toast.error(message);
     }
   };
 

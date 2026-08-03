@@ -319,7 +319,7 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
       await bulkAssignMutation.mutateAsync({ ...pending, allow_warnings: true, override_reason: reason });
       setComplianceModalOpen(false);
       pendingRetryRef.current = null;
-    } catch (e) {
+    } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally {
       setIsComplianceResolving(false);

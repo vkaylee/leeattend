@@ -181,7 +181,7 @@ export default function RoleManagementModal({
       await assignRole({ role: newRoleId, expiresAt: isoExpiresAt });
       setExpiresAt("");
       setNewRoleId("");
-    } catch (e) { logError(e, { component: "RoleManagementModal" }); }
+    } catch (e: unknown) { logError(e, { component: "RoleManagementModal" }); }
   }
 
   async function handleRevoke(roleId: string) {
@@ -191,7 +191,7 @@ export default function RoleManagementModal({
       variant: "danger"
     });
     if (!ok) return;
-    try { await revokeRole(roleId); } catch (e) { logError(e, { component: "RoleManagementModal" }); }
+    try { await revokeRole(roleId); } catch (e: unknown) { logError(e, { component: "RoleManagementModal" }); }
   }
 
   if (!isOpen) return null;

@@ -167,7 +167,7 @@ export default function PermissionManagementModal({
             setExpiresAt("");
             setNewPermission("");
             setSearchTerm("");
-        } catch (e) {
+        } catch (e: unknown) {
             logError(e, { component: "PermissionManagementModal" });
         }
     }
@@ -181,7 +181,7 @@ export default function PermissionManagementModal({
         if (!ok) return;
         try {
             await revokePermission(permId);
-        } catch (e) {
+        } catch (e: unknown) {
             logError(e, { component: "PermissionManagementModal" });
         }
     }

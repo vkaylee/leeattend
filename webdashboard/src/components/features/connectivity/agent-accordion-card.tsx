@@ -214,7 +214,7 @@ export default function AgentAccordionCard({
     try {
       await onToggleTrust(agent);
       toast.success(t(agent.is_trusted ? "agents.messages.revoke_success" : "agents.messages.approve_success", { name: agent.name }));
-    } catch (e) {
+    } catch (e: unknown) {
       logError(e, { component: "AgentAccordionCard" });
     }
   }
@@ -229,7 +229,7 @@ export default function AgentAccordionCard({
     try {
       await onDelete(agent);
       toast.success(t("agents.messages.delete_success"));
-    } catch (e) {
+    } catch (e: unknown) {
       logError(e, { component: "AgentAccordionCard" });
     }
   }

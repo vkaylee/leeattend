@@ -105,7 +105,7 @@ export default function DeviceListItem({
     try {
       await onUpdate(device.id, { is_enabled: !device.is_enabled });
       toast.success(t(device.is_enabled ? "devices.toast.disabled" : "devices.toast.enabled", { name: device.name }));
-    } catch (e) {
+    } catch (e: unknown) {
       logError(e, { component: "DeviceListItem" });
       toast.error(t("devices.toast.toggle_error"));
     } finally {
@@ -118,7 +118,7 @@ export default function DeviceListItem({
     try {
       await onDelete(device.id);
       toast.success(t("devices.toast.delete_success"));
-    } catch (e) {
+    } catch (e: unknown) {
       logError(e, { component: "DeviceListItem" });
     }
   }

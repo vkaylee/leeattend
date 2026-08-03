@@ -139,7 +139,7 @@ export function useOtApprovals() {
         approved ? "Overtime approved successfully" : "Overtime rejected successfully"
       );
       invalidateAttendanceQueries(queryClient);
-    } catch (e) {
+    } catch (e: unknown) {
       logError(e, { component: "OtApprovalsPage" });
       toast.error("Action failed");
     }

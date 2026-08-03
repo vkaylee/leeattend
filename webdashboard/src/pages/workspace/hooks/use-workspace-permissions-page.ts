@@ -88,7 +88,7 @@ export function useWorkspacePermissionsPage() {
 
       setHasChanges(false);
       void refetch();
-    } catch (e) {
+    } catch (e: unknown) {
       logError(e, { component: "useWorkspacePermissionsPage" });
     } finally {
       setIsSaving(false);
