@@ -3,6 +3,7 @@ import { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import {
   fetchSmtpConfig,
   saveSmtpConfig,
@@ -97,6 +98,7 @@ export function useSmtpConfig() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const { formatTime } = useDateTimeFormatter();
 
   const { data: config, isLoading } = useQuery({
     queryKey: ["smtp-config"],
@@ -191,8 +193,8 @@ export function useSmtpConfig() {
 
   const verifiedTime = useMemo(() => {
     if (!verifiedAt) return null;
-    return verifiedAt.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  }, [verifiedAt]);
+    return formatTime(verifiedAt);
+  }, [verifiedAt, formatTime]);
 
   return {
     config,

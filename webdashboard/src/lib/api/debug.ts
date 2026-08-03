@@ -13,12 +13,4 @@ export const debugApi = {
       body: JSON.stringify({ group }),
     });
   },
-
-  seedData: async (workspaceId: string, _scenario: string) => {
-    // We use the clear endpoint with group='seed' for now as it's a debug command
-    return apiFetch(`/v1/debug/workspaces/${workspaceId}/clear`, {
-      method: "POST",
-      body: JSON.stringify({ group: "seed" }),
-    });
-  }
 };

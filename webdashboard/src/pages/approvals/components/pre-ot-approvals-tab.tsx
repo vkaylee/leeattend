@@ -14,6 +14,7 @@ import { useProcessApproval } from "@/hooks/use-approval-workflows";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { overtimeRequestsApi } from "@/lib/api/overtime-requests";
 import { maybeNull } from "@/types/api-overrides";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 const PRE_OT_PAGE_SIZE = 20;
 
@@ -28,6 +29,7 @@ export function PreOtApprovalsTab({
   onPreviewAttachment?: (fileUrl: string, title: string) => void;
 }) {
   const { t } = useTranslation(["common", "attendance"]);
+  const { formatDate } = useDateTimeFormatter();
   const toast = useToast();
   const queryClient = useQueryClient();
 
@@ -180,7 +182,7 @@ export function PreOtApprovalsTab({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
               <div>
                 <span className="block text-[10px] font-bold text-slate-500 uppercase">{t("common.date")}</span>
-                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{new Date(req.planned_date).toLocaleDateString()}</span>
+                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{formatDate(req.planned_date)}</span>
               </div>
               <div>
                 <span className="block text-[10px] font-bold text-slate-500 uppercase">{t("common.time")}</span>

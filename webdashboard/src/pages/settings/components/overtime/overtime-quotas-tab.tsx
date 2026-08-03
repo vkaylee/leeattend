@@ -1,6 +1,7 @@
 import { Loader2, Plus, Edit2, Trash2, Calendar, Key } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
@@ -33,6 +34,7 @@ function formatConfigValue(cfg: WorkspaceConfigEntry): string | number {
 // eslint-disable-next-line max-lines-per-function -- quota configuration with modal form, delete confirmation, inline editing
 export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
   const { t } = useTranslation();
+  const { formatDate } = useDateTimeFormatter();
   const { data: configs, isLoading } = useWorkspaceConfigs();
   const { mutate: deleteConfig, isPending: isDeleting } = useDeleteWorkspaceConfig();
   const { confirm } = useConfirm();
@@ -139,7 +141,7 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
 
               <div className="mt-3 flex items-center gap-2">
                 <Calendar className="h-3 w-3 text-slate-400" />
-                <span className="text-[10px] text-slate-500">{new Date(cfg.effective_from).toLocaleDateString()}</span>
+                <span className="text-[10px] text-slate-500">{formatDate(cfg.effective_from)}</span>
               </div>
 
               {/* Actions */}
@@ -189,7 +191,7 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
                       <td className="p-4">
                         {formatConfigValue(cfg)}
                       </td>
-                      <td className="p-4 text-slate-500">{new Date(cfg.effective_from).toLocaleDateString()}</td>
+                      <td className="p-4 text-slate-500">{formatDate(cfg.effective_from)}</td>
                       <td className="p-4 text-right">
                         <div className="flex justify-end gap-2">
                           <Button

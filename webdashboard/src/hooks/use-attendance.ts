@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import type { AttendanceDailySummary, PaginatedResponse } from "@/lib/api";
@@ -12,6 +12,7 @@ import {
   claimOt,
 } from "@/lib/api";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
+import { useWorkspaceQuery, useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
 import { maybeNull } from "@/types/api-overrides";
 
 interface SummaryParams {
@@ -30,19 +31,13 @@ export const attendanceKeys = {
 const POST_OT_PAGE_SIZE = 20;
 
 export function useAttendanceSummaries(start: string, end: string, employeeId?: string) {
-  const wsId = getCurrentWorkspaceId();
-
-  const query = useQuery({
+  const query = useWorkspaceQuery<AttendanceDailySummary[]>({
     queryKey: attendanceKeys.summaries({ start, end, employeeId }),
-    queryFn: () => {
-        if (!wsId) throw new Error("No workspace");
-        return fetchAttendanceSummaries(wsId, start, end, employeeId);
-    },
-    enabled: !!wsId,
+    queryFn: (wsId) => fetchAttendanceSummaries(wsId, start, end, employeeId),
   });
 
   return {
-    summaries: (query.data ?? []),
+    summaries: query.data ?? [],
     isLoading: query.isLoading,
     isError: query.isError,
     refetch: query.refetch,
@@ -52,7 +47,7 @@ export function useAttendanceSummaries(start: string, end: string, employeeId?: 
 export function useAttendanceSummariesInfinite(
   start: string,
   end: string,
-  options?: { employeeId?: string; otStatus?: string }
+  options?: { employeeId?: string; otStatus?: string },
 ) {
   const wsId = getCurrentWorkspaceId();
 
@@ -80,7 +75,7 @@ export function useAttendanceSummariesInfinite(
 
   const summaries = useMemo(
     () => infiniteQuery.data?.pages.flatMap((p) => Array.isArray(p.data) ? p.data : []) ?? [],
-    [infiniteQuery.data]
+    [infiniteQuery.data],
   );
 
   return {
@@ -94,22 +89,18 @@ export function useAttendanceSummariesInfinite(
 }
 
 export function useApproveOt() {
-  const queryClient = useQueryClient();
-  const wsId = getCurrentWorkspaceId();
-
-  const mutation = useMutation({
-    mutationFn: (data: { employeeId: string, date: string; approved_minutes: number; manager_note?: string; status: "approved" | "rejected" }) => {
-        if (!wsId) throw new Error("No workspace");
-        return approveOt(wsId, data.employeeId, {
-            date: data.date,
-            approved_minutes: data.approved_minutes,
-            manager_note: data.manager_note,
-            status: data.status,
-        });
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: attendanceKeys.all });
-    },
+  const mutation = useWorkspaceMutation<
+    { employeeId: string; date: string; approved_minutes: number; manager_note?: string; status: "approved" | "rejected" },
+    void
+  >({
+    mutationFn: (wsId, data) =>
+      approveOt(wsId, data.employeeId, {
+        date: data.date,
+        approved_minutes: data.approved_minutes,
+        manager_note: data.manager_note,
+        status: data.status,
+      }),
+    keys: [attendanceKeys.all],
   });
 
   return {
@@ -119,28 +110,24 @@ export function useApproveOt() {
 }
 
 export function useEnterPaperOt() {
-  const queryClient = useQueryClient();
-  const wsId = getCurrentWorkspaceId();
-
-  const mutation = useMutation({
-    mutationFn: (data: {
+  const mutation = useWorkspaceMutation<
+    {
       employeeId: string;
       date: string;
       claimed_minutes: number;
       reason: string;
       paper_form_photo_url?: string;
-    }) => {
-      if (!wsId) throw new Error("No workspace");
-      return enterPaperOt(wsId, data.employeeId, {
+    },
+    AttendanceDailySummary
+  >({
+    mutationFn: (wsId, data) =>
+      enterPaperOt(wsId, data.employeeId, {
         date: data.date,
         claimed_minutes: data.claimed_minutes,
         reason: data.reason,
         paper_form_photo_url: data.paper_form_photo_url,
-      });
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: attendanceKeys.all });
-    },
+      }),
+    keys: [attendanceKeys.all],
   });
 
   return {
@@ -150,17 +137,12 @@ export function useEnterPaperOt() {
 }
 
 export function useBulkUploadPaperOt() {
-  const queryClient = useQueryClient();
-  const wsId = getCurrentWorkspaceId();
-
-  const mutation = useMutation({
-    mutationFn: (file: File) => {
-      if (!wsId) throw new Error("No workspace");
-      return bulkUploadPaperOt(wsId, file);
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: attendanceKeys.all });
-    },
+  const mutation = useWorkspaceMutation<
+    File,
+    { total_rows: number; success_count: number; failed_count: number; errors: { line_number: number; employment_id: string; error_message: string }[] }
+  >({
+    mutationFn: (wsId, file) => bulkUploadPaperOt(wsId, file),
+    keys: [attendanceKeys.all],
   });
 
   return {
@@ -170,22 +152,17 @@ export function useBulkUploadPaperOt() {
 }
 
 export function useClaimOt() {
-  const queryClient = useQueryClient();
-  const wsId = getCurrentWorkspaceId();
-
-  const mutation = useMutation({
-    mutationFn: (data: { employeeId: string; date: string; claimed_minutes: number; reason?: string }) => {
-      if (!wsId) throw new Error("No workspace");
-      return claimOt(wsId, data.employeeId, {
+  const mutation = useWorkspaceMutation<
+    { employeeId: string; date: string; claimed_minutes: number; reason?: string },
+    void
+  >({
+    mutationFn: (wsId, data) =>
+      claimOt(wsId, data.employeeId, {
         date: data.date,
         claimed_minutes: data.claimed_minutes,
         reason: data.reason,
-      });
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: attendanceKeys.all });
-      void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
-    },
+      }),
+    keys: [attendanceKeys.all, ["attendance-report"]],
   });
 
   return {

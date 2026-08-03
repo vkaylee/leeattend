@@ -12,7 +12,6 @@ import {
   TIMEOUT,
   apiFetch,
   forceRefreshToken,
-  fetchHealth,
 } from '../helpers';
 
 describe('Token helpers', () => {
@@ -334,26 +333,6 @@ describe('handleUnauthorized (401 retry-on-refresh) via apiFetch', () => {
       writable: true,
       configurable: true,
     });
-  });
-});
-
-describe('fetchHealth', () => {
-  beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn());
-  });
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it('GETs /v1/health and returns parsed status JSON', async () => {
-    const mockFetch = globalThis.fetch as Mock;
-    mockFetch.mockResolvedValue(
-      new Response(JSON.stringify({ status: 'ok' }), { status: 200 }),
-    );
-    const result = await fetchHealth();
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch.mock.calls[0][0]).toContain('/v1/health');
-    expect(result).toEqual({ status: 'ok' });
   });
 });
 

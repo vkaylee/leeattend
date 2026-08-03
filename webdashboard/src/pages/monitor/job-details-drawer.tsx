@@ -7,6 +7,7 @@ import Button from "@/components/ui/button";
 import Sheet from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { RecentJob } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -173,19 +174,20 @@ function JobTimeInfoCard({
   requesterId?: string | null;
   t: TFunction;
 }) {
+  const { formatDateTimeLocale } = useDateTimeFormatter();
   return (
     <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] p-6 border border-slate-100 dark:border-slate-800 space-y-3 text-sm">
       <div className="flex justify-between">
         <span className="text-slate-400">{t("monitor.created_at", { defaultValue: "Created At" })}</span>
         <span className="text-slate-700 dark:text-slate-300 font-medium">
-          {new Date(createdAt).toLocaleString()}
+          {formatDateTimeLocale(createdAt)}
         </span>
       </div>
       {completedAt ? (
         <div className="flex justify-between">
           <span className="text-slate-400">{t("monitor.completed_at", { defaultValue: "Completed At" })}</span>
           <span className="text-slate-700 dark:text-slate-300 font-medium">
-            {new Date(completedAt).toLocaleString()}
+            {formatDateTimeLocale(completedAt)}
           </span>
         </div>
       ) : null}

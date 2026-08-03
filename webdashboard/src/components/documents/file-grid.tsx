@@ -1,5 +1,6 @@
 import { FileIcon, FileText, Image as ImageIcon, FileArchive, FileCode, FileSpreadsheet, Download, Trash2 } from "lucide-react";
 import React from "react";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 import type { components } from "@/types/api-generated";
 
@@ -41,6 +42,7 @@ function formatBytes(bytes: number, decimals = 2) {
 }
 
 export function FileGrid({ files, onViewFile, onDownloadFile, onDeleteFile }: FileGridProps) {
+  const { formatDate } = useDateTimeFormatter();
   if (files.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-slate-400 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
@@ -100,7 +102,7 @@ export function FileGrid({ files, onViewFile, onDownloadFile, onDeleteFile }: Fi
               {file.file_name}
             </Typography>
             <Typography className="text-xs text-slate-400 mt-1" variant="p">
-              {formatBytes(file.file_size)} • {new Date(file.created_at).toLocaleDateString()}
+              {formatBytes(file.file_size)} • {formatDate(file.created_at)}
             </Typography>
           </div>
         </div>

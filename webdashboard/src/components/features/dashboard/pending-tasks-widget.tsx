@@ -1,6 +1,7 @@
 import { ClipboardList, Circle, AlertCircle } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 import type { PendingTaskResponse } from "@/lib/api/types";
 
@@ -14,7 +15,8 @@ import { maybeNull } from "@/types/api-overrides";
 export default function PendingTasksWidget() {
   const { t } = useTranslation();
   const toast = useToast();
-  
+  const { formatDate } = useDateTimeFormatter();
+
   const { data: tasks = [], isLoading, error } = useMyPendingTasks();
   const completeTaskMutation = useCompletePendingTask();
 
@@ -108,9 +110,9 @@ export default function PendingTasksWidget() {
                     <div className="text-[10px] font-semibold flex items-center gap-1 mt-1">
                       <AlertCircle className={cn("w-3.5 h-3.5", isOverdue ? "text-rose-500 animate-pulse" : "text-amber-500")} />
                       <span className={cn(isOverdue ? "text-rose-500" : "text-slate-400")}>
-                        {isOverdue 
-                          ? t("dashboard.lifecycle.overdue", { date: new Date(task.due_date).toLocaleDateString(), defaultValue: `Overdue: ${new Date(task.due_date).toLocaleDateString()}` })
-                          : t("dashboard.lifecycle.due", { date: new Date(task.due_date).toLocaleDateString(), defaultValue: `Due: ${new Date(task.due_date).toLocaleDateString()}` })}
+                        {isOverdue
+                          ? t("dashboard.lifecycle.overdue", { date: formatDate(task.due_date), defaultValue: `Overdue: ${formatDate(task.due_date)}` })
+                          : t("dashboard.lifecycle.due", { date: formatDate(task.due_date), defaultValue: `Due: ${formatDate(task.due_date)}` })}
                       </span>
                     </div>
                   )}

@@ -19,6 +19,27 @@ vi.mock("@/hooks/use-confirm", () => ({
   useConfirm: vi.fn(),
 }));
 
+vi.mock("@/hooks/use-datetime", () => ({
+  useDateTimeFormatter: () => ({
+    formatDate: (d: string | Date | null | undefined) => {
+      if (typeof d === "string") return new Date(d).toLocaleDateString();
+      return "";
+    },
+    formatDateTimeLocale: (d: string | Date | null | undefined) => d ? String(d) : "",
+    formatTime: () => "",
+    formatDateTime: () => "",
+    formatMonthYear: () => "",
+    formatTime24h: () => "",
+  }),
+}));
+
+vi.mock("@/hooks/use-workspace", () => ({
+  useWorkspace: () => ({
+    workspace: { id: "ws-test", name: "Test Workspace" },
+  }),
+  useWorkspaces: () => ({ workspaces: [], isLoading: false, isError: false }),
+}));
+
 describe("SystemRolesPage", () => {
   const mockAssignRole = vi.fn();
   const mockRevokeRole = vi.fn();

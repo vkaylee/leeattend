@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 interface Assignee {
   assigned_at: string;
@@ -38,6 +39,7 @@ const roleIcons: Record<string, React.ElementType> = {
 
 export function SystemRoleCard({ isRevoking, onAssign, onRevoke, role }: SystemRoleCardProps) {
   const { t } = useTranslation();
+  const { formatDate } = useDateTimeFormatter();
   const Icon = (roleIcons[role.name] as React.ElementType | undefined) ?? Shield;
 
   return (
@@ -89,7 +91,7 @@ export function SystemRoleCard({ isRevoking, onAssign, onRevoke, role }: SystemR
                     {assignee.user_id}
                   </span>
                   <span className="text-xs text-slate-500">
-                    {t("system_roles.assigned_date", { date: new Date(assignee.assigned_at).toLocaleDateString() })}
+                    {t("system_roles.assigned_date", { date: formatDate(assignee.assigned_at) })}
                   </span>
                 </div>
                 <Button className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors disabled:opacity-50"

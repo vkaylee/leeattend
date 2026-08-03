@@ -84,7 +84,7 @@ describe("use-dashboard hooks", () => {
             });
 
             await waitFor(() => { expect(result.current.isError).toBe(true); });
-            expect(result.current.error?.message).toBe("Failed to fetch dashboard stats");
+            expect(result.current.error?.message).toBe("Failed to fetch workspace-stats");
         });
     });
 

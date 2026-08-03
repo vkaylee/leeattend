@@ -164,24 +164,6 @@ describe("api.ts comprehensive tests", () => {
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/time/punch-out"), expect.objectContaining({ method: "POST" }));
     });
 
-    it("fetchTimeHistory", async () => {
-      mockSuccess([]);
-      await api.fetchTimeHistory("ws-1", "e1", "2026-01-01", "2026-01-31");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/time/history/e1?start=2026-01-01&end=2026-01-31"), expect.any(Object));
-    });
-
-    it("updateTimeEntry", async () => {
-      mockSuccess({});
-      await api.updateTimeEntry("ws-1", "t1", { note: "U" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/time-tracking/t1"), expect.objectContaining({ method: "PUT" }));
-    });
-
-    it("deleteTimeEntry", async () => {
-      mockSuccess({});
-      await api.deleteTimeEntry("ws-1", "t1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/time-tracking/t1"), expect.objectContaining({ method: "DELETE" }));
-    });
-
     it("submitAttendanceAdjustment", async () => {
       mockSuccess({});
       await api.submitAttendanceAdjustment("ws-1", { employment_id: "e1", requested_punch_time: "..." });
@@ -217,13 +199,6 @@ describe("api.ts comprehensive tests", () => {
       mockSuccess({});
       await api.approveAttendanceAdjustment("ws-1", "req-1", { status: "approved" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/adjustments/req-1/approve"), expect.objectContaining({ method: "PUT" }));
-    });
-
-    it("fetchAttendanceLogs", async () => {
-      localStorage.setItem("active_workspace_id", "ws-1");
-      mockSuccess({ data: [], total: 0 });
-      await api.fetchAttendanceLogs({ page: 1 });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/logs"), expect.any(Object));
     });
 
     it("fetchAttendanceReport", async () => {

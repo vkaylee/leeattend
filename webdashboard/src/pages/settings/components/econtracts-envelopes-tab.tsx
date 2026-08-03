@@ -1,6 +1,8 @@
 import { AlertCircle, Eye, FileText, Search, Calendar } from "lucide-react";
 import React, { useState } from "react";
 
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
+
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import EmptyState from "@/components/ui/empty-state";
@@ -20,6 +22,7 @@ export default function EContractsEnvelopesTab({
   isLoading,
 }: EContractsEnvelopesTabProps) {
   const [selectedEnvelopeForLog, setSelectedEnvelopeForLog] = useState<EContractEnvelope | null>(null);
+  const { formatDate } = useDateTimeFormatter();
 
   // Filters for Envelope dashboard
   const [envFilterSearch, setEnvFilterSearch] = useState("");
@@ -90,7 +93,7 @@ export default function EContractsEnvelopesTab({
                 <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
                   <Calendar className="h-3.5 w-3.5 text-slate-400" />
                   <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
-                    {new Date(env.created_at).toLocaleDateString()}
+                    {formatDate(env.created_at)}
                   </span>
                 </div>
 
@@ -153,7 +156,7 @@ export default function EContractsEnvelopesTab({
                         </span>
                       </td>
                       <td className="px-8 py-6 text-xs font-mono text-slate-500 dark:text-slate-400">
-                        {new Date(env.created_at).toLocaleDateString()}
+                        {formatDate(env.created_at)}
                       </td>
                       <td className="px-8 py-6 text-right">
                         <Button

@@ -29,221 +29,116 @@ export type {
   WorkspaceStats,
 } from "./use-dashboard-types";
 
-export function useDashboardStats() {
+// ── Factory: reusable useQuery wrapper with workspace guard ────────────────
+
+interface DashboardQueryOptions {
+  /** Unique cache key segment (e.g. "workspace-stats"). */
+  key: string;
+  /** Lazily builds the API path (captures hook args in closure). */
+  getPath: () => string;
+  /** Extra values appended to the query key (e.g. range, dates). */
+  extraQueryKeyParams?: unknown[];
+  /** Additional enabled condition ANDed with the workspace guard. */
+  extraEnabled?: boolean;
+}
+
+function useDashboardQuery<T>(options: DashboardQueryOptions) {
   const { workspace } = useWorkspace();
 
-  return useQuery<WorkspaceStats>({
-    queryKey: ["workspace-stats", workspace?.id],
+  return useQuery<T>({
+    queryKey: [options.key, workspace?.id, ...(options.extraQueryKeyParams ?? [])],
     queryFn: async () => {
       if (!workspace) throw new Error("No workspace selected");
 
-      const response = await apiFetch(`/v1/dashboard/workspace-stats`);
+      const response = await apiFetch(options.getPath());
 
       if (!response.ok) {
-        throw new Error("Failed to fetch dashboard stats");
+        throw new Error(`Failed to fetch ${options.key}`);
       }
 
-      return response.json() as Promise<WorkspaceStats>;
+      return response.json() as Promise<T>;
     },
-    enabled: !!workspace,
+    enabled: !!workspace && (options.extraEnabled ?? true),
   });
 }
 
-export function useAttendanceTrend() {
-  const { workspace } = useWorkspace();
+// ── Public hooks (one-liners) ─────────────────────────────────────────────
 
-  return useQuery<AttendanceTrendPoint[]>({
-    queryKey: ["attendance-trend", workspace?.id],
-    queryFn: async () => {
-      if (!workspace) throw new Error("No workspace selected");
-
-      const response = await apiFetch(`/v1/dashboard/attendance-trend`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch attendance trend");
-      }
-
-      return response.json() as Promise<AttendanceTrendPoint[]>;
-    },
-    enabled: !!workspace,
+export const useDashboardStats = () =>
+  useDashboardQuery<WorkspaceStats>({
+    key: "workspace-stats",
+    getPath: () => "/v1/dashboard/workspace-stats",
   });
-}
+
+export const useAttendanceTrend = () =>
+  useDashboardQuery<AttendanceTrendPoint[]>({
+    key: "attendance-trend",
+    getPath: () => "/v1/dashboard/attendance-trend",
+  });
 
 export function useDepartmentAttendance(range: "today" | "week" = "today") {
-  const { workspace } = useWorkspace();
-
-  return useQuery<DepartmentAttendancePoint[]>({
-    queryKey: ["department-attendance", workspace?.id, range],
-    queryFn: async () => {
-      if (!workspace) throw new Error("No workspace selected");
-
-      const response = await apiFetch(
-        `/v1/dashboard/department-attendance?range=${range}`
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch department attendance");
-      }
-
-      return response.json() as Promise<DepartmentAttendancePoint[]>;
-    },
-    enabled: !!workspace,
+  return useDashboardQuery<DepartmentAttendancePoint[]>({
+    key: "department-attendance",
+    getPath: () => `/v1/dashboard/department-attendance?range=${range}`,
+    extraQueryKeyParams: [range],
   });
 }
 
-export function useUnexcusedAbsences(startDate?: string, endDate?: string, groupBy?: "department" | "employee") {
-  const { workspace } = useWorkspace();
-
-  return useQuery<UnexcusedAbsencesPoint[]>({
-    queryKey: ["unexcused-absences", workspace?.id, startDate, endDate, groupBy],
-    queryFn: async () => {
-      if (!workspace) throw new Error("No workspace selected");
-
+export function useUnexcusedAbsences(
+  startDate?: string,
+  endDate?: string,
+  groupBy?: "department" | "employee",
+) {
+  return useDashboardQuery<UnexcusedAbsencesPoint[]>({
+    key: "unexcused-absences",
+    getPath: () => {
       const params = new URLSearchParams();
       if (startDate) params.set("start_date", startDate);
       if (endDate) params.set("end_date", endDate);
       if (groupBy) params.set("group_by", groupBy);
       const qs = params.toString();
-      const response = await apiFetch(`/v1/dashboard/unexcused-absences${qs ? `?${qs}` : ""}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch unexcused absences");
-      }
-
-      return response.json() as Promise<UnexcusedAbsencesPoint[]>;
+      return `/v1/dashboard/unexcused-absences${qs ? `?${qs}` : ""}`;
     },
-    enabled: !!workspace,
+    extraQueryKeyParams: [startDate, endDate, groupBy],
   });
 }
 
-export function useOvertimeTrend() {
-  const { workspace } = useWorkspace();
-
-  return useQuery<OvertimeTrendPoint[]>({
-    queryKey: ["overtime-trend", workspace?.id],
-    queryFn: async () => {
-      if (!workspace) throw new Error("No workspace selected");
-
-      const response = await apiFetch(`/v1/dashboard/overtime-trend`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch overtime trend");
-      }
-
-      return response.json() as Promise<OvertimeTrendPoint[]>;
-    },
-    enabled: !!workspace,
+export const useOvertimeTrend = () =>
+  useDashboardQuery<OvertimeTrendPoint[]>({
+    key: "overtime-trend",
+    getPath: () => "/v1/dashboard/overtime-trend",
   });
-}
 
-// ── Peak Check-in/Check-out Times ──────────────────────────
-
-export function usePeakTimes() {
-  const { workspace } = useWorkspace();
-
-  return useQuery<PeakTimeSlot[]>({
-    queryKey: ["peak-times", workspace?.id],
-    queryFn: async () => {
-      if (!workspace) throw new Error("No workspace selected");
-
-      const response = await apiFetch(`/v1/dashboard/peak-times`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch peak times");
-      }
-
-      return response.json() as Promise<PeakTimeSlot[]>;
-    },
-    enabled: !!workspace,
+export const usePeakTimes = () =>
+  useDashboardQuery<PeakTimeSlot[]>({
+    key: "peak-times",
+    getPath: () => "/v1/dashboard/peak-times",
   });
-}
 
-// ── Leave Types Breakdown ──────────────────────────────────
-
-export function useLeaveTypesBreakdown() {
-  const { workspace } = useWorkspace();
-
-  return useQuery<LeaveTypeBreakdown[]>({
-    queryKey: ["leave-types-breakdown", workspace?.id],
-    queryFn: async () => {
-      if (!workspace) throw new Error("No workspace selected");
-
-      const response = await apiFetch(`/v1/dashboard/leave-types`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch leave types breakdown");
-      }
-
-      return response.json() as Promise<LeaveTypeBreakdown[]>;
-    },
-    enabled: !!workspace,
+export const useLeaveTypesBreakdown = () =>
+  useDashboardQuery<LeaveTypeBreakdown[]>({
+    key: "leave-types-breakdown",
+    getPath: () => "/v1/dashboard/leave-types",
   });
-}
 
-// ── Lateness by Day of Week ────────────────────────────────
-
-export function useLatenessByDay() {
-  const { workspace } = useWorkspace();
-
-  return useQuery<LatenessByDay[]>({
-    queryKey: ["lateness-by-day", workspace?.id],
-    queryFn: async () => {
-      if (!workspace) throw new Error("No workspace selected");
-
-      const response = await apiFetch(`/v1/dashboard/lateness-by-day`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch lateness by day");
-      }
-
-      return response.json() as Promise<LatenessByDay[]>;
-    },
-    enabled: !!workspace,
+export const useLatenessByDay = () =>
+  useDashboardQuery<LatenessByDay[]>({
+    key: "lateness-by-day",
+    getPath: () => "/v1/dashboard/lateness-by-day",
   });
-}
 
-// ── Recruitment Source Breakdown ──────────────────────────────────
-
-export function useRecruitmentSourceBreakdown() {
-  const { workspace } = useWorkspace();
-
-  return useQuery<RecruitmentSourceBreakdown[]>({
-    queryKey: ["recruitment-sources-breakdown", workspace?.id],
-    queryFn: async () => {
-      if (!workspace) throw new Error("No workspace selected");
-
-      const response = await apiFetch(`/v1/dashboard/recruitment-sources`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch recruitment source breakdown");
-      }
-
-      return response.json() as Promise<RecruitmentSourceBreakdown[]>;
-    },
-    enabled: !!workspace,
+export const useRecruitmentSourceBreakdown = () =>
+  useDashboardQuery<RecruitmentSourceBreakdown[]>({
+    key: "recruitment-sources-breakdown",
+    getPath: () => "/v1/dashboard/recruitment-sources",
   });
-}
-
-// ── Turnover Analytics ─────────────────────────────────────────────
 
 export function useTurnoverAnalytics(startDate: string, endDate: string) {
-  const { workspace } = useWorkspace();
-
-  return useQuery<TurnoverAnalytics>({
-    queryKey: ["turnover-analytics", workspace?.id, startDate, endDate],
-    queryFn: async () => {
-      if (!workspace) throw new Error("No workspace selected");
-
-      const response = await apiFetch(
-        `/v1/dashboard/turnover-analytics?start=${startDate}&end=${endDate}`
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch turnover analytics");
-      }
-
-      return response.json() as Promise<TurnoverAnalytics>;
-    },
-    enabled: !!workspace && !!startDate && !!endDate,
+  return useDashboardQuery<TurnoverAnalytics>({
+    key: "turnover-analytics",
+    getPath: () =>
+      `/v1/dashboard/turnover-analytics?start=${startDate}&end=${endDate}`,
+    extraQueryKeyParams: [startDate, endDate],
+    extraEnabled: !!startDate && !!endDate,
   });
 }

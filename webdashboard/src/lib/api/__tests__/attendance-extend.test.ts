@@ -12,14 +12,9 @@ vi.mock("../helpers", () => ({
 import {
   punchIn,
   punchOut,
-  fetchTimeHistory,
-  updateTimeEntry,
-  deleteTimeEntry,
   submitAttendanceAdjustment,
   fetchWorkspaceAttendanceAdjustments,
-  fetchMyAttendanceAdjustments,
   approveAttendanceAdjustment,
-  fetchAttendanceLogs,
   fetchRawAttendanceLogs,
   uploadAttendance,
   fetchLatestImportJob,
@@ -113,30 +108,6 @@ describe("attendance API (extended)", () => {
     expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/time/punch-out/e1");
   });
 
-  it("fetchTimeHistory: GET with start/end query", async () => {
-    const mock = [{ id: "te-1" }];
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchTimeHistory("test-ws-id", "e1", "2026-01-01", "2026-01-31");
-    expect(result).toEqual(mock);
-    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/time/history/e1");
-  });
-
-  it("updateTimeEntry: PUT returns entry", async () => {
-    const mock = { id: "te-1", note: "fixed" };
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await updateTimeEntry("test-ws-id", "te-1", { note: "fixed" });
-    expect(result).toEqual(mock);
-    const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
-    expect(opts.method).toBe("PUT");
-  });
-
-  it("deleteTimeEntry: DELETE", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await deleteTimeEntry("test-ws-id", "te-1");
-    const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
-    expect(opts.method).toBe("DELETE");
-  });
-
   it("submitAttendanceAdjustment: POST returns adjustment", async () => {
     const mock = { id: "adj-1", status: "pending" };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
@@ -156,30 +127,12 @@ describe("attendance API (extended)", () => {
     expect(result).toEqual(mock);
   });
 
-  it("fetchMyAttendanceAdjustments: GET list", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes([{ id: "adj-1" }]));
-    const result = await fetchMyAttendanceAdjustments("e1");
-    expect(result).toEqual([{ id: "adj-1" }]);
-  });
-
   it("approveAttendanceAdjustment: PUT approve", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
     await approveAttendanceAdjustment("test-ws-id", "adj-1", { status: "approved" });
     const call = vi.mocked(apiFetch).mock.calls[0];
     expect(call[0]).toContain("/attendance/adjustments/adj-1/approve");
     expect((call[1] as RequestInit).method).toBe("PUT");
-  });
-
-  it("fetchAttendanceLogs: throws when no wsId", async () => {
-    const { getCurrentWorkspaceId } = await import("../helpers");
-    vi.mocked(getCurrentWorkspaceId).mockReturnValueOnce(null);
-    await expect(fetchAttendanceLogs({})).rejects.toThrow("Workspace not selected");
-  });
-
-  it("fetchAttendanceLogs: GET with query", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ data: [{ id: "te-1" }], total: 1, page: 1, limit: 20 }));
-    const result = await fetchAttendanceLogs({ employee_id: "e1", page: 1 });
-    expect(result.total).toBe(1);
   });
 
   it("fetchRawAttendanceLogs: GET", async () => {

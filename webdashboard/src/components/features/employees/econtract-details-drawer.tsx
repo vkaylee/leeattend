@@ -1,6 +1,7 @@
 import { X, KeyRound, CheckCircle, Clock, Send, Download, FileSignature } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 // @see TD-1 — eContracts backend not yet wired; UI is stub-only.
 import Button from "@/components/ui/button";
@@ -27,6 +28,7 @@ export default function EContractDetailsDrawer({
   wsId: _wsId,
 }: EContractDetailsDrawerProps) {
   const { t } = useTranslation("employees");
+  const { formatDateTimeLocale } = useDateTimeFormatter();
   const toast = useToast();
 
   const [isSigningModalOpen, setIsSigningModalOpen] = useState(false);
@@ -161,7 +163,7 @@ export default function EContractDetailsDrawer({
                       </div>
                       {!!signer.signed_at && (
                         <div className="mt-2 text-[8px] font-mono text-slate-400 block uppercase tracking-wider">
-                          {t("econtract_drawer.signed_at")}: {new Date(signer.signed_at).toLocaleString()}
+                          {t("econtract_drawer.signed_at")}: {formatDateTimeLocale(signer.signed_at)}
                         </div>
                       )}
                     </div>

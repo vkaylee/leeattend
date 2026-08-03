@@ -14,6 +14,7 @@ import {
 
 import { Typography } from "@/components/ui/typography";
 import { useAttendanceTrend } from "@/hooks/use-dashboard";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 const COLORS = {
     present: "#10b981",
@@ -122,15 +123,13 @@ function AttendanceTrendChartArea({ chartData, t }: AttendanceTrendChartAreaProp
 
 export default function AttendanceTrendChart() {
     const { t } = useTranslation();
+    const { formatDate } = useDateTimeFormatter();
     const { data: trend, isLoading } = useAttendanceTrend();
 
     const chartData = (trend ?? []).map((point) => ({
         ...point,
         // Short date label: "02/01" or "01 Feb"
-        label: new Date(point.date).toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-        }),
+        label: formatDate(point.date),
     }));
 
     const hasData = chartData.length > 0 && chartData.some((d) => d.present > 0 || d.late > 0 || d.absent > 0 || d.on_leave > 0);

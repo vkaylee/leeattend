@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useDeviceInfo, devicesKeys } from "@/hooks/use-devices";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Device, DeviceInfo, DeviceStatus } from "@/lib/api";
 import { logError } from "@/lib/logger";
 import { cn } from "@/lib/utils";
@@ -34,13 +35,14 @@ interface DeviceBottomBarProps {
 
 function DeviceBottomBar({ device, displayInfo, isToggling, onToggle }: DeviceBottomBarProps) {
   const { t } = useTranslation();
+  const { formatDateTimeLocale } = useDateTimeFormatter();
 
   return (
     <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800/50 flex items-center justify-between">
       <div className="text-[10px] font-bold text-slate-400">
         {displayInfo ? (
           <span className="text-emerald-500 flex items-center gap-1.5">
-            <Activity size={10} /> {t("devices.info.last_synced", { time: displayInfo.last_sync ? new Date(displayInfo.last_sync).toLocaleString() : "—" })}
+            <Activity size={10} /> {t("devices.info.last_synced", { time: displayInfo.last_sync ? formatDateTimeLocale(displayInfo.last_sync) : "—" })}
           </span>
         ) : (
           <span className="italic">{t("devices.info.loading")}</span>

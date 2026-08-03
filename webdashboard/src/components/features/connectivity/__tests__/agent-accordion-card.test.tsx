@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -8,13 +9,33 @@ import { AuthorizedAgent, Device } from "@/lib/api";
 
 import AgentAccordionCard from "../agent-accordion-card";
 
+// Mock useWorkspace so useDateTimeFormatter doesn't need QueryClient
+vi.mock("@/hooks/use-workspace", () => ({
+  useWorkspace: () => ({
+    workspace: { id: "ws-test", name: "Test Workspace", timezone: "Asia/Ho_Chi_Minh", date_format: "DD/MM/YYYY", time_format: "24h" },
+  }),
+  useWorkspaces: () => ({ workspaces: [], isLoading: false, isError: false }),
+}));
+
+// Mock useDateTimeFormatter
+vi.mock("@/hooks/use-datetime", () => ({
+  useDateTimeFormatter: () => ({
+    formatDate: (d: string | Date | null | undefined) => d ? String(d) : "",
+    formatDateTimeLocale: (d: string | Date | null | undefined) => d ? new Date(d as string).toLocaleString() : "",
+    formatTime: (d: string | Date | null | undefined) => d ? "" : "",
+    formatDateTime: (d: string | Date | null | undefined) => d ? "" : "",
+    formatMonthYear: (d: string | Date | null | undefined) => d ? "" : "",
+    formatTime24h: (d: string | Date | null | undefined) => d ? "" : "",
+  }),
+}));
+
 // Mock translation
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, options?: { name?: string }) => {
       if (key === "agents.messages.confirm_delete") return `Delete ${options?.name}?`;
       if (key === "agents.messages.confirm_revoke") return `Revoke ${options?.name}?`;
- 
+
       if (key === "agents.messages.confirm_approve") return `Approve ${options?.name}?`;
       if (key === "common.confirm") return "Confirm";
       if (key === "common.warning") return "Warning";

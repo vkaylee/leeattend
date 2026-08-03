@@ -1,6 +1,7 @@
 import { Clock, ArrowUpRight, ArrowDownRight, Calendar } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 import { Typography } from "@/components/ui/typography";
 import { LeaveHistoryItem } from "@/lib/api";
@@ -8,6 +9,7 @@ import { cn } from "@/lib/utils";
 
 export function HistoryItemRow({ item }: { item: LeaveHistoryItem }) {
   const { t } = useTranslation();
+  const { formatDate } = useDateTimeFormatter();
   const isPositive = item.amount > 0;
 
   return (
@@ -33,7 +35,7 @@ export function HistoryItemRow({ item }: { item: LeaveHistoryItem }) {
         </div>
         <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
           <Calendar size={10} />
-          {new Date(item.date).toLocaleDateString()}
+          {formatDate(item.date)}
           <span className="w-1 h-1 bg-slate-200 dark:bg-slate-600 rounded-full" />
           {t(`leave_balances.transaction_type.${item.transaction_type}`)}
         </div>

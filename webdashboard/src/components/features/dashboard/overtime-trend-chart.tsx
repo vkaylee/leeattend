@@ -14,19 +14,17 @@ import {
 
 import { Typography } from "@/components/ui/typography";
 import { useOvertimeTrend } from "@/hooks/use-dashboard";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 const COLORS = {
     system: "#f97316",   // orange-500
     approved: "#10b981", // emerald-500
 };
 
-function getOvertimeChartData(trend: { approved_ot_hours: number; date: string; system_ot_hours: number }[] | undefined) {
+function getOvertimeChartData(trend: { approved_ot_hours: number; date: string; system_ot_hours: number }[] | undefined, formatDate: (date: string | Date | null | undefined) => string) {
     const chartData = (trend ?? []).map((point) => ({
         ...point,
-        label: new Date(point.date).toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-        }),
+        label: formatDate(point.date),
     }));
 
     const hasData =
@@ -69,9 +67,10 @@ function OvertimeEmptyState({ t }: { t: (k: string) => string }) {
 
 export default function OvertimeTrendChart() {
     const { t } = useTranslation();
+    const { formatDate } = useDateTimeFormatter();
     const { data: trend, isLoading } = useOvertimeTrend();
 
-    const { chartData, hasData } = getOvertimeChartData(trend);
+    const { chartData, hasData } = getOvertimeChartData(trend, formatDate);
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm">

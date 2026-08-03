@@ -1,6 +1,7 @@
 import { ArrowLeft, Clock } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 import Button from "@/components/ui/button";
 import { type Shift } from "@/lib/api";
@@ -68,7 +69,8 @@ export function WorkingPatternCalendarPreview({
   setPreviewAnchorDate,
   shifts,
 }: WorkingPatternCalendarPreviewProps) {
-  const { i18n, t } = useTranslation();
+  const { t } = useTranslation();
+  const { formatDate } = useDateTimeFormatter();
 
   return (
     <div className="flex-1 flex flex-col space-y-6">
@@ -104,10 +106,7 @@ export function WorkingPatternCalendarPreview({
               <ArrowLeft size={16} />
             </Button>
             <span className="text-sm font-extrabold text-slate-700 dark:text-slate-200 uppercase tracking-tight min-w-[8rem] text-center">
-              {new Date(previewYear, previewMonth).toLocaleString(i18n.language || "vi", {
-                month: "long",
-                year: "numeric",
-              })}
+              {formatDate(new Date(previewYear, previewMonth))}
             </span>
             <Button
               className="p-2 border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-all rotate-180"

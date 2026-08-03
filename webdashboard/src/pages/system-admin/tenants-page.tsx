@@ -9,6 +9,7 @@ import ResponsiveTable from "@/components/ui/responsive-table";
 import StatusBadge from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import {
   deleteSystemTenant,
   fetchSystemTenants,
@@ -28,6 +29,7 @@ export default function TenantsPage() {
   const queryClient = useQueryClient();
   const { ConfirmationDialog, confirm } = useConfirm();
   const toast = useToast();
+  const { formatDate, formatDateTimeLocale } = useDateTimeFormatter();
 
   // ── Modal visibility ──────────────────────────────────────────────────────
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -169,7 +171,7 @@ export default function TenantsPage() {
               <div className="flex items-center gap-2">
                 <Clock className="h-3.5 w-3.5 text-slate-400" />
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                  {new Date(tenant.created_at).toLocaleDateString()}
+                  {formatDate(tenant.created_at)}
                 </span>
               </div>
             </div>
@@ -229,7 +231,7 @@ export default function TenantsPage() {
                     </td>
                     <td className="px-8 py-6 text-sm text-slate-500">{tenant.timezone}</td>
                     <td className="px-8 py-6 text-sm text-slate-500">
-                      {new Date(tenant.created_at).toLocaleString()}
+                      {formatDateTimeLocale(tenant.created_at)}
                     </td>
                     <td className="px-8 py-6 text-right">
                       <div className="flex items-center justify-end gap-2">

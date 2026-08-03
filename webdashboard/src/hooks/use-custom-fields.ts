@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 import type {
   CreateCustomFieldDefinitionRequest,
@@ -7,6 +7,7 @@ import type {
 } from "@/lib/api/types";
 
 import { useWorkspace } from "@/hooks/use-workspace";
+import { useWorkspaceQuery, useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
 import {
   createCustomFieldDefinition,
   deleteCustomFieldDefinition,
@@ -27,97 +28,48 @@ export const customFieldKeys = {
 
 export const useCustomFieldDefinitions = (entityType?: string) => {
   const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id;
-
-  return useQuery({
-    queryKey: customFieldKeys.definitionList(workspaceId ?? "", entityType),
-    queryFn: () => {
-      if (!workspaceId) throw new Error("No workspace ID");
-      return fetchCustomFieldDefinitions(workspaceId, entityType);
-    },
-    enabled: !!workspaceId,
+  return useWorkspaceQuery({
+    queryKey: customFieldKeys.definitionList(workspace?.id ?? "", entityType),
+    queryFn: (wsId) => fetchCustomFieldDefinitions(wsId, entityType),
   });
 };
 
-export const useCreateCustomFieldDefinition = () => {
-  const queryClient = useQueryClient();
-  const { workspace } = useWorkspace();
-
-  return useMutation({
-    mutationFn: (payload: CreateCustomFieldDefinitionRequest) => {
-      const workspaceId = workspace?.id;
-      if (!workspaceId) throw new Error("No workspace ID");
-      return createCustomFieldDefinition(workspaceId, payload);
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: customFieldKeys.all });
-    },
+export const useCreateCustomFieldDefinition = () =>
+  useWorkspaceMutation<CreateCustomFieldDefinitionRequest, unknown>({
+    mutationFn: (wsId, payload) => createCustomFieldDefinition(wsId, payload),
+    keys: [customFieldKeys.all],
   });
-};
 
-export const useUpdateCustomFieldDefinition = () => {
-  const queryClient = useQueryClient();
-  const { workspace } = useWorkspace();
-
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateCustomFieldDefinitionRequest }) => {
-      const workspaceId = workspace?.id;
-      if (!workspaceId) throw new Error("No workspace ID");
-      return updateCustomFieldDefinition(workspaceId, id, payload);
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: customFieldKeys.all });
-    },
+export const useUpdateCustomFieldDefinition = () =>
+  useWorkspaceMutation<{ id: string; payload: UpdateCustomFieldDefinitionRequest }, unknown>({
+    mutationFn: (wsId, { id, payload }) => updateCustomFieldDefinition(wsId, id, payload),
+    keys: [customFieldKeys.all],
   });
-};
 
-export const useDeleteCustomFieldDefinition = () => {
-  const queryClient = useQueryClient();
-  const { workspace } = useWorkspace();
-
-  return useMutation({
-    mutationFn: (id: string) => {
-      const workspaceId = workspace?.id;
-      if (!workspaceId) throw new Error("No workspace ID");
-      return deleteCustomFieldDefinition(workspaceId, id);
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: customFieldKeys.all });
-    },
+export const useDeleteCustomFieldDefinition = () =>
+  useWorkspaceMutation<string, unknown>({
+    mutationFn: (wsId, id) => deleteCustomFieldDefinition(wsId, id),
+    keys: [customFieldKeys.all],
   });
-};
 
 export const useCustomFieldValues = (entityType: string, entityId: string) => {
   const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id;
-
-  return useQuery({
-    queryKey: customFieldKeys.values(workspaceId ?? "", entityType, entityId),
-    queryFn: () => {
-      if (!workspaceId) throw new Error("No workspace ID");
-      return fetchCustomFieldValues(workspaceId, entityType, entityId);
-    },
-    enabled: !!workspaceId && !!entityType && !!entityId,
+  return useWorkspaceQuery({
+    queryKey: customFieldKeys.values(workspace?.id ?? "", entityType, entityId),
+    queryFn: (wsId) => fetchCustomFieldValues(wsId, entityType, entityId),
+    enabled: !!entityType && !!entityId,
   });
 };
 
 export const useSetCustomFieldValues = (entityType: string, entityId: string) => {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
-
-  return useMutation({
-    mutationFn: (values: SetCustomFieldValueRequest[]) => {
-      const workspaceId = workspace?.id;
-      if (!workspaceId) throw new Error("No workspace ID");
-      return setCustomFieldValues(workspaceId, entityType, entityId, values);
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: customFieldKeys.values(workspace?.id ?? "", entityType, entityId),
-      });
-      // Also invalidate workspace entity queries to make sure employee list/details refresh
-      void queryClient.invalidateQueries({ queryKey: ["employees"] });
-      void queryClient.invalidateQueries({ queryKey: ["departments"] });
-    },
+  return useWorkspaceMutation<SetCustomFieldValueRequest[], unknown>({
+    mutationFn: (wsId, values) => setCustomFieldValues(wsId, entityType, entityId, values),
+    keys: [
+      customFieldKeys.values(workspace?.id ?? "", entityType, entityId),
+      ["employees"],
+      ["departments"],
+    ],
   });
 };

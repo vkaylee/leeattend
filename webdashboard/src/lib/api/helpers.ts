@@ -172,8 +172,3 @@ export async function apiFetch(
     throw error;
   }
 }
-
-export async function fetchHealth(): Promise<{ status: string }> {
-  const response = await apiFetch(`/v1/health`);
-  return response.json() as Promise<{ status: string }>;
-}

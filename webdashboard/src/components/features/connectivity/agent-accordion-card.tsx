@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { AuthorizedAgent, Device, DeviceStatus } from "@/lib/api";
 import { logError } from "@/lib/logger";
 import { cn } from "@/lib/utils";
@@ -110,6 +111,7 @@ function AgentHeader({
   onToggleTrust,
 }: AgentHeaderProps) {
   const { t } = useTranslation();
+  const { formatDateTimeLocale } = useDateTimeFormatter();
 
   return (
     <div
@@ -170,7 +172,7 @@ function AgentHeader({
 
       <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-[10px] font-mono font-bold uppercase bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800 shrink-0">
         <RefreshCw size={12} />
-        {agent.last_seen_at ? new Date(agent.last_seen_at).toLocaleString() : t("common.never")}
+        {agent.last_seen_at ? formatDateTimeLocale(agent.last_seen_at) : t("common.never")}
       </div>
 
       <AgentActionButtons

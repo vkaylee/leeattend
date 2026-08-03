@@ -1,6 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useWorkspace } from '@/hooks/use-workspace';
+import { useWorkspaceQuery, useWorkspaceMutation } from '@/hooks/common/use-workspace-query';
 import { overtimeRequestsApi, CreateOvertimeRequestPayload, ConsentStatus } from '@/lib/api/overtime-requests';
 
 export const overtimeRequestKeys = {
@@ -17,63 +18,36 @@ export const overtimeRequestKeys = {
 
 export const useOvertimeRequests = (params?: Record<string, unknown>) => {
   const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id;
-
-  return useQuery({
-    queryKey: overtimeRequestKeys.list(workspaceId ?? '', params),
-    queryFn: () => {
-      if (!workspaceId) throw new Error('No workspace ID');
-      return overtimeRequestsApi.listRequests(workspaceId, params);
-    },
-    enabled: !!workspaceId,
+  return useWorkspaceQuery({
+    queryKey: overtimeRequestKeys.list(workspace?.id ?? '', params),
+    queryFn: (wsId) => overtimeRequestsApi.listRequests(wsId, params),
   });
 };
 
 export const useOvertimeRequest = (id: string) => {
   const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id;
-
-  return useQuery({
-    queryKey: overtimeRequestKeys.detail(workspaceId ?? '', id),
-    queryFn: () => {
-      if (!workspaceId) throw new Error('No workspace ID');
-      return overtimeRequestsApi.getRequest(workspaceId, id);
-    },
-    enabled: !!workspaceId && !!id,
+  return useWorkspaceQuery({
+    queryKey: overtimeRequestKeys.detail(workspace?.id ?? '', id),
+    queryFn: (wsId) => overtimeRequestsApi.getRequest(wsId, id),
+    enabled: !!id,
   });
 };
 
-export const useCreateOvertimeRequest = () => {
-  const queryClient = useQueryClient();
-  const { workspace } = useWorkspace();
-
-  return useMutation({
-    mutationFn: (payload: CreateOvertimeRequestPayload) => {
-      const workspaceId = workspace?.id;
-      if (!workspaceId) throw new Error('No workspace ID');
-      return overtimeRequestsApi.createRequest(workspaceId, payload);
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: overtimeRequestKeys.all });
-    },
+export const useCreateOvertimeRequest = () =>
+  useWorkspaceMutation<CreateOvertimeRequestPayload, unknown>({
+    mutationFn: (wsId, payload) => overtimeRequestsApi.createRequest(wsId, payload),
+    keys: [overtimeRequestKeys.all],
   });
-};
 
 export const useSubmitOvertimeRequest = () => {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
-
-  return useMutation({
-    mutationFn: (id: string) => {
-      const workspaceId = workspace?.id;
-      if (!workspaceId) throw new Error('No workspace ID');
-      return overtimeRequestsApi.submitRequest(workspaceId, id);
-    },
+  return useWorkspaceMutation<string, unknown>({
+    mutationFn: (wsId, id) => overtimeRequestsApi.submitRequest(wsId, id),
+    keys: [overtimeRequestKeys.all],
     onSuccess: (_, id) => {
-      const workspaceId = workspace?.id;
-      void queryClient.invalidateQueries({ queryKey: overtimeRequestKeys.all });
-      if (workspaceId) {
-        void queryClient.invalidateQueries({ queryKey: overtimeRequestKeys.detail(workspaceId, id) });
+      if (workspace?.id) {
+        void queryClient.invalidateQueries({ queryKey: overtimeRequestKeys.detail(workspace.id, id) });
       }
     },
   });
@@ -82,18 +56,12 @@ export const useSubmitOvertimeRequest = () => {
 export const useCancelOvertimeRequest = () => {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
-
-  return useMutation({
-    mutationFn: (id: string) => {
-      const workspaceId = workspace?.id;
-      if (!workspaceId) throw new Error('No workspace ID');
-      return overtimeRequestsApi.cancelRequest(workspaceId, id);
-    },
+  return useWorkspaceMutation<string, unknown>({
+    mutationFn: (wsId, id) => overtimeRequestsApi.cancelRequest(wsId, id),
+    keys: [overtimeRequestKeys.all],
     onSuccess: (_, id) => {
-      const workspaceId = workspace?.id;
-      void queryClient.invalidateQueries({ queryKey: overtimeRequestKeys.all });
-      if (workspaceId) {
-        void queryClient.invalidateQueries({ queryKey: overtimeRequestKeys.detail(workspaceId, id) });
+      if (workspace?.id) {
+        void queryClient.invalidateQueries({ queryKey: overtimeRequestKeys.detail(workspace.id, id) });
       }
     },
   });
@@ -102,18 +70,17 @@ export const useCancelOvertimeRequest = () => {
 export const useEmployeeConsent = () => {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
-
-  return useMutation({
-    mutationFn: ({ id, employment_id, status, decline_reason }: { id: string; employment_id: string; status: ConsentStatus; decline_reason?: string }) => {
-      const workspaceId = workspace?.id;
-      if (!workspaceId) throw new Error('No workspace ID');
-      return overtimeRequestsApi.employeeConsent(workspaceId, id, { employment_id, status, decline_reason });
-    },
+  return useWorkspaceMutation<{ id: string; employment_id: string; status: ConsentStatus; decline_reason?: string }, unknown>({
+    mutationFn: (wsId, vars) =>
+      overtimeRequestsApi.employeeConsent(wsId, vars.id, {
+        employment_id: vars.employment_id,
+        status: vars.status,
+        decline_reason: vars.decline_reason,
+      }),
+    keys: [overtimeRequestKeys.all],
     onSuccess: (_, variables) => {
-      const workspaceId = workspace?.id;
-      void queryClient.invalidateQueries({ queryKey: overtimeRequestKeys.all });
-      if (workspaceId) {
-        void queryClient.invalidateQueries({ queryKey: overtimeRequestKeys.detail(workspaceId, variables.id) });
+      if (workspace?.id) {
+        void queryClient.invalidateQueries({ queryKey: overtimeRequestKeys.detail(workspace.id, variables.id) });
       }
       void queryClient.invalidateQueries({ queryKey: overtimeRequestKeys.assignments(variables.employment_id) });
     },
@@ -133,28 +100,18 @@ export const useMyOtAssignments = (employmentId?: string) => {
 
 export const useWorkspaceQuotaSummary = (month: string) => {
   const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id;
-
-  return useQuery({
-    queryKey: overtimeRequestKeys.quotaSummaries(workspaceId ?? '', month),
-    queryFn: () => {
-      if (!workspaceId) throw new Error('No workspace ID');
-      return overtimeRequestsApi.getWorkspaceQuotaSummary(workspaceId, month);
-    },
-    enabled: !!workspaceId && !!month,
+  return useWorkspaceQuery({
+    queryKey: overtimeRequestKeys.quotaSummaries(workspace?.id ?? '', month),
+    queryFn: (wsId) => overtimeRequestsApi.getWorkspaceQuotaSummary(wsId, month),
+    enabled: !!month,
   });
 };
 
 export const useEmployeeQuota = (employeeId: string, date: string) => {
   const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id;
-
-  return useQuery({
-    queryKey: overtimeRequestKeys.quotaDetail(workspaceId ?? '', employeeId, date),
-    queryFn: () => {
-      if (!workspaceId) throw new Error('No workspace ID');
-      return overtimeRequestsApi.getEmployeeQuota(workspaceId, employeeId, date);
-    },
-    enabled: !!workspaceId && !!employeeId && !!date,
+  return useWorkspaceQuery({
+    queryKey: overtimeRequestKeys.quotaDetail(workspace?.id ?? '', employeeId, date),
+    queryFn: (wsId) => overtimeRequestsApi.getEmployeeQuota(wsId, employeeId, date),
+    enabled: !!employeeId && !!date,
   });
 };

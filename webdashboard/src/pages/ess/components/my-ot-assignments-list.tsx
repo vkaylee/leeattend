@@ -1,6 +1,7 @@
 import { Check, X, Clock, Calendar } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 import Button from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -128,6 +129,7 @@ function MyOtAssignmentRow({
   isConsenting,
   isCanceling,
 }: MyOtAssignmentRowProps) {
+  const { formatDate } = useDateTimeFormatter();
   const isAssignment = assignment.source_type === "manager_assignment";
   const isRequest = assignment.source_type === "employee_request";
 
@@ -147,7 +149,7 @@ function MyOtAssignmentRow({
         <div className="grid grid-cols-2 gap-4">
           <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
             <Calendar className="w-4 h-4 text-slate-400" />
-            {new Date(assignment.planned_date).toLocaleDateString()}
+            {formatDate(assignment.planned_date)}
           </div>
           <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
             <Clock className="w-4 h-4 text-slate-400" />
