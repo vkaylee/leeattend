@@ -206,6 +206,7 @@
       "processing": "Đang xử lý...",
       "completed": "Import thành công",
       "partial": "Import có lỗi",
+      "partially_failed": "Hoàn thành một phần với lỗi",
       "failed": "Import thất bại"
     },
     "failed_detail_count": "Import thất bại: {{errors}} dòng bị lỗi"

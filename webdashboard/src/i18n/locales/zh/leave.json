@@ -206,6 +206,7 @@
       "processing": "处理中...",
       "completed": "导入成功",
       "partial": "导入有错误",
+      "partially_failed": "部分完成但有错误",
       "failed": "导入失败"
     },
     "failed_detail_count": "导入失败：{{errors}} 行有错误。"

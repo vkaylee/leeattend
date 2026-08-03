@@ -206,6 +206,7 @@
       "processing": "Processing...",
       "completed": "Import completed",
       "partial": "Import has errors",
+      "partially_failed": "Partially completed with errors",
       "failed": "Import failed"
     },
     "failed_detail_count": "Import failed: {{errors}} rows failed"

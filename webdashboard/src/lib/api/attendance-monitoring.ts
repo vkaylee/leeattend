@@ -1,5 +1,6 @@
 import { submitAttendanceAdjustment, approveAttendanceAdjustment } from "./attendance-core";
 import { createBehalfAssignmentApi } from "./behalf-assignment-factory";
+import { Nullable } from "@/types/api-overrides";
 import { client } from "./client";
 import { ApiError } from "./errors";
 import { apiFetch, TIMEOUT } from "./helpers";
@@ -81,8 +82,7 @@ export async function fetchMonitorJobs(params: FetchMonitorJobsParams): Promise<
       },
     },
   });
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  return resData ?? { jobs: [], next_cursor: null };
+  return (resData as Nullable<MonitorJobsResponse>) ?? { jobs: [], next_cursor: null };
 }
 
 // ── OT Claim Behalf Assignments (factory-generated CRUD) ────────────────────

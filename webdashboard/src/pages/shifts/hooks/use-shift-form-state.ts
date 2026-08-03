@@ -23,16 +23,17 @@ export function useShiftFormState(wsId?: string) {
   // Derive single employeeId from comma-separated employeeIds (schema field).
   const employeeId = search.employeeIds ? search.employeeIds.split(",")[0] : undefined;
 
-  // Runtime guards are necessary: the type says tab/view are always valid
-  // (Zod .catch() in the schema), but at runtime — especially in tests — useSearch
-  // may return {} before Zod validation applies.
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  const tab: TabType = search.tab === "weekly-roster" || search.tab === "assignments" || search.tab === "directory" ? search.tab : "weekly-roster";
+  // Runtime guards: the type says tab/view are always valid (Zod .catch()
+  // in the schema), but at runtime — especially in tests — useSearch may
+  // return {} before Zod validation applies. Widen to string so TS doesn't
+  // flag the runtime guard as unnecessary.
+  const rawTab: string | undefined = search.tab;
+  const tab: TabType = rawTab === "weekly-roster" || rawTab === "assignments" || rawTab === "directory" ? rawTab : "weekly-roster";
   const initialTab = tab;
   const [activeTab, setActiveTabState] = useState<TabType>(initialTab);
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  const initialView: ViewMode = search.view === "week" || search.view === "month" ? search.view : "week";
+  const rawView: string | undefined = search.view;
+  const initialView: ViewMode = rawView === "week" || rawView === "month" ? rawView : "week";
   const [viewMode, setViewModeState] = useState<ViewMode>(initialView);
 
   // Selection states

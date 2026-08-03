@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import type { PaginatedResponse } from "@/lib/api";
 import type { OvertimeRequest } from "@/lib/api/overtime-requests";
 
+import { maybeNull } from "@/types/api-overrides";
 import SearchBox from "@/components/common/search-box";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -45,8 +46,10 @@ export function PreOtApprovalsTab({
       });
     },
     getNextPageParam: (lastPage, allPages) => {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0);
+      const totalLoaded = allPages.reduce((sum, p) => {
+        const pageData: typeof p.data | undefined = p.data;
+        return sum + (maybeNull(pageData)?.length || 0);
+      }, 0);
       return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
     },
     initialPageParam: 1,
@@ -73,11 +76,12 @@ export function PreOtApprovalsTab({
     if (!q) return pendingRequests;
     return pendingRequests.filter((req) => {
       const employeeNames = (req.employees ?? [])
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        .map(e => `${e.full_name ?? ""} ${e.employee_id ?? ""}`.toLowerCase())
+        .map(e => {
+          return `${maybeNull(e.full_name) ?? ""} ${maybeNull(e.employee_id) ?? ""}`.toLowerCase();
+        })
         .join(" ");
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      const reason = (req.reason ?? "").toLowerCase();
+      const reasonText = maybeNull(req.reason);
+      const reason = (reasonText ?? "").toLowerCase();
       return employeeNames.includes(q) || reason.includes(q);
     });
   }, [pendingRequests, searchQuery]);

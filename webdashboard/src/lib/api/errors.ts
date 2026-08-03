@@ -5,6 +5,8 @@ export interface AppErrorResponse {
   message?: string;
 }
 
+import { maybeNull } from "@/types/api-overrides";
+
 /** A single compliance violation returned by the backend on 409 Conflict. */
 export interface ComplianceViolation {
   details: {
@@ -33,10 +35,10 @@ export function parseComplianceConflict(body: unknown): ComplianceConflictRetry 
   const b = body as { retry?: Partial<ComplianceConflictRetry>; error?: { retry?: Partial<ComplianceConflictRetry> } };
   // Try unwrapped shape first (produced by rejectResponse), then raw backend shape
   const retryCandidate = b.retry ?? b.error?.retry;
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive runtime narrowing
-  if (typeof retryCandidate !== "object" || retryCandidate === null) return undefined;
-  if (!Array.isArray(retryCandidate.violations) || retryCandidate.requires_override !== true) return undefined;
-  return validateComplianceViolations(retryCandidate.violations);
+  const candidate = maybeNull(retryCandidate);
+  if (typeof candidate !== "object" || candidate === null) return undefined;
+  if (!Array.isArray(candidate.violations) || candidate.requires_override !== true) return undefined;
+  return validateComplianceViolations(candidate.violations);
 }
 
 function validateComplianceViolations(raw: unknown[]): ComplianceConflictRetry | undefined {
@@ -64,13 +66,14 @@ export interface ConflictRetryHint {
 export function parseConflictRetry(body: unknown): ConflictRetryHint | undefined {
   if (typeof body !== "object" || body === null) return undefined;
   const b = body as { retry?: Partial<ConflictRetryHint> };
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive runtime narrowing on cast object
-  if (typeof b.retry !== "object" || b.retry === null) return undefined;
-  if (b.retry.reason !== "retired_leave_type" || typeof b.retry.leave_type_id !== "string") return undefined;
+  const retVal: Partial<ConflictRetryHint> | null | undefined = b.retry;
+  const hint = maybeNull(retVal);
+  if (typeof hint !== "object" || hint === null) return undefined;
+  if (hint.reason !== "retired_leave_type" || typeof hint.leave_type_id !== "string") return undefined;
   return {
-    reason: b.retry.reason,
-    leave_type_id: b.retry.leave_type_id,
-    name: typeof b.retry.name === "string" ? b.retry.name : "",
+    reason: hint.reason,
+    leave_type_id: hint.leave_type_id,
+    name: typeof hint.name === "string" ? hint.name : "",
   };
 }
 

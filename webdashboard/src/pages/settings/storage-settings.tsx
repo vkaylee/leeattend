@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { toast } from "@/components/ui/toast";
+import { maybeNull } from "@/types/api-overrides";
 import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 import {
   useDeleteStorageConfig,
@@ -25,17 +26,15 @@ export function StorageSettings() {
 
   const externalForm = useMemo((): FormState => {
     if (config) {
-      /* eslint-disable @typescript-eslint/no-unnecessary-condition -- config fields may be null at runtime despite non-null TS types */
       return {
         isCustom: true,
-        endpointUrl: config.endpoint_url ?? "",
-        region: config.region ?? "",
-        bucketName: config.bucket_name ?? "",
+        endpointUrl: maybeNull(config.endpoint_url) ?? "",
+        region: maybeNull(config.region) ?? "",
+        bucketName: maybeNull(config.bucket_name) ?? "",
         accessKey: "",
         secretKey: "",
-        usePathStyle: config.use_path_style ?? true,
+        usePathStyle: maybeNull(config.use_path_style) ?? true,
       };
-      /* eslint-enable @typescript-eslint/no-unnecessary-condition */
     }
     return EMPTY_FORM;
   }, [config]);

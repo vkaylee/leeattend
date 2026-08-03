@@ -1,6 +1,8 @@
 import type { ComplianceViolation } from "@/lib/api/errors";
 import type { EffectiveSchedule, EmployeeSchedule } from "@/lib/api/types";
 
+import { maybeNull } from "@/types/api-overrides";
+
 /** Check if weekend day (Sat/Sun) */
 export const isWeekend = (date: Date): boolean => {
   const day = date.getDay();
@@ -129,7 +131,7 @@ export function groupCellsByEmployee(
     (acc, key) => {
       const [empId, d] = key.split(":");
       const list = acc[empId];
-      if (list) {
+      if (maybeNull(list)) {
         list.push(d);
       } else {
         acc[empId] = [d];

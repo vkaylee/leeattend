@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 
+import { maybeNull } from "@/types/api-overrides";
 import { groupCellsByEmployee } from "@/components/shifts/roster/roster-utils";
 import { writeFrequentShift } from "@/lib/frequent-shifts-storage";
 import { useShifts } from "@/pages/shifts/hooks/use-shifts";
@@ -82,7 +83,7 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
       const assignments = Object.entries(groups).map(([employeeId, dates]) => ({
         employeeId,
         employmentId: employmentByEmployee.get(employeeId),
-        dates: dates ?? [],
+        dates: maybeNull(dates) ?? [],
       }));
       await handleMonthBulkAssign(assignments, shiftId, setRowStatusFor);
       setSelectedCells(new Set());
@@ -97,7 +98,7 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
       const groups = groupCellsByEmployee(selectedCells);
       const assignments = Object.entries(groups).map(([employeeId, dates]) => ({
         employeeId,
-        dates: dates ?? [],
+        dates: maybeNull(dates) ?? [],
       }));
       await handleMonthDeleteRoster(assignments);
       setSelectedCells(new Set());

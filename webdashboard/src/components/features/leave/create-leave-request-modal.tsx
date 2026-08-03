@@ -6,6 +6,7 @@ import React, { useState } from "react";
 
 import type { LeaveDurationType, LeaveType } from "@/lib/api/types";
 
+import { maybeNull } from "@/types/api-overrides";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useBehalfEmployees } from "@/hooks/use-behalf-employees";
@@ -89,8 +90,7 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
     e.preventDefault(); 
     if (!leaveTypeId) { toast.error(t("leave_requests.invalid_leave_type")); return; }
     if (!empIdToUse) { toast.error("Please select an employee"); return; }
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!activeEmployment) { toast.error(t("leave_requests.no_employment_info", "Không tìm thấy thông tin công việc")); return; }
+    if (!maybeNull(activeEmployment)) { toast.error(t("leave_requests.no_employment_info", "Không tìm thấy thông tin công việc")); return; }
  
     const payload: {
       employment_id: string;

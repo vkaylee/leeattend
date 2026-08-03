@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition -- leave type config fields may be null at runtime */
 import { Wallet, AlertTriangle, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -19,19 +18,22 @@ import { LeaveTemplate } from "./leave-templates";
 // ── PolicyBadges ─────────────────────────────────────────────────────
 
 function PolicyBadges({ type, t }: { type: LeaveType; t: ((k: string, d?: string) => string) | ((k: string) => string) }) {
+  // Generated types say policy_config is non-null, but API may omit it at runtime
+  const policy = type.policy_config as LeaveType["policy_config"] | null | undefined;
+  const hasPolicy = !!policy;
   return (
     <>
-      {!!type.policy_config?.approval_required && (
+      {hasPolicy && policy.approval_required && (
         <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-100 dark:border-blue-800">
           {t("settings.leave.fields.approval", "Approval")}
         </span>
       )}
-      {!!type.policy_config?.requires_document && (
+      {hasPolicy && policy.requires_document && (
         <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-100 dark:border-purple-800">
           {t("settings.leave.fields.document", "Document")}
         </span>
       )}
-      {!!type.policy_config?.allow_negative_balance && (
+      {hasPolicy && policy.allow_negative_balance && (
         <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-100 dark:border-rose-800">
           {t("settings.leave.type_manager.negative_balance", "Negative Balance")}
         </span>

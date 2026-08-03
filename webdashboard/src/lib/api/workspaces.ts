@@ -1,3 +1,4 @@
+import { unwrapDataArray } from "@/types/api-overrides";
 import { client } from "./client";
 import { ApiError } from "./errors";
 import { apiFetch } from "./helpers";
@@ -39,8 +40,7 @@ export async function updateWorkspace(
 
 export async function fetchWorkspaceMembers(wsId: string): Promise<WorkspaceMember[]> {
   const { data } = await client.GET("/v1/workspaces/{ws_id}/members", { params: { path: { ws_id: wsId } } });
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  return data?.data ?? [];
+  return unwrapDataArray<WorkspaceMember>(data);
 }
 
 

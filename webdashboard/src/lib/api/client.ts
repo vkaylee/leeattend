@@ -4,6 +4,7 @@ import type { PathsWithMethod, RequiredKeysOf } from "openapi-typescript-helpers
 import createClient from "openapi-fetch";
 
 import type { paths } from "@/types/api-generated";
+import { maybeNull } from "@/types/api-overrides";
 
 import { API_BASE_URL } from "./config";
 import { ApiError } from "./errors";
@@ -46,8 +47,8 @@ async function extractRequestInfo(
         } else {
           // For binary payloads (octet-stream, files, etc.)
           const bodyBlob = await url.clone().blob();
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          if (bodyBlob && bodyBlob.size > 0) {
+          // Blob.size is always a number — explicitly check for empty body
+          if (bodyBlob.size > 0) {
             options.body = bodyBlob;
           }
         }
@@ -152,8 +153,8 @@ interface RawFetchResult { data?: unknown; error?: unknown; response: Response }
 function guardResult(result: RawFetchResult): RawFetchResult {
   if (result.error !== undefined) {
     throw new ApiError(
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- response is from dynamic openapi-fetch; may be undefined at runtime
-      result.response?.status ?? 500,
+      // Defensive guard: response is from dynamic openapi-fetch
+      maybeNull(result.response)?.status ?? 500,
       "SafeClient invariant violated",
       "INVALID_RESPONSE",
       { message: "API returned error branch on a response that passed customFetch" },

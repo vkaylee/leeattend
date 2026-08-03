@@ -4,6 +4,7 @@ import React from "react";
 import { TFunction } from "i18next";
 
 import { Typography } from "@/components/ui/typography";
+import { maybeNull } from "@/types/api-overrides";
 import { AttendancePolicyVersion } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
@@ -188,8 +189,7 @@ function TimelineItemGrid({
           )}
           variant="p"
         >
-          {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- version data may have null grace period at runtime */}
-          {version.grace_period_minutes != null ? `${version.grace_period_minutes}m` : "15m"}
+          {maybeNull(version.grace_period_minutes) != null ? `${maybeNull(version.grace_period_minutes)}m` : "15m"}
         </Typography>
       </div>
     </div>

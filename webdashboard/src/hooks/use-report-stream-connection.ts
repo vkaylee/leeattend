@@ -2,6 +2,7 @@ import { useCallback, useEffect } from "react";
 
 import type { StreamStatus } from "@/types/report-stream";
 
+import { maybeNull } from "@/types/api-overrides";
 import { useReportStreamSocket } from "./use-report-stream-socket";
 
 interface ConnectionProps {
@@ -66,8 +67,7 @@ export function useReportStreamConnection({
 
     if (!jobId) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ref may be mutated elsewhere
-    if (shouldReconnectRef.current) {
+    if (maybeNull(shouldReconnectRef.current)) {
       connect();
     }
 

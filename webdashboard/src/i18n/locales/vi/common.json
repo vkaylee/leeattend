@@ -97,6 +97,7 @@
       "status": {
         "completed": "Hoàn tất!",
         "failed": "Đã xảy ra lỗi",
+        "partially_failed": "Hoàn thành một phần với lỗi",
         "pending": "Đang chờ...",
         "processing": "Đang xử lý dữ liệu...",
         "uploading": "Đang tải lên..."

@@ -184,7 +184,7 @@ describe("MyClockPage", () => {
   });
 
   it("handles adjustment request error", async () => {
-    vi.mocked(api.submitAttendanceAdjustment).mockRejectedValue({ response: { data: { error: "Invalid time" } } });
+    vi.mocked(api.submitAttendanceAdjustment).mockRejectedValue(new Error("Invalid time"));
     vi.mocked(essHooks.useMyProfile).mockReturnValue(createMockUseMyProfile({ 
       isLoading: false, 
       employee: createMockEmployee({ id: "emp-1" }) 

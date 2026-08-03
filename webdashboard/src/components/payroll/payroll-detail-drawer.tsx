@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition, complexity */
+/* eslint-disable complexity */
 import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { 
@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useMyPermissions } from "@/hooks/use-permissions";
+import { maybeNull } from "@/types/api-overrides";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { fetchEmployeeEmployments } from "@/lib/api";
 import { Employee, Payslip, AttendanceAdjustmentRequest } from "@/lib/api/types";
@@ -123,7 +124,7 @@ export default function PayrollDetailDrawer({
   if (!employee) return null;
 
   const activeEmployment = employments.find(emp => emp.id === employee.active_employment_id) ?? employments[0];
-  const hireDate = activeEmployment?.start_date ?? "—";
+  const hireDate = maybeNull(activeEmployment)?.start_date ?? "—";
 
   return (
     <Dialog.Root onOpenChange={onClose} open={isOpen}>
@@ -187,7 +188,7 @@ export default function PayrollDetailDrawer({
               </div>
             ) : (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <EmployeeSalaryConfig employeeId={employee.id} employmentId={activeEmployment?.id ?? ""} wsId={workspaceId} />
+                <EmployeeSalaryConfig employeeId={employee.id} employmentId={maybeNull(activeEmployment)?.id ?? ""} wsId={workspaceId} />
               </div>
             )}
           </main>

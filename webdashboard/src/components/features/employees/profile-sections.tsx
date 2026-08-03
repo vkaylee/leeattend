@@ -4,6 +4,7 @@ import React from "react";
 import type { Department, Employee, WorkspaceMember, Employment } from "@/lib/api";
 import type { WorkLocation } from "@/lib/api/locations";
 
+import { maybeNull } from "@/types/api-overrides";
 import PermissionGate from "@/components/common/permission-gate";
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
@@ -196,8 +197,7 @@ export function HireDatesSection({
     const sortedEmployments = [...employments].sort((a, b) => a.start_date.localeCompare(b.start_date));
     const originalHireDate = sortedEmployments[0]?.start_date ?? "";
     const activeOrLatestEmployment = employments.find(e => e.status === "active") ?? sortedEmployments[sortedEmployments.length - 1];
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    const hireDate = activeOrLatestEmployment?.start_date ?? "";
+    const hireDate = maybeNull(activeOrLatestEmployment)?.start_date ?? "";
 
     return (
         <section className="space-y-5">

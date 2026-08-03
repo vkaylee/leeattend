@@ -9,6 +9,7 @@ import {
     fetchRawAttendanceLogs,
     fetchShifts,
 } from "@/lib/api";
+import { maybeNull } from "@/types/api-overrides";
 import { formatHours } from "@/lib/utils/attendance";
 
 interface UseDailyDrawerQueriesProps {
@@ -99,8 +100,9 @@ export function useDailyDrawerQueries({
             const empId = (request as { employee_id?: string }).employee_id;
             if (empId && empId !== request.employment_id) {
                 const empKey = `${empId}-${request.requested_date}`;
-                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Record indexed access without noUncheckedIndexedAccess
-                if (!map[empKey]) map[empKey] = request;
+                // Record indexed access without noUncheckedIndexedAccess —
+                // type says Record<K,V> always returns V, but runtime can be undefined
+                if (!maybeNull(map[empKey])) map[empKey] = request;
             }
         });
         return map;

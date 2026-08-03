@@ -1,8 +1,10 @@
-/* eslint-disable @typescript-eslint/no-base-to-string, @typescript-eslint/no-unnecessary-condition, @typescript-eslint/restrict-template-expressions */
+/* eslint-disable @typescript-eslint/no-base-to-string, @typescript-eslint/restrict-template-expressions */
 import { Link2, Mail, Phone, Check, X } from "lucide-react";
 import React from "react";
 
 import type { CustomFieldValueResponse } from "@/lib/api/types";
+
+import { maybeNull } from "@/types/api-overrides";
 
 interface CustomFieldRendererProps {
   className?: string;
@@ -111,7 +113,7 @@ export const CustomFieldRenderer: React.FC<CustomFieldRendererProps> = ({
   }
 
   const renderer = FIELD_TYPE_RENDERERS[value.field_type];
-  if (renderer) {
+  if (maybeNull(renderer)) {
     return <>{renderer(val)}</>;
   }
 

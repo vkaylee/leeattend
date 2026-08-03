@@ -38,10 +38,10 @@ vi.mock("../../../shifts/schedule-trace-popover", () => ({
 // Use a standard non-DST date for deterministic timezone behavior
 const BASE_DATE = "2024-06-15"; // June — no DST transition
 
-/** Build an ISO datetime string from a date and a local HH:MM time */
+/** Build an ISO datetime string from a date and a local HH:MM time as UTC */
 function iso(date: string, hhmm: string): string {
     const [h, m] = hhmm.split(":").map(Number);
-    return `${date}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`;
+    return `${date}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00Z`;
 }
 
 describe("DailyReportTimeline — Axis filtering", () => {

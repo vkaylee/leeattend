@@ -34,29 +34,22 @@ interface IntervalDiffProps {
 
 // ── Pure helpers ────────────────────────────────────────────────────
 
-/* eslint-disable @typescript-eslint/no-unnecessary-condition --
-   TS doesn't flag out-of-bounds array access; ci/pi can be
-   undefined when arrays differ in length. All optional chains
-   in this block are legitimate runtime guards. */
-
-/** Empty interval sentinel — satisfies the type with minimal values. */
+/** Empty interval sentinel — provides fallback values for optional fields. */
 const NULL_INTERVAL = {
-  start_time: "",
-  end_time: "",
-  break_duration_minutes: 0,
-} as ShiftVersionHistoryItem["intervals"][number];
+  start_time: "" as string | null | undefined,
+  end_time: "" as string | null | undefined,
+  break_duration_minutes: 0 as number | null | undefined,
+};
 
 /** Extract display-safe string/number values from a possibly-undefined interval. */
 function extractIntervalFields(iv: ShiftVersionHistoryItem["intervals"][number] | undefined) {
-  const i = iv ?? NULL_INTERVAL;
+  const i: typeof NULL_INTERVAL = (iv as typeof NULL_INTERVAL | undefined) ?? NULL_INTERVAL;
   return {
-    startTime: i.start_time?.substring(0, 5) ?? "",
-    endTime: i.end_time?.substring(0, 5) ?? "",
+    startTime: (i.start_time ?? "").substring(0, 5) || "",
+    endTime: (i.end_time ?? "").substring(0, 5) || "",
     breakMinutes: i.break_duration_minutes ?? 0,
   };
 }
-
-/* eslint-enable @typescript-eslint/no-unnecessary-condition */
 
 /**
  * Compute all interval field diffs between current and previous version.

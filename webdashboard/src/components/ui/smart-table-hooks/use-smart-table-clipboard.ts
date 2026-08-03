@@ -4,6 +4,8 @@ import type {
   SmartTableColumnMeta,
 } from "../smart-table/types";
 
+import { maybeNull } from "@/types/api-overrides";
+
 interface ClipboardCell {
   column: {
     columnDef: {
@@ -57,9 +59,10 @@ function buildCopyTsv(
 
   if (focusedCell) {
     const r = rows[focusedCell.rowIndex];
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- rows[] could return undefined at runtime
-    const cell = r?.getVisibleCells()[focusedCell.colIndex];
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- array access could return undefined
+    // rows[] may return undefined at runtime (index out of bounds)
+    const row = maybeNull(r);
+    const cells = row?.getVisibleCells();
+    const cell = cells ? cells[focusedCell.colIndex] : undefined;
     if (cell) {
       return cellValueToString(cell);
     }

@@ -155,6 +155,7 @@
     "status": {
       "completed": "Hoàn thành!",
       "failed": "Có lỗi xảy ra",
+      "partially_failed": "Hoàn thành một phần với lỗi",
       "pending": "Đang chờ...",
       "processing": "Đang xử lý dữ liệu...",
       "uploading": "Đang tải lên..."

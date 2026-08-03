@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { client, fetch } from '@/lib/api/client';
+import { maybeNull } from '@/types/api-overrides';
 import { components } from '@/types/api-generated';
 import { computeSHA256 } from '@/utils/hash';
 
@@ -77,15 +78,13 @@ export function useFileUpload({
               owner_type: ownerType as components["schemas"]["FileOwnerType"],
             },
           });
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          if (!data) throw new Error(t("errors.presigned_url_failed"));
-          presignedData = data;
+          const fetchedData = maybeNull(data as PresignedUploadResponse | null | undefined);
+          if (!fetchedData) throw new Error(t("errors.presigned_url_failed"));
+          presignedData = fetchedData;
         } catch (err) {
           // TODO(blocking: backend-schema): presigned-error shape differs from generated.
-          throw new Error(
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            (err as { message?: string })?.message ?? t("errors.presigned_url_failed"),
-          );
+          const uploadErr: { message?: string } | null | undefined = err as { message?: string } | null | undefined;
+          throw new Error(uploadErr?.message ?? t("errors.presigned_url_failed"));
         }
 
         const { file: dbFile, upload_url } = presignedData;

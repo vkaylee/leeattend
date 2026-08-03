@@ -6,6 +6,7 @@ import { TFunction } from "i18next";
 import type { GenericJobStatus } from "@/lib/api/attendance";
 import type { UpdateAttendanceRulesRequest } from "@/lib/api/attendance-rules";
 
+import { maybeNull } from "@/types/api-overrides";
 import { useToast } from "@/components/ui/toast";
 import {
   reprocessAllAttendance,
@@ -92,11 +93,9 @@ export function useBulkReprocess(wsId: string, t: TFunction) {
           setShowReprocessConfirm(false);
           setPollingJobId(null);
         }, 0);
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      } else if (jobStatusQuery.data?.status === "failed") {
+      } else if (maybeNull(jobStatusQuery.data)?.status === "failed") {
         setTimeout(() => {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          toast.error("Process failed: " + (jobStatusQuery.data?.error ?? "Unknown error"));
+          toast.error("Process failed: " + (maybeNull(jobStatusQuery.data)?.error ?? "Unknown error"));
           setShowReprocessConfirm(false);
           setPollingJobId(null);
         }, 0);

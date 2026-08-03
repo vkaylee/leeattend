@@ -1,5 +1,6 @@
 import type { components } from "@/types/api-generated";
 
+import { Nullable } from "@/types/api-overrides";
 import { client } from "./client";
 
 export type ConditionEarlyArrivalStrategy = "Allow" | "Block" | "Clamp";
@@ -56,8 +57,7 @@ export async function fetchConditionTypes(
       query: activeOnly !== undefined ? { active_only: activeOnly } : undefined,
     },
   });
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  return (data as ConditionTypeDefinition[]) ?? [];
+  return (data as Nullable<ConditionTypeDefinition[]>) ?? [];
 }
 
 export async function fetchConditionType(

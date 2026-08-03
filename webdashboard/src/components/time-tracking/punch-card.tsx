@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition -- punch segments have nullable fields at runtime that TS types don't reflect */
 import { Clock, Layers } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { WorkSegment } from "@/lib/api/types";
 
+import { maybeNull } from "@/types/api-overrides";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
@@ -72,6 +72,7 @@ export function PunchCard({
           <div className="space-y-1.5">
             {todaySegments.map((seg, i) => {
               const isActive = activeEntry?.segment_id === seg.id;
+              const segmentKey = maybeNull(seg.id) ?? i;
               return (
                 <div
                   className={`flex items-center justify-between px-3 py-1.5 rounded-xl text-xs transition-colors ${
@@ -79,13 +80,13 @@ export function PunchCard({
                       ? "bg-primary-50 dark:bg-primary-950/50 text-primary-700 dark:text-primary-300 font-bold"
                       : "bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400"
                   }`}
-                  key={seg.id ?? i}
+                  key={segmentKey}
                 >
                   <span>
                     {seg.template_id ? `Segment ${i + 1}` : t("work_segments.segment", "Segment")} {i + 1}
                   </span>
                   <span className="font-mono text-[10px]">
-                    {seg.scheduled_start?.substring(0, 5)} – {seg.scheduled_end?.substring(0, 5)}
+                    {maybeNull(seg.scheduled_start)?.substring(0, 5)} – {maybeNull(seg.scheduled_end)?.substring(0, 5)}
                   </span>
                 </div>
               );

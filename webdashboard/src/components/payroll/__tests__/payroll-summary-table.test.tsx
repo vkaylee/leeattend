@@ -14,10 +14,11 @@ import { Employee, Payslip } from "@/lib/api/types";
 
 import PayrollSummaryTable from "../payroll-summary-table";
 
-// Mock i18next
+// Mock i18next — must provide i18n.language for useCurrency hook
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
+    i18n: { language: "en" },
   }),
 }));
 

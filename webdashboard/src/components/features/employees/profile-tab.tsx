@@ -1,4 +1,4 @@
-/* eslint-disable complexity, @typescript-eslint/no-unnecessary-condition -- multi-section profile tab with 5 defensive optional chains on API data */
+/* eslint-disable complexity -- multi-section profile tab with 5 defensive optional chains on API data */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Pencil, RotateCcw, Trash2, UserPlus } from "lucide-react";
 import React, { useState } from "react";
@@ -6,6 +6,7 @@ import React, { useState } from "react";
 import type { Department, Employee, WorkspaceMember } from "@/lib/api";
 import type { WorkLocation } from "@/lib/api/locations";
 
+import { maybeNull } from "@/types/api-overrides";
 import PermissionGate from "@/components/common/permission-gate";
 import { CustomFieldSection } from "@/components/custom-fields/custom-field-section";
 import EditTerminationModal from "@/components/features/employees/edit-termination-modal";
@@ -127,7 +128,7 @@ export default function ProfileTab({
     });
     const activeEmployment = employments.find(e => e.status === "active") ?? employments[0];
     const terminatedEmployment = employments.find(e => e.status === "terminated");
-    const activeLocationId = activeEmployment?.primary_location_id ?? "";
+    const activeLocationId = maybeNull(activeEmployment)?.primary_location_id ?? "";
 
     const selectedLocationId = selectedLocationIdState ?? activeLocationId;
 
@@ -144,7 +145,7 @@ export default function ProfileTab({
 
     const updateLocationMutation = useMutation({
         mutationFn: (locationId: string) => {
-            if (!activeEmployment) return Promise.reject(new Error("No active employment found"));
+            if (!maybeNull(activeEmployment)) return Promise.reject(new Error("No active employment found"));
             return updateEmployeeEmployment(wsId, employee.id, activeEmployment.id, { primary_location_id: locationId });
         },
         onSuccess: () => {
@@ -181,7 +182,7 @@ export default function ProfileTab({
                 onUndoTerminate={() => { setIsUndoTerminationModalOpen(true); }}
                 showEditTerminationDate={!employee.active_employment_id && !!terminatedEmployment}
                 t={t}
-                terminationDate={!employee.active_employment_id ? activeEmployment?.end_date : null}
+                terminationDate={!employee.active_employment_id ? maybeNull(activeEmployment)?.end_date : null}
             />
 
             <DepartmentSection
@@ -222,7 +223,7 @@ export default function ProfileTab({
 
             <CustomFieldSection entityId={employee.id} entityType="employee" />
 
-            {!!activeEmployment?.id && (
+            {!!maybeNull(activeEmployment)?.id && (
                 <CustomFieldSection entityId={activeEmployment.id} entityType="employment" />
             )}
 
@@ -244,7 +245,7 @@ export default function ProfileTab({
                     isOpen={isUndoTerminationModalOpen}
                     onClose={() => { setIsUndoTerminationModalOpen(false); }}
                     onSuccess={() => {
-                        if (onEmployeeUpdate && terminatedEmployment) {
+                        if (onEmployeeUpdate && maybeNull(terminatedEmployment)) {
                             onEmployeeUpdate({
                                 ...employee,
                                 active_employment_id: terminatedEmployment.id,

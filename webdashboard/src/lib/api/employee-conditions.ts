@@ -1,5 +1,6 @@
 import type { WorkingCondition, CreateWorkingConditionRequest } from "./types";
 
+import { unwrapDataArray } from "@/types/api-overrides";
 import { client } from "./client";
 
 export async function fetchWorkingConditions(wsId: string, employeeId: string): Promise<WorkingCondition[]> {
@@ -8,10 +9,9 @@ export async function fetchWorkingConditions(wsId: string, employeeId: string): 
       path: { workspace_id: wsId, id: employeeId },
     },
   });
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  return (data.data ?? []).map((item) => ({
+  return unwrapDataArray<WorkingCondition & { type_?: string }>(data).map((item) => ({
     ...item,
-    type: item.type_,
+    type: item.type_ ?? item.type,
   }));
 }
 

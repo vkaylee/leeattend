@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { maybeNull } from "@/types/api-overrides";
 import {
   fetchWorkspaces,
   fetchWorkspace,
@@ -42,7 +43,7 @@ export function useWorkspace(wsId?: string) {
     queryKey: ["workspace", activeWsId],
     queryFn: async () => {
       const res = await fetchWorkspace(activeWsId ?? "");
-      return res ?? null;
+      return maybeNull(res) ?? null;
     },
     enabled: !!activeWsId,
   });

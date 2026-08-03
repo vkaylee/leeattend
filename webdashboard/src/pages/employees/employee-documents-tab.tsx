@@ -7,6 +7,7 @@ import type { components } from "@/types/api-generated";
 import { FileList } from "@/components/files/file-list";
 import { FileUpload } from "@/components/files/file-upload";
 import Button from "@/components/ui/button";
+import { maybeNull } from "@/types/api-overrides";
 import { toast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -43,8 +44,8 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
 
       if (error) {
         toast.error("Failed to load documents");
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime guard: API error shape may differ from type
-        throw new Error((error as { message?: string })?.message ?? "Failed to load documents");
+        const docErr: { message?: string } | null | undefined = error as { message?: string } | null | undefined;
+        throw new Error(maybeNull(docErr)?.message ?? "Failed to load documents");
       }
 
       return data;
@@ -69,7 +70,7 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
 
       // The generated client type for this endpoint omits the `url` field,
       // but the runtime response includes a presigned download URL.
-      const downloadUrl = (data as { url?: string } | undefined)?.url;
+      const downloadUrl = (maybeNull(data) as { url?: string } | undefined)?.url;
       if (downloadUrl) {
         window.open(downloadUrl, "_blank");
       }

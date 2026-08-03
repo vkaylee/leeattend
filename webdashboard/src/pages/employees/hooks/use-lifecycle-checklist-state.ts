@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import type { ChecklistItemStatus, LifecycleChecklistItem } from "@/lib/api/types";
 
+import { maybeNull } from "@/types/api-overrides";
 import { useToast } from "@/components/ui/toast";
 import {
   useLifecycleChecklists,
@@ -24,9 +25,8 @@ export function useLifecycleChecklistState(employmentId: string) {
 
   // Mutations
   const createChecklistMutation = useCreateLifecycleChecklist(employmentId);
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- checklist/employment may be null during loading
-  const activeChecklistId = userSelectedChecklistId ?? checklists[0]?.id ?? null;
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- checklist/employment may be null during loading
+  const firstChecklist = checklists.length > 0 ? checklists[0] : undefined;
+  const activeChecklistId: string | null = userSelectedChecklistId ?? firstChecklist?.id ?? null;
   const updateItemStatusMutation = useUpdateLifecycleChecklistItem(activeChecklistId ?? "", employmentId);
 
   // Active checklist details
@@ -94,9 +94,8 @@ export function useLifecycleChecklistState(employmentId: string) {
     );
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- activeChecklist may be null before data loads
-  const sortedItems = activeChecklist?.items
-    ? [...activeChecklist.items].sort((a: LifecycleChecklistItem, b: LifecycleChecklistItem) => a.display_order - b.display_order)
+  const sortedItems = maybeNull(activeChecklist)?.items
+    ? [...activeChecklist!.items].sort((a: LifecycleChecklistItem, b: LifecycleChecklistItem) => a.display_order - b.display_order)
     : [];
 
   return {

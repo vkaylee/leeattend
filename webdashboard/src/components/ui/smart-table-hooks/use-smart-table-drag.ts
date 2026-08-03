@@ -1,6 +1,8 @@
 import { type Row } from "@tanstack/react-table";
 import React, { useState, useEffect } from "react";
 
+import { maybeNull } from "@/types/api-overrides";
+
 interface UseSmartTableDragProps<T> {
   enableDragSelect: boolean;
   onSelectionChange?: (selectedIds: Set<string>) => void;
@@ -28,9 +30,9 @@ export function useSmartTableDrag<T>({
         const newSelection = new Set(selectedRowIds);
         
         for (let i = start; i <= end; i++) {
-          const row = rows[i];
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          if (row) {
+          // rows[i] may be undefined at runtime (out of bounds)
+          const row: Row<T> | undefined = rows[i];
+          if (maybeNull(row)) {
             newSelection.add(row.id);
           }
         }

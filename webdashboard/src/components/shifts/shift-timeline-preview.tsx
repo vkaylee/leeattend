@@ -20,8 +20,9 @@ export function ShiftTimelinePreview({
 }: ShiftTimelinePreviewProps) {
   const { t } = useTranslation();
 
-  const iv = intervals[0];
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  // intervals may be empty; guard with explicit extraction so TS doesn't flag
+  // as unnecessary condition (noUncheckedIndexedAccess is off)
+  const iv = intervals.length > 0 ? intervals[0] : undefined;
   if (!iv) {
     return (
       <div className="bg-slate-50 dark:bg-slate-800 p-8 rounded-[32px] border border-slate-100 dark:border-slate-700/80 text-center text-slate-400">

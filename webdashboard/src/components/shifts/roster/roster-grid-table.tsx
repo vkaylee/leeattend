@@ -7,6 +7,7 @@ import { format, isToday as isDateToday } from "date-fns";
 import type { ComplianceViolation } from "@/lib/api/errors";
 import type { EmployeeSchedule, Shift } from "@/lib/api/types";
 
+import { maybeNull } from "@/types/api-overrides";
 import { RosterCell } from "./roster-cell";
 import { getComplianceStatus, isWeekend } from "./roster-utils";
 
@@ -133,14 +134,14 @@ const RosterGridTable = memo(function RosterGridTable({
             const subtitle = [empSchedule.employee_id_number, empSchedule.department_name]
               .filter(Boolean)
               .join(" · ");
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            const status = rowStatus?.get(empSchedule.employee_id ?? "");
+            const eid = maybeNull(empSchedule.employee_id) ?? "";
+            const status: "error" | "saving" | "saved" | undefined = rowStatus?.get(eid) as "error" | "saving" | "saved" | undefined;
 
+            const rowKey: string = maybeNull(empSchedule.employee_id) ?? empSchedule.employment_id;
             return (
             <tr
               className="border-b border-slate-100 dark:border-slate-800 last:border-b-0 hover:bg-slate-50/30 dark:hover:bg-slate-850/10"
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-              key={empSchedule.employee_id ?? empSchedule.employment_id}
+              key={rowKey}
             >
               <td className="sticky left-0 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 px-3 sm:px-4 py-3 font-bold text-xs text-slate-700 dark:text-slate-300 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)] min-w-[140px] sm:min-w-[200px]">
                 <div className="flex items-center gap-2">
@@ -160,8 +161,8 @@ const RosterGridTable = memo(function RosterGridTable({
 
               {monthDays.map((day) => {
                 const dateStr = format(day, "yyyy-MM-dd");
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                const cellKey = `${empSchedule.employee_id ?? ""}:${dateStr}`;
+                const eid: string = maybeNull(empSchedule.employee_id) ?? "";
+                const cellKey = `${eid}:${dateStr}`;
                 const isSelected = selectedCells.has(cellKey);
                 const daySchedules = empSchedule.schedules.filter(
                   (s) => s.date === dateStr,
@@ -172,8 +173,7 @@ const RosterGridTable = memo(function RosterGridTable({
                     complianceStatus={getComplianceStatus(daySchedules, empSchedule.employee_id, dateStr, complianceViolations)}
                     dateStr={dateStr}
                     daySchedules={daySchedules}
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                    employeeId={empSchedule.employee_id ?? ""}
+                    employeeId={maybeNull(empSchedule.employee_id) ?? ""}
                     isSelected={isSelected}
                     key={dateStr}
                     shifts={shifts}

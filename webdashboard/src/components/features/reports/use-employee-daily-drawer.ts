@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 
 import { useWorkspace } from "@/hooks/use-workspace";
+import { maybeNull } from "@/types/api-overrides";
 import {
     DailyAttendanceReport,
     AttendanceAdjustmentRequest,
@@ -32,11 +33,9 @@ export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
     } | null>(null);
 
     if (
-        employeeId !== previousSelection?.employeeId
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- previousSelection can be null
-        || employerId !== previousSelection?.employerId
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- previousSelection can be null
-        || isOpen !== previousSelection?.isOpen
+        employeeId !== maybeNull(previousSelection)?.employeeId
+        || employerId !== maybeNull(previousSelection)?.employerId
+        || isOpen !== maybeNull(previousSelection)?.isOpen
     ) {
         setPreviousSelection({ employeeId, employerId, isOpen });
         if (isOpen) {

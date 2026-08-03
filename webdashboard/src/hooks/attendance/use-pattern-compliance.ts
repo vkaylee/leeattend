@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import type { WorkingPatternDetail, Shift  } from "@/lib/api/types";
 
+import { maybeNull } from "@/types/api-overrides";
 import {
   checkRestHours,
   checkShiftOverlap,
@@ -31,8 +32,8 @@ function toShiftBlock(d: WorkingPatternDetail, shifts: Shift[], day: number): Sh
   if (!iv.start_time || !iv.end_time) return null;
   return {
     shiftId: d.shift_id ?? "",
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    shiftName: shift?.name ?? "",
+    // shift may not be found in the lookup; guard with maybeNull
+    shiftName: maybeNull(shift)?.name ?? "",
     start: iv.start_time,
     end: iv.end_time,
     day,

@@ -1,10 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition -- CHART_METADATA Record lookup may return undefined for runtime widget IDs */
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { WidgetId } from "@/hooks/use-dashboard-layout";
 
+import { maybeNull } from "@/types/api-overrides";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import {
@@ -12,8 +12,13 @@ import {
   CATEGORY_ORDER,
   CHART_METADATA,
   type ChartCategory,
+  type ChartMeta,
 } from "@/lib/chart-category-metadata";
 import { cn } from "@/lib/utils";
+
+// Without noUncheckedIndexedAccess, TS assumes Record<K, V> index access always
+// succeeds. Runtime widget IDs may not be in the map — cast explicitly.
+const CHART_META_LOOKUP: Record<string, ChartMeta | undefined> = CHART_METADATA;
 
 const STORAGE_KEY = "dashboard-catalog-collapsed";
 
@@ -83,7 +88,7 @@ function WidgetToggleItem({ widgetId, widgetMap, visibleWidgets, collapsed, onTo
   const widget = widgetMap.get(widgetId);
   if (!widget) return null;
 
-  const meta = CHART_METADATA[widgetId];
+  const meta = CHART_META_LOOKUP[widgetId];
   const Icon = meta?.icon;
   const isVisible = visibleWidgets[widgetId];
   const label = t(widget.labelKey);
@@ -143,7 +148,7 @@ function useWidgetSearch(allWidgets: { id: WidgetId; labelKey: string }[], searc
       grouped[cat] = allWidgets
         .filter((w) => {
           const meta = CHART_METADATA[w.id];
-          if (meta?.category !== cat) return false;
+          if (maybeNull(meta)?.category !== cat) return false;
           if (!query) return true;
           const label = t(w.labelKey).toLowerCase();
           return label.includes(query);

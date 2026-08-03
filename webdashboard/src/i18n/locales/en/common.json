@@ -97,6 +97,7 @@
       "status": {
         "completed": "Completed!",
         "failed": "An error occurred",
+        "partially_failed": "Partially completed with errors",
         "pending": "Pending...",
         "processing": "Processing data...",
         "uploading": "Uploading..."

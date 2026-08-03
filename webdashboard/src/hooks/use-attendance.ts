@@ -11,6 +11,7 @@ import {
   bulkUploadPaperOt,
   claimOt,
 } from "@/lib/api";
+import { maybeNull } from "@/types/api-overrides";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
 
 interface SummaryParams {
@@ -67,8 +68,10 @@ export function useAttendanceSummariesInfinite(
       });
     },
     getNextPageParam: (lastPage, allPages) => {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0);
+      const totalLoaded = allPages.reduce((sum, p) => {
+        const pageData = p.data;
+        return sum + (maybeNull(pageData)?.length || 0);
+      }, 0);
       return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
     },
     initialPageParam: 1,

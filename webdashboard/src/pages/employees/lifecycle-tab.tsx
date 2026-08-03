@@ -2,6 +2,7 @@ import { ClipboardList, Plus } from "lucide-react";
 
 import type { LifecycleChecklistItem } from "@/lib/api/types";
 
+import { maybeNull } from "@/types/api-overrides";
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import { Typography } from "@/components/ui/typography";
@@ -90,8 +91,8 @@ export default function EmployeeLifecycleTab({ employmentId }: EmployeeLifecycle
             </div>
           )}
 
-          {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- activeChecklist may be null before data loads */}
-          {!!state.activeChecklist && (
+          {/* activeChecklist may be null before data loads */}
+          {!!maybeNull(state.activeChecklist) && (
             <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] shadow-sm p-5 sm:p-6 space-y-6">
               <ChecklistHeader checklist={state.activeChecklist} />
 

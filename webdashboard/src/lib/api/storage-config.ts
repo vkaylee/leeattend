@@ -1,5 +1,6 @@
 import type { components } from "@/types/api-generated";
 
+import { Nullable, maybeNull } from "@/types/api-overrides";
 import { client } from "./client";
 
 export type CreateStorageConfigRequest = components["schemas"]["CreateStorageConfigRequest"];
@@ -35,11 +36,11 @@ export async function testStorageConfig(wsId: string, payload: CreateStorageConf
   return data;
 }
 
-export async function deleteStorageConfig(wsId: string) {
-  const { data, error } = await client.DELETE("/v1/workspaces/{workspace_id}/settings/storage", {
+export async function deleteStorageConfig(wsId: string): Promise<null> {
+  const { error } = await client.DELETE("/v1/workspaces/{workspace_id}/settings/storage", {
     params: { path: { workspace_id: wsId } },
   });
   if (error) throwIfError(error);
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  return data ?? null;
+  // DELETE returns 204 No Content (void in generated types) — always null
+  return null;
 }

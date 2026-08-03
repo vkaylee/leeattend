@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import type { PendingTaskResponse } from "@/lib/api/types";
 
+import { maybeNull } from "@/types/api-overrides";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
@@ -76,8 +77,7 @@ export default function PendingTasksWidget() {
               <div className="flex items-start gap-3 flex-1">
                 <Button
                   className="text-slate-400 hover:text-emerald-500 transition-colors p-0 h-auto min-w-0"
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/no-unnecessary-type-conversion
-                  loading={!!completeTaskMutation.isPending && completeTaskMutation.variables?.itemId === task.id}
+                  loading={!!completeTaskMutation.isPending && maybeNull(completeTaskMutation.variables)?.itemId === task.id}
                   onClick={() => { handleCompleteTask(task); }}
                   variant="ghost"
                 >

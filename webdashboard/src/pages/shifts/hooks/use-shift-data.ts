@@ -78,8 +78,9 @@ export function useShiftData({
   } = useAllEmployees(wsId, { enabled: !!wsId && viewMode === "month" });
 
   const selectedEmploymentIds = useMemo(() => {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!employees || !selectedEmployeeIds || selectedEmployeeIds.length === 0) return [];
+    // employees may be undefined before query resolves; selectedEmployeeIds can be empty
+    const emps = employees as Employee[] | undefined;
+    if (!emps || !selectedEmployeeIds || selectedEmployeeIds.length === 0) return [];
     return selectedEmployeeIds
       .map(id => employees.find(e => e.id === id)?.active_employment_id)
       .filter((id): id is string => !!id);

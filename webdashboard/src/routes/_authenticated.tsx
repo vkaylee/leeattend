@@ -3,6 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { Typography } from "@/components/ui/typography";
+import { maybeNull } from "@/types/api-overrides";
 import { profileKeys } from "@/hooks/use-profile";
 import { fetchMe, clearAuthSession } from "@/lib/api";
 
@@ -27,8 +28,7 @@ export const Route = createFileRoute("/_authenticated")({
         queryKey: profileKeys.me,
         queryFn: fetchMe,
       });
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (!user) {
+      if (!maybeNull(user)) {
         clearAuthSession();
         // eslint-disable-next-line @typescript-eslint/only-throw-error
         throw redirect({ to: "/login" });

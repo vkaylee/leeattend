@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-table";
 import React, { memo, useCallback, useMemo } from "react";
 
+import { maybeNull } from "@/types/api-overrides";
 import { cn } from "@/lib/utils";
 
 import type { CellCoordinate, EditableCellValue } from "./types";
@@ -51,10 +52,8 @@ function SmartTableCellInner<T>({
   setFocusedCell,
   startCellEdit,
 }: SmartTableCellProps<T>) {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- focusedCell is null when no cell has focus
-  const isCellFocused = focusedCell?.rowIndex === rowIndex && focusedCell?.colIndex === colIndex;
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- editingCell is null when not editing
-  const isCellEditing = editingCell?.rowIndex === rowIndex && editingCell?.colIndex === colIndex;
+  const isCellFocused = maybeNull(focusedCell)?.rowIndex === rowIndex && maybeNull(focusedCell)?.colIndex === colIndex;
+  const isCellEditing = maybeNull(editingCell)?.rowIndex === rowIndex && maybeNull(editingCell)?.colIndex === colIndex;
   const isPinned = cell.column.getIsPinned();
   const isLastPinnedLeft = isPinned === "left" && cell.column.getIsLastColumn("left");
   const isFirstPinnedRight = isPinned === "right" && cell.column.getIsFirstColumn("right");
@@ -78,8 +77,9 @@ function SmartTableCellInner<T>({
 
   const cellRefCallback = useCallback((el: HTMLTableCellElement | null) => {
     const key = `${rowIndex}-${colIndex}`;
-    // eslint-disable-next-line react-hooks/immutability, @typescript-eslint/no-unnecessary-condition -- ref-based keyboard nav requires mutable storage; .current is always initialized
-    if (cellRefs.current) cellRefs.current[key] = el;
+    // ref-based keyboard nav requires mutable storage via .current assignment
+    const refs = cellRefs.current;
+    if (maybeNull(refs)) refs[key] = el;
   // eslint-disable-next-line react-hooks/exhaustive-deps -- cellRefs is a stable ref; .current is intentionally excluded to match React Compiler inference
   }, [rowIndex, colIndex]);
 

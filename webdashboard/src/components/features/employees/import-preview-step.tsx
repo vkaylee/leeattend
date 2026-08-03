@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import type { TerminationPreviewResponse } from "@/lib/api/employees";
 
+import { maybeNull } from "@/types/api-overrides";
 import Button from "@/components/ui/button";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -66,9 +67,10 @@ export default function ImportPreviewStep({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {previewData?.valid_rows.map((row, index) => (
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                  <TableRow key={row.employment_id ?? index}>
+                {previewData?.valid_rows.map((row, index) => {
+                  const rowKey = maybeNull(row.employment_id) ?? index;
+                  return (
+                  <TableRow key={rowKey}>
                     <TableCell className="font-mono text-[13px] font-bold tracking-tight">{row.employee_code}</TableCell>
                     <TableCell className="font-medium">{row.full_name}</TableCell>
                     <TableCell>{row.termination_date}</TableCell>
@@ -79,7 +81,8 @@ export default function ImportPreviewStep({
                         : t("employees.bulk_termination.no")}
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

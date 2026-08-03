@@ -35,8 +35,7 @@ export function getRuleSubtitle(rule: PayrollRuleDefinition, t: TFunction): stri
     if (config.rate !== undefined) {
       let details = `${config.rate}%`;
       if (config.base) details += ` on ${config.base}`;
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- rule_config is unknown at TS level; cap_amount may exist on percentage rules
-      if (config.cap_amount !== undefined && config.cap_amount !== null) {
+      if (config.cap_amount != null) {
         details += ` • Cap: ${config.cap_amount.toLocaleString()} ₫`;
       }
       parts.push(`(${details})`);

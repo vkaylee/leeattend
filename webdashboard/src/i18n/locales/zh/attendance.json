@@ -155,6 +155,7 @@
     "status": {
       "completed": "已完成！",
       "failed": "发生错误",
+      "partially_failed": "部分完成但有错误",
       "pending": "待处理...",
       "processing": "正在处理数据...",
       "uploading": "正在上传..."
