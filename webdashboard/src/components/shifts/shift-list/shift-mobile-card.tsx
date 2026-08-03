@@ -8,6 +8,7 @@ import Button from "@/components/ui/button";
 
 import { isNightShift } from "../shift-utils";
 import { ScopeBadges } from "./scope-badges";
+import { parseShiftInterval } from "./shift-interval-utils";
 
 // ── ShiftCardTimeRange ──────────────────────────────────────────────────────
 
@@ -66,11 +67,7 @@ function BreakDisplay({ breakStart, breakEnd, breakDuration, isAutoDeduct }: Bre
 
 // ── ShiftCardHeader ───────────────────────────────────────────────────────
 
-interface ShiftCardHeaderProps {
-  shift: Shift;
-}
-
-function ShiftCardHeader({ shift }: ShiftCardHeaderProps) {
+function ShiftCardHeader({ shift }: { shift: Shift }) {
   const { t } = useTranslation();
   return (
     <div className="flex items-start justify-between gap-3">
@@ -96,6 +93,50 @@ function ShiftCardHeader({ shift }: ShiftCardHeaderProps) {
   );
 }
 
+// ── ShiftCardBreakInfo ─────────────────────────────────────────────────────
+
+function ShiftCardBreakInfo({ breakStart, breakEnd, breakDuration, isAutoDeduct }: BreakDisplayProps) {
+  const { t } = useTranslation();
+  return (
+    <div className="mt-3">
+      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        {t("shifts.table.break_time")}
+      </div>
+      <div className="mt-1">
+        <BreakDisplay breakDuration={breakDuration} breakEnd={breakEnd} breakStart={breakStart} isAutoDeduct={isAutoDeduct} />
+      </div>
+    </div>
+  );
+}
+
+// ── ShiftCardActions ──────────────────────────────────────────────────────
+
+function ShiftCardActions({ shift, onEdit, onDelete, onViewHistory }: {
+  shift: Shift;
+  onEdit: (s: Shift) => void;
+  onDelete?: (s: Shift) => void;
+  onViewHistory?: (s: Shift) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
+      {onViewHistory ? (
+        <Button className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:bg-amber-50 hover:text-amber-600 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-amber-950/30 dark:hover:text-amber-400" onClick={() => { onViewHistory(shift); }} title={t("shifts.revisions.title")} variant="ghost">
+          <History size={16} />
+        </Button>
+      ) : null}
+      <Button className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:bg-primary-50 hover:text-primary-600 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-primary-950/30 dark:hover:text-primary-400" onClick={() => { onEdit(shift); }} title={t("common.edit")} variant="ghost">
+        <Pencil size={16} />
+      </Button>
+      {!!onDelete && (
+        <Button className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-rose-950/30 dark:hover:text-rose-400" onClick={() => { onDelete(shift); }} title={t("common.delete")} variant="ghost">
+          <Trash2 size={16} />
+        </Button>
+      )}
+    </div>
+  );
+}
+
 // ── ShiftMobileCard ────────────────────────────────────────────────────
 
 interface ShiftMobileCardProps {
@@ -114,16 +155,7 @@ export function ShiftMobileCard({
   onEdit,
   onViewHistory,
 }: ShiftMobileCardProps) {
-  const { t } = useTranslation();
-
-  const firstInterval = shift.intervals;
-  const iv = firstInterval?.[0];
-  const startTime = iv?.start_time ?? null;
-  const endTime = iv?.end_time ?? null;
-  const breakStart = iv?.break_start ?? null;
-  const breakEnd = iv?.break_end ?? null;
-  const breakDuration = iv?.break_duration_minutes ?? 0;
-  const isAutoDeduct = iv?.is_break_auto_deduct ?? true;
+  const { startTime, endTime, breakStart, breakEnd, breakDuration, isAutoDeduct } = parseShiftInterval(shift);
 
   return (
     <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-all active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900">
@@ -136,52 +168,9 @@ export function ShiftMobileCard({
 
       <ShiftCardTimeRange endTime={endTime} startTime={startTime} />
 
-      {/* Break info */}
-      <div className="mt-3">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-          {t("shifts.table.break_time")}
-        </div>
-        <div className="mt-1">
-          <BreakDisplay
-            breakDuration={breakDuration}
-            breakEnd={breakEnd}
-            breakStart={breakStart}
-            isAutoDeduct={isAutoDeduct}
-          />
-        </div>
-      </div>
+      <ShiftCardBreakInfo breakDuration={breakDuration} breakEnd={breakEnd} breakStart={breakStart} isAutoDeduct={isAutoDeduct} />
 
-      {/* Actions */}
-      <div className="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
-        {onViewHistory ? (
-          <Button
-            className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:bg-amber-50 hover:text-amber-600 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-amber-950/30 dark:hover:text-amber-400"
-            onClick={() => { onViewHistory(shift); }}
-            title={t("shifts.revisions.title")}
-            variant="ghost"
-          >
-            <History size={16} />
-          </Button>
-        ) : null}
-        <Button
-          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:bg-primary-50 hover:text-primary-600 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-primary-950/30 dark:hover:text-primary-400"
-          onClick={() => { onEdit(shift); }}
-          title={t("common.edit")}
-          variant="ghost"
-        >
-          <Pencil size={16} />
-        </Button>
-        {!!onDelete && (
-          <Button
-            className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-rose-950/30 dark:hover:text-rose-400"
-            onClick={() => { onDelete(shift); }}
-            title={t("common.delete")}
-            variant="ghost"
-          >
-            <Trash2 size={16} />
-          </Button>
-        )}
-      </div>
+      <ShiftCardActions onDelete={onDelete} onEdit={onEdit} onViewHistory={onViewHistory} shift={shift} />
     </div>
   );
 }
