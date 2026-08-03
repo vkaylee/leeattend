@@ -17,6 +17,7 @@ import PaginationControls from "@/components/common/pagination-controls";
 import ResponsiveTable, { type EditableCellValue } from "@/components/ui/responsive-table";
 import { useToast } from "@/components/ui/toast";
 import { useMyPermissions } from "@/hooks/use-permissions";
+import { useCurrency } from "@/hooks/use-currency";
 import { Employee, Payslip } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -48,9 +49,10 @@ function PayrollMobileCard({
   payslip?: Payslip;
   t: TFunction;
 }) {
-  const formatCurrency = (amount: string) => {
+  const { formatCurrency } = useCurrency();
+  const maskCurrency = (amount: string) => {
     if (!canReadSensitive) return "***";
-    return new Intl.NumberFormat("vi-VN").format(parseFloat(amount));
+    return formatCurrency(amount);
   };
 
   const bonusAmount = payslip?.incentives?.reduce(
@@ -123,7 +125,7 @@ function PayrollMobileCard({
             {t("common.payroll.table.base_pay")}
           </div>
           <div className="mt-1 font-mono text-sm font-bold text-slate-700 dark:text-slate-200">
-            {payslip ? formatCurrency(payslip.base_pay_amount) : "—"}
+            {payslip ? maskCurrency(payslip.base_pay_amount) : "—"}
           </div>
         </div>
         <div className="rounded-xl bg-emerald-50 p-3 dark:bg-emerald-950/30">
@@ -133,7 +135,7 @@ function PayrollMobileCard({
           </div>
           <div className="mt-1 font-mono text-sm font-bold text-emerald-600 dark:text-emerald-400">
             {payslip && parseFloat(payslip.overtime_pay_amount) > 0
-              ? `+${formatCurrency(payslip.overtime_pay_amount)}`
+              ? `+${maskCurrency(payslip.overtime_pay_amount)}`
               : "—"}
           </div>
         </div>
@@ -143,7 +145,7 @@ function PayrollMobileCard({
             {t("common.payroll.table.bonus")}
           </div>
           <div className="mt-1 font-mono text-sm font-bold text-blue-600 dark:text-blue-400">
-            {bonusAmount > 0 ? `+${formatCurrency(String(bonusAmount))}` : "—"}
+            {bonusAmount > 0 ? `+${maskCurrency(String(bonusAmount))}` : "—"}
           </div>
         </div>
         <div className="rounded-xl bg-primary-50 p-3 dark:bg-primary-950/30">
@@ -152,7 +154,7 @@ function PayrollMobileCard({
             {t("common.payroll.table.net_pay")}
           </div>
           <div className="mt-1 font-mono text-sm font-bold text-primary-600 dark:text-primary-400">
-            {payslip ? formatCurrency(payslip.net_pay_amount) : "—"}
+            {payslip ? maskCurrency(payslip.net_pay_amount) : "—"}
           </div>
         </div>
       </div>

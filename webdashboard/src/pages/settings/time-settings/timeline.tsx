@@ -6,8 +6,9 @@ import { TFunction } from "i18next";
 import { Typography } from "@/components/ui/typography";
 import { AttendancePolicyVersion } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
-import { formatDate, roundingLabel, workUnitLabel } from "./utils";
+import { roundingLabel, workUnitLabel } from "./utils";
 
 interface AttendanceVersionTimelineProps {
   t: TFunction;
@@ -76,6 +77,7 @@ interface TimelineItemProps {
 }
 
 function TimelineItem({ isCurrent, t, version }: TimelineItemProps) {
+  const { formatDate } = useDateTimeFormatter();
   return (
     <div
       className={cn(

@@ -1,5 +1,4 @@
 import React from "react";
-import { useTranslation } from "react-i18next";
 
 import { AuditLogFilters } from "./components/audit-logs/audit-log-filters";
 import { AuditLogHeader } from "./components/audit-logs/audit-log-header";
@@ -8,7 +7,6 @@ import { AuditLogTable } from "./components/audit-logs/audit-log-table";
 import { useAuditLogs } from "./hooks/use-audit-logs";
 
 export default function AuditLogPage() {
-    const { i18n } = useTranslation();
     const {
         data,
         isLoading,
@@ -41,7 +39,6 @@ export default function AuditLogPage() {
                 <AuditLogTable
                     isError={isError}
                     isLoading={isLoading}
-                    language={i18n.language}
                     logs={data?.data}
                 />
 

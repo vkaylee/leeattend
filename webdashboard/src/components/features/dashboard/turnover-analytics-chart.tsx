@@ -29,13 +29,13 @@ interface PeriodOption {
     value: string;
 }
 
-function formatDate(d: Date): string {
+function toISODate(d: Date): string {
     return d.toISOString().slice(0, 10);
 }
 
 function getPeriodOptions(t: (key: string) => string): PeriodOption[] {
     const today = new Date();
-    const endDate = formatDate(today);
+    const endDate = toISODate(today);
 
     const months3 = new Date(today.getFullYear(), today.getMonth() - 3, 1);
     const months6 = new Date(today.getFullYear(), today.getMonth() - 6, 1);
@@ -47,10 +47,10 @@ function getPeriodOptions(t: (key: string) => string): PeriodOption[] {
     year2.setFullYear(year2.getFullYear() - 2);
 
     return [
-        { label: t("dashboard.hr.turnover_period_3m"), value: "3m", startDate: formatDate(months3), endDate },
-        { label: t("dashboard.hr.turnover_period_6m"), value: "6m", startDate: formatDate(months6), endDate },
-        { label: t("dashboard.hr.turnover_period_1y"), value: "1y", startDate: formatDate(year1), endDate },
-        { label: t("dashboard.hr.turnover_period_2y"), value: "2y", startDate: formatDate(year2), endDate },
+        { label: t("dashboard.hr.turnover_period_3m"), value: "3m", startDate: toISODate(months3), endDate },
+        { label: t("dashboard.hr.turnover_period_6m"), value: "6m", startDate: toISODate(months6), endDate },
+        { label: t("dashboard.hr.turnover_period_1y"), value: "1y", startDate: toISODate(year1), endDate },
+        { label: t("dashboard.hr.turnover_period_2y"), value: "2y", startDate: toISODate(year2), endDate },
     ];
 }
 

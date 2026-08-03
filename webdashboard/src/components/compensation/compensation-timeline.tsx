@@ -18,6 +18,7 @@ import type { CompensationTimelineEvent } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
+import { useCurrency } from "@/hooks/use-currency";
 
 import CompensationDiffBadge from "./compensation-diff-badge";
 
@@ -37,14 +38,6 @@ function getChangeTypeIcon(type: string) {
   return CHANGE_TYPE_ICONS[type] ?? <Calendar className="w-5 h-5 text-slate-500" />;
 }
 
-function formatCurrency(val: string | number) {
-  const num = typeof val === "string" ? parseFloat(val) : val;
-  return new Intl.NumberFormat("vi-VN", {
-    currency: "VND",
-    style: "currency",
-  }).format(num);
-}
-
 function getChangeTypeLabel(type: string, t: TFunction) {
   const labels: Record<string, string> = {
     initial: t("employees.compensation.types.initial", "Lương khởi điểm"),
@@ -59,15 +52,14 @@ function CompensationComponentsBreakdown({
   event,
   isExpanded,
   onToggle,
-  formatCurrency: fmt,
   t,
 }: {
   event: CompensationTimelineEvent;
   isExpanded: boolean;
   onToggle: () => void;
-  formatCurrency: (val: string | number) => string;
   t: TFunction;
 }) {
+  const { formatCurrency: fmt } = useCurrency();
   return (
     <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800/80">
       <Button
@@ -113,13 +105,13 @@ function CompensationComponentsBreakdown({
 
 interface EventCardHeaderProps {
   event: CompensationTimelineEvent;
-  formatCurrency: (val: string | number) => string;
   formatDate: (date: string) => string;
   getChangeTypeLabel: (type: string) => string;
   t: TFunction;
 }
 
-function EventCardHeader({ event, formatDate, formatCurrency: fmt, getChangeTypeLabel, t }: EventCardHeaderProps) {
+function EventCardHeader({ event, formatDate, getChangeTypeLabel, t }: EventCardHeaderProps) {
+  const { formatCurrency: fmt } = useCurrency();
   return (
     <>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
@@ -234,7 +226,6 @@ export default function CompensationTimeline({
             <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80 p-8 rounded-[2.5rem] hover:bg-white dark:hover:bg-slate-900/60 hover:shadow-xl hover:shadow-primary-100/10 dark:hover:shadow-none transition-all duration-300">
               <EventCardHeader
                 event={event}
-                formatCurrency={formatCurrency}
                 formatDate={formatDate}
                 getChangeTypeLabel={getChangeTypeLabelMemo}
                 t={t}
@@ -243,7 +234,6 @@ export default function CompensationTimeline({
               {hasComponents ? (
                 <CompensationComponentsBreakdown
                   event={event}
-                  formatCurrency={formatCurrency}
                   isExpanded={isExpanded}
                   onToggle={() => { toggleExpand(idx); }}
                   t={t}

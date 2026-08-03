@@ -2,6 +2,8 @@ import { Minus, TrendingDown, TrendingUp } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { useCurrency } from "@/hooks/use-currency";
+
 interface CompensationDiffBadgeProps {
   className?: string;
   delta: string | number;
@@ -12,16 +14,10 @@ export default function CompensationDiffBadge({
   delta,
 }: CompensationDiffBadgeProps) {
   const { t } = useTranslation();
+  const { formatCurrency } = useCurrency();
   const deltaNum = typeof delta === "string" ? parseFloat(delta) : delta;
-  
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      currency: "VND",
-      style: "currency",
-    }).format(Math.abs(val));
-  };
 
-  const formattedDelta = formatCurrency(deltaNum);
+  const formattedDelta = formatCurrency(Math.abs(deltaNum));
 
   if (deltaNum > 0) {
     return (

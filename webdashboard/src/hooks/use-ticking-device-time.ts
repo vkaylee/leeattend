@@ -12,7 +12,7 @@ function parseDeviceTime(dt: string): number {
 /**
  * Formats a Date into "YYYY-MM-DD HH:mm:ss".
  */
-function formatTime(d: Date): string {
+function formatDeviceTime(d: Date): string {
     const pad = (n: number) => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
@@ -92,6 +92,6 @@ export function useTickingDeviceTime(
 
     if (offset === null) return null;
 
-    return formatTime(new Date(now + offset));
+    return formatDeviceTime(new Date(now + offset));
 }
 

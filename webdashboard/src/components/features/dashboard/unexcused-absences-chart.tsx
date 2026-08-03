@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 type RangePreset = "7d" | "30d" | "custom";
 type GroupBy = "department" | "employee";
 
-function formatDate(d: Date): string {
+function toISODate(d: Date): string {
     return d.toISOString().slice(0, 10);
 }
 
@@ -111,17 +111,17 @@ export default function UnexcusedAbsencesChart() {
         if (preset === "7d") {
             const s = new Date(now);
             s.setDate(s.getDate() - 6);
-            return { startDate: formatDate(s), endDate: formatDate(now) };
+            return { startDate: toISODate(s), endDate: toISODate(now) };
         }
         if (preset === "30d") {
             const s = new Date(now);
             s.setDate(s.getDate() - 29);
-            return { startDate: formatDate(s), endDate: formatDate(now) };
+            return { startDate: toISODate(s), endDate: toISODate(now) };
         }
         // custom — default to 30 days
         const s = new Date(now);
         s.setDate(s.getDate() - 29);
-        return { startDate: formatDate(s), endDate: formatDate(now) };
+        return { startDate: toISODate(s), endDate: toISODate(now) };
     }, [preset]);
 
     const { data, isLoading } = useUnexcusedAbsences(startDate, endDate, groupBy);

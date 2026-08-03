@@ -168,5 +168,29 @@ export function useDateTimeFormatter() {
     }
   };
 
-  return { formatDate, formatTime, formatTime24h, formatDateTime, formatMonthYear };
+  /**
+   * Locale-aware date+time formatting using Intl.DateTimeFormat with medium
+   * dateStyle/timeStyle. Suitable for audit logs, system timestamps, and
+   * other contexts where the workspace timezone is irrelevant — the user's
+   * locale preference drives the display format.
+   */
+  const formatDateTimeLocale = (date: string | Date | null | undefined) => {
+    if (!date) return "---";
+    try {
+      const localeMap: Record<string, string> = {
+        vi: "vi-VN",
+        zh: "zh-CN",
+        en: "en-US",
+      };
+      const locale = localeMap[currentLanguage] ?? "en-US";
+      return new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "medium",
+      }).format(new Date(date));
+    } catch {
+      return String(date);
+    }
+  };
+
+  return { formatDate, formatTime, formatTime24h, formatDateTime, formatMonthYear, formatDateTimeLocale };
 }

@@ -1,17 +1,5 @@
 import { TFunction } from "i18next";
 
-export function formatDate(iso: string) {
-  try {
-    return new Date(iso).toLocaleDateString(undefined, {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-}
-
 export function workUnitLabel(v: number, t: TFunction) {
   if (v === 1) return t("common.workspace_settings.work_unit_options.1min");
   if (v === 15) return t("common.workspace_settings.work_unit_options.15min");

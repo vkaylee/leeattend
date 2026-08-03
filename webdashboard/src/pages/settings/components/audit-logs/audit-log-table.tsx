@@ -6,20 +6,13 @@ import type { AuditLog } from "@/lib/api";
 
 import ResponsiveTable from "@/components/ui/responsive-table";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 interface AuditLogTableProps {
     isError: boolean;
     isLoading: boolean;
-    language: string;
     logs: AuditLog[] | undefined;
 }
-
-const formatDateTime = (dateString: string, lng = "en-US") => {
-    return new Intl.DateTimeFormat(lng === "vi" ? "vi-VN" : lng === "zh" ? "zh-CN" : "en-US", {
-        dateStyle: "medium",
-        timeStyle: "medium",
-    }).format(new Date(dateString));
-};
 
 const getBadgeColor = (action: string) => {
     if (action.includes("remove") || action.includes("delete") || action.includes("revoke")) {
@@ -53,12 +46,13 @@ function AuditLogTableHeader() {
     );
 }
 
-function AuditLogTableRow({ language, log }: { language: string; log: AuditLog }) {
+function AuditLogTableRow({ log }: { log: AuditLog }) {
     const { t } = useTranslation();
+    const { formatDateTimeLocale } = useDateTimeFormatter();
     return (
         <TableRow key={log.id}>
             <TableCell className="px-6 py-4 whitespace-nowrap text-slate-500 dark:text-slate-400">
-                {formatDateTime(log.created_at, language)}
+                {formatDateTimeLocale(log.created_at)}
             </TableCell>
             <TableCell className="px-6 py-4 whitespace-nowrap">
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getBadgeColor(log.action)}`}>
@@ -109,14 +103,15 @@ function AuditLogTableRow({ language, log }: { language: string; log: AuditLog }
     );
 }
 
-function AuditLogMobileCard({ language, log }: { language: string; log: AuditLog }) {
+function AuditLogMobileCard({ log }: { log: AuditLog }) {
     const { t } = useTranslation();
+    const { formatDateTimeLocale } = useDateTimeFormatter();
     return (
         <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-all active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900">
             {/* Header: Timestamp and action badge */}
             <div className="flex items-start justify-between gap-3">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                    {formatDateTime(log.created_at, language)}
+                    {formatDateTimeLocale(log.created_at)}
                 </div>
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getBadgeColor(log.action)}`}>
                     {formatActionName(log.action)}
@@ -168,7 +163,7 @@ function AuditLogMobileCard({ language, log }: { language: string; log: AuditLog
     );
 }
 
-export function AuditLogTable({ isError, isLoading, language, logs }: AuditLogTableProps) {
+export function AuditLogTable({ isError, isLoading, logs }: AuditLogTableProps) {
     const { t } = useTranslation();
 
     if (isLoading) {
@@ -210,13 +205,13 @@ export function AuditLogTable({ isError, isLoading, language, logs }: AuditLogTa
         <ResponsiveTable
             data={logs}
             getCardKey={(log) => log.id}
-            renderCard={(log) => <AuditLogMobileCard language={language} log={log} />}
+            renderCard={(log) => <AuditLogMobileCard log={log} />}
             renderDesktopTable={() => (
                 <Table>
                     <AuditLogTableHeader />
                     <TableBody>
                         {logs.map((log) => (
-                            <AuditLogTableRow key={log.id} language={language} log={log} />
+                            <AuditLogTableRow key={log.id} log={log} />
                         ))}
                     </TableBody>
                 </Table>
