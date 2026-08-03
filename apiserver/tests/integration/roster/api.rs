@@ -61,10 +61,11 @@ async fn test_bulk_upsert_roster_api_smoke() {
     // so the handler returns 202 Accepted instead of 200 OK.
     assert_eq!(res.status(), StatusCode::ACCEPTED);
 
-    // 4. Verify via GET (handler returns no body, just status code)
+    // 4. Verify via GET with explicit date range to avoid TZ boundary issues
+    let date_str = date.format("%Y-%m-%d").to_string();
     let get_res = client
         .get(format!(
-            "{address}/api/v1/workspaces/{workspace_id}/employees/{emp_id}/rosters"
+            "{address}/api/v1/workspaces/{workspace_id}/employees/{emp_id}/rosters?start_date={date_str}&end_date={date_str}"
         ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .send()
