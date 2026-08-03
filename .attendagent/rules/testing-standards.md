@@ -4,6 +4,10 @@
 > **NEVER run `cargo test`, `npm test`, `npx playwright test`, or any test command directly.** 
 > This project uses Podman-based test isolation. The ONLY way to run tests is through `./leedevkit test`.
 
+> [!CAUTION]
+> **🔴 CORE PRINCIPLE #9 (TESTING COMPLETENESS) APPLIES:**
+> Unit tests passing does NOT mean the task is complete. You MUST run the full test suite (including integration/E2E tests) before declaring a task done. Stopping at `--unit-only` is a false positive anti-pattern.
+
 ## 1. Test Execution Commands
 > [!IMPORTANT]
 > **DO NOT use background execution (`&`) for tests.** The `./leedevkit test` orchestrator handles PTY safety internally. Run it in the foreground so you can read the output and verify the results.
@@ -31,6 +35,11 @@
 - **Pattern:** Use AAA Pattern (Arrange-Act-Assert).
 - **Code Coverage:** Minimum **80%** coverage for all new business logic.
 - **Mandatory Pass:** A task is NOT complete until `./leedevkit test <target>` passes successfully.
+
+> [!CAUTION]
+> **🔴 ANTI-PATTERN DETECTION:**
+> If you find yourself running `--unit-only` and planning to stop there, STOP! This violates Core Principle #9.
+> The correct workflow is: Unit tests pass → Full suite (`./leedevkit test <target>`) → Task complete.
 
 ### 2.1 Coverage Baseline Protection (ANTI-DRIFT)
 - **Coverage thresholds are floors, not aspirational targets.** `vitest.config.ts` enforces per-path thresholds (e.g. `./src/lib/api/` ≥ 80/55/90/85 stmts/branch/fn/lines). A PR that drops coverage below the floor fails CI.

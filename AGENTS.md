@@ -39,6 +39,13 @@ trigger: always_on
 8. **AI MUST EXPLORE BEFORE CREATING (ANTI-REINVENTION):**
     - You MUST use `list_dir`, `grep_search`, or read root-level scripts to verify that a tool doesn't already exist BEFORE creating any new scripts (bash/python).
     - AI tends to ignore existing large codebase tools and writes new ones, causing context bloat and technical debt. DO NOT REINVENT THE WHEEL.
+9. **TESTING COMPLETENESS (CRITICAL - NO FALSE POSITIVES):**
+    - **Unit tests passing does NOT mean the task is complete.** Unit tests only verify isolated logic.
+    - **Integration tests are MANDATORY** after unit tests pass. They verify database operations, API contracts, cross-component interactions, and end-to-end workflows.
+    - **Anti-pattern:** Running `./leedevkit test <target> --unit-only` and declaring the task complete. This creates false confidence.
+    - **Mandatory workflow:** After unit tests pass, you MUST run the full test suite: `./leedevkit test <target>` (without `--unit-only`) to ensure integration/E2E tests also pass.
+    - **Definition of Done:** A task is INCOMPLETE if integration tests were not executed, even if unit tests passed.
+    - **Common failure scenarios:** Database migrations not applied, API schema mismatches, missing environment variables, race conditions in async operations, foreign key violations.
 
 ## 🥇 Layer 1: CRITICAL PROTOCOL
 **Before writing ANY code or proposing solutions, you MUST:**
