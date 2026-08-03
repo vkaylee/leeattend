@@ -1,4 +1,4 @@
-import { fetch, fire } from "./client";
+import { client, fetch, fire } from "./client";
 import {
   type BulkCreateWorkSegmentsRequest,
   type CreateShiftIntervalRequest,
@@ -9,13 +9,14 @@ import {
   type WorkSegment,
 } from "./types";
 
-// /workspaces/{workspace_id}/work-segments* and shifts/{shift_id}/intervals*
-// paths are not yet registered in the generated OpenAPI schema. They route
-// through the typed `fetchUntyped` wrapper so call-site bodies stay typed and
-// the data shape is asserted locally. When these paths land in openapi.raw.json
-// and the schema is regenerated, migrate to the typed `client.METHOD(...)`.
-
-// ── Work Segments ──────────────────────────────────────────────────────────
+// ── Work Segments (typed client) ───────────────────────────────────────────
+//
+// These paths are registered in the Rust ApiDoc (utoipa) and present in the
+// generated OpenAPI schema.  Migrated from legacy `fetch<T>()` to typed
+// `client.METHOD(...)` for compile-time path/param/response validation.
+//
+// NOTE: /work-segments/schedule and /shifts/{shift_id}/intervals* are NOT
+// yet backed by backend handlers — see .ai/ADRs/work-segments-intervals-openapi-gap.md.
 
 export async function fetchWorkSegments(
   wsId: string,
@@ -30,35 +31,38 @@ export async function fetchWorkSegments(
     limit?: number;
   }
 ): Promise<WorkSegment[]> {
-  const { data: resData } = await fetch<{ data: WorkSegment[] }>("GET", "/workspaces/{workspace_id}/work-segments", {
+  const { data: resData } = await client.GET("/workspaces/{workspace_id}/work-segments", {
     params: {
       path: { workspace_id: wsId },
-      query: params,
+      // The OpenAPI schema models employment_ids as string | null (comma-separated),
+      // but the call-site parameter is string[] for ergonomics.  The legacy path
+      // also sent an array via openapi-fetch serialization.
+      query: params as Record<string, unknown>,
     },
   });
-  return resData.data;
+  return resData.segments as WorkSegment[];
 }
 
 export async function createWorkSegment(
   wsId: string,
   body: CreateWorkSegmentRequest
 ): Promise<WorkSegment> {
-  const { data: resData } = await fetch<WorkSegment>("POST", "/workspaces/{workspace_id}/work-segments", {
+  const { data: resData } = await client.POST("/workspaces/{workspace_id}/work-segments", {
     params: { path: { workspace_id: wsId } },
     body,
   });
-  return resData;
+  return resData as WorkSegment;
 }
 
 export async function getWorkSegment(
   wsId: string,
   segmentId: string
 ): Promise<WorkSegment> {
-  const { data: resData } = await fetch<WorkSegment>("GET",
+  const { data: resData } = await client.GET(
     "/workspaces/{workspace_id}/work-segments/{segment_id}",
     { params: { path: { workspace_id: wsId, segment_id: segmentId } } },
   );
-  return resData;
+  return resData as WorkSegment;
 }
 
 export async function updateWorkSegment(
@@ -66,21 +70,21 @@ export async function updateWorkSegment(
   segmentId: string,
   body: UpdateWorkSegmentRequest
 ): Promise<WorkSegment> {
-  const { data: resData } = await fetch<WorkSegment>("PUT",
+  const { data: resData } = await client.PUT(
     "/workspaces/{workspace_id}/work-segments/{segment_id}",
     {
       params: { path: { workspace_id: wsId, segment_id: segmentId } },
       body,
     },
   );
-  return resData;
+  return resData as WorkSegment;
 }
 
 export async function deleteWorkSegment(
   wsId: string,
   segmentId: string
 ): Promise<void> {
-  await fire("DELETE", "/workspaces/{workspace_id}/work-segments/{segment_id}", {
+  await client.DELETE("/workspaces/{workspace_id}/work-segments/{segment_id}", {
     params: { path: { workspace_id: wsId, segment_id: segmentId } },
   });
 }
@@ -89,11 +93,11 @@ export async function bulkCreateWorkSegments(
   wsId: string,
   body: BulkCreateWorkSegmentsRequest
 ): Promise<WorkSegment[]> {
-  const { data: resData } = await fetch<WorkSegment[]>("POST", "/workspaces/{workspace_id}/work-segments/bulk", {
+  const { data: resData } = await client.POST("/workspaces/{workspace_id}/work-segments/bulk", {
     params: { path: { workspace_id: wsId } },
     body,
   });
-  return resData;
+  return resData as WorkSegment[];
 }
 
 export async function scheduleWorkSegments(
@@ -109,7 +113,10 @@ export async function scheduleWorkSegments(
   return resData;
 }
 
-// ── Shift Intervals ─────────────────────────────────────────────────────────
+// ── Shift Intervals (legacy escape hatch) ──────────────────────────────────
+// No backend routes/handlers exist yet for /shifts/{shift_id}/intervals*.
+// These stay on legacy `fetch`/`fire` until backend endpoints are built.
+// See .ai/ADRs/work-segments-intervals-openapi-gap.md.
 
 export async function fetchShiftIntervals(
   wsId: string,

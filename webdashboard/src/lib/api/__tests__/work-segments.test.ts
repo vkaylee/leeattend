@@ -55,15 +55,15 @@ describe("work-segments API", () => {
     vi.clearAllMocks();
   });
 
-  it("fetchWorkSegments: returns resData.data array", async () => {
+  it("fetchWorkSegments: returns segments array", async () => {
     const mock = [{ id: "ws-1", start_time: "09:00" }];
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ data: mock }));
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ segments: mock, total_count: 1 }));
     const result = await fetchWorkSegments("ws-1");
     expect(result).toEqual(mock);
   });
 
   it("fetchWorkSegments: forwards query params", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ data: [] }));
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ segments: [], total_count: 0 }));
     await fetchWorkSegments("ws-1", { start_date: "2026-01-01", page: 1, limit: 20 });
     expect(apiFetch).toHaveBeenCalledTimes(1);
   });
