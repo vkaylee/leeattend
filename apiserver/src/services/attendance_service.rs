@@ -703,53 +703,53 @@ mod tests {
         end_m: u32,
         break_minutes: i32,
     ) -> EffectiveSchedule {
-        EffectiveSchedule::new(
-            TEST_DATE,
-            Some(Uuid::new_v4()),
-            "test".to_string(),
-            Some("Test Shift".to_string()),
-            Some("T".to_string()),
-            NaiveTime::from_hms_opt(start_h, start_m, 0),
-            NaiveTime::from_hms_opt(end_h, end_m, 0),
-            Some(break_minutes),
-            None,   // break_start
-            None,   // break_end
-            None,   // is_break_auto_deduct
-            None,   // early_punch_in_grace_period_minutes
-            None,   // allow_early_ot
-            None,   // break_is_overtime
-            None,   // max_early_ot_minutes
-            vec![], // traces
-            false,  // is_holiday
-            false,  // is_holiday_paid
-            None,   // holiday_name
-        )
+        EffectiveSchedule::new(NewEffectiveScheduleParams {
+            date: TEST_DATE,
+            shift_id: Some(Uuid::new_v4()),
+            source: "test".to_string(),
+            shift_name: Some("Test Shift".to_string()),
+            shift_symbol: Some("T".to_string()),
+            start_time: NaiveTime::from_hms_opt(start_h, start_m, 0),
+            end_time: NaiveTime::from_hms_opt(end_h, end_m, 0),
+            break_duration_minutes: Some(break_minutes),
+            break_start: None,
+            break_end: None,
+            is_break_auto_deduct: None,
+            early_punch_in_grace_period_minutes: None,
+            allow_early_ot: None,
+            break_is_overtime: None,
+            max_early_ot_minutes: None,
+            traces: vec![],
+            is_holiday: false,
+            is_holiday_paid: false,
+            holiday_name: None,
+        })
     }
     /// Build an `EffectiveSchedule` with sensible defaults for test use.
     /// Defaults: date=TEST_DATE, source="test", shift 08:00–17:00, no break,
     /// no auto-deduct, no OT flags, no holiday.
     fn mock_schedule(start_h: u32, start_m: u32, end_h: u32, end_m: u32) -> EffectiveSchedule {
-        EffectiveSchedule::new(
-            TEST_DATE,
-            Some(Uuid::new_v4()),
-            "test".to_string(),
-            Some("Test Shift".to_string()),
-            Some("T".to_string()),
-            NaiveTime::from_hms_opt(start_h, start_m, 0),
-            NaiveTime::from_hms_opt(end_h, end_m, 0),
-            None,   // break_duration_minutes
-            None,   // break_start
-            None,   // break_end
-            None,   // is_break_auto_deduct
-            None,   // early_punch_in_grace_period_minutes
-            None,   // allow_early_ot
-            None,   // break_is_overtime
-            None,   // max_early_ot_minutes
-            vec![], // traces
-            false,  // is_holiday
-            false,  // is_holiday_paid
-            None,   // holiday_name
-        )
+        EffectiveSchedule::new(NewEffectiveScheduleParams {
+            date: TEST_DATE,
+            shift_id: Some(Uuid::new_v4()),
+            source: "test".to_string(),
+            shift_name: Some("Test Shift".to_string()),
+            shift_symbol: Some("T".to_string()),
+            start_time: NaiveTime::from_hms_opt(start_h, start_m, 0),
+            end_time: NaiveTime::from_hms_opt(end_h, end_m, 0),
+            break_duration_minutes: None,
+            break_start: None,
+            break_end: None,
+            is_break_auto_deduct: None,
+            early_punch_in_grace_period_minutes: None,
+            allow_early_ot: None,
+            break_is_overtime: None,
+            max_early_ot_minutes: None,
+            traces: vec![],
+            is_holiday: false,
+            is_holiday_paid: false,
+            holiday_name: None,
+        })
     }
 
     /// Build an `EffectiveSchedule` with a fixed break window.
@@ -764,27 +764,27 @@ mod tests {
         break_end_m: u32,
         break_dur: i32,
     ) -> EffectiveSchedule {
-        EffectiveSchedule::new(
-            TEST_DATE,
-            Some(Uuid::new_v4()),
-            "test".to_string(),
-            Some("Test Shift".to_string()),
-            Some("T".to_string()),
-            NaiveTime::from_hms_opt(start_h, start_m, 0),
-            NaiveTime::from_hms_opt(end_h, end_m, 0),
-            Some(break_dur),
-            NaiveTime::from_hms_opt(break_start_h, break_start_m, 0),
-            NaiveTime::from_hms_opt(break_end_h, break_end_m, 0),
-            None,   // is_break_auto_deduct
-            None,   // early_punch_in_grace_period_minutes
-            None,   // allow_early_ot
-            None,   // break_is_overtime
-            None,   // max_early_ot_minutes
-            vec![], // traces
-            false,  // is_holiday
-            false,  // is_holiday_paid
-            None,   // holiday_name
-        )
+        EffectiveSchedule::new(NewEffectiveScheduleParams {
+            date: TEST_DATE,
+            shift_id: Some(Uuid::new_v4()),
+            source: "test".to_string(),
+            shift_name: Some("Test Shift".to_string()),
+            shift_symbol: Some("T".to_string()),
+            start_time: NaiveTime::from_hms_opt(start_h, start_m, 0),
+            end_time: NaiveTime::from_hms_opt(end_h, end_m, 0),
+            break_duration_minutes: Some(break_dur),
+            break_start: NaiveTime::from_hms_opt(break_start_h, break_start_m, 0),
+            break_end: NaiveTime::from_hms_opt(break_end_h, break_end_m, 0),
+            is_break_auto_deduct: None,
+            early_punch_in_grace_period_minutes: None,
+            allow_early_ot: None,
+            break_is_overtime: None,
+            max_early_ot_minutes: None,
+            traces: vec![],
+            is_holiday: false,
+            is_holiday_paid: false,
+            holiday_name: None,
+        })
     }
 
     /// Build an overnight `EffectiveSchedule` (end < start).
@@ -794,52 +794,52 @@ mod tests {
         end_h: u32,
         end_m: u32,
     ) -> EffectiveSchedule {
-        EffectiveSchedule::new(
-            TEST_DATE,
-            Some(Uuid::new_v4()),
-            "test".to_string(),
-            Some("Overnight Shift".to_string()),
-            Some("N".to_string()),
-            NaiveTime::from_hms_opt(start_h, start_m, 0),
-            NaiveTime::from_hms_opt(end_h, end_m, 0),
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            vec![],
-            false,
-            false,
-            None,
-        )
+        EffectiveSchedule::new(NewEffectiveScheduleParams {
+            date: TEST_DATE,
+            shift_id: Some(Uuid::new_v4()),
+            source: "test".to_string(),
+            shift_name: Some("Overnight Shift".to_string()),
+            shift_symbol: Some("N".to_string()),
+            start_time: NaiveTime::from_hms_opt(start_h, start_m, 0),
+            end_time: NaiveTime::from_hms_opt(end_h, end_m, 0),
+            break_duration_minutes: None,
+            break_start: None,
+            break_end: None,
+            is_break_auto_deduct: None,
+            early_punch_in_grace_period_minutes: None,
+            allow_early_ot: None,
+            break_is_overtime: None,
+            max_early_ot_minutes: None,
+            traces: vec![],
+            is_holiday: false,
+            is_holiday_paid: false,
+            holiday_name: None,
+        })
     }
 
     /// Build a no-shift `EffectiveSchedule` (day off / holiday).
     fn mock_no_shift_schedule() -> EffectiveSchedule {
-        EffectiveSchedule::new(
-            TEST_DATE,
-            None, // shift_id = None → no shift
-            "none".to_string(),
-            None,
-            None,
-            None, // start_time
-            None, // end_time
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            vec![],
-            false,
-            false,
-            None,
-        )
+        EffectiveSchedule::new(NewEffectiveScheduleParams {
+            date: TEST_DATE,
+            shift_id: None,
+            source: "none".to_string(),
+            shift_name: None,
+            shift_symbol: None,
+            start_time: None,
+            end_time: None,
+            break_duration_minutes: None,
+            break_start: None,
+            break_end: None,
+            is_break_auto_deduct: None,
+            early_punch_in_grace_period_minutes: None,
+            allow_early_ot: None,
+            break_is_overtime: None,
+            max_early_ot_minutes: None,
+            traces: vec![],
+            is_holiday: false,
+            is_holiday_paid: false,
+            holiday_name: None,
+        })
     }
 
     // =========================================================================
@@ -2395,27 +2395,27 @@ mod tests {
                 .with_timezone(&Utc);
             let dur = (hcm_5pm - hcm_8am).num_minutes() as i32;
 
-            let schedule = EffectiveSchedule::new(
-                TEST_DATE,
-                Some(Uuid::new_v4()),
-                "test".to_string(),
-                Some("Test".to_string()),
-                None,
-                NaiveTime::from_hms_opt(8, 0, 0),
-                NaiveTime::from_hms_opt(17, 0, 0),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                vec![],
-                false,
-                false,
-                None,
-            );
+            let schedule = EffectiveSchedule::new(NewEffectiveScheduleParams {
+                date: TEST_DATE,
+                shift_id: Some(Uuid::new_v4()),
+                source: "test".to_string(),
+                shift_name: Some("Test".to_string()),
+                shift_symbol: None,
+                start_time: NaiveTime::from_hms_opt(8, 0, 0),
+                end_time: NaiveTime::from_hms_opt(17, 0, 0),
+                break_duration_minutes: None,
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: None,
+                early_punch_in_grace_period_minutes: None,
+                allow_early_ot: None,
+                break_is_overtime: None,
+                max_early_ot_minutes: None,
+                traces: vec![],
+                is_holiday: false,
+                is_holiday_paid: false,
+                holiday_name: None,
+            });
             let entry = TimeEntry::new(
                 Uuid::new_v4(),
                 Uuid::new_v4(),
@@ -2457,27 +2457,27 @@ mod tests {
         fn shift_start_none_but_end_some_becomes_none_shift() {
             // If start_time is None, shift_naive_to_dt returns None,
             // and the if-let (Some(start), Some(end)) fails → (None, None)
-            let schedule = EffectiveSchedule::new(
-                TEST_DATE,
-                Some(Uuid::new_v4()),
-                "test".to_string(),
-                None,
-                None,
-                None,                              // start_time = None
-                NaiveTime::from_hms_opt(17, 0, 0), // end_time = Some
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                vec![],
-                false,
-                false,
-                None,
-            );
+            let schedule = EffectiveSchedule::new(NewEffectiveScheduleParams {
+                date: TEST_DATE,
+                shift_id: Some(Uuid::new_v4()),
+                source: "test".to_string(),
+                shift_name: None,
+                shift_symbol: None,
+                start_time: None,
+                end_time: NaiveTime::from_hms_opt(17, 0, 0),
+                break_duration_minutes: None,
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: None,
+                early_punch_in_grace_period_minutes: None,
+                allow_early_ot: None,
+                break_is_overtime: None,
+                max_early_ot_minutes: None,
+                traces: vec![],
+                is_holiday: false,
+                is_holiday_paid: false,
+                holiday_name: None,
+            });
             let builder = ComputeDailyInputBuilder::new()
                 .schedule(schedule)
                 .work_entry(dt(8, 0), dt(17, 0));
@@ -2489,27 +2489,27 @@ mod tests {
 
         #[test]
         fn break_start_some_end_none_becomes_none_break() {
-            let schedule = EffectiveSchedule::new(
-                TEST_DATE,
-                Some(Uuid::new_v4()),
-                "test".to_string(),
-                None,
-                None,
-                NaiveTime::from_hms_opt(8, 0, 0),
-                NaiveTime::from_hms_opt(17, 0, 0),
-                Some(60),
-                NaiveTime::from_hms_opt(12, 0, 0), // break_start = Some
-                None,                              // break_end = None
-                Some(true),
-                None,
-                None,
-                None,
-                None,
-                vec![],
-                false,
-                false,
-                None,
-            );
+            let schedule = EffectiveSchedule::new(NewEffectiveScheduleParams {
+                date: TEST_DATE,
+                shift_id: Some(Uuid::new_v4()),
+                source: "test".to_string(),
+                shift_name: None,
+                shift_symbol: None,
+                start_time: NaiveTime::from_hms_opt(8, 0, 0),
+                end_time: NaiveTime::from_hms_opt(17, 0, 0),
+                break_duration_minutes: Some(60),
+                break_start: NaiveTime::from_hms_opt(12, 0, 0),
+                break_end: None,
+                is_break_auto_deduct: Some(true),
+                early_punch_in_grace_period_minutes: None,
+                allow_early_ot: None,
+                break_is_overtime: None,
+                max_early_ot_minutes: None,
+                traces: vec![],
+                is_holiday: false,
+                is_holiday_paid: false,
+                holiday_name: None,
+            });
             let builder = ComputeDailyInputBuilder::new()
                 .schedule(schedule)
                 .rules_mut(|r| r.set_is_break_auto_deduct(true))
@@ -2567,27 +2567,27 @@ mod tests {
         #[test]
         fn overnight_break_end_less_than_start_adds_day() {
             // Shift 22:00-06:00, break 01:00-00:30 (break_end < break_start)
-            let schedule = EffectiveSchedule::new(
-                TEST_DATE,
-                Some(Uuid::new_v4()),
-                "test".to_string(),
-                Some("Night".to_string()),
-                None,
-                NaiveTime::from_hms_opt(22, 0, 0),
-                NaiveTime::from_hms_opt(6, 0, 0),
-                Some(30),
-                NaiveTime::from_hms_opt(1, 0, 0), // break_start = 01:00
-                NaiveTime::from_hms_opt(0, 30, 0), // break_end = 00:30 (next day)
-                Some(true),
-                None,
-                None,
-                None,
-                None,
-                vec![],
-                false,
-                false,
-                None,
-            );
+            let schedule = EffectiveSchedule::new(NewEffectiveScheduleParams {
+                date: TEST_DATE,
+                shift_id: Some(Uuid::new_v4()),
+                source: "test".to_string(),
+                shift_name: Some("Night".to_string()),
+                shift_symbol: None,
+                start_time: NaiveTime::from_hms_opt(22, 0, 0),
+                end_time: NaiveTime::from_hms_opt(6, 0, 0),
+                break_duration_minutes: Some(30),
+                break_start: NaiveTime::from_hms_opt(1, 0, 0),
+                break_end: NaiveTime::from_hms_opt(0, 30, 0),
+                is_break_auto_deduct: Some(true),
+                early_punch_in_grace_period_minutes: None,
+                allow_early_ot: None,
+                break_is_overtime: None,
+                max_early_ot_minutes: None,
+                traces: vec![],
+                is_holiday: false,
+                is_holiday_paid: false,
+                holiday_name: None,
+            });
             let builder = ComputeDailyInputBuilder::new()
                 .schedule(schedule)
                 .rules_mut(|r| r.set_is_break_auto_deduct(true))

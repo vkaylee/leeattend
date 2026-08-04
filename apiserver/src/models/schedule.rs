@@ -89,6 +89,28 @@ pub struct BulkAssignResponse {
     pub failed_employees: Vec<Uuid>,
 }
 
+pub struct NewEffectiveScheduleParams {
+    pub date: NaiveDate,
+    pub shift_id: Option<Uuid>,
+    pub source: String,
+    pub shift_name: Option<String>,
+    pub shift_symbol: Option<String>,
+    pub start_time: Option<NaiveTime>,
+    pub end_time: Option<NaiveTime>,
+    pub break_duration_minutes: Option<i32>,
+    pub break_start: Option<NaiveTime>,
+    pub break_end: Option<NaiveTime>,
+    pub is_break_auto_deduct: Option<bool>,
+    pub early_punch_in_grace_period_minutes: Option<i32>,
+    pub allow_early_ot: Option<bool>,
+    pub break_is_overtime: Option<bool>,
+    pub max_early_ot_minutes: Option<i32>,
+    pub traces: Vec<ScheduleTrace>,
+    pub is_holiday: bool,
+    pub is_holiday_paid: bool,
+    pub holiday_name: Option<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EffectiveSchedule {
     date: NaiveDate,
@@ -116,49 +138,28 @@ pub struct EffectiveSchedule {
     holiday_name: Option<String>,
 }
 
-#[allow(clippy::too_many_arguments)]
 impl EffectiveSchedule {
-    pub fn new(
-        date: NaiveDate,
-        shift_id: Option<Uuid>,
-        source: String,
-        shift_name: Option<String>,
-        shift_symbol: Option<String>,
-        start_time: Option<NaiveTime>,
-        end_time: Option<NaiveTime>,
-        break_duration_minutes: Option<i32>,
-        break_start: Option<NaiveTime>,
-        break_end: Option<NaiveTime>,
-        is_break_auto_deduct: Option<bool>,
-        early_punch_in_grace_period_minutes: Option<i32>,
-        allow_early_ot: Option<bool>,
-        break_is_overtime: Option<bool>,
-        max_early_ot_minutes: Option<i32>,
-        traces: Vec<ScheduleTrace>,
-        is_holiday: bool,
-        is_holiday_paid: bool,
-        holiday_name: Option<String>,
-    ) -> Self {
+    pub fn new(params: NewEffectiveScheduleParams) -> Self {
         Self {
-            date,
-            shift_id,
-            source,
-            shift_name,
-            shift_symbol,
-            start_time,
-            end_time,
-            break_duration_minutes,
-            break_start,
-            break_end,
-            is_break_auto_deduct,
-            early_punch_in_grace_period_minutes,
-            allow_early_ot,
-            break_is_overtime,
-            max_early_ot_minutes,
-            traces,
-            is_holiday,
-            is_holiday_paid,
-            holiday_name,
+            date: params.date,
+            shift_id: params.shift_id,
+            source: params.source,
+            shift_name: params.shift_name,
+            shift_symbol: params.shift_symbol,
+            start_time: params.start_time,
+            end_time: params.end_time,
+            break_duration_minutes: params.break_duration_minutes,
+            break_start: params.break_start,
+            break_end: params.break_end,
+            is_break_auto_deduct: params.is_break_auto_deduct,
+            early_punch_in_grace_period_minutes: params.early_punch_in_grace_period_minutes,
+            allow_early_ot: params.allow_early_ot,
+            break_is_overtime: params.break_is_overtime,
+            max_early_ot_minutes: params.max_early_ot_minutes,
+            traces: params.traces,
+            is_holiday: params.is_holiday,
+            is_holiday_paid: params.is_holiday_paid,
+            holiday_name: params.holiday_name,
         }
     }
 

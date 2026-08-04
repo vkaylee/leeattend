@@ -1,6 +1,6 @@
 use super::*;
 use crate::errors::AppError;
-use crate::models::{EffectiveSchedule, EmployeeSchedule};
+use crate::models::{EffectiveSchedule, EmployeeSchedule, NewEffectiveScheduleParams};
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
@@ -381,27 +381,27 @@ impl DieselRosterRepository {
                         )
                     };
 
-                    let sched = EffectiveSchedule::new(
-                        curr_date,
-                        *effective_shift_id,
-                        source.clone(),
-                        shift_name,
-                        shift_symbol,
-                        start_time,
-                        end_time,
-                        break_dur,
-                        brk_start,
-                        brk_end,
-                        is_bad,
-                        early_grace,
-                        allow_eot,
-                        bio,
-                        max_eot,
-                        traces.clone(),
-                        holiday.is_some(),
-                        holiday.is_some_and(crate::models::Holiday::is_paid),
-                        holiday.map(|h| h.name().to_string()),
-                    );
+                    let sched = EffectiveSchedule::new(NewEffectiveScheduleParams {
+                        date: curr_date,
+                        shift_id: *effective_shift_id,
+                        source: source.clone(),
+                        shift_name: shift_name,
+                        shift_symbol: shift_symbol,
+                        start_time: start_time,
+                        end_time: end_time,
+                        break_duration_minutes: break_dur,
+                        break_start: brk_start,
+                        break_end: brk_end,
+                        is_break_auto_deduct: is_bad,
+                        early_punch_in_grace_period_minutes: early_grace,
+                        allow_early_ot: allow_eot,
+                        break_is_overtime: bio,
+                        max_early_ot_minutes: max_eot,
+                        traces: traces.clone(),
+                        is_holiday: holiday.is_some(),
+                        is_holiday_paid: holiday.is_some_and(crate::models::Holiday::is_paid),
+                        holiday_name: holiday.map(|h| h.name().to_string()),
+                    });
 
                     daily_schedules.push(sched);
                 }

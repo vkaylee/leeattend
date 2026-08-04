@@ -215,27 +215,27 @@ mod tests {
         roster_repo.expect_get_workspace_schedules().returning(
             move |_, _, start_date, end_date, _, _, _| {
                 let empty_schedule = |date| {
-                    crate::models::EffectiveSchedule::new(
-                        date,
-                        None,
-                        "none".to_string(),
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        vec![],
-                        false,
-                        false,
-                        None,
-                    )
+                    crate::models::EffectiveSchedule::new(NewEffectiveScheduleParams {
+                        date: date,
+                        shift_id: None,
+                        source: "none".to_string(),
+                        shift_name: None,
+                        shift_symbol: None,
+                        start_time: None,
+                        end_time: None,
+                        break_duration_minutes: None,
+                        break_start: None,
+                        break_end: None,
+                        is_break_auto_deduct: None,
+                        early_punch_in_grace_period_minutes: None,
+                        allow_early_ot: None,
+                        break_is_overtime: None,
+                        max_early_ot_minutes: None,
+                        traces: vec![],
+                        is_holiday: false,
+                        is_holiday_paid: false,
+                        holiday_name: None,
+                    })
                 };
                 let schedules = vec![empty_schedule(start_date), empty_schedule(end_date)];
                 Box::pin(async move {
