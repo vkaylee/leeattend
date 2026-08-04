@@ -104,21 +104,23 @@ fn make_test_preamble(
 ) -> crate::services::report_service::ReportDataPreamble {
     let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
     crate::services::report_service::ReportDataPreamble::test_new(
-        tz,
-        Uuid::new_v4(),
-        1,                                               // page
-        20,                                              // limit
-        paginated_employees,
-        i64::try_from(emp_ids.len()).unwrap_or(0),       // total_employees
-        employments,
-        paginated_employment_ids,
-        employment_to_employee,
-        emp_ids,
-        entries_map,
-        HashMap::new(), // attendance_rules_map (defaults used)
-        HashMap::new(), // working_conditions_map
-        HashMap::new(), // condition_type_catalog
-        HashMap::new(), // employer_name_map
+        crate::services::report_service::TestReportDataPreambleParams {
+            workspace_tz: tz,
+            workspace_id: Uuid::new_v4(),
+            page: 1,
+            limit: 20,
+            paginated_employees,
+            total_employees: i64::try_from(emp_ids.len()).unwrap_or(0),
+            employments,
+            paginated_employment_ids,
+            employment_to_employee,
+            emp_ids,
+            entries_map,
+            attendance_rules_map: HashMap::new(),
+            working_conditions_map: HashMap::new(),
+            condition_type_catalog: HashMap::new(),
+            employer_name_map: HashMap::new(),
+        },
     )
 }
 

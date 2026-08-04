@@ -241,42 +241,44 @@ impl ReportDataPreamble {
 }
 
 #[cfg(test)]
+pub(crate) struct TestReportDataPreambleParams {
+    pub workspace_tz: Tz,
+    pub workspace_id: Uuid,
+    pub page: usize,
+    pub limit: usize,
+    pub paginated_employees: Vec<crate::repositories::employee::EmployeeBasicInfo>,
+    pub total_employees: i64,
+    pub employments: Vec<Employment>,
+    pub paginated_employment_ids: Vec<Uuid>,
+    pub employment_to_employee: std::collections::HashMap<Uuid, Uuid>,
+    pub emp_ids: Vec<Uuid>,
+    pub entries_map: std::collections::HashMap<Uuid, Vec<TimeEntry>>,
+    pub attendance_rules_map: std::collections::HashMap<Uuid, AttendanceRules>,
+    pub working_conditions_map: std::collections::HashMap<Uuid, Vec<WorkingCondition>>,
+    pub condition_type_catalog: std::collections::HashMap<String, ConditionTypeDefinition>,
+    pub employer_name_map: std::collections::HashMap<Uuid, String>,
+}
+
+#[cfg(test)]
 impl ReportDataPreamble {
     /// Build a fully-populated preamble for unit-testing extracted report functions.
-    #[allow(dead_code, clippy::too_many_arguments)]
-    pub(crate) fn test_new(
-        workspace_tz: Tz,
-        workspace_id: Uuid,
-        page: usize,
-        limit: usize,
-        paginated_employees: Vec<crate::repositories::employee::EmployeeBasicInfo>,
-        total_employees: i64,
-        employments: Vec<Employment>,
-        paginated_employment_ids: Vec<Uuid>,
-        employment_to_employee: std::collections::HashMap<Uuid, Uuid>,
-        emp_ids: Vec<Uuid>,
-        entries_map: std::collections::HashMap<Uuid, Vec<TimeEntry>>,
-        attendance_rules_map: std::collections::HashMap<Uuid, AttendanceRules>,
-        working_conditions_map: std::collections::HashMap<Uuid, Vec<WorkingCondition>>,
-        condition_type_catalog: std::collections::HashMap<String, ConditionTypeDefinition>,
-        employer_name_map: std::collections::HashMap<Uuid, String>,
-    ) -> Self {
+    pub(crate) fn test_new(params: TestReportDataPreambleParams) -> Self {
         Self {
-            workspace_tz,
-            workspace_id,
-            page,
-            limit,
-            paginated_employees,
-            total_employees,
-            employments,
-            paginated_employment_ids,
-            employment_to_employee,
-            emp_ids,
-            entries_map,
-            attendance_rules_map,
-            working_conditions_map,
-            condition_type_catalog,
-            employer_name_map,
+            workspace_tz: params.workspace_tz,
+            workspace_id: params.workspace_id,
+            page: params.page,
+            limit: params.limit,
+            paginated_employees: params.paginated_employees,
+            total_employees: params.total_employees,
+            employments: params.employments,
+            paginated_employment_ids: params.paginated_employment_ids,
+            employment_to_employee: params.employment_to_employee,
+            emp_ids: params.emp_ids,
+            entries_map: params.entries_map,
+            attendance_rules_map: params.attendance_rules_map,
+            working_conditions_map: params.working_conditions_map,
+            condition_type_catalog: params.condition_type_catalog,
+            employer_name_map: params.employer_name_map,
         }
     }
 }
