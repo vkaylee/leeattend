@@ -162,7 +162,7 @@ mod tests {
     async fn test_generate_employee_document() {
         use crate::models::enums::{ContractStatus, ContractType};
         use crate::models::{
-            contract::EmployeeContract, employment::Employment, Employee, Workspace,
+            contract::EmployeeContract, contract::NewEmployeeContractParams, employment::Employment, Employee, Workspace,
         };
         use crate::repositories::employee::MockEmployeeRepository;
         use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
@@ -247,20 +247,20 @@ mod tests {
         contract_repo
             .expect_list_employee_contracts()
             .returning(move |_, _| {
-                Ok(vec![EmployeeContract::new(
-                    Uuid::new_v4(),
-                    ws_id,
-                    Uuid::new_v4(),
-                    Some("CONT-123".to_string()),
-                    ContractType::FixedTerm,
-                    ContractStatus::Active,
-                    chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-                    None,
-                    None,
-                    None,
-                    Utc::now(),
-                    Utc::now(),
-                )])
+                Ok(vec![EmployeeContract::new(NewEmployeeContractParams {
+                    id: Uuid::new_v4(),
+                    workspace_id: ws_id,
+                    employment_id: Uuid::new_v4(),
+                    contract_number: Some("CONT-123".to_string()),
+                    contract_type: ContractType::FixedTerm,
+                    status: ContractStatus::Active,
+                    start_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    end_date: None,
+                    document_id: None,
+                    notes: None,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                })])
             });
 
         let template = "Welcome to {{COMPANY_NAME}}, {{EMPLOYEE_NAME}} (ID: {{EMPLOYEE_ID_NUMBER}}). Your title is {{JOB_TITLE}} and your contract is {{CONTRACT_NUMBER}}.";

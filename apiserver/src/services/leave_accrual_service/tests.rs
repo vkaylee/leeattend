@@ -1,5 +1,5 @@
 use super::*;
-use crate::models::{AccrualFrequency, LeavePolicyConfig, SeniorityBonus};
+use crate::models::{AccrualFrequency, LeavePolicyConfig, NewEmployeeContractParams, SeniorityBonus};
 use chrono::NaiveDate;
 use uuid::Uuid;
 
@@ -11,20 +11,20 @@ fn mock_contract(
     hire: NaiveDate,
     term: Option<NaiveDate>,
 ) -> crate::models::contract::EmployeeContract {
-    crate::models::contract::EmployeeContract::new(
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        None,
-        crate::models::enums::ContractType::Indefinite,
-        crate::models::enums::ContractStatus::Active,
-        hire,
-        term,
-        None,
-        None,
-        chrono::Utc::now(),
-        chrono::Utc::now(),
-    )
+    EmployeeContract::new(NewEmployeeContractParams {
+        id: Uuid::new_v4(),
+        workspace_id: Uuid::new_v4(),
+        employment_id: Uuid::new_v4(),
+        contract_number: None,
+        contract_type: crate::models::enums::ContractType::Indefinite,
+        status: crate::models::enums::ContractStatus::Active,
+        start_date: hire,
+        end_date: term,
+        document_id: None,
+        notes: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    })
 }
 
 #[test]

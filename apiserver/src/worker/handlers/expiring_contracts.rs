@@ -200,7 +200,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_expiring_contracts_handler_success() {
-        use crate::models::{contract::EmployeeContract, Employee, Workspace};
+        use crate::models::{contract::EmployeeContract, contract::NewEmployeeContractParams, Employee, Workspace};
         use crate::repositories::employee::MockEmployeeRepository;
         use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
         use crate::repositories::user_repository::MockUserRepository;
@@ -243,20 +243,20 @@ mod tests {
         contract_repo
             .expect_get_expiring_contracts()
             .returning(move |_, _| {
-                Ok(vec![EmployeeContract::new(
-                    Uuid::new_v4(),
-                    ws_id,
-                    employment_id,
-                    None,
-                    crate::models::enums::ContractType::FixedTerm,
-                    crate::models::enums::ContractStatus::Active,
-                    NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-                    Some(NaiveDate::from_ymd_opt(2026, 1, 15).unwrap()),
-                    None,
-                    None,
-                    chrono::Utc::now(),
-                    chrono::Utc::now(),
-                )])
+                Ok(vec![EmployeeContract::new(NewEmployeeContractParams {
+                    id: Uuid::new_v4(),
+                    workspace_id: ws_id,
+                    employment_id: employment_id,
+                    contract_number: None,
+                    contract_type: crate::models::enums::ContractType::FixedTerm,
+                    status: crate::models::enums::ContractStatus::Active,
+                    start_date: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                    end_date: Some(NaiveDate::from_ymd_opt(2026, 1, 15).unwrap()),
+                    document_id: None,
+                    notes: None,
+                    created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
+                })])
             });
 
         let mut emp_repo = MockEmployeeRepository::new();
