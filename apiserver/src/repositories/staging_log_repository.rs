@@ -41,6 +41,7 @@ impl StagingStatus {
 // (update_staging_status_tx is excluded — it takes &mut Transaction)
 // ---------------------------------------------------------------------------
 #[cfg_attr(test, mockall::automock)]
+#[allow(clippy::too_many_arguments)]
 #[async_trait]
 pub trait StagingLogRepository: Send + Sync {
     async fn create_staging_log(

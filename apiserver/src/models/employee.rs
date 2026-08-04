@@ -22,6 +22,7 @@ pub struct EmployeeFilterOptions {
 }
 
 impl EmployeeFilterOptions {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         search_query: Option<String>,
         page: i64,
@@ -218,6 +219,7 @@ pub struct RecruitmentSource {
 }
 
 impl RecruitmentSource {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         workspace_id: Uuid,
@@ -398,6 +400,7 @@ pub struct Employee {
 }
 
 impl Employee {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         workspace_id: Uuid,
@@ -570,6 +573,7 @@ pub struct AssignmentRule {
 }
 
 impl AssignmentRule {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         workspace_id: Uuid,

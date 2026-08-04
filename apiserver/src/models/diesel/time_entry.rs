@@ -46,7 +46,7 @@ impl From<TimeEntryEntity> for TimeEntry {
             punch_out_time: val.punch_out_time,
             duration_minutes: val.duration_minutes,
             is_break_overtime: val.is_break_overtime,
-            entry_type: entry_type,
+            entry_type,
             note: val.note,
             generation_metadata: val.generation_metadata,
             created_at: val.created_at.unwrap_or_else(Utc::now),

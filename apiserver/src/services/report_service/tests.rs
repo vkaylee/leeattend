@@ -345,7 +345,7 @@ mod segment_break_split_tests {
             Utc.with_ymd_and_hms(2026, 7, 1, 9, 30, 0).unwrap(),
         );
 
-        let entries = vec![morning, afternoon];
+        let entries = [morning, afternoon];
         let entry_refs: Vec<&TimeEntry> = entries.iter().collect();
 
         // Single segment covering full shift
@@ -435,7 +435,7 @@ mod segment_break_split_tests {
             Utc.with_ymd_and_hms(2026, 7, 1, 9, 30, 0).unwrap(),
         );
 
-        let entries = vec![morning, afternoon];
+        let entries = [morning, afternoon];
         let entry_refs: Vec<&TimeEntry> = entries.iter().collect();
 
         // Daily path: compute_session_attendance with all entries
@@ -535,7 +535,7 @@ mod segment_break_split_tests {
         );
 
         let input_groups: Vec<&[crate::services::attendance_calculator::DailyCalcInput<_>]> =
-            calc_inputs.iter().map(|v| v.as_slice()).collect();
+            calc_inputs.iter().map(std::vec::Vec::as_slice).collect();
 
         let segment_result = AttendanceService::compute_segment_attendance_sessions(&input_groups);
 
@@ -630,7 +630,7 @@ mod segment_break_split_tests {
             "second_half",
         );
 
-        let entries = vec![morning, afternoon];
+        let entries = [morning, afternoon];
         let entry_refs: Vec<&TimeEntry> = entries.iter().collect();
 
         // Build calc inputs matching the entries
@@ -704,7 +704,7 @@ mod segment_break_split_tests {
             "second_half",
         );
 
-        let entries = vec![morning, afternoon];
+        let entries = [morning, afternoon];
         let entry_refs: Vec<&TimeEntry> = entries.iter().collect();
 
         let att_rules = AttendanceRules {
@@ -758,7 +758,7 @@ mod segment_break_split_tests {
             Utc.with_ymd_and_hms(2026, 7, 1, 9, 30, 0).unwrap(),
         );
 
-        let entries = vec![entry];
+        let entries = [entry];
         let entry_refs: Vec<&TimeEntry> = entries.iter().collect();
 
         let att_rules = AttendanceRules {

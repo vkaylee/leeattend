@@ -3,7 +3,10 @@ use crate::cache::{RosterData, RosterShift};
 use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
 use crate::models::enums::LogSource;
-use crate::models::{NewEffectiveScheduleParams, NewRawAttendanceLogParams, NewTimeEntryParams, RawAttendanceLog, TimeEntry};
+use crate::models::{
+    NewEffectiveScheduleParams, NewRawAttendanceLogParams, NewTimeEntryParams, RawAttendanceLog,
+    TimeEntry,
+};
 use crate::services::pairing::service_helpers::retry_with_log;
 use chrono::{NaiveDate, NaiveTime, TimeZone, Timelike, Utc};
 use std::sync::Arc;
@@ -13,8 +16,8 @@ use crate::repositories::employee::MockEmployeeRepository;
 use crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository;
 use crate::repositories::roster::MockRosterRepository;
 use crate::repositories::time_entry_repository::MockTimeEntryRepository;
-use crate::services::attendance_summary_service::MockSummaryRecalculator;
 use crate::services::attendance_summary_service::DailyRecalculationPlan;
+use crate::services::attendance_summary_service::MockSummaryRecalculator;
 
 // --- Helper Functions for Strategy Tests ---
 
@@ -775,7 +778,7 @@ fn test_build_log_events_deduplication() {
     let employee_id = Uuid::new_v4();
     let log1 = RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: Uuid::new_v4(),
-        workspace_id: workspace_id,
+        workspace_id,
         employment_id: employee_id,
         punch_time: Utc.with_ymd_and_hms(2026, 5, 20, 8, 30, 15).unwrap(),
         source: LogSource::Manual,
@@ -788,7 +791,7 @@ fn test_build_log_events_deduplication() {
 
     let log2 = RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: Uuid::new_v4(),
-        workspace_id: workspace_id,
+        workspace_id,
         employment_id: employee_id,
         punch_time: Utc.with_ymd_and_hms(2026, 5, 20, 8, 30, 17).unwrap(),
         source: LogSource::Manual,
@@ -1042,7 +1045,9 @@ async fn test_reprocess_daily_attendance_excludes_already_paired_logs() {
         is_break_overtime: false,
         entry_type: crate::services::pairing::types::EntryType::Work,
         note: None,
-        generation_metadata: Some(serde_json::json!({ "log_ids": vec![paired_log_id.to_string()] })),
+        generation_metadata: Some(
+            serde_json::json!({ "log_ids": vec![paired_log_id.to_string()] }),
+        ),
         created_at: adjacent_time,
         updated_at: adjacent_time,
     });
@@ -1253,11 +1258,12 @@ async fn test_retry_with_log_returns_error_after_max_attempts() {
     let emp_id = Uuid::new_v4();
     let counter = std::sync::atomic::AtomicU32::new(0);
 
-    let result: Result<(), AppError> = retry_with_log("test_op", ws_id, emp_id, "test_context", 3, 1, || {
-        counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        Box::pin(async { Err(AppError::Internal("test_err".to_string())) })
-    })
-    .await;
+    let result: Result<(), AppError> =
+        retry_with_log("test_op", ws_id, emp_id, "test_context", 3, 1, || {
+            counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            Box::pin(async { Err(AppError::Internal("test_err".to_string())) })
+        })
+        .await;
 
     assert!(result.is_err());
     assert_eq!(counter.load(std::sync::atomic::Ordering::SeqCst), 3);
@@ -1269,17 +1275,18 @@ async fn test_retry_with_log_succeeds_on_second_attempt() {
     let emp_id = Uuid::new_v4();
     let counter = std::sync::atomic::AtomicU32::new(0);
 
-    let result: Result<(), AppError> = retry_with_log("test_op", ws_id, emp_id, "test_context", 3, 1, || {
-        let attempts = counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        Box::pin(async move {
-            if attempts == 0 {
-                Err(AppError::Internal("test_err".to_string()))
-            } else {
-                Ok(())
-            }
+    let result: Result<(), AppError> =
+        retry_with_log("test_op", ws_id, emp_id, "test_context", 3, 1, || {
+            let attempts = counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            Box::pin(async move {
+                if attempts == 0 {
+                    Err(AppError::Internal("test_err".to_string()))
+                } else {
+                    Ok(())
+                }
+            })
         })
-    })
-    .await;
+        .await;
 
     assert!(result.is_ok());
     assert_eq!(counter.load(std::sync::atomic::Ordering::SeqCst), 2);
@@ -1350,14 +1357,14 @@ async fn test_recalculate_summary_with_retry_compute_retried_execute_once() {
     ));
 
     let result = service
-        .recalculate_summary_with_retry(
-            &TenantAuthToken::system_override(ws_id),
-            emp_id,
-            date,
-        )
+        .recalculate_summary_with_retry(&TenantAuthToken::system_override(ws_id), emp_id, date)
         .await;
 
-    assert!(result.is_ok(), "Expected success after compute retry, got: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Expected success after compute retry, got: {:?}",
+        result.err()
+    );
     assert_eq!(compute_clone.load(std::sync::atomic::Ordering::SeqCst), 2);
     assert_eq!(execute_clone.load(std::sync::atomic::Ordering::SeqCst), 1);
 }
@@ -1608,27 +1615,29 @@ async fn test_range_reprocess_multi_day_with_logs() {
             let mut schedules = Vec::new();
             let mut d = s_date;
             while d <= e_date {
-                schedules.push(crate::models::EffectiveSchedule::new(NewEffectiveScheduleParams {
-                    date: d,
-                    shift_id: None,
-                    source: "none".to_string(),
-                    shift_name: None,
-                    shift_symbol: None,
-                    start_time: None,
-                    end_time: None,
-                    break_duration_minutes: None,
-                    break_start: None,
-                    break_end: None,
-                    is_break_auto_deduct: None,
-                    early_punch_in_grace_period_minutes: None,
-                    allow_early_ot: None,
-                    break_is_overtime: None,
-                    max_early_ot_minutes: None,
-                    traces: vec![],
-                    is_holiday: false,
-                    is_holiday_paid: false,
-                    holiday_name: None,
-                }));
+                schedules.push(crate::models::EffectiveSchedule::new(
+                    NewEffectiveScheduleParams {
+                        date: d,
+                        shift_id: None,
+                        source: "none".to_string(),
+                        shift_name: None,
+                        shift_symbol: None,
+                        start_time: None,
+                        end_time: None,
+                        break_duration_minutes: None,
+                        break_start: None,
+                        break_end: None,
+                        is_break_auto_deduct: None,
+                        early_punch_in_grace_period_minutes: None,
+                        allow_early_ot: None,
+                        break_is_overtime: None,
+                        max_early_ot_minutes: None,
+                        traces: vec![],
+                        is_holiday: false,
+                        is_holiday_paid: false,
+                        holiday_name: None,
+                    },
+                ));
                 d = d.succ_opt().unwrap();
             }
             Box::pin(async move {
@@ -1742,49 +1751,53 @@ async fn test_range_reprocess_handles_overnight_tail() {
             let mut d = s_date;
             while d <= e_date {
                 if d == NaiveDate::from_ymd_opt(2026, 6, 19).unwrap() {
-                    schedules.push(crate::models::EffectiveSchedule::new(NewEffectiveScheduleParams {
-                        date: d,
-                        shift_id: None,
-                        source: "roster".to_string(),
-                        shift_name: None,
-                        shift_symbol: None,
-                        start_time: Some(NaiveTime::from_hms_opt(22, 0, 0).unwrap()),
-                        end_time: Some(NaiveTime::from_hms_opt(6, 0, 0).unwrap()),
-                        break_duration_minutes: None,
-                        break_start: None,
-                        break_end: None,
-                        is_break_auto_deduct: None,
-                        early_punch_in_grace_period_minutes: None,
-                        allow_early_ot: None,
-                        break_is_overtime: None,
-                        max_early_ot_minutes: None,
-                        traces: vec![],
-                        is_holiday: false,
-                        is_holiday_paid: false,
-                        holiday_name: None,
-                    }));
+                    schedules.push(crate::models::EffectiveSchedule::new(
+                        NewEffectiveScheduleParams {
+                            date: d,
+                            shift_id: None,
+                            source: "roster".to_string(),
+                            shift_name: None,
+                            shift_symbol: None,
+                            start_time: Some(NaiveTime::from_hms_opt(22, 0, 0).unwrap()),
+                            end_time: Some(NaiveTime::from_hms_opt(6, 0, 0).unwrap()),
+                            break_duration_minutes: None,
+                            break_start: None,
+                            break_end: None,
+                            is_break_auto_deduct: None,
+                            early_punch_in_grace_period_minutes: None,
+                            allow_early_ot: None,
+                            break_is_overtime: None,
+                            max_early_ot_minutes: None,
+                            traces: vec![],
+                            is_holiday: false,
+                            is_holiday_paid: false,
+                            holiday_name: None,
+                        },
+                    ));
                 } else {
-                    schedules.push(crate::models::EffectiveSchedule::new(NewEffectiveScheduleParams {
-                        date: d,
-                        shift_id: None,
-                        source: "none".to_string(),
-                        shift_name: None,
-                        shift_symbol: None,
-                        start_time: None,
-                        end_time: None,
-                        break_duration_minutes: None,
-                        break_start: None,
-                        break_end: None,
-                        is_break_auto_deduct: None,
-                        early_punch_in_grace_period_minutes: None,
-                        allow_early_ot: None,
-                        break_is_overtime: None,
-                        max_early_ot_minutes: None,
-                        traces: vec![],
-                        is_holiday: false,
-                        is_holiday_paid: false,
-                        holiday_name: None,
-                    }));
+                    schedules.push(crate::models::EffectiveSchedule::new(
+                        NewEffectiveScheduleParams {
+                            date: d,
+                            shift_id: None,
+                            source: "none".to_string(),
+                            shift_name: None,
+                            shift_symbol: None,
+                            start_time: None,
+                            end_time: None,
+                            break_duration_minutes: None,
+                            break_start: None,
+                            break_end: None,
+                            is_break_auto_deduct: None,
+                            early_punch_in_grace_period_minutes: None,
+                            allow_early_ot: None,
+                            break_is_overtime: None,
+                            max_early_ot_minutes: None,
+                            traces: vec![],
+                            is_holiday: false,
+                            is_holiday_paid: false,
+                            holiday_name: None,
+                        },
+                    ));
                 }
                 d = d.succ_opt().unwrap();
             }
@@ -1840,27 +1853,29 @@ async fn test_range_reprocess_empty_schedule_day_skipped() {
         .times(1)
         .returning(move |_, _, s_date, _e_date, _, _, _| {
             // Only return schedule for first day, skip day 2 and 3
-            let schedules = vec![crate::models::EffectiveSchedule::new(NewEffectiveScheduleParams {
-                date: s_date,
-                shift_id: None,
-                source: "none".to_string(),
-                shift_name: None,
-                shift_symbol: None,
-                start_time: None,
-                end_time: None,
-                break_duration_minutes: None,
-                break_start: None,
-                break_end: None,
-                is_break_auto_deduct: None,
-                early_punch_in_grace_period_minutes: None,
-                allow_early_ot: None,
-                break_is_overtime: None,
-                max_early_ot_minutes: None,
-                traces: vec![],
-                is_holiday: false,
-                is_holiday_paid: false,
-                holiday_name: None,
-            })];
+            let schedules = vec![crate::models::EffectiveSchedule::new(
+                NewEffectiveScheduleParams {
+                    date: s_date,
+                    shift_id: None,
+                    source: "none".to_string(),
+                    shift_name: None,
+                    shift_symbol: None,
+                    start_time: None,
+                    end_time: None,
+                    break_duration_minutes: None,
+                    break_start: None,
+                    break_end: None,
+                    is_break_auto_deduct: None,
+                    early_punch_in_grace_period_minutes: None,
+                    allow_early_ot: None,
+                    break_is_overtime: None,
+                    max_early_ot_minutes: None,
+                    traces: vec![],
+                    is_holiday: false,
+                    is_holiday_paid: false,
+                    holiday_name: None,
+                },
+            )];
             Box::pin(async move {
                 let list = vec![crate::models::EmployeeSchedule::new(
                     sched_emp_id,
@@ -2085,9 +2100,12 @@ fn test_full_pipeline_4_punches_with_late_out() {
     // 07:13, 11:46 (two close together), 19:32 ICT
     let log7_13 = RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: Uuid::new_v4(),
-        workspace_id: workspace_id,
-        employment_id: employment_id,
-        punch_time: tz.with_ymd_and_hms(2026, 6, 20, 7, 13, 0) .unwrap() .with_timezone(&Utc),
+        workspace_id,
+        employment_id,
+        punch_time: tz
+            .with_ymd_and_hms(2026, 6, 20, 7, 13, 0)
+            .unwrap()
+            .with_timezone(&Utc),
         source: LogSource::Manual,
         device_id: None,
         raw_data: None,
@@ -2097,9 +2115,12 @@ fn test_full_pipeline_4_punches_with_late_out() {
     });
     let log11_46_a = RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: Uuid::new_v4(),
-        workspace_id: workspace_id,
-        employment_id: employment_id,
-        punch_time: tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 0) .unwrap() .with_timezone(&Utc),
+        workspace_id,
+        employment_id,
+        punch_time: tz
+            .with_ymd_and_hms(2026, 6, 20, 11, 46, 0)
+            .unwrap()
+            .with_timezone(&Utc),
         source: LogSource::Manual,
         device_id: None,
         raw_data: None,
@@ -2109,9 +2130,12 @@ fn test_full_pipeline_4_punches_with_late_out() {
     });
     let log11_46_b = RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: Uuid::new_v4(),
-        workspace_id: workspace_id,
-        employment_id: employment_id,
-        punch_time: tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 2) .unwrap() .with_timezone(&Utc),
+        workspace_id,
+        employment_id,
+        punch_time: tz
+            .with_ymd_and_hms(2026, 6, 20, 11, 46, 2)
+            .unwrap()
+            .with_timezone(&Utc),
         source: LogSource::Manual,
         device_id: None,
         raw_data: None,
@@ -2121,9 +2145,12 @@ fn test_full_pipeline_4_punches_with_late_out() {
     });
     let log19_32 = RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: Uuid::new_v4(),
-        workspace_id: workspace_id,
-        employment_id: employment_id,
-        punch_time: tz.with_ymd_and_hms(2026, 6, 20, 19, 32, 0) .unwrap() .with_timezone(&Utc),
+        workspace_id,
+        employment_id,
+        punch_time: tz
+            .with_ymd_and_hms(2026, 6, 20, 19, 32, 0)
+            .unwrap()
+            .with_timezone(&Utc),
         source: LogSource::Manual,
         device_id: None,
         raw_data: None,
@@ -2254,6 +2281,7 @@ fn test_split_by_breaks_seconds_alignment() {
 // =============================================================================
 
 /// Builds an `EffectiveSchedule` with all fields set for pairing.
+#[allow(clippy::too_many_arguments)]
 fn make_effective_schedule(
     date: NaiveDate,
     shift_id: Option<Uuid>,
@@ -2267,8 +2295,8 @@ fn make_effective_schedule(
     break_end_m: u32,
 ) -> crate::models::EffectiveSchedule {
     crate::models::EffectiveSchedule::new(NewEffectiveScheduleParams {
-        date: date,
-        shift_id: shift_id,
+        date,
+        shift_id,
         source: "roster".to_string(),
         shift_name: Some("Test Shift".to_string()),
         shift_symbol: None,
@@ -2522,7 +2550,10 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
                     id: Uuid::new_v4(),
                     workspace_id: ws_id,
                     employment_id: emp_id,
-                    punch_time: tz.with_ymd_and_hms(2026, 6, 20, 7, 13, 0) .unwrap() .with_timezone(&Utc),
+                    punch_time: tz
+                        .with_ymd_and_hms(2026, 6, 20, 7, 13, 0)
+                        .unwrap()
+                        .with_timezone(&Utc),
                     source: LogSource::Manual,
                     device_id: None,
                     raw_data: None,
@@ -2534,7 +2565,10 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
                     id: Uuid::new_v4(),
                     workspace_id: ws_id,
                     employment_id: emp_id,
-                    punch_time: tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 0) .unwrap() .with_timezone(&Utc),
+                    punch_time: tz
+                        .with_ymd_and_hms(2026, 6, 20, 11, 46, 0)
+                        .unwrap()
+                        .with_timezone(&Utc),
                     source: LogSource::Manual,
                     device_id: None,
                     raw_data: None,
@@ -2546,7 +2580,10 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
                     id: Uuid::new_v4(),
                     workspace_id: ws_id,
                     employment_id: emp_id,
-                    punch_time: tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 2) .unwrap() .with_timezone(&Utc),
+                    punch_time: tz
+                        .with_ymd_and_hms(2026, 6, 20, 11, 46, 2)
+                        .unwrap()
+                        .with_timezone(&Utc),
                     source: LogSource::Manual,
                     device_id: None,
                     raw_data: None,
@@ -2558,7 +2595,10 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
                     id: Uuid::new_v4(),
                     workspace_id: ws_id,
                     employment_id: emp_id,
-                    punch_time: tz.with_ymd_and_hms(2026, 6, 20, 19, 32, 0) .unwrap() .with_timezone(&Utc),
+                    punch_time: tz
+                        .with_ymd_and_hms(2026, 6, 20, 19, 32, 0)
+                        .unwrap()
+                        .with_timezone(&Utc),
                     source: LogSource::Manual,
                     device_id: None,
                     raw_data: None,

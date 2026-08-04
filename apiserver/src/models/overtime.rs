@@ -85,6 +85,7 @@ pub struct NewOvertimeRuleParams {
 }
 
 impl OvertimeRule {
+    #[allow(clippy::needless_pass_by_value)]
     pub fn new(params: NewOvertimeRuleParams) -> Self {
         Self {
             id: params.id,

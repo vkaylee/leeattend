@@ -282,8 +282,8 @@ impl TimeTrackingService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::*;
     use crate::diesel_pool::TenantAuthToken;
+    use crate::models::*;
     use crate::models::{Employment, TimeEntry, UpdateTimeEntryRequest};
     use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
     use crate::repositories::attendance_log_error_repository::MockAttendanceLogErrorRepository;
@@ -507,7 +507,7 @@ mod tests {
             )
             .await;
         let updated = result.unwrap();
-        assert_eq!(updated.note().as_deref(), new_note.as_deref());
+        assert_eq!(updated.note(), new_note.as_deref());
         assert_eq!(
             updated.entry_type(),
             crate::services::pairing::types::EntryType::Overtime

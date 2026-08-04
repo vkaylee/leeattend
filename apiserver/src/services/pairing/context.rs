@@ -184,8 +184,8 @@ impl PairingContext {
 
             new_entries.push(TimeEntry::new(NewTimeEntryParams {
                 id: crate::utils::id::new_id(),
-                employment_id: employment_id,
-                workspace_id: workspace_id,
+                employment_id,
+                workspace_id,
                 shift_id: shift_id_opt,
                 segment_id: None,
                 punch_in_time: start_dt_utc,

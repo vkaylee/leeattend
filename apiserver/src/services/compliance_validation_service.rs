@@ -615,40 +615,40 @@ mod tests {
     fn test_rest_gap_hours_same_day() {
         // End at 17:00, start next at 08:00 → 15h gap
         let gap = rest_gap_hours(t(17, 0), t(8, 0));
-        assert!((gap - 15.0).abs() < 0.01, "Expected 15h gap, got {}", gap);
+        assert!((gap - 15.0).abs() < 0.01, "Expected 15h gap, got {gap}");
     }
 
     #[test]
     fn test_rest_gap_hours_overnight() {
         // End at 22:00, start at 06:00 next day → 8h gap
         let gap = rest_gap_hours(t(22, 0), t(6, 0));
-        assert!((gap - 8.0).abs() < 0.01, "Expected 8h gap, got {}", gap);
+        assert!((gap - 8.0).abs() < 0.01, "Expected 8h gap, got {gap}");
     }
 
     #[test]
     fn test_rest_gap_hours_short_rest() {
         // End at 22:00, start at 05:00 → 7h gap (insufficient for 12h rule)
         let gap = rest_gap_hours(t(22, 0), t(5, 0));
-        assert!((gap - 7.0).abs() < 0.01, "Expected 7h gap, got {}", gap);
+        assert!((gap - 7.0).abs() < 0.01, "Expected 7h gap, got {gap}");
     }
 
     #[test]
     fn test_rest_gap_hours_consecutive_overnight_shift() {
         // A 19:30–04:30 shift followed by the same shift has 15h of rest.
         let gap = rest_gap_hours(t(4, 30), t(19, 30));
-        assert!((gap - 15.0).abs() < 0.01, "Expected 15h gap, got {}", gap);
+        assert!((gap - 15.0).abs() < 0.01, "Expected 15h gap, got {gap}");
     }
 
     #[test]
     fn test_rest_gap_hours_exact_minimum_boundary() {
         let gap = rest_gap_hours(t(20, 0), t(8, 0));
-        assert!((gap - 12.0).abs() < 0.01, "Expected 12h gap, got {}", gap);
+        assert!((gap - 12.0).abs() < 0.01, "Expected 12h gap, got {gap}");
     }
 
     #[test]
     fn test_rest_gap_hours_start_at_midnight() {
         let gap = rest_gap_hours(t(18, 0), t(0, 0));
-        assert!((gap - 6.0).abs() < 0.01, "Expected 6h gap, got {}", gap);
+        assert!((gap - 6.0).abs() < 0.01, "Expected 6h gap, got {gap}");
     }
 
     #[test]
@@ -656,15 +656,14 @@ mod tests {
         let gap = rest_gap_hours(t(23, 59), t(0, 1));
         assert!(
             (gap - (2.0 / 60.0)).abs() < 0.001,
-            "Expected 2m gap, got {}",
-            gap
+            "Expected 2m gap, got {gap}"
         );
     }
 
     #[test]
     fn test_rest_gap_hours_overnight_end_to_day_shift() {
         let gap = rest_gap_hours(t(4, 30), t(8, 0));
-        assert!((gap - 3.5).abs() < 0.01, "Expected 3.5h gap, got {}", gap);
+        assert!((gap - 3.5).abs() < 0.01, "Expected 3.5h gap, got {gap}");
     }
 
     #[test]

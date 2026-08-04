@@ -22,7 +22,9 @@ use crate::models::{
     AgentStatus, AuthorizedAgent, CreateAuthorizedAgentRequest, CreateDeviceRequest, Device,
     TrustAgentRequest, UpdateAuthorizedAgentRequest, UpdateDeviceRequest,
 };
-use crate::repositories::agent_repository::{CreateAuthorizedAgentArgs, CreateDeviceArgs, UpdateDeviceArgs};
+use crate::repositories::agent_repository::{
+    CreateAuthorizedAgentArgs, CreateDeviceArgs, UpdateDeviceArgs,
+};
 use crate::utils::i18n::I18nKey;
 use crate::AppState;
 

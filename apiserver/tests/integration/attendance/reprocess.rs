@@ -698,11 +698,7 @@ async fn test_concurrent_reprocess_does_not_double_insert_sessions() {
     };
 
     let (status1, status2) = tokio::join!(make_request(), make_request());
-    assert_eq!(
-        status1,
-        StatusCode::ACCEPTED,
-        "First reprocess must accept"
-    );
+    assert_eq!(status1, StatusCode::ACCEPTED, "First reprocess must accept");
     assert_eq!(
         status2,
         StatusCode::ACCEPTED,
@@ -726,13 +722,11 @@ async fn test_concurrent_reprocess_does_not_double_insert_sessions() {
         0,
         apiserver::queue::TaskType::ReprocessAttendance,
         ws_id,
-        apiserver::queue::JobPayload::ReprocessAttendance(
-            apiserver::queue::ReprocessPayload {
-                employment_id: Some(emp_employment_id),
-                employee_id: emp_id,
-                date_range,
-            },
-        ),
+        apiserver::queue::JobPayload::ReprocessAttendance(apiserver::queue::ReprocessPayload {
+            employment_id: Some(emp_employment_id),
+            employee_id: emp_id,
+            date_range,
+        }),
         apiserver::queue::JobPriority::Normal,
     );
     let date_range2 = apiserver::queue::DateRange {
@@ -744,22 +738,24 @@ async fn test_concurrent_reprocess_does_not_double_insert_sessions() {
         0,
         apiserver::queue::TaskType::ReprocessAttendance,
         ws_id,
-        apiserver::queue::JobPayload::ReprocessAttendance(
-            apiserver::queue::ReprocessPayload {
-                employment_id: Some(emp_employment_id),
-                employee_id: emp_id,
-                date_range: date_range2,
-            },
-        ),
+        apiserver::queue::JobPayload::ReprocessAttendance(apiserver::queue::ReprocessPayload {
+            employment_id: Some(emp_employment_id),
+            employee_id: emp_id,
+            date_range: date_range2,
+        }),
         apiserver::queue::JobPriority::Normal,
     );
 
     let (r1, r2) = tokio::join!(
         apiserver::worker::handlers::reprocess_attendance::ReprocessAttendanceHandler::handle(
-            &queue_repo, &job1, &deps
+            &queue_repo,
+            &job1,
+            &deps
         ),
         apiserver::worker::handlers::reprocess_attendance::ReprocessAttendanceHandler::handle(
-            &queue_repo, &job2, &deps
+            &queue_repo,
+            &job2,
+            &deps
         ),
     );
     r1.unwrap();

@@ -30,7 +30,7 @@ fn make_test_entry(
         punch_out_time: punch_out_local.map(|t| t.with_timezone(&Utc)),
         duration_minutes: Some(60),
         is_break_overtime: false,
-        entry_type: entry_type,
+        entry_type,
         note: None,
         generation_metadata: None,
         created_at: Utc::now(),
@@ -39,7 +39,12 @@ fn make_test_entry(
 }
 
 /// Build a test `ResolvedSegment` with just the start/end times filled.
-fn make_test_segment(start_h: u32, start_m: u32, end_h: u32, end_m: u32) -> crate::models::ResolvedSegment {
+fn make_test_segment(
+    start_h: u32,
+    start_m: u32,
+    end_h: u32,
+    end_m: u32,
+) -> crate::models::ResolvedSegment {
     crate::models::ResolvedSegment {
         template_id: Uuid::new_v4(),
         interval_id: Some(Uuid::new_v4()),
@@ -77,7 +82,10 @@ fn hcm_tz() -> Tz {
 
 /// Build a segment with a specific date.
 fn make_dated_segment(
-    start_h: u32, start_m: u32, end_h: u32, end_m: u32,
+    start_h: u32,
+    start_m: u32,
+    end_h: u32,
+    end_m: u32,
     date: NaiveDate,
 ) -> crate::models::ResolvedSegment {
     let mut seg = make_test_segment(start_h, start_m, end_h, end_m);
@@ -126,7 +134,11 @@ fn make_test_preamble(
 }
 
 /// Build a minimal Employment for test use.
-fn make_test_employment(employment_id: Uuid, employee_id: Uuid, employer_id: Uuid) -> crate::models::Employment {
+fn make_test_employment(
+    employment_id: Uuid,
+    employee_id: Uuid,
+    employer_id: Uuid,
+) -> crate::models::Employment {
     crate::models::Employment::new(NewEmploymentParams {
         id: employment_id,
         workspace_id: Uuid::new_v4(),
@@ -206,7 +218,10 @@ fn compute_single_segment_with_entry_produces_one_row() {
     assert_eq!(row.date, date);
     assert_eq!(row.shift_name.as_deref(), Some("Test Shift"));
     assert_eq!(row.segment_type.as_deref(), Some("work"));
-    assert!(row.segment_id.is_some(), "segment should have an interval_id");
+    assert!(
+        row.segment_id.is_some(),
+        "segment should have an interval_id"
+    );
 }
 
 #[test]
@@ -249,8 +264,12 @@ fn compute_multiple_segments_two_entries_produces_two_rows() {
         employee_id_number: "EMP002".to_string(),
     };
     let preamble = make_test_preamble(
-        tz, etoe, entries_map,
-        vec![employment], vec![employment_id], vec![employee_info],
+        tz,
+        etoe,
+        entries_map,
+        vec![employment],
+        vec![employment_id],
+        vec![employee_info],
     );
     let extras = make_test_extras();
 
@@ -269,8 +288,10 @@ fn compute_no_segments_returns_empty() {
     let employment_id = Uuid::new_v4();
 
     let emp_segs = crate::models::EmployeeSegments::new(
-        employment_id, employee_id,
-        "EMP003".to_string(), "Empty User".to_string(),
+        employment_id,
+        employee_id,
+        "EMP003".to_string(),
+        "Empty User".to_string(),
         vec![], // no segments
     );
 
@@ -283,8 +304,12 @@ fn compute_no_segments_returns_empty() {
         employee_id_number: "EMP003".to_string(),
     };
     let preamble = make_test_preamble(
-        tz, etoe, HashMap::new(),
-        vec![employment], vec![employment_id], vec![employee_info],
+        tz,
+        etoe,
+        HashMap::new(),
+        vec![employment],
+        vec![employment_id],
+        vec![employee_info],
     );
     let extras = make_test_extras();
 
@@ -302,8 +327,10 @@ fn compute_no_entries_produces_row_with_zero_units() {
 
     let seg = make_dated_segment(8, 0, 17, 0, date);
     let emp_segs = crate::models::EmployeeSegments::new(
-        employment_id, employee_id,
-        "EMP004".to_string(), "No Entry User".to_string(),
+        employment_id,
+        employee_id,
+        "EMP004".to_string(),
+        "No Entry User".to_string(),
         vec![seg],
     );
 
@@ -319,14 +346,22 @@ fn compute_no_entries_produces_row_with_zero_units() {
         employee_id_number: "EMP004".to_string(),
     };
     let preamble = make_test_preamble(
-        tz, etoe, entries_map,
-        vec![employment], vec![employment_id], vec![employee_info],
+        tz,
+        etoe,
+        entries_map,
+        vec![employment],
+        vec![employment_id],
+        vec![employee_info],
     );
     let extras = make_test_extras();
 
     let rows = super::compute_employment_segment_rows(&emp_segs, &preamble, &extras, tz);
 
-    assert_eq!(rows.len(), 1, "segment exists → one row even without entries");
+    assert_eq!(
+        rows.len(),
+        1,
+        "segment exists → one row even without entries"
+    );
     assert_eq!(rows[0].std_work_units, 0);
     assert_eq!(rows[0].ot_work_units, 0);
 }
@@ -341,8 +376,10 @@ fn compute_overnight_shift_produces_row() {
     // Night shift 22:00 → 06:00 next day
     let seg = make_dated_segment(22, 0, 6, 0, date);
     let emp_segs = crate::models::EmployeeSegments::new(
-        employment_id, employee_id,
-        "EMP005".to_string(), "Night User".to_string(),
+        employment_id,
+        employee_id,
+        "EMP005".to_string(),
+        "Night User".to_string(),
         vec![seg],
     );
 
@@ -365,8 +402,12 @@ fn compute_overnight_shift_produces_row() {
         employee_id_number: "EMP005".to_string(),
     };
     let preamble = make_test_preamble(
-        tz, etoe, entries_map,
-        vec![employment], vec![employment_id], vec![employee_info],
+        tz,
+        etoe,
+        entries_map,
+        vec![employment],
+        vec![employment_id],
+        vec![employee_info],
     );
     let extras = make_test_extras();
 
@@ -385,8 +426,10 @@ fn compute_employment_mapping_miss_gracefully_skips() {
 
     let seg = make_dated_segment(8, 0, 12, 0, date);
     let emp_segs = crate::models::EmployeeSegments::new(
-        employment_id, employee_id,
-        "EMP006".to_string(), "Orphan User".to_string(),
+        employment_id,
+        employee_id,
+        "EMP006".to_string(),
+        "Orphan User".to_string(),
         vec![seg],
     );
 
@@ -399,8 +442,12 @@ fn compute_employment_mapping_miss_gracefully_skips() {
         employee_id_number: "EMP006".to_string(),
     };
     let preamble = make_test_preamble(
-        tz, etoe, HashMap::new(),
-        vec![employment], vec![employment_id], vec![employee_info],
+        tz,
+        etoe,
+        HashMap::new(),
+        vec![employment],
+        vec![employment_id],
+        vec![employee_info],
     );
     let extras = make_test_extras();
 
@@ -420,8 +467,10 @@ fn compute_multiple_dates_produces_rows_per_date() {
     let seg1 = make_dated_segment(8, 0, 12, 0, date1);
     let seg2 = make_dated_segment(8, 0, 12, 0, date2);
     let emp_segs = crate::models::EmployeeSegments::new(
-        employment_id, employee_id,
-        "EMP007".to_string(), "Multi Date User".to_string(),
+        employment_id,
+        employee_id,
+        "EMP007".to_string(),
+        "Multi Date User".to_string(),
         vec![seg1, seg2],
     );
 
@@ -449,8 +498,12 @@ fn compute_multiple_dates_produces_rows_per_date() {
         employee_id_number: "EMP007".to_string(),
     };
     let preamble = make_test_preamble(
-        tz, etoe, entries_map,
-        vec![employment], vec![employment_id], vec![employee_info],
+        tz,
+        etoe,
+        entries_map,
+        vec![employment],
+        vec![employment_id],
+        vec![employee_info],
     );
     let extras = make_test_extras();
 
@@ -486,19 +539,25 @@ fn no_shift_fallback_single_employment_produces_off_row() {
         employee_id_number: "EMP010".to_string(),
     };
     let preamble = make_test_preamble(
-        tz, etoe, HashMap::new(),
-        vec![employment], vec![employment_id], vec![employee_info],
+        tz,
+        etoe,
+        HashMap::new(),
+        vec![employment],
+        vec![employment_id],
+        vec![employee_info],
     );
 
-    let rows = super::generate_no_shift_fallback_rows(
-        &preamble, &employee_segments, start_date, end_date,
-    );
+    let rows =
+        super::generate_no_shift_fallback_rows(&preamble, &employee_segments, start_date, end_date);
 
     assert_eq!(rows.len(), 1, "one employment, one date → one Off row");
     assert_eq!(rows[0].date, start_date);
     assert_eq!(rows[0].employee_id, employee_id);
     assert_eq!(rows[0].employment_id, employment_id);
-    assert_eq!(rows[0].status, crate::services::attendance_utils::AttendanceStatus::Off);
+    assert_eq!(
+        rows[0].status,
+        crate::services::attendance_utils::AttendanceStatus::Off
+    );
     assert_eq!(rows[0].std_work_units, 0);
     assert_eq!(rows[0].ot_work_units, 0);
     assert!(rows[0].shift_name.is_none());
@@ -515,13 +574,13 @@ fn no_shift_fallback_skips_employments_with_segments() {
 
     // This employment HAS a segment — should be skipped by fallback.
     let seg = make_dated_segment(8, 0, 17, 0, start_date);
-    let employee_segments = vec![
-        crate::models::EmployeeSegments::new(
-            employment_id, employee_id,
-            "EMP011".to_string(), "Has Segment User".to_string(),
-            vec![seg],
-        ),
-    ];
+    let employee_segments = vec![crate::models::EmployeeSegments::new(
+        employment_id,
+        employee_id,
+        "EMP011".to_string(),
+        "Has Segment User".to_string(),
+        vec![seg],
+    )];
 
     let employment = make_test_employment(employment_id, employee_id, Uuid::new_v4());
     let mut etoe = HashMap::new();
@@ -532,15 +591,21 @@ fn no_shift_fallback_skips_employments_with_segments() {
         employee_id_number: "EMP011".to_string(),
     };
     let preamble = make_test_preamble(
-        tz, etoe, HashMap::new(),
-        vec![employment], vec![employment_id], vec![employee_info],
+        tz,
+        etoe,
+        HashMap::new(),
+        vec![employment],
+        vec![employment_id],
+        vec![employee_info],
     );
 
-    let rows = super::generate_no_shift_fallback_rows(
-        &preamble, &employee_segments, start_date, end_date,
-    );
+    let rows =
+        super::generate_no_shift_fallback_rows(&preamble, &employee_segments, start_date, end_date);
 
-    assert!(rows.is_empty(), "employment with segments → no fallback rows");
+    assert!(
+        rows.is_empty(),
+        "employment with segments → no fallback rows"
+    );
 }
 
 #[test]
@@ -561,13 +626,16 @@ fn no_shift_fallback_multiple_dates_produces_multiple_off_rows() {
         employee_id_number: "EMP012".to_string(),
     };
     let preamble = make_test_preamble(
-        tz, etoe, HashMap::new(),
-        vec![employment], vec![employment_id], vec![employee_info],
+        tz,
+        etoe,
+        HashMap::new(),
+        vec![employment],
+        vec![employment_id],
+        vec![employee_info],
     );
 
-    let rows = super::generate_no_shift_fallback_rows(
-        &preamble, &employee_segments, start_date, end_date,
-    );
+    let rows =
+        super::generate_no_shift_fallback_rows(&preamble, &employee_segments, start_date, end_date);
 
     assert_eq!(rows.len(), 3, "3-day range → 3 Off rows");
     assert_eq!(rows[0].date, NaiveDate::from_ymd_opt(2026, 7, 15).unwrap());
@@ -575,7 +643,10 @@ fn no_shift_fallback_multiple_dates_produces_multiple_off_rows() {
     assert_eq!(rows[2].date, NaiveDate::from_ymd_opt(2026, 7, 17).unwrap());
     // All rows are Off.
     for row in &rows {
-        assert_eq!(row.status, crate::services::attendance_utils::AttendanceStatus::Off);
+        assert_eq!(
+            row.status,
+            crate::services::attendance_utils::AttendanceStatus::Off
+        );
     }
 }
 
@@ -588,12 +659,16 @@ fn no_shift_fallback_empty_input_returns_empty() {
     let employee_segments: Vec<crate::models::EmployeeSegments> = vec![];
     // Preamble with no employments at all.
     let preamble = crate::services::report_service::ReportDataPreamble::empty(
-        tz, Uuid::new_v4(), 1, 20, vec![], 0,
+        tz,
+        Uuid::new_v4(),
+        1,
+        20,
+        vec![],
+        0,
     );
 
-    let rows = super::generate_no_shift_fallback_rows(
-        &preamble, &employee_segments, start_date, end_date,
-    );
+    let rows =
+        super::generate_no_shift_fallback_rows(&preamble, &employee_segments, start_date, end_date);
 
     assert!(rows.is_empty(), "no employments → empty result");
 }
@@ -666,10 +741,7 @@ fn filter_by_shift_type_filters_by_name() {
         make_minimal_report_row(Some("Morning".to_string())),
         make_minimal_report_row(None),
     ];
-    let filtered = super::filter_by_shift_type(
-        rows,
-        Some(vec!["Morning".to_string()]),
-    );
+    let filtered = super::filter_by_shift_type(rows, Some(vec!["Morning".to_string()]));
     assert_eq!(filtered.len(), 2, "only Morning rows survive");
     for row in &filtered {
         assert_eq!(row.shift_name.as_deref(), Some("Morning"));
@@ -682,9 +754,10 @@ fn filter_by_shift_type_none_shift_name_excluded() {
         make_minimal_report_row(Some("Morning".to_string())),
         make_minimal_report_row(None),
     ];
-    let filtered = super::filter_by_shift_type(
-        rows,
-        Some(vec!["Morning".to_string()]),
+    let filtered = super::filter_by_shift_type(rows, Some(vec!["Morning".to_string()]));
+    assert_eq!(
+        filtered.len(),
+        1,
+        "None shift_name is excluded by explicit filter"
     );
-    assert_eq!(filtered.len(), 1, "None shift_name is excluded by explicit filter");
 }

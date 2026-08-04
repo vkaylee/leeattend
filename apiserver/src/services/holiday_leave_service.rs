@@ -10,7 +10,9 @@ use chrono::{Datelike, Utc};
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::models::{Holiday, LeaveDurationType, LeaveRequest, LeaveStatus, NewLeaveRequestParams, ShiftRoster};
+use crate::models::{
+    Holiday, LeaveDurationType, LeaveRequest, LeaveStatus, NewLeaveRequestParams, ShiftRoster,
+};
 use crate::repositories::leave_balance_repository::LeaveBalanceRepository;
 use crate::repositories::leave_request_repository::LeaveRequestRepository;
 use crate::repositories::roster::RosterRepository;

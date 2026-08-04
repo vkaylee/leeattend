@@ -124,6 +124,7 @@ pub struct AttendanceState {
 }
 
 impl AttendanceState {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         time_tracking_service: Arc<TimeTrackingService>,
         summary_service: Arc<AttendanceSummaryService>,
@@ -235,6 +236,7 @@ pub struct ShiftState {
 }
 
 impl ShiftState {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         service: Arc<ShiftService>,
         swap_service: Arc<ShiftSwapService>,
@@ -385,6 +387,7 @@ pub struct PayrollState {
 }
 
 impl PayrollState {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         service: Arc<PayrollService>,
         repo: Arc<dyn PayrollRepository>,
@@ -525,8 +528,10 @@ pub struct CoreStateParams {
     pub user_repo: Arc<dyn UserRepository>,
     pub session_repo: Arc<dyn crate::repositories::session_repository::SessionRepository>,
     pub jwt_secret: String,
-    pub workspace_config_repo: Arc<dyn crate::repositories::workspace_config_repository::WorkspaceConfigRepository>,
-    pub approval_workflow_repo: Arc<dyn crate::repositories::approval_workflow_repository::ApprovalWorkflowRepository>,
+    pub workspace_config_repo:
+        Arc<dyn crate::repositories::workspace_config_repository::WorkspaceConfigRepository>,
+    pub approval_workflow_repo:
+        Arc<dyn crate::repositories::approval_workflow_repository::ApprovalWorkflowRepository>,
     pub workspace_config_service: Arc<crate::services::WorkspaceConfigService>,
     pub approval_workflow_service: Arc<crate::services::ApprovalWorkflowService>,
     pub location_service: Arc<crate::services::LocationService>,
@@ -718,6 +723,7 @@ pub struct InfraState {
 }
 
 impl InfraState {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         diesel: crate::diesel_pool::DieselPools,
         redis: Option<RedisPool>,
@@ -845,6 +851,7 @@ pub struct AppState {
 }
 
 impl AppState {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         employees: EmployeeState,
         attendance: AttendanceState,

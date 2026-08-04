@@ -8,8 +8,8 @@ use tracing::error;
 use uuid::Uuid;
 
 use crate::models::shift_swap::{
-    CreateShiftSwapRequest, NewShiftSwapRequestParams, ShiftSwapRequest,
-    ShiftSwapRequestWithNames, ShiftSwapStatus,
+    CreateShiftSwapRequest, NewShiftSwapRequestParams, ShiftSwapRequest, ShiftSwapRequestWithNames,
+    ShiftSwapStatus,
 };
 use crate::models::ShiftRoster;
 
@@ -230,8 +230,8 @@ impl ShiftSwapService {
             requester_id: req.requester_id,
             target_id: req.target_id,
             swap_date: req.swap_date,
-            requester_shift_id: requester_shift_id,
-            target_shift_id: target_shift_id,
+            requester_shift_id,
+            target_shift_id,
             status: ShiftSwapStatus::PendingAdmin,
             reason: req.reason,
             requested_by_user_id: Some(user_id),
@@ -443,8 +443,8 @@ impl ShiftSwapService {
             requester_id: requester_employee_id,
             target_id: req.target_id,
             swap_date: req.swap_date,
-            requester_shift_id: requester_shift_id,
-            target_shift_id: target_shift_id,
+            requester_shift_id,
+            target_shift_id,
             status: ShiftSwapStatus::PendingTarget,
             reason: req.reason,
             requested_by_user_id: Some(user_id),

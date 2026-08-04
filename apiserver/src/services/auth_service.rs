@@ -452,25 +452,21 @@ mod tests {
         session_repo
             .expect_get_session_by_token()
             .returning(move |_| {
-                let mut guard = session
-                    .lock()
-                    .map_err(|_| AppError::Internal("session fixture lock poisoned".to_string()))?;
+                let mut guard = session.lock().map_err(|error| {
+                    AppError::Internal(format!("session fixture lock poisoned: {error}"))
+                })?;
                 Ok(guard.take())
             });
-        session_repo
-            .expect_rotate_refresh_token()
-            .times(0);
+        session_repo.expect_rotate_refresh_token().times(0);
 
         let user = Arc::new(std::sync::Mutex::new(Some(user)));
         let mut user_repo = MockUserRepository::new();
-        user_repo
-            .expect_get_user_by_id()
-            .returning(move |_| {
-                let mut guard = user
-                    .lock()
-                    .map_err(|_| AppError::Internal("user fixture lock poisoned".to_string()))?;
-                Ok(guard.take())
-            });
+        user_repo.expect_get_user_by_id().returning(move |_| {
+            let mut guard = user.lock().map_err(|error| {
+                AppError::Internal(format!("user fixture lock poisoned: {error}"))
+            })?;
+            Ok(guard.take())
+        });
         user_repo
             .expect_get_system_roles_for_user()
             .returning(|_| Err(AppError::Internal("role lookup failed".to_string())));

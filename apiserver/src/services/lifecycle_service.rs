@@ -3,7 +3,8 @@ use crate::errors::AppError;
 use crate::models::{
     ChecklistItemStatus, ChecklistStatus, CreateLifecycleChecklistTemplateItemRequest,
     CreateLifecycleChecklistTemplateRequest, LifecycleChecklistItem, LifecycleChecklistResponse,
-    LifecycleChecklistTemplate, LifecycleChecklistTemplateItem, LifecycleChecklistType, PendingTaskResponse, UpdateLifecycleChecklistTemplateItemRequest,
+    LifecycleChecklistTemplate, LifecycleChecklistTemplateItem, LifecycleChecklistType,
+    PendingTaskResponse, UpdateLifecycleChecklistTemplateItemRequest,
     UpdateLifecycleChecklistTemplateRequest,
 };
 use crate::repositories::employee::EmployeeRepository;
@@ -929,7 +930,7 @@ mod tests {
                 &make_token(ws),
                 Uuid::new_v4(),
                 CreateLifecycleChecklistTemplateItemRequest {
-                    title: "".into(),
+                    title: String::new(),
                     description: None,
                     category: ChecklistCategory::HrAdmin,
                     assignee_type: ChecklistAssigneeType::Employee,

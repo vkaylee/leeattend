@@ -2,13 +2,13 @@ use super::super::*;
 
 #[tokio::test]
 async fn test_attendance_handler_calculate_summary_with_data() {
+    use crate::models::{NewEffectiveScheduleParams, NewTimeEntryParams};
     use crate::repositories::cache_repository::MockCacheRepository;
     use crate::repositories::publisher_repository::MockPublisherRepository;
     use crate::repositories::queue_repository::MockQueueRepository;
     use crate::repositories::shift_repository::MockShiftRepository;
     use crate::repositories::workspace_repository::MockWorkspaceRepository;
     use crate::worker::test_utils::MockWorkerDepsBuilder;
-use crate::models::{NewEffectiveScheduleParams, NewTimeEntryParams};
     use chrono::{NaiveDate, NaiveTime, TimeZone};
     use std::collections::HashMap;
     use std::sync::Arc;
@@ -86,27 +86,29 @@ use crate::models::{NewEffectiveScheduleParams, NewTimeEntryParams};
         Uuid::new_v4(),
         "EMP01".to_string(),
         "Test User".to_string(),
-        vec![crate::models::EffectiveSchedule::new(NewEffectiveScheduleParams {
-            date: sched_date,
-            shift_id: Some(Uuid::new_v4()),
-            source: "fixed".to_string(),
-            shift_name: Some("Day Shift".to_string()),
-            shift_symbol: Some("HC".to_string()),
-            start_time: Some(NaiveTime::from_hms_opt(8, 0, 0).unwrap()),
-            end_time: Some(NaiveTime::from_hms_opt(17, 0, 0).unwrap()),
-            break_duration_minutes: Some(60),
-            break_start: Some(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
-            break_end: Some(NaiveTime::from_hms_opt(13, 0, 0).unwrap()),
-            is_break_auto_deduct: Some(true),
-            early_punch_in_grace_period_minutes: Some(0),
-            allow_early_ot: Some(false),
-            break_is_overtime: Some(false),
-            max_early_ot_minutes: None,
-            traces: vec![],
-            is_holiday: false,
-            is_holiday_paid: false,
-            holiday_name: None,
-        })],
+        vec![crate::models::EffectiveSchedule::new(
+            NewEffectiveScheduleParams {
+                date: sched_date,
+                shift_id: Some(Uuid::new_v4()),
+                source: "fixed".to_string(),
+                shift_name: Some("Day Shift".to_string()),
+                shift_symbol: Some("HC".to_string()),
+                start_time: Some(NaiveTime::from_hms_opt(8, 0, 0).unwrap()),
+                end_time: Some(NaiveTime::from_hms_opt(17, 0, 0).unwrap()),
+                break_duration_minutes: Some(60),
+                break_start: Some(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
+                break_end: Some(NaiveTime::from_hms_opt(13, 0, 0).unwrap()),
+                is_break_auto_deduct: Some(true),
+                early_punch_in_grace_period_minutes: Some(0),
+                allow_early_ot: Some(false),
+                break_is_overtime: Some(false),
+                max_early_ot_minutes: None,
+                traces: vec![],
+                is_holiday: false,
+                is_holiday_paid: false,
+                holiday_name: None,
+            },
+        )],
     );
 
     builder

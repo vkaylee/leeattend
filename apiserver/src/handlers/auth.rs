@@ -65,8 +65,8 @@ pub async fn register(
     let user = User::new(NewUserParams {
         id: user_id,
         email: req.email.clone(),
-        password_hash: password_hash,
-        created_at: created_at,
+        password_hash,
+        created_at,
         full_name: Some(req.full_name.clone()),
         avatar_url: None,
         bio: None,

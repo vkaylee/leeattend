@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 #[allow(clippy::too_many_lines)]
 impl DieselRosterRepository {
+    #[allow(clippy::too_many_arguments)]
     pub(super) async fn get_workspace_segments(
         &self,
         roster_cache: Option<&crate::cache::RosterCache>,
@@ -459,7 +460,7 @@ impl DieselRosterRepository {
                                 segments_attempted = all_new_entities.len(),
                                 segments_inserted = n,
                                 segments_deleted = deleted,
-                                elapsed_ms = start.elapsed().as_millis() as u64,
+                                elapsed_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX),
                                 "work_segments.write_through.completed"
                             );
                         }
@@ -467,7 +468,7 @@ impl DieselRosterRepository {
                             tracing::warn!(
                                 workspace_id = %ws_id,
                                 error = %e,
-                                elapsed_ms = start.elapsed().as_millis() as u64,
+                                elapsed_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX),
                                 "write-through: failed to persist segments"
                             );
                         }

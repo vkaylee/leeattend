@@ -71,19 +71,13 @@ pub trait AgentRepository: Send + Sync {
         agent_ids: &[String],
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<Device>, AppError>;
-    async fn create_device(
-        &self,
-        args: CreateDeviceArgs<'_>,
-    ) -> Result<(), AppError>;
+    async fn create_device(&self, args: CreateDeviceArgs<'_>) -> Result<(), AppError>;
     async fn get_device_by_id(
         &self,
         id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<Device>, AppError>;
-    async fn update_device(
-        &self,
-        args: UpdateDeviceArgs<'_>,
-    ) -> Result<(), AppError>;
+    async fn update_device(&self, args: UpdateDeviceArgs<'_>) -> Result<(), AppError>;
     async fn get_agent_id_for_device(
         &self,
         device_id: Uuid,

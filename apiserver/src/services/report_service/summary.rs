@@ -412,12 +412,17 @@ mod tests {
     use super::*;
     use crate::models::enums::TimekeepingUnit;
 
-    fn make_summary(employee_id: Uuid, std_units: i32, ot_units: i32, leave_days: i64) -> AttendanceSummary {
+    fn make_summary(
+        employee_id: Uuid,
+        std_units: i32,
+        ot_units: i32,
+        leave_days: i64,
+    ) -> AttendanceSummary {
         AttendanceSummary {
             employment_id: Uuid::new_v4(),
             employee_id,
             employee_name: format!("Employee {employee_id}"),
-            employee_id_number: format!("EMP{:03}", std_units),
+            employee_id_number: format!("EMP{std_units:03}"),
             total_std_units: std_units,
             total_ot_units: ot_units,
             total_leave_days: leave_days,
@@ -437,11 +442,11 @@ mod tests {
         let resp = ReportService::finalize_summary(
             results,
             Some(AttendanceReportSort::WorkHoursDesc),
-            true,  // is_computed_sort
-            1500,  // total_employees
-            1,     // page
-            20,    // limit
-            true,  // truncated
+            true, // is_computed_sort
+            1500, // total_employees
+            1,    // page
+            20,   // limit
+            true, // truncated
         );
         assert_eq!(resp.truncated, Some(true));
         assert_eq!(resp.data.len(), 1);
@@ -453,9 +458,7 @@ mod tests {
         let eid = Uuid::new_v4();
         let results = vec![make_summary(eid, 10, 2, 1)];
         let resp = ReportService::finalize_summary(
-            results,
-            None,
-            false, // is_computed_sort
+            results, None, false, // is_computed_sort
             42,    // total_employees
             1,     // page
             20,    // limit
@@ -471,7 +474,7 @@ mod tests {
         let eid = Uuid::new_v4();
         // 5 results, page 2 with limit 2 → expect 2 items (3rd and 4th)
         let results: Vec<_> = (0..5)
-            .map(|i| make_summary(eid, i * 10, i, i as i64))
+            .map(|i| make_summary(eid, i * 10, i, i64::from(i)))
             .collect();
 
         let resp = ReportService::finalize_summary(
@@ -500,9 +503,7 @@ mod tests {
         let eid = Uuid::new_v4();
         let results = vec![make_summary(eid, 10, 2, 1)];
         let resp = ReportService::finalize_summary(
-            results,
-            None,
-            true, // is_computed_sort
+            results, None, true, // is_computed_sort
             500,  // total_employees
             10,   // page — way beyond range
             20,   // limit
@@ -538,15 +539,15 @@ mod tests {
     fn test_finalize_summary_leave_days_sort() {
         let eid = Uuid::new_v4();
         let results = vec![
-            make_summary(eid, 0, 0, 5),  // leave_days = 5
-            make_summary(eid, 0, 0, 1),  // leave_days = 1
-            make_summary(eid, 0, 0, 3),  // leave_days = 3
+            make_summary(eid, 0, 0, 5), // leave_days = 5
+            make_summary(eid, 0, 0, 1), // leave_days = 1
+            make_summary(eid, 0, 0, 3), // leave_days = 3
         ];
 
         let resp = ReportService::finalize_summary(
             results,
             Some(AttendanceReportSort::LeaveDaysAsc),
-            true,  // is_computed_sort
+            true, // is_computed_sort
             500,
             1,
             20,
@@ -562,9 +563,9 @@ mod tests {
     fn test_finalize_summary_ot_hours_sort_desc() {
         let eid = Uuid::new_v4();
         let results = vec![
-            make_summary(eid, 0, 2, 0),  // ot = 2
-            make_summary(eid, 0, 8, 0),  // ot = 8
-            make_summary(eid, 0, 1, 0),  // ot = 1
+            make_summary(eid, 0, 2, 0), // ot = 2
+            make_summary(eid, 0, 8, 0), // ot = 8
+            make_summary(eid, 0, 1, 0), // ot = 1
         ];
 
         let resp = ReportService::finalize_summary(

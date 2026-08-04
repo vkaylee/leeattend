@@ -486,7 +486,10 @@ async fn test_router_cors_preflight_returns_expected_headers() {
         .uri("/api/v1/health")
         .header("Origin", "http://localhost:5173")
         .header("Access-Control-Request-Method", "POST")
-        .header("Access-Control-Request-Headers", "content-type, x-workspace-id")
+        .header(
+            "Access-Control-Request-Headers",
+            "content-type, x-workspace-id",
+        )
         .body(Body::empty())
         .unwrap();
 
@@ -501,8 +504,12 @@ async fn test_router_cors_preflight_returns_expected_headers() {
             .unwrap(),
         "http://localhost:5173"
     );
-    assert!(response.headers().contains_key("access-control-allow-methods"));
-    assert!(response.headers().contains_key("access-control-allow-headers"));
+    assert!(response
+        .headers()
+        .contains_key("access-control-allow-methods"));
+    assert!(response
+        .headers()
+        .contains_key("access-control-allow-headers"));
 }
 
 // ── Router Route Registration Tests ───────────────────────────────────────

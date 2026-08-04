@@ -125,6 +125,7 @@ fn find_last_out(logs: &[LogEvent], start_minutes: i32, start_id: uuid::Uuid) ->
         .find(|l| l.id() != start_id && l.minutes() > start_minutes)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_single_session(
     logs: &[LogEvent],
     start: i32,
@@ -150,9 +151,11 @@ fn build_single_session(
         end_minutes: end,
         start_time: first_in_log.punch_time(),
         end_time: last_out.map(LogEvent::punch_time),
-        entry_type: entry_type,
+        entry_type,
         note: final_note,
-        is_break_overtime: is_break_overtime,
-        metadata: Some(serde_json::json!({ "algorithm": ALGORITHM_NAME, "tier": "shift_window", "log_ids": log_ids, "shift_start": shift.start_minutes(), "shift_end": shift.end_minutes() })),
+        is_break_overtime,
+        metadata: Some(
+            serde_json::json!({ "algorithm": ALGORITHM_NAME, "tier": "shift_window", "log_ids": log_ids, "shift_start": shift.start_minutes(), "shift_end": shift.end_minutes() }),
+        ),
     })
 }

@@ -9,7 +9,9 @@ use crate::errors::AppError;
 use crate::models::diesel::department::{
     DieselDepartment, NewDieselDepartment, UpdateDieselDepartment,
 };
-use crate::models::{Department, DepartmentPayrollConfig, EmployeeDepartmentHistory, NewWorkspaceConfigEntryParams};
+use crate::models::{
+    Department, DepartmentPayrollConfig, EmployeeDepartmentHistory, NewWorkspaceConfigEntryParams,
+};
 use crate::repositories::department_repository::DepartmentRepository;
 use crate::schema::departments;
 
@@ -846,23 +848,24 @@ impl DepartmentRepository for DieselDepartmentRepository {
                 if key == "payroll.fixed_std_days" {
                     first_id = id;
                 }
-                let entry = crate::models::WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
-        id: id,
-        workspace_id: workspace_id,
-        scope_type: "department".to_string(),
-        scope_id: Some(department_id),
-        config_key: key.to_string(),
-        value_int: None,
-        value_decimal: Some(val),
-        value_text: None,
-        value_bool: None,
-        value_json: None,
-        effective_from: effective_date,
-        effective_to: None,
-        created_by: None,
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
-    });
+                let entry =
+                    crate::models::WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
+                        id,
+                        workspace_id,
+                        scope_type: "department".to_string(),
+                        scope_id: Some(department_id),
+                        config_key: key.to_string(),
+                        value_int: None,
+                        value_decimal: Some(val),
+                        value_text: None,
+                        value_bool: None,
+                        value_json: None,
+                        effective_from: effective_date,
+                        effective_to: None,
+                        created_by: None,
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                    });
                 diesel::insert_into(workspace_config_entries::table)
                     .values(&entry)
                     .execute(&mut *conn)

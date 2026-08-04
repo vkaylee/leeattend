@@ -45,6 +45,7 @@ pub struct PayslipSegment {
 }
 
 impl PayslipSegment {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         payslip_id: Uuid,
@@ -151,6 +152,7 @@ pub struct Payslip {
 }
 
 impl Payslip {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         employment_id: Uuid,
@@ -262,6 +264,7 @@ pub struct PayrollIncentivePolicy {
 }
 
 impl PayrollIncentivePolicy {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         workspace_id: Uuid,

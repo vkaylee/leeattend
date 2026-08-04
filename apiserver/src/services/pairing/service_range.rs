@@ -113,6 +113,7 @@ pub(crate) async fn reprocess_attendance_range(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn process_range_days(
     curr_date: NaiveDate,
     end_date: NaiveDate,
@@ -152,6 +153,7 @@ fn process_range_days(
     Ok(new_entries_accumulated)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn process_single_day_in_range(
     curr_date: NaiveDate,
     tz: Tz,
@@ -214,6 +216,7 @@ fn process_single_day_in_range(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn save_range_entries(
     service: &PairingService,
     auth_token: &TenantAuthToken,
@@ -269,6 +272,7 @@ pub(crate) async fn save_range_entries(
 /// [`save_range_entries`] variant that runs both writes on a caller-owned
 /// transaction connection. If the summary recalculation fails after the entries
 /// were replaced, the caller's transaction rollback undoes both.
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn save_range_entries_tx(
     service: &PairingService,
     conn: &mut AsyncPgConnection,

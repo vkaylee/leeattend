@@ -54,6 +54,7 @@ impl StorageConfigRepository {
 
     /// Creates or updates the storage config.
     /// Automatically encrypts the credentials before saving.
+    #[allow(clippy::too_many_arguments)]
     pub async fn upsert_config(
         &self,
         workspace_id: Uuid,

@@ -184,6 +184,7 @@ mod tests {
         /// Records the effective_date passed to create_new_version
         last_effective_date: Mutex<Option<NaiveDate>>,
         /// Records the change_reason passed to create_new_version
+        #[allow(clippy::option_option)]
         last_change_reason: Mutex<Option<Option<String>>>,
         /// Pre-populated version history for get_shift_versions
         versions: Mutex<Vec<ShiftVersionHistoryItem>>,

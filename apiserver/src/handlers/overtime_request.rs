@@ -3,8 +3,9 @@ use crate::{
     errors::{AppError, AppResult},
     handlers::common::MemberContext,
     models::{
-        BehalfAssignment, CreateBehalfAssignmentRequest, Employee, OtRequestStatus,
-        NewOvertimeRequestEmployeeParams, NewOvertimeRequestParams, OvertimeRequest, OvertimeRequestEmployee, PaginatedResponse,
+        BehalfAssignment, CreateBehalfAssignmentRequest, Employee,
+        NewOvertimeRequestEmployeeParams, NewOvertimeRequestParams, OtRequestStatus,
+        OvertimeRequest, OvertimeRequestEmployee, PaginatedResponse,
     },
     utils::i18n::I18nKey,
     AppState,
@@ -110,7 +111,7 @@ pub async fn create_ot_request(
         reconciled_by: None,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
-        attachment_file_ids: attachment_file_ids,
+        attachment_file_ids,
     });
 
     let employments = state
@@ -126,17 +127,19 @@ pub async fn create_ot_request(
             .find(|e| e.employee_id() == emp_id)
             .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
 
-        employees.push(OvertimeRequestEmployee::new(NewOvertimeRequestEmployeeParams {
-            id: crate::utils::id::new_id(),
-            overtime_request_id: request.id(),
-            employment_id: employment.id(),
-            consent_status: "pending".to_string(),
-            consent_at: None,
-            decline_reason: None,
-            actual_ot_minutes: None,
-            matched_summary_id: None,
-            created_at: chrono::Utc::now(),
-        }));
+        employees.push(OvertimeRequestEmployee::new(
+            NewOvertimeRequestEmployeeParams {
+                id: crate::utils::id::new_id(),
+                overtime_request_id: request.id(),
+                employment_id: employment.id(),
+                consent_status: "pending".to_string(),
+                consent_at: None,
+                decline_reason: None,
+                actual_ot_minutes: None,
+                matched_summary_id: None,
+                created_at: chrono::Utc::now(),
+            },
+        ));
     }
 
     let created = state

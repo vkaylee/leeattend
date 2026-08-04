@@ -11,6 +11,7 @@ use chrono::NaiveDate;
 
 use uuid::Uuid;
 
+#[allow(clippy::too_many_arguments)]
 #[async_trait]
 #[cfg_attr(test, mockall::automock)]
 pub trait RosterRepository: Send + Sync {

@@ -117,22 +117,22 @@ mod tests {
         let workspace_id = Uuid::new_v4();
 
         let entry = WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
-        id: Uuid::new_v4(),
-        workspace_id: workspace_id,
-        scope_type: "workspace".to_string(),
-        scope_id: None,
-        config_key: "leave.conflict_policy".to_string(),
-        value_int: None,
-        value_decimal: None,
-        value_text: Some("auto_cancel".to_string()),
-        value_bool: None,
-        value_json: None,
-        effective_from: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-        effective_to: None,
-        created_by: None,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-    });
+            id: Uuid::new_v4(),
+            workspace_id,
+            scope_type: "workspace".to_string(),
+            scope_id: None,
+            config_key: "leave.conflict_policy".to_string(),
+            value_int: None,
+            value_decimal: None,
+            value_text: Some("auto_cancel".to_string()),
+            value_bool: None,
+            value_json: None,
+            effective_from: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            effective_to: None,
+            created_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        });
 
         let entries_json = serde_json::to_string(&vec![entry.clone()]).unwrap();
         let entries_json_clone = entries_json.clone();

@@ -104,7 +104,6 @@ pub(super) struct BuildRuleAssignmentsMapParams<'a> {
 }
 
 impl PayrollService {
-
     pub(super) async fn build_rule_assignments_map(
         &self,
         params: BuildRuleAssignmentsMapParams<'_>,

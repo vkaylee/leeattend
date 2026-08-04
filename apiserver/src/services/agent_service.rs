@@ -98,7 +98,9 @@ impl AgentService {
 mod tests {
     use super::*;
     use crate::models::{AuthorizedAgent, Device};
-    use crate::repositories::agent_repository::{CreateAuthorizedAgentArgs, CreateDeviceArgs, UpdateDeviceArgs};
+    use crate::repositories::agent_repository::{
+        CreateAuthorizedAgentArgs, CreateDeviceArgs, UpdateDeviceArgs,
+    };
     use async_trait::async_trait;
     use std::sync::Arc;
     use uuid::Uuid;

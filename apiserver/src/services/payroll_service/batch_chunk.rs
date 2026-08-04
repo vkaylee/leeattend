@@ -1,5 +1,5 @@
-use super::*;
 use super::batch_helpers::BuildRuleAssignmentsMapParams;
+use super::*;
 
 impl PayrollService {
     /// Process a single chunk of employment IDs for batch payroll calculation.

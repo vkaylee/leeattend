@@ -36,6 +36,7 @@ impl TemplateService {
     }
 
     /// Fetches necessary employee data and uses `fill_template` to generate the document.
+    #[allow(clippy::too_many_arguments)]
     pub async fn generate_employee_document(
         auth_token: &TenantAuthToken,
         employee_id: Uuid,
@@ -162,9 +163,8 @@ mod tests {
     async fn test_generate_employee_document() {
         use crate::models::enums::{ContractStatus, ContractType};
         use crate::models::{
-            contract::EmployeeContract, contract::NewEmployeeContractParams, employment::Employment, Employee, Workspace,
-        NewEmploymentParams,
-        NewWorkspaceParams,
+            contract::EmployeeContract, contract::NewEmployeeContractParams,
+            employment::Employment, Employee, NewEmploymentParams, NewWorkspaceParams, Workspace,
         };
         use crate::repositories::employee::MockEmployeeRepository;
         use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
@@ -184,20 +184,20 @@ mod tests {
             .returning(move |_| {
                 Box::pin(async move {
                     Ok(Some(Workspace::new(NewWorkspaceParams {
-            id: ws_id,
-            name: "LeeAttend Corp Test".to_string(),
-            date_format: "dd/MM/yyyy".to_string(),
-            time_format: "HH:mm".to_string(),
-            timezone: "Asia/Ho_Chi_Minh".to_string(),
-            theme_primary_color: "#ff0000".to_string(),
-            default_language: "vi".to_string(),
-            logo_url: None,
-            tagline: None,
-            holiday_overnight_strategy: "none".to_string(),
-            default_holiday_ot_multiplier: Decimal::new(15, 1),
-            created_at: Utc::now(),
-            custom_db_url_encrypted: None,
-        })))
+                        id: ws_id,
+                        name: "LeeAttend Corp Test".to_string(),
+                        date_format: "dd/MM/yyyy".to_string(),
+                        time_format: "HH:mm".to_string(),
+                        timezone: "Asia/Ho_Chi_Minh".to_string(),
+                        theme_primary_color: "#ff0000".to_string(),
+                        default_language: "vi".to_string(),
+                        logo_url: None,
+                        tagline: None,
+                        holiday_overnight_strategy: "none".to_string(),
+                        default_holiday_ot_multiplier: Decimal::new(15, 1),
+                        created_at: Utc::now(),
+                        custom_db_url_encrypted: None,
+                    })))
                 })
             });
 

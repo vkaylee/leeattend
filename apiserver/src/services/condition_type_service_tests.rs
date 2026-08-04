@@ -22,8 +22,8 @@ mod tests {
         is_system: bool,
     ) -> ConditionTypeDefinition {
         ConditionTypeDefinition::new(NewConditionTypeParams {
-            id: id,
-            workspace_id: workspace_id,
+            id,
+            workspace_id,
             code: code.to_string(),
             name_i18n: serde_json::json!({"en": "Test Type", "vi": "Loại Test"}),
             category: "general".to_string(),
@@ -32,7 +32,7 @@ mod tests {
             affects_rules: serde_json::json!({"authorized_early_leave_minutes": true}),
             icon: Some("Clock".to_string()),
             color: Some("blue".to_string()),
-            is_system: is_system,
+            is_system,
             sort_order: 0,
             is_active: true,
             created_at: chrono::Utc::now(),

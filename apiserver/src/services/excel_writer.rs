@@ -50,6 +50,7 @@ impl ExcelWriter {
     }
 
     /// Multi-sheet detail report: "Timesheet View" (matrix) + "Raw Details" (list).
+    #[allow(clippy::too_many_arguments)]
     pub fn write_detail(
         reports: &[DailyAttendanceReport],
         workspace_name: &str,

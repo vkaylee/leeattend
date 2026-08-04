@@ -168,6 +168,7 @@ pub(crate) async fn propagate_overnight_reprocess_with_conn(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn process_propagation_day(
     current_date: NaiveDate,
     tz: Tz,

@@ -30,7 +30,9 @@ use crate::errors::AppError;
 use crate::models::diesel::time_entry::{
     NewTimeEntryEntity, TimeEntryEntity, UpdateTimeEntryEntity,
 };
-use crate::models::{NewTimeEntryWithEmployeeParams, TimeEntry, TimeEntryLogFilter, TimeEntryWithEmployee};
+use crate::models::{
+    NewTimeEntryWithEmployeeParams, TimeEntry, TimeEntryLogFilter, TimeEntryWithEmployee,
+};
 use crate::repositories::time_entry_repository::TimeEntryRepository;
 use crate::schema::{employees, employments, time_entries};
 

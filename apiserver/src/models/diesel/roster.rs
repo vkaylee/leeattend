@@ -195,7 +195,7 @@ impl From<ShiftSwapRequestEntity> for ShiftSwapRequest {
             swap_date: entity.swap_date,
             requester_shift_id: entity.requester_template_id,
             target_shift_id: entity.target_template_id,
-            status: status,
+            status,
             reason: entity.reason,
             requested_by_user_id: entity.requested_by_user_id,
             approved_by_user_id: entity.approved_by_user_id,

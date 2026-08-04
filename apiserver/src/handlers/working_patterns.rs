@@ -321,6 +321,7 @@ pub async fn update_pattern(
 
 /// Expands a pattern's date range and validates each (shift_id, dates[]) group
 /// against the workspace compliance rules.
+#[allow(clippy::too_many_arguments)]
 async fn check_pattern_compliance(
     state: &Arc<AppState>,
     ctx: &MemberContext,

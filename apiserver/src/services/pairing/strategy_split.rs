@@ -75,7 +75,7 @@ pub(crate) fn split_by_breaks(input: &SplitByBreaksInput<'_>) -> Vec<PairedSessi
         sessions.push(PairedSession::new(NewPairedSessionParams {
             start_minutes: seg_start,
             end_minutes: Some(seg_end),
-            start_time: start_time,
+            start_time,
             end_time: Some(end_time),
             entry_type: *input.entry_type,
             note: if j == 0 { input.combined_note.cloned() } else { None },

@@ -401,12 +401,12 @@ async fn parse_log_entry(
         id: new_id(),
         workspace_id: entry.workspace_id,
         employment_id: employee.id(),
-        punch_time: punch_time,
+        punch_time,
         source: LogSource::Device,
         device_id: entry.device_id.clone(),
         raw_data: entry.raw_data.clone(),
-        punch: punch,
-        status: status,
+        punch,
+        status,
         created_at: Utc::now(),
     });
 

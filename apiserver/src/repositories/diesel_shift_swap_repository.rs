@@ -7,7 +7,10 @@ use uuid::Uuid;
 use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
 use crate::models::diesel::roster::ShiftSwapRequestEntity;
-use crate::models::shift_swap::{NewShiftSwapRequestWithNamesParams, ShiftSwapRequest, ShiftSwapRequestWithNames, ShiftSwapStatus};
+use crate::models::shift_swap::{
+    NewShiftSwapRequestWithNamesParams, ShiftSwapRequest, ShiftSwapRequestWithNames,
+    ShiftSwapStatus,
+};
 use crate::repositories::shift_swap_repository::{ShiftSwapRepository, SwapStats};
 use crate::schema::shift_swap_requests;
 
@@ -67,7 +70,7 @@ impl From<ShiftSwapRequestWithNamesEntity> for ShiftSwapRequestWithNames {
             swap_date: entity.swap_date,
             requester_shift_id: entity.requester_template_id,
             target_shift_id: entity.target_template_id,
-            status: status,
+            status,
             reason: entity.reason,
             requested_by_user_id: entity.requested_by_user_id,
             approved_by_user_id: entity.approved_by_user_id,

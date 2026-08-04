@@ -151,6 +151,7 @@ pub async fn get_workflow(
 
 /// PUT /workspaces/{ws_id}/approval-workflows/{id}
 /// Partially updates workflow metadata (name, description, is_active).
+///
 /// Steps are NOT updated through this endpoint — use create with full replace for step changes.
 #[utoipa::path(
     put,

@@ -174,10 +174,7 @@ pub trait WorkspaceRepository: Send + Sync {
     /// Get all permission names for a set of role IDs.
     async fn get_permissions_for_roles(&self, role_ids: &[Uuid]) -> Result<Vec<String>, AppError>;
 
-    async fn update_workspace(
-        &self,
-        params: UpdateWorkspaceParams,
-    ) -> Result<Workspace, AppError>;
+    async fn update_workspace(&self, params: UpdateWorkspaceParams) -> Result<Workspace, AppError>;
     /// Check if any role in the set has global scope.
     async fn is_any_role_global(&self, role_ids: &[Uuid]) -> Result<bool, AppError>;
 

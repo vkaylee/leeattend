@@ -125,6 +125,7 @@ impl DieselEmployeeRepository {
         .await
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(super) async fn create_employee_transactional_impl(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

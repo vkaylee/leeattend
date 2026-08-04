@@ -9,6 +9,7 @@ use crate::services::import_messages::ExcelReportMessages;
 use crate::utils::excel_format_utils::ExcelFormatUtils;
 
 #[allow(clippy::too_many_lines, clippy::implicit_hasher)]
+#[allow(clippy::too_many_arguments)]
 pub fn generate(
     workbook: &mut Workbook,
     reports: &[DailyAttendanceReport],
@@ -101,7 +102,7 @@ pub fn generate(
             .as_ref()
             .and_then(|m| m.get("sessions"))
             .and_then(|s| s.as_array())
-            .map(|arr| arr.clone())
+            .cloned()
             .unwrap_or_default();
 
         // Helper: punch time string for session at index, or empty.

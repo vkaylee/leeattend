@@ -214,16 +214,16 @@ mod tests {
     #[test]
     fn test_user_debug_masks_pii() {
         let user = User::new(NewUserParams {
-        id: Uuid::new_v4(),
-        email: "john.doe@example.com".to_string(),
-        password_hash: "secret_hash".to_string(),
-        created_at: Utc::now(),
-        full_name: Some("John Doe".to_string()),
-        avatar_url: None,
-        bio: None,
-        preferred_language: Some("en".to_string()),
-        avatar_file_id: None,
-    });
+            id: Uuid::new_v4(),
+            email: "john.doe@example.com".to_string(),
+            password_hash: "secret_hash".to_string(),
+            created_at: Utc::now(),
+            full_name: Some("John Doe".to_string()),
+            avatar_url: None,
+            bio: None,
+            preferred_language: Some("en".to_string()),
+            avatar_file_id: None,
+        });
 
         let debug_str = format!("{user:?}");
         assert!(!debug_str.contains("john.doe@example.com"));
@@ -279,16 +279,16 @@ mod tests {
         let id = Uuid::new_v4();
         let created_at = Utc::now();
         let user = User::new(NewUserParams {
-        id: id,
-        email: "user@example.com".to_string(),
-        password_hash: "hashed".to_string(),
-        created_at: created_at,
-        full_name: Some("Full Name".to_string()),
-        avatar_url: Some("http://avatar.url".to_string()),
-        bio: Some("My Bio".to_string()),
-        preferred_language: Some("vi".to_string()),
-        avatar_file_id: None,
-    });
+            id,
+            email: "user@example.com".to_string(),
+            password_hash: "hashed".to_string(),
+            created_at,
+            full_name: Some("Full Name".to_string()),
+            avatar_url: Some("http://avatar.url".to_string()),
+            bio: Some("My Bio".to_string()),
+            preferred_language: Some("vi".to_string()),
+            avatar_file_id: None,
+        });
 
         assert_eq!(user.id(), id);
         assert_eq!(user.email(), "user@example.com");

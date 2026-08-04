@@ -212,8 +212,7 @@ async fn check_and_rescue_timeout_job(
             )
             .await;
         job.status = crate::models::enums::ImportJobStatus::Failed;
-        job.error_log =
-            Some("Import job timed out or background worker restarted.".to_string());
+        job.error_log = Some("Import job timed out or background worker restarted.".to_string());
     } else if let Some(queue_repo) = queue {
         if let Ok(Some(count)) = queue_repo.get_import_progress(job.id).await {
             job.processed_rows = count;
@@ -411,8 +410,7 @@ mod tests {
             status: ImportJobStatus,
             error_log: Option<String>,
         ) -> Result<(), AppError> {
-            self.inner.lock().unwrap().last_update =
-                Some((id, processed_rows, status, error_log));
+            self.inner.lock().unwrap().last_update = Some((id, processed_rows, status, error_log));
             Ok(())
         }
 
@@ -480,8 +478,7 @@ mod tests {
         }
     }
 
-    fn setup_mock_import_repo() -> (Arc<dyn ImportJobRepository>, Arc<Mutex<MockImportJobInner>>)
-    {
+    fn setup_mock_import_repo() -> (Arc<dyn ImportJobRepository>, Arc<Mutex<MockImportJobInner>>) {
         let inner = Arc::new(Mutex::new(MockImportJobInner { last_update: None }));
         let repo: Arc<dyn ImportJobRepository> = Arc::new(MockImportJobRepo {
             inner: inner.clone(),
@@ -553,11 +550,7 @@ mod tests {
 
         // Must be marked Failed
         assert_eq!(job.status, ImportJobStatus::Failed);
-        assert!(job
-            .error_log
-            .as_deref()
-            .unwrap_or("")
-            .contains("timed out"));
+        assert!(job.error_log.as_deref().unwrap_or("").contains("timed out"));
 
         // DB must have been updated
         let update = inner

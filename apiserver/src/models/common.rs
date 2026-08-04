@@ -125,7 +125,10 @@ mod tests {
             truncated: None,
         };
         let json = serde_json::to_string(&resp).unwrap();
-        assert!(!json.contains("truncated"), "truncated: None should be absent from JSON, got: {json}");
+        assert!(
+            !json.contains("truncated"),
+            "truncated: None should be absent from JSON, got: {json}"
+        );
     }
 
     #[test]
@@ -138,7 +141,10 @@ mod tests {
             truncated: Some(true),
         };
         let json = serde_json::to_string(&resp).unwrap();
-        assert!(json.contains("\"truncated\":true"), "truncated: true should appear in JSON, got: {json}");
+        assert!(
+            json.contains("\"truncated\":true"),
+            "truncated: true should appear in JSON, got: {json}"
+        );
     }
 
     #[test]

@@ -13,7 +13,9 @@ use diesel_async::AsyncConnection;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::models::{LeaveDurationType, LeaveRequest, LeaveStatus, NewLeaveRequestParams, SubmitLeaveRequest};
+use crate::models::{
+    LeaveDurationType, LeaveRequest, LeaveStatus, NewLeaveRequestParams, SubmitLeaveRequest,
+};
 
 /// Result of resolving submitter identity and employment for leave submission.
 pub struct SubmitterInfo {

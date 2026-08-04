@@ -15,6 +15,7 @@ pub struct SignAnchor {
 }
 
 impl SignAnchor {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         document_id: Uuid,
         anchor_type: String,

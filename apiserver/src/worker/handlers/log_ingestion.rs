@@ -106,7 +106,7 @@ mod tests {
     #[tokio::test]
     async fn test_log_ingestion_handler_with_mocks() {
         use crate::models::Employee;
-use crate::models::{NewEmploymentParams, NewWorkspaceParams};
+        use crate::models::{NewEmploymentParams, NewWorkspaceParams};
         use crate::worker::test_utils::MockWorkerDepsBuilder;
 
         let ws_id = Uuid::new_v4();
@@ -172,20 +172,20 @@ use crate::models::{NewEmploymentParams, NewWorkspaceParams};
                 use rust_decimal::Decimal;
                 Box::pin(async move {
                     Ok(Some(crate::models::Workspace::new(NewWorkspaceParams {
-            id: ws_id,
-            name: "Test Workspace".to_string(),
-            date_format: "YYYY-MM-DD".to_string(),
-            time_format: "HH:mm".to_string(),
-            timezone: "UTC".to_string(),
-            theme_primary_color: "#000000".to_string(),
-            default_language: "en".to_string(),
-            logo_url: None,
-            tagline: None,
-            holiday_overnight_strategy: "NextDay".to_string(),
-            default_holiday_ot_multiplier: Decimal::new(100, 2),
-            created_at: chrono::Utc::now(),
-            custom_db_url_encrypted: None,
-        })))
+                        id: ws_id,
+                        name: "Test Workspace".to_string(),
+                        date_format: "YYYY-MM-DD".to_string(),
+                        time_format: "HH:mm".to_string(),
+                        timezone: "UTC".to_string(),
+                        theme_primary_color: "#000000".to_string(),
+                        default_language: "en".to_string(),
+                        logo_url: None,
+                        tagline: None,
+                        holiday_overnight_strategy: "NextDay".to_string(),
+                        default_holiday_ot_multiplier: Decimal::new(100, 2),
+                        created_at: chrono::Utc::now(),
+                        custom_db_url_encrypted: None,
+                    })))
                 })
             });
 
@@ -252,24 +252,26 @@ use crate::models::{NewEmploymentParams, NewWorkspaceParams};
         employment_repo
             .expect_get_employment_by_id()
             .returning(move |_, id| {
-                Ok(Some(crate::models::employment::Employment::new(NewEmploymentParams {
-                    id: id,
-                    workspace_id: ws_id,
-                    employee_id: emp_id,
-                    employer_id: uuid::Uuid::new_v4(),
-                    primary_location_id: None,
-                    department_id: None,
-                    status: "active".to_string(),
-                    start_date: chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-                    end_date: None,
-                    job_title: None,
-                    employment_type: "full_time".to_string(),
-                    manager_employment_id: None,
-                    created_at: chrono::Utc::now(),
-                    updated_at: chrono::Utc::now(),
-                    termination_reason: None,
-                    notes: None,
-                })))
+                Ok(Some(crate::models::employment::Employment::new(
+                    NewEmploymentParams {
+                        id,
+                        workspace_id: ws_id,
+                        employee_id: emp_id,
+                        employer_id: uuid::Uuid::new_v4(),
+                        primary_location_id: None,
+                        department_id: None,
+                        status: "active".to_string(),
+                        start_date: chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                        end_date: None,
+                        job_title: None,
+                        employment_type: "full_time".to_string(),
+                        manager_employment_id: None,
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                        termination_reason: None,
+                        notes: None,
+                    },
+                )))
             });
 
         let mut builder = MockWorkerDepsBuilder::new();

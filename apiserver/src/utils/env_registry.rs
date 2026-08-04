@@ -1105,13 +1105,11 @@ mod tests {
         // Check that production-required vars are flagged
         assert!(
             errors.iter().any(|e| e.contains("JWT_SECRET")),
-            "Expected JWT_SECRET to be flagged as missing in production. Errors: {:?}",
-            errors
+            "Expected JWT_SECRET to be flagged as missing in production. Errors: {errors:?}"
         );
         assert!(
             errors.iter().any(|e| e.contains("ALLOWED_ORIGINS")),
-            "Expected ALLOWED_ORIGINS to be flagged. Errors: {:?}",
-            errors
+            "Expected ALLOWED_ORIGINS to be flagged. Errors: {errors:?}"
         );
     }
 

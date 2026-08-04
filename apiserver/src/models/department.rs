@@ -18,6 +18,7 @@ pub struct Department {
 }
 
 impl Department {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         workspace_id: Uuid,

@@ -786,6 +786,7 @@ mod tests {
             (dt(7, 0), dt(18, 0))
         }
 
+        #[allow(clippy::too_many_arguments)]
         fn deduct(
             actual: i32,
             scheduled: i32,

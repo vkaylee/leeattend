@@ -113,15 +113,15 @@ mod tests {
 
         let mut mock_repo = MockOutboxJobRepository::new();
         let expected_job = OutboxJob::new(NewOutboxJobParams {
-        id: job_id,
-        workspace_id: ws_id,
-        job_type: job_type.to_string(),
-        payload: payload.clone(),
-        status: "pending".to_string(),
-        error_message: None,
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
-    });
+            id: job_id,
+            workspace_id: ws_id,
+            job_type: job_type.to_string(),
+            payload: payload.clone(),
+            status: "pending".to_string(),
+            error_message: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        });
 
         let expected_clone = expected_job.clone();
         mock_repo
@@ -206,15 +206,15 @@ mod tests {
 
         let mut mock_repo = MockOutboxJobRepository::new();
         let expected_jobs = vec![OutboxJob::new(NewOutboxJobParams {
-        id: Uuid::new_v4(),
-        workspace_id: ws_id,
-        job_type: "TestJob".to_string(),
-        payload: json!({}),
-        status: "pending".to_string(),
-        error_message: None,
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
-    })];
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            job_type: "TestJob".to_string(),
+            payload: json!({}),
+            status: "pending".to_string(),
+            error_message: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        })];
 
         let expected_clone = expected_jobs.clone();
         mock_repo
@@ -293,15 +293,15 @@ mod tests {
 
         let mut mock_repo = MockOutboxJobRepository::new();
         let expected_job = OutboxJob::new(NewOutboxJobParams {
-        id: job_id,
-        workspace_id: ws_id,
-        job_type: job_type.to_string(),
-        payload: json!({"test": "data", "_trace_context": "test-request-id-123"}),
-        status: "pending".to_string(),
-        error_message: None,
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
-    });
+            id: job_id,
+            workspace_id: ws_id,
+            job_type: job_type.to_string(),
+            payload: json!({"test": "data", "_trace_context": "test-request-id-123"}),
+            status: "pending".to_string(),
+            error_message: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        });
 
         let expected_clone = expected_job.clone();
         mock_repo

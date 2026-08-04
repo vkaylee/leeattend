@@ -22,6 +22,7 @@ pub struct EmployeeBasicInfo {
 // ---------------------------------------------------------------------------
 // Trait: EmployeeCoreRepository — Core Employee CRUD and search
 // ---------------------------------------------------------------------------
+#[allow(clippy::too_many_arguments)]
 #[async_trait]
 #[cfg_attr(test, mockall::automock)]
 pub trait EmployeeCoreRepository: Send + Sync {

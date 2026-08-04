@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 #[allow(clippy::too_many_lines)]
 impl DieselRosterRepository {
+    #[allow(clippy::too_many_arguments)]
     pub(super) async fn get_workspace_schedules(
         &self,
         roster_cache: Option<&crate::cache::RosterCache>,
@@ -385,10 +386,10 @@ impl DieselRosterRepository {
                         date: curr_date,
                         shift_id: *effective_shift_id,
                         source: source.clone(),
-                        shift_name: shift_name,
-                        shift_symbol: shift_symbol,
-                        start_time: start_time,
-                        end_time: end_time,
+                        shift_name,
+                        shift_symbol,
+                        start_time,
+                        end_time,
                         break_duration_minutes: break_dur,
                         break_start: brk_start,
                         break_end: brk_end,

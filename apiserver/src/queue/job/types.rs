@@ -321,9 +321,7 @@ impl JobMetadata {
     }
 
     /// Create new job metadata with date range.
-    pub fn with_date_range(
-        params: WithDateRangeParams,
-    ) -> Self {
+    pub fn with_date_range(params: WithDateRangeParams) -> Self {
         Self {
             job_id: params.job_id,
             status: JobStatus::Pending,

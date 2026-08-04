@@ -145,13 +145,13 @@ impl ReprocessAttendanceHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::{NewEffectiveScheduleParams, NewEmploymentParams, NewWorkspaceParams};
     use crate::queue::{JobPayload, ReprocessPayload, TaskType};
     use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
     use crate::repositories::queue_repository::MockQueueRepository;
     use crate::repositories::roster::MockRosterRepository;
     use crate::repositories::time_entry_repository::MockTimeEntryRepository;
     use crate::worker::test_utils::MockWorkerDepsBuilder;
-use crate::models::{NewEffectiveScheduleParams, NewEmploymentParams, NewWorkspaceParams};
     use chrono::{NaiveDate, Utc};
     use uuid::Uuid;
 
@@ -217,7 +217,7 @@ use crate::models::{NewEffectiveScheduleParams, NewEmploymentParams, NewWorkspac
             move |_, _, start_date, end_date, _, _, _| {
                 let empty_schedule = |date| {
                     crate::models::EffectiveSchedule::new(NewEffectiveScheduleParams {
-                        date: date,
+                        date,
                         shift_id: None,
                         source: "none".to_string(),
                         shift_name: None,
@@ -259,20 +259,20 @@ use crate::models::{NewEffectiveScheduleParams, NewEmploymentParams, NewWorkspac
         workspace_repo.expect_get_workspace_by_id().returning(|_| {
             Box::pin(async {
                 Ok(Some(crate::models::Workspace::new(NewWorkspaceParams {
-            id: Uuid::new_v4(),
-            name: "test".to_string(),
-            date_format: "YYYY-MM-DD".to_string(),
-            time_format: "HH:mm".to_string(),
-            timezone: "UTC".to_string(),
-            theme_primary_color: "#ffffff".to_string(),
-            default_language: "en".to_string(),
-            logo_url: None,
-            tagline: None,
-            holiday_overnight_strategy: "split".to_string(),
-            default_holiday_ot_multiplier: rust_decimal::Decimal::new(100, 2),
-            created_at: Utc::now(),
-            custom_db_url_encrypted: None,
-        })))
+                    id: Uuid::new_v4(),
+                    name: "test".to_string(),
+                    date_format: "YYYY-MM-DD".to_string(),
+                    time_format: "HH:mm".to_string(),
+                    timezone: "UTC".to_string(),
+                    theme_primary_color: "#ffffff".to_string(),
+                    default_language: "en".to_string(),
+                    logo_url: None,
+                    tagline: None,
+                    holiday_overnight_strategy: "split".to_string(),
+                    default_holiday_ot_multiplier: rust_decimal::Decimal::new(100, 2),
+                    created_at: Utc::now(),
+                    custom_db_url_encrypted: None,
+                })))
             })
         });
 
@@ -330,46 +330,50 @@ use crate::models::{NewEffectiveScheduleParams, NewEmploymentParams, NewWorkspac
         employment_repo
             .expect_list_employments_effective_in_range()
             .returning(move |_, _, _, _| {
-                Ok(vec![crate::models::employment::Employment::new(NewEmploymentParams {
-                    id: employment_id,
-                    workspace_id: ws_id,
-                    employee_id: emp_id,
-                    employer_id: uuid::Uuid::new_v4(),
-                    primary_location_id: None,
-                    department_id: None,
-                    status: "active".to_string(),
-                    start_date: chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-                    end_date: None,
-                    job_title: None,
-                    employment_type: "full_time".to_string(),
-                    manager_employment_id: None,
-                    created_at: chrono::Utc::now(),
-                    updated_at: chrono::Utc::now(),
-                    termination_reason: None,
-                    notes: None,
-                })])
+                Ok(vec![crate::models::employment::Employment::new(
+                    NewEmploymentParams {
+                        id: employment_id,
+                        workspace_id: ws_id,
+                        employee_id: emp_id,
+                        employer_id: uuid::Uuid::new_v4(),
+                        primary_location_id: None,
+                        department_id: None,
+                        status: "active".to_string(),
+                        start_date: chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                        end_date: None,
+                        job_title: None,
+                        employment_type: "full_time".to_string(),
+                        manager_employment_id: None,
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                        termination_reason: None,
+                        notes: None,
+                    },
+                )])
             });
         employment_repo
             .expect_get_employment_by_id()
             .returning(move |_, employment_id| {
-                Ok(Some(crate::models::employment::Employment::new(NewEmploymentParams {
-                    id: employment_id,
-                    workspace_id: ws_id,
-                    employee_id: emp_id,
-                    employer_id: uuid::Uuid::new_v4(),
-                    primary_location_id: None,
-                    department_id: None,
-                    status: "active".to_string(),
-                    start_date: chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-                    end_date: None,
-                    job_title: None,
-                    employment_type: "full_time".to_string(),
-                    manager_employment_id: None,
-                    created_at: chrono::Utc::now(),
-                    updated_at: chrono::Utc::now(),
-                    termination_reason: None,
-                    notes: None,
-                })))
+                Ok(Some(crate::models::employment::Employment::new(
+                    NewEmploymentParams {
+                        id: employment_id,
+                        workspace_id: ws_id,
+                        employee_id: emp_id,
+                        employer_id: uuid::Uuid::new_v4(),
+                        primary_location_id: None,
+                        department_id: None,
+                        status: "active".to_string(),
+                        start_date: chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                        end_date: None,
+                        job_title: None,
+                        employment_type: "full_time".to_string(),
+                        manager_employment_id: None,
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                        termination_reason: None,
+                        notes: None,
+                    },
+                )))
             });
         builder.employment_repo = employment_repo;
 
@@ -558,20 +562,20 @@ use crate::models::{NewEffectiveScheduleParams, NewEmploymentParams, NewWorkspac
         workspace_repo.expect_get_workspace_by_id().returning(|_| {
             Box::pin(async {
                 Ok(Some(crate::models::Workspace::new(NewWorkspaceParams {
-            id: Uuid::new_v4(),
-            name: "test".to_string(),
-            date_format: "YYYY-MM-DD".to_string(),
-            time_format: "HH:mm".to_string(),
-            timezone: "UTC".to_string(),
-            theme_primary_color: "#ffffff".to_string(),
-            default_language: "en".to_string(),
-            logo_url: None,
-            tagline: None,
-            holiday_overnight_strategy: "split".to_string(),
-            default_holiday_ot_multiplier: rust_decimal::Decimal::new(100, 2),
-            created_at: Utc::now(),
-            custom_db_url_encrypted: None,
-        })))
+                    id: Uuid::new_v4(),
+                    name: "test".to_string(),
+                    date_format: "YYYY-MM-DD".to_string(),
+                    time_format: "HH:mm".to_string(),
+                    timezone: "UTC".to_string(),
+                    theme_primary_color: "#ffffff".to_string(),
+                    default_language: "en".to_string(),
+                    logo_url: None,
+                    tagline: None,
+                    holiday_overnight_strategy: "split".to_string(),
+                    default_holiday_ot_multiplier: rust_decimal::Decimal::new(100, 2),
+                    created_at: Utc::now(),
+                    custom_db_url_encrypted: None,
+                })))
             })
         });
 
@@ -709,20 +713,20 @@ use crate::models::{NewEffectiveScheduleParams, NewEmploymentParams, NewWorkspac
         workspace_repo.expect_get_workspace_by_id().returning(|_| {
             Box::pin(async {
                 Ok(Some(crate::models::Workspace::new(NewWorkspaceParams {
-            id: Uuid::new_v4(),
-            name: "test".to_string(),
-            date_format: "YYYY-MM-DD".to_string(),
-            time_format: "HH:mm".to_string(),
-            timezone: "UTC".to_string(),
-            theme_primary_color: "#ffffff".to_string(),
-            default_language: "en".to_string(),
-            logo_url: None,
-            tagline: None,
-            holiday_overnight_strategy: "split".to_string(),
-            default_holiday_ot_multiplier: rust_decimal::Decimal::new(100, 2),
-            created_at: Utc::now(),
-            custom_db_url_encrypted: None,
-        })))
+                    id: Uuid::new_v4(),
+                    name: "test".to_string(),
+                    date_format: "YYYY-MM-DD".to_string(),
+                    time_format: "HH:mm".to_string(),
+                    timezone: "UTC".to_string(),
+                    theme_primary_color: "#ffffff".to_string(),
+                    default_language: "en".to_string(),
+                    logo_url: None,
+                    tagline: None,
+                    holiday_overnight_strategy: "split".to_string(),
+                    default_holiday_ot_multiplier: rust_decimal::Decimal::new(100, 2),
+                    created_at: Utc::now(),
+                    custom_db_url_encrypted: None,
+                })))
             })
         });
 
@@ -944,24 +948,26 @@ use crate::models::{NewEffectiveScheduleParams, NewEmploymentParams, NewWorkspac
         employment_repo
             .expect_get_employment_by_id()
             .returning(move |_, eid| {
-                Ok(Some(crate::models::employment::Employment::new(NewEmploymentParams {
-                    id: eid,
-                    workspace_id: other_ws_id,
-                    employee_id: emp_id, // Different workspace!
-                    employer_id: uuid::Uuid::new_v4(),
-                    primary_location_id: None,
-                    department_id: None,
-                    status: "active".to_string(),
-                    start_date: chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-                    end_date: None,
-                    job_title: None,
-                    employment_type: "full_time".to_string(),
-                    manager_employment_id: None,
-                    created_at: chrono::Utc::now(),
-                    updated_at: chrono::Utc::now(),
-                    termination_reason: None,
-                    notes: None,
-                })))
+                Ok(Some(crate::models::employment::Employment::new(
+                    NewEmploymentParams {
+                        id: eid,
+                        workspace_id: other_ws_id,
+                        employee_id: emp_id, // Different workspace!
+                        employer_id: uuid::Uuid::new_v4(),
+                        primary_location_id: None,
+                        department_id: None,
+                        status: "active".to_string(),
+                        start_date: chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                        end_date: None,
+                        job_title: None,
+                        employment_type: "full_time".to_string(),
+                        manager_employment_id: None,
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                        termination_reason: None,
+                        notes: None,
+                    },
+                )))
             });
         builder.employment_repo = employment_repo;
 

@@ -185,8 +185,8 @@ impl LeavePolicyRepository for DummyLeavePolicyRepository {
         unimplemented!()
     }
 }
+use crate::models::NewEmploymentParams;
 use crate::repositories::user_repository::MockUserRepository;
-use crate::models::{NewEmploymentParams};
 
 pub struct MockWorkerDepsBuilder {
     pub time_entry_repo: MockTimeEntryRepository,
@@ -242,10 +242,38 @@ impl MockWorkerDepsBuilder {
             .returning(|_, employee_ids| {
                 let mut employments = Vec::new();
                 for &emp_id in employee_ids {
-                    employments.push(crate::models::employment::Employment::new(NewEmploymentParams {
-                        id: emp_id,
+                    employments.push(crate::models::employment::Employment::new(
+                        NewEmploymentParams {
+                            id: emp_id,
+                            workspace_id: uuid::Uuid::new_v4(),
+                            employee_id: emp_id,
+                            employer_id: uuid::Uuid::new_v4(),
+                            primary_location_id: None,
+                            department_id: None,
+                            status: "active".to_string(),
+                            start_date: chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                            end_date: None,
+                            job_title: None,
+                            employment_type: "full_time".to_string(),
+                            manager_employment_id: None,
+                            created_at: chrono::Utc::now(),
+                            updated_at: chrono::Utc::now(),
+                            termination_reason: None,
+                            notes: None,
+                        },
+                    ));
+                }
+                Ok(employments)
+            });
+
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(|_, employment_id| {
+                Ok(Some(crate::models::employment::Employment::new(
+                    NewEmploymentParams {
+                        id: employment_id,
                         workspace_id: uuid::Uuid::new_v4(),
-                        employee_id: emp_id,
+                        employee_id: employment_id,
                         employer_id: uuid::Uuid::new_v4(),
                         primary_location_id: None,
                         department_id: None,
@@ -259,32 +287,8 @@ impl MockWorkerDepsBuilder {
                         updated_at: chrono::Utc::now(),
                         termination_reason: None,
                         notes: None,
-                    }));
-                }
-                Ok(employments)
-            });
-
-        employment_repo
-            .expect_get_employment_by_id()
-            .returning(|_, employment_id| {
-                Ok(Some(crate::models::employment::Employment::new(NewEmploymentParams {
-                    id: employment_id,
-                    workspace_id: uuid::Uuid::new_v4(),
-                    employee_id: employment_id,
-                    employer_id: uuid::Uuid::new_v4(),
-                    primary_location_id: None,
-                    department_id: None,
-                    status: "active".to_string(),
-                    start_date: chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-                    end_date: None,
-                    job_title: None,
-                    employment_type: "full_time".to_string(),
-                    manager_employment_id: None,
-                    created_at: chrono::Utc::now(),
-                    updated_at: chrono::Utc::now(),
-                    termination_reason: None,
-                    notes: None,
-                })))
+                    },
+                )))
             });
 
         // Default: no employment found by date (tests override when needed).

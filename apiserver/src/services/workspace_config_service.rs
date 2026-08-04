@@ -292,12 +292,13 @@ impl WorkspaceConfigService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::*;
     use crate::diesel_pool::TenantAuthToken;
     use crate::errors::AppError;
+    use crate::models::*;
     use async_trait::async_trait;
     use chrono::{NaiveDate, Utc};
 
+    #[allow(clippy::too_many_arguments)]
     fn create_test_entry(
         id: Uuid,
         workspace_id: Uuid,
@@ -313,22 +314,22 @@ mod tests {
         effective_to: Option<NaiveDate>,
     ) -> WorkspaceConfigEntry {
         WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
-        id: id,
-        workspace_id: workspace_id,
-        scope_type: scope_type,
-        scope_id: scope_id,
-        config_key: config_key,
-        value_int: value_int,
-        value_decimal: value_decimal,
-        value_text: value_text,
-        value_bool: value_bool,
-        value_json: value_json,
-        effective_from: effective_from,
-        effective_to: effective_to,
-        created_by: None,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-    })
+            id,
+            workspace_id,
+            scope_type,
+            scope_id,
+            config_key,
+            value_int,
+            value_decimal,
+            value_text,
+            value_bool,
+            value_json,
+            effective_from,
+            effective_to,
+            created_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        })
     }
 
     struct MockWorkspaceConfigRepository {

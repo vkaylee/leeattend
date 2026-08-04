@@ -868,7 +868,7 @@ mod tests {
         let entry1 = TimeEntry::new(NewTimeEntryParams {
             id: Uuid::new_v4(),
             employment_id: employee_id,
-            workspace_id: workspace_id,
+            workspace_id,
             shift_id: None,
             segment_id: None,
             punch_in_time: t1,
@@ -885,7 +885,7 @@ mod tests {
         let entry2 = TimeEntry::new(NewTimeEntryParams {
             id: Uuid::new_v4(),
             employment_id: employee_id,
-            workspace_id: workspace_id,
+            workspace_id,
             shift_id: None,
             segment_id: None,
             punch_in_time: t2,
@@ -902,7 +902,7 @@ mod tests {
         let entry3 = TimeEntry::new(NewTimeEntryParams {
             id: Uuid::new_v4(),
             employment_id: employee_id,
-            workspace_id: workspace_id,
+            workspace_id,
             shift_id: None,
             segment_id: None,
             punch_in_time: t3,
@@ -1082,7 +1082,7 @@ mod tests {
         let entry1 = TimeEntry::new(NewTimeEntryParams {
             id: Uuid::new_v4(),
             employment_id: employee_id,
-            workspace_id: workspace_id,
+            workspace_id,
             shift_id: None,
             segment_id: None,
             punch_in_time: t_before_dst,
@@ -1098,7 +1098,7 @@ mod tests {
         let entry2 = TimeEntry::new(NewTimeEntryParams {
             id: Uuid::new_v4(),
             employment_id: employee_id,
-            workspace_id: workspace_id,
+            workspace_id,
             shift_id: None,
             segment_id: None,
             punch_in_time: t_on_dst,
@@ -1124,8 +1124,8 @@ mod tests {
 
     #[test]
     fn test_group_entries_by_date_positive_offset_next_day() {
+        use crate::models::NewTimeEntryParams;
         use crate::models::TimeEntry;
-use crate::models::{NewTimeEntryParams};
         use uuid::Uuid;
 
         let tz: Tz = "Asia/Ho_Chi_Minh".parse().expect("valid tz"); // UTC+7
@@ -1140,7 +1140,7 @@ use crate::models::{NewTimeEntryParams};
         let entry1 = TimeEntry::new(NewTimeEntryParams {
             id: Uuid::new_v4(),
             employment_id: employee_id,
-            workspace_id: workspace_id,
+            workspace_id,
             shift_id: None,
             segment_id: None,
             punch_in_time: t_next_day,
@@ -1156,7 +1156,7 @@ use crate::models::{NewTimeEntryParams};
         let entry2 = TimeEntry::new(NewTimeEntryParams {
             id: Uuid::new_v4(),
             employment_id: employee_id,
-            workspace_id: workspace_id,
+            workspace_id,
             shift_id: None,
             segment_id: None,
             punch_in_time: t_same_day,

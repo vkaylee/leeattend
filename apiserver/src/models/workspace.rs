@@ -109,6 +109,7 @@ pub struct WorkingCondition {
 }
 
 impl WorkingCondition {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         employment_id: Uuid,

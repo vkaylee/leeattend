@@ -8,14 +8,15 @@ use chrono::{DateTime, NaiveDate, Utc};
 use chrono_tz::Tz;
 
 use futures_util::FutureExt;
+use parking_lot::Mutex;
 use tokio::task::JoinSet;
 use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::models::{
     enums::ImportTargetType, AdjustmentStatus, AttendanceImportJob,
-    CreateAttendanceAdjustmentRequest, Employee, ImportJobStatus, LogSource, NewRawAttendanceLogParams,
-    RawAttendanceLog,
+    CreateAttendanceAdjustmentRequest, Employee, ImportJobStatus, LogSource,
+    NewRawAttendanceLogParams, RawAttendanceLog,
 };
 use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository;
 use crate::repositories::employee::{EmployeeCoreRepository, EmployeeRepository};
@@ -810,7 +811,7 @@ impl ImportStrategy for PunchImportStrategy {
                 let log = RawAttendanceLog::new(NewRawAttendanceLogParams {
                     id: new_id(),
                     workspace_id: job.workspace_id,
-                    employment_id: employment_id,
+                    employment_id,
                     punch_time: row.punch_time,
                     source: LogSource::Import,
                     device_id: None,
@@ -856,16 +857,14 @@ impl ImportStrategy for PunchImportStrategy {
             .validate_employee_mapping(job.workspace_id, row)
             .await?;
 
-        if job.target_type == ImportTargetType::Log {
-            // Raw logs already bulk-inserted in pre_process_chunk.
-            // Pairing happens once in finalize().
-            Ok(Some(Uuid::new_v4()))
-        } else {
+        if job.target_type != ImportTargetType::Log {
             // Adjustment path: accumulate, deferring submit+approve to finalize()
-            self.accumulated_adjustments
-                .push((employee.clone(), row.clone()));
-            Ok(Some(Uuid::new_v4()))
+            self.accumulated_adjustments.push((employee, row.clone()));
         }
+
+        // Raw logs are already bulk-inserted in pre_process_chunk; pairing happens
+        // once in finalize().
+        Ok(Some(Uuid::new_v4()))
     }
 
     /// Batch pairing: for each unique employment_id, call reprocess_attendance_range
@@ -933,8 +932,10 @@ impl ImportStrategy for PunchImportStrategy {
                 if !failed.is_empty() {
                     let failed_ids: Vec<String> =
                         failed.iter().map(|(id, _)| id.to_string()).collect();
-                    let succeeded_ids: Vec<String> =
-                        succeeded.iter().map(|id| id.to_string()).collect();
+                    let succeeded_ids: Vec<String> = succeeded
+                        .iter()
+                        .map(std::string::ToString::to_string)
+                        .collect();
 
                     tracing::warn!(
                         total = succeeded.len() + failed.len(),
@@ -987,7 +988,7 @@ pub struct AttendanceImportService {
     /// Tracks in-flight import tasks spawned via [`Self::spawn_import_job`].
     /// Enables graceful shutdown via [`Self::shutdown`] and structured error
     /// logging on panic/error.
-    active_jobs: Arc<std::sync::Mutex<JoinSet<()>>>,
+    active_jobs: Arc<Mutex<JoinSet<()>>>,
 }
 
 impl AttendanceImportService {
@@ -1006,7 +1007,7 @@ impl AttendanceImportService {
             staging_repo: repo_deps.staging_repo,
             deps,
             log_svc,
-            active_jobs: Arc::new(std::sync::Mutex::new(JoinSet::new())),
+            active_jobs: Arc::new(Mutex::new(JoinSet::new())),
         }
     }
 
@@ -1018,18 +1019,7 @@ impl AttendanceImportService {
     /// - Logs `process_job` error returns at `ERROR` level with `job_id` and `workspace_id`
     fn spawn_import_job(&self, workspace_id: Uuid, job_id: Uuid) {
         let svc = self.clone();
-        let mut guard = match self.active_jobs.lock() {
-            Ok(g) => g,
-            Err(e) => {
-                tracing::error!(
-                    error = %e,
-                    job_id = %job_id,
-                    workspace_id = %workspace_id,
-                    "active_jobs lock poisoned, cannot spawn import job"
-                );
-                return;
-            }
-        };
+        let mut guard = self.active_jobs.lock();
         guard.spawn(async move {
             use std::panic::AssertUnwindSafe;
             let result =
@@ -1049,7 +1039,11 @@ impl AttendanceImportService {
                     let msg = panic_payload
                         .downcast_ref::<&str>()
                         .copied()
-                        .or_else(|| panic_payload.downcast_ref::<String>().map(|s| s.as_str()))
+                        .or_else(|| {
+                            panic_payload
+                                .downcast_ref::<String>()
+                                .map(std::string::String::as_str)
+                        })
                         .unwrap_or("<unknown panic payload>");
                     tracing::error!(
                         job_id = %job_id,
@@ -1072,16 +1066,7 @@ impl AttendanceImportService {
     /// are abandoned.
     pub async fn shutdown(&self) {
         let mut jobs = {
-            let mut guard = match self.active_jobs.lock() {
-                Ok(g) => g,
-                Err(e) => {
-                    tracing::error!(
-                        error = %e,
-                        "active_jobs lock poisoned during shutdown"
-                    );
-                    return;
-                }
-            };
+            let mut guard = self.active_jobs.lock();
             std::mem::replace(&mut *guard, JoinSet::new())
         };
         while let Some(result) = jobs.join_next().await {
@@ -1432,7 +1417,7 @@ mod tests {
 
     fn mock_workspace(id: Uuid) -> crate::models::Workspace {
         crate::models::Workspace::new(NewWorkspaceParams {
-            id: id,
+            id,
             name: "Test Workspace".into(),
             date_format: "YYYY-MM-DD".into(),
             time_format: "HH:mm:ss".into(),
@@ -1703,7 +1688,7 @@ mod tests {
         let mut mock_emp_repo = MockEmployeeRepository::new();
         mock_emp_repo
             .expect_get_employee_by_id_number()
-            .returning(move |num, _auth| Ok(Some(test_emp(emp_id, ws_id, &num))));
+            .returning(move |num, _auth| Ok(Some(test_emp(emp_id, ws_id, num))));
 
         let mut strategy = make_punch_strategy(
             ImportTargetType::Log,
@@ -1738,7 +1723,7 @@ mod tests {
         let mut mock_emp_repo = MockEmployeeRepository::new();
         mock_emp_repo
             .expect_get_employee_by_id_number()
-            .returning(move |num, _auth| Ok(Some(test_emp(emp_id, ws_id, &num))));
+            .returning(move |num, _auth| Ok(Some(test_emp(emp_id, ws_id, num))));
 
         let mut strategy = make_punch_strategy(
             ImportTargetType::Adjustment,
@@ -1818,7 +1803,7 @@ mod tests {
     /// no orphaned Pending records are left behind.
     #[tokio::test]
     async fn finalize_adjustments_compensation_on_partial_failure() {
-        use crate::models::{AttendanceAdjustmentRequest};
+        use crate::models::AttendanceAdjustmentRequest;
         use std::sync::atomic::{AtomicUsize, Ordering};
 
         let ws_id = Uuid::new_v4();
@@ -1851,7 +1836,7 @@ mod tests {
             .expect_get_request_by_id()
             .returning(move |_, id| {
                 let req = AttendanceAdjustmentRequest::new(NewAttendanceAdjustmentRequestParams {
-                    id: id,
+                    id,
                     employment_id: id,
                     time_entry_id: None,
                     requested_punch_time: now,

@@ -214,6 +214,7 @@ pub struct NewLeaveBalanceParams {
 }
 
 impl LeaveBalance {
+    #[allow(clippy::needless_pass_by_value)]
     pub fn new(params: NewLeaveBalanceParams) -> Self {
         Self {
             id: params.id,
@@ -406,6 +407,7 @@ pub struct LeavePolicyDefinition {
 }
 
 impl LeavePolicyDefinition {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         workspace_id: Uuid,

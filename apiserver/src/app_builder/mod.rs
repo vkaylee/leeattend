@@ -5,10 +5,10 @@ pub mod services_core;
 pub mod services_leave;
 pub mod workers;
 
+use crate::state::CoreStateParams;
 use std::sync::Arc;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
-use crate::state::CoreStateParams;
 
 use crate::agent_manager::AgentManager;
 use crate::queue::RedisPool;

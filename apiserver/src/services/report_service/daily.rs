@@ -184,6 +184,7 @@ impl ReportService {
     }
 
     /// Resolve policy rules from working conditions + shift-level overrides.
+    #[allow(clippy::too_many_arguments)]
     fn resolve_policy_rules(
         working_conditions: &[crate::models::WorkingCondition],
         date: NaiveDate,
@@ -246,6 +247,7 @@ impl ReportService {
 ///
 /// Fills all fields common to both the daily (legacy) and segment paths.
 /// Callers add the path-specific fields (segment identifiers, per-path units).
+#[allow(clippy::too_many_arguments)]
 fn build_base_report_row(
     date: NaiveDate,
     employment_id: Uuid,
@@ -344,6 +346,7 @@ fn build_daily_metadata(
 ///
 /// Encapsulates the full pipeline: policy resolution → unit calculation →
 /// status determination → row construction. Pure function — no I/O.
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 fn build_daily_report_row(
     employee_id: Uuid,
     employment_id: Uuid,
@@ -493,7 +496,7 @@ pub(super) fn entry_break_split(entry: &crate::models::TimeEntry) -> Option<Stri
         .generation_metadata()
         .and_then(|m| m.get("break_split"))
         .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
+        .map(std::string::ToString::to_string)
 }
 
 /// Build a `sessions` JSON array for break-split segments.
@@ -501,6 +504,7 @@ pub(super) fn entry_break_split(entry: &crate::models::TimeEntry) -> Option<Stri
 /// Each session is a self-contained half with its own punch times, computed
 /// units, status, and scheduled window. Returns `None` when the segment has
 /// no break-split entries (no metadata → no extra payload).
+#[allow(clippy::too_many_arguments)]
 pub(super) fn build_break_split_sessions_json(
     seg: &crate::models::ResolvedSegment,
     matched: &[&crate::models::TimeEntry],
@@ -606,6 +610,7 @@ pub(super) fn build_break_split_sessions_json(
 /// Handles status determination and row construction for each segment,
 /// reusing pre-computed matched entries and resolved rules from
 /// [`build_segment_calc_inputs`].
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 fn build_segment_report_rows(
     employee_id: Uuid,
     employment_id: Uuid,
@@ -786,6 +791,7 @@ fn midnight_datetime(date: NaiveDate, tz: Tz) -> chrono::DateTime<Tz> {
 /// `DailyCalcInput` values for [`AttendanceService::compute_segment_attendance`].
 /// Returns `(matched_entries, resolved_rules, calc_inputs)` — the first two are
 /// cached for reuse in the report-row builder.
+#[allow(clippy::too_many_lines, clippy::type_complexity)]
 pub(super) fn build_segment_calc_inputs<'a>(
     day_segs: &[&crate::models::ResolvedSegment],
     day_entries: &[&'a crate::models::TimeEntry],
@@ -1004,8 +1010,7 @@ pub(crate) fn compute_employment_segment_rows(
         .entries_map()
         .get(&emp_segs.employment_id())
         .map_or_else(Default::default, std::vec::Vec::as_slice);
-    let entries_by_date =
-        crate::services::attendance_utils::group_entries_by_date(entries, tz);
+    let entries_by_date = crate::services::attendance_utils::group_entries_by_date(entries, tz);
 
     // Group segments by date
     let segments_by_date = group_segments_by_date(emp_segs.segments());
@@ -1035,13 +1040,10 @@ pub(crate) fn compute_employment_segment_rows(
             preamble.condition_type_catalog(),
         );
 
-        let input_groups: Vec<
-            &[crate::services::attendance_calculator::DailyCalcInput<Tz>],
-        > = segment_calc_inputs.iter().map(Vec::as_slice).collect();
+        let input_groups: Vec<&[crate::services::attendance_calculator::DailyCalcInput<Tz>]> =
+            segment_calc_inputs.iter().map(Vec::as_slice).collect();
         let segment_result =
-            crate::services::AttendanceService::compute_segment_attendance_sessions(
-                &input_groups,
-            );
+            crate::services::AttendanceService::compute_segment_attendance_sessions(&input_groups);
 
         let seg_rows = build_segment_report_rows(
             employee_id,
@@ -1079,15 +1081,14 @@ pub(crate) fn generate_no_shift_fallback_rows(
     let segmented_employment_ids: HashSet<Uuid> = employee_segments
         .iter()
         .filter(|e| !e.segments().is_empty())
-        .map(|e| e.employment_id())
+        .map(crate::models::schedule::EmployeeSegments::employment_id)
         .collect();
 
-    let employee_map: HashMap<Uuid, &crate::repositories::employee::EmployeeBasicInfo> =
-        preamble
-            .paginated_employees()
-            .iter()
-            .map(|e| (e.id, e))
-            .collect();
+    let employee_map: HashMap<Uuid, &crate::repositories::employee::EmployeeBasicInfo> = preamble
+        .paginated_employees()
+        .iter()
+        .map(|e| (e.id, e))
+        .collect();
 
     let mut reports = Vec::new();
 
@@ -1279,10 +1280,7 @@ impl ReportService {
         let mut reports = Vec::new();
         for emp_segs in &employee_segments {
             reports.extend(compute_employment_segment_rows(
-                emp_segs,
-                &preamble,
-                &extras,
-                tz,
+                emp_segs, &preamble, &extras, tz,
             ));
         }
 
@@ -1596,7 +1594,7 @@ mod tests {
             punch_out_time: punch_out_utc,
             duration_minutes: Some(60),
             is_break_overtime: false,
-            entry_type: entry_type,
+            entry_type,
             note: None,
             generation_metadata: None,
             created_at: Utc::now(),

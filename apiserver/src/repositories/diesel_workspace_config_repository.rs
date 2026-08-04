@@ -212,8 +212,8 @@ impl WorkspaceConfigRepository for DieselWorkspaceConfigRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::*;
     use crate::diesel_pool::{DieselPools, TenantAuthToken};
+    use crate::models::*;
     use chrono::Utc;
     use serde_json::json;
     use uuid::Uuid;
@@ -229,22 +229,22 @@ mod tests {
         let auth_token = TenantAuthToken::system_override(ws_id);
 
         let entry = WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
-        id: Uuid::new_v4(),
-        workspace_id: ws_id,
-        scope_type: "workspace".into(),
-        scope_id: None,
-        config_key: "test".into(),
-        value_int: None,
-        value_decimal: None,
-        value_text: None,
-        value_bool: None,
-        value_json: Some(json!({})),
-        effective_from: chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-        effective_to: None,
-        created_by: None,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-    });
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            scope_type: "workspace".into(),
+            scope_id: None,
+            config_key: "test".into(),
+            value_int: None,
+            value_decimal: None,
+            value_text: None,
+            value_bool: None,
+            value_json: Some(json!({})),
+            effective_from: chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            effective_to: None,
+            created_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        });
 
         // Try to create the entry. Since it's a real DB, it might actually succeed!
         let created = repo.create_entry(&auth_token, entry.clone()).await;

@@ -182,31 +182,31 @@ impl UserRepository for NopUserRepo {
     }
     async fn get_user_by_id(&self, id: Uuid) -> Result<Option<User>, AppError> {
         Ok(Some(User::new(NewUserParams {
-        id: id,
-        email: "test@example.com".to_string(),
-        password_hash: "hash".to_string(),
-        created_at: chrono::Utc::now(),
-        full_name: Some("Test User".to_string()),
-        avatar_url: None,
-        bio: None,
-        preferred_language: None,
-        avatar_file_id: None,
-    })))
+            id,
+            email: "test@example.com".to_string(),
+            password_hash: "hash".to_string(),
+            created_at: chrono::Utc::now(),
+            full_name: Some("Test User".to_string()),
+            avatar_url: None,
+            bio: None,
+            preferred_language: None,
+            avatar_file_id: None,
+        })))
     }
     async fn get_users_by_ids(&self, ids: &[Uuid]) -> Result<Vec<User>, AppError> {
         let mut users = Vec::new();
         for id in ids {
             users.push(User::new(NewUserParams {
-        id: *id,
-        email: "test@example.com".to_string(),
-        password_hash: "hash".to_string(),
-        created_at: chrono::Utc::now(),
-        full_name: Some("Test User".to_string()),
-        avatar_url: None,
-        bio: None,
-        preferred_language: None,
-        avatar_file_id: None,
-    }));
+                id: *id,
+                email: "test@example.com".to_string(),
+                password_hash: "hash".to_string(),
+                created_at: chrono::Utc::now(),
+                full_name: Some("Test User".to_string()),
+                avatar_url: None,
+                bio: None,
+                preferred_language: None,
+                avatar_file_id: None,
+            }));
         }
         Ok(users)
     }

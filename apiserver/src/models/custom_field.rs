@@ -31,6 +31,7 @@ pub struct CustomFieldDefinition {
 
 impl CustomFieldDefinition {
     #[allow(clippy::fn_params_excessive_bools)]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         workspace_id: Uuid,
@@ -204,6 +205,7 @@ pub struct CustomFieldValue {
 }
 
 impl CustomFieldValue {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         definition_id: Uuid,

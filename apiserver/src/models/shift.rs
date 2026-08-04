@@ -48,6 +48,7 @@ pub struct Shift {
 pub use crate::models::diesel::roster::ShiftDefaultIntervalEntity;
 
 impl Shift {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         workspace_id: Uuid,

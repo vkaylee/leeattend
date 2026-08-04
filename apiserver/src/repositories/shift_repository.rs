@@ -10,6 +10,7 @@ use crate::models::{Shift, ShiftVersionHistoryItem};
 /// All consumer FKs reference `shift_templates.id` (stable).
 /// Version resolution is handled at read time via `current_version_id` (denormalized)
 /// or by effective-date range queries for historical lookups.
+#[allow(clippy::too_many_arguments)]
 #[async_trait]
 #[cfg_attr(test, mockall::automock)]
 pub trait ShiftRepository: Send + Sync {

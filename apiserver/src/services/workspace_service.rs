@@ -233,23 +233,25 @@ impl WorkspaceService {
                     )
                     .await?;
 
-                let entry = crate::models::WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
-        id: Uuid::new_v4(),
-        workspace_id: args.ws_id,
-        scope_type: "workspace".to_string(),
-        scope_id: None,
-        config_key: "overtime.holiday_overnight_strategy".to_string(),
-        value_int: None,
-        value_decimal: None,
-        value_text: Some(strategy.clone()),
-        value_bool: None,
-        value_json: None,
-        effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap_or_default(),
-        effective_to: None,
-        created_by: None,
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
-    });
+                let entry =
+                    crate::models::WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
+                        id: Uuid::new_v4(),
+                        workspace_id: args.ws_id,
+                        scope_type: "workspace".to_string(),
+                        scope_id: None,
+                        config_key: "overtime.holiday_overnight_strategy".to_string(),
+                        value_int: None,
+                        value_decimal: None,
+                        value_text: Some(strategy.clone()),
+                        value_bool: None,
+                        value_json: None,
+                        effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1)
+                            .unwrap_or_default(),
+                        effective_to: None,
+                        created_by: None,
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                    });
 
                 self.workspace_config_repo
                     .create_entry(auth_token, entry)
@@ -266,23 +268,25 @@ impl WorkspaceService {
                     )
                     .await?;
 
-                let entry = crate::models::WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
-        id: Uuid::new_v4(),
-        workspace_id: args.ws_id,
-        scope_type: "workspace".to_string(),
-        scope_id: None,
-        config_key: "overtime.default_holiday_ot_multiplier".to_string(),
-        value_int: None,
-        value_decimal: Some(multiplier),
-        value_text: None,
-        value_bool: None,
-        value_json: None,
-        effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap_or_default(),
-        effective_to: None,
-        created_by: None,
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
-    });
+                let entry =
+                    crate::models::WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
+                        id: Uuid::new_v4(),
+                        workspace_id: args.ws_id,
+                        scope_type: "workspace".to_string(),
+                        scope_id: None,
+                        config_key: "overtime.default_holiday_ot_multiplier".to_string(),
+                        value_int: None,
+                        value_decimal: Some(multiplier),
+                        value_text: None,
+                        value_bool: None,
+                        value_json: None,
+                        effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1)
+                            .unwrap_or_default(),
+                        effective_to: None,
+                        created_by: None,
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                    });
 
                 self.workspace_config_repo
                     .create_entry(auth_token, entry)
@@ -292,17 +296,19 @@ impl WorkspaceService {
 
         if has_system_changes {
             self.workspace_repo
-                .update_workspace(crate::repositories::workspace_repository::UpdateWorkspaceParams {
-                    id: args.ws_id,
-                    name: args.name,
-                    date_format: args.date_format,
-                    time_format: args.time_format,
-                    timezone: args.timezone,
-                    theme_primary_color: args.theme_primary_color,
-                    default_language: args.default_language,
-                    logo_url: args.logo_url,
-                    tagline: args.tagline,
-                })
+                .update_workspace(
+                    crate::repositories::workspace_repository::UpdateWorkspaceParams {
+                        id: args.ws_id,
+                        name: args.name,
+                        date_format: args.date_format,
+                        time_format: args.time_format,
+                        timezone: args.timezone,
+                        theme_primary_color: args.theme_primary_color,
+                        default_language: args.default_language,
+                        logo_url: args.logo_url,
+                        tagline: args.tagline,
+                    },
+                )
                 .await
         } else {
             self.workspace_repo
@@ -316,8 +322,8 @@ impl WorkspaceService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::*;
     use crate::errors::AppError;
+    use crate::models::*;
     use crate::models::{MemberExtraRole, Workspace};
     use async_trait::async_trait;
     use chrono::Utc;
@@ -553,16 +559,16 @@ mod tests {
         async fn get_user_by_id(&self, id: Uuid) -> Result<Option<crate::models::User>, AppError> {
             if self.user_exists {
                 Ok(Some(crate::models::User::new(NewUserParams {
-        id: id,
-        email: "test@example.com".into(),
-        password_hash: "hash".into(),
-        created_at: Utc::now(),
-        full_name: Some("Test User".into()),
-        avatar_url: None,
-        bio: None,
-        preferred_language: None,
-        avatar_file_id: None,
-    })))
+                    id,
+                    email: "test@example.com".into(),
+                    password_hash: "hash".into(),
+                    created_at: Utc::now(),
+                    full_name: Some("Test User".into()),
+                    avatar_url: None,
+                    bio: None,
+                    preferred_language: None,
+                    avatar_file_id: None,
+                })))
             } else {
                 Ok(None)
             }
@@ -575,16 +581,16 @@ mod tests {
             if self.user_exists {
                 for id in ids {
                     users.push(crate::models::User::new(NewUserParams {
-        id: *id,
-        email: "test@example.com".into(),
-        password_hash: "hash".into(),
-        created_at: Utc::now(),
-        full_name: Some("Test User".into()),
-        avatar_url: None,
-        bio: None,
-        preferred_language: None,
-        avatar_file_id: None,
-    }));
+                        id: *id,
+                        email: "test@example.com".into(),
+                        password_hash: "hash".into(),
+                        created_at: Utc::now(),
+                        full_name: Some("Test User".into()),
+                        avatar_url: None,
+                        bio: None,
+                        preferred_language: None,
+                        avatar_file_id: None,
+                    }));
                 }
             }
             Ok(users)
@@ -625,16 +631,16 @@ mod tests {
             _preferred_language: Option<String>,
         ) -> Result<crate::models::User, AppError> {
             Ok(crate::models::User::new(NewUserParams {
-        id: id,
-        email: "test@example.com".into(),
-        password_hash: "hash".into(),
-        created_at: Utc::now(),
-        full_name: full_name,
-        avatar_url: None,
-        bio: None,
-        preferred_language: None,
-        avatar_file_id: None,
-    }))
+                id,
+                email: "test@example.com".into(),
+                password_hash: "hash".into(),
+                created_at: Utc::now(),
+                full_name,
+                avatar_url: None,
+                bio: None,
+                preferred_language: None,
+                avatar_file_id: None,
+            }))
         }
         async fn get_workspace_users(
             &self,

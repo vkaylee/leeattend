@@ -302,6 +302,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn process_rows_loop(
         strategy: &mut S,
         deps: &crate::worker::deps::WorkerDeps,
@@ -594,20 +595,20 @@ mod tests {
             .returning(|id| {
                 Box::pin(async move {
                     Ok(Some(crate::models::Workspace::new(NewWorkspaceParams {
-            id: id,
-            name: "Mocked Workspace".into(),
-            date_format: "YYYY-MM-DD".into(),
-            time_format: "HH:mm:ss".into(),
-            timezone: "UTC".into(),
-            theme_primary_color: "#000000".into(),
-            default_language: "vi".into(),
-            logo_url: None,
-            tagline: None,
-            holiday_overnight_strategy: "split".into(),
-            default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
-            created_at: chrono::Utc::now(),
-            custom_db_url_encrypted: None,
-        })))
+                        id,
+                        name: "Mocked Workspace".into(),
+                        date_format: "YYYY-MM-DD".into(),
+                        time_format: "HH:mm:ss".into(),
+                        timezone: "UTC".into(),
+                        theme_primary_color: "#000000".into(),
+                        default_language: "vi".into(),
+                        logo_url: None,
+                        tagline: None,
+                        holiday_overnight_strategy: "split".into(),
+                        default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
+                        created_at: chrono::Utc::now(),
+                        custom_db_url_encrypted: None,
+                    })))
                 })
             });
         builder.build()

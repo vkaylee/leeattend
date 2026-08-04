@@ -57,6 +57,7 @@ pub struct CalculateDayUnitsArgs<'a, 'b> {
 
 #[allow(dead_code)]
 impl<'a, 'b> CalculateDayUnitsArgs<'a, 'b> {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         day_entries: &'a [&'a crate::models::TimeEntry],
         daily: &'b crate::models::EffectiveSchedule,

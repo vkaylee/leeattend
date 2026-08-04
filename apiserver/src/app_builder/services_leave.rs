@@ -30,17 +30,18 @@ pub fn build_leave_services(
     let leave = Arc::new(
         crate::services::leave_service::LeaveService::new(
             crate::services::leave_service::LeaveServiceParams {
-            leave_balance_repo: Arc::clone(&repos.leave_balance),
-            leave_request_repo: Arc::clone(&repos.leave_request),
-            employee_repo: Arc::clone(&repos.employee),
-            employment_repo: Arc::clone(&repos.employment),
-            roster_repo: Arc::clone(&repos.roster),
-            leave_accrual_log_repo: Arc::clone(&repos.leave_accrual_log),
-            workspace_config_repo: Arc::clone(&repos.workspace_config),
-            user_repo: Arc::clone(&repos.user),
-            workspace_repo: Arc::clone(&repos.workspace),
-            cache: cache_repo,
-        })
+                leave_balance_repo: Arc::clone(&repos.leave_balance),
+                leave_request_repo: Arc::clone(&repos.leave_request),
+                employee_repo: Arc::clone(&repos.employee),
+                employment_repo: Arc::clone(&repos.employment),
+                roster_repo: Arc::clone(&repos.roster),
+                leave_accrual_log_repo: Arc::clone(&repos.leave_accrual_log),
+                workspace_config_repo: Arc::clone(&repos.workspace_config),
+                user_repo: Arc::clone(&repos.user),
+                workspace_repo: Arc::clone(&repos.workspace),
+                cache: cache_repo,
+            },
+        )
         .with_diesel_pools(diesel_pools.clone()),
     );
 
@@ -73,9 +74,8 @@ pub fn build_leave_services(
                 time_entry_repo: Arc::clone(&repos.time_entry),
                 leave_request_repo: Arc::clone(&repos.leave_request),
                 daily_summary_repo: Arc::clone(&repos.attendance_daily_summary),
-                contract_repo: repos
-                    .contract
-                    .clone() as Arc<dyn crate::repositories::EmployeeContractRepository>,
+                contract_repo: repos.contract.clone()
+                    as Arc<dyn crate::repositories::EmployeeContractRepository>,
             },
         ),
     );
@@ -103,17 +103,19 @@ pub fn build_leave_services(
     );
 
     let approval_workflow = Arc::new(
-        crate::services::ApprovalWorkflowService::new(crate::services::ApprovalWorkflowServiceParams {
-            approval_workflow_repo: repos.approval_workflow.clone(),
-            workspace_config_repo: repos.workspace_config.clone(),
-            workspace_repo: repos.workspace.clone(),
-            employee_repo: repos.employee.clone(),
-            employment_repo: repos.employment.clone(),
-            department_repo: repos.department.clone(),
-            leave_request_repo: repos.leave_request.clone(),
-            overtime_request_repo: repos.overtime_request.clone(),
-            daily_summary_repo: repos.attendance_daily_summary.clone(),
-        })
+        crate::services::ApprovalWorkflowService::new(
+            crate::services::ApprovalWorkflowServiceParams {
+                approval_workflow_repo: repos.approval_workflow.clone(),
+                workspace_config_repo: repos.workspace_config.clone(),
+                workspace_repo: repos.workspace.clone(),
+                employee_repo: repos.employee.clone(),
+                employment_repo: repos.employment.clone(),
+                department_repo: repos.department.clone(),
+                leave_request_repo: repos.leave_request.clone(),
+                overtime_request_repo: repos.overtime_request.clone(),
+                daily_summary_repo: repos.attendance_daily_summary.clone(),
+            },
+        )
         .with_handlers(workflow_handlers)
         .with_outbox_service(Arc::clone(&core.outbox)),
     );

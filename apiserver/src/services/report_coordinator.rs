@@ -654,20 +654,20 @@ mod tests {
             .returning(move |id| {
                 Box::pin(async move {
                     Ok(Some(crate::models::Workspace::new(NewWorkspaceParams {
-            id: id,
-            name: "Test WS".into(),
-            date_format: "YYYY-MM-DD".into(),
-            time_format: "HH:mm:ss".into(),
-            timezone: "UTC".into(),
-            theme_primary_color: String::new(),
-            default_language: "en".into(),
-            logo_url: None,
-            tagline: None,
-            holiday_overnight_strategy: "split".into(),
-            default_holiday_ot_multiplier: Default::default(),
-            created_at: chrono::Utc::now(),
-            custom_db_url_encrypted: None,
-        })))
+                        id,
+                        name: "Test WS".into(),
+                        date_format: "YYYY-MM-DD".into(),
+                        time_format: "HH:mm:ss".into(),
+                        timezone: "UTC".into(),
+                        theme_primary_color: String::new(),
+                        default_language: "en".into(),
+                        logo_url: None,
+                        tagline: None,
+                        holiday_overnight_strategy: "split".into(),
+                        default_holiday_ot_multiplier: Default::default(),
+                        created_at: chrono::Utc::now(),
+                        custom_db_url_encrypted: None,
+                    })))
                 })
             });
 
@@ -709,15 +709,15 @@ mod tests {
             )
             .returning(|_, id, job_type, payload| {
                 Ok(OutboxJob::new(NewOutboxJobParams {
-        id: id,
-        workspace_id: Uuid::new_v4(),
-        job_type: job_type.to_string(),
-        payload: payload,
-        status: "pending".to_string(),
-        error_message: None,
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
-    }))
+                    id,
+                    workspace_id: Uuid::new_v4(),
+                    job_type: job_type.to_string(),
+                    payload,
+                    status: "pending".to_string(),
+                    error_message: None,
+                    created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
+                }))
             });
         let outbox_service = Arc::new(crate::services::OutboxJobService::new(Arc::new(
             mock_outbox_repo,
@@ -769,20 +769,20 @@ mod tests {
             .returning(|_| {
                 Box::pin(async {
                     Ok(Some(crate::models::Workspace::new(NewWorkspaceParams {
-            id: Uuid::new_v4(),
-            name: "Test WS".into(),
-            date_format: "YYYY-MM-DD".into(),
-            time_format: "HH:mm:ss".into(),
-            timezone: "UTC".into(),
-            theme_primary_color: String::new(),
-            default_language: "en".into(),
-            logo_url: None,
-            tagline: None,
-            holiday_overnight_strategy: "split".into(),
-            default_holiday_ot_multiplier: Default::default(),
-            created_at: chrono::Utc::now(),
-            custom_db_url_encrypted: None,
-        })))
+                        id: Uuid::new_v4(),
+                        name: "Test WS".into(),
+                        date_format: "YYYY-MM-DD".into(),
+                        time_format: "HH:mm:ss".into(),
+                        timezone: "UTC".into(),
+                        theme_primary_color: String::new(),
+                        default_language: "en".into(),
+                        logo_url: None,
+                        tagline: None,
+                        holiday_overnight_strategy: "split".into(),
+                        default_holiday_ot_multiplier: Default::default(),
+                        created_at: chrono::Utc::now(),
+                        custom_db_url_encrypted: None,
+                    })))
                 })
             });
 
@@ -803,15 +803,15 @@ mod tests {
             )
             .returning(|_, id, job_type, payload| {
                 Ok(OutboxJob::new(NewOutboxJobParams {
-        id: id,
-        workspace_id: Uuid::new_v4(),
-        job_type: job_type.to_string(),
-        payload: payload,
-        status: "pending".to_string(),
-        error_message: None,
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
-    }))
+                    id,
+                    workspace_id: Uuid::new_v4(),
+                    job_type: job_type.to_string(),
+                    payload,
+                    status: "pending".to_string(),
+                    error_message: None,
+                    created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
+                }))
             });
         let outbox_service = Arc::new(crate::services::OutboxJobService::new(Arc::new(
             mock_outbox_repo,

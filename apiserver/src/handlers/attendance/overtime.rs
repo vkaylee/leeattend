@@ -266,7 +266,7 @@ pub async fn get_attendance_summaries(
         .attendance()
         .attendance_daily_summary_repo()
         .get_summaries_paginated(GetSummariesPaginatedArgs {
-            auth_token: ctx.auth_token.clone(),
+            auth_token: ctx.auth_token,
             employment_id: target_employment_id,
             start_date: query.start_date,
             end_date: query.end_date,

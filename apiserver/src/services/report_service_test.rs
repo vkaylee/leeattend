@@ -91,20 +91,20 @@ mod tests {
     impl crate::repositories::workspace_repository::WorkspaceRepository for MockWorkspaceRepo {
         async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, AppError> {
             Ok(Some(Workspace::new(NewWorkspaceParams {
-            id: id,
-            name: "Mocked Workspace".into(),
-            date_format: "YYYY-MM-DD".into(),
-            time_format: "HH:mm:ss".into(),
-            timezone: "UTC".into(),
-            theme_primary_color: "#000000".into(),
-            default_language: "en".into(),
-            logo_url: None,
-            tagline: None,
-            holiday_overnight_strategy: "split".into(),
-            default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
-            created_at: Utc::now(),
-            custom_db_url_encrypted: None,
-        })))
+                id,
+                name: "Mocked Workspace".into(),
+                date_format: "YYYY-MM-DD".into(),
+                time_format: "HH:mm:ss".into(),
+                timezone: "UTC".into(),
+                theme_primary_color: "#000000".into(),
+                default_language: "en".into(),
+                logo_url: None,
+                tagline: None,
+                holiday_overnight_strategy: "split".into(),
+                default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
+                created_at: Utc::now(),
+                custom_db_url_encrypted: None,
+            })))
         }
         async fn create_workspace_with_owner(
             &self,
@@ -1537,7 +1537,7 @@ mod tests {
                     crate::models::employment::Employment::new(NewEmploymentParams {
                         id: Uuid::nil(),
                         workspace_id: Uuid::nil(),
-                        employee_id: employee_id,
+                        employee_id,
                         employer_id: Uuid::nil(),
                         primary_location_id: None,
                         department_id: None,
@@ -1565,7 +1565,7 @@ mod tests {
                 .iter()
                 .map(|&id| {
                     crate::models::employment::Employment::new(NewEmploymentParams {
-                        id: id,
+                        id,
                         workspace_id: Uuid::nil(),
                         employee_id: Uuid::nil(),
                         employer_id: Uuid::nil(),
@@ -2139,27 +2139,29 @@ mod tests {
                 Uuid::nil(),
                 "EMP001".into(),
                 "Test User".into(),
-                vec![crate::models::schedule::EffectiveSchedule::new(NewEffectiveScheduleParams {
-                    date: NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
-                    shift_id: Some(Uuid::nil()),
-                    source: "fixed".into(),
-                    shift_name: Some("Day Shift".into()),
-                    shift_symbol: Some("D".into()),
-                    start_time: Some(chrono::NaiveTime::from_hms_opt(9, 0, 0).unwrap()),
-                    end_time: Some(chrono::NaiveTime::from_hms_opt(17, 0, 0).unwrap()),
-                    break_duration_minutes: Some(60),
-                    break_start: None,
-                    break_end: None,
-                    is_break_auto_deduct: Some(true),
-                    early_punch_in_grace_period_minutes: Some(0),
-                    allow_early_ot: Some(false),
-                    break_is_overtime: None,
-                    max_early_ot_minutes: None,
-                    traces: vec![],
-                    is_holiday: false,
-                    is_holiday_paid: false,
-                    holiday_name: None,
-                })],
+                vec![crate::models::schedule::EffectiveSchedule::new(
+                    NewEffectiveScheduleParams {
+                        date: NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+                        shift_id: Some(Uuid::nil()),
+                        source: "fixed".into(),
+                        shift_name: Some("Day Shift".into()),
+                        shift_symbol: Some("D".into()),
+                        start_time: Some(chrono::NaiveTime::from_hms_opt(9, 0, 0).unwrap()),
+                        end_time: Some(chrono::NaiveTime::from_hms_opt(17, 0, 0).unwrap()),
+                        break_duration_minutes: Some(60),
+                        break_start: None,
+                        break_end: None,
+                        is_break_auto_deduct: Some(true),
+                        early_punch_in_grace_period_minutes: Some(0),
+                        allow_early_ot: Some(false),
+                        break_is_overtime: None,
+                        max_early_ot_minutes: None,
+                        traces: vec![],
+                        is_holiday: false,
+                        is_holiday_paid: false,
+                        holiday_name: None,
+                    },
+                )],
             )];
             let total = list.len() as i64;
             Ok((list, total))

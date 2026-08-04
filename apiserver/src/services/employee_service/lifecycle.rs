@@ -101,22 +101,18 @@ impl EmployeeService {
             let prorated_entitlement =
                 (f64::from(emp_bal.entitlement) * proration_fraction).round() as i32;
 
-            let balance = crate::models::LeaveBalance::new(
-                crate::models::NewLeaveBalanceParams {
-                    id: Uuid::new_v4(),
-                    employment_id,
-                    leave_type_id: emp_bal.leave_type_id,
-                    year,
-                    entitlement: prorated_entitlement,
-                    accrued_amount: rust_decimal::Decimal::from_f64_retain(
-                        emp_bal.accrued_amount,
-                    )
+            let balance = crate::models::LeaveBalance::new(crate::models::NewLeaveBalanceParams {
+                id: Uuid::new_v4(),
+                employment_id,
+                leave_type_id: emp_bal.leave_type_id,
+                year,
+                entitlement: prorated_entitlement,
+                accrued_amount: rust_decimal::Decimal::from_f64_retain(emp_bal.accrued_amount)
                     .unwrap_or_default(),
-                    carried_over: emp_bal.carried_over,
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
-                },
-            );
+                carried_over: emp_bal.carried_over,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            });
             balances_to_upsert.push(balance);
         }
 

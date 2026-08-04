@@ -57,7 +57,7 @@ impl AttendanceAdjustmentService {
             approved_by_user_id: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
-            attachment_file_ids: attachment_file_ids,
+            attachment_file_ids,
         });
 
         self.adj_repo
@@ -92,7 +92,7 @@ impl AttendanceAdjustmentService {
         if status == AdjustmentStatus::Approved {
             let raw_log = RawAttendanceLog::new(NewRawAttendanceLogParams {
                 id: new_id(),
-                workspace_id: workspace_id,
+                workspace_id,
                 employment_id: request.employment_id(),
                 punch_time: request.requested_punch_time(),
                 source: LogSource::Manual,

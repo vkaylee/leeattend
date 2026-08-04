@@ -33,8 +33,8 @@ pub async fn enqueue_reprocess_jobs(
 
     let meta = crate::queue::JobMetadata::with_date_range(crate::queue::WithDateRangeParams {
         job_id: parent_job_id,
-        total_batches: total_batches,
-        workspace_id: workspace_id,
+        total_batches,
+        workspace_id,
         requester_id: user_id,
         task_type: Some(crate::queue::TaskType::ReprocessAttendance),
         report_type: None,
@@ -304,7 +304,7 @@ pub async fn force_reprocess_attendance(
     // Determine whether path_id was an employee_id or an employment_id.
     // If it was an employment_id, pin it. If it was an employee_id,
     // resolve the employment(s) overlapping the date range.
-    let (_target_employee_id, target_employment_id) = if let Some(ref emp) = emp_result? {
+    let (target_employee_id, target_employment_id) = if let Some(ref emp) = emp_result? {
         // path_id is an employee_id → resolve employment(s) by date range
         let effective_employments = state
             .employees()
@@ -376,7 +376,7 @@ pub async fn force_reprocess_attendance(
 
     let queue = state.infra().job_queue()?;
 
-    let targets = vec![(_target_employee_id, Some(target_employment_id))];
+    let targets = vec![(target_employee_id, Some(target_employment_id))];
 
     let parent_job_id = enqueue_reprocess_jobs(
         &queue,
@@ -393,10 +393,13 @@ pub async fn force_reprocess_attendance(
 
     tracing::info!(job_id = %parent_job_id, "Single employee reprocess job enqueued");
 
-    Ok((StatusCode::ACCEPTED, Json(serde_json::json!({
-        "message": "Reprocess job queued successfully",
-        "job_id": parent_job_id
-    }))))
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(serde_json::json!({
+            "message": "Reprocess job queued successfully",
+            "job_id": parent_job_id
+        })),
+    ))
 }
 
 #[utoipa::path(

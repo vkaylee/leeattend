@@ -44,10 +44,7 @@ pub(super) struct CalculateBatchArgs<'a> {
 
 impl AttendanceHandler {
     /// Process an attendance job for a batch of employees.
-    #[allow(
-        clippy::too_many_lines,
-        clippy::cast_possible_truncation
-    )]
+    #[allow(clippy::too_many_lines, clippy::cast_possible_truncation)]
     pub async fn handle(
         queue: &Arc<dyn QueueRepository>,
         publisher: &Arc<dyn PublisherRepository>,

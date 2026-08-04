@@ -441,7 +441,12 @@ impl DieselEmployeeRepository {
 
         let mut map: std::collections::HashMap<Uuid, chrono_tz::Tz> = rows
             .into_iter()
-            .map(|r| (r.employment_id, crate::utils::tz::parse_workspace_tz(&r.timezone)))
+            .map(|r| {
+                (
+                    r.employment_id,
+                    crate::utils::tz::parse_workspace_tz(&r.timezone),
+                )
+            })
             .collect();
 
         // Fallback for employment IDs not found: query workspace timezone once

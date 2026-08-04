@@ -30,7 +30,9 @@ macro_rules! map_db_err {
     };
 }
 
-use crate::repositories::working_pattern_repository::{UpdatePatternWithDetailsArgs, WorkingPatternRepositoryTrait};
+use crate::repositories::working_pattern_repository::{
+    UpdatePatternWithDetailsArgs, WorkingPatternRepositoryTrait,
+};
 use async_trait::async_trait;
 
 #[async_trait]

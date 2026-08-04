@@ -67,6 +67,7 @@ impl FileService {
     }
 
     /// Upload a workspace file
+    #[allow(clippy::too_many_arguments)]
     pub async fn upload_file(
         &self,
         auth_token: &TenantAuthToken,
@@ -126,6 +127,7 @@ impl FileService {
     }
 
     /// Upload a system file (global scope)
+    #[allow(clippy::too_many_arguments)]
     pub async fn upload_system_file(
         &self,
         owner_type: FileOwnerType,
@@ -226,6 +228,7 @@ impl FileService {
     }
 
     /// Pre-register a workspace file and generate a presigned PUT URL for direct upload
+    #[allow(clippy::too_many_arguments)]
     pub async fn create_upload_url(
         &self,
         auth_token: &TenantAuthToken,

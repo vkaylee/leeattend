@@ -200,7 +200,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_expiring_contracts_handler_success() {
-        use crate::models::{Employee, NewEmploymentParams, NewWorkspaceParams, Workspace, contract::EmployeeContract, contract::NewEmployeeContractParams};
+        use crate::models::{
+            contract::EmployeeContract, contract::NewEmployeeContractParams, Employee,
+            NewEmploymentParams, NewWorkspaceParams, Workspace,
+        };
         use crate::repositories::employee::MockEmployeeRepository;
         use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
         use crate::repositories::user_repository::MockUserRepository;
@@ -217,20 +220,20 @@ mod tests {
             .returning(move || {
                 Box::pin(async move {
                     Ok(vec![Workspace::new(NewWorkspaceParams {
-            id: ws_id,
-            name: "Test Workspace".to_string(),
-            date_format: "YYYY-MM-DD".to_string(),
-            time_format: "HH:mm".to_string(),
-            timezone: "UTC".to_string(),
-            theme_primary_color: "#000000".to_string(),
-            default_language: "en".to_string(),
-            logo_url: None,
-            tagline: None,
-            holiday_overnight_strategy: "split".to_string(),
-            default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
-            created_at: chrono::Utc::now(),
-            custom_db_url_encrypted: None,
-        })])
+                        id: ws_id,
+                        name: "Test Workspace".to_string(),
+                        date_format: "YYYY-MM-DD".to_string(),
+                        time_format: "HH:mm".to_string(),
+                        timezone: "UTC".to_string(),
+                        theme_primary_color: "#000000".to_string(),
+                        default_language: "en".to_string(),
+                        logo_url: None,
+                        tagline: None,
+                        holiday_overnight_strategy: "split".to_string(),
+                        default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
+                        created_at: chrono::Utc::now(),
+                        custom_db_url_encrypted: None,
+                    })])
                 })
             });
 
@@ -246,7 +249,7 @@ mod tests {
                 Ok(vec![EmployeeContract::new(NewEmployeeContractParams {
                     id: Uuid::new_v4(),
                     workspace_id: ws_id,
-                    employment_id: employment_id,
+                    employment_id,
                     contract_number: None,
                     contract_type: crate::models::enums::ContractType::FixedTerm,
                     status: crate::models::enums::ContractStatus::Active,
@@ -292,24 +295,26 @@ mod tests {
             .expect_get_employments_by_ids()
             .returning(move |_, ids| {
                 if ids.contains(&employment_id) {
-                    Ok(vec![crate::models::employment::Employment::new(NewEmploymentParams {
-                        id: employment_id,
-                        workspace_id: ws_id,
-                        employee_id: emp_id,
-                        employer_id: Uuid::new_v4(),
-                        primary_location_id: None,
-                        department_id: None,
-                        status: "active".to_string(),
-                        start_date: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-                        end_date: None,
-                        job_title: None,
-                        employment_type: "full_time".to_string(),
-                        manager_employment_id: None,
-                        created_at: chrono::Utc::now(),
-                        updated_at: chrono::Utc::now(),
-                        termination_reason: None,
-                        notes: None,
-                    })])
+                    Ok(vec![crate::models::employment::Employment::new(
+                        NewEmploymentParams {
+                            id: employment_id,
+                            workspace_id: ws_id,
+                            employee_id: emp_id,
+                            employer_id: Uuid::new_v4(),
+                            primary_location_id: None,
+                            department_id: None,
+                            status: "active".to_string(),
+                            start_date: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                            end_date: None,
+                            job_title: None,
+                            employment_type: "full_time".to_string(),
+                            manager_employment_id: None,
+                            created_at: chrono::Utc::now(),
+                            updated_at: chrono::Utc::now(),
+                            termination_reason: None,
+                            notes: None,
+                        },
+                    )])
                 } else {
                     Ok(vec![])
                 }

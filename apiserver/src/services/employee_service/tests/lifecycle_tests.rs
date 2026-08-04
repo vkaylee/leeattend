@@ -1,6 +1,6 @@
 use super::helpers::{make_service, MockEmployeeRepo};
 use crate::errors::AppError;
-use crate::models::{NewEmploymentParams};
+use crate::models::NewEmploymentParams;
 use chrono::{NaiveDate, Utc};
 use uuid::Uuid;
 
@@ -42,7 +42,7 @@ async fn test_terminate_employment_success() -> Result<(), Box<dyn std::error::E
         primary_location_id: None,
         department_id: None,
         status: "active".to_string(),
-        start_date: start_date,
+        start_date,
         end_date: None,
         job_title: None,
         employment_type: "primary".to_string(),
@@ -68,7 +68,7 @@ async fn test_terminate_employment_success() -> Result<(), Box<dyn std::error::E
         primary_location_id: None,
         department_id: None,
         status: "terminated".to_string(),
-        start_date: start_date,
+        start_date,
         end_date: Some(termination_date),
         job_title: None,
         employment_type: "primary".to_string(),

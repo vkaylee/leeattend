@@ -6,7 +6,9 @@ use diesel::serialize::{self, IsNull, Output, ToSql};
 use std::io::Write;
 use uuid::Uuid;
 
-use crate::models::{AdjustmentStatus, AttendanceAdjustmentRequest, NewAttendanceAdjustmentRequestParams};
+use crate::models::{
+    AdjustmentStatus, AttendanceAdjustmentRequest, NewAttendanceAdjustmentRequestParams,
+};
 use crate::schema::attendance_adjustment_requests;
 use crate::schema::sql_types::AdjustmentStatusType;
 

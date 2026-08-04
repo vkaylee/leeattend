@@ -155,6 +155,7 @@ pub(crate) async fn reprocess_single_day_with_conn(
 /// When no caller-owned connection is provided but pools are available, the two
 /// writes run inside their own transaction so they commit (or roll back) as one
 /// unit. In tests (mock repos, no pools) it falls back to the legacy calls.
+#[allow(clippy::too_many_arguments)]
 async fn clear_and_recalculate(
     service: &PairingService,
     conn: Option<&mut AsyncPgConnection>,
@@ -318,6 +319,7 @@ pub(crate) async fn save_paired_entries_and_update_summary(
 /// [`save_paired_entries_and_update_summary`] variant that runs both writes on a
 /// caller-owned transaction connection. If the summary recalculation fails after
 /// the entries were replaced, the caller's transaction rollback undoes both.
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn save_paired_entries_and_update_summary_tx(
     service: &PairingService,
     conn: &mut AsyncPgConnection,

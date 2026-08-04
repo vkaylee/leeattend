@@ -12,6 +12,7 @@ use crate::services::import_messages::ExcelReportMessages;
 use crate::utils::excel_format_utils::ExcelFormatUtils;
 
 /// Render a single day cell — returns the display text and the format to use.
+#[allow(clippy::too_many_arguments)]
 fn render_day_cell<'a>(
     cell: &DayCell,
     work_unit_minutes: i32,

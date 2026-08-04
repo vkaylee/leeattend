@@ -6,8 +6,8 @@ use diesel::serialize::{self, IsNull, Output, ToSql};
 use std::io::Write;
 use uuid::Uuid;
 
-use crate::models::attendance::RawAttendanceLog;
 use crate::models::attendance::NewRawAttendanceLogParams;
+use crate::models::attendance::RawAttendanceLog;
 use crate::models::enums::LogSource;
 use crate::schema::sql_types::LogSourceType;
 use crate::schema::{attendance_log_errors, attendance_staging_logs, raw_attendance_logs};

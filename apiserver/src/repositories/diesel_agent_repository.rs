@@ -11,7 +11,9 @@ use crate::{
         diesel::agent::{AuthorizedAgentEntity, DeviceEntity, UpdateDieselDevice},
         AuthorizedAgent, Device,
     },
-    repositories::agent_repository::{CreateAuthorizedAgentArgs, CreateDeviceArgs, UpdateDeviceArgs},
+    repositories::agent_repository::{
+        CreateAuthorizedAgentArgs, CreateDeviceArgs, UpdateDeviceArgs,
+    },
     schema::{authorized_agents, devices},
 };
 
@@ -238,10 +240,7 @@ impl AgentRepository for DieselAgentRepository {
         Ok(devices_result.into_iter().map(Into::into).collect())
     }
 
-    async fn create_device(
-        &self,
-        args: CreateDeviceArgs<'_>,
-    ) -> Result<(), AppError> {
+    async fn create_device(&self, args: CreateDeviceArgs<'_>) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .tenant_transaction_conn(args.auth_token)
@@ -293,10 +292,7 @@ impl AgentRepository for DieselAgentRepository {
         Ok(device.map(Into::into))
     }
 
-    async fn update_device(
-        &self,
-        args: UpdateDeviceArgs<'_>,
-    ) -> Result<(), AppError> {
+    async fn update_device(&self, args: UpdateDeviceArgs<'_>) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .tenant_transaction_conn(args.auth_token)

@@ -35,6 +35,7 @@ pub struct BatchMaps {
 /// Returns a tuple per employment: `(employment_id, Result<context, error_result>)`.
 /// Failures are pre-built `BatchCalculateResult` with `status: "error"`.
 #[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_arguments)]
 pub fn build_payroll_contexts(
     chunk_employment_ids: &[Uuid],
     employment_to_employee: &HashMap<Uuid, Uuid>,

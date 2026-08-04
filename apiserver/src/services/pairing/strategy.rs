@@ -133,11 +133,11 @@ impl ShiftAwareStrategy {
                     sessions.push(PairedSession::new(NewPairedSessionParams {
                         start_minutes: first.minutes(),
                         end_minutes: Some(second.minutes()),
-                        start_time: start_time,
-                        end_time: end_time,
-                        entry_type: entry_type,
+                        start_time,
+                        end_time,
+                        entry_type,
                         note: combined_note,
-                        is_break_overtime: is_break_overtime,
+                        is_break_overtime,
                         metadata: Some(serde_json::json!({ "algorithm": ALGORITHM_NAME, "tier": "anchor_first", "log_ids": log_ids })),
                     }));
                     i += 2;
@@ -148,11 +148,11 @@ impl ShiftAwareStrategy {
                     sessions.push(PairedSession::new(NewPairedSessionParams {
                         start_minutes: first.minutes(),
                         end_minutes: None,
-                        start_time: start_time,
+                        start_time,
                         end_time: None,
-                        entry_type: entry_type,
+                        entry_type,
                         note: final_note,
-                        is_break_overtime: is_break_overtime,
+                        is_break_overtime,
                         metadata: Some(serde_json::json!({ "algorithm": ALGORITHM_NAME, "tier": "anchor_first", "log_ids": log_ids })),
                     }));
                     i += 1;
@@ -164,11 +164,11 @@ impl ShiftAwareStrategy {
                 sessions.push(PairedSession::new(NewPairedSessionParams {
                     start_minutes: first.minutes(),
                     end_minutes: None,
-                    start_time: start_time,
+                    start_time,
                     end_time: None,
-                    entry_type: entry_type,
+                    entry_type,
                     note: final_note,
-                    is_break_overtime: is_break_overtime,
+                    is_break_overtime,
                     metadata: Some(serde_json::json!({ "algorithm": ALGORITHM_NAME, "tier": "anchor_first", "log_ids": log_ids })),
                 }));
                 i += 1;

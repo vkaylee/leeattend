@@ -9,6 +9,7 @@ use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
 impl DieselWorkspaceRepository {
+    #[allow(clippy::too_many_arguments)]
     pub(super) async fn update_workspace_impl(
         &self,
         id: Uuid,

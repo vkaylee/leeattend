@@ -672,7 +672,7 @@ mod tests {
                 Uuid::new_v4(),
                 CreateCustomFieldDefinitionRequest {
                     entity_type: "employee".into(),
-                    field_key: "".into(),
+                    field_key: String::new(),
                     field_label: "Test Field".into(),
                     field_type: "text".into(),
                     options: None,
@@ -849,12 +849,7 @@ mod tests {
                     "custom_field.definition_created",
                     Utc::now(),
                 )
-                .with_actor(
-                    Some(Uuid::new_v4()),
-                    Some("user".into()),
-                    None,
-                    None,
-                )
+                .with_actor(Some(Uuid::new_v4()), Some("user".into()), None, None)
                 .with_target(None, Some(Uuid::new_v4())),
             ))
         });
@@ -981,12 +976,7 @@ mod tests {
                         "custom_field.definition_created",
                         Utc::now(),
                     )
-                    .with_actor(
-                        Some(Uuid::new_v4()),
-                        Some("user".into()),
-                        None,
-                        None,
-                    )
+                    .with_actor(Some(Uuid::new_v4()), Some("user".into()), None, None)
                     .with_target(None, Some(Uuid::new_v4())),
                 ))
             });

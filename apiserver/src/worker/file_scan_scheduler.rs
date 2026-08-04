@@ -193,8 +193,8 @@ mod tests {
     use super::*;
     use crate::crypto::CryptoService;
     use crate::diesel_pool::DieselPools;
+    use crate::models::NewWorkspaceParams;
     use crate::models::Workspace;
-use crate::models::{NewWorkspaceParams};
     use crate::repositories::file_repository::MockFileRepository;
     use crate::repositories::storage_config_repo::StorageConfigRepository;
     use crate::repositories::workspace_repository::MockWorkspaceRepository;

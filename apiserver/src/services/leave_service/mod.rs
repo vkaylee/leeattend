@@ -64,9 +64,8 @@ pub struct LeaveServiceParams {
     pub employee_repo: Arc<dyn EmployeeRepository>,
     pub employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
     pub roster_repo: Arc<dyn RosterRepository>,
-    pub leave_accrual_log_repo: Arc<
-        dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
-    >,
+    pub leave_accrual_log_repo:
+        Arc<dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository>,
     pub workspace_config_repo: Arc<dyn WorkspaceConfigRepository>,
     pub user_repo: Arc<dyn UserRepository>,
     pub workspace_repo: Arc<dyn WorkspaceRepository>,

@@ -129,11 +129,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_claim_staged_logs_handler_success() {
+        use crate::models::NewWorkspaceParams;
         use crate::repositories::roster::MockRosterRepository;
         use crate::repositories::staging_log_repository::MockStagingLogRepository;
         use crate::repositories::staging_log_repository::StagingLog;
         use crate::worker::test_utils::MockWorkerDepsBuilder;
-use crate::models::{NewWorkspaceParams};
         use chrono::Utc;
 
         let ws_id = Uuid::new_v4();
@@ -217,20 +217,20 @@ use crate::models::{NewWorkspaceParams};
             .returning(move |_| {
                 Box::pin(async move {
                     let ws = crate::models::Workspace::new(NewWorkspaceParams {
-            id: ws_id,
-            name: "Test Workspace".to_string(),
-            date_format: "YYYY-MM-DD".to_string(),
-            time_format: "HH:mm".to_string(),
-            timezone: "UTC".to_string(),
-            theme_primary_color: "#000000".to_string(),
-            default_language: "en".to_string(),
-            logo_url: None,
-            tagline: None,
-            holiday_overnight_strategy: "split".to_string(),
-            default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
-            created_at: Utc::now(),
-            custom_db_url_encrypted: None,
-        });
+                        id: ws_id,
+                        name: "Test Workspace".to_string(),
+                        date_format: "YYYY-MM-DD".to_string(),
+                        time_format: "HH:mm".to_string(),
+                        timezone: "UTC".to_string(),
+                        theme_primary_color: "#000000".to_string(),
+                        default_language: "en".to_string(),
+                        logo_url: None,
+                        tagline: None,
+                        holiday_overnight_strategy: "split".to_string(),
+                        default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
+                        created_at: Utc::now(),
+                        custom_db_url_encrypted: None,
+                    });
                     Ok(Some(ws))
                 })
             });

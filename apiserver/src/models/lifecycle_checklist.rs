@@ -199,6 +199,7 @@ pub struct LifecycleChecklistTemplate {
 }
 
 impl LifecycleChecklistTemplate {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         workspace_id: Uuid,
@@ -285,6 +286,7 @@ pub struct LifecycleChecklistTemplateItem {
 }
 
 impl LifecycleChecklistTemplateItem {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         template_id: Uuid,
@@ -381,6 +383,7 @@ pub struct LifecycleChecklist {
 }
 
 impl LifecycleChecklist {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         workspace_id: Uuid,
@@ -493,6 +496,7 @@ pub struct LifecycleChecklistItem {
 }
 
 impl LifecycleChecklistItem {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         checklist_id: Uuid,

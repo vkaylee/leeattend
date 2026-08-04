@@ -11,6 +11,7 @@ use std::collections::HashMap;
 impl super::MergeHandler {
     /// Merge detail results from all batches.
     #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_arguments)]
     pub(super) async fn merge_detail_results(
         batch_results: &[(String, String)],
         workspace_name: &str,

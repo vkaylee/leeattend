@@ -8,6 +8,7 @@ use crate::queue::Job;
 pub struct FinalizeImportHandler;
 
 impl FinalizeImportHandler {
+    #[allow(clippy::too_many_lines)]
     pub async fn handle(
         job: &Job,
         cache: &std::sync::Arc<dyn crate::repositories::CacheRepository>,

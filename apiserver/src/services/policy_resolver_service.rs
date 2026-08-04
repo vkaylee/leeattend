@@ -275,6 +275,7 @@ impl PolicyResolverService {
             .await
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn resolve_with_shift_overrides(
         policy_repo: &dyn AttendancePolicyRepository,
         employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
@@ -299,6 +300,7 @@ impl PolicyResolverService {
         Ok(PolicyResolver::apply_shift_overrides(rules, overrides))
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn resolve_with_shift_overrides_by_employment(
         policy_repo: &dyn AttendancePolicyRepository,
         employee_repo: &dyn crate::repositories::employee::EmployeeRepository,

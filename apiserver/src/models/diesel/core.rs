@@ -1,4 +1,7 @@
-use crate::models::{MemberExtraRole, NewUserParams, NewWorkspaceParams, NewWorkspaceRoleParams, User, Workspace, WorkspaceMember, WorkspaceRole};
+use crate::models::{
+    MemberExtraRole, NewUserParams, NewWorkspaceParams, NewWorkspaceRoleParams, User, Workspace,
+    WorkspaceMember, WorkspaceRole,
+};
 use crate::schema::{
     dashboard_preferences, member_extra_roles, notifications, system_roles, user_system_roles,
     users, workspace_members, workspace_roles, workspaces,
@@ -85,16 +88,16 @@ pub struct UserEntity {
 impl From<UserEntity> for User {
     fn from(entity: UserEntity) -> Self {
         User::new(NewUserParams {
-        id: entity.id,
-        email: entity.email,
-        password_hash: entity.password_hash,
-        created_at: entity.created_at.unwrap_or_else(Utc::now),
-        full_name: entity.full_name,
-        avatar_url: entity.avatar_url,
-        bio: entity.bio,
-        preferred_language: entity.preferred_language,
-        avatar_file_id: entity.avatar_file_id,
-    })
+            id: entity.id,
+            email: entity.email,
+            password_hash: entity.password_hash,
+            created_at: entity.created_at.unwrap_or_else(Utc::now),
+            full_name: entity.full_name,
+            avatar_url: entity.avatar_url,
+            bio: entity.bio,
+            preferred_language: entity.preferred_language,
+            avatar_file_id: entity.avatar_file_id,
+        })
     }
 }
 

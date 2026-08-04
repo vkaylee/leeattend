@@ -169,6 +169,7 @@ pub fn naive_time_to_tz_overnight(
 ///
 /// Returns `(shift_start, shift_end, break_start, break_end)` — all `None`
 /// when the corresponding input is `None`.
+#[allow(clippy::type_complexity)]
 pub fn resolve_shift_times(
     start: Option<NaiveTime>,
     end: Option<NaiveTime>,

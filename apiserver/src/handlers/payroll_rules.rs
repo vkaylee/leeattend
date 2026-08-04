@@ -134,15 +134,17 @@ pub async fn create_payroll_rule_tier(
     let tier = state
         .payroll()
         .rule_repo()
-        .create_tier(crate::repositories::payroll_rule_repository::CreatePayrollRuleTierParams {
-            workspace_id: ctx.workspace_id,
-            rule_definition_id: rule_id,
-            tier_order: payload.tier_order,
-            min_amount: payload.min_amount,
-            max_amount: payload.max_amount,
-            rate: payload.rate,
-            fixed_amount: payload.fixed_amount.unwrap_or(Decimal::ZERO),
-        })
+        .create_tier(
+            crate::repositories::payroll_rule_repository::CreatePayrollRuleTierParams {
+                workspace_id: ctx.workspace_id,
+                rule_definition_id: rule_id,
+                tier_order: payload.tier_order,
+                min_amount: payload.min_amount,
+                max_amount: payload.max_amount,
+                rate: payload.rate,
+                fixed_amount: payload.fixed_amount.unwrap_or(Decimal::ZERO),
+            },
+        )
         .await?;
 
     Ok(Json(tier))

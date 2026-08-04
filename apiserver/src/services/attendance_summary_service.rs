@@ -9,8 +9,8 @@ use diesel_async::AsyncPgConnection;
 use uuid::Uuid;
 
 use crate::repositories::attendance_daily_summary_repository::{
-    AttendanceDailySummaryRepository, UpsertCalculatedSummaryArgs,
-    UpsertCalculatedSummaryTxArgs, UpsertPaperOtArgs,
+    AttendanceDailySummaryRepository, UpsertCalculatedSummaryArgs, UpsertCalculatedSummaryTxArgs,
+    UpsertPaperOtArgs,
 };
 use crate::repositories::leave_request_repository::LeaveRequestRepository;
 
@@ -476,23 +476,21 @@ impl AttendanceSummaryService {
                 .await?;
         } else {
             self.daily_summary_repo
-                .upsert_calculated_summary(
-                    UpsertCalculatedSummaryArgs {
-                        auth_token: auth_token.clone(),
-                        employment_id: plan.employment_id,
-                        date: plan.date,
-                        actual_work_minutes: plan.actual_work_minutes,
-                        system_detected_ot_minutes: plan.system_detected_ot_minutes,
-                        standard_minutes: plan.standard_minutes,
-                        early_ot_minutes: plan.early_ot_minutes,
-                        late_ot_minutes: plan.late_ot_minutes,
-                        break_ot_minutes: plan.break_ot_minutes,
-                        is_weekend: plan.is_weekend,
-                        new_status: plan.ot_status,
-                        is_holiday: plan.is_holiday,
-                        holiday_name: plan.holiday_name.clone(),
-                    },
-                )
+                .upsert_calculated_summary(UpsertCalculatedSummaryArgs {
+                    auth_token: *auth_token,
+                    employment_id: plan.employment_id,
+                    date: plan.date,
+                    actual_work_minutes: plan.actual_work_minutes,
+                    system_detected_ot_minutes: plan.system_detected_ot_minutes,
+                    standard_minutes: plan.standard_minutes,
+                    early_ot_minutes: plan.early_ot_minutes,
+                    late_ot_minutes: plan.late_ot_minutes,
+                    break_ot_minutes: plan.break_ot_minutes,
+                    is_weekend: plan.is_weekend,
+                    new_status: plan.ot_status,
+                    is_holiday: plan.is_holiday,
+                    holiday_name: plan.holiday_name.clone(),
+                })
                 .await?;
         }
         Ok(())
@@ -511,12 +509,7 @@ impl AttendanceSummaryService {
         date: NaiveDate,
     ) -> AppResult<()> {
         let plan = self
-            .compute_daily_recalculation_plan(
-                conn.as_deref_mut(),
-                auth_token,
-                employment_id,
-                date,
-            )
+            .compute_daily_recalculation_plan(conn.as_deref_mut(), auth_token, employment_id, date)
             .await?;
         self.execute_daily_recalculation_plan(conn, auth_token, &plan)
             .await
@@ -720,6 +713,7 @@ impl AttendanceSummaryService {
     /// Phase A helper: batch-fetch all shared data for [`recalculate_attendance_range`].
     /// Eliminates per-day DB calls by pre-loading policy, conditions, catalog,
     /// schedules, time entries, leaves, holidays, and existing summaries.
+    #[allow(clippy::too_many_lines)]
     async fn fetch_range_preamble(
         &self,
         conn: Option<&mut AsyncPgConnection>,
@@ -1107,9 +1101,8 @@ impl AttendanceSummaryService {
 
     /// Pure per-day computation: builds a [`DayComputationResult`] with zero DB calls.
     /// Called inside the batch loop of [`recalculate_attendance_range`].
-    fn compute_single_day(
-        params: ComputeSingleDayParams<'_>,
-    ) -> DayComputationResult {
+    #[allow(clippy::needless_pass_by_value)]
+    fn compute_single_day(params: ComputeSingleDayParams<'_>) -> DayComputationResult {
         let overrides = ShiftPolicyOverrides::new(
             params.daily_schedule.early_punch_in_grace_period_minutes(),
             params.daily_schedule.is_break_auto_deduct(),
@@ -1125,8 +1118,13 @@ impl AttendanceSummaryService {
             &overrides,
         );
 
-        let buckets =
-            Self::calculate_work_and_ot_pure(params.tz, params.date, params.daily_schedule, params.day_entries, &rules);
+        let buckets = Self::calculate_work_and_ot_pure(
+            params.tz,
+            params.date,
+            params.daily_schedule,
+            params.day_entries,
+            &rules,
+        );
         let actual = buckets.standard_minutes
             + buckets.early_ot_minutes
             + buckets.late_ot_minutes
@@ -1136,7 +1134,10 @@ impl AttendanceSummaryService {
         let is_holiday = params.filtered_holiday.is_some();
         let holiday_name = params.filtered_holiday.map(|h| h.name().to_string());
 
-        let existing = params.existing_summaries.iter().find(|s| s.date == params.date);
+        let existing = params
+            .existing_summaries
+            .iter()
+            .find(|s| s.date == params.date);
         let weekday = params.date.weekday().num_days_from_monday();
 
         DayComputationResult {
@@ -1385,7 +1386,7 @@ impl AttendanceSummaryService {
         // 3. Upsert with paper form metadata
         let result = summary_repo
             .upsert_paper_ot(UpsertPaperOtArgs {
-                auth_token: auth_token.clone(),
+                auth_token: *auth_token,
                 employment_id: args.employment_id,
                 date: args.date,
                 claimed_minutes: args.claimed_minutes,

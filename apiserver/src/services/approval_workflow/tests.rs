@@ -1,13 +1,14 @@
 mod tests {
-    use super::super::{ApprovalWorkflowService, ApprovalWorkflowServiceParams, WorkflowCallbackHandler};
+    use super::super::{
+        ApprovalWorkflowService, ApprovalWorkflowServiceParams, WorkflowCallbackHandler,
+    };
     use crate::diesel_pool::TenantAuthToken;
     use crate::errors::AppError;
     use crate::models::{
         ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowInstance, ApprovalWorkflowStep,
         ApprovalWorkflowTask, Employee, LeaveRequest, LeaveStatus, NewLeaveRequestParams,
-        WorkflowInstanceStepSnapshot, WorkspaceConfigEntry,
-        NewWorkspaceConfigEntryParams,
-        NewWorkspaceParams,
+        NewWorkspaceConfigEntryParams, NewWorkspaceParams, WorkflowInstanceStepSnapshot,
+        WorkspaceConfigEntry,
     };
     use crate::repositories::{
         attendance_daily_summary_repository::{
@@ -16,8 +17,8 @@ mod tests {
         },
         department_repository::DepartmentRepository,
         leave_request_repository::LeaveRequestRepository,
-        overtime_request_repository::OvertimeRequestRepository, ApprovalWorkflowRepository,
-        WorkspaceConfigRepository, WorkspaceRepository,
+        overtime_request_repository::OvertimeRequestRepository,
+        ApprovalWorkflowRepository, WorkspaceConfigRepository, WorkspaceRepository,
     };
     use async_trait::async_trait;
     use chrono::{DateTime, NaiveDate, Utc};
@@ -484,7 +485,7 @@ mod tests {
                 .push(crate::models::ApproverActionInfo {
                     user_id,
                     action: action.as_str().to_string(),
-                    note: note.clone(),
+                    note,
                     acted_at: Utc::now(),
                 });
 
@@ -601,8 +602,11 @@ mod tests {
             instance.updated_at = Utc::now();
 
             state.instances.insert(instance.id, instance.clone());
+            drop(state);
 
-            let outbox_payload = if instance.status != "pending" {
+            let outbox_payload = if instance.status == "pending" {
+                None
+            } else {
                 Some(crate::models::WorkflowCompletedPayload {
                     entity_type: instance.entity_type.clone(),
                     entity_id: instance.entity_id,
@@ -610,8 +614,6 @@ mod tests {
                     actor_user_id: user_id,
                     trace_context: None,
                 })
-            } else {
-                None
             };
 
             Ok((instance, outbox_payload))
@@ -701,6 +703,7 @@ mod tests {
                 }
             }
 
+            drop(state);
             Ok(delegator_ids)
         }
     }
@@ -744,20 +747,20 @@ mod tests {
             _custom_db_url_encrypted: Option<String>,
         ) -> Result<crate::models::Workspace, AppError> {
             Ok(crate::models::Workspace::new(NewWorkspaceParams {
-            id: _id,
-            name: name.to_string(),
-            date_format: "YYYY-MM-DD".to_string(),
-            time_format: "HH:mm:ss".to_string(),
-            timezone: "UTC".to_string(),
-            theme_primary_color: "#000000".to_string(),
-            default_language: "en".to_string(),
-            logo_url: None,
-            tagline: None,
-            holiday_overnight_strategy: "standard".to_string(),
-            default_holiday_ot_multiplier: rust_decimal::Decimal::from(1),
-            created_at: Utc::now(),
-            custom_db_url_encrypted: None,
-        }))
+                id: _id,
+                name: name.to_string(),
+                date_format: "YYYY-MM-DD".to_string(),
+                time_format: "HH:mm:ss".to_string(),
+                timezone: "UTC".to_string(),
+                theme_primary_color: "#000000".to_string(),
+                default_language: "en".to_string(),
+                logo_url: None,
+                tagline: None,
+                holiday_overnight_strategy: "standard".to_string(),
+                default_holiday_ot_multiplier: rust_decimal::Decimal::from(1),
+                created_at: Utc::now(),
+                custom_db_url_encrypted: None,
+            }))
         }
         async fn get_workspace_by_id(
             &self,
@@ -2062,14 +2065,34 @@ mod tests {
             }),
         );
         let service = ApprovalWorkflowService::new(ApprovalWorkflowServiceParams {
-            approval_workflow_repo: Arc::new(MockApprovalWorkflowRepository { create_workflow_called: std::sync::atomic::AtomicBool::new(false), state: state.clone(), }),
-            workspace_config_repo: Arc::new(MockWorkspaceConfigRepository { state: state.clone(), }),
-            workspace_repo: Arc::new(MockWorkspaceRepository { state: state.clone(), }),
-            employee_repo: Arc::new(MockEmployeeRepo { state: state.clone(), }),
-            employment_repo: { let mut mock_emp_repo = crate::repositories::employment_repository::MockEmploymentRepository::new(); mock_emp_repo .expect_get_employments_by_ids() .returning(|_, _| Ok(vec![])); Arc::new(mock_emp_repo) },
-            department_repo: Arc::new(MockDepartmentRepo { state: state.clone(), }),
+            approval_workflow_repo: Arc::new(MockApprovalWorkflowRepository {
+                create_workflow_called: std::sync::atomic::AtomicBool::new(false),
+                state: state.clone(),
+            }),
+            workspace_config_repo: Arc::new(MockWorkspaceConfigRepository {
+                state: state.clone(),
+            }),
+            workspace_repo: Arc::new(MockWorkspaceRepository {
+                state: state.clone(),
+            }),
+            employee_repo: Arc::new(MockEmployeeRepo {
+                state: state.clone(),
+            }),
+            employment_repo: {
+                let mut mock_emp_repo =
+                    crate::repositories::employment_repository::MockEmploymentRepository::new();
+                mock_emp_repo
+                    .expect_get_employments_by_ids()
+                    .returning(|_, _| Ok(vec![]));
+                Arc::new(mock_emp_repo)
+            },
+            department_repo: Arc::new(MockDepartmentRepo {
+                state: state.clone(),
+            }),
             leave_request_repo: leave_repo,
-            overtime_request_repo: Arc::new(MockOvertimeRequestRepository { state: state.clone(), }),
+            overtime_request_repo: Arc::new(MockOvertimeRequestRepository {
+                state: state.clone(),
+            }),
             daily_summary_repo: Arc::new(MockDailySummaryRepository),
         })
         .with_handlers(handlers);
@@ -2096,22 +2119,22 @@ mod tests {
         delegated_user_id: Uuid,
     ) -> WorkspaceConfigEntry {
         WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
-        id: Uuid::new_v4(),
-        workspace_id: workspace_id,
-        scope_type: "workspace".to_string(),
-        scope_id: None,
-        config_key: format!("delegation:{user_id}"),
-        value_int: None,
-        value_decimal: None,
-        value_text: Some(delegated_user_id.to_string()),
-        value_bool: None,
-        value_json: None,
-        effective_from: NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-        effective_to: None,
-        created_by: None,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-    })
+            id: Uuid::new_v4(),
+            workspace_id,
+            scope_type: "workspace".to_string(),
+            scope_id: None,
+            config_key: format!("delegation:{user_id}"),
+            value_int: None,
+            value_decimal: None,
+            value_text: Some(delegated_user_id.to_string()),
+            value_bool: None,
+            value_json: None,
+            effective_from: NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+            effective_to: None,
+            created_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        })
     }
 
     #[tokio::test]

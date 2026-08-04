@@ -357,10 +357,8 @@ impl AttendanceService {
     /// segment-specific concerns that live in the report service.
     #[must_use]
     pub fn compute_segment_attendance(inputs: &[DailyCalcInput<Tz>]) -> SegmentAttendanceResult {
-        let input_groups: Vec<&[DailyCalcInput<Tz>]> = inputs
-            .iter()
-            .map(|input| std::slice::from_ref(input))
-            .collect();
+        let input_groups: Vec<&[DailyCalcInput<Tz>]> =
+            inputs.iter().map(std::slice::from_ref).collect();
 
         Self::compute_segment_attendance_sessions(&input_groups)
     }
@@ -476,6 +474,7 @@ impl AttendanceService {
     /// This is the shared implementation used by the daily report path, the
     /// segment report path, and the Excel export worker.
     #[must_use]
+    #[allow(clippy::too_many_arguments)]
     pub fn compute_session_attendance(
         day_entries: &[&TimeEntry],
         tz: Tz,
@@ -593,7 +592,10 @@ fn shift_naive_to_dt(
 mod tests {
     use super::*;
     use crate::models::EarlyArrivalStrategy;
-    use crate::models::{EffectiveSchedule, NewEffectiveScheduleParams, NewTimeEntryParams, PolicyRules, RoundingPolicy, TimeEntry};
+    use crate::models::{
+        EffectiveSchedule, NewEffectiveScheduleParams, NewTimeEntryParams, PolicyRules,
+        RoundingPolicy, TimeEntry,
+    };
     use crate::services::attendance_calculator::{
         DailyCalcInput, OtAggregationMode, SegmentCalcResult, WorkBuckets,
     };
@@ -753,6 +755,7 @@ mod tests {
     }
 
     /// Build an `EffectiveSchedule` with a fixed break window.
+    #[allow(clippy::too_many_arguments)]
     fn mock_schedule_with_break(
         start_h: u32,
         start_m: u32,
@@ -984,6 +987,7 @@ mod tests {
     // Helper: build a DailyCalcInput for segment_attendance tests
     // =========================================================================
 
+    #[allow(clippy::too_many_arguments)]
     fn make_calc_input(
         punch_in: chrono::DateTime<Tz>,
         punch_out: chrono::DateTime<Tz>,

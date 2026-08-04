@@ -278,10 +278,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
     }
 
     // ── workspace_settings ────────────────────────────────────────
-    async fn update_workspace(
-        &self,
-        params: UpdateWorkspaceParams,
-    ) -> Result<Workspace, AppError> {
+    async fn update_workspace(&self, params: UpdateWorkspaceParams) -> Result<Workspace, AppError> {
         let UpdateWorkspaceParams {
             id,
             name,

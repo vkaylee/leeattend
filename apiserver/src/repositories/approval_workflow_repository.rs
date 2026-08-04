@@ -6,6 +6,7 @@ use crate::models::{
 use async_trait::async_trait;
 use uuid::Uuid;
 
+#[allow(clippy::too_many_arguments)]
 #[async_trait]
 pub trait ApprovalWorkflowRepository: Send + Sync {
     async fn create_workflow(

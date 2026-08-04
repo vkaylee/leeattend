@@ -59,6 +59,7 @@ impl NewAuditLogParams {
         }
     }
 
+    #[must_use]
     pub fn with_actor(
         mut self,
         actor_id: Option<Uuid>,
@@ -73,6 +74,7 @@ impl NewAuditLogParams {
         self
     }
 
+    #[must_use]
     pub fn with_target(
         mut self,
         target_user_id: Option<Uuid>,
@@ -83,11 +85,13 @@ impl NewAuditLogParams {
         self
     }
 
+    #[must_use]
     pub fn with_details(mut self, details: Option<serde_json::Value>) -> Self {
         self.details = details;
         self
     }
 
+    #[must_use]
     pub fn with_client_context(
         mut self,
         ip_address: Option<String>,

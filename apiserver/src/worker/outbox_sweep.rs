@@ -216,20 +216,20 @@ mod tests {
             .returning(move |id| {
                 Box::pin(async move {
                     Ok(Some(Workspace::new(NewWorkspaceParams {
-            id: id,
-            name: "Test Workspace".to_string(),
-            date_format: "YYYY-MM-DD".to_string(),
-            time_format: "HH:mm:ss".to_string(),
-            timezone: "UTC".to_string(),
-            theme_primary_color: String::new(),
-            default_language: "en".to_string(),
-            logo_url: None,
-            tagline: None,
-            holiday_overnight_strategy: "split".to_string(),
-            default_holiday_ot_multiplier: Default::default(),
-            created_at: chrono::Utc::now(),
-            custom_db_url_encrypted: None,
-        })))
+                        id,
+                        name: "Test Workspace".to_string(),
+                        date_format: "YYYY-MM-DD".to_string(),
+                        time_format: "HH:mm:ss".to_string(),
+                        timezone: "UTC".to_string(),
+                        theme_primary_color: String::new(),
+                        default_language: "en".to_string(),
+                        logo_url: None,
+                        tagline: None,
+                        holiday_overnight_strategy: "split".to_string(),
+                        default_holiday_ot_multiplier: Default::default(),
+                        created_at: chrono::Utc::now(),
+                        custom_db_url_encrypted: None,
+                    })))
                 })
             });
         let workspace_repo = Arc::new(mock_workspace_repo);
@@ -256,15 +256,15 @@ mod tests {
         .unwrap();
 
         let job = OutboxJob::new(NewOutboxJobParams {
-        id: job_id,
-        workspace_id: ws_id,
-        job_type: "AttendanceReport".to_string(),
-        payload: payload,
-        status: "running".to_string(),
-        error_message: None,
-        created_at: chrono::Utc::now() - chrono::Duration::minutes(10),
-        updated_at: chrono::Utc::now() - chrono::Duration::minutes(10),
-    });
+            id: job_id,
+            workspace_id: ws_id,
+            job_type: "AttendanceReport".to_string(),
+            payload,
+            status: "running".to_string(),
+            error_message: None,
+            created_at: chrono::Utc::now() - chrono::Duration::minutes(10),
+            updated_at: chrono::Utc::now() - chrono::Duration::minutes(10),
+        });
 
         let job_clone = job.clone();
         mock_outbox_repo

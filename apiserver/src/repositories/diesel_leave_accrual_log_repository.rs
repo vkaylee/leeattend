@@ -787,7 +787,7 @@ mod tests {
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(ws_id);
         let err = repo
             .persist_accrual(PersistAccrualParams {
-                auth_token: auth_token.clone(),
+                auth_token,
                 workspace_id: ws_id,
                 employment_id: emp_id,
                 assignment_id: Uuid::new_v4(),

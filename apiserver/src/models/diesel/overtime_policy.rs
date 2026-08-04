@@ -1,4 +1,6 @@
-use crate::models::{NewOvertimePolicyAssignmentParams, NewOvertimeRuleParams, OvertimePolicy, OvertimeRule};
+use crate::models::{
+    NewOvertimePolicyAssignmentParams, NewOvertimeRuleParams, OvertimePolicy, OvertimeRule,
+};
 use crate::schema::{overtime_policy_assignments, overtime_policy_definitions, overtime_rules};
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use diesel::prelude::*;

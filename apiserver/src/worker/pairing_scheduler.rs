@@ -152,6 +152,7 @@ impl PairingScheduler {
     /// batch-fetch timezones per workspace, and call `reprocess_attendance_range`
     /// once per employment (which internally batches schedules + logs for the
     /// entire date range).
+    #[allow(clippy::too_many_lines, clippy::type_complexity)]
     async fn sweep(&mut self) -> Result<(), AppError> {
         // 1. Drain the channel
         let mut notifications: Vec<PairingNotification> = Vec::new();
@@ -200,10 +201,8 @@ impl PairingScheduler {
             {
                 Ok(tzs) => tzs,
                 Err(e) => {
-                    let total_punches: u64 = emp_entries
-                        .iter()
-                        .map(|(_, pts)| pts.len() as u64)
-                        .sum();
+                    let total_punches: u64 =
+                        emp_entries.iter().map(|(_, pts)| pts.len() as u64).sum();
                     warn!(
                         workspace_id = %workspace_id,
                         error = %e,
@@ -218,17 +217,16 @@ impl PairingScheduler {
                 let employment_id = *employment_id;
 
                 // Look up timezone from batch result
-                let tz: Tz = match timezones.get(&employment_id) {
-                    Some(tz) => *tz,
-                    None => {
-                        warn!(
-                            workspace_id = %workspace_id,
-                            employment_id = %employment_id,
-                            "Timezone not found in batch result, skipping"
-                        );
-                        skipped += punch_times.len() as u64;
-                        continue;
-                    }
+                let tz: Tz = if let Some(tz) = timezones.get(&employment_id) {
+                    *tz
+                } else {
+                    warn!(
+                        workspace_id = %workspace_id,
+                        employment_id = %employment_id,
+                        "Timezone not found in batch result, skipping"
+                    );
+                    skipped += punch_times.len() as u64;
+                    continue;
                 };
 
                 // Group punch_times by local_date
@@ -257,13 +255,22 @@ impl PairingScheduler {
                 // Determine date range and reprocess once per employment
                 // (reprocess_attendance_range internally batches schedules
                 // and logs for the entire range — no per-date N+1).
-                let min_date = *dates.iter().min().expect("dates non-empty");
-                let max_date = *dates.iter().max().expect("dates non-empty");
+                let (Some(min_date), Some(max_date)) =
+                    (dates.iter().min().copied(), dates.iter().max().copied())
+                else {
+                    continue;
+                };
                 date_groups += 1;
 
                 if let Err(e) = self
                     .pairing_service
-                    .reprocess_attendance_range(*workspace_id, employment_id, min_date, max_date, tz)
+                    .reprocess_attendance_range(
+                        *workspace_id,
+                        employment_id,
+                        min_date,
+                        max_date,
+                        tz,
+                    )
                     .await
                 {
                     warn!(
@@ -352,10 +359,12 @@ mod tests {
             end_date: NaiveDate,
             _tz: Tz,
         ) -> Result<(), AppError> {
-            self.range_calls
-                .lock()
-                .unwrap()
-                .push((workspace_id, employment_id, start_date, end_date));
+            self.range_calls.lock().unwrap().push((
+                workspace_id,
+                employment_id,
+                start_date,
+                end_date,
+            ));
             Ok(())
         }
     }
@@ -372,9 +381,7 @@ mod tests {
         let tz_clone = tz;
         emp_repo
             .expect_get_employee_timezones_batch()
-            .returning(move |_, ids| {
-                Ok(ids.iter().map(|&id| (id, tz_clone)).collect())
-            });
+            .returning(move |_, ids| Ok(ids.iter().map(|&id| (id, tz_clone)).collect()));
 
         let (notifier, rx) = pairing_channel();
         let scheduler = PairingScheduler {
@@ -447,7 +454,7 @@ mod tests {
             .with_timezone(&Utc);
 
         for i in 0..10 {
-            notifier.notify(ws, emp, base_utc + chrono::Duration::minutes(i as i64));
+            notifier.notify(ws, emp, base_utc + chrono::Duration::minutes(i64::from(i)));
         }
 
         scheduler.sweep().await.unwrap();

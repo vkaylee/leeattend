@@ -230,6 +230,7 @@ impl AttendanceLogService {
 
     /// Stage a log for an unknown employee (not found in the system).
     /// Returns Ok(false) — not an error, do not retry.
+    #[allow(clippy::too_many_arguments)]
     async fn stage_unknown_employee(
         &self,
         workspace_id: Uuid,
@@ -268,6 +269,7 @@ impl AttendanceLogService {
     }
 
     /// Stage a parse/validation error log. Returns nothing — always Ok(false) upstream.
+    #[allow(clippy::too_many_arguments)]
     async fn stage_parse_error(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -310,7 +312,6 @@ pub(super) struct ResolveEmploymentParams<'a> {
 }
 
 impl AttendanceLogService {
-
     /// Resolve the employment record for a punch date, staging an error or
     /// ambiguous-employment record when resolution fails.
     ///
@@ -324,7 +325,11 @@ impl AttendanceLogService {
     ) -> Result<Option<Uuid>, crate::errors::AppError> {
         let resolution = match self
             .employment_repo
-            .resolve_employment_on_date(params.auth_token, params.employee_id, params.local_punch_date)
+            .resolve_employment_on_date(
+                params.auth_token,
+                params.employee_id,
+                params.local_punch_date,
+            )
             .await
         {
             Ok(res) => res,
@@ -395,7 +400,6 @@ pub(super) struct BuildPersistLogParams<'a> {
 }
 
 impl AttendanceLogService {
-
     /// Build a RawAttendanceLog, persist it, and trigger post-processing
     /// (fire-and-forget pairing notification on successful insert).
     async fn build_and_persist_log(
@@ -411,8 +415,8 @@ impl AttendanceLogService {
             source: params.source,
             device_id: params.device_id,
             raw_data: params.raw_data,
-            punch: punch,
-            status: status,
+            punch,
+            status,
             created_at: Utc::now(),
         });
 
@@ -465,14 +469,14 @@ impl AttendanceLogService {
 
         let raw_log = RawAttendanceLog::new(NewRawAttendanceLogParams {
             id: new_id(),
-            workspace_id: workspace_id,
-            employment_id: employment_id,
-            punch_time: punch_time,
-            source: source,
-            device_id: device_id,
-            raw_data: raw_data,
-            punch: punch,
-            status: status,
+            workspace_id,
+            employment_id,
+            punch_time,
+            source,
+            device_id,
+            raw_data,
+            punch,
+            status,
             created_at: Utc::now(),
         });
 

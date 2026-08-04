@@ -10,8 +10,8 @@ use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
 use apiserver::services::tenant_provisioner::TenantProvisionerTrait;
 use apiserver::services::AttendanceLogService;
-use apiserver::AppState;
 use apiserver::state::CoreStateParams;
+use apiserver::AppState;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -285,9 +285,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             repo: time_entry_repo.clone(),
             roster_repo: roster_repo.clone(),
             policy_repo: policy_repo.clone(),
-            condition_type_repo: Arc::new(apiserver::repositories::DieselConditionTypeRepository::new(
-                diesel_pools.clone(),
-            )),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             employee_repo: employee_repo.clone(),
             employment_repo: employment_repo.clone(),
             workspace_repo: workspace_repo.clone(),
@@ -554,7 +554,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
                 department_repo: department_repo.clone(),
                 leave_policy_repo: leave_policy_repo.clone(),
                 accrual_log_repo: Arc::new(
-                    apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
+                    apiserver::repositories::DieselLeaveAccrualLogRepository::new(
+                        diesel_pools.clone(),
+                    ),
                 ),
                 time_entry_repo: time_entry_repo.clone(),
                 leave_request_repo: leave_request_repo.clone(),
@@ -1018,9 +1020,9 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
             repo: time_entry_repo.clone(),
             roster_repo: roster_repo.clone(),
             policy_repo: policy_repo.clone(),
-            condition_type_repo: Arc::new(apiserver::repositories::DieselConditionTypeRepository::new(
-                diesel_pools.clone(),
-            )),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             employee_repo: employee_repo.clone(),
             employment_repo: employment_repo.clone(),
             workspace_repo: workspace_repo.clone(),
@@ -1314,7 +1316,9 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
                 department_repo: department_repo.clone(),
                 leave_policy_repo: leave_policy_repo.clone(),
                 accrual_log_repo: Arc::new(
-                    apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
+                    apiserver::repositories::DieselLeaveAccrualLogRepository::new(
+                        diesel_pools.clone(),
+                    ),
                 ),
                 time_entry_repo: time_entry_repo.clone(),
                 leave_request_repo: leave_request_repo.clone(),
@@ -1816,9 +1820,9 @@ pub async fn setup_app_tower_internal_extended(
             repo: time_entry_repo.clone(),
             roster_repo: roster_repo.clone(),
             policy_repo: policy_repo.clone(),
-            condition_type_repo: Arc::new(apiserver::repositories::DieselConditionTypeRepository::new(
-                diesel_pools.clone(),
-            )),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             employee_repo: employee_repo.clone(),
             employment_repo: employment_repo.clone(),
             workspace_repo: workspace_repo.clone(),
@@ -2123,7 +2127,9 @@ pub async fn setup_app_tower_internal_extended(
                 department_repo: department_repo.clone(),
                 leave_policy_repo: leave_policy_repo.clone(),
                 accrual_log_repo: Arc::new(
-                    apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
+                    apiserver::repositories::DieselLeaveAccrualLogRepository::new(
+                        diesel_pools.clone(),
+                    ),
                 ),
                 time_entry_repo: time_entry_repo.clone(),
                 leave_request_repo: leave_request_repo.clone(),

@@ -59,6 +59,7 @@ use uuid::Uuid;
 /// | `"fixed"`           | P4 — fallback via `employee_shifts` (permanent assign) |
 /// | `"none"`            | No shift resolved (day off / no active assignment)     |
 #[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_arguments)]
 pub fn resolve_effective_shift_from_data<S: ::std::hash::BuildHasher>(
     roster_data: &RosterData,
     roster_map: &HashMap<(Uuid, NaiveDate), Option<Uuid>, S>,
@@ -191,6 +192,7 @@ pub fn resolve_effective_shift_from_data<S: ::std::hash::BuildHasher>(
 ///
 /// Returns segments sorted by `scheduled_start`.
 #[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_arguments)]
 pub fn resolve_work_segments_from_data<S: ::std::hash::BuildHasher>(
     roster_data: &RosterData,
     roster_map: &HashMap<(Uuid, NaiveDate), Option<Uuid>, S>,

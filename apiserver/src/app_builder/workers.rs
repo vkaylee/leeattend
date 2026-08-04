@@ -12,6 +12,7 @@ use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
 #[allow(clippy::needless_pass_by_value)]
+#[allow(clippy::too_many_arguments)]
 pub fn build_workers(
     diesel_pools: &DieselPools,
     redis_pool: &Option<RedisPool>,

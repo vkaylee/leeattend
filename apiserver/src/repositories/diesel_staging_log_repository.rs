@@ -430,14 +430,14 @@ impl StagingLogRepository for DieselStagingLogRepository {
 
                 let raw_log = RawAttendanceLog::new(NewRawAttendanceLogParams {
                     id: crate::utils::id::new_id(),
-                    workspace_id: workspace_id,
-                    employment_id: employment_id,
+                    workspace_id,
+                    employment_id,
                     punch_time: staged.punch_time,
                     source: LogSource::Device,
                     device_id: staged.device_id.clone(),
                     raw_data: staged.raw_data.clone(),
-                    punch: punch,
-                    status: status,
+                    punch,
+                    status,
                     created_at: Utc::now(),
                 });
 

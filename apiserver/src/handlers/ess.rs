@@ -247,9 +247,9 @@ pub async fn get_my_attendance(
         .unwrap_or_else(|| crate::utils::tz::utc_now_date_in_tz(&tz));
 
     let from = crate::utils::tz::start_of_day_utc(&tz, start)
-        .map_err(|_| AppError::Internal("Invalid start date".to_string()))?;
+        .map_err(|error| AppError::Internal(format!("Invalid start date: {error}")))?;
     let to = crate::utils::tz::end_of_day_utc(&tz, end)
-        .map_err(|_| AppError::Internal("Invalid end date".to_string()))?;
+        .map_err(|error| AppError::Internal(format!("Invalid end date: {error}")))?;
 
     let emp = state
         .employees()

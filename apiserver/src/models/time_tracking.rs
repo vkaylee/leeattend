@@ -461,7 +461,7 @@ mod tests {
         let shift_id = Uuid::new_v4();
         let now = Utc::now();
         let mut entry = TimeEntry::new(NewTimeEntryParams {
-            id: id,
+            id,
             employment_id: emp_id,
             workspace_id: ws_id,
             shift_id: Some(shift_id),
@@ -520,7 +520,7 @@ mod tests {
         let shift_id = Uuid::new_v4();
         let now = Utc::now();
         let entry = TimeEntryWithEmployee::new(NewTimeEntryWithEmployeeParams {
-            id: id,
+            id,
             employment_id: emp_id,
             workspace_id: ws_id,
             shift_id: Some(shift_id),
