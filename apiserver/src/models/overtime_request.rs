@@ -12,6 +12,39 @@ use std::io::Write;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+pub struct NewOvertimeRequestParams {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub requested_by_user_id: Uuid,
+    pub department_id: Option<Uuid>,
+    pub planned_date: NaiveDate,
+    pub planned_start_time: Option<NaiveTime>,
+    pub planned_end_time: Option<NaiveTime>,
+    pub planned_minutes: i32,
+    pub reason: String,
+    pub status: OtRequestStatus,
+    pub workflow_id: Option<Uuid>,
+    pub current_step: i32,
+    pub quota_warning: Option<serde_json::Value>,
+    pub reconciled_at: Option<DateTime<Utc>>,
+    pub reconciled_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub attachment_file_ids: Option<Vec<Option<Uuid>>>,
+}
+
+pub struct NewOvertimeRequestEmployeeParams {
+    pub id: Uuid,
+    pub overtime_request_id: Uuid,
+    pub employment_id: Uuid,
+    pub consent_status: String,
+    pub consent_at: Option<DateTime<Utc>>,
+    pub decline_reason: Option<String>,
+    pub actual_ot_minutes: Option<i32>,
+    pub matched_summary_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Insertable, ToSchema)]
 #[diesel(table_name = overtime_requests)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -37,46 +70,26 @@ pub struct OvertimeRequest {
 }
 
 impl OvertimeRequest {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        workspace_id: Uuid,
-        requested_by_user_id: Uuid,
-        department_id: Option<Uuid>,
-        planned_date: NaiveDate,
-        planned_start_time: Option<NaiveTime>,
-        planned_end_time: Option<NaiveTime>,
-        planned_minutes: i32,
-        reason: String,
-        status: OtRequestStatus,
-        workflow_id: Option<Uuid>,
-        current_step: i32,
-        quota_warning: Option<serde_json::Value>,
-        reconciled_at: Option<DateTime<Utc>>,
-        reconciled_by: Option<Uuid>,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-        attachment_file_ids: Option<Vec<Option<Uuid>>>,
-    ) -> Self {
+    pub fn new(params: NewOvertimeRequestParams) -> Self {
         Self {
-            id,
-            workspace_id,
-            requested_by_user_id,
-            department_id,
-            planned_date,
-            planned_start_time,
-            planned_end_time,
-            planned_minutes,
-            reason,
-            status,
-            workflow_id,
-            current_step,
-            quota_warning,
-            reconciled_at,
-            reconciled_by,
-            created_at,
-            updated_at,
-            attachment_file_ids,
+            id: params.id,
+            workspace_id: params.workspace_id,
+            requested_by_user_id: params.requested_by_user_id,
+            department_id: params.department_id,
+            planned_date: params.planned_date,
+            planned_start_time: params.planned_start_time,
+            planned_end_time: params.planned_end_time,
+            planned_minutes: params.planned_minutes,
+            reason: params.reason,
+            status: params.status,
+            workflow_id: params.workflow_id,
+            current_step: params.current_step,
+            quota_warning: params.quota_warning,
+            reconciled_at: params.reconciled_at,
+            reconciled_by: params.reconciled_by,
+            created_at: params.created_at,
+            updated_at: params.updated_at,
+            attachment_file_ids: params.attachment_file_ids,
         }
     }
 
@@ -181,28 +194,17 @@ pub struct OvertimeRequestEmployee {
 }
 
 impl OvertimeRequestEmployee {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        overtime_request_id: Uuid,
-        employment_id: Uuid,
-        consent_status: String,
-        consent_at: Option<DateTime<Utc>>,
-        decline_reason: Option<String>,
-        actual_ot_minutes: Option<i32>,
-        matched_summary_id: Option<Uuid>,
-        created_at: DateTime<Utc>,
-    ) -> Self {
+    pub fn new(params: NewOvertimeRequestEmployeeParams) -> Self {
         Self {
-            id,
-            overtime_request_id,
-            consent_status,
-            consent_at,
-            decline_reason,
-            actual_ot_minutes,
-            matched_summary_id,
-            created_at,
-            employment_id,
+            id: params.id,
+            overtime_request_id: params.overtime_request_id,
+            consent_status: params.consent_status,
+            consent_at: params.consent_at,
+            decline_reason: params.decline_reason,
+            actual_ot_minutes: params.actual_ot_minutes,
+            matched_summary_id: params.matched_summary_id,
+            created_at: params.created_at,
+            employment_id: params.employment_id,
         }
     }
 

@@ -254,6 +254,7 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
 mod tests {
     use super::*;
     use crate::diesel_pool::DieselPools;
+    use crate::models::{NewOvertimeRequestEmployeeParams, NewOvertimeRequestParams};
 
     #[tokio::test]
     async fn test_repo_initialization() {
@@ -409,38 +410,38 @@ mod tests {
         drop(conn);
 
         let req_id = Uuid::new_v4();
-        let request = OvertimeRequest::new(
-            req_id,
-            ws_id,
-            Uuid::new_v4(), // requested_by_user_id (no constraint check)
-            None,
-            chrono::NaiveDate::from_ymd_opt(2023, 10, 10).unwrap(),
-            None,
-            None,
-            120,
-            "test reason".to_string(),
-            crate::models::OtRequestStatus::PendingApproval,
-            None,
-            1,
-            None,
-            None,
-            None,
-            chrono::Utc::now(),
-            chrono::Utc::now(),
-            None,
-        );
+        let request = OvertimeRequest::new(NewOvertimeRequestParams {
+            id: req_id,
+            workspace_id: ws_id,
+            requested_by_user_id: Uuid::new_v4(),
+            department_id: None, // requested_by_user_id (no constraint check)
+            planned_date: chrono::NaiveDate::from_ymd_opt(2023, 10, 10).unwrap(),
+            planned_start_time: None,
+            planned_end_time: None,
+            planned_minutes: 120,
+            reason: "test reason".to_string(),
+            status: crate::models::OtRequestStatus::PendingApproval,
+            workflow_id: None,
+            current_step: 1,
+            quota_warning: None,
+            reconciled_at: None,
+            reconciled_by: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            attachment_file_ids: None,
+        });
 
-        let req_employee = OvertimeRequestEmployee::new(
-            Uuid::new_v4(),
-            req_id,
-            emp_id,
-            "pending".to_string(),
-            None,
-            None,
-            None,
-            None,
-            chrono::Utc::now(),
-        );
+        let req_employee = OvertimeRequestEmployee::new(NewOvertimeRequestEmployeeParams {
+            id: Uuid::new_v4(),
+            overtime_request_id: req_id,
+            employment_id: emp_id,
+            consent_status: "pending".to_string(),
+            consent_at: None,
+            decline_reason: None,
+            actual_ot_minutes: None,
+            matched_summary_id: None,
+            created_at: chrono::Utc::now(),
+        });
 
         // 2. Act & Assert: Create request with an employee link
         let created = repo
@@ -519,49 +520,49 @@ mod tests {
         let emp_id = Uuid::new_v4();
 
         let req_id = Uuid::new_v4();
-        let request = OvertimeRequest::new(
-            req_id,
-            ws_id,
-            Uuid::new_v4(),
-            None,
-            chrono::NaiveDate::from_ymd_opt(2023, 10, 10).unwrap(),
-            None,
-            None,
-            120,
-            "test reason".to_string(),
-            crate::models::OtRequestStatus::PendingApproval,
-            None,
-            1,
-            None,
-            None,
-            None,
-            chrono::Utc::now(),
-            chrono::Utc::now(),
-            None,
-        );
+        let request = OvertimeRequest::new(NewOvertimeRequestParams {
+            id: req_id,
+            workspace_id: ws_id,
+            requested_by_user_id: Uuid::new_v4(),
+            department_id: None,
+            planned_date: chrono::NaiveDate::from_ymd_opt(2023, 10, 10).unwrap(),
+            planned_start_time: None,
+            planned_end_time: None,
+            planned_minutes: 120,
+            reason: "test reason".to_string(),
+            status: crate::models::OtRequestStatus::PendingApproval,
+            workflow_id: None,
+            current_step: 1,
+            quota_warning: None,
+            reconciled_at: None,
+            reconciled_by: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            attachment_file_ids: None,
+        });
 
         // 1. Assert workspace mismatch error (runnable even without DB availability)
         let mismatched_ws_id = Uuid::new_v4();
-        let mismatched_request = OvertimeRequest::new(
-            req_id,
-            mismatched_ws_id,
-            Uuid::new_v4(),
-            None,
-            chrono::NaiveDate::from_ymd_opt(2023, 10, 10).unwrap(),
-            None,
-            None,
-            120,
-            "mismatched reason".to_string(),
-            crate::models::OtRequestStatus::PendingApproval,
-            None,
-            1,
-            None,
-            None,
-            None,
-            chrono::Utc::now(),
-            chrono::Utc::now(),
-            None,
-        );
+        let mismatched_request = OvertimeRequest::new(NewOvertimeRequestParams {
+            id: req_id,
+            workspace_id: mismatched_ws_id,
+            requested_by_user_id: Uuid::new_v4(),
+            department_id: None,
+            planned_date: chrono::NaiveDate::from_ymd_opt(2023, 10, 10).unwrap(),
+            planned_start_time: None,
+            planned_end_time: None,
+            planned_minutes: 120,
+            reason: "mismatched reason".to_string(),
+            status: crate::models::OtRequestStatus::PendingApproval,
+            workflow_id: None,
+            current_step: 1,
+            quota_warning: None,
+            reconciled_at: None,
+            reconciled_by: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            attachment_file_ids: None,
+        });
         let create_err = repo
             .create_request(&auth_token, mismatched_request, vec![])
             .await;

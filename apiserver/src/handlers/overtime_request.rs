@@ -4,7 +4,7 @@ use crate::{
     handlers::common::MemberContext,
     models::{
         BehalfAssignment, CreateBehalfAssignmentRequest, Employee, OtRequestStatus,
-        OvertimeRequest, OvertimeRequestEmployee, PaginatedResponse,
+        NewOvertimeRequestEmployeeParams, NewOvertimeRequestParams, OvertimeRequest, OvertimeRequestEmployee, PaginatedResponse,
     },
     utils::i18n::I18nKey,
     AppState,
@@ -92,26 +92,26 @@ pub async fn create_ot_request(
         .attachment_file_ids
         .map(|ids| ids.into_iter().map(Some).collect());
 
-    let request = OvertimeRequest::new(
-        crate::utils::id::new_id(),
-        ctx.workspace_id,
-        ctx.user_id,
-        req.department_id,
-        req.planned_date,
-        req.planned_start_time,
-        req.planned_end_time,
-        req.planned_minutes,
-        req.reason,
-        OtRequestStatus::Draft,
-        None,
-        0,
-        None,
-        None,
-        None,
-        chrono::Utc::now(),
-        chrono::Utc::now(),
-        attachment_file_ids,
-    );
+    let request = OvertimeRequest::new(NewOvertimeRequestParams {
+        id: crate::utils::id::new_id(),
+        workspace_id: ctx.workspace_id,
+        requested_by_user_id: ctx.user_id,
+        department_id: req.department_id,
+        planned_date: req.planned_date,
+        planned_start_time: req.planned_start_time,
+        planned_end_time: req.planned_end_time,
+        planned_minutes: req.planned_minutes,
+        reason: req.reason,
+        status: OtRequestStatus::Draft,
+        workflow_id: None,
+        current_step: 0,
+        quota_warning: None,
+        reconciled_at: None,
+        reconciled_by: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+        attachment_file_ids: attachment_file_ids,
+    });
 
     let employments = state
         .employees()
@@ -126,17 +126,17 @@ pub async fn create_ot_request(
             .find(|e| e.employee_id() == emp_id)
             .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
 
-        employees.push(OvertimeRequestEmployee::new(
-            crate::utils::id::new_id(),
-            request.id(),
-            employment.id(),
-            "pending".to_string(),
-            None,
-            None,
-            None,
-            None,
-            chrono::Utc::now(),
-        ));
+        employees.push(OvertimeRequestEmployee::new(NewOvertimeRequestEmployeeParams {
+            id: crate::utils::id::new_id(),
+            overtime_request_id: request.id(),
+            employment_id: employment.id(),
+            consent_status: "pending".to_string(),
+            consent_at: None,
+            decline_reason: None,
+            actual_ot_minutes: None,
+            matched_summary_id: None,
+            created_at: chrono::Utc::now(),
+        }));
     }
 
     let created = state

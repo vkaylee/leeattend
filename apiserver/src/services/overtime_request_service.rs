@@ -129,6 +129,7 @@ mod tests {
     use super::*;
     use crate::diesel_pool::TenantAuthToken;
     use crate::errors::AppError;
+    use crate::models::{NewOvertimeRequestEmployeeParams, NewOvertimeRequestParams};
     use async_trait::async_trait;
     use chrono::{NaiveDate, NaiveTime, Utc};
 
@@ -175,26 +176,26 @@ mod tests {
             workspace_id: Uuid,
             _request_id: Uuid,
         ) -> Result<Option<OvertimeRequest>, AppError> {
-            let req = OvertimeRequest::new(
-                Uuid::new_v4(),
-                workspace_id,
-                Uuid::new_v4(),
-                None,
-                NaiveDate::from_ymd_opt(2023, 10, 10).unwrap(),
-                Some(NaiveTime::from_hms_opt(18, 0, 0).unwrap()),
-                Some(NaiveTime::from_hms_opt(20, 0, 0).unwrap()),
-                120,
-                "Extra work".to_string(),
-                OtRequestStatus::PendingApproval,
-                None,
-                1,
-                None,
-                None,
-                None,
-                Utc::now(),
-                Utc::now(),
-                None,
-            );
+            let req = OvertimeRequest::new(NewOvertimeRequestParams {
+                id: Uuid::new_v4(),
+                workspace_id: workspace_id,
+                requested_by_user_id: Uuid::new_v4(),
+                department_id: None,
+                planned_date: NaiveDate::from_ymd_opt(2023, 10, 10).unwrap(),
+                planned_start_time: Some(NaiveTime::from_hms_opt(18, 0, 0).unwrap()),
+                planned_end_time: Some(NaiveTime::from_hms_opt(20, 0, 0).unwrap()),
+                planned_minutes: 120,
+                reason: "Extra work".to_string(),
+                status: OtRequestStatus::PendingApproval,
+                workflow_id: None,
+                current_step: 1,
+                quota_warning: None,
+                reconciled_at: None,
+                reconciled_by: None,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+                attachment_file_ids: None,
+            });
             Ok(Some(req))
         }
 
@@ -242,38 +243,38 @@ mod tests {
         let ws_id = Uuid::new_v4();
         let token = TenantAuthToken(ws_id);
 
-        let request = OvertimeRequest::new(
-            Uuid::new_v4(),
-            ws_id,
-            Uuid::new_v4(),
-            None,
-            NaiveDate::from_ymd_opt(2023, 10, 10).unwrap(),
-            Some(NaiveTime::from_hms_opt(18, 0, 0).unwrap()),
-            Some(NaiveTime::from_hms_opt(20, 0, 0).unwrap()),
-            120,
-            "Extra work".to_string(),
-            OtRequestStatus::PendingApproval,
-            None,
-            1,
-            None,
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-            None,
-        );
+        let request = OvertimeRequest::new(NewOvertimeRequestParams {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            requested_by_user_id: Uuid::new_v4(),
+            department_id: None,
+            planned_date: NaiveDate::from_ymd_opt(2023, 10, 10).unwrap(),
+            planned_start_time: Some(NaiveTime::from_hms_opt(18, 0, 0).unwrap()),
+            planned_end_time: Some(NaiveTime::from_hms_opt(20, 0, 0).unwrap()),
+            planned_minutes: 120,
+            reason: "Extra work".to_string(),
+            status: OtRequestStatus::PendingApproval,
+            workflow_id: None,
+            current_step: 1,
+            quota_warning: None,
+            reconciled_at: None,
+            reconciled_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            attachment_file_ids: None,
+        });
 
-        let employee = OvertimeRequestEmployee::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            "pending".to_string(),
-            None,
-            None,
-            None,
-            None,
-            Utc::now(),
-        );
+        let employee = OvertimeRequestEmployee::new(NewOvertimeRequestEmployeeParams {
+            id: Uuid::new_v4(),
+            overtime_request_id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
+            consent_status: "pending".to_string(),
+            consent_at: None,
+            decline_reason: None,
+            actual_ot_minutes: None,
+            matched_summary_id: None,
+            created_at: Utc::now(),
+        });
 
         let result = service
             .create_request(&token, request, vec![employee])
