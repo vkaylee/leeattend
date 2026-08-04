@@ -7,7 +7,7 @@ use diesel_async::RunQueryDsl;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
+#[allow(clippy::too_many_lines)]
 impl DieselRosterRepository {
     pub(super) async fn get_workspace_schedules(
         &self,
