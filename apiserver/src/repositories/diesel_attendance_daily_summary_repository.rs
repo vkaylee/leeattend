@@ -105,19 +105,21 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         execute_upsert_calculated_summary(
             &mut conn,
-            workspace_id,
-            args.employment_id,
-            args.date,
-            args.actual_work_minutes,
-            args.system_detected_ot_minutes,
-            args.standard_minutes,
-            args.early_ot_minutes,
-            args.late_ot_minutes,
-            args.break_ot_minutes,
-            args.is_weekend,
-            args.new_status,
-            args.is_holiday,
-            args.holiday_name,
+            ExecuteUpsertCalculatedSummaryParams {
+                workspace_id,
+                employment_id: args.employment_id,
+                date: args.date,
+                actual_work_minutes: args.actual_work_minutes,
+                system_detected_ot_minutes: args.system_detected_ot_minutes,
+                standard_minutes: args.standard_minutes,
+                early_ot_minutes: args.early_ot_minutes,
+                late_ot_minutes: args.late_ot_minutes,
+                break_ot_minutes: args.break_ot_minutes,
+                is_weekend: args.is_weekend,
+                new_status: args.new_status,
+                is_holiday: args.is_holiday,
+                holiday_name: args.holiday_name,
+            },
         )
         .await
     }
@@ -568,19 +570,21 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
     ) -> Result<(), AppError> {
         execute_upsert_calculated_summary(
             conn,
-            args.workspace_id,
-            args.employment_id,
-            args.date,
-            args.actual_work_minutes,
-            args.system_detected_ot_minutes,
-            args.standard_minutes,
-            args.early_ot_minutes,
-            args.late_ot_minutes,
-            args.break_ot_minutes,
-            args.is_weekend,
-            args.new_status,
-            args.is_holiday,
-            args.holiday_name,
+            ExecuteUpsertCalculatedSummaryParams {
+                workspace_id: args.workspace_id,
+                employment_id: args.employment_id,
+                date: args.date,
+                actual_work_minutes: args.actual_work_minutes,
+                system_detected_ot_minutes: args.system_detected_ot_minutes,
+                standard_minutes: args.standard_minutes,
+                early_ot_minutes: args.early_ot_minutes,
+                late_ot_minutes: args.late_ot_minutes,
+                break_ot_minutes: args.break_ot_minutes,
+                is_weekend: args.is_weekend,
+                new_status: args.new_status,
+                is_holiday: args.is_holiday,
+                holiday_name: args.holiday_name,
+            },
         )
         .await
     }
@@ -599,41 +603,45 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
     }
 }
 
+/// Params for [`execute_upsert_calculated_summary`].
+pub(super) struct ExecuteUpsertCalculatedSummaryParams {
+    pub workspace_id: Uuid,
+    pub employment_id: Uuid,
+    pub date: NaiveDate,
+    pub actual_work_minutes: i32,
+    pub system_detected_ot_minutes: i32,
+    pub standard_minutes: i32,
+    pub early_ot_minutes: i32,
+    pub late_ot_minutes: i32,
+    pub break_ot_minutes: i32,
+    pub is_weekend: bool,
+    pub new_status: OtStatus,
+    pub is_holiday: bool,
+    pub holiday_name: Option<String>,
+}
+
 /// Core logic for upserting a single calculated daily summary.
-#[allow(clippy::too_many_arguments)]
 async fn execute_upsert_calculated_summary(
     conn: &mut AsyncPgConnection,
-    workspace_id: Uuid,
-    employment_id: Uuid,
-    date: NaiveDate,
-    actual_work_minutes: i32,
-    system_detected_ot_minutes: i32,
-    standard_minutes: i32,
-    early_ot_minutes: i32,
-    late_ot_minutes: i32,
-    break_ot_minutes: i32,
-    is_weekend: bool,
-    new_status: OtStatus,
-    is_holiday: bool,
-    holiday_name: Option<String>,
+    params: ExecuteUpsertCalculatedSummaryParams,
 ) -> Result<(), AppError> {
     use crate::schema::attendance_daily_summaries::dsl as ads;
 
     diesel::insert_into(ads::attendance_daily_summaries)
         .values((
-            ads::workspace_id.eq(workspace_id),
-            ads::employment_id.eq(employment_id),
-            ads::date.eq(date),
-            ads::actual_work_minutes.eq(actual_work_minutes),
-            ads::system_detected_ot_minutes.eq(system_detected_ot_minutes),
-            ads::standard_minutes.eq(standard_minutes),
-            ads::early_ot_minutes.eq(early_ot_minutes),
-            ads::late_ot_minutes.eq(late_ot_minutes),
-            ads::break_ot_minutes.eq(break_ot_minutes),
-            ads::is_weekend.eq(is_weekend),
-            ads::ot_status.eq(new_status),
-            ads::is_holiday.eq(is_holiday),
-            ads::holiday_name.eq(holiday_name),
+            ads::workspace_id.eq(params.workspace_id),
+            ads::employment_id.eq(params.employment_id),
+            ads::date.eq(params.date),
+            ads::actual_work_minutes.eq(params.actual_work_minutes),
+            ads::system_detected_ot_minutes.eq(params.system_detected_ot_minutes),
+            ads::standard_minutes.eq(params.standard_minutes),
+            ads::early_ot_minutes.eq(params.early_ot_minutes),
+            ads::late_ot_minutes.eq(params.late_ot_minutes),
+            ads::break_ot_minutes.eq(params.break_ot_minutes),
+            ads::is_weekend.eq(params.is_weekend),
+            ads::ot_status.eq(params.new_status),
+            ads::is_holiday.eq(params.is_holiday),
+            ads::holiday_name.eq(params.holiday_name),
         ))
         .on_conflict((ads::employment_id, ads::date))
         .do_update()
