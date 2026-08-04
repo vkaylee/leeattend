@@ -387,21 +387,21 @@ mod recalculate_daily_summary_leave_tests {
     }
 
     fn test_workspace(workspace_id: Uuid) -> Workspace {
-        Workspace::new(
-            workspace_id,
-            "Test".to_string(),
-            "YYYY-MM-DD".to_string(),
-            "HH:mm".to_string(),
-            "UTC".to_string(),
-            "indigo".to_string(),
-            "vi".to_string(),
-            None,
-            None,
-            "std".to_string(),
-            rust_decimal::Decimal::ONE,
-            Utc::now(),
-            None,
-        )
+        Workspace::new(NewWorkspaceParams {
+            id: workspace_id,
+            name: "Test".to_string(),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: "indigo".to_string(),
+            default_language: "vi".to_string(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "std".to_string(),
+            default_holiday_ot_multiplier: rust_decimal::Decimal::ONE,
+            created_at: Utc::now(),
+            custom_db_url_encrypted: None,
+        })
     }
 
     #[tokio::test]
@@ -1384,21 +1384,21 @@ mod persist_workbuckets_tests {
     use chrono::Utc;
 
     fn test_workspace(workspace_id: Uuid) -> Workspace {
-        Workspace::new(
-            workspace_id,
-            "Test".to_string(),
-            "YYYY-MM-DD".to_string(),
-            "HH:mm".to_string(),
-            "UTC".to_string(),
-            "indigo".to_string(),
-            "vi".to_string(),
-            None,
-            None,
-            "std".to_string(),
-            rust_decimal::Decimal::ONE,
-            Utc::now(),
-            None,
-        )
+        Workspace::new(NewWorkspaceParams {
+            id: workspace_id,
+            name: "Test".to_string(),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: "indigo".to_string(),
+            default_language: "vi".to_string(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "std".to_string(),
+            default_holiday_ot_multiplier: rust_decimal::Decimal::ONE,
+            created_at: Utc::now(),
+            custom_db_url_encrypted: None,
+        })
     }
 
     /// Monday 2024-01-01 → is_weekend must be false
@@ -1954,21 +1954,21 @@ mod compute_execute_plan_tests {
     }
 
     fn make_workspace(workspace_id: Uuid) -> Workspace {
-        Workspace::new(
-            workspace_id,
-            "Test".to_string(),
-            "YYYY-MM-DD".to_string(),
-            "HH:mm".to_string(),
-            "UTC".to_string(),
-            "indigo".to_string(),
-            "vi".to_string(),
-            None,
-            None,
-            "std".to_string(),
-            rust_decimal::Decimal::ONE,
-            Utc::now(),
-            None,
-        )
+        Workspace::new(NewWorkspaceParams {
+            id: workspace_id,
+            name: "Test".to_string(),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: "indigo".to_string(),
+            default_language: "vi".to_string(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "std".to_string(),
+            default_holiday_ot_multiplier: rust_decimal::Decimal::ONE,
+            created_at: Utc::now(),
+            custom_db_url_encrypted: None,
+        })
     }
 
     fn make_approved_leave(

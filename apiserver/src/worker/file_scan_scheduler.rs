@@ -207,21 +207,21 @@ mod tests {
 
         // 1. Mock get_all_workspaces to return one workspace
         let ws_id = uuid::Uuid::new_v4();
-        let workspace = Workspace::new(
-            ws_id,
-            "Test Workspace".to_string(),
-            "YYYY-MM-DD".to_string(),
-            "HH:mm:ss".to_string(),
-            "UTC".to_string(),
-            "#000000".to_string(),
-            "en".to_string(),
-            None,
-            None,
-            "ignore".to_string(),
-            rust_decimal::Decimal::ZERO,
-            chrono::Utc::now(),
-            None,
-        );
+        let workspace = Workspace::new(NewWorkspaceParams {
+            id: ws_id,
+            name: "Test Workspace".to_string(),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm:ss".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: "#000000".to_string(),
+            default_language: "en".to_string(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "ignore".to_string(),
+            default_holiday_ot_multiplier: rust_decimal::Decimal::ZERO,
+            created_at: chrono::Utc::now(),
+            custom_db_url_encrypted: None,
+        });
         ws_repo
             .expect_get_all_workspaces()
             .times(1)

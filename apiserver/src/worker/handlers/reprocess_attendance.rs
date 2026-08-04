@@ -257,21 +257,21 @@ mod tests {
             crate::repositories::workspace_repository::MockWorkspaceRepository::new();
         workspace_repo.expect_get_workspace_by_id().returning(|_| {
             Box::pin(async {
-                Ok(Some(crate::models::Workspace::new(
-                    Uuid::new_v4(),
-                    "test".to_string(),
-                    "YYYY-MM-DD".to_string(),
-                    "HH:mm".to_string(),
-                    "UTC".to_string(),
-                    "#ffffff".to_string(),
-                    "en".to_string(),
-                    None,
-                    None,
-                    "split".to_string(),
-                    rust_decimal::Decimal::new(100, 2),
-                    Utc::now(),
-                    None,
-                )))
+                Ok(Some(crate::models::Workspace::new(NewWorkspaceParams {
+            id: Uuid::new_v4(),
+            name: "test".to_string(),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: "#ffffff".to_string(),
+            default_language: "en".to_string(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "split".to_string(),
+            default_holiday_ot_multiplier: rust_decimal::Decimal::new(100, 2),
+            created_at: Utc::now(),
+            custom_db_url_encrypted: None,
+        })))
             })
         });
 
@@ -556,21 +556,21 @@ mod tests {
             crate::repositories::workspace_repository::MockWorkspaceRepository::new();
         workspace_repo.expect_get_workspace_by_id().returning(|_| {
             Box::pin(async {
-                Ok(Some(crate::models::Workspace::new(
-                    Uuid::new_v4(),
-                    "test".to_string(),
-                    "YYYY-MM-DD".to_string(),
-                    "HH:mm".to_string(),
-                    "UTC".to_string(),
-                    "#ffffff".to_string(),
-                    "en".to_string(),
-                    None,
-                    None,
-                    "split".to_string(),
-                    rust_decimal::Decimal::new(100, 2),
-                    Utc::now(),
-                    None,
-                )))
+                Ok(Some(crate::models::Workspace::new(NewWorkspaceParams {
+            id: Uuid::new_v4(),
+            name: "test".to_string(),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: "#ffffff".to_string(),
+            default_language: "en".to_string(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "split".to_string(),
+            default_holiday_ot_multiplier: rust_decimal::Decimal::new(100, 2),
+            created_at: Utc::now(),
+            custom_db_url_encrypted: None,
+        })))
             })
         });
 
@@ -707,21 +707,21 @@ mod tests {
             crate::repositories::workspace_repository::MockWorkspaceRepository::new();
         workspace_repo.expect_get_workspace_by_id().returning(|_| {
             Box::pin(async {
-                Ok(Some(crate::models::Workspace::new(
-                    Uuid::new_v4(),
-                    "test".to_string(),
-                    "YYYY-MM-DD".to_string(),
-                    "HH:mm".to_string(),
-                    "UTC".to_string(),
-                    "#ffffff".to_string(),
-                    "en".to_string(),
-                    None,
-                    None,
-                    "split".to_string(),
-                    rust_decimal::Decimal::new(100, 2),
-                    Utc::now(),
-                    None,
-                )))
+                Ok(Some(crate::models::Workspace::new(NewWorkspaceParams {
+            id: Uuid::new_v4(),
+            name: "test".to_string(),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: "#ffffff".to_string(),
+            default_language: "en".to_string(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "split".to_string(),
+            default_holiday_ot_multiplier: rust_decimal::Decimal::new(100, 2),
+            created_at: Utc::now(),
+            custom_db_url_encrypted: None,
+        })))
             })
         });
 

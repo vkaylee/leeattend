@@ -181,21 +181,21 @@ mod tests {
             .with(mockall::predicate::eq(ws_id))
             .returning(move |_| {
                 Box::pin(async move {
-                    Ok(Some(Workspace::new(
-                        ws_id,
-                        "LeeAttend Corp Test".to_string(),
-                        "dd/MM/yyyy".to_string(),
-                        "HH:mm".to_string(),
-                        "Asia/Ho_Chi_Minh".to_string(),
-                        "#ff0000".to_string(),
-                        "vi".to_string(),
-                        None,
-                        None,
-                        "none".to_string(),
-                        Decimal::new(15, 1),
-                        Utc::now(),
-                        None,
-                    )))
+                    Ok(Some(Workspace::new(NewWorkspaceParams {
+            id: ws_id,
+            name: "LeeAttend Corp Test".to_string(),
+            date_format: "dd/MM/yyyy".to_string(),
+            time_format: "HH:mm".to_string(),
+            timezone: "Asia/Ho_Chi_Minh".to_string(),
+            theme_primary_color: "#ff0000".to_string(),
+            default_language: "vi".to_string(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "none".to_string(),
+            default_holiday_ot_multiplier: Decimal::new(15, 1),
+            created_at: Utc::now(),
+            custom_db_url_encrypted: None,
+        })))
                 })
             });
 

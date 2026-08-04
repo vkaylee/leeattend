@@ -651,21 +651,21 @@ mod tests {
             .with(mockall::predicate::always())
             .returning(move |id| {
                 Box::pin(async move {
-                    Ok(Some(crate::models::Workspace::new(
-                        id,
-                        "Test WS".into(),
-                        "YYYY-MM-DD".into(),
-                        "HH:mm:ss".into(),
-                        "UTC".into(),
-                        String::new(),
-                        "en".into(),
-                        None,
-                        None,
-                        "split".into(),
-                        Default::default(),
-                        chrono::Utc::now(),
-                        None,
-                    )))
+                    Ok(Some(crate::models::Workspace::new(NewWorkspaceParams {
+            id: id,
+            name: "Test WS".into(),
+            date_format: "YYYY-MM-DD".into(),
+            time_format: "HH:mm:ss".into(),
+            timezone: "UTC".into(),
+            theme_primary_color: String::new(),
+            default_language: "en".into(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "split".into(),
+            default_holiday_ot_multiplier: Default::default(),
+            created_at: chrono::Utc::now(),
+            custom_db_url_encrypted: None,
+        })))
                 })
             });
 
@@ -766,21 +766,21 @@ mod tests {
             .expect_get_workspace_by_id()
             .returning(|_| {
                 Box::pin(async {
-                    Ok(Some(crate::models::Workspace::new(
-                        Uuid::new_v4(),
-                        "Test WS".into(),
-                        "YYYY-MM-DD".into(),
-                        "HH:mm:ss".into(),
-                        "UTC".into(),
-                        String::new(),
-                        "en".into(),
-                        None,
-                        None,
-                        "split".into(),
-                        Default::default(),
-                        chrono::Utc::now(),
-                        None,
-                    )))
+                    Ok(Some(crate::models::Workspace::new(NewWorkspaceParams {
+            id: Uuid::new_v4(),
+            name: "Test WS".into(),
+            date_format: "YYYY-MM-DD".into(),
+            time_format: "HH:mm:ss".into(),
+            timezone: "UTC".into(),
+            theme_primary_color: String::new(),
+            default_language: "en".into(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "split".into(),
+            default_holiday_ot_multiplier: Default::default(),
+            created_at: chrono::Utc::now(),
+            custom_db_url_encrypted: None,
+        })))
                 })
             });
 

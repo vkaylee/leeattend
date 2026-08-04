@@ -325,21 +325,21 @@ mod tests {
 
     fn dummy_workspace() -> Workspace {
         use rust_decimal::Decimal;
-        Workspace::new(
-            Uuid::new_v4(),
-            "Acme Corp".into(),
-            "DD/MM/YYYY".into(),
-            "HH:mm".into(),
-            "Asia/Ho_Chi_Minh".into(),
-            "#000".into(),
-            "vi".into(),
-            None,
-            None,
-            "split".into(),
-            Decimal::new(15, 1),
-            Utc::now(),
-            None,
-        )
+        Workspace::new(NewWorkspaceParams {
+            id: Uuid::new_v4(),
+            name: "Acme Corp".into(),
+            date_format: "DD/MM/YYYY".into(),
+            time_format: "HH:mm".into(),
+            timezone: "Asia/Ho_Chi_Minh".into(),
+            theme_primary_color: "#000".into(),
+            default_language: "vi".into(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "split".into(),
+            default_holiday_ot_multiplier: Decimal::new(15, 1),
+            created_at: Utc::now(),
+            custom_db_url_encrypted: None,
+        })
     }
 
     // ── NopWorkspaceRepo ────────────────────────────────────────────────────

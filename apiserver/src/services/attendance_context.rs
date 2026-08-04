@@ -327,21 +327,21 @@ mod tests {
         let start = NaiveDate::from_ymd_opt(2026, 3, 1).unwrap();
         let end = NaiveDate::from_ymd_opt(2026, 3, 31).unwrap();
 
-        let workspace = crate::models::Workspace::new(
-            Uuid::new_v4(),
-            "Test WS".to_string(),
-            "YYYY-MM-DD".to_string(),
-            "HH:mm:ss".to_string(),
-            "UTC".to_string(),
-            "#000".to_string(),
-            "en".to_string(),
-            None,
-            None,
-            "SplitAtMidnight".to_string(),
-            rust_decimal::Decimal::new(15, 1),
-            Utc::now(),
-            None,
-        );
+        let workspace = crate::models::Workspace::new(NewWorkspaceParams {
+            id: Uuid::new_v4(),
+            name: "Test WS".to_string(),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm:ss".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: "#000".to_string(),
+            default_language: "en".to_string(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "SplitAtMidnight".to_string(),
+            default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
+            created_at: Utc::now(),
+            custom_db_url_encrypted: None,
+        });
 
         let pc = PayrollContext {
             employee_id: emp_id,

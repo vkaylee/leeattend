@@ -215,21 +215,21 @@ mod tests {
             .with(mockall::predicate::eq(ws_id))
             .returning(move |id| {
                 Box::pin(async move {
-                    Ok(Some(Workspace::new(
-                        id,
-                        "Test Workspace".to_string(),
-                        "YYYY-MM-DD".to_string(),
-                        "HH:mm:ss".to_string(),
-                        "UTC".to_string(),
-                        String::new(),
-                        "en".to_string(),
-                        None,
-                        None,
-                        "split".to_string(),
-                        Default::default(),
-                        chrono::Utc::now(),
-                        None,
-                    )))
+                    Ok(Some(Workspace::new(NewWorkspaceParams {
+            id: id,
+            name: "Test Workspace".to_string(),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm:ss".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: String::new(),
+            default_language: "en".to_string(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "split".to_string(),
+            default_holiday_ot_multiplier: Default::default(),
+            created_at: chrono::Utc::now(),
+            custom_db_url_encrypted: None,
+        })))
                 })
             });
         let workspace_repo = Arc::new(mock_workspace_repo);

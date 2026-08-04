@@ -1,4 +1,4 @@
-use crate::models::{MemberExtraRole, User, Workspace, WorkspaceMember, WorkspaceRole};
+use crate::models::{MemberExtraRole, NewWorkspaceParams, NewWorkspaceRoleParams, User, Workspace, WorkspaceMember, WorkspaceRole};
 use crate::schema::{
     dashboard_preferences, member_extra_roles, notifications, system_roles, user_system_roles,
     users, workspace_members, workspace_roles, workspaces,
@@ -116,23 +116,23 @@ pub struct WorkspaceEntity {
 
 impl From<WorkspaceEntity> for Workspace {
     fn from(entity: WorkspaceEntity) -> Self {
-        Workspace::new(
-            entity.id,
-            entity.name,
-            entity.date_format,
-            entity.time_format,
-            entity.timezone,
-            entity
+        Workspace::new(NewWorkspaceParams {
+            id: entity.id,
+            name: entity.name,
+            date_format: entity.date_format,
+            time_format: entity.time_format,
+            timezone: entity.timezone,
+            theme_primary_color: entity
                 .theme_primary_color
                 .unwrap_or_else(|| "#1890ff".to_string()),
-            entity.default_language,
-            entity.logo_url,
-            entity.tagline,
-            "split_at_midnight".to_string(),
-            rust_decimal::Decimal::new(30, 1), // 3.0
-            entity.created_at.unwrap_or_else(Utc::now),
-            entity.custom_db_url_encrypted,
-        )
+            default_language: entity.default_language,
+            logo_url: entity.logo_url,
+            tagline: entity.tagline,
+            holiday_overnight_strategy: "split_at_midnight".to_string(),
+            default_holiday_ot_multiplier: rust_decimal::Decimal::new(30, 1), // 3.0
+            created_at: entity.created_at.unwrap_or_else(Utc::now),
+            custom_db_url_encrypted: entity.custom_db_url_encrypted,
+        })
     }
 }
 
@@ -191,18 +191,18 @@ pub struct WorkspaceRoleEntity {
 impl From<WorkspaceRoleEntity> for WorkspaceRole {
     fn from(entity: WorkspaceRoleEntity) -> Self {
         use std::str::FromStr;
-        WorkspaceRole::new(
-            entity.id,
-            entity.workspace_id,
-            entity.name,
-            entity.description,
-            entity.color.unwrap_or_else(|| "#000000".to_string()),
-            entity.is_system.unwrap_or(false),
-            crate::models::enums::RoleScopeType::from_str(&entity.scope_type)
+        WorkspaceRole::new(NewWorkspaceRoleParams {
+            id: entity.id,
+            workspace_id: entity.workspace_id,
+            name: entity.name,
+            description: entity.description,
+            color: entity.color.unwrap_or_else(|| "#000000".to_string()),
+            is_system: entity.is_system.unwrap_or(false),
+            scope_type: crate::models::enums::RoleScopeType::from_str(&entity.scope_type)
                 .unwrap_or(crate::models::enums::RoleScopeType::Scoped),
-            entity.created_at.unwrap_or_else(Utc::now),
-            entity.updated_at.unwrap_or_else(Utc::now),
-        )
+            created_at: entity.created_at.unwrap_or_else(Utc::now),
+            updated_at: entity.updated_at.unwrap_or_else(Utc::now),
+        })
     }
 }
 

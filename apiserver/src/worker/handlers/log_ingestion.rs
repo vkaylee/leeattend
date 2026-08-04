@@ -170,21 +170,21 @@ mod tests {
             .returning(move |_| {
                 use rust_decimal::Decimal;
                 Box::pin(async move {
-                    Ok(Some(crate::models::Workspace::new(
-                        ws_id,
-                        "Test Workspace".to_string(),
-                        "YYYY-MM-DD".to_string(),
-                        "HH:mm".to_string(),
-                        "UTC".to_string(),
-                        "#000000".to_string(),
-                        "en".to_string(),
-                        None,
-                        None,
-                        "NextDay".to_string(),
-                        Decimal::new(100, 2),
-                        chrono::Utc::now(),
-                        None,
-                    )))
+                    Ok(Some(crate::models::Workspace::new(NewWorkspaceParams {
+            id: ws_id,
+            name: "Test Workspace".to_string(),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: "#000000".to_string(),
+            default_language: "en".to_string(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "NextDay".to_string(),
+            default_holiday_ot_multiplier: Decimal::new(100, 2),
+            created_at: chrono::Utc::now(),
+            custom_db_url_encrypted: None,
+        })))
                 })
             });
 

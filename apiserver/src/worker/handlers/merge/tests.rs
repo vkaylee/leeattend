@@ -568,21 +568,21 @@ async fn test_merge_handler_handle_inner_with_mocks() {
         .expect_get_workspace_by_id()
         .returning(move |_| {
             Box::pin(async move {
-                let ws = crate::models::Workspace::new(
-                    ws_id,
-                    "Test Workspace".to_string(),
-                    "YYYY-MM-DD".to_string(),
-                    "HH:mm".to_string(),
-                    "UTC".to_string(),
-                    "#000000".to_string(),
-                    "en".to_string(),
-                    None,
-                    None,
-                    "split".to_string(),
-                    rust_decimal::Decimal::new(15, 1),
-                    Utc::now(),
-                    None,
-                );
+                let ws = crate::models::Workspace::new(NewWorkspaceParams {
+            id: ws_id,
+            name: "Test Workspace".to_string(),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: "#000000".to_string(),
+            default_language: "en".to_string(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "split".to_string(),
+            default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
+            created_at: Utc::now(),
+            custom_db_url_encrypted: None,
+        });
                 Ok(Some(ws))
             })
         });
@@ -725,21 +725,21 @@ async fn test_merge_handler_handle_inner_detail_with_mocks() {
         .expect_get_workspace_by_id()
         .returning(move |_| {
             Box::pin(async move {
-                let ws = crate::models::Workspace::new(
-                    ws_id,
-                    "Test Workspace".to_string(),
-                    "YYYY-MM-DD".to_string(),
-                    "HH:mm".to_string(),
-                    "UTC".to_string(),
-                    "#000000".to_string(),
-                    "en".to_string(),
-                    None,
-                    None,
-                    "split".to_string(),
-                    rust_decimal::Decimal::new(15, 1),
-                    Utc::now(),
-                    None,
-                );
+                let ws = crate::models::Workspace::new(NewWorkspaceParams {
+            id: ws_id,
+            name: "Test Workspace".to_string(),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: "#000000".to_string(),
+            default_language: "en".to_string(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "split".to_string(),
+            default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
+            created_at: Utc::now(),
+            custom_db_url_encrypted: None,
+        });
                 Ok(Some(ws))
             })
         });

@@ -737,21 +737,21 @@ mod tests {
             _owner_id: Uuid,
             _custom_db_url_encrypted: Option<String>,
         ) -> Result<crate::models::Workspace, AppError> {
-            Ok(crate::models::Workspace::new(
-                _id,
-                name.to_string(),
-                "YYYY-MM-DD".to_string(),
-                "HH:mm:ss".to_string(),
-                "UTC".to_string(),
-                "#000000".to_string(),
-                "en".to_string(),
-                None,
-                None,
-                "standard".to_string(),
-                rust_decimal::Decimal::from(1),
-                Utc::now(),
-                None,
-            ))
+            Ok(crate::models::Workspace::new(NewWorkspaceParams {
+            id: _id,
+            name: name.to_string(),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm:ss".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: "#000000".to_string(),
+            default_language: "en".to_string(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "standard".to_string(),
+            default_holiday_ot_multiplier: rust_decimal::Decimal::from(1),
+            created_at: Utc::now(),
+            custom_db_url_encrypted: None,
+        }))
         }
         async fn get_workspace_by_id(
             &self,

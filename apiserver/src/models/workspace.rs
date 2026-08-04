@@ -192,37 +192,38 @@ pub struct Workspace {
     custom_db_url_encrypted: Option<String>,
 }
 
+pub struct NewWorkspaceParams {
+    pub id: Uuid,
+    pub name: String,
+    pub date_format: String,
+    pub time_format: String,
+    pub timezone: String,
+    pub theme_primary_color: String,
+    pub default_language: String,
+    pub logo_url: Option<String>,
+    pub tagline: Option<String>,
+    pub holiday_overnight_strategy: String,
+    pub default_holiday_ot_multiplier: Decimal,
+    pub created_at: DateTime<Utc>,
+    pub custom_db_url_encrypted: Option<String>,
+}
+
 impl Workspace {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        name: String,
-        date_format: String,
-        time_format: String,
-        timezone: String,
-        theme_primary_color: String,
-        default_language: String,
-        logo_url: Option<String>,
-        tagline: Option<String>,
-        holiday_overnight_strategy: String,
-        default_holiday_ot_multiplier: Decimal,
-        created_at: DateTime<Utc>,
-        custom_db_url_encrypted: Option<String>,
-    ) -> Self {
+    pub fn new(params: NewWorkspaceParams) -> Self {
         Self {
-            id,
-            name,
-            date_format,
-            time_format,
-            timezone,
-            theme_primary_color,
-            default_language,
-            logo_url,
-            tagline,
-            holiday_overnight_strategy,
-            default_holiday_ot_multiplier,
-            created_at,
-            custom_db_url_encrypted,
+            id: params.id,
+            name: params.name,
+            date_format: params.date_format,
+            time_format: params.time_format,
+            timezone: params.timezone,
+            theme_primary_color: params.theme_primary_color,
+            default_language: params.default_language,
+            logo_url: params.logo_url,
+            tagline: params.tagline,
+            holiday_overnight_strategy: params.holiday_overnight_strategy,
+            default_holiday_ot_multiplier: params.default_holiday_ot_multiplier,
+            created_at: params.created_at,
+            custom_db_url_encrypted: params.custom_db_url_encrypted,
         }
     }
 
@@ -545,29 +546,30 @@ pub struct WorkspaceRole {
     updated_at: DateTime<Utc>,
 }
 
+pub struct NewWorkspaceRoleParams {
+    pub id: Uuid,
+    pub workspace_id: Option<Uuid>,
+    pub name: String,
+    pub description: Option<String>,
+    pub color: String,
+    pub is_system: bool,
+    pub scope_type: RoleScopeType,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 impl WorkspaceRole {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        workspace_id: Option<Uuid>,
-        name: String,
-        description: Option<String>,
-        color: String,
-        is_system: bool,
-        scope_type: RoleScopeType,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-    ) -> Self {
+    pub fn new(params: NewWorkspaceRoleParams) -> Self {
         Self {
-            id,
-            workspace_id,
-            name,
-            description,
-            color,
-            is_system,
-            scope_type,
-            created_at,
-            updated_at,
+            id: params.id,
+            workspace_id: params.workspace_id,
+            name: params.name,
+            description: params.description,
+            color: params.color,
+            is_system: params.is_system,
+            scope_type: params.scope_type,
+            created_at: params.created_at,
+            updated_at: params.updated_at,
         }
     }
 

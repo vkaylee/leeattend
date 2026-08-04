@@ -1429,21 +1429,21 @@ mod tests {
     }
 
     fn mock_workspace(id: Uuid) -> crate::models::Workspace {
-        crate::models::Workspace::new(
-            id,
-            "Test Workspace".into(),
-            "YYYY-MM-DD".into(),
-            "HH:mm:ss".into(),
-            "UTC".into(),
-            "#000000".into(),
-            "vi".into(),
-            None,
-            None,
-            "split".into(),
-            rust_decimal::Decimal::new(15, 1),
-            Utc::now(),
-            None,
-        )
+        crate::models::Workspace::new(NewWorkspaceParams {
+            id: id,
+            name: "Test Workspace".into(),
+            date_format: "YYYY-MM-DD".into(),
+            time_format: "HH:mm:ss".into(),
+            timezone: "UTC".into(),
+            theme_primary_color: "#000000".into(),
+            default_language: "vi".into(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "split".into(),
+            default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
+            created_at: Utc::now(),
+            custom_db_url_encrypted: None,
+        })
     }
 
     #[test]
