@@ -224,18 +224,20 @@ mod tests {
         end: Option<&str>,
         days: i32,
     ) -> OvertimeRule {
-        OvertimeRule::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
+        OvertimeRule::new(NewOvertimeRuleParams {
+            id: Uuid::new_v4(),
+            policy_id: Uuid::new_v4(),
             priority,
             multiplier,
-            start.map(|s| NaiveTime::parse_from_str(s, "%H:%M:%S").expect("valid mock time")),
-            end.map(|s| NaiveTime::parse_from_str(s, "%H:%M:%S").expect("valid mock time")),
-            days,
-            false,
-            None,
-            None,
-        )
+            time_start: start
+                .map(|s| NaiveTime::parse_from_str(s, "%H:%M:%S").expect("valid mock time")),
+            time_end: end
+                .map(|s| NaiveTime::parse_from_str(s, "%H:%M:%S").expect("valid mock time")),
+            days_of_week: days,
+            is_holiday: false,
+            created_at: None,
+            updated_at: None,
+        })
     }
 
     #[test]

@@ -71,31 +71,32 @@ pub struct OvertimeRule {
     updated_at: Option<DateTime<Utc>>,
 }
 
+pub struct NewOvertimeRuleParams {
+    pub id: Uuid,
+    pub policy_id: Uuid,
+    pub priority: i32,
+    pub multiplier: rust_decimal::Decimal,
+    pub time_start: Option<NaiveTime>,
+    pub time_end: Option<NaiveTime>,
+    pub days_of_week: i32,
+    pub is_holiday: bool,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
 impl OvertimeRule {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        policy_id: Uuid,
-        priority: i32,
-        multiplier: rust_decimal::Decimal,
-        time_start: Option<NaiveTime>,
-        time_end: Option<NaiveTime>,
-        days_of_week: i32,
-        is_holiday: bool,
-        created_at: Option<DateTime<Utc>>,
-        updated_at: Option<DateTime<Utc>>,
-    ) -> Self {
+    pub fn new(params: NewOvertimeRuleParams) -> Self {
         Self {
-            id,
-            policy_id,
-            priority,
-            multiplier,
-            time_start,
-            time_end,
-            days_of_week,
-            is_holiday,
-            created_at,
-            updated_at,
+            id: params.id,
+            policy_id: params.policy_id,
+            priority: params.priority,
+            multiplier: params.multiplier,
+            time_start: params.time_start,
+            time_end: params.time_end,
+            days_of_week: params.days_of_week,
+            is_holiday: params.is_holiday,
+            created_at: params.created_at,
+            updated_at: params.updated_at,
         }
     }
 
@@ -156,27 +157,28 @@ pub struct OvertimePolicyAssignment {
     created_at: Option<DateTime<Utc>>,
 }
 
+pub struct NewOvertimePolicyAssignmentParams {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub assignee_type: String,
+    pub assignee_id: Option<Uuid>,
+    pub policy_id: Uuid,
+    pub effective_from: NaiveDate,
+    pub effective_to: Option<NaiveDate>,
+    pub created_at: Option<DateTime<Utc>>,
+}
+
 impl OvertimePolicyAssignment {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        workspace_id: Uuid,
-        assignee_type: String,
-        assignee_id: Option<Uuid>,
-        policy_id: Uuid,
-        effective_from: NaiveDate,
-        effective_to: Option<NaiveDate>,
-        created_at: Option<DateTime<Utc>>,
-    ) -> Self {
+    pub fn new(params: NewOvertimePolicyAssignmentParams) -> Self {
         Self {
-            id,
-            workspace_id,
-            assignee_type,
-            assignee_id,
-            policy_id,
-            effective_from,
-            effective_to,
-            created_at,
+            id: params.id,
+            workspace_id: params.workspace_id,
+            assignee_type: params.assignee_type,
+            assignee_id: params.assignee_id,
+            policy_id: params.policy_id,
+            effective_from: params.effective_from,
+            effective_to: params.effective_to,
+            created_at: params.created_at,
         }
     }
 
@@ -232,29 +234,30 @@ pub struct BehalfAssignment {
     target_department_name: Option<String>,
 }
 
+pub struct NewBehalfAssignmentParams {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub assignee_user_id: Uuid,
+    pub target_employee_id: Option<Uuid>,
+    pub target_department_id: Option<Uuid>,
+    pub assignment_type: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub employer_id: Option<Uuid>,
+}
+
 impl BehalfAssignment {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        workspace_id: Uuid,
-        assignee_user_id: Uuid,
-        target_employee_id: Option<Uuid>,
-        target_department_id: Option<Uuid>,
-        assignment_type: String,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-        employer_id: Option<Uuid>,
-    ) -> Self {
+    pub fn new(params: NewBehalfAssignmentParams) -> Self {
         Self {
-            id,
-            workspace_id,
-            assignee_user_id,
-            target_employee_id,
-            target_department_id,
-            assignment_type,
-            created_at,
-            updated_at,
-            employer_id,
+            id: params.id,
+            workspace_id: params.workspace_id,
+            assignee_user_id: params.assignee_user_id,
+            target_employee_id: params.target_employee_id,
+            target_department_id: params.target_department_id,
+            assignment_type: params.assignment_type,
+            created_at: params.created_at,
+            updated_at: params.updated_at,
+            employer_id: params.employer_id,
             assignee_name: None,
             assignee_employee_id_number: None,
             target_employee_name: None,

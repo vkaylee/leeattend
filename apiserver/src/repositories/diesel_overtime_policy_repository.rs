@@ -402,18 +402,18 @@ mod tests {
         assert!(list.iter().any(|p| p.id() == policy.id()));
 
         // 3. Add rules
-        let rule = OvertimeRule::new(
-            Uuid::new_v4(),
-            policy.id(),
-            1,                                 // priority
-            rust_decimal::Decimal::new(15, 1), // multiplier = 1.5
-            NaiveTime::from_hms_opt(8, 0, 0),  // start
-            NaiveTime::from_hms_opt(17, 0, 0), // end
-            127,                               // days of week
-            false,                             // is holiday
-            None,
-            None,
-        );
+        let rule = OvertimeRule::new(NewOvertimeRuleParams {
+            id: Uuid::new_v4(),
+            policy_id: policy.id(),
+            priority: 1,
+            multiplier: rust_decimal::Decimal::new(15, 1),
+            time_start: NaiveTime::from_hms_opt(8, 0, 0),
+            time_end: NaiveTime::from_hms_opt(17, 0, 0),
+            days_of_week: 127,
+            is_holiday: false,
+            created_at: None,
+            updated_at: None,
+        });
         let added_rule = repo.add_rule(ws_id, &rule).await.unwrap();
         assert_eq!(added_rule.priority(), 1);
 

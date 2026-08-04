@@ -592,16 +592,18 @@ async fn test_process_segment_attendance_with_overtime_pay() {
     };
 
     let rules = vec![crate::models::OvertimeRule::new(
-        Uuid::new_v4(),
-        policy_id,
-        1,
-        Decimal::new(20, 1), // 2.0x
-        Some(NaiveTime::from_hms_opt(18, 0, 0).unwrap()),
-        Some(NaiveTime::from_hms_opt(22, 0, 0).unwrap()),
-        127,
-        false,
-        None,
-        None,
+        crate::models::NewOvertimeRuleParams {
+            id: Uuid::new_v4(),
+            policy_id,
+            priority: 1,
+            multiplier: Decimal::new(20, 1), // 2.0x
+            time_start: Some(NaiveTime::from_hms_opt(18, 0, 0).unwrap()),
+            time_end: Some(NaiveTime::from_hms_opt(22, 0, 0).unwrap()),
+            days_of_week: 127,
+            is_holiday: false,
+            created_at: None,
+            updated_at: None,
+        },
     )];
 
     let mut policies = HashMap::new();
@@ -616,14 +618,16 @@ async fn test_process_segment_attendance_with_overtime_pay() {
     policies.insert(policy_id, (overtime_policy, rules.clone()));
 
     let assignments = vec![crate::models::OvertimePolicyAssignment::new(
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        "employee".to_string(),
-        Some(employee_id),
-        policy_id,
-        date,
-        None,
-        Some(chrono::Utc::now()),
+        crate::models::NewOvertimePolicyAssignmentParams {
+            id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            assignee_type: "employee".to_string(),
+            assignee_id: Some(employee_id),
+            policy_id,
+            effective_from: date,
+            effective_to: None,
+            created_at: Some(chrono::Utc::now()),
+        },
     )];
 
     let overtime_data = crate::repositories::overtime_policy_repository::WorkspaceOvertimeData {

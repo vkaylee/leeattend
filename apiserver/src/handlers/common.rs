@@ -981,17 +981,17 @@ mod tests {
         target_employee_id: Option<Uuid>,
         target_department_id: Option<Uuid>,
     ) -> crate::models::BehalfAssignment {
-        crate::models::BehalfAssignment::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            Uuid::new_v4(),
+        crate::models::BehalfAssignment::new(crate::models::NewBehalfAssignmentParams {
+            id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            assignee_user_id: Uuid::new_v4(),
             target_employee_id,
             target_department_id,
-            "leave_request".to_string(),
-            chrono::Utc::now(),
-            chrono::Utc::now(),
-            None,
-        )
+            assignment_type: "leave_request".to_string(),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            employer_id: None,
+        })
     }
 
     #[test]

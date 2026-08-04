@@ -2,7 +2,7 @@ use crate::{
     domain::permissions::Permission,
     errors::{AppError, AppResult},
     handlers::common::MemberContext,
-    models::{OvertimePolicy, OvertimeRule},
+    models::{NewOvertimeRuleParams, OvertimePolicy, OvertimeRule},
     utils::i18n::I18nKey,
     AppState,
 };
@@ -151,18 +151,18 @@ pub async fn add_rule(
 ) -> AppResult<Json<OvertimeRule>> {
     let (_workspace_id, policy_id) = params;
     ctx.require_permission(Permission::OvertimePoliciesManage)?;
-    let rule = OvertimeRule::new(
-        crate::utils::id::new_id(),
+    let rule = OvertimeRule::new(NewOvertimeRuleParams {
+        id: crate::utils::id::new_id(),
         policy_id,
-        req.priority,
-        req.multiplier,
-        req.time_start,
-        req.time_end,
-        req.days_of_week,
-        req.is_holiday,
-        None,
-        None,
-    );
+        priority: req.priority,
+        multiplier: req.multiplier,
+        time_start: req.time_start,
+        time_end: req.time_end,
+        days_of_week: req.days_of_week,
+        is_holiday: req.is_holiday,
+        created_at: None,
+        updated_at: None,
+    });
 
     let created = state
         .payroll()
