@@ -299,6 +299,13 @@ impl AuthService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::errors::AppError;
+    use crate::models::diesel::core::SessionEntity;
+    use crate::models::{NewUserParams, User};
+    use crate::repositories::session_repository::MockSessionRepository;
+    use crate::repositories::user_repository::MockUserRepository;
+    use chrono::{Duration, Utc};
+    use std::sync::Arc;
 
     const TEST_SECRET: &str = "test-secret-key-for-jwt-testing-32chars";
 
@@ -413,5 +420,64 @@ mod tests {
         let (valid, needs_rehash) = AuthService::verify_password("anything", legacy_hash);
         assert!(!valid);
         assert!(!needs_rehash);
+    }
+
+    #[tokio::test]
+    async fn test_refresh_does_not_rotate_when_system_role_lookup_fails() {
+        let user_id = Uuid::new_v4();
+        let session_id = Uuid::new_v4();
+        let refresh_token = "refresh-token-for-role-error";
+        let session = SessionEntity {
+            id: session_id,
+            user_id,
+            token: refresh_token.to_string(),
+            expires_at: Utc::now() + Duration::hours(1),
+            created_at: Some(Utc::now()),
+            revoked_at: None,
+        };
+        let user = User::new(NewUserParams {
+            id: user_id,
+            email: "test@example.com".to_string(),
+            password_hash: "hash".to_string(),
+            created_at: Utc::now(),
+            full_name: Some("Test User".to_string()),
+            avatar_url: None,
+            bio: None,
+            preferred_language: Some("vi".to_string()),
+            avatar_file_id: None,
+        });
+
+        let session = Arc::new(std::sync::Mutex::new(Some(session)));
+        let mut session_repo = MockSessionRepository::new();
+        session_repo
+            .expect_get_session_by_token()
+            .returning(move |_| {
+                let mut guard = session
+                    .lock()
+                    .map_err(|_| AppError::Internal("session fixture lock poisoned".to_string()))?;
+                Ok(guard.take())
+            });
+        session_repo
+            .expect_rotate_refresh_token()
+            .times(0);
+
+        let user = Arc::new(std::sync::Mutex::new(Some(user)));
+        let mut user_repo = MockUserRepository::new();
+        user_repo
+            .expect_get_user_by_id()
+            .returning(move |_| {
+                let mut guard = user
+                    .lock()
+                    .map_err(|_| AppError::Internal("user fixture lock poisoned".to_string()))?;
+                Ok(guard.take())
+            });
+        user_repo
+            .expect_get_system_roles_for_user()
+            .returning(|_| Err(AppError::Internal("role lookup failed".to_string())));
+
+        let service = AuthService::new(Arc::new(user_repo), Arc::new(session_repo), None);
+        let result = service.refresh_session(refresh_token, TEST_SECRET).await;
+
+        assert!(result.is_err());
     }
 }

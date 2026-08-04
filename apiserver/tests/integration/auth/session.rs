@@ -216,6 +216,38 @@ async fn test_refresh_token_api() {
 }
 
 #[tokio::test]
+async fn test_refresh_token_api_uses_httponly_cookie_without_json_body() {
+    let (_test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+    let user_id = factory.user().create().await;
+    let refresh_token = state
+        .core()
+        .auth_service()
+        .create_session(user_id)
+        .await
+        .unwrap();
+
+    let response = app
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri("/api/v1/auth/refresh")
+                .header("Cookie", format!("refresh_token={refresh_token}"))
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let set_cookie_headers: Vec<_> = response.headers().get_all("set-cookie").iter().collect();
+    assert!(
+        set_cookie_headers.len() >= 2,
+        "Expected rotated access and refresh cookies"
+    );
+}
+
+#[tokio::test]
 async fn test_invalid_refresh_token() {
     let (_test_db, _factory, state, _app): (
         TestDatabase,
