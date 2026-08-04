@@ -2,6 +2,7 @@ use crate::models::{
     AssignPatternRequest, BulkAssignPatternRequest, BulkAssignResponse,
     CreateWorkingPatternRequest, EmployeeWorkingPattern, WorkingPattern, WorkingPatternDetail,
 };
+use crate::repositories::working_pattern_repository::UpdatePatternWithDetailsArgs;
 use chrono::{NaiveTime, Timelike};
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -231,15 +232,15 @@ pub async fn update_working_pattern(
     }
 
     let pattern = repo
-        .update_pattern_with_details(
+        .update_pattern_with_details(UpdatePatternWithDetailsArgs {
             workspace_id,
             pattern_id,
-            &req.name,
-            req.description.as_deref(),
+            name: &req.name,
+            description: req.description.as_deref(),
             pattern_type,
-            req.cycle_length_days,
-            details_to_insert,
-        )
+            cycle_length_days: req.cycle_length_days,
+            details: details_to_insert,
+        })
         .await?;
 
     Ok(pattern)

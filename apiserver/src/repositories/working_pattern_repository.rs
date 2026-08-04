@@ -7,6 +7,16 @@ use uuid::Uuid;
 use crate::errors::AppError;
 use async_trait::async_trait;
 
+pub struct UpdatePatternWithDetailsArgs<'a> {
+    pub workspace_id: Uuid,
+    pub pattern_id: Uuid,
+    pub name: &'a str,
+    pub description: Option<&'a str>,
+    pub pattern_type: &'a str,
+    pub cycle_length_days: Option<i32>,
+    pub details: Vec<(i32, Option<Uuid>)>,
+}
+
 #[async_trait]
 pub trait WorkingPatternRepositoryTrait: Send + Sync {
     async fn create_pattern_with_details(
@@ -19,16 +29,9 @@ pub trait WorkingPatternRepositoryTrait: Send + Sync {
         details: Vec<(i32, Option<Uuid>)>, // (schedule_day, shift_id)
     ) -> Result<WorkingPattern, AppError>;
 
-    #[allow(clippy::too_many_arguments)]
     async fn update_pattern_with_details(
         &self,
-        workspace_id: Uuid,
-        pattern_id: Uuid,
-        name: &str,
-        description: Option<&str>,
-        pattern_type: &str,
-        cycle_length_days: Option<i32>,
-        details: Vec<(i32, Option<Uuid>)>, // (schedule_day, shift_id)
+        args: UpdatePatternWithDetailsArgs<'_>,
     ) -> Result<WorkingPattern, AppError>;
 
     async fn get_patterns(&self, workspace_id: Uuid) -> Result<Vec<WorkingPattern>, AppError>;

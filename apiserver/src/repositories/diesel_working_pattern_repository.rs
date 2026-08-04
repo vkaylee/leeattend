@@ -30,7 +30,7 @@ macro_rules! map_db_err {
     };
 }
 
-use crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait;
+use crate::repositories::working_pattern_repository::{UpdatePatternWithDetailsArgs, WorkingPatternRepositoryTrait};
 use async_trait::async_trait;
 
 #[async_trait]
@@ -100,31 +100,29 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         Ok(result.into())
     }
 
-    #[allow(clippy::too_many_arguments)]
     async fn update_pattern_with_details(
         &self,
-        workspace_id: Uuid,
-        pattern_id: Uuid,
-        name: &str,
-        description: Option<&str>,
-        pattern_type: &str,
-        cycle_length_days: Option<i32>,
-        details: Vec<(i32, Option<Uuid>)>,
+        args: UpdatePatternWithDetailsArgs<'_>,
     ) -> Result<WorkingPattern, AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
-                .get_connection(&workspace_id)
+                .get_connection(&args.workspace_id)
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let name_owned = name.to_string();
-        let description_owned = description.map(ToString::to_string);
-        let pattern_type_owned = pattern_type.to_string();
+        let name_owned = args.name.to_string();
+        let description_owned = args.description.map(ToString::to_string);
+        let pattern_type_owned = args.pattern_type.to_string();
+        let pattern_id = args.pattern_id;
+
+        let workspace_id = args.workspace_id;
+        let cycle_length_days_val = args.cycle_length_days;
+        let details = args.details;
 
         let result = conn
-            .transaction(|conn| {
+            .transaction(move |conn| {
                 Box::pin(async move {
                     let pattern_entity = diesel::update(
                         working_patterns::table
@@ -135,7 +133,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                         working_patterns::name.eq(&name_owned),
                         working_patterns::description.eq(&description_owned),
                         working_patterns::pattern_type.eq(&pattern_type_owned),
-                        working_patterns::cycle_length_days.eq(cycle_length_days),
+                        working_patterns::cycle_length_days.eq(cycle_length_days_val),
                     ))
                     .returning(WorkingPatternEntity::as_returning())
                     .get_result::<WorkingPatternEntity>(&mut *conn)
@@ -432,15 +430,15 @@ mod tests {
         assert!(err.is_err());
 
         let err = repo
-            .update_pattern_with_details(
-                ws_id,
-                Uuid::new_v4(),
-                "Name",
-                None,
-                "weekly",
-                None,
-                vec![],
-            )
+            .update_pattern_with_details(UpdatePatternWithDetailsArgs {
+                workspace_id: ws_id,
+                pattern_id: Uuid::new_v4(),
+                name: "Name",
+                description: None,
+                pattern_type: "weekly",
+                cycle_length_days: None,
+                details: vec![],
+            })
             .await;
         assert!(err.is_err());
 
