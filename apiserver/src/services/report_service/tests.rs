@@ -308,22 +308,22 @@ mod segment_break_split_tests {
         punch_in_utc: chrono::DateTime<Utc>,
         punch_out_utc: chrono::DateTime<Utc>,
     ) -> TimeEntry {
-        TimeEntry::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            None,
-            None,
-            punch_in_utc,
-            Some(punch_out_utc),
-            None,
-            false,
-            EntryType::Work,
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-        )
+        TimeEntry::new(NewTimeEntryParams {
+            id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            shift_id: None,
+            segment_id: None,
+            punch_in_time: punch_in_utc,
+            punch_out_time: Some(punch_out_utc),
+            duration_minutes: None,
+            is_break_overtime: false,
+            entry_type: EntryType::Work,
+            note: None,
+            generation_metadata: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        })
     }
 
     #[test]
@@ -561,24 +561,22 @@ mod segment_break_split_tests {
         punch_out_utc: chrono::DateTime<Utc>,
         split_half: &str,
     ) -> TimeEntry {
-        TimeEntry::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            None,
-            None,
-            punch_in_utc,
-            Some(punch_out_utc),
-            None,
-            false,
-            EntryType::Work,
-            None,
-            Some(serde_json::json!({
-                "break_split": split_half
-            })),
-            Utc::now(),
-            Utc::now(),
-        )
+        TimeEntry::new(NewTimeEntryParams {
+            id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            shift_id: None,
+            segment_id: None,
+            punch_in_time: punch_in_utc,
+            punch_out_time: Some(punch_out_utc),
+            duration_minutes: None,
+            is_break_overtime: false,
+            entry_type: EntryType::Work,
+            note: None,
+            generation_metadata: Some(serde_json::json!({ "break_split": split_half })),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        })
     }
 
     fn make_vp_segment() -> ResolvedSegment {

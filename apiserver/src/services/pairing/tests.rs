@@ -1030,22 +1030,22 @@ async fn test_reprocess_daily_attendance_excludes_already_paired_logs() {
     let test_date = NaiveDate::from_ymd_opt(2026, 6, 19).unwrap();
     let log_time = Utc.with_ymd_and_hms(2026, 6, 19, 10, 0, 0).unwrap();
     let adjacent_time = log_time - chrono::Duration::days(1);
-    let adjacent_entry = TimeEntry::new(
-        Uuid::new_v4(),
-        emp_id,
-        ws_id,
-        None,
-        None,
-        adjacent_time,
-        None,
-        None,
-        false,
-        crate::services::pairing::types::EntryType::Work,
-        None,
-        Some(serde_json::json!({ "log_ids": vec![paired_log_id.to_string()] })),
-        adjacent_time,
-        adjacent_time,
-    );
+    let adjacent_entry = TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: emp_id,
+        workspace_id: ws_id,
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: adjacent_time,
+        punch_out_time: None,
+        duration_minutes: None,
+        is_break_overtime: false,
+        entry_type: crate::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: Some(serde_json::json!({ "log_ids": vec![paired_log_id.to_string()] })),
+        created_at: adjacent_time,
+        updated_at: adjacent_time,
+    });
     mock_time_entry_repo
         .expect_get_employment_time_entries()
         .times(1)

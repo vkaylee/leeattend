@@ -27,22 +27,22 @@ async fn test_process_segment_attendance_no_shift_fallback() {
         .unwrap()
         .and_utc();
 
-    let entry = TimeEntry::new(
-        Uuid::new_v4(),
-        employee_id,
-        ws_id,
-        None,
-        None,
-        punch_in,
-        Some(punch_out),
-        Some(240),
-        false,
-        crate::services::pairing::types::EntryType::Work,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-    );
+    let entry = TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: employee_id,
+        workspace_id: ws_id,
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: punch_in,
+        punch_out_time: Some(punch_out),
+        duration_minutes: Some(240),
+        is_break_overtime: false,
+        entry_type: crate::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    });
 
     let mut daily_entries_map = HashMap::new();
     daily_entries_map.insert(Utc::now().date_naive(), vec![entry]);
@@ -118,22 +118,22 @@ async fn test_process_segment_attendance_with_shift_matching() {
     let punch_in = date.and_hms_opt(9, 0, 0).unwrap().and_utc();
     let punch_out = date.and_hms_opt(18, 0, 0).unwrap().and_utc();
 
-    let entry = TimeEntry::new(
-        Uuid::new_v4(),
-        employee_id,
-        ws_id,
-        None,
-        None,
-        punch_in,
-        Some(punch_out),
-        Some(540),
-        false,
-        crate::services::pairing::types::EntryType::Work,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-    );
+    let entry = TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: employee_id,
+        workspace_id: ws_id,
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: punch_in,
+        punch_out_time: Some(punch_out),
+        duration_minutes: Some(540),
+        is_break_overtime: false,
+        entry_type: crate::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    });
 
     let mut daily_entries_map = HashMap::new();
     daily_entries_map.insert(date, vec![entry]);
@@ -339,22 +339,22 @@ async fn test_process_segment_attendance_holiday_work_compensation() {
     let punch_in = date.and_hms_opt(9, 0, 0).unwrap().and_utc();
     let punch_out = date.and_hms_opt(18, 0, 0).unwrap().and_utc();
 
-    let entry = TimeEntry::new(
-        Uuid::new_v4(),
-        employee_id,
-        ws_id,
-        None,
-        None,
-        punch_in,
-        Some(punch_out),
-        Some(540),
-        false,
-        crate::services::pairing::types::EntryType::Work,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-    );
+    let entry = TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: employee_id,
+        workspace_id: ws_id,
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: punch_in,
+        punch_out_time: Some(punch_out),
+        duration_minutes: Some(540),
+        is_break_overtime: false,
+        entry_type: crate::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    });
 
     let mut daily_entries_map = HashMap::new();
     daily_entries_map.insert(date, vec![entry]);
@@ -504,22 +504,22 @@ async fn test_process_segment_attendance_with_overtime_pay() {
     let punch_in = date.and_hms_opt(9, 0, 0).unwrap().and_utc();
     let punch_out = date.and_hms_opt(20, 0, 0).unwrap().and_utc();
 
-    let entry = TimeEntry::new(
-        Uuid::new_v4(),
-        employee_id,
-        ws_id,
-        None,
-        None,
-        punch_in,
-        Some(punch_out),
-        Some(660),
-        false,
-        crate::services::pairing::types::EntryType::Work,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-    );
+    let entry = TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: employee_id,
+        workspace_id: ws_id,
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: punch_in,
+        punch_out_time: Some(punch_out),
+        duration_minutes: Some(660),
+        is_break_overtime: false,
+        entry_type: crate::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    });
 
     let mut daily_entries_map = HashMap::new();
     daily_entries_map.insert(date, vec![entry]);
@@ -688,22 +688,22 @@ async fn test_process_segment_attendance_with_shift_break_is_overtime(
     let punch_in = date.and_hms_opt(9, 0, 0).ok_or("invalid time")?.and_utc();
     let punch_out = date.and_hms_opt(18, 0, 0).ok_or("invalid time")?.and_utc();
 
-    let entry = TimeEntry::new(
-        Uuid::new_v4(),
-        employee_id,
-        ws_id,
-        None,
-        None,
-        punch_in,
-        Some(punch_out),
-        Some(540),
-        false,
-        crate::services::pairing::types::EntryType::Work,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-    );
+    let entry = TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: employee_id,
+        workspace_id: ws_id,
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: punch_in,
+        punch_out_time: Some(punch_out),
+        duration_minutes: Some(540),
+        is_break_overtime: false,
+        entry_type: crate::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    });
 
     let mut daily_entries_map = HashMap::new();
     daily_entries_map.insert(date, vec![entry]);
@@ -823,22 +823,22 @@ async fn test_resolve_day_context_no_employments_graceful_skip() {
     let punch_in = date.and_hms_opt(9, 0, 0).unwrap().and_utc();
     let punch_out = date.and_hms_opt(18, 0, 0).unwrap().and_utc();
 
-    let entry = TimeEntry::new(
-        Uuid::new_v4(),
-        employee_id,
-        Uuid::new_v4(),
-        None,
-        None,
-        punch_in,
-        Some(punch_out),
-        Some(540),
-        false,
-        crate::services::pairing::types::EntryType::Work,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-    );
+    let entry = TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: employee_id,
+        workspace_id: Uuid::new_v4(),
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: punch_in,
+        punch_out_time: Some(punch_out),
+        duration_minutes: Some(540),
+        is_break_overtime: false,
+        entry_type: crate::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    });
 
     let mut daily_entries_map = HashMap::new();
     daily_entries_map.insert(date, vec![entry]);
@@ -899,22 +899,22 @@ async fn test_resolve_day_context_inactive_employment_falls_back_to_first() {
     let punch_in = date.and_hms_opt(9, 0, 0).unwrap().and_utc();
     let punch_out = date.and_hms_opt(13, 0, 0).unwrap().and_utc();
 
-    let entry = TimeEntry::new(
-        Uuid::new_v4(),
-        employee_id,
-        ws_id,
-        None,
-        None,
-        punch_in,
-        Some(punch_out),
-        Some(240),
-        false,
-        crate::services::pairing::types::EntryType::Work,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-    );
+    let entry = TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: employee_id,
+        workspace_id: ws_id,
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: punch_in,
+        punch_out_time: Some(punch_out),
+        duration_minutes: Some(240),
+        is_break_overtime: false,
+        entry_type: crate::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    });
 
     let mut daily_entries_map = HashMap::new();
     daily_entries_map.insert(date, vec![entry]);
@@ -996,22 +996,22 @@ async fn test_resolve_day_context_with_active_employment_still_works() {
     let punch_in = date.and_hms_opt(9, 0, 0).unwrap().and_utc();
     let punch_out = date.and_hms_opt(13, 0, 0).unwrap().and_utc();
 
-    let entry = TimeEntry::new(
-        Uuid::new_v4(),
-        employee_id,
-        ws_id,
-        None,
-        None,
-        punch_in,
-        Some(punch_out),
-        Some(240),
-        false,
-        crate::services::pairing::types::EntryType::Work,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-    );
+    let entry = TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: employee_id,
+        workspace_id: ws_id,
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: punch_in,
+        punch_out_time: Some(punch_out),
+        duration_minutes: Some(240),
+        is_break_overtime: false,
+        entry_type: crate::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    });
 
     let mut daily_entries_map = HashMap::new();
     daily_entries_map.insert(date, vec![entry]);

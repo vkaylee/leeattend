@@ -654,22 +654,22 @@ mod tests {
         punch_out: chrono::DateTime<Utc>,
         duration: i32,
     ) -> TimeEntry {
-        TimeEntry::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            None,
-            None,
-            punch_in,
-            Some(punch_out),
-            Some(duration),
-            false,
-            EntryType::Work,
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-        )
+        TimeEntry::new(NewTimeEntryParams {
+            id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            shift_id: None,
+            segment_id: None,
+            punch_in_time: punch_in,
+            punch_out_time: Some(punch_out),
+            duration_minutes: Some(duration),
+            is_break_overtime: false,
+            entry_type: EntryType::Work,
+            note: None,
+            generation_metadata: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        })
     }
 
     fn mock_break_entry(
@@ -677,22 +677,22 @@ mod tests {
         punch_out: chrono::DateTime<Utc>,
         duration: i32,
     ) -> TimeEntry {
-        TimeEntry::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            None,
-            None,
-            punch_in,
-            Some(punch_out),
-            Some(duration),
-            false,
-            EntryType::Break,
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-        )
+        TimeEntry::new(NewTimeEntryParams {
+            id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            shift_id: None,
+            segment_id: None,
+            punch_in_time: punch_in,
+            punch_out_time: Some(punch_out),
+            duration_minutes: Some(duration),
+            is_break_overtime: false,
+            entry_type: EntryType::Break,
+            note: None,
+            generation_metadata: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        })
     }
 
     /// Build a schedule with a scheduled break duration (no fixed break frame).
@@ -1429,22 +1429,22 @@ mod tests {
             #[test]
             fn break_entry_zero_duration() {
                 // Break entry with duration_minutes=None should contribute 0
-                let entry = TimeEntry::new(
-                    Uuid::new_v4(),
-                    Uuid::new_v4(),
-                    Uuid::new_v4(),
-                    None,
-                    None,
-                    dt(12, 0),
-                    Some(dt(13, 0)),
-                    None, // duration = None → unwrap_or(0)
-                    false,
-                    EntryType::Break,
-                    None,
-                    None,
-                    Utc::now(),
-                    Utc::now(),
-                );
+                let entry = TimeEntry::new(NewTimeEntryParams {
+                    id: Uuid::new_v4(),
+                    employment_id: Uuid::new_v4(),
+                    workspace_id: Uuid::new_v4(),
+                    shift_id: None,
+                    segment_id: None,
+                    punch_in_time: dt(12, 0),
+                    punch_out_time: Some(dt(13, 0)),
+                    duration_minutes: None,
+                    is_break_overtime: false,
+                    entry_type: EntryType::Break,
+                    note: None,
+                    generation_metadata: None,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                });
                 let r = ComputeDailyInputBuilder::new()
                     .entries(vec![
                         mock_work_entry(dt(8, 0), dt(12, 0), 240),
@@ -1509,22 +1509,22 @@ mod tests {
 
             #[test]
             fn missing_punch_out_returns_none() {
-                let entry = TimeEntry::new(
-                    Uuid::new_v4(),
-                    Uuid::new_v4(),
-                    Uuid::new_v4(),
-                    None,
-                    None,
-                    dt(8, 0),
-                    None, // no punch_out
-                    None,
-                    false,
-                    EntryType::Work,
-                    None,
-                    None,
-                    Utc::now(),
-                    Utc::now(),
-                );
+                let entry = TimeEntry::new(NewTimeEntryParams {
+                    id: Uuid::new_v4(),
+                    employment_id: Uuid::new_v4(),
+                    workspace_id: Uuid::new_v4(),
+                    shift_id: None,
+                    segment_id: None,
+                    punch_in_time: dt(8, 0),
+                    punch_out_time: None,
+                    duration_minutes: None,
+                    is_break_overtime: false,
+                    entry_type: EntryType::Work,
+                    note: None,
+                    generation_metadata: None,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                });
                 let r = ComputeDailyInputBuilder::new()
                     .entries(vec![entry])
                     .compute();
@@ -2416,22 +2416,22 @@ mod tests {
                 is_holiday_paid: false,
                 holiday_name: None,
             });
-            let entry = TimeEntry::new(
-                Uuid::new_v4(),
-                Uuid::new_v4(),
-                Uuid::new_v4(),
-                None,
-                None,
-                hcm_8am,
-                Some(hcm_5pm),
-                Some(dur),
-                false,
-                EntryType::Work,
-                None,
-                None,
-                Utc::now(),
-                Utc::now(),
-            );
+            let entry = TimeEntry::new(NewTimeEntryParams {
+                id: Uuid::new_v4(),
+                employment_id: Uuid::new_v4(),
+                workspace_id: Uuid::new_v4(),
+                shift_id: None,
+                segment_id: None,
+                punch_in_time: hcm_8am,
+                punch_out_time: Some(hcm_5pm),
+                duration_minutes: Some(dur),
+                is_break_overtime: false,
+                entry_type: EntryType::Work,
+                note: None,
+                generation_metadata: None,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            });
             let rules = mock_rules();
 
             let entry_refs: Vec<&TimeEntry> = vec![&entry];
@@ -2521,22 +2521,22 @@ mod tests {
 
         #[test]
         fn overtime_entries_not_summed_as_breaks() {
-            let ot_entry = TimeEntry::new(
-                Uuid::new_v4(),
-                Uuid::new_v4(),
-                Uuid::new_v4(),
-                None,
-                None,
-                dt(17, 0),
-                Some(dt(18, 0)),
-                Some(60),
-                false,
-                EntryType::Overtime,
-                None,
-                None,
-                Utc::now(),
-                Utc::now(),
-            );
+            let ot_entry = TimeEntry::new(NewTimeEntryParams {
+                id: Uuid::new_v4(),
+                employment_id: Uuid::new_v4(),
+                workspace_id: Uuid::new_v4(),
+                shift_id: None,
+                segment_id: None,
+                punch_in_time: dt(17, 0),
+                punch_out_time: Some(dt(18, 0)),
+                duration_minutes: Some(60),
+                is_break_overtime: false,
+                entry_type: EntryType::Overtime,
+                note: None,
+                generation_metadata: None,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            });
             let r = ComputeDailyInputBuilder::new()
                 .entries(vec![
                     mock_work_entry(dt(8, 0), dt(12, 0), 240),

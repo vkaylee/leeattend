@@ -1,5 +1,5 @@
 use crate::errors::AppError;
-use crate::models::{RawAttendanceLog, ResolvedSegment, TimeEntry};
+use crate::models::{NewTimeEntryParams, RawAttendanceLog, ResolvedSegment, TimeEntry};
 use crate::services::pairing::types::{
     LogEvent, MultiSegmentConfig, PairedSession, PairingContext, PairingShiftConfig,
 };
@@ -182,22 +182,22 @@ impl PairingContext {
                 map.insert("schedule_traces".to_string(), traces.clone());
             }
 
-            new_entries.push(TimeEntry::new(
-                crate::utils::id::new_id(),
-                employment_id,
-                workspace_id,
-                shift_id_opt,
-                None,
-                start_dt_utc,
-                end_dt_utc,
-                duration,
-                session.is_break_overtime(),
-                *session.entry_type(),
-                session.note().map(std::string::ToString::to_string),
-                Some(final_metadata),
-                Utc::now(),
-                Utc::now(),
-            ));
+            new_entries.push(TimeEntry::new(NewTimeEntryParams {
+                id: crate::utils::id::new_id(),
+                employment_id: employment_id,
+                workspace_id: workspace_id,
+                shift_id: shift_id_opt,
+                segment_id: None,
+                punch_in_time: start_dt_utc,
+                punch_out_time: end_dt_utc,
+                duration_minutes: duration,
+                is_break_overtime: session.is_break_overtime(),
+                entry_type: *session.entry_type(),
+                note: session.note().map(std::string::ToString::to_string),
+                generation_metadata: Some(final_metadata),
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            }));
         }
         Ok(new_entries)
     }

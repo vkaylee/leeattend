@@ -1585,22 +1585,22 @@ mod tests {
         punch_out_utc: Option<chrono::DateTime<Utc>>,
         entry_type: crate::services::pairing::types::EntryType,
     ) -> TimeEntry {
-        TimeEntry::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            None,
-            None,
-            punch_in_utc,
-            punch_out_utc,
-            Some(60),
-            false,
-            entry_type,
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-        )
+        TimeEntry::new(NewTimeEntryParams {
+            id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            shift_id: None,
+            segment_id: None,
+            punch_in_time: punch_in_utc,
+            punch_out_time: punch_out_utc,
+            duration_minutes: Some(60),
+            is_break_overtime: false,
+            entry_type: entry_type,
+            note: None,
+            generation_metadata: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        })
     }
 
     fn make_test_segment(start_h: u32, start_m: u32, end_h: u32, end_m: u32) -> ResolvedSegment {

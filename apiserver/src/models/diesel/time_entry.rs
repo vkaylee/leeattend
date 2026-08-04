@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::models::TimeEntry;
+use crate::models::{NewTimeEntryParams, TimeEntry};
 use crate::schema::time_entries;
 use crate::services::pairing::types::EntryType;
 
@@ -36,22 +36,22 @@ impl From<TimeEntryEntity> for TimeEntry {
             );
             EntryType::default()
         });
-        TimeEntry::new(
-            val.id,
-            val.employment_id,
-            val.workspace_id,
-            val.template_id,
-            val.segment_id,
-            val.punch_in_time,
-            val.punch_out_time,
-            val.duration_minutes,
-            val.is_break_overtime,
-            entry_type,
-            val.note,
-            val.generation_metadata,
-            val.created_at.unwrap_or_else(Utc::now),
-            val.updated_at.unwrap_or_else(Utc::now),
-        )
+        TimeEntry::new(NewTimeEntryParams {
+            id: val.id,
+            employment_id: val.employment_id,
+            workspace_id: val.workspace_id,
+            shift_id: val.template_id,
+            segment_id: val.segment_id,
+            punch_in_time: val.punch_in_time,
+            punch_out_time: val.punch_out_time,
+            duration_minutes: val.duration_minutes,
+            is_break_overtime: val.is_break_overtime,
+            entry_type: entry_type,
+            note: val.note,
+            generation_metadata: val.generation_metadata,
+            created_at: val.created_at.unwrap_or_else(Utc::now),
+            updated_at: val.updated_at.unwrap_or_else(Utc::now),
+        })
     }
 }
 

@@ -120,22 +120,22 @@ async fn test_attendance_handler_calculate_summary_with_data() {
     let punch_out = chrono::Utc
         .with_ymd_and_hms(2026, 1, 15, 18, 30, 0)
         .unwrap();
-    let entry = TimeEntry::new(
-        Uuid::new_v4(),
-        emp_id,
-        ws_id,
-        None,
-        None,
-        punch_in,
-        Some(punch_out),
-        Some(570),
-        false,
-        crate::services::pairing::types::EntryType::Work,
-        None,
-        None,
-        chrono::Utc::now(),
-        chrono::Utc::now(),
-    );
+    let entry = TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: emp_id,
+        workspace_id: ws_id,
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: punch_in,
+        punch_out_time: Some(punch_out),
+        duration_minutes: Some(570),
+        is_break_overtime: false,
+        entry_type: crate::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    });
 
     builder
         .time_entry_repo

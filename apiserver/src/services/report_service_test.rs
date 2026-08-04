@@ -3146,22 +3146,22 @@ mod tests {
         ) -> Result<HashMap<Uuid, Vec<TimeEntry>>, AppError> {
             use chrono::TimeZone;
             let mut map = HashMap::new();
-            let entry = TimeEntry::new(
-                Uuid::new_v4(),
-                Uuid::nil(),
-                Uuid::nil(),
-                Some(Uuid::nil()),
-                None,
-                Utc.with_ymd_and_hms(2023, 1, 1, 9, 0, 0).unwrap(),
-                Some(Utc.with_ymd_and_hms(2023, 1, 1, 17, 0, 0).unwrap()),
-                Some(480),
-                false,
-                crate::services::pairing::types::EntryType::Work,
-                None,
-                None,
-                Utc::now(),
-                Utc::now(),
-            );
+            let entry = TimeEntry::new(NewTimeEntryParams {
+                id: Uuid::new_v4(),
+                employment_id: Uuid::nil(),
+                workspace_id: Uuid::nil(),
+                shift_id: Some(Uuid::nil()),
+                segment_id: None,
+                punch_in_time: Utc.with_ymd_and_hms(2023, 1, 1, 9, 0, 0).unwrap(),
+                punch_out_time: Some(Utc.with_ymd_and_hms(2023, 1, 1, 17, 0, 0).unwrap()),
+                duration_minutes: Some(480),
+                is_break_overtime: false,
+                entry_type: crate::services::pairing::types::EntryType::Work,
+                note: None,
+                generation_metadata: None,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            });
             map.insert(Uuid::nil(), vec![entry]);
             Ok(map)
         }
@@ -3397,56 +3397,56 @@ mod tests {
             use chrono::TimeZone;
             let mut map = HashMap::new();
 
-            let morning = TimeEntry::new(
-                Uuid::new_v4(),
-                Uuid::nil(),
-                Uuid::nil(),
-                Some(Uuid::nil()),
-                None,
-                Utc.with_ymd_and_hms(2023, 1, 1, 9, 0, 0).unwrap(),
-                Some(Utc.with_ymd_and_hms(2023, 1, 1, 12, 0, 0).unwrap()),
-                Some(180),
-                false,
-                crate::services::pairing::types::EntryType::Work,
-                None,
-                None,
-                Utc::now(),
-                Utc::now(),
-            );
+            let morning = TimeEntry::new(NewTimeEntryParams {
+                id: Uuid::new_v4(),
+                employment_id: Uuid::nil(),
+                workspace_id: Uuid::nil(),
+                shift_id: Some(Uuid::nil()),
+                segment_id: None,
+                punch_in_time: Utc.with_ymd_and_hms(2023, 1, 1, 9, 0, 0).unwrap(),
+                punch_out_time: Some(Utc.with_ymd_and_hms(2023, 1, 1, 12, 0, 0).unwrap()),
+                duration_minutes: Some(180),
+                is_break_overtime: false,
+                entry_type: crate::services::pairing::types::EntryType::Work,
+                note: None,
+                generation_metadata: None,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            });
 
-            let lunch = TimeEntry::new(
-                Uuid::new_v4(),
-                Uuid::nil(),
-                Uuid::nil(),
-                Some(Uuid::nil()),
-                None,
-                Utc.with_ymd_and_hms(2023, 1, 1, 12, 0, 0).unwrap(),
-                Some(Utc.with_ymd_and_hms(2023, 1, 1, 13, 0, 0).unwrap()),
-                Some(60),
-                false,
-                crate::services::pairing::types::EntryType::Break,
-                None,
-                None,
-                Utc::now(),
-                Utc::now(),
-            );
+            let lunch = TimeEntry::new(NewTimeEntryParams {
+                id: Uuid::new_v4(),
+                employment_id: Uuid::nil(),
+                workspace_id: Uuid::nil(),
+                shift_id: Some(Uuid::nil()),
+                segment_id: None,
+                punch_in_time: Utc.with_ymd_and_hms(2023, 1, 1, 12, 0, 0).unwrap(),
+                punch_out_time: Some(Utc.with_ymd_and_hms(2023, 1, 1, 13, 0, 0).unwrap()),
+                duration_minutes: Some(60),
+                is_break_overtime: false,
+                entry_type: crate::services::pairing::types::EntryType::Break,
+                note: None,
+                generation_metadata: None,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            });
 
-            let afternoon = TimeEntry::new(
-                Uuid::new_v4(),
-                Uuid::nil(),
-                Uuid::nil(),
-                Some(Uuid::nil()),
-                None,
-                Utc.with_ymd_and_hms(2023, 1, 1, 13, 0, 0).unwrap(),
-                Some(Utc.with_ymd_and_hms(2023, 1, 1, 17, 0, 0).unwrap()),
-                Some(240),
-                false,
-                crate::services::pairing::types::EntryType::Work,
-                None,
-                None,
-                Utc::now(),
-                Utc::now(),
-            );
+            let afternoon = TimeEntry::new(NewTimeEntryParams {
+                id: Uuid::new_v4(),
+                employment_id: Uuid::nil(),
+                workspace_id: Uuid::nil(),
+                shift_id: Some(Uuid::nil()),
+                segment_id: None,
+                punch_in_time: Utc.with_ymd_and_hms(2023, 1, 1, 13, 0, 0).unwrap(),
+                punch_out_time: Some(Utc.with_ymd_and_hms(2023, 1, 1, 17, 0, 0).unwrap()),
+                duration_minutes: Some(240),
+                is_break_overtime: false,
+                entry_type: crate::services::pairing::types::EntryType::Work,
+                note: None,
+                generation_metadata: None,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            });
 
             map.insert(Uuid::nil(), vec![morning, lunch, afternoon]);
             Ok(map)

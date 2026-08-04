@@ -327,22 +327,22 @@ mod tests {
     }
 
     fn make_time_entry(ws: Uuid, emp_id: Uuid) -> TimeEntry {
-        TimeEntry::new(
-            Uuid::new_v4(),
-            emp_id,
-            ws,
-            None,
-            None,
-            Utc.with_ymd_and_hms(2026, 7, 24, 8, 0, 0).unwrap(),
-            None,
-            None,
-            false,
-            crate::services::pairing::types::EntryType::Work,
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-        )
+        TimeEntry::new(NewTimeEntryParams {
+            id: Uuid::new_v4(),
+            employment_id: emp_id,
+            workspace_id: ws,
+            shift_id: None,
+            segment_id: None,
+            punch_in_time: Utc.with_ymd_and_hms(2026, 7, 24, 8, 0, 0).unwrap(),
+            punch_out_time: None,
+            duration_minutes: None,
+            is_break_overtime: false,
+            entry_type: crate::services::pairing::types::EntryType::Work,
+            note: None,
+            generation_metadata: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        })
     }
 
     fn build_service(

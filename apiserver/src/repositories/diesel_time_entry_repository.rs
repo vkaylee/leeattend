@@ -30,7 +30,7 @@ use crate::errors::AppError;
 use crate::models::diesel::time_entry::{
     NewTimeEntryEntity, TimeEntryEntity, UpdateTimeEntryEntity,
 };
-use crate::models::{TimeEntry, TimeEntryLogFilter, TimeEntryWithEmployee};
+use crate::models::{NewTimeEntryWithEmployeeParams, TimeEntry, TimeEntryLogFilter, TimeEntryWithEmployee};
 use crate::repositories::time_entry_repository::TimeEntryRepository;
 use crate::schema::{employees, employments, time_entries};
 
@@ -302,24 +302,24 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .into_iter()
             .map(|(entry, full_name, id_number)| {
                 let domain: TimeEntry = entry.into();
-                TimeEntryWithEmployee::new(
-                    domain.id(),
-                    domain.employment_id(),
-                    domain.workspace_id(),
-                    domain.shift_id(),
-                    domain.segment_id(),
-                    domain.punch_in_time(),
-                    domain.punch_out_time(),
-                    domain.duration_minutes(),
-                    domain.is_break_overtime(),
-                    domain.entry_type(),
-                    domain.note().map(String::from),
-                    domain.generation_metadata().cloned(),
-                    domain.created_at(),
-                    domain.updated_at(),
-                    full_name,
-                    id_number,
-                )
+                TimeEntryWithEmployee::new(NewTimeEntryWithEmployeeParams {
+                    id: domain.id(),
+                    employment_id: domain.employment_id(),
+                    workspace_id: domain.workspace_id(),
+                    shift_id: domain.shift_id(),
+                    segment_id: domain.segment_id(),
+                    punch_in_time: domain.punch_in_time(),
+                    punch_out_time: domain.punch_out_time(),
+                    duration_minutes: domain.duration_minutes(),
+                    is_break_overtime: domain.is_break_overtime(),
+                    entry_type: domain.entry_type(),
+                    note: domain.note().map(String::from),
+                    generation_metadata: domain.generation_metadata().cloned(),
+                    created_at: domain.created_at(),
+                    updated_at: domain.updated_at(),
+                    employee_full_name: full_name,
+                    employee_id_number: id_number,
+                })
             })
             .collect())
     }

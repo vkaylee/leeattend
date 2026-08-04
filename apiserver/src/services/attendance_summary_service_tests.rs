@@ -507,22 +507,22 @@ mod recalculate_daily_summary_leave_tests {
                     date.and_hms_opt(17, 0, 0).unwrap(),
                     chrono::Utc,
                 );
-                Ok(vec![TimeEntry::new(
-                    Uuid::new_v4(),
-                    employee_id,
-                    workspace_id,
-                    None,
-                    None,
-                    punch_in,
-                    Some(punch_out),
-                    Some(480),
-                    false,
-                    crate::services::pairing::types::EntryType::Work,
-                    None,
-                    None,
-                    Utc::now(),
-                    Utc::now(),
-                )])
+                Ok(vec![TimeEntry::new(NewTimeEntryParams {
+                    id: Uuid::new_v4(),
+                    employment_id: employee_id,
+                    workspace_id: workspace_id,
+                    shift_id: None,
+                    segment_id: None,
+                    punch_in_time: punch_in,
+                    punch_out_time: Some(punch_out),
+                    duration_minutes: Some(480),
+                    is_break_overtime: false,
+                    entry_type: crate::services::pairing::types::EntryType::Work,
+                    note: None,
+                    generation_metadata: None,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                })])
             });
 
         // Mock get leave requests: returns one approved leave covering the date
@@ -686,22 +686,22 @@ mod recalculate_daily_summary_leave_tests {
                     date.and_hms_opt(17, 0, 0).unwrap(),
                     chrono::Utc,
                 );
-                Ok(vec![TimeEntry::new(
-                    Uuid::new_v4(),
-                    employee_id,
-                    workspace_id,
-                    None,
-                    None,
-                    punch_in,
-                    Some(punch_out),
-                    Some(480),
-                    false,
-                    crate::services::pairing::types::EntryType::Work,
-                    None,
-                    None,
-                    Utc::now(),
-                    Utc::now(),
-                )])
+                Ok(vec![TimeEntry::new(NewTimeEntryParams {
+                    id: Uuid::new_v4(),
+                    employment_id: employee_id,
+                    workspace_id: workspace_id,
+                    shift_id: None,
+                    segment_id: None,
+                    punch_in_time: punch_in,
+                    punch_out_time: Some(punch_out),
+                    duration_minutes: Some(480),
+                    is_break_overtime: false,
+                    entry_type: crate::services::pairing::types::EntryType::Work,
+                    note: None,
+                    generation_metadata: None,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                })])
             });
 
         // Leave request covers Mon to Wed
@@ -862,22 +862,22 @@ mod recalculate_daily_summary_leave_tests {
                     date.and_hms_opt(17, 0, 0).unwrap(),
                     chrono::Utc,
                 );
-                Ok(vec![TimeEntry::new(
-                    Uuid::new_v4(),
-                    employee_id,
-                    workspace_id,
-                    None,
-                    None,
-                    punch_in,
-                    Some(punch_out),
-                    Some(480),
-                    false,
-                    crate::services::pairing::types::EntryType::Work,
-                    None,
-                    None,
-                    Utc::now(),
-                    Utc::now(),
-                )])
+                Ok(vec![TimeEntry::new(NewTimeEntryParams {
+                    id: Uuid::new_v4(),
+                    employment_id: employee_id,
+                    workspace_id: workspace_id,
+                    shift_id: None,
+                    segment_id: None,
+                    punch_in_time: punch_in,
+                    punch_out_time: Some(punch_out),
+                    duration_minutes: Some(480),
+                    is_break_overtime: false,
+                    entry_type: crate::services::pairing::types::EntryType::Work,
+                    note: None,
+                    generation_metadata: None,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                })])
             });
 
         // Pending request
@@ -1171,22 +1171,22 @@ mod recalculate_daily_summary_leave_tests {
                     date.and_hms_opt(17, 0, 0).unwrap(),
                     chrono::Utc,
                 );
-                Ok(vec![TimeEntry::new(
-                    Uuid::new_v4(),
-                    employee_id,
-                    workspace_id,
-                    None,
-                    None,
-                    punch_in,
-                    Some(punch_out),
-                    Some(480),
-                    false,
-                    crate::services::pairing::types::EntryType::Work,
-                    None,
-                    None,
-                    Utc::now(),
-                    Utc::now(),
-                )])
+                Ok(vec![TimeEntry::new(NewTimeEntryParams {
+                    id: Uuid::new_v4(),
+                    employment_id: employee_id,
+                    workspace_id: workspace_id,
+                    shift_id: None,
+                    segment_id: None,
+                    punch_in_time: punch_in,
+                    punch_out_time: Some(punch_out),
+                    duration_minutes: Some(480),
+                    is_break_overtime: false,
+                    entry_type: crate::services::pairing::types::EntryType::Work,
+                    note: None,
+                    generation_metadata: None,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                })])
             });
 
         // Under regular logic, it should NOT try to cancel regular leaves or query them because it's a holiday
@@ -2086,22 +2086,22 @@ mod compute_execute_plan_tests {
                     date.and_hms_opt(17, 0, 0).unwrap(),
                     chrono::Utc,
                 );
-                Ok(vec![TimeEntry::new(
-                    Uuid::new_v4(),
-                    employee_id,
-                    workspace_id,
-                    None,
-                    None,
-                    punch_in,
-                    Some(punch_out),
-                    Some(480),
-                    false,
-                    crate::services::pairing::types::EntryType::Work,
-                    None,
-                    None,
-                    Utc::now(),
-                    Utc::now(),
-                )])
+                Ok(vec![TimeEntry::new(NewTimeEntryParams {
+                    id: Uuid::new_v4(),
+                    employment_id: employee_id,
+                    workspace_id: workspace_id,
+                    shift_id: None,
+                    segment_id: None,
+                    punch_in_time: punch_in,
+                    punch_out_time: Some(punch_out),
+                    duration_minutes: Some(480),
+                    is_break_overtime: false,
+                    entry_type: crate::services::pairing::types::EntryType::Work,
+                    note: None,
+                    generation_metadata: None,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                })])
             });
 
         // Has approved leave — should be collected in plan, NOT cancelled yet

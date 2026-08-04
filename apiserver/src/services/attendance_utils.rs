@@ -682,22 +682,22 @@ mod tests {
     // ===== group_entries_by_date tests =====
 
     fn make_entry(punch_in: DateTime<Utc>) -> crate::models::TimeEntry {
-        crate::models::TimeEntry::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            None,
-            None,
-            punch_in,
-            None,
-            Some(480),
-            false,
-            crate::services::pairing::types::EntryType::Work,
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-        )
+        crate::models::TimeEntry::new(NewTimeEntryParams {
+            id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            shift_id: None,
+            segment_id: None,
+            punch_in_time: punch_in,
+            punch_out_time: None,
+            duration_minutes: Some(480),
+            is_break_overtime: false,
+            entry_type: crate::services::pairing::types::EntryType::Work,
+            note: None,
+            generation_metadata: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        })
     }
 
     #[test]
@@ -864,56 +864,56 @@ mod tests {
 
         let workspace_id = Uuid::new_v4();
         let employee_id = Uuid::new_v4();
-        let entry1 = TimeEntry::new(
-            Uuid::new_v4(),
-            employee_id,
-            workspace_id,
-            None,
-            None,
-            t1,
-            None,
-            None,
-            false,
-            crate::services::pairing::types::EntryType::Work,
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-        );
+        let entry1 = TimeEntry::new(NewTimeEntryParams {
+            id: Uuid::new_v4(),
+            employment_id: employee_id,
+            workspace_id: workspace_id,
+            shift_id: None,
+            segment_id: None,
+            punch_in_time: t1,
+            punch_out_time: None,
+            duration_minutes: None,
+            is_break_overtime: false,
+            entry_type: crate::services::pairing::types::EntryType::Work,
+            note: None,
+            generation_metadata: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        });
 
-        let entry2 = TimeEntry::new(
-            Uuid::new_v4(),
-            employee_id,
-            workspace_id,
-            None,
-            None,
-            t2,
-            None,
-            None,
-            false,
-            crate::services::pairing::types::EntryType::Work,
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-        );
+        let entry2 = TimeEntry::new(NewTimeEntryParams {
+            id: Uuid::new_v4(),
+            employment_id: employee_id,
+            workspace_id: workspace_id,
+            shift_id: None,
+            segment_id: None,
+            punch_in_time: t2,
+            punch_out_time: None,
+            duration_minutes: None,
+            is_break_overtime: false,
+            entry_type: crate::services::pairing::types::EntryType::Work,
+            note: None,
+            generation_metadata: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        });
 
-        let entry3 = TimeEntry::new(
-            Uuid::new_v4(),
-            employee_id,
-            workspace_id,
-            None,
-            None,
-            t3,
-            None,
-            None,
-            false,
-            crate::services::pairing::types::EntryType::Work,
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-        );
+        let entry3 = TimeEntry::new(NewTimeEntryParams {
+            id: Uuid::new_v4(),
+            employment_id: employee_id,
+            workspace_id: workspace_id,
+            shift_id: None,
+            segment_id: None,
+            punch_in_time: t3,
+            punch_out_time: None,
+            duration_minutes: None,
+            is_break_overtime: false,
+            entry_type: crate::services::pairing::types::EntryType::Work,
+            note: None,
+            generation_metadata: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        });
 
         // Pass out of order
         let entries = vec![entry2, entry3, entry1];
@@ -1078,38 +1078,38 @@ mod tests {
         // Entry at UTC 2026-03-08 10:00 → EDT (UTC-4) = 2026-03-08 06:00 local (Mar 8, DST day)
         let t_on_dst = "2026-03-08T10:00:00Z".parse::<DateTime<Utc>>().unwrap();
 
-        let entry1 = TimeEntry::new(
-            Uuid::new_v4(),
-            employee_id,
-            workspace_id,
-            None,
-            None,
-            t_before_dst,
-            None,
-            None,
-            false,
-            crate::services::pairing::types::EntryType::Work,
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-        );
-        let entry2 = TimeEntry::new(
-            Uuid::new_v4(),
-            employee_id,
-            workspace_id,
-            None,
-            None,
-            t_on_dst,
-            None,
-            None,
-            false,
-            crate::services::pairing::types::EntryType::Work,
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-        );
+        let entry1 = TimeEntry::new(NewTimeEntryParams {
+            id: Uuid::new_v4(),
+            employment_id: employee_id,
+            workspace_id: workspace_id,
+            shift_id: None,
+            segment_id: None,
+            punch_in_time: t_before_dst,
+            punch_out_time: None,
+            duration_minutes: None,
+            is_break_overtime: false,
+            entry_type: crate::services::pairing::types::EntryType::Work,
+            note: None,
+            generation_metadata: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        });
+        let entry2 = TimeEntry::new(NewTimeEntryParams {
+            id: Uuid::new_v4(),
+            employment_id: employee_id,
+            workspace_id: workspace_id,
+            shift_id: None,
+            segment_id: None,
+            punch_in_time: t_on_dst,
+            punch_out_time: None,
+            duration_minutes: None,
+            is_break_overtime: false,
+            entry_type: crate::services::pairing::types::EntryType::Work,
+            note: None,
+            generation_metadata: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        });
 
         let entries = vec![entry1, entry2];
         let grouped = super::group_entries_by_date(&entries, tz);
@@ -1135,38 +1135,38 @@ mod tests {
         // UTC 2026-06-15 01:00 → HCM = 2026-06-15 08:00 (same day)
         let t_same_day = "2026-06-15T01:00:00Z".parse::<DateTime<Utc>>().unwrap();
 
-        let entry1 = TimeEntry::new(
-            Uuid::new_v4(),
-            employee_id,
-            workspace_id,
-            None,
-            None,
-            t_next_day,
-            None,
-            None,
-            false,
-            crate::services::pairing::types::EntryType::Work,
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-        );
-        let entry2 = TimeEntry::new(
-            Uuid::new_v4(),
-            employee_id,
-            workspace_id,
-            None,
-            None,
-            t_same_day,
-            None,
-            None,
-            false,
-            crate::services::pairing::types::EntryType::Work,
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-        );
+        let entry1 = TimeEntry::new(NewTimeEntryParams {
+            id: Uuid::new_v4(),
+            employment_id: employee_id,
+            workspace_id: workspace_id,
+            shift_id: None,
+            segment_id: None,
+            punch_in_time: t_next_day,
+            punch_out_time: None,
+            duration_minutes: None,
+            is_break_overtime: false,
+            entry_type: crate::services::pairing::types::EntryType::Work,
+            note: None,
+            generation_metadata: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        });
+        let entry2 = TimeEntry::new(NewTimeEntryParams {
+            id: Uuid::new_v4(),
+            employment_id: employee_id,
+            workspace_id: workspace_id,
+            shift_id: None,
+            segment_id: None,
+            punch_in_time: t_same_day,
+            punch_out_time: None,
+            duration_minutes: None,
+            is_break_overtime: false,
+            entry_type: crate::services::pairing::types::EntryType::Work,
+            note: None,
+            generation_metadata: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        });
 
         let entries = vec![entry1, entry2];
         let grouped = super::group_entries_by_date(&entries, tz);

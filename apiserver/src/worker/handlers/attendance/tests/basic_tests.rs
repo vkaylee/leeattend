@@ -221,56 +221,56 @@ fn test_entries_pregrouping_by_date_with_timezone() {
 
     // Create entries at specific UTC times that map to different local dates
     // UTC 2026-01-14 20:00 → Ho_Chi_Minh 2026-01-15 03:00
-    let entry_jan15_early = TimeEntry::new(
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        None,
-        None,
-        chrono::Utc.with_ymd_and_hms(2026, 1, 14, 20, 0, 0).unwrap(),
-        None,
-        Some(480),
-        false,
-        crate::services::pairing::types::EntryType::Work,
-        None,
-        None,
-        chrono::Utc::now(),
-        chrono::Utc::now(),
-    );
+    let entry_jan15_early = TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: Uuid::new_v4(),
+        workspace_id: Uuid::new_v4(),
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: chrono::Utc.with_ymd_and_hms(2026, 1, 14, 20, 0, 0).unwrap(),
+        punch_out_time: None,
+        duration_minutes: Some(480),
+        is_break_overtime: false,
+        entry_type: crate::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    });
     // UTC 2026-01-15 02:00 → Ho_Chi_Minh 2026-01-15 09:00
-    let entry_jan15_morning = TimeEntry::new(
-        Uuid::new_v4(),
-        entry_jan15_early.employment_id(),
-        entry_jan15_early.workspace_id(),
-        None,
-        None,
-        chrono::Utc.with_ymd_and_hms(2026, 1, 15, 2, 0, 0).unwrap(),
-        None,
-        Some(480),
-        false,
-        crate::services::pairing::types::EntryType::Work,
-        None,
-        None,
-        chrono::Utc::now(),
-        chrono::Utc::now(),
-    );
+    let entry_jan15_morning = TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: entry_jan15_early.employment_id(),
+        workspace_id: entry_jan15_early.workspace_id(),
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: chrono::Utc.with_ymd_and_hms(2026, 1, 15, 2, 0, 0).unwrap(),
+        punch_out_time: None,
+        duration_minutes: Some(480),
+        is_break_overtime: false,
+        entry_type: crate::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    });
     // UTC 2026-01-15 18:00 → Ho_Chi_Minh 2026-01-16 01:00 (next day!)
-    let entry_jan16 = TimeEntry::new(
-        Uuid::new_v4(),
-        entry_jan15_early.employment_id(),
-        entry_jan15_early.workspace_id(),
-        None,
-        None,
-        chrono::Utc.with_ymd_and_hms(2026, 1, 15, 18, 0, 0).unwrap(),
-        None,
-        Some(480),
-        false,
-        crate::services::pairing::types::EntryType::Work,
-        None,
-        None,
-        chrono::Utc::now(),
-        chrono::Utc::now(),
-    );
+    let entry_jan16 = TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: entry_jan15_early.employment_id(),
+        workspace_id: entry_jan15_early.workspace_id(),
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: chrono::Utc.with_ymd_and_hms(2026, 1, 15, 18, 0, 0).unwrap(),
+        punch_out_time: None,
+        duration_minutes: Some(480),
+        is_break_overtime: false,
+        entry_type: crate::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    });
 
     let entries = vec![entry_jan15_early, entry_jan15_morning, entry_jan16];
 
@@ -308,22 +308,22 @@ fn test_pregrouping_matches_filter_approach() {
     let ws_id = Uuid::new_v4();
     let entries: Vec<TimeEntry> = (1..=5)
         .map(|day| {
-            TimeEntry::new(
-                Uuid::new_v4(),
-                emp_id,
-                ws_id,
-                None,
-                None,
-                chrono::Utc.with_ymd_and_hms(2026, 1, day, 8, 0, 0).unwrap(),
-                None,
-                Some(480),
-                false,
-                crate::services::pairing::types::EntryType::Work,
-                None,
-                None,
-                chrono::Utc::now(),
-                chrono::Utc::now(),
-            )
+            TimeEntry::new(NewTimeEntryParams {
+                id: Uuid::new_v4(),
+                employment_id: emp_id,
+                workspace_id: ws_id,
+                shift_id: None,
+                segment_id: None,
+                punch_in_time: chrono::Utc.with_ymd_and_hms(2026, 1, day, 8, 0, 0).unwrap(),
+                punch_out_time: None,
+                duration_minutes: Some(480),
+                is_break_overtime: false,
+                entry_type: crate::services::pairing::types::EntryType::Work,
+                note: None,
+                generation_metadata: None,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+            })
         })
         .collect();
 

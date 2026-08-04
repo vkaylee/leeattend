@@ -4,6 +4,42 @@ use uuid::Uuid;
 
 use crate::services::pairing::types::EntryType;
 
+pub struct NewTimeEntryParams {
+    pub id: Uuid,
+    pub employment_id: Uuid,
+    pub workspace_id: Uuid,
+    pub shift_id: Option<Uuid>,
+    pub segment_id: Option<Uuid>,
+    pub punch_in_time: DateTime<Utc>,
+    pub punch_out_time: Option<DateTime<Utc>>,
+    pub duration_minutes: Option<i32>,
+    pub is_break_overtime: bool,
+    pub entry_type: EntryType,
+    pub note: Option<String>,
+    pub generation_metadata: Option<serde_json::Value>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+pub struct NewTimeEntryWithEmployeeParams {
+    pub id: Uuid,
+    pub employment_id: Uuid,
+    pub workspace_id: Uuid,
+    pub shift_id: Option<Uuid>,
+    pub segment_id: Option<Uuid>,
+    pub punch_in_time: DateTime<Utc>,
+    pub punch_out_time: Option<DateTime<Utc>>,
+    pub duration_minutes: Option<i32>,
+    pub is_break_overtime: bool,
+    pub entry_type: EntryType,
+    pub note: Option<String>,
+    pub generation_metadata: Option<serde_json::Value>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub employee_full_name: String,
+    pub employee_id_number: String,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct TimeEntryLogFilter {
     employment_id: Option<Uuid>,
@@ -70,38 +106,22 @@ pub struct TimeEntry {
 }
 
 impl TimeEntry {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        employment_id: Uuid,
-        workspace_id: Uuid,
-        shift_id: Option<Uuid>,
-        segment_id: Option<Uuid>,
-        punch_in_time: DateTime<Utc>,
-        punch_out_time: Option<DateTime<Utc>>,
-        duration_minutes: Option<i32>,
-        is_break_overtime: bool,
-        entry_type: EntryType,
-        note: Option<String>,
-        generation_metadata: Option<serde_json::Value>,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-    ) -> Self {
+    pub fn new(params: NewTimeEntryParams) -> Self {
         Self {
-            id,
-            employment_id,
-            workspace_id,
-            shift_id,
-            segment_id,
-            punch_in_time,
-            punch_out_time,
-            duration_minutes,
-            is_break_overtime,
-            entry_type,
-            note,
-            generation_metadata,
-            created_at,
-            updated_at,
+            id: params.id,
+            employment_id: params.employment_id,
+            workspace_id: params.workspace_id,
+            shift_id: params.shift_id,
+            segment_id: params.segment_id,
+            punch_in_time: params.punch_in_time,
+            punch_out_time: params.punch_out_time,
+            duration_minutes: params.duration_minutes,
+            is_break_overtime: params.is_break_overtime,
+            entry_type: params.entry_type,
+            note: params.note,
+            generation_metadata: params.generation_metadata,
+            created_at: params.created_at,
+            updated_at: params.updated_at,
         }
     }
 
@@ -218,42 +238,24 @@ pub struct TimeEntryWithEmployee {
 }
 
 impl TimeEntryWithEmployee {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        employment_id: Uuid,
-        workspace_id: Uuid,
-        shift_id: Option<Uuid>,
-        segment_id: Option<Uuid>,
-        punch_in_time: DateTime<Utc>,
-        punch_out_time: Option<DateTime<Utc>>,
-        duration_minutes: Option<i32>,
-        is_break_overtime: bool,
-        entry_type: EntryType,
-        note: Option<String>,
-        generation_metadata: Option<serde_json::Value>,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-        employee_full_name: String,
-        employee_id_number: String,
-    ) -> Self {
+    pub fn new(params: NewTimeEntryWithEmployeeParams) -> Self {
         Self {
-            id,
-            employment_id,
-            workspace_id,
-            shift_id,
-            segment_id,
-            punch_in_time,
-            punch_out_time,
-            duration_minutes,
-            is_break_overtime,
-            entry_type,
-            note,
-            generation_metadata,
-            created_at,
-            updated_at,
-            employee_full_name,
-            employee_id_number,
+            id: params.id,
+            employment_id: params.employment_id,
+            workspace_id: params.workspace_id,
+            shift_id: params.shift_id,
+            segment_id: params.segment_id,
+            punch_in_time: params.punch_in_time,
+            punch_out_time: params.punch_out_time,
+            duration_minutes: params.duration_minutes,
+            is_break_overtime: params.is_break_overtime,
+            entry_type: params.entry_type,
+            note: params.note,
+            generation_metadata: params.generation_metadata,
+            created_at: params.created_at,
+            updated_at: params.updated_at,
+            employee_full_name: params.employee_full_name,
+            employee_id_number: params.employee_id_number,
         }
     }
 
@@ -458,22 +460,22 @@ mod tests {
         let ws_id = Uuid::new_v4();
         let shift_id = Uuid::new_v4();
         let now = Utc::now();
-        let mut entry = TimeEntry::new(
-            id,
-            emp_id,
-            ws_id,
-            Some(shift_id),
-            None,
-            now,
-            None,
-            None,
-            false,
-            EntryType::Work,
-            Some("Note".to_string()),
-            Some(serde_json::json!({"test": true})),
-            now,
-            now,
-        );
+        let mut entry = TimeEntry::new(NewTimeEntryParams {
+            id: id,
+            employment_id: emp_id,
+            workspace_id: ws_id,
+            shift_id: Some(shift_id),
+            segment_id: None,
+            punch_in_time: now,
+            punch_out_time: None,
+            duration_minutes: None,
+            is_break_overtime: false,
+            entry_type: EntryType::Work,
+            note: Some("Note".to_string()),
+            generation_metadata: Some(serde_json::json!({"test": true})),
+            created_at: now,
+            updated_at: now,
+        });
 
         assert_eq!(entry.id(), id);
         assert_eq!(entry.employment_id(), emp_id);
@@ -517,24 +519,24 @@ mod tests {
         let ws_id = Uuid::new_v4();
         let shift_id = Uuid::new_v4();
         let now = Utc::now();
-        let entry = TimeEntryWithEmployee::new(
-            id,
-            emp_id,
-            ws_id,
-            Some(shift_id),
-            None,
-            now,
-            Some(now),
-            Some(0),
-            false,
-            EntryType::Work,
-            Some("Note".to_string()),
-            None,
-            now,
-            now,
-            "John Doe".to_string(),
-            "EMP001".to_string(),
-        );
+        let entry = TimeEntryWithEmployee::new(NewTimeEntryWithEmployeeParams {
+            id: id,
+            employment_id: emp_id,
+            workspace_id: ws_id,
+            shift_id: Some(shift_id),
+            segment_id: None,
+            punch_in_time: now,
+            punch_out_time: Some(now),
+            duration_minutes: Some(0),
+            is_break_overtime: false,
+            entry_type: EntryType::Work,
+            note: Some("Note".to_string()),
+            generation_metadata: None,
+            created_at: now,
+            updated_at: now,
+            employee_full_name: "John Doe".to_string(),
+            employee_id_number: "EMP001".to_string(),
+        });
 
         assert_eq!(entry.id(), id);
         assert_eq!(entry.employment_id(), emp_id);

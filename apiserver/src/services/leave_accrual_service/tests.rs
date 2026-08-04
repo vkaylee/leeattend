@@ -653,22 +653,22 @@ async fn test_batch_count_qualifying_days_for_workspace_success() {
             let mut map = std::collections::HashMap::new();
             map.insert(
                 emp1,
-                vec![crate::models::TimeEntry::new(
-                    Uuid::new_v4(),
-                    emp1,
-                    Uuid::new_v4(),
-                    None,
-                    None,
-                    chrono::Utc.with_ymd_and_hms(2026, 1, 15, 8, 0, 0).unwrap(),
-                    None,
-                    None,
-                    false,
-                    crate::services::pairing::types::EntryType::Work,
-                    None,
-                    None,
-                    chrono::Utc::now(),
-                    chrono::Utc::now(),
-                )],
+                vec![crate::models::TimeEntry::new(NewTimeEntryParams {
+                    id: Uuid::new_v4(),
+                    employment_id: emp1,
+                    workspace_id: Uuid::new_v4(),
+                    shift_id: None,
+                    segment_id: None,
+                    punch_in_time: chrono::Utc.with_ymd_and_hms(2026, 1, 15, 8, 0, 0).unwrap(),
+                    punch_out_time: None,
+                    duration_minutes: None,
+                    is_break_overtime: false,
+                    entry_type: crate::services::pairing::types::EntryType::Work,
+                    note: None,
+                    generation_metadata: None,
+                    created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
+                })],
             );
             Ok(map)
         });

@@ -19,22 +19,22 @@ fn make_test_entry(
     punch_out_local: Option<chrono::DateTime<Tz>>,
     entry_type: crate::services::pairing::types::EntryType,
 ) -> crate::models::TimeEntry {
-    crate::models::TimeEntry::new(
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        None,
-        None,
-        punch_in_local.with_timezone(&Utc),
-        punch_out_local.map(|t| t.with_timezone(&Utc)),
-        Some(60),
-        false,
-        entry_type,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-    )
+    crate::models::TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: Uuid::new_v4(),
+        workspace_id: Uuid::new_v4(),
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: punch_in_local.with_timezone(&Utc),
+        punch_out_time: punch_out_local.map(|t| t.with_timezone(&Utc)),
+        duration_minutes: Some(60),
+        is_break_overtime: false,
+        entry_type: entry_type,
+        note: None,
+        generation_metadata: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    })
 }
 
 /// Build a test `ResolvedSegment` with just the start/end times filled.
