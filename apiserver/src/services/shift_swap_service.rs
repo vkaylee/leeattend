@@ -8,7 +8,8 @@ use tracing::error;
 use uuid::Uuid;
 
 use crate::models::shift_swap::{
-    CreateShiftSwapRequest, ShiftSwapRequest, ShiftSwapRequestWithNames, ShiftSwapStatus,
+    CreateShiftSwapRequest, NewShiftSwapRequestParams, ShiftSwapRequest,
+    ShiftSwapRequestWithNames, ShiftSwapStatus,
 };
 use crate::models::ShiftRoster;
 
@@ -223,21 +224,21 @@ impl ShiftSwapService {
         )
         .await?;
 
-        let swap = ShiftSwapRequest::new(
-            Uuid::new_v4(),
-            auth_token.workspace_id(),
-            req.requester_id,
-            req.target_id,
-            req.swap_date,
-            requester_shift_id,
-            target_shift_id,
-            ShiftSwapStatus::PendingAdmin,
-            req.reason,
-            Some(user_id),
-            None,
-            Utc::now(),
-            Utc::now(),
-        );
+        let swap = ShiftSwapRequest::new(NewShiftSwapRequestParams {
+            id: Uuid::new_v4(),
+            workspace_id: auth_token.workspace_id(),
+            requester_id: req.requester_id,
+            target_id: req.target_id,
+            swap_date: req.swap_date,
+            requester_shift_id: requester_shift_id,
+            target_shift_id: target_shift_id,
+            status: ShiftSwapStatus::PendingAdmin,
+            reason: req.reason,
+            requested_by_user_id: Some(user_id),
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        });
 
         self.swap_repo
             .create_swap_request(
@@ -436,21 +437,21 @@ impl ShiftSwapService {
         .await?;
 
         let now = Utc::now();
-        let swap = ShiftSwapRequest::new(
-            Uuid::new_v4(),
-            auth_token.workspace_id(),
-            requester_employee_id,
-            req.target_id,
-            req.swap_date,
-            requester_shift_id,
-            target_shift_id,
-            ShiftSwapStatus::PendingTarget,
-            req.reason,
-            Some(user_id),
-            None,
-            now,
-            now,
-        );
+        let swap = ShiftSwapRequest::new(NewShiftSwapRequestParams {
+            id: Uuid::new_v4(),
+            workspace_id: auth_token.workspace_id(),
+            requester_id: requester_employee_id,
+            target_id: req.target_id,
+            swap_date: req.swap_date,
+            requester_shift_id: requester_shift_id,
+            target_shift_id: target_shift_id,
+            status: ShiftSwapStatus::PendingTarget,
+            reason: req.reason,
+            requested_by_user_id: Some(user_id),
+            approved_by_user_id: None,
+            created_at: now,
+            updated_at: now,
+        });
 
         self.swap_repo
             .create_swap_request(
@@ -631,21 +632,21 @@ mod tests {
     }
 
     fn dummy_swap_request() -> ShiftSwapRequest {
-        ShiftSwapRequest::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-            None,
-            None,
-            ShiftSwapStatus::PendingAdmin,
-            None,
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-        )
+        ShiftSwapRequest::new(NewShiftSwapRequestParams {
+            id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            requester_id: Uuid::new_v4(),
+            target_id: Uuid::new_v4(),
+            swap_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            requester_shift_id: None,
+            target_shift_id: None,
+            status: ShiftSwapStatus::PendingAdmin,
+            reason: None,
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        })
     }
 
     #[tokio::test]
@@ -684,21 +685,21 @@ mod tests {
             .expect_has_approved_swap_on_date()
             .returning(|_, _, _| Ok(false));
         swap_repo.expect_create_swap_request().returning(|_ws, s| {
-            let s2 = ShiftSwapRequest::new(
-                Uuid::new_v4(),
-                s.workspace_id(),
-                s.requester_id(),
-                s.target_id(),
-                s.swap_date(),
-                s.requester_shift_id(),
-                s.target_shift_id(),
-                s.status(),
-                s.reason().map(String::from),
-                s.requested_by_user_id(),
-                s.approved_by_user_id(),
-                s.created_at(),
-                s.updated_at(),
-            );
+            let s2 = ShiftSwapRequest::new(NewShiftSwapRequestParams {
+                id: Uuid::new_v4(),
+                workspace_id: s.workspace_id(),
+                requester_id: s.requester_id(),
+                target_id: s.target_id(),
+                swap_date: s.swap_date(),
+                requester_shift_id: s.requester_shift_id(),
+                target_shift_id: s.target_shift_id(),
+                status: s.status(),
+                reason: s.reason().map(String::from),
+                requested_by_user_id: s.requested_by_user_id(),
+                approved_by_user_id: s.approved_by_user_id(),
+                created_at: s.created_at(),
+                updated_at: s.updated_at(),
+            });
             Ok(s2)
         });
 
@@ -734,21 +735,21 @@ mod tests {
             .expect_get_swap_request_by_id()
             .returning(move |_, _| {
                 let s = dummy_swap_request();
-                let s = ShiftSwapRequest::new(
-                    s.id(),
-                    s.workspace_id(),
-                    s.requester_id(),
-                    s.target_id(),
-                    s.swap_date(),
-                    Some(Uuid::new_v4()),
-                    Some(Uuid::new_v4()),
-                    ShiftSwapStatus::PendingAdmin,
-                    s.reason().map(String::from),
-                    s.requested_by_user_id(),
-                    s.approved_by_user_id(),
-                    s.created_at(),
-                    s.updated_at(),
-                );
+                let s = ShiftSwapRequest::new(NewShiftSwapRequestParams {
+                    id: s.id(),
+                    workspace_id: s.workspace_id(),
+                    requester_id: s.requester_id(),
+                    target_id: s.target_id(),
+                    swap_date: s.swap_date(),
+                    requester_shift_id: Some(Uuid::new_v4()),
+                    target_shift_id: Some(Uuid::new_v4()),
+                    status: ShiftSwapStatus::PendingAdmin,
+                    reason: s.reason().map(String::from),
+                    requested_by_user_id: s.requested_by_user_id(),
+                    approved_by_user_id: s.approved_by_user_id(),
+                    created_at: s.created_at(),
+                    updated_at: s.updated_at(),
+                });
                 Ok(Some(s))
             });
         swap_repo
@@ -800,21 +801,21 @@ mod tests {
             .expect_get_swap_request_by_id()
             .returning(move |_, _| {
                 let s = dummy_swap_request();
-                let s = ShiftSwapRequest::new(
-                    s.id(),
-                    s.workspace_id(),
-                    s.requester_id(),
-                    target_emp_id,
-                    s.swap_date(),
-                    s.requester_shift_id(),
-                    s.target_shift_id(),
-                    ShiftSwapStatus::PendingTarget,
-                    s.reason().map(String::from),
-                    s.requested_by_user_id(),
-                    s.approved_by_user_id(),
-                    s.created_at(),
-                    s.updated_at(),
-                );
+                let s = ShiftSwapRequest::new(NewShiftSwapRequestParams {
+                    id: s.id(),
+                    workspace_id: s.workspace_id(),
+                    requester_id: s.requester_id(),
+                    target_id: target_emp_id,
+                    swap_date: s.swap_date(),
+                    requester_shift_id: s.requester_shift_id(),
+                    target_shift_id: s.target_shift_id(),
+                    status: ShiftSwapStatus::PendingTarget,
+                    reason: s.reason().map(String::from),
+                    requested_by_user_id: s.requested_by_user_id(),
+                    approved_by_user_id: s.approved_by_user_id(),
+                    created_at: s.created_at(),
+                    updated_at: s.updated_at(),
+                });
                 Ok(Some(s))
             });
         swap_repo

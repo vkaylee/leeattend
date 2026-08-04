@@ -17,6 +17,46 @@ pub enum ShiftSwapStatus {
 }
 
 // ---------------------------------------------------------------------------
+// Params structs
+// ---------------------------------------------------------------------------
+
+pub struct NewShiftSwapRequestParams {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub requester_id: Uuid,
+    pub target_id: Uuid,
+    pub swap_date: NaiveDate,
+    pub requester_shift_id: Option<Uuid>,
+    pub target_shift_id: Option<Uuid>,
+    pub status: ShiftSwapStatus,
+    pub reason: Option<String>,
+    pub requested_by_user_id: Option<Uuid>,
+    pub approved_by_user_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+pub struct NewShiftSwapRequestWithNamesParams {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub requester_id: Uuid,
+    pub target_id: Uuid,
+    pub swap_date: NaiveDate,
+    pub requester_shift_id: Option<Uuid>,
+    pub target_shift_id: Option<Uuid>,
+    pub status: ShiftSwapStatus,
+    pub reason: Option<String>,
+    pub requested_by_user_id: Option<Uuid>,
+    pub approved_by_user_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub requester_name: Option<String>,
+    pub target_name: Option<String>,
+    pub requester_shift_name: Option<String>,
+    pub target_shift_name: Option<String>,
+}
+
+// ---------------------------------------------------------------------------
 // Database row model
 // ---------------------------------------------------------------------------
 
@@ -38,36 +78,21 @@ pub struct ShiftSwapRequest {
 }
 
 impl ShiftSwapRequest {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        workspace_id: Uuid,
-        requester_id: Uuid,
-        target_id: Uuid,
-        swap_date: NaiveDate,
-        requester_shift_id: Option<Uuid>,
-        target_shift_id: Option<Uuid>,
-        status: ShiftSwapStatus,
-        reason: Option<String>,
-        requested_by_user_id: Option<Uuid>,
-        approved_by_user_id: Option<Uuid>,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-    ) -> Self {
+    pub fn new(params: NewShiftSwapRequestParams) -> Self {
         Self {
-            id,
-            workspace_id,
-            requester_id,
-            target_id,
-            swap_date,
-            requester_shift_id,
-            target_shift_id,
-            status,
-            reason,
-            requested_by_user_id,
-            approved_by_user_id,
-            created_at,
-            updated_at,
+            id: params.id,
+            workspace_id: params.workspace_id,
+            requester_id: params.requester_id,
+            target_id: params.target_id,
+            swap_date: params.swap_date,
+            requester_shift_id: params.requester_shift_id,
+            target_shift_id: params.target_shift_id,
+            status: params.status,
+            reason: params.reason,
+            requested_by_user_id: params.requested_by_user_id,
+            approved_by_user_id: params.approved_by_user_id,
+            created_at: params.created_at,
+            updated_at: params.updated_at,
         }
     }
 
@@ -151,44 +176,25 @@ pub struct ShiftSwapRequestWithNames {
 }
 
 impl ShiftSwapRequestWithNames {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        workspace_id: Uuid,
-        requester_id: Uuid,
-        target_id: Uuid,
-        swap_date: NaiveDate,
-        requester_shift_id: Option<Uuid>,
-        target_shift_id: Option<Uuid>,
-        status: ShiftSwapStatus,
-        reason: Option<String>,
-        requested_by_user_id: Option<Uuid>,
-        approved_by_user_id: Option<Uuid>,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-        requester_name: Option<String>,
-        target_name: Option<String>,
-        requester_shift_name: Option<String>,
-        target_shift_name: Option<String>,
-    ) -> Self {
+    pub fn new(params: NewShiftSwapRequestWithNamesParams) -> Self {
         Self {
-            id,
-            workspace_id,
-            requester_id,
-            target_id,
-            swap_date,
-            requester_shift_id,
-            target_shift_id,
-            status,
-            reason,
-            requested_by_user_id,
-            approved_by_user_id,
-            created_at,
-            updated_at,
-            requester_name,
-            target_name,
-            requester_shift_name,
-            target_shift_name,
+            id: params.id,
+            workspace_id: params.workspace_id,
+            requester_id: params.requester_id,
+            target_id: params.target_id,
+            swap_date: params.swap_date,
+            requester_shift_id: params.requester_shift_id,
+            target_shift_id: params.target_shift_id,
+            status: params.status,
+            reason: params.reason,
+            requested_by_user_id: params.requested_by_user_id,
+            approved_by_user_id: params.approved_by_user_id,
+            created_at: params.created_at,
+            updated_at: params.updated_at,
+            requester_name: params.requester_name,
+            target_name: params.target_name,
+            requester_shift_name: params.requester_shift_name,
+            target_shift_name: params.target_shift_name,
         }
     }
 

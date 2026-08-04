@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
 use crate::models::diesel::roster::ShiftSwapRequestEntity;
-use crate::models::shift_swap::{ShiftSwapRequest, ShiftSwapRequestWithNames, ShiftSwapStatus};
+use crate::models::shift_swap::{NewShiftSwapRequestWithNamesParams, ShiftSwapRequest, ShiftSwapRequestWithNames, ShiftSwapStatus};
 use crate::repositories::shift_swap_repository::{ShiftSwapRepository, SwapStats};
 use crate::schema::shift_swap_requests;
 
@@ -59,25 +59,25 @@ impl From<ShiftSwapRequestWithNamesEntity> for ShiftSwapRequestWithNames {
             "cancelled" => ShiftSwapStatus::Cancelled,
             _ => ShiftSwapStatus::PendingTarget,
         };
-        ShiftSwapRequestWithNames::new(
-            entity.id,
-            entity.workspace_id,
-            entity.requester_id,
-            entity.target_id,
-            entity.swap_date,
-            entity.requester_template_id,
-            entity.target_template_id,
-            status,
-            entity.reason,
-            entity.requested_by_user_id,
-            entity.approved_by_user_id,
-            entity.created_at,
-            entity.updated_at,
-            entity.requester_name,
-            entity.target_name,
-            entity.requester_shift_name,
-            entity.target_shift_name,
-        )
+        ShiftSwapRequestWithNames::new(NewShiftSwapRequestWithNamesParams {
+            id: entity.id,
+            workspace_id: entity.workspace_id,
+            requester_id: entity.requester_id,
+            target_id: entity.target_id,
+            swap_date: entity.swap_date,
+            requester_shift_id: entity.requester_template_id,
+            target_shift_id: entity.target_template_id,
+            status: status,
+            reason: entity.reason,
+            requested_by_user_id: entity.requested_by_user_id,
+            approved_by_user_id: entity.approved_by_user_id,
+            created_at: entity.created_at,
+            updated_at: entity.updated_at,
+            requester_name: entity.requester_name,
+            target_name: entity.target_name,
+            requester_shift_name: entity.requester_shift_name,
+            target_shift_name: entity.target_shift_name,
+        })
     }
 }
 

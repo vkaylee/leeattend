@@ -1,5 +1,5 @@
 use crate::models::shift::{EmployeeShift, Shift, ShiftRoster};
-use crate::models::shift_swap::{ShiftSwapRequest, ShiftSwapStatus};
+use crate::models::shift_swap::{NewShiftSwapRequestParams, ShiftSwapRequest, ShiftSwapStatus};
 use crate::schema::{
     employee_shifts, shift_audit_log, shift_default_intervals, shift_rosters, shift_swap_requests,
     shift_templates, shift_versions, shifts,
@@ -187,21 +187,21 @@ impl From<ShiftSwapRequestEntity> for ShiftSwapRequest {
             "cancelled" => ShiftSwapStatus::Cancelled,
             _ => ShiftSwapStatus::PendingTarget,
         };
-        ShiftSwapRequest::new(
-            entity.id,
-            entity.workspace_id,
-            entity.requester_id,
-            entity.target_id,
-            entity.swap_date,
-            entity.requester_template_id,
-            entity.target_template_id,
-            status,
-            entity.reason,
-            entity.requested_by_user_id,
-            entity.approved_by_user_id,
-            entity.created_at,
-            entity.updated_at,
-        )
+        ShiftSwapRequest::new(NewShiftSwapRequestParams {
+            id: entity.id,
+            workspace_id: entity.workspace_id,
+            requester_id: entity.requester_id,
+            target_id: entity.target_id,
+            swap_date: entity.swap_date,
+            requester_shift_id: entity.requester_template_id,
+            target_shift_id: entity.target_template_id,
+            status: status,
+            reason: entity.reason,
+            requested_by_user_id: entity.requested_by_user_id,
+            approved_by_user_id: entity.approved_by_user_id,
+            created_at: entity.created_at,
+            updated_at: entity.updated_at,
+        })
     }
 }
 use crate::models::enums::AssignmentHistoryType;
