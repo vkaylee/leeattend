@@ -10,7 +10,7 @@ use chrono::{Datelike, Utc};
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::models::{Holiday, LeaveDurationType, LeaveRequest, LeaveStatus, ShiftRoster};
+use crate::models::{Holiday, LeaveDurationType, LeaveRequest, LeaveStatus, NewLeaveRequestParams, ShiftRoster};
 use crate::repositories::leave_balance_repository::LeaveBalanceRepository;
 use crate::repositories::leave_request_repository::LeaveRequestRepository;
 use crate::repositories::roster::RosterRepository;
@@ -176,23 +176,23 @@ impl HolidayLeaveService {
                 let req_id = crate::utils::id::new_id();
                 let reason = format!("Nghỉ lễ (trừ phép): {}", holiday.name());
 
-                new_requests.push(LeaveRequest::new(
-                    req_id,
+                new_requests.push(LeaveRequest::new(NewLeaveRequestParams {
+                    id: req_id,
                     employment_id,
                     leave_type_id,
-                    holiday.date(),
-                    holiday.date(),
-                    Some(reason.clone()),
-                    LeaveStatus::Approved,
-                    LeaveDurationType::FullDay,
-                    None,
-                    None,
-                    None,
-                    None,
-                    Utc::now(),
-                    Utc::now(),
-                    None,
-                ));
+                    start_date: holiday.date(),
+                    end_date: holiday.date(),
+                    reason: Some(reason.clone()),
+                    status: LeaveStatus::Approved,
+                    duration_type: LeaveDurationType::FullDay,
+                    start_time: None,
+                    end_time: None,
+                    requested_by_user_id: None,
+                    approved_by_user_id: None,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                    attachment_file_ids: None,
+                }));
 
                 new_rosters.push(ShiftRoster {
                     id: crate::utils::id::new_id(),

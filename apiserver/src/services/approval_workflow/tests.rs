@@ -4,8 +4,8 @@ mod tests {
     use crate::errors::AppError;
     use crate::models::{
         ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowInstance, ApprovalWorkflowStep,
-        ApprovalWorkflowTask, Employee, LeaveRequest, LeaveStatus, WorkflowInstanceStepSnapshot,
-        WorkspaceConfigEntry,
+        ApprovalWorkflowTask, Employee, LeaveRequest, LeaveStatus, NewLeaveRequestParams,
+        WorkflowInstanceStepSnapshot, WorkspaceConfigEntry,
     };
     use crate::repositories::{
         department_repository::DepartmentRepository,
@@ -2294,23 +2294,23 @@ mod tests {
         }
 
         let entity_id = Uuid::new_v4();
-        let leave_req = crate::models::LeaveRequest::new(
-            entity_id,
-            employee_id,
-            Uuid::new_v4(),
-            NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
-            NaiveDate::from_ymd_opt(2026, 6, 5).unwrap(),
-            None,
-            LeaveStatus::Pending,
-            crate::models::enums::LeaveDurationType::FullDay,
-            None,
-            None,
-            Some(employee_user_id),
-            None,
-            Utc::now(),
-            Utc::now(),
-            None,
-        );
+        let leave_req = crate::models::LeaveRequest::new(NewLeaveRequestParams {
+            id: entity_id,
+            employment_id: employee_id,
+            leave_type_id: Uuid::new_v4(),
+            start_date: NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2026, 6, 5).unwrap(),
+            reason: None,
+            status: LeaveStatus::Pending,
+            duration_type: crate::models::enums::LeaveDurationType::FullDay,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: Some(employee_user_id),
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            attachment_file_ids: None,
+        });
         {
             let mut s = state.lock().unwrap();
             s.leave_requests.insert(entity_id, leave_req);
@@ -2427,23 +2427,23 @@ mod tests {
         }
 
         let entity_id = Uuid::new_v4();
-        let leave_req = crate::models::LeaveRequest::new(
-            entity_id,
-            employee_id,
-            Uuid::new_v4(),
-            NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
-            NaiveDate::from_ymd_opt(2026, 6, 5).unwrap(),
-            None,
-            LeaveStatus::Pending,
-            crate::models::enums::LeaveDurationType::FullDay,
-            None,
-            None,
-            Some(employee_user_id),
-            None,
-            Utc::now(),
-            Utc::now(),
-            None,
-        );
+        let leave_req = crate::models::LeaveRequest::new(NewLeaveRequestParams {
+            id: entity_id,
+            employment_id: employee_id,
+            leave_type_id: Uuid::new_v4(),
+            start_date: NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2026, 6, 5).unwrap(),
+            reason: None,
+            status: LeaveStatus::Pending,
+            duration_type: crate::models::enums::LeaveDurationType::FullDay,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: Some(employee_user_id),
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            attachment_file_ids: None,
+        });
         {
             let mut s = state.lock().unwrap();
             s.leave_requests.insert(entity_id, leave_req);

@@ -350,7 +350,7 @@ mod enter_paper_ot_tests {
 mod recalculate_daily_summary_leave_tests {
     use super::*;
     use crate::models::enums::LeaveDurationType;
-    use crate::models::{LeaveRequest, LeaveStatus, TimeEntry, Workspace};
+    use crate::models::{LeaveRequest, LeaveStatus, NewLeaveRequestParams, TimeEntry, Workspace};
     use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
     use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
     use crate::repositories::employee::MockEmployeeRepository;
@@ -367,23 +367,23 @@ mod recalculate_daily_summary_leave_tests {
         start: NaiveDate,
         end: NaiveDate,
     ) -> LeaveRequest {
-        LeaveRequest::new(
-            id,
-            employee_id,
-            Uuid::new_v4(),
-            start,
-            end,
-            None,
-            LeaveStatus::Approved,
-            LeaveDurationType::FullDay,
-            None,
-            None,
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-            None,
-        )
+        LeaveRequest::new(NewLeaveRequestParams {
+            id: id,
+            employment_id: employee_id,
+            leave_type_id: Uuid::new_v4(),
+            start_date: start,
+            end_date: end,
+            reason: None,
+            status: LeaveStatus::Approved,
+            duration_type: LeaveDurationType::FullDay,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            attachment_file_ids: None,
+        })
     }
 
     fn test_workspace(workspace_id: Uuid) -> Workspace {
@@ -881,23 +881,23 @@ mod recalculate_daily_summary_leave_tests {
             });
 
         // Pending request
-        let req = LeaveRequest::new(
-            Uuid::new_v4(),
-            employee_id,
-            Uuid::new_v4(),
-            date,
-            date,
-            None,
-            LeaveStatus::Pending,
-            LeaveDurationType::FullDay,
-            None,
-            None,
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-            None,
-        );
+        let req = LeaveRequest::new(NewLeaveRequestParams {
+            id: Uuid::new_v4(),
+            employment_id: employee_id,
+            leave_type_id: Uuid::new_v4(),
+            start_date: date,
+            end_date: date,
+            reason: None,
+            status: LeaveStatus::Pending,
+            duration_type: LeaveDurationType::FullDay,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            attachment_file_ids: None,
+        });
         leave_request_repo
             .expect_get_employee_leave_requests()
             .returning(move |_, _| {
@@ -1757,23 +1757,25 @@ mod pure_helpers_tests {
         let schedule = make_schedule_8h();
         let leave_id = Uuid::new_v4();
 
-        let leave = crate::models::LeaveRequest::new(
-            leave_id,
-            Uuid::new_v4(), // employment_id
-            Uuid::new_v4(), // leave_type_id
+        let leave = crate::models::LeaveRequest::new(NewLeaveRequestParams {
+            id: leave_id,
+            employment_id: Uuid::new_v4(),
+            leave_type_id: // employment_id
+            Uuid::new_v4(),
+            start_date: // leave_type_id
             dummy_date(),
-            dummy_date(),
-            None,
-            crate::models::enums::LeaveStatus::Approved,
-            crate::models::enums::LeaveDurationType::FullDay,
-            None,
-            None,
-            None,
-            None,
-            chrono::Utc::now(),
-            chrono::Utc::now(),
-            None,
-        );
+            end_date: dummy_date(),
+            reason: None,
+            status: crate::models::enums::LeaveStatus::Approved,
+            duration_type: crate::models::enums::LeaveDurationType::FullDay,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            attachment_file_ids: None,
+        });
 
         let result = AttendanceSummaryService::should_reverse_holiday_leave(
             &[leave],
@@ -1923,7 +1925,7 @@ mod compute_execute_plan_tests {
 
     use chrono::Utc;
     use crate::models::enums::{LeaveDurationType, LeaveStatus};
-    use crate::models::{LeaveRequest, TimeEntry, Workspace};
+    use crate::models::{LeaveRequest, NewLeaveRequestParams, TimeEntry, Workspace};
     use crate::services::attendance_summary_service::DailyRecalculationPlan;
 
     /// Helper: create a minimal DailyRecalculationPlan for testing execute.
@@ -1975,23 +1977,23 @@ mod compute_execute_plan_tests {
         start: NaiveDate,
         end: NaiveDate,
     ) -> LeaveRequest {
-        LeaveRequest::new(
-            id,
-            employee_id,
-            Uuid::new_v4(),
-            start,
-            end,
-            None,
-            LeaveStatus::Approved,
-            LeaveDurationType::FullDay,
-            None,
-            None,
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-            None,
-        )
+        LeaveRequest::new(NewLeaveRequestParams {
+            id: id,
+            employment_id: employee_id,
+            leave_type_id: Uuid::new_v4(),
+            start_date: start,
+            end_date: end,
+            reason: None,
+            status: LeaveStatus::Approved,
+            duration_type: LeaveDurationType::FullDay,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            attachment_file_ids: None,
+        })
     }
 
     /// compute_daily_recalculation_plan MUST NOT call cancel_leave_request or

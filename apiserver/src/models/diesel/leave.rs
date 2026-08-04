@@ -167,23 +167,23 @@ fn bd_to_dec(bd: &BigDecimal) -> rust_decimal::Decimal {
 
 impl From<LeaveRequestEntity> for LeaveRequest {
     fn from(entity: LeaveRequestEntity) -> Self {
-        Self::new(
-            entity.id,
-            entity.employment_id,
-            entity.leave_type_id,
-            entity.start_date,
-            entity.end_date,
-            entity.reason,
-            entity.status,
-            entity.duration_type.parse().unwrap_or_default(),
-            entity.start_time,
-            entity.end_time,
-            entity.requested_by_user_id,
-            entity.approved_by_user_id,
-            entity.created_at.unwrap_or_else(Utc::now),
-            entity.updated_at.unwrap_or_else(Utc::now),
-            entity.attachment_file_ids,
-        )
+        Self::new(NewLeaveRequestParams {
+            id: entity.id,
+            employment_id: entity.employment_id,
+            leave_type_id: entity.leave_type_id,
+            start_date: entity.start_date,
+            end_date: entity.end_date,
+            reason: entity.reason,
+            status: entity.status,
+            duration_type: entity.duration_type.parse().unwrap_or_default(),
+            start_time: entity.start_time,
+            end_time: entity.end_time,
+            requested_by_user_id: entity.requested_by_user_id,
+            approved_by_user_id: entity.approved_by_user_id,
+            created_at: entity.created_at.unwrap_or_else(Utc::now),
+            updated_at: entity.updated_at.unwrap_or_else(Utc::now),
+            attachment_file_ids: entity.attachment_file_ids,
+        })
     }
 }
 
@@ -203,17 +203,17 @@ impl From<LeaveTypeEntity> for LeaveType {
 
 impl From<LeaveBalanceEntity> for LeaveBalance {
     fn from(entity: LeaveBalanceEntity) -> Self {
-        Self::new(
-            entity.id,
-            entity.employment_id,
-            entity.leave_type_id,
-            entity.year,
-            entity.entitlement,
-            bd_to_dec(&entity.accrued_amount),
-            entity.carried_over,
-            entity.created_at.unwrap_or_else(Utc::now),
-            entity.updated_at.unwrap_or_else(Utc::now),
-        )
+        Self::new(NewLeaveBalanceParams {
+            id: entity.id,
+            employment_id: entity.employment_id,
+            leave_type_id: entity.leave_type_id,
+            year: entity.year,
+            entitlement: entity.entitlement,
+            accrued_amount: bd_to_dec(&entity.accrued_amount),
+            carried_over: entity.carried_over,
+            created_at: entity.created_at.unwrap_or_else(Utc::now),
+            updated_at: entity.updated_at.unwrap_or_else(Utc::now),
+        })
     }
 }
 
@@ -234,33 +234,33 @@ impl From<LeavePolicyDefinitionEntity> for LeavePolicyDefinition {
 
 impl From<LeavePolicyAssignmentEntity> for LeavePolicyAssignment {
     fn from(entity: LeavePolicyAssignmentEntity) -> Self {
-        Self::new(
-            entity.id,
-            entity.workspace_id,
-            entity.assignee_type,
-            entity.assignee_id,
-            entity.policy_id,
-            entity.effective_from,
-            entity.effective_to,
-            entity.created_at.unwrap_or_else(Utc::now),
-            entity.deleted_at,
-        )
+        Self::new(NewLeavePolicyAssignmentParams {
+            id: entity.id,
+            workspace_id: entity.workspace_id,
+            assignee_type: entity.assignee_type,
+            assignee_id: entity.assignee_id,
+            policy_id: entity.policy_id,
+            effective_from: entity.effective_from,
+            effective_to: entity.effective_to,
+            created_at: entity.created_at.unwrap_or_else(Utc::now),
+            deleted_at: entity.deleted_at,
+        })
     }
 }
 
 impl From<LeaveAccrualLogEntity> for LeaveAccrualLog {
     fn from(entity: LeaveAccrualLogEntity) -> Self {
-        Self::new(
-            entity.id,
-            entity.workspace_id,
-            entity.employment_id,
-            entity.policy_assignment_id,
-            entity.accrual_date,
-            bd_to_dec(&entity.amount),
-            entity.leave_type_id,
-            entity.notes,
-            entity.created_at.unwrap_or_else(Utc::now),
-        )
+        Self::new(NewLeaveAccrualLogParams {
+            id: entity.id,
+            workspace_id: entity.workspace_id,
+            employment_id: entity.employment_id,
+            policy_assignment_id: entity.policy_assignment_id,
+            accrual_date: entity.accrual_date,
+            amount: bd_to_dec(&entity.amount),
+            leave_type_id: entity.leave_type_id,
+            notes: entity.notes,
+            created_at: entity.created_at.unwrap_or_else(Utc::now),
+        })
     }
 }
 

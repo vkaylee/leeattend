@@ -25,41 +25,42 @@ pub struct LeaveRequest {
     pub attachment_file_ids: Option<Vec<Option<Uuid>>>,
 }
 
+pub struct NewLeaveRequestParams {
+    pub id: Uuid,
+    pub employment_id: Uuid,
+    pub leave_type_id: Uuid,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub reason: Option<String>,
+    pub status: LeaveStatus,
+    pub duration_type: LeaveDurationType,
+    pub start_time: Option<NaiveTime>,
+    pub end_time: Option<NaiveTime>,
+    pub requested_by_user_id: Option<Uuid>,
+    pub approved_by_user_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub attachment_file_ids: Option<Vec<Option<Uuid>>>,
+}
+
 impl LeaveRequest {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        employment_id: Uuid,
-        leave_type_id: Uuid,
-        start_date: NaiveDate,
-        end_date: NaiveDate,
-        reason: Option<String>,
-        status: LeaveStatus,
-        duration_type: LeaveDurationType,
-        start_time: Option<NaiveTime>,
-        end_time: Option<NaiveTime>,
-        requested_by_user_id: Option<Uuid>,
-        approved_by_user_id: Option<Uuid>,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-        attachment_file_ids: Option<Vec<Option<Uuid>>>,
-    ) -> Self {
+    pub fn new(params: NewLeaveRequestParams) -> Self {
         Self {
-            id,
-            employment_id,
-            leave_type_id,
-            start_date,
-            end_date,
-            reason,
-            status,
-            duration_type,
-            start_time,
-            end_time,
-            requested_by_user_id,
-            approved_by_user_id,
-            created_at,
-            updated_at,
-            attachment_file_ids,
+            id: params.id,
+            employment_id: params.employment_id,
+            leave_type_id: params.leave_type_id,
+            start_date: params.start_date,
+            end_date: params.end_date,
+            reason: params.reason,
+            status: params.status,
+            duration_type: params.duration_type,
+            start_time: params.start_time,
+            end_time: params.end_time,
+            requested_by_user_id: params.requested_by_user_id,
+            approved_by_user_id: params.approved_by_user_id,
+            created_at: params.created_at,
+            updated_at: params.updated_at,
+            attachment_file_ids: params.attachment_file_ids,
         }
     }
 
@@ -200,29 +201,30 @@ pub struct LeaveBalance {
     updated_at: DateTime<Utc>,
 }
 
+pub struct NewLeaveBalanceParams {
+    pub id: Uuid,
+    pub employment_id: Uuid,
+    pub leave_type_id: Uuid,
+    pub year: i32,
+    pub entitlement: i32,
+    pub accrued_amount: rust_decimal::Decimal,
+    pub carried_over: i32,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 impl LeaveBalance {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        employment_id: Uuid,
-        leave_type_id: Uuid,
-        year: i32,
-        entitlement: i32,
-        accrued_amount: rust_decimal::Decimal,
-        carried_over: i32,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-    ) -> Self {
+    pub fn new(params: NewLeaveBalanceParams) -> Self {
         Self {
-            id,
-            employment_id,
-            leave_type_id,
-            year,
-            entitlement,
-            accrued_amount,
-            carried_over,
-            created_at,
-            updated_at,
+            id: params.id,
+            employment_id: params.employment_id,
+            leave_type_id: params.leave_type_id,
+            year: params.year,
+            entitlement: params.entitlement,
+            accrued_amount: params.accrued_amount,
+            carried_over: params.carried_over,
+            created_at: params.created_at,
+            updated_at: params.updated_at,
         }
     }
 
@@ -472,29 +474,30 @@ pub struct LeavePolicyAssignment {
     deleted_at: Option<DateTime<Utc>>,
 }
 
+pub struct NewLeavePolicyAssignmentParams {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub assignee_type: String,
+    pub assignee_id: Option<Uuid>,
+    pub policy_id: Uuid,
+    pub effective_from: NaiveDate,
+    pub effective_to: Option<NaiveDate>,
+    pub created_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
+}
+
 impl LeavePolicyAssignment {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        workspace_id: Uuid,
-        assignee_type: String,
-        assignee_id: Option<Uuid>,
-        policy_id: Uuid,
-        effective_from: NaiveDate,
-        effective_to: Option<NaiveDate>,
-        created_at: DateTime<Utc>,
-        deleted_at: Option<DateTime<Utc>>,
-    ) -> Self {
+    pub fn new(params: NewLeavePolicyAssignmentParams) -> Self {
         Self {
-            id,
-            workspace_id,
-            assignee_type,
-            assignee_id,
-            policy_id,
-            effective_from,
-            effective_to,
-            created_at,
-            deleted_at,
+            id: params.id,
+            workspace_id: params.workspace_id,
+            assignee_type: params.assignee_type,
+            assignee_id: params.assignee_id,
+            policy_id: params.policy_id,
+            effective_from: params.effective_from,
+            effective_to: params.effective_to,
+            created_at: params.created_at,
+            deleted_at: params.deleted_at,
         }
     }
 
@@ -548,29 +551,30 @@ pub struct LeaveAccrualLog {
     created_at: DateTime<Utc>,
 }
 
+pub struct NewLeaveAccrualLogParams {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub employment_id: Uuid,
+    pub policy_assignment_id: Option<Uuid>,
+    pub accrual_date: NaiveDate,
+    pub amount: rust_decimal::Decimal,
+    pub leave_type_id: Uuid,
+    pub notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
 impl LeaveAccrualLog {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        workspace_id: Uuid,
-        employment_id: Uuid,
-        policy_assignment_id: Option<Uuid>,
-        accrual_date: NaiveDate,
-        amount: rust_decimal::Decimal,
-        leave_type_id: Uuid,
-        notes: Option<String>,
-        created_at: DateTime<Utc>,
-    ) -> Self {
+    pub fn new(params: NewLeaveAccrualLogParams) -> Self {
         Self {
-            id,
-            workspace_id,
-            employment_id,
-            policy_assignment_id,
-            accrual_date,
-            amount,
-            leave_type_id,
-            notes,
-            created_at,
+            id: params.id,
+            workspace_id: params.workspace_id,
+            employment_id: params.employment_id,
+            policy_assignment_id: params.policy_assignment_id,
+            accrual_date: params.accrual_date,
+            amount: params.amount,
+            leave_type_id: params.leave_type_id,
+            notes: params.notes,
+            created_at: params.created_at,
         }
     }
 
@@ -671,31 +675,32 @@ pub struct LeavePolicyAssignmentDetail {
     leave_type_name: String,
 }
 
+pub struct NewLeavePolicyAssignmentDetailParams {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub assignee_type: String,
+    pub assignee_id: Option<Uuid>,
+    pub policy_id: Uuid,
+    pub effective_from: NaiveDate,
+    pub effective_to: Option<NaiveDate>,
+    pub created_at: DateTime<Utc>,
+    pub policy_name: String,
+    pub leave_type_name: String,
+}
+
 impl LeavePolicyAssignmentDetail {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        workspace_id: Uuid,
-        assignee_type: String,
-        assignee_id: Option<Uuid>,
-        policy_id: Uuid,
-        effective_from: NaiveDate,
-        effective_to: Option<NaiveDate>,
-        created_at: DateTime<Utc>,
-        policy_name: String,
-        leave_type_name: String,
-    ) -> Self {
+    pub fn new(params: NewLeavePolicyAssignmentDetailParams) -> Self {
         Self {
-            id,
-            workspace_id,
-            assignee_type,
-            assignee_id,
-            policy_id,
-            effective_from,
-            effective_to,
-            created_at,
-            policy_name,
-            leave_type_name,
+            id: params.id,
+            workspace_id: params.workspace_id,
+            assignee_type: params.assignee_type,
+            assignee_id: params.assignee_id,
+            policy_id: params.policy_id,
+            effective_from: params.effective_from,
+            effective_to: params.effective_to,
+            created_at: params.created_at,
+            policy_name: params.policy_name,
+            leave_type_name: params.leave_type_name,
         }
     }
 

@@ -1,6 +1,7 @@
 use super::*;
 use crate::models::{
-    Employee, EmployeeLeaveBalance, LeaveRequest, ShiftRoster, WorkspaceLeaveBalance,
+    Employee, EmployeeLeaveBalance, LeaveRequest, NewLeaveRequestParams, ShiftRoster,
+    WorkspaceLeaveBalance,
 };
 use crate::repositories::leave_accrual_log_repository::{ExistingAccrualLog, LeaveHistoryLogItem};
 use crate::repositories::leave_request_repository::{LeaveBreakdown, LeaveHistoryRequestItem};
@@ -947,23 +948,23 @@ async fn test_approve_leave_request_forbidden() {
     // Employee is NOT found in the workspace employee repo
     let (svc, _, req_repo, _, _) = build_service(None, true);
 
-    let mock_req = LeaveRequest::new(
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-        NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-        None,
-        LeaveStatus::Pending,
-        LeaveDurationType::FullDay,
-        None,
-        None,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-    );
+    let mock_req = LeaveRequest::new(NewLeaveRequestParams {
+            id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
+            leave_type_id: Uuid::new_v4(),
+            start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            reason: None,
+            status: LeaveStatus::Pending,
+            duration_type: LeaveDurationType::FullDay,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            attachment_file_ids: None,
+        });
     *req_repo.leave_request.lock().unwrap() = Some(mock_req);
 
     let req = crate::models::ApproveLeaveRequest {
@@ -984,23 +985,23 @@ async fn test_approve_leave_request_forbidden() {
 #[tokio::test]
 async fn test_approve_leave_request_success() {
     let (svc, _, req_repo, _, _) = build_service(Some(dummy_employee()), true);
-    let mock_req = LeaveRequest::new(
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-        NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-        None,
-        LeaveStatus::Pending,
-        LeaveDurationType::FullDay,
-        None,
-        None,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-    );
+    let mock_req = LeaveRequest::new(NewLeaveRequestParams {
+            id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
+            leave_type_id: Uuid::new_v4(),
+            start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            reason: None,
+            status: LeaveStatus::Pending,
+            duration_type: LeaveDurationType::FullDay,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            attachment_file_ids: None,
+        });
     *req_repo.leave_request.lock().unwrap() = Some(mock_req);
     let req = crate::models::ApproveLeaveRequest {
         status: LeaveStatus::Approved,
@@ -1203,23 +1204,23 @@ async fn test_submit_leave_request_auto_approve_custom_hours() {
 async fn test_approve_leave_request_first_half() {
     let (svc, _, req_repo, ros_repo, _) = build_service(Some(dummy_employee()), true);
 
-    let mock_req = LeaveRequest::new(
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-        NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-        None,
-        LeaveStatus::Pending,
-        LeaveDurationType::FirstHalf,
-        None,
-        None,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-    );
+    let mock_req = LeaveRequest::new(NewLeaveRequestParams {
+            id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
+            leave_type_id: Uuid::new_v4(),
+            start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            reason: None,
+            status: LeaveStatus::Pending,
+            duration_type: LeaveDurationType::FirstHalf,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            attachment_file_ids: None,
+        });
     *req_repo.leave_request.lock().unwrap() = Some(mock_req);
 
     let req = crate::models::ApproveLeaveRequest {
@@ -1248,23 +1249,23 @@ async fn test_approve_leave_request_first_half() {
 async fn test_approve_leave_request_second_half() {
     let (svc, _, req_repo, ros_repo, _) = build_service(Some(dummy_employee()), true);
 
-    let mock_req = LeaveRequest::new(
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-        NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-        None,
-        LeaveStatus::Pending,
-        LeaveDurationType::SecondHalf,
-        None,
-        None,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-    );
+    let mock_req = LeaveRequest::new(NewLeaveRequestParams {
+            id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
+            leave_type_id: Uuid::new_v4(),
+            start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            reason: None,
+            status: LeaveStatus::Pending,
+            duration_type: LeaveDurationType::SecondHalf,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            attachment_file_ids: None,
+        });
     *req_repo.leave_request.lock().unwrap() = Some(mock_req);
 
     let req = crate::models::ApproveLeaveRequest {
@@ -1292,23 +1293,23 @@ async fn test_approve_leave_request_second_half() {
 async fn test_approve_leave_request_custom_hours() {
     let (svc, _, req_repo, ros_repo, _) = build_service(Some(dummy_employee()), true);
 
-    let mock_req = LeaveRequest::new(
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-        NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-        None,
-        LeaveStatus::Pending,
-        LeaveDurationType::CustomHours,
-        Some(NaiveTime::from_hms_opt(9, 0, 0).unwrap()),
-        Some(NaiveTime::from_hms_opt(11, 0, 0).unwrap()),
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-    );
+    let mock_req = LeaveRequest::new(NewLeaveRequestParams {
+            id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
+            leave_type_id: Uuid::new_v4(),
+            start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            reason: None,
+            status: LeaveStatus::Pending,
+            duration_type: LeaveDurationType::CustomHours,
+            start_time: Some(NaiveTime::from_hms_opt(9, 0, 0).unwrap()),
+            end_time: Some(NaiveTime::from_hms_opt(11, 0, 0).unwrap()),
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            attachment_file_ids: None,
+        });
     *req_repo.leave_request.lock().unwrap() = Some(mock_req);
 
     let req = crate::models::ApproveLeaveRequest {
@@ -1339,23 +1340,23 @@ async fn test_on_workflow_completed() {
 
     let (svc, _, req_repo, _, _) = build_service(Some(dummy_employee()), true);
 
-    let mock_req = LeaveRequest::new(
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-        NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-        None,
-        LeaveStatus::Pending,
-        LeaveDurationType::FullDay,
-        None,
-        None,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-    );
+    let mock_req = LeaveRequest::new(NewLeaveRequestParams {
+            id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
+            leave_type_id: Uuid::new_v4(),
+            start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            reason: None,
+            status: LeaveStatus::Pending,
+            duration_type: LeaveDurationType::FullDay,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            attachment_file_ids: None,
+        });
     let request_id = mock_req.id();
     *req_repo.leave_request.lock().unwrap() = Some(mock_req);
 
@@ -1407,42 +1408,42 @@ async fn test_leave_conflict_auto_cancel() -> Result<(), Box<dyn std::error::Err
         crate::repositories::leave_request_repository::MockLeaveRequestRepository::new();
 
     // Incoming request
-    let incoming_req = LeaveRequest::new(
-        Uuid::new_v4(),
-        employment_id,
-        leave_type_id,
-        NaiveDate::from_ymd_opt(2024, 6, 10).ok_or("date")?,
-        NaiveDate::from_ymd_opt(2024, 6, 12).ok_or("date")?,
-        None,
-        LeaveStatus::Approved,
-        LeaveDurationType::FullDay,
-        None,
-        None,
-        Some(Uuid::new_v4()),
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-    );
+    let incoming_req = LeaveRequest::new(NewLeaveRequestParams {
+            id: Uuid::new_v4(),
+            employment_id: employment_id,
+            leave_type_id: leave_type_id,
+            start_date: NaiveDate::from_ymd_opt(2024, 6, 10).ok_or("date")?,
+            end_date: NaiveDate::from_ymd_opt(2024, 6, 12).ok_or("date")?,
+            reason: None,
+            status: LeaveStatus::Approved,
+            duration_type: LeaveDurationType::FullDay,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: Some(Uuid::new_v4()),
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            attachment_file_ids: None,
+        });
 
     // Conflicting request
-    let conflicting_req = LeaveRequest::new(
-        Uuid::new_v4(),
-        employment_id,
-        leave_type_id,
-        NaiveDate::from_ymd_opt(2024, 6, 11).ok_or("date")?,
-        NaiveDate::from_ymd_opt(2024, 6, 11).ok_or("date")?,
-        None,
-        LeaveStatus::Approved,
-        LeaveDurationType::FullDay,
-        None,
-        None,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-    );
+    let conflicting_req = LeaveRequest::new(NewLeaveRequestParams {
+            id: Uuid::new_v4(),
+            employment_id: employment_id,
+            leave_type_id: leave_type_id,
+            start_date: NaiveDate::from_ymd_opt(2024, 6, 11).ok_or("date")?,
+            end_date: NaiveDate::from_ymd_opt(2024, 6, 11).ok_or("date")?,
+            reason: None,
+            status: LeaveStatus::Approved,
+            duration_type: LeaveDurationType::FullDay,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            attachment_file_ids: None,
+        });
     let conflicting_req_id = conflicting_req.id();
 
     // Mock requests query: return the conflicting request (and self, which is ignored)
@@ -1565,42 +1566,42 @@ async fn test_leave_conflict_notify() -> Result<(), Box<dyn std::error::Error>> 
         crate::repositories::leave_request_repository::MockLeaveRequestRepository::new();
 
     // Incoming request (Pending)
-    let incoming_req = LeaveRequest::new(
-        Uuid::new_v4(),
-        employment_id,
-        leave_type_id,
-        NaiveDate::from_ymd_opt(2024, 6, 10).ok_or("date")?,
-        NaiveDate::from_ymd_opt(2024, 6, 12).ok_or("date")?,
-        None,
-        LeaveStatus::Pending,
-        LeaveDurationType::FullDay,
-        None,
-        None,
-        Some(requester_user_id),
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-    );
+    let incoming_req = LeaveRequest::new(NewLeaveRequestParams {
+            id: Uuid::new_v4(),
+            employment_id: employment_id,
+            leave_type_id: leave_type_id,
+            start_date: NaiveDate::from_ymd_opt(2024, 6, 10).ok_or("date")?,
+            end_date: NaiveDate::from_ymd_opt(2024, 6, 12).ok_or("date")?,
+            reason: None,
+            status: LeaveStatus::Pending,
+            duration_type: LeaveDurationType::FullDay,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: Some(requester_user_id),
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            attachment_file_ids: None,
+        });
 
     // Conflicting request
-    let conflicting_req = LeaveRequest::new(
-        Uuid::new_v4(),
-        employment_id,
-        leave_type_id,
-        NaiveDate::from_ymd_opt(2024, 6, 11).ok_or("date")?,
-        NaiveDate::from_ymd_opt(2024, 6, 11).ok_or("date")?,
-        None,
-        LeaveStatus::Approved,
-        LeaveDurationType::FullDay,
-        None,
-        None,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-    );
+    let conflicting_req = LeaveRequest::new(NewLeaveRequestParams {
+            id: Uuid::new_v4(),
+            employment_id: employment_id,
+            leave_type_id: leave_type_id,
+            start_date: NaiveDate::from_ymd_opt(2024, 6, 11).ok_or("date")?,
+            end_date: NaiveDate::from_ymd_opt(2024, 6, 11).ok_or("date")?,
+            reason: None,
+            status: LeaveStatus::Approved,
+            duration_type: LeaveDurationType::FullDay,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            attachment_file_ids: None,
+        });
 
     // Mock requests query
     let other_requests = vec![incoming_req.clone(), conflicting_req.clone()];

@@ -15,8 +15,9 @@ use crate::models::{
     enums::ImportTargetType, AdjustBalanceRequest, ApproveLeaveRequest, AssignLeavePolicyRequest,
     BehalfAssignment, CreateBehalfAssignmentRequest, CreateLeavePolicyRequest, Employee,
     EmployeeLeaveBalance, LeaveHistoryItem, LeavePolicyAssignment, LeavePolicyAssignmentDetail,
-    LeavePolicyDefinition, LeaveRequest, LeaveStatus, PaginatedResponse, PaginationParams,
-    SubmitLeaveRequest, UpdateLeavePolicyRequest, WorkspaceLeaveBalance,
+    LeavePolicyDefinition, LeaveRequest, LeaveStatus, NewLeavePolicyAssignmentParams,
+    PaginatedResponse, PaginationParams, SubmitLeaveRequest, UpdateLeavePolicyRequest,
+    WorkspaceLeaveBalance,
 };
 use crate::utils::i18n::I18nKey;
 
@@ -504,17 +505,17 @@ pub async fn assign_leave_policy(
 ) -> AppResult<(StatusCode, Json<LeavePolicyAssignment>)> {
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
-    let assignment = LeavePolicyAssignment::new(
-        crate::utils::id::new_id(),
-        ctx.workspace_id,
-        req.assignee_type,
-        req.assignee_id,
-        req.policy_id,
-        req.effective_from,
-        req.effective_to,
-        chrono::Utc::now(),
-        None,
-    );
+    let assignment = LeavePolicyAssignment::new(NewLeavePolicyAssignmentParams {
+        id: crate::utils::id::new_id(),
+        workspace_id: ctx.workspace_id,
+        assignee_type: req.assignee_type,
+        assignee_id: req.assignee_id,
+        policy_id: req.policy_id,
+        effective_from: req.effective_from,
+        effective_to: req.effective_to,
+        created_at: chrono::Utc::now(),
+        deleted_at: None,
+    });
 
     let saved = state
         .leaves()

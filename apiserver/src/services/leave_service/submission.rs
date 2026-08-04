@@ -13,7 +13,7 @@ use diesel_async::AsyncConnection;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::models::{LeaveDurationType, LeaveRequest, LeaveStatus, SubmitLeaveRequest};
+use crate::models::{LeaveDurationType, LeaveRequest, LeaveStatus, NewLeaveRequestParams, SubmitLeaveRequest};
 
 /// Result of resolving submitter identity and employment for leave submission.
 pub struct SubmitterInfo {
@@ -115,23 +115,23 @@ impl super::LeaveService {
             .attachment_file_ids
             .map(|ids| ids.into_iter().map(Some).collect());
 
-        let request = LeaveRequest::new(
-            Uuid::new_v4(),
-            req.employment_id,
-            req.leave_type_id,
-            req.start_date,
-            req.end_date,
-            req.reason,
+        let request = LeaveRequest::new(NewLeaveRequestParams {
+            id: Uuid::new_v4(),
+            employment_id: req.employment_id,
+            leave_type_id: req.leave_type_id,
+            start_date: req.start_date,
+            end_date: req.end_date,
+            reason: req.reason,
             status,
-            req.duration_type,
-            req.start_time,
-            req.end_time,
-            Some(user_id),
-            approved_by,
-            Utc::now(),
-            Utc::now(),
+            duration_type: req.duration_type,
+            start_time: req.start_time,
+            end_time: req.end_time,
+            requested_by_user_id: Some(user_id),
+            approved_by_user_id: approved_by,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
             attachment_file_ids,
-        );
+        });
 
         // Phase 0: Invalidate cached employee leaves to force fresh DB read.
         if let Some(ref cache) = self.cache {

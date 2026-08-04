@@ -3,6 +3,7 @@ use crate::errors::AppError;
 use crate::models::diesel::leave::*;
 use crate::models::{
     LeavePolicyAssignment, LeavePolicyAssignmentDetail, LeavePolicyConfig, LeavePolicyDefinition,
+    NewLeavePolicyAssignmentDetailParams,
 };
 use crate::repositories::leave_policy_repository::LeavePolicyRepository;
 use crate::utils::i18n::I18nKey;
@@ -715,18 +716,18 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         Ok(results
             .into_iter()
             .map(|(a, p_name, lt_name)| {
-                LeavePolicyAssignmentDetail::new(
-                    a.id,
-                    a.workspace_id,
-                    a.assignee_type,
-                    a.assignee_id,
-                    a.policy_id,
-                    a.effective_from,
-                    a.effective_to,
-                    a.created_at.unwrap_or_else(Utc::now),
-                    p_name,
-                    lt_name,
-                )
+                LeavePolicyAssignmentDetail::new(NewLeavePolicyAssignmentDetailParams {
+                    id: a.id,
+                    workspace_id: a.workspace_id,
+                    assignee_type: a.assignee_type,
+                    assignee_id: a.assignee_id,
+                    policy_id: a.policy_id,
+                    effective_from: a.effective_from,
+                    effective_to: a.effective_to,
+                    created_at: a.created_at.unwrap_or_else(Utc::now),
+                    policy_name: p_name,
+                    leave_type_name: lt_name,
+                })
             })
             .collect())
     }

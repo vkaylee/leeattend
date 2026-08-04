@@ -1,6 +1,6 @@
 use super::*;
 use crate::diesel_pool::{DieselPools, TenantAuthToken};
-use crate::models::{LeaveRequest, LeaveStatus};
+use crate::models::{LeaveRequest, LeaveStatus, NewLeaveRequestParams};
 use chrono::{NaiveDate, Utc};
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
@@ -16,23 +16,23 @@ async fn test_leave_request_repository_errors() {
     let lt_id = Uuid::new_v4();
     let auth_token = TenantAuthToken(ws_id);
 
-    let req = LeaveRequest::new(
-        Uuid::new_v4(),
-        emp_id,
-        lt_id,
-        NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
-        NaiveDate::from_ymd_opt(2023, 1, 2).unwrap(),
-        Some("test".to_string()),
-        LeaveStatus::Pending,
-        crate::models::LeaveDurationType::FullDay,
-        None,
-        None,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-    );
+    let req = LeaveRequest::new(NewLeaveRequestParams {
+        id: Uuid::new_v4(),
+        employment_id: emp_id,
+        leave_type_id: lt_id,
+        start_date: NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+        end_date: NaiveDate::from_ymd_opt(2023, 1, 2).unwrap(),
+        reason: Some("test".to_string()),
+        status: LeaveStatus::Pending,
+        duration_type: crate::models::LeaveDurationType::FullDay,
+        start_time: None,
+        end_time: None,
+        requested_by_user_id: None,
+        approved_by_user_id: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        attachment_file_ids: None,
+    });
 
     let _ = repo.create_leave_request(&auth_token, &req).await;
     let _ = repo
@@ -220,23 +220,23 @@ async fn test_leave_request_repository_flow() {
 
     // 2. Create leave request (normal request)
     let request_id = Uuid::new_v4();
-    let request = LeaveRequest::new(
-        request_id,
+    let request = LeaveRequest::new(NewLeaveRequestParams {
+        id: request_id,
         employment_id,
-        lt_id,
-        NaiveDate::from_ymd_opt(2023, 1, 15).unwrap(),
-        NaiveDate::from_ymd_opt(2023, 1, 16).unwrap(),
-        Some("vacation trip".to_string()),
-        LeaveStatus::Pending,
-        crate::models::LeaveDurationType::FullDay,
-        None,
-        None,
-        Some(Uuid::new_v4()),
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-    );
+        leave_type_id: lt_id,
+        start_date: NaiveDate::from_ymd_opt(2023, 1, 15).unwrap(),
+        end_date: NaiveDate::from_ymd_opt(2023, 1, 16).unwrap(),
+        reason: Some("vacation trip".to_string()),
+        status: LeaveStatus::Pending,
+        duration_type: crate::models::LeaveDurationType::FullDay,
+        start_time: None,
+        end_time: None,
+        requested_by_user_id: Some(Uuid::new_v4()),
+        approved_by_user_id: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        attachment_file_ids: None,
+    });
     repo.create_leave_request(&token, &request).await.unwrap();
 
     // 3. Query leave request by ID
@@ -298,23 +298,23 @@ async fn test_leave_request_repository_flow() {
 
     // 8. Create a system-generated leave request
     let system_req_id = Uuid::new_v4();
-    let system_request = LeaveRequest::new(
-        system_req_id,
+    let system_request = LeaveRequest::new(NewLeaveRequestParams {
+        id: system_req_id,
         employment_id,
-        lt_id,
-        NaiveDate::from_ymd_opt(2023, 1, 20).unwrap(),
-        NaiveDate::from_ymd_opt(2023, 1, 20).unwrap(),
-        Some("system holiday".to_string()),
-        LeaveStatus::Approved,
-        crate::models::LeaveDurationType::FullDay,
-        None,
-        None,
-        None, // requested_by_user_id is None -> system generated
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-    );
+        leave_type_id: lt_id,
+        start_date: NaiveDate::from_ymd_opt(2023, 1, 20).unwrap(),
+        end_date: NaiveDate::from_ymd_opt(2023, 1, 20).unwrap(),
+        reason: Some("system holiday".to_string()),
+        status: LeaveStatus::Approved,
+        duration_type: crate::models::LeaveDurationType::FullDay,
+        start_time: None,
+        end_time: None,
+        requested_by_user_id: None, // requested_by_user_id is None -> system generated
+        approved_by_user_id: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        attachment_file_ids: None,
+    });
     repo.create_leave_request(&token, &system_request)
         .await
         .unwrap();
