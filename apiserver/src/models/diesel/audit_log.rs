@@ -25,21 +25,23 @@ pub struct AuditLogEntity {
 
 impl From<AuditLogEntity> for AuditLog {
     fn from(entity: AuditLogEntity) -> Self {
-        Self::new(crate::domain::audit::NewAuditLogParams {
-            id: entity.id,
-            workspace_id: entity.workspace_id,
-            actor_id: entity.actor_id,
-            actor_type: entity.actor_type,
-            actor_name: entity.actor_name,
-            actor_email: entity.actor_email,
-            target_user_id: entity.target_user_id,
-            target_resource_id: entity.target_resource_id,
-            action: entity.action,
-            details: entity.details,
-            ip_address: entity.ip_address,
-            user_agent: entity.user_agent,
-            created_at: entity.created_at,
-        })
+        Self::new(
+            crate::domain::audit::NewAuditLogParams::new(
+                entity.id,
+                entity.workspace_id,
+                entity.action,
+                entity.created_at,
+            )
+            .with_actor(
+                entity.actor_id,
+                entity.actor_type,
+                entity.actor_name,
+                entity.actor_email,
+            )
+            .with_target(entity.target_user_id, entity.target_resource_id)
+            .with_details(entity.details)
+            .with_client_context(entity.ip_address, entity.user_agent),
+        )
     }
 }
 

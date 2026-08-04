@@ -20,19 +20,83 @@ pub struct AuditLog {
 }
 
 pub struct NewAuditLogParams {
-    pub id: Uuid,
-    pub workspace_id: Uuid,
-    pub actor_id: Option<Uuid>,
-    pub actor_type: Option<String>,
-    pub actor_name: Option<String>,
-    pub actor_email: Option<String>,
-    pub target_user_id: Option<Uuid>,
-    pub target_resource_id: Option<Uuid>,
-    pub action: String,
-    pub details: Option<serde_json::Value>,
-    pub ip_address: Option<String>,
-    pub user_agent: Option<String>,
-    pub created_at: DateTime<Utc>,
+    id: Uuid,
+    workspace_id: Uuid,
+    actor_id: Option<Uuid>,
+    actor_type: Option<String>,
+    actor_name: Option<String>,
+    actor_email: Option<String>,
+    target_user_id: Option<Uuid>,
+    target_resource_id: Option<Uuid>,
+    action: String,
+    details: Option<serde_json::Value>,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+    created_at: DateTime<Utc>,
+}
+
+impl NewAuditLogParams {
+    pub fn new(
+        id: Uuid,
+        workspace_id: Uuid,
+        action: impl Into<String>,
+        created_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            workspace_id,
+            actor_id: None,
+            actor_type: None,
+            actor_name: None,
+            actor_email: None,
+            target_user_id: None,
+            target_resource_id: None,
+            action: action.into(),
+            details: None,
+            ip_address: None,
+            user_agent: None,
+            created_at,
+        }
+    }
+
+    pub fn with_actor(
+        mut self,
+        actor_id: Option<Uuid>,
+        actor_type: Option<String>,
+        actor_name: Option<String>,
+        actor_email: Option<String>,
+    ) -> Self {
+        self.actor_id = actor_id;
+        self.actor_type = actor_type;
+        self.actor_name = actor_name;
+        self.actor_email = actor_email;
+        self
+    }
+
+    pub fn with_target(
+        mut self,
+        target_user_id: Option<Uuid>,
+        target_resource_id: Option<Uuid>,
+    ) -> Self {
+        self.target_user_id = target_user_id;
+        self.target_resource_id = target_resource_id;
+        self
+    }
+
+    pub fn with_details(mut self, details: Option<serde_json::Value>) -> Self {
+        self.details = details;
+        self
+    }
+
+    pub fn with_client_context(
+        mut self,
+        ip_address: Option<String>,
+        user_agent: Option<String>,
+    ) -> Self {
+        self.ip_address = ip_address;
+        self.user_agent = user_agent;
+        self
+    }
 }
 
 impl AuditLog {

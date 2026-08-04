@@ -40,21 +40,23 @@ impl AuditHelper {
                     .map(std::string::ToString::to_string)
             });
 
-        let log = AuditLog::new(NewAuditLogParams {
-            id: crate::utils::id::new_id(),
-            workspace_id: args.workspace_id,
-            actor_id: args.actor_id,
-            actor_type: args.actor_type,
-            actor_name: args.actor_name,
-            actor_email: args.actor_email,
-            target_user_id: args.target_user_id,
-            target_resource_id: args.target_resource_id,
-            action: args.action.to_string(),
-            details: args.details,
-            ip_address: ip_address,
-            user_agent: user_agent,
-            created_at: chrono::Utc::now(),
-        });
+        let log = AuditLog::new(
+            NewAuditLogParams::new(
+                crate::utils::id::new_id(),
+                args.workspace_id,
+                args.action,
+                chrono::Utc::now(),
+            )
+            .with_actor(
+                args.actor_id,
+                args.actor_type,
+                args.actor_name,
+                args.actor_email,
+            )
+            .with_target(args.target_user_id, args.target_resource_id)
+            .with_details(args.details)
+            .with_client_context(ip_address, user_agent),
+        );
 
         if let Err(e) = args.repo.create_log(&log).await {
             tracing::error!(
