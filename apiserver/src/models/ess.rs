@@ -4,6 +4,21 @@ use uuid::Uuid;
 
 use crate::models::employee::Employee;
 
+pub struct NewEmployeeProfileParams {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub phone: Option<String>,
+    pub address: Option<String>,
+    pub date_of_birth: Option<NaiveDate>,
+    pub gender: Option<String>,
+    pub national_id: Option<String>,
+    pub bank_name: Option<String>,
+    pub bank_account_number: Option<String>,
+    pub bank_branch: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 #[derive(Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EmployeeProfile {
     id: Uuid,
@@ -21,34 +36,20 @@ pub struct EmployeeProfile {
 }
 
 impl EmployeeProfile {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        employee_id: Uuid,
-        phone: Option<String>,
-        address: Option<String>,
-        date_of_birth: Option<NaiveDate>,
-        gender: Option<String>,
-        national_id: Option<String>,
-        bank_name: Option<String>,
-        bank_account_number: Option<String>,
-        bank_branch: Option<String>,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-    ) -> Self {
+    pub fn new(params: NewEmployeeProfileParams) -> Self {
         Self {
-            id,
-            employee_id,
-            phone,
-            address,
-            date_of_birth,
-            gender,
-            national_id,
-            bank_name,
-            bank_account_number,
-            bank_branch,
-            created_at,
-            updated_at,
+            id: params.id,
+            employee_id: params.employee_id,
+            phone: params.phone,
+            address: params.address,
+            date_of_birth: params.date_of_birth,
+            gender: params.gender,
+            national_id: params.national_id,
+            bank_name: params.bank_name,
+            bank_account_number: params.bank_account_number,
+            bank_branch: params.bank_branch,
+            created_at: params.created_at,
+            updated_at: params.updated_at,
         }
     }
 
@@ -304,6 +305,21 @@ impl std::fmt::Debug for CreateEmergencyContactRequest {
     }
 }
 
+pub struct NewEmployeeDocumentParams {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub workspace_id: Uuid,
+    pub document_type: String,
+    pub file_name: String,
+    pub file_path: String,
+    pub file_size: i32,
+    pub mime_type: String,
+    pub expires_at: Option<NaiveDate>,
+    pub is_active: bool,
+    pub uploaded_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+}
+
 #[derive(Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EmployeeDocument {
     id: Uuid,
@@ -322,33 +338,20 @@ pub struct EmployeeDocument {
 
 impl EmployeeDocument {
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        employee_id: Uuid,
-        workspace_id: Uuid,
-        document_type: String,
-        file_name: String,
-        file_path: String,
-        file_size: i32,
-        mime_type: String,
-        expires_at: Option<NaiveDate>,
-        is_active: bool,
-        uploaded_by: Option<Uuid>,
-        created_at: DateTime<Utc>,
-    ) -> Self {
+    pub fn new(params: NewEmployeeDocumentParams) -> Self {
         Self {
-            id,
-            employee_id,
-            workspace_id,
-            document_type,
-            file_name,
-            file_path,
-            file_size,
-            mime_type,
-            expires_at,
-            is_active,
-            uploaded_by,
-            created_at,
+            id: params.id,
+            employee_id: params.employee_id,
+            workspace_id: params.workspace_id,
+            document_type: params.document_type,
+            file_name: params.file_name,
+            file_path: params.file_path,
+            file_size: params.file_size,
+            mime_type: params.mime_type,
+            expires_at: params.expires_at,
+            is_active: params.is_active,
+            uploaded_by: params.uploaded_by,
+            created_at: params.created_at,
         }
     }
 
@@ -441,20 +444,20 @@ mod tests {
 
     #[test]
     fn test_employee_profile_debug_masks_pii() {
-        let profile = EmployeeProfile::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            Some("0987654321".to_string()),
-            Some("123 Street Name".to_string()),
-            Some(NaiveDate::from_ymd_opt(1990, 1, 1).unwrap()),
-            Some("Male".to_string()),
-            Some("123456789".to_string()),
-            Some("Test Bank".to_string()),
-            Some("1234567890".to_string()),
-            Some("Branch Name".to_string()),
-            Utc::now(),
-            Utc::now(),
-        );
+        let profile = EmployeeProfile::new(NewEmployeeProfileParams {
+            id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            phone: Some("0987654321".to_string()),
+            address: Some("123 Street Name".to_string()),
+            date_of_birth: Some(NaiveDate::from_ymd_opt(1990, 1, 1).unwrap()),
+            gender: Some("Male".to_string()),
+            national_id: Some("123456789".to_string()),
+            bank_name: Some("Test Bank".to_string()),
+            bank_account_number: Some("1234567890".to_string()),
+            bank_branch: Some("Branch Name".to_string()),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        });
 
         let debug_str = format!("{profile:?}");
         assert!(!debug_str.contains("0987654321"));
@@ -547,20 +550,20 @@ mod tests {
 
     #[test]
     fn test_other_ess_models() {
-        let doc = EmployeeDocument::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            "id_card".to_string(),
-            "id.png".to_string(),
-            "/path/to/file".to_string(),
-            1024,
-            "image/png".to_string(),
-            Some(NaiveDate::from_ymd_opt(2030, 1, 1).unwrap()),
-            true,
-            Some(Uuid::new_v4()),
-            Utc::now(),
-        );
+        let doc = EmployeeDocument::new(NewEmployeeDocumentParams {
+            id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            document_type: "id_card".to_string(),
+            file_name: "id.png".to_string(),
+            file_path: "/path/to/file".to_string(),
+            file_size: 1024,
+            mime_type: "image/png".to_string(),
+            expires_at: Some(NaiveDate::from_ymd_opt(2030, 1, 1).unwrap()),
+            is_active: true,
+            uploaded_by: Some(Uuid::new_v4()),
+            created_at: Utc::now(),
+        });
 
         assert_eq!(doc.file_name(), "id.png");
 

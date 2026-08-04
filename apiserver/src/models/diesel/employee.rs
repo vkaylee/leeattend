@@ -3,6 +3,7 @@ use diesel::prelude::*;
 use uuid::Uuid;
 
 use crate::models::Employee;
+use crate::models::{NewEmployeeDocumentParams, NewEmployeeProfileParams};
 use crate::schema::employees;
 use diesel::sql_types::{Array, BigInt, Nullable, Text, Timestamptz, Uuid as UuidType};
 
@@ -268,20 +269,20 @@ pub struct EmployeeProfileEntity {
 
 impl From<EmployeeProfileEntity> for crate::models::EmployeeProfile {
     fn from(val: EmployeeProfileEntity) -> Self {
-        crate::models::EmployeeProfile::new(
-            val.id,
-            val.employee_id,
-            val.phone,
-            val.address,
-            val.date_of_birth,
-            val.gender,
-            val.national_id,
-            val.bank_name,
-            val.bank_account_number,
-            val.bank_branch,
-            val.created_at,
-            val.updated_at,
-        )
+        crate::models::EmployeeProfile::new(NewEmployeeProfileParams {
+            id: val.id,
+            employee_id: val.employee_id,
+            phone: val.phone,
+            address: val.address,
+            date_of_birth: val.date_of_birth,
+            gender: val.gender,
+            national_id: val.national_id,
+            bank_name: val.bank_name,
+            bank_account_number: val.bank_account_number,
+            bank_branch: val.bank_branch,
+            created_at: val.created_at,
+            updated_at: val.updated_at,
+        })
     }
 }
 
@@ -330,20 +331,20 @@ pub struct EmployeeDocumentEntity {
 
 impl From<EmployeeDocumentEntity> for crate::models::EmployeeDocument {
     fn from(val: EmployeeDocumentEntity) -> Self {
-        crate::models::EmployeeDocument::new(
-            val.id,
-            val.employee_id,
-            val.workspace_id,
-            val.document_type,
-            val.file_name,
-            val.file_path,
-            val.file_size,
-            val.mime_type,
-            val.expires_at,
-            val.is_active,
-            val.uploaded_by,
-            val.created_at,
-        )
+        crate::models::EmployeeDocument::new(NewEmployeeDocumentParams {
+            id: val.id,
+            employee_id: val.employee_id,
+            workspace_id: val.workspace_id,
+            document_type: val.document_type,
+            file_name: val.file_name,
+            file_path: val.file_path,
+            file_size: val.file_size,
+            mime_type: val.mime_type,
+            expires_at: val.expires_at,
+            is_active: val.is_active,
+            uploaded_by: val.uploaded_by,
+            created_at: val.created_at,
+        })
     }
 }
 
