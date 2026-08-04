@@ -19,37 +19,38 @@ pub struct AuditLog {
     created_at: DateTime<Utc>,
 }
 
+pub struct NewAuditLogParams {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub actor_id: Option<Uuid>,
+    pub actor_type: Option<String>,
+    pub actor_name: Option<String>,
+    pub actor_email: Option<String>,
+    pub target_user_id: Option<Uuid>,
+    pub target_resource_id: Option<Uuid>,
+    pub action: String,
+    pub details: Option<serde_json::Value>,
+    pub ip_address: Option<String>,
+    pub user_agent: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
 impl AuditLog {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        workspace_id: Uuid,
-        actor_id: Option<Uuid>,
-        actor_type: Option<String>,
-        actor_name: Option<String>,
-        actor_email: Option<String>,
-        target_user_id: Option<Uuid>,
-        target_resource_id: Option<Uuid>,
-        action: String,
-        details: Option<serde_json::Value>,
-        ip_address: Option<String>,
-        user_agent: Option<String>,
-        created_at: DateTime<Utc>,
-    ) -> Self {
+    pub fn new(params: NewAuditLogParams) -> Self {
         Self {
-            id,
-            workspace_id,
-            actor_id,
-            actor_type,
-            actor_name,
-            actor_email,
-            target_user_id,
-            target_resource_id,
-            action,
-            details,
-            ip_address,
-            user_agent,
-            created_at,
+            id: params.id,
+            workspace_id: params.workspace_id,
+            actor_id: params.actor_id,
+            actor_type: params.actor_type,
+            actor_name: params.actor_name,
+            actor_email: params.actor_email,
+            target_user_id: params.target_user_id,
+            target_resource_id: params.target_resource_id,
+            action: params.action,
+            details: params.details,
+            ip_address: params.ip_address,
+            user_agent: params.user_agent,
+            created_at: params.created_at,
         }
     }
 

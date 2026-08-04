@@ -842,21 +842,21 @@ mod tests {
 
         let mut audit = MockAuditLogRepository::new();
         audit.expect_create_log().returning(|_| {
-            Ok(crate::domain::audit::AuditLog::new(
-                Uuid::new_v4(),
-                Uuid::new_v4(),
-                Some(Uuid::new_v4()),
-                Some("user".into()),
-                None,
-                None,
-                None,
-                Some(Uuid::new_v4()),
-                "custom_field.definition_created".into(),
-                None,
-                None,
-                None,
-                Utc::now(),
-            ))
+            Ok(crate::domain::audit::AuditLog::new(crate::domain::audit::NewAuditLogParams {
+                id: Uuid::new_v4(),
+                workspace_id: Uuid::new_v4(),
+                actor_id: Some(Uuid::new_v4()),
+                actor_type: Some("user".into()),
+                actor_name: None,
+                actor_email: None,
+                target_user_id: None,
+                target_resource_id: Some(Uuid::new_v4()),
+                action: "custom_field.definition_created".into(),
+                details: None,
+                ip_address: None,
+                user_agent: None,
+                created_at: Utc::now(),
+            }))
         });
 
         let svc = build_service_with_audit(repo, audit);
@@ -974,21 +974,21 @@ mod tests {
 
             let mut audit = MockAuditLogRepository::new();
             audit.expect_create_log().returning(move |_| {
-                Ok(crate::domain::audit::AuditLog::new(
-                    Uuid::new_v4(),
-                    ws,
-                    Some(Uuid::new_v4()),
-                    Some("user".into()),
-                    None,
-                    None,
-                    None,
-                    Some(Uuid::new_v4()),
-                    "custom_field.definition_created".into(),
-                    None,
-                    None,
-                    None,
-                    Utc::now(),
-                ))
+                Ok(crate::domain::audit::AuditLog::new(crate::domain::audit::NewAuditLogParams {
+                    id: Uuid::new_v4(),
+                    workspace_id: ws,
+                    actor_id: Some(Uuid::new_v4()),
+                    actor_type: Some("user".into()),
+                    actor_name: None,
+                    actor_email: None,
+                    target_user_id: None,
+                    target_resource_id: Some(Uuid::new_v4()),
+                    action: "custom_field.definition_created".into(),
+                    details: None,
+                    ip_address: None,
+                    user_agent: None,
+                    created_at: Utc::now(),
+                }))
             });
 
             let svc = build_service_with_audit(repo, audit);
