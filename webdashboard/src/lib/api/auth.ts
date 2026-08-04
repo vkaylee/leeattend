@@ -1,7 +1,13 @@
 import { client, fetch } from "./client";
 import { ApiError } from "./errors";
 import { apiFetch, setAccessToken, setCurrentUserId, clearAuthSession, TIMEOUT } from "./helpers";
-import { AuthResponse, RegisterRequest, ChangePasswordRequest, User } from "./types";
+import {
+  AuthResponse,
+  ChangePasswordRequest,
+  RegisterRequest,
+  UpdateUserRequest,
+  User,
+} from "./types";
 
 export async function login(username: string, password: string): Promise<AuthResponse> {
   const { data } = await client.POST("/auth/login", {
@@ -41,7 +47,7 @@ export async function fetchMe(): Promise<User> {
   return data;
 }
 
-export async function updateMe(data: Partial<User>): Promise<User> {
+export async function updateMe(data: UpdateUserRequest): Promise<User> {
   const { data: resData } = await client.PATCH("/me", {
     body: data,
   });

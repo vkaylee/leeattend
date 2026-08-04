@@ -5,6 +5,7 @@ import { logError } from "@/lib/logger";
 import { ROUTES } from "@/lib/routes";
 
 import { API_BASE_URL } from "./config";
+import { ApiError } from "./errors";
 import {
   clearAuthSession,
   getAccessToken,
@@ -29,30 +30,31 @@ export async function forceRefreshToken(): Promise<boolean> {
 
   refreshPromise = (async () => {
     try {
-      // Send an EMPTY body. The backend refresh endpoint first tries the body,
-      // then falls back to the HttpOnly `refresh_token` cookie
-      // (apiserver/src/handlers/auth.rs::refresh_token, lines 405-414).
-      // The frontend NEVER reads the refresh token directly.
+      // The refresh token is HttpOnly, so send a cookie-only request.
+      // Omitting both body and Content-Type lets the backend use its cookie
+      // fallback without attempting to deserialize a fake JSON payload.
       const refreshResponse = await fetch(`${API_BASE_URL}/v1/auth/refresh`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({}),
       });
 
-      if (refreshResponse.ok) {
-        const data = (await refreshResponse.json()) as {
-          access_token: string;
-          refresh_token: string;
-        };
-        setAccessToken(data.access_token);
-        // NOTE: we deliberately IGNORE the returned refresh_token. The new
-        // refresh token is rotated inside the HttpOnly cookie by the backend
-        // (Set-Cookie header on this response). Storing it in JS-accessible
-        // memory would be a security regression.
-        return true;
+      if (!refreshResponse.ok) {
+        if (refreshResponse.status === 401) return false;
+        await ApiError.rejectResponse(refreshResponse);
       }
+
+      const data = (await refreshResponse.json()) as {
+        access_token: string;
+        refresh_token: string;
+      };
+      setAccessToken(data.access_token);
+      // NOTE: we deliberately IGNORE the returned refresh_token. The new
+      // refresh token is rotated inside the HttpOnly cookie by the backend
+      // (Set-Cookie header on this response). Storing it in JS-accessible
+      // memory would be a security regression.
+      return true;
     } catch (e: unknown) {
+      if (e instanceof ApiError) throw e;
       logError(e, { component: "TokenRefresh" });
     }
     return false;

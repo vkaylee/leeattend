@@ -274,14 +274,18 @@ describe("fetchMe / updateMe", () => {
     await expect(fetchMe()).resolves.toBeUndefined();
   });
   it("updateMe PATCHes /me and returns updated User", async () => {
-    (client.PATCH as Mock).mockResolvedValueOnce({ data: { id: "u-1", full_name: "X" } });
-    const updated = await updateMe({ full_name: "X" });
-    expect(client.PATCH).toHaveBeenCalledWith("/me", { body: { full_name: "X" } });
-    expect(updated).toEqual({ id: "u-1", full_name: "X" });
+    (client.PATCH as Mock).mockResolvedValueOnce({
+      data: { id: "u-1", full_name: "X", preferred_language: "en" },
+    });
+    const updated = await updateMe({ full_name: "X", preferred_language: "en" });
+    expect(client.PATCH).toHaveBeenCalledWith("/me", {
+      body: { full_name: "X", preferred_language: "en" },
+    });
+    expect(updated).toEqual({ id: "u-1", full_name: "X", preferred_language: "en" });
   });
   it("returns undefined when server returns no data (guard removed)", async () => {
     (client.PATCH as Mock).mockResolvedValueOnce({ data: undefined });
-    await expect(updateMe({ full_name: "X" })).resolves.toBeUndefined();
+    await expect(updateMe({ full_name: "X", preferred_language: "en" })).resolves.toBeUndefined();
   });
 });
 

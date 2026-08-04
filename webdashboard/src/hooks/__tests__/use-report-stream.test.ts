@@ -562,10 +562,8 @@ describe("useReportStream Hook", () => {
           expect.stringContaining("/auth/refresh"),
           expect.objectContaining({
             method: "POST",
-            // The frontend sends an EMPTY body — the backend reads the
-            // HttpOnly refresh_token cookie directly (see
-            // apiserver/src/handlers/auth.rs::refresh_token, lines 405-414).
-            body: JSON.stringify({}),
+            // The frontend sends no body — the backend reads the
+            // HttpOnly refresh_token cookie directly.
             credentials: "include",
           })
         );

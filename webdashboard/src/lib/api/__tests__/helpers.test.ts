@@ -282,12 +282,13 @@ describe('handleUnauthorized (401 retry-on-refresh) via apiFetch', () => {
     const response = await promise;
 
     expect(mockFetch).toHaveBeenCalledTimes(3);
-    // refresh endpoint hit with empty body + credentials:include
+    // refresh endpoint uses the HttpOnly cookie without a JSON payload
     const refreshCall = mockFetch.mock.calls[1];
     expect(refreshCall[0]).toContain('/v1/auth/refresh');
     const refreshOpts = refreshCall[1] as RequestInit;
     expect(refreshOpts.credentials).toBe('include');
-    expect(refreshOpts.body).toBe(JSON.stringify({}));
+    expect(refreshOpts.body).toBeUndefined();
+    expect(refreshOpts.headers).toBeUndefined();
     // retry carried the bearer token
     const retryOpts = mockFetch.mock.calls[2][1] as RequestInit;
     expect((retryOpts.headers as Headers).get('Authorization')).toBe(
@@ -297,7 +298,7 @@ describe('handleUnauthorized (401 retry-on-refresh) via apiFetch', () => {
     expect(getAccessToken()).toBe('new-at');
   });
 
-  it('redirects to login + throws when forceRefreshToken fails on 401', async () => {
+  it('propagates transient refresh failures without redirecting', async () => {
     // happy-dom window.location is read-only; gently swap it for an assignable
     // stand-in so we can assert the redirect without triggering navigation.
     const fakeLocation = { pathname: '/workspace', href: '' };
@@ -316,16 +317,21 @@ describe('handleUnauthorized (401 retry-on-refresh) via apiFetch', () => {
     );
     // 1st call: original request → 401
     mockFetch.mockResolvedValueOnce(new Response('unauth', { status: 401 }));
-    // 2nd call: refresh POST fails (non-OK)
-    mockFetch.mockResolvedValueOnce(new Response('boom', { status: 500 }));
+    // 2nd call: refresh POST fails with a database error
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: { code: 'DATABASE_ERROR', message: 'db down' } }), {
+        status: 500,
+        statusText: 'Internal Server Error',
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
 
     const promise = apiFetch('/v1/secured');
     await vi.runAllTimersAsync();
 
-    await expect(promise).rejects.toThrow('Session expired');
-    // redirected somewhere (handleUnauthorized sets window.location.href)
-    expect(fakeLocation.href).not.toBe('');
-    // credentials wiped
+    await expect(promise).rejects.toThrow('[500] DATABASE_ERROR: db down');
+    // Transient refresh failures must not redirect or wipe the session.
+    expect(fakeLocation.href).toBe('');
     expect(getAccessToken()).toBeNull();
 
     Object.defineProperty(window, 'location', {
@@ -359,7 +365,7 @@ describe('Token Refresh Mutex (Stampede Prevention)', () => {
 
     // Call forceRefreshToken 3 times concurrently.
     // The backend reads the refresh_token from an HttpOnly cookie, so the
-    // frontend sends an empty body.
+    // frontend sends no body or JSON content type.
     const promises = [
       forceRefreshToken(),
       forceRefreshToken(),
@@ -370,9 +376,10 @@ describe('Token Refresh Mutex (Stampede Prevention)', () => {
     await new Promise(r => setTimeout(r, 0));
 
     expect(mockFetch).toHaveBeenCalledTimes(1); // Only ONE network call should be made!
-    // Verify the body is EMPTY — the refresh token is NOT sent by the frontend.
+    // Verify no body is sent — the refresh token is NOT sent by the frontend.
     const [, options] = mockFetch.mock.calls[0];
-    expect(options.body).toBe(JSON.stringify({}));
+    expect(options.body).toBeUndefined();
+    expect(options.headers).toBeUndefined();
     expect(options.credentials).toBe('include'); // so the HttpOnly cookie travels
 
     // Now resolve the network call

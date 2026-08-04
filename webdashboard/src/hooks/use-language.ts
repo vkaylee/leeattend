@@ -1,9 +1,11 @@
 import { useCallback, useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
+import { updateMe, type User } from "@/lib/api";
 import { logError } from "@/lib/logger";
 
-import { useProfile } from './use-profile';
+import { profileKeys, useProfile } from './use-profile';
 
 export type SupportedLanguage = 'en' | 'vi' | 'zh';
 
@@ -44,8 +46,9 @@ function normalizeLanguage(lang: string | undefined): SupportedLanguage {
  * - Returns current language and available options
  */
 export function useLanguage() {
+  const queryClient = useQueryClient();
   const { i18n } = useTranslation();
-  const { user, updateProfile } = useProfile();
+  const { user } = useProfile();
 
   // Local state to trigger re-renders when language changes
   const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>(
@@ -70,13 +73,21 @@ export function useLanguage() {
     await i18n.changeLanguage(langCode);
     localStorage.setItem('i18nextLng', langCode);
 
-    // Sync to server in background (silent failure)
+    // Sync to server in background without invalidating the full profile query.
     try {
-      await updateProfile({ preferred_language: langCode });
+      const updatedUser = await updateMe({ preferred_language: langCode });
+      queryClient.setQueryData<User | undefined>(profileKeys.me, currentUser =>
+        currentUser
+          ? {
+              ...currentUser,
+              preferred_language: updatedUser.preferred_language ?? langCode,
+            }
+          : currentUser,
+      );
     } catch (err: unknown) {
       logError(err, { component: "useLanguage" });
     }
-  }, [i18n, updateProfile]);
+  }, [i18n, queryClient]);
 
   return {
     currentLanguage,

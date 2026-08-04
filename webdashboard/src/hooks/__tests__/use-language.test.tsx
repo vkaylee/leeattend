@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockChangeLanguage = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const mockOn = vi.hoisted(() => vi.fn());
 const mockOff = vi.hoisted(() => vi.fn());
-const mockUpdateProfile = vi.hoisted(() => vi.fn().mockResolvedValue({}));
+const mockUpdateMe = vi.hoisted(() => vi.fn().mockResolvedValue({ preferred_language: "vi" }));
 const mockLogError = vi.hoisted(() => vi.fn());
 
 // Mock i18next with hoisted mocks
@@ -26,11 +26,14 @@ vi.mock("react-i18next", () => ({
 
 // Mock use-profile (test-friendly implementation that satisfies useLanguage)
 vi.mock("../use-profile", () => ({
+  profileKeys: { me: ["profile-me"] },
   useProfile: () => ({
     user: { id: "1", preferred_language: "vi" },
-    updateProfile: (data: any) => mockUpdateProfile(data),
-    isUpdating: false,
   }),
+}));
+
+vi.mock("@/lib/api", () => ({
+  updateMe: (data: unknown) => mockUpdateMe(data),
 }));
 
 // Mock logger — the real implementation calls logError on API failure,
@@ -78,7 +81,7 @@ describe("useLanguage (real implementation with mocked deps)", () => {
     localStorageMock.getItem.mockReturnValue(null);
     // Reset module so hook picks up fresh mock state
     mockChangeLanguage.mockResolvedValue(undefined);
-    mockUpdateProfile.mockResolvedValue({});
+    mockUpdateMe.mockResolvedValue({ preferred_language: "vi" });
   });
 
   it("returns current language and options", () => {
@@ -112,16 +115,16 @@ describe("useLanguage (real implementation with mocked deps)", () => {
     expect(localStorageMock.setItem).toHaveBeenCalledWith("i18nextLng", "en");
   });
 
-  it("changeLanguage syncs to server via updateProfile", async () => {
+  it("changeLanguage syncs to server via updateMe", async () => {
     const { result } = renderHook(() => useLanguage(), { wrapper: createWrapper() });
     await act(async () => {
       await result.current.changeLanguage("zh");
     });
-    expect(mockUpdateProfile).toHaveBeenCalledWith({ preferred_language: "zh" });
+    expect(mockUpdateMe).toHaveBeenCalledWith({ preferred_language: "zh" });
   });
 
   it("changeLanguage handles API errors silently", async () => {
-    mockUpdateProfile.mockRejectedValueOnce(new Error("API Error"));
+    mockUpdateMe.mockRejectedValueOnce(new Error("API Error"));
     const { result } = renderHook(() => useLanguage(), { wrapper: createWrapper() });
     await act(async () => {
       await result.current.changeLanguage("en");
