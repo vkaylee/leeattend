@@ -12,8 +12,7 @@ use uuid::Uuid;
 use crate::errors::AppResult;
 use crate::models::{LeaveDurationType, SubmitLeaveRequest};
 use crate::services::import_messages::LeaveImportMessages;
-use crate::services::leave_service::LeaveService;
-use crate::services::leave_service::LeaveSubmission;
+use crate::services::leave_service::{LeaveService, LeaveServiceParams, LeaveSubmission};
 use crate::utils::i18n::I18nKey;
 
 use crate::models::AttendanceImportJob;
@@ -310,18 +309,18 @@ impl LeaveImportService {
 
         let leave_submission: Arc<dyn LeaveSubmission> =
             self.deps.leave_submission.clone().unwrap_or_else(|| {
-                Arc::new(LeaveService::new(
-                    Arc::clone(&self.deps.leave_balance_repo),
-                    Arc::clone(&self.deps.leave_request_repo),
-                    Arc::clone(&self.deps.employee_repo),
-                    Arc::clone(&self.deps.employment_repo),
-                    Arc::clone(&self.deps.roster_repo),
-                    Arc::clone(&self.deps.leave_accrual_log_repo),
-                    Arc::clone(&self.deps.workspace_config_repo),
-                    Arc::clone(&self.deps.user_repo),
-                    Arc::clone(&self.deps.workspace_repo),
-                    None,
-                ))
+                Arc::new(LeaveService::new(LeaveServiceParams {
+                    leave_balance_repo: Arc::clone(&self.deps.leave_balance_repo),
+                    leave_request_repo: Arc::clone(&self.deps.leave_request_repo),
+                    employee_repo: Arc::clone(&self.deps.employee_repo),
+                    employment_repo: Arc::clone(&self.deps.employment_repo),
+                    roster_repo: Arc::clone(&self.deps.roster_repo),
+                    leave_accrual_log_repo: Arc::clone(&self.deps.leave_accrual_log_repo),
+                    workspace_config_repo: Arc::clone(&self.deps.workspace_config_repo),
+                    user_repo: Arc::clone(&self.deps.user_repo),
+                    workspace_repo: Arc::clone(&self.deps.workspace_repo),
+                    cache: None,
+                }))
             });
 
         let strategy = LeaveImportStrategy {

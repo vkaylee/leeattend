@@ -8,7 +8,7 @@ use crate::queue::{Job, JobPayload, JobPriority, LeaveImportChunkPayload, TaskTy
 use crate::services::import_messages::LeaveImportMessages;
 use crate::services::import_pipeline::ImportPipeline;
 use crate::services::leave_import_service::LeaveImportStrategy;
-use crate::services::leave_service::{LeaveService, LeaveSubmission};
+use crate::services::leave_service::{LeaveService, LeaveServiceParams, LeaveSubmission};
 use chrono_tz::Tz;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -256,18 +256,18 @@ impl LeaveImportChunkHandler {
 
         let leave_submission: Arc<dyn LeaveSubmission> =
             deps.leave_submission.clone().unwrap_or_else(|| {
-                Arc::new(LeaveService::new(
-                    Arc::clone(&deps.leave_balance_repo),
-                    Arc::clone(&deps.leave_request_repo),
-                    Arc::clone(&employee_repo),
-                    Arc::clone(&employment_repo),
-                    Arc::clone(&roster_repo),
-                    Arc::clone(&leave_accrual_log_repo),
-                    Arc::clone(&deps.workspace_config_repo),
-                    Arc::clone(&deps.user_repo),
-                    Arc::clone(&deps.workspace_repo),
-                    Some(Arc::clone(cache)),
-                ))
+                Arc::new(LeaveService::new(LeaveServiceParams {
+                    leave_balance_repo: Arc::clone(&deps.leave_balance_repo),
+                    leave_request_repo: Arc::clone(&deps.leave_request_repo),
+                    employee_repo: Arc::clone(&employee_repo),
+                    employment_repo: Arc::clone(&employment_repo),
+                    roster_repo: Arc::clone(&roster_repo),
+                    leave_accrual_log_repo: Arc::clone(&leave_accrual_log_repo),
+                    workspace_config_repo: Arc::clone(&deps.workspace_config_repo),
+                    user_repo: Arc::clone(&deps.user_repo),
+                    workspace_repo: Arc::clone(&deps.workspace_repo),
+                    cache: Some(Arc::clone(cache)),
+                }))
             });
 
         let strategy = LeaveImportStrategy {

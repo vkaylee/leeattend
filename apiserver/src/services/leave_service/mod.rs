@@ -58,37 +58,38 @@ pub trait LeaveSubmission: Send + Sync {
     ) -> Result<LeaveRequest, AppError>;
 }
 
+pub struct LeaveServiceParams {
+    pub leave_balance_repo: Arc<dyn LeaveBalanceRepository>,
+    pub leave_request_repo: Arc<dyn LeaveRequestRepository>,
+    pub employee_repo: Arc<dyn EmployeeRepository>,
+    pub employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
+    pub roster_repo: Arc<dyn RosterRepository>,
+    pub leave_accrual_log_repo: Arc<
+        dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
+    >,
+    pub workspace_config_repo: Arc<dyn WorkspaceConfigRepository>,
+    pub user_repo: Arc<dyn UserRepository>,
+    pub workspace_repo: Arc<dyn WorkspaceRepository>,
+    pub cache: Option<Arc<dyn crate::repositories::CacheRepository>>,
+}
+
 impl LeaveService {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        leave_balance_repo: Arc<dyn LeaveBalanceRepository>,
-        leave_request_repo: Arc<dyn LeaveRequestRepository>,
-        employee_repo: Arc<dyn EmployeeRepository>,
-        employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
-        roster_repo: Arc<dyn RosterRepository>,
-        leave_accrual_log_repo: Arc<
-            dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
-        >,
-        workspace_config_repo: Arc<dyn WorkspaceConfigRepository>,
-        user_repo: Arc<dyn UserRepository>,
-        workspace_repo: Arc<dyn WorkspaceRepository>,
-        cache: Option<Arc<dyn crate::repositories::CacheRepository>>,
-    ) -> Self {
-        let config_cache = cache.as_ref().map(|c| {
-            crate::cache::ConfigCache::new(Arc::clone(c), Arc::clone(&workspace_config_repo))
+    pub fn new(params: LeaveServiceParams) -> Self {
+        let config_cache = params.cache.as_ref().map(|c| {
+            crate::cache::ConfigCache::new(Arc::clone(c), Arc::clone(&params.workspace_config_repo))
         });
         Self {
-            leave_balance_repo,
-            leave_request_repo,
-            employee_repo,
-            employment_repo,
-            roster_repo,
-            leave_accrual_log_repo,
-            workspace_config_repo,
-            user_repo,
-            workspace_repo,
+            leave_balance_repo: params.leave_balance_repo,
+            leave_request_repo: params.leave_request_repo,
+            employee_repo: params.employee_repo,
+            employment_repo: params.employment_repo,
+            roster_repo: params.roster_repo,
+            leave_accrual_log_repo: params.leave_accrual_log_repo,
+            workspace_config_repo: params.workspace_config_repo,
+            user_repo: params.user_repo,
+            workspace_repo: params.workspace_repo,
             config_cache,
-            cache,
+            cache: params.cache,
             diesel_pools: None,
         }
     }

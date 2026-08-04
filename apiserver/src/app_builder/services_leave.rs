@@ -29,17 +29,18 @@ pub fn build_leave_services(
 
     let leave = Arc::new(
         crate::services::leave_service::LeaveService::new(
-            Arc::clone(&repos.leave_balance),
-            Arc::clone(&repos.leave_request),
-            Arc::clone(&repos.employee),
-            Arc::clone(&repos.employment),
-            Arc::clone(&repos.roster),
-            Arc::clone(&repos.leave_accrual_log),
-            Arc::clone(&repos.workspace_config),
-            Arc::clone(&repos.user),
-            Arc::clone(&repos.workspace),
-            cache_repo,
-        )
+            crate::services::leave_service::LeaveServiceParams {
+            leave_balance_repo: Arc::clone(&repos.leave_balance),
+            leave_request_repo: Arc::clone(&repos.leave_request),
+            employee_repo: Arc::clone(&repos.employee),
+            employment_repo: Arc::clone(&repos.employment),
+            roster_repo: Arc::clone(&repos.roster),
+            leave_accrual_log_repo: Arc::clone(&repos.leave_accrual_log),
+            workspace_config_repo: Arc::clone(&repos.workspace_config),
+            user_repo: Arc::clone(&repos.user),
+            workspace_repo: Arc::clone(&repos.workspace),
+            cache: cache_repo,
+        })
         .with_diesel_pools(diesel_pools.clone()),
     );
 

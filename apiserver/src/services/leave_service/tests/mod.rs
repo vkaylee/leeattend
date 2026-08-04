@@ -627,18 +627,18 @@ fn build_service(
         crate::repositories::workspace_repository::MockWorkspaceRepository::new();
 
     (
-        LeaveService::new(
-            bal_repo.clone(),
-            req_repo.clone(),
-            emp_repo,
-            Arc::new(mock_employment_repo),
-            ros_repo.clone(),
-            log_repo.clone(),
-            Arc::new(mock_workspace_config_repo),
-            Arc::new(mock_user_repo),
-            Arc::new(mock_workspace_repo),
-            None,
-        ),
+        LeaveService::new(LeaveServiceParams {
+            leave_balance_repo: bal_repo.clone(),
+            leave_request_repo: req_repo.clone(),
+            employee_repo: emp_repo,
+            employment_repo: Arc::new(mock_employment_repo),
+            roster_repo: ros_repo.clone(),
+            leave_accrual_log_repo: log_repo.clone(),
+            workspace_config_repo: Arc::new(mock_workspace_config_repo),
+            user_repo: Arc::new(mock_user_repo),
+            workspace_repo: Arc::new(mock_workspace_repo),
+            cache: None,
+        }),
         bal_repo,
         req_repo,
         ros_repo,
@@ -1494,18 +1494,18 @@ async fn test_leave_conflict_auto_cancel() -> Result<(), Box<dyn std::error::Err
     let user_repo = crate::repositories::user_repository::MockUserRepository::new();
     let workspace_repo = crate::repositories::workspace_repository::MockWorkspaceRepository::new();
 
-    let svc = LeaveService::new(
-        Arc::new(bal_repo),
-        Arc::new(req_repo),
-        Arc::new(emp_repo),
-        Arc::new(employment_repo),
-        Arc::new(ros_repo),
-        Arc::new(log_repo),
-        Arc::new(config_repo),
-        Arc::new(user_repo),
-        Arc::new(workspace_repo),
-        None,
-    );
+    let svc = LeaveService::new(LeaveServiceParams {
+        leave_balance_repo: Arc::new(bal_repo),
+        leave_request_repo: Arc::new(req_repo),
+        employee_repo: Arc::new(emp_repo),
+        employment_repo: Arc::new(employment_repo),
+        roster_repo: Arc::new(ros_repo),
+        leave_accrual_log_repo: Arc::new(log_repo),
+        workspace_config_repo: Arc::new(config_repo),
+        user_repo: Arc::new(user_repo),
+        workspace_repo: Arc::new(workspace_repo),
+        cache: None,
+    });
 
     svc.check_and_handle_conflicts(
         &crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()),
@@ -1659,18 +1659,18 @@ async fn test_leave_conflict_notify() -> Result<(), Box<dyn std::error::Error>> 
     let log_repo =
         crate::repositories::leave_accrual_log_repository::MockLeaveAccrualLogRepository::new();
 
-    let svc = LeaveService::new(
-        Arc::new(bal_repo),
-        Arc::new(req_repo),
-        Arc::new(emp_repo),
-        Arc::new(employment_repo),
-        Arc::new(ros_repo),
-        Arc::new(log_repo),
-        Arc::new(config_repo),
-        Arc::new(user_repo),
-        Arc::new(workspace_repo),
-        None,
-    );
+    let svc = LeaveService::new(LeaveServiceParams {
+        leave_balance_repo: Arc::new(bal_repo),
+        leave_request_repo: Arc::new(req_repo),
+        employee_repo: Arc::new(emp_repo),
+        employment_repo: Arc::new(employment_repo),
+        roster_repo: Arc::new(ros_repo),
+        leave_accrual_log_repo: Arc::new(log_repo),
+        workspace_config_repo: Arc::new(config_repo),
+        user_repo: Arc::new(user_repo),
+        workspace_repo: Arc::new(workspace_repo),
+        cache: None,
+    });
 
     svc.check_and_handle_conflicts(
         &crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()),
