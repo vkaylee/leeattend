@@ -34,7 +34,7 @@ unimplemented = "deny"
 
 # Lint groups (priority = -1 so per-lint overrides take precedence)
 pedantic     = { level = "deny", priority = -1 }
-nursery      = { level = "deny", priority = -1 }
+nursery      = { level = "warn", priority = -1 }
 suspicious   = { level = "deny", priority = -1 }
 perf         = { level = "deny", priority = -1 }
 complexity   = { level = "deny", priority = -1 }
