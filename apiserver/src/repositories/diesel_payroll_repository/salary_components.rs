@@ -7,7 +7,7 @@ use diesel_async::{AsyncConnection, RunQueryDsl};
 use std::str::FromStr;
 use uuid::Uuid;
 
-#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
+#[allow(clippy::too_many_lines)]
 impl DieselPayrollRepository {
     pub(super) async fn get_salary_component_definitions(
         &self,
