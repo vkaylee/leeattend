@@ -248,27 +248,28 @@ pub struct PairedSession {
     pub(crate) metadata: Option<serde_json::Value>,
 }
 
+pub struct NewPairedSessionParams {
+    pub(crate) start_minutes: i32,
+    pub(crate) end_minutes: Option<i32>,
+    pub(crate) start_time: DateTime<Utc>,
+    pub(crate) end_time: Option<DateTime<Utc>>,
+    pub(crate) entry_type: EntryType,
+    pub(crate) note: Option<PairingNote>,
+    pub(crate) is_break_overtime: bool,
+    pub(crate) metadata: Option<serde_json::Value>,
+}
+
 impl PairedSession {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        start_minutes: i32,
-        end_minutes: Option<i32>,
-        start_time: DateTime<Utc>,
-        end_time: Option<DateTime<Utc>>,
-        entry_type: EntryType,
-        note: Option<PairingNote>,
-        is_break_overtime: bool,
-        metadata: Option<serde_json::Value>,
-    ) -> Self {
+    pub fn new(params: NewPairedSessionParams) -> Self {
         Self {
-            start_minutes,
-            end_minutes,
-            start_time,
-            end_time,
-            entry_type,
-            note,
-            is_break_overtime,
-            metadata,
+            start_minutes: params.start_minutes,
+            end_minutes: params.end_minutes,
+            start_time: params.start_time,
+            end_time: params.end_time,
+            entry_type: params.entry_type,
+            note: params.note,
+            is_break_overtime: params.is_break_overtime,
+            metadata: params.metadata,
         }
     }
 

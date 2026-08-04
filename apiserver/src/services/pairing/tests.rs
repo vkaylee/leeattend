@@ -241,16 +241,16 @@ fn test_algorithm_name() {
 fn test_paired_session_serde_roundtrip() {
     let t1 = Utc.with_ymd_and_hms(2026, 6, 20, 8, 0, 0).unwrap();
     let t2 = Utc.with_ymd_and_hms(2026, 6, 20, 17, 0, 0).unwrap();
-    let session = PairedSession::new(
-        480,
-        Some(1020),
-        t1,
-        Some(t2),
-        EntryType::Work,
-        None,
-        false,
-        Some(serde_json::json!({"tier": "test"})),
-    );
+    let session = PairedSession::new(NewPairedSessionParams {
+        start_minutes: 480,
+        end_minutes: Some(1020),
+        start_time: t1,
+        end_time: Some(t2),
+        entry_type: EntryType::Work,
+        note: None,
+        is_break_overtime: false,
+        metadata: Some(serde_json::json!({"tier": "test"})),
+    });
     let json = serde_json::to_string(&session).unwrap();
     let parsed: PairedSession = serde_json::from_str(&json).unwrap();
     assert_eq!(parsed, session);
@@ -817,28 +817,28 @@ fn test_build_time_entries() {
 
     let t1_start = Utc.with_ymd_and_hms(2026, 5, 20, 1, 0, 0).unwrap();
     let t1_end = Utc.with_ymd_and_hms(2026, 5, 20, 10, 0, 0).unwrap();
-    let session1 = PairedSession::new(
-        480,
-        Some(1020),
-        t1_start,
-        Some(t1_end),
-        EntryType::Work,
-        None,
-        false,
-        Some(serde_json::json!({"algo": "shift_window"})),
-    );
+    let session1 = PairedSession::new(NewPairedSessionParams {
+        start_minutes: 480,
+        end_minutes: Some(1020),
+        start_time: t1_start,
+        end_time: Some(t1_end),
+        entry_type: EntryType::Work,
+        note: None,
+        is_break_overtime: false,
+        metadata: Some(serde_json::json!({"algo": "shift_window"})),
+    });
 
     let t2_start = Utc.with_ymd_and_hms(2026, 5, 20, 11, 0, 0).unwrap();
-    let session2 = PairedSession::new(
-        1080,
-        None,
-        t2_start,
-        None,
-        EntryType::Work,
-        Some(PairingNote::MissingPunchOut),
-        false,
-        None,
-    );
+    let session2 = PairedSession::new(NewPairedSessionParams {
+        start_minutes: 1080,
+        end_minutes: None,
+        start_time: t2_start,
+        end_time: None,
+        entry_type: EntryType::Work,
+        note: Some(PairingNote::MissingPunchOut),
+        is_break_overtime: false,
+        metadata: None,
+    });
 
     let sessions = vec![session1, session2];
     let traces = serde_json::json!(["trace1"]);

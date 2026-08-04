@@ -16,6 +16,6 @@ pub mod tests;
 pub use service::PairingService;
 pub use strategy::{get_strategy, ShiftAwareStrategy};
 pub use types::{
-    BreakInterval, EntryType, LogEvent, PairedSession, PairingContext, PairingMetadata,
-    PairingNote, PairingProcessor, PairingServiceArgs, PairingShiftConfig,
+    BreakInterval, EntryType, LogEvent, NewPairedSessionParams, PairedSession, PairingContext,
+    PairingMetadata, PairingNote, PairingProcessor, PairingServiceArgs, PairingShiftConfig,
 };

@@ -1,6 +1,7 @@
 use crate::services::pairing::strategy::{ShiftAwareStrategy, ALGORITHM_NAME};
 use crate::services::pairing::types::{
-    BreakInterval, EntryType, LogEvent, PairedSession, PairingNote, PairingShiftConfig,
+    BreakInterval, EntryType, LogEvent, NewPairedSessionParams, PairedSession, PairingNote,
+    PairingShiftConfig,
 };
 
 const SHIFT_WINDOW_BUFFER: i32 = 120;
@@ -144,20 +145,14 @@ fn build_single_session(
         .unwrap_or(&single_id);
     let log_ids = ShiftAwareStrategy::collect_log_ids(logs, start, end, fallback_ids);
 
-    PairedSession::new(
-        start,
-        end,
-        first_in_log.punch_time(),
-        last_out.map(LogEvent::punch_time),
-        entry_type,
-        final_note,
-        is_break_overtime,
-        Some(serde_json::json!({
-            "algorithm": ALGORITHM_NAME,
-            "tier": "shift_window",
-            "log_ids": log_ids,
-            "shift_start": shift.start_minutes(),
-            "shift_end": shift.end_minutes()
-        })),
-    )
+    PairedSession::new(NewPairedSessionParams {
+        start_minutes: start,
+        end_minutes: end,
+        start_time: first_in_log.punch_time(),
+        end_time: last_out.map(LogEvent::punch_time),
+        entry_type: entry_type,
+        note: final_note,
+        is_break_overtime: is_break_overtime,
+        metadata: Some(serde_json::json!({ "algorithm": ALGORITHM_NAME, "tier": "shift_window", "log_ids": log_ids, "shift_start": shift.start_minutes(), "shift_end": shift.end_minutes() })),
+    })
 }

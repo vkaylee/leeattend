@@ -1,6 +1,7 @@
 use crate::services::pairing::strategy::{ShiftAwareStrategy, ALGORITHM_NAME};
 use crate::services::pairing::types::{
-    BreakInterval, EntryType, LogEvent, PairedSession, PairingNote, PairingShiftConfig,
+    BreakInterval, EntryType, LogEvent, NewPairedSessionParams, PairedSession, PairingNote,
+    PairingShiftConfig,
 };
 
 /// Input struct for break-splitting logic, replacing 10 positional parameters.
@@ -71,27 +72,16 @@ pub(crate) fn split_by_breaks(input: &SplitByBreaksInput<'_>) -> Vec<PairedSessi
             "middle_segment"
         };
 
-        sessions.push(PairedSession::new(
-            seg_start,
-            Some(seg_end),
-            start_time,
-            Some(end_time),
-            *input.entry_type,
-            if j == 0 {
-                input.combined_note.cloned()
-            } else {
-                None
-            },
-            input.is_break_overtime,
-            Some(serde_json::json!({
-                "algorithm": ALGORITHM_NAME,
-                "tier": "shift_window",
-                "log_ids": log_ids,
-                "shift_start": input.shift.start_minutes(),
-                "shift_end": input.shift.end_minutes(),
-                "break_split": split_name
-            })),
-        ));
+        sessions.push(PairedSession::new(NewPairedSessionParams {
+            start_minutes: seg_start,
+            end_minutes: Some(seg_end),
+            start_time: start_time,
+            end_time: Some(end_time),
+            entry_type: *input.entry_type,
+            note: if j == 0 { input.combined_note.cloned() } else { None },
+            is_break_overtime: input.is_break_overtime,
+            metadata: Some(serde_json::json!({ "algorithm": ALGORITHM_NAME, "tier": "shift_window", "log_ids": log_ids, "shift_start": input.shift.start_minutes(), "shift_end": input.shift.end_minutes(), "break_split": split_name })),
+        }));
     }
     sessions
 }

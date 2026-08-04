@@ -1,5 +1,6 @@
 use crate::services::pairing::types::{
-    EntryType, LogEvent, MultiSegmentConfig, PairedSession, PairingNote, PairingShiftConfig,
+    EntryType, LogEvent, MultiSegmentConfig, NewPairedSessionParams, PairedSession, PairingNote,
+    PairingShiftConfig,
 };
 use tracing::info;
 
@@ -129,59 +130,47 @@ impl ShiftAwareStrategy {
                         first.all_ids(),
                     );
 
-                    sessions.push(PairedSession::new(
-                        first.minutes(),
-                        Some(second.minutes()),
-                        start_time,
-                        end_time,
-                        entry_type,
-                        combined_note,
-                        is_break_overtime,
-                        Some(serde_json::json!({
-                            "algorithm": ALGORITHM_NAME,
-                            "tier": "anchor_first",
-                            "log_ids": log_ids
-                        })),
-                    ));
+                    sessions.push(PairedSession::new(NewPairedSessionParams {
+                        start_minutes: first.minutes(),
+                        end_minutes: Some(second.minutes()),
+                        start_time: start_time,
+                        end_time: end_time,
+                        entry_type: entry_type,
+                        note: combined_note,
+                        is_break_overtime: is_break_overtime,
+                        metadata: Some(serde_json::json!({ "algorithm": ALGORITHM_NAME, "tier": "anchor_first", "log_ids": log_ids })),
+                    }));
                     i += 2;
                 } else {
                     let final_note = Self::finalize_note(start_note, true);
                     let log_ids = first.all_ids().to_vec();
 
-                    sessions.push(PairedSession::new(
-                        first.minutes(),
-                        None,
-                        start_time,
-                        None,
-                        entry_type,
-                        final_note,
-                        is_break_overtime,
-                        Some(serde_json::json!({
-                            "algorithm": ALGORITHM_NAME,
-                            "tier": "anchor_first",
-                            "log_ids": log_ids
-                        })),
-                    ));
+                    sessions.push(PairedSession::new(NewPairedSessionParams {
+                        start_minutes: first.minutes(),
+                        end_minutes: None,
+                        start_time: start_time,
+                        end_time: None,
+                        entry_type: entry_type,
+                        note: final_note,
+                        is_break_overtime: is_break_overtime,
+                        metadata: Some(serde_json::json!({ "algorithm": ALGORITHM_NAME, "tier": "anchor_first", "log_ids": log_ids })),
+                    }));
                     i += 1;
                 }
             } else {
                 let final_note = Self::finalize_note(start_note, true);
                 let log_ids = first.all_ids().to_vec();
 
-                sessions.push(PairedSession::new(
-                    first.minutes(),
-                    None,
-                    start_time,
-                    None,
-                    entry_type,
-                    final_note,
-                    is_break_overtime,
-                    Some(serde_json::json!({
-                        "algorithm": ALGORITHM_NAME,
-                        "tier": "anchor_first",
-                        "log_ids": log_ids
-                    })),
-                ));
+                sessions.push(PairedSession::new(NewPairedSessionParams {
+                    start_minutes: first.minutes(),
+                    end_minutes: None,
+                    start_time: start_time,
+                    end_time: None,
+                    entry_type: entry_type,
+                    note: final_note,
+                    is_break_overtime: is_break_overtime,
+                    metadata: Some(serde_json::json!({ "algorithm": ALGORITHM_NAME, "tier": "anchor_first", "log_ids": log_ids })),
+                }));
                 i += 1;
             }
         }
