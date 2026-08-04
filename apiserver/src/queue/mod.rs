@@ -9,6 +9,7 @@ pub use job::{
     FinalizeImportPayload, HousekeepingPayload, Job, JobMetadata, JobPayload, JobPriority,
     JobStatus, LeaveImportChunkPayload, LeaveImportPayload, LogIngestionPayload, MergePayload,
     ReportConfig, ReportPayload, ReportType, ReprocessPayload, SyncHireDatePayload, TaskType,
+    WithDateRangeParams,
 };
 pub use job_queue::JobQueue;
 pub use pubsub::{ReportPublisher, ReportSubscriber, StreamMessage};

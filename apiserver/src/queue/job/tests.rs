@@ -304,16 +304,16 @@ fn test_metadata_with_date_range() {
         start: NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
         end: NaiveDate::from_ymd_opt(2026, 6, 30).unwrap(),
     };
-    let meta = JobMetadata::with_date_range(
-        Uuid::new_v4(),
-        5,
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        None,
-        Some(ReportType::Detail),
-        dr,
-        None,
-    );
+    let meta = JobMetadata::with_date_range(WithDateRangeParams {
+        job_id: Uuid::new_v4(),
+        total_batches: 5,
+        workspace_id: Uuid::new_v4(),
+        requester_id: Uuid::new_v4(),
+        task_type: None,
+        report_type: Some(ReportType::Detail),
+        date_range: dr,
+        payload: None,
+    });
 
     assert!(meta.date_range.is_some());
     let stored_dr = meta.date_range.unwrap();

@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use crate::queue::{
     DateRange, Job, JobMetadata, JobPayload, JobPriority, JobStatus, MergePayload, ReportConfig,
-    ReportPayload, ReportType, TaskType,
+    ReportPayload, ReportType, TaskType, WithDateRangeParams,
 };
 use crate::repositories::{
     employee::EmployeeRepository, queue_repository::QueueRepository,
@@ -226,24 +226,25 @@ impl ReportCoordinator {
             .collect();
 
         // 6. Create parent metadata with date range
-        let meta = JobMetadata::with_date_range(
-            parent_job_id,
+        let payload_json = serde_json::json!({
+            "start_date": request.start_date.to_string(),
+            "end_date": request.end_date.to_string(),
+            "employee_count": employees.len(),
+            "report_type": format!("{:?}", request.report_type).to_lowercase(),
+        });
+        let meta = JobMetadata::with_date_range(WithDateRangeParams {
+            job_id: parent_job_id,
             total_batches,
             workspace_id,
             requester_id,
-            Some(TaskType::AttendanceReport),
-            Some(request.report_type.clone()),
-            DateRange {
+            task_type: Some(TaskType::AttendanceReport),
+            report_type: Some(request.report_type.clone()),
+            date_range: DateRange {
                 start: request.start_date,
                 end: request.end_date,
             },
-            Some(serde_json::json!({
-                "start_date": request.start_date.to_string(),
-                "end_date": request.end_date.to_string(),
-                "employee_count": employees.len(),
-                "report_type": format!("{:?}", request.report_type).to_lowercase(),
-            })),
-        );
+            payload: Some(payload_json),
+        });
 
         self.queue
             .create_job_metadata(&meta)

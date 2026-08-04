@@ -31,20 +31,20 @@ pub async fn enqueue_reprocess_jobs(
     let parent_job_id = crate::utils::id::new_id();
     let total_batches = u32::try_from(targets.len()).unwrap_or(0);
 
-    let meta = crate::queue::JobMetadata::with_date_range(
-        parent_job_id,
-        total_batches,
-        workspace_id,
-        user_id,
-        Some(crate::queue::TaskType::ReprocessAttendance),
-        None,
-        range,
-        Some(serde_json::json!({
+    let meta = crate::queue::JobMetadata::with_date_range(crate::queue::WithDateRangeParams {
+        job_id: parent_job_id,
+        total_batches: total_batches,
+        workspace_id: workspace_id,
+        requester_id: user_id,
+        task_type: Some(crate::queue::TaskType::ReprocessAttendance),
+        report_type: None,
+        date_range: range,
+        payload: Some(serde_json::json!({
             "start_date": range.start.to_string(),
             "end_date": range.end.to_string(),
             "employee_count": total_batches
         })),
-    );
+    });
 
     queue
         .create_job_metadata(&meta)

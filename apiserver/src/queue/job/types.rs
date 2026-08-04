@@ -280,6 +280,17 @@ pub struct JobMetadata {
     pub payload: Option<serde_json::Value>,
 }
 
+pub struct WithDateRangeParams {
+    pub job_id: Uuid,
+    pub total_batches: u32,
+    pub workspace_id: Uuid,
+    pub requester_id: Uuid,
+    pub task_type: Option<TaskType>,
+    pub report_type: Option<ReportType>,
+    pub date_range: DateRange,
+    pub payload: Option<serde_json::Value>,
+}
+
 impl JobMetadata {
     /// Create new job metadata in pending state.
     pub fn new(
@@ -310,32 +321,24 @@ impl JobMetadata {
     }
 
     /// Create new job metadata with date range.
-    #[allow(clippy::too_many_arguments)]
     pub fn with_date_range(
-        job_id: Uuid,
-        total_batches: u32,
-        workspace_id: Uuid,
-        requester_id: Uuid,
-        task_type: Option<TaskType>,
-        report_type: Option<ReportType>,
-        date_range: DateRange,
-        payload: Option<serde_json::Value>,
+        params: WithDateRangeParams,
     ) -> Self {
         Self {
-            job_id,
+            job_id: params.job_id,
             status: JobStatus::Pending,
-            total_batches,
+            total_batches: params.total_batches,
             completed_batches: 0,
             failed_batches: 0,
-            workspace_id,
-            requester_id,
-            report_type,
-            date_range: Some(date_range),
+            workspace_id: params.workspace_id,
+            requester_id: params.requester_id,
+            report_type: params.report_type,
+            date_range: Some(params.date_range),
             created_at: Utc::now(),
             completed_at: None,
             error_message: None,
-            task_type,
-            payload,
+            task_type: params.task_type,
+            payload: params.payload,
         }
     }
 
