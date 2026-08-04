@@ -7,7 +7,7 @@ use diesel_async::{AsyncConnection, RunQueryDsl};
 use rust_decimal::prelude::*;
 use uuid::Uuid;
 
-#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
+#[allow(clippy::too_many_lines)]
 impl DieselPayrollRepository {
     pub(super) async fn get_active_incentive_policies(
         &self,
