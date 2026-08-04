@@ -8,7 +8,7 @@ use diesel_async::RunQueryDsl;
 use std::str::FromStr;
 use uuid::Uuid;
 
-#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
+#[allow(clippy::too_many_lines)]
 impl DieselPayrollRepository {
     pub(super) async fn create_payslip_rule_evaluation(
         &self,
