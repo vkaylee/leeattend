@@ -2,7 +2,10 @@ import { CheckCircle2, XCircle, Info, AlertTriangle, X } from 'lucide-react';
 import React, { createContext, useContext, useState, useCallback, ReactNode, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { addToastListener, type ToastContextType } from './toast-imperative';
+import { addToastListener } from './toast-imperative';
+import type { ToastContextType } from './toast-imperative';
+
+export type { ToastContextType } from './toast-imperative';
 
 const TOAST_DURATION_MS = 5000;
 
@@ -13,14 +16,6 @@ interface Toast {
   message: string;
   title?: string;
   type: ToastType;
-}
-
-export interface ToastContextType {
-  error: (message: string, title?: string) => void;
-  info: (message: string, title?: string) => void;
-  show: (message: string, type?: ToastType, title?: string) => void;
-  success: (message: string, title?: string) => void;
-  warning: (message: string, title?: string) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);

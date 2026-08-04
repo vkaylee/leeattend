@@ -27,11 +27,11 @@ export type {
 
 function DropdownFilterPanel({
   trigger,
-  align,
+  align = "start",
   testId,
   effectiveSelected,
   mode,
-  showApplyButton,
+  showApplyButton = false,
   options,
   onClear,
   handleApply,

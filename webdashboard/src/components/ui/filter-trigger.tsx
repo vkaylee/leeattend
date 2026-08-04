@@ -53,15 +53,25 @@ function CountBadge({ count, variant }: { count: number; variant: FilterTriggerV
 
 // ── Internal: IconButton variant renderer ──────────────────────────────
 
+type IconButtonTriggerProps = {
+  activeCount?: number;
+  className?: string;
+  hasActive?: boolean;
+  icon?: React.ReactNode;
+  label: string;
+} & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children"> & {
+  ref: React.Ref<HTMLButtonElement>;
+};
+
 function IconButtonTrigger({
   label,
   icon,
   hasActive,
-  activeCount,
+  activeCount = 0,
   className,
   ref,
   ...restProps
-}: FilterTriggerProps & { ref: React.Ref<HTMLButtonElement> }) {
+}: IconButtonTriggerProps) {
   return (
     <Button
       aria-label={label}
@@ -118,18 +128,13 @@ const FilterTrigger = forwardRef<HTMLButtonElement, FilterTriggerProps>(function
   if (variant === "icon-button") {
     return (
       <IconButtonTrigger
-        {...{
-          variant,
-          label,
-          icon,
-          activeCount,
-          hasActive,
-          chevron,
-          className,
-          children,
-          ...restProps,
-        }}
+        activeCount={activeCount}
+        className={className}
+        hasActive={hasActive}
+        icon={icon}
+        label={label}
         ref={ref}
+        {...restProps}
       />
     );
   }

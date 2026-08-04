@@ -1,4 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
 
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 
@@ -13,7 +14,7 @@ interface CopyPreviousMonthOptions {
   currentMonth: Date;
   monthDays: Date[];
   queryClient: QueryClient;
-  t: (key: string, options?: Record<string, unknown>) => string;
+  t: TFunction;
   toast: ReturnType<typeof useToast>;
   wsId: string;
 }
