@@ -6,7 +6,9 @@ mod tests;
 use crate::errors::AppError;
 use crate::models::LeaveAccrualLog;
 use crate::repositories::department_repository::DepartmentRepository;
-use crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository;
+use crate::repositories::leave_accrual_log_repository::{
+    LeaveAccrualLogRepository, PersistAccrualsBatchParams,
+};
 use crate::repositories::leave_policy_repository::LeavePolicyRepository;
 use crate::repositories::EmployeeRepository;
 use chrono::NaiveDate;
@@ -219,7 +221,12 @@ impl LeaveAccrualService {
         // 6. Single batch DB call — all entries persisted in one transaction
         let all_logs = self
             .accrual_log_repo
-            .persist_accruals_batch(&auth_token, workspace_id, &batch_entries, force)
+            .persist_accruals_batch(PersistAccrualsBatchParams {
+                auth_token: &auth_token,
+                workspace_id,
+                entries: &batch_entries,
+                force,
+            })
             .await?;
 
         Ok(all_logs)

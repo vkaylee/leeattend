@@ -414,15 +414,18 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
     async fn persist_accrual(
         &self,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        workspace_id: Uuid,
-        employment_id: Uuid,
-        assignment_id: Uuid,
-        leave_type_id: Uuid,
-        accrual_date: NaiveDate,
-        amount: f64,
-        force: bool,
+        params: PersistAccrualParams<'_>,
     ) -> Result<Option<LeaveAccrualLog>, AppError> {
+        let PersistAccrualParams {
+            auth_token,
+            workspace_id,
+            employment_id,
+            assignment_id,
+            leave_type_id,
+            accrual_date,
+            amount,
+            force,
+        } = params;
         let mut conn = self
             .diesel_pools
             .tenant_transaction_conn(auth_token)
@@ -548,11 +551,14 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
     async fn persist_accruals_batch(
         &self,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        workspace_id: Uuid,
-        entries: &[crate::repositories::leave_accrual_log_repository::AccrualBatchEntry],
-        force: bool,
+        params: PersistAccrualsBatchParams<'_>,
     ) -> Result<Vec<LeaveAccrualLog>, AppError> {
+        let PersistAccrualsBatchParams {
+            auth_token,
+            workspace_id,
+            entries,
+            force,
+        } = params;
         if entries.is_empty() {
             return Ok(vec![]);
         }
@@ -780,16 +786,16 @@ mod tests {
 
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(ws_id);
         let err = repo
-            .persist_accrual(
-                &auth_token,
-                ws_id,
-                emp_id,
-                Uuid::new_v4(),
-                lt_id,
-                date,
-                1.0,
-                false,
-            )
+            .persist_accrual(PersistAccrualParams {
+                auth_token: &auth_token,
+                workspace_id: ws_id,
+                employment_id: emp_id,
+                assignment_id: Uuid::new_v4(),
+                leave_type_id: lt_id,
+                accrual_date: date,
+                amount: 1.0,
+                force: false,
+            })
             .await;
         assert!(err.is_err());
     }

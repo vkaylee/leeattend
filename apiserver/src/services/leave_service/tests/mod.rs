@@ -451,14 +451,7 @@ impl crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepositor
 
     async fn persist_accrual(
         &self,
-        _auth_token: &crate::diesel_pool::TenantAuthToken,
-        _workspace_id: Uuid,
-        _employment_id: Uuid,
-        _assignment_id: Uuid,
-        _leave_type_id: Uuid,
-        _accrual_date: NaiveDate,
-        _amount: f64,
-        _force: bool,
+        _params: crate::repositories::leave_accrual_log_repository::PersistAccrualParams<'_>,
     ) -> Result<Option<crate::models::LeaveAccrualLog>, AppError> {
         Ok(None)
     }
@@ -523,10 +516,7 @@ impl crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepositor
     }
     async fn persist_accruals_batch(
         &self,
-        _auth_token: &crate::diesel_pool::TenantAuthToken,
-        _workspace_id: Uuid,
-        _entries: &[crate::repositories::leave_accrual_log_repository::AccrualBatchEntry],
-        _force: bool,
+        _params: crate::repositories::leave_accrual_log_repository::PersistAccrualsBatchParams<'_>,
     ) -> Result<Vec<crate::models::LeaveAccrualLog>, AppError> {
         Ok(vec![])
     }
