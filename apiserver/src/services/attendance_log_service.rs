@@ -198,33 +198,33 @@ impl AttendanceLogService {
         let punch_tz: chrono_tz::Tz = parse_workspace_tz(timezone);
         let local_punch_date = punch_time.with_timezone(&punch_tz).date_naive();
         let Some(resolved_employment_id) = self
-            .resolve_employment_or_stage(
+            .resolve_employment_or_stage(ResolveEmploymentParams {
                 auth_token,
                 workspace_id,
-                device_id.as_deref(),
+                device_id: device_id.as_deref(),
                 source,
-                &normalized_emp_id,
-                employee.id(),
+                normalized_emp_id: &normalized_emp_id,
+                employee_id: employee.id(),
                 local_punch_date,
                 punch_time,
-                raw_data.as_ref(),
-                &fingerprint,
-            )
+                raw_data: raw_data.as_ref(),
+                fingerprint: &fingerprint,
+            })
             .await?
         else {
             return Ok(false); // Staged (not-found or ambiguous) — don't retry
         };
 
         // 4. Build and persist RawAttendanceLog
-        self.build_and_persist_log(
+        self.build_and_persist_log(BuildPersistLogParams {
             workspace_id,
             device_id,
             source,
-            &normalized_emp_id,
-            resolved_employment_id,
+            normalized_emp_id: &normalized_emp_id,
+            employment_id: resolved_employment_id,
             punch_time,
             raw_data,
-        )
+        })
         .await
     }
 
@@ -294,6 +294,22 @@ impl AttendanceLogService {
             )
             .await;
     }
+}
+
+pub(super) struct ResolveEmploymentParams<'a> {
+    pub auth_token: &'a crate::diesel_pool::TenantAuthToken,
+    pub workspace_id: Uuid,
+    pub device_id: Option<&'a str>,
+    pub source: LogSource,
+    pub normalized_emp_id: &'a str,
+    pub employee_id: Uuid,
+    pub local_punch_date: chrono::NaiveDate,
+    pub punch_time: DateTime<Utc>,
+    pub raw_data: Option<&'a serde_json::Value>,
+    pub fingerprint: &'a str,
+}
+
+impl AttendanceLogService {
 
     /// Resolve the employment record for a punch date, staging an error or
     /// ambiguous-employment record when resolution fails.
@@ -302,23 +318,13 @@ impl AttendanceLogService {
     /// - `Ok(Some(employment_id))` — resolved successfully
     /// - `Ok(None)` — staged (not-found or ambiguous); caller should return `Ok(false)`
     /// - `Err(_)` — database error; caller should propagate
-    #[allow(clippy::too_many_arguments)]
     async fn resolve_employment_or_stage(
         &self,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        workspace_id: Uuid,
-        device_id: Option<&str>,
-        source: LogSource,
-        normalized_emp_id: &str,
-        employee_id: Uuid,
-        local_punch_date: chrono::NaiveDate,
-        punch_time: DateTime<Utc>,
-        raw_data: Option<&serde_json::Value>,
-        fingerprint: &str,
+        params: ResolveEmploymentParams<'_>,
     ) -> Result<Option<Uuid>, crate::errors::AppError> {
         let resolution = match self
             .employment_repo
-            .resolve_employment_on_date(auth_token, employee_id, local_punch_date)
+            .resolve_employment_on_date(params.auth_token, params.employee_id, params.local_punch_date)
             .await
         {
             Ok(res) => res,
@@ -333,19 +339,20 @@ impl AttendanceLogService {
             EmploymentResolution::Resolved(emp) => Ok(Some(emp.id())),
             EmploymentResolution::NotFound => {
                 let msg = format!(
-                    "No employment covers punch date {punch_time} (local: {local_punch_date}) for employee {employee_id}"
+                    "No employment covers punch date {} (local: {}) for employee {}",
+                    params.punch_time, params.local_punch_date, params.employee_id
                 );
                 warn!("{}", msg);
 
                 let _ = self
                     .error_repo
                     .create_error_log_with_fingerprint(
-                        auth_token,
-                        device_id.map(String::from),
-                        raw_data.cloned(),
+                        params.auth_token,
+                        params.device_id.map(String::from),
+                        params.raw_data.cloned(),
                         &msg,
-                        &format!("{source:?}"),
-                        fingerprint,
+                        &format!("{:?}", params.source),
+                        params.fingerprint,
                     )
                     .await;
 
@@ -353,20 +360,20 @@ impl AttendanceLogService {
             }
             EmploymentResolution::Ambiguous(candidates) => {
                 warn!(
-                    employee_id = %employee_id,
-                    local_punch_date = %local_punch_date,
+                    employee_id = %params.employee_id,
+                    local_punch_date = %params.local_punch_date,
                     candidate_count = candidates.len(),
                     "Ambiguous employment for punch — staged for manual resolution"
                 );
 
                 self.staging_repo
                     .create_staging_log(
-                        workspace_id,
-                        device_id.map(String::from),
-                        normalized_emp_id,
-                        punch_time,
-                        raw_data.cloned(),
-                        fingerprint,
+                        params.workspace_id,
+                        params.device_id.map(String::from),
+                        params.normalized_emp_id,
+                        params.punch_time,
+                        params.raw_data.cloned(),
+                        params.fingerprint,
                         StagingStatus::Ambiguous,
                     )
                     .await?;
@@ -375,29 +382,35 @@ impl AttendanceLogService {
             }
         }
     }
+}
+
+pub(super) struct BuildPersistLogParams<'a> {
+    pub workspace_id: Uuid,
+    pub device_id: Option<String>,
+    pub source: LogSource,
+    pub normalized_emp_id: &'a str,
+    pub employment_id: Uuid,
+    pub punch_time: DateTime<Utc>,
+    pub raw_data: Option<serde_json::Value>,
+}
+
+impl AttendanceLogService {
 
     /// Build a RawAttendanceLog, persist it, and trigger post-processing
     /// (fire-and-forget pairing notification on successful insert).
-    #[allow(clippy::too_many_arguments)]
     async fn build_and_persist_log(
         &self,
-        workspace_id: Uuid,
-        device_id: Option<String>,
-        source: LogSource,
-        normalized_emp_id: &str,
-        employment_id: Uuid,
-        punch_time: DateTime<Utc>,
-        raw_data: Option<serde_json::Value>,
+        params: BuildPersistLogParams<'_>,
     ) -> Result<bool, crate::errors::AppError> {
-        let (punch, status) = Self::extract_punch_status(raw_data.as_ref());
+        let (punch, status) = Self::extract_punch_status(params.raw_data.as_ref());
         let raw_log = RawAttendanceLog::new(NewRawAttendanceLogParams {
             id: new_id(),
-            workspace_id: workspace_id,
-            employment_id: employment_id,
-            punch_time: punch_time,
-            source: source,
-            device_id: device_id,
-            raw_data: raw_data,
+            workspace_id: params.workspace_id,
+            employment_id: params.employment_id,
+            punch_time: params.punch_time,
+            source: params.source,
+            device_id: params.device_id,
+            raw_data: params.raw_data,
             punch: punch,
             status: status,
             created_at: Utc::now(),
@@ -405,25 +418,25 @@ impl AttendanceLogService {
 
         match self
             .raw_log_repo
-            .create_raw_log(workspace_id, &raw_log)
+            .create_raw_log(params.workspace_id, &raw_log)
             .await
         {
             Ok(true) => {
                 info!(
                     "Successfully saved log for employee {} at {} (UTC) from {:?}",
-                    normalized_emp_id,
-                    punch_time,
+                    params.normalized_emp_id,
+                    params.punch_time,
                     *raw_log.source()
                 );
                 if let Some(notifier) = &self.notifier {
-                    notifier.notify(workspace_id, employment_id, punch_time);
+                    notifier.notify(params.workspace_id, params.employment_id, params.punch_time);
                 }
                 Ok(true)
             }
             Ok(false) => {
                 info!(
                     "Duplicate log skipped for {} at {}",
-                    normalized_emp_id, punch_time
+                    params.normalized_emp_id, params.punch_time
                 );
                 Ok(false)
             }
