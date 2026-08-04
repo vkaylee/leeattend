@@ -1472,23 +1472,23 @@ async fn test_leave_conflict_auto_cancel() -> Result<(), Box<dyn std::error::Err
     // 4. Mock config repo: returns "auto_cancel" policy
     let mut config_repo =
         crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository::new();
-    let config_entry = crate::models::WorkspaceConfigEntry::new(
-        Uuid::new_v4(),
-        workspace_id,
-        "workspace".to_string(),
-        None,
-        "leave.conflict_policy".to_string(),
-        None,
-        None,
-        Some("auto_cancel".to_string()),
-        None,
-        None,
-        NaiveDate::from_ymd_opt(1970, 1, 1).ok_or("date")?,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-    );
+    let config_entry = crate::models::WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
+        id: Uuid::new_v4(),
+        workspace_id: workspace_id,
+        scope_type: "workspace".to_string(),
+        scope_id: None,
+        config_key: "leave.conflict_policy".to_string(),
+        value_int: None,
+        value_decimal: None,
+        value_text: Some("auto_cancel".to_string()),
+        value_bool: None,
+        value_json: None,
+        effective_from: NaiveDate::from_ymd_opt(1970, 1, 1).ok_or("date")?,
+        effective_to: None,
+        created_by: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    });
     let config_entry_clone = config_entry.clone();
     config_repo
         .expect_get_effective_config()
@@ -1626,23 +1626,23 @@ async fn test_leave_conflict_notify() -> Result<(), Box<dyn std::error::Error>> 
     // 4. Mock config repo: returns "notify" policy
     let mut config_repo =
         crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository::new();
-    let config_entry = crate::models::WorkspaceConfigEntry::new(
-        Uuid::new_v4(),
-        workspace_id,
-        "workspace".to_string(),
-        None,
-        "leave.conflict_policy".to_string(),
-        None,
-        None,
-        Some("notify".to_string()),
-        None,
-        None,
-        NaiveDate::from_ymd_opt(1970, 1, 1).ok_or("date")?,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-    );
+    let config_entry = crate::models::WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
+        id: Uuid::new_v4(),
+        workspace_id: workspace_id,
+        scope_type: "workspace".to_string(),
+        scope_id: None,
+        config_key: "leave.conflict_policy".to_string(),
+        value_int: None,
+        value_decimal: None,
+        value_text: Some("notify".to_string()),
+        value_bool: None,
+        value_json: None,
+        effective_from: NaiveDate::from_ymd_opt(1970, 1, 1).ok_or("date")?,
+        effective_to: None,
+        created_by: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    });
     let config_entry_clone = config_entry.clone();
     config_repo
         .expect_get_effective_config()

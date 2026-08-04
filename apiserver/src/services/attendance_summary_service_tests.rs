@@ -1694,22 +1694,22 @@ mod pure_helpers_tests {
     // ── should_reverse_holiday_leave ────────────────────────────────────
 
     fn make_holiday(threshold_pct: i32) -> crate::models::Holiday {
-        crate::models::Holiday::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            "Test Holiday".to_string(),
-            dummy_date(),
-            "public".to_string(),
-            true,
-            None,
-            None,
-            None,
-            Some(threshold_pct),
-            false,
-            chrono::Utc::now(),
-            chrono::Utc::now(),
-            None,
-        )
+        crate::models::Holiday::new(NewHolidayParams {
+        id: Uuid::new_v4(),
+        workspace_id: Uuid::new_v4(),
+        name: "Test Holiday".to_string(),
+        date: dummy_date(),
+        holiday_type: "public".to_string(),
+        is_paid: true,
+        leave_type_id: None,
+        ot_multiplier: None,
+        description: None,
+        work_threshold_percent: Some(threshold_pct),
+        is_credit_on_work: false,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+        location_id: None,
+    })
     }
 
     fn make_schedule_8h() -> crate::models::EffectiveSchedule {

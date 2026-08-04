@@ -83,29 +83,30 @@ pub struct Signer {
     visual_anchors: Vec<SignAnchor>,
 }
 
+pub struct NewSignerParams {
+    pub id: String,
+    pub name: String,
+    pub email: String,
+    pub phone: Option<String>,
+    pub role: String,
+    pub routing_order: i32,
+    pub auth_type: String,
+    pub national_id: Option<String>,
+    pub visual_anchors: Vec<SignAnchor>,
+}
+
 impl Signer {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: String,
-        name: String,
-        email: String,
-        phone: Option<String>,
-        role: String,
-        routing_order: i32,
-        auth_type: String,
-        national_id: Option<String>,
-        visual_anchors: Vec<SignAnchor>,
-    ) -> Self {
+    pub fn new(params: NewSignerParams) -> Self {
         Self {
-            id,
-            name,
-            email,
-            phone,
-            role,
-            routing_order,
-            auth_type,
-            national_id,
-            visual_anchors,
+            id: params.id,
+            name: params.name,
+            email: params.email,
+            phone: params.phone,
+            role: params.role,
+            routing_order: params.routing_order,
+            auth_type: params.auth_type,
+            national_id: params.national_id,
+            visual_anchors: params.visual_anchors,
         }
     }
 

@@ -2153,23 +2153,23 @@ mod tests {
         user_id: Uuid,
         delegated_user_id: Uuid,
     ) -> WorkspaceConfigEntry {
-        WorkspaceConfigEntry::new(
-            Uuid::new_v4(),
-            workspace_id,
-            "workspace".to_string(),
-            None,
-            format!("delegation:{user_id}"),
-            None,
-            None,
-            Some(delegated_user_id.to_string()),
-            None,
-            None,
-            NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-            None,
-            None,
-            Utc::now(),
-            Utc::now(),
-        )
+        WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
+        id: Uuid::new_v4(),
+        workspace_id: workspace_id,
+        scope_type: "workspace".to_string(),
+        scope_id: None,
+        config_key: format!("delegation:{user_id}"),
+        value_int: None,
+        value_decimal: None,
+        value_text: Some(delegated_user_id.to_string()),
+        value_bool: None,
+        value_json: None,
+        effective_from: NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+        effective_to: None,
+        created_by: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    })
     }
 
     #[tokio::test]

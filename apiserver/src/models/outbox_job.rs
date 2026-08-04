@@ -24,27 +24,28 @@ pub struct OutboxJob {
     updated_at: DateTime<Utc>,
 }
 
+pub struct NewOutboxJobParams {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub job_type: String,
+    pub payload: serde_json::Value,
+    pub status: String,
+    pub error_message: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 impl OutboxJob {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        workspace_id: Uuid,
-        job_type: String,
-        payload: serde_json::Value,
-        status: String,
-        error_message: Option<String>,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-    ) -> Self {
+    pub fn new(params: NewOutboxJobParams) -> Self {
         Self {
-            id,
-            workspace_id,
-            job_type,
-            payload,
-            status,
-            error_message,
-            created_at,
-            updated_at,
+            id: params.id,
+            workspace_id: params.workspace_id,
+            job_type: params.job_type,
+            payload: params.payload,
+            status: params.status,
+            error_message: params.error_message,
+            created_at: params.created_at,
+            updated_at: params.updated_at,
         }
     }
 

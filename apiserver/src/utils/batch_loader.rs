@@ -101,29 +101,29 @@ mod tests {
         let id1 = Uuid::new_v4();
         let id2 = Uuid::new_v4();
 
-        let user1 = User::new(
-            id1,
-            "user1@example.com".to_string(),
-            "hash".to_string(),
-            chrono::Utc::now(),
-            Some("User One".to_string()),
-            None,
-            None,
-            None,
-            None,
-        );
+        let user1 = User::new(NewUserParams {
+        id: id1,
+        email: "user1@example.com".to_string(),
+        password_hash: "hash".to_string(),
+        created_at: chrono::Utc::now(),
+        full_name: Some("User One".to_string()),
+        avatar_url: None,
+        bio: None,
+        preferred_language: None,
+        avatar_file_id: None,
+    });
 
-        let user2 = User::new(
-            id2,
-            "user2@example.com".to_string(),
-            "hash".to_string(),
-            chrono::Utc::now(),
-            Some("User Two".to_string()),
-            None,
-            None,
-            None,
-            None,
-        );
+        let user2 = User::new(NewUserParams {
+        id: id2,
+        email: "user2@example.com".to_string(),
+        password_hash: "hash".to_string(),
+        created_at: chrono::Utc::now(),
+        full_name: Some("User Two".to_string()),
+        avatar_url: None,
+        bio: None,
+        preferred_language: None,
+        avatar_file_id: None,
+    });
 
         let expected_users = vec![user1.clone(), user2.clone()];
 

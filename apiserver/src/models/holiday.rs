@@ -27,39 +27,40 @@ pub struct Holiday {
     location_id: Option<Uuid>,
 }
 
+pub struct NewHolidayParams {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub name: String,
+    pub date: NaiveDate,
+    pub holiday_type: String,
+    pub is_paid: bool,
+    pub leave_type_id: Option<Uuid>,
+    pub ot_multiplier: Option<Decimal>,
+    pub description: Option<String>,
+    pub work_threshold_percent: Option<i32>,
+    pub is_credit_on_work: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub location_id: Option<Uuid>,
+}
+
 impl Holiday {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        workspace_id: Uuid,
-        name: String,
-        date: NaiveDate,
-        holiday_type: String,
-        is_paid: bool,
-        leave_type_id: Option<Uuid>,
-        ot_multiplier: Option<Decimal>,
-        description: Option<String>,
-        work_threshold_percent: Option<i32>,
-        is_credit_on_work: bool,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-        location_id: Option<Uuid>,
-    ) -> Self {
+    pub fn new(params: NewHolidayParams) -> Self {
         Self {
-            id,
-            workspace_id,
-            name,
-            date,
-            holiday_type,
-            is_paid,
-            leave_type_id,
-            ot_multiplier,
-            description,
-            work_threshold_percent,
-            is_credit_on_work,
-            created_at,
-            updated_at,
-            location_id,
+            id: params.id,
+            workspace_id: params.workspace_id,
+            name: params.name,
+            date: params.date,
+            holiday_type: params.holiday_type,
+            is_paid: params.is_paid,
+            leave_type_id: params.leave_type_id,
+            ot_multiplier: params.ot_multiplier,
+            description: params.description,
+            work_threshold_percent: params.work_threshold_percent,
+            is_credit_on_work: params.is_credit_on_work,
+            created_at: params.created_at,
+            updated_at: params.updated_at,
+            location_id: params.location_id,
         }
     }
 

@@ -16,29 +16,30 @@ pub struct User {
     avatar_file_id: Option<Uuid>,
 }
 
+pub struct NewUserParams {
+    pub id: Uuid,
+    pub email: String,
+    pub password_hash: String,
+    pub created_at: DateTime<Utc>,
+    pub full_name: Option<String>,
+    pub avatar_url: Option<String>,
+    pub bio: Option<String>,
+    pub preferred_language: Option<String>,
+    pub avatar_file_id: Option<Uuid>,
+}
+
 impl User {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        email: String,
-        password_hash: String,
-        created_at: DateTime<Utc>,
-        full_name: Option<String>,
-        avatar_url: Option<String>,
-        bio: Option<String>,
-        preferred_language: Option<String>,
-        avatar_file_id: Option<Uuid>,
-    ) -> Self {
+    pub fn new(params: NewUserParams) -> Self {
         Self {
-            id,
-            email,
-            password_hash,
-            created_at,
-            full_name,
-            avatar_url,
-            bio,
-            preferred_language,
-            avatar_file_id,
+            id: params.id,
+            email: params.email,
+            password_hash: params.password_hash,
+            created_at: params.created_at,
+            full_name: params.full_name,
+            avatar_url: params.avatar_url,
+            bio: params.bio,
+            preferred_language: params.preferred_language,
+            avatar_file_id: params.avatar_file_id,
         }
     }
 
@@ -212,17 +213,17 @@ mod tests {
 
     #[test]
     fn test_user_debug_masks_pii() {
-        let user = User::new(
-            Uuid::new_v4(),
-            "john.doe@example.com".to_string(),
-            "secret_hash".to_string(),
-            Utc::now(),
-            Some("John Doe".to_string()),
-            None,
-            None,
-            Some("en".to_string()),
-            None,
-        );
+        let user = User::new(NewUserParams {
+        id: Uuid::new_v4(),
+        email: "john.doe@example.com".to_string(),
+        password_hash: "secret_hash".to_string(),
+        created_at: Utc::now(),
+        full_name: Some("John Doe".to_string()),
+        avatar_url: None,
+        bio: None,
+        preferred_language: Some("en".to_string()),
+        avatar_file_id: None,
+    });
 
         let debug_str = format!("{user:?}");
         assert!(!debug_str.contains("john.doe@example.com"));
@@ -277,17 +278,17 @@ mod tests {
     fn test_user_getters() {
         let id = Uuid::new_v4();
         let created_at = Utc::now();
-        let user = User::new(
-            id,
-            "user@example.com".to_string(),
-            "hashed".to_string(),
-            created_at,
-            Some("Full Name".to_string()),
-            Some("http://avatar.url".to_string()),
-            Some("My Bio".to_string()),
-            Some("vi".to_string()),
-            None,
-        );
+        let user = User::new(NewUserParams {
+        id: id,
+        email: "user@example.com".to_string(),
+        password_hash: "hashed".to_string(),
+        created_at: created_at,
+        full_name: Some("Full Name".to_string()),
+        avatar_url: Some("http://avatar.url".to_string()),
+        bio: Some("My Bio".to_string()),
+        preferred_language: Some("vi".to_string()),
+        avatar_file_id: None,
+    });
 
         assert_eq!(user.id(), id);
         assert_eq!(user.email(), "user@example.com");

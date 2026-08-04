@@ -8,8 +8,8 @@ use std::sync::Arc;
 
 use crate::errors::{AppError, AppResult};
 use crate::models::{
-    AuthResponse, ChangePasswordRequest, ForgotPasswordRequest, LoginRequest, RefreshRequest,
-    RegisterRequest, ResetPasswordRequest, UpdateUserRequest, User, UserResponse,
+    AuthResponse, ChangePasswordRequest, ForgotPasswordRequest, LoginRequest, NewUserParams,
+    RefreshRequest, RegisterRequest, ResetPasswordRequest, UpdateUserRequest, User, UserResponse,
 };
 use crate::utils::cookies::{clear_auth_cookies, create_auth_cookies};
 use crate::utils::i18n::I18nKey;
@@ -62,17 +62,17 @@ pub async fn register(
     // 4. Create User
     let user_id = crate::utils::id::new_id();
     let created_at = Utc::now();
-    let user = User::new(
-        user_id,
-        req.email.clone(),
-        password_hash,
-        created_at,
-        Some(req.full_name.clone()),
-        None,
-        None,
-        None,
-        None,
-    );
+    let user = User::new(NewUserParams {
+        id: user_id,
+        email: req.email.clone(),
+        password_hash: password_hash,
+        created_at: created_at,
+        full_name: Some(req.full_name.clone()),
+        avatar_url: None,
+        bio: None,
+        preferred_language: None,
+        avatar_file_id: None,
+    });
 
     // 4. Create User and auto-assign platform_admin atomically
     let is_first = state

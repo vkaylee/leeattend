@@ -1,6 +1,6 @@
 use super::*;
 use crate::errors::AppError;
-use crate::models::PayrollSettings;
+use crate::models::{NewWorkspaceConfigEntryParams, PayrollSettings};
 use chrono::{NaiveDate, Utc};
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
@@ -218,23 +218,23 @@ impl DieselPayrollRepository {
                     .map_err(AppError::from)?;
                 } else {
                     let id = Uuid::new_v4();
-                    let entry = crate::models::WorkspaceConfigEntry::new(
-                        id,
-                        workspace_id,
-                        "workspace".to_string(),
-                        None,
-                        key.to_string(),
-                        val_int,
-                        val_dec,
-                        val_text,
-                        val_bool,
-                        val_json,
-                        req.effective_date,
-                        None,
-                        None,
-                        Utc::now(),
-                        Utc::now(),
-                    );
+                    let entry = crate::models::WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
+        id: id,
+        workspace_id: workspace_id,
+        scope_type: "workspace".to_string(),
+        scope_id: None,
+        config_key: key.to_string(),
+        value_int: val_int,
+        value_decimal: val_dec,
+        value_text: val_text,
+        value_bool: val_bool,
+        value_json: val_json,
+        effective_from: req.effective_date,
+        effective_to: None,
+        created_by: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    });
                     diesel::insert_into(workspace_config_entries::table)
                         .values(&entry)
                         .execute(&mut *conn)

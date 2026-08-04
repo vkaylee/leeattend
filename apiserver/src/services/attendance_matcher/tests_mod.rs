@@ -252,22 +252,22 @@ async fn test_process_segment_attendance_paid_holiday_no_work() {
     let mut holidays_map = HashMap::new();
     holidays_map.insert(
         date,
-        Holiday::new(
-            Uuid::new_v4(),
-            ws_id,
-            "New Year".to_string(),
-            date,
-            "full_day".to_string(),
-            true,
-            None,
-            Some(Decimal::new(30, 1)),
-            None,
-            None,
-            false,
-            Utc::now(),
-            Utc::now(),
-            None,
-        ),
+        Holiday::new(NewHolidayParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        name: "New Year".to_string(),
+        date: date,
+        holiday_type: "full_day".to_string(),
+        is_paid: true,
+        leave_type_id: None,
+        ot_multiplier: Some(Decimal::new(30, 1)),
+        description: None,
+        work_threshold_percent: None,
+        is_credit_on_work: false,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        location_id: None,
+    }),
     );
 
     let attendance_rules = AttendanceRules {
@@ -422,22 +422,22 @@ async fn test_process_segment_attendance_holiday_work_compensation() {
     let mut holidays_map = HashMap::new();
     holidays_map.insert(
         date,
-        Holiday::new(
-            Uuid::new_v4(),
-            ws_id,
-            "New Year".to_string(),
-            date,
-            "full_day".to_string(),
-            true,
-            None,
-            Some(Decimal::new(30, 1)),
-            None,
-            None,
-            true,
-            Utc::now(),
-            Utc::now(),
-            None,
-        ),
+        Holiday::new(NewHolidayParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        name: "New Year".to_string(),
+        date: date,
+        holiday_type: "full_day".to_string(),
+        is_paid: true,
+        leave_type_id: None,
+        ot_multiplier: Some(Decimal::new(30, 1)),
+        description: None,
+        work_threshold_percent: None,
+        is_credit_on_work: true,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        location_id: None,
+    }),
     );
 
     let attendance_rules = AttendanceRules {

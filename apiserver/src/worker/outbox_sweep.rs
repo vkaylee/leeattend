@@ -255,16 +255,16 @@ mod tests {
         })
         .unwrap();
 
-        let job = crate::models::OutboxJob::new(
-            job_id,
-            ws_id,
-            "AttendanceReport".to_string(),
-            payload,
-            "running".to_string(),
-            None,
-            chrono::Utc::now() - chrono::Duration::minutes(10),
-            chrono::Utc::now() - chrono::Duration::minutes(10),
-        );
+        let job = OutboxJob::new(NewOutboxJobParams {
+        id: job_id,
+        workspace_id: ws_id,
+        job_type: "AttendanceReport".to_string(),
+        payload: payload,
+        status: "running".to_string(),
+        error_message: None,
+        created_at: chrono::Utc::now() - chrono::Duration::minutes(10),
+        updated_at: chrono::Utc::now() - chrono::Duration::minutes(10),
+    });
 
         let job_clone = job.clone();
         mock_outbox_repo

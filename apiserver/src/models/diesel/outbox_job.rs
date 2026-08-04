@@ -18,16 +18,16 @@ pub struct OutboxJobEntity {
 
 impl From<OutboxJobEntity> for crate::models::OutboxJob {
     fn from(entity: OutboxJobEntity) -> Self {
-        Self::new(
-            entity.id,
-            entity.workspace_id,
-            entity.job_type,
-            entity.payload,
-            entity.status,
-            entity.error_message,
-            entity.created_at,
-            entity.updated_at,
-        )
+        Self::new(crate::models::NewOutboxJobParams {
+            id: entity.id,
+            workspace_id: entity.workspace_id,
+            job_type: entity.job_type,
+            payload: entity.payload,
+            status: entity.status,
+            error_message: entity.error_message,
+            created_at: entity.created_at,
+            updated_at: entity.updated_at,
+        })
     }
 }
 

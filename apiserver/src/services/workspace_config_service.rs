@@ -311,23 +311,23 @@ mod tests {
         effective_from: NaiveDate,
         effective_to: Option<NaiveDate>,
     ) -> WorkspaceConfigEntry {
-        WorkspaceConfigEntry::new(
-            id,
-            workspace_id,
-            scope_type,
-            scope_id,
-            config_key,
-            value_int,
-            value_decimal,
-            value_text,
-            value_bool,
-            value_json,
-            effective_from,
-            effective_to,
-            None,
-            Utc::now(),
-            Utc::now(),
-        )
+        WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
+        id: id,
+        workspace_id: workspace_id,
+        scope_type: scope_type,
+        scope_id: scope_id,
+        config_key: config_key,
+        value_int: value_int,
+        value_decimal: value_decimal,
+        value_text: value_text,
+        value_bool: value_bool,
+        value_json: value_json,
+        effective_from: effective_from,
+        effective_to: effective_to,
+        created_by: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    })
     }
 
     struct MockWorkspaceConfigRepository {

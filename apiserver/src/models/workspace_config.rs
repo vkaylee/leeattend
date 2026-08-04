@@ -75,41 +75,42 @@ pub struct WorkspaceConfigEntry {
     updated_at: DateTime<Utc>,
 }
 
+pub struct NewWorkspaceConfigEntryParams {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub scope_type: String,
+    pub scope_id: Option<Uuid>,
+    pub config_key: String,
+    pub value_int: Option<i32>,
+    pub value_decimal: Option<rust_decimal::Decimal>,
+    pub value_text: Option<String>,
+    pub value_bool: Option<bool>,
+    pub value_json: Option<serde_json::Value>,
+    pub effective_from: NaiveDate,
+    pub effective_to: Option<NaiveDate>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 impl WorkspaceConfigEntry {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        workspace_id: Uuid,
-        scope_type: String,
-        scope_id: Option<Uuid>,
-        config_key: String,
-        value_int: Option<i32>,
-        value_decimal: Option<rust_decimal::Decimal>,
-        value_text: Option<String>,
-        value_bool: Option<bool>,
-        value_json: Option<serde_json::Value>,
-        effective_from: NaiveDate,
-        effective_to: Option<NaiveDate>,
-        created_by: Option<Uuid>,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-    ) -> Self {
+    pub fn new(params: NewWorkspaceConfigEntryParams) -> Self {
         Self {
-            id,
-            workspace_id,
-            scope_type,
-            scope_id,
-            config_key,
-            value_int,
-            value_decimal,
-            value_text,
-            value_bool,
-            value_json,
-            effective_from,
-            effective_to,
-            created_by,
-            created_at,
-            updated_at,
+            id: params.id,
+            workspace_id: params.workspace_id,
+            scope_type: params.scope_type,
+            scope_id: params.scope_id,
+            config_key: params.config_key,
+            value_int: params.value_int,
+            value_decimal: params.value_decimal,
+            value_text: params.value_text,
+            value_bool: params.value_bool,
+            value_json: params.value_json,
+            effective_from: params.effective_from,
+            effective_to: params.effective_to,
+            created_by: params.created_by,
+            created_at: params.created_at,
+            updated_at: params.updated_at,
         }
     }
 

@@ -2,7 +2,7 @@ use crate::{
     domain::permissions::Permission,
     errors::AppResult,
     handlers::common::MemberContext,
-    models::{ConfigValue, ResolvedConfig, WorkspaceConfigEntry},
+    models::{ConfigValue, NewWorkspaceConfigEntryParams, ResolvedConfig, WorkspaceConfigEntry},
     AppState,
 };
 use axum::{
@@ -113,23 +113,23 @@ pub async fn upsert_config(
         ConfigValue::Json(v) => (None, None, None, None, Some(v)),
     };
 
-    let entry = WorkspaceConfigEntry::new(
-        crate::utils::id::new_id(),
-        ctx.workspace_id,
-        req.scope_type,
-        req.scope_id,
-        req.config_key,
-        value_int,
-        value_decimal,
-        value_text,
-        value_bool,
-        value_json,
-        req.effective_from,
-        req.effective_to,
-        Some(ctx.user_id),
-        chrono::Utc::now(),
-        chrono::Utc::now(),
-    );
+    let entry = WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
+        id: crate::utils::id::new_id(),
+        workspace_id: ctx.workspace_id,
+        scope_type: req.scope_type,
+        scope_id: req.scope_id,
+        config_key: req.config_key,
+        value_int: value_int,
+        value_decimal: value_decimal,
+        value_text: value_text,
+        value_bool: value_bool,
+        value_json: value_json,
+        effective_from: req.effective_from,
+        effective_to: req.effective_to,
+        created_by: Some(ctx.user_id),
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    });
 
     let created = state
         .core()

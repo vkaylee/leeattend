@@ -1,4 +1,4 @@
-use crate::models::{MemberExtraRole, Workspace};
+use crate::models::{MemberExtraRole, NewWorkspaceConfigEntryParams, Workspace};
 use crate::repositories::WorkspaceRepository;
 use crate::utils::i18n::I18nKey;
 use uuid::Uuid;
@@ -233,23 +233,23 @@ impl WorkspaceService {
                     )
                     .await?;
 
-                let entry = crate::models::WorkspaceConfigEntry::new(
-                    Uuid::new_v4(),
-                    args.ws_id,
-                    "workspace".to_string(),
-                    None,
-                    "overtime.holiday_overnight_strategy".to_string(),
-                    None,
-                    None,
-                    Some(strategy.clone()),
-                    None,
-                    None,
-                    chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap_or_default(),
-                    None,
-                    None,
-                    chrono::Utc::now(),
-                    chrono::Utc::now(),
-                );
+                let entry = crate::models::WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
+        id: Uuid::new_v4(),
+        workspace_id: args.ws_id,
+        scope_type: "workspace".to_string(),
+        scope_id: None,
+        config_key: "overtime.holiday_overnight_strategy".to_string(),
+        value_int: None,
+        value_decimal: None,
+        value_text: Some(strategy.clone()),
+        value_bool: None,
+        value_json: None,
+        effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap_or_default(),
+        effective_to: None,
+        created_by: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    });
 
                 self.workspace_config_repo
                     .create_entry(auth_token, entry)
@@ -266,23 +266,23 @@ impl WorkspaceService {
                     )
                     .await?;
 
-                let entry = crate::models::WorkspaceConfigEntry::new(
-                    Uuid::new_v4(),
-                    args.ws_id,
-                    "workspace".to_string(),
-                    None,
-                    "overtime.default_holiday_ot_multiplier".to_string(),
-                    None,
-                    Some(multiplier),
-                    None,
-                    None,
-                    None,
-                    chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap_or_default(),
-                    None,
-                    None,
-                    chrono::Utc::now(),
-                    chrono::Utc::now(),
-                );
+                let entry = crate::models::WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
+        id: Uuid::new_v4(),
+        workspace_id: args.ws_id,
+        scope_type: "workspace".to_string(),
+        scope_id: None,
+        config_key: "overtime.default_holiday_ot_multiplier".to_string(),
+        value_int: None,
+        value_decimal: Some(multiplier),
+        value_text: None,
+        value_bool: None,
+        value_json: None,
+        effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap_or_default(),
+        effective_to: None,
+        created_by: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    });
 
                 self.workspace_config_repo
                     .create_entry(auth_token, entry)
@@ -317,7 +317,7 @@ impl WorkspaceService {
 mod tests {
     use super::*;
     use crate::errors::AppError;
-    use crate::models::{MemberExtraRole, Workspace};
+    use crate::models::{MemberExtraRole, NewWorkspaceConfigEntryParams, Workspace};
     use async_trait::async_trait;
     use chrono::Utc;
     use rust_decimal::Decimal;
@@ -560,17 +560,17 @@ mod tests {
     impl crate::repositories::user_repository::UserRepository for MockUserRepo {
         async fn get_user_by_id(&self, id: Uuid) -> Result<Option<crate::models::User>, AppError> {
             if self.user_exists {
-                Ok(Some(crate::models::User::new(
-                    id,
-                    "test@example.com".into(),
-                    "hash".into(),
-                    Utc::now(),
-                    Some("Test User".into()),
-                    None,
-                    None,
-                    None,
-                    None,
-                )))
+                Ok(Some(crate::models::User::new(NewUserParams {
+        id: id,
+        email: "test@example.com".into(),
+        password_hash: "hash".into(),
+        created_at: Utc::now(),
+        full_name: Some("Test User".into()),
+        avatar_url: None,
+        bio: None,
+        preferred_language: None,
+        avatar_file_id: None,
+    })))
             } else {
                 Ok(None)
             }
@@ -582,17 +582,17 @@ mod tests {
             let mut users = Vec::new();
             if self.user_exists {
                 for id in ids {
-                    users.push(crate::models::User::new(
-                        *id,
-                        "test@example.com".into(),
-                        "hash".into(),
-                        Utc::now(),
-                        Some("Test User".into()),
-                        None,
-                        None,
-                        None,
-                        None,
-                    ));
+                    users.push(crate::models::User::new(NewUserParams {
+        id: *id,
+        email: "test@example.com".into(),
+        password_hash: "hash".into(),
+        created_at: Utc::now(),
+        full_name: Some("Test User".into()),
+        avatar_url: None,
+        bio: None,
+        preferred_language: None,
+        avatar_file_id: None,
+    }));
                 }
             }
             Ok(users)
@@ -631,17 +631,17 @@ mod tests {
             _a: Option<String>,
             _b: Option<String>,
         ) -> Result<crate::models::User, AppError> {
-            Ok(crate::models::User::new(
-                id,
-                "test@example.com".into(),
-                "hash".into(),
-                Utc::now(),
-                full_name,
-                None,
-                None,
-                None,
-                None,
-            ))
+            Ok(crate::models::User::new(NewUserParams {
+        id: id,
+        email: "test@example.com".into(),
+        password_hash: "hash".into(),
+        created_at: Utc::now(),
+        full_name: full_name,
+        avatar_url: None,
+        bio: None,
+        preferred_language: None,
+        avatar_file_id: None,
+    }))
         }
         async fn get_workspace_users(
             &self,

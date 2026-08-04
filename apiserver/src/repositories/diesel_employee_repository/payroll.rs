@@ -1,4 +1,5 @@
 use crate::errors::AppError;
+use crate::models::NewWorkspaceConfigEntryParams;
 use async_trait::async_trait;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
@@ -83,23 +84,23 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
                 if key == "payroll.fixed_std_days" {
                     first_id = id;
                 }
-                let entry = crate::models::WorkspaceConfigEntry::new(
-                    id,
-                    workspace_id,
-                    "employment".to_string(),
-                    Some(employment_id),
-                    key.to_string(),
-                    None,
-                    Some(val),
-                    None,
-                    None,
-                    None,
-                    effective_date,
-                    None,
-                    None,
-                    chrono::Utc::now(),
-                    chrono::Utc::now(),
-                );
+                let entry = crate::models::WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
+        id: id,
+        workspace_id: workspace_id,
+        scope_type: "employment".to_string(),
+        scope_id: Some(employment_id),
+        config_key: key.to_string(),
+        value_int: None,
+        value_decimal: Some(val),
+        value_text: None,
+        value_bool: None,
+        value_json: None,
+        effective_from: effective_date,
+        effective_to: None,
+        created_by: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    });
                 diesel::insert_into(workspace_config_entries::table)
                     .values(&entry)
                     .execute(&mut *conn)
