@@ -70,7 +70,7 @@ pub use policy_resolver_service::PolicyResolverService;
 pub use recruitment_service::RecruitmentService;
 pub use report_coordinator::ReportCoordinator;
 pub use report_service::ReportService;
-pub use time_tracking_service::TimeTrackingService;
+pub use time_tracking_service::{TimeTrackingService, TimeTrackingServiceParams};
 pub use workspace_config_service::WorkspaceConfigService;
 pub use workspace_service::{UpdateWorkspaceArgs, WorkspaceService};
 

@@ -28,33 +28,34 @@ pub struct TimeTrackingService {
     daily_summary_repo: Arc<dyn crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository>,
 }
 
+pub struct TimeTrackingServiceParams {
+    pub repo: Arc<dyn TimeEntryRepository>,
+    pub roster_repo: Arc<dyn RosterRepository>,
+    pub policy_repo: Arc<dyn AttendancePolicyRepository>,
+    pub condition_type_repo: Arc<dyn crate::repositories::ConditionTypeRepository>,
+    pub employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
+    pub employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
+    pub workspace_repo: Arc<dyn WorkspaceRepository>,
+    pub holiday_repo: Arc<dyn crate::repositories::holiday_repository::HolidayRepository>,
+    pub leave_request_repo: Arc<
+        dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
+    >,
+    pub daily_summary_repo: Arc<dyn crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository>,
+}
+
 impl TimeTrackingService {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        repo: Arc<dyn TimeEntryRepository>,
-        roster_repo: Arc<dyn RosterRepository>,
-        policy_repo: Arc<dyn AttendancePolicyRepository>,
-        condition_type_repo: Arc<dyn crate::repositories::ConditionTypeRepository>,
-        employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
-        employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
-        workspace_repo: Arc<dyn WorkspaceRepository>,
-        holiday_repo: Arc<dyn crate::repositories::holiday_repository::HolidayRepository>,
-        leave_request_repo: Arc<
-            dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
-        >,
-        daily_summary_repo: Arc<dyn crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository>,
-    ) -> Self {
+    pub fn new(params: TimeTrackingServiceParams) -> Self {
         Self {
-            repo,
-            roster_repo,
-            policy_repo,
-            condition_type_repo,
-            employee_repo,
-            employment_repo,
-            workspace_repo,
-            holiday_repo,
-            leave_request_repo,
-            daily_summary_repo,
+            repo: params.repo,
+            roster_repo: params.roster_repo,
+            policy_repo: params.policy_repo,
+            condition_type_repo: params.condition_type_repo,
+            employee_repo: params.employee_repo,
+            employment_repo: params.employment_repo,
+            workspace_repo: params.workspace_repo,
+            holiday_repo: params.holiday_repo,
+            leave_request_repo: params.leave_request_repo,
+            daily_summary_repo: params.daily_summary_repo,
         }
     }
 
@@ -350,18 +351,18 @@ mod tests {
         employment_repo: MockEmploymentRepository,
         workspace_repo: MockWorkspaceRepository,
     ) -> TimeTrackingService {
-        TimeTrackingService::new(
-            Arc::new(repo),
-            Arc::new(MockRosterRepository::new()),
-            Arc::new(MockAttendancePolicyRepository::new()),
-            Arc::new(MockConditionTypeRepository::new()),
-            Arc::new(MockEmployeeRepository::new()),
-            Arc::new(employment_repo),
-            Arc::new(workspace_repo),
-            Arc::new(MockHolidayRepository::new()),
-            Arc::new(MockLeaveRequestRepository::new()),
-            Arc::new(MockAttendanceDailySummaryRepository::new()),
-        )
+        TimeTrackingService::new(TimeTrackingServiceParams {
+            repo: Arc::new(repo),
+            roster_repo: Arc::new(MockRosterRepository::new()),
+            policy_repo: Arc::new(MockAttendancePolicyRepository::new()),
+            condition_type_repo: Arc::new(MockConditionTypeRepository::new()),
+            employee_repo: Arc::new(MockEmployeeRepository::new()),
+            employment_repo: Arc::new(employment_repo),
+            workspace_repo: Arc::new(workspace_repo),
+            holiday_repo: Arc::new(MockHolidayRepository::new()),
+            leave_request_repo: Arc::new(MockLeaveRequestRepository::new()),
+            daily_summary_repo: Arc::new(MockAttendanceDailySummaryRepository::new()),
+        })
     }
 
     fn make_log_service() -> AttendanceLogService {

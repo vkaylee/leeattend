@@ -27,16 +27,18 @@ pub async fn build_attendance_services(
     notifier: &Option<Arc<PairingNotifier>>,
 ) -> Result<AttendanceServices, Box<dyn std::error::Error>> {
     let time_tracking = Arc::new(crate::services::TimeTrackingService::new(
-        Arc::clone(&repos.time_entry),
-        Arc::clone(&repos.roster),
-        Arc::clone(&repos.policy),
-        Arc::clone(&repos.condition_type),
-        Arc::clone(&repos.employee),
-        Arc::clone(&repos.employment),
-        Arc::clone(&repos.workspace),
-        Arc::clone(&repos.holiday),
-        Arc::clone(&repos.leave_request),
-        Arc::clone(&repos.attendance_daily_summary),
+        crate::services::time_tracking_service::TimeTrackingServiceParams {
+            repo: Arc::clone(&repos.time_entry),
+            roster_repo: Arc::clone(&repos.roster),
+            policy_repo: Arc::clone(&repos.policy),
+            condition_type_repo: Arc::clone(&repos.condition_type),
+            employee_repo: Arc::clone(&repos.employee),
+            employment_repo: Arc::clone(&repos.employment),
+            workspace_repo: Arc::clone(&repos.workspace),
+            holiday_repo: Arc::clone(&repos.holiday),
+            leave_request_repo: Arc::clone(&repos.leave_request),
+            daily_summary_repo: Arc::clone(&repos.attendance_daily_summary),
+        },
     ));
 
     let attendance_summary = Arc::new(crate::services::AttendanceSummaryService::new(
