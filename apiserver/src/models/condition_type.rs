@@ -4,6 +4,24 @@ use uuid::Uuid;
 
 use crate::models::EarlyArrivalStrategy;
 
+pub struct NewConditionTypeParams {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub code: String,
+    pub name_i18n: serde_json::Value,
+    pub category: String,
+    pub default_minute_allowance: i32,
+    pub default_is_paid: bool,
+    pub affects_rules: serde_json::Value,
+    pub icon: Option<String>,
+    pub color: Option<String>,
+    pub is_system: bool,
+    pub sort_order: i32,
+    pub is_active: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 /// JSONB contract for the policy fields a condition type changes.
 ///
 /// `authorized_early_leave_minutes` and `grace_period_minutes` derive from
@@ -83,40 +101,23 @@ pub struct ConditionTypeDefinition {
 }
 
 impl ConditionTypeDefinition {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        workspace_id: Uuid,
-        code: String,
-        name_i18n: serde_json::Value,
-        category: String,
-        default_minute_allowance: i32,
-        default_is_paid: bool,
-        affects_rules: serde_json::Value,
-        icon: Option<String>,
-        color: Option<String>,
-        is_system: bool,
-        sort_order: i32,
-        is_active: bool,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-    ) -> Self {
+    pub fn new(params: NewConditionTypeParams) -> Self {
         Self {
-            id,
-            workspace_id,
-            code,
-            name_i18n,
-            category,
-            default_minute_allowance,
-            default_is_paid,
-            affects_rules,
-            icon,
-            color,
-            is_system,
-            sort_order,
-            is_active,
-            created_at,
-            updated_at,
+            id: params.id,
+            workspace_id: params.workspace_id,
+            code: params.code,
+            name_i18n: params.name_i18n,
+            category: params.category,
+            default_minute_allowance: params.default_minute_allowance,
+            default_is_paid: params.default_is_paid,
+            affects_rules: params.affects_rules,
+            icon: params.icon,
+            color: params.color,
+            is_system: params.is_system,
+            sort_order: params.sort_order,
+            is_active: params.is_active,
+            created_at: params.created_at,
+            updated_at: params.updated_at,
         }
     }
 

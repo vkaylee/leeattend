@@ -1,6 +1,6 @@
 use crate::diesel_pool::{DieselPools, TenantAuthToken};
 use crate::errors::AppError;
-use crate::models::{ConditionTypeDefinition, UpdateConditionTypeRequest};
+use crate::models::{ConditionTypeDefinition, NewConditionTypeParams, UpdateConditionTypeRequest};
 use crate::repositories::condition_type_repository::ConditionTypeRepository;
 use crate::schema::condition_type_definitions;
 use async_trait::async_trait;
@@ -40,10 +40,23 @@ type CondTypeRow = (
 );
 
 fn row_to_definition(row: CondTypeRow) -> ConditionTypeDefinition {
-    ConditionTypeDefinition::new(
-        row.0, row.1, row.2, row.3, row.4, row.5, row.6, row.7, row.8, row.9, row.10, row.11,
-        row.12, row.13, row.14,
-    )
+    ConditionTypeDefinition::new(NewConditionTypeParams {
+        id: row.0,
+        workspace_id: row.1,
+        code: row.2,
+        name_i18n: row.3,
+        category: row.4,
+        default_minute_allowance: row.5,
+        default_is_paid: row.6,
+        affects_rules: row.7,
+        icon: row.8,
+        color: row.9,
+        is_system: row.10,
+        sort_order: row.11,
+        is_active: row.12,
+        created_at: row.13,
+        updated_at: row.14,
+    })
 }
 
 type AllColumns = (

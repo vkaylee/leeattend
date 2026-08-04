@@ -3,7 +3,8 @@ mod tests {
     use crate::diesel_pool::TenantAuthToken;
     use crate::errors::AppError;
     use crate::models::{
-        ConditionTypeDefinition, CreateConditionTypeRequest, UpdateConditionTypeRequest,
+        ConditionTypeDefinition, CreateConditionTypeRequest, NewConditionTypeParams,
+        UpdateConditionTypeRequest,
     };
     use crate::repositories::condition_type_repository::MockConditionTypeRepository;
     use crate::services::condition_type_service::ConditionTypeService;
@@ -20,23 +21,23 @@ mod tests {
         code: &str,
         is_system: bool,
     ) -> ConditionTypeDefinition {
-        ConditionTypeDefinition::new(
-            id,
-            workspace_id,
-            code.to_string(),
-            serde_json::json!({"en": "Test Type", "vi": "Loại Test"}),
-            "general".to_string(),
-            30,
-            true,
-            serde_json::json!({"authorized_early_leave_minutes": true}),
-            Some("Clock".to_string()),
-            Some("blue".to_string()),
-            is_system,
-            0,
-            true,
-            chrono::Utc::now(),
-            chrono::Utc::now(),
-        )
+        ConditionTypeDefinition::new(NewConditionTypeParams {
+            id: id,
+            workspace_id: workspace_id,
+            code: code.to_string(),
+            name_i18n: serde_json::json!({"en": "Test Type", "vi": "Loại Test"}),
+            category: "general".to_string(),
+            default_minute_allowance: 30,
+            default_is_paid: true,
+            affects_rules: serde_json::json!({"authorized_early_leave_minutes": true}),
+            icon: Some("Clock".to_string()),
+            color: Some("blue".to_string()),
+            is_system: is_system,
+            sort_order: 0,
+            is_active: true,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        })
     }
 
     fn make_create_req(code: &str) -> CreateConditionTypeRequest {

@@ -327,7 +327,7 @@ impl PolicyResolverService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::EarlyArrivalStrategy;
+    use crate::models::{EarlyArrivalStrategy, NewConditionTypeParams};
     use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
     use crate::repositories::condition_type_repository::MockConditionTypeRepository;
     use crate::repositories::employee::MockEmployeeRepository;
@@ -566,26 +566,23 @@ mod tests {
             .expect_get_working_conditions_at()
             .returning(move |_, _, _| Ok(vec![condition.clone()]));
 
-        let definition = ConditionTypeDefinition::new(
-            condition_type_id,
-            ws_id,
-            "CUSTOM_PAID_EARLY_EXIT".to_string(),
-            serde_json::json!({"en": "Custom paid early exit"}),
-            "working_hours".to_string(),
-            45,
-            true,
-            serde_json::json!({
-                "authorized_early_leave_minutes": true,
-                "is_early_leave_paid": true
-            }),
-            None,
-            None,
-            false,
-            0,
-            false,
-            chrono::Utc::now(),
-            chrono::Utc::now(),
-        );
+        let definition = ConditionTypeDefinition::new(NewConditionTypeParams {
+            id: condition_type_id,
+            workspace_id: ws_id,
+            code: "CUSTOM_PAID_EARLY_EXIT".to_string(),
+            name_i18n: serde_json::json!({"en": "Custom paid early exit"}),
+            category: "working_hours".to_string(),
+            default_minute_allowance: 45,
+            default_is_paid: true,
+            affects_rules: serde_json::json!({ "authorized_early_leave_minutes": true, "is_early_leave_paid": true }),
+            icon: None,
+            color: None,
+            is_system: false,
+            sort_order: 0,
+            is_active: false,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        });
         let mut condition_type_repo = MockConditionTypeRepository::new();
         condition_type_repo
             .expect_list_condition_types()

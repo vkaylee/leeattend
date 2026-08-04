@@ -2,7 +2,7 @@ use crate::diesel_pool::TenantAuthToken;
 use crate::errors::{AppError, AppResult};
 use crate::models::{
     ConditionRuleEffects, ConditionTypeDefinition, CreateConditionTypeRequest,
-    UpdateConditionTypeRequest,
+    NewConditionTypeParams, UpdateConditionTypeRequest,
 };
 use crate::repositories::condition_type_repository::ConditionTypeRepository;
 use crate::utils::i18n::I18nKey;
@@ -138,23 +138,23 @@ impl ConditionTypeService {
         Self::validate_affects_rules(&req.affects_rules, req.default_minute_allowance)?;
 
         let now = Utc::now();
-        let definition = ConditionTypeDefinition::new(
-            new_id(),
-            auth_token.workspace_id(),
-            req.code,
-            req.name_i18n,
-            req.category,
-            req.default_minute_allowance,
-            req.default_is_paid,
-            req.affects_rules,
-            req.icon,
-            req.color,
-            false, // is_system: user-created types are never system
-            req.sort_order,
-            true, // is_active
-            now,
-            now,
-        );
+        let definition = ConditionTypeDefinition::new(NewConditionTypeParams {
+            id: new_id(),
+            workspace_id: auth_token.workspace_id(),
+            code: req.code,
+            name_i18n: req.name_i18n,
+            category: req.category,
+            default_minute_allowance: req.default_minute_allowance,
+            default_is_paid: req.default_is_paid,
+            affects_rules: req.affects_rules,
+            icon: req.icon,
+            color: req.color,
+            is_system: false, // user-created types are never system
+            sort_order: req.sort_order,
+            is_active: true,
+            created_at: now,
+            updated_at: now,
+        });
 
         // Check for duplicate code
         if let Some(existing) = self

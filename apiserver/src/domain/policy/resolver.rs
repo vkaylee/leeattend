@@ -290,6 +290,7 @@ impl ShiftPolicyOverrides {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::NewConditionTypeParams;
     use uuid::Uuid;
 
     fn mock_condition(
@@ -512,23 +513,23 @@ mod tests {
     // --- Data-driven catalog tests ---
 
     fn catalog_def(code: &str, affects: serde_json::Value) -> ConditionTypeDefinition {
-        ConditionTypeDefinition::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            code.to_string(),
-            serde_json::json!({"en": code}),
-            "general".to_string(),
-            0,
-            false,
-            affects,
-            None,
-            None,
-            true,
-            0,
-            true,
-            chrono::Utc::now(),
-            chrono::Utc::now(),
-        )
+        ConditionTypeDefinition::new(NewConditionTypeParams {
+            id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            code: code.to_string(),
+            name_i18n: serde_json::json!({"en": code}),
+            category: "general".to_string(),
+            default_minute_allowance: 0,
+            default_is_paid: false,
+            affects_rules: affects,
+            icon: None,
+            color: None,
+            is_system: true,
+            sort_order: 0,
+            is_active: true,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        })
     }
 
     fn make_catalog(
@@ -670,23 +671,23 @@ mod tests {
     #[test]
     fn catalog_lookup_by_condition_type_id() {
         let ct_id = Uuid::new_v4();
-        let catalog_def = ConditionTypeDefinition::new(
-            ct_id,
-            Uuid::new_v4(),
-            "CUSTOM_V2".to_string(),
-            serde_json::json!({"en": "Custom V2"}),
-            "general".to_string(),
-            0,
-            false,
-            serde_json::json!({"authorized_early_leave_minutes": true, "is_early_leave_paid": true}),
-            None,
-            None,
-            false,
-            0,
-            true,
-            chrono::Utc::now(),
-            chrono::Utc::now(),
-        );
+        let catalog_def = ConditionTypeDefinition::new(NewConditionTypeParams {
+            id: ct_id,
+            workspace_id: Uuid::new_v4(),
+            code: "CUSTOM_V2".to_string(),
+            name_i18n: serde_json::json!({"en": "Custom V2"}),
+            category: "general".to_string(),
+            default_minute_allowance: 0,
+            default_is_paid: false,
+            affects_rules: serde_json::json!({"authorized_early_leave_minutes": true, "is_early_leave_paid": true}),
+            icon: None,
+            color: None,
+            is_system: false,
+            sort_order: 0,
+            is_active: true,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        });
         let catalog = make_catalog(vec![catalog_def]);
 
         // Condition with type_ string that doesn't match code but has condition_type_id
