@@ -258,6 +258,19 @@ pub struct AttendanceSummaryService {
     daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
 }
 
+pub(super) struct ComputeSingleDayParams<'a> {
+    pub date: NaiveDate,
+    pub daily_schedule: &'a crate::models::EffectiveSchedule,
+    pub day_entries: &'a [&'a crate::models::TimeEntry],
+    pub attendance_rules: &'a crate::models::AttendanceRules,
+    pub conditions: &'a [crate::models::WorkingCondition],
+    pub catalog: &'a std::collections::HashMap<String, crate::models::ConditionTypeDefinition>,
+    pub base_early_arrival_strategy: crate::models::EarlyArrivalStrategy,
+    pub tz: Tz,
+    pub filtered_holiday: Option<&'a crate::models::Holiday>,
+    pub existing_summaries: &'a [AttendanceDailySummary],
+}
+
 impl AttendanceSummaryService {
     pub fn new(args: AttendanceSummaryServiceArgs) -> Self {
         Self {
@@ -619,18 +632,18 @@ impl AttendanceSummaryService {
                 let filtered_holiday = holiday
                     .filter(|&hol| hol.location_id().is_none() || hol.location_id() == location_id);
 
-                let result = Self::compute_single_day(
-                    curr_date,
+                let result = Self::compute_single_day(ComputeSingleDayParams {
+                    date: curr_date,
                     daily_schedule,
-                    &day_entries,
-                    &pf.attendance_rules,
-                    &pf.conditions,
-                    &pf.catalog,
+                    day_entries: &day_entries,
+                    attendance_rules: &pf.attendance_rules,
+                    conditions: &pf.conditions,
+                    catalog: &pf.catalog,
                     base_early_arrival_strategy,
-                    pf.tz,
+                    tz: pf.tz,
                     filtered_holiday,
-                    &pf.existing_summaries,
-                );
+                    existing_summaries: &pf.existing_summaries,
+                });
 
                 // Collect holiday reversal IDs
                 if let Some(hol) = filtered_holiday {
@@ -1094,50 +1107,40 @@ impl AttendanceSummaryService {
 
     /// Pure per-day computation: builds a [`DayComputationResult`] with zero DB calls.
     /// Called inside the batch loop of [`recalculate_attendance_range`].
-    #[allow(clippy::too_many_arguments)]
     fn compute_single_day(
-        date: NaiveDate,
-        daily_schedule: &crate::models::EffectiveSchedule,
-        day_entries: &[&crate::models::TimeEntry],
-        attendance_rules: &crate::models::AttendanceRules,
-        conditions: &[crate::models::WorkingCondition],
-        catalog: &std::collections::HashMap<String, crate::models::ConditionTypeDefinition>,
-        base_early_arrival_strategy: crate::models::EarlyArrivalStrategy,
-        tz: Tz,
-        filtered_holiday: Option<&crate::models::Holiday>,
-        existing_summaries: &[AttendanceDailySummary],
+        params: ComputeSingleDayParams<'_>,
     ) -> DayComputationResult {
         let overrides = ShiftPolicyOverrides::new(
-            daily_schedule.early_punch_in_grace_period_minutes(),
-            daily_schedule.is_break_auto_deduct(),
-            daily_schedule.allow_early_ot(),
-            base_early_arrival_strategy,
-            daily_schedule.break_is_overtime().unwrap_or(false),
+            params.daily_schedule.early_punch_in_grace_period_minutes(),
+            params.daily_schedule.is_break_auto_deduct(),
+            params.daily_schedule.allow_early_ot(),
+            params.base_early_arrival_strategy,
+            params.daily_schedule.break_is_overtime().unwrap_or(false),
         );
         let rules = PolicyResolver::resolve_with_shift_overrides_pure(
-            Some(attendance_rules.clone()),
-            conditions.to_vec(),
-            date,
-            Some(catalog),
+            Some(params.attendance_rules.clone()),
+            params.conditions.to_vec(),
+            params.date,
+            Some(params.catalog),
             &overrides,
         );
 
         let buckets =
-            Self::calculate_work_and_ot_pure(tz, date, daily_schedule, day_entries, &rules);
+            Self::calculate_work_and_ot_pure(params.tz, params.date, params.daily_schedule, params.day_entries, &rules);
         let actual = buckets.standard_minutes
             + buckets.early_ot_minutes
             + buckets.late_ot_minutes
             + buckets.break_ot_minutes;
         let ot_mins = buckets.early_ot_minutes + buckets.late_ot_minutes + buckets.break_ot_minutes;
 
-        let is_holiday = filtered_holiday.is_some();
-        let holiday_name = filtered_holiday.map(|h| h.name().to_string());
+        let is_holiday = params.filtered_holiday.is_some();
+        let holiday_name = params.filtered_holiday.map(|h| h.name().to_string());
 
-        let existing = existing_summaries.iter().find(|s| s.date == date);
-        let weekday = date.weekday().num_days_from_monday();
+        let existing = params.existing_summaries.iter().find(|s| s.date == params.date);
+        let weekday = params.date.weekday().num_days_from_monday();
 
         DayComputationResult {
-            date,
+            date: params.date,
             actual_work_minutes: actual,
             system_detected_ot_minutes: ot_mins,
             standard_minutes: buckets.standard_minutes,
