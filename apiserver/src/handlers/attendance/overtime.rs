@@ -12,6 +12,7 @@ use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{AttendanceDailySummary, OtStatus, PaginatedResponse};
+use crate::repositories::attendance_daily_summary_repository::GetSummariesPaginatedArgs;
 use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
@@ -264,15 +265,15 @@ pub async fn get_attendance_summaries(
     let (summaries, total) = state
         .attendance()
         .attendance_daily_summary_repo()
-        .get_summaries_paginated(
-            &ctx.auth_token,
-            target_employment_id,
-            query.start_date,
-            query.end_date,
+        .get_summaries_paginated(GetSummariesPaginatedArgs {
+            auth_token: ctx.auth_token.clone(),
+            employment_id: target_employment_id,
+            start_date: query.start_date,
+            end_date: query.end_date,
             ot_status,
             page,
             limit,
-        )
+        })
         .await?;
 
     Ok(Json(PaginatedResponse {

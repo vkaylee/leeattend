@@ -21,6 +21,58 @@ pub struct BatchSummaryInput {
     pub holiday_name: Option<String>,
 }
 
+pub struct UpsertCalculatedSummaryArgs {
+    pub auth_token: crate::diesel_pool::TenantAuthToken,
+    pub employment_id: Uuid,
+    pub date: NaiveDate,
+    pub actual_work_minutes: i32,
+    pub system_detected_ot_minutes: i32,
+    pub standard_minutes: i32,
+    pub early_ot_minutes: i32,
+    pub late_ot_minutes: i32,
+    pub break_ot_minutes: i32,
+    pub is_weekend: bool,
+    pub new_status: OtStatus,
+    pub is_holiday: bool,
+    pub holiday_name: Option<String>,
+}
+
+pub struct UpsertCalculatedSummaryTxArgs {
+    pub workspace_id: Uuid,
+    pub employment_id: Uuid,
+    pub date: NaiveDate,
+    pub actual_work_minutes: i32,
+    pub system_detected_ot_minutes: i32,
+    pub standard_minutes: i32,
+    pub early_ot_minutes: i32,
+    pub late_ot_minutes: i32,
+    pub break_ot_minutes: i32,
+    pub is_weekend: bool,
+    pub new_status: OtStatus,
+    pub is_holiday: bool,
+    pub holiday_name: Option<String>,
+}
+
+pub struct UpsertPaperOtArgs {
+    pub auth_token: crate::diesel_pool::TenantAuthToken,
+    pub employment_id: Uuid,
+    pub date: NaiveDate,
+    pub claimed_minutes: i32,
+    pub reason: String,
+    pub entered_by_user_id: Uuid,
+    pub photo_url: Option<String>,
+}
+
+pub struct GetSummariesPaginatedArgs {
+    pub auth_token: crate::diesel_pool::TenantAuthToken,
+    pub employment_id: Option<Uuid>,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub ot_status: Option<OtStatus>,
+    pub page: i64,
+    pub limit: i64,
+}
+
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait AttendanceDailySummaryRepository: Send + Sync {
@@ -37,22 +89,9 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
         id: Uuid,
     ) -> Result<Option<AttendanceDailySummary>, AppError>;
 
-    #[allow(clippy::too_many_arguments)]
     async fn upsert_calculated_summary(
         &self,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        employment_id: Uuid,
-        date: NaiveDate,
-        actual_work_minutes: i32,
-        system_detected_ot_minutes: i32,
-        standard_minutes: i32,
-        early_ot_minutes: i32,
-        late_ot_minutes: i32,
-        break_ot_minutes: i32,
-        is_weekend: bool,
-        new_status: OtStatus,
-        is_holiday: bool,
-        holiday_name: Option<String>,
+        args: UpsertCalculatedSummaryArgs,
     ) -> Result<(), AppError>;
 
     /// Batch upsert multiple daily summaries in a single transaction.
@@ -85,16 +124,9 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
         status: OtStatus,
     ) -> Result<usize, AppError>;
 
-    #[allow(clippy::too_many_arguments)]
     async fn upsert_paper_ot(
         &self,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        employment_id: Uuid,
-        date: NaiveDate,
-        claimed_minutes: i32,
-        reason: String,
-        entered_by_user_id: Uuid,
-        photo_url: Option<String>,
+        args: UpsertPaperOtArgs,
     ) -> Result<AttendanceDailySummary, AppError>;
 
     async fn get_batch_ot_statuses(
@@ -134,16 +166,9 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
 
     /// Paginated variant with optional ot_status filter.
     /// Returns (data, total_count).
-    #[allow(clippy::too_many_arguments)]
     async fn get_summaries_paginated(
         &self,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        employment_id: Option<Uuid>,
-        start_date: NaiveDate,
-        end_date: NaiveDate,
-        ot_status: Option<OtStatus>,
-        page: i64,
-        limit: i64,
+        args: GetSummariesPaginatedArgs,
     ) -> Result<(Vec<AttendanceDailySummary>, usize), AppError>;
 
     async fn get_distinct_work_days_from_summary(
@@ -165,23 +190,10 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
     /// Uses the provided connection instead of acquiring one from the pool,
     /// allowing the caller to coordinate this write with other operations
     /// inside a single database transaction.
-    #[allow(clippy::too_many_arguments)]
     async fn upsert_calculated_summary_tx(
         &self,
         conn: &mut AsyncPgConnection,
-        workspace_id: Uuid,
-        employment_id: Uuid,
-        date: NaiveDate,
-        actual_work_minutes: i32,
-        system_detected_ot_minutes: i32,
-        standard_minutes: i32,
-        early_ot_minutes: i32,
-        late_ot_minutes: i32,
-        break_ot_minutes: i32,
-        is_weekend: bool,
-        new_status: OtStatus,
-        is_holiday: bool,
-        holiday_name: Option<String>,
+        args: UpsertCalculatedSummaryTxArgs,
     ) -> Result<(), AppError>;
 
     /// Transaction-aware variant of [`batch_upsert_calculated_summaries`].

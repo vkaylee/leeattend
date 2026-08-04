@@ -1,7 +1,10 @@
 use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
 use crate::models::{AttendanceDailySummary, OtStatus};
-use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
+use crate::repositories::attendance_daily_summary_repository::{
+    AttendanceDailySummaryRepository, GetSummariesPaginatedArgs, UpsertCalculatedSummaryArgs,
+    UpsertCalculatedSummaryTxArgs, UpsertPaperOtArgs,
+};
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
 use diesel::prelude::*;
@@ -87,47 +90,34 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .map_err(|e| AppError::Internal(format!("db: {e}")))
     }
 
-    #[allow(clippy::too_many_arguments)]
     async fn upsert_calculated_summary(
         &self,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        employment_id: Uuid,
-        date: NaiveDate,
-        actual_work_minutes: i32,
-        system_detected_ot_minutes: i32,
-        standard_minutes: i32,
-        early_ot_minutes: i32,
-        late_ot_minutes: i32,
-        break_ot_minutes: i32,
-        is_weekend: bool,
-        new_status: OtStatus,
-        is_holiday: bool,
-        holiday_name: Option<String>,
+        args: UpsertCalculatedSummaryArgs,
     ) -> Result<(), AppError> {
-        let workspace_id = auth_token.workspace_id();
+        let workspace_id = args.auth_token.workspace_id();
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
-                .get_connection(&auth_token.workspace_id())
+                .get_connection(&args.auth_token.workspace_id())
                 .await?,
         );
 
         execute_upsert_calculated_summary(
             &mut conn,
             workspace_id,
-            employment_id,
-            date,
-            actual_work_minutes,
-            system_detected_ot_minutes,
-            standard_minutes,
-            early_ot_minutes,
-            late_ot_minutes,
-            break_ot_minutes,
-            is_weekend,
-            new_status,
-            is_holiday,
-            holiday_name,
+            args.employment_id,
+            args.date,
+            args.actual_work_minutes,
+            args.system_detected_ot_minutes,
+            args.standard_minutes,
+            args.early_ot_minutes,
+            args.late_ot_minutes,
+            args.break_ot_minutes,
+            args.is_weekend,
+            args.new_status,
+            args.is_holiday,
+            args.holiday_name,
         )
         .await
     }
@@ -237,25 +227,18 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         Ok(rows)
     }
 
-    #[allow(clippy::too_many_arguments)]
     async fn upsert_paper_ot(
         &self,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        employment_id: Uuid,
-        date: NaiveDate,
-        claimed_minutes: i32,
-        reason: String,
-        entered_by_user_id: Uuid,
-        photo_url: Option<String>,
+        args: UpsertPaperOtArgs,
     ) -> Result<AttendanceDailySummary, AppError> {
-        let workspace_id = auth_token.workspace_id();
+        let workspace_id = args.auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
         use diesel::upsert::excluded;
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
-                .get_connection(&auth_token.workspace_id())
+                .get_connection(&args.auth_token.workspace_id())
                 .await?,
         );
 
@@ -265,14 +248,14 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .values((
                 ads::id.eq(Uuid::new_v4()),
                 ads::workspace_id.eq(workspace_id),
-                ads::employment_id.eq(employment_id),
-                ads::date.eq(date),
-                ads::claimed_ot_minutes.eq(claimed_minutes),
-                ads::ot_reason.eq(reason),
+                ads::employment_id.eq(args.employment_id),
+                ads::date.eq(args.date),
+                ads::claimed_ot_minutes.eq(args.claimed_minutes),
+                ads::ot_reason.eq(args.reason),
                 ads::ot_status.eq(OtStatus::PendingManager),
                 ads::entered_via.eq(Some("paper_form".to_string())),
-                ads::claim_entered_by_user_id.eq(Some(entered_by_user_id)),
-                ads::paper_form_photo_url.eq(photo_url),
+                ads::claim_entered_by_user_id.eq(Some(args.entered_by_user_id)),
+                ads::paper_form_photo_url.eq(args.photo_url),
                 ads::claim_entered_at.eq(Some(Utc::now())),
                 ads::actual_work_minutes.eq(0),
                 ads::system_detected_ot_minutes.eq(0),
@@ -407,36 +390,30 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
     async fn get_summaries_paginated(
         &self,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        employment_id: Option<Uuid>,
-        start_date: NaiveDate,
-        end_date: NaiveDate,
-        ot_status: Option<OtStatus>,
-        page: i64,
-        limit: i64,
+        args: GetSummariesPaginatedArgs,
     ) -> Result<(Vec<AttendanceDailySummary>, usize), AppError> {
-        let workspace_id = auth_token.workspace_id();
+        let workspace_id = args.auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
-                .get_connection(&auth_token.workspace_id())
+                .get_connection(&args.auth_token.workspace_id())
                 .await?,
         );
 
         // Count total matching records
         let mut count_query = ads::attendance_daily_summaries
             .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::date.ge(start_date))
-            .filter(ads::date.le(end_date))
+            .filter(ads::date.ge(args.start_date))
+            .filter(ads::date.le(args.end_date))
             .into_boxed();
 
-        if let Some(eid) = employment_id {
+        if let Some(eid) = args.employment_id {
             count_query = count_query.filter(ads::employment_id.eq(eid));
         }
 
-        if let Some(ref status) = ot_status {
+        if let Some(ref status) = args.ot_status {
             count_query = count_query.filter(ads::ot_status.eq(status));
         }
 
@@ -449,15 +426,15 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         // Fetch page
         let mut data_query = ads::attendance_daily_summaries
             .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::date.ge(start_date))
-            .filter(ads::date.le(end_date))
+            .filter(ads::date.ge(args.start_date))
+            .filter(ads::date.le(args.end_date))
             .into_boxed();
 
-        if let Some(eid) = employment_id {
+        if let Some(eid) = args.employment_id {
             data_query = data_query.filter(ads::employment_id.eq(eid));
         }
 
-        if let Some(status) = ot_status {
+        if let Some(status) = args.ot_status {
             data_query = data_query.filter(ads::ot_status.eq(status));
         }
 
@@ -465,8 +442,8 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         let results = data_query
             .order_by((ads::date.asc(), ads::employment_id.asc()))
-            .limit(limit)
-            .offset((page - 1) * limit)
+            .limit(args.limit)
+            .offset((args.page - 1) * args.limit)
             .load::<AttendanceDailySummaryEntity>(&mut *conn)
             .await
             .map(|list| list.into_iter().map(Into::into).collect::<Vec<_>>())
@@ -584,39 +561,26 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    #[allow(clippy::too_many_arguments)]
     async fn upsert_calculated_summary_tx(
         &self,
         conn: &mut AsyncPgConnection,
-        workspace_id: Uuid,
-        employment_id: Uuid,
-        date: NaiveDate,
-        actual_work_minutes: i32,
-        system_detected_ot_minutes: i32,
-        standard_minutes: i32,
-        early_ot_minutes: i32,
-        late_ot_minutes: i32,
-        break_ot_minutes: i32,
-        is_weekend: bool,
-        new_status: OtStatus,
-        is_holiday: bool,
-        holiday_name: Option<String>,
+        args: UpsertCalculatedSummaryTxArgs,
     ) -> Result<(), AppError> {
         execute_upsert_calculated_summary(
             conn,
-            workspace_id,
-            employment_id,
-            date,
-            actual_work_minutes,
-            system_detected_ot_minutes,
-            standard_minutes,
-            early_ot_minutes,
-            late_ot_minutes,
-            break_ot_minutes,
-            is_weekend,
-            new_status,
-            is_holiday,
-            holiday_name,
+            args.workspace_id,
+            args.employment_id,
+            args.date,
+            args.actual_work_minutes,
+            args.system_detected_ot_minutes,
+            args.standard_minutes,
+            args.early_ot_minutes,
+            args.late_ot_minutes,
+            args.break_ot_minutes,
+            args.is_weekend,
+            args.new_status,
+            args.is_holiday,
+            args.holiday_name,
         )
         .await
     }

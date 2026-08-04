@@ -8,7 +8,10 @@ use diesel_async::AsyncPgConnection;
 
 use uuid::Uuid;
 
-use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
+use crate::repositories::attendance_daily_summary_repository::{
+    AttendanceDailySummaryRepository, UpsertCalculatedSummaryArgs,
+    UpsertCalculatedSummaryTxArgs, UpsertPaperOtArgs,
+};
 use crate::repositories::leave_request_repository::LeaveRequestRepository;
 
 use crate::diesel_pool::TenantAuthToken;
@@ -441,37 +444,41 @@ impl AttendanceSummaryService {
             self.daily_summary_repo
                 .upsert_calculated_summary_tx(
                     c,
-                    workspace_id,
-                    plan.employment_id,
-                    plan.date,
-                    plan.actual_work_minutes,
-                    plan.system_detected_ot_minutes,
-                    plan.standard_minutes,
-                    plan.early_ot_minutes,
-                    plan.late_ot_minutes,
-                    plan.break_ot_minutes,
-                    plan.is_weekend,
-                    plan.ot_status,
-                    plan.is_holiday,
-                    plan.holiday_name.clone(),
+                    UpsertCalculatedSummaryTxArgs {
+                        workspace_id,
+                        employment_id: plan.employment_id,
+                        date: plan.date,
+                        actual_work_minutes: plan.actual_work_minutes,
+                        system_detected_ot_minutes: plan.system_detected_ot_minutes,
+                        standard_minutes: plan.standard_minutes,
+                        early_ot_minutes: plan.early_ot_minutes,
+                        late_ot_minutes: plan.late_ot_minutes,
+                        break_ot_minutes: plan.break_ot_minutes,
+                        is_weekend: plan.is_weekend,
+                        new_status: plan.ot_status,
+                        is_holiday: plan.is_holiday,
+                        holiday_name: plan.holiday_name.clone(),
+                    },
                 )
                 .await?;
         } else {
             self.daily_summary_repo
                 .upsert_calculated_summary(
-                    auth_token,
-                    plan.employment_id,
-                    plan.date,
-                    plan.actual_work_minutes,
-                    plan.system_detected_ot_minutes,
-                    plan.standard_minutes,
-                    plan.early_ot_minutes,
-                    plan.late_ot_minutes,
-                    plan.break_ot_minutes,
-                    plan.is_weekend,
-                    plan.ot_status,
-                    plan.is_holiday,
-                    plan.holiday_name.clone(),
+                    UpsertCalculatedSummaryArgs {
+                        auth_token: auth_token.clone(),
+                        employment_id: plan.employment_id,
+                        date: plan.date,
+                        actual_work_minutes: plan.actual_work_minutes,
+                        system_detected_ot_minutes: plan.system_detected_ot_minutes,
+                        standard_minutes: plan.standard_minutes,
+                        early_ot_minutes: plan.early_ot_minutes,
+                        late_ot_minutes: plan.late_ot_minutes,
+                        break_ot_minutes: plan.break_ot_minutes,
+                        is_weekend: plan.is_weekend,
+                        new_status: plan.ot_status,
+                        is_holiday: plan.is_holiday,
+                        holiday_name: plan.holiday_name.clone(),
+                    },
                 )
                 .await?;
         }
@@ -1374,15 +1381,15 @@ impl AttendanceSummaryService {
 
         // 3. Upsert with paper form metadata
         let result = summary_repo
-            .upsert_paper_ot(
-                auth_token,
-                args.employment_id,
-                args.date,
-                args.claimed_minutes,
-                args.reason,
-                args.entered_by_user_id,
-                args.photo_url,
-            )
+            .upsert_paper_ot(UpsertPaperOtArgs {
+                auth_token: auth_token.clone(),
+                employment_id: args.employment_id,
+                date: args.date,
+                claimed_minutes: args.claimed_minutes,
+                reason: args.reason,
+                entered_by_user_id: args.entered_by_user_id,
+                photo_url: args.photo_url,
+            })
             .await?;
 
         Ok(result)
