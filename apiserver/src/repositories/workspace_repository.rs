@@ -4,6 +4,22 @@ use async_trait::async_trait;
 
 use uuid::Uuid;
 
+// ---------------------------------------------------------------------------
+// Params structs
+// ---------------------------------------------------------------------------
+
+pub struct UpdateWorkspaceParams {
+    pub id: Uuid,
+    pub name: Option<String>,
+    pub date_format: Option<String>,
+    pub time_format: Option<String>,
+    pub timezone: Option<String>,
+    pub theme_primary_color: Option<String>,
+    pub default_language: Option<String>,
+    pub logo_url: Option<String>,
+    pub tagline: Option<String>,
+}
+
 #[async_trait]
 #[cfg_attr(test, mockall::automock)]
 pub trait WorkspaceRepository: Send + Sync {
@@ -157,18 +173,10 @@ pub trait WorkspaceRepository: Send + Sync {
 
     /// Get all permission names for a set of role IDs.
     async fn get_permissions_for_roles(&self, role_ids: &[Uuid]) -> Result<Vec<String>, AppError>;
-    #[allow(clippy::too_many_arguments)]
+
     async fn update_workspace(
         &self,
-        id: Uuid,
-        name: Option<String>,
-        date_format: Option<String>,
-        time_format: Option<String>,
-        timezone: Option<String>,
-        theme_primary_color: Option<String>,
-        default_language: Option<String>,
-        logo_url: Option<String>,
-        tagline: Option<String>,
+        params: UpdateWorkspaceParams,
     ) -> Result<Workspace, AppError>;
     /// Check if any role in the set has global scope.
     async fn is_any_role_global(&self, role_ids: &[Uuid]) -> Result<bool, AppError>;

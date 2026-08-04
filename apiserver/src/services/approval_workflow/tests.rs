@@ -897,15 +897,7 @@ mod tests {
         }
         async fn update_workspace(
             &self,
-            _id: Uuid,
-            _n: Option<String>,
-            _df: Option<String>,
-            _tf: Option<String>,
-            _tz: Option<String>,
-            _tc: Option<String>,
-            _dl: Option<String>,
-            _l: Option<String>,
-            _t: Option<String>,
+            _params: crate::repositories::workspace_repository::UpdateWorkspaceParams,
         ) -> Result<crate::models::Workspace, AppError> {
             unimplemented!()
         }

@@ -292,17 +292,17 @@ impl WorkspaceService {
 
         if has_system_changes {
             self.workspace_repo
-                .update_workspace(
-                    args.ws_id,
-                    args.name,
-                    args.date_format,
-                    args.time_format,
-                    args.timezone,
-                    args.theme_primary_color,
-                    args.default_language,
-                    args.logo_url,
-                    args.tagline,
-                )
+                .update_workspace(crate::repositories::workspace_repository::UpdateWorkspaceParams {
+                    id: args.ws_id,
+                    name: args.name,
+                    date_format: args.date_format,
+                    time_format: args.time_format,
+                    timezone: args.timezone,
+                    theme_primary_color: args.theme_primary_color,
+                    default_language: args.default_language,
+                    logo_url: args.logo_url,
+                    tagline: args.tagline,
+                })
                 .await
         } else {
             self.workspace_repo
@@ -511,21 +511,12 @@ mod tests {
         async fn get_permissions_for_roles(&self, _r: &[Uuid]) -> Result<Vec<String>, AppError> {
             Ok(vec![])
         }
-        #[allow(clippy::too_many_arguments)]
         async fn update_workspace(
             &self,
-            _id: Uuid,
-            name: Option<String>,
-            _df: Option<String>,
-            _tf: Option<String>,
-            _tz: Option<String>,
-            _tc: Option<String>,
-            _dl: Option<String>,
-            _lu: Option<String>,
-            _tl: Option<String>,
+            params: crate::repositories::workspace_repository::UpdateWorkspaceParams,
         ) -> Result<Workspace, AppError> {
             let mut ws = dummy_workspace();
-            if let Some(n) = name {
+            if let Some(n) = params.name {
                 ws.set_name(n);
             }
             Ok(ws)

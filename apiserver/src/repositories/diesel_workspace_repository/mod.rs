@@ -7,7 +7,7 @@ mod workspace_settings;
 use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
 use crate::models::{MemberExtraRole, Workspace};
-use crate::repositories::workspace_repository::WorkspaceRepository;
+use crate::repositories::workspace_repository::{UpdateWorkspaceParams, WorkspaceRepository};
 use async_trait::async_trait;
 use uuid::Uuid;
 
@@ -278,19 +278,21 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
     }
 
     // ── workspace_settings ────────────────────────────────────────
-    #[allow(clippy::too_many_arguments)]
     async fn update_workspace(
         &self,
-        id: Uuid,
-        name: Option<String>,
-        date_format: Option<String>,
-        time_format: Option<String>,
-        timezone: Option<String>,
-        theme_primary_color: Option<String>,
-        default_language: Option<String>,
-        logo_url: Option<String>,
-        tagline: Option<String>,
+        params: UpdateWorkspaceParams,
     ) -> Result<Workspace, AppError> {
+        let UpdateWorkspaceParams {
+            id,
+            name,
+            date_format,
+            time_format,
+            timezone,
+            theme_primary_color,
+            default_language,
+            logo_url,
+            tagline,
+        } = params;
         self.update_workspace_impl(
             id,
             name,
