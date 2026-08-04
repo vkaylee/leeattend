@@ -10,7 +10,7 @@ use crate::utils::id::new_id;
 
 use crate::models::{
     AdjustmentStatus, AttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest, LogSource,
-    RawAttendanceLog,
+    NewAttendanceAdjustmentRequestParams, NewRawAttendanceLogParams, RawAttendanceLog,
 };
 use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository;
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
@@ -46,19 +46,19 @@ impl AttendanceAdjustmentService {
             .attachment_file_ids
             .map(|ids| ids.into_iter().map(Some).collect());
 
-        let adjustment = AttendanceAdjustmentRequest::new(
-            new_id(),
-            req.employment_id,
-            req.time_entry_id,
-            req.requested_punch_time,
-            req.reason,
-            AdjustmentStatus::Pending,
-            Some(user_id),
-            None,
-            Utc::now(),
-            Utc::now(),
-            attachment_file_ids,
-        );
+        let adjustment = AttendanceAdjustmentRequest::new(NewAttendanceAdjustmentRequestParams {
+            id: new_id(),
+            employment_id: req.employment_id,
+            time_entry_id: req.time_entry_id,
+            requested_punch_time: req.requested_punch_time,
+            reason: req.reason,
+            status: AdjustmentStatus::Pending,
+            requested_by_user_id: Some(user_id),
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            attachment_file_ids: attachment_file_ids,
+        });
 
         self.adj_repo
             .create_request(workspace_id, &adjustment)
@@ -90,18 +90,18 @@ impl AttendanceAdjustmentService {
             .await?;
 
         if status == AdjustmentStatus::Approved {
-            let raw_log = RawAttendanceLog::new(
-                new_id(),
-                workspace_id,
-                request.employment_id(),
-                request.requested_punch_time(),
-                LogSource::Manual,
-                None,
-                None,
-                0,
-                0,
-                Utc::now(),
-            );
+            let raw_log = RawAttendanceLog::new(NewRawAttendanceLogParams {
+                id: new_id(),
+                workspace_id: workspace_id,
+                employment_id: request.employment_id(),
+                punch_time: request.requested_punch_time(),
+                source: LogSource::Manual,
+                device_id: None,
+                raw_data: None,
+                punch: 0,
+                status: 0,
+                created_at: Utc::now(),
+            });
 
             self.raw_log_repo
                 .create_raw_log(workspace_id, &raw_log)

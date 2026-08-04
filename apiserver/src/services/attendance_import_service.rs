@@ -14,7 +14,8 @@ use uuid::Uuid;
 
 use crate::models::{
     enums::ImportTargetType, AdjustmentStatus, AttendanceImportJob,
-    CreateAttendanceAdjustmentRequest, Employee, ImportJobStatus, LogSource, RawAttendanceLog,
+    CreateAttendanceAdjustmentRequest, Employee, ImportJobStatus, LogSource, NewRawAttendanceLogParams,
+    RawAttendanceLog,
 };
 use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository;
 use crate::repositories::employee::{EmployeeCoreRepository, EmployeeRepository};
@@ -806,18 +807,18 @@ impl ImportStrategy for PunchImportStrategy {
                     continue;
                 };
 
-                let log = RawAttendanceLog::new(
-                    new_id(),
-                    job.workspace_id,
-                    employment_id,
-                    row.punch_time,
-                    LogSource::Import,
-                    None,
-                    None,
-                    0,
-                    0,
-                    Utc::now(),
-                );
+                let log = RawAttendanceLog::new(NewRawAttendanceLogParams {
+                    id: new_id(),
+                    workspace_id: job.workspace_id,
+                    employment_id: employment_id,
+                    punch_time: row.punch_time,
+                    source: LogSource::Import,
+                    device_id: None,
+                    raw_data: None,
+                    punch: 0,
+                    status: 0,
+                    created_at: Utc::now(),
+                });
 
                 let local_date = row
                     .punch_time
@@ -1816,7 +1817,7 @@ mod tests {
     /// no orphaned Pending records are left behind.
     #[tokio::test]
     async fn finalize_adjustments_compensation_on_partial_failure() {
-        use crate::models::AttendanceAdjustmentRequest;
+        use crate::models::{AttendanceAdjustmentRequest, NewAttendanceAdjustmentRequestParams};
         use std::sync::atomic::{AtomicUsize, Ordering};
 
         let ws_id = Uuid::new_v4();
@@ -1848,19 +1849,19 @@ mod tests {
             .adjustment_repo
             .expect_get_request_by_id()
             .returning(move |_, id| {
-                let req = AttendanceAdjustmentRequest::new(
-                    id,
-                    id,
-                    None,
-                    now,
-                    Some("import".into()),
-                    AdjustmentStatus::Pending,
-                    Some(user_id),
-                    None,
-                    now,
-                    now,
-                    None,
-                );
+                let req = AttendanceAdjustmentRequest::new(NewAttendanceAdjustmentRequestParams {
+                    id: id,
+                    employment_id: id,
+                    time_entry_id: None,
+                    requested_punch_time: now,
+                    reason: Some("import".into()),
+                    status: AdjustmentStatus::Pending,
+                    requested_by_user_id: Some(user_id),
+                    approved_by_user_id: None,
+                    created_at: now,
+                    updated_at: now,
+                    attachment_file_ids: None,
+                });
                 Ok(Some(req))
             });
 

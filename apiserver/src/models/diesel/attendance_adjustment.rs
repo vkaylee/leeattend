@@ -6,7 +6,7 @@ use diesel::serialize::{self, IsNull, Output, ToSql};
 use std::io::Write;
 use uuid::Uuid;
 
-use crate::models::{AdjustmentStatus, AttendanceAdjustmentRequest};
+use crate::models::{AdjustmentStatus, AttendanceAdjustmentRequest, NewAttendanceAdjustmentRequestParams};
 use crate::schema::attendance_adjustment_requests;
 use crate::schema::sql_types::AdjustmentStatusType;
 
@@ -50,19 +50,19 @@ pub struct AttendanceAdjustmentEntity {
 
 impl From<AttendanceAdjustmentEntity> for AttendanceAdjustmentRequest {
     fn from(val: AttendanceAdjustmentEntity) -> Self {
-        AttendanceAdjustmentRequest::new(
-            val.id,
-            val.employment_id,
-            val.time_entry_id,
-            val.requested_punch_time,
-            val.reason,
-            val.status,
-            val.requested_by_user_id,
-            val.approved_by_user_id,
-            val.created_at.unwrap_or_else(Utc::now),
-            val.updated_at.unwrap_or_else(Utc::now),
-            val.attachment_file_ids,
-        )
+        AttendanceAdjustmentRequest::new(NewAttendanceAdjustmentRequestParams {
+            id: val.id,
+            employment_id: val.employment_id,
+            time_entry_id: val.time_entry_id,
+            requested_punch_time: val.requested_punch_time,
+            reason: val.reason,
+            status: val.status,
+            requested_by_user_id: val.requested_by_user_id,
+            approved_by_user_id: val.approved_by_user_id,
+            created_at: val.created_at.unwrap_or_else(Utc::now),
+            updated_at: val.updated_at.unwrap_or_else(Utc::now),
+            attachment_file_ids: val.attachment_file_ids,
+        })
     }
 }
 

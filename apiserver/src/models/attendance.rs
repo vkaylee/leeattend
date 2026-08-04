@@ -8,6 +8,33 @@ use crate::models::enums::{
 };
 use crate::services::attendance_utils::AttendanceStatus;
 
+pub struct NewAttendanceAdjustmentRequestParams {
+    pub id: Uuid,
+    pub employment_id: Uuid,
+    pub time_entry_id: Option<Uuid>,
+    pub requested_punch_time: DateTime<Utc>,
+    pub reason: Option<String>,
+    pub status: AdjustmentStatus,
+    pub requested_by_user_id: Option<Uuid>,
+    pub approved_by_user_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub attachment_file_ids: Option<Vec<Option<Uuid>>>,
+}
+
+pub struct NewRawAttendanceLogParams {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub employment_id: Uuid,
+    pub punch_time: DateTime<Utc>,
+    pub source: LogSource,
+    pub device_id: Option<String>,
+    pub raw_data: Option<serde_json::Value>,
+    pub punch: i32,
+    pub status: i32,
+    pub created_at: DateTime<Utc>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AttendanceAdjustmentRequest {
     id: Uuid,
@@ -24,32 +51,19 @@ pub struct AttendanceAdjustmentRequest {
 }
 
 impl AttendanceAdjustmentRequest {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        employment_id: Uuid,
-        time_entry_id: Option<Uuid>,
-        requested_punch_time: DateTime<Utc>,
-        reason: Option<String>,
-        status: AdjustmentStatus,
-        requested_by_user_id: Option<Uuid>,
-        approved_by_user_id: Option<Uuid>,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-        attachment_file_ids: Option<Vec<Option<Uuid>>>,
-    ) -> Self {
+    pub fn new(params: NewAttendanceAdjustmentRequestParams) -> Self {
         Self {
-            id,
-            employment_id,
-            time_entry_id,
-            requested_punch_time,
-            reason,
-            status,
-            requested_by_user_id,
-            approved_by_user_id,
-            created_at,
-            updated_at,
-            attachment_file_ids,
+            id: params.id,
+            employment_id: params.employment_id,
+            time_entry_id: params.time_entry_id,
+            requested_punch_time: params.requested_punch_time,
+            reason: params.reason,
+            status: params.status,
+            requested_by_user_id: params.requested_by_user_id,
+            approved_by_user_id: params.approved_by_user_id,
+            created_at: params.created_at,
+            updated_at: params.updated_at,
+            attachment_file_ids: params.attachment_file_ids,
         }
     }
 
@@ -278,30 +292,18 @@ pub struct RawAttendanceLog {
 }
 
 impl RawAttendanceLog {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        workspace_id: Uuid,
-        employment_id: Uuid,
-        punch_time: DateTime<Utc>,
-        source: LogSource,
-        device_id: Option<String>,
-        raw_data: Option<serde_json::Value>,
-        punch: i32,
-        status: i32,
-        created_at: DateTime<Utc>,
-    ) -> Self {
+    pub fn new(params: NewRawAttendanceLogParams) -> Self {
         Self {
-            id,
-            workspace_id,
-            employment_id,
-            punch_time,
-            source,
-            device_id,
-            raw_data,
-            punch,
-            status,
-            created_at,
+            id: params.id,
+            workspace_id: params.workspace_id,
+            employment_id: params.employment_id,
+            punch_time: params.punch_time,
+            source: params.source,
+            device_id: params.device_id,
+            raw_data: params.raw_data,
+            punch: params.punch,
+            status: params.status,
+            created_at: params.created_at,
         }
     }
 

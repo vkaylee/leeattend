@@ -3,7 +3,7 @@ use crate::cache::{RosterData, RosterShift};
 use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
 use crate::models::enums::LogSource;
-use crate::models::{RawAttendanceLog, TimeEntry};
+use crate::models::{NewRawAttendanceLogParams, RawAttendanceLog, TimeEntry};
 use crate::services::pairing::service_helpers::retry_with_log;
 use chrono::{NaiveDate, NaiveTime, TimeZone, Timelike, Utc};
 use std::sync::Arc;
@@ -683,30 +683,30 @@ fn test_utc_timezone_offset_bug() {
     let log2_utc = Utc.with_ymd_and_hms(2026, 5, 20, 14, 31, 36).unwrap();
 
     let raw_logs = vec![
-        RawAttendanceLog::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            log1_utc,
-            LogSource::Manual,
-            None,
-            None,
-            1,
-            1,
-            Utc::now(),
-        ),
-        RawAttendanceLog::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            log2_utc,
-            LogSource::Manual,
-            None,
-            None,
-            1,
-            1,
-            Utc::now(),
-        ),
+        RawAttendanceLog::new(NewRawAttendanceLogParams {
+            id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
+            punch_time: log1_utc,
+            source: LogSource::Manual,
+            device_id: None,
+            raw_data: None,
+            punch: 1,
+            status: 1,
+            created_at: Utc::now(),
+        }),
+        RawAttendanceLog::new(NewRawAttendanceLogParams {
+            id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
+            punch_time: log2_utc,
+            source: LogSource::Manual,
+            device_id: None,
+            raw_data: None,
+            punch: 1,
+            status: 1,
+            created_at: Utc::now(),
+        }),
     ];
 
     let log_events_utc = context_utc.build_log_events(&raw_logs).unwrap();
@@ -773,31 +773,31 @@ fn test_build_log_events_deduplication() {
 
     let workspace_id = Uuid::new_v4();
     let employee_id = Uuid::new_v4();
-    let log1 = RawAttendanceLog::new(
-        Uuid::new_v4(),
-        workspace_id,
-        employee_id,
-        Utc.with_ymd_and_hms(2026, 5, 20, 8, 30, 15).unwrap(),
-        LogSource::Manual,
-        None,
-        None,
-        1,
-        1,
-        Utc::now(),
-    );
+    let log1 = RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: workspace_id,
+        employment_id: employee_id,
+        punch_time: Utc.with_ymd_and_hms(2026, 5, 20, 8, 30, 15).unwrap(),
+        source: LogSource::Manual,
+        device_id: None,
+        raw_data: None,
+        punch: 1,
+        status: 1,
+        created_at: Utc::now(),
+    });
 
-    let log2 = RawAttendanceLog::new(
-        Uuid::new_v4(),
-        workspace_id,
-        employee_id,
-        Utc.with_ymd_and_hms(2026, 5, 20, 8, 30, 17).unwrap(),
-        LogSource::Manual,
-        None,
-        None,
-        1,
-        1,
-        log1.created_at(),
-    );
+    let log2 = RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: workspace_id,
+        employment_id: employee_id,
+        punch_time: Utc.with_ymd_and_hms(2026, 5, 20, 8, 30, 17).unwrap(),
+        source: LogSource::Manual,
+        device_id: None,
+        raw_data: None,
+        punch: 1,
+        status: 1,
+        created_at: log1.created_at(),
+    });
 
     let logs = vec![log1, log2];
     let events = context.build_log_events(&logs).unwrap();
@@ -898,18 +898,18 @@ async fn test_process_new_raw_log_duplicate() {
         Arc::new(MockSummaryRecalculator::new()),
     ));
 
-    let log = RawAttendanceLog::new(
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        Utc::now(),
-        LogSource::Manual,
-        None,
-        Some(serde_json::json!({})),
-        1,
-        1,
-        Utc::now(),
-    );
+    let log = RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: Uuid::new_v4(),
+        employment_id: Uuid::new_v4(),
+        punch_time: Utc::now(),
+        source: LogSource::Manual,
+        device_id: None,
+        raw_data: Some(serde_json::json!({})),
+        punch: 1,
+        status: 1,
+        created_at: Utc::now(),
+    });
 
     let result = service.process_new_raw_log(&log).await;
     assert!(result.is_ok());
@@ -1064,30 +1064,30 @@ async fn test_reprocess_daily_attendance_excludes_already_paired_logs() {
         });
 
     let mut mock_raw_repo = MockRawAttendanceLogRepository::new();
-    let log1 = RawAttendanceLog::new(
-        paired_log_id,
-        ws_id,
-        emp_id,
-        log_time,
-        LogSource::Manual,
-        None,
-        None,
-        1,
-        1,
-        log_time,
-    );
-    let log2 = RawAttendanceLog::new(
-        fresh_log_id,
-        ws_id,
-        emp_id,
-        log_time + chrono::Duration::minutes(5),
-        LogSource::Manual,
-        None,
-        None,
-        1,
-        1,
-        log_time,
-    );
+    let log1 = RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: paired_log_id,
+        workspace_id: ws_id,
+        employment_id: emp_id,
+        punch_time: log_time,
+        source: LogSource::Manual,
+        device_id: None,
+        raw_data: None,
+        punch: 1,
+        status: 1,
+        created_at: log_time,
+    });
+    let log2 = RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: fresh_log_id,
+        workspace_id: ws_id,
+        employment_id: emp_id,
+        punch_time: log_time + chrono::Duration::minutes(5),
+        source: LogSource::Manual,
+        device_id: None,
+        raw_data: None,
+        punch: 1,
+        status: 1,
+        created_at: log_time,
+    });
 
     mock_raw_repo
         .expect_get_employment_logs_in_time_range()
@@ -2083,62 +2083,54 @@ fn test_full_pipeline_4_punches_with_late_out() {
 
     // Create raw logs simulating 4 punches:
     // 07:13, 11:46 (two close together), 19:32 ICT
-    let log7_13 = RawAttendanceLog::new(
-        Uuid::new_v4(),
-        workspace_id,
-        employment_id,
-        tz.with_ymd_and_hms(2026, 6, 20, 7, 13, 0)
-            .unwrap()
-            .with_timezone(&Utc),
-        LogSource::Manual,
-        None,
-        None,
-        1,
-        1,
-        Utc::now(),
-    );
-    let log11_46_a = RawAttendanceLog::new(
-        Uuid::new_v4(),
-        workspace_id,
-        employment_id,
-        tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 0)
-            .unwrap()
-            .with_timezone(&Utc),
-        LogSource::Manual,
-        None,
-        None,
-        1,
-        1,
-        Utc::now(),
-    );
-    let log11_46_b = RawAttendanceLog::new(
-        Uuid::new_v4(),
-        workspace_id,
-        employment_id,
-        tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 2)
-            .unwrap()
-            .with_timezone(&Utc),
-        LogSource::Manual,
-        None,
-        None,
-        1,
-        1,
-        Utc::now(),
-    );
-    let log19_32 = RawAttendanceLog::new(
-        Uuid::new_v4(),
-        workspace_id,
-        employment_id,
-        tz.with_ymd_and_hms(2026, 6, 20, 19, 32, 0)
-            .unwrap()
-            .with_timezone(&Utc),
-        LogSource::Manual,
-        None,
-        None,
-        1,
-        1,
-        Utc::now(),
-    );
+    let log7_13 = RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: workspace_id,
+        employment_id: employment_id,
+        punch_time: tz.with_ymd_and_hms(2026, 6, 20, 7, 13, 0) .unwrap() .with_timezone(&Utc),
+        source: LogSource::Manual,
+        device_id: None,
+        raw_data: None,
+        punch: 1,
+        status: 1,
+        created_at: Utc::now(),
+    });
+    let log11_46_a = RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: workspace_id,
+        employment_id: employment_id,
+        punch_time: tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 0) .unwrap() .with_timezone(&Utc),
+        source: LogSource::Manual,
+        device_id: None,
+        raw_data: None,
+        punch: 1,
+        status: 1,
+        created_at: Utc::now(),
+    });
+    let log11_46_b = RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: workspace_id,
+        employment_id: employment_id,
+        punch_time: tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 2) .unwrap() .with_timezone(&Utc),
+        source: LogSource::Manual,
+        device_id: None,
+        raw_data: None,
+        punch: 1,
+        status: 1,
+        created_at: Utc::now(),
+    });
+    let log19_32 = RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: workspace_id,
+        employment_id: employment_id,
+        punch_time: tz.with_ymd_and_hms(2026, 6, 20, 19, 32, 0) .unwrap() .with_timezone(&Utc),
+        source: LogSource::Manual,
+        device_id: None,
+        raw_data: None,
+        punch: 1,
+        status: 1,
+        created_at: Utc::now(),
+    });
 
     let raw_logs = vec![log7_13, log11_46_a, log11_46_b, log19_32];
 
@@ -2526,62 +2518,54 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
         .returning(move |_, _, _, _| {
             use crate::models::RawAttendanceLog;
             let logs = vec![
-                RawAttendanceLog::new(
-                    Uuid::new_v4(),
-                    ws_id,
-                    emp_id,
-                    tz.with_ymd_and_hms(2026, 6, 20, 7, 13, 0)
-                        .unwrap()
-                        .with_timezone(&Utc),
-                    LogSource::Manual,
-                    None,
-                    None,
-                    1,
-                    1,
-                    Utc::now(),
-                ),
-                RawAttendanceLog::new(
-                    Uuid::new_v4(),
-                    ws_id,
-                    emp_id,
-                    tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 0)
-                        .unwrap()
-                        .with_timezone(&Utc),
-                    LogSource::Manual,
-                    None,
-                    None,
-                    1,
-                    1,
-                    Utc::now(),
-                ),
-                RawAttendanceLog::new(
-                    Uuid::new_v4(),
-                    ws_id,
-                    emp_id,
-                    tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 2)
-                        .unwrap()
-                        .with_timezone(&Utc),
-                    LogSource::Manual,
-                    None,
-                    None,
-                    1,
-                    1,
-                    Utc::now(),
-                ),
-                RawAttendanceLog::new(
-                    Uuid::new_v4(),
-                    ws_id,
-                    emp_id,
-                    tz.with_ymd_and_hms(2026, 6, 20, 19, 32, 0)
-                        .unwrap()
-                        .with_timezone(&Utc),
-                    LogSource::Manual,
-                    None,
-                    None,
-                    1,
-                    1,
-                    Utc::now(),
-                ),
+                RawAttendanceLog::new(NewRawAttendanceLogParams {
+                    id: Uuid::new_v4(),
+                    workspace_id: ws_id,
+                    employment_id: emp_id,
+                    punch_time: tz.with_ymd_and_hms(2026, 6, 20, 7, 13, 0) .unwrap() .with_timezone(&Utc),
+                    source: LogSource::Manual,
+                    device_id: None,
+                    raw_data: None,
+                    punch: 1,
+                    status: 1,
+                    created_at: Utc::now(),
+                }),
+                RawAttendanceLog::new(NewRawAttendanceLogParams {
+                    id: Uuid::new_v4(),
+                    workspace_id: ws_id,
+                    employment_id: emp_id,
+                    punch_time: tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 0) .unwrap() .with_timezone(&Utc),
+                    source: LogSource::Manual,
+                    device_id: None,
+                    raw_data: None,
+                    punch: 1,
+                    status: 1,
+                    created_at: Utc::now(),
+                }),
+                RawAttendanceLog::new(NewRawAttendanceLogParams {
+                    id: Uuid::new_v4(),
+                    workspace_id: ws_id,
+                    employment_id: emp_id,
+                    punch_time: tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 2) .unwrap() .with_timezone(&Utc),
+                    source: LogSource::Manual,
+                    device_id: None,
+                    raw_data: None,
+                    punch: 1,
+                    status: 1,
+                    created_at: Utc::now(),
+                }),
+                RawAttendanceLog::new(NewRawAttendanceLogParams {
+                    id: Uuid::new_v4(),
+                    workspace_id: ws_id,
+                    employment_id: emp_id,
+                    punch_time: tz.with_ymd_and_hms(2026, 6, 20, 19, 32, 0) .unwrap() .with_timezone(&Utc),
+                    source: LogSource::Manual,
+                    device_id: None,
+                    raw_data: None,
+                    punch: 1,
+                    status: 1,
+                    created_at: Utc::now(),
+                }),
             ];
             Box::pin(async move { Ok(logs) })
         });

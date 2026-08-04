@@ -12,7 +12,7 @@ use tokio::time::{interval, timeout};
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
-use crate::models::{LogSource, RawAttendanceLog};
+use crate::models::{LogSource, NewRawAttendanceLogParams, RawAttendanceLog};
 use crate::utils::id::new_id;
 
 use crate::repositories::{
@@ -397,18 +397,18 @@ async fn parse_log_entry(
     let (punch, status) =
         crate::services::attendance_utils::extract_punch_status(entry.raw_data.as_ref());
 
-    let raw_log = RawAttendanceLog::new(
-        new_id(),
-        entry.workspace_id,
-        employee.id(),
-        punch_time,
-        LogSource::Device,
-        entry.device_id.clone(),
-        entry.raw_data.clone(),
-        punch,
-        status,
-        Utc::now(),
-    );
+    let raw_log = RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: new_id(),
+        workspace_id: entry.workspace_id,
+        employment_id: employee.id(),
+        punch_time: punch_time,
+        source: LogSource::Device,
+        device_id: entry.device_id.clone(),
+        raw_data: entry.raw_data.clone(),
+        punch: punch,
+        status: status,
+        created_at: Utc::now(),
+    });
 
     Ok(ParsedLogEntry { raw_log })
 }

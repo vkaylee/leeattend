@@ -341,7 +341,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        use crate::models::{LogSource, RawAttendanceLog};
+        use crate::models::{LogSource, NewRawAttendanceLogParams, RawAttendanceLog};
         use crate::schema::raw_attendance_logs;
         use diesel::result::DatabaseErrorKind;
 
@@ -428,18 +428,18 @@ impl StagingLogRepository for DieselStagingLogRepository {
                     .and_then(|d| d["status"].as_i64())
                     .map_or(-1, |v| i32::try_from(v).unwrap_or(-1));
 
-                let raw_log = RawAttendanceLog::new(
-                    crate::utils::id::new_id(),
-                    workspace_id,
-                    employment_id,
-                    staged.punch_time,
-                    LogSource::Device,
-                    staged.device_id.clone(),
-                    staged.raw_data.clone(),
-                    punch,
-                    status,
-                    Utc::now(),
-                );
+                let raw_log = RawAttendanceLog::new(NewRawAttendanceLogParams {
+                    id: crate::utils::id::new_id(),
+                    workspace_id: workspace_id,
+                    employment_id: employment_id,
+                    punch_time: staged.punch_time,
+                    source: LogSource::Device,
+                    device_id: staged.device_id.clone(),
+                    raw_data: staged.raw_data.clone(),
+                    punch: punch,
+                    status: status,
+                    created_at: Utc::now(),
+                });
 
                 let raw_log_entity =
                     crate::models::diesel::attendance_log::RawAttendanceLogEntity {

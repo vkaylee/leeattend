@@ -7,6 +7,7 @@ use std::io::Write;
 use uuid::Uuid;
 
 use crate::models::attendance::RawAttendanceLog;
+use crate::models::attendance::NewRawAttendanceLogParams;
 use crate::models::enums::LogSource;
 use crate::schema::sql_types::LogSourceType;
 use crate::schema::{attendance_log_errors, attendance_staging_logs, raw_attendance_logs};
@@ -54,18 +55,18 @@ pub struct RawAttendanceLogEntity {
 
 impl From<RawAttendanceLogEntity> for RawAttendanceLog {
     fn from(val: RawAttendanceLogEntity) -> Self {
-        RawAttendanceLog::new(
-            val.id,
-            val.workspace_id,
-            val.employment_id,
-            val.punch_time,
-            val.source,
-            val.device_id,
-            val.raw_data,
-            val.punch,
-            val.status,
-            val.created_at.unwrap_or_else(Utc::now),
-        )
+        RawAttendanceLog::new(NewRawAttendanceLogParams {
+            id: val.id,
+            workspace_id: val.workspace_id,
+            employment_id: val.employment_id,
+            punch_time: val.punch_time,
+            source: val.source,
+            device_id: val.device_id,
+            raw_data: val.raw_data,
+            punch: val.punch,
+            status: val.status,
+            created_at: val.created_at.unwrap_or_else(Utc::now),
+        })
     }
 }
 

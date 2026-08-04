@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::utils::id::new_id;
 
 use crate::models::employment::EmploymentResolution;
-use crate::models::{LogSource, RawAttendanceLog};
+use crate::models::{LogSource, NewRawAttendanceLogParams, RawAttendanceLog};
 use crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository;
 use crate::repositories::employment_repository::EmploymentRepository;
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
@@ -390,18 +390,18 @@ impl AttendanceLogService {
         raw_data: Option<serde_json::Value>,
     ) -> Result<bool, crate::errors::AppError> {
         let (punch, status) = Self::extract_punch_status(raw_data.as_ref());
-        let raw_log = RawAttendanceLog::new(
-            new_id(),
-            workspace_id,
-            employment_id,
-            punch_time,
-            source,
-            device_id,
-            raw_data,
-            punch,
-            status,
-            Utc::now(),
-        );
+        let raw_log = RawAttendanceLog::new(NewRawAttendanceLogParams {
+            id: new_id(),
+            workspace_id: workspace_id,
+            employment_id: employment_id,
+            punch_time: punch_time,
+            source: source,
+            device_id: device_id,
+            raw_data: raw_data,
+            punch: punch,
+            status: status,
+            created_at: Utc::now(),
+        });
 
         match self
             .raw_log_repo
@@ -450,18 +450,18 @@ impl AttendanceLogService {
         let raw_data = raw_data.map(AgentLogEntry::sanitize_json_value);
         let (punch, status) = Self::extract_punch_status(raw_data.as_ref());
 
-        let raw_log = RawAttendanceLog::new(
-            new_id(),
-            workspace_id,
-            employment_id,
-            punch_time,
-            source,
-            device_id,
-            raw_data,
-            punch,
-            status,
-            Utc::now(),
-        );
+        let raw_log = RawAttendanceLog::new(NewRawAttendanceLogParams {
+            id: new_id(),
+            workspace_id: workspace_id,
+            employment_id: employment_id,
+            punch_time: punch_time,
+            source: source,
+            device_id: device_id,
+            raw_data: raw_data,
+            punch: punch,
+            status: status,
+            created_at: Utc::now(),
+        });
 
         match self
             .raw_log_repo
