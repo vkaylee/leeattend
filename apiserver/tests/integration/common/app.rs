@@ -11,6 +11,7 @@ use apiserver::create_app;
 use apiserver::services::tenant_provisioner::TenantProvisionerTrait;
 use apiserver::services::AttendanceLogService;
 use apiserver::AppState;
+use apiserver::state::CoreStateParams;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -778,7 +779,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             ),
         ),
         apiserver::CoreState::new(
-            apiserver::CoreStateParams {
+            CoreStateParams {
                 auth_service,
                 email_service: Arc::new(apiserver::services::EmailService::new(None, None)),
                 workspace_service,
@@ -1538,7 +1539,7 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
             ),
         ),
         apiserver::CoreState::new(
-            apiserver::CoreStateParams {
+            CoreStateParams {
                 auth_service,
                 email_service: Arc::new(apiserver::services::EmailService::new(None, None)),
                 workspace_service,
@@ -2351,7 +2352,7 @@ pub async fn setup_app_tower_internal_extended(
             ),
         ),
         apiserver::CoreState::new(
-            apiserver::CoreStateParams {
+            CoreStateParams {
                 auth_service,
                 email_service: Arc::new(apiserver::services::EmailService::new(None, None)),
                 workspace_service,

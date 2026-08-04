@@ -2,7 +2,7 @@
 
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::LogSource;
+use apiserver::models::{LogSource, NewRawAttendanceLogParams, NewTimeEntryParams};
 use chrono::{Duration, NaiveDate, NaiveTime, TimeZone, Utc};
 use chrono_tz::Tz;
 use uuid::Uuid;
@@ -83,32 +83,32 @@ async fn test_dst_spring_forward() {
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
     use apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
 
-    let raw_log_in = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_in_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let raw_log_in = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_in_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     raw_repo.create_raw_log(ws_id, &raw_log_in).await.unwrap();
 
-    let raw_log_out = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_out_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let raw_log_out = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_out_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     raw_repo.create_raw_log(ws_id, &raw_log_out).await.unwrap();
 
     // 3. Process Pairing
@@ -274,32 +274,32 @@ async fn test_dst_fall_back() {
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
     use apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
 
-    let raw_log_in = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_in_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let raw_log_in = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_in_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     raw_repo.create_raw_log(ws_id, &raw_log_in).await.unwrap();
 
-    let raw_log_out = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_out_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let raw_log_out = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_out_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     raw_repo.create_raw_log(ws_id, &raw_log_out).await.unwrap();
 
     // 3. Process Pairing
@@ -464,32 +464,32 @@ async fn test_dst_fall_back_repeated_hour() {
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
     use apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
 
-    let raw_log_in = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_in_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let raw_log_in = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_in_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     raw_repo.create_raw_log(ws_id, &raw_log_in).await.unwrap();
 
-    let raw_log_out = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_out_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let raw_log_out = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_out_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     raw_repo.create_raw_log(ws_id, &raw_log_out).await.unwrap();
 
     // 3. Process Pairing
@@ -650,32 +650,32 @@ async fn test_dst_spring_forward_day_shift() {
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
     use apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
 
-    let raw_log_in = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_in_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let raw_log_in = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_in_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     raw_repo.create_raw_log(ws_id, &raw_log_in).await.unwrap();
 
-    let raw_log_out = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_out_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let raw_log_out = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_out_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     raw_repo.create_raw_log(ws_id, &raw_log_out).await.unwrap();
 
     // 3. Process Pairing

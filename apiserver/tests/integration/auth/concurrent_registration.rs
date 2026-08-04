@@ -2,7 +2,7 @@
 
 use crate::common::app::spawn_app;
 use crate::common::db::TestDatabase;
-use apiserver::models::User;
+use apiserver::models::{NewUserParams, User};
 use apiserver::repositories::user_repository::UserRepository;
 use chrono::Utc;
 use std::sync::Arc;
@@ -29,17 +29,17 @@ async fn test_concurrent_registration_platform_admin_assignment() {
         let repo_clone = Arc::clone(&repo);
         let handle = tokio::spawn(async move {
             let password_hash = "fake_hash".to_string();
-            let user = User::new(
-                Uuid::new_v4(),
-                format!("concurrent_user_{i}@test.com"),
-                password_hash,
-                Utc::now(),
-                Some(format!("User {i}")),
-                None,
-                None,
-                None,
-                None,
-            );
+            let user = User::new(NewUserParams {
+                id: Uuid::new_v4(),
+                email: format!("concurrent_user_{i}@test.com"),
+                password_hash: password_hash,
+                created_at: Utc::now(),
+                full_name: Some(format!("User {i}")),
+                avatar_url: None,
+                bio: None,
+                preferred_language: None,
+                avatar_file_id: None,
+            });
 
             // Call the atomic transaction method
             repo_clone.create_user_with_admin_check(&user).await

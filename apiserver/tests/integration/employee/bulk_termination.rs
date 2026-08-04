@@ -2,6 +2,7 @@ use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::AppState;
+use apiserver::models::NewLeaveBalanceParams;
 use axum::http::StatusCode;
 use calamine::Reader;
 use rust_xlsxwriter::Workbook;
@@ -184,17 +185,17 @@ async fn test_bulk_termination_flow() {
     };
 
     // Insert leave balance of 12 days for EMP001 for 2026
-    let initial_balance = apiserver::models::LeaveBalance::new(
-        Uuid::new_v4(),
-        emp1_employment.id(),
-        leave_type_id,
-        2026,
-        12,
-        rust_decimal::Decimal::ZERO,
-        0,
-        chrono::Utc::now(),
-        chrono::Utc::now(),
-    );
+    let initial_balance = apiserver::models::LeaveBalance::new(NewLeaveBalanceParams {
+        id: Uuid::new_v4(),
+        employment_id: emp1_employment.id(),
+        leave_type_id: leave_type_id,
+        year: 2026,
+        entitlement: 12,
+        accrued_amount: rust_decimal::Decimal::ZERO,
+        carried_over: 0,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    });
     state
         .leaves()
         .balance_repo()

@@ -3,7 +3,9 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::{LogSource, NewTimeEntryParams, RawAttendanceLog, TimeEntry};
+use apiserver::models::{
+    LogSource, NewRawAttendanceLogParams, NewTimeEntryParams, RawAttendanceLog, TimeEntry,
+};
 use apiserver::AppState;
 use axum::http::StatusCode;
 use chrono::Utc;
@@ -78,18 +80,18 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
         diesel::sql_types::Uuid, ws_id
     );
 
-    let raw_log = RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        emp_employment_id,
-        Utc::now(),
-        LogSource::Device,
-        Some(device_id.to_string()),
-        None,
-        0,
-        0,
-        Utc::now(),
-    );
+    let raw_log = RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: emp_employment_id,
+        punch_time: Utc::now(),
+        source: LogSource::Device,
+        device_id: Some(device_id.to_string()),
+        raw_data: None,
+        punch: 0,
+        status: 0,
+        created_at: Utc::now(),
+    });
     use apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
     raw_log_repo.create_raw_log(ws_id, &raw_log).await?;
 

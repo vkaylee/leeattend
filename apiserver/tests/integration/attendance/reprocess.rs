@@ -4,7 +4,7 @@ use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use crate::common::helpers;
-use apiserver::models::{LogSource, RawAttendanceLog};
+use apiserver::models::{LogSource, NewRawAttendanceLogParams, RawAttendanceLog};
 use apiserver::AppState;
 use axum::http::{Request, StatusCode};
 use chrono::{Datelike, NaiveDate, NaiveTime, TimeZone, Timelike, Utc};
@@ -38,18 +38,18 @@ async fn test_force_reprocess_attendance_api() {
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let logs = vec![start_time, end_time];
     for punch_time in logs {
-        let raw_log = RawAttendanceLog::new(
-            Uuid::new_v4(),
-            ws_id,
-            emp_employment_id,
-            punch_time,
-            LogSource::Manual,
-            None,
-            None,
-            -1,
-            -1,
-            Utc::now(),
-        );
+        let raw_log = RawAttendanceLog::new(NewRawAttendanceLogParams {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            employment_id: emp_employment_id,
+            punch_time: punch_time,
+            source: LogSource::Manual,
+            device_id: None,
+            raw_data: None,
+            punch: -1,
+            status: -1,
+            created_at: Utc::now(),
+        });
         helpers::create_raw_log(&diesel_pools, &raw_log)
             .await
             .unwrap();
@@ -187,18 +187,18 @@ async fn test_force_reprocess_all_attendance_api() {
     ] {
         let logs = vec![start_time, end_time];
         for punch_time in logs {
-            let raw_log = RawAttendanceLog::new(
-                Uuid::new_v4(),
-                ws_id,
-                emp_employment_id,
-                punch_time,
-                LogSource::Manual,
-                None,
-                None,
-                -1,
-                -1,
-                Utc::now(),
-            );
+            let raw_log = RawAttendanceLog::new(NewRawAttendanceLogParams {
+                id: Uuid::new_v4(),
+                workspace_id: ws_id,
+                employment_id: emp_employment_id,
+                punch_time: punch_time,
+                source: LogSource::Manual,
+                device_id: None,
+                raw_data: None,
+                punch: -1,
+                status: -1,
+                created_at: Utc::now(),
+            });
             helpers::create_raw_log(&diesel_pools, &raw_log)
                 .await
                 .unwrap();
@@ -390,18 +390,18 @@ async fn test_force_reprocess_attendance_no_location_fallback_api() {
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let logs = vec![start_time, end_time];
     for punch_time in logs {
-        let raw_log = RawAttendanceLog::new(
-            Uuid::new_v4(),
-            ws_id,
-            emp_employment_id,
-            punch_time,
-            LogSource::Manual,
-            None,
-            None,
-            -1,
-            -1,
-            Utc::now(),
-        );
+        let raw_log = RawAttendanceLog::new(NewRawAttendanceLogParams {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            employment_id: emp_employment_id,
+            punch_time: punch_time,
+            source: LogSource::Manual,
+            device_id: None,
+            raw_data: None,
+            punch: -1,
+            status: -1,
+            created_at: Utc::now(),
+        });
         helpers::create_raw_log(&diesel_pools, &raw_log)
             .await
             .unwrap();
@@ -624,18 +624,18 @@ async fn test_concurrent_reprocess_does_not_double_insert_sessions() {
     for (h, m) in local_punches {
         let local_dt = base_date.and_hms_opt(h, m, 0).unwrap();
         let punch_utc = local_dt - chrono::Duration::hours(7); // UTC+7 -> UTC
-        let raw_log = RawAttendanceLog::new(
-            Uuid::new_v4(),
-            ws_id,
-            emp_employment_id,
-            punch_utc.and_utc(),
-            LogSource::Manual,
-            None,
-            None,
-            -1,
-            -1,
-            Utc::now(),
-        );
+        let raw_log = RawAttendanceLog::new(NewRawAttendanceLogParams {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            employment_id: emp_employment_id,
+            punch_time: punch_utc.and_utc(),
+            source: LogSource::Manual,
+            device_id: None,
+            raw_data: None,
+            punch: -1,
+            status: -1,
+            created_at: Utc::now(),
+        });
         helpers::create_raw_log(&diesel_pools, &raw_log)
             .await
             .unwrap();

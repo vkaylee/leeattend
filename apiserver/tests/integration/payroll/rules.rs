@@ -9,6 +9,7 @@ use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::repositories::{PayrollRepository, PayrollRuleRepository};
+use apiserver::repositories::payroll_rule_repository::CreatePayrollRuleTierParams;
 use apiserver::services::payroll_rule_evaluator::PayrollRuleEvaluator;
 use apiserver::AppState;
 use chrono::NaiveDate;
@@ -262,7 +263,15 @@ async fn test_payroll_rule_repository_direct() {
     let fixed_amt = Decimal::from_str("50.0").unwrap();
 
     let tier = repo
-        .create_tier(ws_id, def.id, 1, min_amt, Some(max_amt), rate, fixed_amt)
+        .create_tier(CreatePayrollRuleTierParams {
+            workspace_id: ws_id,
+            rule_definition_id: def.id,
+            tier_order: 1,
+            min_amount: min_amt,
+            max_amount: Some(max_amt),
+            rate: rate,
+            fixed_amount: fixed_amt,
+        })
         .await
         .unwrap();
 

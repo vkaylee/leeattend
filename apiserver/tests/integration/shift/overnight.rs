@@ -3,7 +3,7 @@
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use crate::common::test_service_helpers::build_pairing_service;
-use apiserver::models::LogSource;
+use apiserver::models::{LogSource, NewRawAttendanceLogParams, NewTimeEntryParams};
 use chrono::{Duration, NaiveDate, NaiveTime, TimeZone, Utc};
 use chrono_tz::Tz;
 use uuid::Uuid;
@@ -80,32 +80,32 @@ async fn test_overnight_shift_pairing() {
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
     use apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
 
-    let raw_log_in = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_in_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let raw_log_in = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_in_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     raw_repo.create_raw_log(ws_id, &raw_log_in).await.unwrap();
 
-    let raw_log_out = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_out_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let raw_log_out = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_out_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     raw_repo.create_raw_log(ws_id, &raw_log_out).await.unwrap();
 
     // 3. Process Pairing
@@ -235,46 +235,46 @@ async fn test_overnight_shift_multiple_checkout_punches_subminute_deduplication(
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
     use apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
 
-    let log_in = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_in_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let log_in = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_in_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     raw_repo.create_raw_log(ws_id, &log_in).await.unwrap();
 
-    let log_out1 = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_out1_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let log_out1 = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_out1_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     raw_repo.create_raw_log(ws_id, &log_out1).await.unwrap();
 
-    let log_out2 = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_out2_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let log_out2 = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_out2_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     raw_repo.create_raw_log(ws_id, &log_out2).await.unwrap();
 
     // 3. Process Pairing for Day 1
@@ -392,18 +392,18 @@ async fn test_overnight_shift_multiple_checkout_punches_ingested_sequentially() 
         .unwrap()
         .with_timezone(&Utc);
 
-    let log_in = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_in_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let log_in = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_in_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     let raw_repo =
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
     use apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
@@ -423,18 +423,18 @@ async fn test_overnight_shift_multiple_checkout_punches_ingested_sequentially() 
         .unwrap()
         .with_timezone(&Utc);
 
-    let log_out1 = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_out1_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let log_out1 = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_out1_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     raw_repo.create_raw_log(ws_id, &log_out1).await.unwrap();
 
     // Process second log (first punch-out)
@@ -451,18 +451,18 @@ async fn test_overnight_shift_multiple_checkout_punches_ingested_sequentially() 
         .unwrap()
         .with_timezone(&Utc);
 
-    let log_out2 = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_out2_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let log_out2 = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_out2_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     raw_repo.create_raw_log(ws_id, &log_out2).await.unwrap();
 
     // Process third log (second punch-out)
@@ -572,30 +572,30 @@ async fn test_overnight_recalculate_day1_reclaims_punches() {
         .unwrap()
         .with_timezone(&Utc);
 
-    let log_in = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_in_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
-    let log_out = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_out_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let log_in = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_in_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
+    let log_out = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_out_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     let raw_repo =
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
     use apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
@@ -607,24 +607,24 @@ async fn test_overnight_recalculate_day1_reclaims_punches() {
     let day2_date = shift_date + Duration::days(1);
 
     // We construct a fake time entry for Day 2 that claims log_out
-    let fake_day2_entry = apiserver::models::TimeEntry::new(
-        Uuid::new_v4(),
-        employment_id,
-        ws_id,
-        None,
-        None,
-        punch_out_utc,
-        None,
-        None,
-        false,
-        apiserver::services::pairing::types::EntryType::Work,
-        None,
-        Some(serde_json::json!({
+    let fake_day2_entry = apiserver::models::TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: employment_id,
+        workspace_id: ws_id,
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: punch_out_utc,
+        punch_out_time: None,
+        duration_minutes: None,
+        is_break_overtime: false,
+        entry_type: apiserver::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: Some(serde_json::json!({
             "log_ids": vec![log_out.id().to_string()]
         })),
-        Utc::now(),
-        Utc::now(),
-    );
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    });
 
     // Save the fake Day 2 entry directly to database
     use apiserver::repositories::time_entry_repository::TimeEntryRepository;
@@ -748,30 +748,30 @@ async fn test_overnight_recalculate_range_reclaims_punches() {
         .unwrap()
         .with_timezone(&Utc);
 
-    let log_in = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_in_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
-    let log_out = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_out_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let log_in = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_in_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
+    let log_out = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_out_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     let raw_repo =
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
     use apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
@@ -783,24 +783,24 @@ async fn test_overnight_recalculate_range_reclaims_punches() {
     let day2_date = shift_date + Duration::days(1);
 
     // We construct a fake time entry for Day 2 that claims log_out
-    let fake_day2_entry = apiserver::models::TimeEntry::new(
-        Uuid::new_v4(),
-        employment_id,
-        ws_id,
-        None,
-        None,
-        punch_out_utc,
-        None,
-        None,
-        false,
-        apiserver::services::pairing::types::EntryType::Work,
-        None,
-        Some(serde_json::json!({
+    let fake_day2_entry = apiserver::models::TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: employment_id,
+        workspace_id: ws_id,
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: punch_out_utc,
+        punch_out_time: None,
+        duration_minutes: None,
+        is_break_overtime: false,
+        entry_type: apiserver::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: Some(serde_json::json!({
             "log_ids": vec![log_out.id().to_string()]
         })),
-        Utc::now(),
-        Utc::now(),
-    );
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    });
 
     // Save the fake Day 2 entry directly to database
     use apiserver::repositories::time_entry_repository::TimeEntryRepository;
@@ -918,30 +918,30 @@ async fn test_overnight_recalculate_day1_only_automatically_heals_day2() {
         .unwrap()
         .with_timezone(&Utc);
 
-    let log_in = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_in_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
-    let log_out = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_out_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let log_in = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_in_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
+    let log_out = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_out_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
     let raw_repo =
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
     use apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
@@ -951,24 +951,24 @@ async fn test_overnight_recalculate_day1_only_automatically_heals_day2() {
     // Manually simulate the bug state first:
     // Day 2 has claimed 06:25 as a punch-in.
     let day2_date = shift_date + Duration::days(1);
-    let fake_day2_entry = apiserver::models::TimeEntry::new(
-        Uuid::new_v4(),
-        employment_id,
-        ws_id,
-        None,
-        None,
-        punch_out_utc,
-        None,
-        None,
-        false,
-        apiserver::services::pairing::types::EntryType::Work,
-        None,
-        Some(serde_json::json!({
+    let fake_day2_entry = apiserver::models::TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: employment_id,
+        workspace_id: ws_id,
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: punch_out_utc,
+        punch_out_time: None,
+        duration_minutes: None,
+        is_break_overtime: false,
+        entry_type: apiserver::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: Some(serde_json::json!({
             "log_ids": vec![log_out.id().to_string()]
         })),
-        Utc::now(),
-        Utc::now(),
-    );
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    });
 
     // Save the fake Day 2 entry directly to database
     use apiserver::repositories::time_entry_repository::TimeEntryRepository;
@@ -1118,54 +1118,54 @@ async fn test_overnight_recalculate_day1_next_day_has_shift_with_own_punches() {
         .unwrap()
         .with_timezone(&Utc);
 
-    let log_in_1 = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_in_1_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
-    let log_out_1 = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_out_1_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
-    let log_in_2 = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_in_2_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
-    let log_out_2 = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_out_2_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let log_in_1 = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_in_1_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
+    let log_out_1 = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_out_1_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
+    let log_in_2 = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_in_2_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
+    let log_out_2 = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_out_2_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
 
     let raw_repo =
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
@@ -1177,24 +1177,24 @@ async fn test_overnight_recalculate_day1_next_day_has_shift_with_own_punches() {
 
     // Manually simulate the bug state first:
     // Day 2 has claimed 06:25 as a punch-in and 17:05 as punch-out (stolen punch).
-    let fake_day2_entry = apiserver::models::TimeEntry::new(
-        Uuid::new_v4(),
-        employment_id,
-        ws_id,
-        Some(shift_id_2),
-        None,
-        punch_out_1_utc,
-        Some(punch_out_2_utc),
-        None,
-        false,
-        apiserver::services::pairing::types::EntryType::Work,
-        None,
-        Some(serde_json::json!({
+    let fake_day2_entry = apiserver::models::TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: employment_id,
+        workspace_id: ws_id,
+        shift_id: Some(shift_id_2),
+        segment_id: None,
+        punch_in_time: punch_out_1_utc,
+        punch_out_time: Some(punch_out_2_utc),
+        duration_minutes: None,
+        is_break_overtime: false,
+        entry_type: apiserver::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: Some(serde_json::json!({
             "log_ids": vec![log_out_1.id().to_string(), log_out_2.id().to_string()]
         })),
-        Utc::now(),
-        Utc::now(),
-    );
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    });
 
     // Save the fake Day 2 entry directly to database
     use apiserver::repositories::time_entry_repository::TimeEntryRepository;
@@ -1335,54 +1335,54 @@ async fn test_consecutive_overnight_shifts_propagation() {
         .unwrap()
         .with_timezone(&Utc);
 
-    let log_in_1 = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_in_1_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
-    let log_out_1 = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_out_1_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
-    let log_in_2 = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_in_2_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
-    let log_out_2 = apiserver::models::RawAttendanceLog::new(
-        Uuid::new_v4(),
-        ws_id,
-        employment_id,
-        punch_out_2_utc,
-        LogSource::Device,
-        None,
-        None,
-        -1,
-        -1,
-        Utc::now(),
-    );
+    let log_in_1 = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_in_1_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
+    let log_out_1 = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_out_1_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
+    let log_in_2 = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_in_2_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
+    let log_out_2 = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employment_id: employment_id,
+        punch_time: punch_out_2_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    });
 
     let raw_repo =
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
@@ -1394,44 +1394,44 @@ async fn test_consecutive_overnight_shifts_propagation() {
 
     // Simulating bug state:
     // Day 2 has a fake entry claiming log_out_1 (06:25) as punch_in and log_in_2 (18:05) as punch_out.
-    let fake_day2_entry = apiserver::models::TimeEntry::new(
-        Uuid::new_v4(),
-        employment_id,
-        ws_id,
-        Some(shift_id),
-        None,
-        punch_out_1_utc,
-        Some(punch_in_2_utc),
-        None,
-        false,
-        apiserver::services::pairing::types::EntryType::Work,
-        None,
-        Some(serde_json::json!({
+    let fake_day2_entry = apiserver::models::TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: employment_id,
+        workspace_id: ws_id,
+        shift_id: Some(shift_id),
+        segment_id: None,
+        punch_in_time: punch_out_1_utc,
+        punch_out_time: Some(punch_in_2_utc),
+        duration_minutes: None,
+        is_break_overtime: false,
+        entry_type: apiserver::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: Some(serde_json::json!({
             "log_ids": vec![log_out_1.id().to_string(), log_in_2.id().to_string()]
         })),
-        Utc::now(),
-        Utc::now(),
-    );
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    });
 
     // Day 3 has a fake entry claiming log_out_2 (06:10) as punch_in.
-    let fake_day3_entry = apiserver::models::TimeEntry::new(
-        Uuid::new_v4(),
-        employment_id,
-        ws_id,
-        None,
-        None,
-        punch_out_2_utc,
-        None,
-        None,
-        false,
-        apiserver::services::pairing::types::EntryType::Work,
-        None,
-        Some(serde_json::json!({
+    let fake_day3_entry = apiserver::models::TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: employment_id,
+        workspace_id: ws_id,
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: punch_out_2_utc,
+        punch_out_time: None,
+        duration_minutes: None,
+        is_break_overtime: false,
+        entry_type: apiserver::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: Some(serde_json::json!({
             "log_ids": vec![log_out_2.id().to_string()]
         })),
-        Utc::now(),
-        Utc::now(),
-    );
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    });
 
     use apiserver::repositories::time_entry_repository::TimeEntryRepository;
     let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);

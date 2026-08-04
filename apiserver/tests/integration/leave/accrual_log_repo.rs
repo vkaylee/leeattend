@@ -1,7 +1,9 @@
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::repositories::diesel_leave_accrual_log_repository::DieselLeaveAccrualLogRepository;
-use apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository;
+use apiserver::repositories::leave_accrual_log_repository::{
+    LeaveAccrualLogRepository, PersistAccrualParams,
+};
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use uuid::Uuid;
@@ -165,16 +167,16 @@ async fn test_leave_accrual_log_repo_crud() {
 
     // First time insert
     let persisted = repo
-        .persist_accrual(
-            &auth_token,
-            ws_id,
-            employment_id,
-            assignment_id,
-            leave_type_id,
-            persist_date,
-            3.5, // 3.5 days
-            false,
-        )
+        .persist_accrual(PersistAccrualParams {
+            auth_token: auth_token.clone(),
+            workspace_id: ws_id,
+            employment_id: employment_id,
+            assignment_id: assignment_id,
+            leave_type_id: leave_type_id,
+            accrual_date: persist_date,
+            amount: 3.5, // 3.5 days
+            force: false,
+        })
         .await
         .unwrap();
 
@@ -185,32 +187,32 @@ async fn test_leave_accrual_log_repo_crud() {
 
     // Call again with same amount and force=false should return None
     let persisted2 = repo
-        .persist_accrual(
-            &auth_token,
-            ws_id,
-            employment_id,
-            assignment_id,
-            leave_type_id,
-            persist_date,
-            3.5,
-            false,
-        )
+        .persist_accrual(PersistAccrualParams {
+            auth_token: auth_token.clone(),
+            workspace_id: ws_id,
+            employment_id: employment_id,
+            assignment_id: assignment_id,
+            leave_type_id: leave_type_id,
+            accrual_date: persist_date,
+            amount: 3.5,
+            force: false,
+        })
         .await
         .unwrap();
     assert!(persisted2.is_none());
 
     // Call again with different amount and force=true should return Some and update
     let persisted3 = repo
-        .persist_accrual(
-            &auth_token,
-            ws_id,
-            employment_id,
-            assignment_id,
-            leave_type_id,
-            persist_date,
-            5.0,
-            true,
-        )
+        .persist_accrual(PersistAccrualParams {
+            auth_token: auth_token.clone(),
+            workspace_id: ws_id,
+            employment_id: employment_id,
+            assignment_id: assignment_id,
+            leave_type_id: leave_type_id,
+            accrual_date: persist_date,
+            amount: 5.0,
+            force: true,
+        })
         .await
         .unwrap();
     assert!(persisted3.is_some());
