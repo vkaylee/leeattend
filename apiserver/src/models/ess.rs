@@ -337,7 +337,6 @@ pub struct EmployeeDocument {
 }
 
 impl EmployeeDocument {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(params: NewEmployeeDocumentParams) -> Self {
         Self {
             id: params.id,
