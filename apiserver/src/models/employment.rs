@@ -3,6 +3,25 @@ use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+pub struct NewEmploymentParams {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub employee_id: Uuid,
+    pub employer_id: Uuid,
+    pub primary_location_id: Option<Uuid>,
+    pub department_id: Option<Uuid>,
+    pub status: String,
+    pub start_date: NaiveDate,
+    pub end_date: Option<NaiveDate>,
+    pub job_title: Option<String>,
+    pub employment_type: String,
+    pub manager_employment_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub termination_reason: Option<String>,
+    pub notes: Option<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct Employment {
     id: Uuid,
@@ -28,42 +47,24 @@ pub struct Employment {
 }
 
 impl Employment {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: Uuid,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-        employer_id: Uuid,
-        primary_location_id: Option<Uuid>,
-        department_id: Option<Uuid>,
-        status: String,
-        start_date: NaiveDate,
-        end_date: Option<NaiveDate>,
-        job_title: Option<String>,
-        employment_type: String,
-        manager_employment_id: Option<Uuid>,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-        termination_reason: Option<String>,
-        notes: Option<String>,
-    ) -> Self {
+    pub fn new(params: NewEmploymentParams) -> Self {
         Self {
-            id,
-            workspace_id,
-            employee_id,
-            employer_id,
-            primary_location_id,
-            department_id,
-            status,
-            start_date,
-            end_date,
-            job_title,
-            employment_type,
-            manager_employment_id,
-            created_at,
-            updated_at,
-            termination_reason,
-            notes,
+            id: params.id,
+            workspace_id: params.workspace_id,
+            employee_id: params.employee_id,
+            employer_id: params.employer_id,
+            primary_location_id: params.primary_location_id,
+            department_id: params.department_id,
+            status: params.status,
+            start_date: params.start_date,
+            end_date: params.end_date,
+            job_title: params.job_title,
+            employment_type: params.employment_type,
+            manager_employment_id: params.manager_employment_id,
+            created_at: params.created_at,
+            updated_at: params.updated_at,
+            termination_reason: params.termination_reason,
+            notes: params.notes,
             custom_fields: None,
         }
     }

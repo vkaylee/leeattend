@@ -59,24 +59,24 @@ async fn test_process_segment_attendance_no_shift_fallback() {
         .tz(chrono_tz::UTC)
         .daily_entries_map(daily_entries_map)
         .emp_id_number("EMP001".to_string())
-        .active_employments(vec![crate::models::employment::Employment::new(
-            Uuid::new_v4(),
-            ws_id,
-            employee_id,
-            Uuid::new_v4(),
-            None,
-            None,
-            "active".to_string(),
-            Utc::now().date_naive() - chrono::Duration::days(10),
-            None,
-            None,
-            "full_time".to_string(),
-            None,
-            Utc::now(),
-            Utc::now(),
-            None,
-            None,
-        )])
+        .active_employments(vec![crate::models::employment::Employment::new(NewEmploymentParams {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            employee_id: employee_id,
+            employer_id: Uuid::new_v4(),
+            primary_location_id: None,
+            department_id: None,
+            status: "active".to_string(),
+            start_date: Utc::now().date_naive() - chrono::Duration::days(10),
+            end_date: None,
+            job_title: None,
+            employment_type: "full_time".to_string(),
+            manager_employment_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            termination_reason: None,
+            notes: None,
+        })])
         .primary_location_id(Uuid::new_v4())
         .build();
 
@@ -176,24 +176,24 @@ async fn test_process_segment_attendance_with_shift_matching() {
 
     let employment_id = Uuid::new_v4();
     let employer_id = Uuid::new_v4();
-    let employment = crate::models::employment::Employment::new(
-        employment_id,
-        ws_id,
-        employee_id,
-        employer_id,
-        None,
-        None,
-        "active".to_string(),
-        date - chrono::Duration::days(10),
-        None,
-        None,
-        "full_time".to_string(),
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-        None,
-    );
+    let employment = crate::models::employment::Employment::new(NewEmploymentParams {
+        id: employment_id,
+        workspace_id: ws_id,
+        employee_id: employee_id,
+        employer_id: employer_id,
+        primary_location_id: None,
+        department_id: None,
+        status: "active".to_string(),
+        start_date: date - chrono::Duration::days(10),
+        end_date: None,
+        job_title: None,
+        employment_type: "full_time".to_string(),
+        manager_employment_id: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        termination_reason: None,
+        notes: None,
+    });
 
     let mut payroll_roster_map = HashMap::new();
     payroll_roster_map.insert((employment_id, date), Some(shift_id));
@@ -282,24 +282,24 @@ async fn test_process_segment_attendance_paid_holiday_no_work() {
         .tz(chrono_tz::UTC)
         .holidays_map(Arc::new(holidays_map))
         .emp_id_number("EMP001".to_string())
-        .active_employments(vec![crate::models::employment::Employment::new(
-            Uuid::new_v4(),
-            ws_id,
-            employee_id,
-            Uuid::new_v4(),
-            None,
-            None,
-            "active".to_string(),
-            date - chrono::Duration::days(10),
-            None,
-            None,
-            "full_time".to_string(),
-            None,
-            Utc::now(),
-            Utc::now(),
-            None,
-            None,
-        )])
+        .active_employments(vec![crate::models::employment::Employment::new(NewEmploymentParams {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            employee_id: employee_id,
+            employer_id: Uuid::new_v4(),
+            primary_location_id: None,
+            department_id: None,
+            status: "active".to_string(),
+            start_date: date - chrono::Duration::days(10),
+            end_date: None,
+            job_title: None,
+            employment_type: "full_time".to_string(),
+            manager_employment_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            termination_reason: None,
+            notes: None,
+        })])
         .primary_location_id(Uuid::new_v4())
         .build();
 
@@ -397,24 +397,24 @@ async fn test_process_segment_attendance_holiday_work_compensation() {
 
     let employment_id = Uuid::new_v4();
     let employer_id = Uuid::new_v4();
-    let employment = crate::models::employment::Employment::new(
-        employment_id,
-        ws_id,
-        employee_id,
-        employer_id,
-        None,
-        None,
-        "active".to_string(),
-        date - chrono::Duration::days(10),
-        None,
-        None,
-        "full_time".to_string(),
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-        None,
-    );
+    let employment = crate::models::employment::Employment::new(NewEmploymentParams {
+        id: employment_id,
+        workspace_id: ws_id,
+        employee_id: employee_id,
+        employer_id: employer_id,
+        primary_location_id: None,
+        department_id: None,
+        status: "active".to_string(),
+        start_date: date - chrono::Duration::days(10),
+        end_date: None,
+        job_title: None,
+        employment_type: "full_time".to_string(),
+        manager_employment_id: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        termination_reason: None,
+        notes: None,
+    });
 
     let mut payroll_roster_map = HashMap::new();
     payroll_roster_map.insert((employment_id, date), Some(shift_id));
@@ -562,24 +562,24 @@ async fn test_process_segment_attendance_with_overtime_pay() {
 
     let employment_id = Uuid::new_v4();
     let employer_id = Uuid::new_v4();
-    let employment = crate::models::employment::Employment::new(
-        employment_id,
-        ws_id,
-        employee_id,
-        employer_id,
-        None,
-        None,
-        "active".to_string(),
-        date - chrono::Duration::days(10),
-        None,
-        None,
-        "full_time".to_string(),
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-        None,
-    );
+    let employment = crate::models::employment::Employment::new(NewEmploymentParams {
+        id: employment_id,
+        workspace_id: ws_id,
+        employee_id: employee_id,
+        employer_id: employer_id,
+        primary_location_id: None,
+        department_id: None,
+        status: "active".to_string(),
+        start_date: date - chrono::Duration::days(10),
+        end_date: None,
+        job_title: None,
+        employment_type: "full_time".to_string(),
+        manager_employment_id: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        termination_reason: None,
+        notes: None,
+    });
 
     let mut payroll_roster_map = HashMap::new();
     payroll_roster_map.insert((employment_id, date), Some(shift_id));
@@ -746,24 +746,24 @@ async fn test_process_segment_attendance_with_shift_break_is_overtime(
 
     let employment_id = Uuid::new_v4();
     let employer_id = Uuid::new_v4();
-    let employment = crate::models::employment::Employment::new(
-        employment_id,
-        ws_id,
-        employee_id,
-        employer_id,
-        None,
-        None,
-        "active".to_string(),
-        date - chrono::Duration::days(10),
-        None,
-        None,
-        "full_time".to_string(),
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-        None,
-    );
+    let employment = crate::models::employment::Employment::new(NewEmploymentParams {
+        id: employment_id,
+        workspace_id: ws_id,
+        employee_id: employee_id,
+        employer_id: employer_id,
+        primary_location_id: None,
+        department_id: None,
+        status: "active".to_string(),
+        start_date: date - chrono::Duration::days(10),
+        end_date: None,
+        job_title: None,
+        employment_type: "full_time".to_string(),
+        manager_employment_id: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        termination_reason: None,
+        notes: None,
+    });
 
     let mut payroll_roster_map = HashMap::new();
     payroll_roster_map.insert((employment_id, date), Some(shift_id));
@@ -922,24 +922,24 @@ async fn test_resolve_day_context_inactive_employment_falls_back_to_first() {
     // Employment exists but is "terminated" and ended before current_date —
     // the active+date filter rejects it, but the or_else(|| .first()) fallback
     // still picks it up as a last-resort employment context.
-    let employment = crate::models::employment::Employment::new(
-        employment_id,
-        ws_id,
-        employee_id,
-        employer_id,
-        None,
-        None,
-        "terminated".to_string(),
-        date - chrono::Duration::days(30),
-        Some(date - chrono::Duration::days(5)),
-        None,
-        "full_time".to_string(),
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-        None,
-    );
+    let employment = crate::models::employment::Employment::new(NewEmploymentParams {
+        id: employment_id,
+        workspace_id: ws_id,
+        employee_id: employee_id,
+        employer_id: employer_id,
+        primary_location_id: None,
+        department_id: None,
+        status: "terminated".to_string(),
+        start_date: date - chrono::Duration::days(30),
+        end_date: Some(date - chrono::Duration::days(5)),
+        job_title: None,
+        employment_type: "full_time".to_string(),
+        manager_employment_id: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        termination_reason: None,
+        notes: None,
+    });
 
     let attendance_rules = AttendanceRules {
         work_unit_minutes: 30,
@@ -1016,24 +1016,24 @@ async fn test_resolve_day_context_with_active_employment_still_works() {
     let mut daily_entries_map = HashMap::new();
     daily_entries_map.insert(date, vec![entry]);
 
-    let employment = crate::models::employment::Employment::new(
-        employment_id,
-        ws_id,
-        employee_id,
-        employer_id,
-        None,
-        None,
-        "active".to_string(),
-        date - chrono::Duration::days(10),
-        None, // no end date — still active
-        None,
-        "full_time".to_string(),
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-        None,
-    );
+    let employment = crate::models::employment::Employment::new(NewEmploymentParams {
+        id: employment_id,
+        workspace_id: ws_id,
+        employee_id: employee_id,
+        employer_id: employer_id,
+        primary_location_id: None,
+        department_id: None,
+        status: "active".to_string(),
+        start_date: date - chrono::Duration::days(10),
+        end_date: None,
+        job_title: // no end date — still active None,
+        employment_type: "full_time".to_string(),
+        manager_employment_id: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        termination_reason: None,
+        notes: None,
+    });
 
     let attendance_rules = AttendanceRules {
         work_unit_minutes: 30,

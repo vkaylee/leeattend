@@ -636,24 +636,24 @@ mod tests {
     }
 
     fn make_employment(ws: Uuid, employee_id: Uuid) -> Employment {
-        Employment::new(
-            Uuid::new_v4(),
-            ws,
+        Employment::new(NewEmploymentParams {
+            id: Uuid::new_v4(),
+            workspace_id: ws,
             employee_id,
-            Uuid::new_v4(), // employer_id
-            None,           // primary_location_id
-            None,           // department_id
-            "active".into(),
-            NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-            None, // end_date
-            Some("Developer".into()),
-            "full_time".into(),
-            None, // manager_employment_id
-            Utc::now(),
-            Utc::now(),
-            None, // termination_reason
-            None, // notes
-        )
+            employer_id: Uuid::new_v4(),
+            primary_location_id: None,
+            department_id: None,
+            status: "active".into(),
+            start_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            end_date: None,
+            job_title: Some("Developer".into()),
+            employment_type: "full_time".into(),
+            manager_employment_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            termination_reason: None,
+            notes: None,
+        })
     }
 
     fn make_checklist(ws: Uuid, employment_id: Uuid, template_id: Uuid) -> LifecycleChecklist {

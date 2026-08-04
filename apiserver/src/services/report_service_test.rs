@@ -1573,24 +1573,24 @@ mod tests {
             Ok(employee_ids
                 .iter()
                 .map(|&employee_id| {
-                    crate::models::employment::Employment::new(
-                        Uuid::nil(),
-                        Uuid::nil(),
-                        employee_id,
-                        Uuid::nil(),
-                        None,
-                        None,
-                        "active".to_string(),
-                        NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-                        None,
-                        None,
-                        "full_time".to_string(),
-                        None,
-                        chrono::Utc::now(),
-                        chrono::Utc::now(),
-                        None,
-                        None,
-                    )
+                    crate::models::employment::Employment::new(NewEmploymentParams {
+                        id: Uuid::nil(),
+                        workspace_id: Uuid::nil(),
+                        employee_id: employee_id,
+                        employer_id: Uuid::nil(),
+                        primary_location_id: None,
+                        department_id: None,
+                        status: "active".to_string(),
+                        start_date: NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                        end_date: None,
+                        job_title: None,
+                        employment_type: "full_time".to_string(),
+                        manager_employment_id: None,
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                        termination_reason: None,
+                        notes: None,
+                    })
                 })
                 .collect())
         }
@@ -1603,24 +1603,24 @@ mod tests {
             Ok(employment_ids
                 .iter()
                 .map(|&id| {
-                    crate::models::employment::Employment::new(
-                        id,
-                        Uuid::nil(),
-                        Uuid::nil(),
-                        Uuid::nil(),
-                        None,
-                        None,
-                        "active".to_string(),
-                        NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-                        None,
-                        None,
-                        "full_time".to_string(),
-                        None,
-                        chrono::Utc::now(),
-                        chrono::Utc::now(),
-                        None,
-                        None,
-                    )
+                    crate::models::employment::Employment::new(NewEmploymentParams {
+                        id: id,
+                        workspace_id: Uuid::nil(),
+                        employee_id: Uuid::nil(),
+                        employer_id: Uuid::nil(),
+                        primary_location_id: None,
+                        department_id: None,
+                        status: "active".to_string(),
+                        start_date: NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                        end_date: None,
+                        job_title: None,
+                        employment_type: "full_time".to_string(),
+                        manager_employment_id: None,
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                        termination_reason: None,
+                        notes: None,
+                    })
                 })
                 .collect())
         }

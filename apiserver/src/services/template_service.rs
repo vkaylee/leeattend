@@ -223,24 +223,24 @@ mod tests {
             .expect_get_active_employment_on_date()
             .returning(move |_, _, _| {
                 let emp_title_clone = emp_title_clone.clone();
-                Ok(Some(Employment::new(
-                    Uuid::new_v4(),
-                    ws_id,
-                    emp_id,
-                    Uuid::new_v4(),
-                    None,
-                    None,
-                    "active".to_string(),
-                    chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-                    None,
-                    Some(emp_title_clone),
-                    "primary".to_string(),
-                    None,
-                    Utc::now(),
-                    Utc::now(),
-                    None,
-                    None,
-                )))
+                Ok(Some(Employment::new(NewEmploymentParams {
+                    id: Uuid::new_v4(),
+                    workspace_id: ws_id,
+                    employee_id: emp_id,
+                    employer_id: Uuid::new_v4(),
+                    primary_location_id: None,
+                    department_id: None,
+                    status: "active".to_string(),
+                    start_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    end_date: None,
+                    job_title: Some(emp_title_clone),
+                    employment_type: "primary".to_string(),
+                    manager_employment_id: None,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                    termination_reason: None,
+                    notes: None,
+                })))
             });
 
         let mut contract_repo = MockEmployeeContractRepository::new();

@@ -306,24 +306,24 @@ mod tests {
     }
 
     fn make_employment(ws: Uuid, status: &str) -> Employment {
-        Employment::new(
-            Uuid::new_v4(),
-            ws,
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            None,
-            None,
-            status.into(),
-            NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-            None,
-            Some("Dev".into()),
-            "full_time".into(),
-            None,
-            Utc::now(),
-            Utc::now(),
-            None,
-            None,
-        )
+        Employment::new(NewEmploymentParams {
+            id: Uuid::new_v4(),
+            workspace_id: ws,
+            employee_id: Uuid::new_v4(),
+            employer_id: Uuid::new_v4(),
+            primary_location_id: None,
+            department_id: None,
+            status: status.into(),
+            start_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            end_date: None,
+            job_title: Some("Dev".into()),
+            employment_type: "full_time".into(),
+            manager_employment_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            termination_reason: None,
+            notes: None,
+        })
     }
 
     fn make_time_entry(ws: Uuid, emp_id: Uuid) -> TimeEntry {

@@ -124,24 +124,24 @@ fn make_test_preamble(
 
 /// Build a minimal Employment for test use.
 fn make_test_employment(employment_id: Uuid, employee_id: Uuid, employer_id: Uuid) -> crate::models::Employment {
-    crate::models::Employment::new(
-        employment_id,
-        Uuid::new_v4(),             // workspace_id
+    crate::models::Employment::new(NewEmploymentParams {
+        id: employment_id,
+        workspace_id: Uuid::new_v4(),
         employee_id,
         employer_id,
-        None,                       // primary_location_id
-        None,                       // department_id
-        "active".to_string(),       // status
-        NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-        None,                       // end_date
-        Some("Worker".to_string()), // job_title
-        "full_time".to_string(),    // employment_type
-        None,                       // manager_employment_id
-        Utc::now(),
-        Utc::now(),
-        None, // termination_reason
-        None, // notes
-    )
+        primary_location_id: None,
+        department_id: None,
+        status: "active".to_string(),
+        start_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+        end_date: None,
+        job_title: Some("Worker".to_string()),
+        employment_type: "full_time".to_string(),
+        manager_employment_id: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        termination_reason: None,
+        notes: None,
+    })
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

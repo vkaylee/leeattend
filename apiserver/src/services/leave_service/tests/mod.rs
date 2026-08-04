@@ -578,47 +578,47 @@ fn build_service(
     mock_employment_repo
         .expect_list_employee_employments()
         .returning(|_, employee_id| {
-            Ok(vec![crate::models::employment::Employment::new(
-                Uuid::new_v4(),
-                employee_id,
-                Uuid::new_v4(),
-                Uuid::new_v4(),
-                None,
-                None,
-                "active".to_string(),
-                NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-                None,
-                None,
-                "full_time".to_string(),
-                None,
-                chrono::Utc::now(),
-                chrono::Utc::now(),
-                None,
-                None,
-            )])
+            Ok(vec![crate::models::employment::Employment::new(NewEmploymentParams {
+                id: Uuid::new_v4(),
+                workspace_id: employee_id,
+                employee_id: Uuid::new_v4(),
+                employer_id: Uuid::new_v4(),
+                primary_location_id: None,
+                department_id: None,
+                status: "active".to_string(),
+                start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                end_date: None,
+                job_title: None,
+                employment_type: "full_time".to_string(),
+                manager_employment_id: None,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+                termination_reason: None,
+                notes: None,
+            })])
         });
     if has_emp {
         mock_employment_repo
             .expect_get_employment_by_id()
             .returning(|_, _| {
-                Ok(Some(crate::models::employment::Employment::new(
-                    Uuid::new_v4(),
-                    Uuid::new_v4(),
-                    Uuid::new_v4(),
-                    Uuid::new_v4(),
-                    None,
-                    None,
-                    "active".to_string(),
-                    NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-                    None,
-                    None,
-                    "full_time".to_string(),
-                    None,
-                    chrono::Utc::now(),
-                    chrono::Utc::now(),
-                    None,
-                    None,
-                )))
+                Ok(Some(crate::models::employment::Employment::new(NewEmploymentParams {
+                    id: Uuid::new_v4(),
+                    workspace_id: Uuid::new_v4(),
+                    employee_id: Uuid::new_v4(),
+                    employer_id: Uuid::new_v4(),
+                    primary_location_id: None,
+                    department_id: None,
+                    status: "active".to_string(),
+                    start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                    end_date: None,
+                    job_title: None,
+                    employment_type: "full_time".to_string(),
+                    manager_employment_id: None,
+                    created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
+                    termination_reason: None,
+                    notes: None,
+                })))
             });
     } else {
         mock_employment_repo
@@ -1381,24 +1381,24 @@ async fn test_leave_conflict_auto_cancel() -> Result<(), Box<dyn std::error::Err
     let emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
     let mut employment_repo =
         crate::repositories::employment_repository::MockEmploymentRepository::new();
-    let dummy_employment = crate::models::employment::Employment::new(
-        employment_id,
-        workspace_id,
-        employee_id,
-        Uuid::new_v4(),
-        None,
-        None,
-        "active".to_string(),
-        NaiveDate::from_ymd_opt(2024, 1, 1).ok_or("date")?,
-        None,
-        None,
-        "full_time".to_string(),
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-        None,
-    );
+    let dummy_employment = crate::models::employment::Employment::new(NewEmploymentParams {
+        id: employment_id,
+        workspace_id: workspace_id,
+        employee_id: employee_id,
+        employer_id: Uuid::new_v4(),
+        primary_location_id: None,
+        department_id: None,
+        status: "active".to_string(),
+        start_date: NaiveDate::from_ymd_opt(2024, 1, 1).ok_or("date")?,
+        end_date: None,
+        job_title: None,
+        employment_type: "full_time".to_string(),
+        manager_employment_id: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        termination_reason: None,
+        notes: None,
+    });
     employment_repo
         .expect_get_employment_by_id()
         .returning(move |_, _| Ok(Some(dummy_employment.clone())));
@@ -1539,24 +1539,24 @@ async fn test_leave_conflict_notify() -> Result<(), Box<dyn std::error::Error>> 
     let emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
     let mut employment_repo =
         crate::repositories::employment_repository::MockEmploymentRepository::new();
-    let dummy_employment = crate::models::employment::Employment::new(
-        employment_id,
-        workspace_id,
-        employee_id,
-        Uuid::new_v4(),
-        None,
-        None,
-        "active".to_string(),
-        NaiveDate::from_ymd_opt(2024, 1, 1).ok_or("date")?,
-        None,
-        None,
-        "full_time".to_string(),
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-        None,
-    );
+    let dummy_employment = crate::models::employment::Employment::new(NewEmploymentParams {
+        id: employment_id,
+        workspace_id: workspace_id,
+        employee_id: employee_id,
+        employer_id: Uuid::new_v4(),
+        primary_location_id: None,
+        department_id: None,
+        status: "active".to_string(),
+        start_date: NaiveDate::from_ymd_opt(2024, 1, 1).ok_or("date")?,
+        end_date: None,
+        job_title: None,
+        employment_type: "full_time".to_string(),
+        manager_employment_id: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        termination_reason: None,
+        notes: None,
+    });
     employment_repo
         .expect_get_employment_by_id()
         .returning(move |_, _| Ok(Some(dummy_employment.clone())));

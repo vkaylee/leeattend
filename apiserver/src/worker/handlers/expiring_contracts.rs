@@ -292,24 +292,24 @@ mod tests {
             .expect_get_employments_by_ids()
             .returning(move |_, ids| {
                 if ids.contains(&employment_id) {
-                    Ok(vec![crate::models::employment::Employment::new(
-                        employment_id,
-                        ws_id,
-                        emp_id,
-                        Uuid::new_v4(),
-                        None,
-                        None,
-                        "active".to_string(),
-                        NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-                        None,
-                        None,
-                        "full_time".to_string(),
-                        None,
-                        chrono::Utc::now(),
-                        chrono::Utc::now(),
-                        None,
-                        None,
-                    )])
+                    Ok(vec![crate::models::employment::Employment::new(NewEmploymentParams {
+                        id: employment_id,
+                        workspace_id: ws_id,
+                        employee_id: emp_id,
+                        employer_id: Uuid::new_v4(),
+                        primary_location_id: None,
+                        department_id: None,
+                        status: "active".to_string(),
+                        start_date: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                        end_date: None,
+                        job_title: None,
+                        employment_type: "full_time".to_string(),
+                        manager_employment_id: None,
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                        termination_reason: None,
+                        notes: None,
+                    })])
                 } else {
                     Ok(vec![])
                 }

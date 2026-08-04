@@ -130,24 +130,24 @@ mod tests {
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
     ) -> Employment {
-        Employment::new(
-            id,
-            Uuid::new_v4(),
-            employee_id,
-            employer_id,
-            None,
-            None,
-            "active".to_string(),
-            start_date,
-            end_date,
-            None,
-            "full_time".to_string(),
-            None,
-            Utc::now(),
-            Utc::now(),
-            None,
-            None,
-        )
+        Employment::new(NewEmploymentParams {
+            id: id,
+            workspace_id: Uuid::new_v4(),
+            employee_id: employee_id,
+            employer_id: employer_id,
+            primary_location_id: None,
+            department_id: None,
+            status: "active".to_string(),
+            start_date: start_date,
+            end_date: end_date,
+            job_title: None,
+            employment_type: "full_time".to_string(),
+            manager_employment_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            termination_reason: None,
+            notes: None,
+        })
     }
 
     #[test]

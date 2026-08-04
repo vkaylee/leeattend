@@ -3,6 +3,7 @@ use diesel::prelude::*;
 use uuid::Uuid;
 
 use crate::models::employment::Employment;
+use crate::models::employment::NewEmploymentParams;
 use crate::schema::employments;
 
 #[derive(Debug, Clone, Queryable, Selectable, Insertable, Identifiable, AsChangeset)]
@@ -29,24 +30,24 @@ pub struct EmploymentEntity {
 
 impl From<EmploymentEntity> for Employment {
     fn from(val: EmploymentEntity) -> Self {
-        Self::new(
-            val.id,
-            val.workspace_id,
-            val.employee_id,
-            val.employer_id,
-            val.primary_location_id,
-            val.department_id,
-            val.status,
-            val.start_date,
-            val.end_date,
-            val.job_title,
-            val.employment_type,
-            val.manager_employment_id,
-            val.created_at,
-            val.updated_at,
-            val.termination_reason,
-            val.notes,
-        )
+        Self::new(NewEmploymentParams {
+            id: val.id,
+            workspace_id: val.workspace_id,
+            employee_id: val.employee_id,
+            employer_id: val.employer_id,
+            primary_location_id: val.primary_location_id,
+            department_id: val.department_id,
+            status: val.status,
+            start_date: val.start_date,
+            end_date: val.end_date,
+            job_title: val.job_title,
+            employment_type: val.employment_type,
+            manager_employment_id: val.manager_employment_id,
+            created_at: val.created_at,
+            updated_at: val.updated_at,
+            termination_reason: val.termination_reason,
+            notes: val.notes,
+        })
     }
 }
 

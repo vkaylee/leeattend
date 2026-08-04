@@ -187,47 +187,47 @@ mod tests {
         employment_repo
             .expect_list_employee_employments()
             .returning(move |_, _| {
-                Ok(vec![crate::models::employment::Employment::new(
-                    employment_id,
-                    ws_id,
-                    emp_id,
-                    employer_id,
-                    None,
-                    None,
-                    "active".to_string(),
-                    NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
-                    None,
-                    None,
-                    "full_time".to_string(),
-                    None,
-                    Utc::now(),
-                    Utc::now(),
-                    None,
-                    None,
-                )])
+                Ok(vec![crate::models::employment::Employment::new(NewEmploymentParams {
+                    id: employment_id,
+                    workspace_id: ws_id,
+                    employee_id: emp_id,
+                    employer_id: employer_id,
+                    primary_location_id: None,
+                    department_id: None,
+                    status: "active".to_string(),
+                    start_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+                    end_date: None,
+                    job_title: None,
+                    employment_type: "full_time".to_string(),
+                    manager_employment_id: None,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                    termination_reason: None,
+                    notes: None,
+                })])
             });
 
         employment_repo
             .expect_update_employment()
             .returning(move |_, _, _| {
-                Ok(crate::models::employment::Employment::new(
-                    employment_id,
-                    ws_id,
-                    emp_id,
-                    employer_id,
-                    None,
-                    None,
-                    "active".to_string(),
-                    NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-                    None,
-                    None,
-                    "full_time".to_string(),
-                    None,
-                    Utc::now(),
-                    Utc::now(),
-                    None,
-                    None,
-                ))
+                Ok(crate::models::employment::Employment::new(NewEmploymentParams {
+                    id: employment_id,
+                    workspace_id: ws_id,
+                    employee_id: emp_id,
+                    employer_id: employer_id,
+                    primary_location_id: None,
+                    department_id: None,
+                    status: "active".to_string(),
+                    start_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    end_date: None,
+                    job_title: None,
+                    employment_type: "full_time".to_string(),
+                    manager_employment_id: None,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                    termination_reason: None,
+                    notes: None,
+                }))
             });
 
         let mut contract_repo = MockEmployeeContractRepository::new();

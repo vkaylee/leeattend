@@ -28,24 +28,24 @@ fn mock_employment_repo() -> MockEmploymentRepository {
         .returning(|_, _, _| Ok(None));
     repo.expect_get_employment_by_id()
         .returning(|_, employment_id| {
-            Ok(Some(crate::models::employment::Employment::new(
-                employment_id,
-                Uuid::new_v4(),
-                employment_id,
-                Uuid::new_v4(),
-                None,
-                None,
-                "active".to_string(),
-                NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-                None,
-                None,
-                "full_time".to_string(),
-                None,
-                chrono::Utc::now(),
-                chrono::Utc::now(),
-                None,
-                None,
-            )))
+            Ok(Some(crate::models::employment::Employment::new(NewEmploymentParams {
+                id: employment_id,
+                workspace_id: Uuid::new_v4(),
+                employee_id: employment_id,
+                employer_id: Uuid::new_v4(),
+                primary_location_id: None,
+                department_id: None,
+                status: "active".to_string(),
+                start_date: NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                end_date: None,
+                job_title: None,
+                employment_type: "full_time".to_string(),
+                manager_employment_id: None,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+                termination_reason: None,
+                notes: None,
+            })))
         });
     repo
 }

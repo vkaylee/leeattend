@@ -225,24 +225,24 @@ mod tests {
             .expect_resolve_employment_on_date()
             .returning(move |_, _, _| {
                 Ok(crate::models::employment::EmploymentResolution::Resolved(
-                    crate::models::employment::Employment::new(
-                        employment_id,
-                        ws_id,
-                        emp_id,
-                        uuid::Uuid::new_v4(),
-                        None,
-                        None,
-                        "active".to_string(),
-                        chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-                        None,
-                        None,
-                        "full_time".to_string(),
-                        None,
-                        chrono::Utc::now(),
-                        chrono::Utc::now(),
-                        None,
-                        None,
-                    ),
+                    crate::models::employment::Employment::new(NewEmploymentParams {
+                        id: employment_id,
+                        workspace_id: ws_id,
+                        employee_id: emp_id,
+                        employer_id: uuid::Uuid::new_v4(),
+                        primary_location_id: None,
+                        department_id: None,
+                        status: "active".to_string(),
+                        start_date: chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                        end_date: None,
+                        job_title: None,
+                        employment_type: "full_time".to_string(),
+                        manager_employment_id: None,
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                        termination_reason: None,
+                        notes: None,
+                    }),
                 ))
             });
         employment_repo
@@ -251,24 +251,24 @@ mod tests {
         employment_repo
             .expect_get_employment_by_id()
             .returning(move |_, id| {
-                Ok(Some(crate::models::employment::Employment::new(
-                    id,
-                    ws_id,
-                    emp_id,
-                    uuid::Uuid::new_v4(),
-                    None,
-                    None,
-                    "active".to_string(),
-                    chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-                    None,
-                    None,
-                    "full_time".to_string(),
-                    None,
-                    chrono::Utc::now(),
-                    chrono::Utc::now(),
-                    None,
-                    None,
-                )))
+                Ok(Some(crate::models::employment::Employment::new(NewEmploymentParams {
+                    id: id,
+                    workspace_id: ws_id,
+                    employee_id: emp_id,
+                    employer_id: uuid::Uuid::new_v4(),
+                    primary_location_id: None,
+                    department_id: None,
+                    status: "active".to_string(),
+                    start_date: chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                    end_date: None,
+                    job_title: None,
+                    employment_type: "full_time".to_string(),
+                    manager_employment_id: None,
+                    created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
+                    termination_reason: None,
+                    notes: None,
+                })))
             });
 
         let mut builder = MockWorkerDepsBuilder::new();

@@ -33,24 +33,24 @@ async fn test_terminate_employment_success() -> Result<(), Box<dyn std::error::E
         NaiveDate::from_ymd_opt(2026, 6, 30).ok_or("invalid termination_date")?;
 
     // 1. Mock Employment
-    let mock_emp = crate::models::employment::Employment::new(
-        employment_id,
-        ws,
-        emp_id,
-        Uuid::new_v4(),
-        None,
-        None,
-        "active".to_string(),
-        start_date,
-        None,
-        None,
-        "primary".to_string(),
-        None,
-        Utc::now(),
-        Utc::now(),
-        None,
-        None,
-    );
+    let mock_emp = crate::models::employment::Employment::new(NewEmploymentParams {
+        id: employment_id,
+        workspace_id: ws,
+        employee_id: emp_id,
+        employer_id: Uuid::new_v4(),
+        primary_location_id: None,
+        department_id: None,
+        status: "active".to_string(),
+        start_date: start_date,
+        end_date: None,
+        job_title: None,
+        employment_type: "primary".to_string(),
+        manager_employment_id: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        termination_reason: None,
+        notes: None,
+    });
 
     let mut mock_employment_repo =
         crate::repositories::employment_repository::MockEmploymentRepository::new();
@@ -59,24 +59,24 @@ async fn test_terminate_employment_success() -> Result<(), Box<dyn std::error::E
         .expect_get_employment_by_id()
         .returning(move |_, _| Ok(Some(mock_emp_clone.clone())));
 
-    let mock_emp_terminated = crate::models::employment::Employment::new(
-        employment_id,
-        ws,
-        emp_id,
-        Uuid::new_v4(),
-        None,
-        None,
-        "terminated".to_string(),
-        start_date,
-        Some(termination_date),
-        None,
-        "primary".to_string(),
-        None,
-        Utc::now(),
-        Utc::now(),
-        Some("voluntary_resignation".to_string()),
-        None,
-    );
+    let mock_emp_terminated = crate::models::employment::Employment::new(NewEmploymentParams {
+        id: employment_id,
+        workspace_id: ws,
+        employee_id: emp_id,
+        employer_id: Uuid::new_v4(),
+        primary_location_id: None,
+        department_id: None,
+        status: "terminated".to_string(),
+        start_date: start_date,
+        end_date: Some(termination_date),
+        job_title: None,
+        employment_type: "primary".to_string(),
+        manager_employment_id: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        termination_reason: Some("voluntary_resignation".to_string()),
+        notes: None,
+    });
 
     // 2. Mock Leave Balances
     let mut mock_leave_balance_repo =
