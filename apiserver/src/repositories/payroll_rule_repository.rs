@@ -10,7 +10,6 @@ use crate::models::{
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
-#[allow(clippy::too_many_arguments)]
 pub trait PayrollRuleRepository: Send + Sync {
     async fn create_definition(
         &self,
@@ -24,13 +23,7 @@ pub trait PayrollRuleRepository: Send + Sync {
 
     async fn create_tier(
         &self,
-        workspace_id: Uuid,
-        rule_definition_id: Uuid,
-        tier_order: i32,
-        min_amount: rust_decimal::Decimal,
-        max_amount: Option<rust_decimal::Decimal>,
-        rate: rust_decimal::Decimal,
-        fixed_amount: rust_decimal::Decimal,
+        params: CreatePayrollRuleTierParams,
     ) -> Result<PayrollRuleTier, AppError>;
 
     async fn get_tiers_for_rule(
@@ -76,6 +69,16 @@ pub struct CreatePayrollRuleDefinitionArgs {
     pub rule_config: serde_json::Value,
     pub is_mandatory: bool,
     pub display_order: i32,
+}
+
+pub struct CreatePayrollRuleTierParams {
+    pub workspace_id: Uuid,
+    pub rule_definition_id: Uuid,
+    pub tier_order: i32,
+    pub min_amount: rust_decimal::Decimal,
+    pub max_amount: Option<rust_decimal::Decimal>,
+    pub rate: rust_decimal::Decimal,
+    pub fixed_amount: rust_decimal::Decimal,
 }
 
 pub struct AssignPayrollRuleArgs {

@@ -3,7 +3,8 @@ use crate::errors::AppError;
 use crate::models::diesel::payroll_rule::*;
 use crate::models::payroll_rule::*;
 use crate::repositories::payroll_rule_repository::{
-    AssignPayrollRuleArgs, CreatePayrollRuleDefinitionArgs, PayrollRuleRepository,
+    AssignPayrollRuleArgs, CreatePayrollRuleDefinitionArgs, CreatePayrollRuleTierParams,
+    PayrollRuleRepository,
 };
 use crate::utils::i18n::I18nKey;
 
@@ -12,8 +13,6 @@ use async_trait::async_trait;
 use bigdecimal::BigDecimal;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use rust_decimal::Decimal;
-
 use std::str::FromStr;
 use uuid::Uuid;
 
@@ -93,14 +92,17 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
 
     async fn create_tier(
         &self,
-        workspace_id: Uuid,
-        rule_definition_id: Uuid,
-        tier_order: i32,
-        min_amount: Decimal,
-        max_amount: Option<Decimal>,
-        rate: Decimal,
-        fixed_amount: Decimal,
+        params: CreatePayrollRuleTierParams,
     ) -> Result<PayrollRuleTier, AppError> {
+        let CreatePayrollRuleTierParams {
+            workspace_id,
+            rule_definition_id,
+            tier_order,
+            min_amount,
+            max_amount,
+            rate,
+            fixed_amount,
+        } = params;
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
@@ -318,15 +320,15 @@ mod tests {
         let _ = err;
 
         let err = repo
-            .create_tier(
-                ws_id,
-                Uuid::new_v4(),
-                1,
-                rust_decimal::Decimal::new(0, 0),
-                None,
-                rust_decimal::Decimal::new(0, 0),
-                rust_decimal::Decimal::new(0, 0),
-            )
+            .create_tier(CreatePayrollRuleTierParams {
+                workspace_id: ws_id,
+                rule_definition_id: Uuid::new_v4(),
+                tier_order: 1,
+                min_amount: rust_decimal::Decimal::new(0, 0),
+                max_amount: None,
+                rate: rust_decimal::Decimal::new(0, 0),
+                fixed_amount: rust_decimal::Decimal::new(0, 0),
+            })
             .await;
         let _ = err;
 
@@ -420,15 +422,15 @@ mod tests {
 
         // 3. Create tier
         let tier = repo
-            .create_tier(
-                ws_id,
-                def.id,
-                1,
-                rust_decimal::Decimal::new(100, 0),
-                Some(rust_decimal::Decimal::new(500, 0)),
-                rust_decimal::Decimal::new(10, 2),
-                rust_decimal::Decimal::new(50, 0),
-            )
+            .create_tier(CreatePayrollRuleTierParams {
+                workspace_id: ws_id,
+                rule_definition_id: def.id,
+                tier_order: 1,
+                min_amount: rust_decimal::Decimal::new(100, 0),
+                max_amount: Some(rust_decimal::Decimal::new(500, 0)),
+                rate: rust_decimal::Decimal::new(10, 2),
+                fixed_amount: rust_decimal::Decimal::new(50, 0),
+            })
             .await
             .unwrap();
         assert_eq!(tier.tier_order, 1);
