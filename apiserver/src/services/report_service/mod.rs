@@ -143,7 +143,7 @@ pub(crate) struct ReportDataPreamble {
 
 impl ReportDataPreamble {
     /// Construct an empty preamble for the early-return case (no employees matched).
-    fn empty(
+    pub(crate) fn empty(
         workspace_tz: Tz,
         workspace_id: Uuid,
         page: usize,
@@ -237,6 +237,47 @@ impl ReportDataPreamble {
 
     pub(crate) fn employer_name_map(&self) -> &std::collections::HashMap<Uuid, String> {
         &self.employer_name_map
+    }
+}
+
+#[cfg(test)]
+impl ReportDataPreamble {
+    /// Build a fully-populated preamble for unit-testing extracted report functions.
+    #[allow(dead_code, clippy::too_many_arguments)]
+    pub(crate) fn test_new(
+        workspace_tz: Tz,
+        workspace_id: Uuid,
+        page: usize,
+        limit: usize,
+        paginated_employees: Vec<crate::repositories::employee::EmployeeBasicInfo>,
+        total_employees: i64,
+        employments: Vec<Employment>,
+        paginated_employment_ids: Vec<Uuid>,
+        employment_to_employee: std::collections::HashMap<Uuid, Uuid>,
+        emp_ids: Vec<Uuid>,
+        entries_map: std::collections::HashMap<Uuid, Vec<TimeEntry>>,
+        attendance_rules_map: std::collections::HashMap<Uuid, AttendanceRules>,
+        working_conditions_map: std::collections::HashMap<Uuid, Vec<WorkingCondition>>,
+        condition_type_catalog: std::collections::HashMap<String, ConditionTypeDefinition>,
+        employer_name_map: std::collections::HashMap<Uuid, String>,
+    ) -> Self {
+        Self {
+            workspace_tz,
+            workspace_id,
+            page,
+            limit,
+            paginated_employees,
+            total_employees,
+            employments,
+            paginated_employment_ids,
+            employment_to_employee,
+            emp_ids,
+            entries_map,
+            attendance_rules_map,
+            working_conditions_map,
+            condition_type_catalog,
+            employer_name_map,
+        }
     }
 }
 

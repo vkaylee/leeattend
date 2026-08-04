@@ -975,6 +975,182 @@ pub(super) fn build_segment_calc_inputs<'a>(
     (cached_matched, cached_rules, segment_calc_inputs)
 }
 
+// ─── Segment report decomposition ───────────────────────────────────────────
+
+/// Compute segment attendance report rows for a single employment across all dates.
+///
+/// Pure function — no I/O. Reads pre-fetched data from the preamble, extras,
+/// and the already-resolved employee segments. Produces one report row per
+/// segment-date combination.
+pub(crate) fn compute_employment_segment_rows(
+    emp_segs: &crate::models::EmployeeSegments,
+    preamble: &ReportDataPreamble,
+    extras: &ReportExtras,
+    tz: Tz,
+) -> Vec<DailyAttendanceReport> {
+    let Some(employee_id) = preamble
+        .employment_to_employee()
+        .get(&emp_segs.employment_id())
+        .copied()
+    else {
+        tracing::warn!(
+            employment_id = %emp_segs.employment_id(),
+            "employment→employee mapping miss — skipping row"
+        );
+        return Vec::new();
+    };
+
+    let entries = preamble
+        .entries_map()
+        .get(&emp_segs.employment_id())
+        .map_or_else(Default::default, std::vec::Vec::as_slice);
+    let entries_by_date =
+        crate::services::attendance_utils::group_entries_by_date(entries, tz);
+
+    // Group segments by date
+    let segments_by_date = group_segments_by_date(emp_segs.segments());
+    let all_segs = emp_segs.segments();
+
+    let att_rules = ReportService::resolve_attendance_rules(preamble, employee_id);
+    let emp_working_conditions = preamble
+        .working_conditions_map()
+        .get(&employee_id)
+        .map_or_else(Default::default, std::vec::Vec::as_slice);
+
+    let mut reports = Vec::new();
+
+    for (date, seg_indices) in &segments_by_date {
+        let day_segs: Vec<&crate::models::ResolvedSegment> =
+            seg_indices.iter().map(|&i| &all_segs[i]).collect();
+
+        let (cached_matched, cached_rules, segment_calc_inputs) = build_segment_calc_inputs(
+            &day_segs,
+            entries_by_date
+                .get(date)
+                .map_or_else(Default::default, std::vec::Vec::as_slice),
+            *date,
+            tz,
+            emp_working_conditions,
+            &att_rules,
+            preamble.condition_type_catalog(),
+        );
+
+        let input_groups: Vec<
+            &[crate::services::attendance_calculator::DailyCalcInput<Tz>],
+        > = segment_calc_inputs.iter().map(Vec::as_slice).collect();
+        let segment_result =
+            crate::services::AttendanceService::compute_segment_attendance_sessions(
+                &input_groups,
+            );
+
+        let seg_rows = build_segment_report_rows(
+            employee_id,
+            emp_segs.employment_id(),
+            *date,
+            &day_segs,
+            &cached_matched,
+            &cached_rules,
+            &segment_result,
+            &segment_calc_inputs,
+            &att_rules,
+            preamble,
+            extras,
+            emp_segs.full_name(),
+            emp_segs.employee_id_number(),
+            tz,
+        );
+        reports.extend(seg_rows);
+    }
+
+    reports
+}
+
+/// Generate default `AttendanceStatus::Off` rows for employments that have
+/// no resolved segments. One row per date in the range.
+///
+/// Mirrors the legacy schedule path: each employment without segments gets
+/// a row per day with status=Off, zero units, no shift metadata.
+pub(crate) fn generate_no_shift_fallback_rows(
+    preamble: &ReportDataPreamble,
+    employee_segments: &[crate::models::EmployeeSegments],
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+) -> Vec<DailyAttendanceReport> {
+    let segmented_employment_ids: HashSet<Uuid> = employee_segments
+        .iter()
+        .filter(|e| !e.segments().is_empty())
+        .map(|e| e.employment_id())
+        .collect();
+
+    let employee_map: HashMap<Uuid, &crate::repositories::employee::EmployeeBasicInfo> =
+        preamble
+            .paginated_employees()
+            .iter()
+            .map(|e| (e.id, e))
+            .collect();
+
+    let mut reports = Vec::new();
+
+    for &employment_id in preamble.paginated_employment_ids() {
+        if segmented_employment_ids.contains(&employment_id) {
+            continue;
+        }
+        let Some(employee_id) = preamble
+            .employment_to_employee()
+            .get(&employment_id)
+            .copied()
+        else {
+            continue;
+        };
+        let Some(emp_info) = employee_map.get(&employee_id) else {
+            continue;
+        };
+
+        let att_rules = ReportService::resolve_attendance_rules(preamble, employee_id);
+        let grace_minutes = att_rules.grace_period_minutes.unwrap_or(0);
+        let employer_name = preamble
+            .employments()
+            .iter()
+            .find(|e| e.id() == employment_id)
+            .and_then(|e| preamble.employer_name_map().get(&e.employer_id()).cloned());
+
+        let mut date = start_date;
+        while date <= end_date {
+            let row = build_base_report_row(
+                date,
+                employment_id,
+                employee_id,
+                &emp_info.full_name,
+                &emp_info.employee_id_number,
+                None, // shift_symbol
+                None, // shift_name
+                None, // scheduled_start
+                None, // scheduled_end
+                grace_minutes,
+                None, // break_duration_minutes
+                None, // break_start
+                None, // break_end
+                None, // is_break_auto_deduct
+                None, // actual_punch_in
+                None, // actual_punch_out
+                0,    // std_work_units
+                0,    // ot_work_units
+                None, // ot_claim_status
+                att_rules.work_unit_minutes,
+                crate::services::attendance_utils::AttendanceStatus::Off,
+                None, // holiday_entry
+                None, // generation_metadata
+                None, // is_leave_paid
+                employer_name.clone(),
+            );
+            reports.push(row);
+            date = date.succ_opt().unwrap_or(date);
+        }
+    }
+
+    reports
+}
+
 // ─── Public report methods ──────────────────────────────────────────────────
 
 impl ReportService {
@@ -1075,13 +1251,17 @@ impl ReportService {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         args: AttendanceReportArgs,
     ) -> Result<PaginatedResponse<DailyAttendanceReport>, AppError> {
+        // 1. Fetch preamble — early-return if no employees matched.
         let preamble = self.fetch_preamble(auth_token, &args, None).await?;
         if preamble.paginated_employees().is_empty() {
             return Ok(Self::empty_paginated_response(&preamble));
         }
 
+        // 2. Parse metadata: shift filter and workspace timezone.
         let shift_names = Self::parse_shift_names(args.shift_type.as_deref());
         let tz = preamble.workspace_tz();
+
+        // 3. Fetch holiday/leave/OT statuses + resolve segments.
         let extras = self
             .fetch_report_extras(
                 auth_token,
@@ -1091,163 +1271,30 @@ impl ReportService {
                 args.end_date,
             )
             .await?;
-
-        // Resolve segments: DB-first with compute fallback.
         let employee_segments = self
             .resolve_employee_segments(auth_token, &preamble, args.start_date, args.end_date)
             .await?;
 
+        // 4. Compute segment rows for each employment.
         let mut reports = Vec::new();
-
         for emp_segs in &employee_segments {
-            let Some(employee_id) = preamble
-                .employment_to_employee()
-                .get(&emp_segs.employment_id())
-                .copied()
-            else {
-                tracing::warn!(
-                    employment_id = %emp_segs.employment_id(),
-                    "employment→employee mapping miss — skipping row"
-                );
-                continue;
-            };
-
-            let entries = preamble
-                .entries_map()
-                .get(&emp_segs.employment_id())
-                .map_or_else(Default::default, std::vec::Vec::as_slice);
-            let entries_by_date =
-                crate::services::attendance_utils::group_entries_by_date(entries, tz);
-
-            // Group segments by date
-            let segments_by_date = group_segments_by_date(emp_segs.segments());
-            let all_segs = emp_segs.segments();
-
-            let att_rules = Self::resolve_attendance_rules(&preamble, employee_id);
-            let emp_working_conditions = preamble
-                .working_conditions_map()
-                .get(&employee_id)
-                .map_or_else(Default::default, std::vec::Vec::as_slice);
-
-            for (date, seg_indices) in &segments_by_date {
-                let day_segs: Vec<&crate::models::ResolvedSegment> =
-                    seg_indices.iter().map(|&i| &all_segs[i]).collect();
-
-                let (cached_matched, cached_rules, segment_calc_inputs) = build_segment_calc_inputs(
-                    &day_segs,
-                    entries_by_date
-                        .get(date)
-                        .map_or_else(Default::default, std::vec::Vec::as_slice),
-                    *date,
-                    tz,
-                    emp_working_conditions,
-                    &att_rules,
-                    preamble.condition_type_catalog(),
-                );
-
-                let input_groups: Vec<
-                    &[crate::services::attendance_calculator::DailyCalcInput<Tz>],
-                > = segment_calc_inputs.iter().map(Vec::as_slice).collect();
-                let segment_result =
-                    crate::services::AttendanceService::compute_segment_attendance_sessions(
-                        &input_groups,
-                    );
-
-                let seg_rows = build_segment_report_rows(
-                    employee_id,
-                    emp_segs.employment_id(),
-                    *date,
-                    &day_segs,
-                    &cached_matched,
-                    &cached_rules,
-                    &segment_result,
-                    &segment_calc_inputs,
-                    &att_rules,
-                    &preamble,
-                    &extras,
-                    emp_segs.full_name(),
-                    emp_segs.employee_id_number(),
-                    tz,
-                );
-                reports.extend(seg_rows);
-            }
+            reports.extend(compute_employment_segment_rows(
+                emp_segs,
+                &preamble,
+                &extras,
+                tz,
+            ));
         }
 
-        // Generate default no-shift rows for employments without any segments.
-        // This mirrors the legacy schedule path which creates a row per day even
-        // when no shift is assigned (status = Off).
-        let segmented_employment_ids: std::collections::HashSet<Uuid> = employee_segments
-            .iter()
-            .filter(|e| !e.segments().is_empty())
-            .map(|e| e.employment_id())
-            .collect();
+        // 5. Generate Off-status fallback rows for employments without segments.
+        reports.extend(generate_no_shift_fallback_rows(
+            &preamble,
+            &employee_segments,
+            args.start_date,
+            args.end_date,
+        ));
 
-        let employee_map: std::collections::HashMap<
-            Uuid,
-            &crate::repositories::employee::EmployeeBasicInfo,
-        > = preamble
-            .paginated_employees()
-            .iter()
-            .map(|e| (e.id, e))
-            .collect();
-
-        for &employment_id in preamble.paginated_employment_ids() {
-            if segmented_employment_ids.contains(&employment_id) {
-                continue;
-            }
-            let Some(employee_id) = preamble
-                .employment_to_employee()
-                .get(&employment_id)
-                .copied()
-            else {
-                continue;
-            };
-            let Some(emp_info) = employee_map.get(&employee_id) else {
-                continue;
-            };
-
-            let att_rules = Self::resolve_attendance_rules(&preamble, employee_id);
-            let grace_minutes = att_rules.grace_period_minutes.unwrap_or(0);
-            let employer_name = preamble
-                .employments()
-                .iter()
-                .find(|e| e.id() == employment_id)
-                .and_then(|e| preamble.employer_name_map().get(&e.employer_id()).cloned());
-
-            let mut date = args.start_date;
-            while date <= args.end_date {
-                let row = build_base_report_row(
-                    date,
-                    employment_id,
-                    employee_id,
-                    &emp_info.full_name,
-                    &emp_info.employee_id_number,
-                    None, // shift_symbol
-                    None, // shift_name
-                    None, // scheduled_start
-                    None, // scheduled_end
-                    grace_minutes,
-                    None, // break_duration_minutes
-                    None, // break_start
-                    None, // break_end
-                    None, // is_break_auto_deduct
-                    None, // actual_punch_in
-                    None, // actual_punch_out
-                    0,    // std_work_units
-                    0,    // ot_work_units
-                    None, // ot_claim_status
-                    att_rules.work_unit_minutes,
-                    crate::services::attendance_utils::AttendanceStatus::Off,
-                    None, // holiday_entry
-                    None, // generation_metadata
-                    None, // is_leave_paid
-                    employer_name.clone(),
-                );
-                reports.push(row);
-                date = date.succ_opt().unwrap_or(date);
-            }
-        }
-
+        // 6. Build paginated response (applies shift-type filter internally).
         Ok(Self::build_paginated_response(
             &preamble,
             reports,
@@ -1521,6 +1568,10 @@ fn work_segment_to_resolved(ws: &crate::models::WorkSegment) -> crate::models::R
         holiday_name: None,
     }
 }
+
+#[cfg(test)]
+#[path = "daily_tests.rs"]
+mod daily_tests;
 
 #[cfg(test)]
 mod tests {
