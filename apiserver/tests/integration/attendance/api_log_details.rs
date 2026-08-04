@@ -3,7 +3,7 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::{LogSource, RawAttendanceLog, TimeEntry};
+use apiserver::models::{LogSource, NewTimeEntryParams, RawAttendanceLog, TimeEntry};
 use apiserver::AppState;
 use axum::http::StatusCode;
 use chrono::Utc;
@@ -40,22 +40,22 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
     );
 
     // 1. Create a TimeEntry
-    let entry = TimeEntry::new(
-        Uuid::new_v4(),
-        emp_employment_id,
-        ws_id,
-        None,
-        None,
-        Utc::now(),
-        Some(Utc::now()),
-        Some(10),
-        false,
-        apiserver::services::pairing::types::EntryType::Work,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-    );
+    let entry = TimeEntry::new(NewTimeEntryParams {
+        id: Uuid::new_v4(),
+        employment_id: emp_employment_id,
+        workspace_id: ws_id,
+        shift_id: None,
+        segment_id: None,
+        punch_in_time: Utc::now(),
+        punch_out_time: Some(Utc::now()),
+        duration_minutes: Some(10),
+        is_break_overtime: false,
+        entry_type: apiserver::services::pairing::types::EntryType::Work,
+        note: None,
+        generation_metadata: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    });
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let te_repo = apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
     let raw_log_repo =

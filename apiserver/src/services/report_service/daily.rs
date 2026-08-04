@@ -1576,6 +1576,7 @@ mod daily_tests;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::*;
     use crate::models::{ResolvedSegment, TimeEntry};
     use chrono::{NaiveDate, NaiveTime, TimeZone, Timelike, Utc};
     use chrono_tz::Tz;

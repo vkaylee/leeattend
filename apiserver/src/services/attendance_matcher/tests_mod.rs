@@ -1,7 +1,7 @@
 use super::*;
 use crate::cache::{RosterData, RosterShift};
 use crate::models::enums::EarlyArrivalStrategy;
-use crate::models::{AttendanceRules, Holiday, TimeEntry};
+use crate::models::{AttendanceRules, Holiday, NewEmploymentParams, NewHolidayParams, NewTimeEntryParams, TimeEntry};
 use crate::services::attendance_context::AttendanceMatcherContext;
 use chrono::{NaiveDate, NaiveTime, Utc};
 use std::collections::HashMap;
@@ -1026,7 +1026,7 @@ async fn test_resolve_day_context_with_active_employment_still_works() {
         status: "active".to_string(),
         start_date: date - chrono::Duration::days(10),
         end_date: None,
-        job_title: // no end date — still active None,
+        job_title: None,
         employment_type: "full_time".to_string(),
         manager_employment_id: None,
         created_at: Utc::now(),

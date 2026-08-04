@@ -316,8 +316,9 @@ impl WorkspaceService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::*;
     use crate::errors::AppError;
-    use crate::models::{MemberExtraRole, NewWorkspaceConfigEntryParams, Workspace};
+    use crate::models::{MemberExtraRole, Workspace};
     use async_trait::async_trait;
     use chrono::Utc;
     use rust_decimal::Decimal;
@@ -621,6 +622,7 @@ mod tests {
             full_name: Option<String>,
             _a: Option<String>,
             _b: Option<String>,
+            _preferred_language: Option<String>,
         ) -> Result<crate::models::User, AppError> {
             Ok(crate::models::User::new(NewUserParams {
         id: id,

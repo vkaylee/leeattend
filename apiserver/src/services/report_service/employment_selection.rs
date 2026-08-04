@@ -121,6 +121,7 @@ pub(super) fn select_report_employments(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::*;
     use chrono::Utc;
 
     fn employment(

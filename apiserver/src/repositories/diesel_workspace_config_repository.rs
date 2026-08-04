@@ -212,6 +212,7 @@ impl WorkspaceConfigRepository for DieselWorkspaceConfigRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::*;
     use crate::diesel_pool::{DieselPools, TenantAuthToken};
     use chrono::Utc;
     use serde_json::json;

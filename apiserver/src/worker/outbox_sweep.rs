@@ -197,7 +197,7 @@ impl OutboxSweepScheduler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::Workspace;
+    use crate::models::{NewOutboxJobParams, NewWorkspaceParams, OutboxJob, Workspace};
     use crate::repositories::employee::MockEmployeeRepository;
     use crate::repositories::outbox_job_repository::MockOutboxJobRepository;
     use crate::repositories::queue_repository::MockQueueRepository;

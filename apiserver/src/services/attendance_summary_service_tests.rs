@@ -1,4 +1,5 @@
 use super::*;
+use crate::models::*;
 use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
 use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
 use crate::repositories::employee::MockEmployeeRepository;
@@ -290,7 +291,7 @@ mod enter_paper_ot_tests {
         let mut mock = MockAttendanceDailySummaryRepository::new();
         mock.expect_get_summary().returning(|_, _, _| Ok(None));
         mock.expect_upsert_paper_ot()
-            .returning(|_, _, _, _, _, _, _| Ok(create_dummy_summary(0, OtStatus::None)));
+            .returning(|_| Ok(create_dummy_summary(0, OtStatus::None)));
 
         let svc = make_service(mock);
         let token = TenantAuthToken::system_override(Uuid::new_v4());
@@ -320,7 +321,7 @@ mod enter_paper_ot_tests {
         mock.expect_get_summary()
             .returning(|_, _, _| Ok(Some(create_dummy_summary(60, OtStatus::None))));
         mock.expect_upsert_paper_ot()
-            .returning(|_, _, _, _, _, _, _| Ok(create_dummy_summary(0, OtStatus::None)));
+            .returning(|_| Ok(create_dummy_summary(0, OtStatus::None)));
 
         let svc = make_service(mock);
         // claimed_minutes=120 > system_detected=60, but allow_exceed=true
@@ -334,7 +335,7 @@ mod enter_paper_ot_tests {
         let mut mock = MockAttendanceDailySummaryRepository::new();
         mock.expect_get_summary().returning(|_, _, _| Ok(None));
         mock.expect_upsert_paper_ot()
-            .returning(|_, _, _, _, _, _, _| Ok(create_dummy_summary(0, OtStatus::None)));
+            .returning(|_| Ok(create_dummy_summary(0, OtStatus::None)));
 
         let svc = make_service(mock);
         // allow_exceed=false but no existing summary → no validation to fail
@@ -350,7 +351,7 @@ mod enter_paper_ot_tests {
 mod recalculate_daily_summary_leave_tests {
     use super::*;
     use crate::models::enums::LeaveDurationType;
-    use crate::models::{LeaveRequest, LeaveStatus, NewLeaveRequestParams, TimeEntry, Workspace};
+    use crate::models::{LeaveRequest, LeaveStatus, TimeEntry, Workspace};
     use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
     use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
     use crate::repositories::employee::MockEmployeeRepository;
@@ -561,7 +562,7 @@ mod recalculate_daily_summary_leave_tests {
         daily_summary_repo
             .expect_upsert_calculated_summary()
             .times(1)
-            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_| Ok(()));
 
         // Construct service
         let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
@@ -739,7 +740,7 @@ mod recalculate_daily_summary_leave_tests {
         daily_summary_repo
             .expect_upsert_calculated_summary()
             .times(1)
-            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_| Ok(()));
 
         let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
             time_entry_repo: Arc::new(time_entry_repo),
@@ -916,7 +917,7 @@ mod recalculate_daily_summary_leave_tests {
         daily_summary_repo
             .expect_upsert_calculated_summary()
             .times(1)
-            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_| Ok(()));
 
         let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
             time_entry_repo: Arc::new(time_entry_repo),
@@ -1047,7 +1048,7 @@ mod recalculate_daily_summary_leave_tests {
         daily_summary_repo
             .expect_upsert_calculated_summary()
             .times(1)
-            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_| Ok(()));
 
         let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
             time_entry_repo: Arc::new(time_entry_repo),
@@ -1203,7 +1204,7 @@ mod recalculate_daily_summary_leave_tests {
         daily_summary_repo
             .expect_upsert_calculated_summary()
             .times(1)
-            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_| Ok(()));
 
         let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
             time_entry_repo: Arc::new(time_entry_repo),
@@ -1498,8 +1499,8 @@ mod persist_workbuckets_tests {
         daily_summary_repo
             .expect_upsert_calculated_summary()
             .times(1)
-            .withf(|_, _, _, _, _, _, _, _, _, is_we, _, _, _| !is_we)
-            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+            .withf(|args: &UpsertCalculatedSummaryArgs| !args.is_weekend)
+            .returning(|_| Ok(()));
 
         let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
             time_entry_repo: Arc::new(time_entry_repo),
@@ -1621,8 +1622,8 @@ mod persist_workbuckets_tests {
         daily_summary_repo
             .expect_upsert_calculated_summary()
             .times(1)
-            .withf(|_, _, _, _, _, _, _, _, _, is_we, _, _, _| *is_we)
-            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+            .withf(|args: &UpsertCalculatedSummaryArgs| args.is_weekend)
+            .returning(|_| Ok(()));
 
         let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
             time_entry_repo: Arc::new(time_entry_repo),
@@ -1844,18 +1845,18 @@ mod pure_helpers_tests {
         };
         let catalog = std::collections::HashMap::new();
 
-        let result = AttendanceSummaryService::compute_single_day(
-            dummy_date(),
-            &schedule,
-            &[],
-            &attendance_rules,
-            &[],
-            &catalog,
-            EarlyArrivalStrategy::Block,
+        let result = AttendanceSummaryService::compute_single_day(ComputeSingleDayParams {
+            date: dummy_date(),
+            daily_schedule: &schedule,
+            day_entries: &[],
+            attendance_rules: &attendance_rules,
+            conditions: &[],
+            catalog: &catalog,
+            base_early_arrival_strategy: EarlyArrivalStrategy::Block,
             tz,
-            None,
-            &[],
-        );
+            filtered_holiday: None,
+            existing_summaries: &[],
+        });
 
         assert_eq!(result.date, dummy_date());
         assert_eq!(result.actual_work_minutes, 0);
@@ -1897,18 +1898,18 @@ mod pure_helpers_tests {
         let catalog = std::collections::HashMap::new();
         let holiday = make_holiday(50);
 
-        let result = AttendanceSummaryService::compute_single_day(
-            dummy_date(),
-            &schedule,
-            &[],
-            &attendance_rules,
-            &[],
-            &catalog,
-            EarlyArrivalStrategy::Block,
+        let result = AttendanceSummaryService::compute_single_day(ComputeSingleDayParams {
+            date: dummy_date(),
+            daily_schedule: &schedule,
+            day_entries: &[],
+            attendance_rules: &attendance_rules,
+            conditions: &[],
+            catalog: &catalog,
+            base_early_arrival_strategy: EarlyArrivalStrategy::Block,
             tz,
-            Some(&holiday),
-            &[],
-        );
+            filtered_holiday: Some(&holiday),
+            existing_summaries: &[],
+        });
 
         assert!(result.is_holiday);
         assert_eq!(result.holiday_name, Some("Test Holiday".to_string()));
@@ -1925,7 +1926,7 @@ mod compute_execute_plan_tests {
 
     use chrono::Utc;
     use crate::models::enums::{LeaveDurationType, LeaveStatus};
-    use crate::models::{LeaveRequest, NewLeaveRequestParams, TimeEntry, Workspace};
+    use crate::models::{LeaveRequest, TimeEntry, Workspace};
     use crate::services::attendance_summary_service::DailyRecalculationPlan;
 
     /// Helper: create a minimal DailyRecalculationPlan for testing execute.
@@ -2178,7 +2179,7 @@ mod compute_execute_plan_tests {
         daily_summary_repo
             .expect_upsert_calculated_summary()
             .times(1)
-            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_| Ok(()));
 
         let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
             time_entry_repo: Arc::new(MockTimeEntryRepository::new()),
@@ -2220,7 +2221,7 @@ mod compute_execute_plan_tests {
         daily_summary_repo
             .expect_upsert_calculated_summary()
             .times(1)
-            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_| Ok(()));
 
         let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
             time_entry_repo: Arc::new(MockTimeEntryRepository::new()),

@@ -414,7 +414,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
     async fn persist_accrual(
         &self,
-        params: PersistAccrualParams<'_>,
+        params: PersistAccrualParams,
     ) -> Result<Option<LeaveAccrualLog>, AppError> {
         let PersistAccrualParams {
             auth_token,
@@ -428,7 +428,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         } = params;
         let mut conn = self
             .diesel_pools
-            .tenant_transaction_conn(auth_token)
+            .tenant_transaction_conn(&auth_token)
             .await?;
 
         use rust_decimal::prelude::FromPrimitive;
@@ -551,7 +551,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
     async fn persist_accruals_batch(
         &self,
-        params: PersistAccrualsBatchParams<'_>,
+        params: PersistAccrualsBatchParams,
     ) -> Result<Vec<LeaveAccrualLog>, AppError> {
         let PersistAccrualsBatchParams {
             auth_token,
@@ -565,7 +565,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
         let mut conn = self
             .diesel_pools
-            .tenant_transaction_conn(auth_token)
+            .tenant_transaction_conn(&auth_token)
             .await?;
 
         // Clone data into owned structures for the async move block
@@ -787,7 +787,7 @@ mod tests {
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(ws_id);
         let err = repo
             .persist_accrual(PersistAccrualParams {
-                auth_token: &auth_token,
+                auth_token: auth_token.clone(),
                 workspace_id: ws_id,
                 employment_id: emp_id,
                 assignment_id: Uuid::new_v4(),

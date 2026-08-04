@@ -282,6 +282,7 @@ impl TimeTrackingService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::*;
     use crate::diesel_pool::TenantAuthToken;
     use crate::models::{Employment, TimeEntry, UpdateTimeEntryRequest};
     use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;

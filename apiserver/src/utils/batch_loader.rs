@@ -61,6 +61,7 @@ impl BatchLoader {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::*;
     use crate::repositories::user_repository::MockUserRepository;
 
     #[tokio::test]

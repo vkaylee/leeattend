@@ -96,6 +96,7 @@ impl ConfigCache {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::*;
     use crate::repositories::cache_repository::MockCacheRepository;
     use crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository;
     use chrono::Utc;

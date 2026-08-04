@@ -106,6 +106,7 @@ mod tests {
     #[tokio::test]
     async fn test_log_ingestion_handler_with_mocks() {
         use crate::models::Employee;
+use crate::models::{NewEmploymentParams, NewWorkspaceParams};
         use crate::worker::test_utils::MockWorkerDepsBuilder;
 
         let ws_id = Uuid::new_v4();
@@ -216,7 +217,7 @@ mod tests {
         let mut daily_summary_repo = crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository::new();
         daily_summary_repo
             .expect_upsert_calculated_summary()
-            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_| Ok(()));
 
         // Mock Employment repo to return the employment for the punch date
         let mut employment_repo =

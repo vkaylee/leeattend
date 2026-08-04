@@ -1,7 +1,7 @@
 use super::*;
 use crate::models::{
-    Employee, EmployeeLeaveBalance, LeaveRequest, NewLeaveRequestParams, ShiftRoster,
-    WorkspaceLeaveBalance,
+    Employee, EmployeeLeaveBalance, LeaveRequest, NewEmploymentParams, NewLeaveRequestParams,
+    NewWorkspaceConfigEntryParams, ShiftRoster, WorkspaceLeaveBalance,
 };
 use crate::repositories::leave_accrual_log_repository::{ExistingAccrualLog, LeaveHistoryLogItem};
 use crate::repositories::leave_request_repository::{LeaveBreakdown, LeaveHistoryRequestItem};
@@ -451,7 +451,7 @@ impl crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepositor
 
     async fn persist_accrual(
         &self,
-        _params: crate::repositories::leave_accrual_log_repository::PersistAccrualParams<'_>,
+        _params: crate::repositories::leave_accrual_log_repository::PersistAccrualParams,
     ) -> Result<Option<crate::models::LeaveAccrualLog>, AppError> {
         Ok(None)
     }
@@ -516,7 +516,7 @@ impl crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepositor
     }
     async fn persist_accruals_batch(
         &self,
-        _params: crate::repositories::leave_accrual_log_repository::PersistAccrualsBatchParams<'_>,
+        _params: crate::repositories::leave_accrual_log_repository::PersistAccrualsBatchParams,
     ) -> Result<Vec<crate::models::LeaveAccrualLog>, AppError> {
         Ok(vec![])
     }

@@ -1,5 +1,6 @@
 use super::super::*;
 use crate::models::DailyAttendanceReport;
+use crate::models::{NewEffectiveScheduleParams, NewTimeEntryParams};
 use crate::services::attendance_utils::AttendanceStatus;
 
 #[tokio::test]

@@ -174,6 +174,7 @@ mod tests {
     use super::*;
     use crate::queue::{HousekeepingPayload, JobPayload, JobPriority, TaskType};
     use crate::worker::test_utils::MockWorkerDepsBuilder;
+use crate::models::{NewWorkspaceParams};
     use uuid::Uuid;
 
     #[test]

@@ -187,6 +187,10 @@ impl AuthService {
 
         let access_token = Self::generate_token(user.id(), secret, 15)?; // 15 minutes access (per access-control.md §3)
 
+        // Fetch all response data before mutating the refresh session. A role
+        // lookup failure must not invalidate the only refresh cookie.
+        let system_roles = self.user_repo.get_system_roles_for_user(user.id()).await?;
+
         // Store the old refresh token in Redis for reuse detection before rotating
         if let Some(redis_pool) = &self.redis_pool {
             let key = format!("jwt:rotated:{refresh_token}");
@@ -197,14 +201,11 @@ impl AuthService {
                 .await;
         }
 
-        // Rotate refresh token
+        // Rotate refresh token only after all fallible reads succeed.
         let new_refresh_token = Uuid::new_v4().to_string();
         self.session_repo
             .rotate_refresh_token(session.id, &new_refresh_token)
             .await?;
-
-        // Fetch system-level roles for this user
-        let system_roles = self.user_repo.get_system_roles_for_user(user.id()).await?;
 
         Ok(AuthResponse {
             access_token,

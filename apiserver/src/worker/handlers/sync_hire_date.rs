@@ -152,7 +152,7 @@ impl SyncHireDateHandler {
 mod tests {
     use super::*;
     use crate::models::enums::{ContractStatus, ContractType};
-    use crate::models::{contract::EmployeeContract, contract::NewEmployeeContractParams, Employee};
+    use crate::models::{Employee, NewEmploymentParams, contract::EmployeeContract, contract::NewEmployeeContractParams};
     use crate::queue::{JobPayload, SyncHireDatePayload, TaskType};
     use crate::repositories::employee::MockEmployeeRepository;
     use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;

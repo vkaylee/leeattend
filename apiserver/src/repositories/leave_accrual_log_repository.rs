@@ -10,8 +10,8 @@ use crate::models::LeaveAccrualLog;
 // Params structs
 // ---------------------------------------------------------------------------
 
-pub struct PersistAccrualParams<'a> {
-    pub auth_token: &'a crate::diesel_pool::TenantAuthToken,
+pub struct PersistAccrualParams {
+    pub auth_token: crate::diesel_pool::TenantAuthToken,
     pub workspace_id: Uuid,
     pub employment_id: Uuid,
     pub assignment_id: Uuid,
@@ -21,10 +21,10 @@ pub struct PersistAccrualParams<'a> {
     pub force: bool,
 }
 
-pub struct PersistAccrualsBatchParams<'a> {
-    pub auth_token: &'a crate::diesel_pool::TenantAuthToken,
+pub struct PersistAccrualsBatchParams {
+    pub auth_token: crate::diesel_pool::TenantAuthToken,
     pub workspace_id: Uuid,
-    pub entries: &'a [AccrualBatchEntry],
+    pub entries: Vec<AccrualBatchEntry>,
     pub force: bool,
 }
 
@@ -107,14 +107,14 @@ pub trait LeaveAccrualLogRepository: Send + Sync {
     /// Atomically find, update/insert log and adjust the balance
     async fn persist_accrual(
         &self,
-        params: PersistAccrualParams<'_>,
+        params: PersistAccrualParams,
     ) -> Result<Option<LeaveAccrualLog>, AppError>;
 
     /// Batch persist multiple accrual entries in a single transaction.
     /// Eliminates N+1 writes by processing all entries atomically.
     async fn persist_accruals_batch(
         &self,
-        params: PersistAccrualsBatchParams<'_>,
+        params: PersistAccrualsBatchParams,
     ) -> Result<Vec<LeaveAccrualLog>, AppError>;
 }
 

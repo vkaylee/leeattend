@@ -222,9 +222,9 @@ impl LeaveAccrualService {
         let all_logs = self
             .accrual_log_repo
             .persist_accruals_batch(PersistAccrualsBatchParams {
-                auth_token: &auth_token,
+                auth_token,
                 workspace_id,
-                entries: &batch_entries,
+                entries: batch_entries,
                 force,
             })
             .await?;

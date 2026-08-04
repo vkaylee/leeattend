@@ -379,27 +379,27 @@ mod tests {
 
     #[test]
     fn test_effective_schedule_serialization() {
-        let schedule = EffectiveSchedule::new(
-            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-            Some(Uuid::new_v4()),
-            "roster".to_string(),
-            Some("Morning Shift".to_string()),
-            Some("M".to_string()),
-            NaiveTime::from_hms_opt(8, 0, 0),
-            NaiveTime::from_hms_opt(17, 0, 0),
-            Some(60),
-            None,
-            None,
-            Some(true),
-            None,
-            None,
-            None,
-            None,
-            vec![],
-            false,
-            false,
-            None,
-        );
+        let schedule = EffectiveSchedule::new(NewEffectiveScheduleParams {
+            date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            shift_id: Some(Uuid::new_v4()),
+            source: "roster".to_string(),
+            shift_name: Some("Morning Shift".to_string()),
+            shift_symbol: Some("M".to_string()),
+            start_time: NaiveTime::from_hms_opt(8, 0, 0),
+            end_time: NaiveTime::from_hms_opt(17, 0, 0),
+            break_duration_minutes: Some(60),
+            break_start: None,
+            break_end: None,
+            is_break_auto_deduct: Some(true),
+            early_punch_in_grace_period_minutes: None,
+            allow_early_ot: None,
+            break_is_overtime: None,
+            max_early_ot_minutes: None,
+            traces: vec![],
+            is_holiday: false,
+            is_holiday_paid: false,
+            holiday_name: None,
+        });
 
         let json = serde_json::to_string(&schedule).unwrap();
         assert!(json.contains("Morning Shift"));

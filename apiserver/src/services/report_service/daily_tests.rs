@@ -6,6 +6,7 @@
 
 use super::ReportExtras;
 use crate::models::DailyAttendanceReport;
+use crate::models::{NewEmploymentParams, NewTimeEntryParams};
 use chrono::{NaiveDate, NaiveTime, TimeZone, Utc};
 use chrono_tz::Tz;
 use std::collections::HashMap;

@@ -332,6 +332,7 @@ impl LeaveImportChunkHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::*;
     use crate::queue::{JobPriority, LeaveImportPayload, TaskType};
     use crate::worker::test_utils::MockWorkerDepsBuilder;
 

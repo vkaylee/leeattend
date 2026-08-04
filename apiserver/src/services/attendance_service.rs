@@ -593,7 +593,7 @@ fn shift_naive_to_dt(
 mod tests {
     use super::*;
     use crate::models::EarlyArrivalStrategy;
-    use crate::models::{EffectiveSchedule, PolicyRules, RoundingPolicy, TimeEntry};
+    use crate::models::{EffectiveSchedule, NewEffectiveScheduleParams, NewTimeEntryParams, PolicyRules, RoundingPolicy, TimeEntry};
     use crate::services::attendance_calculator::{
         DailyCalcInput, OtAggregationMode, SegmentCalcResult, WorkBuckets,
     };

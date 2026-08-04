@@ -45,6 +45,7 @@ pub fn build_segments(ctx: &PayrollContext) -> Vec<(NaiveDate, NaiveDate)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::*;
     use chrono::Utc;
     use rust_decimal::Decimal;
     use std::collections::HashMap;

@@ -3,7 +3,7 @@ use crate::cache::{RosterData, RosterShift};
 use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
 use crate::models::enums::LogSource;
-use crate::models::{NewRawAttendanceLogParams, RawAttendanceLog, TimeEntry};
+use crate::models::{NewEffectiveScheduleParams, NewRawAttendanceLogParams, NewTimeEntryParams, RawAttendanceLog, TimeEntry};
 use crate::services::pairing::service_helpers::retry_with_log;
 use chrono::{NaiveDate, NaiveTime, TimeZone, Timelike, Utc};
 use std::sync::Arc;

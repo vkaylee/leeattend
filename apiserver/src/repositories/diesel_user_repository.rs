@@ -291,6 +291,7 @@ impl UserRepository for DieselUserRepository {
         full_name: Option<String>,
         avatar_url: Option<String>,
         bio: Option<String>,
+        preferred_language: Option<String>,
     ) -> Result<User, AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -305,6 +306,7 @@ impl UserRepository for DieselUserRepository {
                 full_name.map(|f| users::full_name.eq(f)),
                 avatar_url.map(|a| users::avatar_url.eq(a)),
                 bio.map(|b| users::bio.eq(b)),
+                preferred_language.map(|language| users::preferred_language.eq(language)),
             ))
             .get_result::<UserEntity>(&mut *conn)
             .await

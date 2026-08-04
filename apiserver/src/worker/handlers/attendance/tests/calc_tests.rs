@@ -8,6 +8,7 @@ async fn test_attendance_handler_calculate_summary_with_data() {
     use crate::repositories::shift_repository::MockShiftRepository;
     use crate::repositories::workspace_repository::MockWorkspaceRepository;
     use crate::worker::test_utils::MockWorkerDepsBuilder;
+use crate::models::{NewEffectiveScheduleParams, NewTimeEntryParams};
     use chrono::{NaiveDate, NaiveTime, TimeZone};
     use std::collections::HashMap;
     use std::sync::Arc;

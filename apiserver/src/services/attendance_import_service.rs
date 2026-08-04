@@ -1386,6 +1386,7 @@ impl AttendanceImportService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::*;
     use crate::repositories::attendance_adjustment_repository::MockAttendanceAdjustmentRepository;
     use crate::repositories::department_repository::MockDepartmentRepository;
     use crate::repositories::employee::MockEmployeeRepository;
@@ -1817,7 +1818,7 @@ mod tests {
     /// no orphaned Pending records are left behind.
     #[tokio::test]
     async fn finalize_adjustments_compensation_on_partial_failure() {
-        use crate::models::{AttendanceAdjustmentRequest, NewAttendanceAdjustmentRequestParams};
+        use crate::models::{AttendanceAdjustmentRequest};
         use std::sync::atomic::{AtomicUsize, Ordering};
 
         let ws_id = Uuid::new_v4();

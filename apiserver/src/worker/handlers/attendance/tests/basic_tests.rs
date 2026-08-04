@@ -1,5 +1,6 @@
 use super::super::*;
 use crate::models::DailyAttendanceReport;
+use crate::models::{NewTimeEntryParams};
 use crate::services::attendance_utils::{
     determine_daily_status, AttendanceStatus, DailyStatusInput, HolidayKind,
 };

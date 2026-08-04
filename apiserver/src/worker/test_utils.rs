@@ -186,6 +186,7 @@ impl LeavePolicyRepository for DummyLeavePolicyRepository {
     }
 }
 use crate::repositories::user_repository::MockUserRepository;
+use crate::models::{NewEmploymentParams};
 
 pub struct MockWorkerDepsBuilder {
     pub time_entry_repo: MockTimeEntryRepository,

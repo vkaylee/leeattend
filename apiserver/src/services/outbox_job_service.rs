@@ -100,6 +100,7 @@ impl OutboxJobService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::*;
     use crate::repositories::outbox_job_repository::MockOutboxJobRepository;
     use serde_json::json;
 

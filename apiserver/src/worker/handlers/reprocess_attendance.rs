@@ -151,6 +151,7 @@ mod tests {
     use crate::repositories::roster::MockRosterRepository;
     use crate::repositories::time_entry_repository::MockTimeEntryRepository;
     use crate::worker::test_utils::MockWorkerDepsBuilder;
+use crate::models::{NewEffectiveScheduleParams, NewEmploymentParams, NewWorkspaceParams};
     use chrono::{NaiveDate, Utc};
     use uuid::Uuid;
 
@@ -186,7 +187,7 @@ mod tests {
         let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
         daily_summary_repo
             .expect_upsert_calculated_summary()
-            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_| Ok(()));
         daily_summary_repo
             .expect_get_summary()
             .returning(|_, _, _| Ok(None));
@@ -525,7 +526,7 @@ mod tests {
         let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
         daily_summary_repo
             .expect_upsert_calculated_summary()
-            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_| Ok(()));
         daily_summary_repo
             .expect_get_summary()
             .returning(|_, _, _| Ok(None));
@@ -676,7 +677,7 @@ mod tests {
         let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
         daily_summary_repo
             .expect_upsert_calculated_summary()
-            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_| Ok(()));
         daily_summary_repo
             .expect_get_summary()
             .returning(|_, _, _| Ok(None));

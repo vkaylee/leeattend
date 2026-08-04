@@ -558,7 +558,13 @@ pub async fn update_me(
     let user = state
         .core()
         .user_repo()
-        .update_user_profile(user_id, req.full_name, req.avatar_url, req.bio)
+        .update_user_profile(
+            user_id,
+            req.full_name,
+            req.avatar_url,
+            req.bio,
+            req.preferred_language,
+        )
         .await?;
 
     Ok(Json(UserResponse {

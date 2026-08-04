@@ -200,7 +200,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_expiring_contracts_handler_success() {
-        use crate::models::{contract::EmployeeContract, contract::NewEmployeeContractParams, Employee, Workspace};
+        use crate::models::{Employee, NewEmploymentParams, NewWorkspaceParams, Workspace, contract::EmployeeContract, contract::NewEmployeeContractParams};
         use crate::repositories::employee::MockEmployeeRepository;
         use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
         use crate::repositories::user_repository::MockUserRepository;

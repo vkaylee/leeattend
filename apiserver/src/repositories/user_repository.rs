@@ -29,6 +29,7 @@ pub trait UserRepository: Send + Sync {
         full_name: Option<String>,
         avatar_url: Option<String>,
         bio: Option<String>,
+        preferred_language: Option<String>,
     ) -> Result<User, AppError>;
     async fn get_workspace_users(&self, workspace_id: Uuid) -> Result<Vec<User>, AppError>;
     async fn get_dashboard_preferences(

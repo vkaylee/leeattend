@@ -3,8 +3,7 @@ use crate::errors::AppError;
 use crate::models::{
     ChecklistItemStatus, ChecklistStatus, CreateLifecycleChecklistTemplateItemRequest,
     CreateLifecycleChecklistTemplateRequest, LifecycleChecklistItem, LifecycleChecklistResponse,
-    LifecycleChecklistTemplate, LifecycleChecklistTemplateItem, LifecycleChecklistType,
-    PendingTaskResponse, UpdateLifecycleChecklistTemplateItemRequest,
+    LifecycleChecklistTemplate, LifecycleChecklistTemplateItem, LifecycleChecklistType, PendingTaskResponse, UpdateLifecycleChecklistTemplateItemRequest,
     UpdateLifecycleChecklistTemplateRequest,
 };
 use crate::repositories::employee::EmployeeRepository;
@@ -586,6 +585,7 @@ impl LifecycleService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::*;
     use crate::models::{
         ChecklistAssigneeType, ChecklistCategory, ChecklistItemStatus, ChecklistStatus, Employment,
         LifecycleChecklist, LifecycleChecklistItem, LifecycleChecklistTemplate,

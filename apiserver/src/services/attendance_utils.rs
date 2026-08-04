@@ -309,6 +309,7 @@ pub fn group_entries_by_date(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::NewTimeEntryParams;
     use chrono::Timelike;
     use uuid::Uuid;
 
@@ -1124,6 +1125,7 @@ mod tests {
     #[test]
     fn test_group_entries_by_date_positive_offset_next_day() {
         use crate::models::TimeEntry;
+use crate::models::{NewTimeEntryParams};
         use uuid::Uuid;
 
         let tz: Tz = "Asia/Ho_Chi_Minh".parse().expect("valid tz"); // UTC+7

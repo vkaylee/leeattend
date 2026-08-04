@@ -6,8 +6,14 @@ mod tests {
         ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowInstance, ApprovalWorkflowStep,
         ApprovalWorkflowTask, Employee, LeaveRequest, LeaveStatus, NewLeaveRequestParams,
         WorkflowInstanceStepSnapshot, WorkspaceConfigEntry,
+        NewWorkspaceConfigEntryParams,
+        NewWorkspaceParams,
     };
     use crate::repositories::{
+        attendance_daily_summary_repository::{
+            GetSummariesPaginatedArgs, UpsertCalculatedSummaryArgs, UpsertCalculatedSummaryTxArgs,
+            UpsertPaperOtArgs,
+        },
         department_repository::DepartmentRepository,
         leave_request_repository::LeaveRequestRepository,
         overtime_request_repository::OvertimeRequestRepository, ApprovalWorkflowRepository,
@@ -1887,19 +1893,7 @@ mod tests {
 
         async fn upsert_calculated_summary(
             &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _employee_id: Uuid,
-            _date: NaiveDate,
-            _actual_work_minutes: i32,
-            _system_detected_ot_minutes: i32,
-            _standard_minutes: i32,
-            _early_ot_minutes: i32,
-            _late_ot_minutes: i32,
-            _break_ot_minutes: i32,
-            _is_weekend: bool,
-            _new_status: crate::models::OtStatus,
-            _is_holiday: bool,
-            _holiday_name: Option<String>,
+            _args: UpsertCalculatedSummaryArgs,
         ) -> Result<(), AppError> {
             Ok(())
         }
@@ -1916,19 +1910,7 @@ mod tests {
         async fn upsert_calculated_summary_tx(
             &self,
             _conn: &mut diesel_async::AsyncPgConnection,
-            _workspace_id: Uuid,
-            _employee_id: Uuid,
-            _date: NaiveDate,
-            _actual_work_minutes: i32,
-            _system_detected_ot_minutes: i32,
-            _standard_minutes: i32,
-            _early_ot_minutes: i32,
-            _late_ot_minutes: i32,
-            _break_ot_minutes: i32,
-            _is_weekend: bool,
-            _new_status: crate::models::OtStatus,
-            _is_holiday: bool,
-            _holiday_name: Option<String>,
+            _args: UpsertCalculatedSummaryTxArgs,
         ) -> Result<(), AppError> {
             Ok(())
         }
@@ -1968,13 +1950,7 @@ mod tests {
 
         async fn upsert_paper_ot(
             &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _employee_id: Uuid,
-            _date: NaiveDate,
-            _claimed_minutes: i32,
-            _reason: String,
-            _entered_by_user_id: Uuid,
-            _photo_url: Option<String>,
+            _args: UpsertPaperOtArgs,
         ) -> Result<crate::models::AttendanceDailySummary, AppError> {
             unimplemented!()
         }
@@ -2014,13 +1990,7 @@ mod tests {
 
         async fn get_summaries_paginated(
             &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _employee_id: Option<Uuid>,
-            _start_date: NaiveDate,
-            _end_date: NaiveDate,
-            _ot_status: Option<crate::models::OtStatus>,
-            _page: i64,
-            _limit: i64,
+            _args: GetSummariesPaginatedArgs,
         ) -> Result<(Vec<crate::models::AttendanceDailySummary>, usize), AppError> {
             Ok((vec![], 0))
         }

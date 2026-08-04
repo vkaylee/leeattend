@@ -1,5 +1,6 @@
 use super::helpers::{make_service, MockEmployeeRepo};
 use crate::errors::AppError;
+use crate::models::{NewEmploymentParams};
 use chrono::{NaiveDate, Utc};
 use uuid::Uuid;
 

@@ -71,7 +71,7 @@ impl AuditHelper {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::audit::{AuditLog, NewAuditLogParams};
+    use crate::domain::audit::AuditLog;
     use crate::errors::AppError;
     use crate::repositories::audit_log_repository::AuditLogRepository;
     use async_trait::async_trait;

@@ -544,6 +544,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::*;
     use crate::models::{AttendanceImportJob, ImportJobStatus};
     use crate::repositories::import_job_repository::MockImportJobRepository;
     use crate::repositories::queue_repository::MockQueueRepository;

@@ -316,6 +316,7 @@ impl AttendanceMatcherContext {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::NewWorkspaceParams;
     use chrono::Utc;
 
     #[test]

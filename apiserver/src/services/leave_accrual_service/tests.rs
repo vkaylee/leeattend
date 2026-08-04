@@ -1,5 +1,5 @@
 use super::*;
-use crate::models::{AccrualFrequency, LeavePolicyConfig, NewEmployeeContractParams, SeniorityBonus};
+use crate::models::{AccrualFrequency, EmployeeContract, LeavePolicyConfig, NewEmployeeContractParams, NewTimeEntryParams, SeniorityBonus};
 use chrono::NaiveDate;
 use uuid::Uuid;
 

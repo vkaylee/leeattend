@@ -320,6 +320,7 @@ impl EmployeeImportChunkHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::*;
     use crate::queue::{EmployeeImportPayload, JobPriority, TaskType};
     use crate::worker::test_utils::MockWorkerDepsBuilder;
 

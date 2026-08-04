@@ -1,7 +1,7 @@
 use crate::errors::AppError;
 use crate::models::{
-    Department, DepartmentPayrollConfig, EmployeeDepartmentHistory, Notification, RawAttendanceLog,
-    UpdateDepartmentRequest, User,
+    Department, DepartmentPayrollConfig, EmployeeDepartmentHistory, NewUserParams, Notification,
+    RawAttendanceLog, UpdateDepartmentRequest, User,
 };
 use crate::repositories::department_repository::DepartmentRepository;
 use crate::repositories::staging_log_repository::{StagingLog, StagingLogRepository};
@@ -222,6 +222,7 @@ impl UserRepository for NopUserRepo {
         _f: Option<String>,
         _a: Option<String>,
         _b: Option<String>,
+        _preferred_language: Option<String>,
     ) -> Result<User, AppError> {
         unimplemented!()
     }

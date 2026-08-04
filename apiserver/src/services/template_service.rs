@@ -163,6 +163,8 @@ mod tests {
         use crate::models::enums::{ContractStatus, ContractType};
         use crate::models::{
             contract::EmployeeContract, contract::NewEmployeeContractParams, employment::Employment, Employee, Workspace,
+        NewEmploymentParams,
+        NewWorkspaceParams,
         };
         use crate::repositories::employee::MockEmployeeRepository;
         use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;

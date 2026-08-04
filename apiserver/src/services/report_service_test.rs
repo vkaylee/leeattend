@@ -4,9 +4,14 @@ mod tests {
     use crate::models::{
         AssignmentHistory, AttendanceDailySummary, AttendancePolicyVersion, EmployeeDocument,
         EmployeeEmergencyContact, EmployeePayrollConfig, EmployeeProfile, EmployeeSchedule,
-        Holiday, LeaveRequest, LeaveStatus, OtStatus, RecruitmentSource,
+        Holiday, LeaveRequest, LeaveStatus, NewEffectiveScheduleParams, NewEmploymentParams,
+        NewTimeEntryParams, NewWorkspaceParams, OtStatus, RecruitmentSource,
         RecruitmentSourceBreakdown, RosterItem, ScheduleTrace, ShiftRoster, TimeEntry,
         TimeEntryWithEmployee, TurnoverAnalytics, WorkingCondition, Workspace,
+    };
+    use crate::repositories::attendance_daily_summary_repository::{
+        GetSummariesPaginatedArgs, UpsertCalculatedSummaryArgs, UpsertCalculatedSummaryTxArgs,
+        UpsertPaperOtArgs,
     };
     use crate::repositories::leave_request_repository::{LeaveBreakdown, LeaveHistoryRequestItem};
     use crate::services::report_service::{AttendanceReportArgs, ReportService, ReportServiceArgs};
@@ -1252,19 +1257,7 @@ mod tests {
         async fn upsert_calculated_summary_tx(
             &self,
             _conn: &mut diesel_async::AsyncPgConnection,
-            _workspace_id: Uuid,
-            _e: Uuid,
-            _d: NaiveDate,
-            _a: i32,
-            _s: i32,
-            _std: i32,
-            _early: i32,
-            _late: i32,
-            _break: i32,
-            _wknd: bool,
-            _n: OtStatus,
-            _i: bool,
-            _h: Option<String>,
+            _args: UpsertCalculatedSummaryTxArgs,
         ) -> Result<(), AppError> {
             unimplemented!()
         }
@@ -1294,19 +1287,7 @@ mod tests {
         }
         async fn upsert_calculated_summary(
             &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
-            _d: NaiveDate,
-            _a: i32,
-            _s: i32,
-            _std: i32,
-            _early: i32,
-            _late: i32,
-            _break: i32,
-            _wknd: bool,
-            _n: OtStatus,
-            _i: bool,
-            _h: Option<String>,
+            _args: UpsertCalculatedSummaryArgs,
         ) -> Result<(), AppError> {
             unimplemented!()
         }
@@ -1341,13 +1322,7 @@ mod tests {
         }
         async fn upsert_paper_ot(
             &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
-            _d: NaiveDate,
-            _c: i32,
-            _r: String,
-            _en: Uuid,
-            _p: Option<String>,
+            _args: UpsertPaperOtArgs,
         ) -> Result<AttendanceDailySummary, AppError> {
             unimplemented!()
         }
@@ -1381,13 +1356,7 @@ mod tests {
         }
         async fn get_summaries_paginated(
             &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Option<Uuid>,
-            _s: NaiveDate,
-            _en: NaiveDate,
-            _ot_status: Option<OtStatus>,
-            _page: i64,
-            _limit: i64,
+            _args: GetSummariesPaginatedArgs,
         ) -> Result<(Vec<AttendanceDailySummary>, usize), AppError> {
             unimplemented!()
         }
@@ -2519,19 +2488,7 @@ mod tests {
         async fn upsert_calculated_summary_tx(
             &self,
             _conn: &mut diesel_async::AsyncPgConnection,
-            _workspace_id: Uuid,
-            _e: Uuid,
-            _d: NaiveDate,
-            _a: i32,
-            _s: i32,
-            _std: i32,
-            _early: i32,
-            _late: i32,
-            _break: i32,
-            _wknd: bool,
-            _n: OtStatus,
-            _i: bool,
-            _h: Option<String>,
+            _args: UpsertCalculatedSummaryTxArgs,
         ) -> Result<(), AppError> {
             unimplemented!()
         }
@@ -2561,19 +2518,7 @@ mod tests {
         }
         async fn upsert_calculated_summary(
             &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
-            _d: NaiveDate,
-            _a: i32,
-            _s: i32,
-            _std: i32,
-            _early: i32,
-            _late: i32,
-            _break: i32,
-            _wknd: bool,
-            _n: OtStatus,
-            _i: bool,
-            _h: Option<String>,
+            _args: UpsertCalculatedSummaryArgs,
         ) -> Result<(), AppError> {
             unimplemented!()
         }
@@ -2608,13 +2553,7 @@ mod tests {
         }
         async fn upsert_paper_ot(
             &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
-            _d: NaiveDate,
-            _c: i32,
-            _r: String,
-            _en: Uuid,
-            _p: Option<String>,
+            _args: UpsertPaperOtArgs,
         ) -> Result<AttendanceDailySummary, AppError> {
             unimplemented!()
         }
@@ -2648,13 +2587,7 @@ mod tests {
         }
         async fn get_summaries_paginated(
             &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Option<Uuid>,
-            _s: NaiveDate,
-            _en: NaiveDate,
-            _ot_status: Option<OtStatus>,
-            _page: i64,
-            _limit: i64,
+            _args: GetSummariesPaginatedArgs,
         ) -> Result<(Vec<AttendanceDailySummary>, usize), AppError> {
             unimplemented!()
         }

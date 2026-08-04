@@ -489,6 +489,7 @@ impl ReportCoordinator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::*;
 
     #[test]
     fn test_batch_splitting() {

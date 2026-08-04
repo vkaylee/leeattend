@@ -214,6 +214,7 @@ impl OvertimeEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::*;
     use chrono::NaiveTime;
     use uuid::Uuid;
 

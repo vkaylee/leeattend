@@ -350,6 +350,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
 mod tests {
     use super::*;
     use crate::diesel_pool::{DieselPools, TenantAuthToken};
+    use crate::models::NewOvertimeRuleParams;
     use chrono::{NaiveDate, NaiveTime};
     use uuid::Uuid;
 

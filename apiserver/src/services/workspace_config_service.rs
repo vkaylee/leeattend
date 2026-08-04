@@ -292,6 +292,7 @@ impl WorkspaceConfigService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::*;
     use crate::diesel_pool::TenantAuthToken;
     use crate::errors::AppError;
     use async_trait::async_trait;

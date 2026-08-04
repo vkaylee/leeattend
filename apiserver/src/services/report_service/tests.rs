@@ -296,7 +296,7 @@ fn test_shift_type_filter_handles_null_shift_name() {
 
 #[cfg(test)]
 mod segment_break_split_tests {
-    use crate::models::{AttendanceRules, ResolvedSegment, TimeEntry};
+    use crate::models::{AttendanceRules, NewTimeEntryParams, ResolvedSegment, TimeEntry};
     use crate::services::pairing::types::EntryType;
     use crate::services::report_service::daily::build_segment_calc_inputs;
     use chrono::{NaiveDate, NaiveTime, TimeZone, Utc};

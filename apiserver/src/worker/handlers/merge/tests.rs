@@ -1,6 +1,6 @@
 use super::*;
 use crate::diesel_pool::TenantAuthToken;
-use crate::models::{AttendanceSummary, DailyAttendanceReport};
+use crate::models::{AttendanceSummary, DailyAttendanceReport, NewWorkspaceParams};
 use chrono::{NaiveDate, Utc};
 use uuid::Uuid;
 

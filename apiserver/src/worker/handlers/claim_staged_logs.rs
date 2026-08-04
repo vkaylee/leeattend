@@ -133,6 +133,7 @@ mod tests {
         use crate::repositories::staging_log_repository::MockStagingLogRepository;
         use crate::repositories::staging_log_repository::StagingLog;
         use crate::worker::test_utils::MockWorkerDepsBuilder;
+use crate::models::{NewWorkspaceParams};
         use chrono::Utc;
 
         let ws_id = Uuid::new_v4();
@@ -207,7 +208,7 @@ mod tests {
         let mut daily_summary_repo = crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository::new();
         daily_summary_repo
             .expect_upsert_calculated_summary()
-            .returning(|_, _, _, _, _, _, _, _, _, _, _, _, _| Ok(()));
+            .returning(|_| Ok(()));
 
         let mut builder = MockWorkerDepsBuilder::new();
         builder
