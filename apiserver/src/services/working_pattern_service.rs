@@ -550,19 +550,12 @@ mod tests {
             p.name = name.to_string();
             Ok(p)
         }
-        #[allow(clippy::too_many_arguments)]
         async fn update_pattern_with_details(
             &self,
-            _w: Uuid,
-            _pid: Uuid,
-            name: &str,
-            _d: Option<&str>,
-            _pt: &str,
-            _cl: Option<i32>,
-            _det: Vec<(i32, Option<Uuid>)>,
+            args: crate::repositories::working_pattern_repository::UpdatePatternWithDetailsArgs<'_>,
         ) -> Result<WorkingPattern, AppError> {
             let mut p = self.pattern.lock().unwrap().clone();
-            p.name = name.to_string();
+            p.name = args.name.to_string();
             Ok(p)
         }
         async fn get_patterns(&self, _w: Uuid) -> Result<Vec<WorkingPattern>, AppError> {
