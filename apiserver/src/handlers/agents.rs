@@ -22,6 +22,7 @@ use crate::models::{
     AgentStatus, AuthorizedAgent, CreateAuthorizedAgentRequest, CreateDeviceRequest, Device,
     TrustAgentRequest, UpdateAuthorizedAgentRequest, UpdateDeviceRequest,
 };
+use crate::repositories::agent_repository::{CreateAuthorizedAgentArgs, CreateDeviceArgs, UpdateDeviceArgs};
 use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
@@ -428,17 +429,17 @@ pub async fn create_device(
     state
         .agents()
         .repo()
-        .create_device(
+        .create_device(CreateDeviceArgs {
             id,
-            &req.agent_id,
-            &req.name,
-            &req.ip,
+            agent_id: &req.agent_id,
+            name: &req.name,
+            ip: &req.ip,
             port,
-            &ctx.auth_token,
-            &req.brand.unwrap_or_else(|| "zkteco".to_string()),
-            req.password.as_deref().unwrap_or(""),
-            &req.timezone.unwrap_or_else(|| "UTC".to_string()),
-        )
+            auth_token: &ctx.auth_token,
+            brand: &req.brand.unwrap_or_else(|| "zkteco".to_string()),
+            password: req.password.as_deref().unwrap_or(""),
+            timezone: &req.timezone.unwrap_or_else(|| "UTC".to_string()),
+        })
         .await?;
 
     let _ = state
@@ -492,17 +493,17 @@ pub async fn update_device(
     state
         .agents()
         .repo()
-        .update_device(
+        .update_device(UpdateDeviceArgs {
             id,
-            &ctx.auth_token,
-            &name,
-            &ip,
+            auth_token: &ctx.auth_token,
+            name: &name,
+            ip: &ip,
             port,
             is_enabled,
-            &brand,
-            password.as_deref(),
-            &timezone,
-        )
+            brand: &brand,
+            password: password.as_deref(),
+            timezone: &timezone,
+        })
         .await?;
 
     let _ = state
@@ -616,15 +617,15 @@ pub async fn create_authorized_agent(
     state
         .agents()
         .repo()
-        .create_authorized_agent(
-            &req.id,
-            &req.name,
-            &req.token,
-            &ctx.auth_token,
-            req.max_concurrent_workers.unwrap_or(2),
-            req.success_cooldown_secs.unwrap_or(300),
-            req.retention_days.unwrap_or(365),
-        )
+        .create_authorized_agent(CreateAuthorizedAgentArgs {
+            id: &req.id,
+            name: &req.name,
+            token: &req.token,
+            auth_token: &ctx.auth_token,
+            max_concurrent_workers: req.max_concurrent_workers.unwrap_or(2),
+            success_cooldown_secs: req.success_cooldown_secs.unwrap_or(300),
+            retention_days: req.retention_days.unwrap_or(365),
+        })
         .await?;
 
     Ok((

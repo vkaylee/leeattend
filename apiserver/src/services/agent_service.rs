@@ -98,6 +98,7 @@ impl AgentService {
 mod tests {
     use super::*;
     use crate::models::{AuthorizedAgent, Device};
+    use crate::repositories::agent_repository::{CreateAuthorizedAgentArgs, CreateDeviceArgs, UpdateDeviceArgs};
     use async_trait::async_trait;
     use std::sync::Arc;
     use uuid::Uuid;
@@ -175,13 +176,7 @@ mod tests {
 
         async fn create_authorized_agent(
             &self,
-            _id: &str,
-            _name: &str,
-            _token: &str,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _max_concurrent_workers: i32,
-            _success_cooldown_secs: i32,
-            _retention_days: i32,
+            _args: CreateAuthorizedAgentArgs<'_>,
         ) -> Result<(), crate::errors::AppError> {
             Ok(())
         }
@@ -211,15 +206,7 @@ mod tests {
 
         async fn create_device(
             &self,
-            _id: Uuid,
-            _agent_id: &str,
-            _name: &str,
-            _ip: &str,
-            _port: i32,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _brand: &str,
-            _password: &str,
-            _timezone: &str,
+            _args: CreateDeviceArgs<'_>,
         ) -> Result<(), crate::errors::AppError> {
             Ok(())
         }
@@ -234,15 +221,7 @@ mod tests {
 
         async fn update_device(
             &self,
-            _id: Uuid,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _name: &str,
-            _ip: &str,
-            _port: i32,
-            _is_enabled: bool,
-            _brand: &str,
-            _password: Option<&str>,
-            _timezone: &str,
+            _args: UpdateDeviceArgs<'_>,
         ) -> Result<(), crate::errors::AppError> {
             Ok(())
         }

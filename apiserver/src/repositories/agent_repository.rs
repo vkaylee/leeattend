@@ -4,6 +4,40 @@ use async_trait::async_trait;
 
 use uuid::Uuid;
 
+pub struct CreateAuthorizedAgentArgs<'a> {
+    pub id: &'a str,
+    pub name: &'a str,
+    pub token: &'a str,
+    pub auth_token: &'a crate::diesel_pool::TenantAuthToken,
+    pub max_concurrent_workers: i32,
+    pub success_cooldown_secs: i32,
+    pub retention_days: i32,
+}
+
+pub struct CreateDeviceArgs<'a> {
+    pub id: Uuid,
+    pub agent_id: &'a str,
+    pub name: &'a str,
+    pub ip: &'a str,
+    pub port: i32,
+    pub auth_token: &'a crate::diesel_pool::TenantAuthToken,
+    pub brand: &'a str,
+    pub password: &'a str,
+    pub timezone: &'a str,
+}
+
+pub struct UpdateDeviceArgs<'a> {
+    pub id: Uuid,
+    pub auth_token: &'a crate::diesel_pool::TenantAuthToken,
+    pub name: &'a str,
+    pub ip: &'a str,
+    pub port: i32,
+    pub is_enabled: bool,
+    pub brand: &'a str,
+    pub password: Option<&'a str>,
+    pub timezone: &'a str,
+}
+
 #[async_trait]
 pub trait AgentRepository: Send + Sync {
     async fn find_by_id(&self, id: &str) -> Result<Option<AuthorizedAgent>, AppError>;
@@ -19,16 +53,9 @@ pub trait AgentRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         include_inactive: bool,
     ) -> Result<Vec<AuthorizedAgent>, AppError>;
-    #[allow(clippy::too_many_arguments)]
     async fn create_authorized_agent(
         &self,
-        id: &str,
-        name: &str,
-        token: &str,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        max_concurrent_workers: i32,
-        success_cooldown_secs: i32,
-        retention_days: i32,
+        args: CreateAuthorizedAgentArgs<'_>,
     ) -> Result<(), AppError>;
     async fn agent_exists_in_workspace(
         &self,
@@ -44,36 +71,18 @@ pub trait AgentRepository: Send + Sync {
         agent_ids: &[String],
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<Device>, AppError>;
-    #[allow(clippy::too_many_arguments)]
     async fn create_device(
         &self,
-        id: Uuid,
-        agent_id: &str,
-        name: &str,
-        ip: &str,
-        port: i32,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        brand: &str,
-        password: &str,
-        timezone: &str,
+        args: CreateDeviceArgs<'_>,
     ) -> Result<(), AppError>;
     async fn get_device_by_id(
         &self,
         id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<Device>, AppError>;
-    #[allow(clippy::too_many_arguments)]
     async fn update_device(
         &self,
-        id: Uuid,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        name: &str,
-        ip: &str,
-        port: i32,
-        is_enabled: bool,
-        brand: &str,
-        password: Option<&str>,
-        timezone: &str,
+        args: UpdateDeviceArgs<'_>,
     ) -> Result<(), AppError>;
     async fn get_agent_id_for_device(
         &self,

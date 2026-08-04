@@ -11,6 +11,7 @@ use crate::{
         diesel::agent::{AuthorizedAgentEntity, DeviceEntity, UpdateDieselDevice},
         AuthorizedAgent, Device,
     },
+    repositories::agent_repository::{CreateAuthorizedAgentArgs, CreateDeviceArgs, UpdateDeviceArgs},
     schema::{authorized_agents, devices},
 };
 
@@ -138,13 +139,7 @@ impl AgentRepository for DieselAgentRepository {
 
     async fn create_authorized_agent(
         &self,
-        id: &str,
-        name: &str,
-        token: &str,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        max_concurrent_workers: i32,
-        success_cooldown_secs: i32,
-        retention_days: i32,
+        args: CreateAuthorizedAgentArgs<'_>,
     ) -> Result<(), AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -155,18 +150,18 @@ impl AgentRepository for DieselAgentRepository {
         );
 
         let agent = AuthorizedAgentEntity {
-            id: id.to_string(),
-            name: name.to_string(),
-            token: crate::crypto::hash_agent_token(token),
+            id: args.id.to_string(),
+            name: args.name.to_string(),
+            token: crate::crypto::hash_agent_token(args.token),
             is_trusted: None,
             last_ip: None,
             created_at: Some(Utc::now()),
             is_active: true,
-            workspace_id: auth_token.workspace_id(),
+            workspace_id: args.auth_token.workspace_id(),
             last_seen_at: None,
-            max_concurrent_workers,
-            success_cooldown_secs,
-            retention_days,
+            max_concurrent_workers: args.max_concurrent_workers,
+            success_cooldown_secs: args.success_cooldown_secs,
+            retention_days: args.retention_days,
         };
 
         diesel::insert_into(authorized_agents::table)
@@ -245,34 +240,26 @@ impl AgentRepository for DieselAgentRepository {
 
     async fn create_device(
         &self,
-        id: Uuid,
-        agent_id: &str,
-        name: &str,
-        ip: &str,
-        port: i32,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        brand: &str,
-        password: &str,
-        timezone: &str,
+        args: CreateDeviceArgs<'_>,
     ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .tenant_transaction_conn(auth_token)
+            .tenant_transaction_conn(args.auth_token)
             .await?;
 
         let device = DeviceEntity {
-            id,
-            agent_id: agent_id.to_string(),
-            name: name.to_string(),
-            ip: ip.to_string(),
-            port: Some(port),
+            id: args.id,
+            agent_id: args.agent_id.to_string(),
+            name: args.name.to_string(),
+            ip: args.ip.to_string(),
+            port: Some(args.port),
             is_enabled: Some(true),
             last_status: None,
             created_at: Some(Utc::now()),
-            workspace_id: auth_token.workspace_id(),
-            brand: brand.to_string(),
-            password: Some(password.to_string()),
-            timezone: Some(timezone.to_string()),
+            workspace_id: args.auth_token.workspace_id(),
+            brand: args.brand.to_string(),
+            password: Some(args.password.to_string()),
+            timezone: Some(args.timezone.to_string()),
             location_id: None,
         };
 
@@ -308,31 +295,23 @@ impl AgentRepository for DieselAgentRepository {
 
     async fn update_device(
         &self,
-        id: Uuid,
-        auth_token: &crate::diesel_pool::TenantAuthToken,
-        name: &str,
-        ip: &str,
-        port: i32,
-        is_enabled: bool,
-        brand: &str,
-        password: Option<&str>,
-        timezone: &str,
+        args: UpdateDeviceArgs<'_>,
     ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .tenant_transaction_conn(auth_token)
+            .tenant_transaction_conn(args.auth_token)
             .await?;
 
         // Note: Password update logic. In sqlx it was: password = COALESCE($6, password).
         // Since we use AsChangeset, we can fetch existing if password is None, or we can just fetch and update.
         let mut update_model = UpdateDieselDevice {
-            name: name.to_string(),
-            ip: ip.to_string(),
-            port: Some(port),
-            is_enabled: Some(is_enabled),
-            brand: brand.to_string(),
-            password: password.map(ToString::to_string),
-            timezone: Some(timezone.to_string()),
+            name: args.name.to_string(),
+            ip: args.ip.to_string(),
+            port: Some(args.port),
+            is_enabled: Some(args.is_enabled),
+            brand: args.brand.to_string(),
+            password: args.password.map(ToString::to_string),
+            timezone: Some(args.timezone.to_string()),
             location_id: None,
         };
 
@@ -340,8 +319,8 @@ impl AgentRepository for DieselAgentRepository {
             // Fetch existing password to preserve it
             let existing: Option<String> = devices::table
                 .select(devices::password)
-                .filter(devices::id.eq(id))
-                .filter(devices::workspace_id.eq(auth_token.workspace_id()))
+                .filter(devices::id.eq(args.id))
+                .filter(devices::workspace_id.eq(args.auth_token.workspace_id()))
                 .first(&mut *conn)
                 .await
                 .map_err(AppError::from)?;
@@ -350,8 +329,8 @@ impl AgentRepository for DieselAgentRepository {
 
         diesel::update(
             devices::table
-                .filter(devices::id.eq(id))
-                .filter(devices::workspace_id.eq(auth_token.workspace_id())),
+                .filter(devices::id.eq(args.id))
+                .filter(devices::workspace_id.eq(args.auth_token.workspace_id())),
         )
         .set(&update_model)
         .execute(&mut *conn)
