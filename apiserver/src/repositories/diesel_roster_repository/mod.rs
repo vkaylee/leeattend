@@ -56,7 +56,7 @@ pub(super) fn effective_employment_range(
     }
 }
 
-#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
+#[allow(clippy::too_many_lines)]
 #[async_trait]
 impl RosterRepository for DieselRosterRepository {
     async fn get_workspace_schedules(
