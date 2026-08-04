@@ -40,29 +40,30 @@ pub struct ApprovalWorkflowService {
     pub(crate) outbox_service: Option<Arc<OutboxJobService>>,
 }
 
+pub struct ApprovalWorkflowServiceParams {
+    pub approval_workflow_repo: Arc<dyn ApprovalWorkflowRepository>,
+    pub workspace_config_repo: Arc<dyn WorkspaceConfigRepository>,
+    pub workspace_repo: Arc<dyn WorkspaceRepository>,
+    pub employee_repo: Arc<dyn EmployeeRepository>,
+    pub employment_repo: Arc<dyn EmploymentRepository>,
+    pub department_repo: Arc<dyn DepartmentRepository>,
+    pub leave_request_repo: Arc<dyn LeaveRequestRepository>,
+    pub overtime_request_repo: Arc<dyn OvertimeRequestRepository>,
+    pub daily_summary_repo: Arc<dyn crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository>,
+}
+
 impl ApprovalWorkflowService {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        approval_workflow_repo: Arc<dyn ApprovalWorkflowRepository>,
-        workspace_config_repo: Arc<dyn WorkspaceConfigRepository>,
-        workspace_repo: Arc<dyn WorkspaceRepository>,
-        employee_repo: Arc<dyn EmployeeRepository>,
-        employment_repo: Arc<dyn EmploymentRepository>,
-        department_repo: Arc<dyn DepartmentRepository>,
-        leave_request_repo: Arc<dyn LeaveRequestRepository>,
-        overtime_request_repo: Arc<dyn OvertimeRequestRepository>,
-        daily_summary_repo: Arc<dyn crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository>,
-    ) -> Self {
+    pub fn new(params: ApprovalWorkflowServiceParams) -> Self {
         Self {
-            approval_workflow_repo,
-            workspace_config_repo,
-            workspace_repo,
-            employee_repo,
-            employment_repo,
-            department_repo,
-            leave_request_repo,
-            overtime_request_repo,
-            daily_summary_repo,
+            approval_workflow_repo: params.approval_workflow_repo,
+            workspace_config_repo: params.workspace_config_repo,
+            workspace_repo: params.workspace_repo,
+            employee_repo: params.employee_repo,
+            employment_repo: params.employment_repo,
+            department_repo: params.department_repo,
+            leave_request_repo: params.leave_request_repo,
+            overtime_request_repo: params.overtime_request_repo,
+            daily_summary_repo: params.daily_summary_repo,
             handlers: std::collections::HashMap::new(),
             outbox_service: None,
         }

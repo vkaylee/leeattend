@@ -50,7 +50,7 @@ pub mod workspace_config_service;
 pub mod workspace_service;
 
 pub use agent_service::AgentService;
-pub use approval_workflow::ApprovalWorkflowService;
+pub use approval_workflow::{ApprovalWorkflowService, ApprovalWorkflowServiceParams};
 pub use attendance_calculator::AttendanceCalculator;
 pub use attendance_import_service::AttendanceImportService;
 pub use attendance_log_service::AttendanceLogService;

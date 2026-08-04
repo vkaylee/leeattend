@@ -103,17 +103,17 @@ pub fn build_leave_services(
     );
 
     let approval_workflow = Arc::new(
-        crate::services::ApprovalWorkflowService::new(
-            repos.approval_workflow.clone(),
-            repos.workspace_config.clone(),
-            repos.workspace.clone(),
-            repos.employee.clone(),
-            repos.employment.clone(),
-            repos.department.clone(),
-            repos.leave_request.clone(),
-            repos.overtime_request.clone(),
-            repos.attendance_daily_summary.clone(),
-        )
+        crate::services::ApprovalWorkflowService::new(crate::services::ApprovalWorkflowServiceParams {
+            approval_workflow_repo: repos.approval_workflow.clone(),
+            workspace_config_repo: repos.workspace_config.clone(),
+            workspace_repo: repos.workspace.clone(),
+            employee_repo: repos.employee.clone(),
+            employment_repo: repos.employment.clone(),
+            department_repo: repos.department.clone(),
+            leave_request_repo: repos.leave_request.clone(),
+            overtime_request_repo: repos.overtime_request.clone(),
+            daily_summary_repo: repos.attendance_daily_summary.clone(),
+        })
         .with_handlers(workflow_handlers)
         .with_outbox_service(Arc::clone(&core.outbox)),
     );

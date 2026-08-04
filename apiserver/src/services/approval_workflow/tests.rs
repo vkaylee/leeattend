@@ -1,5 +1,5 @@
 mod tests {
-    use super::super::{ApprovalWorkflowService, WorkflowCallbackHandler};
+    use super::super::{ApprovalWorkflowService, ApprovalWorkflowServiceParams, WorkflowCallbackHandler};
     use crate::diesel_pool::TenantAuthToken;
     use crate::errors::AppError;
     use crate::models::{
@@ -2091,37 +2091,17 @@ mod tests {
                 leave_request_repo: leave_repo.clone(),
             }),
         );
-        let service = ApprovalWorkflowService::new(
-            Arc::new(MockApprovalWorkflowRepository {
-                create_workflow_called: std::sync::atomic::AtomicBool::new(false),
-                state: state.clone(),
-            }),
-            Arc::new(MockWorkspaceConfigRepository {
-                state: state.clone(),
-            }),
-            Arc::new(MockWorkspaceRepository {
-                state: state.clone(),
-            }),
-            Arc::new(MockEmployeeRepo {
-                state: state.clone(),
-            }),
-            {
-                let mut mock_emp_repo =
-                    crate::repositories::employment_repository::MockEmploymentRepository::new();
-                mock_emp_repo
-                    .expect_get_employments_by_ids()
-                    .returning(|_, _| Ok(vec![]));
-                Arc::new(mock_emp_repo)
-            },
-            Arc::new(MockDepartmentRepo {
-                state: state.clone(),
-            }),
-            leave_repo,
-            Arc::new(MockOvertimeRequestRepository {
-                state: state.clone(),
-            }),
-            Arc::new(MockDailySummaryRepository),
-        )
+        let service = ApprovalWorkflowService::new(ApprovalWorkflowServiceParams {
+            approval_workflow_repo: Arc::new(MockApprovalWorkflowRepository { create_workflow_called: std::sync::atomic::AtomicBool::new(false), state: state.clone(), }),
+            workspace_config_repo: Arc::new(MockWorkspaceConfigRepository { state: state.clone(), }),
+            workspace_repo: Arc::new(MockWorkspaceRepository { state: state.clone(), }),
+            employee_repo: Arc::new(MockEmployeeRepo { state: state.clone(), }),
+            employment_repo: { let mut mock_emp_repo = crate::repositories::employment_repository::MockEmploymentRepository::new(); mock_emp_repo .expect_get_employments_by_ids() .returning(|_, _| Ok(vec![])); Arc::new(mock_emp_repo) },
+            department_repo: Arc::new(MockDepartmentRepo { state: state.clone(), }),
+            leave_request_repo: leave_repo,
+            overtime_request_repo: Arc::new(MockOvertimeRequestRepository { state: state.clone(), }),
+            daily_summary_repo: Arc::new(MockDailySummaryRepository),
+        })
         .with_handlers(handlers);
         (service, state)
     }
