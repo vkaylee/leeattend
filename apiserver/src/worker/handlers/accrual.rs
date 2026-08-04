@@ -4,7 +4,7 @@
 //! Manages JobMetadata lifecycle: Pending → Processing → Completed/Failed.
 
 use crate::queue::{Job, JobStatus};
-use crate::services::leave_accrual_service::LeaveAccrualService;
+use crate::services::leave_accrual_service::{LeaveAccrualService, LeaveAccrualServiceParams};
 
 pub struct AccrualHandler;
 
@@ -33,16 +33,16 @@ impl AccrualHandler {
             "Starting leave accrual processing"
         );
 
-        let accrual_service = LeaveAccrualService::new(
-            std::sync::Arc::clone(&deps.employee_repo),
-            std::sync::Arc::clone(&deps.department_repo),
-            std::sync::Arc::clone(&deps.leave_policy_repo),
-            std::sync::Arc::clone(&deps.leave_accrual_log_repo),
-            std::sync::Arc::clone(&deps.time_entry_repo),
-            std::sync::Arc::clone(&deps.leave_request_repo),
-            std::sync::Arc::clone(&deps.daily_summary_repo),
-            std::sync::Arc::clone(&deps.contract_repo),
-        );
+        let accrual_service = LeaveAccrualService::new(LeaveAccrualServiceParams {
+            employee_repo: std::sync::Arc::clone(&deps.employee_repo),
+            department_repo: std::sync::Arc::clone(&deps.department_repo),
+            leave_policy_repo: std::sync::Arc::clone(&deps.leave_policy_repo),
+            accrual_log_repo: std::sync::Arc::clone(&deps.leave_accrual_log_repo),
+            time_entry_repo: std::sync::Arc::clone(&deps.time_entry_repo),
+            leave_request_repo: std::sync::Arc::clone(&deps.leave_request_repo),
+            daily_summary_repo: std::sync::Arc::clone(&deps.daily_summary_repo),
+            contract_repo: std::sync::Arc::clone(&deps.contract_repo),
+        });
         match accrual_service
             .process_workspace_accruals(
                 job.workspace_id,

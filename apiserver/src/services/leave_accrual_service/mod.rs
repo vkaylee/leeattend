@@ -30,29 +30,29 @@ pub struct LeaveAccrualService {
     contract_repo: Arc<dyn crate::repositories::EmployeeContractRepository>,
 }
 
+pub struct LeaveAccrualServiceParams {
+    pub employee_repo: Arc<dyn EmployeeRepository>,
+    pub department_repo: Arc<dyn DepartmentRepository>,
+    pub leave_policy_repo: Arc<dyn LeavePolicyRepository>,
+    pub accrual_log_repo: Arc<dyn LeaveAccrualLogRepository>,
+    pub time_entry_repo: Arc<dyn crate::repositories::TimeEntryRepository>,
+    pub leave_request_repo:
+        Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
+    pub daily_summary_repo: Arc<dyn crate::repositories::AttendanceDailySummaryRepository>,
+    pub contract_repo: Arc<dyn crate::repositories::EmployeeContractRepository>,
+}
+
 impl LeaveAccrualService {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        employee_repo: Arc<dyn EmployeeRepository>,
-        department_repo: Arc<dyn DepartmentRepository>,
-        leave_policy_repo: Arc<dyn LeavePolicyRepository>,
-        accrual_log_repo: Arc<dyn LeaveAccrualLogRepository>,
-        time_entry_repo: Arc<dyn crate::repositories::TimeEntryRepository>,
-        leave_request_repo: Arc<
-            dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
-        >,
-        daily_summary_repo: Arc<dyn crate::repositories::AttendanceDailySummaryRepository>,
-        contract_repo: Arc<dyn crate::repositories::EmployeeContractRepository>,
-    ) -> Self {
+    pub fn new(params: LeaveAccrualServiceParams) -> Self {
         Self {
-            employee_repo,
-            department_repo,
-            leave_policy_repo,
-            accrual_log_repo,
-            time_entry_repo,
-            leave_request_repo,
-            daily_summary_repo,
-            contract_repo,
+            employee_repo: params.employee_repo,
+            department_repo: params.department_repo,
+            leave_policy_repo: params.leave_policy_repo,
+            accrual_log_repo: params.accrual_log_repo,
+            time_entry_repo: params.time_entry_repo,
+            leave_request_repo: params.leave_request_repo,
+            daily_summary_repo: params.daily_summary_repo,
+            contract_repo: params.contract_repo,
         }
     }
 

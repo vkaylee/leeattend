@@ -64,14 +64,18 @@ pub fn build_leave_services(
 
     let leave_accrual = Arc::new(
         crate::services::leave_accrual_service::LeaveAccrualService::new(
-            Arc::clone(&repos.employee),
-            Arc::clone(&repos.department),
-            Arc::clone(&repos.leave_policy),
-            Arc::clone(&repos.leave_accrual_log),
-            Arc::clone(&repos.time_entry),
-            Arc::clone(&repos.leave_request),
-            Arc::clone(&repos.attendance_daily_summary),
-            repos.contract.clone() as Arc<dyn crate::repositories::EmployeeContractRepository>,
+            crate::services::leave_accrual_service::LeaveAccrualServiceParams {
+                employee_repo: Arc::clone(&repos.employee),
+                department_repo: Arc::clone(&repos.department),
+                leave_policy_repo: Arc::clone(&repos.leave_policy),
+                accrual_log_repo: Arc::clone(&repos.leave_accrual_log),
+                time_entry_repo: Arc::clone(&repos.time_entry),
+                leave_request_repo: Arc::clone(&repos.leave_request),
+                daily_summary_repo: Arc::clone(&repos.attendance_daily_summary),
+                contract_repo: repos
+                    .contract
+                    .clone() as Arc<dyn crate::repositories::EmployeeContractRepository>,
+            },
         ),
     );
 
