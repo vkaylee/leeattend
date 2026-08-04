@@ -92,31 +92,37 @@ impl PayrollService {
         }
         ids
     }
+}
 
-    #[allow(clippy::too_many_arguments)]
+pub(super) struct BuildRuleAssignmentsMapParams<'a> {
+    pub workspace_id: Uuid,
+    pub chunk_employment_ids: &'a [Uuid],
+    pub employment_to_employee: &'a HashMap<Uuid, Uuid>,
+    pub employee_departments: &'a HashMap<Uuid, Option<Uuid>>,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+}
+
+impl PayrollService {
+
     pub(super) async fn build_rule_assignments_map(
         &self,
-        workspace_id: Uuid,
-        chunk_employment_ids: &[Uuid],
-        employment_to_employee: &HashMap<Uuid, Uuid>,
-        employee_departments: &HashMap<Uuid, Option<Uuid>>,
-        start_date: NaiveDate,
-        end_date: NaiveDate,
+        params: BuildRuleAssignmentsMapParams<'_>,
     ) -> HashMap<Uuid, Vec<RuleAssignmentWithTiers>> {
         let resolved_assignments_map = self
             .payroll_repo
             .get_resolved_rule_assignments_batch(
-                workspace_id,
-                &employee_departments.keys().copied().collect::<Vec<_>>(),
-                employee_departments,
-                start_date,
-                end_date,
+                params.workspace_id,
+                &params.employee_departments.keys().copied().collect::<Vec<_>>(),
+                params.employee_departments,
+                params.start_date,
+                params.end_date,
             )
             .await
             .unwrap_or_else(|e| {
                 tracing::error!(
-                    workspace_id = %workspace_id,
-                    employee_count = employee_departments.len(),
+                    workspace_id = %params.workspace_id,
+                    employee_count = params.employee_departments.len(),
                     error = %e,
                     "build_rule_assignments_map: get_resolved_rule_assignments_batch failed — returning empty"
                 );
@@ -132,11 +138,11 @@ impl PayrollService {
 
         let rule_tiers_map = self
             .payroll_repo
-            .get_payroll_rule_tiers_batch(workspace_id, &rule_def_ids)
+            .get_payroll_rule_tiers_batch(params.workspace_id, &rule_def_ids)
             .await
             .unwrap_or_else(|e| {
                 tracing::error!(
-                    workspace_id = %workspace_id,
+                    workspace_id = %params.workspace_id,
                     rule_def_count = rule_def_ids.len(),
                     error = %e,
                     "build_rule_assignments_map: get_payroll_rule_tiers_batch failed — returning empty"
@@ -145,8 +151,8 @@ impl PayrollService {
             });
 
         let mut rule_assignments_map = HashMap::new();
-        for employment_id in chunk_employment_ids {
-            if let Some(emp_id) = employment_to_employee.get(employment_id) {
+        for employment_id in params.chunk_employment_ids {
+            if let Some(emp_id) = params.employment_to_employee.get(employment_id) {
                 if let Some(assignments) = resolved_assignments_map.get(emp_id) {
                     for assignment in assignments {
                         let tiers = rule_tiers_map

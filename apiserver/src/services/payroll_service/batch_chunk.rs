@@ -1,4 +1,5 @@
 use super::*;
+use super::batch_helpers::BuildRuleAssignmentsMapParams;
 
 impl PayrollService {
     /// Process a single chunk of employment IDs for batch payroll calculation.
@@ -304,14 +305,14 @@ impl PayrollService {
         }
 
         let rule_assignments_map = self
-            .build_rule_assignments_map(
+            .build_rule_assignments_map(BuildRuleAssignmentsMapParams {
                 workspace_id,
-                &chunk_employment_ids,
-                &employment_to_employee,
-                &employee_departments,
-                d.start_date,
-                d.end_date,
-            )
+                chunk_employment_ids: &chunk_employment_ids,
+                employment_to_employee: &employment_to_employee,
+                employee_departments: &employee_departments,
+                start_date: d.start_date,
+                end_date: d.end_date,
+            })
             .await;
 
         // Build PayrollContexts — split into successes and pre-built error results
