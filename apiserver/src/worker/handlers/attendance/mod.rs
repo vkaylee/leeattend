@@ -46,7 +46,6 @@ impl AttendanceHandler {
     /// Process an attendance job for a batch of employees.
     #[allow(
         clippy::too_many_lines,
-        clippy::too_many_arguments,
         clippy::cast_possible_truncation
     )]
     pub async fn handle(

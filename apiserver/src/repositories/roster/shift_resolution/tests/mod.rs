@@ -1,7 +1,6 @@
 #[cfg(test)]
 #[allow(
     clippy::too_many_lines,
-    clippy::too_many_arguments,
     clippy::similar_names,
     clippy::clone_on_ref_ptr
 )]
