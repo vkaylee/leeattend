@@ -206,7 +206,7 @@ async fn handle_socket(
                                 crate::agent_manager::CentralMessage,
                             >(v.clone())
                             {
-                                state_clone.agents().manager().handle_response(resp).await;
+                                state_clone.agents().manager().handle_response(resp);
                             }
                         } else if v["type"] == "heartbeat" {
                             if let Some(id) = v["agent_id"].as_str() {
