@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 import type { NoShowRowSharedProps } from "./no-show-mobile-card";
 
-import { formatShiftTime, zoneLabel, ZoneIcon } from "./utils";
+import { formatDateTime, formatShiftTime, zoneLabel, ZoneIcon } from "./utils";
 
 function zoneRowBg(zone: string): string {
   switch (zone) {
@@ -103,6 +103,12 @@ export function NoShowDesktopRow({
         <span className="font-mono font-bold text-sm text-slate-700 dark:text-slate-200 tabular-nums bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg">
           {formatShiftTime(row.scheduled_end)}
         </span>
+      </td>
+      <td className="px-5 py-3.5 text-center font-mono text-xs">
+        {formatDateTime(row.actual_punch_in)}
+      </td>
+      <td className="px-5 py-3.5 text-center font-mono text-xs">
+        {formatDateTime(row.actual_punch_out)}
       </td>
     </tr>
   );

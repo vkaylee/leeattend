@@ -91,15 +91,12 @@ impl AttendanceHandler {
                     .get(&date)
                     .map_or_else(Default::default, std::vec::Vec::as_slice);
 
-                // Filter work entries (non-Break, with punch_out) for display.
-                // Break entries describe non-working intervals and must not
-                // leak into first-to-last punch extraction.
+                // Filter work entries (non-Break) for punch presence/display.
+                // Open work entries still prove arrival; completed-session
+                // filtering remains inside the hours calculator below.
                 let work_entries: Vec<&TimeEntry> = day_entries
                     .iter()
-                    .filter(|e| {
-                        e.entry_type() != crate::services::pairing::types::EntryType::Break
-                            && e.punch_out_time().is_some()
-                    })
+                    .filter(|e| e.entry_type() != crate::services::pairing::types::EntryType::Break)
                     .copied()
                     .collect();
 
@@ -107,8 +104,9 @@ impl AttendanceHandler {
                     .first()
                     .map(|e| e.punch_in_time().with_timezone(&args.tz));
                 let actual_punch_out = work_entries
-                    .last()
-                    .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&args.tz)));
+                    .iter()
+                    .rev()
+                    .find_map(|e| e.punch_out_time().map(|t| t.with_timezone(&args.tz)));
 
                 let mut std_work_units = 0;
                 let mut ot_work_units = 0;

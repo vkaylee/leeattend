@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
-  DailyAttendanceReport,
+  NoShowReportRow,
   PaginatedResponse,
 } from "@/lib/api";
 import { exportNoShowToExcel, type NoShowRow } from "@/lib/excel-no-show";
@@ -54,7 +54,7 @@ export function useNoShowExport({
       let guard = 0;
       while (guard < 1000) {
         const cache = queryClient.getQueryData<{
-          pages: PaginatedResponse<DailyAttendanceReport>[];
+          pages: PaginatedResponse<NoShowReportRow>[];
           pageParams: readonly number[];
         }>(queryKey);
         const pages = cache?.pages ?? [];
@@ -69,7 +69,7 @@ export function useNoShowExport({
       }
 
       const fullCache = queryClient.getQueryData<{
-        pages: PaginatedResponse<DailyAttendanceReport>[];
+        pages: PaginatedResponse<NoShowReportRow>[];
         pageParams: readonly number[];
       }>(queryKey);
       const allReportRows = fullCache?.pages.flatMap((p) => p.data) ?? [];
@@ -90,6 +90,8 @@ export function useNoShowExport({
         shift_name: r.shift_name ?? null,
         scheduled_start: r.scheduled_start ?? null,
         scheduled_end: r.scheduled_end ?? null,
+        actual_punch_in: r.actual_punch_in,
+        actual_punch_out: r.actual_punch_out,
         zone_label: zoneLabel(r, t).key,
       }));
       void exportNoShowToExcel(noShowRows, {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import type { DailyAttendanceReport } from "@/lib/api";
+import type { NoShowReportRow } from "@/lib/api";
 import type { NoShowRow } from "@/lib/excel-no-show";
 
 import {
@@ -11,7 +11,7 @@ import {
 } from "../lib/no-show-zone";
 
 /** A row with employee data resolved but zone not yet computed. */
-export interface EnrichedNoShowRow extends DailyAttendanceReport {
+export interface EnrichedNoShowRow extends NoShowReportRow {
   department_name: string;
   employee_id_number: string;
 }
@@ -19,7 +19,7 @@ export interface EnrichedNoShowRow extends DailyAttendanceReport {
 /** An absent report row enriched with employee data and its A/B/C zone at the
  *  current wall-clock time. The table render uses this; the export handler
  *  maps it down to `NoShowRow`. */
-export interface ZonedNoShowRow extends DailyAttendanceReport {
+export interface ZonedNoShowRow extends NoShowReportRow {
   department_name: string;
   employee_id_number: string;
   zone: Zone;
@@ -29,7 +29,7 @@ export interface ZonedNoShowRow extends DailyAttendanceReport {
 
 export interface UseNoShowRowsParams {
   employeeMap: Map<string, { department_name: string; employee_id_number: string }>;
-  rows: DailyAttendanceReport[];
+  rows: NoShowReportRow[];
   /** The target calendar day ("yyyy-MM-dd") being viewed. */
   viewingDate: string;
   /** IANA workspace timezone, used as fallback when a row has no per-employee
@@ -52,7 +52,10 @@ export function computeNoShowRows(
 
   const out: ZonedNoShowRow[] = [];
   for (const row of rows) {
-    if (row.status !== "absent") continue;
+    if (
+      row.recording_issue === "active_overtime"
+      || row.recording_issue === "punch_out_pending"
+    ) continue;
 
     const empInfo = employeeMap.get(row.employee_id) ?? {
       department_name: "—",

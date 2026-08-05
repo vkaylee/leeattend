@@ -86,6 +86,8 @@ const ROWS: NoShowRow[] = [
     shift_name: "Morning Shift",
     scheduled_start: "08:00:00",
     scheduled_end: "17:00:00",
+    actual_punch_in: "2026-07-10T01:05:00Z",
+    actual_punch_out: null,
     zone_label: "Needs verification",
   },
   {
@@ -95,6 +97,8 @@ const ROWS: NoShowRow[] = [
     shift_name: null,
     scheduled_start: null,
     scheduled_end: null,
+    actual_punch_in: null,
+    actual_punch_out: null,
     zone_label: null,
   },
 ];
@@ -117,10 +121,10 @@ describe("exportNoShowToExcel", () => {
     );
   });
 
-  it("sets 7 columns matching the table order (incl. zone)", async () => {
+  it("sets 9 columns matching the table order (incl. punches and zone)", async () => {
     await exportNoShowToExcel(ROWS, { t, dateLabel: "2026-07-10_08-00" });
 
-    expect(mockWorksheet.columns).toHaveLength(7);
+    expect(mockWorksheet.columns).toHaveLength(9);
     expect(mockWorksheet.columns[0].header).toBe(
       "unrecorded_shifts.columns.employee_code",
     );
@@ -140,6 +144,12 @@ describe("exportNoShowToExcel", () => {
       "unrecorded_shifts.columns.shift_out",
     );
     expect(mockWorksheet.columns[6].header).toBe(
+      "unrecorded_shifts.columns.punch_in",
+    );
+    expect(mockWorksheet.columns[7].header).toBe(
+      "unrecorded_shifts.columns.punch_out",
+    );
+    expect(mockWorksheet.columns[8].header).toBe(
       "unrecorded_shifts.columns.zone",
     );
   });
@@ -149,9 +159,9 @@ describe("exportNoShowToExcel", () => {
 
     expect(mockGetCell).toHaveBeenCalledWith("A1");
     expect(mockGetCell).toHaveBeenCalledWith("A2");
-    // Both rows span all 7 columns.
-    expect(mockWorksheet.mergeCells).toHaveBeenCalledWith(1, 1, 1, 7);
-    expect(mockWorksheet.mergeCells).toHaveBeenCalledWith(2, 1, 2, 7);
+    // Both rows span all 9 columns.
+    expect(mockWorksheet.mergeCells).toHaveBeenCalledWith(1, 1, 1, 9);
+    expect(mockWorksheet.mergeCells).toHaveBeenCalledWith(2, 1, 2, 9);
   });
 
   it("writes the header row at row 4 and data starting at row 5", async () => {
@@ -171,10 +181,14 @@ describe("exportNoShowToExcel", () => {
     expect(makeCell(6, 4).value).toBe("—"); // shift_name
     expect(makeCell(6, 5).value).toBe("—"); // scheduled_start
     expect(makeCell(6, 6).value).toBe("—"); // scheduled_end
+    expect(makeCell(6, 7).value).toBe("—"); // actual_punch_in
+    expect(makeCell(6, 8).value).toBe("—"); // actual_punch_out
     // Alice (row 5) keeps her real values.
     expect(makeCell(5, 1).value).toBe("EMP001");
     expect(makeCell(5, 4).value).toBe("Morning Shift"); // shift_name
     expect(makeCell(5, 5).value).toBe("08:00:00");
+    expect(makeCell(5, 7).value).toBe("2026-07-10T01:05:00Z"); // actual_punch_in
+    expect(makeCell(5, 8).value).toBe("—"); // still on shift → no punch-out
   });
 
   it("sets auto-filter and freezes panes when rows exist", async () => {
@@ -182,7 +196,7 @@ describe("exportNoShowToExcel", () => {
 
     expect(mockWorksheet.autoFilter).toEqual({
       from: { row: 4, column: 1 },
-      to: { row: 5 + ROWS.length - 1, column: 7 },
+      to: { row: 5 + ROWS.length - 1, column: 9 },
     });
     expect(mockWorksheet.views).toEqual([
       { state: "frozen", ySplit: 4 },

@@ -27,6 +27,8 @@ export interface NoShowRow {
   employee_name: string;
   scheduled_end: string | null;
   scheduled_start: string | null;
+  actual_punch_in: string | null;
+  actual_punch_out: string | null;
   shift_name: string | null;
   zone_label: string | null;
 }
@@ -46,6 +48,8 @@ const COLUMNS: { key: keyof NoShowRow; i18nKey: string; width: number }[] = [
   { key: "shift_name", i18nKey: "shift_type", width: 20 },
   { key: "scheduled_start", i18nKey: "shift_in", width: 16 },
   { key: "scheduled_end", i18nKey: "shift_out", width: 16 },
+  { key: "actual_punch_in", i18nKey: "punch_in", width: 20 },
+  { key: "actual_punch_out", i18nKey: "punch_out", width: 20 },
   { key: "zone_label", i18nKey: "zone", width: 22 },
 ];
 

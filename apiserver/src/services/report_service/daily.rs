@@ -360,15 +360,12 @@ fn build_daily_report_row(
 ) -> DailyAttendanceReport {
     let date = daily.date();
 
-    // Filter work entries (non-Break, with punch_out) for display.
-    // Break entries describe non-working intervals and must not leak
-    // into first-to-last punch extraction.
+    // Filter work entries (non-Break) for punch presence/display.
+    // An open work entry still proves the employee has arrived; only the
+    // completed-session calculator below requires punch_out_time.
     let work_entries: Vec<&crate::models::TimeEntry> = day_entries
         .iter()
-        .filter(|e| {
-            e.entry_type() != crate::services::pairing::types::EntryType::Break
-                && e.punch_out_time().is_some()
-        })
+        .filter(|e| e.entry_type() != crate::services::pairing::types::EntryType::Break)
         .copied()
         .collect();
 
@@ -376,8 +373,9 @@ fn build_daily_report_row(
         .first()
         .map(|e| e.punch_in_time().with_timezone(&tz));
     let actual_punch_out = work_entries
-        .last()
-        .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&tz)));
+        .iter()
+        .rev()
+        .find_map(|e| e.punch_out_time().map(|t| t.with_timezone(&tz)));
 
     let att_rules = ReportService::resolve_attendance_rules(preamble, employee_id);
 

@@ -5,11 +5,32 @@ use crate::utils::i18n::I18nKey;
 use crate::utils::tz::parse_workspace_tz;
 use chrono::{DateTime, Duration, NaiveDate, Timelike, Utc};
 use chrono_tz::Tz;
+use serde::Serialize;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-/// Arguments for the no-show report: "which employees have a scheduled shift
-/// overlapping `date` that has *already started*, and have not punched in yet?"
+/// Why a scheduled shift is present in the attendance action queue.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RecordingIssue {
+    MissingPunchIn,
+    ActiveOvertime,
+    PunchOutPending,
+    MissingPunchOut,
+}
+
+/// No-show response row with recording-specific information.
+#[derive(Debug, Clone, Serialize)]
+pub struct NoShowReportRow {
+    #[serde(flatten)]
+    pub report: DailyAttendanceReport,
+    pub recording_issue: RecordingIssue,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expected_end_at: Option<DateTime<Utc>>,
+}
+
+/// Arguments for the recording-issue report: scheduled shifts that have
+/// started and either lack a punch-in or have an open punch after the shift.
 ///
 /// The report covers all shifts that overlap the target calendar day. For today,
 /// only shifts whose `start < now` are included (future shifts are skipped).
@@ -27,22 +48,18 @@ pub struct NoShowReportArgs {
 }
 
 impl ReportService {
-    /// No-show report: employees on a shift overlapping `date` who have not
-    /// punched in (status `absent`) AND whose shift has already started.
+    /// Recording-issue report for scheduled shifts that have started.
     ///
-    /// Implementation strategy:
-    /// 1. Call `get_daily_attendance_report` over `[date-1, date]` to capture
-    ///    overnight shifts anchored to the previous calendar day.
-    /// 2. Resolve per-employee timezone via `employee_repo.get_employee_timezone_at_date`.
-    /// 3. Apply `should_include_in_no_show` — a pure, testable post-filter that
-    ///    checks shift-overlap-day, shift-already-started, and absent status.
+    /// The underlying daily report remains the source of attendance status and
+    /// punch timestamps. This method adds a pure, timezone-aware recording
+    /// issue classification without changing the general attendance report.
     #[tracing::instrument(skip(self, args), err)]
     #[allow(clippy::too_many_lines)]
     pub async fn get_no_show_report(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         args: NoShowReportArgs,
-    ) -> Result<PaginatedResponse<DailyAttendanceReport>, AppError> {
+    ) -> Result<PaginatedResponse<NoShowReportRow>, AppError> {
         let workspace = self
             .workspace_repo
             .get_workspace_by_id(args.workspace_id)
@@ -54,9 +71,6 @@ impl ReportService {
             .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
         let tz: Tz = parse_workspace_tz(workspace.timezone());
-
-        // Fetch over [date-1, date] so overnight shifts (anchored to their
-        // start date) are reachable.
         let date_pre = args
             .date
             .pred_opt()
@@ -83,43 +97,42 @@ impl ReportService {
             .await?;
 
         let now = Utc::now();
-
-        // Resolve per-employee timezone for each unique employee in the result
-        // set. We batch this to avoid N+1 queries.
         let mut tz_cache: HashMap<Uuid, Tz> = HashMap::new();
+        let mut filtered = Vec::with_capacity(daily.data.len());
 
-        let filtered: Vec<DailyAttendanceReport> = {
-            let mut out = Vec::with_capacity(daily.data.len());
-            for mut row in daily.data {
-                let emp_tz = if let Some(&cached_tz) = tz_cache.get(&row.employee_id) {
-                    cached_tz
-                } else {
-                    let emp_tz = self
-                        .employee_repo
-                        .get_employee_timezone_at_date(auth_token, row.employee_id, args.date)
-                        .await
-                        .unwrap_or(tz);
-                    tz_cache.insert(row.employee_id, emp_tz);
-                    emp_tz
-                };
+        for mut row in daily.data {
+            let emp_tz = if let Some(&cached_tz) = tz_cache.get(&row.employee_id) {
+                cached_tz
+            } else {
+                let emp_tz = self
+                    .employee_repo
+                    .get_employee_timezone_at_date(auth_token, row.employee_id, args.date)
+                    .await
+                    .unwrap_or(tz);
+                tz_cache.insert(row.employee_id, emp_tz);
+                emp_tz
+            };
 
-                if should_include_in_no_show(&row, args.date, emp_tz, now) {
-                    row.timezone = Some(emp_tz.name().to_string());
-                    out.push(row);
-                }
+            if let Some((recording_issue, expected_end_at)) =
+                classify_recording_issue(&row, args.date, emp_tz, now)
+            {
+                row.timezone = Some(emp_tz.name().to_string());
+                filtered.push(NoShowReportRow {
+                    report: row,
+                    recording_issue,
+                    expected_end_at,
+                });
             }
-            out
-        };
+        }
 
         Ok(PaginatedResponse {
             data: filtered,
             // Pagination is employee-centric in the underlying daily report.
             // Preserve that candidate total so callers continue scanning every
-            // employee page even when an intermediate page has zero no-shows.
+            // employee page even when an intermediate page has no issue rows.
             total: daily.total,
             page: daily.page,
             limit: daily.limit,
-
             truncated: None,
         })
     }
@@ -171,64 +184,123 @@ fn day_start_utc(target_date: NaiveDate, tz: Tz) -> Option<DateTime<Utc>> {
     crate::utils::tz::start_of_day_utc(&tz, target_date).ok()
 }
 
-/// Pure predicate: should this report row be included in the no-show list?
+/// Classify a report row into a recording issue, if it belongs in the
+/// unrecorded action feed.
 ///
-/// Conditions:
-/// 1. `status == Absent`
-/// 2. The shift window overlaps the calendar day `target_date` in `emp_tz`
-/// 3. The shift has already started (start < now) — for today this filters
-///    out future shifts; for past dates this is always true
-/// 4. `target_date` is not in the future (relative to the employee's TZ)
+/// An open punch after today's scheduled end is deliberately marked pending
+/// unless the entry itself is explicitly an overtime entry. This avoids
+/// calling legitimate, unregistered overtime a forgotten punch-out while the
+/// employee may still be working. Past-date open punches are actionable.
+pub(crate) fn classify_recording_issue(
+    row: &DailyAttendanceReport,
+    target_date: NaiveDate,
+    emp_tz: Tz,
+    now: DateTime<Utc>,
+) -> Option<(RecordingIssue, Option<DateTime<Utc>>)> {
+    use crate::services::attendance_utils::AttendanceStatus;
+
+    let (Some(start), Some(end)) = (row.scheduled_start, row.scheduled_end) else {
+        return None;
+    };
+
+    let today_in_emp_tz = now.with_timezone(&emp_tz).date_naive();
+    if target_date > today_in_emp_tz {
+        return None;
+    }
+
+    let start_abs = shift_start_utc(row.date, start, emp_tz)?;
+    let end_abs = shift_end_utc(row.date, start, end, emp_tz)?;
+
+    let day_start = day_start_utc(target_date, emp_tz)?;
+    let day_end = crate::utils::tz::start_of_next_day_utc(&emp_tz, target_date)
+        .unwrap_or_else(|_| day_start + Duration::hours(24));
+    if end_abs <= day_start || start_abs >= day_end {
+        return None;
+    }
+
+    if target_date == today_in_emp_tz && start_abs >= now {
+        return None;
+    }
+
+    if row.status == AttendanceStatus::Absent && row.actual_punch_in.is_none() {
+        return Some((RecordingIssue::MissingPunchIn, None));
+    }
+
+    // A completed punch is not a recording issue. Inspect the entry metadata
+    // as well because a day may contain a completed session followed by an
+    // open session; `actual_punch_out` alone cannot represent that state.
+    if row.actual_punch_in.is_none() || !has_open_work_entry(row) {
+        return None;
+    }
+
+    if target_date < today_in_emp_tz {
+        return Some((RecordingIssue::MissingPunchOut, Some(end_abs)));
+    }
+
+    if has_open_overtime_entry(row) {
+        return Some((RecordingIssue::ActiveOvertime, None));
+    }
+
+    if now > end_abs {
+        return Some((RecordingIssue::PunchOutPending, Some(end_abs)));
+    }
+
+    None
+}
+
+/// Compatibility predicate for existing no-show tests.
+#[cfg(test)]
 pub(crate) fn should_include_in_no_show(
     row: &DailyAttendanceReport,
     target_date: NaiveDate,
     emp_tz: Tz,
     now: DateTime<Utc>,
 ) -> bool {
-    // Must be absent (no punch-in recorded).
-    use crate::services::attendance_utils::AttendanceStatus;
-    if row.status != AttendanceStatus::Absent {
-        return false;
-    }
+    matches!(
+        classify_recording_issue(row, target_date, emp_tz, now),
+        Some((RecordingIssue::MissingPunchIn, _))
+    )
+}
 
-    // Must have shift times.
-    let (Some(start), Some(end)) = (row.scheduled_start, row.scheduled_end) else {
+/// Detect an open non-break work entry from the existing report metadata.
+fn has_open_work_entry(row: &DailyAttendanceReport) -> bool {
+    let Some(entries) = row
+        .generation_metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get("time_entries"))
+        .and_then(serde_json::Value::as_array)
+    else {
+        return row.actual_punch_in.is_some() && row.actual_punch_out.is_none();
+    };
+
+    entries.iter().any(|entry| {
+        entry.get("entry_type").and_then(serde_json::Value::as_str) != Some("break")
+            && entry
+                .get("punch_out_time")
+                .is_some_and(serde_json::Value::is_null)
+    })
+}
+
+/// Detect an explicitly open overtime entry from the existing report metadata.
+/// The general daily report intentionally keeps time-entry details in metadata;
+/// using it here avoids a per-row database lookup and keeps the attendance
+/// report service independent of the payroll request repository.
+fn has_open_overtime_entry(row: &DailyAttendanceReport) -> bool {
+    let Some(entries) = row
+        .generation_metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get("time_entries"))
+        .and_then(serde_json::Value::as_array)
+    else {
         return false;
     };
 
-    // Don't include shifts that haven't happened yet — "today" is in the
-    // employee's timezone.
-    let today_in_emp_tz = now.with_timezone(&emp_tz).date_naive();
-    if target_date > today_in_emp_tz {
-        return false;
-    }
-
-    let Some(start_abs) = shift_start_utc(row.date, start, emp_tz) else {
-        return false;
-    };
-    let Some(end_abs) = shift_end_utc(row.date, start, end, emp_tz) else {
-        return false;
-    };
-
-    // Shift must overlap the target_date calendar day.
-    // The day spans [day_start, day_start + 24h).
-    let Some(day_start) = day_start_utc(target_date, emp_tz) else {
-        return false;
-    };
-    let day_end = crate::utils::tz::start_of_next_day_utc(&emp_tz, target_date)
-        .unwrap_or_else(|_| day_start + Duration::hours(24));
-    let overlaps_day = end_abs > day_start && start_abs < day_end;
-    if !overlaps_day {
-        return false;
-    }
-
-    // For today: only include shifts that have already started.
-    // For past dates: all shifts have started (always true).
-    if target_date == today_in_emp_tz && start_abs >= now {
-        return false;
-    }
-
-    true
+    entries.iter().any(|entry| {
+        entry.get("entry_type").and_then(serde_json::Value::as_str) == Some("overtime")
+            && entry
+                .get("punch_out_time")
+                .is_some_and(serde_json::Value::is_null)
+    })
 }
 
 #[cfg(test)]
@@ -463,6 +535,96 @@ mod tests {
             hcm(),
             now,
         ));
+    }
+
+    #[test]
+    fn open_punch_after_today_shift_is_pending() {
+        let mut row = row_with(
+            "2026-07-13",
+            "08:00:00",
+            "17:00:00",
+            AttendanceStatus::Present,
+        );
+        row.actual_punch_in = Some(at_utc(2026, 7, 13, 1, 0));
+        row.generation_metadata = Some(serde_json::json!({
+            "time_entries": [{
+                "entry_type": "work",
+                "punch_out_time": null
+            }]
+        }));
+
+        let issue = classify_recording_issue(
+            &row,
+            NaiveDate::from_ymd_opt(2026, 7, 13).unwrap(),
+            hcm(),
+            at_utc(2026, 7, 13, 11, 0),
+        );
+
+        assert_eq!(
+            issue,
+            Some((
+                RecordingIssue::PunchOutPending,
+                Some(at_utc(2026, 7, 13, 10, 0)),
+            ))
+        );
+    }
+
+    #[test]
+    fn open_overtime_punch_is_not_missing_punch_out() {
+        let mut row = row_with(
+            "2026-07-13",
+            "08:00:00",
+            "17:00:00",
+            AttendanceStatus::Present,
+        );
+        row.actual_punch_in = Some(at_utc(2026, 7, 13, 1, 0));
+        row.generation_metadata = Some(serde_json::json!({
+            "time_entries": [{
+                "entry_type": "overtime",
+                "punch_out_time": null
+            }]
+        }));
+
+        let issue = classify_recording_issue(
+            &row,
+            NaiveDate::from_ymd_opt(2026, 7, 13).unwrap(),
+            hcm(),
+            at_utc(2026, 7, 13, 11, 0),
+        );
+
+        assert_eq!(issue, Some((RecordingIssue::ActiveOvertime, None)));
+    }
+
+    #[test]
+    fn open_punch_on_past_date_is_missing_punch_out() {
+        let mut row = row_with(
+            "2026-07-10",
+            "08:00:00",
+            "17:00:00",
+            AttendanceStatus::Present,
+        );
+        row.actual_punch_in = Some(at_utc(2026, 7, 10, 1, 0));
+        row.generation_metadata = Some(serde_json::json!({
+            "time_entries": [{
+                "entry_type": "work",
+                "punch_out_time": null
+            }]
+        }));
+
+        let issue = classify_recording_issue(
+            &row,
+            NaiveDate::from_ymd_opt(2026, 7, 10).unwrap(),
+            hcm(),
+            at_utc(2026, 7, 13, 5, 0),
+        );
+
+        assert_eq!(
+            issue,
+            Some((
+                RecordingIssue::MissingPunchOut,
+                Some(at_utc(2026, 7, 10, 10, 0)),
+            ))
+        );
     }
 
     // ── Shift boundary helpers ─────────────────────────────────────────────

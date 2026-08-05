@@ -55,6 +55,8 @@ export function NoShowTable({
     shift_type: t("unrecorded_shifts.columns.shift_type"),
     shift_in: t("unrecorded_shifts.columns.shift_in"),
     shift_out: t("unrecorded_shifts.columns.shift_out"),
+    punch_in: t("unrecorded_shifts.columns.punch_in", { defaultValue: "Punch-in" }),
+    punch_out: t("unrecorded_shifts.columns.punch_out", { defaultValue: "Punch-out" }),
   }), [t]);
 
   const renderCard = useCallback((row: ZonedNoShowRow) => (
@@ -92,7 +94,7 @@ export function NoShowTable({
           ))}
           {hasNextPage ? (
             <InfiniteScrollSentinel
-              colSpan={7}
+              colSpan={9}
               isFetchingNextPage={isFetchingNextPage}
               sentinelRef={loadMoreRef}
             />
@@ -128,7 +130,7 @@ export function NoShowTable({
         mobileFooter={
           hasNextPage ? (
             <InfiniteScrollSentinel
-              colSpan={7}
+              colSpan={9}
               isFetchingNextPage={isFetchingNextPage}
               sentinelRef={loadMoreRef}
             />

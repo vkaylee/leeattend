@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { useWorkspace } from "@/hooks/use-workspace";
 import {
-  DailyAttendanceReport,
+  NoShowReportRow,
   PaginatedResponse,
   ScheduleTrace,
   fetchNoShowReport,
@@ -33,7 +33,7 @@ export interface UseUnrecordedShiftsDataParams {
 
 export interface UseUnrecordedShiftsDataResult {
   absentRows: ZonedNoShowRow[];
-  allRows: DailyAttendanceReport[];
+  allRows: NoShowReportRow[];
   departments: string[];
   employeeMap: Map<string, { department_name: string; employee_id_number: string }>;
   fetchNextPage: () => Promise<unknown>;
@@ -48,7 +48,7 @@ export interface UseUnrecordedShiftsDataResult {
 }
 
 export function getNextNoShowPageParam(
-  lastPage: PaginatedResponse<DailyAttendanceReport>,
+  lastPage: PaginatedResponse<NoShowReportRow>,
   loadedPageCount: number,
 ): number | undefined {
   if (lastPage.limit <= 0 || lastPage.total <= 0) return undefined;
@@ -82,7 +82,7 @@ export function useUnrecordedShiftsData({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteQuery<PaginatedResponse<DailyAttendanceReport>>({
+  } = useInfiniteQuery<PaginatedResponse<NoShowReportRow>>({
     queryKey,
     queryFn: async ({ pageParam }) =>
       (await fetchNoShowReport({
@@ -125,7 +125,7 @@ export function useUnrecordedShiftsData({
   }, [employees]);
 
   const allRows = useMemo(
-    (): DailyAttendanceReport[] =>
+    (): NoShowReportRow[] =>
       reportData?.pages.flatMap((p) => p.data) ?? [],
     [reportData],
   );
@@ -148,7 +148,7 @@ export function useUnrecordedShiftsData({
       rows = rows.filter((r) => r.department_name === selectedDept);
     }
     if (onlyZoneB && selectedDate === getTodayIso()) {
-      rows = rows.filter((r) => r.zone === "b");
+      rows = rows.filter((r) => r.recording_issue !== "missing_punch_out" && r.zone === "b");
     }
     return rows;
   }, [absentRows, selectedDate, selectedDept, onlyZoneB]);

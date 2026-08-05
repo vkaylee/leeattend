@@ -142,9 +142,21 @@ export interface FetchNoShowReportParams {
   wsId: string;
 }
 
-/** No-show report: employees on a shift overlapping `date` who have not
- *  punched in yet (status `absent`), filtered to only shifts that have
- *  *already started*. Backed by `GET /v1/workspaces/{ws_id}/reports/no-show`.
+export type RecordingIssue =
+  | "missing_punch_in"
+  | "active_overtime"
+  | "punch_out_pending"
+  | "missing_punch_out";
+
+export type NoShowReportRow = DailyAttendanceReport & {
+  recording_issue: RecordingIssue;
+  expected_end_at?: string;
+};
+
+/** Recording-issue report: employees on a shift overlapping `date` that has
+ *  *already started*, and either have no punch-in yet (`missing_punch_in`) or
+ *  have an unresolved open punch (`active_overtime`, `punch_out_pending`,
+ *  `missing_punch_out`). Backed by `GET /v1/workspaces/{ws_id}/reports/no-show`.
  *
  *  NOTE: uses the untyped `apiFetch` because the generated OpenAPI routes are
  *  synced from the backend via `leedevkit manage sync:api`. Until that runs
@@ -153,7 +165,7 @@ export interface FetchNoShowReportParams {
  *  the schema is regenerated. */
 export async function fetchNoShowReport(
   params: FetchNoShowReportParams,
-): Promise<PaginatedResponse<DailyAttendanceReport>> {
+): Promise<PaginatedResponse<NoShowReportRow>> {
   const { wsId, date, page, limit, employeeIds, shiftType } = params;
   const search = new URLSearchParams();
   search.set("date", date);
@@ -165,7 +177,7 @@ export async function fetchNoShowReport(
   const url = `/v1/workspaces/${wsId}/reports/no-show?${search.toString()}`;
   const res = await apiFetch(url);
   if (!res.ok) await ApiError.rejectResponse(res);
-  return (await res.json()) as PaginatedResponse<DailyAttendanceReport>;
+  return (await res.json()) as PaginatedResponse<NoShowReportRow>;
 }
 
 export interface GenericJobProgress {
