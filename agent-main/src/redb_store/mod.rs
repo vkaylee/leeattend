@@ -10,7 +10,7 @@ use parking_lot::RwLock;
 use redb::{Database, ReadableDatabase, ReadableTable, ReadableTableMetadata, TableDefinition};
 use std::path::Path;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicI64, Ordering};
+use std::sync::atomic::{AtomicI64, AtomicUsize, Ordering};
 
 // ── Table Definitions ──────────────────────────────────────────────────────
 
@@ -46,6 +46,8 @@ pub struct RedbStore {
     db: RwLock<Database>,
     next_id: Arc<AtomicI64>,
     signature_ttl_days: i64,
+    /// Cached count of SYNC_INDEX rows in state 0 (unsynced).
+    unsynced_count: Arc<AtomicUsize>,
 }
 
 impl RedbStore {
@@ -80,18 +82,74 @@ impl RedbStore {
             txn.commit()?;
         }
 
-        // Seed ID counter from existing data
-        let max_id = {
+        // Seed ID counter and unsynced count from existing data. This scan runs
+        // once at process start; thereafter count_unsynced is O(1).
+        let (max_id, unsynced) = {
             let txn = db.begin_read()?;
             let table = txn.open_table(ATTENDANCE_LOGS)?;
-            table.last()?.map(|(k, _)| k.value()).unwrap_or(0)
+            let max_id = table.last()?.map(|(k, _)| k.value()).unwrap_or(0);
+            let sync_table = txn.open_table(SYNC_INDEX)?;
+            let mut unsynced = 0usize;
+            for entry in sync_table.iter()? {
+                let (_, state) = entry?;
+                if state.value() == 0 {
+                    unsynced += 1;
+                }
+            }
+            (max_id, unsynced)
         };
 
         Ok(Self {
             db: RwLock::new(db),
             next_id: Arc::new(AtomicI64::new(max_id + 1001)), // Safety gap
             signature_ttl_days,
+            unsynced_count: Arc::new(AtomicUsize::new(unsynced)),
         })
+    }
+
+    pub fn unsynced_count(&self) -> usize {
+        self.unsynced_count.load(Ordering::Relaxed)
+    }
+
+    pub(super) fn add_unsynced(&self, delta: usize) {
+        if delta > 0 {
+            self.unsynced_count.fetch_add(delta, Ordering::Relaxed);
+        }
+    }
+
+    pub(super) fn sub_unsynced(&self, delta: usize) {
+        if delta == 0 {
+            return;
+        }
+        let _ = self
+            .unsynced_count
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+                Some(current.saturating_sub(delta))
+            });
+    }
+
+    /// Recompute the cached counter from SYNC_INDEX for diagnostics/tests.
+    pub fn reconcile_unsynced_count(&self) -> Result<usize, StoreError> {
+        let txn = self
+            .db
+            .read()
+            .begin_read()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
+        let sync_table = txn
+            .open_table(SYNC_INDEX)
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
+        let mut count = 0usize;
+        for entry in sync_table
+            .iter()
+            .map_err(|e| StoreError::DbError(e.to_string()))?
+        {
+            let (_, state) = entry.map_err(|e| StoreError::DbError(e.to_string()))?;
+            if state.value() == 0 {
+                count += 1;
+            }
+        }
+        self.unsynced_count.store(count, Ordering::Relaxed);
+        Ok(count)
     }
 
     /// Get a reference to the underlying Redb database lock.
