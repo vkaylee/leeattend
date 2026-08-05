@@ -108,6 +108,7 @@ jobs:
         run: |
           chmod +x leedevkit scripts/*.sh
           ./leedevkit test api --lint-only
+          scripts/check-unwrap.sh
 
   unit-api:
     name: 🧪 Unit Test API & Agent

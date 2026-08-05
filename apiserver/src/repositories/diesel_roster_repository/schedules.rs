@@ -116,17 +116,7 @@ impl DieselRosterRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        #[allow(clippy::type_complexity)]
-        let employees_entities: Vec<(
-            Uuid,
-            String,
-            String,
-            Option<Vec<String>>,
-            Option<Uuid>,
-            Uuid,
-            NaiveDate,
-            Option<NaiveDate>,
-        )> = employees_entities_raw
+        let employees_entities: Vec<EmployeeEntityRow> = employees_entities_raw
             .into_iter()
             .map(
                 |(

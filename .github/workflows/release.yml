@@ -111,6 +111,9 @@ jobs:
       - name: 🎨 Run Backend Lint
         run: ./leedevkit test api --lint-only
 
+      - name: 🔴 Unwrap/Expect Gate
+        run: scripts/check-unwrap.sh
+
       - name: 🎨 Run Frontend Lint
         run: ./leedevkit test web --lint-only
 

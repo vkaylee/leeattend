@@ -156,6 +156,14 @@ pub fn naive_time_to_tz_overnight(
 // resolve_shift_times — unified shift + break window resolution
 // ---------------------------------------------------------------------------
 
+/// Resolved shift times from [`resolve_shift_times`].
+pub type ShiftTimeResolution = (
+    Option<DateTime<Tz>>,
+    Option<DateTime<Tz>>,
+    Option<DateTime<Tz>>,
+    Option<DateTime<Tz>>,
+);
+
 /// Resolve shift (and optionally break) start/end times to timezone-aware
 /// `DateTime<Tz>`, handling overnight shifts in one place.
 ///
@@ -169,7 +177,6 @@ pub fn naive_time_to_tz_overnight(
 ///
 /// Returns `(shift_start, shift_end, break_start, break_end)` — all `None`
 /// when the corresponding input is `None`.
-#[allow(clippy::type_complexity)]
 pub fn resolve_shift_times(
     start: Option<NaiveTime>,
     end: Option<NaiveTime>,
@@ -177,12 +184,7 @@ pub fn resolve_shift_times(
     break_end: Option<NaiveTime>,
     date: NaiveDate,
     tz: Tz,
-) -> (
-    Option<DateTime<Tz>>,
-    Option<DateTime<Tz>>,
-    Option<DateTime<Tz>>,
-    Option<DateTime<Tz>>,
-) {
+) -> ShiftTimeResolution {
     let shift_start = start.and_then(|t| naive_time_to_tz(t, date, tz));
     let shift_end = if let (Some(s), Some(e)) = (start, end) {
         if e < s {

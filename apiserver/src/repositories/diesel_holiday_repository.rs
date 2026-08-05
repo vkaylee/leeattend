@@ -10,7 +10,7 @@ use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
 use crate::models::diesel::holiday::HolidayEntity;
 use crate::models::Holiday;
-use crate::repositories::holiday_repository::HolidayRepository;
+use crate::repositories::holiday_repository::{HolidayDeductionLogEntry, HolidayRepository};
 use crate::schema::holidays;
 
 pub struct DieselHolidayRepository {
@@ -317,13 +317,7 @@ impl HolidayRepository for DieselHolidayRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         requests: &[crate::models::LeaveRequest],
         rosters: &[crate::models::ShiftRoster],
-        logs: &[(
-            Uuid,                  // employee_id
-            Uuid,                  // leave_type_id
-            rust_decimal::Decimal, // amount
-            chrono::NaiveDate,     // date
-            String,                // notes
-        )],
+        logs: &[HolidayDeductionLogEntry],
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self

@@ -41,6 +41,18 @@ impl DieselRosterRepository {
     }
 }
 
+/// Row type for Diesel query results returning employee metadata.
+pub(super) type EmployeeEntityRow = (
+    Uuid,
+    String,
+    String,
+    Option<Vec<String>>,
+    Option<Uuid>,
+    Uuid,
+    NaiveDate,
+    Option<NaiveDate>,
+);
+
 pub(super) fn effective_employment_range(
     report_start: NaiveDate,
     report_end: NaiveDate,

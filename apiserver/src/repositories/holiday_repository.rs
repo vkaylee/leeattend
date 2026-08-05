@@ -21,6 +21,10 @@ pub enum HolidayLeaveResult {
     Unpaid { employee_id: Uuid },
 }
 
+/// A single holiday leave deduction log entry:
+/// `(employee_id, leave_type_id, amount, date, notes)`.
+pub type HolidayDeductionLogEntry = (Uuid, Uuid, rust_decimal::Decimal, NaiveDate, String);
+
 #[async_trait]
 #[cfg_attr(test, mockall::automock)]
 pub trait HolidayRepository: Send + Sync {
@@ -68,18 +72,11 @@ pub trait HolidayRepository: Send + Sync {
 
     /// Executes a bulk insertion of leave requests, shift rosters, and leave accrual logs
     /// inside a single database transaction to process holiday deductions.
-    #[allow(clippy::type_complexity)]
     async fn apply_holiday_leave_deductions(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         requests: &[crate::models::LeaveRequest],
         rosters: &[crate::models::ShiftRoster],
-        logs: &[(
-            Uuid,                  // employee_id
-            Uuid,                  // leave_type_id
-            rust_decimal::Decimal, // amount
-            chrono::NaiveDate,     // date
-            String,                // notes
-        )],
+        logs: &[HolidayDeductionLogEntry],
     ) -> Result<(), AppError>;
 }
