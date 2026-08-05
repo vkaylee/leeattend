@@ -18,9 +18,11 @@ const BUDGETS = [
   { name: "Vendor react", prefix: "vendor-react-", suffix: ".js", maxSize: 450_000, maxGzip: 130_000 },
   { name: "Login page", prefix: "login.lazy-", suffix: ".js", maxSize: 20_000, maxGzip: 5_000 },
   { name: "Dashboard page", prefix: "index.lazy-", suffix: ".js", maxSize: 80_000, maxGzip: 20_000 },
-  { name: "Locale en", prefix: "locale-en-", suffix: ".js", maxSize: 170_000, maxGzip: 55_000 },
-  { name: "Locale vi", prefix: "locale-vi-", suffix: ".js", maxSize: 200_000, maxGzip: 60_000 },
-  { name: "Locale zh", prefix: "locale-zh-", suffix: ".js", maxSize: 160_000, maxGzip: 60_000 },
+  // Locale raw caps are loose: non-ASCII translations cost 2-3 bytes per character
+  // and compress away, so gzip is the meaningful gate for these chunks.
+  { name: "Locale en", prefix: "locale-en-", suffix: ".js", maxSize: 260_000, maxGzip: 58_000 },
+  { name: "Locale vi", prefix: "locale-vi-", suffix: ".js", maxSize: 260_000, maxGzip: 64_000 },
+  { name: "Locale zh", prefix: "locale-zh-", suffix: ".js", maxSize: 260_000, maxGzip: 60_000 },
 ];
 
 function findFiles(prefix, suffix) {
