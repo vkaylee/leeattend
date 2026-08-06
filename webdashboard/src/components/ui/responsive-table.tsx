@@ -58,6 +58,8 @@ interface ResponsiveTableSmartMode<T> extends ResponsiveTableBase<T> {
   enableDragSelect?: boolean;
   /** Optional footer row rendered below all data rows (desktop-only) */
   footerRow?: React.ReactNode;
+  /** Per-row className override on the desktop table (desktop-only) */
+  getRowClassName?: (row: T, index: number) => string | undefined;
   /** Unique row ID extractor (required by SmartTable) */
   getRowId: (row: T) => string;
   /** Bulk cell save callback (desktop editing) */
@@ -70,6 +72,10 @@ interface ResponsiveTableSmartMode<T> extends ResponsiveTableBase<T> {
   onSelectionChange?: (selectedIds: Set<string>) => void;
   /** Custom desktop table renderer (mutually exclusive with columns) */
   renderDesktopTable?: never;
+  /** Renders a full-width detail row below a desktop row (desktop-only) */
+  renderExpandedRow?: (row: T) => React.ReactNode;
+  /** Custom desktop skeleton row, rendered `skeletonCount` times while loading */
+  renderSkeletonRow?: (index: number) => React.ReactNode;
   /** Currently selected row IDs (for checkbox selection on desktop) */
   selectedRowIds?: Set<string>;
   /** Number of sticky left columns (desktop-only) */
@@ -160,13 +166,17 @@ export default function ResponsiveTable<T>(
         emptyMessage={emptyState?.title ?? t("attendance_logs.messages.no_data", "No data")}
         enableDragSelect={props.enableDragSelect}
         footerRow={props.footerRow}
+        getRowClassName={props.getRowClassName}
         getRowId={props.getRowId}
         isLoading={isLoading}
         onBulkCellSave={props.onBulkCellSave}
         onCellSave={props.onCellSave}
         onRowClick={props.onRowClick}
         onSelectionChange={props.onSelectionChange}
+        renderExpandedRow={props.renderExpandedRow}
+        renderSkeletonRow={props.renderSkeletonRow}
         selectedRowIds={props.selectedRowIds}
+        skeletonCount={skeletonCount}
         stickyLeftColumns={props.stickyLeftColumns}
         stickyRightColumns={props.stickyRightColumns}
         validateCell={props.validateCell}

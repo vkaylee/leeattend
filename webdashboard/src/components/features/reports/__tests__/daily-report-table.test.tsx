@@ -545,8 +545,8 @@ describe("DailyReportTable", () => {
             />
         );
         const rows = screen.getAllByRole("row");
-        // Skip header rows (desktop header + possible mobile header)
-        const dataRows = rows.filter(r => r.className.includes("transition-all group"));
+        // Desktop data rows — SmartTable tags each with the `group/row` hover scope
+        const dataRows = rows.filter(r => r.className.includes("group/row"));
         // First segment row should have top border accent class
         expect(dataRows[0].className).toContain("border-t-2");
         expect(dataRows[0].className).toContain("border-l-2");

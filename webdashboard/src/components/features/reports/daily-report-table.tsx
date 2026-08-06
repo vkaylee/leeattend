@@ -1,5 +1,5 @@
 import { CalendarDays, RefreshCw, CheckCircle, Bug } from "lucide-react";
-import React from "react";
+import { useCallback, useMemo } from "react";
 
 import Button from "@/components/ui/button";
 import ResponsiveTable from "@/components/ui/responsive-table";
@@ -7,7 +7,8 @@ import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { formatHours } from "@/lib/utils/attendance";
 
-import { DailyReportTableRow } from "./daily-report-table-row";
+import { buildDailyReportColumns, dayGroupKeyOf, segmentKeyOf } from "./daily-report-columns";
+import { DailyReportExpandedPanel } from "./daily-report-expanded-panel";
 import { ReportOtStatusBadge } from "./report-ot-status-badge";
 import { ReportStatusBadge } from "./report-status-badge";
 
@@ -58,42 +59,6 @@ function SkeletonRow({ hideEmployeeName, isDebugMode }: { hideEmployeeName: bool
       {isDebugMode ? <td className="px-4 py-4"><div className="h-4 w-8 bg-slate-200 dark:bg-slate-800 rounded mx-auto"></div></td> : null}
       <td className="px-4 py-4"><div className="h-6 w-6 bg-slate-200 dark:bg-slate-800 rounded ml-auto"></div></td>
     </tr>
-  );
-}
-
-// ── Desktop Table Header ──────────────────────────────────────────
-
-function TableHeader({ hideEmployeeName, isDebugMode, t }: { hideEmployeeName: boolean; isDebugMode: boolean; t: (k: string) => string }) {
-  return (
-    <thead>
-      <tr className="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 sticky top-0 z-20">
-        <th className="w-10 px-2 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest sticky left-0 z-20 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm"></th>
-        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest sticky left-[40px] z-20 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm">
-          {t("common.date")}
-        </th>
-        {!hideEmployeeName ? (
-          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest sticky left-[120px] sm:left-[140px] z-20 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm">
-            {t("common.employee")}
-          </th>
-        ) : null}
-        <th className="px-3 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">
-          {t("reports.table.segment_type")}
-        </th>
-        <th className="px-1 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center w-10">
-          {t("reports.table.segment_number")}
-        </th>
-        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("reports.table.scheduled")}</th>
-        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">{t("common.in")}</th>
-        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">{t("common.out")}</th>
-        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">{t("reports.table.std_hours")}</th>
-        <th className="px-4 py-2.5 text-[10px] font-bold text-orange-500 dark:text-orange-400 uppercase tracking-widest text-right">{t("reports.table.ot_hours")}</th>
-        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">{t("common.status")}</th>
-        {isDebugMode ? (
-          <th className="px-4 py-2.5 text-[10px] font-bold text-amber-600 dark:text-amber-300 uppercase tracking-widest text-center">DEBUG</th>
-        ) : null}
-        <th className="px-4 py-2.5"></th>
-      </tr>
-    </thead>
   );
 }
 
@@ -291,17 +256,86 @@ export default function DailyReportTable({
   reprocessingRow,
   t,
 }: DailyReportTableProps) {
-  const colSpan = isDebugMode ? (hideEmployeeName ? 12 : 13) : (hideEmployeeName ? 11 : 12);
+  /**
+   * Visual grouping is positional: consecutive rows sharing an employee+date form
+   * one group. Precomputed once per data change so cells and row classNames can
+   * look up their group position by segment key without rescanning the array.
+   */
+  const groupFlags = useMemo(() => {
+    const flags = new Map<string, { isFirst: boolean; isLast: boolean; isMulti: boolean }>();
+    data.forEach((row, idx) => {
+      const key = dayGroupKeyOf(row);
+      flags.set(segmentKeyOf(row), {
+        isFirst: idx === 0 || dayGroupKeyOf(data[idx - 1]) !== key,
+        isLast: idx === data.length - 1 || dayGroupKeyOf(data[idx + 1]) !== key,
+        isMulti: (row.segment_count ?? 1) > 1,
+      });
+    });
+    return flags;
+  }, [data]);
+
+  const isFirstInGroup = useCallback(
+    (row: DailyAttendanceReport) => groupFlags.get(segmentKeyOf(row))?.isFirst ?? true,
+    [groupFlags],
+  );
+
+  const columns = useMemo(
+    () => buildDailyReportColumns(
+      {
+        adjustmentMap, confirmingRow, expandedDebugRows, formatDate, formatTime,
+        hideEmployeeName, isDebugMode, onApproveOt, onConfirmClick, onReprocessClick,
+        onResolveUnscheduled, onToggleExpandRow, reprocessingRow, t,
+      },
+      isFirstInGroup,
+    ),
+    [
+      adjustmentMap, confirmingRow, expandedDebugRows, formatDate, formatTime,
+      hideEmployeeName, isDebugMode, onApproveOt, onConfirmClick, onReprocessClick,
+      onResolveUnscheduled, onToggleExpandRow, reprocessingRow, t, isFirstInGroup,
+    ],
+  );
+
+  const getRowClassName = useCallback((row: DailyAttendanceReport) => {
+    const flags = groupFlags.get(segmentKeyOf(row));
+    const isExpanded = expandedDebugRows.has(segmentKeyOf(row));
+    return cn(
+      isExpanded && "bg-amber-50 dark:bg-amber-950/20",
+      flags?.isMulti && "border-l-2 border-l-blue-300 dark:border-l-blue-700",
+      flags?.isFirst && flags.isMulti && "border-t-2 border-t-blue-200 dark:border-t-blue-800",
+      !flags?.isFirst && flags?.isMulti && "border-t border-t-blue-100/50",
+      flags?.isLast && flags.isMulti && "border-b border-b-slate-100",
+    );
+  }, [groupFlags, expandedDebugRows]);
+
+  const renderExpandedRow = useCallback((row: DailyAttendanceReport) => {
+    if (!expandedDebugRows.has(segmentKeyOf(row))) return null;
+    return (
+      <DailyReportExpandedPanel
+        formatTime={formatTime}
+        isDebugMode={isDebugMode}
+        row={row}
+        t={t}
+      />
+    );
+  }, [expandedDebugRows, formatTime, isDebugMode, t]);
+
+  const renderSkeletonRow = useCallback(
+    () => <SkeletonRow hideEmployeeName={hideEmployeeName} isDebugMode={isDebugMode} />,
+    [hideEmployeeName, isDebugMode],
+  );
 
   return (
     <div className="overflow-auto flex-1 min-h-0">
       <ResponsiveTable<DailyAttendanceReport>
+        columns={columns}
         data={data}
         emptyState={{
           icon: <CalendarDays className="h-8 w-8" />,
           title: t("reports.messages.no_data"),
         }}
-        getCardKey={(row) => `${row.employee_id}-${row.date}-${row.segment_id ?? row.sort_order ?? '0'}`}
+        getCardKey={(row) => segmentKeyOf(row)}
+        getRowClassName={getRowClassName}
+        getRowId={(row) => segmentKeyOf(row)}
         isLoading={isLoading}
         renderCard={(row) => (
           <DailyReportMobileCard
@@ -322,56 +356,9 @@ export default function DailyReportTable({
             t={t}
           />
         )}
-        renderDesktopTable={() => (
-          <table className="w-full text-left min-w-[1200px] border-collapse relative">
-            <TableHeader hideEmployeeName={hideEmployeeName} isDebugMode={isDebugMode} t={t} />
-            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-              {isLoading ? (
-                <>
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <SkeletonRow hideEmployeeName={hideEmployeeName} isDebugMode={isDebugMode} key={`skeleton-${i}`} />
-                  ))}
-                </>
-              ) : data.length === 0 ? (
-                <tr>
-                  <td className="px-10 py-32 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50" colSpan={colSpan}>
-                    {t("reports.messages.no_data")}
-                  </td>
-                </tr>
-              ) : (
-                data.map((row: DailyAttendanceReport, idx: number, arr: DailyAttendanceReport[]) => {
-                  const empDateKey = `${row.employee_id}-${row.date}`;
-                  const isFirstInGroup = idx === 0 || `${arr[idx - 1].employee_id}-${arr[idx - 1].date}` !== empDateKey;
-                  const isLastInGroup = idx === arr.length - 1 || `${arr[idx + 1].employee_id}-${arr[idx + 1].date}` !== empDateKey;
-                  const isMultiSegmentGroup = (row.segment_count ?? 1) > 1;
-                  return (
-                  <DailyReportTableRow
-                    adjustmentMap={adjustmentMap}
-                    confirmingRow={confirmingRow}
-                    expandedDebugRows={expandedDebugRows}
-                    formatDate={formatDate}
-                    formatTime={formatTime}
-                    hideEmployeeName={hideEmployeeName}
-                    isDebugMode={isDebugMode}
-                    isFirstInGroup={isFirstInGroup}
-                    isLastInGroup={isLastInGroup}
-                    isMultiSegmentGroup={isMultiSegmentGroup}
-                    key={`${row.employee_id}-${row.date}-${row.segment_id ?? row.sort_order ?? '0'}`}
-                    onApproveOt={onApproveOt}
-                    onConfirmClick={onConfirmClick}
-                    onReprocessClick={onReprocessClick}
-                    onResolveUnscheduled={onResolveUnscheduled}
-                    onToggleExpandRow={onToggleExpandRow}
-                    reprocessingRow={reprocessingRow}
-                    row={row}
-                    t={t}
-                  />
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        )}
+        renderExpandedRow={renderExpandedRow}
+        renderSkeletonRow={renderSkeletonRow}
+        stickyLeftColumns={hideEmployeeName ? 2 : 3}
       />
     </div>
   );

@@ -233,7 +233,7 @@ export function RowActions({
   t: (key: string) => string;
 }) {
   return (
-    <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
+    <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover/row:opacity-100 transition-opacity focus-within:opacity-100">
       <Button
         className={cn("flex items-center justify-center p-1.5 rounded-lg transition-all shadow-sm border h-auto", existingAdjustment !== undefined ? "bg-orange-50 dark:bg-orange-950 text-orange-600 dark:text-orange-300 border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900" : "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900", isConfirming && "opacity-70 cursor-wait")}
         disabled={isConfirming}
@@ -258,7 +258,14 @@ export function RowActions({
 
 // ── PunchTimeCell ──────────────────────────────────────────────────────
 
-export function PunchTimeCell({
+/** Tailwind classes the punch-time cell needs on its owning `<td>`. */
+export const PUNCH_TIME_CELL_CLASS = "px-4 py-2.5 text-center font-mono font-bold text-xs text-slate-700 dark:text-slate-200 tracking-tighter";
+
+/**
+ * Punch-time cell body. Renders cell *content* only — the owning `<td>` is
+ * supplied by SmartTable, which styles it via `PUNCH_TIME_CELL_CLASS`.
+ */
+export function PunchTimeCellContent({
   time,
   formatTime,
   timeEntries,
@@ -272,20 +279,18 @@ export function PunchTimeCell({
   side: "in" | "out";
 }) {
   return (
-    <td className="px-4 py-2.5 text-center font-mono font-bold text-xs text-slate-700 dark:text-slate-200 tracking-tighter">
-      <div className="flex items-center justify-center gap-1.5">
-        <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">
-          {formatTime(time)}
-        </div>
-        {side === "in" && hasMultipleSessions ? (
-          <span
-            className="text-[8px] bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider scale-90 cursor-help"
-            title={timeEntries.map((e, i) => `Session ${i + 1}: ${formatTime(e.punch_in_time)} - ${e.punch_out_time ? formatTime(e.punch_out_time) : "---"} (${e.entry_type})`).join("\n")}
-          >
-            Split
-          </span>
-        ) : null}
+    <div className="flex items-center justify-center gap-1.5">
+      <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">
+        {formatTime(time)}
       </div>
-    </td>
+      {side === "in" && hasMultipleSessions ? (
+        <span
+          className="text-[8px] bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider scale-90 cursor-help"
+          title={timeEntries.map((e, i) => `Session ${i + 1}: ${formatTime(e.punch_in_time)} - ${e.punch_out_time ? formatTime(e.punch_out_time) : "---"} (${e.entry_type})`).join("\n")}
+        >
+          Split
+        </span>
+      ) : null}
+    </div>
   );
 }
