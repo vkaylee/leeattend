@@ -5,6 +5,7 @@ import AgentEditModal from "@/components/features/agents/agent-edit-modal";
 import { useToast } from "@/components/ui/toast";
 import { useAuthorizedAgents, useAgentsStatus } from "@/hooks/use-agents";
 import { useDevices } from "@/hooks/use-devices";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { AuthorizedAgent, Device } from "@/lib/api";
 import { logError } from "@/lib/logger";
 
@@ -27,7 +28,9 @@ export default function ConnectivityTopology() {
   const { agents: agentsStatus, refetch: refetchStatus } = useAgentsStatus();
   const { devices, isLoading: devicesLoading, createDevice, updateDevice, deleteDevice } = useDevices();
 
-  const state = useConnectivityState();
+  // New devices inherit the workspace timezone — see use-connectivity-logic.
+  const { workspace } = useWorkspace();
+  const state = useConnectivityState(workspace?.timezone);
   const maps = useConnectivityMaps(agents, agentsStatus, devices);
 
   const { handleAddAgent, handleSaveDevice, handleRefreshDevice } = useConnectivityActions({

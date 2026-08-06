@@ -428,6 +428,21 @@ pub async fn create_device(
     let id = crate::utils::id::new_id();
     let port = req.port.unwrap_or(4370);
 
+    // The agent uses this timezone to reconstruct the true instant from the
+    // clock's naive wall-clock reading, so an unset value must inherit the
+    // workspace zone rather than silently fall back to UTC — a bare UTC default
+    // shifts every punch from this device by the workspace's offset.
+    let timezone = match req.timezone {
+        Some(tz) => tz,
+        None => state
+            .core()
+            .workspace_repo()
+            .get_workspace_by_id(workspace_id)
+            .await?
+            .map_or_else(|| "UTC".to_string(), |ws| ws.timezone().to_string()),
+    };
+    crate::utils::tz::validate_tz(&timezone)?;
+
     state
         .agents()
         .repo()
@@ -440,7 +455,7 @@ pub async fn create_device(
             auth_token: &ctx.auth_token,
             brand: &req.brand.unwrap_or_else(|| "zkteco".to_string()),
             password: req.password.as_deref().unwrap_or(""),
-            timezone: &req.timezone.unwrap_or_else(|| "UTC".to_string()),
+            timezone: &timezone,
         })
         .await?;
 
@@ -490,7 +505,10 @@ pub async fn update_device(
     } else {
         current_device.password
     };
-    let timezone = req.timezone.unwrap_or(current_device.timezone);
+    let timezone = match req.timezone {
+        Some(tz) => crate::utils::tz::validate_tz(&tz).map(|_| tz)?,
+        None => current_device.timezone,
+    };
 
     state
         .agents()

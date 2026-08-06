@@ -196,8 +196,25 @@ Lấy danh sách tất cả các thiết bị trong workspace hiện tại (Xác
 #### POST /devices
 Thêm thiết bị mới vào workspace.
 - **Request**: `{ "agent_id": "...", "name": "...", "ip": "...", "port": 4370,
-        "brand": "zkteco|mock" }`
+        "brand": "zkteco|mock", "password": "...", "timezone": "Asia/Ho_Chi_Minh" }`
 - **Response (201)**: `{ "id": "uuid-v4" }`
+
+> ⚠️ **`timezone` (tùy chọn, tên IANA).** Agent dùng múi giờ này để quy đổi giá
+> trị wall-clock (không có offset) mà máy chấm công trả về thành một mốc thời
+> gian tuyệt đối. Sai giá trị này làm **lệch toàn bộ punch** của thiết bị theo
+> đúng chênh lệch offset — đây là lỗi sai *instant*, xảy ra ngay tại khâu nạp dữ
+> liệu, trước mọi báo cáo.
+>
+> - Bỏ trống → kế thừa `timezone` của workspace (**không** mặc định `UTC`).
+> - Giá trị không phải tên IANA hợp lệ → `400` (`error.invalid_timezone`).
+> - Đặt theo vị trí vật lý của thiết bị, không phải theo trụ sở chính.
+
+#### PUT /devices/{id}
+Cập nhật thiết bị. Mọi trường đều tùy chọn; trường bỏ trống giữ nguyên giá trị cũ.
+- **Request**: `{ "name": "...", "ip": "...", "port": 4370, "brand": "zkteco|mock",
+        "password": "...", "timezone": "Asia/Ho_Chi_Minh", "is_enabled": true }`
+- **Response (200)**: `OK`
+- **Lỗi**: `400` (`error.invalid_timezone`) nếu `timezone` không phải tên IANA hợp lệ.
 
 ---
 

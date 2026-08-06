@@ -32,6 +32,26 @@ pub fn parse_workspace_tz(tz_str: &str) -> Tz {
 }
 
 // ---------------------------------------------------------------------------
+// validate_tz — strict timezone validation for write paths
+// ---------------------------------------------------------------------------
+
+/// Validate an IANA timezone string, rejecting anything `Tz` cannot parse.
+///
+/// Use this on **write** paths (create/update device, workspace settings) where
+/// silently degrading to UTC would corrupt data. `parse_workspace_tz` is the
+/// lenient counterpart for **read** paths, where existing rows must still load.
+///
+/// A device timezone is what the agent uses to reconstruct the true instant from
+/// the clock's naive wall-clock reading, so a typo here shifts every punch from
+/// that device by hours.
+pub fn validate_tz(tz_str: &str) -> Result<Tz, crate::errors::AppError> {
+    tz_str.parse::<Tz>().map_err(|e| {
+        tracing::warn!("Rejected invalid timezone '{}': {}", tz_str, e);
+        crate::errors::AppError::validation(crate::utils::i18n::I18nKey::InvalidTimezone)
+    })
+}
+
+// ---------------------------------------------------------------------------
 // local_to_utc — unified DST-safe local → UTC conversion
 // ---------------------------------------------------------------------------
 
@@ -283,6 +303,58 @@ pub fn utc_now_date_in_tz(tz: &Tz) -> NaiveDate {
 mod tests {
     use super::*;
     use chrono::Timelike;
+
+    // === validate_tz — strict write-path validation ===
+
+    #[test]
+    fn test_validate_tz_accepts_valid_iana_names() {
+        for (name, expected) in [
+            ("Asia/Ho_Chi_Minh", chrono_tz::Asia::Ho_Chi_Minh),
+            ("Asia/Bangkok", chrono_tz::Asia::Bangkok),
+            ("America/New_York", chrono_tz::America::New_York),
+            ("Europe/London", chrono_tz::Europe::London),
+            ("UTC", chrono_tz::UTC),
+        ] {
+            let parsed = validate_tz(name).unwrap_or_else(|_| panic!("expected {name} to parse"));
+            assert_eq!(parsed, expected, "wrong zone for {name}");
+        }
+    }
+
+    #[test]
+    fn test_validate_tz_rejects_invalid_instead_of_defaulting_to_utc() {
+        // This is the whole point of the strict variant: `parse_workspace_tz`
+        // would silently return UTC for each of these, which on a device row
+        // shifts every punch by the real zone's offset.
+        for bad in [
+            "",
+            "  ",
+            "Invalid/Zone",
+            "not_a_timezone",
+            "+07:00",
+            "asia/ho_chi_minh", // wrong case
+            "Asia/Ho_Chi_Minh ",
+        ] {
+            assert!(
+                validate_tz(bad).is_err(),
+                "expected {bad:?} to be rejected, but it was accepted"
+            );
+            assert_eq!(
+                parse_workspace_tz(bad),
+                chrono_tz::UTC,
+                "sanity: lenient parser should degrade {bad:?} to UTC"
+            );
+        }
+    }
+
+    #[test]
+    fn test_validate_tz_error_is_validation_not_internal() {
+        let err = validate_tz("Invalid/Zone").expect_err("must reject");
+        assert_eq!(
+            err.status_code(),
+            axum::http::StatusCode::BAD_REQUEST,
+            "invalid client input must surface as 400, not 500"
+        );
+    }
 
     // === parse_workspace_tz ===
 

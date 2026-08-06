@@ -108,6 +108,7 @@ i18n_table! {
     InvalidYearMonth => "error.invalid_year_month" => ("Invalid year or month format", "Định dạng năm hoặc tháng không hợp lệ", "无效的年份或月份格式"),
     InvalidDateRange => "error.invalid_date_range" => ("Invalid date range", "Khoảng ngày không hợp lệ", "无效的 date range"),
     InvalidDateFormat => "error.invalid_date_format" => ("Invalid date format (YYYY-MM-DD)", "Định dạng ngày không hợp lệ (YYYY-MM-DD)", "无效的日期格式 (YYYY-MM-DD)"),
+    InvalidTimezone => "error.invalid_timezone" => ("Invalid timezone. Expected an IANA name such as 'Asia/Ho_Chi_Minh'", "Múi giờ không hợp lệ. Cần tên IANA, ví dụ 'Asia/Ho_Chi_Minh'", "无效的时区。需要 IANA 名称，例如 'Asia/Ho_Chi_Minh'"),
     NoErrorFileAvailable => "error.no_error_file_available" => ("No error file available for this import", "Không có file lỗi nào khả dụng cho lượt nhập này", "此导入无可用错误文件"),
     WorkflowNotFound => "error.workflow_not_found" => ("Workflow not found", "Không tìm thấy quy trình phê duyệt", "未找到审批流"),
     WorkflowInstanceNotFound => "error.workflow_instance_not_found" => ("Workflow instance not found for this entity", "Không tìm thấy thực thể quy trình phê duyệt cho đối tượng này", "未找到该实体的审批实例"),
