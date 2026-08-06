@@ -11,36 +11,47 @@ impl RedbStore {
         let table = txn
             .open_table(DEVICES)
             .map_err(|e| StoreError::DbError(e.to_string()))?;
-        if let Some(g) = table
+        let Some(g) = table
             .get(device_id)
             .map_err(|e| StoreError::DbError(e.to_string()))?
-        {
-            let d = StoredDevice::from_bytes(g.value())?;
-            Ok(d.timezone.parse::<chrono_tz::Tz>().unwrap_or_else(|_| {
-                log::warn!(
-                    "Invalid timezone '{}' for device '{}', falling back to UTC",
-                    d.timezone,
-                    device_id
-                );
-                chrono_tz::UTC
-            }))
-        } else {
-            log::warn!(
-                "Device '{}' not found in store, defaulting to UTC",
-                device_id
-            );
-            Ok(chrono_tz::UTC)
-        }
+        else {
+            return Err(StoreError::InvalidTimezone);
+        };
+
+        let d = StoredDevice::from_bytes(g.value())?;
+        d.timezone
+            .parse::<chrono_tz::Tz>()
+            .map_err(|_| StoreError::InvalidTimezone)
     }
 
+    /// Parse a device timestamp into a UTC Unix timestamp.
+    ///
+    /// Explicit offsets are authoritative: RFC3339/offset timestamps are
+    /// converted directly and never interpreted through the device timezone.
+    /// Only offset-free wall-clock values use `tz` for local-to-UTC conversion.
     pub fn parse_local_to_utc_timestamp(
-        local_time_str: &str,
+        timestamp_str: &str,
         tz: chrono_tz::Tz,
     ) -> Result<i64, String> {
-        use chrono::{Duration, NaiveDateTime, TimeZone};
-        let naive_dt = NaiveDateTime::parse_from_str(local_time_str, "%Y-%m-%d %H:%M:%S")
-            .or_else(|_| NaiveDateTime::parse_from_str(local_time_str, "%Y-%m-%dT%H:%M:%SZ"))
+        use chrono::{DateTime, Duration, NaiveDateTime, TimeZone, Utc};
+
+        let timestamp_str = timestamp_str.trim();
+        if timestamp_str.is_empty() {
+            return Err("Timestamp is empty".to_string());
+        }
+
+        if let Ok(dt) = DateTime::parse_from_rfc3339(timestamp_str) {
+            return Ok(dt.with_timezone(&Utc).timestamp());
+        }
+
+        if let Ok(dt) = DateTime::parse_from_str(timestamp_str, "%Y-%m-%d %H:%M:%S %z") {
+            return Ok(dt.with_timezone(&Utc).timestamp());
+        }
+
+        let naive_dt = NaiveDateTime::parse_from_str(timestamp_str, "%Y-%m-%d %H:%M:%S")
+            .or_else(|_| NaiveDateTime::parse_from_str(timestamp_str, "%Y-%m-%dT%H:%M:%S"))
             .map_err(|e| format!("Failed to parse timestamp: {e}"))?;
+
         // Unified DST strategy (matches apiserver/src/utils/tz.rs):
         // - Single → direct conversion
         // - Ambiguous → pick first (pre-transition / standard-time) instant
@@ -51,10 +62,10 @@ impl RedbStore {
                 let shifted = naive_dt + Duration::hours(1);
                 tz.from_local_datetime(&shifted)
                     .single()
-                    .ok_or_else(|| format!("Cannot resolve DST gap: {local_time_str}"))?
+                    .ok_or_else(|| format!("Cannot resolve DST gap: {timestamp_str}"))?
             }
         };
-        Ok(local_dt.with_timezone(&chrono::Utc).timestamp())
+        Ok(local_dt.with_timezone(&Utc).timestamp())
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -932,11 +943,12 @@ mod tests {
     }
 
     #[test]
-    fn test_get_device_timezone_default_utc() {
+    fn test_get_device_timezone_missing_is_an_error() {
         let store = make_store();
-        // No device → default UTC
-        let tz = store.get_device_timezone("NOPE").unwrap();
-        assert_eq!(tz, chrono_tz::UTC);
+        assert!(matches!(
+            store.get_device_timezone("NOPE"),
+            Err(StoreError::InvalidTimezone)
+        ));
     }
 
     #[test]
@@ -973,8 +985,42 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_explicit_utc_offset_without_device_reinterpretation() {
+        let utc = RedbStore::parse_local_to_utc_timestamp(
+            "2026-01-01T08:00:00Z",
+            chrono_tz::Asia::Ho_Chi_Minh,
+        )
+        .unwrap();
+        let expected =
+            RedbStore::parse_local_to_utc_timestamp("2026-01-01 08:00:00", chrono_tz::UTC).unwrap();
+        assert_eq!(utc, expected);
+    }
+
+    #[test]
+    fn test_parse_explicit_numeric_offset() {
+        let with_offset = RedbStore::parse_local_to_utc_timestamp(
+            "2026-01-01T08:00:00+07:00",
+            chrono_tz::America::New_York,
+        )
+        .unwrap();
+        let expected = RedbStore::parse_local_to_utc_timestamp(
+            "2026-01-01 08:00:00",
+            chrono_tz::Asia::Ho_Chi_Minh,
+        )
+        .unwrap();
+        assert_eq!(with_offset, expected);
+    }
+
+    #[test]
     fn test_parse_local_to_utc_timestamp_invalid() {
         let result = RedbStore::parse_local_to_utc_timestamp("not-a-date", chrono_tz::UTC);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_local_to_utc_timestamp_rejects_offsetless_z_like_suffix() {
+        let result =
+            RedbStore::parse_local_to_utc_timestamp("2026-01-01T08:00:00Z-extra", chrono_tz::UTC);
         assert!(result.is_err());
     }
 

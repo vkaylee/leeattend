@@ -79,11 +79,25 @@ impl HybridDatabase {
         tokio::task::spawn_blocking(move || {
             let mut batch_with_ts: Vec<(String, AttendanceData, i64)> = Vec::new();
             for (device_id, data) in batch {
-                let tz = store
-                    .get_device_timezone(&device_id)
-                    .unwrap_or(chrono_tz::UTC);
-                if let Ok(ts) = RedbStore::parse_local_to_utc_timestamp(&data.timestamp, tz) {
-                    batch_with_ts.push((device_id.to_string(), data, ts));
+                let tz = match store.get_device_timezone(&device_id) {
+                    Ok(tz) => tz,
+                    Err(error) => {
+                        store.record_parsing_error(
+                            &device_id,
+                            &data.timestamp,
+                            &format!("device timezone unavailable: {error}"),
+                        )?;
+                        continue;
+                    }
+                };
+
+                match RedbStore::parse_local_to_utc_timestamp(&data.timestamp, tz) {
+                    Ok(timestamp_utc) => {
+                        batch_with_ts.push((device_id.to_string(), data, timestamp_utc));
+                    }
+                    Err(error) => {
+                        store.record_parsing_error(&device_id, &data.timestamp, &error)?;
+                    }
                 }
             }
             store.insert_batch(&batch_with_ts)

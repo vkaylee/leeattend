@@ -112,6 +112,7 @@ impl StoredFailedLog {
 pub enum StoreError {
     CapacityExceeded,
     InvalidTimestamp,
+    InvalidTimezone,
     NotFound,
     Duplicate,
     DbError(String),
@@ -124,6 +125,7 @@ impl std::fmt::Display for StoreError {
         match self {
             Self::CapacityExceeded => write!(f, "Store capacity exceeded"),
             Self::InvalidTimestamp => write!(f, "Invalid timestamp format"),
+            Self::InvalidTimezone => write!(f, "Invalid device timezone"),
             Self::NotFound => write!(f, "Log not found"),
             Self::Duplicate => write!(f, "Duplicate log rejected"),
             Self::DbError(s) => write!(f, "Database error: {s}"),

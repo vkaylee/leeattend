@@ -91,20 +91,37 @@ pub async fn handle_incoming_text(
                     info!("Deactivated {deactivated} stale devices");
                 }
 
-                // 3. Upsert devices
+                // 3. Validate all device timezones before mutating the local config.
+                // A missing or invalid zone must never silently become UTC: that
+                // would shift every naive punch from the affected device.
+                let mut valid_devices = Vec::with_capacity(data.devices.len());
                 for d in data.devices {
-                    let timezone = d.timezone.as_deref().unwrap_or("UTC");
-                    let _ = store.upsert_device(
+                    let Some(timezone) = d.timezone.clone() else {
+                        warn!("Rejecting device config with missing timezone");
+                        continue;
+                    };
+                    if timezone.parse::<chrono_tz::Tz>().is_err() {
+                        warn!("Rejecting device config with invalid timezone");
+                        continue;
+                    }
+                    valid_devices.push((d, timezone));
+                }
+
+                // 4. Upsert only validated device configurations.
+                for (d, timezone) in valid_devices {
+                    if let Err(error) = store.upsert_device(
                         &d.device_id,
                         &d.name,
                         &d.ip,
                         d.port,
                         &d.brand,
-                        timezone,
+                        &timezone,
                         d.password.as_deref(),
                         d.is_enabled,
                         time_sync.corrected_timestamp(),
-                    );
+                    ) {
+                        error!("Failed to persist device configuration: {error}");
+                    }
                 }
 
                 // 4. Capture new active state

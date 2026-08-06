@@ -414,7 +414,7 @@ async fn edge_case_multiple_timestamp_formats() {
             .is_ok()
     );
 
-    // ISO format
+    // ISO format with explicit UTC must not be reinterpreted through device TZ.
     let data2 = make_attendance("U002", "2026-01-27T11:00:00Z");
     assert!(
         hybrid
@@ -422,4 +422,38 @@ async fn edge_case_multiple_timestamp_formats() {
             .await
             .is_ok()
     );
+
+    // Numeric offsets are also absolute instants and must be accepted.
+    let data3 = make_attendance("U003", "2026-01-27T12:00:00+01:00");
+    assert!(
+        hybrid
+            .save_raw_attendance("DEV1".into(), data3)
+            .await
+            .is_ok()
+    );
+}
+
+#[tokio::test]
+async fn malformed_batch_timestamp_is_recorded_instead_of_dropped() {
+    let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
+    hybrid
+        .store()
+        .upsert_device(
+            "DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456,
+        )
+        .unwrap();
+
+    let batch = vec![
+        (
+            std::sync::Arc::new("DEV1".to_string()),
+            make_attendance("U001", "not-a-timestamp"),
+        ),
+        (
+            std::sync::Arc::new("DEV1".to_string()),
+            make_attendance("U002", "2026-01-27 10:00:00"),
+        ),
+    ];
+
+    assert_eq!(hybrid.save_raw_attendance_batch(batch).await.unwrap(), 1);
+    assert_eq!(hybrid.store().count_total().unwrap(), 1);
 }

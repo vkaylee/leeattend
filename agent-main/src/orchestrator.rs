@@ -932,8 +932,11 @@ impl DeviceWorkerLoop {
                         if !logs_vec.is_empty() {
                             for attendance in logs_vec {
                                 let mut hasher = rustc_hash::FxHasher::default();
+                                self.config.id.hash(&mut hasher);
                                 attendance.user_id.hash(&mut hasher);
                                 attendance.timestamp.hash(&mut hasher);
+                                attendance.punch.hash(&mut hasher);
+                                attendance.status.hash(&mut hasher);
                                 let key = hasher.finish();
 
                                 if self.seen_logs.insert(key) {
