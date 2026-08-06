@@ -363,7 +363,7 @@ impl EnvRegistry {
     /// sensible placeholder values for required secrets. This can be
     /// written to `.env.example` at the repo root.
     ///
-    /// Regenerate with: `cargo run -- gen-env-example > .env.example`
+    /// Regenerate with: `./scripts/_cargo.sh run --bin apiserver -- gen-env-example > .env.example`
     pub fn generate_env_example() -> String {
         use std::fmt::Write;
 
@@ -384,7 +384,7 @@ impl EnvRegistry {
         );
         let _ = writeln!(
             out,
-            "# Regenerate: cargo run -- gen-env-example > .env.example"
+            "# Regenerate: ./scripts/_cargo.sh run --bin apiserver -- gen-env-example > .env.example"
         );
         let _ = writeln!(
             out,
