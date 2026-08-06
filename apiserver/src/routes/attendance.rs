@@ -1,3 +1,4 @@
+use axum::extract::DefaultBodyLimit;
 use axum::{
     routing::{delete, get, post},
     Router,
@@ -5,11 +6,29 @@ use axum::{
 use std::sync::Arc;
 
 use crate::handlers;
+use crate::utils::env_registry::EnvRegistry;
 use crate::AppState;
 
 #[allow(clippy::too_many_lines)]
-pub fn router() -> Router<Arc<AppState>> {
+pub fn router(registry: &EnvRegistry) -> Router<Arc<AppState>> {
+    let max_bulk_upload_bytes = registry
+        .get_parsed::<usize>("MAX_BULK_UPLOAD_BODY_BYTES")
+        .unwrap_or(10 * 1024 * 1024);
+
     Router::new()
+        .route(
+            "/workspaces/:ws_id/attendance/upload",
+            post(handlers::upload_attendance_excel),
+        )
+        .route(
+            "/workspaces/:ws_id/attendance/logs/upload",
+            post(handlers::upload_attendance_logs),
+        )
+        .route(
+            "/workspaces/:ws_id/attendance/bulk-upload-paper-ot",
+            post(handlers::bulk_upload_paper_ot),
+        )
+        .route_layer(DefaultBodyLimit::max(max_bulk_upload_bytes))
         .route(
             "/workspaces/:ws_id/attendance/rules",
             get(handlers::get_default_attendance_rules)
@@ -46,14 +65,6 @@ pub fn router() -> Router<Arc<AppState>> {
             delete(handlers::attendance::adjustments::delete_adjustment_behalf_assignment),
         )
         .route(
-            "/workspaces/:ws_id/attendance/upload",
-            post(handlers::upload_attendance_excel),
-        )
-        .route(
-            "/workspaces/:ws_id/attendance/logs/upload",
-            post(handlers::upload_attendance_logs),
-        )
-        .route(
             "/workspaces/:ws_id/attendance/logs",
             get(handlers::get_attendance_logs),
         )
@@ -88,10 +99,6 @@ pub fn router() -> Router<Arc<AppState>> {
         .route(
             "/workspaces/:ws_id/attendance/enter-paper-ot/:employee_id",
             post(handlers::enter_paper_ot),
-        )
-        .route(
-            "/workspaces/:ws_id/attendance/bulk-upload-paper-ot",
-            post(handlers::bulk_upload_paper_ot),
         )
         .route(
             "/workspaces/:ws_id/attendance/approve-ot/:employee_id",

@@ -212,6 +212,139 @@ async fn test_upload_employee_excel_api() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+/// A body larger than the route's `DefaultBodyLimit` must be rejected before
+/// the handler buffers it. Guards against a single oversized multipart POST
+/// driving the process out of memory.
+#[tokio::test]
+async fn test_upload_rejects_oversized_body() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    // MAX_BULK_UPLOAD_BODY_BYTES defaults to 10MB — send 12MB.
+    let oversized = vec![b'A'; 12 * 1024 * 1024];
+    let (content_type, body) = create_multipart_body_binary("huge.xlsx", &oversized);
+
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/workspaces/{ws_id}/attendance/upload"))
+                .header("Content-Type", content_type)
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    let status = response.status();
+    assert_eq!(
+        status,
+        StatusCode::PAYLOAD_TOO_LARGE,
+        "Oversized upload must be rejected with 413"
+    );
+}
+
+/// The bulk paper-OT route enforces its size cap while streaming, so an
+/// oversized CSV is rejected rather than fully buffered.
+#[tokio::test]
+async fn test_bulk_paper_ot_rejects_oversized_body() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    let oversized = vec![b'A'; 12 * 1024 * 1024];
+    let (content_type, body) = create_multipart_body_binary("huge.csv", &oversized);
+
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/attendance/bulk-upload-paper-ot"
+                ))
+                .header("Content-Type", content_type)
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    let status = response.status();
+    assert_eq!(
+        status,
+        StatusCode::PAYLOAD_TOO_LARGE,
+        "Oversized bulk OT upload must be rejected with 413"
+    );
+}
+
+/// A body comfortably over the 2MB global default but under the 10MB bulk
+/// route limit must still succeed — the per-route override is what makes
+/// legitimate large imports work.
+#[tokio::test]
+async fn test_upload_accepts_body_over_global_default() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    // Build a valid xlsx, then pad the multipart with a filler field so the
+    // total body exceeds the 2MB global default while the file stays valid.
+    let xlsx_bytes = generate_attendance_xlsx("EMP001", "Test User", "14/01/2026 08:00");
+
+    let boundary = "boundary123";
+    let mut body = Vec::new();
+    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
+    body.extend_from_slice(
+        b"Content-Disposition: form-data; name=\"file\"; filename=\"test.xlsx\"\r\n\r\n",
+    );
+    body.extend_from_slice(&xlsx_bytes);
+    body.extend_from_slice(format!("\r\n--{boundary}\r\n").as_bytes());
+    body.extend_from_slice(b"Content-Disposition: form-data; name=\"filler\"\r\n\r\n");
+    body.extend_from_slice(&vec![b'A'; 3 * 1024 * 1024]);
+    body.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
+
+    assert!(
+        body.len() > 2 * 1024 * 1024,
+        "Test body must exceed the 2MB global default to be meaningful"
+    );
+
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/workspaces/{ws_id}/attendance/logs/upload"))
+                .header(
+                    "Content-Type",
+                    format!("multipart/form-data; boundary={boundary}"),
+                )
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(
+        response.status(),
+        StatusCode::OK,
+        "Upload under the per-route limit must still succeed"
+    );
+}
+
 #[tokio::test]
 async fn test_import_job_queries_api() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =

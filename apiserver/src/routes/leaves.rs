@@ -1,3 +1,4 @@
+use axum::extract::DefaultBodyLimit;
 use axum::{
     routing::{delete, get, patch, post, put},
     Router,
@@ -5,11 +6,21 @@ use axum::{
 use std::sync::Arc;
 
 use crate::handlers;
+use crate::utils::env_registry::EnvRegistry;
 use crate::AppState;
 
 #[allow(clippy::too_many_lines)]
-pub fn router() -> Router<Arc<AppState>> {
+pub fn router(registry: &EnvRegistry) -> Router<Arc<AppState>> {
+    let max_bulk_upload_bytes = registry
+        .get_parsed::<usize>("MAX_BULK_UPLOAD_BODY_BYTES")
+        .unwrap_or(10 * 1024 * 1024);
+
     Router::new()
+        .route(
+            "/workspaces/:ws_id/leave/upload-excel",
+            post(handlers::leaves::upload_leave_excel),
+        )
+        .route_layer(DefaultBodyLimit::max(max_bulk_upload_bytes))
         .route(
             "/workspaces/:ws_id/leave/submit",
             post(handlers::submit_leave_request),
@@ -89,10 +100,6 @@ pub fn router() -> Router<Arc<AppState>> {
             get(handlers::get_my_leave_requests),
         )
         // Leave Import
-        .route(
-            "/workspaces/:ws_id/leave/upload-excel",
-            post(handlers::leaves::upload_leave_excel),
-        )
         .route(
             "/workspaces/:ws_id/leave/import/latest",
             get(handlers::leaves::get_latest_leave_import),

@@ -1,3 +1,4 @@
+use axum::extract::DefaultBodyLimit;
 use axum::{
     routing::{delete, get, patch, post, put},
     Router,
@@ -5,15 +6,21 @@ use axum::{
 use std::sync::Arc;
 
 use crate::handlers;
+use crate::utils::env_registry::EnvRegistry;
 use crate::AppState;
 
 #[allow(clippy::too_many_lines)]
-pub fn router() -> Router<Arc<AppState>> {
+pub fn router(registry: &EnvRegistry) -> Router<Arc<AppState>> {
+    let max_bulk_upload_bytes = registry
+        .get_parsed::<usize>("MAX_BULK_UPLOAD_BODY_BYTES")
+        .unwrap_or(10 * 1024 * 1024);
+
     Router::new()
         .route(
             "/workspaces/:ws_id/employees/upload",
             post(handlers::upload_employee_excel),
         )
+        .route_layer(DefaultBodyLimit::max(max_bulk_upload_bytes))
         .route(
             "/workspaces/:ws_id/employees/import-termination/preview",
             post(handlers::import_termination_preview),

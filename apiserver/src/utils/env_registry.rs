@@ -755,6 +755,36 @@ pub static ALL_ENV_VARS: &[EnvVarDef] = &[
         default_value: None,
         sensitivity: Sensitivity::Public,
     },
+    EnvVarDef {
+        key: "MAX_REQUEST_BODY_BYTES",
+        aliases: &[],
+        category: EnvCategory::Security,
+        description: "Global request body size cap (bytes) enforced on every route, including Multipart. Default: 2097152 (2MB). Routes needing larger uploads override this per-route.",
+        required_always: false,
+        required_in_prod: false,
+        default_value: Some("2097152"),
+        sensitivity: Sensitivity::Public,
+    },
+    EnvVarDef {
+        key: "MAX_FILE_UPLOAD_BODY_BYTES",
+        aliases: &[],
+        category: EnvCategory::Security,
+        description: "Per-route request body size cap (bytes) for the generic file upload/update routes (/files/upload, /files/:id PUT). Default: 20971520 (20MB). Larger files should use the presigned-URL upload flow instead.",
+        required_always: false,
+        required_in_prod: false,
+        default_value: Some("20971520"),
+        sensitivity: Sensitivity::Public,
+    },
+    EnvVarDef {
+        key: "MAX_BULK_UPLOAD_BODY_BYTES",
+        aliases: &[],
+        category: EnvCategory::Security,
+        description: "Per-route request body size cap (bytes) for bulk Excel/CSV upload routes (attendance, employees, leave, paper-OT). Default: 10485760 (10MB).",
+        required_always: false,
+        required_in_prod: false,
+        default_value: Some("10485760"),
+        sensitivity: Sensitivity::Public,
+    },
 
     // ═══════════════════════════════════════════════════════════════════
     // STORAGE (S3 / MinIO)

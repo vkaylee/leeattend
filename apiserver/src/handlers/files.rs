@@ -10,7 +10,16 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::file::{FileCategory, FileDownloadResponse, FileOwnerType, WorkspaceFile};
 use crate::utils::i18n::I18nKey;
+use crate::utils::upload::read_field_limited;
 use crate::AppState;
+
+/// Business-level cap for a single uploaded file body (20MB).
+///
+/// The route also carries a transport-level `DefaultBodyLimit` sourced from
+/// `MAX_FILE_UPLOAD_BODY_BYTES`; this constant keeps the handler self-contained
+/// so an oversized field yields a translated error rather than an opaque
+/// multipart failure. Larger payloads must use the presigned-URL flow.
+const MAX_FILE_FIELD_BYTES: usize = 20 * 1024 * 1024;
 
 #[derive(serde::Deserialize, utoipa::ToSchema)]
 pub struct CreateUploadUrlRequest {
@@ -92,10 +101,7 @@ pub async fn upload_file_handler(
     let mut expires_in_secs = None;
 
     while let Some(field) = multipart.next_field().await.map_err(|e| {
-        AppError::validation_args(
-            I18nKey::Validation,
-            vec![("details", format!("Multipart error: {e}"))],
-        )
+        crate::utils::upload::multipart_error_to_app_error(&e, I18nKey::UploadMultipart)
     })? {
         let name = field.name().unwrap_or("").to_string();
         match name.as_str() {
@@ -107,12 +113,7 @@ pub async fn upload_file_handler(
                         .unwrap_or("application/octet-stream")
                         .to_string(),
                 );
-                data = Some(field.bytes().await.map_err(|e| {
-                    AppError::validation_args(
-                        I18nKey::Validation,
-                        vec![("details", format!("Read file failed: {e}"))],
-                    )
-                })?);
+                data = Some(read_field_limited(field, MAX_FILE_FIELD_BYTES).await?);
             }
             "category" => {
                 let s = field.text().await.map_err(|e| {
@@ -340,10 +341,7 @@ pub async fn update_file_handler(
     let mut data = None;
 
     while let Some(field) = multipart.next_field().await.map_err(|e| {
-        AppError::validation_args(
-            I18nKey::Validation,
-            vec![("details", format!("Multipart error: {e}"))],
-        )
+        crate::utils::upload::multipart_error_to_app_error(&e, I18nKey::UploadMultipart)
     })? {
         let name = field.name().unwrap_or("").to_string();
         if name == "file" {
@@ -354,12 +352,7 @@ pub async fn update_file_handler(
                     .unwrap_or("application/octet-stream")
                     .to_string(),
             );
-            data = Some(field.bytes().await.map_err(|e| {
-                AppError::validation_args(
-                    I18nKey::Validation,
-                    vec![("details", format!("Read file failed: {e}"))],
-                )
-            })?);
+            data = Some(read_field_limited(field, MAX_FILE_FIELD_BYTES).await?);
         }
     }
 

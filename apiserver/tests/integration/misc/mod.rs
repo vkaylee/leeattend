@@ -1,5 +1,6 @@
 //! Misc domain integration tests
 
+mod body_limits;
 mod dashboard;
 mod dashboard_preferences;
 mod db_trap;

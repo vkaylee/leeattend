@@ -312,23 +312,18 @@ pub async fn bulk_upload_paper_ot(
 }
 
 /// Extract CSV bytes from multipart form data.
+///
+/// The size limit is enforced while streaming, so an oversized upload is
+/// rejected as soon as it crosses the threshold rather than after the whole
+/// body has been buffered.
 async fn extract_csv_from_multipart(multipart: &mut Multipart) -> AppResult<Vec<u8>> {
-    while let Some(field) = multipart
-        .next_field()
-        .await
-        .map_err(|_e| AppError::validation(I18nKey::MultipartError))?
-    {
+    while let Some(field) = multipart.next_field().await.map_err(|e| {
+        crate::utils::upload::multipart_error_to_app_error(&e, I18nKey::MultipartError)
+    })? {
         let name = field.name().unwrap_or("").to_string();
         if name == "file" {
-            let data = field
-                .bytes()
-                .await
-                .map_err(|_e| AppError::validation(I18nKey::FailedToReadFileBytes))?;
-
-            if data.len() > MAX_BULK_UPLOAD_FILE_SIZE {
-                return Err(AppError::validation(I18nKey::FileTooLarge));
-            }
-
+            let data =
+                crate::utils::upload::read_field_limited(field, MAX_BULK_UPLOAD_FILE_SIZE).await?;
             return Ok(data.to_vec());
         }
     }

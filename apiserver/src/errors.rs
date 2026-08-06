@@ -64,6 +64,9 @@ pub enum AppError {
     #[error("Validation error: {0}")]
     Validation(LocalizedMessage),
 
+    #[error("Payload Too Large: {0}")]
+    PayloadTooLarge(LocalizedMessage),
+
     #[error("Internal Server Error: {0}")]
     Internal(String),
 
@@ -142,6 +145,11 @@ impl AppError {
 
     pub fn validation(key: I18nKey) -> Self {
         Self::Validation(LocalizedMessage::Key(key))
+    }
+
+    /// Request body exceeded the allowed size — maps to HTTP 413.
+    pub fn payload_too_large(key: I18nKey) -> Self {
+        Self::PayloadTooLarge(LocalizedMessage::Key(key))
     }
 
     pub fn conflict(key: I18nKey) -> Self {
@@ -269,6 +277,7 @@ impl AppError {
             Self::Forbidden(_) => StatusCode::FORBIDDEN,
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::Validation(_) => StatusCode::BAD_REQUEST,
+            Self::PayloadTooLarge(_) => StatusCode::PAYLOAD_TOO_LARGE,
             Self::Conflict(_, _) => StatusCode::CONFLICT,
             Self::ServiceUnavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
         }
@@ -282,6 +291,7 @@ impl AppError {
             Self::Forbidden(_) => "FORBIDDEN",
             Self::NotFound(_) => "NOT_FOUND",
             Self::Validation(_) => "VALIDATION_ERROR",
+            Self::PayloadTooLarge(_) => "PAYLOAD_TOO_LARGE",
             Self::Internal(_) => "INTERNAL_ERROR",
             Self::Conflict(_, _) => "CONFLICT",
             Self::ServiceUnavailable(_) => "SERVICE_UNAVAILABLE",
@@ -301,6 +311,7 @@ impl AppError {
             | Self::Forbidden(msg)
             | Self::NotFound(msg)
             | Self::Conflict(msg, _)
+            | Self::PayloadTooLarge(msg)
             | Self::ServiceUnavailable(msg) => match msg {
                 LocalizedMessage::KeyWithArgs(k, args) => {
                     let prefix = crate::utils::i18n::translate(lang, k.as_str());
@@ -408,6 +419,10 @@ mod tests {
             StatusCode::BAD_REQUEST
         );
         assert_eq!(
+            AppError::payload_too_large(I18nKey::UploadFileTooLarge).status_code(),
+            StatusCode::PAYLOAD_TOO_LARGE
+        );
+        assert_eq!(
             AppError::Internal("x".to_string()).status_code(),
             StatusCode::INTERNAL_SERVER_ERROR
         );
@@ -442,6 +457,10 @@ mod tests {
         assert_eq!(
             AppError::validation(I18nKey::Validation).error_code(),
             "VALIDATION_ERROR"
+        );
+        assert_eq!(
+            AppError::payload_too_large(I18nKey::UploadFileTooLarge).error_code(),
+            "PAYLOAD_TOO_LARGE"
         );
         assert_eq!(
             AppError::Internal("x".to_string()).error_code(),
@@ -527,6 +546,7 @@ mod tests {
             AppError::forbidden(I18nKey::Forbidden),
             AppError::not_found(I18nKey::NotFound),
             AppError::validation(I18nKey::Validation),
+            AppError::payload_too_large(I18nKey::UploadFileTooLarge),
             AppError::conflict(I18nKey::Conflict),
             AppError::service_unavailable(I18nKey::ServiceUnavailable),
         ];
@@ -534,6 +554,23 @@ mod tests {
             let response = err.into_response();
             assert!(response.status().is_client_error() || response.status().is_server_error());
         }
+    }
+
+    /// A payload-too-large error must translate to human-readable text rather
+    /// than leaking the raw i18n key to the client.
+    #[test]
+    fn test_payload_too_large_translates() {
+        let err = AppError::payload_too_large(I18nKey::UploadFileTooLarge);
+        let message = err.translate("en");
+        assert_ne!(
+            message,
+            I18nKey::UploadFileTooLarge.as_str(),
+            "Raw i18n key must not be returned to the client"
+        );
+        assert!(
+            !message.is_empty(),
+            "Translated message must not be empty: {message}"
+        );
     }
 
     #[test]
@@ -563,6 +600,7 @@ mod tests {
             AppError::forbidden(I18nKey::Forbidden),
             AppError::not_found(I18nKey::NotFound),
             AppError::validation(I18nKey::Validation),
+            AppError::payload_too_large(I18nKey::UploadFileTooLarge),
             AppError::Internal("e".to_string()),
             AppError::conflict(I18nKey::Conflict),
             AppError::service_unavailable(I18nKey::ServiceUnavailable),

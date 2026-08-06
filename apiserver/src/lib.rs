@@ -308,14 +308,14 @@ pub fn create_app(
         .merge(routes::dashboard::router())
         .merge(routes::auth::router(&state, registry))
         .merge(routes::workspaces::router())
-        .merge(routes::files::router())
+        .merge(routes::files::router(registry))
         .merge(routes::documents::router())
-        .merge(routes::employees::router())
+        .merge(routes::employees::router(registry))
         .merge(routes::custom_fields::router())
         .merge(routes::condition_types::router())
         .merge(routes::time_tracking::router())
-        .merge(routes::leaves::router())
-        .merge(routes::attendance::router())
+        .merge(routes::leaves::router(registry))
+        .merge(routes::attendance::router(registry))
         .merge(routes::reports::router(&state))
         .merge(routes::payroll::router())
         .merge(routes::shifts::router())
@@ -343,8 +343,13 @@ pub fn create_app(
         router
     };
 
+    let max_body_bytes = registry
+        .get_parsed::<usize>("MAX_REQUEST_BODY_BYTES")
+        .unwrap_or(2 * 1024 * 1024);
+
     Router::new()
         .nest("/api/v1", router)
+        .layer(axum::extract::DefaultBodyLimit::max(max_body_bytes))
         .layer(cors)
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(axum::middleware::from_fn(
