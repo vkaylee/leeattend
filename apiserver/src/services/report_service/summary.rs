@@ -43,8 +43,8 @@ impl ReportService {
         // fetch_preamble (which paginates at the DB level). Non-computed-sort reuses
         // fetch_preamble to eliminate the duplicated setup code.
         let (paginated_employees, total_employees, preamble) = if is_computed_sort {
-            let page = args.page.unwrap_or(1);
-            let limit = args.limit.unwrap_or(20);
+            let page = args.effective_page();
+            let limit = args.effective_limit();
 
             // Fetch ALL employees for in-memory sorting — override pagination.
             let all_args = AttendanceReportArgs {

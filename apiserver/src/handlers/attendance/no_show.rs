@@ -6,7 +6,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::errors::{AppError, AppResult};
-use crate::handlers::common::MemberContext;
+use crate::handlers::common::{MemberContext, SafePagination, DEFAULT_REPORT_PAGE_LIMIT};
 use crate::services::report_service::no_show::NoShowReportArgs;
 use crate::utils::i18n::I18nKey;
 use crate::AppState;
@@ -79,6 +79,21 @@ pub async fn get_no_show_report(
         .map(|value| parse_employee_ids(value))
         .transpose()?;
 
+    // This endpoint feeds the same daily-report path as /reports/attendance, so
+    // pagination must be clamped here too before it reaches the SQL LIMIT clause.
+    let pagination = SafePagination::from_params_with_default(
+        params.page,
+        params.limit,
+        DEFAULT_REPORT_PAGE_LIMIT,
+    );
+    if pagination.was_clamped() {
+        tracing::warn!(
+            requested_limit = ?params.limit,
+            effective_limit = %pagination.limit(),
+            "No-show report limit exceeded the allowed range — clamped"
+        );
+    }
+
     let report = state
         .reports()
         .service()
@@ -87,8 +102,8 @@ pub async fn get_no_show_report(
             NoShowReportArgs {
                 workspace_id,
                 date: target_date,
-                page: params.page,
-                limit: params.limit,
+                page: Some(pagination.page()),
+                limit: Some(pagination.limit()),
                 employee_ids,
                 department_id: params.department_id,
                 shift_type: params.shift_type,

@@ -155,18 +155,8 @@ pub async fn create_export_job(
         _ => return Err(AppError::validation(I18nKey::Validation)),
     };
 
-    // Validate date range
-    if request.end_date < request.start_date {
-        return Err(AppError::validation(I18nKey::InvalidDateRange));
-    }
-
-    let date_diff = request
-        .end_date
-        .signed_duration_since(request.start_date)
-        .num_days();
-    if date_diff > 365 {
-        return Err(AppError::validation(I18nKey::InvalidDateRange));
-    }
+    // Validate date range (shared guard — see handlers::common)
+    crate::handlers::common::validate_report_date_range(request.start_date, request.end_date)?;
 
     // Validate format
     if request.format != "xlsx" && request.format != "csv" {

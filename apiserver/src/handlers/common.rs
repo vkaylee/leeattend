@@ -414,6 +414,100 @@ where
     }
 }
 
+// --- Pagination & Date-Range Guards ---
+
+/// Maximum number of days a single report query may span.
+///
+/// Report endpoints fan a date range out into one row per employee per day (per
+/// segment, for segment-centric reports), so an unbounded range lets a single
+/// request materialise millions of rows and exhaust process memory. 365 days
+/// matches the ceiling already enforced by the async export endpoint.
+pub const MAX_REPORT_RANGE_DAYS: i64 = 365;
+
+/// Default page size when the client omits `limit`.
+pub const DEFAULT_PAGE_LIMIT: i64 = 50;
+
+/// Default page size for the attendance report endpoints.
+///
+/// Deliberately 20, not [`DEFAULT_PAGE_LIMIT`]: the report service has always
+/// defaulted to 20 (`args.limit.unwrap_or(20)`), so raising it would change the
+/// response size for every existing client that omits `limit`.
+pub const DEFAULT_REPORT_PAGE_LIMIT: i64 = 20;
+
+/// Hard upper bound on `limit`, shared by paginated list endpoints.
+pub const MAX_PAGE_LIMIT: i64 = 3000;
+
+/// Validate an inclusive report date range.
+///
+/// Rejects inverted ranges and ranges longer than [`MAX_REPORT_RANGE_DAYS`].
+/// Shared by the interactive report handlers and the async export handler so a
+/// range rejected by one is rejected by all.
+pub fn validate_report_date_range(
+    start_date: chrono::NaiveDate,
+    end_date: chrono::NaiveDate,
+) -> AppResult<()> {
+    if end_date < start_date {
+        return Err(AppError::validation(I18nKey::InvalidDateRange));
+    }
+    if end_date.signed_duration_since(start_date).num_days() > MAX_REPORT_RANGE_DAYS {
+        return Err(AppError::validation(I18nKey::InvalidDateRange));
+    }
+    Ok(())
+}
+
+/// Normalised, safe pagination values derived from client-supplied query params.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SafePagination {
+    page: i64,
+    limit: i64,
+    clamped: bool,
+}
+
+impl SafePagination {
+    /// Clamp raw client pagination input into a safe range, using the
+    /// codebase-standard default page size of [`DEFAULT_PAGE_LIMIT`].
+    pub fn from_params(page: Option<i64>, limit: Option<i64>) -> Self {
+        Self::from_params_with_default(page, limit, DEFAULT_PAGE_LIMIT)
+    }
+
+    /// Clamp raw client pagination input into a safe range.
+    ///
+    /// `limit` is clamped to `1..=MAX_PAGE_LIMIT` (defaulting to `default_limit`
+    /// when absent) and `page` is floored at 1. An out-of-range `limit` is
+    /// clamped rather than rejected, so existing clients that request an
+    /// oversized page keep working — they simply receive a bounded response.
+    ///
+    /// `default_limit` is explicit because endpoints differ in their historical
+    /// default; changing it would silently alter response sizes for clients that
+    /// omit `limit`.
+    pub fn from_params_with_default(
+        page: Option<i64>,
+        limit: Option<i64>,
+        default_limit: i64,
+    ) -> Self {
+        let requested = limit.unwrap_or(default_limit);
+        let clamped_limit = requested.clamp(1, MAX_PAGE_LIMIT);
+        Self {
+            page: page.unwrap_or(1).max(1),
+            limit: clamped_limit,
+            clamped: clamped_limit != requested,
+        }
+    }
+
+    pub fn page(self) -> i64 {
+        self.page
+    }
+
+    pub fn limit(self) -> i64 {
+        self.limit
+    }
+
+    /// `true` when the client's requested `limit` was outside the allowed range.
+    pub fn was_clamped(self) -> bool {
+        self.clamped
+    }
+}
+
 // --- Basic Handlers ---
 
 static START_TIME: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
@@ -1122,5 +1216,104 @@ mod tests {
         assert!(result.contains(&emp_in_a));
         assert!(result.contains(&emp_in_b));
         assert!(!result.contains(&emp_in_c));
+    }
+
+    // --- Pagination clamp ---
+
+    #[test]
+    fn test_safe_pagination_clamps_absurd_limit() {
+        let p = SafePagination::from_params(Some(1), Some(1_000_000));
+        assert_eq!(p.limit(), MAX_PAGE_LIMIT);
+        assert!(p.was_clamped());
+    }
+
+    #[test]
+    fn test_safe_pagination_clamps_zero_and_negative_limit() {
+        for raw in [0, -1, i64::MIN] {
+            let p = SafePagination::from_params(None, Some(raw));
+            assert_eq!(p.limit(), 1, "limit {raw} must clamp to 1");
+            assert!(p.was_clamped());
+        }
+    }
+
+    #[test]
+    fn test_safe_pagination_floors_page() {
+        for raw in [0, -5, i64::MIN] {
+            let p = SafePagination::from_params(Some(raw), None);
+            assert_eq!(p.page(), 1, "page {raw} must floor to 1");
+        }
+    }
+
+    #[test]
+    fn test_safe_pagination_passes_through_valid_values() {
+        let p = SafePagination::from_params(Some(3), Some(100));
+        assert_eq!(p.page(), 3);
+        assert_eq!(p.limit(), 100);
+        assert!(
+            !p.was_clamped(),
+            "in-range limit must not be reported as clamped"
+        );
+    }
+
+    #[test]
+    fn test_safe_pagination_boundary_limit_not_flagged() {
+        let p = SafePagination::from_params(None, Some(MAX_PAGE_LIMIT));
+        assert_eq!(p.limit(), MAX_PAGE_LIMIT);
+        assert!(!p.was_clamped(), "exactly at the ceiling is not clamped");
+    }
+
+    #[test]
+    fn test_safe_pagination_defaults() {
+        let p = SafePagination::from_params(None, None);
+        assert_eq!(p.page(), 1);
+        assert_eq!(p.limit(), DEFAULT_PAGE_LIMIT);
+        assert!(!p.was_clamped());
+
+        let report =
+            SafePagination::from_params_with_default(None, None, DEFAULT_REPORT_PAGE_LIMIT);
+        assert_eq!(
+            report.limit(),
+            DEFAULT_REPORT_PAGE_LIMIT,
+            "report endpoints must keep their historical default of 20"
+        );
+        assert!(!report.was_clamped());
+    }
+
+    // --- Date-range guard ---
+
+    fn date(y: i32, m: u32, d: u32) -> chrono::NaiveDate {
+        chrono::NaiveDate::from_ymd_opt(y, m, d).unwrap()
+    }
+
+    #[test]
+    fn test_validate_date_range_accepts_same_day() {
+        assert!(validate_report_date_range(date(2026, 1, 1), date(2026, 1, 1)).is_ok());
+    }
+
+    #[test]
+    fn test_validate_date_range_accepts_exactly_max_days() {
+        let start = date(2026, 1, 1);
+        let end = start + chrono::Duration::days(MAX_REPORT_RANGE_DAYS);
+        assert!(
+            validate_report_date_range(start, end).is_ok(),
+            "the boundary is inclusive"
+        );
+    }
+
+    #[test]
+    fn test_validate_date_range_rejects_one_day_over_max() {
+        let start = date(2026, 1, 1);
+        let end = start + chrono::Duration::days(MAX_REPORT_RANGE_DAYS + 1);
+        assert!(validate_report_date_range(start, end).is_err());
+    }
+
+    #[test]
+    fn test_validate_date_range_rejects_inverted() {
+        assert!(validate_report_date_range(date(2026, 6, 1), date(2026, 5, 1)).is_err());
+    }
+
+    #[test]
+    fn test_validate_date_range_rejects_decade() {
+        assert!(validate_report_date_range(date(2016, 1, 1), date(2026, 1, 1)).is_err());
     }
 }

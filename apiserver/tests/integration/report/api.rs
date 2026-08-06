@@ -776,3 +776,241 @@ async fn test_get_workspace_attendance_summary_sorting_and_filtering() {
         assert_eq!(data.len(), 2);
     }
 }
+
+// ─── Pagination & date-range guards (single-request OOM protection) ──────────
+
+/// An absurd `limit` must be CLAMPED, not rejected: existing clients (e.g. the
+/// dashboard quick-stats hook, which sends `limit=99999`) must keep working, but
+/// the value must never reach the SQL LIMIT clause unbounded.
+#[tokio::test]
+async fn test_attendance_report_clamps_oversized_limit() {
+    let (address, test_db) = spawn_app().await;
+    let pool = test_db.diesel_pools.clone();
+    let factory = crate::common::factory::TestFactory::new(pool.clone());
+    let client = reqwest::Client::new();
+
+    let user_id = factory.user().create().await;
+    let workspace_id = factory.workspace().create_with_owner(user_id).await;
+    let auth_token = factory.auth().create_token(user_id);
+    let today = Utc::now().format("%Y-%m-%d").to_string();
+
+    for report_type in ["summary", "daily"] {
+        let response = client
+            .get(format!(
+                "{address}/api/v1/workspaces/{workspace_id}/reports/attendance?type={report_type}&start_date={today}&end_date={today}&limit=1000000"
+            ))
+            .header("Authorization", format!("Bearer {auth_token}"))
+            .send()
+            .await
+            .unwrap();
+
+        // Clamped, NOT a 400.
+        assert_eq!(
+            response.status(),
+            StatusCode::OK,
+            "oversized limit must be clamped, not rejected ({report_type})"
+        );
+
+        let body: serde_json::Value = response.json().await.unwrap();
+        let echoed_limit = body["limit"].as_i64().unwrap();
+        assert!(
+            echoed_limit <= 3000,
+            "echoed limit must be clamped to the 3000 ceiling, got {echoed_limit} ({report_type})"
+        );
+        assert!(
+            body["data"].as_array().unwrap().len() <= 3000,
+            "row count must respect the clamp ({report_type})"
+        );
+    }
+}
+
+/// `page=0` / negative pages must be floored at 1 rather than producing a
+/// negative SQL OFFSET.
+#[tokio::test]
+async fn test_attendance_report_floors_invalid_page() {
+    let (address, test_db) = spawn_app().await;
+    let pool = test_db.diesel_pools.clone();
+    let factory = crate::common::factory::TestFactory::new(pool.clone());
+    let client = reqwest::Client::new();
+
+    let user_id = factory.user().create().await;
+    let workspace_id = factory.workspace().create_with_owner(user_id).await;
+    let auth_token = factory.auth().create_token(user_id);
+    let today = Utc::now().format("%Y-%m-%d").to_string();
+
+    let response = client
+        .get(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/reports/attendance?type=summary&start_date={today}&end_date={today}&page=0"
+        ))
+        .header("Authorization", format!("Bearer {auth_token}"))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await.unwrap();
+    assert_eq!(
+        body["page"].as_i64().unwrap(),
+        1,
+        "page must be floored to 1"
+    );
+}
+
+/// A date range beyond 365 days must be rejected with 400 InvalidDateRange —
+/// this is the guard that actually bounds the daily path, where rows fan out to
+/// employee x day x segment.
+#[tokio::test]
+async fn test_attendance_report_rejects_range_over_one_year() {
+    let (address, test_db) = spawn_app().await;
+    let pool = test_db.diesel_pools.clone();
+    let factory = crate::common::factory::TestFactory::new(pool.clone());
+    let client = reqwest::Client::new();
+
+    let user_id = factory.user().create().await;
+    let workspace_id = factory.workspace().create_with_owner(user_id).await;
+    let auth_token = factory.auth().create_token(user_id);
+
+    let start = Utc::now().date_naive();
+    let end = start + chrono::Duration::days(366);
+
+    for report_type in ["summary", "daily"] {
+        let response = client
+            .get(format!(
+                "{address}/api/v1/workspaces/{workspace_id}/reports/attendance?type={report_type}&start_date={start}&end_date={end}"
+            ))
+            .header("Authorization", format!("Bearer {auth_token}"))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(
+            response.status(),
+            StatusCode::BAD_REQUEST,
+            "range over 365 days must be rejected ({report_type})"
+        );
+    }
+}
+
+/// An inverted range (end < start) must be rejected.
+#[tokio::test]
+async fn test_attendance_report_rejects_inverted_range() {
+    let (address, test_db) = spawn_app().await;
+    let pool = test_db.diesel_pools.clone();
+    let factory = crate::common::factory::TestFactory::new(pool.clone());
+    let client = reqwest::Client::new();
+
+    let user_id = factory.user().create().await;
+    let workspace_id = factory.workspace().create_with_owner(user_id).await;
+    let auth_token = factory.auth().create_token(user_id);
+
+    let end = Utc::now().date_naive();
+    let start = end + chrono::Duration::days(10);
+
+    let response = client
+        .get(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/reports/attendance?type=summary&start_date={start}&end_date={end}"
+        ))
+        .header("Authorization", format!("Bearer {auth_token}"))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+/// Exactly 365 days must still be ACCEPTED — the boundary is inclusive, so the
+/// guard must not regress legitimate full-year queries.
+#[tokio::test]
+async fn test_attendance_report_accepts_exactly_one_year() {
+    let (address, test_db) = spawn_app().await;
+    let pool = test_db.diesel_pools.clone();
+    let factory = crate::common::factory::TestFactory::new(pool.clone());
+    let client = reqwest::Client::new();
+
+    let user_id = factory.user().create().await;
+    let workspace_id = factory.workspace().create_with_owner(user_id).await;
+    let auth_token = factory.auth().create_token(user_id);
+
+    let start = Utc::now().date_naive();
+    let end = start + chrono::Duration::days(365);
+
+    let response = client
+        .get(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/reports/attendance?type=summary&start_date={start}&end_date={end}"
+        ))
+        .header("Authorization", format!("Bearer {auth_token}"))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+/// Baseline: a request that omits `limit` must behave exactly as before the
+/// clamp was introduced — the historical default page size of 20 is preserved.
+#[tokio::test]
+async fn test_attendance_report_default_limit_unchanged() {
+    let (address, test_db) = spawn_app().await;
+    let pool = test_db.diesel_pools.clone();
+    let factory = crate::common::factory::TestFactory::new(pool.clone());
+    let client = reqwest::Client::new();
+
+    let user_id = factory.user().create().await;
+    let workspace_id = factory.workspace().create_with_owner(user_id).await;
+    let auth_token = factory.auth().create_token(user_id);
+    let today = Utc::now().format("%Y-%m-%d").to_string();
+
+    for report_type in ["summary", "daily"] {
+        let response = client
+            .get(format!(
+                "{address}/api/v1/workspaces/{workspace_id}/reports/attendance?type={report_type}&start_date={today}&end_date={today}"
+            ))
+            .header("Authorization", format!("Bearer {auth_token}"))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: serde_json::Value = response.json().await.unwrap();
+        assert_eq!(
+            body["limit"].as_i64().unwrap(),
+            20,
+            "default limit must remain 20 ({report_type})"
+        );
+        // Backward-compatible shape: `truncated` stays absent when not capped.
+        assert!(
+            body.get("truncated").is_none(),
+            "truncated must be omitted when results are not capped ({report_type})"
+        );
+    }
+}
+
+/// The no-show endpoint feeds the same daily-report path, so it must clamp too.
+#[tokio::test]
+async fn test_no_show_report_clamps_oversized_limit() {
+    let (address, test_db) = spawn_app().await;
+    let pool = test_db.diesel_pools.clone();
+    let factory = crate::common::factory::TestFactory::new(pool.clone());
+    let client = reqwest::Client::new();
+
+    let user_id = factory.user().create().await;
+    let workspace_id = factory.workspace().create_with_owner(user_id).await;
+    let auth_token = factory.auth().create_token(user_id);
+    let today = Utc::now().format("%Y-%m-%d").to_string();
+
+    let response = client
+        .get(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/reports/no-show?date={today}&limit=1000000"
+        ))
+        .header("Authorization", format!("Bearer {auth_token}"))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await.unwrap();
+    assert!(
+        body["limit"].as_i64().unwrap() <= 3000,
+        "no-show limit must be clamped to the 3000 ceiling"
+    );
+}

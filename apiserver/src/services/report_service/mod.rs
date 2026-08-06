@@ -40,6 +40,26 @@ pub struct AttendanceReportArgs {
     pub shift_type: Option<String>,
 }
 
+impl AttendanceReportArgs {
+    /// Effective page number, floored at 1.
+    pub(crate) fn effective_page(&self) -> i64 {
+        self.page.unwrap_or(1).max(1)
+    }
+
+    /// Effective page size, clamped to the shared pagination ceiling.
+    ///
+    /// Defense-in-depth backstop: the HTTP handlers already clamp via
+    /// `SafePagination`, but this value flows into a SQL `LIMIT`, so the service
+    /// re-clamps for non-handler callers (workers, tests, future call sites).
+    /// The default of 20 is the historical report page size — do not raise it
+    /// without accounting for existing clients that omit `limit`.
+    pub(crate) fn effective_limit(&self) -> i64 {
+        self.limit
+            .unwrap_or(crate::handlers::common::DEFAULT_REPORT_PAGE_LIMIT)
+            .clamp(1, crate::handlers::common::MAX_PAGE_LIMIT)
+    }
+}
+
 #[allow(dead_code)]
 pub struct CalculateDayUnitsArgs<'a, 'b> {
     day_entries: &'a [&'a crate::models::TimeEntry],
@@ -564,8 +584,8 @@ impl ReportService {
                 crate::models::EmployeePaginationArgs::new(
                     args.employee_ids.as_ref(),
                     args.department_id,
-                    args.page.unwrap_or(1),
-                    args.limit.unwrap_or(20),
+                    args.effective_page(),
+                    args.effective_limit(),
                     false,
                     Some((args.start_date, args.end_date)),
                     args.employee_status.clone(),
@@ -652,8 +672,8 @@ impl ReportService {
         employment_id_filter: Option<Uuid>,
     ) -> Result<ReportDataPreamble, AppError> {
         let (workspace, workspace_tz) = self.fetch_workspace_tz(args.workspace_id).await?;
-        let page = usize::try_from(args.page.unwrap_or(1)).unwrap_or(1);
-        let limit = usize::try_from(args.limit.unwrap_or(20)).unwrap_or(20);
+        let page = usize::try_from(args.effective_page()).unwrap_or(1);
+        let limit = usize::try_from(args.effective_limit()).unwrap_or(20);
 
         let resolution = self
             .resolve_employees(auth_token, args, employment_id_filter)

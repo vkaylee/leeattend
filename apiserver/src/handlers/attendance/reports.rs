@@ -9,7 +9,9 @@ use uuid::Uuid;
 
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
-use crate::handlers::common::MemberContext;
+use crate::handlers::common::{
+    validate_report_date_range, MemberContext, SafePagination, DEFAULT_REPORT_PAGE_LIMIT,
+};
 use crate::models::AttendanceReportSort;
 use crate::services::report_service::AttendanceReportArgs;
 use crate::utils::i18n::I18nKey;
@@ -73,6 +75,10 @@ fn empty_report_json(
 }
 
 /// Build `AttendanceReportArgs` from the query parameters.
+///
+/// `pagination` carries the already-clamped page/limit. Raw `params.page` /
+/// `params.limit` MUST NOT be used here — they flow straight into the SQL
+/// `LIMIT` clause, so an unclamped value lets one request exhaust process memory.
 fn build_report_args(
     workspace_id: Uuid,
     params: &AttendanceReportQuery,
@@ -80,13 +86,14 @@ fn build_report_args(
     end_date: NaiveDate,
     employee_ids: Option<Vec<Uuid>>,
     sort: Option<AttendanceReportSort>,
+    pagination: SafePagination,
 ) -> AttendanceReportArgs {
     AttendanceReportArgs {
         workspace_id,
         start_date,
         end_date,
-        page: params.page,
-        limit: params.limit,
+        page: Some(pagination.page()),
+        limit: Some(pagination.limit()),
         employee_ids,
         department_id: params.department_id,
         sort,
@@ -208,11 +215,34 @@ pub async fn get_attendance_report(
     }
 
     let report_type = params.r#type.as_deref().unwrap_or("summary");
-    let page = params.page;
-    let limit = params.limit;
+
+    // Clamp client-supplied pagination before it can reach the SQL LIMIT clause.
+    // Oversized limits are clamped, not rejected, so existing clients keep working.
+    let pagination = SafePagination::from_params_with_default(
+        params.page,
+        params.limit,
+        DEFAULT_REPORT_PAGE_LIMIT,
+    );
+    if pagination.was_clamped() {
+        tracing::warn!(
+            requested_limit = ?params.limit,
+            effective_limit = %pagination.limit(),
+            report_type = %report_type,
+            "Attendance report limit exceeded the allowed range — clamped"
+        );
+    }
+
     let sort = params.sort.as_ref().and_then(|s| {
         serde_json::from_value::<AttendanceReportSort>(serde_json::Value::String(s.clone())).ok()
     });
+
+    // Parse and validate the date range before doing any work — an unbounded
+    // range fans out to one row per employee per day and can exhaust memory.
+    let start_date = NaiveDate::parse_from_str(&params.start_date, "%Y-%m-%d")
+        .map_err(|_e| AppError::validation(I18nKey::InvalidStartDateValue))?;
+    let end_date = NaiveDate::parse_from_str(&params.end_date, "%Y-%m-%d")
+        .map_err(|_e| AppError::validation(I18nKey::InvalidEndDateValue))?;
+    validate_report_date_range(start_date, end_date)?;
 
     let requested_ids: Option<Vec<Uuid>> = params.employee_ids.as_ref().map(|s| {
         s.split(',')
@@ -226,14 +256,15 @@ pub async fn get_attendance_report(
     } else {
         match resolve_behalf_employee_ids(&state, &ctx, requested_ids).await? {
             Some(ids) => Some(ids),
-            None => return empty_report_json(report_type, page, limit),
+            None => {
+                return empty_report_json(
+                    report_type,
+                    Some(pagination.page()),
+                    Some(pagination.limit()),
+                )
+            }
         }
     };
-
-    let start_date = NaiveDate::parse_from_str(&params.start_date, "%Y-%m-%d")
-        .map_err(|_e| AppError::validation(I18nKey::InvalidStartDateValue))?;
-    let end_date = NaiveDate::parse_from_str(&params.end_date, "%Y-%m-%d")
-        .map_err(|_e| AppError::validation(I18nKey::InvalidEndDateValue))?;
 
     let use_segments = params.segment_centric.unwrap_or(true)
         || state
@@ -252,6 +283,7 @@ pub async fn get_attendance_report(
             end_date,
             employee_ids,
             None,
+            pagination,
         );
         let report = if use_segments {
             service
@@ -273,6 +305,7 @@ pub async fn get_attendance_report(
             end_date,
             employee_ids,
             sort,
+            pagination,
         );
         let summary = state
             .reports()
