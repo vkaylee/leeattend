@@ -145,7 +145,7 @@ impl PayrollService {
             );
 
             if let Some(emp_id) = seg_emp_id {
-                for ((eid, date), summary) in &ctx.daily_summaries {
+                for ((eid, date), summary) in &*ctx.daily_summaries {
                     if *eid == emp_id && *date >= seg_start && *date <= seg_end {
                         let std_u = crate::services::attendance_calculator::AttendanceCalculator::calculate_units(
                             summary.standard_minutes,

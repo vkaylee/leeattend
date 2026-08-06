@@ -154,7 +154,7 @@ pub fn build_payroll_contexts(
             *employment_id,
             Ok(PayrollContext {
                 employee_id: emp_id,
-                workspace: d.workspace.clone(),
+                workspace: Arc::clone(&d.workspace),
                 tz: d.tz,
                 start_date: d.start_date,
                 end_date: d.end_date,
@@ -187,7 +187,7 @@ pub fn build_payroll_contexts(
                 salary_base_groups: Arc::clone(&d.salary_base_groups),
                 unpaid_holiday_days,
                 rule_assignments_with_tiers,
-                daily_summaries: d.daily_summaries.clone(),
+                daily_summaries: Arc::clone(&d.daily_summaries),
             }),
         ));
     }

@@ -118,7 +118,7 @@ impl PayrollService {
             .await?;
 
         let shared_data = Arc::new(ChunkSharedData {
-            workspace: workspace.clone(),
+            workspace: Arc::new(workspace),
             tz,
             start_date,
             end_date,
@@ -133,7 +133,7 @@ impl PayrollService {
             month_end_payroll_settings: Arc::new(month_end_payroll_settings),
             active_policies_with_tiers: Arc::new(active_policies_with_tiers),
             salary_base_groups: Arc::new(salary_base_groups),
-            daily_summaries,
+            daily_summaries: Arc::new(daily_summaries),
         });
 
         let mut results = Vec::new();

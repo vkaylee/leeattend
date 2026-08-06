@@ -19,7 +19,7 @@ use super::super::financial_calculator::{IncentivePolicyWithTiers, RuleAssignmen
 /// Constructed once by `fetch_context()` and passed to subsequent phases.
 pub struct PayrollContext {
     pub(crate) employee_id: Uuid,
-    pub(crate) workspace: crate::models::Workspace,
+    pub(crate) workspace: Arc<crate::models::Workspace>,
     pub(crate) tz: Tz,
     pub(crate) start_date: NaiveDate,
     pub(crate) end_date: NaiveDate,
@@ -57,7 +57,10 @@ pub struct PayrollContext {
     /// Pre-fetched daily summaries for all active employments in the pay period.
     /// Keyed by (employment_id, date). Used as the single source of truth for
     /// standard/OT unit computation, replacing the old re-computation path.
-    pub(crate) daily_summaries: HashMap<(Uuid, NaiveDate), crate::models::AttendanceDailySummary>,
+    /// Shared across every context in a batch — `Arc` avoids a full deep clone
+    /// of ~15k entries per employment.
+    pub(crate) daily_summaries:
+        Arc<HashMap<(Uuid, NaiveDate), crate::models::AttendanceDailySummary>>,
 }
 
 /// Named record for a payroll segment snapshot.
@@ -105,7 +108,7 @@ impl RosterDataProvider for DirectRosterDataProvider {
 /// so that per-employment `PayrollContext` construction only increments
 /// reference counts instead of deep-cloning.
 pub(crate) struct ChunkSharedData {
-    pub(crate) workspace: crate::models::Workspace,
+    pub(crate) workspace: Arc<crate::models::Workspace>,
     pub(crate) tz: Tz,
     pub(crate) start_date: NaiveDate,
     pub(crate) end_date: NaiveDate,
@@ -121,5 +124,6 @@ pub(crate) struct ChunkSharedData {
     pub(crate) month_end_payroll_settings: Arc<Option<crate::models::PayrollSettings>>,
     pub(crate) active_policies_with_tiers: Arc<Vec<IncentivePolicyWithTiers>>,
     pub(crate) salary_base_groups: Arc<Vec<crate::models::SalaryBaseGroup>>,
-    pub(crate) daily_summaries: HashMap<(Uuid, NaiveDate), crate::models::AttendanceDailySummary>,
+    pub(crate) daily_summaries:
+        Arc<HashMap<(Uuid, NaiveDate), crate::models::AttendanceDailySummary>>,
 }

@@ -124,7 +124,7 @@ fn test_segment_snapshot_daily_rate_via_helper() {
 
 fn make_chunk_shared_data() -> Arc<ChunkSharedData> {
     Arc::new(ChunkSharedData {
-        workspace: crate::models::Workspace::new(NewWorkspaceParams {
+        workspace: Arc::new(crate::models::Workspace::new(NewWorkspaceParams {
             id: Uuid::new_v4(),
             name: "Test".into(),
             date_format: "YYYY-MM-DD".into(),
@@ -138,7 +138,7 @@ fn make_chunk_shared_data() -> Arc<ChunkSharedData> {
             default_holiday_ot_multiplier: Decimal::from(2),
             created_at: chrono::Utc::now(),
             custom_db_url_encrypted: None,
-        }),
+        })),
         tz: chrono_tz::UTC,
         start_date: d(2026, 3, 1),
         end_date: d(2026, 3, 31),
@@ -166,7 +166,7 @@ fn make_chunk_shared_data() -> Arc<ChunkSharedData> {
         month_end_payroll_settings: Arc::new(None),
         active_policies_with_tiers: Arc::new(Vec::new()),
         salary_base_groups: Arc::new(Vec::new()),
-        daily_summaries: HashMap::new(),
+        daily_summaries: Arc::new(HashMap::new()),
     })
 }
 
@@ -277,4 +277,90 @@ fn test_build_contexts_employee_data_not_found() {
         }
         Ok(_) => panic!("Expected Err, got Ok"),
     }
+}
+
+/// Regression guard: batch-wide immutable data must be *shared* across the
+/// per-employment `PayrollContext` values, not deep-cloned. A deep clone of
+/// `daily_summaries` (≈15k entries for a 500-employee batch) was the single
+/// largest source of allocation churn in `calculate_batch_payslips`.
+#[test]
+fn test_build_contexts_shares_batch_data_via_arc() {
+    let d_shared = make_chunk_shared_data();
+
+    // Baseline: only ChunkSharedData holds these Arcs.
+    assert_eq!(Arc::strong_count(&d_shared.daily_summaries), 1);
+    assert_eq!(Arc::strong_count(&d_shared.workspace), 1);
+
+    const CONTEXT_COUNT: usize = 3;
+    let mut employment_ids = Vec::with_capacity(CONTEXT_COUNT);
+    let mut employment_to_employee = HashMap::new();
+    let mut employees = HashMap::new();
+    for i in 0..CONTEXT_COUNT {
+        let employment_id = Uuid::new_v4();
+        let employee_id = Uuid::new_v4();
+        employment_ids.push(employment_id);
+        employment_to_employee.insert(employment_id, employee_id);
+        employees.insert(
+            employee_id,
+            crate::models::Employee::new(
+                employee_id,
+                Uuid::new_v4(),
+                None,
+                format!("Employee {i}"),
+                format!("EMP{i:03}"),
+                vec![],
+                chrono::Utc::now(),
+                chrono::Utc::now(),
+                None,
+            ),
+        );
+    }
+
+    let results = build_payroll_contexts(
+        &employment_ids,
+        &employment_to_employee,
+        &HashMap::new(),
+        &HashMap::new(),
+        &HashMap::new(),
+        &HashMap::new(),
+        &std::collections::HashSet::new(),
+        &mut BatchMaps {
+            employees,
+            time_map: HashMap::new(),
+            roster_map: HashMap::new(),
+            conditions_map: HashMap::new(),
+            policies_map: HashMap::new(),
+            emp_configs_map: HashMap::new(),
+            dept_map: HashMap::new(),
+            salary_map: HashMap::new(),
+            leave_breakdowns_map: HashMap::new(),
+            unpaid_holidays_map: HashMap::new(),
+            month_end_policies_map: HashMap::new(),
+            assignments_map: HashMap::new(),
+        },
+        &d_shared,
+    );
+
+    let contexts: Vec<&PayrollContext> = results
+        .iter()
+        .map(|(_, r)| r.as_ref().expect("context build should succeed"))
+        .collect();
+    assert_eq!(contexts.len(), CONTEXT_COUNT);
+
+    // Every context must point at the *same* allocation as the shared data.
+    for ctx in &contexts {
+        assert!(
+            Arc::ptr_eq(&ctx.daily_summaries, &d_shared.daily_summaries),
+            "daily_summaries was cloned instead of shared"
+        );
+        assert!(
+            Arc::ptr_eq(&ctx.workspace, &d_shared.workspace),
+            "workspace was cloned instead of shared"
+        );
+    }
+
+    // 1 reference from ChunkSharedData + 1 per built context.
+    let expected = CONTEXT_COUNT + 1;
+    assert_eq!(Arc::strong_count(&d_shared.daily_summaries), expected);
+    assert_eq!(Arc::strong_count(&d_shared.workspace), expected);
 }

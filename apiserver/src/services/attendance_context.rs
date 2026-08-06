@@ -315,7 +315,7 @@ mod tests {
         let start = NaiveDate::from_ymd_opt(2026, 3, 1).unwrap();
         let end = NaiveDate::from_ymd_opt(2026, 3, 31).unwrap();
 
-        let workspace = crate::models::Workspace::new(NewWorkspaceParams {
+        let workspace = Arc::new(crate::models::Workspace::new(NewWorkspaceParams {
             id: Uuid::new_v4(),
             name: "Test WS".to_string(),
             date_format: "YYYY-MM-DD".to_string(),
@@ -329,7 +329,7 @@ mod tests {
             default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
             created_at: Utc::now(),
             custom_db_url_encrypted: None,
-        });
+        }));
 
         let pc = PayrollContext {
             employee_id: emp_id,
@@ -367,7 +367,7 @@ mod tests {
             salary_base_groups: Arc::new(vec![]),
             unpaid_holiday_days: 0,
             rule_assignments_with_tiers: vec![],
-            daily_summaries: HashMap::new(),
+            daily_summaries: Arc::new(HashMap::new()),
         };
 
         let att = AttendanceMatcherContext::from_payroll(&pc);

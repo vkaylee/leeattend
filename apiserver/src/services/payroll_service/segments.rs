@@ -105,7 +105,7 @@ mod tests {
     ) -> PayrollContext {
         PayrollContext {
             employee_id: Uuid::new_v4(),
-            workspace: crate::models::Workspace::new(NewWorkspaceParams {
+            workspace: Arc::new(crate::models::Workspace::new(NewWorkspaceParams {
                 id: Uuid::new_v4(),
                 name: "Test".into(),
                 date_format: "YYYY-MM-DD".into(),
@@ -119,7 +119,7 @@ mod tests {
                 default_holiday_ot_multiplier: Decimal::from(2),
                 created_at: Utc::now(),
                 custom_db_url_encrypted: None,
-            }),
+            })),
             tz: chrono_tz::UTC,
             start_date,
             end_date,
@@ -166,7 +166,7 @@ mod tests {
             salary_base_groups: Arc::new(vec![]),
             unpaid_holiday_days: 0,
             rule_assignments_with_tiers: vec![],
-            daily_summaries: HashMap::new(),
+            daily_summaries: Arc::new(HashMap::new()),
         }
     }
 

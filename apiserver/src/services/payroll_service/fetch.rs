@@ -340,7 +340,7 @@ impl PayrollService {
 
         Ok(PayrollContext {
             employee_id,
-            workspace,
+            workspace: Arc::new(workspace),
             tz,
             start_date,
             end_date,
@@ -370,7 +370,7 @@ impl PayrollService {
             salary_base_groups: Arc::new(salary_base_groups),
             unpaid_holiday_days,
             rule_assignments_with_tiers,
-            daily_summaries,
+            daily_summaries: Arc::new(daily_summaries),
         })
     }
 }
