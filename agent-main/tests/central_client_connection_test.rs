@@ -102,6 +102,7 @@ async fn test_central_client_connection_and_sync() {
         50,
         100,
         200,
+        300,
     );
 
     let _tx = client.get_tx();
@@ -176,6 +177,7 @@ async fn test_central_client_cancellation() {
         50,
         100,
         200,
+        300,
     );
 
     // Spawn the client

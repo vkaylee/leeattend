@@ -5,6 +5,9 @@ use super::{
 use redb::{ReadableDatabase, ReadableTable, ReadableTableMetadata};
 
 impl RedbStore {
+    /// Maximum number of records materialized by one DLQ sweep.
+    pub(super) const MAX_DLQ_BATCH: usize = 500;
+
     /// Clean up old synced logs beyond retention period (days).
     /// In Redb, synced logs are already removed from active storage by mark_synced().
     /// This cleans up any that might remain (e.g., from older logic).
@@ -105,10 +108,11 @@ impl RedbStore {
     }
 
     /// Move expired logs (max retry exceeded) to dead letter queue.
+    /// Processes at most `MAX_DLQ_BATCH` records per call.
     pub fn move_expired_logs_to_dlq(&self, max_retries: i64) -> Result<u64, StoreError> {
         let now = chrono::Utc::now().timestamp();
 
-        // Phase 1: Read — find expired logs
+        // Phase 1: Read — find expired logs, bounded to one batch.
         let to_move: Vec<StoredLog> = {
             let txn = self
                 .db
@@ -123,6 +127,9 @@ impl RedbStore {
                 .iter()
                 .map_err(|e| StoreError::DbError(e.to_string()))?
             {
+                if result.len() >= Self::MAX_DLQ_BATCH {
+                    break;
+                }
                 let (_, bytes_guard) = entry.map_err(|e| StoreError::DbError(e.to_string()))?;
                 let log = StoredLog::from_bytes(bytes_guard.value())?;
                 if log.retry_count >= max_retries && log.is_synced != 1 {
@@ -137,12 +144,13 @@ impl RedbStore {
             return Ok(0);
         }
 
-        // Phase 2: Write — move to DLQ and remove from active
+        // Phase 2: Write — move to DLQ and remove from active.
         let txn = self
             .db
             .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
+        let mut unsynced_removed = 0usize;
         {
             let mut lt = txn
                 .open_table(ATTENDANCE_LOGS)
@@ -182,12 +190,19 @@ impl RedbStore {
                     log.status,
                 );
                 let _ = lt.remove(log.id);
-                let _ = st.remove(log.id);
+                if let Some(previous) = st
+                    .remove(log.id)
+                    .map_err(|e| StoreError::DbError(e.to_string()))?
+                    && previous.value() == 0
+                {
+                    unsynced_removed += 1;
+                }
                 let _ = ct.remove(comp);
             }
         }
         txn.commit()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
+        self.sub_unsynced(unsynced_removed);
         Ok(count)
     }
 
@@ -304,6 +319,7 @@ impl RedbStore {
         }
         txn.commit()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
+        self.add_unsynced(1);
         Ok(true)
     }
 

@@ -36,13 +36,25 @@ export interface SmartTableProps<T> {
   emptyMessage?: string;
   enableDragSelect?: boolean;
   footerRow?: React.ReactNode;
+  /** Per-row className override, merged after the built-in row classes. */
+  getRowClassName?: (row: T, index: number) => string | undefined;
   getRowId: (row: T) => string;
   isLoading?: boolean;
   onBulkCellSave?: (changes: CellEditPayload[]) => Promise<void> | void;
   onCellSave?: (rowId: string, columnId: string, value: EditableCellValue) => Promise<void> | void;
   onRowClick?: (row: T, e: React.MouseEvent) => void;
   onSelectionChange?: (selectedIds: Set<string>) => void;
+  /**
+   * Renders a full-width detail row below each row for which it returns content.
+   * SmartTable owns the `<tr>`/`<td colSpan>` wrapper, so the colSpan always
+   * tracks the real visible-column count.
+   */
+  renderExpandedRow?: (row: T) => React.ReactNode;
+  /** Custom skeleton row renderer used while loading. Rendered `skeletonCount` times. */
+  renderSkeletonRow?: (index: number) => React.ReactNode;
   selectedRowIds?: Set<string>;
+  /** Number of skeleton rows to render while loading. Default: 5 */
+  skeletonCount?: number;
   stickyLeftColumns?: number;
   stickyRightColumns?: number;
   validateCell?: (rowId: string, columnId: string, value: EditableCellValue) => string | null | undefined;
@@ -66,6 +78,10 @@ export default function SmartTable<T>({
   className,
   footerRow,
   onRowClick,
+  getRowClassName,
+  renderExpandedRow,
+  renderSkeletonRow,
+  skeletonCount = 5,
 }: SmartTableProps<T>) {
   const smart = useSmartTable<T>({
     data,
@@ -98,11 +114,19 @@ export default function SmartTable<T>({
           {/* Body */}
           <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
             {isLoading ? (
-              <tr>
-                <td className="px-8 py-20 text-center text-xs font-bold uppercase tracking-wider text-slate-400 animate-pulse" colSpan={smart.colCount}>
-                  Loading...
-                </td>
-              </tr>
+              renderSkeletonRow ? (
+                Array.from({ length: skeletonCount }).map((_, i) => (
+                  <React.Fragment key={`smart-skeleton-${i}`}>
+                    {renderSkeletonRow(i)}
+                  </React.Fragment>
+                ))
+              ) : (
+                <tr>
+                  <td className="px-8 py-20 text-center text-xs font-bold uppercase tracking-wider text-slate-400 animate-pulse" colSpan={smart.colCount}>
+                    Loading...
+                  </td>
+                </tr>
+              )
             ) : smart.rowCount === 0 ? (
               <tr>
                 <td className="px-8 py-20 text-center text-xs font-bold uppercase tracking-wider text-slate-400/80" colSpan={smart.colCount}>
@@ -114,12 +138,14 @@ export default function SmartTable<T>({
                 <SmartTableRow
                   cellErrors={smart.cellErrors}
                   cellRefs={smart.cellRefs}
+                  colCount={smart.colCount}
                   dragCurrentRow={smart.dragCurrentRow}
                   dragStartRow={smart.dragStartRow}
                   editingCell={smart.editingCell}
                   editValue={smart.editValue}
                   focusedCell={smart.focusedCell}
                   getPinStyles={smart.getPinStyles}
+                  getRowClassName={getRowClassName}
                   handleCellKeyDown={smart.handleCellKeyDown}
                   handleRowContextMenu={smart.handleRowContextMenu}
                   handleRowMouseDown={smart.handleRowMouseDown}
@@ -128,6 +154,7 @@ export default function SmartTable<T>({
                   key={row.id}
                   localCellValues={smart.localCellValues}
                   onRowClick={onRowClick}
+                  renderExpandedRow={renderExpandedRow}
                   row={row}
                   rowIndex={rowIndex}
                   saveCellEdit={smart.saveCellEdit}

@@ -43,6 +43,7 @@ impl RedbStore {
             .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
+        let mut leaving_unsynced = 0usize;
         {
             let mut log_table = txn
                 .open_table(ATTENDANCE_LOGS)
@@ -54,13 +55,18 @@ impl RedbStore {
                 log_table
                     .insert(*id, bytes.as_slice())
                     .map_err(|e| StoreError::DbError(e.to_string()))?;
-                sync_table
+                if let Some(previous) = sync_table
                     .insert(*id, 2u8)
-                    .map_err(|e| StoreError::DbError(e.to_string()))?;
+                    .map_err(|e| StoreError::DbError(e.to_string()))?
+                    && previous.value() == 0
+                {
+                    leaving_unsynced += 1;
+                }
             }
         }
         txn.commit()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
+        self.sub_unsynced(leaving_unsynced);
         Ok(())
     }
 
@@ -106,6 +112,7 @@ impl RedbStore {
             .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
+        let mut unsynced_removed = 0usize;
         {
             let mut log_table = txn
                 .open_table(ATTENDANCE_LOGS)
@@ -118,12 +125,19 @@ impl RedbStore {
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             for (id, composite_hash) in &removals {
                 let _ = log_table.remove(*id);
-                let _ = sync_table.remove(*id);
+                if let Some(previous) = sync_table
+                    .remove(*id)
+                    .map_err(|e| StoreError::DbError(e.to_string()))?
+                    && previous.value() == 0
+                {
+                    unsynced_removed += 1;
+                }
                 let _ = comp_table.remove(*composite_hash);
             }
         }
         txn.commit()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
+        self.sub_unsynced(unsynced_removed);
         Ok(())
     }
 
@@ -157,6 +171,7 @@ impl RedbStore {
                 .read()
                 .begin_write()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
+            let entering_unsynced;
             {
                 let mut log_table = txn
                     .open_table(ATTENDANCE_LOGS)
@@ -167,12 +182,16 @@ impl RedbStore {
                 log_table
                     .insert(id, bytes.as_slice())
                     .map_err(|e| StoreError::DbError(e.to_string()))?;
-                sync_table
+                entering_unsynced = sync_table
                     .insert(id, 0u8)
-                    .map_err(|e| StoreError::DbError(e.to_string()))?;
+                    .map_err(|e| StoreError::DbError(e.to_string()))?
+                    .is_none_or(|previous| previous.value() != 0);
             }
             txn.commit()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
+            if entering_unsynced {
+                self.add_unsynced(1);
+            }
         }
         Ok(())
     }
@@ -255,6 +274,7 @@ impl RedbStore {
             .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
+        let mut entering_unsynced = 0usize;
         {
             let mut log_table = txn
                 .open_table(ATTENDANCE_LOGS)
@@ -266,13 +286,18 @@ impl RedbStore {
                 log_table
                     .insert(*id, bytes.as_slice())
                     .map_err(|e| StoreError::DbError(e.to_string()))?;
-                sync_table
+                if sync_table
                     .insert(*id, 0u8)
-                    .map_err(|e| StoreError::DbError(e.to_string()))?;
+                    .map_err(|e| StoreError::DbError(e.to_string()))?
+                    .is_none_or(|previous| previous.value() != 0)
+                {
+                    entering_unsynced += 1;
+                }
             }
         }
         txn.commit()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
+        self.add_unsynced(entering_unsynced);
         Ok(count)
     }
 
@@ -330,6 +355,7 @@ impl RedbStore {
             .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
+        let mut entering_unsynced = 0usize;
         {
             let mut log_table = txn
                 .open_table(ATTENDANCE_LOGS)
@@ -341,14 +367,19 @@ impl RedbStore {
                 log_table
                     .insert(*id, bytes.as_slice())
                     .map_err(|e| StoreError::DbError(e.to_string()))?;
-                sync_table
+                if sync_table
                     .insert(*id, 0u8)
-                    .map_err(|e| StoreError::DbError(e.to_string()))?;
+                    .map_err(|e| StoreError::DbError(e.to_string()))?
+                    .is_none_or(|previous| previous.value() != 0)
+                {
+                    entering_unsynced += 1;
+                }
             }
         }
         txn.commit()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
 
+        self.add_unsynced(entering_unsynced);
         Ok(count)
     }
 

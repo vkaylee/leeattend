@@ -145,12 +145,59 @@ pub struct AgentManager {
 pub struct AgentManagerInner {
     // Map Agent ID -> Sender to push messages to that agent's websocket
     pub agents: RwLock<HashMap<String, mpsc::UnboundedSender<Message>>>,
-    // Last seen timestamp for each agent
-    pub agent_last_seen: RwLock<HashMap<String, DateTime<Utc>>>,
-    // Registry for pending commands: command_id -> Sender to resolve the command result
-    pub command_registry: RwLock<HashMap<String, tokio::sync::oneshot::Sender<CentralMessage>>>,
+    // Registry for pending commands: command_id -> Sender to resolve the command result.
+    //
+    // Deliberately a synchronous `parking_lot::Mutex` rather than tokio's RwLock:
+    // the only cleanup path guaranteed to run on every exit is `Drop`, and `Drop`
+    // cannot be async. Every critical section here is a single HashMap
+    // insert/remove with no `.await` inside, so a sync lock is correct (never held
+    // across a yield point) and cheaper than an async one. parking_lot is the
+    // project-sanctioned sync lock (see clippy.toml disallowed-types) and needs no
+    // poison handling. See `PendingCommandGuard`.
+    pub command_registry:
+        parking_lot::Mutex<HashMap<String, tokio::sync::oneshot::Sender<CentralMessage>>>,
     // Redis presence store
     pub redis: Option<Arc<dyn PresenceStore>>,
+}
+
+impl AgentManagerInner {
+    /// Lock the command registry.
+    ///
+    /// Callers MUST NOT hold the returned guard across an `.await`; every use is
+    /// a single map insert/remove, which keeps that invariant trivially true.
+    pub fn registry(
+        &self,
+    ) -> parking_lot::MutexGuard<'_, HashMap<String, tokio::sync::oneshot::Sender<CentralMessage>>>
+    {
+        self.command_registry.lock()
+    }
+}
+
+/// RAII guard that guarantees a pending command is reclaimed from
+/// `command_registry` no matter which path leaves `get_device_info`.
+///
+/// `get_device_info` has four distinct exit paths (send failure, success,
+/// unexpected message type, channel closed) plus the timeout branch. Patching
+/// each one by hand re-opens the leak the moment a new branch is added, so
+/// cleanup is bound to scope exit instead.
+struct PendingCommandGuard {
+    inner: Arc<AgentManagerInner>,
+    command_id: String,
+}
+
+impl Drop for PendingCommandGuard {
+    fn drop(&mut self) {
+        // If the entry is still present, no response ever resolved it: this is an
+        // error/timeout path. `handle_response` removes the entry on success, so
+        // a present entry here always means the command did not complete.
+        if self.inner.registry().remove(&self.command_id).is_some() {
+            // command_id is a server-generated UUID, not PII.
+            tracing::warn!(
+                command_id = %self.command_id,
+                "Reclaimed unresolved pending command from registry (error or timeout path)"
+            );
+        }
+    }
 }
 
 impl Default for AgentManager {
@@ -164,21 +211,14 @@ impl AgentManager {
         Self {
             inner: Arc::new(AgentManagerInner {
                 agents: RwLock::new(HashMap::new()),
-                agent_last_seen: RwLock::new(HashMap::new()),
-                command_registry: RwLock::new(HashMap::new()),
+                command_registry: parking_lot::Mutex::new(HashMap::new()),
                 redis,
             }),
         }
     }
 
     pub async fn add_agent(&self, agent_id: String, tx: mpsc::UnboundedSender<Message>) {
-        self.inner.agents.write().await.insert(agent_id.clone(), tx);
-
-        self.inner
-            .agent_last_seen
-            .write()
-            .await
-            .insert(agent_id, Utc::now());
+        self.inner.agents.write().await.insert(agent_id, tx);
     }
 
     pub async fn remove_agent(&self, agent_id: &str) {
@@ -187,15 +227,10 @@ impl AgentManager {
     }
 
     pub async fn record_heartbeat(&self, agent_id: String) {
-        let now = Utc::now();
-
-        // 1. Update internal RAM cache for fast access
-        {
-            let mut last_seen = self.inner.agent_last_seen.write().await;
-            last_seen.insert(agent_id.clone(), now);
-        }
-
-        // 2. Update Redis with TTL if available
+        // Presence lives in Redis with a 60s TTL, which is the single source of
+        // truth read back by `get_all_agents_status`. There is deliberately no
+        // in-process last-seen map: an unbounded HashMap keyed by agent id that
+        // nothing reads is just a leak.
         if let Some(ref redis) = self.inner.redis {
             redis.record_presence(agent_id).await;
         }
@@ -300,10 +335,14 @@ impl AgentManager {
         };
 
         let (tx, rx) = tokio::sync::oneshot::channel();
-        {
-            let mut registry = self.inner.command_registry.write().await;
-            registry.insert(command_id.clone(), tx);
-        }
+        self.inner.registry().insert(command_id.clone(), tx);
+
+        // From here on, every exit path — including ones added later — reclaims
+        // the registry slot when this guard leaves scope.
+        let _guard = PendingCommandGuard {
+            inner: Arc::clone(&self.inner),
+            command_id,
+        };
 
         self.send_command(agent_id, command).await?;
 
@@ -323,22 +362,18 @@ impl AgentManager {
             }
             Ok(Ok(_)) => Err("Received unexpected message type in response".to_string()),
             Ok(Err(_)) => Err("Response channel closed".to_string()),
-            Err(_) => {
-                // Cleanup on timeout
-                self.inner
-                    .command_registry
-                    .write()
-                    .await
-                    .remove(&command_id);
-                Err("Command timed out".to_string())
-            }
+            Err(_) => Err("Command timed out".to_string()),
         }
     }
 
-    pub async fn handle_response(&self, response: CentralMessage) {
+    /// Resolve a pending command with the agent's response.
+    ///
+    /// Synchronous: the registry is guarded by a sync lock and there is nothing to
+    /// await. Callers on the websocket read loop can invoke this directly.
+    pub fn handle_response(&self, response: CentralMessage) {
         if let CentralMessage::CommandResponse { ref command_id, .. } = response {
-            let mut registry = self.inner.command_registry.write().await;
-            if let Some(tx) = registry.remove(command_id) {
+            let entry = self.inner.registry().remove(command_id);
+            if let Some(tx) = entry {
                 let _ = tx.send(response);
             }
         }
@@ -394,12 +429,6 @@ mod tests {
         // Test add
         manager.add_agent(agent_id.clone(), tx).await;
         assert!(manager.inner.agents.read().await.contains_key(&agent_id));
-        assert!(manager
-            .inner
-            .agent_last_seen
-            .read()
-            .await
-            .contains_key(&agent_id));
 
         // Test heartbeat
         manager.record_heartbeat(agent_id.clone()).await;
@@ -548,6 +577,85 @@ mod tests {
         assert!(
             elapsed < Duration::from_millis(1500),
             "Heartbeat with slow store took too long: {elapsed:?}"
+        );
+    }
+
+    /// Prove-It regression: an offline agent must not leave an orphan entry in
+    /// `command_registry`. The key space is a random UUID, so every failed call
+    /// used to leak one entry for the lifetime of the process.
+    #[tokio::test]
+    async fn test_get_device_info_offline_agent_does_not_leak_registry_entry() {
+        let manager = AgentManager::new(None);
+
+        // No agent registered => send_command fails with "not found or offline".
+        let result = manager
+            .get_device_info("ghost_agent", "00000000-0000-0000-0000-000000000001")
+            .await;
+
+        assert!(result.is_err(), "expected Err for offline agent");
+        assert_eq!(
+            manager.inner.registry().len(),
+            0,
+            "offline agent leaked a command_registry entry"
+        );
+    }
+
+    /// Prove-It regression: the timeout path must reclaim its registry entry.
+    #[tokio::test(start_paused = true)]
+    async fn test_get_device_info_timeout_does_not_leak_registry_entry() {
+        let manager = AgentManager::new(None);
+        let (tx, _rx) = mpsc::unbounded_channel();
+        let agent_id = "silent_agent".to_string();
+        manager.add_agent(agent_id.clone(), tx).await;
+
+        // Agent is "connected" but never answers; the paused clock auto-advances
+        // past the 10s timeout once every task is idle.
+        let result = manager
+            .get_device_info(&agent_id, "00000000-0000-0000-0000-000000000002")
+            .await;
+
+        assert_eq!(result, Err("Command timed out".to_string()));
+        assert_eq!(
+            manager.inner.registry().len(),
+            0,
+            "timeout path leaked a command_registry entry"
+        );
+    }
+
+    /// Prove-It regression: the happy path must also leave the registry empty.
+    #[tokio::test]
+    async fn test_get_device_info_success_removes_registry_entry() {
+        let manager = AgentManager::new(None);
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        let agent_id = "chatty_agent".to_string();
+        manager.add_agent(agent_id.clone(), tx).await;
+
+        // Simulate the agent side: read the command off the socket, reply success.
+        let responder = manager.clone();
+        tokio::spawn(async move {
+            let Some(Message::Text(text)) = rx.recv().await else {
+                return;
+            };
+            let cmd: AgentCommand =
+                serde_json::from_str(&text).expect("agent command must deserialize");
+            responder.handle_response(CentralMessage::CommandResponse {
+                command_id: cmd.id,
+                status: "success".to_string(),
+                data: Some(serde_json::json!({ "firmware": "1.2.3" })),
+                error: None,
+            });
+        });
+
+        let info = manager
+            .get_device_info(&agent_id, "00000000-0000-0000-0000-000000000003")
+            .await
+            .expect("expected success response");
+
+        assert_eq!(info["firmware"], "1.2.3");
+        assert_eq!(
+            manager.inner.registry().len(),
+            0,
+            "success path leaked a command_registry entry"
         );
     }
 

@@ -97,6 +97,7 @@ impl RedbStore {
 
         txn.commit()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
+        self.add_unsynced(1);
         Ok(id)
     }
 
@@ -191,6 +192,7 @@ impl RedbStore {
 
         txn.commit()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
+        self.add_unsynced(inserted);
         Ok(inserted)
     }
 
@@ -247,28 +249,12 @@ impl RedbStore {
         Ok(result)
     }
 
-    /// Count unsynced logs.
+    /// Count unsynced logs (sync state 0).
+    ///
+    /// O(1) — SYNC_INDEX contains both state 0 and state 2 rows, so its length
+    /// is not the unsynced count.
     pub fn count_unsynced(&self) -> Result<usize, StoreError> {
-        let txn = self
-            .db
-            .read()
-            .begin_read()
-            .map_err(|e| StoreError::DbError(e.to_string()))?;
-        let sync_table = txn
-            .open_table(SYNC_INDEX)
-            .map_err(|e| StoreError::DbError(e.to_string()))?;
-
-        let mut count = 0;
-        let iter = sync_table
-            .iter()
-            .map_err(|e| StoreError::DbError(e.to_string()))?;
-        for entry in iter {
-            let (_, state_guard) = entry.map_err(|e| StoreError::DbError(e.to_string()))?;
-            if state_guard.value() == 0 {
-                count += 1;
-            }
-        }
-        Ok(count)
+        Ok(self.unsynced_count())
     }
 
     /// Remove signatures for a specific device (used when disabling device).
@@ -322,6 +308,7 @@ impl RedbStore {
             .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
+        let mut unsynced_removed = 0usize;
         {
             let mut sig_table = txn
                 .open_table(SIGNATURES)
@@ -349,13 +336,18 @@ impl RedbStore {
                 comp_table
                     .remove(*comp)
                     .map_err(|e| StoreError::DbError(e.to_string()))?;
-                sync_table
+                if let Some(previous) = sync_table
                     .remove(*id)
-                    .map_err(|e| StoreError::DbError(e.to_string()))?;
+                    .map_err(|e| StoreError::DbError(e.to_string()))?
+                    && previous.value() == 0
+                {
+                    unsynced_removed += 1;
+                }
             }
         }
         txn.commit()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
+        self.sub_unsynced(unsynced_removed);
         Ok(count)
     }
 

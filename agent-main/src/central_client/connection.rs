@@ -16,6 +16,7 @@ use crate::models::{AttendanceData, CentralMessage};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use super::message_handler::handle_incoming_text;
+use super::periodic_gate::PeriodicGate;
 use super::retry_manager::{RetryManager, calculate_sync_stats};
 
 use crate::time_sync::TimeSync;
@@ -48,6 +49,7 @@ pub struct CentralClient {
     sync_backlogged_interval_ms: u64,
     sync_moderate_interval_ms: u64,
     sync_normal_interval_ms: u64,
+    sync_dlq_interval_secs: u64,
 }
 
 #[allow(clippy::collapsible_if)]
@@ -66,6 +68,7 @@ impl CentralClient {
         sync_backlogged_interval_ms: u64,
         sync_moderate_interval_ms: u64,
         sync_normal_interval_ms: u64,
+        sync_dlq_interval_secs: u64,
     ) -> (Self, mpsc::Receiver<CentralMessage>, mpsc::Receiver<()>) {
         let (tx, rx) = mpsc::channel(100);
         let (reload_tx, reload_rx) = mpsc::channel(1);
@@ -88,6 +91,7 @@ impl CentralClient {
                 sync_backlogged_interval_ms,
                 sync_moderate_interval_ms,
                 sync_normal_interval_ms,
+                sync_dlq_interval_secs,
             },
             rx,
             reload_rx,
@@ -119,8 +123,10 @@ impl CentralClient {
         let sync_backlogged_interval_ms = self.sync_backlogged_interval_ms;
         let sync_moderate_interval_ms = self.sync_moderate_interval_ms;
         let sync_normal_interval_ms = self.sync_normal_interval_ms;
+        let sync_dlq_interval_secs = self.sync_dlq_interval_secs;
         tokio::spawn(async move {
-            let mut last_stale_check = Instant::now();
+            let mut stale_gate = PeriodicGate::new(Duration::from_mins(1));
+            let mut dlq_gate = PeriodicGate::new(Duration::from_secs(sync_dlq_interval_secs));
 
             loop {
                 if sync_cancel_token.is_cancelled() {
@@ -149,14 +155,17 @@ impl CentralClient {
                     continue;
                 }
 
-                // Periodic cleanup: Move expired logs to DLQ
-                let max_retries = match sync_hybrid.get_agent_config("max_retry_count") {
-                    Ok(Some(val)) => val.parse::<i64>().unwrap_or(10),
-                    _ => 10, // Default: 10 retries
-                };
+                // Periodic cleanup: Move expired logs to DLQ. The sweep scans
+                // and deserializes the active log table, so it is time-gated.
+                if dlq_gate.is_due() {
+                    let max_retries = match sync_hybrid.get_agent_config("max_retry_count") {
+                        Ok(Some(val)) => val.parse::<i64>().unwrap_or(10),
+                        _ => 10, // Default: 10 retries
+                    };
 
-                if let Ok(moved) = sync_hybrid.move_expired_logs_to_dlq(max_retries) {
-                    if moved > 0 {
+                    if let Ok(moved) = sync_hybrid.move_expired_logs_to_dlq(max_retries)
+                        && moved > 0
+                    {
                         warn!(
                             "⚠️ Moved {moved} expired logs to dead letter queue (max_retries={max_retries})"
                         );
@@ -164,18 +173,15 @@ impl CentralClient {
                 }
 
                 // Periodic stale in-flight reset (every 60 seconds)
-                if last_stale_check.elapsed() >= Duration::from_mins(1) {
-                    if let Ok(reset_count) = sync_hybrid
+                if stale_gate.is_due()
+                    && let Ok(reset_count) = sync_hybrid
                         .reset_stale_syncing(i64::try_from(inflight_timeout_secs).unwrap_or(30))
-                    {
-                        if reset_count > 0 {
-                            warn!(
-                                "⚠️ Reset {reset_count} stale in-flight logs (>{}s)",
-                                inflight_timeout_secs
-                            );
-                        }
-                    }
-                    last_stale_check = Instant::now();
+                    && reset_count > 0
+                {
+                    warn!(
+                        "⚠️ Reset {reset_count} stale in-flight logs (>{}s)",
+                        inflight_timeout_secs
+                    );
                 }
 
                 // Read from memory
@@ -186,6 +192,8 @@ impl CentralClient {
                     .await
                     .unwrap_or_default();
                 let count = logs.len();
+                // One O(1) read shared by the pending log line and sleep tier.
+                let unsynced_count = sync_hybrid.count_unsynced_logs().await;
 
                 if count > 0 {
                     // Classify logs: new (updated_at IS NULL) vs retry (updated_at IS NOT NULL)
@@ -193,10 +201,8 @@ impl CentralClient {
                     // Calculate stats for better visibility
                     let stats_str = calculate_sync_stats(&logs);
 
-                    let total_pending = sync_hybrid.count_unsynced_logs().await;
-
                     info!(
-                        "📤 Syncing {count} logs to central server ({stats_str} | Pending: {total_pending})...."
+                        "📤 Syncing {count} logs to central server ({stats_str} | Pending: {unsynced_count})...."
                     );
 
                     // Mark in-flight in memory
@@ -237,8 +243,7 @@ impl CentralClient {
                     }
                 }
 
-                // Adaptive sleep based on queue size
-                let unsynced_count = sync_hybrid.count_unsynced_logs().await;
+                // Adaptive sleep based on the count already read this iteration.
 
                 // Backoff is now handled inside RedbStore's get_unsynced()
                 // No separate monitoring needed

@@ -178,6 +178,7 @@ impl Orchestrator {
             self.config.sync_backlogged_interval_ms(),
             self.config.sync_moderate_interval_ms(),
             self.config.sync_normal_interval_ms(),
+            self.config.sync_dlq_interval_secs(),
         );
 
         tokio::spawn(central_client.start(central_rx));

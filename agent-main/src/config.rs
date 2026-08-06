@@ -30,6 +30,7 @@ pub struct Config {
     sync_backlogged_interval_ms: u64,
     sync_moderate_interval_ms: u64,
     sync_normal_interval_ms: u64,
+    sync_dlq_interval_secs: u64,
 }
 
 impl Config {
@@ -89,6 +90,9 @@ impl Config {
     }
     pub fn sync_normal_interval_ms(&self) -> u64 {
         self.sync_normal_interval_ms
+    }
+    pub fn sync_dlq_interval_secs(&self) -> u64 {
+        self.sync_dlq_interval_secs
     }
     pub fn load() -> Self {
         let mut fallbacks: Vec<String> = Vec::new();
@@ -188,6 +192,13 @@ impl Config {
             .parse()
             .unwrap_or(200);
 
+        let sync_dlq_interval_secs = env::var("SYNC_DLQ_INTERVAL_SECS")
+            .unwrap_or_default()
+            .parse()
+            .ok()
+            .filter(|&value: &u64| value > 0)
+            .unwrap_or(300);
+
         if !fallbacks.is_empty() {
             warn!("⚠️  PHÁT HIỆN THIẾU CẤU HÌNH .ENV - SỬ DỤNG GIÁ TRỊ MẶC ĐỊNH:");
             for f in fallbacks {
@@ -216,6 +227,7 @@ impl Config {
             sync_backlogged_interval_ms,
             sync_moderate_interval_ms,
             sync_normal_interval_ms,
+            sync_dlq_interval_secs,
         }
     }
 
@@ -274,6 +286,10 @@ impl Config {
         );
         info!("Sync Moderate Int  : {}ms", self.sync_moderate_interval_ms);
         info!("Sync Normal Int    : {}ms", self.sync_normal_interval_ms);
+        info!(
+            "Sync DLQ Sweep     : every {}s",
+            self.sync_dlq_interval_secs
+        );
         info!("------------------------------------------------------------");
         info!("🔄 RETRY & BACKOFF CONSTANTS");
         info!("------------------------------------------------------------");
@@ -316,6 +332,7 @@ mod tests {
             sync_backlogged_interval_ms: 50,
             sync_moderate_interval_ms: 100,
             sync_normal_interval_ms: 200,
+            sync_dlq_interval_secs: 300,
         };
 
         assert_eq!(config.agent_id, "test-agent");
@@ -498,6 +515,7 @@ mod tests {
             sync_backlogged_interval_ms: 50,
             sync_moderate_interval_ms: 100,
             sync_normal_interval_ms: 200,
+            sync_dlq_interval_secs: 300,
         };
 
         // Should not panic
