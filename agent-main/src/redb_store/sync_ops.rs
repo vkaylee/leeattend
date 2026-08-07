@@ -196,7 +196,14 @@ impl RedbStore {
         Ok(())
     }
 
-    /// Mark synced by composite key (for ACK handling).
+    /// Mark a V2 record synced by its opaque message UUID.
+    pub fn mark_synced_by_msg_id(&self, msg_id: uuid::Uuid) -> bool {
+        self.get_id_by_msg_id(msg_id)
+            .map(|id| self.mark_synced(&[id]).is_ok())
+            .unwrap_or(false)
+    }
+
+    /// Mark synced by composite key (legacy ACK fallback).
     pub fn mark_synced_by_key(&self, composite_key: &str) -> bool {
         if let Some(id) = self.get_id_by_composite_key(composite_key) {
             self.mark_synced(&[id]).is_ok()
@@ -205,7 +212,14 @@ impl RedbStore {
         }
     }
 
-    /// Reset to unsynced by composite key (for failed ACK).
+    /// Reset a V2 record by its opaque message UUID.
+    pub fn reset_to_unsynced_by_msg_id(&self, msg_id: uuid::Uuid) -> bool {
+        self.get_id_by_msg_id(msg_id)
+            .map(|id| self.reset_to_unsynced(id).is_ok())
+            .unwrap_or(false)
+    }
+
+    /// Reset to unsynced by composite key (legacy ACK fallback).
     pub fn reset_to_unsynced_by_key(&self, composite_key: &str) -> bool {
         if let Some(id) = self.get_id_by_composite_key(composite_key) {
             self.reset_to_unsynced(id).is_ok()

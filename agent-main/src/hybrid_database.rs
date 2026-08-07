@@ -145,7 +145,15 @@ impl HybridDatabase {
         let _ = tokio::task::spawn_blocking(move || store.reset_to_unsynced(id)).await;
     }
 
-    /// Mark synced by composite key (for ACK handling).
+    /// Mark synced by opaque V2 message UUID.
+    pub async fn mark_synced_by_msg_id(&self, msg_id: uuid::Uuid) -> bool {
+        let store = self.store.clone();
+        tokio::task::spawn_blocking(move || store.mark_synced_by_msg_id(msg_id))
+            .await
+            .unwrap_or(false)
+    }
+
+    /// Mark synced by composite key (legacy ACK fallback).
     pub async fn mark_synced_by_key(&self, composite_key: String) -> bool {
         let store = self.store.clone();
         tokio::task::spawn_blocking(move || store.mark_synced_by_key(&composite_key))
@@ -153,7 +161,15 @@ impl HybridDatabase {
             .unwrap_or(false)
     }
 
-    /// Reset to unsynced by composite key (for failed ACK).
+    /// Reset by opaque V2 message UUID.
+    pub async fn reset_to_unsynced_by_msg_id(&self, msg_id: uuid::Uuid) -> bool {
+        let store = self.store.clone();
+        tokio::task::spawn_blocking(move || store.reset_to_unsynced_by_msg_id(msg_id))
+            .await
+            .unwrap_or(false)
+    }
+
+    /// Reset to unsynced by composite key (legacy ACK fallback).
     pub async fn reset_to_unsynced_by_key(&self, composite_key: String) -> bool {
         let store = self.store.clone();
         tokio::task::spawn_blocking(move || store.reset_to_unsynced_by_key(&composite_key))
@@ -227,8 +243,22 @@ impl DatabaseStore for HybridDatabase {
         self.mark_synced_by_key(composite_key).await
     }
 
+    async fn mark_synced_by_msg_id(&self, msg_id: uuid::Uuid) -> bool {
+        let store = self.store.clone();
+        tokio::task::spawn_blocking(move || store.mark_synced_by_msg_id(msg_id))
+            .await
+            .unwrap_or(false)
+    }
+
     async fn reset_to_unsynced_by_key(&self, composite_key: String) -> bool {
         self.reset_to_unsynced_by_key(composite_key).await
+    }
+
+    async fn reset_to_unsynced_by_msg_id(&self, msg_id: uuid::Uuid) -> bool {
+        let store = self.store.clone();
+        tokio::task::spawn_blocking(move || store.reset_to_unsynced_by_msg_id(msg_id))
+            .await
+            .unwrap_or(false)
     }
 
     async fn evict_old_signatures(&self) -> (usize, usize, usize) {

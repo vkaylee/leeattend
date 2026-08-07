@@ -88,8 +88,16 @@ impl DatabaseStore for CountingStore {
         self.inner.mark_synced_by_key(composite_key).await
     }
 
+    async fn mark_synced_by_msg_id(&self, msg_id: uuid::Uuid) -> bool {
+        self.inner.mark_synced_by_msg_id(msg_id).await
+    }
+
     async fn reset_to_unsynced_by_key(&self, composite_key: String) -> bool {
         self.inner.reset_to_unsynced_by_key(composite_key).await
+    }
+
+    async fn reset_to_unsynced_by_msg_id(&self, msg_id: uuid::Uuid) -> bool {
+        self.inner.reset_to_unsynced_by_msg_id(msg_id).await
     }
 
     async fn evict_old_signatures(&self) -> (usize, usize, usize) {

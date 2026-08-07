@@ -28,7 +28,11 @@ pub trait DatabaseStore: Send + Sync {
 
     async fn mark_synced_by_key(&self, composite_key: String) -> bool;
 
+    async fn mark_synced_by_msg_id(&self, msg_id: uuid::Uuid) -> bool;
+
     async fn reset_to_unsynced_by_key(&self, composite_key: String) -> bool;
+
+    async fn reset_to_unsynced_by_msg_id(&self, msg_id: uuid::Uuid) -> bool;
 
     async fn evict_old_signatures(&self) -> (usize, usize, usize);
 
