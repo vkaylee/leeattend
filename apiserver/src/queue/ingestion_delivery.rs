@@ -46,7 +46,7 @@ use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
 
-use crate::queue::{Job, JobPriority, RedisPool};
+use crate::queue::{Job, JobPriority, RedisPool, MAX_QUEUE_LENGTH, MAX_SERIALIZED_JOB_BYTES};
 
 const DELIVERY_PREFIX: &str = "ingest:delivery:";
 /// Delivery records outlive the job TTL so a very late duplicate frame or
@@ -147,6 +147,17 @@ impl IngestionDeliveryStore {
         let key = Self::key(agent_id, msg_id);
         let queue_key = self.queue.priority_queue_key_pub(&job.priority);
         let job_json = serde_json::to_string(job).map_err(json_err)?;
+        if job_json.len() > MAX_SERIALIZED_JOB_BYTES {
+            return Err(redis::RedisError::from((
+                redis::ErrorKind::IoError,
+                "Serialized ingestion job exceeds Redis payload limit",
+                format!(
+                    "{} bytes > {} bytes",
+                    job_json.len(),
+                    MAX_SERIALIZED_JOB_BYTES
+                ),
+            )));
+        }
         let now = chrono::Utc::now();
         let record = DeliveryRecord {
             job_id: job.job_id,
@@ -169,8 +180,11 @@ impl IngestionDeliveryStore {
             if existing then
                 return existing
             end
+            if redis.call('LLEN', KEYS[2]) >= tonumber(ARGV[3]) then
+                return '__QUEUE_FULL__'
+            end
             redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2])
-            redis.call('RPUSH', KEYS[2], ARGV[3])
+            redis.call('RPUSH', KEYS[2], ARGV[4])
             return false
             ",
         );
@@ -181,9 +195,18 @@ impl IngestionDeliveryStore {
             .key(&queue_key)
             .arg(&record_json)
             .arg(DELIVERY_TTL_SECS)
+            .arg(MAX_QUEUE_LENGTH)
             .arg(&job_json)
             .invoke_async(&mut conn)
             .await?;
+
+        if result.as_deref() == Some("__QUEUE_FULL__") {
+            return Err(redis::RedisError::from((
+                redis::ErrorKind::BusyLoadingError,
+                "Redis queue capacity exceeded",
+                queue_key,
+            )));
+        }
 
         match result {
             None => Ok(RecordOutcome::Enqueued),

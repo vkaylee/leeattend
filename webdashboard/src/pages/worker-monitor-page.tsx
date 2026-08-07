@@ -20,8 +20,8 @@ import { WorkersTable } from "./monitor/workers-table";
 
 export default function WorkerMonitorPage() {
   const { t } = useTranslation();
-  const { stats, workers, recentJobs, isLoading, isFetching, error, refetch } = useWorkerMonitor();
-  const { connected: _sseConnected } = useMonitorStream();
+  const { connected: sseConnected } = useMonitorStream();
+  const { stats, workers, recentJobs, isLoading, isFetching, error, refetch } = useWorkerMonitor(sseConnected);
   const utilization = useWorkerUtilization(stats);
   const queuePressure = useQueuePressure(stats);
   const jobDistribution = useJobStatusDistribution(recentJobs);

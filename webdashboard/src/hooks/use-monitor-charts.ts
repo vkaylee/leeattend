@@ -51,7 +51,7 @@ function derivePressureLevel(total: number): PressureLevel {
 export const useQueuePressure = (stats: WorkerMonitorStats | undefined): QueuePressureData => {
     return useMemo(() => {
         if (!stats) return { high: 0, low: 0, total: 0, pressureLevel: "low" };
-        const total = stats.pending_high + stats.pending_low;
+        const total = stats.pending_tasks;
         return { high: stats.pending_high, low: stats.pending_low, total, pressureLevel: derivePressureLevel(total) };
     }, [stats]);
 };

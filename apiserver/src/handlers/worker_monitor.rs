@@ -28,7 +28,11 @@ const WORKER_HEARTBEAT_PREFIX: &str = "monitor:worker:";
 const STATS_COMPLETED_PREFIX: &str = "stats:completed:";
 const STATS_FAILED_PREFIX: &str = "stats:failed:";
 const QUEUE_HIGH: &str = "worker:jobs:high";
+const QUEUE_NORMAL: &str = "worker:jobs:normal";
 const QUEUE_LOW: &str = "worker:jobs:low";
+const MAX_MONITOR_JOBS: usize = 100;
+const MAX_MONITOR_QUERY_LIMIT: usize = 100;
+const MONITOR_QUERY_TIMEOUT_SECS: u64 = 5;
 
 /// Workers not seen within this duration are considered stale and excluded.
 const STALE_THRESHOLD_SECS: i64 = 60;
@@ -181,14 +185,27 @@ fn compute_job_type_stats(all_recent_jobs: &[crate::queue::JobMetadata]) -> Vec<
 async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOverviewResponse> {
     let redis = state.infra().require_redis()?;
 
+    tokio::time::timeout(
+        Duration::from_secs(MONITOR_QUERY_TIMEOUT_SECS),
+        fetch_overview_data_inner(state, redis),
+    )
+    .await
+    .map_err(|error| AppError::Internal(format!("monitor overview timed out: {error}")))?
+}
+
+async fn fetch_overview_data_inner(
+    state: &Arc<AppState>,
+    redis: &crate::queue::RedisPool,
+) -> AppResult<MonitorOverviewResponse> {
     let mut conn = redis.conn();
 
-    // 1. Get pending tasks count (sum of both priority queues)
+    // Queue lengths are O(1); include all priority queues in the total.
     let pending_high: u64 = conn.llen(QUEUE_HIGH).await.unwrap_or(0);
+    let pending_normal: u64 = conn.llen(QUEUE_NORMAL).await.unwrap_or(0);
     let pending_low: u64 = conn.llen(QUEUE_LOW).await.unwrap_or(0);
-    let pending_tasks = pending_high + pending_low;
+    let pending_tasks = pending_high + pending_normal + pending_low;
 
-    // 2. Get today's stats counters
+    // Get today's stats counters.
     let today = Utc::now().format("%Y-%m-%d").to_string();
     let completed_key = format!("{STATS_COMPLETED_PREFIX}{today}");
     let failed_key = format!("{STATS_FAILED_PREFIX}{today}");
@@ -196,11 +213,10 @@ async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOverview
     let completed_today: u64 = conn.get(&completed_key).await.unwrap_or(0);
     let failed_today: u64 = conn.get(&failed_key).await.unwrap_or(0);
 
-    // 3. Scan all worker heartbeat keys
+    // Scan only the small worker-heartbeat namespace.
     let pattern = format!("{WORKER_HEARTBEAT_PREFIX}*");
     let worker_keys = scan_keys(&mut conn, &pattern).await;
 
-    // 4. Parse heartbeats and filter stale workers
     let now = Utc::now();
     let stale_cutoff = now - TimeDelta::seconds(STALE_THRESHOLD_SECS);
 
@@ -215,15 +231,15 @@ async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOverview
     };
 
     let total_workers = workers.len() as u64;
-
-    // 5. Get recent job metadata and calculate type breakdown
     let queue = state.infra().job_queue()?;
-    let all_recent_jobs = queue.list_recent_jobs(1000).await.unwrap_or_else(|e| {
-        tracing::warn!(error = %e, "Failed to list recent jobs for stats");
-        vec![]
-    });
+    let all_recent_jobs = queue
+        .list_recent_jobs_indexed(MAX_MONITOR_JOBS)
+        .await
+        .unwrap_or_else(|e| {
+            tracing::warn!(error = %e, "Failed to list indexed jobs for monitor stats");
+            vec![]
+        });
     let job_type_stats = compute_job_type_stats(&all_recent_jobs);
-
     let mut recent_jobs = all_recent_jobs;
     recent_jobs.truncate(10);
 
@@ -304,7 +320,7 @@ pub async fn get_monitor_jobs(
 ) -> AppResult<Json<MonitorJobsResponse>> {
     ctx.require_any_role(&[SystemRoleType::PlatformAdmin, SystemRoleType::Support])?;
 
-    let limit = params.limit.unwrap_or(20);
+    let limit = params.limit.unwrap_or(20).clamp(1, MAX_MONITOR_QUERY_LIMIT);
     let queue = state.infra().job_queue()?;
 
     let (jobs, next_cursor) = queue

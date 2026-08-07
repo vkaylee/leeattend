@@ -1,8 +1,9 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { FetchMonitorJobsParams, fetchMonitorJobs, fetchMonitorOverview } from "@/lib/api/attendance";
 
-export const MONITOR_REFETCH_INTERVAL_MS = 2000;
+export const MONITOR_REFETCH_INTERVAL_MS = 10_000;
 export const MONITOR_REFETCH_INTERVAL_S = MONITOR_REFETCH_INTERVAL_MS / 1000;
 
 export const monitorKeys = {
@@ -24,11 +25,11 @@ export function useWorkerJobs(params: Omit<FetchMonitorJobsParams, "cursor">) {
   });
 }
 
-export function useWorkerMonitor() {
+export function useWorkerMonitor(sseConnected = false) {
   const query = useQuery({
     queryKey: monitorKeys.overview(),
     queryFn: fetchMonitorOverview,
-    refetchInterval: MONITOR_REFETCH_INTERVAL_MS,
+    refetchInterval: sseConnected ? false : MONITOR_REFETCH_INTERVAL_MS,
   });
 
   return {

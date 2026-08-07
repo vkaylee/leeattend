@@ -46,6 +46,17 @@ pub const MERGE_FLAG_PREFIX: &str = "report:merge_triggered:";
 pub const DLQ_KEY: &str = "report:dlq";
 pub const INDEX_ZSET_KEY: &str = "report:job_list";
 pub const JOB_TTL_SECS: i64 = 86_400; // 24 hours
+/// Hard upper bound for each priority queue. Producers must apply backpressure
+/// instead of allowing Redis memory usage to grow without limit.
+pub const MAX_QUEUE_LENGTH: usize = 100_000;
+/// Keep only the newest DLQ entries in Redis; older entries must be archived
+/// outside Redis if longer retention is required.
+pub const MAX_DLQ_LENGTH: usize = 10_000;
+/// Reject oversized serialized jobs before they can consume unbounded Redis
+/// memory, especially for ingestion payloads containing raw JSON.
+pub const MAX_SERIALIZED_JOB_BYTES: usize = 1_048_576;
+/// Maximum number of indexed metadata records loaded by monitor/status helpers.
+pub const MAX_RECENT_JOBS: usize = 1_000;
 
 // Global daily stats keys
 const STATS_COMPLETED_PREFIX: &str = "stats:completed:";
@@ -57,6 +68,7 @@ const STATS_TTL_SECS: i64 = 604_800; // 7 days retention
 pub struct JobQueue {
     pool: RedisPool,
     namespace: String,
+    queue_capacity: usize,
     /// Shared dequeue counter for weighted fairness across all workers.
     /// Each `dequeue_job` call increments this; every `LOW_QUEUE_WEIGHT`-th
     /// call attempts a non-blocking LPOP from the low queue first.
@@ -66,18 +78,21 @@ pub struct JobQueue {
 impl JobQueue {
     /// Create a new JobQueue with the given Redis pool.
     pub fn new(pool: RedisPool) -> Self {
-        Self {
-            pool,
-            namespace: String::new(),
-            dequeue_counter: AtomicU64::new(0),
-        }
+        Self::with_capacity(pool, "", MAX_QUEUE_LENGTH)
     }
 
     /// Create a new JobQueue with a specific namespace (mainly for isolated testing).
     pub fn with_namespace(pool: RedisPool, namespace: &str) -> Self {
+        Self::with_capacity(pool, namespace, MAX_QUEUE_LENGTH)
+    }
+
+    /// Create a queue with an explicit capacity for deterministic tests and
+    /// deployments that need a smaller operational budget.
+    pub fn with_capacity(pool: RedisPool, namespace: &str, queue_capacity: usize) -> Self {
         Self {
             pool,
             namespace: namespace.to_string(),
+            queue_capacity,
             dequeue_counter: AtomicU64::new(0),
         }
     }
@@ -109,40 +124,23 @@ impl JobQueue {
         }
     }
 
-    /// Enqueue multiple jobs atomically using RPUSH.
+    /// Enqueue multiple jobs with an atomic per-item capacity check.
     /// Jobs are routed to the appropriate priority queue.
     ///
     /// # Arguments
     /// * `jobs` - Vector of jobs to enqueue
     ///
     /// # Errors
-    /// Returns `RedisError` if the operation fails.
+    /// Returns `RedisError` if serialization, capacity, or Redis execution fails.
     pub async fn enqueue_jobs(&self, jobs: Vec<Job>) -> Result<(), redis::RedisError> {
-        if jobs.is_empty() {
-            return Ok(());
-        }
-
-        let mut conn = self.pool.conn();
-
         for job in jobs {
-            let json = serde_json::to_string(&job).map_err(|e| {
-                redis::RedisError::from((
-                    redis::ErrorKind::TypeError,
-                    "JSON serialization error",
-                    e.to_string(),
-                ))
-            })?;
-            let key = self.priority_queue_key(&job.priority);
-            tracing::debug!(job_id = %job.job_id, queue = key, "Pushing job to queue");
-            let _: () = conn.rpush(key, json).await?;
+            self.enqueue_single(job).await?;
         }
-
         Ok(())
     }
 
     /// Enqueue a single job. Convenience method for log ingestion.
     pub async fn enqueue_single(&self, job: Job) -> Result<(), redis::RedisError> {
-        let mut conn = self.pool.conn();
         let json = serde_json::to_string(&job).map_err(|e| {
             redis::RedisError::from((
                 redis::ErrorKind::TypeError,
@@ -150,8 +148,38 @@ impl JobQueue {
                 e.to_string(),
             ))
         })?;
+        if json.len() > MAX_SERIALIZED_JOB_BYTES {
+            return Err(redis::RedisError::from((
+                redis::ErrorKind::IoError,
+                "Serialized job exceeds Redis payload limit",
+                format!("{} bytes > {} bytes", json.len(), MAX_SERIALIZED_JOB_BYTES),
+            )));
+        }
+
         let key = self.priority_queue_key(&job.priority);
-        let _: () = conn.rpush(key, json).await?;
+        let mut conn = self.pool.conn();
+        let pushed: i64 = redis::Script::new(
+            r"
+            if redis.call('LLEN', KEYS[1]) >= tonumber(ARGV[2]) then
+                return 0
+            end
+            redis.call('RPUSH', KEYS[1], ARGV[1])
+            return 1
+            ",
+        )
+        .key(&key)
+        .arg(&json)
+        .arg(self.queue_capacity)
+        .invoke_async(&mut conn)
+        .await?;
+
+        if pushed != 1 {
+            return Err(redis::RedisError::from((
+                redis::ErrorKind::BusyLoadingError,
+                "Redis queue capacity exceeded",
+                key,
+            )));
+        }
         Ok(())
     }
 
@@ -524,7 +552,11 @@ impl JobQueue {
                 e.to_string(),
             ))
         })?;
-        let _: () = conn.rpush(DLQ_KEY, json).await?;
+        let _: () = redis::pipe()
+            .rpush(DLQ_KEY, json)
+            .ltrim(DLQ_KEY, -(MAX_DLQ_LENGTH.cast_signed()), -1)
+            .query_async(&mut conn)
+            .await?;
         Ok(())
     }
 
@@ -706,6 +738,38 @@ impl JobQueue {
         }
 
         self.update_job_metadata(&meta).await
+    }
+
+    /// Load a bounded set of newest jobs from the indexed ZSET.
+    /// Unlike `list_recent_jobs`, this never scans the metadata keyspace.
+    pub async fn list_recent_jobs_indexed(
+        &self,
+        limit: usize,
+    ) -> Result<Vec<JobMetadata>, redis::RedisError> {
+        let limit = limit.clamp(1, MAX_RECENT_JOBS);
+        let mut conn = self.pool.conn();
+        let ids: Vec<String> = redis::cmd("ZREVRANGEBYSCORE")
+            .arg(INDEX_ZSET_KEY)
+            .arg("+inf")
+            .arg("-inf")
+            .arg("LIMIT")
+            .arg(0)
+            .arg(limit)
+            .query_async(&mut conn)
+            .await?;
+
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let keys: Vec<String> = ids.iter().map(|id| format!("{META_PREFIX}{id}")).collect();
+        let values: Vec<Option<String>> = conn.mget(&keys).await?;
+        let mut jobs: Vec<JobMetadata> = values
+            .into_iter()
+            .filter_map(|value| value.and_then(|raw| serde_json::from_str(&raw).ok()))
+            .collect();
+        jobs.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        Ok(jobs)
     }
 
     /// List recent jobs by scanning all metadata keys in Redis.

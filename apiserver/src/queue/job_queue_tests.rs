@@ -1,8 +1,9 @@
 #[cfg(test)]
 mod tests {
     use crate::queue::job_queue::{
-        COUNTER_PREFIX, DLQ_KEY, JOB_TTL_SECS, LOW_QUEUE_WEIGHT, MERGE_FLAG_PREFIX, META_PREFIX,
-        QUEUE_HIGH, QUEUE_LOW, QUEUE_NORMAL, RESULTS_PREFIX,
+        COUNTER_PREFIX, DLQ_KEY, JOB_TTL_SECS, LOW_QUEUE_WEIGHT, MAX_DLQ_LENGTH, MAX_QUEUE_LENGTH,
+        MAX_RECENT_JOBS, MAX_SERIALIZED_JOB_BYTES, MERGE_FLAG_PREFIX, META_PREFIX, QUEUE_HIGH,
+        QUEUE_LOW, QUEUE_NORMAL, RESULTS_PREFIX,
     };
     use crate::queue::{
         DateRange, Job, JobMetadata, JobPayload, JobQueue, JobStatus, MergePayload, RedisPool,
@@ -55,6 +56,15 @@ mod tests {
         assert_eq!(COUNTER_PREFIX, "report:counter:");
         assert_eq!(DLQ_KEY, "report:dlq");
         assert_eq!(JOB_TTL_SECS, 86400); // 24 hours
+    }
+
+    #[test]
+    fn test_redis_resource_limits_are_bounded() {
+        assert!(MAX_QUEUE_LENGTH > 0);
+        assert!(MAX_DLQ_LENGTH > 0);
+        assert!(MAX_RECENT_JOBS > 0);
+        assert!(MAX_SERIALIZED_JOB_BYTES >= 1024);
+        assert!(MAX_RECENT_JOBS <= 1000);
     }
 
     #[test]
@@ -756,6 +766,153 @@ mod tests {
     }
 
     // ====== PRIORITY QUEUE ROUTING TESTS ======
+
+    #[tokio::test]
+    async fn test_enqueue_rejects_oversized_serialized_job_without_write() {
+        let pool = setup_redis_or_skip!();
+        let test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &test_ns);
+        let mut conn = pool.conn();
+        let key = queue.queue_low();
+        let oversized = "x".repeat(MAX_SERIALIZED_JOB_BYTES + 1);
+        let job = Job::with_priority(
+            Uuid::new_v4(),
+            0,
+            TaskType::LogIngestion,
+            Uuid::new_v4(),
+            JobPayload::LogIngestion(Box::new(crate::queue::LogIngestionPayload {
+                workspace_id: Uuid::new_v4(),
+                employee_id_number: "EMP001".to_string(),
+                punch_time_raw: "2026-01-26 09:00:00".to_string(),
+                device_id: None,
+                raw_data: Some(serde_json::json!({ "oversized": oversized })),
+                timezone: "UTC".to_string(),
+                date_fmt: "YYYY-MM-DD".to_string(),
+                time_fmt: "24h".to_string(),
+                msg_id: None,
+                agent_id: None,
+                source_timestamp: None,
+                source_timezone: None,
+                timestamp_kind: None,
+            })),
+            crate::queue::JobPriority::Low,
+        );
+
+        let result = queue.enqueue_single(job).await;
+        assert!(result.is_err(), "oversized job must be rejected");
+        let length: usize = conn.llen(&key).await.unwrap_or(0);
+        assert_eq!(length, 0, "oversized job must not be written");
+        let _: () = conn.del(&key).await.unwrap_or(());
+    }
+
+    #[tokio::test]
+    async fn test_enqueue_rejects_when_injected_capacity_is_full() {
+        let pool = setup_redis_or_skip!();
+        let test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_capacity(pool.clone(), &test_ns, 2);
+        let mut conn = pool.conn();
+        let key = queue.queue_low();
+        let _: () = conn.del(&key).await.unwrap_or(());
+
+        for _ in 0..2 {
+            let job = Job::with_priority(
+                Uuid::new_v4(),
+                0,
+                TaskType::LogIngestion,
+                Uuid::new_v4(),
+                JobPayload::LogIngestion(Box::new(crate::queue::LogIngestionPayload {
+                    workspace_id: Uuid::new_v4(),
+                    employee_id_number: "EMP001".to_string(),
+                    punch_time_raw: "2026-01-26 09:00:00".to_string(),
+                    device_id: None,
+                    raw_data: None,
+                    timezone: "UTC".to_string(),
+                    date_fmt: "YYYY-MM-DD".to_string(),
+                    time_fmt: "24h".to_string(),
+                    msg_id: None,
+                    agent_id: None,
+                    source_timestamp: None,
+                    source_timezone: None,
+                    timestamp_kind: None,
+                })),
+                crate::queue::JobPriority::Low,
+            );
+            queue
+                .enqueue_single(job)
+                .await
+                .expect("first two jobs should fit");
+        }
+
+        let third = Job::with_priority(
+            Uuid::new_v4(),
+            0,
+            TaskType::LogIngestion,
+            Uuid::new_v4(),
+            JobPayload::LogIngestion(Box::new(crate::queue::LogIngestionPayload {
+                workspace_id: Uuid::new_v4(),
+                employee_id_number: "EMP001".to_string(),
+                punch_time_raw: "2026-01-26 09:00:00".to_string(),
+                device_id: None,
+                raw_data: None,
+                timezone: "UTC".to_string(),
+                date_fmt: "YYYY-MM-DD".to_string(),
+                time_fmt: "24h".to_string(),
+                msg_id: None,
+                agent_id: None,
+                source_timestamp: None,
+                source_timezone: None,
+                timestamp_kind: None,
+            })),
+            crate::queue::JobPriority::Low,
+        );
+        assert!(
+            queue.enqueue_single(third).await.is_err(),
+            "third job must be rejected"
+        );
+        let length: usize = conn.llen(&key).await.unwrap_or(0);
+        assert_eq!(length, 2);
+        let _: () = conn.del(&key).await.unwrap_or(());
+    }
+
+    #[tokio::test]
+    async fn test_dlq_write_is_bounded() {
+        let pool = setup_redis_or_skip!();
+        let mut conn = pool.conn();
+        let _: () = conn.del(DLQ_KEY).await.unwrap_or(());
+        let queue = JobQueue::new(pool.clone());
+        let job = Job::with_priority(
+            Uuid::new_v4(),
+            0,
+            TaskType::LogIngestion,
+            Uuid::new_v4(),
+            JobPayload::LogIngestion(Box::new(crate::queue::LogIngestionPayload {
+                workspace_id: Uuid::new_v4(),
+                employee_id_number: "EMP001".to_string(),
+                punch_time_raw: "2026-01-26 09:00:00".to_string(),
+                device_id: None,
+                raw_data: None,
+                timezone: "UTC".to_string(),
+                date_fmt: "YYYY-MM-DD".to_string(),
+                time_fmt: "24h".to_string(),
+                msg_id: None,
+                agent_id: None,
+                source_timestamp: None,
+                source_timezone: None,
+                timestamp_kind: None,
+            })),
+            crate::queue::JobPriority::Low,
+        );
+
+        for _ in 0..(MAX_DLQ_LENGTH + 1) {
+            queue
+                .move_to_dlq(&job, "test failure")
+                .await
+                .expect("DLQ write should succeed");
+        }
+        let length: usize = conn.llen(DLQ_KEY).await.unwrap_or(0);
+        assert_eq!(length, MAX_DLQ_LENGTH);
+        let _: () = conn.del(DLQ_KEY).await.unwrap_or(());
+    }
 
     #[tokio::test]
     async fn test_enqueue_routes_high_priority_to_high_queue() {

@@ -15,6 +15,6 @@ pub use job::{
     ReportConfig, ReportPayload, ReportType, ReprocessPayload, SyncHireDatePayload, TaskType,
     WithDateRangeParams,
 };
-pub use job_queue::JobQueue;
+pub use job_queue::{JobQueue, MAX_QUEUE_LENGTH, MAX_SERIALIZED_JOB_BYTES};
 pub use pubsub::{ReportPublisher, ReportSubscriber, StreamMessage};
 pub use redis_client::RedisPool;
