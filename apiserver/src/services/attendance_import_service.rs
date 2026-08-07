@@ -819,6 +819,12 @@ impl ImportStrategy for PunchImportStrategy {
                     punch: 0,
                     status: 0,
                     created_at: Utc::now(),
+                    source_timestamp: Some(row.punch_time.to_rfc3339()),
+                    source_timezone: Some(self.workspace_tz.name().to_string()),
+                    timestamp_kind: Some("import_utc".to_string()),
+                    conversion_status: Some("converted".to_string()),
+                    conversion_error: None,
+                    received_at: Some(Utc::now()),
                 });
 
                 let local_date = row

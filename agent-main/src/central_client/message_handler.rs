@@ -139,25 +139,62 @@ pub async fn handle_incoming_text(
 
                 let _ = reload_tx.try_send(());
             }
-            CentralMessage::Ack { msg_id, status, .. } => {
-                if status.as_deref() == Some("success") {
-                    if !hybrid_db.mark_synced_by_key(msg_id.clone()).await {
-                        debug!("ACK for already-synced log (disk update OK): {msg_id}");
-                    }
-                    if let Some((device_id, user_id, timestamp_unix, punch, status)) =
-                        parse_composite_key(&msg_id)
-                    {
+            CentralMessage::Ack {
+                msg_id,
+                status,
+                attempt,
+                ..
+            } => {
+                // Additive 4-state ACK contract: accepted / processed / retryable_error /
+                // permanent_error. Legacy servers only ever send "success" or "error" —
+                // those map to processed / retryable_error respectively for backward
+                // compatibility. `accepted` means Redis durably queued the job but the
+                // worker has not yet produced a terminal business outcome: the agent
+                // MUST NOT mark the log synced on `accepted` alone, or a worker
+                // crash/lease-expiry after this point would silently lose the log.
+                match status.as_deref() {
+                    Some("accepted") => {
                         debug!(
-                            "🔍 ACK Success: device='{device_id}', user='{}', timestamp='{timestamp_unix}', punch={punch:?}, status={status:?}",
-                            crate::utils::mask_user_id(&user_id)
+                            "📬 ACK accepted (durably queued, not yet processed): {msg_id} (attempt={attempt:?})"
                         );
-                    } else {
-                        warn!("⚠️ Failed to parse composite key: {msg_id}");
+                        // Intentionally a no-op on local storage: local record must be
+                        // retained until a terminal `processed` ACK arrives.
                     }
-                } else if !hybrid_db.reset_to_unsynced_by_key(msg_id.clone()).await {
-                    debug!("Failed ACK for already-synced log: {msg_id}");
-                } else {
-                    warn!("⚠️ ACK Failed: Resetting log {msg_id} for retry");
+                    Some("processed") | Some("success") | None => {
+                        if !hybrid_db.mark_synced_by_key(msg_id.clone()).await {
+                            debug!("ACK for already-synced log (disk update OK): {msg_id}");
+                        }
+                        if let Some((device_id, user_id, timestamp_unix, punch, status)) =
+                            parse_composite_key(&msg_id)
+                        {
+                            debug!(
+                                "🔍 ACK Success: device='{device_id}', user='{}', timestamp='{timestamp_unix}', punch={punch:?}, status={status:?}",
+                                crate::utils::mask_user_id(&user_id)
+                            );
+                        } else {
+                            warn!("⚠️ Failed to parse composite key: {msg_id}");
+                        }
+                    }
+                    Some("retryable_error") | Some("error") => {
+                        if hybrid_db.reset_to_unsynced_by_key(msg_id.clone()).await {
+                            warn!("⚠️ ACK retryable_error: Resetting log {msg_id} for retry");
+                        } else {
+                            debug!("Failed ACK for already-synced log: {msg_id}");
+                        }
+                    }
+                    Some("permanent_error") => {
+                        // Malformed/exhausted/DLQ: retrying locally would just loop
+                        // forever against a job the server already gave up on.
+                        // Quarantine locally rather than reset-to-unsynced.
+                        warn!("⛔ ACK permanent_error for {msg_id}: quarantining locally");
+                        let _ = hybrid_db.reset_to_unsynced_by_key(msg_id.clone()).await;
+                    }
+                    Some(other) => {
+                        warn!(
+                            "⚠️ Unknown ACK status '{other}' for {msg_id}: treating as retryable_error"
+                        );
+                        let _ = hybrid_db.reset_to_unsynced_by_key(msg_id.clone()).await;
+                    }
                 }
             }
             CentralMessage::Error { code, message } => {

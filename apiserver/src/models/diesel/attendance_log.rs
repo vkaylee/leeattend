@@ -51,6 +51,12 @@ pub struct RawAttendanceLogEntity {
     pub punch: i32,
     pub status: i32,
     pub employment_id: Uuid,
+    pub source_timestamp: Option<String>,
+    pub source_timezone: Option<String>,
+    pub timestamp_kind: Option<String>,
+    pub conversion_status: Option<String>,
+    pub conversion_error: Option<String>,
+    pub received_at: Option<DateTime<Utc>>,
 }
 
 impl From<RawAttendanceLogEntity> for RawAttendanceLog {
@@ -66,6 +72,12 @@ impl From<RawAttendanceLogEntity> for RawAttendanceLog {
             punch: val.punch,
             status: val.status,
             created_at: val.created_at.unwrap_or_else(Utc::now),
+            source_timestamp: val.source_timestamp,
+            source_timezone: val.source_timezone,
+            timestamp_kind: val.timestamp_kind,
+            conversion_status: val.conversion_status,
+            conversion_error: val.conversion_error,
+            received_at: val.received_at,
         })
     }
 }

@@ -91,6 +91,12 @@ async fn test_overnight_shift_pairing() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     raw_repo.create_raw_log(ws_id, &raw_log_in).await.unwrap();
 
@@ -105,6 +111,12 @@ async fn test_overnight_shift_pairing() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     raw_repo.create_raw_log(ws_id, &raw_log_out).await.unwrap();
 
@@ -246,6 +258,12 @@ async fn test_overnight_shift_multiple_checkout_punches_subminute_deduplication(
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     raw_repo.create_raw_log(ws_id, &log_in).await.unwrap();
 
@@ -260,6 +278,12 @@ async fn test_overnight_shift_multiple_checkout_punches_subminute_deduplication(
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     raw_repo.create_raw_log(ws_id, &log_out1).await.unwrap();
 
@@ -274,6 +298,12 @@ async fn test_overnight_shift_multiple_checkout_punches_subminute_deduplication(
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     raw_repo.create_raw_log(ws_id, &log_out2).await.unwrap();
 
@@ -403,6 +433,12 @@ async fn test_overnight_shift_multiple_checkout_punches_ingested_sequentially() 
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     let raw_repo =
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
@@ -434,6 +470,12 @@ async fn test_overnight_shift_multiple_checkout_punches_ingested_sequentially() 
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     raw_repo.create_raw_log(ws_id, &log_out1).await.unwrap();
 
@@ -462,6 +504,12 @@ async fn test_overnight_shift_multiple_checkout_punches_ingested_sequentially() 
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     raw_repo.create_raw_log(ws_id, &log_out2).await.unwrap();
 
@@ -583,6 +631,12 @@ async fn test_overnight_recalculate_day1_reclaims_punches() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     let log_out = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: Uuid::new_v4(),
@@ -595,6 +649,12 @@ async fn test_overnight_recalculate_day1_reclaims_punches() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     let raw_repo =
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
@@ -759,6 +819,12 @@ async fn test_overnight_recalculate_range_reclaims_punches() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     let log_out = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: Uuid::new_v4(),
@@ -771,6 +837,12 @@ async fn test_overnight_recalculate_range_reclaims_punches() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     let raw_repo =
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
@@ -929,6 +1001,12 @@ async fn test_overnight_recalculate_day1_only_automatically_heals_day2() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     let log_out = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: Uuid::new_v4(),
@@ -941,6 +1019,12 @@ async fn test_overnight_recalculate_day1_only_automatically_heals_day2() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     let raw_repo =
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
@@ -1129,6 +1213,12 @@ async fn test_overnight_recalculate_day1_next_day_has_shift_with_own_punches() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     let log_out_1 = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: Uuid::new_v4(),
@@ -1141,6 +1231,12 @@ async fn test_overnight_recalculate_day1_next_day_has_shift_with_own_punches() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     let log_in_2 = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: Uuid::new_v4(),
@@ -1153,6 +1249,12 @@ async fn test_overnight_recalculate_day1_next_day_has_shift_with_own_punches() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     let log_out_2 = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: Uuid::new_v4(),
@@ -1165,6 +1267,12 @@ async fn test_overnight_recalculate_day1_next_day_has_shift_with_own_punches() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
 
     let raw_repo =
@@ -1346,6 +1454,12 @@ async fn test_consecutive_overnight_shifts_propagation() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     let log_out_1 = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: Uuid::new_v4(),
@@ -1358,6 +1472,12 @@ async fn test_consecutive_overnight_shifts_propagation() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     let log_in_2 = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: Uuid::new_v4(),
@@ -1370,6 +1490,12 @@ async fn test_consecutive_overnight_shifts_propagation() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     let log_out_2 = apiserver::models::RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: Uuid::new_v4(),
@@ -1382,6 +1508,12 @@ async fn test_consecutive_overnight_shifts_propagation() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
 
     let raw_repo =

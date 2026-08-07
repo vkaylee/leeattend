@@ -6,6 +6,7 @@
 
 use crate::models::LogSource;
 use crate::queue::Job;
+use crate::worker::AckStatus;
 
 pub struct LogIngestionHandler;
 
@@ -19,6 +20,12 @@ impl LogIngestionHandler {
     /// - Pairing logic
     /// - Unknown user staging
     /// - Error logging
+    ///
+    /// The DB outcome is always persisted (or a terminal staging/error record
+    /// written) *before* this function attempts to notify the agent. If the
+    /// agent is offline or the ACK send fails, the completed DB outcome is
+    /// never reverted — the durable delivery record (queue-level, not this
+    /// handler) remains the source of truth for replay.
     pub async fn handle(job: &Job, deps: &crate::worker::WorkerDeps) -> Result<(), String> {
         let payload = job
             .log_ingestion_payload()
@@ -27,7 +34,7 @@ impl LogIngestionHandler {
         let log_svc = deps.log_service();
 
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(payload.workspace_id);
-        log_svc
+        let result = log_svc
             .process_log(crate::services::attendance_log_service::ProcessLogArgs {
                 workspace_id: payload.workspace_id,
                 auth_token: &auth_token,
@@ -40,9 +47,34 @@ impl LogIngestionHandler {
                 date_fmt: Some(&payload.date_fmt),
                 time_fmt: Some(&payload.time_fmt),
             })
-            .await
-            .map(|_| ())
-            .map_err(|e| e.to_string())
+            .await;
+
+        // Persist-before-ack: the match below only classifies an outcome that
+        // has already been durably written by `process_log` (inserted,
+        // duplicate, staged, or a terminal parse/employment error record).
+        // `Err` means a transient DB error — nothing was persisted, so the
+        // agent must be told to retry rather than drop its local copy.
+        let (final_result, ack_status, ack_error): (Result<(), String>, AckStatus, Option<String>) =
+            match result {
+                Ok(true | false) => (Ok(()), AckStatus::Processed, None),
+                Err(e) => {
+                    let msg = e.to_string();
+                    (Err(msg.clone()), AckStatus::RetryableError, Some(msg))
+                }
+            };
+
+        // Best-effort ACK to the originating agent. Only attempted when the
+        // job carries both a msg_id and agent_id (i.e. it originated from a
+        // connected agent, not from a legacy queued job or import path).
+        if let (Some(sink), Some(msg_id), Some(agent_id)) =
+            (&deps.ack_sink, &payload.msg_id, &payload.agent_id)
+        {
+            let _ = sink
+                .ack(agent_id, msg_id, ack_status, ack_error, None)
+                .await;
+        }
+
+        final_result
     }
 }
 
@@ -59,7 +91,7 @@ mod tests {
             0,
             TaskType::LogIngestion,
             Uuid::new_v4(),
-            JobPayload::LogIngestion(LogIngestionPayload {
+            JobPayload::LogIngestion(Box::new(LogIngestionPayload {
                 workspace_id: Uuid::new_v4(),
                 employee_id_number: "EMP001".to_string(),
                 punch_time_raw: "2026-01-26 09:00:00".to_string(),
@@ -68,7 +100,12 @@ mod tests {
                 timezone: "Asia/Ho_Chi_Minh".to_string(),
                 date_fmt: "DD/MM/YYYY".to_string(),
                 time_fmt: "24h".to_string(),
-            }),
+                msg_id: None,
+                agent_id: None,
+                source_timestamp: None,
+                source_timezone: None,
+                timestamp_kind: None,
+            })),
             JobPriority::Low,
         );
 
@@ -291,7 +328,7 @@ mod tests {
             0,
             TaskType::LogIngestion,
             ws_id,
-            JobPayload::LogIngestion(crate::queue::LogIngestionPayload {
+            JobPayload::LogIngestion(Box::new(crate::queue::LogIngestionPayload {
                 workspace_id: ws_id,
                 employee_id_number: "EMP001".to_string(),
                 punch_time_raw: "2026-01-26 09:00:00".to_string(),
@@ -300,7 +337,12 @@ mod tests {
                 timezone: "Asia/Ho_Chi_Minh".to_string(),
                 date_fmt: "YYYY-MM-DD".to_string(),
                 time_fmt: "24h".to_string(),
-            }),
+                msg_id: None,
+                agent_id: None,
+                source_timestamp: None,
+                source_timezone: None,
+                timestamp_kind: None,
+            })),
             JobPriority::High,
         );
 

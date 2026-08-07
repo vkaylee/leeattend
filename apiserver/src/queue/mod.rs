@@ -1,8 +1,12 @@
+pub mod ingestion_delivery;
 mod job;
 mod job_queue;
 mod pubsub;
 mod redis_client;
 
+pub use ingestion_delivery::{
+    DeliveryRecord, DeliveryState, IngestionDeliveryStore, RecordOutcome,
+};
 pub use job::{
     AccrualPayload, BulkTerminationPayload, BulkTerminationRow, ClaimStagedLogsPayload, DateRange,
     EmployeeImportChunkPayload, EmployeeImportPayload, ExpiringContractsPayload,

@@ -408,6 +408,12 @@ async fn parse_log_entry(
         punch,
         status,
         created_at: Utc::now(),
+        source_timestamp: Some(entry.punch_time_raw.clone()),
+        source_timezone: Some(entry.timezone.clone()),
+        timestamp_kind: Some("source_input".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
 
     Ok(ParsedLogEntry { raw_log })

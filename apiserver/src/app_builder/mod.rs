@@ -90,6 +90,7 @@ impl AppState {
             pairing_rx,
             pairing_notifier.clone(),
             registry,
+            agent_manager.clone(),
         );
 
         let state = Arc::new(AppState::new(

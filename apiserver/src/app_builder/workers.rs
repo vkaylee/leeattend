@@ -22,6 +22,7 @@ pub fn build_workers(
     pairing_rx: mpsc::UnboundedReceiver<PairingNotification>,
     pairing_notifier_for_worker: Option<Arc<PairingNotifier>>,
     registry: &crate::utils::env_registry::EnvRegistry,
+    agent_manager: crate::agent_manager::AgentManager,
 ) -> (Option<Arc<ReportCoordinator>>, AppWorkers) {
     let worker_cancel_token = CancellationToken::new();
     let (coordinator, worker_handle, scheduler_handle, outbox_sweep_handle) =
@@ -56,6 +57,7 @@ pub fn build_workers(
                     Arc::clone(&coordinator),
                     roster_cache.clone(),
                     pairing_notifier_for_worker.clone(),
+                    Some(Arc::new(agent_manager.clone()) as crate::worker::SharedAckSink),
                 );
 
                 let scheduler = HousekeepingScheduler::new(redis.clone());

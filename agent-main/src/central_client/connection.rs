@@ -226,7 +226,11 @@ impl CentralClient {
                         .unwrap_or_else(|| format!("invalid_{}", log.timestamp));
 
                     let msg = CentralMessage::Attendance {
-                        msg_id: log.composite_key(),
+                        // New V2 records use the opaque UUID; legacy V1 records
+                        // retain the composite key only as a compatibility fallback.
+                        msg_id: sync_hybrid
+                            .get_msg_id(log.id)
+                            .map_or_else(|| log.composite_key(), |id| id.to_string()),
                         agent_id: sync_agent_id.clone(),
                         device_id: log.device_id.clone(),
                         data: AttendanceData {

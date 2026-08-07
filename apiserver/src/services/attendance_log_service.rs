@@ -243,8 +243,29 @@ impl AttendanceLogService {
         raw_data: Option<serde_json::Value>,
         fingerprint: &str,
     ) -> Result<bool, crate::errors::AppError> {
-        let punch_time = parse_datetime_with_tz(punch_time_raw, timezone, date_fmt, time_fmt)
-            .unwrap_or_else(|_| Utc::now());
+        let punch_time = match parse_datetime_with_tz(punch_time_raw, timezone, date_fmt, time_fmt)
+        {
+            Ok(value) => value,
+            Err(error) => {
+                warn!(
+                    "Unknown user {} has invalid timestamp; staging raw input (fingerprint: {})",
+                    normalized_emp_id,
+                    &fingerprint[..8]
+                );
+                let _ = self
+                    .error_repo
+                    .create_error_log_with_fingerprint(
+                        &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                        device_id.clone(),
+                        raw_data.clone(),
+                        &format!("Timestamp conversion failed: {error}"),
+                        "device_unknown_employee_timestamp",
+                        fingerprint,
+                    )
+                    .await;
+                return Ok(false);
+            }
+        };
 
         let _ = self
             .staging_repo
@@ -418,6 +439,12 @@ impl AttendanceLogService {
             punch,
             status,
             created_at: Utc::now(),
+            source_timestamp: None,
+            source_timezone: None,
+            timestamp_kind: Some("utc".to_string()),
+            conversion_status: Some("converted".to_string()),
+            conversion_error: None,
+            received_at: Some(Utc::now()),
         });
 
         match self
@@ -478,6 +505,12 @@ impl AttendanceLogService {
             punch,
             status,
             created_at: Utc::now(),
+            source_timestamp: None,
+            source_timezone: None,
+            timestamp_kind: Some("utc".to_string()),
+            conversion_status: Some("converted".to_string()),
+            conversion_error: None,
+            received_at: Some(Utc::now()),
         });
 
         match self

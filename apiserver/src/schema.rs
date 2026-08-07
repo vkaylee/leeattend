@@ -1737,6 +1737,12 @@ diesel::table! {
         punch -> Int4,
         status -> Int4,
         employment_id -> Uuid,
+        source_timestamp -> Nullable<Text>,
+        source_timezone -> Nullable<Text>,
+        timestamp_kind -> Nullable<Text>,
+        conversion_status -> Nullable<Text>,
+        conversion_error -> Nullable<Text>,
+        received_at -> Nullable<Timestamptz>,
     }
 }
 

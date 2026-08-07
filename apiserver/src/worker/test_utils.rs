@@ -409,6 +409,7 @@ impl MockWorkerDepsBuilder {
             pairing_transactions_enabled: false,
             pairing_notifier: None,
             leave_submission: None,
+            ack_sink: None,
         }
     }
 }

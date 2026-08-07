@@ -1,8 +1,10 @@
 use super::{
-    ATTENDANCE_LOGS, COMPOSITE_INDEX, RedbStore, SIGNATURES, SYNC_INDEX, StoreError, StoredLog,
+    ATTENDANCE_LOGS, COMPOSITE_INDEX, LOG_ENVELOPES, MSG_ID_INDEX, RedbStore, SIGNATURES,
+    SYNC_INDEX, StoreError, StoredLog, StoredLogEnvelope,
 };
 use crate::models::AttendanceData;
 use redb::{ReadableDatabase, ReadableTable};
+use uuid::Uuid;
 
 impl RedbStore {
     /// Insert a single attendance log with dedup check.
@@ -64,6 +66,10 @@ impl RedbStore {
         };
 
         let bytes = log.to_bytes();
+        let msg_id = Uuid::new_v4();
+        let envelope = StoredLogEnvelope::new(msg_id)
+            .to_bytes()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
 
         {
             let mut log_table = txn
@@ -71,6 +77,18 @@ impl RedbStore {
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             log_table
                 .insert(id, bytes.as_slice())
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            let mut envelope_table = txn
+                .open_table(LOG_ENVELOPES)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            envelope_table
+                .insert(id, envelope.as_slice())
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            let mut msg_index = txn
+                .open_table(MSG_ID_INDEX)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            msg_index
+                .insert(msg_id.into_bytes(), id)
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
 
             let mut sig_table = txn
@@ -174,8 +192,24 @@ impl RedbStore {
                 };
 
                 let bytes = log.to_bytes();
+                let msg_id = Uuid::new_v4();
+                let envelope = StoredLogEnvelope::new(msg_id)
+                    .to_bytes()
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
                 log_table
                     .insert(id, bytes.as_slice())
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
+                let mut envelope_table = txn
+                    .open_table(LOG_ENVELOPES)
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
+                envelope_table
+                    .insert(id, envelope.as_slice())
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
+                let mut msg_index = txn
+                    .open_table(MSG_ID_INDEX)
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
+                msg_index
+                    .insert(msg_id.into_bytes(), id)
                     .map_err(|e| StoreError::DbError(e.to_string()))?;
                 sig_table
                     .insert(sig, *timestamp_utc)

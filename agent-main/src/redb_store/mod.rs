@@ -4,7 +4,13 @@ mod maintenance_ops;
 mod sync_ops;
 mod types;
 
-pub use types::{StoreError, StoredDevice, StoredFailedLog, StoredLog};
+pub use types::{StoreError, StoredDevice, StoredFailedLog, StoredLog, StoredLogEnvelope};
+
+/// Additive metadata for V2 attendance records: log id → versioned envelope.
+pub(super) const LOG_ENVELOPES: TableDefinition<i64, &[u8]> = TableDefinition::new("log_envelopes");
+/// Stable UUID index: msg UUID bytes → log id.
+pub(super) const MSG_ID_INDEX: TableDefinition<[u8; 16], i64> =
+    TableDefinition::new("msg_id_index");
 
 use parking_lot::RwLock;
 use redb::{Database, ReadableDatabase, ReadableTable, ReadableTableMetadata, TableDefinition};
@@ -78,6 +84,8 @@ impl RedbStore {
                 let _ = txn.open_table(AGENT_CONFIG)?;
                 let _ = txn.open_table(FAILED_LOGS)?;
                 let _ = txn.open_table(PARSING_ERRORS)?;
+                let _ = txn.open_table(LOG_ENVELOPES)?;
+                let _ = txn.open_table(MSG_ID_INDEX)?;
             }
             txn.commit()?;
         }
@@ -293,6 +301,25 @@ impl RedbStore {
             .get(sig)
             .map_err(|e| StoreError::DbError(format!("{e}")))?
             .is_some())
+    }
+
+    /// Look up a V2 record by its stable message UUID.
+    pub fn get_id_by_msg_id(&self, msg_id: uuid::Uuid) -> Option<i64> {
+        let txn = self.db.read().begin_read().ok()?;
+        let table = txn.open_table(MSG_ID_INDEX).ok()?;
+        table
+            .get(msg_id.into_bytes())
+            .ok()?
+            .map(|value| value.value())
+    }
+
+    /// Return the stable UUID for a record, or None for legacy V1 records.
+    pub fn get_msg_id(&self, id: i64) -> Option<uuid::Uuid> {
+        let txn = self.db.read().begin_read().ok()?;
+        let table = txn.open_table(LOG_ENVELOPES).ok()?;
+        let bytes = table.get(id).ok()??;
+        let envelope = StoredLogEnvelope::from_bytes(bytes.value()).ok()?;
+        (envelope.version == StoredLogEnvelope::VERSION).then_some(envelope.msg_id)
     }
 
     /// Parse composite key string and look up log ID.

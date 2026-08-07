@@ -33,6 +33,12 @@ pub struct NewRawAttendanceLogParams {
     pub punch: i32,
     pub status: i32,
     pub created_at: DateTime<Utc>,
+    pub source_timestamp: Option<String>,
+    pub source_timezone: Option<String>,
+    pub timestamp_kind: Option<String>,
+    pub conversion_status: Option<String>,
+    pub conversion_error: Option<String>,
+    pub received_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -289,6 +295,12 @@ pub struct RawAttendanceLog {
     /// 2=password, 3=card, 15=face.
     status: i32,
     created_at: DateTime<Utc>,
+    pub source_timestamp: Option<String>,
+    pub source_timezone: Option<String>,
+    pub timestamp_kind: Option<String>,
+    pub conversion_status: Option<String>,
+    pub conversion_error: Option<String>,
+    pub received_at: Option<DateTime<Utc>>,
 }
 
 impl RawAttendanceLog {
@@ -304,6 +316,12 @@ impl RawAttendanceLog {
             punch: params.punch,
             status: params.status,
             created_at: params.created_at,
+            source_timestamp: params.source_timestamp,
+            source_timezone: params.source_timezone,
+            timestamp_kind: params.timestamp_kind,
+            conversion_status: params.conversion_status,
+            conversion_error: params.conversion_error,
+            received_at: params.received_at,
         }
     }
 

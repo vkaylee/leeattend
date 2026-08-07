@@ -106,6 +106,21 @@ pub struct LogIngestionPayload {
     pub timezone: String,
     pub date_fmt: String,
     pub time_fmt: String,
+    /// Stable agent message identity. Absent only for legacy queued jobs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub msg_id: Option<String>,
+    /// Agent recipient for processed ACK delivery. Absent for non-agent jobs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_id: Option<String>,
+    /// Immutable source timestamp captured at ingress.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_timestamp: Option<String>,
+    /// IANA timezone used for local timestamp conversion.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_timezone: Option<String>,
+    /// Timestamp provenance kind, e.g. explicit_offset or device_local.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timestamp_kind: Option<String>,
 }
 
 /// Payload for bulk attendance reprocessing jobs.
@@ -218,7 +233,7 @@ pub enum JobPayload {
     MergeResults(MergePayload),
     PayrollReport(ReportPayload),
     LeaveAccrual(AccrualPayload),
-    LogIngestion(LogIngestionPayload),
+    LogIngestion(Box<LogIngestionPayload>),
     ReprocessAttendance(ReprocessPayload),
     ClaimStagedLogs(ClaimStagedLogsPayload),
     LeaveImport(LeaveImportPayload),

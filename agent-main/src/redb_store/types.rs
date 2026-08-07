@@ -16,6 +16,33 @@ pub struct StoredLog {
     pub retry_count: i64,
 }
 
+/// Additive metadata envelope for records written after stable message identity
+/// was introduced. `StoredLog` itself remains byte-for-byte V1 positional bincode.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StoredLogEnvelope {
+    pub version: u8,
+    pub msg_id: uuid::Uuid,
+}
+
+impl StoredLogEnvelope {
+    pub const VERSION: u8 = 2;
+
+    pub fn new(msg_id: uuid::Uuid) -> Self {
+        Self {
+            version: Self::VERSION,
+            msg_id,
+        }
+    }
+
+    pub fn to_bytes(&self) -> Result<Vec<u8>, StoreError> {
+        bincode::serialize(self).map_err(|e| StoreError::DbError(e.to_string()))
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, StoreError> {
+        bincode::deserialize(bytes).map_err(|e| StoreError::DeserializeError(e.to_string()))
+    }
+}
+
 impl StoredLog {
     /// Generate composite key string for ACK correlation.
     /// Format: "device_id:user_id:timestamp_unix:punch:status"

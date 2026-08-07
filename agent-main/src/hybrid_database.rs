@@ -203,6 +203,10 @@ impl DatabaseStore for HybridDatabase {
         self.get_unsynced_logs(limit).await
     }
 
+    fn get_msg_id(&self, id: i64) -> Option<uuid::Uuid> {
+        self.store.get_msg_id(id)
+    }
+
     async fn count_unsynced_logs(&self) -> usize {
         self.count_unsynced_logs().await
     }

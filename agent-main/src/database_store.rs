@@ -38,6 +38,8 @@ pub trait DatabaseStore: Send + Sync {
 
     fn get_agent_config(&self, key: &str) -> Result<Option<String>, StoreError>;
 
+    fn get_msg_id(&self, id: i64) -> Option<uuid::Uuid>;
+
     fn upsert_agent_config(&self, key: &str, value: &str) -> Result<(), StoreError>;
 
     fn deactivate_devices_not_in(&self, device_ids: &[String]) -> Result<u64, StoreError>;

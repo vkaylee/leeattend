@@ -28,9 +28,79 @@ pub struct ConfigData {
     pub retention_days: Option<i32>,
 }
 
+/// Additive ACK status vocabulary for durable attendance ingestion.
+///
+/// - `Accepted`: Redis delivery record + queue push both succeeded. The
+///   agent's local copy MUST be retained — this is not a terminal outcome.
+/// - `Processed`: terminal business outcome (inserted, duplicate, staged,
+///   or parse-terminal). Safe for the agent to delete its local record.
+/// - `RetryableError`: transient Redis/worker/DB failure. Agent retains the
+///   local log and will resend on its normal retry schedule.
+/// - `PermanentError`: malformed payload, retries exhausted, or DLQ. Agent
+///   should quarantine the local record rather than resend indefinitely.
+///
+/// `Success`/`Error` are the pre-existing (legacy) values, kept for
+/// wire-compatibility with agents built before this contract: `Success` is
+/// treated as `Processed`, `Error` is treated as `RetryableError`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AckStatus {
+    Accepted,
+    Processed,
+    RetryableError,
+    PermanentError,
+    /// Legacy alias for `Processed`.
+    Success,
+    /// Legacy alias for `RetryableError`.
+    Error,
+}
+
+impl AckStatus {
+    /// Wire string sent to agents. Legacy agents only understand
+    /// `success`/`error`; new agents understand the full vocabulary.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Accepted => "accepted",
+            Self::Processed => "processed",
+            Self::RetryableError => "retryable_error",
+            Self::PermanentError => "permanent_error",
+            Self::Success => "success",
+            Self::Error => "error",
+        }
+    }
+
+    /// Normalize legacy `success`/`error` to the additive vocabulary.
+    #[must_use]
+    pub fn normalize(self) -> Self {
+        match self {
+            Self::Success => Self::Processed,
+            Self::Error => Self::RetryableError,
+            other => other,
+        }
+    }
+
+    /// True only for a terminal, safe-to-delete-local-copy outcome.
+    pub fn is_processed(self) -> bool {
+        matches!(self.normalize(), Self::Processed)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum CentralMessage {
+    /// Durable attendance ingestion outcome sent to an agent.
+    /// `accepted` means Redis delivery is durable; only `processed` permits
+    /// the agent to remove its local record.
+    Ack {
+        msg_id: String,
+        status: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        attempt: Option<u32>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        timestamp: Option<String>,
+    },
     ConfigPush {
         data: ConfigData,
     },

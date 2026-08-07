@@ -46,6 +46,12 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             created_at: Some(log.created_at()),
             punch: log.punch(),
             status: log.status(),
+            source_timestamp: log.source_timestamp.clone(),
+            source_timezone: log.source_timezone.clone(),
+            timestamp_kind: log.timestamp_kind.clone(),
+            conversion_status: log.conversion_status.clone(),
+            conversion_error: log.conversion_error.clone(),
+            received_at: log.received_at,
         };
 
         let rows_affected = diesel::insert_into(raw_attendance_logs::table)
@@ -264,6 +270,12 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
                 created_at: Some(log.created_at()),
                 punch: log.punch(),
                 status: log.status(),
+                source_timestamp: log.source_timestamp.clone(),
+                source_timezone: log.source_timezone.clone(),
+                timestamp_kind: log.timestamp_kind.clone(),
+                conversion_status: log.conversion_status.clone(),
+                conversion_error: log.conversion_error.clone(),
+                received_at: log.received_at,
             })
             .collect();
 

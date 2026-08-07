@@ -61,6 +61,9 @@ pub struct WorkerDeps {
     /// Leave submission service — set via [`Self::with_leave_submission`]
     /// for workers that need to submit leave requests (e.g., leave import).
     pub leave_submission: Option<Arc<dyn LeaveSubmission>>,
+    /// ACK sink for delivering durable ingestion outcomes back to the
+    /// originating agent. `None` in tests or when no agent transport is wired.
+    pub ack_sink: Option<crate::worker::SharedAckSink>,
 }
 
 impl WorkerDeps {
@@ -167,6 +170,7 @@ impl WorkerDeps {
             )),
             pairing_notifier: None,
             leave_submission: None,
+            ack_sink: None,
         }
     }
 
@@ -174,6 +178,13 @@ impl WorkerDeps {
     #[must_use]
     pub fn with_leave_submission(mut self, svc: Arc<dyn LeaveSubmission>) -> Self {
         self.leave_submission = Some(svc);
+        self
+    }
+
+    /// Inject an ACK sink used to notify agents of durable ingestion outcomes.
+    #[must_use]
+    pub fn with_ack_sink(mut self, sink: crate::worker::SharedAckSink) -> Self {
+        self.ack_sink = Some(sink);
         self
     }
 

@@ -49,6 +49,12 @@ async fn test_force_reprocess_attendance_api() {
             punch: -1,
             status: -1,
             created_at: Utc::now(),
+            source_timestamp: None,
+            source_timezone: None,
+            timestamp_kind: Some("utc".to_string()),
+            conversion_status: Some("converted".to_string()),
+            conversion_error: None,
+            received_at: Some(Utc::now()),
         });
         helpers::create_raw_log(&diesel_pools, &raw_log)
             .await
@@ -198,6 +204,12 @@ async fn test_force_reprocess_all_attendance_api() {
                 punch: -1,
                 status: -1,
                 created_at: Utc::now(),
+                source_timestamp: None,
+                source_timezone: None,
+                timestamp_kind: Some("utc".to_string()),
+                conversion_status: Some("converted".to_string()),
+                conversion_error: None,
+                received_at: Some(Utc::now()),
             });
             helpers::create_raw_log(&diesel_pools, &raw_log)
                 .await
@@ -401,6 +413,12 @@ async fn test_force_reprocess_attendance_no_location_fallback_api() {
             punch: -1,
             status: -1,
             created_at: Utc::now(),
+            source_timestamp: None,
+            source_timezone: None,
+            timestamp_kind: Some("utc".to_string()),
+            conversion_status: Some("converted".to_string()),
+            conversion_error: None,
+            received_at: Some(Utc::now()),
         });
         helpers::create_raw_log(&diesel_pools, &raw_log)
             .await
@@ -635,6 +653,12 @@ async fn test_concurrent_reprocess_does_not_double_insert_sessions() {
             punch: -1,
             status: -1,
             created_at: Utc::now(),
+            source_timestamp: None,
+            source_timezone: None,
+            timestamp_kind: Some("utc".to_string()),
+            conversion_status: Some("converted".to_string()),
+            conversion_error: None,
+            received_at: Some(Utc::now()),
         });
         helpers::create_raw_log(&diesel_pools, &raw_log)
             .await

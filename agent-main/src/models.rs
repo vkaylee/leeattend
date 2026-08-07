@@ -51,6 +51,10 @@ pub enum CentralMessage {
         msg_id: String,
         status: Option<String>,
         error: Option<String>,
+        #[serde(default)]
+        attempt: Option<u32>,
+        #[serde(default)]
+        timestamp: Option<String>,
     },
     HeartbeatAck {
         server_time: String,

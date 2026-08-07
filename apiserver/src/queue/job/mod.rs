@@ -126,7 +126,7 @@ impl Job {
     /// Helper: extract log ingestion payload.
     pub fn log_ingestion_payload(&self) -> Option<&LogIngestionPayload> {
         match &self.payload {
-            JobPayload::LogIngestion(p) => Some(p),
+            JobPayload::LogIngestion(p) => Some(p.as_ref()),
             _ => None,
         }
     }

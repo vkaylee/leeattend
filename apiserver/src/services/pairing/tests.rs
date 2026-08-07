@@ -697,6 +697,12 @@ fn test_utc_timezone_offset_bug() {
             punch: 1,
             status: 1,
             created_at: Utc::now(),
+            source_timestamp: None,
+            source_timezone: None,
+            timestamp_kind: Some("utc".to_string()),
+            conversion_status: Some("converted".to_string()),
+            conversion_error: None,
+            received_at: Some(Utc::now()),
         }),
         RawAttendanceLog::new(NewRawAttendanceLogParams {
             id: Uuid::new_v4(),
@@ -709,6 +715,12 @@ fn test_utc_timezone_offset_bug() {
             punch: 1,
             status: 1,
             created_at: Utc::now(),
+            source_timestamp: None,
+            source_timezone: None,
+            timestamp_kind: Some("utc".to_string()),
+            conversion_status: Some("converted".to_string()),
+            conversion_error: None,
+            received_at: Some(Utc::now()),
         }),
     ];
 
@@ -787,6 +799,12 @@ fn test_build_log_events_deduplication() {
         punch: 1,
         status: 1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
 
     let log2 = RawAttendanceLog::new(NewRawAttendanceLogParams {
@@ -800,6 +818,12 @@ fn test_build_log_events_deduplication() {
         punch: 1,
         status: 1,
         created_at: log1.created_at(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(log1.created_at()),
     });
 
     let logs = vec![log1, log2];
@@ -912,6 +936,12 @@ async fn test_process_new_raw_log_duplicate() {
         punch: 1,
         status: 1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
 
     let result = service.process_new_raw_log(&log).await;
@@ -1080,6 +1110,12 @@ async fn test_reprocess_daily_attendance_excludes_already_paired_logs() {
         punch: 1,
         status: 1,
         created_at: log_time,
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(log_time),
     });
     let log2 = RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: fresh_log_id,
@@ -1092,6 +1128,12 @@ async fn test_reprocess_daily_attendance_excludes_already_paired_logs() {
         punch: 1,
         status: 1,
         created_at: log_time,
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(log_time),
     });
 
     mock_raw_repo
@@ -2112,6 +2154,12 @@ fn test_full_pipeline_4_punches_with_late_out() {
         punch: 1,
         status: 1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     let log11_46_a = RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: Uuid::new_v4(),
@@ -2127,6 +2175,12 @@ fn test_full_pipeline_4_punches_with_late_out() {
         punch: 1,
         status: 1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     let log11_46_b = RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: Uuid::new_v4(),
@@ -2142,6 +2196,12 @@ fn test_full_pipeline_4_punches_with_late_out() {
         punch: 1,
         status: 1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     let log19_32 = RawAttendanceLog::new(NewRawAttendanceLogParams {
         id: Uuid::new_v4(),
@@ -2157,6 +2217,12 @@ fn test_full_pipeline_4_punches_with_late_out() {
         punch: 1,
         status: 1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
 
     let raw_logs = vec![log7_13, log11_46_a, log11_46_b, log19_32];
@@ -2560,6 +2626,12 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
                     punch: 1,
                     status: 1,
                     created_at: Utc::now(),
+                    source_timestamp: None,
+                    source_timezone: None,
+                    timestamp_kind: Some("utc".to_string()),
+                    conversion_status: Some("converted".to_string()),
+                    conversion_error: None,
+                    received_at: Some(Utc::now()),
                 }),
                 RawAttendanceLog::new(NewRawAttendanceLogParams {
                     id: Uuid::new_v4(),
@@ -2575,6 +2647,12 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
                     punch: 1,
                     status: 1,
                     created_at: Utc::now(),
+                    source_timestamp: None,
+                    source_timezone: None,
+                    timestamp_kind: Some("utc".to_string()),
+                    conversion_status: Some("converted".to_string()),
+                    conversion_error: None,
+                    received_at: Some(Utc::now()),
                 }),
                 RawAttendanceLog::new(NewRawAttendanceLogParams {
                     id: Uuid::new_v4(),
@@ -2590,6 +2668,12 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
                     punch: 1,
                     status: 1,
                     created_at: Utc::now(),
+                    source_timestamp: None,
+                    source_timezone: None,
+                    timestamp_kind: Some("utc".to_string()),
+                    conversion_status: Some("converted".to_string()),
+                    conversion_error: None,
+                    received_at: Some(Utc::now()),
                 }),
                 RawAttendanceLog::new(NewRawAttendanceLogParams {
                     id: Uuid::new_v4(),
@@ -2605,6 +2689,12 @@ async fn test_pairing_uses_fallback_config_to_split_on_break() {
                     punch: 1,
                     status: 1,
                     created_at: Utc::now(),
+                    source_timestamp: None,
+                    source_timezone: None,
+                    timestamp_kind: Some("utc".to_string()),
+                    conversion_status: Some("converted".to_string()),
+                    conversion_error: None,
+                    received_at: Some(Utc::now()),
                 }),
             ];
             Box::pin(async move { Ok(logs) })

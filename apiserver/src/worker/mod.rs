@@ -3,6 +3,7 @@
 //! Provides background workers that poll Redis queues and process jobs
 //! with semaphore-controlled concurrency.
 
+pub mod ack_sink;
 pub mod deps;
 pub mod file_scan_scheduler;
 pub mod handlers;
@@ -11,6 +12,7 @@ pub mod pairing_scheduler;
 pub mod runner;
 pub mod scheduler;
 
+pub use ack_sink::{AckSink, AckStatus, SharedAckSink};
 pub use deps::WorkerDeps;
 pub use file_scan_scheduler::FileScanScheduler;
 pub use outbox_sweep::OutboxSweepScheduler;

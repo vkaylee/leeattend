@@ -15,7 +15,7 @@ use tracing::{error, info, warn};
 use uuid::Uuid;
 
 use crate::cache::{CacheManager, RosterCache};
-use crate::queue::{Job, JobQueue, RedisPool, TaskType};
+use crate::queue::{IngestionDeliveryStore, Job, JobQueue, RedisPool, TaskType};
 use crate::services::ReportCoordinator;
 use crate::worker::handlers::{
     AccrualHandler, AttendanceHandler, BulkTerminationHandler, ClaimStagedLogsHandler,
@@ -23,6 +23,11 @@ use crate::worker::handlers::{
     LogIngestionHandler, MergeHandler, NightlyHousekeepingHandler, PayrollReportHandler,
     ReprocessAttendanceHandler, SyncHireDateHandler,
 };
+
+/// Periodic reaper interval: expired-lease/unclaimed ingestion deliveries are
+/// swept this often. Must be well under `DEFAULT_LEASE_SECS` so a stuck lease
+/// is recovered promptly rather than blocking a duplicate-claim window.
+const REAP_INTERVAL_SECS: u64 = 30;
 
 // Redis key patterns for monitoring
 const WORKER_HEARTBEAT_PREFIX: &str = "monitor:worker:";
@@ -155,6 +160,9 @@ pub struct JobWorker {
     hostname: String,
     current_status: Arc<Mutex<WorkerStatus>>,
     current_task_type: Arc<Mutex<Option<String>>>,
+    /// Durable delivery-record layer for `LogIngestion` jobs (claim/lease/
+    /// complete + reaper). Built once per worker over the same Redis pool.
+    delivery: IngestionDeliveryStore,
 }
 
 impl JobWorker {
@@ -166,9 +174,11 @@ impl JobWorker {
         coordinator: Arc<ReportCoordinator>,
         roster_cache: Option<Arc<RosterCache>>,
         pairing_notifier: Option<Arc<super::pairing_scheduler::PairingNotifier>>,
+        ack_sink: Option<super::SharedAckSink>,
     ) -> Self {
         let mut worker_deps = super::WorkerDeps::new(diesel);
         worker_deps.pairing_notifier = pairing_notifier;
+        worker_deps.ack_sink = ack_sink;
         let deps = Arc::new(worker_deps);
         let redis_cache: Arc<dyn crate::repositories::CacheRepository> =
             Arc::new(crate::cache::RedisCache::new(redis.clone()));
@@ -192,6 +202,7 @@ impl JobWorker {
 
         Self {
             queue: JobQueue::new(redis.clone()),
+            delivery: IngestionDeliveryStore::new(redis.clone()),
             redis,
             queue_repo,
             publisher_repo,
@@ -234,6 +245,15 @@ impl JobWorker {
         let heartbeat_cancel = cancel_token.clone();
         let heartbeat_task = tokio::spawn(async move {
             heartbeat_worker.heartbeat_loop(heartbeat_cancel).await;
+        });
+
+        // Start the ingestion-delivery reaper: recovers LogIngestion jobs
+        // whose processing lease expired (worker crash mid-processing) or
+        // that were popped from the priority queue but never claimed.
+        let reaper_worker = Arc::clone(&worker);
+        let reaper_cancel = cancel_token.clone();
+        let reaper_task = tokio::spawn(async move {
+            reaper_worker.reap_loop(reaper_cancel).await;
         });
 
         loop {
@@ -365,8 +385,9 @@ impl JobWorker {
         // Clean up heartbeat key
         let _ = worker.remove_heartbeat().await;
 
-        // Wait for heartbeat task to finish
+        // Wait for heartbeat and reaper tasks to finish
         let _ = heartbeat_task.await;
+        let _ = reaper_task.await;
 
         info!("Job worker stopped");
     }
@@ -383,6 +404,37 @@ impl JobWorker {
                 _ = interval.tick() => {
                     if let Err(e) = self.send_heartbeat().await {
                         warn!(error = %e, "Failed to send heartbeat");
+                    }
+                }
+            }
+        }
+    }
+
+    /// Periodic sweep of `ingest:delivery:*` records: recovers jobs whose
+    /// processing lease expired (worker crash before completing) by
+    /// requeuing (`Retryable`) or moving to DLQ (`Permanent`) once retries
+    /// are exhausted. Does not touch jobs that a live worker is still
+    /// actively processing within its lease window.
+    async fn reap_loop(self: Arc<Self>, cancel_token: CancellationToken) {
+        let mut interval = tokio::time::interval(Duration::from_secs(REAP_INTERVAL_SECS));
+
+        loop {
+            tokio::select! {
+                () = cancel_token.cancelled() => {
+                    break;
+                }
+                _ = interval.tick() => {
+                    match self.delivery.reap_expired(self.config.max_retries).await {
+                        Ok((requeued, dlq)) => {
+                            if requeued > 0 || dlq > 0 {
+                                info!(
+                                    requeued,
+                                    dlq,
+                                    "Ingestion delivery reaper recovered expired leases"
+                                );
+                            }
+                        }
+                        Err(e) => warn!(error = %e, "Ingestion delivery reaper sweep failed"),
                     }
                 }
             }
@@ -424,6 +476,73 @@ impl JobWorker {
         Ok(())
     }
 
+    /// Claim, process, and complete a single `LogIngestion` job's durable
+    /// delivery record. Only jobs carrying both `msg_id` and `agent_id`
+    /// (i.e. originated from a connected agent through the durable delivery
+    /// path) participate in claim/lease bookkeeping; legacy queued jobs
+    /// without those fields fall back to plain handler dispatch.
+    async fn process_log_ingestion_job(&self, job: &Job) -> Result<(), String> {
+        let Some(payload) = job.log_ingestion_payload() else {
+            return LogIngestionHandler::handle(job, &self.deps).await;
+        };
+        let (Some(msg_id), Some(agent_id)) = (payload.msg_id.clone(), payload.agent_id.clone())
+        else {
+            return LogIngestionHandler::handle(job, &self.deps).await;
+        };
+
+        let lease_owner = format!("{}:{}", self.worker_id, job.job_id);
+        let lease_secs = i64::try_from(self.config.job_timeout_secs)
+            .unwrap_or(crate::queue::ingestion_delivery::DEFAULT_LEASE_SECS);
+
+        match self
+            .delivery
+            .claim(&agent_id, &msg_id, &lease_owner, lease_secs)
+            .await
+        {
+            Ok(true) => {}
+            Ok(false) => {
+                // Not claimable: either already terminal (duplicate delivery
+                // that slipped through, e.g. a legacy pre-dedup queued copy)
+                // or concurrently claimed by another worker. Either way this
+                // invocation must not duplicate the business outcome.
+                info!(
+                    job_id = %job.job_id,
+                    agent_id,
+                    "LogIngestion delivery not claimable; skipping duplicate/expired claim"
+                );
+                return Ok(());
+            }
+            Err(e) => {
+                warn!(job_id = %job.job_id, error = %e, "Failed to claim ingestion delivery lease");
+                return Err(e.to_string());
+            }
+        }
+
+        let result = LogIngestionHandler::handle(job, &self.deps).await;
+
+        let (state, outcome, error) = match &result {
+            Ok(()) => (
+                crate::queue::DeliveryState::Processed,
+                Some("processed"),
+                None,
+            ),
+            Err(e) => (
+                crate::queue::DeliveryState::Retryable,
+                None,
+                Some(e.as_str()),
+            ),
+        };
+        if let Err(e) = self
+            .delivery
+            .complete(&agent_id, &msg_id, state, outcome, error)
+            .await
+        {
+            warn!(job_id = %job.job_id, error = %e, "Failed to persist ingestion delivery outcome");
+        }
+
+        result
+    }
+
     /// Process a single job by routing to appropriate handler.
     #[allow(clippy::too_many_lines, clippy::cast_possible_truncation)]
     pub async fn process_job(&self, job: Job) -> Result<(), String> {
@@ -460,7 +579,7 @@ impl JobWorker {
             TaskType::LeaveAccrual => {
                 AccrualHandler::handle(&self.queue_repo, &job, &self.deps).await
             }
-            TaskType::LogIngestion => LogIngestionHandler::handle(&job, &self.deps).await,
+            TaskType::LogIngestion => self.process_log_ingestion_job(&job).await,
             TaskType::ReprocessAttendance => {
                 ReprocessAttendanceHandler::handle(&self.queue_repo, &job, &self.deps).await
             }

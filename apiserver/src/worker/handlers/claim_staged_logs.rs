@@ -112,7 +112,7 @@ mod tests {
             0,
             TaskType::LogIngestion,
             Uuid::new_v4(),
-            JobPayload::LogIngestion(crate::queue::LogIngestionPayload {
+            JobPayload::LogIngestion(Box::new(crate::queue::LogIngestionPayload {
                 workspace_id: Uuid::new_v4(),
                 employee_id_number: "EMP001".to_string(),
                 punch_time_raw: "2026-01-01 08:00:00".to_string(),
@@ -121,7 +121,12 @@ mod tests {
                 timezone: "UTC".to_string(),
                 date_fmt: "YYYY-MM-DD".to_string(),
                 time_fmt: "24h".to_string(),
-            }),
+                msg_id: None,
+                agent_id: None,
+                source_timestamp: None,
+                source_timezone: None,
+                timestamp_kind: None,
+            })),
         );
 
         assert!(job.claim_staged_logs_payload().is_none());

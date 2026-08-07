@@ -841,7 +841,7 @@ mod tests {
             0,
             TaskType::LogIngestion,
             Uuid::new_v4(),
-            JobPayload::LogIngestion(crate::queue::LogIngestionPayload {
+            JobPayload::LogIngestion(Box::new(crate::queue::LogIngestionPayload {
                 workspace_id: Uuid::new_v4(),
                 employee_id_number: "EMP001".to_string(),
                 punch_time_raw: "2026-01-26 09:00:00".to_string(),
@@ -850,7 +850,12 @@ mod tests {
                 timezone: "UTC".to_string(),
                 date_fmt: "YYYY-MM-DD".to_string(),
                 time_fmt: "24h".to_string(),
-            }),
+                msg_id: None,
+                agent_id: None,
+                source_timestamp: None,
+                source_timezone: None,
+                timestamp_kind: None,
+            })),
             crate::queue::JobPriority::Low,
         );
 
@@ -901,7 +906,7 @@ mod tests {
             0,
             TaskType::LogIngestion,
             Uuid::new_v4(),
-            JobPayload::LogIngestion(crate::queue::LogIngestionPayload {
+            JobPayload::LogIngestion(Box::new(crate::queue::LogIngestionPayload {
                 workspace_id: Uuid::new_v4(),
                 employee_id_number: "LOW_EMP".to_string(),
                 punch_time_raw: "2026-01-26 09:00:00".to_string(),
@@ -910,7 +915,12 @@ mod tests {
                 timezone: "UTC".to_string(),
                 date_fmt: "YYYY-MM-DD".to_string(),
                 time_fmt: "24h".to_string(),
-            }),
+                msg_id: None,
+                agent_id: None,
+                source_timestamp: None,
+                source_timezone: None,
+                timestamp_kind: None,
+            })),
             crate::queue::JobPriority::Low,
         );
         queue.enqueue_single(low_job).await.unwrap();
@@ -1037,7 +1047,7 @@ mod tests {
                 0,
                 TaskType::LogIngestion,
                 Uuid::new_v4(),
-                JobPayload::LogIngestion(crate::queue::LogIngestionPayload {
+                JobPayload::LogIngestion(Box::new(crate::queue::LogIngestionPayload {
                     workspace_id: Uuid::new_v4(),
                     employee_id_number: "E".to_string(),
                     punch_time_raw: "2026-01-01 00:00:00".to_string(),
@@ -1046,7 +1056,12 @@ mod tests {
                     timezone: "UTC".to_string(),
                     date_fmt: "YYYY-MM-DD".to_string(),
                     time_fmt: "24h".to_string(),
-                }),
+                    msg_id: None,
+                    agent_id: None,
+                    source_timestamp: None,
+                    source_timezone: None,
+                    timestamp_kind: None,
+                })),
                 crate::queue::JobPriority::Low,
             )
         };
@@ -1247,7 +1262,7 @@ mod tests {
                 0,
                 TaskType::LogIngestion,
                 Uuid::new_v4(),
-                JobPayload::LogIngestion(crate::queue::LogIngestionPayload {
+                JobPayload::LogIngestion(Box::new(crate::queue::LogIngestionPayload {
                     workspace_id: Uuid::new_v4(),
                     employee_id_number: "ORDER_TEST".to_string(),
                     punch_time_raw: "2026-01-01 00:00:00".to_string(),
@@ -1256,7 +1271,12 @@ mod tests {
                     timezone: "UTC".to_string(),
                     date_fmt: "YYYY-MM-DD".to_string(),
                     time_fmt: "24h".to_string(),
-                }),
+                    msg_id: None,
+                    agent_id: None,
+                    source_timestamp: None,
+                    source_timezone: None,
+                    timestamp_kind: None,
+                })),
                 crate::queue::JobPriority::Low,
             ))
             .await
@@ -1398,7 +1418,7 @@ mod tests {
             0,
             TaskType::LogIngestion,
             Uuid::new_v4(),
-            JobPayload::LogIngestion(crate::queue::LogIngestionPayload {
+            JobPayload::LogIngestion(Box::new(crate::queue::LogIngestionPayload {
                 workspace_id: Uuid::new_v4(),
                 employee_id_number: "FAIR_TEST".to_string(),
                 punch_time_raw: "2026-01-26 09:00:00".to_string(),
@@ -1407,7 +1427,12 @@ mod tests {
                 timezone: "UTC".to_string(),
                 date_fmt: "YYYY-MM-DD".to_string(),
                 time_fmt: "24h".to_string(),
-            }),
+                msg_id: None,
+                agent_id: None,
+                source_timestamp: None,
+                source_timezone: None,
+                timestamp_kind: None,
+            })),
             crate::queue::JobPriority::Low,
         );
         queue.enqueue_single(low_job).await.unwrap();
@@ -1476,7 +1501,7 @@ mod tests {
                 0,
                 TaskType::LogIngestion,
                 ws,
-                JobPayload::LogIngestion(crate::queue::LogIngestionPayload {
+                JobPayload::LogIngestion(Box::new(crate::queue::LogIngestionPayload {
                     workspace_id: ws,
                     employee_id_number: format!("EMP{i:03}"),
                     punch_time_raw: "2026-01-26 09:00:00".to_string(),
@@ -1485,7 +1510,12 @@ mod tests {
                     timezone: "UTC".to_string(),
                     date_fmt: "YYYY-MM-DD".to_string(),
                     time_fmt: "24h".to_string(),
-                }),
+                    msg_id: None,
+                    agent_id: None,
+                    source_timestamp: None,
+                    source_timezone: None,
+                    timestamp_kind: None,
+                })),
                 crate::queue::JobPriority::Low,
             );
             queue.enqueue_single(job).await.unwrap();

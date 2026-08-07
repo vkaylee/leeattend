@@ -164,6 +164,13 @@ impl JobQueue {
         }
     }
 
+    /// Public accessor for the priority queue key, used by
+    /// [`super::ingestion_delivery::IngestionDeliveryStore`] to re-push
+    /// reaped/duplicate jobs onto the same queue this job would otherwise use.
+    pub fn priority_queue_key_pub(&self, priority: &JobPriority) -> String {
+        self.priority_queue_key(priority)
+    }
+
     /// Blocking dequeue with timeout (for workers).
     /// Uses BLPOP for efficient waiting without polling.
     ///

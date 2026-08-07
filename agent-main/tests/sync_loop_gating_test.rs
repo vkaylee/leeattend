@@ -58,6 +58,10 @@ impl DatabaseStore for CountingStore {
         self.inner.save_raw_attendance_batch(batch).await
     }
 
+    fn get_msg_id(&self, id: i64) -> Option<uuid::Uuid> {
+        self.inner.store().get_msg_id(id)
+    }
+
     async fn get_unsynced_logs(&self, limit: usize) -> Result<Vec<StoredLog>, StoreError> {
         self.get_unsynced_calls.fetch_add(1, Ordering::SeqCst);
         self.inner.get_unsynced_logs(limit).await

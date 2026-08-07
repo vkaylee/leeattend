@@ -30,6 +30,39 @@ use crate::AppState;
 
 // --- WebSocket Handlers ---
 
+/// Outcome of durably recording an inbound attendance frame, used only to
+/// pick the immediate ACK status sent back on the socket. `Duplicate` carries
+/// the persisted delivery state/outcome so a resent frame (e.g. after a lost
+/// ACK) resolves against history instead of being silently re-accepted.
+enum DeliveryAckResult {
+    Accepted,
+    Duplicate {
+        status: String,
+        error: Option<String>,
+    },
+}
+
+impl DeliveryAckResult {
+    fn from_outcome(outcome: crate::queue::RecordOutcome) -> Self {
+        match outcome {
+            crate::queue::RecordOutcome::Enqueued => Self::Accepted,
+            crate::queue::RecordOutcome::Duplicate(record) => {
+                let status = match record.state {
+                    crate::queue::DeliveryState::Ready
+                    | crate::queue::DeliveryState::Processing => "accepted".to_string(),
+                    crate::queue::DeliveryState::Processed => "processed".to_string(),
+                    crate::queue::DeliveryState::Retryable => "retryable_error".to_string(),
+                    crate::queue::DeliveryState::Permanent => "permanent_error".to_string(),
+                };
+                Self::Duplicate {
+                    status,
+                    error: record.error,
+                }
+            }
+        }
+    }
+}
+
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
     headers: axum::http::HeaderMap,
@@ -150,44 +183,96 @@ async fn handle_socket(
                                     if let (Some(user_id_number), Some(punch_time_str)) =
                                         (data["user_id"].as_str(), data["timestamp"].as_str())
                                     {
+                                        let msg_id_opt = v["msg_id"].as_str().map(str::to_string);
                                         // Try async enqueue via Redis; fall back to sync processing
-                                        let result =
-                                            if let Some(redis) = state_clone.infra().redis() {
-                                                // Async path: enqueue to Redis for worker processing
-                                                use crate::queue::{
-                                                    Job, JobPayload, JobPriority, JobQueue,
-                                                    LogIngestionPayload, TaskType,
-                                                };
-                                                let payload = LogIngestionPayload {
-                                                    workspace_id,
-                                                    employee_id_number: user_id_number.to_string(),
-                                                    punch_time_raw: punch_time_str.to_string(),
-                                                    device_id: Some(device_id.to_string()),
-                                                    raw_data: Some(data.clone()),
-                                                    timezone: ws_tz.clone(),
-                                                    date_fmt: ws_date_fmt.clone(),
-                                                    time_fmt: ws_time_fmt.clone(),
-                                                };
-                                                let job = Job::with_priority(
-                                                    crate::utils::id::new_id(),
-                                                    0,
-                                                    TaskType::LogIngestion,
-                                                    workspace_id,
-                                                    JobPayload::LogIngestion(payload),
-                                                    JobPriority::Low,
-                                                );
-                                                let queue = JobQueue::new(redis.clone());
-                                                queue.enqueue_single(job).await.map_err(|e| {
-                                                    format!("Redis enqueue failed: {e}")
-                                                })
-                                            } else {
-                                                Err("Redis not available for async ingestion"
-                                                    .to_string())
+                                        let result = if let Some(redis) =
+                                            state_clone.infra().redis()
+                                        {
+                                            // Async path: enqueue to Redis for worker processing
+                                            use crate::queue::{
+                                                Job, JobPayload, JobPriority, LogIngestionPayload,
+                                                TaskType,
                                             };
-                                        if let Some(msg_id) = v["msg_id"].as_str() {
+                                            let payload = LogIngestionPayload {
+                                                workspace_id,
+                                                employee_id_number: user_id_number.to_string(),
+                                                punch_time_raw: punch_time_str.to_string(),
+                                                device_id: Some(device_id.to_string()),
+                                                raw_data: Some(data.clone()),
+                                                timezone: ws_tz.clone(),
+                                                date_fmt: ws_date_fmt.clone(),
+                                                time_fmt: ws_time_fmt.clone(),
+                                                msg_id: msg_id_opt.clone(),
+                                                agent_id: Some(agent_id.clone()),
+                                                source_timestamp: Some(punch_time_str.to_string()),
+                                                source_timezone: Some(ws_tz.clone()),
+                                                timestamp_kind: None,
+                                            };
+                                            let job = Job::with_priority(
+                                                crate::utils::id::new_id(),
+                                                0,
+                                                TaskType::LogIngestion,
+                                                workspace_id,
+                                                JobPayload::LogIngestion(Box::new(payload)),
+                                                JobPriority::Low,
+                                            );
+                                            // Durable record + queue push via the
+                                            // delivery store: idempotent on duplicate
+                                            // (agent_id, msg_id) frames, so a resend
+                                            // after a delayed/lost ACK never creates a
+                                            // second business event.
+                                            let delivery =
+                                                crate::queue::IngestionDeliveryStore::new(
+                                                    redis.clone(),
+                                                );
+                                            match msg_id_opt.as_deref() {
+                                                Some(msg_id) => delivery
+                                                    .record_and_enqueue(&job, &agent_id, msg_id)
+                                                    .await
+                                                    .map(DeliveryAckResult::from_outcome)
+                                                    .map_err(|e| {
+                                                        format!("Redis enqueue failed: {e}")
+                                                    }),
+                                                None => {
+                                                    // No stable identity — fall back to a
+                                                    // plain enqueue (legacy agent build).
+                                                    crate::queue::JobQueue::new(redis.clone())
+                                                        .enqueue_single(job)
+                                                        .await
+                                                        .map(|()| DeliveryAckResult::Accepted)
+                                                        .map_err(|e| {
+                                                            format!("Redis enqueue failed: {e}")
+                                                        })
+                                                }
+                                            }
+                                        } else {
+                                            Err("Redis not available for async ingestion"
+                                                .to_string())
+                                        };
+                                        // This immediate post-enqueue ACK means "accepted"
+                                        // (durably queued), NOT "processed" (terminal
+                                        // business outcome) — the worker sends the
+                                        // terminal ACK later via the AckSink once
+                                        // `process_log` has actually run. An agent that
+                                        // still treats `accepted` as sync-safe risks
+                                        // losing the log if the worker crashes before
+                                        // completing, so the agent-side decoder must
+                                        // only clear its local copy on `processed`.
+                                        //
+                                        // On a duplicate (agent_id, msg_id) frame, the
+                                        // existing persisted delivery state/outcome is
+                                        // returned instead of re-accepting it as a new
+                                        // business event.
+                                        if let Some(msg_id) = msg_id_opt {
                                             let (status, message) = match result {
-                                                Ok(()) => ("success", None),
-                                                Err(e) => ("error", Some(e)),
+                                                Ok(DeliveryAckResult::Accepted) => {
+                                                    ("accepted".to_string(), None)
+                                                }
+                                                Ok(DeliveryAckResult::Duplicate {
+                                                    status,
+                                                    error,
+                                                }) => (status, error),
+                                                Err(e) => ("retryable_error".to_string(), Some(e)),
                                             };
                                             let ack = serde_json::json!({
                                                 "type": "ack",

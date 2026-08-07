@@ -440,7 +440,7 @@ fn test_job_with_priority() {
         0,
         TaskType::LogIngestion,
         Uuid::new_v4(),
-        JobPayload::LogIngestion(LogIngestionPayload {
+        JobPayload::LogIngestion(Box::new(LogIngestionPayload {
             workspace_id: Uuid::new_v4(),
             employee_id_number: "EMP001".to_string(),
             punch_time_raw: "2026-01-26 09:00:00".to_string(),
@@ -449,7 +449,12 @@ fn test_job_with_priority() {
             timezone: "Asia/Ho_Chi_Minh".to_string(),
             date_fmt: "DD/MM/YYYY".to_string(),
             time_fmt: "24h".to_string(),
-        }),
+            msg_id: None,
+            agent_id: None,
+            source_timestamp: None,
+            source_timezone: None,
+            timestamp_kind: None,
+        })),
         JobPriority::Low,
     );
 
@@ -470,6 +475,11 @@ fn test_log_ingestion_payload_serde_roundtrip() {
         timezone: "Asia/Ho_Chi_Minh".to_string(),
         date_fmt: "DD/MM/YYYY".to_string(),
         time_fmt: "24h".to_string(),
+        msg_id: None,
+        agent_id: None,
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: None,
     };
 
     let json = serde_json::to_string(&payload).unwrap();
@@ -484,7 +494,7 @@ fn test_log_ingestion_payload_serde_roundtrip() {
 /// LogIngestion tagged enum serde format.
 #[test]
 fn test_log_ingestion_payload_tagged_format() {
-    let payload = JobPayload::LogIngestion(LogIngestionPayload {
+    let payload = JobPayload::LogIngestion(Box::new(LogIngestionPayload {
         workspace_id: Uuid::new_v4(),
         employee_id_number: "EMP001".to_string(),
         punch_time_raw: "2026-01-26 09:00:00".to_string(),
@@ -493,7 +503,12 @@ fn test_log_ingestion_payload_tagged_format() {
         timezone: "UTC".to_string(),
         date_fmt: "YYYY-MM-DD".to_string(),
         time_fmt: "24h".to_string(),
-    });
+        msg_id: None,
+        agent_id: None,
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: None,
+    }));
 
     let json = serde_json::to_value(&payload).unwrap();
     assert_eq!(json["type"], "LogIngestion");
@@ -522,7 +537,7 @@ fn test_log_ingestion_job_full_roundtrip() {
         0,
         TaskType::LogIngestion,
         ws_id,
-        JobPayload::LogIngestion(LogIngestionPayload {
+        JobPayload::LogIngestion(Box::new(LogIngestionPayload {
             workspace_id: ws_id,
             employee_id_number: "EMP999".to_string(),
             punch_time_raw: "2026-03-04 13:00:00".to_string(),
@@ -531,7 +546,12 @@ fn test_log_ingestion_job_full_roundtrip() {
             timezone: "Asia/Ho_Chi_Minh".to_string(),
             date_fmt: "YYYY-MM-DD".to_string(),
             time_fmt: "24h".to_string(),
-        }),
+            msg_id: None,
+            agent_id: None,
+            source_timestamp: None,
+            source_timezone: None,
+            timestamp_kind: None,
+        })),
         JobPriority::Low,
     );
 

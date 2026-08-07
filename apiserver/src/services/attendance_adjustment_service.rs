@@ -101,6 +101,12 @@ impl AttendanceAdjustmentService {
                 punch: 0,
                 status: 0,
                 created_at: Utc::now(),
+                source_timestamp: None,
+                source_timezone: None,
+                timestamp_kind: Some("manual".to_string()),
+                conversion_status: Some("converted".to_string()),
+                conversion_error: None,
+                received_at: Some(Utc::now()),
             });
 
             self.raw_log_repo

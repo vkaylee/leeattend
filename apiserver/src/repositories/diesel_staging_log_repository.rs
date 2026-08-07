@@ -294,6 +294,12 @@ impl StagingLogRepository for DieselStagingLogRepository {
                             punch: -1,
                             status: -1,
                             created_at: Some(now),
+                            source_timestamp: Some(staged.punch_time.to_rfc3339()),
+                            source_timezone: None,
+                            timestamp_kind: Some("staged_utc".to_string()),
+                            conversion_status: Some("converted".to_string()),
+                            conversion_error: None,
+                            received_at: Some(now),
                         },
                     );
                     claimed_ids.push(staged.id);
@@ -439,6 +445,12 @@ impl StagingLogRepository for DieselStagingLogRepository {
                     punch,
                     status,
                     created_at: Utc::now(),
+                    source_timestamp: Some(staged.punch_time.to_rfc3339()),
+                    source_timezone: None,
+                    timestamp_kind: Some("staged_utc".to_string()),
+                    conversion_status: Some("converted".to_string()),
+                    conversion_error: None,
+                    received_at: Some(Utc::now()),
                 });
 
                 let raw_log_entity =
@@ -453,6 +465,12 @@ impl StagingLogRepository for DieselStagingLogRepository {
                         punch: raw_log.punch(),
                         status: raw_log.status(),
                         created_at: Some(raw_log.created_at()),
+                        source_timestamp: raw_log.source_timestamp.clone(),
+                        source_timezone: raw_log.source_timezone.clone(),
+                        timestamp_kind: raw_log.timestamp_kind.clone(),
+                        conversion_status: raw_log.conversion_status.clone(),
+                        conversion_error: raw_log.conversion_error.clone(),
+                        received_at: raw_log.received_at,
                     };
 
                 diesel::insert_into(raw_attendance_logs::table)

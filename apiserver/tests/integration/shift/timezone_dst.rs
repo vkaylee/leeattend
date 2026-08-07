@@ -94,6 +94,12 @@ async fn test_dst_spring_forward() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     raw_repo.create_raw_log(ws_id, &raw_log_in).await.unwrap();
 
@@ -108,6 +114,12 @@ async fn test_dst_spring_forward() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     raw_repo.create_raw_log(ws_id, &raw_log_out).await.unwrap();
 
@@ -285,6 +297,12 @@ async fn test_dst_fall_back() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     raw_repo.create_raw_log(ws_id, &raw_log_in).await.unwrap();
 
@@ -299,6 +317,12 @@ async fn test_dst_fall_back() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     raw_repo.create_raw_log(ws_id, &raw_log_out).await.unwrap();
 
@@ -475,6 +499,12 @@ async fn test_dst_fall_back_repeated_hour() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     raw_repo.create_raw_log(ws_id, &raw_log_in).await.unwrap();
 
@@ -489,6 +519,12 @@ async fn test_dst_fall_back_repeated_hour() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     raw_repo.create_raw_log(ws_id, &raw_log_out).await.unwrap();
 
@@ -661,6 +697,12 @@ async fn test_dst_spring_forward_day_shift() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     raw_repo.create_raw_log(ws_id, &raw_log_in).await.unwrap();
 
@@ -675,6 +717,12 @@ async fn test_dst_spring_forward_day_shift() {
         punch: -1,
         status: -1,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     raw_repo.create_raw_log(ws_id, &raw_log_out).await.unwrap();
 

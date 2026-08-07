@@ -91,6 +91,12 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
         punch: 0,
         status: 0,
         created_at: Utc::now(),
+        source_timestamp: None,
+        source_timezone: None,
+        timestamp_kind: Some("utc".to_string()),
+        conversion_status: Some("converted".to_string()),
+        conversion_error: None,
+        received_at: Some(Utc::now()),
     });
     use apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
     raw_log_repo.create_raw_log(ws_id, &raw_log).await?;
