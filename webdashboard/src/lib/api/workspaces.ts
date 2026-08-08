@@ -3,7 +3,7 @@ import { unwrapDataArray } from "@/types/api-overrides";
 import { client } from "./client";
 import { ApiError } from "./errors";
 import { apiFetch } from "./helpers";
-import { Workspace, WorkspaceMember, MemberRolesResponse, MemberExtraRole, MemberExtraPermission, WorkspaceRole } from "./types";
+import { Workspace, WorkspaceMember, MemberRolesResponse, MemberExtraRole, MemberExtraPermission, PermissionCatalogItem, WorkspaceRole } from "./types";
 
 export async function fetchWorkspaces(): Promise<Workspace[]> {
   const { data: resData } = await client.GET("/workspaces");
@@ -101,6 +101,15 @@ export async function assignExtraPermission(wsId: string, userId: string, permis
 
 export async function revokeExtraPermission(wsId: string, userId: string, permId: string): Promise<void> {
   await client.DELETE("/v1/workspaces/{ws_id}/members/{user_id}/permissions/{perm_id}", { params: { path: { ws_id: wsId, user_id: userId, perm_id: permId } } });
+}
+
+export async function fetchPermissionCatalog(
+  wsId: string,
+): Promise<PermissionCatalogItem[]> {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/permissions/catalog", {
+    params: { path: { ws_id: wsId } }
+  });
+  return resData;
 }
 
 export async function fetchAvailablePermissions(

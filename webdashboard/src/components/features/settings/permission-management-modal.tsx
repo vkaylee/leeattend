@@ -10,6 +10,7 @@ import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMemberPermissions } from "@/hooks/use-workspace";
 import { logError } from "@/lib/logger";
 
+import type { PermissionCatalogItem } from "@/lib/api/types";
 
 interface PermissionManagementModalProps {
     isOpen: boolean;
@@ -27,7 +28,7 @@ function AssignPermissionForm({
     handleAssign: (e: React.SyntheticEvent) => void;
     searchTerm: string; setSearchTerm: (val: string) => void;
     newPermission: string; setNewPermission: (val: string) => void;
-    filteredAvailable: string[];
+    filteredAvailable: PermissionCatalogItem[];
     expiresAt: string; setExpiresAt: (val: string) => void;
 }) {
     const { t } = useTranslation();
@@ -56,14 +57,15 @@ function AssignPermissionForm({
                     </div>
                     {!!searchTerm && filteredAvailable.length > 0 && (
                         <div className="max-h-48 overflow-y-auto rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg">
-                            {filteredAvailable.map((p) => (
-                                <Button className={`w-full text-left px-6 py-3 text-sm font-mono hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${newPermission === p ? "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 font-bold" : "text-slate-600 dark:text-slate-300"}`}
-                                    key={p}
-                                    onClick={() => { setNewPermission(p); setSearchTerm(p); }}
+                            {filteredAvailable.map((permission) => (
+                                <Button className={`w-full text-left px-6 py-3 text-sm font-mono hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${newPermission === permission.id ? "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 font-bold" : "text-slate-600 dark:text-slate-300"}`}
+                                    key={permission.id}
+                                    onClick={() => { setNewPermission(permission.id); setSearchTerm(permission.id); }}
                                     type="button"
                                     variant="ghost"
                                 >
-                                    {p}
+                                    <span className="block font-sans font-bold">{t(permission.label_key, { defaultValue: permission.id })}</span>
+                                    <span className="block mt-1 text-xs opacity-70">{permission.id}</span>
                                 </Button>
                             ))}
                         </div>
@@ -142,7 +144,8 @@ export default function PermissionManagementModal({
     const { formatDateTime } = useDateTimeFormatter();
     const {
         permissions,
-        available,
+        catalog,
+        isCatalogError,
         isLoading,
         assignPermission,
         revokePermission,
@@ -152,11 +155,14 @@ export default function PermissionManagementModal({
     const [searchTerm, setSearchTerm] = useState("");
     const { confirm, ConfirmationDialog } = useConfirm();
 
-    const filteredAvailable = available.filter(
-        (p) =>
-            p.toLowerCase().includes(searchTerm.toLowerCase()) &&
-            !permissions.some((ep) => ep.permission === p),
-    );
+    const filteredAvailable = catalog.filter((permission) => {
+        const query = searchTerm.toLowerCase();
+        const label = t(permission.label_key, { defaultValue: permission.id }).toLowerCase();
+        return (
+            (permission.id.toLowerCase().includes(query) || label.includes(query))
+            && !permissions.some((existingPermission) => existingPermission.permission === permission.id)
+        );
+    });
 
     async function handleAssign(e: React.SyntheticEvent) {
         e.preventDefault();
@@ -216,6 +222,12 @@ export default function PermissionManagementModal({
                                 />
                             </div>
                         </div>
+                    )}
+
+                    {isCatalogError && (
+                        <Typography className="text-sm text-rose-600 dark:text-rose-400" role="alert" variant="p">
+                            {t("permissions.catalog_load_error", { defaultValue: "Permission catalog could not be loaded. Please try again." })}
+                        </Typography>
                     )}
 
                     {/* Assign new permission */}

@@ -6,6 +6,7 @@ import {
   updateWorkspaceRole,
   deleteWorkspaceRole,
   fetchRolePermissions,
+  fetchPermissionCatalog,
   updateRolePermissions,
   getCurrentWorkspaceId,
 } from "@/lib/api";
@@ -20,10 +21,28 @@ export const workspaceKeys = {
     ["workspaces", wsId, "members", userId, "permissions"] as const,
   availablePermissions: (wsId: string) =>
     ["workspaces", wsId, "permissions", "available"] as const,
+  permissionCatalog: (wsId: string) =>
+    ["workspaces", wsId, "permissions", "catalog"] as const,
   workspaceRoles: (wsId: string) => ["workspaces", wsId, "roles"] as const,
   rolePermissions: (wsId: string, roleId: string) => ["workspaces", wsId, "roles", roleId, "permissions"] as const,
   permissionsMatrix: (wsId: string) => ["workspaces", wsId, "permissions", "matrix"] as const,
 };
+
+export function usePermissionCatalog(wsId?: string) {
+  const activeWsId = wsId ?? getCurrentWorkspaceId();
+  const catalogQuery = useQuery({
+    queryKey: workspaceKeys.permissionCatalog(activeWsId ?? ""),
+    queryFn: () => fetchPermissionCatalog(activeWsId ?? ""),
+    enabled: !!activeWsId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  return {
+    catalog: catalogQuery.data ?? [],
+    isLoading: catalogQuery.isLoading,
+    isError: catalogQuery.isError,
+  };
+}
 
 export function useWorkspaceRoles(wsId?: string) {
   const queryClient = useQueryClient();

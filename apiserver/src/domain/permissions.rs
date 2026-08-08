@@ -5,6 +5,30 @@
 //
 //   Hierarchy: Owner > Admin > HrManager | ShiftManager > TeamLead > Employee | Member
 
+use serde::Serialize;
+
+/// Language-neutral metadata used by permission administration clients.
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct PermissionCatalogItem {
+    id: String,
+    group: String,
+    label_key: String,
+}
+
+impl PermissionCatalogItem {
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    pub fn group(&self) -> &str {
+        &self.group
+    }
+
+    pub fn label_key(&self) -> &str {
+        &self.label_key
+    }
+}
+
 /// Granular permissions for every action in the system.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Permission {
@@ -493,6 +517,41 @@ impl Permission {
             "ess:shift_swaps",
         ]
     }
+
+    /// Return ordered, language-neutral metadata for every permission.
+    pub fn catalog() -> Vec<PermissionCatalogItem> {
+        Self::all_permission_strings()
+            .into_iter()
+            .map(|id| PermissionCatalogItem {
+                id: id.to_string(),
+                group: Self::catalog_group(id).to_string(),
+                label_key: format!("permissions.items.{id}.name"),
+            })
+            .collect()
+    }
+
+    fn catalog_group(id: &str) -> &'static str {
+        match id.split(':').next().map_or("", |part| part) {
+            "workspace" | "approval_workflows" => "workspace",
+            "members" => "members",
+            "employees" => "employees",
+            "departments" => "departments",
+            "attendance" => "attendance",
+            "overtime" => "overtime",
+            "leave" => "leave",
+            "shifts" | "shift_swaps" | "patterns" | "rosters" | "assignment_rules" => "shifts",
+            "payroll" => "payroll",
+            "holidays" => "holidays",
+            "reports" | "dashboard" => "reports",
+            "documents" => "documents",
+            "audit_logs" | "security" => "security",
+            "agents" | "devices" | "feature_flags" | "infra" => "infra",
+            "recruitment" => "recruitment",
+            "employment_phases" => "employment_phases",
+            "ess" => "ess",
+            _ => "other",
+        }
+    }
 }
 
 #[cfg(test)]
@@ -501,15 +560,15 @@ mod tests {
     use std::collections::HashSet;
 
     /// Lock the total permission count at 102.
-    /// If you add a new Permission variant, update this number,
-    /// `all_permission_strings()`, AND the frontend PermissionSync.test.ts.
+    /// If you add a new Permission variant, update this number and the
+    /// authoritative catalog metadata tests.
     #[test]
     fn test_total_permission_count_is_102() {
         let all = Permission::all_permission_strings();
         assert_eq!(
             all.len(),
             102,
-            "Permission count changed! Update this test, the UI permissionGroups, AND PermissionSync.test.ts. Current count: {}",
+            "Permission count changed! Update the authoritative catalog metadata tests. Current count: {}",
             all.len()
         );
     }
@@ -672,6 +731,24 @@ mod tests {
                 "Enum variant {variant:?} ('{s}') is missing from all_permission_strings()"
             );
         }
+    }
+
+    #[test]
+    fn test_permission_catalog_metadata_is_complete() {
+        let catalog = Permission::catalog();
+        assert_eq!(catalog.len(), 102);
+        assert_eq!(
+            catalog
+                .iter()
+                .filter(|item| item.id() == "overtime:request:create_on_behalf")
+                .count(),
+            1
+        );
+        assert!(catalog.iter().all(|item| {
+            !item.id().is_empty()
+                && !item.group().is_empty()
+                && item.label_key() == format!("permissions.items.{}.name", item.id())
+        }));
     }
 
     /// All permission strings follow colon-separated lowercase format.

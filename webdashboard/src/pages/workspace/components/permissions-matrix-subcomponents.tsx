@@ -6,7 +6,7 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
-import type { WorkspaceRole } from "../../../lib/api/types";
+import type { PermissionCatalogItem, WorkspaceRole } from "../../../lib/api/types";
 
 interface ScrollVisualCuesProps {
   canScrollLeft: boolean;
@@ -118,7 +118,7 @@ export const PermissionTableHeader = ({ visibleRoles }: PermissionTableHeaderPro
 
 interface PermissionTableRowProps {
   hasManagePermission: boolean;
-  perm: { id: string; name: string; desc: string };
+  perm: PermissionCatalogItem;
   permissions: Record<string, string[]>;
   togglePermission: (role: WorkspaceRole, permId: string) => void;
   visibleRoles: WorkspaceRole[];
@@ -139,10 +139,10 @@ export const PermissionTableRow = ({
         <div className="flex items-start gap-2">
           <div>
             <Typography className="text-sm font-bold text-slate-700 dark:text-slate-300" variant="p">
-              {t(`permissions.items.${perm.id}.name`, { defaultValue: perm.name })}
+              {t(perm.label_key, { defaultValue: perm.id })}
             </Typography>
             <Typography className="text-xs text-slate-500 mt-0.5" variant="p">
-              {t(`permissions.items.${perm.id}.desc`, { defaultValue: perm.desc })}
+              {t(perm.label_key.replace(/\.name$/, ".desc"), { defaultValue: perm.id })}
             </Typography>
           </div>
         </div>

@@ -11,7 +11,7 @@ import {
   fetchMemberPermissions,
   assignExtraPermission,
   revokeExtraPermission,
-  fetchAvailablePermissions,
+  fetchPermissionCatalog,
   getCurrentWorkspaceId,
 } from "@/lib/api";
 
@@ -118,10 +118,11 @@ export function useMemberPermissions(userId: string, wsId?: string) {
     enabled: !!activeWsId && !!userId,
   });
 
-  const availableQuery = useQuery({
-    queryKey: workspaceKeys.availablePermissions(activeWsId ?? ""),
-    queryFn: () => fetchAvailablePermissions((activeWsId ?? "")),
+  const catalogQuery = useQuery({
+    queryKey: workspaceKeys.permissionCatalog(activeWsId ?? ""),
+    queryFn: () => fetchPermissionCatalog(activeWsId ?? ""),
     enabled: !!activeWsId,
+    staleTime: 5 * 60 * 1000,
   });
 
   const assignMutation = useMutation({
@@ -146,8 +147,9 @@ export function useMemberPermissions(userId: string, wsId?: string) {
 
   return {
     permissions: permissionsQuery.data ?? [],
-    available: availableQuery.data ?? [],
-    isLoading: permissionsQuery.isLoading,
+    catalog: catalogQuery.data ?? [],
+    isLoading: permissionsQuery.isLoading || catalogQuery.isLoading,
+    isCatalogError: catalogQuery.isError,
     assignPermission: assignMutation.mutateAsync,
     isAssigning: assignMutation.isPending,
     revokePermission: revokeMutation.mutateAsync,

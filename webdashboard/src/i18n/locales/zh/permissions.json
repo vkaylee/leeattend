@@ -1,0 +1,28 @@
+{
+  "catalog_load_error": "无法加载权限目录，请重试。",
+  "groups": {
+    "attendance": "考勤",
+    "departments": "部门",
+    "documents": "文档",
+    "employees": "员工",
+    "employment_phases": "雇佣阶段",
+    "ess": "员工自助服务",
+    "holidays": "节假日",
+    "infra": "基础设施",
+    "leave": "请假管理",
+    "members": "成员与角色",
+    "overtime": "加班",
+    "payroll": "薪资",
+    "recruitment": "招聘",
+    "reports": "报表与仪表板",
+    "security": "安全与审计",
+    "shifts": "班次与排班",
+    "workspace": "工作空间与设置"
+  },
+  "items": {
+    "overtime:request:create_on_behalf": {
+      "name": "代他人创建加班申请",
+      "desc": "为其他员工规划预先加班申请"
+    }
+  }
+}

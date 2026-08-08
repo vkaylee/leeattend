@@ -40,6 +40,7 @@ vi.mock("@/hooks/use-workspace", () => ({
   useWorkspace: vi.fn(),
   useWorkspaceRoles: vi.fn(),
   useWorkspaceMembers: vi.fn(),
+  usePermissionCatalog: vi.fn(),
 }));
 
 vi.mock("@/components/ui/toast", () => ({
@@ -82,6 +83,12 @@ describe("WorkflowEditorPage", () => {
       ],
       isLoading: false,
     } as any);
+
+    vi.mocked(workspaceHooks.usePermissionCatalog).mockReturnValue({
+      catalog: [],
+      isError: false,
+      isLoading: false,
+    });
 
     vi.mocked(approvalHooks.useApprovalWorkflow).mockReturnValue({
       data: undefined,

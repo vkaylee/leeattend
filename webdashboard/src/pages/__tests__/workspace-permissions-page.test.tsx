@@ -6,7 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { useMyPermissions } from "../../hooks/use-permissions";
-import { useWorkspaceRoles, useWorkspacePermissionsMatrix } from "../../hooks/use-workspace";
+import { usePermissionCatalog, useWorkspaceRoles, useWorkspacePermissionsMatrix } from "../../hooks/use-workspace";
 import * as api from "../../lib/api";
 import { WorkspaceRole } from "../../lib/api/types";
 import WorkspacePermissionsPage from "../workspace/workspace-permissions-page";
@@ -24,6 +24,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("../../hooks/use-workspace", () => ({
+    usePermissionCatalog: vi.fn(),
     useWorkspaceRoles: vi.fn(),
     useWorkspacePermissionsMatrix: vi.fn(),
 }));
@@ -41,6 +42,35 @@ vi.mock("../../lib/api", () => ({
 
 const SYSTEM_ROLE = { id: "role-sys", name: "admin", is_system: true };
 const CUSTOM_ROLE = { id: "role-custom", name: "hr_specialist", is_system: false };
+
+const CATALOG_GROUPS = [
+    "attendance", "departments", "documents", "employees", "employment_phases", "ess",
+    "holidays", "infra", "leave", "members", "overtime", "payroll", "recruitment",
+    "reports", "security", "shifts", "workspace",
+];
+
+const REQUIRED_CATALOG_IDS = [
+    "overtime:request:create_on_behalf",
+    "workspace:update",
+    "members:roles:manage",
+    "employees:read",
+    "payroll:read",
+    "audit_logs:read",
+    "leave:approve:l1",
+];
+
+const PERMISSION_CATALOG = [
+    ...REQUIRED_CATALOG_IDS.map((id, index) => ({
+        id,
+        group: id.startsWith("overtime") ? "overtime" : CATALOG_GROUPS[index],
+        label_key: `permissions.items.${id}.name`,
+    })),
+    ...Array.from({ length: 95 }, (_, index) => ({
+        id: `fixture:permission:${index}`,
+        group: CATALOG_GROUPS[index % CATALOG_GROUPS.length],
+        label_key: `permissions.items.fixture:permission:${index}.name`,
+    })),
+];
 
 /** Build a matrix with real backend permission strings */
 const buildMatrix = (
@@ -61,7 +91,12 @@ describe("WorkspacePermissionsPage", () => {
             defaultOptions: { queries: { retry: false } },
         });
         mockRefetch = vi.fn();
- 
+
+        vi.mocked(usePermissionCatalog).mockReturnValue({
+            catalog: PERMISSION_CATALOG,
+            isError: false,
+            isLoading: false,
+        });
 
         vi.mocked(useWorkspaceRoles).mockReturnValue({
             roles: [SYSTEM_ROLE, CUSTOM_ROLE] as unknown as WorkspaceRole[],
@@ -113,57 +148,23 @@ describe("WorkspacePermissionsPage", () => {
             expect(screen.getByText("hr_specialist")).toBeDefined();
         });
 
-        it("renders all 16 enterprise permission group headers", () => {
+        it("renders all catalog-provided permission group headers", () => {
             renderPage();
-            const expectedGroups = [
-                "Workspace & Setup",
-                "Members & Roles",
-                "Employees",
-                "Departments",
-                "Time & Attendance",
-                "Overtime",
-                "Leave Management",
-                "Shifts & Scheduling",
-                "Payroll",
-                "Holidays",
-                "Reports & Dashboard",
-                "Documents",
-                "Security & Audit",
-                "Infrastructure",
-                "Recruitment",
-                "Employee Self-Service",
-            ];
-            for (const name of expectedGroups) {
-                expect(screen.getByText(name)).toBeDefined();
+            for (const group of CATALOG_GROUPS) {
+                expect(screen.getByText(group)).toBeDefined();
             }
         });
 
-        it("renders premium permission rows", () => {
+        it("renders the production-blocking pre-OT-on-behalf permission", () => {
             renderPage();
-            // Multi-level approval
-            expect(screen.getByText("Approve L1 (Team)")).toBeDefined();
-            expect(screen.getByText("Approve L2 (HR)")).toBeDefined();
-            // Advanced payroll
-            expect(screen.getByText("Approve Payroll")).toBeDefined();
-            expect(screen.getByText("Disburse Payroll")).toBeDefined();
-            expect(screen.getByText("View Sensitive Data")).toBeDefined();
-            // Security & Audit
-            expect(screen.getByText("View Audit Logs")).toBeDefined();
-            expect(screen.getByText("Export Audit Logs")).toBeDefined();
-            expect(screen.getByText("Security Settings")).toBeDefined();
-            // Bulk Operations
-            expect(screen.getByText("Bulk Edit")).toBeDefined();
-            expect(screen.getByText("Force Clock Out")).toBeDefined();
-            // Documents
-            expect(screen.getByText("Medical Documents")).toBeDefined();
-            expect(screen.getByText("Contract Documents")).toBeDefined();
+            expect(screen.getAllByText("overtime:request:create_on_behalf")).toHaveLength(2);
         });
 
         it("renders checkboxes for every permission × role combination", () => {
             renderPage();
             const checkboxes = screen.getAllByRole("checkbox").filter(c => c.tagName === "INPUT");
-            // Total = 101 permissions × 2 roles = 202
-            expect(checkboxes.length).toBe(101 * 2);
+            // Total = 102 catalog permissions × 2 roles = 204
+            expect(checkboxes.length).toBe(102 * 2);
         });
 
         it("marks system role with 'System' badge", () => {
@@ -451,23 +452,10 @@ describe("WorkspacePermissionsPage", () => {
             expect(screen.queryByText("Danger Zone")).toBeNull();
         });
 
-        it("renders ESS self-service permissions", () => {
+        it("renders catalog groups that previously relied on the static matrix", () => {
             renderPage();
-            expect(screen.getByText("ESS Profile")).toBeDefined();
-            expect(screen.getByText("ESS Attendance")).toBeDefined();
-            expect(screen.getByText("ESS Clock In/Out")).toBeDefined();
-            expect(screen.getByText("ESS Leave")).toBeDefined();
-            expect(screen.getByText("ESS Payslips")).toBeDefined();
-            expect(screen.getByText("ESS Shift Swaps")).toBeDefined();
-        });
-
-        it("renders infrastructure permissions", () => {
-            renderPage();
-            expect(screen.getByText("View Agents")).toBeDefined();
-            expect(screen.getByText("Manage Agents")).toBeDefined();
-            expect(screen.getByText("View Devices")).toBeDefined();
-            expect(screen.getByText("Manage Devices")).toBeDefined();
-            expect(screen.getByText("Infrastructure Monitor")).toBeDefined();
+            expect(screen.getByText("ess")).toBeDefined();
+            expect(screen.getByText("infra")).toBeDefined();
         });
     });
 

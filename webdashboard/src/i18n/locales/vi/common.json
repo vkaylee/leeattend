@@ -900,6 +900,7 @@
     "pending": "Đang chờ",
     "people": "người",
     "permissions": "Quyền hạn",
+    "permissions.catalog_load_error": "Không thể tải danh mục quyền. Vui lòng thử lại.",
     "preparing_environment": "Đang chuẩn bị môi trường...",
     "present": "Hiện tại",
     "previous": "Trước",

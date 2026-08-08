@@ -900,6 +900,7 @@
     "pending": "Pending",
     "people": "people",
     "permissions": "Permissions",
+    "permissions.catalog_load_error": "Permission catalog could not be loaded. Please try again.",
     "preparing_environment": "Preparing environment...",
     "present": "Present",
     "previous": "Previous",

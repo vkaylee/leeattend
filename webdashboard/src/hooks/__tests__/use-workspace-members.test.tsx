@@ -22,7 +22,7 @@ const api = vi.hoisted(() => ({
   fetchMemberPermissions: vi.fn(),
   assignExtraPermission: vi.fn(),
   revokeExtraPermission: vi.fn(),
-  fetchAvailablePermissions: vi.fn(),
+  fetchPermissionCatalog: vi.fn(),
   getCurrentWorkspaceId: vi.fn(() => "ws-test-123"),
 }));
 
@@ -252,12 +252,12 @@ describe("useMemberPermissions", () => {
     (api.fetchMemberPermissions as Mock).mockResolvedValue([
       { permission: "attendance.view", expires_at: null },
     ]);
-    (api.fetchAvailablePermissions as Mock).mockResolvedValue([
-      { id: "perm-1", name: "View Attendance" },
+    (api.fetchPermissionCatalog as Mock).mockResolvedValue([
+      { id: "attendance:logs:read", group: "attendance", label_key: "permissions.items.attendance:logs:read.name" },
     ]);
   });
 
-  it("fetches member and available permissions", async () => {
+  it("fetches member permissions and the permission catalog", async () => {
     const { result } = renderHook(() => useMemberPermissions("user-1"), {
       wrapper: createWrapper(),
     });
@@ -265,21 +265,21 @@ describe("useMemberPermissions", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(api.fetchMemberPermissions).toHaveBeenCalledWith(WS_ID, "user-1");
-    expect(api.fetchAvailablePermissions).toHaveBeenCalledWith(WS_ID);
+    expect(api.fetchPermissionCatalog).toHaveBeenCalledWith(WS_ID);
     expect(result.current.permissions).toHaveLength(1);
-    expect(result.current.available).toHaveLength(1);
+    expect(result.current.catalog).toHaveLength(1);
   });
 
-  it("defaults permissions and available lists to empty arrays", () => {
+  it("defaults permissions and catalog lists to empty arrays", () => {
     (api.fetchMemberPermissions as Mock).mockResolvedValue(undefined);
-    (api.fetchAvailablePermissions as Mock).mockResolvedValue(undefined);
+    (api.fetchPermissionCatalog as Mock).mockResolvedValue(undefined);
 
     const { result } = renderHook(() => useMemberPermissions("user-1"), {
       wrapper: createWrapper(),
     });
 
     expect(result.current.permissions).toEqual([]);
-    expect(result.current.available).toEqual([]);
+    expect(result.current.catalog).toEqual([]);
   });
 
   it("assigns an extra permission and invalidates the permissions cache", async () => {

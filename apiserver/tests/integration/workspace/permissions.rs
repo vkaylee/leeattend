@@ -190,6 +190,66 @@ async fn test_list_available_permissions() {
 }
 
 #[tokio::test]
+async fn test_permission_catalog_matches_legacy_available_permissions() {
+    let (address, ws_id, owner_id, member_id, _factory, _db): (
+        String,
+        uuid::Uuid,
+        uuid::Uuid,
+        uuid::Uuid,
+        _,
+        TestDatabase,
+    ) = spawn_app_with_member().await;
+    let client = reqwest::Client::new();
+
+    let catalog_response = client
+        .get(format!(
+            "{address}/api/v1/workspaces/{ws_id}/permissions/catalog"
+        ))
+        .header("X-User-Id", owner_id.to_string())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(catalog_response.status(), reqwest::StatusCode::OK);
+    let catalog: Vec<serde_json::Value> = catalog_response.json().await.unwrap();
+    assert_eq!(catalog.len(), 102);
+    assert!(catalog.iter().all(|item| {
+        item["id"].is_string() && item["group"].is_string() && item["label_key"].is_string()
+    }));
+    assert!(catalog.iter().any(|item| {
+        item["id"] == "overtime:request:create_on_behalf" && item["group"] == "overtime"
+    }));
+
+    let available_response = client
+        .get(format!(
+            "{address}/api/v1/workspaces/{ws_id}/permissions/available"
+        ))
+        .header("X-User-Id", owner_id.to_string())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(available_response.status(), reqwest::StatusCode::OK);
+    let available: Vec<String> = available_response.json().await.unwrap();
+    let catalog_ids: Vec<String> = catalog
+        .into_iter()
+        .map(|item| item["id"].as_str().unwrap().to_string())
+        .collect();
+    assert_eq!(available, catalog_ids);
+
+    let unauthorized_response = client
+        .get(format!(
+            "{address}/api/v1/workspaces/{ws_id}/permissions/catalog"
+        ))
+        .header("X-User-Id", member_id.to_string())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(
+        unauthorized_response.status(),
+        reqwest::StatusCode::FORBIDDEN
+    );
+}
+
+#[tokio::test]
 async fn test_revoke_nonexistent_permission_returns_not_found() {
     let (address, ws_id, owner_id, member_id, _factory, _db): (
         String,

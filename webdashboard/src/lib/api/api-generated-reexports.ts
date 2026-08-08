@@ -51,6 +51,7 @@ export type EmployeeDepartmentHistory = components["schemas"]["EmployeeDepartmen
 export type ShiftRoster = components["schemas"]["ShiftRoster"];
 export type AttendanceImportJob = components["schemas"]["AttendanceImportJob"];
 export type MemberExtraPermission = components["schemas"]["MemberExtraPermission"];
+export type PermissionCatalogItem = components["schemas"]["PermissionCatalogItem"];
 export type LeaveTypeConfig = components["schemas"]["LeaveTypeConfig"];
 export type LeaveType = components["schemas"]["LeaveType"];
 export type ScheduleTrace = components["schemas"]["ScheduleTrace"];

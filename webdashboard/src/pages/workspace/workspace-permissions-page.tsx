@@ -9,6 +9,9 @@ export default function WorkspacePermissionsPage() {
     wsId,
     t,
     roles,
+    catalog,
+    isCatalogError,
+    isCatalogLoading,
     isRolesLoading,
     isMatrixLoading,
     hasManagePermission,
@@ -50,6 +53,9 @@ export default function WorkspacePermissionsPage() {
         <PermissionsMatrix
           canScrollLeft={canScrollLeft}
           canScrollRight={canScrollRight}
+          catalog={catalog}
+          isCatalogError={isCatalogError}
+          isCatalogLoading={isCatalogLoading}
           handleScroll={handleScroll}
           hasManagePermission={hasManagePermission}
           isMatrixLoading={isMatrixLoading}

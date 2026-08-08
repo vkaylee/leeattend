@@ -2586,9 +2586,29 @@ export interface paths {
         };
         /**
          * GET /workspaces/:ws_id/permissions/available
-         *     List all available permission strings.
+         *     List all available permission strings for compatibility.
          */
         get: operations["get_available_permissions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/permissions/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /workspaces/:ws_id/permissions/catalog
+         *     List the authorized, language-neutral permission catalog.
+         */
+        get: operations["get_permission_catalog"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3561,7 +3581,7 @@ export interface paths {
         /**
          * PUT /workspaces/{ws_id}/approval-workflows/{id}
          *     Partially updates workflow metadata (name, description, is_active).
-         *     Steps are NOT updated through this endpoint — use create with full replace for step changes.
+         * @description Steps are NOT updated through this endpoint — use create with full replace for step changes.
          */
         put: operations["update_workflow"];
         post?: never;
@@ -6759,9 +6779,32 @@ export interface components {
             /** Format: uuid */
             workspace_id: string;
         };
-        /** @description Response payload for listing monitor jobs. */
+        /**
+         * @description Privacy-safe job representation for infrastructure monitoring.
+         *
+         *     Queue metadata may contain payloads and requester/workspace identifiers;
+         *     those fields stay internal and are intentionally not exposed here.
+         */
+        MonitorJob: {
+            /** Format: date-time */
+            completed_at?: string | null;
+            /** Format: int32 */
+            completed_batches: number;
+            /** Format: date-time */
+            created_at: string;
+            error_summary?: string | null;
+            /** Format: int32 */
+            failed_batches: number;
+            /** Format: uuid */
+            job_id: string;
+            report_type?: string | null;
+            status: string;
+            task_type?: string | null;
+            /** Format: int32 */
+            total_batches: number;
+        };
         MonitorJobsResponse: {
-            jobs: components["schemas"]["JobMetadata"][];
+            jobs: components["schemas"]["MonitorJob"][];
             /** Format: int64 */
             next_cursor?: number | null;
         };
@@ -6776,16 +6819,25 @@ export interface components {
             /** Format: int64 */
             idle_workers: number;
             job_type_stats: components["schemas"]["JobTypeStats"][];
+            /** Format: date-time */
+            observed_at: string;
             /** Format: int64 */
             pending_high: number;
             /** Format: int64 */
             pending_low: number;
             /** Format: int64 */
+            pending_normal: number;
+            /** Format: int64 */
             pending_tasks: number;
-            recent_jobs: components["schemas"]["JobMetadata"][];
+            recent_jobs: components["schemas"]["MonitorJob"][];
             /** Format: int64 */
             total_workers: number;
             workers: components["schemas"]["WorkerHeartbeat"][];
+        };
+        MonitorStreamError: {
+            code: string;
+            message: string;
+            retryable: boolean;
         };
         MyProfileResponse: {
             emergency_contacts: components["schemas"]["EmployeeEmergencyContact"][];
@@ -7291,6 +7343,12 @@ export interface components {
             id: string;
             is_required: boolean;
             title: string;
+        };
+        /** @description Language-neutral metadata used by permission administration clients. */
+        PermissionCatalogItem: {
+            group: string;
+            id: string;
+            label_key: string;
         };
         PolicyAssignmentResponse: {
             id: string;
@@ -10032,7 +10090,7 @@ export interface operations {
                 status?: string | null;
                 /** @description Task type filter */
                 task_type?: string | null;
-                /** @description Search query matching Job ID or error message */
+                /** @description Search query matching the exact job ID only. */
                 search?: string | null;
             };
             header?: never;
@@ -13927,6 +13985,29 @@ export interface operations {
             };
         };
     };
+    get_permission_catalog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ordered permission catalog */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionCatalogItem"][];
+                };
+            };
+        };
+    };
     get_recruitment_sources: {
         parameters: {
             query?: {
@@ -14472,12 +14553,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Attendance reprocessed */
-            200: {
+            /** @description Reprocess job queued */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": unknown;
+                };
             };
         };
     };

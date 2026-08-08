@@ -1,0 +1,28 @@
+{
+  "catalog_load_error": "Không thể tải danh mục quyền. Vui lòng thử lại.",
+  "groups": {
+    "attendance": "Chấm công",
+    "departments": "Phòng ban",
+    "documents": "Tài liệu",
+    "employees": "Nhân viên",
+    "employment_phases": "Giai đoạn làm việc",
+    "ess": "Tự phục vụ nhân viên",
+    "holidays": "Ngày lễ",
+    "infra": "Hạ tầng",
+    "leave": "Quản lý nghỉ phép",
+    "members": "Thành viên & vai trò",
+    "overtime": "Tăng ca",
+    "payroll": "Bảng lương",
+    "recruitment": "Tuyển dụng",
+    "reports": "Báo cáo & bảng điều khiển",
+    "security": "Bảo mật & kiểm toán",
+    "shifts": "Ca làm & lịch làm việc",
+    "workspace": "Không gian làm việc & thiết lập"
+  },
+  "items": {
+    "overtime:request:create_on_behalf": {
+      "name": "Tạo yêu cầu tăng ca thay mặt",
+      "desc": "Lập yêu cầu tăng ca trước cho nhân viên khác"
+    }
+  }
+}

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { useWorkspaceRoles, useWorkspacePermissionsMatrix } from "@/hooks/use-workspace";
+import { usePermissionCatalog, useWorkspaceRoles, useWorkspacePermissionsMatrix } from "@/hooks/use-workspace";
 import { updateRolePermissions, getCurrentWorkspaceId } from "@/lib/api";
 import { logError } from "@/lib/logger";
 
@@ -12,6 +12,11 @@ export function useWorkspacePermissionsPage() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
   const { roles, isLoading: isRolesLoading } = useWorkspaceRoles(wsId ?? undefined);
+  const {
+    catalog,
+    isError: isCatalogError,
+    isLoading: isCatalogLoading,
+  } = usePermissionCatalog(wsId ?? undefined);
   const { matrix, isLoading: isMatrixLoading, refetch } = useWorkspacePermissionsMatrix(wsId ?? undefined);
   const { hasPermission } = useMyPermissions();
   const hasManagePermission = hasPermission("members:roles:manage");
@@ -100,6 +105,9 @@ export function useWorkspacePermissionsPage() {
     t,
     roles,
     matrix,
+    catalog,
+    isCatalogError,
+    isCatalogLoading,
     isRolesLoading,
     isMatrixLoading,
     hasManagePermission,

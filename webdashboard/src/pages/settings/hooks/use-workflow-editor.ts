@@ -11,9 +11,8 @@ import {
   useUpdateApprovalWorkflow,
   useApprovalWorkflow,
 } from "@/hooks/use-approval-workflows";
-import { useWorkspace, useWorkspaceRoles, useWorkspaceMembers } from "@/hooks/use-workspace";
+import { usePermissionCatalog, useWorkspace, useWorkspaceRoles, useWorkspaceMembers } from "@/hooks/use-workspace";
 import { logError } from "@/lib/logger";
-import { permissionGroups } from "@/lib/permission-groups";
 import { ROUTES } from "@/lib/routes";
 
 import {
@@ -26,17 +25,17 @@ import {
 } from "./workflow-schemas";
 
 export function useWorkflowOptions(workspaceId: string) {
+  const { t } = useTranslation();
   const { roles } = useWorkspaceRoles(workspaceId);
   const { members } = useWorkspaceMembers(workspaceId);
+  const { catalog, isError: isCatalogError, isLoading: isCatalogLoading } = usePermissionCatalog(workspaceId);
 
   const permissionOptions = useMemo(() => {
-    return permissionGroups.flatMap((group) =>
-      group.permissions.map((p) => ({
-        value: p.id,
-        label: `${group.name} - ${p.name}`,
-      })),
-    );
-  }, []);
+    return catalog.map((permission) => ({
+      value: permission.id,
+      label: `${t(`permissions.groups.${permission.group}`, { defaultValue: permission.group })} - ${t(permission.label_key, { defaultValue: permission.id })}`,
+    }));
+  }, [catalog, t]);
 
   const roleOptions = useMemo(() => {
     const rolesList = roles as WorkspaceRoleDef[] | undefined;
@@ -59,6 +58,8 @@ export function useWorkflowOptions(workspaceId: string) {
     permissionOptions,
     roleOptions,
     memberOptions,
+    isPermissionCatalogLoading: isCatalogLoading,
+    isPermissionCatalogError: isCatalogError,
   };
 }
 

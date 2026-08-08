@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useMemo } from "react";
+import { KeyRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { permissionGroups } from "@/lib/permission-groups";
+import { permissionGroupIcons } from "@/lib/permission-groups";
 
-import type { WorkspaceRole } from "../../../lib/api/types";
+import type { PermissionCatalogItem, WorkspaceRole } from "../../../lib/api/types";
 
 import {
   PermissionMatrixFooter,
@@ -13,8 +14,16 @@ import {
   ScrollVisualCues,
 } from "./permissions-matrix-subcomponents";
 
+interface PermissionCatalogGroup {
+  id: string;
+  permissions: PermissionCatalogItem[];
+}
+
 interface PermissionsMatrixProps {
   canScrollLeft: boolean;
+  catalog: PermissionCatalogItem[];
+  isCatalogError: boolean;
+  isCatalogLoading: boolean;
   canScrollRight: boolean;
   handleScroll: () => void;
   hasManagePermission: boolean;
@@ -30,6 +39,9 @@ interface PermissionsMatrixProps {
 export function PermissionsMatrix(props: PermissionsMatrixProps) {
   const { t } = useTranslation();
   const {
+    catalog,
+    isCatalogError,
+    isCatalogLoading,
     isRolesLoading,
     isMatrixLoading,
     canScrollLeft,
@@ -43,7 +55,30 @@ export function PermissionsMatrix(props: PermissionsMatrixProps) {
     togglePermission,
   } = props;
 
-  if (isRolesLoading || isMatrixLoading) {
+  const permissionGroups = useMemo<PermissionCatalogGroup[]>(() => {
+    const groups: PermissionCatalogGroup[] = [];
+    for (const permission of catalog) {
+      const group = groups.find((candidate) => candidate.id === permission.group);
+      if (group) {
+        group.permissions.push(permission);
+      } else {
+        groups.push({ id: permission.group, permissions: [permission] });
+      }
+    }
+    return groups;
+  }, [catalog]);
+
+  if (isCatalogError) {
+    return (
+      <div className="p-12 text-center text-sm font-medium text-rose-600 dark:text-rose-400" role="alert">
+        {t("permissions.catalog_load_error", {
+          defaultValue: "Permission catalog could not be loaded. Please try again.",
+        })}
+      </div>
+    );
+  }
+
+  if (isRolesLoading || isMatrixLoading || isCatalogLoading) {
     return (
       <div className="flex justify-center p-20">
         <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
@@ -60,34 +95,38 @@ export function PermissionsMatrix(props: PermissionsMatrixProps) {
         <table className="w-full text-left border-collapse min-w-[800px]">
           <PermissionTableHeader visibleRoles={visibleRoles} />
           <tbody>
-            {permissionGroups.map((group) => (
-              <React.Fragment key={group.id}>
-                <tr>
-                  <td
-                    className="bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800 py-3 px-6"
-                    colSpan={visibleRoles.length + 1}
-                  >
-                    <div className="flex items-center gap-2">
-                      <group.icon className="w-4 h-4 text-slate-400" />
-                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                        {t(`permissions.groups.${group.id}`, { defaultValue: group.name })}
-                      </span>
-                    </div>
-                  </td>
-                </tr>
+            {permissionGroups.map((group) => {
+              const GroupIcon = permissionGroupIcons[group.id] ?? KeyRound;
 
-                {group.permissions.map((perm) => (
-                  <PermissionTableRow
-                    hasManagePermission={hasManagePermission}
-                    key={perm.id}
-                    perm={perm}
-                    permissions={permissions}
-                    togglePermission={togglePermission}
-                    visibleRoles={visibleRoles}
-                  />
-                ))}
-              </React.Fragment>
-            ))}
+              return (
+                <React.Fragment key={group.id}>
+                  <tr>
+                    <td
+                      className="bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800 py-3 px-6"
+                      colSpan={visibleRoles.length + 1}
+                    >
+                      <div className="flex items-center gap-2">
+                        <GroupIcon className="w-4 h-4 text-slate-400" />
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                          {t(`permissions.groups.${group.id}`, { defaultValue: group.id })}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {group.permissions.map((perm) => (
+                    <PermissionTableRow
+                      hasManagePermission={hasManagePermission}
+                      key={perm.id}
+                      perm={perm}
+                      permissions={permissions}
+                      togglePermission={togglePermission}
+                      visibleRoles={visibleRoles}
+                    />
+                  ))}
+                </React.Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>

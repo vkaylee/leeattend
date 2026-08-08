@@ -13,7 +13,7 @@ import { ToastProvider } from "../ui/toast";
 // Mock the API library
 vi.mock("../../lib/api", () => ({
   fetchMemberPermissions: vi.fn(),
-  fetchAvailablePermissions: vi.fn(),
+  fetchPermissionCatalog: vi.fn(),
   assignExtraPermission: vi.fn(),
   revokeExtraPermission: vi.fn(),
   getCurrentWorkspaceId: vi.fn(() => "test-ws-id"),
@@ -37,11 +37,11 @@ describe("PermissionManagementModal", () => {
       },
     });
  
-    vi.mocked(api.fetchAvailablePermissions).mockResolvedValue([
-      "members:invite",
-      "members:remove",
-      "members:roles:manage",
-      "settings:read",
+    vi.mocked(api.fetchPermissionCatalog).mockResolvedValue([
+      { id: "members:invite", group: "members", label_key: "permissions.items.members:invite.name" },
+      { id: "members:remove", group: "members", label_key: "permissions.items.members:remove.name" },
+      { id: "members:roles:manage", group: "members", label_key: "permissions.items.members:roles:manage.name" },
+      { id: "settings:read", group: "workspace", label_key: "permissions.items.settings:read.name" },
     ]);
  
     vi.mocked(api.fetchMemberPermissions).mockResolvedValue([
@@ -103,7 +103,7 @@ describe("PermissionManagementModal", () => {
     renderWithProviders(<PermissionManagementModal isOpen={true} onClose={() => { /* empty */ }} userId="user-1" />);
     
     await waitFor(() => {
-      expect(api.fetchAvailablePermissions).toHaveBeenCalled();
+      expect(api.fetchPermissionCatalog).toHaveBeenCalled();
     });
 
     const searchInput = screen.getByPlaceholderText(/Search permissions|Tìm kiếm quyền/i);
@@ -111,9 +111,9 @@ describe("PermissionManagementModal", () => {
 
     // "members:invite" should not be listed as an option to assign, because it's already assigned
     await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "members:invite" })).toBeNull();
+      expect(screen.queryByRole("button", { name: /members:invite/ })).toBeNull();
       // "members:remove" should be available
-      expect(screen.getByRole("button", { name: "members:remove" })).toBeDefined();
+      expect(screen.getByRole("button", { name: /members:remove/ })).toBeDefined();
     });
   });
 
@@ -125,14 +125,14 @@ describe("PermissionManagementModal", () => {
     renderWithProviders(<PermissionManagementModal isOpen={true} onClose={() => { /* empty */ }} userId="user-1" />);
 
     await waitFor(() => {
-      expect(api.fetchAvailablePermissions).toHaveBeenCalled();
+      expect(api.fetchPermissionCatalog).toHaveBeenCalled();
     });
 
     const searchInput = screen.getByPlaceholderText(/Search permissions|Tìm kiếm quyền/i);
     fireEvent.change(searchInput, { target: { value: "settings:read" } });
 
     // Wait for the option to appear and click it
-    const optionButton = await screen.findByRole("button", { name: "settings:read" });
+    const optionButton = await screen.findByRole("button", { name: /settings:read/ });
     await user.click(optionButton);
 
     // Set expiration date

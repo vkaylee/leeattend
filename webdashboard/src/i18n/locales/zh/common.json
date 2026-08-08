@@ -900,6 +900,7 @@
     "pending": "待处理",
     "people": "人",
     "permissions": "权限",
+    "permissions.catalog_load_error": "无法加载权限目录，请重试。",
     "preparing_environment": "正在准备环境...",
     "present": "至今",
     "previous": "上一个",

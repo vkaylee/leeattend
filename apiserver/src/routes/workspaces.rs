@@ -91,6 +91,10 @@ pub fn router() -> Router<Arc<AppState>> {
             get(handlers::get_role_permissions).put(handlers::update_role_permissions),
         )
         .route(
+            "/workspaces/:ws_id/permissions/catalog",
+            get(handlers::workspaces::permissions::get_permission_catalog),
+        )
+        .route(
             "/workspaces/:ws_id/permissions/available",
             get(handlers::get_available_permissions),
         )

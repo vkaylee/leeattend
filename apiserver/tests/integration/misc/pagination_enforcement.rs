@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 const GET_LIST_WHITELIST: &[&str] = &[
     // Static permissions and metadata
     "get_available_permissions",
+    "get_permission_catalog",
     "get_my_permissions",
     "get_role_permissions",
     "get_member_roles",

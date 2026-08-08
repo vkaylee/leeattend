@@ -327,6 +327,7 @@ use utoipa::OpenApi;
         crate::handlers::workspaces::permissions::get_member_extra_permissions,
         crate::handlers::workspaces::permissions::assign_extra_permission,
         crate::handlers::workspaces::permissions::revoke_extra_permission,
+        crate::handlers::workspaces::permissions::get_permission_catalog,
         crate::handlers::workspaces::permissions::get_available_permissions,
 
 
@@ -523,6 +524,7 @@ use utoipa::OpenApi;
             // Workspace Permissions Schemas
             MemberExtraPermission,
             AssignPermissionRequest,
+            crate::domain::permissions::PermissionCatalogItem,
 
             // E-Signatures Schemas
             crate::models::signature::SignatureRequest,

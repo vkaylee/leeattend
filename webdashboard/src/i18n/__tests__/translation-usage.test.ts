@@ -46,6 +46,7 @@ const locales = { en, vi, zh };
 
 const KEY_WHITELIST = [
   'common.languages.', // Dynamic language keys
+  'permissions.catalog_load_error', // Permission namespace is loaded from permissions.json; common has a legacy scalar `permissions` key.
 ];
 
 function getAllKeys(object: JsonObject, prefix = ''): { key: string; value: string }[] {

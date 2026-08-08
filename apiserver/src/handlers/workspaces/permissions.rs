@@ -6,7 +6,7 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::domain::permissions::Permission;
+use crate::domain::permissions::{Permission, PermissionCatalogItem};
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{AssignPermissionRequest, MemberExtraPermission};
@@ -190,8 +190,30 @@ pub async fn revoke_extra_permission(
     }
 }
 
+/// GET /workspaces/:ws_id/permissions/catalog
+/// List the authorized, language-neutral permission catalog.
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/permissions/catalog",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "Ordered permission catalog", body = Vec<PermissionCatalogItem>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn get_permission_catalog(
+    ctx: MemberContext,
+) -> AppResult<Json<Vec<PermissionCatalogItem>>> {
+    ctx.require_permission(Permission::MembersRolesManage)?;
+    Ok(Json(Permission::catalog()))
+}
+
 /// GET /workspaces/:ws_id/permissions/available
-/// List all available permission strings.
+/// List all available permission strings for compatibility.
 #[utoipa::path(
     get,
     path = "/v1/workspaces/{ws_id}/permissions/available",
@@ -205,7 +227,11 @@ pub async fn revoke_extra_permission(
         ("bearer_auth" = [])
     )
 )]
-pub async fn get_available_permissions(ctx: MemberContext) -> AppResult<Json<Vec<&'static str>>> {
+pub async fn get_available_permissions(ctx: MemberContext) -> AppResult<Json<Vec<String>>> {
     ctx.require_permission(Permission::MembersRolesManage)?;
-    Ok(Json(Permission::all_permission_strings()))
+    let ids = Permission::catalog()
+        .into_iter()
+        .map(|item| item.id().to_string())
+        .collect();
+    Ok(Json(ids))
 }

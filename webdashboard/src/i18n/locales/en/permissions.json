@@ -1,0 +1,28 @@
+{
+  "catalog_load_error": "Permission catalog could not be loaded. Please try again.",
+  "groups": {
+    "attendance": "Time & Attendance",
+    "departments": "Departments",
+    "documents": "Documents",
+    "employees": "Employees",
+    "employment_phases": "Employment Phases",
+    "ess": "Employee Self-Service",
+    "holidays": "Holidays",
+    "infra": "Infrastructure",
+    "leave": "Leave Management",
+    "members": "Members & Roles",
+    "overtime": "Overtime",
+    "payroll": "Payroll",
+    "recruitment": "Recruitment",
+    "reports": "Reports & Dashboard",
+    "security": "Security & Audit",
+    "shifts": "Shifts & Scheduling",
+    "workspace": "Workspace & Setup"
+  },
+  "items": {
+    "overtime:request:create_on_behalf": {
+      "name": "Create OT Request on Behalf",
+      "desc": "Plan pre-overtime requests for other employees"
+    }
+  }
+}
