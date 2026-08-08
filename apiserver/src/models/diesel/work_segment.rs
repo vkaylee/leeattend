@@ -270,6 +270,17 @@ fn f64_to_bigdecimal(v: f64) -> BigDecimal {
     BigDecimal::try_from(v).unwrap_or_else(|_| BigDecimal::from(0))
 }
 
+/// Convert resolver source names to the values accepted by `work_segments.source`.
+///
+/// `assignment_rule` is the domain-level name used by schedule resolution, while
+/// the persistence schema stores the same origin as `rule`.
+fn persisted_source(source: &str) -> &str {
+    match source {
+        "assignment_rule" => "rule",
+        source => source,
+    }
+}
+
 impl From<WorkSegmentEntity> for WorkSegment {
     fn from(e: WorkSegmentEntity) -> Self {
         let now = Utc::now();
@@ -381,7 +392,7 @@ pub fn resolved_segment_to_new_entity(
         gap_compensation_rate_before: BigDecimal::from(0),
         break_config_override,
         ot_config_override,
-        source: seg.source.clone(),
+        source: persisted_source(&seg.source).to_string(),
         source_detail: serde_json::json!({
             "traces": seg.traces,
             "shift_name": seg.shift_name,
@@ -390,5 +401,64 @@ pub fn resolved_segment_to_new_entity(
         }),
         notes: None,
         generation_metadata: serde_json::json!({}),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::resolved_segment_to_new_entity;
+    use crate::models::ResolvedSegment;
+    use chrono::{NaiveDate, NaiveTime};
+    use uuid::Uuid;
+
+    fn resolved_segment(source: &str) -> ResolvedSegment {
+        ResolvedSegment {
+            template_id: Uuid::nil(),
+            interval_id: None,
+            sort_order: 0,
+            scheduled_start: NaiveTime::from_hms_opt(8, 0, 0).expect("valid test time"),
+            scheduled_end: NaiveTime::from_hms_opt(17, 0, 0).expect("valid test time"),
+            source: source.to_string(),
+            date: Some(NaiveDate::from_ymd_opt(2026, 8, 8).expect("valid test date")),
+            shift_name: None,
+            shift_symbol: None,
+            interval_name: None,
+            segment_type: "work".to_string(),
+            break_duration_minutes: None,
+            break_start: None,
+            break_end: None,
+            is_break_auto_deduct: None,
+            break_is_overtime: None,
+            allow_early_ot: false,
+            max_early_ot_minutes: None,
+            early_punch_in_grace_period_minutes: 0,
+            ot_aggregation_mode: Default::default(),
+            is_night_shift: false,
+            traces: Vec::new(),
+            is_holiday: false,
+            is_holiday_paid: false,
+            holiday_name: None,
+        }
+    }
+
+    #[test]
+    fn assignment_rule_source_is_normalized_for_persistence() {
+        let entity = resolved_segment_to_new_entity(
+            &resolved_segment("assignment_rule"),
+            Uuid::nil(),
+            Uuid::nil(),
+        );
+
+        assert_eq!(entity.source, "rule");
+    }
+
+    #[test]
+    fn valid_persistence_sources_are_preserved() {
+        for source in ["roster", "pattern", "rule", "fixed", "manual", "auto"] {
+            let entity =
+                resolved_segment_to_new_entity(&resolved_segment(source), Uuid::nil(), Uuid::nil());
+
+            assert_eq!(entity.source, source);
+        }
     }
 }
