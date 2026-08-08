@@ -3,7 +3,6 @@ import { useEffect, useRef, useState, useCallback } from "react";
 
 import type { WorkerMonitorStats } from "@/lib/api/types";
 
-import { getAccessToken } from "@/lib/api/helpers";
 import { logError } from "@/lib/logger";
 
 import { monitorKeys } from "./use-worker-monitor";
@@ -43,9 +42,7 @@ export function useMonitorStream() {
       // Avoid duplicate connections
       if (esRef.current) return;
 
-      const token = getAccessToken();
-      const url = token ? `${SSE_URL}?access_token=${token}` : SSE_URL;
-      const es = new EventSource(url, { withCredentials: true });
+      const es = new EventSource(SSE_URL, { withCredentials: true });
       esRef.current = es;
 
       es.addEventListener("monitor-update", (e: MessageEvent) => {

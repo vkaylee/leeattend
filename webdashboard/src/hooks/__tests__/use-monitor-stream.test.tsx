@@ -48,7 +48,7 @@ describe("useMonitorStream Hook", () => {
     localStorage.clear();
   });
 
-  it("should append access_token to the SSE URL if available", async () => {
+  it("should never append an access token to the SSE URL", async () => {
     localStorage.setItem("access_token", "test-token-123");
 
     renderHook(() => useMonitorStream(), {
@@ -59,7 +59,7 @@ describe("useMonitorStream Hook", () => {
       expect(capturedUrl).toBeDefined();
     });
 
-    expect(capturedUrl).toContain("?access_token=test-token-123");
+    expect(capturedUrl).not.toContain("access_token");
   });
 
   it("should not append access_token if not available in localStorage", async () => {

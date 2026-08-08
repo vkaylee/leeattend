@@ -11,6 +11,7 @@ import WorkerUtilizationGauge from "@/components/features/monitor/worker-utiliza
 import { Typography } from "@/components/ui/typography";
 import { useWorkerUtilization, useQueuePressure, useJobStatusDistribution } from "@/hooks/use-monitor-charts";
 import { useMonitorStream } from "@/hooks/use-monitor-stream";
+import { cn } from "@/lib/utils";
 import { useWorkerMonitor, MONITOR_REFETCH_INTERVAL_S } from "@/hooks/use-worker-monitor";
 
 import { MonitorHeader } from "./monitor/header";
@@ -21,6 +22,7 @@ import { WorkersTable } from "./monitor/workers-table";
 export default function WorkerMonitorPage() {
   const { t } = useTranslation();
   const { connected: sseConnected } = useMonitorStream();
+  const liveStatus = sseConnected ? "live" : "polling";
   const { stats, workers, recentJobs, isLoading, isFetching, error, refetch } = useWorkerMonitor(sseConnected);
   const utilization = useWorkerUtilization(stats);
   const queuePressure = useQueuePressure(stats);
@@ -51,16 +53,23 @@ export default function WorkerMonitorPage() {
         <JobStatusDistributionChart data={jobDistribution} isLoading={isLoading} />
       </div>
 
-      <div className="flex items-center gap-3 px-2">
-        <div className="relative flex h-3 w-3">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-50 dark:bg-emerald-950"></span>
+      <div
+        aria-live="polite"
+        className="flex items-center gap-3 px-2"
+        role="status"
+      >
+        <div className="relative flex h-3 w-3" aria-hidden="true">
+          <span aria-hidden="true" className={cn("absolute inline-flex h-full w-full rounded-full opacity-75", liveStatus === "live" ? "animate-ping bg-emerald-400" : "bg-amber-400")} />
+          <span aria-hidden="true" className={cn("relative inline-flex rounded-full h-3 w-3", liveStatus === "live" ? "bg-emerald-500" : "bg-amber-500")} />
         </div>
         <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-          {t("monitor.live_updates", { seconds: MONITOR_REFETCH_INTERVAL_S })}
+          {liveStatus === "live"
+            ? t("monitor.live_updates", { seconds: MONITOR_REFETCH_INTERVAL_S })
+            : t("monitor.polling_updates", { seconds: MONITOR_REFETCH_INTERVAL_S, defaultValue: "Polling updates every {{seconds}}s" })}
         </span>
-        {isFetching ? <Loader2 className="text-slate-400 dark:text-slate-500 animate-spin" size={14} /> : null}
+        {isFetching ? <Loader2 aria-hidden="true" className="text-slate-400 dark:text-slate-500 animate-spin" size={14} /> : null}
       </div>
+
 
       <WorkersTable t={t} workers={workers} />
 

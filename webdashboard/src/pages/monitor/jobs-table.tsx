@@ -77,9 +77,9 @@ function JobMobileCard({ job, t, onClick }: {
         </div>
       </div>
 
-      {job.error_message ? (
+      {job.error_summary ? (
         <div className="mt-2 truncate rounded-lg border border-rose-100 bg-rose-50 px-3 py-1.5 text-[10px] font-medium text-rose-600 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-400">
-          {job.error_message}
+          {job.error_summary}
         </div>
       ) : null}
     </div>
@@ -149,10 +149,15 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
 
           <div className="flex flex-col gap-3 md:flex-row pt-2">
             <div className="flex-1">
+              <label className="sr-only" htmlFor="monitor-job-search">
+                {t("monitor.filter_search_label", { defaultValue: "Search jobs" })}
+              </label>
               <input
+                aria-label={t("monitor.filter_search_label", { defaultValue: "Search jobs" })}
                 className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-slate-800/80 dark:bg-slate-800/40 dark:text-slate-200 dark:placeholder:text-slate-500"
+                id="monitor-job-search"
                 onChange={(e) => { setSearchTerm(e.target.value); }}
-                placeholder={t("monitor.filter_search_placeholder", { defaultValue: "Search Job ID or error message..." })}
+                placeholder={t("monitor.filter_search_placeholder", { defaultValue: "Search Job ID or error code..." })}
                 type="text"
                 value={searchTerm}
               />
@@ -315,9 +320,9 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
                             </span>
                           </td>
                           <td className="max-w-[200px] px-6 py-4">
-                            {job.error_message ? (
-                              <span className="block cursor-help truncate text-xs text-rose-500 dark:text-rose-400" title={job.error_message}>
-                                {job.error_message}
+                            {job.error_summary ? (
+                              <span className="block cursor-help truncate text-xs text-rose-500 dark:text-rose-400" title={job.error_summary}>
+                                {job.error_summary}
                               </span>
                             ) : (
                               <span className="text-sm text-slate-400 dark:text-slate-500">—</span>

@@ -45,6 +45,7 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
 
   const chartData = [
     { name: t("monitor.pending_high"), value: data.high, fill: "#f97316" },
+    { name: t("monitor.pending_normal", { defaultValue: "Normal priority" }), value: data.normal, fill: "#3b82f6" },
     { name: t("monitor.pending_low"), value: data.low, fill: "#fbbf24" },
   ];
 
@@ -123,7 +124,6 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
         </ResponsiveContainer>
       )}
 
-      {/* Total count */}
       <div className="text-center">
         <span className="text-2xl font-black text-slate-700 dark:text-slate-200 tracking-tighter tabular-nums">
           {data.total}
@@ -132,6 +132,24 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
           {t("monitor.total_pending", { defaultValue: "total" })}
         </span>
       </div>
+
+      <table className="sr-only">
+        <caption>{t("monitor.queue_pressure_table", { defaultValue: "Queue pressure values" })}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{t("monitor.priority", { defaultValue: "Priority" })}</th>
+            <th scope="col">{t("monitor.count", { defaultValue: "Count" })}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {chartData.map((entry) => (
+            <tr key={entry.name}>
+              <th scope="row">{entry.name}</th>
+              <td>{entry.value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

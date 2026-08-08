@@ -58,6 +58,7 @@ async fn test_monitor_overview_rest() {
 
     assert_eq!(response.status(), StatusCode::OK);
     let body: serde_json::Value = response.json().await.unwrap();
+    assert!(body["pending_normal"].is_number());
 
     // total_workers might be more than 1 if other tests are running, but should be at least 1
     assert!(body["total_workers"].as_u64().unwrap() >= 1);

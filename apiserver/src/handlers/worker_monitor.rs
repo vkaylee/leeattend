@@ -21,6 +21,7 @@ use uuid::Uuid;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::system_auth::SystemContext;
 use crate::models::enums::SystemRoleType;
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
 // Redis key patterns for monitoring
@@ -30,9 +31,33 @@ const STATS_FAILED_PREFIX: &str = "stats:failed:";
 const QUEUE_HIGH: &str = "worker:jobs:high";
 const QUEUE_NORMAL: &str = "worker:jobs:normal";
 const QUEUE_LOW: &str = "worker:jobs:low";
+const MAX_MONITOR_ERROR_SUMMARY_CHARS: usize = 160;
 const MAX_MONITOR_JOBS: usize = 100;
 const MAX_MONITOR_QUERY_LIMIT: usize = 100;
+const MAX_MONITOR_SEARCH_CHARS: usize = 64;
 const MONITOR_QUERY_TIMEOUT_SECS: u64 = 5;
+
+const MONITOR_STATUSES: [&str; 4] = ["pending", "processing", "completed", "failed"];
+const MONITOR_TASK_TYPES: [&str; 18] = [
+    "attendance_report",
+    "payroll_report",
+    "merge_results",
+    "leave_accrual",
+    "log_ingestion",
+    "reprocess_attendance",
+    "claim_staged_logs",
+    "leave_import",
+    "nightly_housekeeping",
+    "employee_import",
+    "employee_import_chunk",
+    "leave_import_chunk",
+    "finalize_import",
+    "expiring_contracts_check",
+    "sync_employee_hire_date",
+    "bulk_termination",
+    "summary",
+    "detail",
+];
 
 /// Workers not seen within this duration are considered stale and excluded.
 const STALE_THRESHOLD_SECS: i64 = 60;
@@ -107,20 +132,98 @@ pub struct JobTypeStats {
     pub pending: u64,
 }
 
+/// Privacy-safe job representation for infrastructure monitoring.
+///
+/// Queue metadata may contain payloads and requester/workspace identifiers;
+/// those fields stay internal and are intentionally not exposed here.
+#[derive(Debug, Serialize, utoipa::ToSchema, Clone)]
+pub struct MonitorJob {
+    pub job_id: Uuid,
+    pub status: String,
+    pub total_batches: u32,
+    pub completed_batches: u32,
+    pub failed_batches: u32,
+    pub report_type: Option<String>,
+    pub task_type: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub error_summary: Option<String>,
+}
+
+fn enum_label<T: Serialize>(value: &T) -> Option<String> {
+    serde_json::to_value(value)
+        .ok()
+        .and_then(|json| json.as_str().map(str::to_owned))
+}
+
+fn summarize_error(error: &str) -> String {
+    let normalized = error.split_whitespace().collect::<Vec<_>>().join(" ");
+    let mut summary = normalized;
+    if summary.chars().count() > MAX_MONITOR_ERROR_SUMMARY_CHARS {
+        summary = summary
+            .chars()
+            .take(MAX_MONITOR_ERROR_SUMMARY_CHARS)
+            .collect::<String>();
+        summary.push('…');
+    }
+    summary
+}
+
+impl From<&crate::queue::JobMetadata> for MonitorJob {
+    fn from(job: &crate::queue::JobMetadata) -> Self {
+        Self {
+            job_id: job.job_id,
+            status: enum_label(&job.status).unwrap_or_else(|| "unknown".to_string()),
+            total_batches: job.total_batches,
+            completed_batches: job.completed_batches,
+            failed_batches: job.failed_batches,
+            report_type: job.report_type.as_ref().and_then(enum_label),
+            task_type: job.task_type.as_ref().and_then(enum_label),
+            created_at: job.created_at,
+            completed_at: job.completed_at,
+            error_summary: job.error_message.as_deref().map(summarize_error),
+        }
+    }
+}
+
 /// Combined monitor overview response — stats + worker list in one call.
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct MonitorOverviewResponse {
     pub pending_tasks: u64,
     pub pending_high: u64,
+    pub pending_normal: u64,
     pub pending_low: u64,
     pub total_workers: u64,
     pub active_workers: u64,
     pub idle_workers: u64,
     pub completed_today: u64,
     pub failed_today: u64,
+    pub observed_at: DateTime<Utc>,
     pub workers: Vec<WorkerHeartbeat>,
-    pub recent_jobs: Vec<crate::queue::JobMetadata>,
+    pub recent_jobs: Vec<MonitorJob>,
     pub job_type_stats: Vec<JobTypeStats>,
+}
+
+#[derive(Debug, Serialize, utoipa::ToSchema)]
+pub struct MonitorJobsResponse {
+    pub jobs: Vec<MonitorJob>,
+    pub next_cursor: Option<i64>,
+}
+
+#[derive(Debug, Serialize, utoipa::ToSchema)]
+pub struct MonitorStreamError {
+    pub code: &'static str,
+    pub message: &'static str,
+    pub retryable: bool,
+}
+
+#[allow(dead_code)]
+fn monitor_stream_error() -> MonitorStreamError {
+    MonitorStreamError {
+        code: "MONITOR_UNAVAILABLE",
+        message: "Monitoring data is temporarily unavailable",
+        retryable: true,
+    }
 }
 
 fn compute_job_type_stats(all_recent_jobs: &[crate::queue::JobMetadata]) -> Vec<JobTypeStats> {
@@ -190,7 +293,10 @@ async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOverview
         fetch_overview_data_inner(state, redis),
     )
     .await
-    .map_err(|error| AppError::Internal(format!("monitor overview timed out: {error}")))?
+    .map_err(|error| {
+        tracing::error!(error = %error, "Monitor overview timed out");
+        AppError::service_unavailable(I18nKey::ServiceUnavailable)
+    })?
 }
 
 async fn fetch_overview_data_inner(
@@ -199,10 +305,19 @@ async fn fetch_overview_data_inner(
 ) -> AppResult<MonitorOverviewResponse> {
     let mut conn = redis.conn();
 
-    // Queue lengths are O(1); include all priority queues in the total.
-    let pending_high: u64 = conn.llen(QUEUE_HIGH).await.unwrap_or(0);
-    let pending_normal: u64 = conn.llen(QUEUE_NORMAL).await.unwrap_or(0);
-    let pending_low: u64 = conn.llen(QUEUE_LOW).await.unwrap_or(0);
+    // Queue lengths are O(1); include every priority queue in the total.
+    let pending_high: u64 = conn.llen(QUEUE_HIGH).await.map_err(|error| {
+        tracing::error!(error = %error, "Monitor high queue read failed");
+        AppError::service_unavailable(I18nKey::ServiceUnavailable)
+    })?;
+    let pending_normal: u64 = conn.llen(QUEUE_NORMAL).await.map_err(|error| {
+        tracing::error!(error = %error, "Monitor normal queue read failed");
+        AppError::service_unavailable(I18nKey::ServiceUnavailable)
+    })?;
+    let pending_low: u64 = conn.llen(QUEUE_LOW).await.map_err(|error| {
+        tracing::error!(error = %error, "Monitor low queue read failed");
+        AppError::service_unavailable(I18nKey::ServiceUnavailable)
+    })?;
     let pending_tasks = pending_high + pending_normal + pending_low;
 
     // Get today's stats counters.
@@ -210,12 +325,29 @@ async fn fetch_overview_data_inner(
     let completed_key = format!("{STATS_COMPLETED_PREFIX}{today}");
     let failed_key = format!("{STATS_FAILED_PREFIX}{today}");
 
-    let completed_today: u64 = conn.get(&completed_key).await.unwrap_or(0);
-    let failed_today: u64 = conn.get(&failed_key).await.unwrap_or(0);
+    let completed_today: u64 = conn
+        .get::<_, Option<u64>>(&completed_key)
+        .await
+        .map_err(|error| {
+            tracing::error!(error = %error, "Monitor completed stats read failed");
+            AppError::service_unavailable(I18nKey::ServiceUnavailable)
+        })?
+        .unwrap_or(0);
+    let failed_today: u64 = conn
+        .get::<_, Option<u64>>(&failed_key)
+        .await
+        .map_err(|error| {
+            tracing::error!(error = %error, "Monitor failed stats read failed");
+            AppError::service_unavailable(I18nKey::ServiceUnavailable)
+        })?
+        .unwrap_or(0);
 
     // Scan only the small worker-heartbeat namespace.
     let pattern = format!("{WORKER_HEARTBEAT_PREFIX}*");
-    let worker_keys = scan_keys(&mut conn, &pattern).await;
+    let worker_keys = scan_keys(&mut conn, &pattern).await.map_err(|error| {
+        tracing::error!(error = %error, "Monitor worker heartbeat scan failed");
+        AppError::service_unavailable(I18nKey::ServiceUnavailable)
+    })?;
 
     let now = Utc::now();
     let stale_cutoff = now - TimeDelta::seconds(STALE_THRESHOLD_SECS);
@@ -223,10 +355,9 @@ async fn fetch_overview_data_inner(
     let (active_workers, idle_workers, workers) = if worker_keys.is_empty() {
         (0, 0, Vec::new())
     } else {
-        let values: Vec<Option<String>> = conn.mget(&worker_keys).await.unwrap_or_else(|e| {
-            tracing::warn!(error = %e, "Redis MGET failed for worker heartbeats");
-            vec![]
-        });
+        let values: Vec<Option<String>> = conn.mget(&worker_keys).await.map_err(|error| {
+            AppError::Internal(format!("monitor worker heartbeat read failed: {error}"))
+        })?;
         filter_stale_workers(values, stale_cutoff)
     };
 
@@ -235,23 +366,25 @@ async fn fetch_overview_data_inner(
     let all_recent_jobs = queue
         .list_recent_jobs_indexed(MAX_MONITOR_JOBS)
         .await
-        .unwrap_or_else(|e| {
-            tracing::warn!(error = %e, "Failed to list indexed jobs for monitor stats");
-            vec![]
-        });
+        .map_err(|error| AppError::Internal(format!("monitor recent jobs read failed: {error}")))?;
     let job_type_stats = compute_job_type_stats(&all_recent_jobs);
-    let mut recent_jobs = all_recent_jobs;
+    let mut recent_jobs = all_recent_jobs
+        .iter()
+        .map(MonitorJob::from)
+        .collect::<Vec<_>>();
     recent_jobs.truncate(10);
 
     Ok(MonitorOverviewResponse {
         pending_tasks,
         pending_high,
+        pending_normal,
         pending_low,
         total_workers,
         active_workers,
         idle_workers,
         completed_today,
         failed_today,
+        observed_at: now,
         workers,
         recent_jobs,
         job_type_stats,
@@ -288,15 +421,8 @@ pub struct MonitorJobsParams {
     pub status: Option<String>,
     /// Task type filter
     pub task_type: Option<String>,
-    /// Search query matching Job ID or error message
+    /// Search query matching the exact job ID only.
     pub search: Option<String>,
-}
-
-/// Response payload for listing monitor jobs.
-#[derive(Debug, Serialize, utoipa::ToSchema)]
-pub struct MonitorJobsResponse {
-    pub jobs: Vec<crate::queue::JobMetadata>,
-    pub next_cursor: Option<i64>,
 }
 
 /// Get paginated and filtered background jobs.
@@ -321,20 +447,46 @@ pub async fn get_monitor_jobs(
     ctx.require_any_role(&[SystemRoleType::PlatformAdmin, SystemRoleType::Support])?;
 
     let limit = params.limit.unwrap_or(20).clamp(1, MAX_MONITOR_QUERY_LIMIT);
+    let status = params.status.map(|value| value.trim().to_ascii_lowercase());
+    if status
+        .as_deref()
+        .is_some_and(|value| !MONITOR_STATUSES.contains(&value))
+    {
+        return Err(AppError::validation(I18nKey::Validation));
+    }
+
+    let task_type = params
+        .task_type
+        .map(|value| value.trim().to_ascii_lowercase());
+    if task_type
+        .as_deref()
+        .is_some_and(|value| !MONITOR_TASK_TYPES.contains(&value))
+    {
+        return Err(AppError::validation(I18nKey::Validation));
+    }
+
+    let search = params.search.map(|value| value.trim().to_owned());
+    if search
+        .as_deref()
+        .is_some_and(|value| value.chars().count() > MAX_MONITOR_SEARCH_CHARS)
+    {
+        return Err(AppError::validation(I18nKey::Validation));
+    }
+
     let queue = state.infra().job_queue()?;
 
     let (jobs, next_cursor) = queue
-        .list_jobs_paginated(
-            params.cursor,
-            limit,
-            params.status,
-            params.task_type,
-            params.search,
-        )
+        .list_jobs_paginated(params.cursor, limit, status, task_type, search)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to list jobs: {e}")))?;
+        .map_err(|error| {
+            tracing::error!(error = %error, "Monitor job listing failed");
+            AppError::service_unavailable(I18nKey::ServiceUnavailable)
+        })?;
 
-    Ok(Json(MonitorJobsResponse { jobs, next_cursor }))
+    Ok(Json(MonitorJobsResponse {
+        jobs: jobs.iter().map(MonitorJob::from).collect(),
+        next_cursor,
+    }))
 }
 
 /// SSE stream: push monitor overview data every 2 seconds.
@@ -355,13 +507,21 @@ pub async fn monitor_stream_sse(
         .then(|state| async move {
             match fetch_overview_data(&state).await {
                 Ok(data) => {
-                    let json = serde_json::to_string(&data).unwrap_or_default();
-                    Ok(Event::default().event("monitor-update").data(json))
+                    match serde_json::to_string(&data) {
+                        Ok(json) => Ok(Event::default().event("monitor-update").data(json)),
+                        Err(error) => {
+                            tracing::error!(error = %error, "SSE monitor payload serialization failed");
+                            let json = serde_json::to_string(&monitor_stream_error())
+                                .unwrap_or_else(|_| "{\"code\":\"MONITOR_UNAVAILABLE\",\"message\":\"Monitoring data is temporarily unavailable\",\"retryable\":true}".to_string());
+                            Ok(Event::default().event("monitor-error").data(json))
+                        }
+                    }
                 }
-                Err(e) => {
-                    tracing::warn!(error = %e, "SSE: failed to fetch monitor data");
-                    let msg = format!("{{\"error\":\"{e}\"}}");
-                    Ok(Event::default().event("monitor-error").data(msg))
+                Err(error) => {
+                    tracing::warn!(error = %error, "SSE: failed to fetch monitor data");
+                    let json = serde_json::to_string(&monitor_stream_error())
+                        .unwrap_or_else(|_| "{\"code\":\"MONITOR_UNAVAILABLE\",\"message\":\"Monitoring data is temporarily unavailable\",\"retryable\":true}".to_string());
+                    Ok(Event::default().event("monitor-error").data(json))
                 }
             }
         });
@@ -398,7 +558,10 @@ fn filter_stale_workers(
 
 /// Scan Redis keys matching a pattern using SCAN iterator.
 /// Avoids KEYS command which can block Redis on large datasets.
-async fn scan_keys(conn: &mut redis::aio::ConnectionManager, pattern: &str) -> Vec<String> {
+async fn scan_keys(
+    conn: &mut redis::aio::ConnectionManager,
+    pattern: &str,
+) -> Result<Vec<String>, redis::RedisError> {
     let mut keys = Vec::new();
     let mut cursor = 0u64;
 
@@ -422,12 +585,12 @@ async fn scan_keys(conn: &mut redis::aio::ConnectionManager, pattern: &str) -> V
             }
             Err(err) => {
                 tracing::warn!(pattern, error = %err, "Redis SCAN failed during worker monitoring");
-                break;
+                return Err(err);
             }
         }
     }
 
-    keys
+    Ok(keys)
 }
 
 #[cfg(test)]
@@ -470,12 +633,14 @@ mod tests {
         let overview = MonitorOverviewResponse {
             pending_tasks: 150,
             pending_high: 100,
+            pending_normal: 0,
             pending_low: 50,
             total_workers: 50,
             active_workers: 45,
             idle_workers: 5,
             completed_today: 1200,
             failed_today: 3,
+            observed_at: Utc::now(),
             workers: vec![],
             recent_jobs: vec![],
             job_type_stats: vec![],

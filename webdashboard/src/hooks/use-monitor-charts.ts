@@ -13,6 +13,7 @@ export type PressureLevel = "low" | "medium" | "high" | "critical";
 
 export interface QueuePressureData {
     high: number;
+    normal: number;
     low: number;
     pressureLevel: PressureLevel;
     total: number;
@@ -50,9 +51,12 @@ function derivePressureLevel(total: number): PressureLevel {
 
 export const useQueuePressure = (stats: WorkerMonitorStats | undefined): QueuePressureData => {
     return useMemo(() => {
-        if (!stats) return { high: 0, low: 0, total: 0, pressureLevel: "low" };
-        const total = stats.pending_tasks;
-        return { high: stats.pending_high, low: stats.pending_low, total, pressureLevel: derivePressureLevel(total) };
+        if (!stats) return { high: 0, normal: 0, low: 0, total: 0, pressureLevel: "low" };
+        const high = stats.pending_high;
+        const normal = stats.pending_normal ?? 0;
+        const low = stats.pending_low;
+        const total = high + normal + low;
+        return { high, normal, low, total, pressureLevel: derivePressureLevel(total) };
     }, [stats]);
 };
 

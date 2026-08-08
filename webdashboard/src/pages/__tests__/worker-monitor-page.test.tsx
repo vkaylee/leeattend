@@ -240,9 +240,9 @@ describe("WorkerMonitorPage", () => {
         expect(screen.getAllByText("(1 failed)").length).toBeGreaterThan(0);
     });
 
-    it("displays error messages for failed jobs", () => {
+    it("does not render raw legacy error payloads", () => {
         renderPage();
-        expect(screen.getAllByText("DB connection timeout").length).toBeGreaterThan(0);
+        expect(screen.queryByText("DB connection timeout")).not.toBeInTheDocument();
     });
 
     it("shows dash for jobs without errors", () => {
@@ -282,7 +282,7 @@ describe("WorkerMonitorPage", () => {
         // Drawer should display job details
         expect(screen.getByText("Job Details")).toBeInTheDocument();
         expect(screen.getByText("job-1111-2222-3333-444455556666")).toBeInTheDocument();
-        expect(screen.getByText("Copy Debug JSON")).toBeInTheDocument();
+        expect(screen.getByText("Sensitive diagnostic payloads are not displayed in the monitor.")).toBeInTheDocument();
     });
 
     // --- Empty State ---

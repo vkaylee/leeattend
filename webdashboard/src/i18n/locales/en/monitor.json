@@ -1,6 +1,15 @@
 {
   "monitor": {
     "filter_status": "Filter by status",
-    "filter_type": "Filter by type"
+    "filter_type": "Filter by type",
+    "filter_search_label": "Search jobs",
+    "filter_search_placeholder": "Search Job ID or error code...",
+    "pending_normal": "Normal priority",
+    "polling_updates": "Polling updates every {{seconds}}s",
+    "queue_pressure_table": "Queue pressure values",
+    "priority": "Priority",
+    "count": "Count",
+    "error_summary": "Error Summary",
+    "diagnostics_redacted": "Sensitive diagnostic payloads are not displayed in the monitor."
   }
 }

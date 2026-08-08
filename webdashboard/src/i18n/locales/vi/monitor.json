@@ -1,6 +1,15 @@
 {
   "monitor": {
     "filter_status": "Lọc theo trạng thái",
-    "filter_type": "Lọc theo loại"
+    "filter_type": "Lọc theo loại",
+    "filter_search_label": "Tìm kiếm công việc",
+    "filter_search_placeholder": "Tìm theo mã công việc hoặc mã lỗi...",
+    "pending_normal": "Ưu tiên thường",
+    "polling_updates": "Đang cập nhật mỗi {{seconds}} giây",
+    "queue_pressure_table": "Giá trị áp lực hàng đợi",
+    "priority": "Độ ưu tiên",
+    "count": "Số lượng",
+    "error_summary": "Tóm tắt lỗi",
+    "diagnostics_redacted": "Dữ liệu chẩn đoán nhạy cảm không được hiển thị trong trang giám sát."
   }
 }

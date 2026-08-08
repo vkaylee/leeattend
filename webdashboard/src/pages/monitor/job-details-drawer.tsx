@@ -1,9 +1,10 @@
 import { CheckCircle2, Clock, Copy, Loader2, ShieldAlert, XCircle } from "lucide-react";
 import React from "react";
 
+import Button from "@/components/ui/button";
+
 import { TFunction } from "i18next";
 
-import Button from "@/components/ui/button";
 import Sheet from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
@@ -166,12 +167,12 @@ function JobBatchesCard({
 function JobTimeInfoCard({
   completedAt,
   createdAt,
-  requesterId,
+  errorSummary,
   t,
 }: {
   completedAt?: string | null;
   createdAt: string;
-  requesterId?: string | null;
+  errorSummary?: string | null;
   t: TFunction;
 }) {
   const { formatDateTimeLocale } = useDateTimeFormatter();
@@ -191,11 +192,11 @@ function JobTimeInfoCard({
           </span>
         </div>
       ) : null}
-      {requesterId ? (
-        <div className="flex justify-between">
-          <span className="text-slate-400">{t("monitor.triggered_by", { defaultValue: "Triggered By" })}</span>
-          <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">
-            {requesterId}
+      {errorSummary ? (
+        <div className="flex justify-between gap-4">
+          <span className="text-slate-400">{t("monitor.error_summary", { defaultValue: "Error Summary" })}</span>
+          <span className="max-w-[65%] truncate text-right text-slate-700 dark:text-slate-300 font-medium" title={errorSummary}>
+            {errorSummary}
           </span>
         </div>
       ) : null}
@@ -264,44 +265,24 @@ export function JobDetailsDrawer({ isOpen, onClose, job, t }: JobDetailsDrawerPr
         <JobTimeInfoCard
           completedAt={job.completed_at}
           createdAt={job.created_at}
-          requesterId={job.requester_id}
+          errorSummary={job.error_summary}
           t={t}
         />
 
-        {job.error_message ? (
+        {job.error_summary ? (
           <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/50 rounded-[2rem] p-6 space-y-3">
             <Typography className="text-xs font-bold text-rose-700 dark:text-rose-400 uppercase tracking-widest flex items-center gap-2" variant="h5">
-              <ShieldAlert size={14} />
-              {t("monitor.error_details", { defaultValue: "Error Details" })}
+              <ShieldAlert aria-hidden="true" size={14} />
+              {t("monitor.error_details", { defaultValue: "Error Summary" })}
             </Typography>
-            <pre className="text-xs font-mono text-rose-600 dark:text-rose-400 whitespace-pre-wrap break-all max-h-60 overflow-y-auto bg-white/60 dark:bg-black/20 p-4 rounded-xl border border-rose-100/50 dark:border-rose-900/30 leading-relaxed scrollbar-thin">
-              {job.error_message}
-            </pre>
+            <Typography className="text-xs font-mono text-rose-600 dark:text-rose-400 whitespace-pre-wrap break-all bg-white/60 dark:bg-black/20 p-4 rounded-xl border border-rose-100/50 dark:border-rose-900/30 leading-relaxed" variant="p">
+              {job.error_summary}
+            </Typography>
           </div>
         ) : null}
 
-        {job.payload ? (
-          <div className="space-y-3">
-            <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" variant="h5">
-              {t("monitor.payload_parameters", { defaultValue: "Payload Parameters" })}
-            </Typography>
-            <pre className="text-[11px] font-mono text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/80 p-4 rounded-xl border border-slate-100 dark:border-slate-800 overflow-x-auto whitespace-pre leading-relaxed max-h-60 scrollbar-thin">
-              {JSON.stringify(job.payload, null, 2)}
-            </pre>
-          </div>
-        ) : null}
-
-        <div className="pt-4 flex gap-3">
-          <Button
-            className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-all shadow-sm h-auto"
-            onClick={() => {
-              copyToClipboard(JSON.stringify(job, null, 2), t("monitor.debug_json_copied", { defaultValue: "Copied Debug JSON!" }));
-            }}
-            variant="outline"
-          >
-            <Copy size={14} />
-            {t("monitor.copy_debug_json", { defaultValue: "Copy Debug JSON" })}
-          </Button>
+        <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-6 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
+          {t("monitor.diagnostics_redacted", { defaultValue: "Sensitive diagnostic payloads are not displayed in the monitor." })}
         </div>
       </div>
     </Sheet>

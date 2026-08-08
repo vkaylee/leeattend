@@ -117,8 +117,10 @@ function SheetHeader({
         </div>
       ) : null}
       <button
-        className="p-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all shadow-md border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 active:scale-90"
+        aria-label="Close"
+        className="p-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all shadow-md border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 active:scale-90 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
         onClick={onClose}
+        type="button"
       >
         <X className="w-5 h-5" />
       </button>
