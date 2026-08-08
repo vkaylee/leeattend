@@ -88,7 +88,7 @@ pub async fn create_condition_type(
     ctx: MemberContext,
     Json(req): Json<CreateConditionTypeRequest>,
 ) -> AppResult<impl IntoResponse> {
-    ctx.require_permission(Permission::WorkspaceSettingsRead)?;
+    ctx.require_permission(Permission::WorkspaceSettingsWrite)?;
     let definition = state
         .core()
         .condition_type_service()
@@ -116,7 +116,7 @@ pub async fn update_condition_type(
     ctx: MemberContext,
     Json(req): Json<UpdateConditionTypeRequest>,
 ) -> AppResult<Json<ConditionTypeDefinition>> {
-    ctx.require_permission(Permission::WorkspaceSettingsRead)?;
+    ctx.require_permission(Permission::WorkspaceSettingsWrite)?;
     let definition = state
         .core()
         .condition_type_service()
@@ -143,7 +143,7 @@ pub async fn delete_condition_type(
     Path((_workspace_id, id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    ctx.require_permission(Permission::WorkspaceSettingsRead)?;
+    ctx.require_permission(Permission::WorkspaceSettingsWrite)?;
     state
         .core()
         .condition_type_service()

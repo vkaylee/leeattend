@@ -199,6 +199,93 @@ async fn test_condition_type_crud_lifecycle() {
 }
 
 #[tokio::test]
+async fn test_read_only_member_cannot_mutate_condition_types() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let owner_id = factory
+        .user()
+        .with_email("condition-type-owner@test.local")
+        .create()
+        .await;
+    let ws_id = factory.workspace().create_with_owner(owner_id).await;
+    let read_only_id = factory
+        .user()
+        .with_email("condition-type-read-only@test.local")
+        .create()
+        .await;
+    let read_only_role_id = Uuid::new_v4();
+
+    crate::test_execute!(
+        &_test_db.diesel_pools.api,
+        "INSERT INTO workspace_roles (id, workspace_id, name, description, color, is_system, scope_type) VALUES ($1, $2, 'condition-type-read-only', 'Read-only condition type access', 'slate', false, 'global')",
+        diesel::sql_types::Uuid,
+        read_only_role_id,
+        diesel::sql_types::Uuid,
+        ws_id
+    );
+    crate::test_execute!(
+        &_test_db.diesel_pools.api,
+        "INSERT INTO workspace_role_permissions (role_id, permission_name) VALUES ($1, 'workspace:settings:read')",
+        diesel::sql_types::Uuid,
+        read_only_role_id
+    );
+    factory
+        .add_member(ws_id, read_only_id, read_only_role_id)
+        .await;
+
+    let create_payload = json!({
+        "code": "READ_ONLY_CREATE",
+        "name_i18n": {"en": "Read-only Create"},
+        "category": "general"
+    });
+    let response = app
+        .clone()
+        .oneshot(make_req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/condition-types"),
+            ws_id,
+            read_only_id,
+            Some(create_payload),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    let type_id = crate::test_query_scalar_uuid!(
+        &_test_db.diesel_pools.api,
+        "INSERT INTO condition_type_definitions (workspace_id, code, name_i18n, category, is_system, sort_order) VALUES ($1, 'READ_ONLY_TARGET', '{\"en\":\"Read-only Target\"}', 'general', false, 0) RETURNING id",
+        diesel::sql_types::Uuid,
+        ws_id
+    );
+    let response = app
+        .clone()
+        .oneshot(make_req(
+            "PATCH",
+            &format!("/api/v1/workspaces/{ws_id}/condition-types/{type_id}"),
+            ws_id,
+            read_only_id,
+            Some(json!({"name_i18n": {"en": "Should be denied"}})),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    let response = app
+        .clone()
+        .oneshot(make_req(
+            "DELETE",
+            &format!("/api/v1/workspaces/{ws_id}/condition-types/{type_id}"),
+            ws_id,
+            read_only_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
 async fn test_cannot_delete_system_type() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
