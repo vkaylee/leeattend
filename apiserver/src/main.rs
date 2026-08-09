@@ -55,6 +55,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
+    // Run the read-only qualifying-day diagnostic through the runtime tenant pool manager.
+    if apiserver::diagnostics::qualifying_days_blast_radius::requested() {
+        return run_qualifying_days_blast_radius().await;
+    }
+
     // ╔═══════════════════════════════════════════════════════════════╗
     // ║  ENVIRONMENT CONFIGURATION — centralized registry            ║
     // ╚═══════════════════════════════════════════════════════════════╝
@@ -272,6 +277,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     drop(state);
 
     tracing::info!("Server stopped.");
+    Ok(())
+}
+
+async fn run_qualifying_days_blast_radius() -> Result<(), Box<dyn std::error::Error>> {
+    let (workspace_id, timezone, from_date, to_date) =
+        apiserver::diagnostics::qualifying_days_blast_radius::parse_process_args()?;
+    let registry = apiserver::utils::env_registry::EnvRegistry::resolve().map_err(|errors| {
+        format!(
+            "configuration failure: {} missing variable(s)",
+            errors.len()
+        )
+    })?;
+    let db_config = DbPoolConfig::from_registry(&registry)?;
+    let pools = DieselPools::connect(&db_config)?;
+    let report = apiserver::diagnostics::qualifying_days_blast_radius::run(
+        &pools,
+        workspace_id,
+        &timezone,
+        from_date,
+        to_date,
+    )
+    .await?;
+
+    println!("Qualifying-day blast-radius report (read-only)");
+    println!("Workspace: {}", report.workspace_id);
+    println!("Range: {} through {}", report.from_date, report.to_date);
+    println!(
+        "Affected employee-months: {}",
+        report.affected_employee_months
+    );
+    println!("Candidate inflated days: {}", report.total_inflated_days);
+    println!("Current batch-style days: {}", report.current_batch_days);
+    println!(
+        "Corrected qualifying days: {}",
+        report.corrected_qualifying_days
+    );
     Ok(())
 }
 

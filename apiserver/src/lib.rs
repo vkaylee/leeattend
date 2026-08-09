@@ -73,6 +73,7 @@ pub mod agent_manager;
 pub mod app_builder;
 pub mod cache;
 pub mod crypto;
+pub mod diagnostics;
 
 pub mod dev_initialization;
 pub mod diesel_pool;

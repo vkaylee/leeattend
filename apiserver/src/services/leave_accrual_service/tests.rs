@@ -545,8 +545,8 @@ async fn test_count_qualifying_days_success() {
         .expect_get_approved_leave_periods()
         .returning(|_, _, _, _| {
             Box::pin(std::future::ready(Ok(vec![(
-                nd(2026, 1, 20),
-                nd(2026, 1, 21),
+                nd(2025, 12, 31),
+                nd(2026, 2, 1),
             )])))
         });
 
@@ -572,8 +572,8 @@ async fn test_count_qualifying_days_success() {
         .await
         .unwrap();
 
-    // 2 work days + 2 leave days = 4 qualifying days
-    assert_eq!(result, 4);
+    // The leave period is clamped to January; work/leave overlap remains one day each.
+    assert_eq!(result, 31);
 }
 
 #[tokio::test]
@@ -599,7 +599,7 @@ async fn test_batch_count_qualifying_days_success() {
         .expect_get_approved_leave_periods()
         .returning(|_, _, _, _| {
             Box::pin(std::future::ready(Ok(vec![
-                (nd(2026, 1, 20), nd(2026, 1, 21)),
+                (nd(2026, 1, 15), nd(2026, 1, 15)),
                 (nd(2026, 3, 5), nd(2026, 3, 5)),
             ])))
         });
@@ -626,7 +626,7 @@ async fn test_batch_count_qualifying_days_success() {
         .await
         .unwrap();
 
-    assert_eq!(result.get(&nd(2026, 1, 1)), Some(&3)); // 1 work day + 2 leave days
+    assert_eq!(result.get(&nd(2026, 1, 1)), Some(&1)); // punch + approved leave on one day
     assert_eq!(result.get(&nd(2026, 2, 1)), Some(&1)); // 1 work day
     assert_eq!(result.get(&nd(2026, 3, 1)), Some(&1)); // 1 leave day
 }
@@ -677,14 +677,13 @@ async fn test_batch_count_qualifying_days_for_workspace_success() {
         });
 
     mock_leave_req
-        .expect_get_batch_leave_days()
-        .returning(|_, _, _, _| Box::pin(std::future::ready(Ok(std::collections::HashMap::new()))));
-
-    mock_leave_req
         .expect_get_approved_leave_dates()
         .returning(move |_, _, _, _| {
             Box::pin(std::future::ready(Ok(
-                std::collections::HashSet::from_iter(vec![(emp2, nd(2026, 1, 20))]),
+                std::collections::HashSet::from_iter(vec![
+                    (emp1, nd(2026, 1, 15)),
+                    (emp2, nd(2026, 1, 20)),
+                ]),
             )))
         });
 

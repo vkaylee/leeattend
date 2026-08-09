@@ -2,12 +2,64 @@ use super::calculator::DEFAULT_QUALIFYING_DAYS_BYPASS;
 use crate::errors::AppError;
 use crate::models::LeavePolicyConfig;
 use crate::utils::chrono_helpers::local_to_utc;
-use chrono::NaiveDate;
+use chrono::{Datelike, NaiveDate};
 use chrono_tz::Tz;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use uuid::Uuid;
 
 impl super::LeaveAccrualService {
+    fn qualifying_day_set_from_sources<I, J>(work_days: I, leave_days: J) -> BTreeSet<NaiveDate>
+    where
+        I: IntoIterator<Item = NaiveDate>,
+        J: IntoIterator<Item = NaiveDate>,
+    {
+        work_days.into_iter().chain(leave_days).collect()
+    }
+
+    fn group_qualifying_days_by_month(
+        qualifying_days: &BTreeSet<NaiveDate>,
+    ) -> HashMap<NaiveDate, i32> {
+        qualifying_days
+            .iter()
+            .fold(HashMap::new(), |mut result, date| {
+                let month_key = *date - chrono::Duration::days(i64::from(date.day0()));
+                *result.entry(month_key).or_insert(0) += 1;
+                result
+            })
+    }
+
+    async fn qualifying_day_set(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        range_start: NaiveDate,
+        range_end: NaiveDate,
+        tz: Tz,
+    ) -> Result<BTreeSet<NaiveDate>, AppError> {
+        let start_dt = local_to_utc(&tz, range_start, 0, 0, 0)?;
+        let end_dt = local_to_utc(&tz, range_end, 23, 59, 59)?;
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
+
+        let work_days = self
+            .time_entry_repo
+            .get_distinct_work_days(&auth_token, employee_id, start_dt, end_dt, &tz.to_string())
+            .await?;
+
+        let leave_periods = self
+            .leave_request_repo
+            .get_approved_leave_periods(&auth_token, employee_id, range_start, range_end)
+            .await?;
+
+        let leave_days = leave_periods.into_iter().flat_map(|(req_start, req_end)| {
+            let overlap_start = std::cmp::max(req_start, range_start);
+            let overlap_end = std::cmp::min(req_end, range_end);
+            std::iter::successors(Some(overlap_start), NaiveDate::succ_opt)
+                .take_while(move |date| *date <= overlap_end)
+        });
+
+        Ok(Self::qualifying_day_set_from_sources(work_days, leave_days))
+    }
+
     /// Helper to count "Qualifying Days" for performance-based accrual.
     #[tracing::instrument(skip_all, err)]
     pub async fn count_qualifying_days(
@@ -18,52 +70,9 @@ impl super::LeaveAccrualService {
         end_date: NaiveDate,
         tz: Tz,
     ) -> Result<i32, AppError> {
-        use std::collections::HashSet;
-        let mut qualifying_days = HashSet::new();
-
-        // Days with actual work entries
-        let start_dt = local_to_utc(&tz, start_date, 0, 0, 0)?;
-        let end_dt = local_to_utc(&tz, end_date, 23, 59, 59)?;
-
-        let work_days = self
-            .time_entry_repo
-            .get_distinct_work_days(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_id,
-                start_dt,
-                end_dt,
-                &tz.to_string(),
-            )
+        let qualifying_days = self
+            .qualifying_day_set(workspace_id, employee_id, start_date, end_date, tz)
             .await?;
-
-        for date in work_days {
-            qualifying_days.insert(date);
-        }
-
-        // Approved Leave days
-        let leave_days = self
-            .leave_request_repo
-            .get_approved_leave_periods(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_id,
-                start_date,
-                end_date,
-            )
-            .await?;
-
-        for (req_start, req_end) in leave_days {
-            let overlap_start = std::cmp::max(req_start, start_date);
-            let overlap_end = std::cmp::min(req_end, end_date);
-            let mut curr = overlap_start;
-            while curr <= overlap_end {
-                qualifying_days.insert(curr);
-                if let Some(next) = curr.succ_opt() {
-                    curr = next;
-                } else {
-                    break;
-                }
-            }
-        }
 
         Ok(i32::try_from(qualifying_days.len()).unwrap_or(0))
     }
@@ -79,55 +88,11 @@ impl super::LeaveAccrualService {
         range_end: NaiveDate,
         tz: Tz,
     ) -> Result<HashMap<NaiveDate, i32>, AppError> {
-        let start_dt = local_to_utc(&tz, range_start, 0, 0, 0).map_err(AppError::Internal)?;
-        let end_dt = local_to_utc(&tz, range_end, 23, 59, 59).map_err(AppError::Internal)?;
-
-        let work_days = self
-            .time_entry_repo
-            .get_distinct_work_days(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_id,
-                start_dt,
-                end_dt,
-                &tz.to_string(),
-            )
+        let qualifying_days = self
+            .qualifying_day_set(workspace_id, employee_id, range_start, range_end, tz)
             .await?;
 
-        let mut result: HashMap<NaiveDate, i32> = HashMap::new();
-        use chrono::Datelike;
-
-        for date in work_days {
-            let month_key = NaiveDate::from_ymd_opt(date.year(), date.month(), 1).unwrap_or(date);
-            *result.entry(month_key).or_insert(0) += 1;
-        }
-
-        let leave_days = self
-            .leave_request_repo
-            .get_approved_leave_periods(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_id,
-                range_start,
-                range_end,
-            )
-            .await?;
-
-        for (req_start, req_end) in leave_days {
-            let overlap_start = std::cmp::max(req_start, range_start);
-            let overlap_end = std::cmp::min(req_end, range_end);
-            let mut curr = overlap_start;
-            while curr <= overlap_end {
-                let month_key =
-                    NaiveDate::from_ymd_opt(curr.year(), curr.month(), 1).unwrap_or(curr);
-                *result.entry(month_key).or_insert(0) += 1;
-                if let Some(next) = curr.succ_opt() {
-                    curr = next;
-                } else {
-                    break;
-                }
-            }
-        }
-
-        Ok(result)
+        Ok(Self::group_qualifying_days_by_month(&qualifying_days))
     }
 
     pub async fn batch_count_qualifying_days_for_workspace(
@@ -166,35 +131,35 @@ impl super::LeaveAccrualService {
             )
             .await?;
 
-        let _leave_days_map = self
-            .leave_request_repo
-            .get_batch_leave_days(&auth_token, employee_ids, range_start, range_end)
-            .await?;
-
         let approved_leaves = self
             .leave_request_repo
             .get_approved_leave_dates(&auth_token, employee_ids, range_start, range_end)
             .await?;
 
-        let mut result_map: HashMap<Uuid, HashMap<NaiveDate, i32>> = HashMap::new();
-        use chrono::Datelike;
-
-        for (emp_id, employment_id) in &emp_to_employment {
-            if let Some(entries) = work_entries.get(employment_id) {
-                let emp_map = result_map.entry(*emp_id).or_default();
-                for entry in entries {
-                    let date = entry.punch_in_time().with_timezone(&tz).date_naive();
-                    let month_key =
-                        NaiveDate::from_ymd_opt(date.year(), date.month(), 1).unwrap_or(date);
-                    *emp_map.entry(month_key).or_insert(0) += 1;
-                }
-            }
+        let mut leave_days_by_employee: HashMap<Uuid, BTreeSet<NaiveDate>> = HashMap::new();
+        for (emp_id, date) in approved_leaves {
+            leave_days_by_employee
+                .entry(emp_id)
+                .or_default()
+                .insert(date);
         }
 
-        for (emp_id, date) in approved_leaves {
-            let emp_map = result_map.entry(emp_id).or_default();
-            let month_key = NaiveDate::from_ymd_opt(date.year(), date.month(), 1).unwrap_or(date);
-            *emp_map.entry(month_key).or_insert(0) += 1;
+        let mut result_map: HashMap<Uuid, HashMap<NaiveDate, i32>> = HashMap::new();
+        for (emp_id, employment_id) in &emp_to_employment {
+            let work_days = work_entries
+                .get(employment_id)
+                .into_iter()
+                .flatten()
+                .filter(|entry| {
+                    entry.entry_type() == crate::services::pairing::types::EntryType::Work
+                })
+                .map(|entry| entry.punch_in_time().with_timezone(&tz).date_naive());
+            let leave_days = leave_days_by_employee.remove(emp_id).unwrap_or_default();
+            let qualifying_days = Self::qualifying_day_set_from_sources(work_days, leave_days);
+            let month_counts = Self::group_qualifying_days_by_month(&qualifying_days);
+            if !month_counts.is_empty() {
+                result_map.insert(*emp_id, month_counts);
+            }
         }
 
         Ok(result_map)
