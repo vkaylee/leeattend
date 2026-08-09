@@ -107,10 +107,10 @@ describe("BottomNav", () => {
     expect(screen.getByTestId("bottom-nav-more")).toBeInTheDocument();
   });
 
-  it("has md:hidden class for mobile-only display", () => {
+  it("has lg:hidden class for mobile-only display", () => {
     const { container } = render(<BottomNav {...defaultProps} />, { wrapper: Wrapper });
     const nav = container.querySelector('nav[role="navigation"]');
-    expect(nav?.className).toContain("md:hidden");
+    expect(nav?.className).toContain("lg:hidden");
   });
 
   // ── Active state ─────────────────────────────────────────────

@@ -101,7 +101,7 @@ export default function FloatingPanel({
     <aside
       aria-label={currentGroup.label}
       className={cn(
-        "hidden md:flex fixed top-0 h-full z-40 flex-col",
+        "hidden lg:flex fixed top-0 h-full z-40 flex-col",
         "w-[var(--nav-panel-width)]",
         "bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl",
         "border-r border-slate-100 dark:border-slate-800",

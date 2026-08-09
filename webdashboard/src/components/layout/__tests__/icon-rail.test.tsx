@@ -101,6 +101,11 @@ describe("IconRail", () => {
     expect(screen.getByRole("navigation")).toBeInTheDocument();
   });
 
+  it("uses the lg breakpoint for desktop-only navigation", () => {
+    render(<IconRail {...defaultProps} />, { wrapper: Wrapper });
+    expect(screen.getByRole("navigation").className).toContain("hidden lg:flex");
+  });
+
   it("renders the logo button", () => {
     render(<IconRail {...defaultProps} />, { wrapper: Wrapper });
     expect(screen.getByTestId("nav-rail-logo")).toBeInTheDocument();

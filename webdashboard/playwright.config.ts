@@ -54,7 +54,7 @@ export default defineConfig({
     {
       name: "responsive-desktop",
       testMatch: /responsive\.spec\.ts/,
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1024, height: 768 } },
     },
     {
       name: "responsive-mobile",

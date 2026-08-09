@@ -71,7 +71,7 @@ const IconRail = memo(function IconRail({
   return (
     <nav
       aria-label={t("common.settings.navigation", "Navigation")}
-      className="hidden md:flex fixed inset-y-0 left-0 z-50 w-[var(--nav-rail-width)] flex-col overflow-x-clip bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-black/30"
+      className="hidden lg:flex fixed inset-y-0 left-0 z-50 w-[var(--nav-rail-width)] flex-col overflow-x-clip bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-black/30"
       role="navigation"
     >
       <button

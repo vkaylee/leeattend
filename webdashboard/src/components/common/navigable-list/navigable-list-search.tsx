@@ -55,7 +55,7 @@ export function NavigableListHeaderWrapper({
       {smartHeaderEnabled ? (
         <div
           className={cn(
-            "fixed top-0 left-0 md:left-[var(--nav-rail-width)] right-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 transition-all duration-300",
+            "fixed top-0 left-0 lg:left-[var(--nav-rail-width)] right-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 transition-all duration-300",
             smartHeaderVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
           )}
           ref={smartHeaderRef}
@@ -71,7 +71,7 @@ export function NavigableListHeaderWrapper({
 
       {isFullPage && !smartHeaderEnabled ? (
         <div className="sticky top-0 z-40 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-sm pb-6 -mx-2 px-2" ref={stickySearchRef}>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="flex-1 max-w-2xl">
               <NavigableListSearchContent {...searchProps} />
             </div>
@@ -91,7 +91,7 @@ export function SearchBarSlot({
   searchProps: SearchProps;
 }) {
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
       <div className="flex-1 max-w-2xl">
         <NavigableListSearchContent {...searchProps} />
       </div>

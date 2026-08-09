@@ -9,7 +9,7 @@ test.describe("Responsive layout contracts", () => {
     const bottomNav = page.getByTestId("bottom-nav-more");
     const navRail = page.getByTestId("nav-rail-logo");
 
-    if (testInfo.project.name === "responsive-mobile") {
+    if (testInfo.project.name === "responsive-mobile" || testInfo.project.name === "responsive-tablet") {
       await expect(bottomNav).toBeVisible();
       await expect(navRail).toBeHidden();
       return;

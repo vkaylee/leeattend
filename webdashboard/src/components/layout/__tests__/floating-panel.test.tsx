@@ -110,6 +110,12 @@ describe("FloatingPanel", () => {
     expect(screen.getByRole("heading")).toBeInTheDocument();
   });
 
+  it("uses the lg breakpoint for the desktop panel", () => {
+    activePermissions.add("employees:read");
+    render(<FloatingPanel {...defaultProps} />, { wrapper: Wrapper });
+    expect(screen.getByRole("complementary").className).toContain("hidden lg:flex");
+  });
+
   it("renders sub-items for visible permissions", () => {
     activePermissions.add("employees:read");
     activePermissions.add("members:read");
