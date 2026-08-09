@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { cn } from "@/lib/utils";
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -51,15 +52,12 @@ function useBottomSheetState(isOpen: boolean, onClose: () => void) {
         clearTimeout(closeTimerRef.current);
         closeTimerRef.current = null;
       }
-      document.body.style.overflow = "hidden";
-
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === "Escape") onClose();
       };
       window.addEventListener("keydown", handleKeyDown);
       return () => {
         window.removeEventListener("keydown", handleKeyDown);
-        document.body.style.overflow = "unset";
       };
     }
 
@@ -67,8 +65,6 @@ function useBottomSheetState(isOpen: boolean, onClose: () => void) {
       setIsVisible(false);
       closeTimerRef.current = null;
     }, 300);
-    document.body.style.overflow = "unset";
-
     return () => {
       if (closeTimerRef.current) {
         clearTimeout(closeTimerRef.current);
@@ -96,6 +92,7 @@ function FilterSheet({
   const { t } = useTranslation();
   const containerRef = useFocusTrap(isOpen);
   const isVisible = useBottomSheetState(isOpen, onClose);
+  useScrollLock(isOpen);
 
   if (!isVisible && !isOpen) return null;
 
@@ -116,7 +113,7 @@ function FilterSheet({
         aria-label={t("common.filters.title", "Filters")}
         aria-modal="true"
         className={cn(
-          "relative w-full max-h-[80vh] bg-white dark:bg-slate-950 rounded-t-3xl flex flex-col",
+          "relative w-full max-h-[80dvh] bg-white dark:bg-slate-950 rounded-t-3xl flex flex-col",
           "transform transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
           isOpen ? "translate-y-0" : "translate-y-full",
         )}
@@ -153,7 +150,7 @@ function FilterSheet({
         </div>
 
         {/* Scrollable filter content */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-4">
           {children}
         </div>
 

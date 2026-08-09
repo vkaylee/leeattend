@@ -71,7 +71,7 @@ const IconRail = memo(function IconRail({
   return (
     <nav
       aria-label={t("common.settings.navigation", "Navigation")}
-      className="hidden md:flex fixed inset-y-0 left-0 z-50 w-14 flex-col overflow-x-clip bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-black/30"
+      className="hidden md:flex fixed inset-y-0 left-0 z-50 w-[var(--nav-rail-width)] flex-col overflow-x-clip bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-black/30"
       role="navigation"
     >
       <button
@@ -103,7 +103,7 @@ const IconRail = memo(function IconRail({
 
       <div className="h-px bg-slate-100 dark:bg-slate-800 mx-3 shrink-0" />
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar py-3 space-y-1 px-1.5" role="list">
+      <div className="flex-1 overflow-y-auto overscroll-contain custom-scrollbar py-3 space-y-1 px-1.5" role="list">
         <MenuLink group="dashboard" icon={dashboard.icon} isActive={activeGroup === "dashboard"} label={dashboard.label}
           onClick={handleDashboardClick} onHover={handleDashboardHover}
           testId="nav-rail-group-dashboard" to={ROUTES.HOME} />

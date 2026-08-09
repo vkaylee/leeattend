@@ -31,8 +31,8 @@ export const AssignmentRulesTable: React.FC<AssignmentRulesTableProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl sm:rounded-[3rem] overflow-hidden shadow-sm dark:shadow-black/10 animate-in slide-in-from-bottom-8 duration-700">
-      <table className="w-full text-left border-collapse">
+    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl sm:rounded-[3rem] overflow-x-auto overscroll-contain shadow-sm dark:shadow-black/10 animate-in slide-in-from-bottom-8 duration-700">
+      <table className="w-full min-w-[700px] text-left border-collapse">
         <thead>
           <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
             <th className="px-10 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">{t("rules.table.priority")}</th>
@@ -43,7 +43,16 @@ export const AssignmentRulesTable: React.FC<AssignmentRulesTableProps> = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-          {Array.isArray(rules) && rules.map((rule) => (
+          {isLoading ? Array.from({ length: 3 }).map((_, index) => (
+            <tr className="animate-pulse" key={`skeleton-${index}`}>
+              {Array.from({ length: 5 }).map((__, cellIndex) => (
+                <td className="px-8 py-6" key={`skeleton-cell-${cellIndex}`}>
+                  <div className="h-4 w-24 rounded bg-slate-200 dark:bg-slate-800" />
+                </td>
+              ))}
+            </tr>
+          )) : null}
+          {!isLoading && Array.isArray(rules) && rules.map((rule) => (
             <AssignmentRuleRow
               departments={departments}
               employers={employers}

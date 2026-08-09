@@ -33,7 +33,7 @@ export function PDFPreviewModal({
 
   return (
     <Modal
-      className="h-[85vh] flex flex-col"
+      className="h-[85dvh] flex flex-col"
       icon={<FileText size={20} />}
       isOpen={isOpen}
       maxWidth="4xl"

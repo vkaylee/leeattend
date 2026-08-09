@@ -92,27 +92,9 @@ describe("Modal Component", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it("should apply body overflow hidden when open", () => {
+  it("leaves body overflow management to Radix Dialog", () => {
     render(
       <Modal isOpen={true} onClose={() => { /* empty */ }}>
-        <div>Content</div>
-      </Modal>
-    );
-
-    expect(document.body.style.overflow).toBe("hidden");
-  });
-
-  it("should reset body overflow when closed", () => {
-    const { rerender } = render(
-      <Modal isOpen={true} onClose={() => { /* empty */ }}>
-        <div>Content</div>
-      </Modal>
-    );
-
-    expect(document.body.style.overflow).toBe("hidden");
-
-    rerender(
-      <Modal isOpen={false} onClose={() => { /* empty */ }}>
         <div>Content</div>
       </Modal>
     );

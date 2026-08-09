@@ -4,7 +4,7 @@ import { Typography } from "@/components/ui/typography";
 
 export function GlobalLoader() {
   return (
-    <div className="flex flex-col h-screen w-full items-center justify-center bg-slate-50 dark:bg-slate-900 animate-in fade-in duration-500">
+    <div className="flex flex-col h-dvh w-full items-center justify-center bg-slate-50 dark:bg-slate-900 animate-in fade-in duration-500">
       <div className="relative flex items-center justify-center">
         <div className="absolute inset-0 bg-primary-500/20 blur-2xl rounded-full animate-pulse transform scale-150" />
         <div className="relative bg-white dark:bg-slate-800 p-5 rounded-[2rem] shadow-2xl border border-primary-100 dark:border-primary-800 flex items-center justify-center">

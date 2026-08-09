@@ -38,7 +38,7 @@ export function DocumentViewerModal({
       subtitle={mimeType}
       title={fileName}
     >
-      <div className="flex flex-col gap-4 w-full h-[60vh]">
+      <div className="flex flex-col gap-4 w-full h-[60dvh]">
         {!fileUrl ? (
           <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-4"></div>

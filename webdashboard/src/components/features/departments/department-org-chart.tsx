@@ -257,7 +257,7 @@ export function DepartmentOrgChart({
       className={cn(
         "bg-white dark:bg-slate-900 overflow-hidden flex flex-col relative transition-all duration-300",
         isFullscreen
-          ? "fixed inset-0 z-[100] h-screen w-screen p-6"
+          ? "fixed inset-0 z-[100] h-dvh w-dvw p-6"
           : "w-full h-full min-h-[500px]"
       )}
     >

@@ -45,20 +45,20 @@ export function ClaimsFormView({
     <form className="mt-6 space-y-6" onSubmit={onSubmit}>
       {/* Claims Table */}
       <div className="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
-        <div className="max-h-[250px] overflow-y-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse">
+        <div className="max-h-[250px] overflow-auto overscroll-contain custom-scrollbar">
+          <table className="w-full min-w-[640px] text-left border-collapse">
             <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800/80 backdrop-blur border-b border-slate-100 dark:border-slate-800 z-10">
               <tr>
                 <th className="p-3 pl-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   {t("ot_approvals.delegated_claim.table.employee")}
                 </th>
-                <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[140px]">
+                <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider min-w-[140px]">
                   {t("ot_approvals.delegated_claim.table.computed_ot")}
                 </th>
-                <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[120px]">
+                <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider min-w-[120px]">
                   {t("approvals.paper_ot.minutes")}
                 </th>
-                <th className="p-3 pr-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[200px]">
+                <th className="p-3 pr-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider min-w-[200px]">
                   {t("common.reason")}
                 </th>
               </tr>

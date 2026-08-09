@@ -102,13 +102,13 @@ export default function FloatingPanel({
       aria-label={currentGroup.label}
       className={cn(
         "hidden md:flex fixed top-0 h-full z-40 flex-col",
-        "w-60", // 240px
+        "w-[var(--nav-panel-width)]",
         "bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl",
         "border-r border-slate-100 dark:border-slate-800",
         "shadow-2xl shadow-slate-300/30 dark:shadow-black/40",
         "animate-in slide-in-from-left-2 fade-in duration-200",
         // Position: starts at the right edge of the 56px icon rail
-        "left-14",
+        "left-[var(--nav-rail-width)]",
       )}
       data-testid={`nav-panel-${group}`}
       onMouseEnter={panelMouseEnter}
@@ -150,7 +150,7 @@ export default function FloatingPanel({
       </div>
 
       {/* Sub-items */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar py-3 px-3 space-y-1" role="menu">
+      <div className="flex-1 overflow-y-auto overscroll-contain custom-scrollbar py-3 px-3 space-y-1" role="menu">
         {currentGroup.items.map((item) => (
           <FloatingPanelLink
             isActive={

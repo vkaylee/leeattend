@@ -148,7 +148,7 @@ export function ShiftPickerModal({
         ) : (
           <div
             aria-label={t("shifts.modal.select_shift_title")}
-            className="grid grid-cols-1 gap-3 max-h-[50vh] overflow-y-auto pr-1"
+            className="grid grid-cols-1 gap-3 max-h-[50dvh] overflow-y-auto pr-1"
             role="group"
           >
             {/* ── Frequently Used Section ──────────────────────────── */}

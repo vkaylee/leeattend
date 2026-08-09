@@ -137,6 +137,26 @@ describe("BottomDrawer", () => {
     }
   });
 
+  it("does not close while the scrollable panel is below the top", async () => {
+    const onClose = vi.fn();
+    render(<BottomDrawer {...defaultProps} isOpen={true} onClose={onClose} />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      const scrollable = screen.getByTestId("bottom-drawer-scroll");
+      Object.defineProperty(scrollable, "scrollTop", { configurable: true, value: 20, writable: true });
+      fireEvent.touchStart(scrollable, { touches: [{ clientY: 100 }] });
+      fireEvent.touchMove(scrollable, { touches: [{ clientY: 200 }] });
+      fireEvent.touchEnd(scrollable);
+      expect(onClose).not.toHaveBeenCalled();
+
+      scrollable.scrollTop = 0;
+      fireEvent.touchStart(scrollable, { touches: [{ clientY: 200 }] });
+      fireEvent.touchMove(scrollable, { touches: [{ clientY: 300 }] });
+      fireEvent.touchEnd(scrollable);
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("calls onClose when Escape key is pressed", async () => {
     const onClose = vi.fn();
     render(<BottomDrawer {...defaultProps} isOpen={true} onClose={onClose} />, { wrapper: Wrapper });
@@ -217,6 +237,21 @@ describe("BottomDrawer", () => {
   });
 
   // ── Positioning and styling ──────────────────────────────────
+
+  it("locks the app scroll container without locking body scroll", async () => {
+    const main = document.createElement("main");
+    main.dataset.appScrollContainer = "";
+    document.body.append(main);
+
+    render(<BottomDrawer {...defaultProps} isOpen={true} />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(main.style.overflow).toBe("hidden");
+      expect(document.body.style.overflow).not.toBe("hidden");
+    });
+
+    main.remove();
+  });
 
   it("has fixed positioning and bottom alignment", async () => {
     render(<BottomDrawer {...defaultProps} isOpen={true} />, { wrapper: Wrapper });

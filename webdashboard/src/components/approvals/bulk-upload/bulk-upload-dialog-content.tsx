@@ -48,7 +48,7 @@ export const BulkUploadDialogContent = memo(
     uploadResult,
   }: BulkUploadDialogContentProps) {
     return (
-      <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 border border-slate-150 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-2xl rounded-[2.5rem] max-h-[92vh] overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-200">
+      <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 border border-slate-150 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-2xl rounded-[2.5rem] max-h-[92dvh] overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-200">
         <Dialog.Title className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight flex items-center gap-2">
           <Upload className="w-5.5 h-5.5 text-primary-500" />
           {t("approvals.bulk_upload.title")}

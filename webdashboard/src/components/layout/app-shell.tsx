@@ -139,8 +139,8 @@ export default function AppShell({ variant }: AppShellProps) {
       {/* Main content area */}
       <div
         className={cn(
-          "flex-1 flex flex-col min-w-0 h-screen overflow-hidden relative transition-all duration-300",
-          "md:ml-14", // Always leave room for the 56px icon rail on desktop
+          "flex-1 flex flex-col min-w-0 h-dvh overflow-hidden relative transition-[margin-left] duration-300",
+          "md:ml-[var(--nav-rail-width)]", // Always leave room for the icon rail on desktop
         )}
       >
         <Navbar
@@ -148,10 +148,11 @@ export default function AppShell({ variant }: AppShellProps) {
         />
 
         <main
+          data-app-scroll-container
           className={cn(
             "flex-1 relative scroll-smooth",
-            isOrgChart ? "overflow-hidden p-0" : "overflow-y-auto p-4 md:p-6 lg:p-8",
-            "pb-20 md:pb-0", // Bottom nav clearance on mobile
+            isOrgChart ? "overflow-hidden p-0" : "overflow-y-auto p-4 md:p-6 lg:p-8 pl-safe pr-safe",
+            "pb-[var(--bottom-nav-height)] md:pb-0", // Bottom nav clearance on mobile
           )}
         >
           <div

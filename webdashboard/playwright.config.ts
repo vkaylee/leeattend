@@ -51,5 +51,20 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
+    {
+      name: "responsive-desktop",
+      testMatch: /responsive\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "responsive-mobile",
+      testMatch: /responsive\.spec\.ts/,
+      use: { ...devices["Pixel 7"] },
+    },
+    {
+      name: "responsive-tablet",
+      testMatch: /responsive\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"], viewport: { width: 800, height: 1024 } },
+    },
   ],
 });

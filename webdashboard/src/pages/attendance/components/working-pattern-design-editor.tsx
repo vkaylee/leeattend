@@ -25,7 +25,7 @@ function WeeklyDesignEditor({
 }: WeeklyDesignEditorProps) {
   const { t } = useTranslation();
   return (
-    <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent">
+    <div className="space-y-4 max-h-[60dvh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent">
       {gridRows.map((dayName, index) => {
         const dayShifts = grid[index] || [];
         const availableShifts = shifts.filter((s) => !dayShifts.includes(s.id));
@@ -103,7 +103,7 @@ function RotationDesignEditor({
 }: RotationDesignEditorProps) {
   const { t } = useTranslation();
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent p-1">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[60dvh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent p-1">
       {gridRows.map((dayName, index) => {
         const dayShifts = grid[index] || [];
         const availableShifts = shifts.filter((s) => !dayShifts.includes(s.id));

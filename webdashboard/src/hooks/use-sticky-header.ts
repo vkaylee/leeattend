@@ -3,8 +3,8 @@ import { useRef, useState, useEffect, useCallback } from "react";
 /**
  * Smart Header hook — implements the "auto-hide on scroll down, reveal on scroll up" pattern.
  *
- * Attach `headerRef` to the sticky header element. The hook tracks window scroll
- * direction and returns `isVisible` (should the header be shown?) and `headerHeight`
+ * Attach `headerRef` to the sticky header element. The hook tracks the app scroll
+ * container and returns `isVisible` (should the header be shown?) and `headerHeight`
  * (measured height for downstream offset calculations).
  */
 export function useStickyHeader({
@@ -37,7 +37,7 @@ export function useStickyHeader({
     const handleScroll = useCallback(() => {
         if (!enabled) return;
 
-        const currentScrollY = window.scrollY;
+        const currentScrollY = document.querySelector<HTMLElement>("[data-app-scroll-container]")?.scrollTop ?? window.scrollY;
 
         // At the very top — reset everything
         if (currentScrollY < threshold) {
@@ -66,6 +66,8 @@ export function useStickyHeader({
     useEffect(() => {
         if (!enabled) return;
 
+        const scrollContainer = document.querySelector<HTMLElement>("[data-app-scroll-container]");
+        const scrollTarget = scrollContainer ?? window;
         const onScroll = () => {
             if (!ticking.current) {
                 ticking.current = true;
@@ -76,8 +78,8 @@ export function useStickyHeader({
             }
         };
 
-        window.addEventListener("scroll", onScroll, { passive: true });
-        return () => { window.removeEventListener("scroll", onScroll); };
+        scrollTarget.addEventListener("scroll", onScroll, { passive: true });
+        return () => { scrollTarget.removeEventListener("scroll", onScroll); };
     }, [enabled, handleScroll]);
 
     return {

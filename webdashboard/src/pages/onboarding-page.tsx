@@ -91,7 +91,7 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden animate-in fade-in duration-1000">
       <OnboardingHeader onLogout={handleLogout} t={t} />
 
-      <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-premium-2xl border border-white/60 dark:border-slate-800/60 p-12 animate-in zoom-in-95 duration-1000 relative z-10">
+      <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-premium-2xl border border-white/60 dark:border-slate-800/60 p-6 sm:p-12 animate-in zoom-in-95 duration-1000 relative z-10">
         <div className="flex flex-col items-center gap-6 mb-10">
           <div className="bg-slate-900 w-20 h-20 rounded-[2.2rem] flex items-center justify-center shadow-2xl shadow-slate-400 dark:shadow-black/40 rotate-3 transform hover:rotate-0 transition-all duration-700 group">
             <LayoutDashboard className="text-white group-hover:scale-110 transition-transform" size={32} />

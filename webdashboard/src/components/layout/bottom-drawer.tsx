@@ -11,6 +11,7 @@ import { Typography } from "@/components/ui/typography";
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useLanguage } from "@/hooks/use-language";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { useFilteredMenuItems, getActiveNavGroup } from "@/hooks/use-nav-menu-items";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
@@ -41,15 +42,12 @@ function useBottomSheetState(isOpen: boolean, onClose: () => void) {
         clearTimeout(closeTimerRef.current);
         closeTimerRef.current = null;
       }
-      document.body.style.overflow = "hidden";
-
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === "Escape") onClose();
       };
       window.addEventListener("keydown", handleKeyDown);
       return () => {
         window.removeEventListener("keydown", handleKeyDown);
-        document.body.style.overflow = "unset";
       };
     }
 
@@ -58,8 +56,6 @@ function useBottomSheetState(isOpen: boolean, onClose: () => void) {
       setIsVisible(false);
       closeTimerRef.current = null;
     }, 300);
-    document.body.style.overflow = "unset";
-
     return () => {
       if (closeTimerRef.current) {
         clearTimeout(closeTimerRef.current);
@@ -75,6 +71,7 @@ function useBottomSheetState(isOpen: boolean, onClose: () => void) {
 
 function useSwipeToClose(
   panelRef: React.RefObject<HTMLDivElement | null>,
+  scrollRef: React.RefObject<HTMLDivElement | null>,
   onClose: () => void,
   isOpen: boolean,
 ) {
@@ -87,7 +84,7 @@ function useSwipeToClose(
 
     const handleTouchStart = (e: TouchEvent) => {
       // Only activate swipe when scroll is at top
-      if (panel.scrollTop > 0) return;
+      if ((scrollRef.current?.scrollTop ?? 0) > 0) return;
       touchStartY.current = e.touches[0].clientY;
       touchCurrentY.current = e.touches[0].clientY;
     };
@@ -99,7 +96,7 @@ function useSwipeToClose(
     const handleTouchEnd = () => {
       const deltaY = touchCurrentY.current - touchStartY.current;
       // Swipe down > 80px from top of scroll
-      if (deltaY > 80 && panel.scrollTop <= 0) {
+      if (deltaY > 80 && (scrollRef.current?.scrollTop ?? 0) <= 0) {
         onClose();
       }
     };
@@ -113,7 +110,7 @@ function useSwipeToClose(
       panel.removeEventListener("touchmove", handleTouchMove);
       panel.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [panelRef, onClose, isOpen]);
+  }, [panelRef, scrollRef, onClose, isOpen]);
 }
 
 // ── Main Component ───────────────────────────────────────────────────
@@ -124,9 +121,11 @@ export default function BottomDrawer({ isOpen, onClose }: BottomDrawerProps) {
   const { groups } = useFilteredMenuItems();
   const containerRef = useFocusTrap(isOpen);
   const panelRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const isVisible = useBottomSheetState(isOpen, onClose);
+  useScrollLock(isOpen);
 
-  useSwipeToClose(panelRef, onClose, isOpen);
+  useSwipeToClose(panelRef, scrollRef, onClose, isOpen);
 
   const pathActiveGroup = getActiveNavGroup(location.pathname);
 
@@ -153,7 +152,7 @@ export default function BottomDrawer({ isOpen, onClose }: BottomDrawerProps) {
         aria-label={t("common.settings.navigation", "Navigation")}
         aria-modal="true"
         className={cn(
-          "relative w-full max-h-[85vh] bg-white dark:bg-slate-950 rounded-t-3xl flex flex-col",
+          "relative w-full max-h-[85dvh] bg-white dark:bg-slate-950 rounded-t-3xl flex flex-col",
           "transform transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
           isOpen ? "translate-y-0" : "translate-y-full",
         )}
@@ -177,7 +176,7 @@ export default function BottomDrawer({ isOpen, onClose }: BottomDrawerProps) {
           </Typography>
           <Button
             aria-label={t("common.close")}
-            className="h-8 w-8 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="h-11 w-11 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
             data-testid="bottom-drawer-close"
             icon={<X className="h-4 w-4" />}
             onClick={onClose}
@@ -186,7 +185,7 @@ export default function BottomDrawer({ isOpen, onClose }: BottomDrawerProps) {
         </div>
 
         {/* Scrollable sections */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 space-y-6" ref={panelRef}>
+        <div className="flex-1 overflow-y-auto overscroll-contain custom-scrollbar px-4 py-4 space-y-6" data-testid="bottom-drawer-scroll" ref={scrollRef}>
           {groups.map((group) => (
             <DrawerSection
               activeGroup={pathActiveGroup}
@@ -300,6 +299,7 @@ function DrawerUtilityRow({ onClose }: { onClose: () => void }) {
           data-testid="bottom-drawer-theme-toggle"
           onClick={cycleTheme}
           type="button"
+          variant="ghost"
         >
           <ThemeIcon className="h-4 w-4" />
           <span className="text-xs font-bold">{t(`common.theme.${mode}`, mode)}</span>
@@ -312,6 +312,7 @@ function DrawerUtilityRow({ onClose }: { onClose: () => void }) {
           data-testid="bottom-drawer-lang-toggle"
           onClick={cycleLanguage}
           type="button"
+          variant="ghost"
         >
           <span className="text-[11px] font-black tracking-tighter">
             {currentLanguage.toUpperCase()}
@@ -326,6 +327,7 @@ function DrawerUtilityRow({ onClose }: { onClose: () => void }) {
           data-testid="bottom-drawer-logout"
           onClick={handleLogout}
           type="button"
+          variant="ghost"
         >
           <LogOut className="h-4 w-4" />
           <span className="text-xs font-bold">{t("common.logout")}</span>

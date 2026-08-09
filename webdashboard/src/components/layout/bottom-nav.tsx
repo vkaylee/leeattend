@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
 
-import Button from "@/components/ui/button";
 import { useFilteredMenuItems, getActiveNavGroup } from "@/hooks/use-nav-menu-items";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
@@ -15,7 +14,7 @@ interface BottomNavProps {
   unreadCount?: number;
 }
 
-export default function BottomNav({ activeGroup, onMoreClick, unreadCount: _unreadCount }: BottomNavProps) {
+export default function BottomNav({ activeGroup, onMoreClick, unreadCount = 0 }: BottomNavProps) {
   const { t } = useTranslation();
   const location = useLocation();
   const { groups } = useFilteredMenuItems();
@@ -37,7 +36,7 @@ export default function BottomNav({ activeGroup, onMoreClick, unreadCount: _unre
   return (
     <nav
       aria-label={t("common.settings.navigation", "Navigation")}
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-t border-slate-100 dark:border-slate-800 shadow-lg shadow-slate-200/50 dark:shadow-black/30 pb-safe"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-t border-slate-100 dark:border-slate-800 shadow-lg shadow-slate-200/50 dark:shadow-black/30 pb-safe pl-safe pr-safe"
       role="navigation"
     >
       <div className="flex items-center justify-around h-16 px-2">
@@ -88,8 +87,9 @@ export default function BottomNav({ activeGroup, onMoreClick, unreadCount: _unre
         ) : null}
 
         {/* More */}
-        <Button
-          className="flex flex-col items-center justify-center flex-1 h-full relative transition-transform active:scale-95"
+        <button
+          aria-label={t("common.more", "More")}
+          className="flex flex-col items-center justify-center flex-1 h-full relative transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus:outline-none"
           data-testid="bottom-nav-more"
           onClick={onMoreClick}
           type="button"
@@ -99,11 +99,16 @@ export default function BottomNav({ activeGroup, onMoreClick, unreadCount: _unre
               "w-6 h-6 transition-colors",
               "text-slate-400 dark:text-slate-500"
             )} />
+            {unreadCount > 0 ? (
+              <span className="absolute -top-1.5 -right-2 min-w-4 h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center leading-none">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            ) : null}
           </div>
           <span className="text-[10px] font-bold mt-1 text-slate-400 dark:text-slate-500">
             {t("common.more", "More")}
           </span>
-        </Button>
+        </button>
       </div>
     </nav>
   );

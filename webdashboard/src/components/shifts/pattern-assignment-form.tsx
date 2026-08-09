@@ -65,7 +65,7 @@ function PatternSelector({
           {t("patterns.manage_btn", "Manage Patterns")} ↗
         </Link>
       </div>
-      <div className="max-h-[45vh] lg:max-h-[50vh] min-h-[240px] overflow-y-auto pr-1.5 flex flex-col gap-3.5 custom-scrollbar">
+      <div className="max-h-[45dvh] lg:max-h-[50dvh] min-h-[240px] overflow-y-auto pr-1.5 flex flex-col gap-3.5 custom-scrollbar">
         {patterns?.map((pattern, index) => (
           <PatternCard
             details={patternDetailsQueries[index]?.data}

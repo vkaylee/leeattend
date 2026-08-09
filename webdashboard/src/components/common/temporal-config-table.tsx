@@ -49,7 +49,7 @@ function TemporalConfigAddForm({
   t
 }: TemporalConfigAddFormProps) {
   return (
-    <div className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 rounded-[2.5rem] p-8 shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500">
+    <div className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 rounded-[2.5rem] p-4 sm:p-8 shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500">
       <div className="flex items-center gap-3 mb-8 text-primary-700 dark:text-primary-300">
         <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center shadow-inner"><Plus size={16} /></div>
         <Typography className="text-[10px] font-bold uppercase tracking-[0.2em]" variant="h4">{t("payroll.settings.add_version")}</Typography>
@@ -105,7 +105,7 @@ interface TemporalConfigTableContentProps {
 
 function TemporalConfigTableContent({ sortedRecords, activeIndex, now, t, formatDate }: TemporalConfigTableContentProps) {
   return (
-    <table className="w-full text-left border-collapse">
+    <table className="w-full min-w-[720px] text-left border-collapse">
       <thead>
         <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
           <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("payroll.settings.status")}</th>
@@ -285,7 +285,7 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
         />
       ) : null}
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-x-auto overscroll-contain shadow-sm">
         {isLoading ? (
           <div className="p-20 text-center"><div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>
         ) : (

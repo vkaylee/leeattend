@@ -60,7 +60,7 @@ export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryPro
   };
 
   return (
-    <div className="flex flex-col h-[65vh] max-h-[700px] -m-8">
+    <div className="flex flex-col h-[65dvh] max-h-[700px] -m-8">
       {/* Header with Search */}
       <div className="px-8 pt-6 pb-6 border-b border-slate-50 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center justify-between gap-4">

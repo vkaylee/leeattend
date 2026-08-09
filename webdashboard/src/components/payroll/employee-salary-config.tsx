@@ -56,7 +56,7 @@ function AddSalaryForm({
   selectedCompId, setAmount, setEffectiveDate, setSelectedCompId, t,
 }: AddSalaryFormProps) {
   return (
-    <form className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 p-10 rounded-[2.5rem] shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500" onSubmit={onSubmit}>
+    <form className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 p-4 sm:p-10 rounded-[2.5rem] shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500" onSubmit={onSubmit}>
       <div className="flex items-center gap-3 mb-8 text-primary-700 dark:text-primary-300">
         <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center shadow-inner"><ArrowUpRight size={16} /></div>
         <Typography className="text-[10px] font-bold uppercase tracking-[0.2em]" variant="h4">{t("payroll.employee_config.add_new_title")}</Typography>
@@ -218,8 +218,8 @@ export default function EmployeeSalaryConfig({ wsId, employeeId, employmentId }:
         <AddSalaryForm amount={amount} assignMutation={assignMutation} definitions={definitions} effectiveDate={effectiveDate} onSubmit={handleAssign} selectedCompId={selectedCompId} setAmount={setAmount} setEffectiveDate={setEffectiveDate} setSelectedCompId={setSelectedCompId} t={t} />
       ) : null}
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm">
-        <table className="w-full text-left border-collapse">
+      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-x-auto overscroll-contain shadow-sm">
+        <table className="w-full min-w-[640px] text-left border-collapse">
           <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
             <tr>
               <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("payroll.employee_config.salary_item")}</th>

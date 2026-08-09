@@ -36,7 +36,7 @@ export default function PayslipModal({
     <Dialog.Root onOpenChange={onClose} open={isOpen}>
       <Dialog.Portal>
         <Dialog.Overlay className='fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] animate-in fade-in duration-300 print:hidden' />
-        <Dialog.Content className='fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[900px] max-h-[90vh] bg-slate-100 dark:bg-slate-700 rounded-[2rem] shadow-2xl z-[101] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 print:static print:translate-x-0 print:translate-y-0 print:max-h-none print:w-auto print:bg-white dark:bg-slate-900 print:shadow-none print:rounded-none' data-testid="payslip-modal">
+        <Dialog.Content className='fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[900px] max-h-[90dvh] bg-slate-100 dark:bg-slate-700 rounded-[2rem] shadow-2xl z-[101] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 print:static print:translate-x-0 print:translate-y-0 print:max-h-none print:w-auto print:bg-white dark:bg-slate-900 print:shadow-none print:rounded-none' data-testid="payslip-modal">
           
           <Dialog.Title className="sr-only">Official Payslip Preview</Dialog.Title>
           <Dialog.Description className="sr-only">

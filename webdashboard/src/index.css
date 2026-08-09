@@ -71,6 +71,8 @@
   --ui-height-md: 52px;
   --ui-height-lg: 60px;
   --placeholder-color: var(--primary-700);
+  --nav-rail-width: 56px;
+  --nav-panel-width: 240px;
 }
 
 /* Dark palette: Slate-based (slate-900/800) — neutral, professional */
@@ -154,11 +156,6 @@
   }
 
   /* Navigation Rail & Panel */
-  :root {
-    --nav-rail-width: 56px;
-    --nav-panel-width: 240px;
-  }
-
   .nav-tooltip {
     @apply absolute left-full ml-3 px-3 py-1.5 bg-slate-800 dark:bg-slate-200
            text-white dark:text-slate-800 text-xs font-bold rounded-xl
@@ -280,6 +277,10 @@
 }
 
 /* ── Safe Area Utilities for notch devices ── */
+:root {
+  --bottom-nav-height: calc(4rem + 1px + max(env(safe-area-inset-bottom, 0px), 0.5rem));
+}
+
 @layer utilities {
   .pb-safe {
     padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.5rem);

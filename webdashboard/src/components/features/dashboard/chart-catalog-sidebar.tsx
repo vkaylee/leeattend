@@ -187,7 +187,7 @@ export default function ChartCatalogSidebar({
       className={cn(
         "hidden lg:flex flex-col shrink-0",
         "sticky top-0 self-start",
-        "h-[calc(100vh-8rem)]",
+        "h-[calc(100dvh-8rem)]",
         "bg-white dark:bg-slate-900",
         "border border-slate-100 dark:border-slate-800",
         "rounded-2xl shadow-sm",

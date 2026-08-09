@@ -205,8 +205,8 @@ export const ErrorDetailsTable = memo(function ErrorDetailsTable({
         </Button>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden max-h-64 overflow-y-auto">
-        <table className="w-full text-left">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl overflow-auto overscroll-contain max-h-64">
+        <table className="w-full min-w-[520px] text-left">
           <thead className="bg-slate-50 dark:bg-slate-800 sticky top-0">
             <tr>
               <th className="px-4 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">

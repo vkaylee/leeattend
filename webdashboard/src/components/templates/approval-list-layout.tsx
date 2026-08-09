@@ -121,7 +121,8 @@ export default function ApprovalListLayout({
       {!hideTabs && !!tabs && <ApprovalListTabs activeTab={activeTab} onTabChange={onTabChange} tabs={tabs} />}
 
       <div className="bg-white dark:bg-slate-900 border border-primary-100 dark:border-primary-800/50 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700">
-        <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto overscroll-contain">
+        <table className="w-full min-w-max text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-primary-100 dark:border-primary-800/50">
               {tableHeaders.map((header, index) => {
@@ -173,6 +174,7 @@ export default function ApprovalListLayout({
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {modals}

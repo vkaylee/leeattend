@@ -43,7 +43,9 @@ function getInitialPinned(): boolean {
 
 export function useNavSidebar(locationPathname: string): NavSidebarState {
   const [isPinned, setIsPinned] = useState(getInitialPinned);
-  const [activeGroup, setActiveGroupState] = useState<NavGroup | null>(null);
+  const [activeGroup, setActiveGroupState] = useState<NavGroup | null>(() =>
+    getInitialPinned() ? getActiveNavGroup(locationPathname) : null,
+  );
   const [isBottomDrawerOpen, setIsBottomDrawerOpen] = useState(false);
 
   // Debounce refs

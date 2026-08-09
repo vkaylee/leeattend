@@ -42,7 +42,7 @@ export default function PayrollPage() {
   if (!wsId) return <div className="p-8 text-center">{t("common.select_workspace")}</div>;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] gap-8 overflow-hidden animate-in fade-in duration-500">
+    <div className="flex flex-col h-[calc(100dvh-8rem)] gap-8 overflow-hidden animate-in fade-in duration-500">
       <PayrollHeader
         calcMonth={calcMonth}
         calcYear={calcYear}

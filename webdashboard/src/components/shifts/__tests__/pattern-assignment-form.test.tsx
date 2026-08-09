@@ -187,8 +187,8 @@ describe("PatternAssignmentForm", () => {
 
     // Check list container classes
     const listContainer = screen.getByText("Weekly Office").closest(".custom-scrollbar");
-    expect(listContainer?.className).toContain("max-h-[45vh]");
-    expect(listContainer?.className).toContain("lg:max-h-[50vh]");
+    expect(listContainer?.className).toContain("max-h-[45dvh]");
+    expect(listContainer?.className).toContain("lg:max-h-[50dvh]");
     expect(listContainer?.className).toContain("min-h-[240px]");
 
     // Check card styling classes on selected card

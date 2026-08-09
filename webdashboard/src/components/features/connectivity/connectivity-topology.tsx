@@ -86,11 +86,11 @@ export default function ConnectivityTopology() {
   };
 
   if (agentsLoading || devicesLoading) {
-    return <div className="p-8 animate-pulse text-slate-400 font-bold uppercase tracking-widest">{t("common.loading")}</div>;
+    return <div className="p-4 sm:p-8 animate-pulse text-slate-400 font-bold uppercase tracking-widest">{t("common.loading")}</div>;
   }
 
   return (
-    <div className="p-8 space-y-12 max-w-[1600px] mx-auto" data-testid="connectivity-topology">
+    <div className="p-4 sm:p-8 space-y-12 max-w-[1600px] mx-auto" data-testid="connectivity-topology">
       <ConnectivityHeader
         agents={agents} includeInactive={includeInactive}
         onAddAgent={() => { state.setShowAddForm(!state.showAddForm); }}

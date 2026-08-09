@@ -38,7 +38,7 @@ export default function NavigableList<T>({
   isFetchingNextPage,
   fetchNextPage,
   className,
-  maxHeightClass = "max-h-[60vh]",
+  maxHeightClass = "max-h-[60dvh]",
   mobileBreakpoint = "lg",
   headerSlot,
   onKeyDownRef,

@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 
 import { Typography } from "@/components/ui/typography";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { cn } from "@/lib/utils";
 
 interface SheetProps {
@@ -45,15 +46,12 @@ function useSheetState(isOpen: boolean, onClose: () => void) {
         clearTimeout(closeTimerRef.current);
         closeTimerRef.current = null;
       }
-      document.body.style.overflow = "hidden";
-
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === "Escape") onClose();
       };
       window.addEventListener("keydown", handleKeyDown);
       return () => {
         window.removeEventListener("keydown", handleKeyDown);
-        document.body.style.overflow = "unset";
       };
     }
 
@@ -62,8 +60,6 @@ function useSheetState(isOpen: boolean, onClose: () => void) {
       setIsVisible(false);
       closeTimerRef.current = null;
     }, 500);
-    document.body.style.overflow = "unset";
-
     return () => {
       if (closeTimerRef.current) {
         clearTimeout(closeTimerRef.current);
@@ -93,7 +89,7 @@ function SheetHeader({
   title?: string;
 }) {
   return (
-    <div className="flex items-center justify-between p-10 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30">
+    <div className="flex items-center justify-between p-4 sm:p-10 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30">
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-inner border border-primary-100/50 dark:border-primary-800/50">
           <Menu size={24} />
@@ -144,6 +140,7 @@ export default function Sheet({
 }: SheetProps) {
   const isVisible = useSheetState(isOpen, onClose);
   const containerRef = useFocusTrap(isOpen);
+  useScrollLock(isOpen);
 
   if (!isVisible && !isOpen) return null;
 
@@ -185,7 +182,7 @@ export default function Sheet({
           {!hideHeader && <SheetHeader headerExtra={headerExtra} onClose={onClose} subtitle={subtitle} title={title} />}
 
           {/* Content */}
-          <div className={cn("flex-1 overflow-y-auto p-10 relative scroll-smooth", contentClassName)}>
+          <div className={cn("flex-1 overflow-y-auto overscroll-contain p-4 sm:p-10 relative scroll-smooth", contentClassName)}>
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 h-full">
               {children}
             </div>
