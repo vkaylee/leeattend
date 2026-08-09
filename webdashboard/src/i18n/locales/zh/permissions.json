@@ -1,5 +1,11 @@
 {
   "catalog_load_error": "无法加载权限目录，请重试。",
+  "permissions": {
+    "mobilePermissionCount": "已启用 {{count}}/{{total}} 项",
+    "no_roles": "暂无角色。"
+  },
+  "mobilePermissionCount": "已启用 {{count}}/{{total}} 项",
+  "no_roles": "暂无角色。",
   "groups": {
     "attendance": "考勤",
     "departments": "部门",

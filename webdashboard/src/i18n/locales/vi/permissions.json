@@ -1,5 +1,11 @@
 {
   "catalog_load_error": "Không thể tải danh mục quyền. Vui lòng thử lại.",
+  "permissions": {
+    "mobilePermissionCount": "{{count}}/{{total}} quyền đang bật",
+    "no_roles": "Chưa có vai trò nào."
+  },
+  "mobilePermissionCount": "{{count}}/{{total}} quyền đang bật",
+  "no_roles": "Chưa có vai trò nào.",
   "groups": {
     "attendance": "Chấm công",
     "departments": "Phòng ban",

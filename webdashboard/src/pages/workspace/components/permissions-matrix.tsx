@@ -7,6 +7,7 @@ import { permissionGroupIcons } from "@/lib/permission-groups";
 import type { PermissionCatalogItem, WorkspaceRole } from "../../../lib/api/types";
 
 import {
+  MobilePermissionRoleSection,
   PermissionMatrixFooter,
   PermissionTableHeader,
   PermissionTableRow,
@@ -14,10 +15,7 @@ import {
   ScrollVisualCues,
 } from "./permissions-matrix-subcomponents";
 
-interface PermissionCatalogGroup {
-  id: string;
-  permissions: PermissionCatalogItem[];
-}
+import type { PermissionCatalogGroup } from "./permissions-matrix-subcomponents";
 
 interface PermissionsMatrixProps {
   canScrollLeft: boolean;
@@ -87,48 +85,68 @@ export function PermissionsMatrix(props: PermissionsMatrixProps) {
   }
 
   return (
-    <div className="relative group/table">
-      <ScrollVisualCues canScrollLeft={canScrollLeft} canScrollRight={canScrollRight} />
-      <ScrollButtons canScrollLeft={canScrollLeft} canScrollRight={canScrollRight} scrollBy={scrollBy} />
+    <div className="relative">
+      <div className="group/table hidden lg:block" data-testid="permissions-desktop">
+        <ScrollVisualCues canScrollLeft={canScrollLeft} canScrollRight={canScrollRight} />
+        <ScrollButtons canScrollLeft={canScrollLeft} canScrollRight={canScrollRight} scrollBy={scrollBy} />
 
-      <div className="overflow-x-auto custom-scrollbar relative z-0" onScroll={handleScroll} ref={scrollContainerRef}>
-        <table className="w-full text-left border-collapse min-w-[800px]">
-          <PermissionTableHeader visibleRoles={visibleRoles} />
-          <tbody>
-            {permissionGroups.map((group) => {
-              const GroupIcon = permissionGroupIcons[group.id] ?? KeyRound;
+        <div className="overflow-x-auto custom-scrollbar relative z-0" onScroll={handleScroll} ref={scrollContainerRef}>
+          <table className="w-full text-left border-collapse min-w-[800px]">
+            <PermissionTableHeader visibleRoles={visibleRoles} />
+            <tbody>
+              {permissionGroups.map((group) => {
+                const GroupIcon = permissionGroupIcons[group.id] ?? KeyRound;
 
-              return (
-                <React.Fragment key={group.id}>
-                  <tr>
-                    <td
-                      className="bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800 py-3 px-6"
-                      colSpan={visibleRoles.length + 1}
-                    >
-                      <div className="flex items-center gap-2">
-                        <GroupIcon className="w-4 h-4 text-slate-400" />
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                          {t(`permissions.groups.${group.id}`, { defaultValue: group.id })}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
+                return (
+                  <React.Fragment key={group.id}>
+                    <tr>
+                      <td
+                        className="bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800 py-3 px-6"
+                        colSpan={visibleRoles.length + 1}
+                      >
+                        <div className="flex items-center gap-2">
+                          <GroupIcon className="w-4 h-4 text-slate-400" />
+                          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                            {t(`permissions.groups.${group.id}`, { defaultValue: group.id })}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
 
-                  {group.permissions.map((perm) => (
-                    <PermissionTableRow
-                      hasManagePermission={hasManagePermission}
-                      key={perm.id}
-                      perm={perm}
-                      permissions={permissions}
-                      togglePermission={togglePermission}
-                      visibleRoles={visibleRoles}
-                    />
-                  ))}
-                </React.Fragment>
-              );
-            })}
-          </tbody>
-        </table>
+                    {group.permissions.map((perm) => (
+                      <PermissionTableRow
+                        hasManagePermission={hasManagePermission}
+                        key={perm.id}
+                        perm={perm}
+                        permissions={permissions}
+                        togglePermission={togglePermission}
+                        visibleRoles={visibleRoles}
+                      />
+                    ))}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="lg:hidden" data-testid="permissions-mobile">
+        {visibleRoles.length > 0 ? visibleRoles.map((role, index) => (
+          <MobilePermissionRoleSection
+            defaultExpanded={index === 0}
+            hasManagePermission={hasManagePermission}
+            key={role.id}
+            permissionGroups={permissionGroups}
+            permissions={permissions}
+            role={role}
+            togglePermission={togglePermission}
+          />
+        )) : (
+          <p className="p-6 text-center text-sm text-slate-500 dark:text-slate-400">
+            {t("permissions.no_roles", { defaultValue: "No roles available." })}
+          </p>
+        )}
       </div>
 
       <PermissionMatrixFooter />

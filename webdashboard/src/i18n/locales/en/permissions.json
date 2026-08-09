@@ -1,5 +1,11 @@
 {
   "catalog_load_error": "Permission catalog could not be loaded. Please try again.",
+  "permissions": {
+    "mobilePermissionCount": "{{count}} of {{total}} enabled",
+    "no_roles": "No roles available."
+  },
+  "mobilePermissionCount": "{{count}} of {{total}} enabled",
+  "no_roles": "No roles available.",
   "groups": {
     "attendance": "Time & Attendance",
     "departments": "Departments",

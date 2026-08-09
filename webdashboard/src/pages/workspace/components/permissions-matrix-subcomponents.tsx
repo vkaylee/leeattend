@@ -1,9 +1,10 @@
-import { Check, ChevronLeft, ChevronRight, Info, KeyRound } from "lucide-react";
-import React from "react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Info, KeyRound } from "lucide-react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
+import { permissionGroupIcons } from "@/lib/permission-groups";
 import { cn } from "@/lib/utils";
 
 import type { PermissionCatalogItem, WorkspaceRole } from "../../../lib/api/types";
@@ -116,6 +117,44 @@ export const PermissionTableHeader = ({ visibleRoles }: PermissionTableHeaderPro
   );
 };
 
+export interface PermissionCatalogGroup {
+  id: string;
+  permissions: PermissionCatalogItem[];
+}
+
+interface PermissionToggleProps {
+  ariaLabel: string;
+  checked: boolean;
+  disabled: boolean;
+  onChange: () => void;
+  testId?: string;
+}
+
+export const PermissionToggle = ({ ariaLabel, checked, disabled, onChange, testId }: PermissionToggleProps) => (
+  <label
+    className={cn(
+      "relative inline-flex items-center justify-center w-7 h-7 rounded-lg border-2 transition-all",
+      disabled
+        ? "cursor-not-allowed opacity-60"
+        : "cursor-pointer hover:border-primary-400",
+      checked
+        ? "bg-primary-500 border-primary-500 text-white"
+        : "bg-transparent border-slate-200 dark:border-slate-700 text-transparent",
+    )}
+  >
+    <input
+      aria-label={ariaLabel}
+      checked={checked}
+      className="sr-only"
+      data-testid={testId}
+      disabled={disabled}
+      onChange={onChange}
+      type="checkbox"
+    />
+    <Check className="w-4 h-4" strokeWidth={3} />
+  </label>
+);
+
 interface PermissionTableRowProps {
   hasManagePermission: boolean;
   perm: PermissionCatalogItem;
@@ -158,30 +197,124 @@ export const PermissionTableRow = ({
             className="border-b border-slate-100 dark:border-slate-800 p-4 text-center"
             key={`${role.id}-${perm.id}`}
           >
-            <label
-              className={cn(
-                "relative inline-flex items-center justify-center w-6 h-6 rounded-lg border-2 transition-all",
-                isSystem || !hasManagePermission
-                  ? "cursor-not-allowed opacity-60"
-                  : "cursor-pointer hover:border-primary-400",
-                isChecked
-                  ? "bg-primary-500 border-primary-500 text-white"
-                  : "bg-transparent border-slate-200 dark:border-slate-700 text-transparent"
-              )}
-            >
-              <input
-                checked={isChecked}
-                className="sr-only"
-                disabled={isSystem || !hasManagePermission}
-                onChange={() => { togglePermission(role, perm.id); }}
-                type="checkbox"
-              />
-              <Check className="w-4 h-4" strokeWidth={3} />
-            </label>
+            <PermissionToggle
+              ariaLabel={t(perm.label_key, { defaultValue: perm.id })}
+              checked={isChecked}
+              disabled={isSystem || !hasManagePermission}
+              onChange={() => { togglePermission(role, perm.id); }}
+              testId={`permission-toggle-${role.id}-${perm.id}`}
+            />
           </td>
         );
       })}
     </tr>
+  );
+};
+
+interface MobilePermissionRoleSectionProps {
+  defaultExpanded: boolean;
+  hasManagePermission: boolean;
+  permissions: Record<string, string[]>;
+  permissionGroups: PermissionCatalogGroup[];
+  role: WorkspaceRole;
+  togglePermission: (role: WorkspaceRole, permId: string) => void;
+}
+
+export const MobilePermissionRoleSection = ({
+  defaultExpanded,
+  hasManagePermission,
+  permissions,
+  permissionGroups,
+  role,
+  togglePermission,
+}: MobilePermissionRoleSectionProps) => {
+  const { t } = useTranslation();
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const roleLabel = t(`roles.${role.name}`, { defaultValue: role.name });
+  const permissionCount = useMemo(
+    () => permissionGroups.reduce((count, group) => count + group.permissions.length, 0),
+    [permissionGroups],
+  );
+  const grantedCount = permissionGroups.reduce(
+    (count, group) => count + group.permissions.filter((perm) => permissions[role.id]?.includes(perm.id)).length,
+    0,
+  );
+  const contentId = `permissions-mobile-role-content-${role.id}`;
+
+  return (
+    <section className="border-b border-slate-100 last:border-b-0 dark:border-slate-800" data-testid={`permissions-mobile-role-${role.id}`}>
+      <button
+        aria-controls={contentId}
+        aria-expanded={isExpanded}
+        className="flex min-h-[56px] w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 dark:hover:bg-slate-800/50"
+        onClick={() => { setIsExpanded((expanded) => !expanded); }}
+        type="button"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-sm font-bold text-primary-600 dark:bg-primary-950 dark:text-primary-300">
+          {roleLabel.charAt(0).toUpperCase()}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-bold text-slate-800 dark:text-slate-200">{roleLabel}</span>
+          <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            {role.is_system
+              ? t("common.system", { defaultValue: "System" })
+              : t("common.custom", { defaultValue: "Custom" })}
+            <span aria-hidden="true"> · </span>
+            {t("permissions.mobilePermissionCount", {
+              count: grantedCount,
+              total: permissionCount,
+              defaultValue: "{{count}} of {{total}} enabled",
+            })}
+          </span>
+        </span>
+        <ChevronDown
+          aria-hidden="true"
+          className={cn("h-5 w-5 shrink-0 text-slate-400 transition-transform duration-200", isExpanded && "rotate-180")}
+        />
+      </button>
+
+      <div className={cn("px-4 pb-4", !isExpanded && "hidden")} id={contentId}>
+        {permissionGroups.map((group) => {
+          const GroupIcon = permissionGroupIcons[group.id] ?? KeyRound;
+          return (
+            <div className="pt-3 first:pt-0" key={group.id}>
+              <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                <GroupIcon aria-hidden="true" className="h-3.5 w-3.5" />
+                <span>{t(`permissions.groups.${group.id}`, { defaultValue: group.id })}</span>
+              </div>
+              <div className="space-y-2">
+                {group.permissions.map((perm) => {
+                  const isChecked = permissions[role.id]?.includes(perm.id) ?? false;
+                  const isDisabled = role.is_system || !hasManagePermission;
+                  const permissionLabel = t(perm.label_key, { defaultValue: perm.id });
+                  return (
+                    <div
+                      className="flex min-h-[52px] items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-3 py-2 dark:border-slate-800 dark:bg-slate-800/30"
+                      data-testid={`permissions-mobile-permission-${role.id}-${perm.id}`}
+                      key={perm.id}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-slate-700 dark:text-slate-200">{permissionLabel}</p>
+                        <p className="mt-0.5 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
+                          {t(perm.label_key.replace(/\\.name$/, ".desc"), { defaultValue: perm.id })}
+                        </p>
+                      </div>
+                      <PermissionToggle
+                        ariaLabel={`${roleLabel}: ${permissionLabel}`}
+                        checked={isChecked}
+                        disabled={isDisabled}
+                        onChange={() => { togglePermission(role, perm.id); }}
+                        testId={`permissions-mobile-toggle-${role.id}-${perm.id}`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 };
 
