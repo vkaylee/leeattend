@@ -2,12 +2,14 @@ import { render, screen } from "@testing-library/react";
 import { useState } from "react";
 
 import userEvent from "@testing-library/user-event";
+import { enUS } from "date-fns/locale";
 import { describe, it, expect, vi } from "vitest";
 
 import { useShifts } from "@/pages/shifts/hooks/use-shifts";
 
 import { MonthlyRosterGrid } from "../monthly-roster-grid";
 import { RosterToolbar } from "../roster-toolbar";
+import { RosterMobileList } from "../roster/roster-mobile-list";
 
 // Mock i18next
 vi.mock("react-i18next", () => ({
@@ -309,6 +311,68 @@ const StatefulGridWrapper = ({ overrides = {} }: { overrides?: any }) => {
     </div>
   );
 };
+
+describe("RosterMobileList", () => {
+  it("renders one employee card with every month day and preserves cell activation", async () => {
+    const user = userEvent.setup();
+    const onCellPointerDown = vi.fn();
+    const onCellKeyDown = vi.fn();
+
+    render(
+      <RosterMobileList
+        currentLocale={enUS}
+        monthDays={mockMonthDays}
+        monthSchedules={mockMonthSchedules as any}
+        onCellKeyDown={onCellKeyDown}
+        onCellPointerDown={onCellPointerDown}
+        selectedCells={new Set(["emp-1:2026-05-01"])}
+        shifts={[]}
+      />,
+    );
+
+    expect(screen.getByTestId("monthly-roster-mobile")).toBeInTheDocument();
+    expect(screen.getAllByTestId(/monthly-roster-mobile-employee-/)).toHaveLength(3);
+    expect(screen.getAllByTestId(/monthly-roster-mobile-day-/)).toHaveLength(9);
+    expect(screen.getByTestId("monthly-roster-mobile-day-emp-1-2026-05-01")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    await user.click(screen.getByTestId("monthly-roster-mobile-day-emp-2-2026-05-01"));
+    expect(onCellPointerDown).toHaveBeenCalledWith(
+      "emp-2",
+      "2026-05-01",
+      expect.objectContaining({ button: 0 }),
+    );
+  });
+
+  it("forwards keyboard activation for accessible day entries", () => {
+    const onCellPointerDown = vi.fn();
+    const onCellKeyDown = vi.fn();
+
+    render(
+      <RosterMobileList
+        currentLocale={enUS}
+        monthDays={mockMonthDays.slice(0, 1)}
+        monthSchedules={mockMonthSchedules.slice(0, 1) as any}
+        onCellKeyDown={onCellKeyDown}
+        onCellPointerDown={onCellPointerDown}
+        selectedCells={new Set()}
+        shifts={[]}
+      />,
+    );
+
+    const day = screen.getByTestId("monthly-roster-mobile-day-emp-1-2026-05-01");
+    day.focus();
+    day.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }));
+
+    expect(onCellKeyDown).toHaveBeenCalledWith(
+      "emp-1",
+      "2026-05-01",
+      expect.objectContaining({ key: "Enter" }),
+    );
+  });
+});
 
 describe("MonthlyRosterGrid Filtering", () => {
   it("renders empty state by default when no employees are selected", () => {

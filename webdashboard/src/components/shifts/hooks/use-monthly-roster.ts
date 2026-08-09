@@ -64,8 +64,12 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
       selectedEmployees,
     });
 
-  const { isDragging, handleCellPointerDown, handleCellPointerEnter } =
-    useDragCellSelection({
+  const {
+    isDragging,
+    handleCellKeyDown,
+    handleCellPointerDown,
+    handleCellPointerEnter,
+  } = useDragCellSelection({
       selectedCells,
       setSelectedCells,
       filteredSchedules,
@@ -138,6 +142,7 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
     combinedSchedules,
     filteredSchedules,
     isDragging,
+    handleCellKeyDown,
     handleCellPointerDown,
     handleCellPointerEnter,
     handleApplyShift,

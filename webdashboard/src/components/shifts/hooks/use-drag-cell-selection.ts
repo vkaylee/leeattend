@@ -14,6 +14,8 @@ interface UseDragCellSelectionProps {
 }
 
 interface UseDragCellSelectionReturn {
+  /** Keyboard activation handler for accessible mobile cells. */
+  handleCellKeyDown: (employeeId: string, dateStr: string, e: React.KeyboardEvent) => void;
   /** PointerDown handler — attach to each grid cell. */
   handleCellPointerDown: (employeeId: string, dateStr: string, e: React.PointerEvent) => void;
   /** PointerEnter handler — attach to each grid cell (no-op when not dragging). */
@@ -61,18 +63,18 @@ export function useDragCellSelection({
     }
   }, [isDragging]);
 
-  const handleCellPointerDown = (
+  const toggleCell = (
     employeeId: string,
     dateStr: string,
-    e: React.PointerEvent,
+    startDrag: boolean,
   ) => {
-    // Only primary button (left mouse / single touch / pen contact)
-    if (e.button !== 0) return;
     const key = `${employeeId}:${dateStr}`;
     const mode: "add" | "remove" = selectedCells.has(key) ? "remove" : "add";
-    setIsDragging(true);
-    setDragStartCell(key);
-    setDragMode(mode);
+    if (startDrag) {
+      setIsDragging(true);
+      setDragStartCell(key);
+      setDragMode(mode);
+    }
 
     setSelectedCells((prev) => {
       const next = new Set(prev);
@@ -81,9 +83,29 @@ export function useDragCellSelection({
       } else {
         next.add(key);
       }
-      setDragSnapshot(new Set(next));
+      if (startDrag) setDragSnapshot(new Set(next));
       return next;
     });
+  };
+
+  const handleCellPointerDown = (
+    employeeId: string,
+    dateStr: string,
+    e: React.PointerEvent,
+  ) => {
+    // Only primary button (left mouse / single touch / pen contact)
+    if (e.button !== 0) return;
+    toggleCell(employeeId, dateStr, true);
+  };
+
+  const handleCellKeyDown = (
+    employeeId: string,
+    dateStr: string,
+    e: React.KeyboardEvent,
+  ) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    toggleCell(employeeId, dateStr, false);
   };
 
   const handleCellPointerEnter = (employeeId: string, dateStr: string) => {
@@ -134,6 +156,7 @@ export function useDragCellSelection({
 
   return {
     isDragging,
+    handleCellKeyDown,
     handleCellPointerDown,
     handleCellPointerEnter,
   };

@@ -125,6 +125,39 @@ describe("useMonthlyRoster drag-select paint mode", () => {
     );
   });
 
+  it("toggles a cell from keyboard activation", () => {
+    const { result } = renderHook(() =>
+      useMonthlyRoster({ hook: createMockHook() }),
+    );
+
+    act(() => {
+      result.current.handleCellKeyDown("emp-1", "2026-05-01", {
+        key: "Enter",
+        preventDefault: vi.fn(),
+      } as unknown as React.KeyboardEvent);
+    });
+
+    expect(result.current.selectedCells).toEqual(
+      new Set(["emp-1:2026-05-01"]),
+    );
+    expect(result.current.isDragging).toBe(false);
+  });
+
+  it("ignores unrelated keyboard input", () => {
+    const { result } = renderHook(() =>
+      useMonthlyRoster({ hook: createMockHook() }),
+    );
+
+    act(() => {
+      result.current.handleCellKeyDown("emp-1", "2026-05-01", {
+        key: "Tab",
+        preventDefault: vi.fn(),
+      } as unknown as React.KeyboardEvent);
+    });
+
+    expect(result.current.selectedCells).toEqual(new Set());
+  });
+
   it("ignores non-primary pointer buttons", () => {
     const { result } = renderHook(() =>
       useMonthlyRoster({ hook: createMockHook() }),

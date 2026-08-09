@@ -15,6 +15,7 @@ import {
   RosterSkeleton,
 } from "./roster/roster-empty-states";
 import { RosterGridTable } from "./roster/roster-grid-table";
+import { RosterMobileList } from "./roster/roster-mobile-list";
 import { ShiftPickerModal } from "./shift-picker-modal";
 
 const dateLocales: Partial<Record<string, Locale>> = {
@@ -41,6 +42,7 @@ export function MonthlyRosterGrid({
 
   const {
     monthDays,
+    complianceViolations,
     isMonthLoading,
     isMonthError,
     refetchMonthSchedules,
@@ -58,6 +60,7 @@ export function MonthlyRosterGrid({
     selectedEmployeeIds,
     filteredSchedules,
     isDragging,
+    handleCellKeyDown,
     handleCellPointerDown,
     handleCellPointerEnter,
     handleApplyShift,
@@ -158,19 +161,35 @@ export function MonthlyRosterGrid({
     }
 
     return (
-      <RosterGridTable
-        containerRef={gridContainerRef}
-        currentLocale={currentLocale}
-        employeesLabel={t("shifts.monthly.all_employees")}
-        isDragging={isDragging}
-        monthDays={monthDays}
-        monthSchedules={filteredSchedules}
-        onCellPointerDown={handleCellPointerDown}
-        onCellPointerEnter={handleCellPointerEnter}
-        rowStatus={rowStatus}
-        selectedCells={selectedCells}
-        shifts={shifts}
-      />
+      <>
+        <div className="hidden lg:block" data-testid="monthly-roster-desktop">
+          <RosterGridTable
+            complianceViolations={complianceViolations}
+            containerRef={gridContainerRef}
+            currentLocale={currentLocale}
+            employeesLabel={t("shifts.monthly.all_employees")}
+            isDragging={isDragging}
+            monthDays={monthDays}
+            monthSchedules={filteredSchedules}
+            onCellPointerDown={handleCellPointerDown}
+            onCellPointerEnter={handleCellPointerEnter}
+            rowStatus={rowStatus}
+            selectedCells={selectedCells}
+            shifts={shifts}
+          />
+        </div>
+        <RosterMobileList
+          complianceViolations={complianceViolations}
+          currentLocale={currentLocale}
+          monthDays={monthDays}
+          monthSchedules={filteredSchedules}
+          onCellKeyDown={handleCellKeyDown}
+          onCellPointerDown={handleCellPointerDown}
+          rowStatus={rowStatus}
+          selectedCells={selectedCells}
+          shifts={shifts}
+        />
+      </>
     );
   };
 
@@ -187,12 +206,14 @@ export function MonthlyRosterGrid({
       ) : null}
 
       <div className="bg-white dark:bg-slate-900 rounded-[28px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden relative group/grid">
-        <GridScrollButtons
-          onScrollLeft={handleScrollLeft}
-          onScrollRight={handleScrollRight}
-          showLeft={showLeftArrow}
-          showRight={showRightArrow}
-        />
+        <div className="hidden lg:block">
+          <GridScrollButtons
+            onScrollLeft={handleScrollLeft}
+            onScrollRight={handleScrollRight}
+            showLeft={showLeftArrow}
+            showRight={showRightArrow}
+          />
+        </div>
 
         {renderContent()}
       </div>

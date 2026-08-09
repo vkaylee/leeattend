@@ -64,6 +64,48 @@ function CellOverlays({ status, complianceStatus, isHoliday, holidayName, hasTra
   );
 }
 
+interface RosterCellContentProps {
+  complianceStatus?: "ok" | "warning" | "violation";
+  daySchedules: import("@/lib/api/types").EffectiveSchedule[];
+  shifts?: Shift[];
+  status?: "saving" | "saved" | "error";
+}
+
+export function RosterCellContent({
+  complianceStatus,
+  daySchedules,
+  shifts,
+  status,
+}: RosterCellContentProps) {
+  const workingSchedules = daySchedules.filter((s) => s.shift_id);
+  const hasShift = workingSchedules.length > 0;
+  const isHoliday = daySchedules.some((s) => s.is_holiday);
+  const holidayName = daySchedules.find((s) => s.holiday_name)?.holiday_name ?? undefined;
+  const highestSource = getHighestPrioritySource(daySchedules);
+  const allTraces = daySchedules.flatMap((s) => s.traces ?? []);
+  const hasTraces = allTraces.length > 0;
+
+  return (
+    <div className="py-2.5 px-1 min-h-[44px] flex flex-col justify-center items-center gap-1">
+      <ShiftContent hasShift={hasShift} shifts={shifts} workingSchedules={workingSchedules} />
+
+      <SourceIndicator source={highestSource} />
+
+      <CellOverlays
+        allTraces={allTraces}
+        complianceStatus={complianceStatus}
+        hasTraces={hasTraces}
+        highestSource={highestSource}
+        holidayName={holidayName}
+        isHoliday={isHoliday}
+        shifts={shifts}
+        status={status}
+        workingSchedules={workingSchedules}
+      />
+    </div>
+  );
+}
+
 const RosterCell = memo(function RosterCell({
   complianceStatus,
   dateStr,
@@ -73,11 +115,6 @@ const RosterCell = memo(function RosterCell({
   shifts,
   status,
 }: RosterCellProps) {
-  const workingSchedules = daySchedules.filter((s) => s.shift_id);
-  const hasShift = workingSchedules.length > 0;
-  const isHoliday = daySchedules.some((s) => s.is_holiday);
-  const holidayName = daySchedules.find((s) => s.holiday_name)?.holiday_name ?? undefined;
-
   const highestSource = getHighestPrioritySource(daySchedules);
   const statusStyles =
     status === "saving"
@@ -87,32 +124,18 @@ const RosterCell = memo(function RosterCell({
       : "";
   const cellStyles = getCellStyles(highestSource, isSelected) + statusStyles;
 
-  const allTraces = daySchedules.flatMap((s) => s.traces ?? []);
-  const hasTraces = allTraces.length > 0;
-
   return (
     <td
       className={cellStyles}
       data-date={dateStr}
       data-employee-id={employeeId}
     >
-      <div className="py-2.5 px-1 min-h-[44px] flex flex-col justify-center items-center gap-1">
-        <ShiftContent hasShift={hasShift} shifts={shifts} workingSchedules={workingSchedules} />
-
-        <SourceIndicator source={highestSource} />
-
-        <CellOverlays
-          allTraces={allTraces}
-          complianceStatus={complianceStatus}
-          hasTraces={hasTraces}
-          highestSource={highestSource}
-          holidayName={holidayName}
-          isHoliday={isHoliday}
-          shifts={shifts}
-          status={status}
-          workingSchedules={workingSchedules}
-        />
-      </div>
+      <RosterCellContent
+        complianceStatus={complianceStatus}
+        daySchedules={daySchedules}
+        shifts={shifts}
+        status={status}
+      />
     </td>
   );
 });
