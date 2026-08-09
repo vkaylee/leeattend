@@ -416,18 +416,8 @@ impl DieselRosterRepository {
                             .execute(conn)
                             .await;
 
-                            match delete_result {
-                                Ok(n) => deleted += n as u64,
-                                Err(e) => {
-                                    tracing::warn!(
-                                        workspace_id = %ws_id,
-                                        employment_id = %emp_id,
-                                        date = %date,
-                                        error = %e,
-                                        "write-through: failed to cleanup stale segments"
-                                    );
-                                }
-                            }
+                            let deleted_count = delete_result.map_err(AppError::from)?;
+                            deleted += deleted_count as u64;
                         }
 
                         if deleted > 0 {
@@ -443,27 +433,16 @@ impl DieselRosterRepository {
                         .values(&all_new_entities)
                         .on_conflict_do_nothing()
                         .execute(conn)
-                        .await;
-                    match inserted {
-                        Ok(n) => {
-                            tracing::info!(
-                                workspace_id = %ws_id,
-                                segments_attempted = all_new_entities.len(),
-                                segments_inserted = n,
-                                segments_deleted = deleted,
-                                elapsed_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX),
-                                "work_segments.write_through.completed"
-                            );
-                        }
-                        Err(e) => {
-                            tracing::warn!(
-                                workspace_id = %ws_id,
-                                error = %e,
-                                elapsed_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX),
-                                "write-through: failed to persist segments"
-                            );
-                        }
-                    }
+                        .await
+                        .map_err(AppError::from)?;
+                    tracing::info!(
+                        workspace_id = %ws_id,
+                        segments_attempted = all_new_entities.len(),
+                        segments_inserted = inserted,
+                        segments_deleted = deleted,
+                        elapsed_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX),
+                        "work_segments.write_through.completed"
+                    );
                                                 Ok(())
                             })
                         })
