@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserPlus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,8 +10,10 @@ import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
 import { Typography } from "@/components/ui/typography";
 import { rehireEmployee, fetchEmployers, Employee } from "@/lib/api";
+import { employeeKeys } from "@/lib/query-keys";
 
 interface RehireEmployeeModalProps {
   employeeId: string | null;
@@ -39,13 +41,17 @@ export default function RehireEmployeeModal({
     enabled: !!wsId && isOpen,
   });
 
-  const rehireMutation = useMutation({
-    mutationFn: (data: { hire_date: string; employer_id: string }) => {
+  const rehireMutation = useWorkspaceMutation<
+    { hire_date: string; employer_id: string },
+    Employee
+  >({
+    workspaceId: wsId,
+    keys: [employeeKeys.all(wsId)],
+    mutationFn: (workspaceId, data) => {
       if (!employeeId) throw new Error("No employee selected");
-      return rehireEmployee(wsId, employeeId, data);
+      return rehireEmployee(workspaceId, employeeId, data);
     },
     onSuccess: (updatedEmp: Employee) => {
-      void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
       void queryClient.invalidateQueries({ queryKey: ["employmentHistory", employeeId] });
       void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, employeeId] });
       onClose();

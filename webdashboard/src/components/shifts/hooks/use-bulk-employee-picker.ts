@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { searchEmployees } from "@/lib/api";
+import { employeeKeys } from "@/lib/query-keys";
 import { Employee, PaginatedResponse } from "@/lib/api/types";
 
 const PAGE_LIMIT = 50;
@@ -85,7 +86,11 @@ export function useBulkEmployeePicker({
       setLoadingDepts((prev) => new Set(prev).add(departmentId));
       try {
         const emps = await queryClient.fetchQuery({
-          queryKey: ["employees", wsId, "by-department", departmentId],
+          queryKey: employeeKeys.lookup(wsId, {
+            departmentIds: [departmentId],
+            emptyQueryBehavior: "all",
+            permission: "bulk-employee-picker",
+          }),
           queryFn: () => fetchAllDeptEmployees(wsId, departmentId),
         });
         setDeptEmployees((prev) => new Map(prev).set(departmentId, emps));

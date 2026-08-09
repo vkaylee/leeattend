@@ -4,12 +4,12 @@ import { useMemo } from "react";
 import { format } from "date-fns";
 
 import { useAllEmployees } from "@/hooks/use-employees";
+import { useDepartments } from "@/hooks/use-departments";
 import {
   fetchAssignmentHistory,
   fetchShifts,
   fetchWorkingPatterns,
   fetchWorkspaceSchedules,
-  fetchDepartments,
 } from "@/lib/api";
 import {
   AssignmentHistory,
@@ -114,11 +114,7 @@ export function useShiftData({
     enabled: !!wsId,
   });
 
-  const { data: departments } = useQuery<Department[]>({
-    queryKey: ["departments", wsId],
-    queryFn: () => fetchDepartments(wsId),
-    enabled: !!wsId,
-  });
+  const { data: departments } = useDepartments(wsId);
 
   return {
     shifts,

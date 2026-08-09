@@ -104,8 +104,8 @@ describe("useAllEmployees", () => {
   });
 
   it("generates correct query keys", () => {
-    expect(employeeKeys.all).toEqual(["employees"]);
-    expect(employeeKeys.list("ws-abc")).toEqual(["employees", "ws-abc", { permission: undefined }]);
-    expect(employeeKeys.list(null)).toEqual(["employees", null, { permission: undefined }]);
+    expect(employeeKeys.all("ws-abc")).toEqual(["employees", "ws-abc"]);
+    expect(employeeKeys.list("ws-abc")).toEqual(["employees", "ws-abc", "list", {}]);
+    expect(employeeKeys.list(null)).toEqual(["employees", null, "list", {}]);
   });
 });

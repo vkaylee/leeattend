@@ -1,14 +1,14 @@
 import type { TFunction } from "i18next";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
 import { useState } from "react";
 
 import type { Department } from "@/lib/api";
 
 import { useToast } from "@/components/ui/toast";
 import { createDepartment, updateDepartment } from "@/lib/api";
+import { departmentKeys } from "@/lib/query-keys";
 export function useDepartmentForm(wsId: string, editingDept: Department | null, onClose: () => void, t: TFunction) {
-  const queryClient = useQueryClient();
   const toast = useToast();
 
   const deptId = editingDept?.id ?? null;
@@ -40,9 +40,14 @@ export function useDepartmentForm(wsId: string, editingDept: Department | null, 
     setPrevDeptId(deptId);
   }
 
-  const createMutation = useMutation({
-    mutationFn: (data: Parameters<typeof createDepartment>[1]) => createDepartment(wsId, data),
-    onSuccess: (newDept) => { 
+  const createMutation = useWorkspaceMutation<
+    Parameters<typeof createDepartment>[1],
+    Awaited<ReturnType<typeof createDepartment>>
+  >({
+    workspaceId: wsId,
+    keys: [departmentKeys.all(wsId)],
+    mutationFn: (workspaceId, data) => createDepartment(workspaceId, data),
+    onSuccess: (newDept) => {
       if (selectedParentId && newDept.id) {
         try {
           const saved = localStorage.getItem(`leeattend_dept_parents_${wsId}`);
@@ -53,18 +58,22 @@ export function useDepartmentForm(wsId: string, editingDept: Department | null, 
           // Ignore
         }
       }
-      void queryClient.invalidateQueries({ queryKey: ["departments", wsId] }); 
-      onClose(); 
-      toast.success(t("common.success")); 
+      onClose();
+      toast.success(t("common.success"));
     },
   });
 
-  const updateMutation = useMutation({
-    mutationFn: (data: Parameters<typeof updateDepartment>[2]) => {
+  const updateMutation = useWorkspaceMutation<
+    Parameters<typeof updateDepartment>[2],
+    Awaited<ReturnType<typeof updateDepartment>>
+  >({
+    workspaceId: wsId,
+    keys: [departmentKeys.all(wsId)],
+    mutationFn: (workspaceId, data) => {
       if (!editingDept) throw new Error("Editing department is required for update");
-      return updateDepartment(wsId, editingDept.id, data);
+      return updateDepartment(workspaceId, editingDept.id, data);
     },
-    onSuccess: () => { 
+    onSuccess: () => {
       if (editingDept) {
         try {
           const saved = localStorage.getItem(`leeattend_dept_parents_${wsId}`);
@@ -80,9 +89,8 @@ export function useDepartmentForm(wsId: string, editingDept: Department | null, 
           // Ignore
         }
       }
-      void queryClient.invalidateQueries({ queryKey: ["departments", wsId] }); 
-      onClose(); 
-      toast.success(t("common.success")); 
+      onClose();
+      toast.success(t("common.success"));
     },
   });
 

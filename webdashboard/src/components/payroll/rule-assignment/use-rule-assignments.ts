@@ -2,8 +2,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useDepartments } from "@/hooks/use-departments";
+
 import { useToast } from "@/components/ui/toast";
-import { fetchDepartments } from "@/lib/api/departments";
 import {
   fetchPayrollRuleAssignments,
   createPayrollRuleAssignment,
@@ -26,11 +27,7 @@ export function useRuleAssignments(wsId: string, ruleId: string) {
     enabled: !!ruleId,
   });
 
-  const departmentsQuery = useQuery({
-    queryKey: ["departments", wsId],
-    queryFn: () => fetchDepartments(wsId),
-    enabled: !!wsId,
-  });
+  const departmentsQuery = useDepartments(wsId);
 
   const createMutation = useMutation({
     mutationFn: (data: Parameters<typeof createPayrollRuleAssignment>[2]) =>

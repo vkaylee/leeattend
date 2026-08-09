@@ -10,6 +10,8 @@ import type { ComplianceViolation } from "@/lib/api/errors";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkingPatternGrid } from "@/hooks/use-working-pattern-grid";
+import { useDepartments } from "@/hooks/use-departments";
+import { useWorkspaceQuery } from "@/hooks/common/use-workspace-query";
 import {
   BulkAssignResponse,
   CreateWorkingPatternRequest,
@@ -26,9 +28,9 @@ import {
   fetchWorkingPatterns,
   getCurrentWorkspaceId,
   fetchEmployees,
-  fetchDepartments,
 } from "@/lib/api";
 import { ApiError, ComplianceConflictError, parseComplianceConflict } from "@/lib/api/errors";
+import { employeeKeys } from "@/lib/query-keys";
 
 type BulkAssignPatternRequestLocal = Parameters<typeof bulkAssignPattern>[1];
 
@@ -277,18 +279,14 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
     setAssignAnchorDate(val);
   }, []);
 
-  const { data: employeesData } = useQuery({
-    queryKey: ["employees-all-bulk", wsId],
-    queryFn: () => fetchEmployees(wsId, 1, 1000),
-    enabled: !!wsId,
+  const { data: employeesData } = useWorkspaceQuery({
+    workspaceId: wsId,
+    queryKey: employeeKeys.lookup(wsId, { permission: "working-patterns-bulk" }),
+    queryFn: (workspaceId) => fetchEmployees(workspaceId, 1, 1000),
   });
   const employees = employeesData?.data ?? [];
 
-  const { data: departments = [] } = useQuery<Department[]>({
-    queryKey: ["departments", wsId],
-    queryFn: () => fetchDepartments(wsId),
-    enabled: !!wsId,
-  });
+  const { data: departments = [] } = useDepartments(wsId);
 
   const handleBulkAssign = () => {
     if (selectedPatternId && selectedEmployeeIds.length > 0) {

@@ -4,7 +4,8 @@ import { useState } from "react";
 import type { Department } from "@/lib/api/types";
 
 import { useAllEmployees } from "@/hooks/use-employees";
-import { fetchLeavePolicyAssignments, fetchDepartments, deleteLeavePolicyAssignment } from "@/lib/api";
+import { useDepartments } from "@/hooks/use-departments";
+import { fetchLeavePolicyAssignments, deleteLeavePolicyAssignment } from "@/lib/api";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
 
 export type TabType = "types" | "policies" | "assignments";
@@ -41,10 +42,8 @@ export function useLeaveSettings() {
     enabled: !!wsId && activeTab === "assignments"
   });
 
-  const { data: departments = [], isLoading: departmentsLoading } = useQuery<Department[]>({
-    queryKey: ["departments", wsId],
-    queryFn: () => wsId ? fetchDepartments(wsId) : Promise.resolve([]),
-    enabled: !!wsId && activeTab === "assignments"
+  const { data: departments = [], isLoading: departmentsLoading } = useDepartments(wsId, {
+    enabled: activeTab === "assignments",
   });
 
   const deleteAssignmentMutation = useMutation({

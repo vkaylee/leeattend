@@ -10,11 +10,11 @@ import type { AttendanceLogsSearch } from "@/pages/attendance/search-schema";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useAllEmployees } from "@/hooks/use-employees";
+import { useDepartments } from "@/hooks/use-departments";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import {
   fetchRawAttendanceLogs,
   getCurrentWorkspaceId,
-  fetchDepartments,
   fetchDevices,
   fetchStagingLogs,
   resolveStagingLog,
@@ -181,11 +181,7 @@ export function useAttendanceLogsPage() {
 
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
-  const { data: departments = [] } = useQuery({
-    queryKey: ["departments", wsId],
-    queryFn: () => fetchDepartments(wsId ?? ""),
-    enabled: !!wsId,
-  });
+  const { data: departments = [] } = useDepartments(wsId);
 
   const { employees: _employees } = useAllEmployees(wsId);
   const employeeMap = useMemo(() => {

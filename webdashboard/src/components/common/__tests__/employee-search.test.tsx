@@ -4,6 +4,8 @@ import React from "react";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { employeeKeys } from "@/lib/query-keys";
+
 import { EmployeeSearch } from "../employee-search";
 
 // Mock the query hooks from react-query
@@ -202,14 +204,12 @@ describe("EmployeeSearch Component", () => {
 
     expect(useInfiniteQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        queryKey: expect.arrayContaining([
-          "employees",
-          "ws-1",
-          "search",
-          "",
-          "all",
-          "attendance:adjustments:submit_on_behalf",
-        ]),
+        queryKey: employeeKeys.search("ws-1", {
+          departmentIds: [],
+          emptyQueryBehavior: "all",
+          permission: "attendance:adjustments:submit_on_behalf",
+          search: "",
+        }),
       })
     );
   });
@@ -256,7 +256,11 @@ describe("EmployeeSearch Component", () => {
 
     expect(useInfiniteQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        queryKey: expect.arrayContaining(["employees", "ws-1", "search", "d1,d2"]),
+        queryKey: employeeKeys.search("ws-1", {
+          departmentIds: ["d1", "d2"],
+          emptyQueryBehavior: "all",
+          search: "",
+        }),
       })
     );
   });

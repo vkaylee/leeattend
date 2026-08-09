@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useWorkspaceQuery } from "@/hooks/common/use-workspace-query";
+import { employeeKeys } from "@/lib/query-keys";
 import { useMemo } from "react";
 
 import { searchEmployees } from "@/lib/api";
@@ -9,13 +10,11 @@ interface UseReportsEmployeeSearchProps {
 }
 
 export function useReportsEmployeeSearch({ wsId, debouncedSearch }: UseReportsEmployeeSearchProps) {
-  const { data: searchResults } = useQuery({
-    queryKey: ["employees", wsId, "search", debouncedSearch],
-    queryFn: () => {
-      if (!wsId) return Promise.reject(new Error("No workspace ID"));
-      return searchEmployees({ wsId, query: debouncedSearch });
-    },
-    enabled: !!wsId && debouncedSearch.trim().length > 0,
+  const { data: searchResults } = useWorkspaceQuery({
+    workspaceId: wsId,
+    queryKey: employeeKeys.search(wsId, { search: debouncedSearch }),
+    queryFn: (workspaceId) => searchEmployees({ wsId: workspaceId, query: debouncedSearch }),
+    enabled: debouncedSearch.trim().length > 0,
   });
 
   const employeeIdsFilter = useMemo(() => {

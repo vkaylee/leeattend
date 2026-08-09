@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -9,8 +9,10 @@ import Button from "@/components/ui/button";
 import FormField, { LABEL_BASE } from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
 import { Typography } from "@/components/ui/typography";
 import { updateEmployeeEmployment } from "@/lib/api";
+import { employeeKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
 interface TerminateEmployeeModalProps {
@@ -45,11 +47,16 @@ export default function TerminateEmployeeModal({
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  const terminateMutation = useMutation({
-    mutationFn: ({ endDate, reason, notes }: { endDate: string; reason: string; notes: string }) => {
+  const terminateMutation = useWorkspaceMutation<
+    { endDate: string; reason: string; notes: string },
+    Awaited<ReturnType<typeof updateEmployeeEmployment>>
+  >({
+    workspaceId: wsId,
+    keys: [employeeKeys.all(wsId)],
+    mutationFn: (workspaceId, { endDate, reason, notes }) => {
       if (!employeeId) throw new Error("No employee selected");
       if (!activeEmploymentId) throw new Error("No active employment found");
-      return updateEmployeeEmployment(wsId, employeeId, activeEmploymentId, {
+      return updateEmployeeEmployment(workspaceId, employeeId, activeEmploymentId, {
         status: "terminated",
         end_date: endDate,
         termination_reason: reason,
@@ -57,7 +64,6 @@ export default function TerminateEmployeeModal({
       });
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
       void queryClient.invalidateQueries({ queryKey: ["deptHistory", employeeId] });
       void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, employeeId] });
       onClose();

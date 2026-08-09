@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Calendar } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -7,7 +7,9 @@ import Button from "@/components/ui/button";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
 import { updateEmployeeEmployment } from "@/lib/api";
+import { employeeKeys } from "@/lib/query-keys";
 
 interface EditTerminationModalProps {
   currentEndDate: string | null;
@@ -32,17 +34,21 @@ export default function EditTerminationModal({
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  const editMutation = useMutation({
-    mutationFn: (newEndDate: string) => {
+  const editMutation = useWorkspaceMutation<
+    string,
+    Awaited<ReturnType<typeof updateEmployeeEmployment>>
+  >({
+    workspaceId: wsId,
+    keys: [employeeKeys.all(wsId)],
+    mutationFn: (workspaceId, newEndDate) => {
       if (!employeeId) throw new Error("No employee selected");
       if (!employmentId) throw new Error("No employment record found");
-      return updateEmployeeEmployment(wsId, employeeId, employmentId, {
+      return updateEmployeeEmployment(workspaceId, employeeId, employmentId, {
         status: "terminated",
         end_date: newEndDate,
       });
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
       void queryClient.invalidateQueries({ queryKey: ["deptHistory", employeeId] });
       void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, employeeId] });
       onClose();

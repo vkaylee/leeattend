@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { RotateCcw } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -6,8 +6,10 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
 import { Typography } from "@/components/ui/typography";
 import { updateEmployeeEmployment } from "@/lib/api";
+import { employeeKeys } from "@/lib/query-keys";
 
 interface UndoTerminationModalProps {
   employeeId: string | null;
@@ -30,17 +32,21 @@ export default function UndoTerminationModal({
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  const undoMutation = useMutation({
-    mutationFn: () => {
+  const undoMutation = useWorkspaceMutation<
+    undefined,
+    Awaited<ReturnType<typeof updateEmployeeEmployment>>
+  >({
+    workspaceId: wsId,
+    keys: [employeeKeys.all(wsId)],
+    mutationFn: (workspaceId) => {
       if (!employeeId) throw new Error("No employee selected");
       if (!employmentId) throw new Error("No employment record found");
-      return updateEmployeeEmployment(wsId, employeeId, employmentId, {
+      return updateEmployeeEmployment(workspaceId, employeeId, employmentId, {
         status: "active",
         end_date: null,
       });
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
       void queryClient.invalidateQueries({ queryKey: ["deptHistory", employeeId] });
       void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, employeeId] });
       onClose();
@@ -51,7 +57,7 @@ export default function UndoTerminationModal({
 
   const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
-    undoMutation.mutate();
+    undoMutation.mutate(undefined);
   };
 
   return (

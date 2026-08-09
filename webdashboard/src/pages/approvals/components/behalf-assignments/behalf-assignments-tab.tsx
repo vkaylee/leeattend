@@ -1,3 +1,5 @@
+import { useDepartments } from "@/hooks/use-departments";
+
 import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -7,7 +9,6 @@ import type { BehalfAssignment, Employee } from "@/lib/api/types";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useBehalfAssignments } from "@/hooks/use-behalf-assignments";
-import { fetchDepartments } from "@/lib/api";
 import { logError } from "@/lib/logger";
 
 import type { AssignmentType, BehalfAssignmentInput } from "./types";
@@ -35,11 +36,7 @@ export function BehalfAssignmentsTab({
     isDeleting,
   } = useBehalfAssignments(assignmentType);
 
-  const { data: departments = [], isLoading: deptsLoading } = useQuery({
-    queryKey: ["departments", wsId],
-    queryFn: () => fetchDepartments(wsId),
-    enabled: !!wsId,
-  });
+  const { data: departments = [], isLoading: deptsLoading } = useDepartments(wsId);
 
   const [isOpen, setIsOpen] = useState(false);
   const [assigneeId, setAssigneeId] = useState("");

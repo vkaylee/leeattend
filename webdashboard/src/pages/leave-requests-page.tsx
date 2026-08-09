@@ -1,4 +1,6 @@
 
+import { useDepartments } from "@/hooks/use-departments";
+
 import { useQuery } from "@tanstack/react-query";
 import { Clock, Plus, ShieldCheck, Upload } from "lucide-react";
 import React, { useMemo, useState } from "react";
@@ -26,7 +28,7 @@ import ResponsiveToolbar from "@/components/ui/responsive-toolbar";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { getCurrentWorkspaceId, fetchDepartments, Employee, LeaveRequest } from "@/lib/api";
+import { getCurrentWorkspaceId, Employee, LeaveRequest } from "@/lib/api";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
 
@@ -85,11 +87,7 @@ export default function LeaveRequestsPage() {
     t
   } = useLeaveRequests(wsId);
 
-  const { data: departments = [] } = useQuery({
-    queryKey: ["departments", wsId],
-    queryFn: () => fetchDepartments(wsId ?? ""),
-    enabled: !!wsId,
-  });
+  const { data: departments = [] } = useDepartments(wsId);
 
   const employeeMap = useMemo(() => {
     const map = new Map<string, Employee>();

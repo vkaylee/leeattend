@@ -8,8 +8,8 @@ import type { LeaveAssignment } from "@/pages/settings/hooks/use-leave-settings"
 
 import { useToast } from "@/components/ui/toast";
 import { useAllEmployees } from "@/hooks/use-employees";
+import { useDepartments } from "@/hooks/use-departments";
 import {
-  fetchDepartments,
   fetchLeavePolicies,
   fetchLeaveTypes,
   assignLeavePolicy,
@@ -59,10 +59,8 @@ export function useAssignPolicy(
 
   const { employees, isLoading: employeesLoading } = useAllEmployees(wsId, { enabled: isOpen });
   
-  const { data: departments = [], isLoading: departmentsLoading } = useQuery({ 
-    queryKey: ["departments", wsId], 
-    queryFn: () => wsId ? fetchDepartments(wsId) : Promise.resolve([]), 
-    enabled: isOpen && !!wsId 
+  const { data: departments = [], isLoading: departmentsLoading } = useDepartments(wsId, {
+    enabled: isOpen,
   });
   
   const { data: policies = [], isLoading: policiesLoading } = useQuery({ 

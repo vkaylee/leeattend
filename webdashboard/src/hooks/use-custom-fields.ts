@@ -1,5 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query";
-
 import type {
   CreateCustomFieldDefinitionRequest,
   SetCustomFieldValueRequest,
@@ -8,6 +6,7 @@ import type {
 
 import { useWorkspaceQuery, useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { departmentKeys, employeeKeys } from "@/lib/query-keys";
 import {
   createCustomFieldDefinition,
   deleteCustomFieldDefinition,
@@ -62,14 +61,13 @@ export const useCustomFieldValues = (entityType: string, entityId: string) => {
 };
 
 export const useSetCustomFieldValues = (entityType: string, entityId: string) => {
-  const _queryClient = useQueryClient();
   const { workspace } = useWorkspace();
   return useWorkspaceMutation<SetCustomFieldValueRequest[]>({
     mutationFn: (wsId, values) => setCustomFieldValues(wsId, entityType, entityId, values),
     keys: [
       customFieldKeys.values(workspace?.id ?? "", entityType, entityId),
-      ["employees"],
-      ["departments"],
+      employeeKeys.all(workspace?.id),
+      departmentKeys.all(workspace?.id),
     ],
   });
 };

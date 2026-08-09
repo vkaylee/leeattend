@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { 
-  fetchAssignmentRules, 
+import {
+  fetchAssignmentRules,
   fetchWorkingPatterns,
-  fetchDepartments,
   fetchEmployers,
   fetchLocations,
-  getCurrentWorkspaceId
+  getCurrentWorkspaceId,
 } from "@/lib/api";
+import { useDepartments } from "@/hooks/use-departments";
 
 export function useAssignmentRulesData() {
   const wsId = getCurrentWorkspaceId() ?? "";
@@ -24,11 +24,7 @@ export function useAssignmentRulesData() {
     enabled: !!wsId 
   });
 
-  const { data: departments } = useQuery({ 
-    queryKey: ["departments", wsId], 
-    queryFn: () => fetchDepartments(wsId), 
-    enabled: !!wsId 
-  });
+  const { data: departments } = useDepartments(wsId);
 
   const { data: employers } = useQuery({ 
     queryKey: ["employers", wsId], 

@@ -1,5 +1,5 @@
 /* eslint-disable complexity -- multi-section profile tab with 5 defensive optional chains on API data */
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, RotateCcw, Trash2, UserPlus } from "lucide-react";
 import React, { useState } from "react";
 
@@ -12,7 +12,9 @@ import EditTerminationModal from "@/components/features/employees/edit-terminati
 import UndoTerminationModal from "@/components/features/employees/undo-termination-modal";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
 import { fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
+import { employeeKeys } from "@/lib/query-keys";
 import { maybeNull } from "@/types/api-overrides";
 
 import type { DeptHistoryEntry } from "./profile-sections";
@@ -143,14 +145,18 @@ export default function ProfileTab({
         setSelectedLocationIdState(id);
     };
 
-    const updateLocationMutation = useMutation({
-        mutationFn: (locationId: string) => {
+    const updateLocationMutation = useWorkspaceMutation<
+        string,
+        Awaited<ReturnType<typeof updateEmployeeEmployment>>
+    >({
+        workspaceId: wsId,
+        keys: [employeeKeys.all(wsId)],
+        mutationFn: (workspaceId, locationId) => {
             if (!maybeNull(activeEmployment)) return Promise.reject(new Error("No active employment found"));
-            return updateEmployeeEmployment(wsId, employee.id, activeEmployment.id, { primary_location_id: locationId });
+            return updateEmployeeEmployment(workspaceId, employee.id, activeEmployment.id, { primary_location_id: locationId });
         },
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, employee.id] });
-            void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
             handleSetIsEditingLocation(false);
             toast.success(t("common.success"));
         },

@@ -1,4 +1,5 @@
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { useWorkspaceInfiniteQuery, useWorkspaceQuery } from '@/hooks/common/use-workspace-query';
+import { employeeKeys } from '@/lib/query-keys';
 import { useState, useMemo, useEffect } from 'react';
 
 import { searchEmployees, fetchEmployee } from '../lib/api';
@@ -22,7 +23,7 @@ export function useEmployeeSearch({
   departmentIds,
 }: UseEmployeeSearchOptions) {
   const isQueryEmpty = debouncedSearchTerm.trim() === '';
-  const isEnabled = workspaceId !== '' && (emptyQueryBehavior === 'all' || !isQueryEmpty);
+  const isEnabled = emptyQueryBehavior === 'all' || !isQueryEmpty;
 
   const {
     data: employeesPages,
@@ -30,11 +31,17 @@ export function useEmployeeSearch({
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-  } = useInfiniteQuery({
-    queryKey: ['employees', workspaceId, 'search', debouncedSearchTerm, emptyQueryBehavior, permission, departmentIds?.join(',') ?? ''],
-    queryFn: async ({ pageParam }) => {
+  } = useWorkspaceInfiniteQuery({
+    workspaceId,
+    queryKey: employeeKeys.search(workspaceId, {
+      departmentIds,
+      emptyQueryBehavior,
+      permission,
+      search: debouncedSearchTerm,
+    }),
+    queryFn: async (wsId, pageParam) => {
       const res = (await searchEmployees({
-        wsId: workspaceId,
+        wsId,
         query: debouncedSearchTerm,
         page: pageParam,
         limit: 50,
@@ -63,13 +70,14 @@ export function useEmployeeSearch({
   const [selectedMeta, setSelectedMeta] = useState<Employee[]>([]);
 
   const firstSelectedId = selectedIds[0];
-  const { data: selectedEmpData } = useQuery({
-    queryKey: ['employee', workspaceId, firstSelectedId],
-    queryFn: () => {
+  const { data: selectedEmpData } = useWorkspaceQuery({
+    workspaceId,
+    queryKey: employeeKeys.detail(workspaceId, firstSelectedId ?? ""),
+    queryFn: (wsId) => {
       if (!firstSelectedId) throw new Error("No selected ID");
-      return fetchEmployee(workspaceId, firstSelectedId);
+      return fetchEmployee(wsId, firstSelectedId);
     },
-    enabled: workspaceId !== '' && !!firstSelectedId && !selectedMeta.some(m => m.id === firstSelectedId),
+    enabled: !!firstSelectedId && !selectedMeta.some(m => m.id === firstSelectedId),
   });
 
   useEffect(() => {

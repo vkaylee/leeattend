@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Briefcase, Plus } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import PageHeader from "@/components/ui/page-header";
+import { useWorkspaceQuery } from "@/hooks/common/use-workspace-query";
 import { useToast } from "@/components/ui/toast";
 import {
   Employer,
@@ -18,13 +19,14 @@ import {
   CreateEmployerRequest,
   UpdateEmployerRequest,
 } from "@/lib/api";
+import { employeeKeys } from "@/lib/query-keys";
 import { EmployerCard } from "@/pages/settings/components/employer-card";
 import { EmployerFormModal } from "@/pages/settings/components/employer-form-modal";
 
 // eslint-disable-next-line complexity
 export default function EmployersPage() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId() ?? "";
+  const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -34,14 +36,16 @@ export default function EmployersPage() {
   // Queries
   const { data: employers = [], isLoading: isEmployersLoading } = useQuery({
     queryKey: ["employers", wsId],
-    queryFn: () => fetchEmployers(wsId),
+    queryFn: () => {
+      if (!wsId) throw new Error("No workspace ID");
+      return fetchEmployers(wsId);
+    },
     enabled: !!wsId,
   });
 
-  const { data: employeesData, isLoading: isEmployeesLoading } = useQuery({
-    queryKey: ["employees", wsId],
-    queryFn: () => fetchEmployees(wsId, 1, 1000),
-    enabled: !!wsId,
+  const { data: employeesData, isLoading: isEmployeesLoading } = useWorkspaceQuery({
+    queryKey: employeeKeys.lookup(wsId, { permission: "employers-page" }),
+    queryFn: (workspaceId) => fetchEmployees(workspaceId, 1, 1000),
   });
 
   const employees = employeesData?.data ?? [];
@@ -49,7 +53,10 @@ export default function EmployersPage() {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: (data: CreateEmployerRequest) => createEmployer(wsId, data),
+    mutationFn: (data: CreateEmployerRequest) => {
+      if (!wsId) throw new Error("No workspace ID");
+      return createEmployer(wsId, data);
+    },
     onSuccess: () => {
       toast.success(t("settings.employers.messages.created_success", { defaultValue: "Đã tạo pháp nhân thành công." }));
       void queryClient.invalidateQueries({ queryKey: ["employers", wsId] });
@@ -64,6 +71,7 @@ export default function EmployersPage() {
   const updateMutation = useMutation({
     mutationFn: (data: UpdateEmployerRequest) => {
       if (!editingEmployer) throw new Error("No employer selected for editing");
+      if (!wsId) throw new Error("No workspace ID");
       return updateEmployer(wsId, editingEmployer.id, data);
     },
     onSuccess: () => {
@@ -79,7 +87,10 @@ export default function EmployersPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteEmployer(wsId, id),
+    mutationFn: (id: string) => {
+      if (!wsId) throw new Error("No workspace ID");
+      return deleteEmployer(wsId, id);
+    },
     onSuccess: () => {
       toast.success(t("settings.employers.messages.deleted_success", { defaultValue: "Đã xóa pháp nhân thành công." }));
       void queryClient.invalidateQueries({ queryKey: ["employers", wsId] });

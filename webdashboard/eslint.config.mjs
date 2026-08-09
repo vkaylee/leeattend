@@ -198,6 +198,33 @@ export default tseslint.config(
   {
     files: ['src/**/*.{ts,tsx}'],
     ignores: [
+      'src/hooks/common/**/*.{ts,tsx}',
+      'src/lib/query-keys.ts',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'warn',
+        {
+          selector:
+            'CallExpression[callee.type="Identifier"][callee.name=/^(useQuery|useInfiniteQuery)$/] > ObjectExpression > Property[key.name="queryKey"][value.type="ArrayExpression"]',
+          message: 'Use a query-key factory instead of a literal queryKey.',
+        },
+        {
+          selector:
+            'CallExpression[callee.type="Identifier"][callee.name="useMutation"] > ObjectExpression > Property[key.name=/^(mutationKey|queryKey)$/][value.type="ArrayExpression"]',
+          message: 'Use a query-key factory instead of a literal mutation key.',
+        },
+        {
+          selector:
+            'CallExpression[callee.type="MemberExpression"][callee.property.name="invalidateQueries"] > ObjectExpression > Property[key.name="queryKey"][value.type="ArrayExpression"]',
+          message: 'Use a query-key factory instead of a literal queryKey.',
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: [
       'src/components/ui/**/*.{ts,tsx}',
     ],
     rules: {

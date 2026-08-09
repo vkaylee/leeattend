@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useToast } from '@/components/ui/toast';
-import { fetchDepartments } from '@/lib/api/departments';
+import { useDepartments } from '@/hooks/use-departments';
 import { fetchOvertimePolicies, assignOvertimePolicy } from '@/lib/api/payroll';
 
 interface UseAssignOvertimePolicyConfig {
@@ -36,11 +36,7 @@ export function useAssignOvertimePolicy({
     enabled: isOpen
   });
 
-  const { data: departments = [] } = useQuery({
-    queryKey: ['departments', wsId],
-    queryFn: () => fetchDepartments(wsId),
-    enabled: isOpen
-  });
+  const { data: departments = [] } = useDepartments(wsId, { enabled: isOpen });
 
   const assignMutation = useMutation({
     mutationFn: (data: Parameters<typeof assignOvertimePolicy>[1]) => assignOvertimePolicy(wsId, data),

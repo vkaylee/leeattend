@@ -1,14 +1,17 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useConfirm } from "../../../hooks/use-confirm";
-import { fetchDepartments, deleteDepartment, getCurrentWorkspaceId, fetchEmployees, Department } from "../../../lib/api";
+import { useAllEmployees } from "../../../hooks/use-employees";
+import { useDepartments } from "../../../hooks/use-departments";
+import { useWorkspaceMutation } from "../../../hooks/common/use-workspace-query";
+import { deleteDepartment, getCurrentWorkspaceId, Department } from "../../../lib/api";
+import { departmentKeys } from "../../../lib/query-keys";
+
 
 export function useDepartmentsPage() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId() ?? "";
-  const queryClient = useQueryClient();
+  const wsId = getCurrentWorkspaceId();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<Department | null>(null);
@@ -23,26 +26,17 @@ export function useDepartmentsPage() {
 
   const { confirm, ConfirmationDialog } = useConfirm();
 
-  const { data: departments = [], isLoading } = useQuery({ 
-    queryKey: ["departments", wsId], 
-    queryFn: () => fetchDepartments(wsId), 
-    enabled: !!wsId 
+  const { data: departments = [], isLoading } = useDepartments(wsId);
+
+  const { employees } = useAllEmployees(wsId, {
+    permission: undefined,
   });
 
-  const { data: employeesData } = useQuery({ 
-    queryKey: ["employees", wsId], 
-    queryFn: () => fetchEmployees(wsId, 1, 1000), 
-    enabled: !!wsId 
-  });
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const employees = employeesData?.data ?? [];
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteDepartment(wsId, id),
-    onSuccess: () => { 
-      void queryClient.invalidateQueries({ queryKey: ["departments", wsId] }); 
-    },
+  const deleteMutation = useWorkspaceMutation<string>({
+    workspaceId: wsId,
+    keys: [departmentKeys.all(wsId)],
+    mutationFn: (workspaceId, id) => deleteDepartment(workspaceId, id),
   });
 
   const handleDelete = async (id: string) => {

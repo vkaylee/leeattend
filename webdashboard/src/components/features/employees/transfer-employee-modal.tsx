@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Building2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -10,7 +10,9 @@ import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
 import { transferEmployee, Department } from "@/lib/api";
+import { employeeKeys } from "@/lib/query-keys";
 
 interface TransferEmployeeModalProps {
   departments: Department[] | undefined;
@@ -35,10 +37,15 @@ export default function TransferEmployeeModal({
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  const transferMutation = useMutation({
-    mutationFn: (data: { department_id: string; effective_date: string; notes?: string }) => {
+  const transferMutation = useWorkspaceMutation<
+    { department_id: string; effective_date: string; notes?: string },
+    Awaited<ReturnType<typeof transferEmployee>>
+  >({
+    workspaceId: wsId,
+    keys: [employeeKeys.all(wsId)],
+    mutationFn: (workspaceId, data) => {
       if (!employeeId) throw new Error("No employee selected");
-      return transferEmployee(wsId, employeeId, data);
+      return transferEmployee(workspaceId, employeeId, data);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["deptHistory", employeeId] });

@@ -1,15 +1,15 @@
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { Employment } from "@/lib/api/employees";
-
 import { useToast } from "@/components/ui/toast";
+import { useWorkspaceInfiniteQuery, useWorkspaceMutation, useWorkspaceQuery } from "@/hooks/common/use-workspace-query";
+import { useDepartments } from "@/hooks/use-departments";
+import { employeeKeys } from "@/lib/query-keys";
 import {
   searchEmployees,
   updateEmployee,
   Employee,
-  fetchDepartments,
   fetchEmployeeDepartmentHistory,
   updateEmployeeEmployment,
   type UpdateEmployeeRequest,
@@ -58,17 +58,25 @@ export const useEmployeesData = ({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ["employees", wsId, debouncedSearch, sortKey, sortDir, filterDeptIds, customFieldFilters, filterStatus],
-    queryFn: ({ pageParam }) => {
+  } = useWorkspaceInfiniteQuery({
+    workspaceId: wsId,
+    queryKey: employeeKeys.search(wsId, {
+      customFieldFilters,
+      departmentIds: filterDeptIds,
+      search: debouncedSearch,
+      sortDir,
+      sortKey,
+      status: filterStatus,
+    }),
+    queryFn: (workspaceId, pageParam) => {
       const apiSortKeyMapping = { name: "name", id: "employee_id_number", department: "department" } as const;
       const apiSortKey = sortKey ? apiSortKeyMapping[sortKey] : undefined;
       const cfString = Object.entries(customFieldFilters)
-         .filter(([_, val]) => !!val)
-         .map(([key, val]) => `${key}:${val}`)
-         .join(",");
+        .filter(([_, val]) => !!val)
+        .map(([key, val]) => `${key}:${val}`)
+        .join(",");
       return searchEmployees({
-        wsId,
+        wsId: workspaceId,
         query: debouncedSearch,
         page: pageParam,
         limit: PAGE_SIZE,
@@ -85,8 +93,7 @@ export const useEmployeesData = ({
       return allPages.length + 1;
     },
     initialPageParam: 1,
-    enabled: !!wsId,
-    placeholderData: keepPreviousData,
+    placeholderData: "keepPreviousData",
   });
 
   const employees = useMemo(() => {
@@ -96,38 +103,45 @@ export const useEmployeesData = ({
 
   const totalItems = employeesPages?.pages[0]?.total ?? 0;
 
-  const { data: departments } = useQuery({ 
-    queryKey: ["departments", wsId], 
-    queryFn: () => fetchDepartments(wsId), 
-    enabled: !!wsId 
+  const { data: departments } = useDepartments(wsId);
+
+  const { data: deptHistory } = useWorkspaceQuery({
+    queryKey: ["deptHistory", selectedEmployee?.id],
+    queryFn: (workspaceId) => {
+      if (!selectedEmployee) return Promise.reject(new Error("No employee selected"));
+      return fetchEmployeeDepartmentHistory(workspaceId, selectedEmployee.id);
+    },
+    enabled: !!selectedEmployee,
   });
 
-  const { data: deptHistory } = useQuery({ 
-    queryKey: ["deptHistory", selectedEmployee?.id], 
-    queryFn: () => selectedEmployee ? fetchEmployeeDepartmentHistory(wsId, selectedEmployee.id) : Promise.reject(new Error("No employee selected")), 
-    enabled: !!selectedEmployee 
-  });
 
 
-
-  const updateMutation = useMutation({
-    mutationFn: (data: { id: string; employee: UpdateEmployeeRequest }) => updateEmployee(wsId, data.id, data.employee),
-    onSuccess: () => { 
-      void queryClient.invalidateQueries({ queryKey: ["employees", wsId] }); 
-      setIsModalOpen(false); 
-      setEditingEmployee(null); 
-      toast.success(t("common.success")); 
+  const updateMutation = useWorkspaceMutation<
+    { id: string; employee: UpdateEmployeeRequest },
+    Awaited<ReturnType<typeof updateEmployee>>
+  >({
+    workspaceId: wsId,
+    keys: [employeeKeys.all(wsId)],
+    mutationFn: (workspaceId, data) => updateEmployee(workspaceId, data.id, data.employee),
+    onSuccess: () => {
+      setIsModalOpen(false);
+      setEditingEmployee(null);
+      toast.success(t("common.success"));
     },
   });
 
-  const terminateMutation = useMutation({
-    mutationFn: (data: { employeeId: string; employmentId: string; endDate: string }) =>
-      updateEmployeeEmployment(wsId, data.employeeId, data.employmentId, {
+  const terminateMutation = useWorkspaceMutation<
+    { employeeId: string; employmentId: string; endDate: string },
+    Awaited<ReturnType<typeof updateEmployeeEmployment>>
+  >({
+    workspaceId: wsId,
+    keys: [employeeKeys.all(wsId)],
+    mutationFn: (workspaceId, data) =>
+      updateEmployeeEmployment(workspaceId, data.employeeId, data.employmentId, {
         status: "terminated",
         end_date: data.endDate,
       }),
-    onSuccess: (data: Employment, variables: { employeeId: string; employmentId: string; endDate: string }) => {
-      void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
+    onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: ["deptHistory"] });
       void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, variables.employeeId] });
       if (selectedEmployee?.id === variables.employeeId) {

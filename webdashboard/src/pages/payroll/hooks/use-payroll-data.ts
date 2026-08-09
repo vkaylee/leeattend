@@ -1,5 +1,8 @@
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+
+import { useWorkspaceQuery } from "@/hooks/common/use-workspace-query";
+import { employeeKeys } from "@/lib/query-keys";
 
 import { MAX_EMPLOYEE_FETCH } from "@/hooks/use-employees";
 import {
@@ -28,17 +31,17 @@ export function usePayrollData({
   selectedEmployee,
   wsId,
 }: UsePayrollDataOptions) {
-  const { data: employeesData, isLoading: empsLoading } = useQuery({
-    queryKey: ["employees", wsId, debouncedSearchTerm],
-    queryFn: async () => {
+  const { data: employeesData, isLoading: empsLoading } = useWorkspaceQuery({
+    workspaceId: wsId,
+    queryKey: employeeKeys.search(wsId, { search: debouncedSearchTerm }),
+    queryFn: async (workspaceId) => {
       const res = debouncedSearchTerm.trim()
-        ? await searchEmployees({ wsId, query: debouncedSearchTerm, page: 1, limit: 100 })
-        : await fetchEmployees(wsId, 1, MAX_EMPLOYEE_FETCH);
+        ? await searchEmployees({ wsId: workspaceId, query: debouncedSearchTerm, page: 1, limit: 100 })
+        : await fetchEmployees(workspaceId, 1, MAX_EMPLOYEE_FETCH);
       const maybeRes = ((): typeof res | undefined => res)();
       return maybeRes ?? null;
     },
-    enabled: !!wsId,
-    placeholderData: keepPreviousData,
+    placeholderData: "keepPreviousData",
   });
 
   const employees = useMemo(() => employeesData?.data ?? [], [employeesData?.data]);
