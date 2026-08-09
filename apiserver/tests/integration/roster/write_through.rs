@@ -185,7 +185,9 @@ async fn write_through_success_replaces_stale_rows_and_preserves_manual_rows() {
 
     let old_count = crate::test_query_scalar_i64!(
         &pools.api,
-        "SELECT COUNT(*) AS count FROM work_segments WHERE employment_id = $1 AND date = $2 AND interval_id = $3",
+        "SELECT COUNT(*) AS count FROM work_segments WHERE workspace_id = $1 AND employment_id = $2 AND date = $3 AND interval_id = $4",
+        diesel::sql_types::Uuid,
+        workspace_id,
         diesel::sql_types::Uuid,
         employment_id,
         diesel::sql_types::Date,
@@ -195,7 +197,9 @@ async fn write_through_success_replaces_stale_rows_and_preserves_manual_rows() {
     );
     let new_count = crate::test_query_scalar_i64!(
         &pools.api,
-        "SELECT COUNT(*) AS count FROM work_segments WHERE employment_id = $1 AND date = $2 AND interval_id = $3",
+        "SELECT COUNT(*) AS count FROM work_segments WHERE workspace_id = $1 AND employment_id = $2 AND date = $3 AND interval_id = $4",
+        diesel::sql_types::Uuid,
+        workspace_id,
         diesel::sql_types::Uuid,
         employment_id,
         diesel::sql_types::Date,
@@ -205,7 +209,9 @@ async fn write_through_success_replaces_stale_rows_and_preserves_manual_rows() {
     );
     let manual_count = crate::test_query_scalar_i64!(
         &pools.api,
-        "SELECT COUNT(*) AS count FROM work_segments WHERE employment_id = $1 AND date = $2 AND source = 'manual'",
+        "SELECT COUNT(*) AS count FROM work_segments WHERE workspace_id = $1 AND employment_id = $2 AND date = $3 AND source = 'manual'",
+        diesel::sql_types::Uuid,
+        workspace_id,
         diesel::sql_types::Uuid,
         employment_id,
         diesel::sql_types::Date,
@@ -283,7 +289,9 @@ async fn write_through_delete_failure_rolls_back_all_cleanup_deletes() {
     );
     let stale_count = crate::test_query_scalar_i64!(
         &pools.api,
-        "SELECT COUNT(*) AS count FROM work_segments WHERE employment_id = $1 AND interval_id = $2",
+        "SELECT COUNT(*) AS count FROM work_segments WHERE workspace_id = $1 AND employment_id = $2 AND interval_id = $3",
+        diesel::sql_types::Uuid,
+        workspace_id,
         diesel::sql_types::Uuid,
         employment_id,
         diesel::sql_types::Uuid,
@@ -291,7 +299,9 @@ async fn write_through_delete_failure_rolls_back_all_cleanup_deletes() {
     );
     let replacement_count = crate::test_query_scalar_i64!(
         &pools.api,
-        "SELECT COUNT(*) AS count FROM work_segments WHERE employment_id = $1 AND interval_id = $2",
+        "SELECT COUNT(*) AS count FROM work_segments WHERE workspace_id = $1 AND employment_id = $2 AND interval_id = $3",
+        diesel::sql_types::Uuid,
+        workspace_id,
         diesel::sql_types::Uuid,
         employment_id,
         diesel::sql_types::Uuid,
@@ -360,7 +370,9 @@ async fn write_through_insert_failure_rolls_back_cleanup() {
     );
     let stale_count = crate::test_query_scalar_i64!(
         &pools.api,
-        "SELECT COUNT(*) AS count FROM work_segments WHERE employment_id = $1 AND interval_id = $2",
+        "SELECT COUNT(*) AS count FROM work_segments WHERE workspace_id = $1 AND employment_id = $2 AND interval_id = $3",
+        diesel::sql_types::Uuid,
+        workspace_id,
         diesel::sql_types::Uuid,
         employment_id,
         diesel::sql_types::Uuid,
@@ -368,7 +380,9 @@ async fn write_through_insert_failure_rolls_back_cleanup() {
     );
     let replacement_count = crate::test_query_scalar_i64!(
         &pools.api,
-        "SELECT COUNT(*) AS count FROM work_segments WHERE employment_id = $1 AND interval_id = $2",
+        "SELECT COUNT(*) AS count FROM work_segments WHERE workspace_id = $1 AND employment_id = $2 AND interval_id = $3",
+        diesel::sql_types::Uuid,
+        workspace_id,
         diesel::sql_types::Uuid,
         employment_id,
         diesel::sql_types::Uuid,
