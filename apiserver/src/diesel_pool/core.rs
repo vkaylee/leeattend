@@ -5,7 +5,9 @@ use crate::diesel_pool::tenant_manager::{
 use crate::errors::AppError;
 use diesel_async::pooled_connection::deadpool::{Object, Pool};
 use diesel_async::pooled_connection::AsyncDieselConnectionManager;
-use diesel_async::AsyncPgConnection;
+use diesel_async::scoped_futures::ScopedBoxFuture;
+use diesel_async::{AsyncConnection, AsyncPgConnection};
+use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -46,12 +48,53 @@ impl std::ops::DerefMut for SessionConn {
 pub struct DieselPools {
     pub api: DieselPool,
     pub worker: DieselPool,
-    pub tenants_tx: Arc<dyn TenantConnectionProvider>,
-    pub tenants_sess: Arc<dyn TenantConnectionProvider>,
+    tenants_tx: Arc<dyn TenantConnectionProvider>,
+    tenants_sess: Arc<dyn TenantConnectionProvider>,
+}
+
+pub trait DieselPoolsTenantTxExt {
+    fn with_tenant_tx<'a, T, F>(
+        &'a self,
+        token: &'a TenantAuthToken,
+        f: F,
+    ) -> impl Future<Output = Result<T, AppError>> + Send + 'a
+    where
+        T: Send + 'a,
+        F: for<'conn> FnOnce(
+                &'conn mut AsyncPgConnection,
+            ) -> ScopedBoxFuture<'a, 'conn, Result<T, AppError>>
+            + Send
+            + 'a;
+}
+
+impl DieselPoolsTenantTxExt for DieselPools {
+    #[allow(clippy::manual_async_fn, clippy::needless_borrow)]
+    fn with_tenant_tx<'a, T, F>(
+        &'a self,
+        token: &'a TenantAuthToken,
+        f: F,
+    ) -> impl Future<Output = Result<T, AppError>> + Send + 'a
+    where
+        T: Send + 'a,
+        F: for<'conn> FnOnce(
+                &'conn mut AsyncPgConnection,
+            ) -> ScopedBoxFuture<'a, 'conn, Result<T, AppError>>
+            + Send
+            + 'a,
+    {
+        async move {
+            let mut conn = self
+                .tenants_tx
+                .get_connection(&token.workspace_id())
+                .await?;
+
+            (&mut *conn).transaction::<T, AppError, _>(f).await
+        }
+    }
 }
 
 impl DieselPools {
-    // Hàm an toàn (Khuyên dùng)
+    // Safe transaction primitive. Repositories should prefer `with_tenant_tx`.
     pub async fn tenant_transaction_conn(
         &self,
         token: &TenantAuthToken,

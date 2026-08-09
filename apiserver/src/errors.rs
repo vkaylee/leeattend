@@ -47,7 +47,7 @@ impl LocalizedMessage {
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("Database error: {0}")]
-    Diesel(#[from] diesel::result::Error),
+    Diesel(diesel::result::Error),
 
     #[error("Redis error: {0}")]
     Redis(String),
@@ -81,6 +81,19 @@ pub enum AppError {
 
     #[error("Template Error: {0}")]
     TemplateError(String),
+}
+
+impl From<diesel::result::Error> for AppError {
+    fn from(err: diesel::result::Error) -> Self {
+        match err {
+            diesel::result::Error::NotFound => Self::not_found(I18nKey::NotFound),
+            diesel::result::Error::DatabaseError(
+                diesel::result::DatabaseErrorKind::UniqueViolation,
+                _,
+            ) => Self::conflict(I18nKey::Conflict),
+            other => Self::Diesel(other),
+        }
+    }
 }
 
 impl From<String> for AppError {
