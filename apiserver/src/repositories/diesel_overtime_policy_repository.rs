@@ -4,7 +4,7 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
-use crate::diesel_pool::DieselPools;
+use crate::diesel_pool::{DieselPools, DieselPoolsTenantTxExt, TenantAuthToken};
 use crate::errors::AppError;
 use crate::models::diesel::overtime_policy::{
     OvertimePolicyAssignmentEntity, OvertimePolicyEntity, OvertimeRuleEntity,
@@ -31,25 +31,25 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         name: &str,
         description: Option<&str>,
     ) -> Result<OvertimePolicy, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
 
-        diesel::insert_into(overtime_policy_definitions::table)
-            .values((
-                overtime_policy_definitions::workspace_id.eq(workspace_id),
-                overtime_policy_definitions::name.eq(name),
-                overtime_policy_definitions::description.eq(description),
-            ))
-            .returning(OvertimePolicyEntity::as_returning())
-            .get_result(&mut *conn)
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    diesel::insert_into(overtime_policy_definitions::table)
+                        .values((
+                            overtime_policy_definitions::workspace_id.eq(workspace_id),
+                            overtime_policy_definitions::name.eq(name),
+                            overtime_policy_definitions::description.eq(description),
+                        ))
+                        .returning(OvertimePolicyEntity::as_returning())
+                        .get_result(conn)
+                        .await
+                        .map_err(AppError::from)
+                        .map(Into::into)
+                })
+            })
             .await
-            .map_err(AppError::from)
-            .map(Into::into)
     }
 
     async fn get_policy_definitions(
@@ -58,32 +58,32 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         page: i64,
         limit: i64,
     ) -> Result<(Vec<OvertimePolicy>, i64), AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
 
-        let total: i64 = overtime_policy_definitions::table
-            .filter(overtime_policy_definitions::workspace_id.eq(workspace_id))
-            .count()
-            .get_result(&mut *conn)
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    let total: i64 = overtime_policy_definitions::table
+                        .filter(overtime_policy_definitions::workspace_id.eq(workspace_id))
+                        .count()
+                        .get_result(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db count: {e}")))?;
+
+                    let rows: Vec<OvertimePolicyEntity> = overtime_policy_definitions::table
+                        .filter(overtime_policy_definitions::workspace_id.eq(workspace_id))
+                        .order(overtime_policy_definitions::created_at.desc())
+                        .limit(limit)
+                        .offset((page - 1) * limit)
+                        .select(OvertimePolicyEntity::as_select())
+                        .load(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    Ok((rows.into_iter().map(Into::into).collect(), total))
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("db count: {e}")))?;
-
-        let rows: Vec<OvertimePolicyEntity> = overtime_policy_definitions::table
-            .filter(overtime_policy_definitions::workspace_id.eq(workspace_id))
-            .order(overtime_policy_definitions::created_at.desc())
-            .limit(limit)
-            .offset((page - 1) * limit)
-            .select(OvertimePolicyEntity::as_select())
-            .load(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        Ok((rows.into_iter().map(Into::into).collect(), total))
     }
 
     async fn get_policy_with_rules(
@@ -91,39 +91,38 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         workspace_id: Uuid,
         id: Uuid,
     ) -> Result<Option<(OvertimePolicy, Vec<OvertimeRule>)>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    let policy: Option<OvertimePolicyEntity> = overtime_policy_definitions::table
+                        .filter(overtime_policy_definitions::id.eq(id))
+                        .filter(overtime_policy_definitions::workspace_id.eq(workspace_id))
+                        .select(OvertimePolicyEntity::as_select())
+                        .first(conn)
+                        .await
+                        .optional()
+                        .map_err(AppError::from)?;
 
-        let policy: Option<OvertimePolicyEntity> = overtime_policy_definitions::table
-            .filter(overtime_policy_definitions::id.eq(id))
-            .filter(overtime_policy_definitions::workspace_id.eq(workspace_id))
-            .select(OvertimePolicyEntity::as_select())
-            .first(&mut *conn)
+                    if let Some(p) = policy {
+                        let rules: Vec<OvertimeRuleEntity> = overtime_rules::table
+                            .filter(overtime_rules::policy_id.eq(id))
+                            .order(overtime_rules::priority.desc())
+                            .select(OvertimeRuleEntity::as_select())
+                            .load(conn)
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                        Ok(Some((
+                            p.into(),
+                            rules.into_iter().map(Into::into).collect(),
+                        )))
+                    } else {
+                        Ok(None)
+                    }
+                })
+            })
             .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        if let Some(p) = policy {
-            let rules: Vec<OvertimeRuleEntity> = overtime_rules::table
-                .filter(overtime_rules::policy_id.eq(id))
-                .order(overtime_rules::priority.desc())
-                .select(OvertimeRuleEntity::as_select())
-                .load(&mut *conn)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-            Ok(Some((
-                p.into(),
-                rules.into_iter().map(Into::into).collect(),
-            )))
-        } else {
-            Ok(None)
-        }
     }
 
     async fn add_rule(
@@ -131,29 +130,28 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         workspace_id: Uuid,
         rule: &OvertimeRule,
     ) -> Result<OvertimeRule, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
-        diesel::insert_into(overtime_rules::table)
-            .values((
-                overtime_rules::policy_id.eq(rule.policy_id()),
-                overtime_rules::priority.eq(rule.priority()),
-                overtime_rules::multiplier.eq(rule.multiplier()),
-                overtime_rules::time_start.eq(rule.time_start()),
-                overtime_rules::time_end.eq(rule.time_end()),
-                overtime_rules::days_of_week.eq(rule.days_of_week()),
-                overtime_rules::is_holiday.eq(rule.is_holiday()),
-            ))
-            .returning(OvertimeRuleEntity::as_returning())
-            .get_result(&mut *conn)
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    diesel::insert_into(overtime_rules::table)
+                        .values((
+                            overtime_rules::policy_id.eq(rule.policy_id()),
+                            overtime_rules::priority.eq(rule.priority()),
+                            overtime_rules::multiplier.eq(rule.multiplier()),
+                            overtime_rules::time_start.eq(rule.time_start()),
+                            overtime_rules::time_end.eq(rule.time_end()),
+                            overtime_rules::days_of_week.eq(rule.days_of_week()),
+                            overtime_rules::is_holiday.eq(rule.is_holiday()),
+                        ))
+                        .returning(OvertimeRuleEntity::as_returning())
+                        .get_result(conn)
+                        .await
+                        .map_err(AppError::from)
+                        .map(Into::into)
+                })
+            })
             .await
-            .map_err(AppError::from)
-            .map(Into::into)
     }
 
     async fn resolve_policy_for_employee(
@@ -162,89 +160,90 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         workspace_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<Uuid>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    // 1. Employee Override
+                    let emp_policy: Option<Uuid> = overtime_policy_assignments::table
+                        .filter(overtime_policy_assignments::workspace_id.eq(workspace_id))
+                        .filter(overtime_policy_assignments::assignee_type.eq("employee"))
+                        .filter(overtime_policy_assignments::assignee_id.eq(employee_id))
+                        .filter(overtime_policy_assignments::effective_from.le(date))
+                        .filter(
+                            overtime_policy_assignments::effective_to
+                                .is_null()
+                                .or(overtime_policy_assignments::effective_to.ge(date)),
+                        )
+                        .order(overtime_policy_assignments::created_at.desc())
+                        .select(overtime_policy_assignments::policy_id)
+                        .first(conn)
+                        .await
+                        .optional()
+                        .map_err(AppError::from)?;
 
-        // 1. Employee Override
-        let emp_policy: Option<Uuid> = overtime_policy_assignments::table
-            .filter(overtime_policy_assignments::workspace_id.eq(workspace_id))
-            .filter(overtime_policy_assignments::assignee_type.eq("employee"))
-            .filter(overtime_policy_assignments::assignee_id.eq(employee_id))
-            .filter(overtime_policy_assignments::effective_from.le(date))
-            .filter(
-                overtime_policy_assignments::effective_to
-                    .is_null()
-                    .or(overtime_policy_assignments::effective_to.ge(date)),
-            )
-            .order(overtime_policy_assignments::created_at.desc())
-            .select(overtime_policy_assignments::policy_id)
-            .first(&mut *conn)
+                    if let Some(policy_id) = emp_policy {
+                        return Ok(Some(policy_id));
+                    }
+
+                    use crate::schema::employments;
+
+                    // 2. Department Override
+                    let dept_policy: Option<Uuid> = overtime_policy_assignments::table
+                        .inner_join(employments::table.on(employments::employee_id.eq(employee_id)))
+                        .filter(overtime_policy_assignments::workspace_id.eq(workspace_id))
+                        .filter(overtime_policy_assignments::assignee_type.eq("department"))
+                        .filter(employments::deleted_at.is_null())
+                        .filter(
+                            employments::department_id.eq(overtime_policy_assignments::assignee_id),
+                        )
+                        .filter(employments::start_date.le(date))
+                        .filter(
+                            employments::end_date
+                                .is_null()
+                                .or(employments::end_date.ge(date)),
+                        )
+                        .filter(overtime_policy_assignments::effective_from.le(date))
+                        .filter(
+                            overtime_policy_assignments::effective_to
+                                .is_null()
+                                .or(overtime_policy_assignments::effective_to.ge(date)),
+                        )
+                        .order((
+                            employments::start_date.desc(),
+                            overtime_policy_assignments::created_at.desc(),
+                        ))
+                        .select(overtime_policy_assignments::policy_id)
+                        .first(conn)
+                        .await
+                        .optional()
+                        .map_err(AppError::from)?;
+
+                    if let Some(policy_id) = dept_policy {
+                        return Ok(Some(policy_id));
+                    }
+
+                    // 3. Workspace Default
+                    let ws_policy: Option<Uuid> = overtime_policy_assignments::table
+                        .filter(overtime_policy_assignments::workspace_id.eq(workspace_id))
+                        .filter(overtime_policy_assignments::assignee_type.eq("workspace"))
+                        .filter(overtime_policy_assignments::effective_from.le(date))
+                        .filter(
+                            overtime_policy_assignments::effective_to
+                                .is_null()
+                                .or(overtime_policy_assignments::effective_to.ge(date)),
+                        )
+                        .order(overtime_policy_assignments::created_at.desc())
+                        .select(overtime_policy_assignments::policy_id)
+                        .first(conn)
+                        .await
+                        .optional()
+                        .map_err(AppError::from)?;
+
+                    Ok(ws_policy)
+                })
+            })
             .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        if let Some(policy_id) = emp_policy {
-            return Ok(Some(policy_id));
-        }
-
-        use crate::schema::employments;
-
-        // 2. Department Override
-        let dept_policy: Option<Uuid> = overtime_policy_assignments::table
-            .inner_join(employments::table.on(employments::employee_id.eq(employee_id)))
-            .filter(overtime_policy_assignments::workspace_id.eq(workspace_id))
-            .filter(overtime_policy_assignments::assignee_type.eq("department"))
-            .filter(employments::deleted_at.is_null())
-            .filter(employments::department_id.eq(overtime_policy_assignments::assignee_id))
-            .filter(employments::start_date.le(date))
-            .filter(
-                employments::end_date
-                    .is_null()
-                    .or(employments::end_date.ge(date)),
-            )
-            .filter(overtime_policy_assignments::effective_from.le(date))
-            .filter(
-                overtime_policy_assignments::effective_to
-                    .is_null()
-                    .or(overtime_policy_assignments::effective_to.ge(date)),
-            )
-            .order((
-                employments::start_date.desc(),
-                overtime_policy_assignments::created_at.desc(),
-            ))
-            .select(overtime_policy_assignments::policy_id)
-            .first(&mut *conn)
-            .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        if let Some(policy_id) = dept_policy {
-            return Ok(Some(policy_id));
-        }
-
-        // 3. Workspace Default
-        let ws_policy: Option<Uuid> = overtime_policy_assignments::table
-            .filter(overtime_policy_assignments::workspace_id.eq(workspace_id))
-            .filter(overtime_policy_assignments::assignee_type.eq("workspace"))
-            .filter(overtime_policy_assignments::effective_from.le(date))
-            .filter(
-                overtime_policy_assignments::effective_to
-                    .is_null()
-                    .or(overtime_policy_assignments::effective_to.ge(date)),
-            )
-            .order(overtime_policy_assignments::created_at.desc())
-            .select(overtime_policy_assignments::policy_id)
-            .first(&mut *conn)
-            .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        Ok(ws_policy)
     }
 
     async fn create_policy_assignment(
@@ -255,27 +254,26 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         policy_id: Uuid,
         effective_from: NaiveDate,
     ) -> Result<(), AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    diesel::insert_into(overtime_policy_assignments::table)
+                        .values((
+                            overtime_policy_assignments::workspace_id.eq(workspace_id),
+                            overtime_policy_assignments::assignee_type.eq(assignee_type),
+                            overtime_policy_assignments::assignee_id.eq(assignee_id),
+                            overtime_policy_assignments::policy_id.eq(policy_id),
+                            overtime_policy_assignments::effective_from.eq(effective_from),
+                        ))
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        diesel::insert_into(overtime_policy_assignments::table)
-            .values((
-                overtime_policy_assignments::workspace_id.eq(workspace_id),
-                overtime_policy_assignments::assignee_type.eq(assignee_type),
-                overtime_policy_assignments::assignee_id.eq(assignee_id),
-                overtime_policy_assignments::policy_id.eq(policy_id),
-                overtime_policy_assignments::effective_from.eq(effective_from),
-            ))
-            .execute(&mut *conn)
+                    Ok(())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(())
     }
 
     async fn get_workspace_overtime_data(
@@ -283,66 +281,66 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         workspace_id: Uuid,
     ) -> Result<crate::repositories::overtime_policy_repository::WorkspaceOvertimeData, AppError>
     {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    let policies_entities: Vec<OvertimePolicyEntity> =
+                        overtime_policy_definitions::table
+                            .filter(overtime_policy_definitions::workspace_id.eq(workspace_id))
+                            .select(OvertimePolicyEntity::as_select())
+                            .load(conn)
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let policies_entities: Vec<OvertimePolicyEntity> = overtime_policy_definitions::table
-            .filter(overtime_policy_definitions::workspace_id.eq(workspace_id))
-            .select(OvertimePolicyEntity::as_select())
-            .load(&mut *conn)
+                    let policy_ids: Vec<Uuid> = policies_entities.iter().map(|p| p.id).collect();
+
+                    let all_rules: Vec<OvertimeRuleEntity> = if policy_ids.is_empty() {
+                        Vec::new()
+                    } else {
+                        overtime_rules::table
+                            .filter(overtime_rules::policy_id.eq_any(&policy_ids))
+                            .order((overtime_rules::policy_id, overtime_rules::priority.desc()))
+                            .select(OvertimeRuleEntity::as_select())
+                            .load(conn)
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db: {e}")))?
+                    };
+
+                    let mut rules_by_policy: std::collections::HashMap<Uuid, Vec<OvertimeRule>> =
+                        std::collections::HashMap::new();
+                    for r in all_rules {
+                        rules_by_policy
+                            .entry(r.policy_id)
+                            .or_default()
+                            .push(r.into());
+                    }
+
+                    let mut policies_map = std::collections::HashMap::new();
+                    for p in policies_entities {
+                        let rules = rules_by_policy.remove(&p.id).unwrap_or_default();
+                        policies_map.insert(p.id, (p.into(), rules));
+                    }
+
+                    let assignments_entities: Vec<OvertimePolicyAssignmentEntity> =
+                        overtime_policy_assignments::table
+                            .filter(overtime_policy_assignments::workspace_id.eq(workspace_id))
+                            .select(OvertimePolicyAssignmentEntity::as_select())
+                            .load(conn)
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    let assignments = assignments_entities.into_iter().map(Into::into).collect();
+
+                    Ok(
+                        crate::repositories::overtime_policy_repository::WorkspaceOvertimeData {
+                            policies: policies_map,
+                            assignments,
+                        },
+                    )
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        let policy_ids: Vec<Uuid> = policies_entities.iter().map(|p| p.id).collect();
-
-        let all_rules: Vec<OvertimeRuleEntity> = if policy_ids.is_empty() {
-            Vec::new()
-        } else {
-            overtime_rules::table
-                .filter(overtime_rules::policy_id.eq_any(&policy_ids))
-                .order((overtime_rules::policy_id, overtime_rules::priority.desc()))
-                .select(OvertimeRuleEntity::as_select())
-                .load(&mut *conn)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?
-        };
-
-        let mut rules_by_policy: std::collections::HashMap<Uuid, Vec<OvertimeRule>> =
-            std::collections::HashMap::new();
-        for r in all_rules {
-            rules_by_policy
-                .entry(r.policy_id)
-                .or_default()
-                .push(r.into());
-        }
-
-        let mut policies_map = std::collections::HashMap::new();
-        for p in policies_entities {
-            let rules = rules_by_policy.remove(&p.id).unwrap_or_default();
-            policies_map.insert(p.id, (p.into(), rules));
-        }
-
-        let assignments_entities: Vec<OvertimePolicyAssignmentEntity> =
-            overtime_policy_assignments::table
-                .filter(overtime_policy_assignments::workspace_id.eq(workspace_id))
-                .select(OvertimePolicyAssignmentEntity::as_select())
-                .load(&mut *conn)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        let assignments = assignments_entities.into_iter().map(Into::into).collect();
-
-        Ok(
-            crate::repositories::overtime_policy_repository::WorkspaceOvertimeData {
-                policies: policies_map,
-                assignments,
-            },
-        )
     }
 }
 

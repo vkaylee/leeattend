@@ -4,8 +4,11 @@ use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
 use crate::{
-    diesel_pool::DieselPools, domain::audit::AuditLog, errors::AppError,
-    models::diesel::audit_log::AuditLogEntity, schema::audit_logs,
+    diesel_pool::{DieselPools, DieselPoolsTenantTxExt, TenantAuthToken},
+    domain::audit::AuditLog,
+    errors::AppError,
+    models::diesel::audit_log::AuditLogEntity,
+    schema::audit_logs,
 };
 
 use super::AuditLogRepository;
@@ -23,23 +26,22 @@ impl DieselAuditLogRepository {
 #[async_trait]
 impl AuditLogRepository for DieselAuditLogRepository {
     async fn create_log(&self, log: &AuditLog) -> Result<AuditLog, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&log.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
+        let token = TenantAuthToken::system_override(log.workspace_id());
         let entity: AuditLogEntity = log.clone().into();
 
-        let inserted: AuditLogEntity = diesel::insert_into(audit_logs::table)
-            .values(&entity)
-            .get_result(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    let inserted: AuditLogEntity = diesel::insert_into(audit_logs::table)
+                        .values(&entity)
+                        .get_result(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        Ok(inserted.into())
+                    Ok(inserted.into())
+                })
+            })
+            .await
     }
 
     async fn find_by_workspace(
@@ -51,52 +53,51 @@ impl AuditLogRepository for DieselAuditLogRepository {
         start_date_val: Option<chrono::DateTime<chrono::Utc>>,
         end_date_val: Option<chrono::DateTime<chrono::Utc>>,
     ) -> Result<(Vec<AuditLog>, i64), AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id_val)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id_val);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    let mut query = audit_logs::table
+                        .filter(audit_logs::workspace_id.eq(workspace_id_val))
+                        .into_boxed();
 
-        let mut query = audit_logs::table
-            .filter(audit_logs::workspace_id.eq(workspace_id_val))
-            .into_boxed();
+                    let mut count_query = audit_logs::table
+                        .filter(audit_logs::workspace_id.eq(workspace_id_val))
+                        .into_boxed();
 
-        let mut count_query = audit_logs::table
-            .filter(audit_logs::workspace_id.eq(workspace_id_val))
-            .into_boxed();
+                    if let Some(a) = action_val {
+                        query = query.filter(audit_logs::action.eq(a.clone()));
+                        count_query = count_query.filter(audit_logs::action.eq(a));
+                    }
 
-        if let Some(a) = action_val {
-            query = query.filter(audit_logs::action.eq(a.clone()));
-            count_query = count_query.filter(audit_logs::action.eq(a));
-        }
+                    if let Some(sd) = start_date_val {
+                        query = query.filter(audit_logs::created_at.ge(sd));
+                        count_query = count_query.filter(audit_logs::created_at.ge(sd));
+                    }
 
-        if let Some(sd) = start_date_val {
-            query = query.filter(audit_logs::created_at.ge(sd));
-            count_query = count_query.filter(audit_logs::created_at.ge(sd));
-        }
+                    if let Some(ed) = end_date_val {
+                        query = query.filter(audit_logs::created_at.le(ed));
+                        count_query = count_query.filter(audit_logs::created_at.le(ed));
+                    }
 
-        if let Some(ed) = end_date_val {
-            query = query.filter(audit_logs::created_at.le(ed));
-            count_query = count_query.filter(audit_logs::created_at.le(ed));
-        }
+                    let count: i64 = count_query
+                        .count()
+                        .get_result(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let count: i64 = count_query
-            .count()
-            .get_result(&mut *conn)
+                    let logs_result = query
+                        .order(audit_logs::created_at.desc())
+                        .limit(limit)
+                        .offset(offset)
+                        .load::<AuditLogEntity>(conn)
+                        .await
+                        .map_err(AppError::from)?;
+
+                    Ok((logs_result.into_iter().map(Into::into).collect(), count))
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        let logs_result = query
-            .order(audit_logs::created_at.desc())
-            .limit(limit)
-            .offset(offset)
-            .load::<AuditLogEntity>(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
-
-        Ok((logs_result.into_iter().map(Into::into).collect(), count))
     }
 }
 

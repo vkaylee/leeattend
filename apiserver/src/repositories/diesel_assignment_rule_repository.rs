@@ -4,7 +4,7 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
-use crate::diesel_pool::DieselPools;
+use crate::diesel_pool::{DieselPools, DieselPoolsTenantTxExt};
 use crate::errors::AppError;
 use crate::models::diesel::assignment_rule::AssignmentRuleEntity;
 use crate::models::employee::{
@@ -31,18 +31,9 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
         req: &CreateAssignmentRuleRequest,
     ) -> Result<AssignmentRule, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
         let conditions = serde_json::to_value(&req.conditions)
             .map_err(|e| AppError::Internal(format!("serde: {e}")))?;
         let now = Utc::now();
-
         let entity = AssignmentRuleEntity {
             id: Uuid::new_v4(),
             workspace_id,
@@ -57,13 +48,19 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
             end_date: req.end_date,
         };
 
-        diesel::insert_into(assignment_rules::table)
-            .values(&entity)
-            .returning(AssignmentRuleEntity::as_returning())
-            .get_result(&mut *conn)
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    diesel::insert_into(assignment_rules::table)
+                        .values(&entity)
+                        .returning(AssignmentRuleEntity::as_returning())
+                        .get_result(conn)
+                        .await
+                        .map_err(AppError::from)
+                        .map(Into::into)
+                })
+            })
             .await
-            .map_err(AppError::from)
-            .map(Into::into)
     }
 
     async fn get_rules(
@@ -71,25 +68,24 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<AssignmentRule>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
 
-        assignment_rules::table
-            .filter(assignment_rules::workspace_id.eq(workspace_id))
-            .order((
-                assignment_rules::priority.desc(),
-                assignment_rules::created_at.asc(),
-            ))
-            .select(AssignmentRuleEntity::as_select())
-            .load::<AssignmentRuleEntity>(&mut *conn)
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    assignment_rules::table
+                        .filter(assignment_rules::workspace_id.eq(workspace_id))
+                        .order((
+                            assignment_rules::priority.desc(),
+                            assignment_rules::created_at.asc(),
+                        ))
+                        .select(AssignmentRuleEntity::as_select())
+                        .load::<AssignmentRuleEntity>(conn)
+                        .await
+                        .map_err(AppError::from)
+                        .map(|rows| rows.into_iter().map(Into::into).collect())
+                })
+            })
             .await
-            .map_err(AppError::from)
-            .map(|rows| rows.into_iter().map(Into::into).collect())
     }
 
     async fn get_active_rules(
@@ -97,26 +93,25 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<AssignmentRule>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
 
-        assignment_rules::table
-            .filter(assignment_rules::workspace_id.eq(workspace_id))
-            .filter(assignment_rules::is_active.eq(true))
-            .order((
-                assignment_rules::priority.desc(),
-                assignment_rules::created_at.asc(),
-            ))
-            .select(AssignmentRuleEntity::as_select())
-            .load::<AssignmentRuleEntity>(&mut *conn)
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    assignment_rules::table
+                        .filter(assignment_rules::workspace_id.eq(workspace_id))
+                        .filter(assignment_rules::is_active.eq(true))
+                        .order((
+                            assignment_rules::priority.desc(),
+                            assignment_rules::created_at.asc(),
+                        ))
+                        .select(AssignmentRuleEntity::as_select())
+                        .load::<AssignmentRuleEntity>(conn)
+                        .await
+                        .map_err(AppError::from)
+                        .map(|rows| rows.into_iter().map(Into::into).collect())
+                })
+            })
             .await
-            .map_err(AppError::from)
-            .map(|rows| rows.into_iter().map(Into::into).collect())
     }
 
     async fn update_rule(
@@ -126,42 +121,40 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
         req: &UpdateAssignmentRuleRequest,
     ) -> Result<AssignmentRule, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
         let conditions_json = req
             .conditions
             .as_ref()
             .map(|c| serde_json::to_value(c).map_err(|e| AppError::Internal(format!("serde: {e}"))))
             .transpose()?;
 
-        let target = assignment_rules::table
-            .filter(assignment_rules::id.eq(id))
-            .filter(assignment_rules::workspace_id.eq(workspace_id));
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let target = assignment_rules::table
+                        .filter(assignment_rules::id.eq(id))
+                        .filter(assignment_rules::workspace_id.eq(workspace_id));
 
-        diesel::update(target)
-            .set((
-                req.pattern_id.map(|v| assignment_rules::pattern_id.eq(v)),
-                req.name
-                    .as_ref()
-                    .map(|v| assignment_rules::name.eq(v.clone())),
-                req.priority.map(|v| assignment_rules::priority.eq(v)),
-                conditions_json.map(|v| assignment_rules::conditions.eq(v)),
-                req.is_active.map(|v| assignment_rules::is_active.eq(v)),
-                req.start_date.map(|v| assignment_rules::start_date.eq(v)),
-                req.end_date.map(|v| assignment_rules::end_date.eq(v)),
-                assignment_rules::updated_at.eq(Some(Utc::now())),
-            ))
-            .returning(AssignmentRuleEntity::as_returning())
-            .get_result(&mut *conn)
+                    diesel::update(target)
+                        .set((
+                            req.pattern_id.map(|v| assignment_rules::pattern_id.eq(v)),
+                            req.name
+                                .as_ref()
+                                .map(|v| assignment_rules::name.eq(v.clone())),
+                            req.priority.map(|v| assignment_rules::priority.eq(v)),
+                            conditions_json.map(|v| assignment_rules::conditions.eq(v)),
+                            req.is_active.map(|v| assignment_rules::is_active.eq(v)),
+                            req.start_date.map(|v| assignment_rules::start_date.eq(v)),
+                            req.end_date.map(|v| assignment_rules::end_date.eq(v)),
+                            assignment_rules::updated_at.eq(Some(Utc::now())),
+                        ))
+                        .returning(AssignmentRuleEntity::as_returning())
+                        .get_result(conn)
+                        .await
+                        .map_err(AppError::from)
+                        .map(Into::into)
+                })
+            })
             .await
-            .map_err(AppError::from)
-            .map(Into::into)
     }
 
     async fn delete_rule(
@@ -170,24 +163,23 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
         id: Uuid,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
 
-        diesel::delete(
-            assignment_rules::table
-                .filter(assignment_rules::id.eq(id))
-                .filter(assignment_rules::workspace_id.eq(workspace_id)),
-        )
-        .execute(&mut *conn)
-        .await
-        .map_err(AppError::from)?;
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    diesel::delete(
+                        assignment_rules::table
+                            .filter(assignment_rules::id.eq(id))
+                            .filter(assignment_rules::workspace_id.eq(workspace_id)),
+                    )
+                    .execute(conn)
+                    .await
+                    .map_err(AppError::from)?;
 
-        Ok(())
+                    Ok(())
+                })
+            })
+            .await
     }
 }
 

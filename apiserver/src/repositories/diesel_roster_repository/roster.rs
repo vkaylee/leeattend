@@ -1,4 +1,5 @@
 use super::*;
+use crate::diesel_pool::DieselPoolsTenantTxExt;
 use crate::errors::AppError;
 use crate::models::diesel::roster::*;
 use crate::models::{RosterItem, ShiftRoster};
@@ -18,13 +19,9 @@ impl DieselRosterRepository {
         limit: Option<i64>,
     ) -> Result<(Vec<crate::models::AssignmentHistory>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
 
         #[derive(diesel::QueryableByName)]
         struct CountResult {
@@ -69,7 +66,7 @@ impl DieselRosterRepository {
             ",
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .get_result::<CountResult>(&mut *conn)
+        .get_result::<CountResult>(conn)
         .await
         .map_err(|e| AppError::Internal(format!("db history count: {e}")))?;
 
@@ -140,11 +137,14 @@ impl DieselRosterRepository {
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .bind::<diesel::sql_types::BigInt, _>(limit_val)
         .bind::<diesel::sql_types::BigInt, _>(offset_val)
-        .load::<crate::models::AssignmentHistory>(&mut *conn)
+        .load::<crate::models::AssignmentHistory>(conn)
         .await
         .map_err(|e| AppError::Internal(format!("db history: {e}")))?;
 
         Ok((history, total))
+                    })
+            })
+            .await
     }
 
     pub(super) async fn get_employment_rosters(
@@ -157,59 +157,57 @@ impl DieselRosterRepository {
         limit: Option<i64>,
     ) -> Result<(Vec<ShiftRoster>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let mut query = crate::schema::shift_rosters::table
+                        .inner_join(crate::schema::employments::table)
+                        .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+                        .filter(crate::schema::shift_rosters::employment_id.eq(employment_id))
+                        .filter(crate::schema::shift_rosters::date.ge(start_date))
+                        .filter(crate::schema::shift_rosters::date.le(end_date))
+                        .into_boxed();
 
-        let mut query = crate::schema::shift_rosters::table
-            .inner_join(crate::schema::employments::table)
-            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
-            .filter(crate::schema::shift_rosters::employment_id.eq(employment_id))
-            .filter(crate::schema::shift_rosters::date.ge(start_date))
-            .filter(crate::schema::shift_rosters::date.le(end_date))
-            .into_boxed();
+                    let total = if page.is_some() || limit.is_some() {
+                        let count_query = crate::schema::shift_rosters::table
+                            .inner_join(crate::schema::employments::table)
+                            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+                            .filter(crate::schema::shift_rosters::employment_id.eq(employment_id))
+                            .filter(crate::schema::shift_rosters::date.ge(start_date))
+                            .filter(crate::schema::shift_rosters::date.le(end_date))
+                            .into_boxed();
+                        count_query
+                            .count()
+                            .get_result::<i64>(conn)
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db count: {e}")))?
+                    } else {
+                        0
+                    };
 
-        let total = if page.is_some() || limit.is_some() {
-            let count_query = crate::schema::shift_rosters::table
-                .inner_join(crate::schema::employments::table)
-                .filter(crate::schema::employments::workspace_id.eq(workspace_id))
-                .filter(crate::schema::shift_rosters::employment_id.eq(employment_id))
-                .filter(crate::schema::shift_rosters::date.ge(start_date))
-                .filter(crate::schema::shift_rosters::date.le(end_date))
-                .into_boxed();
-            count_query
-                .count()
-                .get_result::<i64>(&mut *conn)
-                .await
-                .map_err(|e| AppError::Internal(format!("db count: {e}")))?
-        } else {
-            0
-        };
+                    if let (Some(p), Some(l)) = (page, limit) {
+                        let limit_val = l.clamp(1, 3000);
+                        let offset_val = (p.max(1) - 1) * limit_val;
+                        query = query.limit(limit_val).offset(offset_val);
+                    }
 
-        if let (Some(p), Some(l)) = (page, limit) {
-            let limit_val = l.clamp(1, 3000);
-            let offset_val = (p.max(1) - 1) * limit_val;
-            query = query.limit(limit_val).offset(offset_val);
-        }
+                    let rosters = query
+                        .select(crate::schema::shift_rosters::all_columns)
+                        .load::<crate::models::diesel::roster::ShiftRosterEntity>(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let rosters = query
-            .select(crate::schema::shift_rosters::all_columns)
-            .load::<crate::models::diesel::roster::ShiftRosterEntity>(&mut *conn)
+                    let data: Vec<ShiftRoster> = rosters.into_iter().map(Into::into).collect();
+                    let total = if page.is_some() || limit.is_some() {
+                        total
+                    } else {
+                        i64::try_from(data.len()).unwrap_or(0)
+                    };
+
+                    Ok((data, total))
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        let data: Vec<ShiftRoster> = rosters.into_iter().map(Into::into).collect();
-        let total = if page.is_some() || limit.is_some() {
-            total
-        } else {
-            i64::try_from(data.len()).unwrap_or(0)
-        };
-
-        Ok((data, total))
     }
 
     pub(super) async fn get_employment_rosters_batch(
@@ -220,33 +218,31 @@ impl DieselRosterRepository {
         end_date: NaiveDate,
     ) -> Result<std::collections::HashMap<Uuid, Vec<ShiftRoster>>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let rosters = crate::schema::shift_rosters::table
+                        .inner_join(crate::schema::employments::table)
+                        .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+                        .filter(crate::schema::shift_rosters::employment_id.eq_any(employment_ids))
+                        .filter(crate::schema::shift_rosters::date.ge(start_date))
+                        .filter(crate::schema::shift_rosters::date.le(end_date))
+                        .select(crate::schema::shift_rosters::all_columns)
+                        .load::<crate::models::diesel::roster::ShiftRosterEntity>(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let rosters = crate::schema::shift_rosters::table
-            .inner_join(crate::schema::employments::table)
-            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
-            .filter(crate::schema::shift_rosters::employment_id.eq_any(employment_ids))
-            .filter(crate::schema::shift_rosters::date.ge(start_date))
-            .filter(crate::schema::shift_rosters::date.le(end_date))
-            .select(crate::schema::shift_rosters::all_columns)
-            .load::<crate::models::diesel::roster::ShiftRosterEntity>(&mut *conn)
+                    let mut map: std::collections::HashMap<Uuid, Vec<ShiftRoster>> =
+                        std::collections::HashMap::new();
+                    for roster in rosters {
+                        map.entry(roster.employment_id)
+                            .or_default()
+                            .push(roster.into());
+                    }
+                    Ok(map)
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        let mut map: std::collections::HashMap<Uuid, Vec<ShiftRoster>> =
-            std::collections::HashMap::new();
-        for roster in rosters {
-            map.entry(roster.employment_id)
-                .or_default()
-                .push(roster.into());
-        }
-        Ok(map)
     }
 
     pub(super) async fn upsert_roster(
@@ -255,49 +251,48 @@ impl DieselRosterRepository {
         roster: &ShiftRoster,
     ) -> Result<ShiftRoster, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    // Check if employment exists and belongs to the workspace of this tenant
+                    let employment_exists = crate::schema::employments::table
+                        .filter(crate::schema::employments::id.eq(roster.employment_id))
+                        .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+                        .filter(crate::schema::employments::deleted_at.is_null())
+                        .select(crate::schema::employments::id)
+                        .first::<Uuid>(conn)
+                        .await
+                        .optional()
+                        .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
-        // Check if employment exists and belongs to the workspace of this tenant
-        let employment_exists = crate::schema::employments::table
-            .filter(crate::schema::employments::id.eq(roster.employment_id))
-            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
-            .filter(crate::schema::employments::deleted_at.is_null())
-            .select(crate::schema::employments::id)
-            .first::<Uuid>(&mut *conn)
+                    if employment_exists.is_none() {
+                        return Err(AppError::not_found(I18nKey::EmploymentNotFound));
+                    }
+
+                    let entity: crate::models::diesel::roster::ShiftRosterEntity =
+                        roster.clone().into();
+
+                    let result = diesel::insert_into(crate::schema::shift_rosters::table)
+                        .values(&entity)
+                        .on_conflict((
+                            crate::schema::shift_rosters::employment_id,
+                            crate::schema::shift_rosters::date,
+                        ))
+                        .do_update()
+                        .set((
+                            crate::schema::shift_rosters::template_id.eq(entity.template_id),
+                            crate::schema::shift_rosters::status.eq(entity.status.clone()),
+                            crate::schema::shift_rosters::notes.eq(entity.notes.clone()),
+                            crate::schema::shift_rosters::updated_at.eq(Utc::now()),
+                        ))
+                        .get_result::<crate::models::diesel::roster::ShiftRosterEntity>(conn)
+                        .await
+                        .map_err(AppError::from)?;
+
+                    Ok(result.into())
+                })
+            })
             .await
-            .optional()
-            .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
-
-        if employment_exists.is_none() {
-            return Err(AppError::not_found(I18nKey::EmploymentNotFound));
-        }
-
-        let entity: crate::models::diesel::roster::ShiftRosterEntity = roster.clone().into();
-
-        let result = diesel::insert_into(crate::schema::shift_rosters::table)
-            .values(&entity)
-            .on_conflict((
-                crate::schema::shift_rosters::employment_id,
-                crate::schema::shift_rosters::date,
-            ))
-            .do_update()
-            .set((
-                crate::schema::shift_rosters::template_id.eq(entity.template_id),
-                crate::schema::shift_rosters::status.eq(entity.status.clone()),
-                crate::schema::shift_rosters::notes.eq(entity.notes.clone()),
-                crate::schema::shift_rosters::updated_at.eq(Utc::now()),
-            ))
-            .get_result::<crate::models::diesel::roster::ShiftRosterEntity>(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
-
-        Ok(result.into())
     }
 
     pub(super) async fn bulk_upsert_roster(
@@ -307,58 +302,56 @@ impl DieselRosterRepository {
         items: Vec<RosterItem>,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    // Check if employment exists and belongs to the workspace of this tenant
+                    let employment_exists = crate::schema::employments::table
+                        .filter(crate::schema::employments::id.eq(employment_id))
+                        .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+                        .filter(crate::schema::employments::deleted_at.is_null())
+                        .select(crate::schema::employments::id)
+                        .first::<Uuid>(conn)
+                        .await
+                        .optional()
+                        .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
-        // Check if employment exists and belongs to the workspace of this tenant
-        let employment_exists = crate::schema::employments::table
-            .filter(crate::schema::employments::id.eq(employment_id))
-            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
-            .filter(crate::schema::employments::deleted_at.is_null())
-            .select(crate::schema::employments::id)
-            .first::<Uuid>(&mut *conn)
-            .await
-            .optional()
-            .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
+                    if employment_exists.is_none() {
+                        return Err(AppError::not_found(I18nKey::EmploymentNotFound));
+                    }
 
-        if employment_exists.is_none() {
-            return Err(AppError::not_found(I18nKey::EmploymentNotFound));
-        }
+                    let entities: Vec<ShiftRosterEntity> = items
+                        .into_iter()
+                        .map(|item| ShiftRosterEntity {
+                            id: crate::utils::id::new_id(),
+                            employment_id,
+                            template_id: item.shift_id,
+                            date: item.date,
+                            status: Some("confirmed".to_string()),
+                            notes: item.notes,
+                            created_at: Some(Utc::now()),
+                            updated_at: Some(Utc::now()),
+                        })
+                        .collect();
 
-        let entities: Vec<ShiftRosterEntity> = items
-            .into_iter()
-            .map(|item| ShiftRosterEntity {
-                id: crate::utils::id::new_id(),
-                employment_id,
-                template_id: item.shift_id,
-                date: item.date,
-                status: Some("confirmed".to_string()),
-                notes: item.notes,
-                created_at: Some(Utc::now()),
-                updated_at: Some(Utc::now()),
+                    diesel::insert_into(shift_rosters::table)
+                        .values(&entities)
+                        .on_conflict((shift_rosters::employment_id, shift_rosters::date))
+                        .do_update()
+                        .set((
+                            shift_rosters::template_id.eq(diesel::dsl::sql("EXCLUDED.template_id")),
+                            shift_rosters::status.eq(diesel::dsl::sql("EXCLUDED.status")),
+                            shift_rosters::notes.eq(diesel::dsl::sql("EXCLUDED.notes")),
+                            shift_rosters::updated_at.eq(Utc::now()),
+                        ))
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
+
+                    Ok(())
+                })
             })
-            .collect();
-
-        diesel::insert_into(shift_rosters::table)
-            .values(&entities)
-            .on_conflict((shift_rosters::employment_id, shift_rosters::date))
-            .do_update()
-            .set((
-                shift_rosters::template_id.eq(diesel::dsl::sql("EXCLUDED.template_id")),
-                shift_rosters::status.eq(diesel::dsl::sql("EXCLUDED.status")),
-                shift_rosters::notes.eq(diesel::dsl::sql("EXCLUDED.notes")),
-                shift_rosters::updated_at.eq(Utc::now()),
-            ))
-            .execute(&mut *conn)
             .await
-            .map_err(AppError::from)?;
-
-        Ok(())
     }
 
     pub(super) async fn delete_roster(
@@ -368,38 +361,36 @@ impl DieselRosterRepository {
         date: NaiveDate,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    // Check if employment exists and belongs to the workspace of this tenant
+                    let employment_exists = crate::schema::employments::table
+                        .filter(crate::schema::employments::id.eq(employment_id))
+                        .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+                        .filter(crate::schema::employments::deleted_at.is_null())
+                        .select(crate::schema::employments::id)
+                        .first::<Uuid>(conn)
+                        .await
+                        .optional()
+                        .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
-        // Check if employment exists and belongs to the workspace of this tenant
-        let employment_exists = crate::schema::employments::table
-            .filter(crate::schema::employments::id.eq(employment_id))
-            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
-            .filter(crate::schema::employments::deleted_at.is_null())
-            .select(crate::schema::employments::id)
-            .first::<Uuid>(&mut *conn)
+                    if employment_exists.is_none() {
+                        return Err(AppError::not_found(I18nKey::EmploymentNotFound));
+                    }
+
+                    diesel::delete(
+                        shift_rosters::table
+                            .filter(shift_rosters::employment_id.eq(employment_id))
+                            .filter(shift_rosters::date.eq(date)),
+                    )
+                    .execute(conn)
+                    .await
+                    .map_err(AppError::from)?;
+
+                    Ok(())
+                })
+            })
             .await
-            .optional()
-            .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
-
-        if employment_exists.is_none() {
-            return Err(AppError::not_found(I18nKey::EmploymentNotFound));
-        }
-
-        diesel::delete(
-            shift_rosters::table
-                .filter(shift_rosters::employment_id.eq(employment_id))
-                .filter(shift_rosters::date.eq(date)),
-        )
-        .execute(&mut *conn)
-        .await
-        .map_err(AppError::from)?;
-
-        Ok(())
     }
 }

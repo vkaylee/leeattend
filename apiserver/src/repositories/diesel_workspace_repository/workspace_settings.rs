@@ -1,4 +1,5 @@
 use super::DieselWorkspaceRepository;
+use crate::diesel_pool::DieselPoolsTenantTxExt;
 use crate::errors::AppError;
 use crate::models::diesel::core::WorkspaceEntity;
 use crate::models::Workspace;
@@ -80,23 +81,25 @@ impl DieselWorkspaceRepository {
             .map_err(AppError::from)?;
 
         if let Some(ref new_tz) = update.timezone {
-            let mut tenant_conn = crate::diesel_pool::TransactionConn(
-                self.diesel_pools
-                    .tenants_tx
-                    .get_connection(&id)
-                    .await
-                    .map_err(|e| AppError::Internal(format!("Failed to get tenant conn: {e}")))?,
-            );
-            use crate::schema::work_locations;
-            diesel::update(
-                work_locations::table
-                    .filter(work_locations::workspace_id.eq(id))
-                    .filter(work_locations::is_headquarters.eq(true)),
-            )
-            .set(work_locations::timezone.eq(new_tz))
-            .execute(&mut *tenant_conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db tenant: {e}")))?;
+            let tenant_token = crate::diesel_pool::TenantAuthToken::system_override(id);
+            self.diesel_pools
+                .with_tenant_tx(&tenant_token, |conn| {
+                    Box::pin(async move {
+                        use crate::schema::work_locations;
+                        diesel::update(
+                            work_locations::table
+                                .filter(work_locations::workspace_id.eq(id))
+                                .filter(work_locations::is_headquarters.eq(true)),
+                        )
+                        .set(work_locations::timezone.eq(new_tz))
+                        .execute(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db tenant: {e}")))?;
+
+                        Ok(())
+                    })
+                })
+                .await?;
         }
 
         Ok(result.into())

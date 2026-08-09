@@ -2,10 +2,10 @@ use async_trait::async_trait;
 use bigdecimal::BigDecimal;
 use chrono::{NaiveDate, Utc};
 use diesel::prelude::*;
-use diesel_async::{AsyncConnection, RunQueryDsl};
+use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
-use crate::diesel_pool::DieselPools;
+use crate::diesel_pool::{DieselPools, DieselPoolsTenantTxExt};
 use crate::errors::AppError;
 use crate::models::diesel::work_segment::{
     GapCompensationType, NewWorkSegmentEntity, SegmentStatusType, SegmentType, WorkSegmentEntity,
@@ -73,24 +73,22 @@ impl WorkSegmentRepository for DieselWorkSegmentRepository {
     ) -> Result<WorkSegment, AppError> {
         let workspace_id = auth_token.workspace_id();
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
         let mut entity = NewWorkSegmentEntity::from(req);
         entity.workspace_id = workspace_id;
 
-        let result = diesel::insert_into(work_segments::table)
-            .values(&entity)
-            .get_result::<WorkSegmentEntity>(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let result = diesel::insert_into(work_segments::table)
+                        .values(&entity)
+                        .get_result::<WorkSegmentEntity>(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        Ok(WorkSegment::from(result))
+                    Ok(WorkSegment::from(result))
+                })
+            })
+            .await
     }
 
     // ── get_segment_by_id ─────────────────────────────────────────────────────
@@ -101,23 +99,21 @@ impl WorkSegmentRepository for DieselWorkSegmentRepository {
     ) -> Result<Option<WorkSegment>, AppError> {
         let workspace_id = auth_token.workspace_id();
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let result = work_segments::table
+                        .filter(work_segments::id.eq(segment_id))
+                        .filter(work_segments::workspace_id.eq(workspace_id))
+                        .first::<WorkSegmentEntity>(conn)
+                        .await
+                        .optional()
+                        .map_err(AppError::from)?;
 
-        let result = work_segments::table
-            .filter(work_segments::id.eq(segment_id))
-            .filter(work_segments::workspace_id.eq(workspace_id))
-            .first::<WorkSegmentEntity>(&mut *conn)
+                    Ok(result.map(WorkSegment::from))
+                })
+            })
             .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        Ok(result.map(WorkSegment::from))
     }
 
     // ── list_segments ─────────────────────────────────────────────────────────
@@ -130,41 +126,39 @@ impl WorkSegmentRepository for DieselWorkSegmentRepository {
     ) -> Result<(Vec<WorkSegment>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    // Count query
+                    let count_query = work_segments::table
+                        .filter(work_segments::workspace_id.eq(workspace_id))
+                        .into_boxed();
+                    let count_query = apply_filters(count_query, filter);
+                    let total: i64 = count_query
+                        .count()
+                        .get_result(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        // Count query
-        let count_query = work_segments::table
-            .filter(work_segments::workspace_id.eq(workspace_id))
-            .into_boxed();
-        let count_query = apply_filters(count_query, filter);
-        let total: i64 = count_query
-            .count()
-            .get_result(&mut *conn)
+                    // Data query
+                    let data_query = work_segments::table
+                        .filter(work_segments::workspace_id.eq(workspace_id))
+                        .into_boxed();
+                    let data_query = apply_filters(data_query, filter);
+                    let offset = (page.saturating_sub(1)) * limit;
+                    let entities = data_query
+                        .order((work_segments::date, work_segments::sort_order))
+                        .limit(limit)
+                        .offset(offset)
+                        .load::<WorkSegmentEntity>(conn)
+                        .await
+                        .map_err(AppError::from)?;
+
+                    let segments = entities.into_iter().map(WorkSegment::from).collect();
+                    Ok((segments, total))
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        // Data query
-        let data_query = work_segments::table
-            .filter(work_segments::workspace_id.eq(workspace_id))
-            .into_boxed();
-        let data_query = apply_filters(data_query, filter);
-        let offset = (page.saturating_sub(1)) * limit;
-        let entities = data_query
-            .order((work_segments::date, work_segments::sort_order))
-            .limit(limit)
-            .offset(offset)
-            .load::<WorkSegmentEntity>(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
-
-        let segments = entities.into_iter().map(WorkSegment::from).collect();
-        Ok((segments, total))
     }
 
     // ── get_segments_by_date_range ────────────────────────────────────────────
@@ -177,30 +171,29 @@ impl WorkSegmentRepository for DieselWorkSegmentRepository {
     ) -> Result<Vec<WorkSegment>, AppError> {
         let workspace_id = auth_token.workspace_id();
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
         let ids_vec = employment_ids.to_vec();
-        let entities = work_segments::table
-            .filter(work_segments::workspace_id.eq(workspace_id))
-            .filter(work_segments::employment_id.eq_any(ids_vec))
-            .filter(work_segments::date.ge(start_date))
-            .filter(work_segments::date.le(end_date))
-            .order((
-                work_segments::employment_id,
-                work_segments::date,
-                work_segments::sort_order,
-            ))
-            .load::<WorkSegmentEntity>(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
 
-        Ok(entities.into_iter().map(WorkSegment::from).collect())
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let entities = work_segments::table
+                        .filter(work_segments::workspace_id.eq(workspace_id))
+                        .filter(work_segments::employment_id.eq_any(ids_vec))
+                        .filter(work_segments::date.ge(start_date))
+                        .filter(work_segments::date.le(end_date))
+                        .order((
+                            work_segments::employment_id,
+                            work_segments::date,
+                            work_segments::sort_order,
+                        ))
+                        .load::<WorkSegmentEntity>(conn)
+                        .await
+                        .map_err(AppError::from)?;
+
+                    Ok(entities.into_iter().map(WorkSegment::from).collect())
+                })
+            })
+            .await
     }
 
     // ── update_segment ────────────────────────────────────────────────────────
@@ -212,97 +205,90 @@ impl WorkSegmentRepository for DieselWorkSegmentRepository {
     ) -> Result<WorkSegment, AppError> {
         let workspace_id = auth_token.workspace_id();
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    // Verify ownership
+                    let existing = work_segments::table
+                        .filter(work_segments::id.eq(segment_id))
+                        .filter(work_segments::workspace_id.eq(workspace_id))
+                        .first::<WorkSegmentEntity>(conn)
+                        .await
+                        .optional()
+                        .map_err(AppError::from)?
+                        .ok_or_else(|| {
+                            AppError::Internal(format!("work_segment {segment_id} not found"))
+                        })?;
 
-        conn.transaction::<_, AppError, _>(|conn| {
-            Box::pin(async move {
-                // Verify ownership
-                let existing = work_segments::table
-                    .filter(work_segments::id.eq(segment_id))
-                    .filter(work_segments::workspace_id.eq(workspace_id))
-                    .first::<WorkSegmentEntity>(&mut *conn)
-                    .await
-                    .optional()
-                    .map_err(AppError::from)?
-                    .ok_or_else(|| {
-                        AppError::Internal(format!("work_segment {segment_id} not found"))
-                    })?;
+                    // Build update set
+                    let template_id = req.template_id.unwrap_or(existing.template_id);
+                    let interval_id = req.interval_id.or(existing.interval_id);
+                    let sort_order = req.sort_order.unwrap_or(existing.sort_order);
+                    let scheduled_start = req.scheduled_start.unwrap_or(existing.scheduled_start);
+                    let scheduled_end = req.scheduled_end.unwrap_or(existing.scheduled_end);
+                    let segment_type = req
+                        .segment_type
+                        .as_deref()
+                        .map(SegmentType::from_domain_str)
+                        .unwrap_or(existing.segment_type);
+                    let segment_status = req
+                        .segment_status
+                        .as_deref()
+                        .map(SegmentStatusType::from_domain_str)
+                        .unwrap_or(existing.segment_status);
+                    let compensation_rate = req
+                        .compensation_rate
+                        .map(f64_to_bigdecimal)
+                        .unwrap_or(existing.compensation_rate);
+                    let gap_compensation_before = req
+                        .gap_compensation_before
+                        .as_deref()
+                        .map(GapCompensationType::from_domain_str)
+                        .unwrap_or(existing.gap_compensation_before);
+                    let gap_compensation_rate_before = req
+                        .gap_compensation_rate_before
+                        .map(f64_to_bigdecimal)
+                        .unwrap_or(existing.gap_compensation_rate_before);
+                    let break_config_override = req
+                        .break_config_override
+                        .clone()
+                        .or(existing.break_config_override);
+                    let ot_config_override = req
+                        .ot_config_override
+                        .clone()
+                        .or(existing.ot_config_override);
+                    let source = req.source.clone().unwrap_or(existing.source);
+                    let source_detail = req.source_detail.clone().unwrap_or(existing.source_detail);
+                    let notes = req.notes.clone().or(existing.notes);
 
-                // Build update set
-                let template_id = req.template_id.unwrap_or(existing.template_id);
-                let interval_id = req.interval_id.or(existing.interval_id);
-                let sort_order = req.sort_order.unwrap_or(existing.sort_order);
-                let scheduled_start = req.scheduled_start.unwrap_or(existing.scheduled_start);
-                let scheduled_end = req.scheduled_end.unwrap_or(existing.scheduled_end);
-                let segment_type = req
-                    .segment_type
-                    .as_deref()
-                    .map(SegmentType::from_domain_str)
-                    .unwrap_or(existing.segment_type);
-                let segment_status = req
-                    .segment_status
-                    .as_deref()
-                    .map(SegmentStatusType::from_domain_str)
-                    .unwrap_or(existing.segment_status);
-                let compensation_rate = req
-                    .compensation_rate
-                    .map(f64_to_bigdecimal)
-                    .unwrap_or(existing.compensation_rate);
-                let gap_compensation_before = req
-                    .gap_compensation_before
-                    .as_deref()
-                    .map(GapCompensationType::from_domain_str)
-                    .unwrap_or(existing.gap_compensation_before);
-                let gap_compensation_rate_before = req
-                    .gap_compensation_rate_before
-                    .map(f64_to_bigdecimal)
-                    .unwrap_or(existing.gap_compensation_rate_before);
-                let break_config_override = req
-                    .break_config_override
-                    .clone()
-                    .or(existing.break_config_override);
-                let ot_config_override = req
-                    .ot_config_override
-                    .clone()
-                    .or(existing.ot_config_override);
-                let source = req.source.clone().unwrap_or(existing.source);
-                let source_detail = req.source_detail.clone().unwrap_or(existing.source_detail);
-                let notes = req.notes.clone().or(existing.notes);
+                    let updated = diesel::update(work_segments::table.find(segment_id))
+                        .set((
+                            work_segments::template_id.eq(template_id),
+                            work_segments::interval_id.eq(interval_id),
+                            work_segments::sort_order.eq(sort_order),
+                            work_segments::scheduled_start.eq(scheduled_start),
+                            work_segments::scheduled_end.eq(scheduled_end),
+                            work_segments::segment_type.eq(segment_type),
+                            work_segments::segment_status.eq(segment_status),
+                            work_segments::compensation_rate.eq(compensation_rate),
+                            work_segments::gap_compensation_before.eq(gap_compensation_before),
+                            work_segments::gap_compensation_rate_before
+                                .eq(gap_compensation_rate_before),
+                            work_segments::break_config_override.eq(break_config_override),
+                            work_segments::ot_config_override.eq(ot_config_override),
+                            work_segments::source.eq(source),
+                            work_segments::source_detail.eq(source_detail),
+                            work_segments::notes.eq(notes),
+                            work_segments::updated_at.eq(Utc::now()),
+                        ))
+                        .get_result::<WorkSegmentEntity>(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-                let updated = diesel::update(work_segments::table.find(segment_id))
-                    .set((
-                        work_segments::template_id.eq(template_id),
-                        work_segments::interval_id.eq(interval_id),
-                        work_segments::sort_order.eq(sort_order),
-                        work_segments::scheduled_start.eq(scheduled_start),
-                        work_segments::scheduled_end.eq(scheduled_end),
-                        work_segments::segment_type.eq(segment_type),
-                        work_segments::segment_status.eq(segment_status),
-                        work_segments::compensation_rate.eq(compensation_rate),
-                        work_segments::gap_compensation_before.eq(gap_compensation_before),
-                        work_segments::gap_compensation_rate_before
-                            .eq(gap_compensation_rate_before),
-                        work_segments::break_config_override.eq(break_config_override),
-                        work_segments::ot_config_override.eq(ot_config_override),
-                        work_segments::source.eq(source),
-                        work_segments::source_detail.eq(source_detail),
-                        work_segments::notes.eq(notes),
-                        work_segments::updated_at.eq(Utc::now()),
-                    ))
-                    .get_result::<WorkSegmentEntity>(&mut *conn)
-                    .await
-                    .map_err(AppError::from)?;
-
-                Ok(WorkSegment::from(updated))
+                    Ok(WorkSegment::from(updated))
+                })
             })
-        })
-        .await
+            .await
     }
 
     // ── delete_segment ────────────────────────────────────────────────────────
@@ -313,29 +299,27 @@ impl WorkSegmentRepository for DieselWorkSegmentRepository {
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let affected = diesel::delete(
+                        work_segments::table
+                            .filter(work_segments::id.eq(segment_id))
+                            .filter(work_segments::workspace_id.eq(workspace_id)),
+                    )
+                    .execute(conn)
+                    .await
+                    .map_err(AppError::from)?;
 
-        let affected = diesel::delete(
-            work_segments::table
-                .filter(work_segments::id.eq(segment_id))
-                .filter(work_segments::workspace_id.eq(workspace_id)),
-        )
-        .execute(&mut *conn)
-        .await
-        .map_err(AppError::from)?;
-
-        if affected == 0 {
-            return Err(AppError::Internal(format!(
-                "work_segment {segment_id} not found"
-            )));
-        }
-        Ok(())
+                    if affected == 0 {
+                        return Err(AppError::Internal(format!(
+                            "work_segment {segment_id} not found"
+                        )));
+                    }
+                    Ok(())
+                })
+            })
+            .await
     }
 
     // ── delete_segments_for_employments ───────────────────────────────────────
@@ -348,40 +332,40 @@ impl WorkSegmentRepository for DieselWorkSegmentRepository {
     ) -> Result<u64, AppError> {
         let workspace_id = auth_token.workspace_id();
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
         let ids_vec = employment_ids.to_vec();
-        let mut query = diesel::delete(work_segments::table)
-            .filter(work_segments::workspace_id.eq(workspace_id))
-            .filter(work_segments::employment_id.eq_any(ids_vec))
-            .into_boxed();
+        let employment_count = employment_ids.len();
 
-        if let Some(start) = start_date {
-            query = query.filter(work_segments::date.ge(start));
-        }
-        if let Some(end) = end_date {
-            query = query.filter(work_segments::date.le(end));
-        }
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let mut query = diesel::delete(work_segments::table)
+                        .filter(work_segments::workspace_id.eq(workspace_id))
+                        .filter(work_segments::employment_id.eq_any(ids_vec))
+                        .into_boxed();
 
-        let deleted = query
-            .execute(&mut *conn)
+                    if let Some(start) = start_date {
+                        query = query.filter(work_segments::date.ge(start));
+                    }
+                    if let Some(end) = end_date {
+                        query = query.filter(work_segments::date.le(end));
+                    }
+
+                    let deleted = query
+                        .execute(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("delete segments: {e}")))?;
+
+                    tracing::debug!(
+                        workspace_id = %workspace_id,
+                        employment_count,
+                        deleted_count = deleted,
+                        "Invalidated persisted work segments"
+                    );
+
+                    Ok(deleted as u64)
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("delete segments: {e}")))?;
-
-        tracing::debug!(
-            workspace_id = %workspace_id,
-            employment_count = employment_ids.len(),
-            deleted_count = deleted,
-            "Invalidated persisted work segments"
-        );
-
-        Ok(deleted as u64)
     }
 
     // ── bulk_create_segments ──────────────────────────────────────────────────
@@ -397,14 +381,6 @@ impl WorkSegmentRepository for DieselWorkSegmentRepository {
 
         let workspace_id = auth_token.workspace_id();
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
         let entities: Vec<NewWorkSegmentEntity> = segments
             .iter()
             .map(|req| {
@@ -414,70 +390,70 @@ impl WorkSegmentRepository for DieselWorkSegmentRepository {
             })
             .collect();
 
-        conn.transaction::<_, AppError, _>(|conn| {
-            let entities = entities.clone();
-            Box::pin(async move {
-                // If replace_existing, delete segments for affected (employment_id, date) pairs
-                if replace_existing {
-                    let pairs: Vec<(Uuid, NaiveDate)> = entities
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    // If replace_existing, delete segments for affected (employment_id, date) pairs
+                    if replace_existing {
+                        let pairs: Vec<(Uuid, NaiveDate)> = entities
+                            .iter()
+                            .map(|e| (e.employment_id, e.date))
+                            .collect::<std::collections::HashSet<_>>()
+                            .into_iter()
+                            .collect();
+
+                        for (emp_id, date) in &pairs {
+                            diesel::delete(
+                                work_segments::table
+                                    .filter(work_segments::workspace_id.eq(workspace_id))
+                                    .filter(work_segments::employment_id.eq(emp_id))
+                                    .filter(work_segments::date.eq(date)),
+                            )
+                            .execute(conn)
+                            .await
+                            .map_err(AppError::from)?;
+                        }
+                    }
+
+                    // Insert with ON CONFLICT DO NOTHING
+                    diesel::insert_into(work_segments::table)
+                        .values(&entities)
+                        .on_conflict_do_nothing()
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
+
+                    // Return all segments that match the input (both newly inserted and existing)
+                    let employment_ids: Vec<Uuid> = entities
                         .iter()
-                        .map(|e| (e.employment_id, e.date))
+                        .map(|e| e.employment_id)
+                        .collect::<std::collections::HashSet<_>>()
+                        .into_iter()
+                        .collect();
+                    let dates: Vec<NaiveDate> = entities
+                        .iter()
+                        .map(|e| e.date)
                         .collect::<std::collections::HashSet<_>>()
                         .into_iter()
                         .collect();
 
-                    for (emp_id, date) in &pairs {
-                        diesel::delete(
-                            work_segments::table
-                                .filter(work_segments::workspace_id.eq(workspace_id))
-                                .filter(work_segments::employment_id.eq(emp_id))
-                                .filter(work_segments::date.eq(date)),
-                        )
-                        .execute(&mut *conn)
+                    let result = work_segments::table
+                        .filter(work_segments::workspace_id.eq(workspace_id))
+                        .filter(work_segments::employment_id.eq_any(&employment_ids))
+                        .filter(work_segments::date.eq_any(&dates))
+                        .order((
+                            work_segments::employment_id,
+                            work_segments::date,
+                            work_segments::sort_order,
+                        ))
+                        .load::<WorkSegmentEntity>(conn)
                         .await
                         .map_err(AppError::from)?;
-                    }
-                }
 
-                // Insert with ON CONFLICT DO NOTHING
-                diesel::insert_into(work_segments::table)
-                    .values(&entities)
-                    .on_conflict_do_nothing()
-                    .execute(&mut *conn)
-                    .await
-                    .map_err(AppError::from)?;
-
-                // Return all segments that match the input (both newly inserted and existing)
-                let employment_ids: Vec<Uuid> = entities
-                    .iter()
-                    .map(|e| e.employment_id)
-                    .collect::<std::collections::HashSet<_>>()
-                    .into_iter()
-                    .collect();
-                let dates: Vec<NaiveDate> = entities
-                    .iter()
-                    .map(|e| e.date)
-                    .collect::<std::collections::HashSet<_>>()
-                    .into_iter()
-                    .collect();
-
-                let result = work_segments::table
-                    .filter(work_segments::workspace_id.eq(workspace_id))
-                    .filter(work_segments::employment_id.eq_any(&employment_ids))
-                    .filter(work_segments::date.eq_any(&dates))
-                    .order((
-                        work_segments::employment_id,
-                        work_segments::date,
-                        work_segments::sort_order,
-                    ))
-                    .load::<WorkSegmentEntity>(&mut *conn)
-                    .await
-                    .map_err(AppError::from)?;
-
-                Ok(result.into_iter().map(WorkSegment::from).collect())
+                    Ok(result.into_iter().map(WorkSegment::from).collect())
+                })
             })
-        })
-        .await
+            .await
     }
 }
 
@@ -503,11 +479,9 @@ mod tests {
 
     /// Returns true if we can get a test DB connection.
     async fn db_available(pools: &DieselPools) -> bool {
-        pools
-            .tenants_tx
-            .get_connection(&Uuid::parse_str("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee").unwrap())
-            .await
-            .is_ok()
+        let token =
+            TenantAuthToken(Uuid::parse_str("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee").unwrap());
+        pools.tenant_transaction_conn(&token).await.is_ok()
     }
 
     fn make_create_request(

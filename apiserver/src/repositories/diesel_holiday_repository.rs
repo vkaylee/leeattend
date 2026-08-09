@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::diesel_pool::DieselPools;
+use crate::diesel_pool::DieselPoolsTenantTxExt;
 use crate::errors::AppError;
 use crate::models::diesel::holiday::HolidayEntity;
 use crate::models::Holiday;
@@ -35,77 +36,75 @@ impl HolidayRepository for DieselHolidayRepository {
         limit: i64,
     ) -> Result<(Vec<Holiday>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let mut count_query = holidays::table
+                        .filter(holidays::workspace_id.eq(workspace_id))
+                        .filter(holidays::deleted_at.is_null())
+                        .into_boxed();
 
-        let mut count_query = holidays::table
-            .filter(holidays::workspace_id.eq(workspace_id))
-            .filter(holidays::deleted_at.is_null())
-            .into_boxed();
+                    if let Some(y) = year {
+                        if let (Some(start), Some(end)) = (
+                            NaiveDate::from_ymd_opt(y, 1, 1),
+                            NaiveDate::from_ymd_opt(y, 12, 31),
+                        ) {
+                            count_query = count_query
+                                .filter(holidays::date.ge(start))
+                                .filter(holidays::date.le(end));
+                        }
+                    }
 
-        if let Some(y) = year {
-            if let (Some(start), Some(end)) = (
-                NaiveDate::from_ymd_opt(y, 1, 1),
-                NaiveDate::from_ymd_opt(y, 12, 31),
-            ) {
-                count_query = count_query
-                    .filter(holidays::date.ge(start))
-                    .filter(holidays::date.le(end));
-            }
-        }
+                    if let Some(loc_id) = location_id {
+                        count_query = count_query.filter(
+                            holidays::location_id
+                                .is_null()
+                                .or(holidays::location_id.eq(loc_id)),
+                        );
+                    }
 
-        if let Some(loc_id) = location_id {
-            count_query = count_query.filter(
-                holidays::location_id
-                    .is_null()
-                    .or(holidays::location_id.eq(loc_id)),
-            );
-        }
+                    let total: i64 = count_query
+                        .count()
+                        .get_result(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db count: {e}")))?;
 
-        let total: i64 = count_query
-            .count()
-            .get_result(&mut *conn)
+                    let mut select_query = holidays::table
+                        .filter(holidays::workspace_id.eq(workspace_id))
+                        .filter(holidays::deleted_at.is_null())
+                        .into_boxed();
+
+                    if let Some(y) = year {
+                        if let (Some(start), Some(end)) = (
+                            NaiveDate::from_ymd_opt(y, 1, 1),
+                            NaiveDate::from_ymd_opt(y, 12, 31),
+                        ) {
+                            select_query = select_query
+                                .filter(holidays::date.ge(start))
+                                .filter(holidays::date.le(end));
+                        }
+                    }
+
+                    if let Some(loc_id) = location_id {
+                        select_query = select_query.filter(
+                            holidays::location_id
+                                .is_null()
+                                .or(holidays::location_id.eq(loc_id)),
+                        );
+                    }
+
+                    let entities: Vec<HolidayEntity> = select_query
+                        .order(holidays::date.asc())
+                        .limit(limit)
+                        .offset((page - 1) * limit)
+                        .load(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    Ok((entities.into_iter().map(Into::into).collect(), total))
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("db count: {e}")))?;
-
-        let mut select_query = holidays::table
-            .filter(holidays::workspace_id.eq(workspace_id))
-            .filter(holidays::deleted_at.is_null())
-            .into_boxed();
-
-        if let Some(y) = year {
-            if let (Some(start), Some(end)) = (
-                NaiveDate::from_ymd_opt(y, 1, 1),
-                NaiveDate::from_ymd_opt(y, 12, 31),
-            ) {
-                select_query = select_query
-                    .filter(holidays::date.ge(start))
-                    .filter(holidays::date.le(end));
-            }
-        }
-
-        if let Some(loc_id) = location_id {
-            select_query = select_query.filter(
-                holidays::location_id
-                    .is_null()
-                    .or(holidays::location_id.eq(loc_id)),
-            );
-        }
-
-        let entities: Vec<HolidayEntity> = select_query
-            .order(holidays::date.asc())
-            .limit(limit)
-            .offset((page - 1) * limit)
-            .load(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        Ok((entities.into_iter().map(Into::into).collect(), total))
     }
 
     async fn get_by_id(
@@ -114,24 +113,22 @@ impl HolidayRepository for DieselHolidayRepository {
         id: Uuid,
     ) -> Result<Option<Holiday>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let entity: Option<HolidayEntity> = holidays::table
+                        .filter(holidays::id.eq(id))
+                        .filter(holidays::workspace_id.eq(workspace_id))
+                        .filter(holidays::deleted_at.is_null())
+                        .first(conn)
+                        .await
+                        .optional()
+                        .map_err(AppError::from)?;
 
-        let entity: Option<HolidayEntity> = holidays::table
-            .filter(holidays::id.eq(id))
-            .filter(holidays::workspace_id.eq(workspace_id))
-            .filter(holidays::deleted_at.is_null())
-            .first(&mut *conn)
+                    Ok(entity.map(Into::into))
+                })
+            })
             .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        Ok(entity.map(Into::into))
     }
 
     async fn create_holiday(
@@ -140,39 +137,37 @@ impl HolidayRepository for DieselHolidayRepository {
         req: &crate::models::CreateHolidayRequest,
     ) -> Result<Holiday, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let new_holiday = HolidayEntity {
+                        id: Uuid::new_v4(),
+                        workspace_id,
+                        name: req.name.clone(),
+                        date: req.date,
+                        holiday_type: req.holiday_type.clone(),
+                        is_paid: req.is_paid,
+                        leave_type_id: req.leave_type_id,
+                        ot_multiplier: req.ot_multiplier,
+                        description: req.description.clone(),
+                        created_at: Utc::now(),
+                        updated_at: Utc::now(),
+                        work_threshold_percent: req.work_threshold_percent,
+                        is_credit_on_work: req.is_credit_on_work,
+                        deleted_at: None,
+                        location_id: req.location_id,
+                    };
 
-        let new_holiday = HolidayEntity {
-            id: Uuid::new_v4(),
-            workspace_id,
-            name: req.name.clone(),
-            date: req.date,
-            holiday_type: req.holiday_type.clone(),
-            is_paid: req.is_paid,
-            leave_type_id: req.leave_type_id,
-            ot_multiplier: req.ot_multiplier,
-            description: req.description.clone(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-            work_threshold_percent: req.work_threshold_percent,
-            is_credit_on_work: req.is_credit_on_work,
-            deleted_at: None,
-            location_id: req.location_id,
-        };
+                    let result: HolidayEntity = diesel::insert_into(holidays::table)
+                        .values(&new_holiday)
+                        .get_result(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let result: HolidayEntity = diesel::insert_into(holidays::table)
-            .values(&new_holiday)
-            .get_result(&mut *conn)
+                    Ok(result.into())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(result.into())
     }
 
     async fn update_holiday(
@@ -182,43 +177,41 @@ impl HolidayRepository for DieselHolidayRepository {
         req: &crate::models::UpdateHolidayRequest,
     ) -> Result<Option<Holiday>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let result: Option<HolidayEntity> = diesel::update(holidays::table)
+                        .filter(holidays::id.eq(id))
+                        .filter(holidays::workspace_id.eq(workspace_id))
+                        .filter(holidays::deleted_at.is_null())
+                        .set((
+                            req.name.as_ref().map(|n| holidays::name.eq(n)),
+                            req.date.map(|d| holidays::date.eq(d)),
+                            req.holiday_type
+                                .as_ref()
+                                .map(|t| holidays::holiday_type.eq(t)),
+                            req.is_paid.map(|p| holidays::is_paid.eq(p)),
+                            req.leave_type_id.map(|l| holidays::leave_type_id.eq(l)),
+                            req.ot_multiplier.map(|m| holidays::ot_multiplier.eq(m)),
+                            req.description
+                                .as_ref()
+                                .map(|d| holidays::description.eq(d)),
+                            req.work_threshold_percent
+                                .map(|w| holidays::work_threshold_percent.eq(w)),
+                            req.is_credit_on_work
+                                .map(|c| holidays::is_credit_on_work.eq(c)),
+                            req.location_id.map(|l| holidays::location_id.eq(l)),
+                            Some(holidays::updated_at.eq(Utc::now())),
+                        ))
+                        .get_result(conn)
+                        .await
+                        .optional()
+                        .map_err(AppError::from)?;
 
-        let result: Option<HolidayEntity> = diesel::update(holidays::table)
-            .filter(holidays::id.eq(id))
-            .filter(holidays::workspace_id.eq(workspace_id))
-            .filter(holidays::deleted_at.is_null())
-            .set((
-                req.name.as_ref().map(|n| holidays::name.eq(n)),
-                req.date.map(|d| holidays::date.eq(d)),
-                req.holiday_type
-                    .as_ref()
-                    .map(|t| holidays::holiday_type.eq(t)),
-                req.is_paid.map(|p| holidays::is_paid.eq(p)),
-                req.leave_type_id.map(|l| holidays::leave_type_id.eq(l)),
-                req.ot_multiplier.map(|m| holidays::ot_multiplier.eq(m)),
-                req.description
-                    .as_ref()
-                    .map(|d| holidays::description.eq(d)),
-                req.work_threshold_percent
-                    .map(|w| holidays::work_threshold_percent.eq(w)),
-                req.is_credit_on_work
-                    .map(|c| holidays::is_credit_on_work.eq(c)),
-                req.location_id.map(|l| holidays::location_id.eq(l)),
-                Some(holidays::updated_at.eq(Utc::now())),
-            ))
-            .get_result(&mut *conn)
+                    Ok(result.map(Into::into))
+                })
+            })
             .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        Ok(result.map(Into::into))
     }
 
     async fn delete(
@@ -227,23 +220,21 @@ impl HolidayRepository for DieselHolidayRepository {
         id: Uuid,
     ) -> Result<bool, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let affected = diesel::update(holidays::table)
+                        .filter(holidays::id.eq(id))
+                        .filter(holidays::workspace_id.eq(workspace_id))
+                        .set(holidays::deleted_at.eq(Utc::now()))
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let affected = diesel::update(holidays::table)
-            .filter(holidays::id.eq(id))
-            .filter(holidays::workspace_id.eq(workspace_id))
-            .set(holidays::deleted_at.eq(Utc::now()))
-            .execute(&mut *conn)
+                    Ok(affected > 0)
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(affected > 0)
     }
 
     async fn get_holidays_in_range(
@@ -253,25 +244,23 @@ impl HolidayRepository for DieselHolidayRepository {
         end_date: NaiveDate,
     ) -> Result<HashMap<NaiveDate, Holiday>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let entities: Vec<HolidayEntity> = holidays::table
+                        .filter(holidays::workspace_id.eq(workspace_id))
+                        .filter(holidays::deleted_at.is_null())
+                        .filter(holidays::date.ge(start_date))
+                        .filter(holidays::date.le(end_date))
+                        .order(holidays::date.asc())
+                        .load(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let entities: Vec<HolidayEntity> = holidays::table
-            .filter(holidays::workspace_id.eq(workspace_id))
-            .filter(holidays::deleted_at.is_null())
-            .filter(holidays::date.ge(start_date))
-            .filter(holidays::date.le(end_date))
-            .order(holidays::date.asc())
-            .load(&mut *conn)
+                    Ok(entities.into_iter().map(|e| (e.date, e.into())).collect())
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        Ok(entities.into_iter().map(|e| (e.date, e.into())).collect())
     }
 
     async fn is_holiday(
@@ -281,35 +270,30 @@ impl HolidayRepository for DieselHolidayRepository {
         location_id: Option<Uuid>,
     ) -> Result<Option<Holiday>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let mut query = holidays::table
+                        .filter(holidays::workspace_id.eq(workspace_id))
+                        .filter(holidays::deleted_at.is_null())
+                        .filter(holidays::date.eq(date))
+                        .into_boxed();
 
-        let mut query = holidays::table
-            .filter(holidays::workspace_id.eq(workspace_id))
-            .filter(holidays::deleted_at.is_null())
-            .filter(holidays::date.eq(date))
-            .into_boxed();
+                    if let Some(loc_id) = location_id {
+                        query = query.filter(
+                            holidays::location_id
+                                .is_null()
+                                .or(holidays::location_id.eq(loc_id)),
+                        );
+                    }
 
-        if let Some(loc_id) = location_id {
-            query = query.filter(
-                holidays::location_id
-                    .is_null()
-                    .or(holidays::location_id.eq(loc_id)),
-            );
-        }
+                    let entity: Option<HolidayEntity> =
+                        query.first(conn).await.optional().map_err(AppError::from)?;
 
-        let entity: Option<HolidayEntity> = query
-            .first(&mut *conn)
+                    Ok(entity.map(Into::into))
+                })
+            })
             .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        Ok(entity.map(Into::into))
     }
 
     async fn apply_holiday_leave_deductions(

@@ -1,6 +1,7 @@
 use async_trait::async_trait;
-use diesel_async::RunQueryDsl;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
+use crate::diesel_pool::{DieselPoolsTenantTxExt, TenantAuthToken};
 use crate::errors::AppError;
 use crate::repositories::system_repository::SystemRepository;
 
@@ -17,13 +18,12 @@ impl DieselSystemRepository {
 #[async_trait]
 impl SystemRepository for DieselSystemRepository {
     async fn execute_partition_query(&self, query: &str) -> Result<(), AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .api
-                .get()
-                .await
-                .map_err(|e| AppError::Internal(format!("db conn error: {e}")))?,
-        );
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db conn error: {e}")))?;
 
         diesel::sql_query(query)
             .execute(&mut *conn)
@@ -38,20 +38,19 @@ impl SystemRepository for DieselSystemRepository {
         tenant_id: uuid::Uuid,
         query: &str,
     ) -> Result<(), AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&tenant_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db conn error: {e}")))?,
-        );
+        let auth_token = TenantAuthToken::system_override(tenant_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    diesel::sql_query(query)
+                        .execute(&mut *conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("failed to execute query: {e}")))?;
 
-        diesel::sql_query(query)
-            .execute(&mut *conn)
+                    Ok(())
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("failed to execute query: {e}")))?;
-
-        Ok(())
     }
 
     async fn execute_tenant_partition_queries_batch(
@@ -59,22 +58,23 @@ impl SystemRepository for DieselSystemRepository {
         tenant_id: uuid::Uuid,
         queries: &[String],
     ) -> Result<(), AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&tenant_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db conn error: {e}")))?,
-        );
+        let auth_token = TenantAuthToken::system_override(tenant_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    for query in queries {
+                        diesel::sql_query(query)
+                            .execute(&mut *conn)
+                            .await
+                            .map_err(|e| {
+                                AppError::Internal(format!("failed to execute query: {e}"))
+                            })?;
+                    }
 
-        for query in queries {
-            diesel::sql_query(query)
-                .execute(&mut *conn)
-                .await
-                .map_err(|e| AppError::Internal(format!("failed to execute query: {e}")))?;
-        }
-
-        Ok(())
+                    Ok(())
+                })
+            })
+            .await
     }
 }
 
@@ -138,7 +138,9 @@ mod tests {
                 || err_str.contains("error connecting")
                 || err_str.contains("db conn error")
             {
-                println!("Skipping test_execute_tenant_partition_query due to connection failure: {err_str}");
+                println!(
+                    "Skipping test_execute_tenant_partition_query due to connection failure: {err_str}"
+                );
                 return;
             }
         }
@@ -167,7 +169,9 @@ mod tests {
                 || err_str.contains("error connecting")
                 || err_str.contains("db conn error")
             {
-                println!("Skipping test_execute_tenant_partition_queries_batch due to connection failure: {err_str}");
+                println!(
+                    "Skipping test_execute_tenant_partition_queries_batch due to connection failure: {err_str}"
+                );
                 return;
             }
         }
