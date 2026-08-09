@@ -1,4 +1,4 @@
-use crate::diesel_pool::DieselPools;
+use crate::diesel_pool::{DieselPools, DieselPoolsTenantTxExt, TenantAuthToken};
 use crate::errors::AppError;
 use crate::repositories::leave_accrual_log_repository::*;
 
@@ -8,7 +8,7 @@ use crate::schema::*;
 use async_trait::async_trait;
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use diesel::prelude::*;
-use diesel_async::{AsyncConnection, RunQueryDsl};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_decimal::Decimal;
 use std::str::FromStr;
 use uuid::Uuid;
@@ -33,36 +33,36 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         accrual_date: NaiveDate,
         workspace_id: Uuid,
     ) -> Result<Option<ExistingAccrualLog>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    let row = leave_accrual_logs::table
+                        .filter(leave_accrual_logs::employment_id.eq(employment_id))
+                        .filter(leave_accrual_logs::leave_type_id.eq(leave_type_id))
+                        .filter(leave_accrual_logs::accrual_date.eq(accrual_date))
+                        .filter(leave_accrual_logs::workspace_id.eq(workspace_id))
+                        .select((leave_accrual_logs::id, leave_accrual_logs::amount))
+                        .first::<(Uuid, bigdecimal::BigDecimal)>(&mut *conn)
+                        .await
+                        .optional()
+                        .map_err(AppError::from)?;
 
-        let row = leave_accrual_logs::table
-            .filter(leave_accrual_logs::employment_id.eq(employment_id))
-            .filter(leave_accrual_logs::leave_type_id.eq(leave_type_id))
-            .filter(leave_accrual_logs::accrual_date.eq(accrual_date))
-            .filter(leave_accrual_logs::workspace_id.eq(workspace_id))
-            .select((leave_accrual_logs::id, leave_accrual_logs::amount))
-            .first::<(Uuid, bigdecimal::BigDecimal)>(&mut *conn)
-            .await
-            .optional()
-            .map_err(AppError::from)?;
+                    let row = row
+                        .map(|(id, amount)| -> Result<_, AppError> {
+                            Ok(ExistingAccrualLog {
+                                id,
+                                amount: Decimal::from_str(&amount.to_string()).map_err(|e| {
+                                    AppError::Internal(format!("Decimal parse failed: {e}"))
+                                })?,
+                            })
+                        })
+                        .transpose()?;
 
-        let row = row
-            .map(|(id, amount)| -> Result<_, AppError> {
-                Ok(ExistingAccrualLog {
-                    id,
-                    amount: Decimal::from_str(&amount.to_string())
-                        .map_err(|e| AppError::Internal(format!("Decimal parse failed: {e}")))?,
+                    Ok(row)
                 })
             })
-            .transpose()?;
-
-        Ok(row)
+            .await
     }
 
     async fn get_assignment_effective_from(
@@ -70,24 +70,23 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         assignment_id: Uuid,
         workspace_id: Uuid,
     ) -> Result<NaiveDate, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    let date = leave_policy_assignments::table
+                        .filter(leave_policy_assignments::id.eq(assignment_id))
+                        .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
+                        .filter(leave_policy_assignments::deleted_at.is_null())
+                        .select(leave_policy_assignments::effective_from)
+                        .first::<NaiveDate>(&mut *conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let date = leave_policy_assignments::table
-            .filter(leave_policy_assignments::id.eq(assignment_id))
-            .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
-            .filter(leave_policy_assignments::deleted_at.is_null())
-            .select(leave_policy_assignments::effective_from)
-            .first::<NaiveDate>(&mut *conn)
+                    Ok(date)
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(date)
     }
 
     async fn get_workspace_timezone(&self, workspace_id: Uuid) -> Result<String, AppError> {
@@ -116,67 +115,69 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         year: i32,
         leave_type_id: Option<Uuid>,
     ) -> Result<Vec<LeaveHistoryLogItem>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    let mut query = leave_accrual_logs::table
+                        .inner_join(leave_types::table)
+                        .inner_join(employments::table)
+                        .filter(employments::workspace_id.eq(workspace_id))
+                        .filter(leave_accrual_logs::employment_id.eq(employment_id))
+                        .into_boxed();
 
-        let mut query = leave_accrual_logs::table
-            .inner_join(leave_types::table)
-            .inner_join(employments::table)
-            .filter(employments::workspace_id.eq(workspace_id))
-            .filter(leave_accrual_logs::employment_id.eq(employment_id))
-            .into_boxed();
+                    if let Some(lt_id) = leave_type_id {
+                        query = query.filter(leave_accrual_logs::leave_type_id.eq(lt_id));
+                    }
 
-        if let Some(lt_id) = leave_type_id {
-            query = query.filter(leave_accrual_logs::leave_type_id.eq(lt_id));
-        }
+                    query = query.filter(
+                        diesel::dsl::sql::<diesel::sql_types::Bool>(
+                            "EXTRACT(YEAR FROM accrual_date) = ",
+                        )
+                        .bind::<diesel::sql_types::Double, _>(f64::from(year)),
+                    );
 
-        query = query.filter(
-            diesel::dsl::sql::<diesel::sql_types::Bool>("EXTRACT(YEAR FROM accrual_date) = ")
-                .bind::<diesel::sql_types::Double, _>(f64::from(year)),
-        );
+                    let entities = query
+                        .select((
+                            leave_accrual_logs::id,
+                            leave_accrual_logs::accrual_date,
+                            leave_accrual_logs::amount,
+                            leave_types::name,
+                            leave_accrual_logs::notes,
+                            leave_accrual_logs::created_at,
+                            leave_accrual_logs::policy_assignment_id,
+                        ))
+                        .load::<(
+                            Uuid,
+                            NaiveDate,
+                            bigdecimal::BigDecimal,
+                            String,
+                            Option<String>,
+                            Option<DateTime<Utc>>,
+                            Option<Uuid>,
+                        )>(&mut *conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let entities = query
-            .select((
-                leave_accrual_logs::id,
-                leave_accrual_logs::accrual_date,
-                leave_accrual_logs::amount,
-                leave_types::name,
-                leave_accrual_logs::notes,
-                leave_accrual_logs::created_at,
-                leave_accrual_logs::policy_assignment_id,
-            ))
-            .load::<(
-                Uuid,
-                NaiveDate,
-                bigdecimal::BigDecimal,
-                String,
-                Option<String>,
-                Option<DateTime<Utc>>,
-                Option<Uuid>,
-            )>(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        Ok(entities
-            .into_iter()
-            .map(|row| -> Result<_, AppError> {
-                Ok(LeaveHistoryLogItem {
-                    id: row.0,
-                    accrual_date: row.1,
-                    amount: Decimal::from_str(&row.2.to_string())
-                        .map_err(|e| AppError::Internal(format!("Decimal parse failed: {e}")))?,
-                    leave_type_name: row.3,
-                    notes: row.4,
-                    created_at: row.5,
-                    policy_assignment_id: row.6,
+                    entities
+                        .into_iter()
+                        .map(|row| -> Result<_, AppError> {
+                            Ok(LeaveHistoryLogItem {
+                                id: row.0,
+                                accrual_date: row.1,
+                                amount: Decimal::from_str(&row.2.to_string()).map_err(|e| {
+                                    AppError::Internal(format!("Decimal parse failed: {e}"))
+                                })?,
+                                leave_type_name: row.3,
+                                notes: row.4,
+                                created_at: row.5,
+                                policy_assignment_id: row.6,
+                            })
+                        })
+                        .collect::<Result<Vec<_>, AppError>>()
                 })
             })
-            .collect::<Result<Vec<_>, AppError>>()?)
+            .await
     }
 
     async fn get_employment_leave_history_logs_batch(
@@ -190,67 +191,69 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
             return Ok(Vec::new());
         }
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    let mut query = leave_accrual_logs::table
+                        .inner_join(leave_types::table)
+                        .inner_join(employments::table)
+                        .filter(employments::workspace_id.eq(workspace_id))
+                        .filter(leave_accrual_logs::employment_id.eq_any(employment_ids))
+                        .into_boxed();
 
-        let mut query = leave_accrual_logs::table
-            .inner_join(leave_types::table)
-            .inner_join(employments::table)
-            .filter(employments::workspace_id.eq(workspace_id))
-            .filter(leave_accrual_logs::employment_id.eq_any(employment_ids))
-            .into_boxed();
+                    if let Some(lt_id) = leave_type_id {
+                        query = query.filter(leave_accrual_logs::leave_type_id.eq(lt_id));
+                    }
 
-        if let Some(lt_id) = leave_type_id {
-            query = query.filter(leave_accrual_logs::leave_type_id.eq(lt_id));
-        }
+                    query = query.filter(
+                        diesel::dsl::sql::<diesel::sql_types::Bool>(
+                            "EXTRACT(YEAR FROM accrual_date) = ",
+                        )
+                        .bind::<diesel::sql_types::Double, _>(f64::from(year)),
+                    );
 
-        query = query.filter(
-            diesel::dsl::sql::<diesel::sql_types::Bool>("EXTRACT(YEAR FROM accrual_date) = ")
-                .bind::<diesel::sql_types::Double, _>(f64::from(year)),
-        );
+                    let entities = query
+                        .select((
+                            leave_accrual_logs::id,
+                            leave_accrual_logs::accrual_date,
+                            leave_accrual_logs::amount,
+                            leave_types::name,
+                            leave_accrual_logs::notes,
+                            leave_accrual_logs::created_at,
+                            leave_accrual_logs::policy_assignment_id,
+                        ))
+                        .load::<(
+                            Uuid,
+                            NaiveDate,
+                            bigdecimal::BigDecimal,
+                            String,
+                            Option<String>,
+                            Option<DateTime<Utc>>,
+                            Option<Uuid>,
+                        )>(&mut *conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let entities = query
-            .select((
-                leave_accrual_logs::id,
-                leave_accrual_logs::accrual_date,
-                leave_accrual_logs::amount,
-                leave_types::name,
-                leave_accrual_logs::notes,
-                leave_accrual_logs::created_at,
-                leave_accrual_logs::policy_assignment_id,
-            ))
-            .load::<(
-                Uuid,
-                NaiveDate,
-                bigdecimal::BigDecimal,
-                String,
-                Option<String>,
-                Option<DateTime<Utc>>,
-                Option<Uuid>,
-            )>(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        Ok(entities
-            .into_iter()
-            .map(|row| -> Result<_, AppError> {
-                Ok(LeaveHistoryLogItem {
-                    id: row.0,
-                    accrual_date: row.1,
-                    amount: Decimal::from_str(&row.2.to_string())
-                        .map_err(|e| AppError::Internal(format!("Decimal parse failed: {e}")))?,
-                    leave_type_name: row.3,
-                    notes: row.4,
-                    created_at: row.5,
-                    policy_assignment_id: row.6,
+                    entities
+                        .into_iter()
+                        .map(|row| -> Result<_, AppError> {
+                            Ok(LeaveHistoryLogItem {
+                                id: row.0,
+                                accrual_date: row.1,
+                                amount: Decimal::from_str(&row.2.to_string()).map_err(|e| {
+                                    AppError::Internal(format!("Decimal parse failed: {e}"))
+                                })?,
+                                leave_type_name: row.3,
+                                notes: row.4,
+                                created_at: row.5,
+                                policy_assignment_id: row.6,
+                            })
+                        })
+                        .collect::<Result<Vec<_>, AppError>>()
                 })
             })
-            .collect::<Result<Vec<_>, AppError>>()?)
+            .await
     }
 
     async fn update_accrual_amount(
@@ -259,33 +262,34 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         workspace_id: Uuid,
         new_amount: Decimal,
     ) -> Result<LeaveAccrualLog, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    let amount_bd = bigdecimal::BigDecimal::from_str(&new_amount.to_string())
+                        .map_err(|e| {
+                            AppError::Internal(format!("BigDecimal conversion failed: {e}"))
+                        })?;
 
-        let amount_bd = bigdecimal::BigDecimal::from_str(&new_amount.to_string())
-            .map_err(|e| AppError::Internal(format!("BigDecimal conversion failed: {e}")))?;
+                    let entity = diesel::update(leave_accrual_logs::table)
+                        .filter(leave_accrual_logs::id.eq(log_id))
+                        .filter(leave_accrual_logs::workspace_id.eq(workspace_id))
+                        .set((
+                            leave_accrual_logs::amount.eq(amount_bd),
+                            leave_accrual_logs::notes.eq(diesel::dsl::sql::<
+                                diesel::sql_types::Nullable<diesel::sql_types::Text>,
+                            >(
+                                "COALESCE(notes, '') || ' (Re-calculated)'",
+                            )),
+                        ))
+                        .get_result::<LeaveAccrualLogEntity>(&mut *conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let entity = diesel::update(leave_accrual_logs::table)
-            .filter(leave_accrual_logs::id.eq(log_id))
-            .filter(leave_accrual_logs::workspace_id.eq(workspace_id))
-            .set((
-                leave_accrual_logs::amount.eq(amount_bd),
-                leave_accrual_logs::notes.eq(diesel::dsl::sql::<
-                    diesel::sql_types::Nullable<diesel::sql_types::Text>,
-                >(
-                    "COALESCE(notes, '') || ' (Re-calculated)'"
-                )),
-            ))
-            .get_result::<LeaveAccrualLogEntity>(&mut *conn)
+                    Ok(entity.into())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(entity.into())
     }
 
     async fn insert_accrual_log(
@@ -297,39 +301,40 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         amount: Decimal,
         leave_type_id: Uuid,
     ) -> Result<Option<LeaveAccrualLog>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    let amount_bd =
+                        bigdecimal::BigDecimal::from_str(&amount.to_string()).map_err(|e| {
+                            AppError::Internal(format!("BigDecimal conversion failed: {e}"))
+                        })?;
 
-        let amount_bd = bigdecimal::BigDecimal::from_str(&amount.to_string())
-            .map_err(|e| AppError::Internal(format!("BigDecimal conversion failed: {e}")))?;
+                    let res = diesel::insert_into(leave_accrual_logs::table)
+                        .values((
+                            leave_accrual_logs::id.eq(Uuid::new_v4()),
+                            leave_accrual_logs::workspace_id.eq(workspace_id),
+                            leave_accrual_logs::employment_id.eq(employment_id),
+                            leave_accrual_logs::policy_assignment_id.eq(assignment_id),
+                            leave_accrual_logs::accrual_date.eq(accrual_date),
+                            leave_accrual_logs::amount.eq(amount_bd),
+                            leave_accrual_logs::leave_type_id.eq(leave_type_id),
+                        ))
+                        .on_conflict((
+                            leave_accrual_logs::employment_id,
+                            leave_accrual_logs::leave_type_id,
+                            leave_accrual_logs::accrual_date,
+                        ))
+                        .do_nothing()
+                        .get_result::<LeaveAccrualLogEntity>(&mut *conn)
+                        .await
+                        .optional()
+                        .map_err(AppError::from)?;
 
-        let res = diesel::insert_into(leave_accrual_logs::table)
-            .values((
-                leave_accrual_logs::id.eq(Uuid::new_v4()),
-                leave_accrual_logs::workspace_id.eq(workspace_id),
-                leave_accrual_logs::employment_id.eq(employment_id),
-                leave_accrual_logs::policy_assignment_id.eq(assignment_id),
-                leave_accrual_logs::accrual_date.eq(accrual_date),
-                leave_accrual_logs::amount.eq(amount_bd),
-                leave_accrual_logs::leave_type_id.eq(leave_type_id),
-            ))
-            .on_conflict((
-                leave_accrual_logs::employment_id,
-                leave_accrual_logs::leave_type_id,
-                leave_accrual_logs::accrual_date,
-            ))
-            .do_nothing()
-            .get_result::<LeaveAccrualLogEntity>(&mut *conn)
+                    Ok(res.map(Into::into))
+                })
+            })
             .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        Ok(res.map(Into::into))
     }
 
     async fn upsert_balance_accrual(
@@ -340,42 +345,44 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         leave_type_id: Uuid,
         amount: Decimal,
     ) -> Result<(), AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    let amount_bd =
+                        bigdecimal::BigDecimal::from_str(&amount.to_string()).map_err(|e| {
+                            AppError::Internal(format!("BigDecimal conversion failed: {e}"))
+                        })?;
 
-        let amount_bd = bigdecimal::BigDecimal::from_str(&amount.to_string())
-            .map_err(|e| AppError::Internal(format!("BigDecimal conversion failed: {e}")))?;
+                    diesel::insert_into(leave_balances::table)
+                        .values((
+                            leave_balances::id.eq(Uuid::new_v4()),
+                            leave_balances::employment_id.eq(employment_id),
+                            leave_balances::year.eq(year),
+                            leave_balances::leave_type_id.eq(leave_type_id),
+                            leave_balances::entitlement.eq(0),
+                            leave_balances::accrued_amount.eq(&amount_bd),
+                            leave_balances::carried_over.eq(0),
+                        ))
+                        .on_conflict((
+                            leave_balances::employment_id,
+                            leave_balances::leave_type_id,
+                            leave_balances::year,
+                        ))
+                        .do_update()
+                        .set((
+                            leave_balances::accrued_amount
+                                .eq(leave_balances::accrued_amount + &amount_bd),
+                            leave_balances::updated_at.eq(diesel::dsl::now),
+                        ))
+                        .execute(&mut *conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        diesel::insert_into(leave_balances::table)
-            .values((
-                leave_balances::id.eq(Uuid::new_v4()),
-                leave_balances::employment_id.eq(employment_id),
-                leave_balances::year.eq(year),
-                leave_balances::leave_type_id.eq(leave_type_id),
-                leave_balances::entitlement.eq(0),
-                leave_balances::accrued_amount.eq(&amount_bd),
-                leave_balances::carried_over.eq(0),
-            ))
-            .on_conflict((
-                leave_balances::employment_id,
-                leave_balances::leave_type_id,
-                leave_balances::year,
-            ))
-            .do_update()
-            .set((
-                leave_balances::accrued_amount.eq(leave_balances::accrued_amount + &amount_bd),
-                leave_balances::updated_at.eq(diesel::dsl::now),
-            ))
-            .execute(&mut *conn)
+                    Ok(())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(())
     }
 
     async fn adjust_balance_accrual(
@@ -386,30 +393,32 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         leave_type_id: Uuid,
         diff: Decimal,
     ) -> Result<(), AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    let diff_bd =
+                        bigdecimal::BigDecimal::from_str(&diff.to_string()).map_err(|e| {
+                            AppError::Internal(format!("BigDecimal conversion failed: {e}"))
+                        })?;
 
-        let diff_bd = bigdecimal::BigDecimal::from_str(&diff.to_string())
-            .map_err(|e| AppError::Internal(format!("BigDecimal conversion failed: {e}")))?;
+                    diesel::update(leave_balances::table)
+                        .filter(leave_balances::employment_id.eq(employment_id))
+                        .filter(leave_balances::year.eq(year))
+                        .filter(leave_balances::leave_type_id.eq(leave_type_id))
+                        .set((
+                            leave_balances::accrued_amount
+                                .eq(leave_balances::accrued_amount + &diff_bd),
+                            leave_balances::updated_at.eq(diesel::dsl::now),
+                        ))
+                        .execute(&mut *conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        diesel::update(leave_balances::table)
-            .filter(leave_balances::employment_id.eq(employment_id))
-            .filter(leave_balances::year.eq(year))
-            .filter(leave_balances::leave_type_id.eq(leave_type_id))
-            .set((
-                leave_balances::accrued_amount.eq(leave_balances::accrued_amount + &diff_bd),
-                leave_balances::updated_at.eq(diesel::dsl::now),
-            ))
-            .execute(&mut *conn)
+                    Ok(())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(())
     }
 
     async fn persist_accrual(
@@ -426,11 +435,6 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
             amount,
             force,
         } = params;
-        let mut conn = self
-            .diesel_pools
-            .tenant_transaction_conn(&auth_token)
-            .await?;
-
         use rust_decimal::prelude::FromPrimitive;
         let decimal_amount = rust_decimal::Decimal::from_f64(amount)
             .ok_or_else(|| AppError::Internal("Invalid f64 for Decimal conversion".into()))?;
@@ -438,171 +442,9 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
             .map_err(|e| AppError::Internal(format!("BigDecimal conversion failed: {e}")))?;
         let year = accrual_date.year();
 
-        conn.transaction(|conn| {
-            Box::pin(async move {
-                let row = leave_accrual_logs::table
-                    .filter(leave_accrual_logs::employment_id.eq(employment_id))
-                    .filter(leave_accrual_logs::leave_type_id.eq(leave_type_id))
-                    .filter(leave_accrual_logs::accrual_date.eq(accrual_date))
-                    .filter(leave_accrual_logs::workspace_id.eq(workspace_id))
-                    .select((leave_accrual_logs::id, leave_accrual_logs::amount))
-                    .first::<(Uuid, bigdecimal::BigDecimal)>(&mut *conn)
-                    .await
-                    .optional()
-                    .map_err(AppError::from)?;
-
-                if let Some((log_id, old_amount_bd)) = row {
-                    let old_amount = Decimal::from_str(&old_amount_bd.to_string())
-                        .map_err(|e| AppError::Internal(format!("Decimal parse failed: {e}")))?;
-                    if force && old_amount != decimal_amount {
-                        let diff = decimal_amount - old_amount;
-                        let diff_bd =
-                            bigdecimal::BigDecimal::from_str(&diff.to_string()).map_err(|e| {
-                                AppError::Internal(format!("BigDecimal conversion failed: {e}"))
-                            })?;
-
-                        let entity = diesel::update(leave_accrual_logs::table)
-                            .filter(leave_accrual_logs::id.eq(log_id))
-                            .filter(leave_accrual_logs::workspace_id.eq(workspace_id))
-                            .set((
-                                leave_accrual_logs::amount.eq(amount_bd.clone()),
-                                leave_accrual_logs::notes.eq(diesel::dsl::sql::<
-                                    diesel::sql_types::Nullable<diesel::sql_types::Text>,
-                                >(
-                                    "COALESCE(notes, '') || ' (Re-calculated)'",
-                                )),
-                            ))
-                            .get_result::<LeaveAccrualLogEntity>(&mut *conn)
-                            .await
-                            .map_err(AppError::from)?;
-
-                        diesel::update(leave_balances::table)
-                            .filter(leave_balances::employment_id.eq(employment_id))
-                            .filter(leave_balances::year.eq(year))
-                            .filter(leave_balances::leave_type_id.eq(leave_type_id))
-                            .set((
-                                leave_balances::accrued_amount
-                                    .eq(leave_balances::accrued_amount + diff_bd),
-                                leave_balances::updated_at.eq(diesel::dsl::now),
-                            ))
-                            .execute(&mut *conn)
-                            .await
-                            .map_err(AppError::from)?;
-
-                        return Ok(Some(entity.into()));
-                    }
-                    Ok(None)
-                } else {
-                    let log_id = Uuid::new_v4();
-                    let entity = diesel::insert_into(leave_accrual_logs::table)
-                        .values((
-                            leave_accrual_logs::id.eq(log_id),
-                            leave_accrual_logs::workspace_id.eq(workspace_id),
-                            leave_accrual_logs::employment_id.eq(employment_id),
-                            leave_accrual_logs::policy_assignment_id.eq(assignment_id),
-                            leave_accrual_logs::accrual_date.eq(accrual_date),
-                            leave_accrual_logs::amount.eq(amount_bd.clone()),
-                            leave_accrual_logs::leave_type_id.eq(leave_type_id),
-                        ))
-                        .on_conflict((
-                            leave_accrual_logs::employment_id,
-                            leave_accrual_logs::leave_type_id,
-                            leave_accrual_logs::accrual_date,
-                        ))
-                        .do_nothing()
-                        .get_result::<LeaveAccrualLogEntity>(&mut *conn)
-                        .await
-                        .optional()
-                        .map_err(AppError::from)?;
-
-                    if entity.is_some() {
-                        diesel::insert_into(leave_balances::table)
-                            .values((
-                                leave_balances::id.eq(Uuid::new_v4()),
-                                leave_balances::employment_id.eq(employment_id),
-                                leave_balances::year.eq(year),
-                                leave_balances::leave_type_id.eq(leave_type_id),
-                                leave_balances::entitlement.eq(0),
-                                leave_balances::accrued_amount.eq(amount_bd.clone()),
-                                leave_balances::carried_over.eq(0),
-                            ))
-                            .on_conflict((
-                                leave_balances::employment_id,
-                                leave_balances::leave_type_id,
-                                leave_balances::year,
-                            ))
-                            .do_update()
-                            .set((
-                                leave_balances::accrued_amount
-                                    .eq(leave_balances::accrued_amount + amount_bd),
-                                leave_balances::updated_at.eq(diesel::dsl::now),
-                            ))
-                            .execute(&mut *conn)
-                            .await
-                            .map_err(AppError::from)?;
-                    }
-
-                    Ok(entity.map(Into::into))
-                }
-            })
-        })
-        .await
-    }
-
-    async fn persist_accruals_batch(
-        &self,
-        params: PersistAccrualsBatchParams,
-    ) -> Result<Vec<LeaveAccrualLog>, AppError> {
-        let PersistAccrualsBatchParams {
-            auth_token,
-            workspace_id,
-            entries,
-            force,
-        } = params;
-        if entries.is_empty() {
-            return Ok(vec![]);
-        }
-
-        let mut conn = self
-            .diesel_pools
-            .tenant_transaction_conn(&auth_token)
-            .await?;
-
-        // Clone data into owned structures for the async move block
-        let entries_owned: Vec<_> = entries
-            .iter()
-            .map(|e| {
-                (
-                    e.employment_id,
-                    e.assignment_id,
-                    e.leave_type_id,
-                    e.accrual_date,
-                    e.amount,
-                )
-            })
-            .collect();
-
-        conn.transaction(|conn| {
-            Box::pin(async move {
-                let mut all_logs = Vec::new();
-
-                for (employment_id, assignment_id, leave_type_id, accrual_date, amount) in
-                    &entries_owned
-                {
-                    let active_emp_id = *employment_id;
-
-                    use rust_decimal::prelude::FromPrimitive;
-                    let decimal_amount =
-                        rust_decimal::Decimal::from_f64(*amount).ok_or_else(|| {
-                            AppError::Internal("Invalid f64 for Decimal conversion".into())
-                        })?;
-                    let amount_bd = bigdecimal::BigDecimal::from_str(&decimal_amount.to_string())
-                        .map_err(|e| {
-                        AppError::Internal(format!("BigDecimal conversion failed: {e}"))
-                    })?;
-                    let year = accrual_date.year();
-
-                    // Check for existing log
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
                     let row = leave_accrual_logs::table
                         .filter(leave_accrual_logs::employment_id.eq(employment_id))
                         .filter(leave_accrual_logs::leave_type_id.eq(leave_type_id))
@@ -642,7 +484,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                                 .map_err(AppError::from)?;
 
                             diesel::update(leave_balances::table)
-                                .filter(leave_balances::employment_id.eq(active_emp_id))
+                                .filter(leave_balances::employment_id.eq(employment_id))
                                 .filter(leave_balances::year.eq(year))
                                 .filter(leave_balances::leave_type_id.eq(leave_type_id))
                                 .set((
@@ -654,17 +496,16 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                                 .await
                                 .map_err(AppError::from)?;
 
-                            all_logs.push(entity.into());
+                            return Ok(Some(entity.into()));
                         }
-                        // else: already exists with same amount, skip
+                        Ok(None)
                     } else {
-                        // New entry
                         let log_id = Uuid::new_v4();
                         let entity = diesel::insert_into(leave_accrual_logs::table)
                             .values((
                                 leave_accrual_logs::id.eq(log_id),
                                 leave_accrual_logs::workspace_id.eq(workspace_id),
-                                leave_accrual_logs::employment_id.eq(active_emp_id),
+                                leave_accrual_logs::employment_id.eq(employment_id),
                                 leave_accrual_logs::policy_assignment_id.eq(assignment_id),
                                 leave_accrual_logs::accrual_date.eq(accrual_date),
                                 leave_accrual_logs::amount.eq(amount_bd.clone()),
@@ -681,11 +522,11 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                             .optional()
                             .map_err(AppError::from)?;
 
-                        if let Some(e) = entity {
+                        if entity.is_some() {
                             diesel::insert_into(leave_balances::table)
                                 .values((
                                     leave_balances::id.eq(Uuid::new_v4()),
-                                    leave_balances::employment_id.eq(active_emp_id),
+                                    leave_balances::employment_id.eq(employment_id),
                                     leave_balances::year.eq(year),
                                     leave_balances::leave_type_id.eq(leave_type_id),
                                     leave_balances::entitlement.eq(0),
@@ -706,16 +547,180 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                                 .execute(&mut *conn)
                                 .await
                                 .map_err(AppError::from)?;
+                        }
 
-                            all_logs.push(e.into());
+                        Ok(entity.map(Into::into))
+                    }
+                })
+            })
+            .await
+    }
+
+    async fn persist_accruals_batch(
+        &self,
+        params: PersistAccrualsBatchParams,
+    ) -> Result<Vec<LeaveAccrualLog>, AppError> {
+        let PersistAccrualsBatchParams {
+            auth_token,
+            workspace_id,
+            entries,
+            force,
+        } = params;
+        if entries.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // Clone data into owned structures for the async move block
+        let entries_owned: Vec<_> = entries
+            .iter()
+            .map(|e| {
+                (
+                    e.employment_id,
+                    e.assignment_id,
+                    e.leave_type_id,
+                    e.accrual_date,
+                    e.amount,
+                )
+            })
+            .collect();
+
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    let mut all_logs = Vec::new();
+
+                    for (employment_id, assignment_id, leave_type_id, accrual_date, amount) in
+                        &entries_owned
+                    {
+                        let active_emp_id = *employment_id;
+
+                        use rust_decimal::prelude::FromPrimitive;
+                        let decimal_amount =
+                            rust_decimal::Decimal::from_f64(*amount).ok_or_else(|| {
+                                AppError::Internal("Invalid f64 for Decimal conversion".into())
+                            })?;
+                        let amount_bd = bigdecimal::BigDecimal::from_str(
+                            &decimal_amount.to_string(),
+                        )
+                        .map_err(|e| {
+                            AppError::Internal(format!("BigDecimal conversion failed: {e}"))
+                        })?;
+                        let year = accrual_date.year();
+
+                        // Check for existing log
+                        let row = leave_accrual_logs::table
+                            .filter(leave_accrual_logs::employment_id.eq(employment_id))
+                            .filter(leave_accrual_logs::leave_type_id.eq(leave_type_id))
+                            .filter(leave_accrual_logs::accrual_date.eq(accrual_date))
+                            .filter(leave_accrual_logs::workspace_id.eq(workspace_id))
+                            .select((leave_accrual_logs::id, leave_accrual_logs::amount))
+                            .first::<(Uuid, bigdecimal::BigDecimal)>(&mut *conn)
+                            .await
+                            .optional()
+                            .map_err(AppError::from)?;
+
+                        if let Some((log_id, old_amount_bd)) = row {
+                            let old_amount = Decimal::from_str(&old_amount_bd.to_string())
+                                .map_err(|e| {
+                                    AppError::Internal(format!("Decimal parse failed: {e}"))
+                                })?;
+                            if force && old_amount != decimal_amount {
+                                let diff = decimal_amount - old_amount;
+                                let diff_bd = bigdecimal::BigDecimal::from_str(&diff.to_string())
+                                    .map_err(|e| {
+                                    AppError::Internal(format!("BigDecimal conversion failed: {e}"))
+                                })?;
+
+                                let entity = diesel::update(leave_accrual_logs::table)
+                                    .filter(leave_accrual_logs::id.eq(log_id))
+                                    .filter(leave_accrual_logs::workspace_id.eq(workspace_id))
+                                    .set((
+                                        leave_accrual_logs::amount.eq(amount_bd.clone()),
+                                        leave_accrual_logs::notes.eq(diesel::dsl::sql::<
+                                            diesel::sql_types::Nullable<diesel::sql_types::Text>,
+                                        >(
+                                            "COALESCE(notes, '') || ' (Re-calculated)'",
+                                        )),
+                                    ))
+                                    .get_result::<LeaveAccrualLogEntity>(&mut *conn)
+                                    .await
+                                    .map_err(AppError::from)?;
+
+                                diesel::update(leave_balances::table)
+                                    .filter(leave_balances::employment_id.eq(active_emp_id))
+                                    .filter(leave_balances::year.eq(year))
+                                    .filter(leave_balances::leave_type_id.eq(leave_type_id))
+                                    .set((
+                                        leave_balances::accrued_amount
+                                            .eq(leave_balances::accrued_amount + diff_bd),
+                                        leave_balances::updated_at.eq(diesel::dsl::now),
+                                    ))
+                                    .execute(&mut *conn)
+                                    .await
+                                    .map_err(AppError::from)?;
+
+                                all_logs.push(entity.into());
+                            }
+                            // else: already exists with same amount, skip
+                        } else {
+                            // New entry
+                            let log_id = Uuid::new_v4();
+                            let entity = diesel::insert_into(leave_accrual_logs::table)
+                                .values((
+                                    leave_accrual_logs::id.eq(log_id),
+                                    leave_accrual_logs::workspace_id.eq(workspace_id),
+                                    leave_accrual_logs::employment_id.eq(active_emp_id),
+                                    leave_accrual_logs::policy_assignment_id.eq(assignment_id),
+                                    leave_accrual_logs::accrual_date.eq(accrual_date),
+                                    leave_accrual_logs::amount.eq(amount_bd.clone()),
+                                    leave_accrual_logs::leave_type_id.eq(leave_type_id),
+                                ))
+                                .on_conflict((
+                                    leave_accrual_logs::employment_id,
+                                    leave_accrual_logs::leave_type_id,
+                                    leave_accrual_logs::accrual_date,
+                                ))
+                                .do_nothing()
+                                .get_result::<LeaveAccrualLogEntity>(&mut *conn)
+                                .await
+                                .optional()
+                                .map_err(AppError::from)?;
+
+                            if let Some(e) = entity {
+                                diesel::insert_into(leave_balances::table)
+                                    .values((
+                                        leave_balances::id.eq(Uuid::new_v4()),
+                                        leave_balances::employment_id.eq(active_emp_id),
+                                        leave_balances::year.eq(year),
+                                        leave_balances::leave_type_id.eq(leave_type_id),
+                                        leave_balances::entitlement.eq(0),
+                                        leave_balances::accrued_amount.eq(amount_bd.clone()),
+                                        leave_balances::carried_over.eq(0),
+                                    ))
+                                    .on_conflict((
+                                        leave_balances::employment_id,
+                                        leave_balances::leave_type_id,
+                                        leave_balances::year,
+                                    ))
+                                    .do_update()
+                                    .set((
+                                        leave_balances::accrued_amount
+                                            .eq(leave_balances::accrued_amount + amount_bd),
+                                        leave_balances::updated_at.eq(diesel::dsl::now),
+                                    ))
+                                    .execute(&mut *conn)
+                                    .await
+                                    .map_err(AppError::from)?;
+
+                                all_logs.push(e.into());
+                            }
                         }
                     }
-                }
 
-                Ok(all_logs)
+                    Ok(all_logs)
+                })
             })
-        })
-        .await
+            .await
     }
 }
 

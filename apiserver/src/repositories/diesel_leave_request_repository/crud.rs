@@ -1,4 +1,5 @@
 use super::*;
+use crate::diesel_pool::DieselPoolsTenantTxExt;
 use crate::errors::AppError;
 use crate::models::{LeaveRequest, LeaveStatus};
 use crate::schema::*;
@@ -13,15 +14,13 @@ impl DieselLeaveRequestRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         request: &LeaveRequest,
     ) -> Result<(), AppError> {
-        let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-        self.create_leave_request_tx_impl(&mut conn, auth_token, request)
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    self.create_leave_request_tx_impl(conn, auth_token, request)
+                        .await
+                })
+            })
             .await
     }
 
@@ -83,31 +82,29 @@ impl DieselLeaveRequestRepository {
         approved_by: Option<Uuid>,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    diesel::update(leave_requests::table)
+                        .filter(leave_requests::id.eq(id))
+                        .filter(diesel::dsl::exists(
+                            employments::table
+                                .filter(employments::id.eq(leave_requests::employment_id))
+                                .filter(employments::workspace_id.eq(workspace_id)),
+                        ))
+                        .set((
+                            leave_requests::status.eq(status),
+                            leave_requests::approved_by_user_id.eq(approved_by),
+                            leave_requests::updated_at.eq(Utc::now()),
+                        ))
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        diesel::update(leave_requests::table)
-            .filter(leave_requests::id.eq(id))
-            .filter(diesel::dsl::exists(
-                employments::table
-                    .filter(employments::id.eq(leave_requests::employment_id))
-                    .filter(employments::workspace_id.eq(workspace_id)),
-            ))
-            .set((
-                leave_requests::status.eq(status),
-                leave_requests::approved_by_user_id.eq(approved_by),
-                leave_requests::updated_at.eq(Utc::now()),
-            ))
-            .execute(&mut *conn)
+                    Ok(())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(())
     }
 
     pub(super) async fn update_leave_request_status_tx_impl(
@@ -145,30 +142,28 @@ impl DieselLeaveRequestRepository {
         id: Uuid,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    diesel::update(leave_requests::table)
+                        .filter(leave_requests::id.eq(id))
+                        .filter(diesel::dsl::exists(
+                            employments::table
+                                .filter(employments::id.eq(leave_requests::employment_id))
+                                .filter(employments::workspace_id.eq(workspace_id)),
+                        ))
+                        .set((
+                            leave_requests::status.eq(LeaveStatus::Cancelled),
+                            leave_requests::updated_at.eq(Utc::now()),
+                        ))
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        diesel::update(leave_requests::table)
-            .filter(leave_requests::id.eq(id))
-            .filter(diesel::dsl::exists(
-                employments::table
-                    .filter(employments::id.eq(leave_requests::employment_id))
-                    .filter(employments::workspace_id.eq(workspace_id)),
-            ))
-            .set((
-                leave_requests::status.eq(LeaveStatus::Cancelled),
-                leave_requests::updated_at.eq(Utc::now()),
-            ))
-            .execute(&mut *conn)
+                    Ok(())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(())
     }
 
     pub(super) async fn bulk_cancel_leave_requests_impl(
@@ -176,14 +171,13 @@ impl DieselLeaveRequestRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         ids: &[Uuid],
     ) -> Result<u64, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-        self.bulk_cancel_leave_requests_tx_impl(&mut conn, auth_token, ids)
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    self.bulk_cancel_leave_requests_tx_impl(conn, auth_token, ids)
+                        .await
+                })
+            })
             .await
     }
 

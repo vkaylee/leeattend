@@ -26,6 +26,7 @@ pub(crate) fn reprocess_advisory_lock_key(employment_id: Uuid, date: NaiveDate) 
     (hi ^ lo ^ date_key).cast_signed()
 }
 
+use crate::diesel_pool::DieselPoolsTenantTxExt;
 use crate::errors::AppError;
 use crate::models::diesel::time_entry::{
     NewTimeEntryEntity, TimeEntryEntity, UpdateTimeEntryEntity,
@@ -53,34 +54,31 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         entry: &TimeEntry,
     ) -> Result<(), AppError> {
-        let _workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let new_entry = NewTimeEntryEntity {
+                        id: entry.id(),
+                        employment_id: entry.employment_id(),
+                        workspace_id: entry.workspace_id(),
+                        punch_in_time: entry.punch_in_time(),
+                        punch_out_time: entry.punch_out_time(),
+                        entry_type: entry.entry_type().to_string(),
+                        is_break_overtime: entry.is_break_overtime(),
+                        note: entry.note().map(String::from),
+                        template_id: entry.shift_id(),
+                    };
 
-        let new_entry = NewTimeEntryEntity {
-            id: entry.id(),
-            employment_id: entry.employment_id(),
-            workspace_id: entry.workspace_id(),
-            punch_in_time: entry.punch_in_time(),
-            punch_out_time: entry.punch_out_time(),
-            entry_type: entry.entry_type().to_string(),
-            is_break_overtime: entry.is_break_overtime(),
-            note: entry.note().map(String::from),
-            template_id: entry.shift_id(),
-        };
+                    diesel::insert_into(time_entries::table)
+                        .values(&new_entry)
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        diesel::insert_into(time_entries::table)
-            .values(&new_entry)
-            .execute(&mut *conn)
+                    Ok(())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(())
     }
 
     async fn get_time_entry_by_id(
@@ -89,23 +87,21 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let entry: Option<TimeEntryEntity> = time_entries::table
+                        .filter(time_entries::workspace_id.eq(workspace_id))
+                        .filter(time_entries::id.eq(id))
+                        .first(conn)
+                        .await
+                        .optional()
+                        .map_err(AppError::from)?;
 
-        let entry: Option<TimeEntryEntity> = time_entries::table
-            .filter(time_entries::workspace_id.eq(workspace_id))
-            .filter(time_entries::id.eq(id))
-            .first(&mut *conn)
+                    Ok(entry.map(Into::into))
+                })
+            })
             .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        Ok(entry.map(Into::into))
     }
 
     async fn get_active_time_entry(
@@ -114,25 +110,23 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         employment_id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let entry: Option<TimeEntryEntity> = time_entries::table
+                        .filter(time_entries::workspace_id.eq(workspace_id))
+                        .filter(time_entries::employment_id.eq(employment_id))
+                        .filter(time_entries::punch_out_time.is_null())
+                        .order(time_entries::punch_in_time.desc())
+                        .first(conn)
+                        .await
+                        .optional()
+                        .map_err(AppError::from)?;
 
-        let entry: Option<TimeEntryEntity> = time_entries::table
-            .filter(time_entries::workspace_id.eq(workspace_id))
-            .filter(time_entries::employment_id.eq(employment_id))
-            .filter(time_entries::punch_out_time.is_null())
-            .order(time_entries::punch_in_time.desc())
-            .first(&mut *conn)
+                    Ok(entry.map(Into::into))
+                })
+            })
             .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        Ok(entry.map(Into::into))
     }
 
     async fn get_latest_active_entry(
@@ -150,24 +144,22 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         employment_id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let entry: Option<TimeEntryEntity> = time_entries::table
+                        .filter(time_entries::workspace_id.eq(workspace_id))
+                        .filter(time_entries::employment_id.eq(employment_id))
+                        .order(time_entries::punch_in_time.desc())
+                        .first(conn)
+                        .await
+                        .optional()
+                        .map_err(AppError::from)?;
 
-        let entry: Option<TimeEntryEntity> = time_entries::table
-            .filter(time_entries::workspace_id.eq(workspace_id))
-            .filter(time_entries::employment_id.eq(employment_id))
-            .order(time_entries::punch_in_time.desc())
-            .first(&mut *conn)
+                    Ok(entry.map(Into::into))
+                })
+            })
             .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        Ok(entry.map(Into::into))
     }
 
     async fn update_time_entry(
@@ -176,31 +168,29 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         entry: &TimeEntry,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let update_model = UpdateTimeEntryEntity {
+                        punch_in_time: Some(entry.punch_in_time()),
+                        punch_out_time: Some(entry.punch_out_time()),
+                        entry_type: Some(entry.entry_type().to_string()),
+                        note: Some(entry.note().map(String::from)),
+                        updated_at: Some(Utc::now()),
+                    };
 
-        let update_model = UpdateTimeEntryEntity {
-            punch_in_time: Some(entry.punch_in_time()),
-            punch_out_time: Some(entry.punch_out_time()),
-            entry_type: Some(entry.entry_type().to_string()),
-            note: Some(entry.note().map(String::from)),
-            updated_at: Some(Utc::now()),
-        };
+                    diesel::update(time_entries::table)
+                        .filter(time_entries::id.eq(entry.id()))
+                        .filter(time_entries::workspace_id.eq(workspace_id))
+                        .set(&update_model)
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        diesel::update(time_entries::table)
-            .filter(time_entries::id.eq(entry.id()))
-            .filter(time_entries::workspace_id.eq(workspace_id))
-            .set(&update_model)
-            .execute(&mut *conn)
+                    Ok(())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(())
     }
 
     async fn delete_time_entry(
@@ -209,22 +199,20 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         id: Uuid,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    diesel::delete(time_entries::table)
+                        .filter(time_entries::id.eq(id))
+                        .filter(time_entries::workspace_id.eq(workspace_id))
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        diesel::delete(time_entries::table)
-            .filter(time_entries::id.eq(id))
-            .filter(time_entries::workspace_id.eq(workspace_id))
-            .execute(&mut *conn)
+                    Ok(())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(())
     }
 
     async fn get_employment_time_entries(
@@ -235,15 +223,14 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         to: DateTime<Utc>,
     ) -> Result<Vec<TimeEntry>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
-        execute_get_employment_time_entries(&mut conn, workspace_id, employment_id, from, to).await
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    execute_get_employment_time_entries(conn, workspace_id, employment_id, from, to)
+                        .await
+                })
+            })
+            .await
     }
 
     async fn get_employment_time_entries_tx(
@@ -263,67 +250,67 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         filter: TimeEntryLogFilter,
     ) -> Result<Vec<TimeEntryWithEmployee>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let mut query = time_entries::table
+                        .inner_join(
+                            employments::table.on(time_entries::employment_id.eq(employments::id)),
+                        )
+                        .inner_join(employees::table.on(employments::employee_id.eq(employees::id)))
+                        .filter(time_entries::workspace_id.eq(workspace_id))
+                        .into_boxed();
 
-        let mut query = time_entries::table
-            .inner_join(employments::table.on(time_entries::employment_id.eq(employments::id)))
-            .inner_join(employees::table.on(employments::employee_id.eq(employees::id)))
-            .filter(time_entries::workspace_id.eq(workspace_id))
-            .into_boxed();
+                    if let Some(emp_id) = filter.employment_id() {
+                        query = query.filter(time_entries::employment_id.eq(emp_id));
+                    }
+                    if let Some(from_date) = filter.from() {
+                        query = query.filter(time_entries::punch_in_time.ge(from_date));
+                    }
+                    if let Some(to_date) = filter.to() {
+                        query = query.filter(time_entries::punch_in_time.le(to_date));
+                    }
 
-        if let Some(emp_id) = filter.employment_id() {
-            query = query.filter(time_entries::employment_id.eq(emp_id));
-        }
-        if let Some(from_date) = filter.from() {
-            query = query.filter(time_entries::punch_in_time.ge(from_date));
-        }
-        if let Some(to_date) = filter.to() {
-            query = query.filter(time_entries::punch_in_time.le(to_date));
-        }
+                    let results = query
+                        .select((
+                            time_entries::all_columns,
+                            employees::full_name,
+                            employees::employee_id_number,
+                        ))
+                        .order(time_entries::punch_in_time.desc())
+                        .limit(filter.limit())
+                        .offset(filter.offset())
+                        .load::<(TimeEntryEntity, String, String)>(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let results = query
-            .select((
-                time_entries::all_columns,
-                employees::full_name,
-                employees::employee_id_number,
-            ))
-            .order(time_entries::punch_in_time.desc())
-            .limit(filter.limit())
-            .offset(filter.offset())
-            .load::<(TimeEntryEntity, String, String)>(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
-
-        Ok(results
-            .into_iter()
-            .map(|(entry, full_name, id_number)| {
-                let domain: TimeEntry = entry.into();
-                TimeEntryWithEmployee::new(NewTimeEntryWithEmployeeParams {
-                    id: domain.id(),
-                    employment_id: domain.employment_id(),
-                    workspace_id: domain.workspace_id(),
-                    shift_id: domain.shift_id(),
-                    segment_id: domain.segment_id(),
-                    punch_in_time: domain.punch_in_time(),
-                    punch_out_time: domain.punch_out_time(),
-                    duration_minutes: domain.duration_minutes(),
-                    is_break_overtime: domain.is_break_overtime(),
-                    entry_type: domain.entry_type(),
-                    note: domain.note().map(String::from),
-                    generation_metadata: domain.generation_metadata().cloned(),
-                    created_at: domain.created_at(),
-                    updated_at: domain.updated_at(),
-                    employee_full_name: full_name,
-                    employee_id_number: id_number,
+                    Ok(results
+                        .into_iter()
+                        .map(|(entry, full_name, id_number)| {
+                            let domain: TimeEntry = entry.into();
+                            TimeEntryWithEmployee::new(NewTimeEntryWithEmployeeParams {
+                                id: domain.id(),
+                                employment_id: domain.employment_id(),
+                                workspace_id: domain.workspace_id(),
+                                shift_id: domain.shift_id(),
+                                segment_id: domain.segment_id(),
+                                punch_in_time: domain.punch_in_time(),
+                                punch_out_time: domain.punch_out_time(),
+                                duration_minutes: domain.duration_minutes(),
+                                is_break_overtime: domain.is_break_overtime(),
+                                entry_type: domain.entry_type(),
+                                note: domain.note().map(String::from),
+                                generation_metadata: domain.generation_metadata().cloned(),
+                                created_at: domain.created_at(),
+                                updated_at: domain.updated_at(),
+                                employee_full_name: full_name,
+                                employee_id_number: id_number,
+                            })
+                        })
+                        .collect())
                 })
             })
-            .collect())
+            .await
     }
 
     async fn count_logs(
@@ -334,37 +321,31 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         p_to: Option<DateTime<Utc>>,
     ) -> Result<i64, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let mut query = time_entries::table
+                        .inner_join(
+                            employments::table.on(time_entries::employment_id.eq(employments::id)),
+                        )
+                        .inner_join(employees::table.on(employments::employee_id.eq(employees::id)))
+                        .filter(time_entries::workspace_id.eq(workspace_id))
+                        .into_boxed();
 
-        let mut query = time_entries::table
-            .inner_join(employments::table.on(time_entries::employment_id.eq(employments::id)))
-            .inner_join(employees::table.on(employments::employee_id.eq(employees::id)))
-            .filter(time_entries::workspace_id.eq(workspace_id))
-            .into_boxed();
+                    if let Some(emp_id) = p_employment_id {
+                        query = query.filter(time_entries::employment_id.eq(emp_id));
+                    }
+                    if let Some(from_date) = p_from {
+                        query = query.filter(time_entries::punch_in_time.ge(from_date));
+                    }
+                    if let Some(to_date) = p_to {
+                        query = query.filter(time_entries::punch_in_time.le(to_date));
+                    }
 
-        if let Some(emp_id) = p_employment_id {
-            query = query.filter(time_entries::employment_id.eq(emp_id));
-        }
-        if let Some(from_date) = p_from {
-            query = query.filter(time_entries::punch_in_time.ge(from_date));
-        }
-        if let Some(to_date) = p_to {
-            query = query.filter(time_entries::punch_in_time.le(to_date));
-        }
-
-        let count: i64 = query
-            .count()
-            .get_result(&mut *conn)
+                    query.count().get_result(conn).await.map_err(AppError::from)
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(count)
     }
 
     async fn get_distinct_work_days(
@@ -376,43 +357,41 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         tz: &str,
     ) -> Result<Vec<chrono::NaiveDate>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    #[derive(diesel::QueryableByName)]
+                    struct DateRow {
+                        #[diesel(sql_type = diesel::sql_types::Date)]
+                        date: chrono::NaiveDate,
+                    }
 
-        #[derive(diesel::QueryableByName)]
-        struct DateRow {
-            #[diesel(sql_type = diesel::sql_types::Date)]
-            date: chrono::NaiveDate,
-        }
+                    let work_days: Vec<DateRow> = diesel::sql_query(
+                        r"
+                        SELECT DISTINCT(te.punch_in_time AT TIME ZONE $2)::date as date
+                        FROM time_entries te
+                        JOIN employments em ON te.employment_id = em.id
+                        JOIN employees e ON em.employee_id = e.id
+                        WHERE te.employment_id = $1
+                          AND e.workspace_id = $5
+                          AND te.punch_in_time >= $3
+                          AND te.punch_in_time <= $4
+                          AND te.entry_type = 'work'
+                        ",
+                    )
+                    .bind::<diesel::sql_types::Uuid, _>(employment_id)
+                    .bind::<diesel::sql_types::Text, _>(tz.to_string())
+                    .bind::<diesel::sql_types::Timestamptz, _>(start_time)
+                    .bind::<diesel::sql_types::Timestamptz, _>(end_time)
+                    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                    .load(conn)
+                    .await
+                    .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        let work_days: Vec<DateRow> = diesel::sql_query(
-            r"
-            SELECT DISTINCT(te.punch_in_time AT TIME ZONE $2)::date as date
-            FROM time_entries te
-            JOIN employments em ON te.employment_id = em.id
-            JOIN employees e ON em.employee_id = e.id
-            WHERE te.employment_id = $1
-              AND e.workspace_id = $5
-              AND te.punch_in_time >= $3
-              AND te.punch_in_time <= $4
-              AND te.entry_type = 'work'
-            ",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(employment_id)
-        .bind::<diesel::sql_types::Text, _>(tz.to_string())
-        .bind::<diesel::sql_types::Timestamptz, _>(start_time)
-        .bind::<diesel::sql_types::Timestamptz, _>(end_time)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
-
-        Ok(work_days.into_iter().map(|row| row.date).collect())
+                    Ok(work_days.into_iter().map(|row| row.date).collect())
+                })
+            })
+            .await
     }
 
     async fn get_workspace_time_entries_batch_by_employments(
@@ -427,37 +406,35 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             return Ok(HashMap::new());
         }
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let results: Vec<TimeEntryEntity> = time_entries::table
+                        .filter(time_entries::workspace_id.eq(workspace_id))
+                        .filter(time_entries::employment_id.eq_any(employment_ids))
+                        .filter(time_entries::punch_in_time.ge(from))
+                        .filter(time_entries::punch_in_time.le(to))
+                        .order((
+                            time_entries::employment_id.asc(),
+                            time_entries::punch_in_time.asc(),
+                        ))
+                        .load(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let results: Vec<TimeEntryEntity> = time_entries::table
-            .filter(time_entries::workspace_id.eq(workspace_id))
-            .filter(time_entries::employment_id.eq_any(employment_ids))
-            .filter(time_entries::punch_in_time.ge(from))
-            .filter(time_entries::punch_in_time.le(to))
-            .order((
-                time_entries::employment_id.asc(),
-                time_entries::punch_in_time.asc(),
-            ))
-            .load(&mut *conn)
+                    let mut result_map: HashMap<Uuid, Vec<TimeEntry>> = HashMap::new();
+                    for entry in results {
+                        let domain: TimeEntry = entry.into();
+                        result_map
+                            .entry(domain.employment_id())
+                            .or_default()
+                            .push(domain);
+                    }
+
+                    Ok(result_map)
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        let mut result_map: HashMap<Uuid, Vec<TimeEntry>> = HashMap::new();
-        for entry in results {
-            let domain: TimeEntry = entry.into();
-            result_map
-                .entry(domain.employment_id())
-                .or_default()
-                .push(domain);
-        }
-
-        Ok(result_map)
     }
 
     async fn replace_time_entries(
@@ -469,33 +446,22 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         entries: Vec<TimeEntry>,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        use diesel_async::AsyncConnection;
-
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
-        conn.transaction::<_, diesel::result::Error, _>(|conn| {
-            Box::pin(async move {
-                execute_replace_time_entries(
-                    conn,
-                    workspace_id,
-                    employment_id,
-                    start_time,
-                    end_time,
-                    entries,
-                )
-                .await
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    execute_replace_time_entries(
+                        conn,
+                        workspace_id,
+                        employment_id,
+                        start_time,
+                        end_time,
+                        entries,
+                    )
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))
+                })
             })
-        })
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        Ok(())
+            .await
     }
 
     async fn replace_time_entries_tx(

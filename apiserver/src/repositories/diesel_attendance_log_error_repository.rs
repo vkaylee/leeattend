@@ -1,5 +1,6 @@
+use crate::diesel_pool::DieselPoolsTenantTxExt;
 use async_trait::async_trait;
-use diesel_async::RunQueryDsl;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::errors::AppError;
 use crate::models::diesel::attendance_log::AttendanceLogErrorEntity;
@@ -27,32 +28,30 @@ impl AttendanceLogErrorRepository for DieselAttendanceLogErrorRepository {
         source: &str,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    let entity = AttendanceLogErrorEntity {
+                        id: crate::utils::id::new_id(),
+                        workspace_id,
+                        agent_id,
+                        raw_content,
+                        error_message: error_message.to_string(),
+                        source: source.to_string(),
+                        created_at: Some(chrono::Utc::now()),
+                        fingerprint: None,
+                    };
 
-        let entity = AttendanceLogErrorEntity {
-            id: crate::utils::id::new_id(),
-            workspace_id,
-            agent_id,
-            raw_content,
-            error_message: error_message.to_string(),
-            source: source.to_string(),
-            created_at: Some(chrono::Utc::now()),
-            fingerprint: None,
-        };
+                    diesel::insert_into(attendance_log_errors::table)
+                        .values(&entity)
+                        .execute(&mut *conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        diesel::insert_into(attendance_log_errors::table)
-            .values(&entity)
-            .execute(&mut *conn)
+                    Ok(())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(())
     }
 
     async fn create_error_log_with_fingerprint(
@@ -65,37 +64,35 @@ impl AttendanceLogErrorRepository for DieselAttendanceLogErrorRepository {
         fingerprint: &str,
     ) -> Result<bool, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    let entity = AttendanceLogErrorEntity {
+                        id: crate::utils::id::new_id(),
+                        workspace_id,
+                        agent_id,
+                        raw_content,
+                        error_message: error_message.to_string(),
+                        source: source.to_string(),
+                        created_at: Some(chrono::Utc::now()),
+                        fingerprint: Some(fingerprint.to_string()),
+                    };
 
-        let entity = AttendanceLogErrorEntity {
-            id: crate::utils::id::new_id(),
-            workspace_id,
-            agent_id,
-            raw_content,
-            error_message: error_message.to_string(),
-            source: source.to_string(),
-            created_at: Some(chrono::Utc::now()),
-            fingerprint: Some(fingerprint.to_string()),
-        };
+                    let rows_affected = diesel::insert_into(attendance_log_errors::table)
+                        .values(&entity)
+                        .on_conflict((
+                            attendance_log_errors::workspace_id,
+                            attendance_log_errors::fingerprint,
+                        ))
+                        .do_nothing()
+                        .execute(&mut *conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let rows_affected = diesel::insert_into(attendance_log_errors::table)
-            .values(&entity)
-            .on_conflict((
-                attendance_log_errors::workspace_id,
-                attendance_log_errors::fingerprint,
-            ))
-            .do_nothing()
-            .execute(&mut *conn)
+                    Ok(rows_affected > 0)
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(rows_affected > 0)
     }
 }
 

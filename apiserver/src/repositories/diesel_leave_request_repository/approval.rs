@@ -1,4 +1,5 @@
 use super::*;
+use crate::diesel_pool::DieselPoolsTenantTxExt;
 use crate::errors::AppError;
 use crate::models::LeaveStatus;
 use crate::repositories::leave_request_repository::LeaveBreakdown;
@@ -17,13 +18,9 @@ impl DieselLeaveRequestRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<LeaveBreakdown, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
 
         // Step 1: Get raw leave days per type
         let rows = leave_requests::table
@@ -45,7 +42,7 @@ impl DieselLeaveRequestRepository {
                     "SUM(LEAST(leave_requests.end_date, '{end_date}') - GREATEST(leave_requests.start_date, '{start_date}') + 1)"
                 )),
             ))
-            .load::<(String, i64)>(&mut *conn)
+            .load::<(String, i64)>(conn)
             .await
             .map_err(AppError::from)?;
 
@@ -69,7 +66,7 @@ impl DieselLeaveRequestRepository {
                     .filter(leave_requests::end_date.ge(holidays::date)),
             ))
             .count()
-            .get_result::<i64>(&mut *conn)
+            .get_result::<i64>(conn)
             .await
             .map_err(AppError::from)?;
 
@@ -98,6 +95,9 @@ impl DieselLeaveRequestRepository {
         }
 
         Ok(breakdown)
+                    })
+            })
+            .await
     }
 
     pub(super) async fn get_unpaid_holiday_days_without_leave_impl(
@@ -108,38 +108,36 @@ impl DieselLeaveRequestRepository {
         end_date: NaiveDate,
     ) -> Result<i64, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let count = holidays::table
+                        .filter(holidays::workspace_id.eq(workspace_id))
+                        .filter(holidays::is_paid.eq(false))
+                        .filter(holidays::date.ge(start_date))
+                        .filter(holidays::date.le(end_date))
+                        .filter(diesel::dsl::not(diesel::dsl::exists(
+                            leave_requests::table
+                                .inner_join(employments::table)
+                                .filter(employments::employee_id.eq(employee_id))
+                                .filter(employments::workspace_id.eq(workspace_id))
+                                .filter(
+                                    leave_requests::status
+                                        .eq(LeaveStatus::Approved)
+                                        .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
+                                )
+                                .filter(leave_requests::start_date.le(holidays::date))
+                                .filter(leave_requests::end_date.ge(holidays::date)),
+                        )))
+                        .count()
+                        .get_result::<i64>(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let count = holidays::table
-            .filter(holidays::workspace_id.eq(workspace_id))
-            .filter(holidays::is_paid.eq(false))
-            .filter(holidays::date.ge(start_date))
-            .filter(holidays::date.le(end_date))
-            .filter(diesel::dsl::not(diesel::dsl::exists(
-                leave_requests::table
-                    .inner_join(employments::table)
-                    .filter(employments::employee_id.eq(employee_id))
-                    .filter(employments::workspace_id.eq(workspace_id))
-                    .filter(
-                        leave_requests::status
-                            .eq(LeaveStatus::Approved)
-                            .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
-                    )
-                    .filter(leave_requests::start_date.le(holidays::date))
-                    .filter(leave_requests::end_date.ge(holidays::date)),
-            )))
-            .count()
-            .get_result::<i64>(&mut *conn)
+                    Ok(count)
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(count)
     }
 
     pub(super) async fn get_batch_leave_days_impl(
@@ -150,37 +148,35 @@ impl DieselLeaveRequestRepository {
         end_date: NaiveDate,
     ) -> Result<std::collections::HashMap<Uuid, i64>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let rows = leave_requests::table
+                        .inner_join(employments::table)
+                        .filter(employments::employee_id.eq_any(employee_ids))
+                        .filter(employments::workspace_id.eq(workspace_id))
+                        .filter(
+                            leave_requests::status
+                                .eq(LeaveStatus::Approved)
+                                .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
+                        )
+                        .filter(leave_requests::start_date.ge(start_date))
+                        .filter(leave_requests::end_date.le(end_date))
+                        .group_by(employments::employee_id)
+                        .select((
+                            employments::employee_id,
+                            diesel::dsl::sql::<diesel::sql_types::BigInt>(
+                                "SUM(leave_requests.end_date - leave_requests.start_date + 1)",
+                            ),
+                        ))
+                        .load::<(Uuid, i64)>(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let rows = leave_requests::table
-            .inner_join(employments::table)
-            .filter(employments::employee_id.eq_any(employee_ids))
-            .filter(employments::workspace_id.eq(workspace_id))
-            .filter(
-                leave_requests::status
-                    .eq(LeaveStatus::Approved)
-                    .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
-            )
-            .filter(leave_requests::start_date.ge(start_date))
-            .filter(leave_requests::end_date.le(end_date))
-            .group_by(employments::employee_id)
-            .select((
-                employments::employee_id,
-                diesel::dsl::sql::<diesel::sql_types::BigInt>(
-                    "SUM(leave_requests.end_date - leave_requests.start_date + 1)",
-                ),
-            ))
-            .load::<(Uuid, i64)>(&mut *conn)
+                    Ok(rows.into_iter().collect())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(rows.into_iter().collect())
     }
 
     pub(super) async fn get_approved_leave_dates_impl(
@@ -191,48 +187,47 @@ impl DieselLeaveRequestRepository {
         end_date: NaiveDate,
     ) -> Result<std::collections::HashSet<(Uuid, NaiveDate)>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let rows = leave_requests::table
+                        .inner_join(employments::table)
+                        .filter(employments::workspace_id.eq(workspace_id))
+                        .filter(employments::employee_id.eq_any(employee_ids))
+                        .filter(
+                            leave_requests::status
+                                .eq(LeaveStatus::Approved)
+                                .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
+                        )
+                        .filter(leave_requests::start_date.le(end_date))
+                        .filter(leave_requests::end_date.ge(start_date))
+                        .select((
+                            employments::employee_id,
+                            leave_requests::start_date,
+                            leave_requests::end_date,
+                        ))
+                        .load::<(Uuid, NaiveDate, NaiveDate)>(conn)
+                        .await
+                        .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
 
-        let rows = leave_requests::table
-            .inner_join(employments::table)
-            .filter(employments::workspace_id.eq(workspace_id))
-            .filter(employments::employee_id.eq_any(employee_ids))
-            .filter(
-                leave_requests::status
-                    .eq(LeaveStatus::Approved)
-                    .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
-            )
-            .filter(leave_requests::start_date.le(end_date))
-            .filter(leave_requests::end_date.ge(start_date))
-            .select((
-                employments::employee_id,
-                leave_requests::start_date,
-                leave_requests::end_date,
-            ))
-            .load::<(Uuid, NaiveDate, NaiveDate)>(&mut *conn)
+                    let mut set = std::collections::HashSet::new();
+                    for (employee_id, start_d, end_d) in rows {
+                        let mut d = start_d;
+                        while d <= end_d {
+                            if d >= start_date && d <= end_date {
+                                set.insert((employee_id, d));
+                            }
+                            d = match d.succ_opt() {
+                                Some(next) => next,
+                                None => break,
+                            };
+                        }
+                    }
+
+                    Ok(set)
+                })
+            })
             .await
-            .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
-
-        let mut set = std::collections::HashSet::new();
-        for (employee_id, start_d, end_d) in rows {
-            let mut d = start_d;
-            while d <= end_d {
-                if d >= start_date && d <= end_date {
-                    set.insert((employee_id, d));
-                }
-                d = match d.succ_opt() {
-                    Some(next) => next,
-                    None => break,
-                };
-            }
-        }
-
-        Ok(set)
     }
 
     pub(super) async fn get_approved_leave_details_impl(
@@ -243,50 +238,49 @@ impl DieselLeaveRequestRepository {
         end_date: NaiveDate,
     ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), bool>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let rows = leave_requests::table
+                        .inner_join(employments::table)
+                        .inner_join(leave_types::table)
+                        .filter(employments::workspace_id.eq(workspace_id))
+                        .filter(employments::employee_id.eq_any(employee_ids))
+                        .filter(
+                            leave_requests::status
+                                .eq(LeaveStatus::Approved)
+                                .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
+                        )
+                        .filter(leave_requests::start_date.le(end_date))
+                        .filter(leave_requests::end_date.ge(start_date))
+                        .select((
+                            employments::employee_id,
+                            leave_requests::start_date,
+                            leave_requests::end_date,
+                            leave_types::is_paid,
+                        ))
+                        .load::<(Uuid, NaiveDate, NaiveDate, bool)>(conn)
+                        .await
+                        .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
 
-        let rows = leave_requests::table
-            .inner_join(employments::table)
-            .inner_join(leave_types::table)
-            .filter(employments::workspace_id.eq(workspace_id))
-            .filter(employments::employee_id.eq_any(employee_ids))
-            .filter(
-                leave_requests::status
-                    .eq(LeaveStatus::Approved)
-                    .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
-            )
-            .filter(leave_requests::start_date.le(end_date))
-            .filter(leave_requests::end_date.ge(start_date))
-            .select((
-                employments::employee_id,
-                leave_requests::start_date,
-                leave_requests::end_date,
-                leave_types::is_paid,
-            ))
-            .load::<(Uuid, NaiveDate, NaiveDate, bool)>(&mut *conn)
+                    let mut map = std::collections::HashMap::new();
+                    for (employee_id, start_d, end_d, is_paid) in rows {
+                        let mut d = start_d;
+                        while d <= end_d {
+                            if d >= start_date && d <= end_date {
+                                map.insert((employee_id, d), is_paid);
+                            }
+                            d = match d.succ_opt() {
+                                Some(next) => next,
+                                None => break,
+                            };
+                        }
+                    }
+
+                    Ok(map)
+                })
+            })
             .await
-            .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
-
-        let mut map = std::collections::HashMap::new();
-        for (employee_id, start_d, end_d, is_paid) in rows {
-            let mut d = start_d;
-            while d <= end_d {
-                if d >= start_date && d <= end_date {
-                    map.insert((employee_id, d), is_paid);
-                }
-                d = match d.succ_opt() {
-                    Some(next) => next,
-                    None => break,
-                };
-            }
-        }
-
-        Ok(map)
     }
 
     pub(super) async fn get_approved_leave_periods_impl(
@@ -297,31 +291,29 @@ impl DieselLeaveRequestRepository {
         end_date: NaiveDate,
     ) -> Result<Vec<(NaiveDate, NaiveDate)>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let rows: Vec<(NaiveDate, NaiveDate)> = leave_requests::table
+                        .inner_join(employments::table)
+                        .filter(employments::employee_id.eq(employee_id))
+                        .filter(employments::workspace_id.eq(workspace_id))
+                        .filter(
+                            leave_requests::status
+                                .eq(LeaveStatus::Approved)
+                                .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
+                        )
+                        .filter(leave_requests::start_date.le(end_date))
+                        .filter(leave_requests::end_date.ge(start_date))
+                        .select((leave_requests::start_date, leave_requests::end_date))
+                        .load(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        let rows: Vec<(NaiveDate, NaiveDate)> = leave_requests::table
-            .inner_join(employments::table)
-            .filter(employments::employee_id.eq(employee_id))
-            .filter(employments::workspace_id.eq(workspace_id))
-            .filter(
-                leave_requests::status
-                    .eq(LeaveStatus::Approved)
-                    .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
-            )
-            .filter(leave_requests::start_date.le(end_date))
-            .filter(leave_requests::end_date.ge(start_date))
-            .select((leave_requests::start_date, leave_requests::end_date))
-            .load(&mut *conn)
+                    Ok(rows)
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
-
-        Ok(rows)
     }
 
     pub(super) async fn get_approved_leave_breakdowns_batch_impl(
@@ -332,13 +324,9 @@ impl DieselLeaveRequestRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<std::collections::HashMap<Uuid, LeaveBreakdown>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
 
         // Step 1: Get raw leave days per type per employee
         let rows = leave_requests::table
@@ -361,7 +349,7 @@ impl DieselLeaveRequestRepository {
                     "SUM(LEAST(leave_requests.end_date, '{end_date}') - GREATEST(leave_requests.start_date, '{start_date}') + 1)"
                 )),
             ))
-            .load::<(Uuid, String, i64)>(&mut *conn)
+            .load::<(Uuid, String, i64)>(conn)
             .await
             .map_err(AppError::from)?;
 
@@ -383,7 +371,7 @@ impl DieselLeaveRequestRepository {
             .filter(leave_requests::end_date.ge(holidays::date))
             .select((employments::employee_id, holidays::date))
             .distinct()
-            .load::<(Uuid, NaiveDate)>(&mut *conn)
+            .load::<(Uuid, NaiveDate)>(conn)
             .await
             .map_err(|e| AppError::Internal(format!("db holiday counts: {e}")))?;
 
@@ -428,6 +416,9 @@ impl DieselLeaveRequestRepository {
         }
 
         Ok(result)
+                    })
+            })
+            .await
     }
 
     pub(super) async fn get_unpaid_holiday_days_without_leave_batch_impl(
@@ -438,67 +429,73 @@ impl DieselLeaveRequestRepository {
         end_date: NaiveDate,
     ) -> Result<std::collections::HashMap<Uuid, i64>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    // 1. Get all unpaid holidays in the period
+                    let unpaid_holidays: Vec<NaiveDate> = holidays::table
+                        .filter(holidays::workspace_id.eq(workspace_id))
+                        .filter(holidays::is_paid.eq(false))
+                        .filter(holidays::date.ge(start_date))
+                        .filter(holidays::date.le(end_date))
+                        .select(holidays::date)
+                        .load::<NaiveDate>(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db unpaid holidays: {e}")))?;
 
-        // 1. Get all unpaid holidays in the period
-        let unpaid_holidays: Vec<NaiveDate> = holidays::table
-            .filter(holidays::workspace_id.eq(workspace_id))
-            .filter(holidays::is_paid.eq(false))
-            .filter(holidays::date.ge(start_date))
-            .filter(holidays::date.le(end_date))
-            .select(holidays::date)
-            .load::<NaiveDate>(&mut *conn)
+                    let total_unpaid_holidays = i64::try_from(unpaid_holidays.len()).unwrap_or(0);
+
+                    if total_unpaid_holidays == 0 {
+                        let mut result = std::collections::HashMap::new();
+                        for &emp_id in employee_ids {
+                            result.insert(emp_id, 0);
+                        }
+                        return Ok(result);
+                    }
+
+                    // 2. Query which employees have approved leaves on which unpaid holidays
+                    let leave_rows = holidays::table
+                        .inner_join(
+                            employments::table
+                                .on(employments::workspace_id.eq(holidays::workspace_id)),
+                        )
+                        .inner_join(
+                            leave_requests::table
+                                .on(leave_requests::employment_id.eq(employments::id)),
+                        )
+                        .filter(holidays::workspace_id.eq(workspace_id))
+                        .filter(holidays::is_paid.eq(false))
+                        .filter(holidays::date.ge(start_date))
+                        .filter(holidays::date.le(end_date))
+                        .filter(employments::employee_id.eq_any(employee_ids))
+                        .filter(
+                            leave_requests::status
+                                .eq(LeaveStatus::Approved)
+                                .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
+                        )
+                        .filter(leave_requests::start_date.le(holidays::date))
+                        .filter(leave_requests::end_date.ge(holidays::date))
+                        .select(employments::employee_id)
+                        .load::<Uuid>(conn)
+                        .await
+                        .map_err(|e| {
+                            AppError::Internal(format!("db leaves on unpaid holidays: {e}"))
+                        })?;
+
+                    let mut covered_counts = std::collections::HashMap::new();
+                    for employee_id in leave_rows {
+                        *covered_counts.entry(employee_id).or_insert(0) += 1;
+                    }
+
+                    let mut result = std::collections::HashMap::new();
+                    for &emp_id in employee_ids {
+                        let covered = covered_counts.get(&emp_id).copied().unwrap_or(0);
+                        result.insert(emp_id, total_unpaid_holidays - covered);
+                    }
+
+                    Ok(result)
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("db unpaid holidays: {e}")))?;
-
-        let total_unpaid_holidays = i64::try_from(unpaid_holidays.len()).unwrap_or(0);
-
-        if total_unpaid_holidays == 0 {
-            let mut result = std::collections::HashMap::new();
-            for &emp_id in employee_ids {
-                result.insert(emp_id, 0);
-            }
-            return Ok(result);
-        }
-
-        // 2. Query which employees have approved leaves on which unpaid holidays
-        let leave_rows = holidays::table
-            .inner_join(employments::table.on(employments::workspace_id.eq(holidays::workspace_id)))
-            .inner_join(leave_requests::table.on(leave_requests::employment_id.eq(employments::id)))
-            .filter(holidays::workspace_id.eq(workspace_id))
-            .filter(holidays::is_paid.eq(false))
-            .filter(holidays::date.ge(start_date))
-            .filter(holidays::date.le(end_date))
-            .filter(employments::employee_id.eq_any(employee_ids))
-            .filter(
-                leave_requests::status
-                    .eq(LeaveStatus::Approved)
-                    .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
-            )
-            .filter(leave_requests::start_date.le(holidays::date))
-            .filter(leave_requests::end_date.ge(holidays::date))
-            .select(employments::employee_id)
-            .load::<Uuid>(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db leaves on unpaid holidays: {e}")))?;
-
-        let mut covered_counts = std::collections::HashMap::new();
-        for employee_id in leave_rows {
-            *covered_counts.entry(employee_id).or_insert(0) += 1;
-        }
-
-        let mut result = std::collections::HashMap::new();
-        for &emp_id in employee_ids {
-            let covered = covered_counts.get(&emp_id).copied().unwrap_or(0);
-            result.insert(emp_id, total_unpaid_holidays - covered);
-        }
-
-        Ok(result)
     }
 }

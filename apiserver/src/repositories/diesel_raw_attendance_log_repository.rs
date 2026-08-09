@@ -8,7 +8,10 @@ use crate::errors::AppError;
 use crate::models::attendance::{RawAttendanceLog, RawAttendanceLogWithEmployee};
 use crate::models::diesel::attendance_log::RawAttendanceLogEntity;
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
-use crate::schema::{devices, employees, employments, raw_attendance_logs};
+use crate::{
+    diesel_pool::{DieselPoolsTenantTxExt, TenantAuthToken},
+    schema::{devices, employees, employments, raw_attendance_logs},
+};
 
 pub struct DieselRawAttendanceLogRepository {
     diesel_pools: crate::diesel_pool::DieselPools,
@@ -27,48 +30,47 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         workspace_id: Uuid,
         log: &RawAttendanceLog,
     ) -> Result<bool, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    let entity = RawAttendanceLogEntity {
+                        id: log.id(),
+                        workspace_id: log.workspace_id(),
+                        employment_id: log.employment_id(),
+                        punch_time: log.punch_time(),
+                        source: *log.source(),
+                        device_id: log.device_id().map(ToString::to_string),
+                        raw_data: log.raw_data().cloned(),
+                        created_at: Some(log.created_at()),
+                        punch: log.punch(),
+                        status: log.status(),
+                        source_timestamp: log.source_timestamp.clone(),
+                        source_timezone: log.source_timezone.clone(),
+                        timestamp_kind: log.timestamp_kind.clone(),
+                        conversion_status: log.conversion_status.clone(),
+                        conversion_error: log.conversion_error.clone(),
+                        received_at: log.received_at,
+                    };
 
-        let entity = RawAttendanceLogEntity {
-            id: log.id(),
-            workspace_id: log.workspace_id(),
-            employment_id: log.employment_id(),
-            punch_time: log.punch_time(),
-            source: *log.source(),
-            device_id: log.device_id().map(ToString::to_string),
-            raw_data: log.raw_data().cloned(),
-            created_at: Some(log.created_at()),
-            punch: log.punch(),
-            status: log.status(),
-            source_timestamp: log.source_timestamp.clone(),
-            source_timezone: log.source_timezone.clone(),
-            timestamp_kind: log.timestamp_kind.clone(),
-            conversion_status: log.conversion_status.clone(),
-            conversion_error: log.conversion_error.clone(),
-            received_at: log.received_at,
-        };
+                    let rows_affected = diesel::insert_into(raw_attendance_logs::table)
+                        .values(&entity)
+                        .on_conflict((
+                            raw_attendance_logs::workspace_id,
+                            raw_attendance_logs::employment_id,
+                            raw_attendance_logs::punch_time,
+                            raw_attendance_logs::punch,
+                            raw_attendance_logs::status,
+                        ))
+                        .do_nothing()
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let rows_affected = diesel::insert_into(raw_attendance_logs::table)
-            .values(&entity)
-            .on_conflict((
-                raw_attendance_logs::workspace_id,
-                raw_attendance_logs::employment_id,
-                raw_attendance_logs::punch_time,
-                raw_attendance_logs::punch,
-                raw_attendance_logs::status,
-            ))
-            .do_nothing()
-            .execute(&mut *conn)
+                    Ok(rows_affected > 0)
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(rows_affected > 0)
     }
 
     async fn get_raw_log_by_id(
@@ -76,23 +78,22 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         workspace_id: Uuid,
         id: Uuid,
     ) -> Result<Option<RawAttendanceLog>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    let res: Option<RawAttendanceLogEntity> = raw_attendance_logs::table
+                        .filter(raw_attendance_logs::id.eq(id))
+                        .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
+                        .first(conn)
+                        .await
+                        .optional()
+                        .map_err(AppError::from)?;
 
-        let res: Option<RawAttendanceLogEntity> = raw_attendance_logs::table
-            .filter(raw_attendance_logs::id.eq(id))
-            .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
-            .first(&mut *conn)
+                    Ok(res.map(Into::into))
+                })
+            })
             .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        Ok(res.map(Into::into))
     }
 
     async fn get_latest_log(
@@ -100,24 +101,23 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         workspace_id: Uuid,
         employment_id: Uuid,
     ) -> Result<Option<RawAttendanceLog>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    let res: Option<RawAttendanceLogEntity> = raw_attendance_logs::table
+                        .filter(raw_attendance_logs::employment_id.eq(employment_id))
+                        .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
+                        .order(raw_attendance_logs::punch_time.desc())
+                        .first(conn)
+                        .await
+                        .optional()
+                        .map_err(AppError::from)?;
 
-        let res: Option<RawAttendanceLogEntity> = raw_attendance_logs::table
-            .filter(raw_attendance_logs::employment_id.eq(employment_id))
-            .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
-            .order(raw_attendance_logs::punch_time.desc())
-            .first(&mut *conn)
+                    Ok(res.map(Into::into))
+                })
+            })
             .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        Ok(res.map(Into::into))
     }
 
     async fn get_paginated_raw_logs(
@@ -129,75 +129,74 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         p_limit: i64,
         p_offset: i64,
     ) -> Result<Vec<RawAttendanceLogWithEmployee>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    let mut query = raw_attendance_logs::table
+                        .inner_join(
+                            employments::table
+                                .on(raw_attendance_logs::employment_id.eq(employments::id)),
+                        )
+                        .inner_join(employees::table.on(employments::employee_id.eq(employees::id)))
+                        .left_join(
+                            devices::table.on(diesel::dsl::sql::<diesel::sql_types::Bool>(
+                                "raw_attendance_logs.device_id = devices.id::text",
+                            )),
+                        )
+                        .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
+                        .into_boxed();
 
-        let mut query = raw_attendance_logs::table
-            .inner_join(
-                employments::table.on(raw_attendance_logs::employment_id.eq(employments::id)),
-            )
-            .inner_join(employees::table.on(employments::employee_id.eq(employees::id)))
-            .left_join(
-                devices::table.on(diesel::dsl::sql::<diesel::sql_types::Bool>(
-                    "raw_attendance_logs.device_id = devices.id::text",
-                )),
-            )
-            .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
-            .into_boxed();
+                    if let Some(emp_id) = p_employment_id {
+                        query = query.filter(raw_attendance_logs::employment_id.eq(emp_id));
+                    }
 
-        if let Some(emp_id) = p_employment_id {
-            query = query.filter(raw_attendance_logs::employment_id.eq(emp_id));
-        }
+                    if let Some(from) = p_from {
+                        query = query.filter(raw_attendance_logs::punch_time.ge(from));
+                    }
 
-        if let Some(from) = p_from {
-            query = query.filter(raw_attendance_logs::punch_time.ge(from));
-        }
+                    if let Some(to) = p_to {
+                        query = query.filter(raw_attendance_logs::punch_time.le(to));
+                    }
 
-        if let Some(to) = p_to {
-            query = query.filter(raw_attendance_logs::punch_time.le(to));
-        }
+                    let results = query
+                        .select((
+                            raw_attendance_logs::all_columns,
+                            employees::full_name,
+                            employees::employee_id_number,
+                            devices::name.nullable(),
+                        ))
+                        .order(raw_attendance_logs::punch_time.desc())
+                        .limit(p_limit)
+                        .offset(p_offset)
+                        .load::<(RawAttendanceLogEntity, String, String, Option<String>)>(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        // Custom selection to match RawAttendanceLogWithEmployee
-        let results = query
-            .select((
-                raw_attendance_logs::all_columns,
-                employees::full_name,
-                employees::employee_id_number,
-                devices::name.nullable(),
-            ))
-            .order(raw_attendance_logs::punch_time.desc())
-            .limit(p_limit)
-            .offset(p_offset)
-            .load::<(RawAttendanceLogEntity, String, String, Option<String>)>(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
-
-        Ok(results
-            .into_iter()
-            .map(|(log, emp_name, emp_id_num, dev_name)| {
-                let base: RawAttendanceLog = log.into();
-                RawAttendanceLogWithEmployee {
-                    id: base.id(),
-                    workspace_id: base.workspace_id(),
-                    employment_id: base.employment_id(),
-                    punch_time: base.punch_time(),
-                    source: *base.source(),
-                    device_id: base.device_id().map(ToString::to_string),
-                    raw_data: base.raw_data().cloned(),
-                    punch: base.punch(),
-                    status: base.status(),
-                    created_at: base.created_at(),
-                    employee_full_name: emp_name,
-                    employee_id_number: emp_id_num,
-                    device_name: dev_name,
-                }
+                    Ok(results
+                        .into_iter()
+                        .map(|(log, emp_name, emp_id_num, dev_name)| {
+                            let base: RawAttendanceLog = log.into();
+                            RawAttendanceLogWithEmployee {
+                                id: base.id(),
+                                workspace_id: base.workspace_id(),
+                                employment_id: base.employment_id(),
+                                punch_time: base.punch_time(),
+                                source: *base.source(),
+                                device_id: base.device_id().map(ToString::to_string),
+                                raw_data: base.raw_data().cloned(),
+                                punch: base.punch(),
+                                status: base.status(),
+                                created_at: base.created_at(),
+                                employee_full_name: emp_name,
+                                employee_id_number: emp_id_num,
+                                device_name: dev_name,
+                            }
+                        })
+                        .collect())
+                })
             })
-            .collect())
+            .await
     }
 
     async fn count_raw_logs(
@@ -207,37 +206,34 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
     ) -> Result<i64, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    let mut query = raw_attendance_logs::table
+                        .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
+                        .into_boxed();
 
-        let mut query = raw_attendance_logs::table
-            .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
-            .into_boxed();
+                    if let Some(emp_id) = p_employment_id {
+                        query = query.filter(raw_attendance_logs::employment_id.eq(emp_id));
+                    }
 
-        if let Some(emp_id) = p_employment_id {
-            query = query.filter(raw_attendance_logs::employment_id.eq(emp_id));
-        }
+                    if let Some(from) = p_from {
+                        query = query.filter(raw_attendance_logs::punch_time.ge(from));
+                    }
 
-        if let Some(from) = p_from {
-            query = query.filter(raw_attendance_logs::punch_time.ge(from));
-        }
+                    if let Some(to) = p_to {
+                        query = query.filter(raw_attendance_logs::punch_time.le(to));
+                    }
 
-        if let Some(to) = p_to {
-            query = query.filter(raw_attendance_logs::punch_time.le(to));
-        }
-
-        let count = query
-            .count()
-            .get_result::<i64>(&mut *conn)
+                    query
+                        .count()
+                        .get_result::<i64>(conn)
+                        .await
+                        .map_err(AppError::from)
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(count)
     }
 
     async fn create_raw_logs_batch(
@@ -249,51 +245,48 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             return Ok(0);
         }
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    let entities: Vec<RawAttendanceLogEntity> = logs
+                        .iter()
+                        .map(|log| RawAttendanceLogEntity {
+                            id: log.id(),
+                            workspace_id: log.workspace_id(),
+                            employment_id: log.employment_id(),
+                            punch_time: log.punch_time(),
+                            source: *log.source(),
+                            device_id: log.device_id().map(ToString::to_string),
+                            raw_data: log.raw_data().cloned(),
+                            created_at: Some(log.created_at()),
+                            punch: log.punch(),
+                            status: log.status(),
+                            source_timestamp: log.source_timestamp.clone(),
+                            source_timezone: log.source_timezone.clone(),
+                            timestamp_kind: log.timestamp_kind.clone(),
+                            conversion_status: log.conversion_status.clone(),
+                            conversion_error: log.conversion_error.clone(),
+                            received_at: log.received_at,
+                        })
+                        .collect();
 
-        let entities: Vec<RawAttendanceLogEntity> = logs
-            .iter()
-            .map(|log| RawAttendanceLogEntity {
-                id: log.id(),
-                workspace_id: log.workspace_id(),
-                employment_id: log.employment_id(),
-                punch_time: log.punch_time(),
-                source: *log.source(),
-                device_id: log.device_id().map(ToString::to_string),
-                raw_data: log.raw_data().cloned(),
-                created_at: Some(log.created_at()),
-                punch: log.punch(),
-                status: log.status(),
-                source_timestamp: log.source_timestamp.clone(),
-                source_timezone: log.source_timezone.clone(),
-                timestamp_kind: log.timestamp_kind.clone(),
-                conversion_status: log.conversion_status.clone(),
-                conversion_error: log.conversion_error.clone(),
-                received_at: log.received_at,
+                    diesel::insert_into(raw_attendance_logs::table)
+                        .values(&entities)
+                        .on_conflict((
+                            raw_attendance_logs::workspace_id,
+                            raw_attendance_logs::employment_id,
+                            raw_attendance_logs::punch_time,
+                            raw_attendance_logs::punch,
+                            raw_attendance_logs::status,
+                        ))
+                        .do_nothing()
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)
+                })
             })
-            .collect();
-
-        let rows_affected = diesel::insert_into(raw_attendance_logs::table)
-            .values(&entities)
-            .on_conflict((
-                raw_attendance_logs::workspace_id,
-                raw_attendance_logs::employment_id,
-                raw_attendance_logs::punch_time,
-                raw_attendance_logs::punch,
-                raw_attendance_logs::status,
-            ))
-            .do_nothing()
-            .execute(&mut *conn)
             .await
-            .map_err(AppError::from)?;
-
-        Ok(rows_affected)
     }
 
     async fn has_duplicate_raw_log(
@@ -303,26 +296,23 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         log_id: Uuid,
         punch_time: DateTime<Utc>,
     ) -> Result<bool, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
-        let duplicate_exists = diesel::select(diesel::dsl::exists(
-            raw_attendance_logs::table
-                .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
-                .filter(raw_attendance_logs::employment_id.eq(employment_id))
-                .filter(raw_attendance_logs::id.ne(log_id))
-                .filter(raw_attendance_logs::punch_time.eq(punch_time)),
-        ))
-        .get_result::<bool>(&mut *conn)
-        .await
-        .map_err(AppError::from)?;
-
-        Ok(duplicate_exists)
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    diesel::select(diesel::dsl::exists(
+                        raw_attendance_logs::table
+                            .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
+                            .filter(raw_attendance_logs::employment_id.eq(employment_id))
+                            .filter(raw_attendance_logs::id.ne(log_id))
+                            .filter(raw_attendance_logs::punch_time.eq(punch_time)),
+                    ))
+                    .get_result::<bool>(conn)
+                    .await
+                    .map_err(AppError::from)
+                })
+            })
+            .await
     }
 
     async fn get_employment_logs_in_time_range(
@@ -332,25 +322,24 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         start_time: DateTime<Utc>,
         end_time: DateTime<Utc>,
     ) -> Result<Vec<RawAttendanceLog>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    let results = raw_attendance_logs::table
+                        .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
+                        .filter(raw_attendance_logs::employment_id.eq(employment_id))
+                        .filter(raw_attendance_logs::punch_time.ge(start_time))
+                        .filter(raw_attendance_logs::punch_time.lt(end_time))
+                        .order(raw_attendance_logs::punch_time.asc())
+                        .load::<RawAttendanceLogEntity>(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let results = raw_attendance_logs::table
-            .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
-            .filter(raw_attendance_logs::employment_id.eq(employment_id))
-            .filter(raw_attendance_logs::punch_time.ge(start_time))
-            .filter(raw_attendance_logs::punch_time.lt(end_time))
-            .order(raw_attendance_logs::punch_time.asc())
-            .load::<RawAttendanceLogEntity>(&mut *conn)
+                    Ok(results.into_iter().map(Into::into).collect())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(results.into_iter().map(Into::into).collect())
     }
 }
 

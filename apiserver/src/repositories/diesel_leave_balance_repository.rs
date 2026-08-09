@@ -1,4 +1,4 @@
-use crate::diesel_pool::DieselPools;
+use crate::diesel_pool::{DieselPools, DieselPoolsTenantTxExt};
 use crate::errors::AppError;
 use crate::models::diesel::leave::*;
 use crate::models::{EmployeeLeaveBalance, LeaveBalance, WorkspaceLeaveBalance};
@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use bigdecimal::BigDecimal;
 use chrono::Datelike;
 use diesel::prelude::*;
-use diesel_async::{AsyncConnection, RunQueryDsl};
+use diesel_async::RunQueryDsl;
 use std::str::FromStr;
 use uuid::Uuid;
 
@@ -33,16 +33,12 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         year: i32,
     ) -> Result<Vec<EmployeeLeaveBalance>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
 
-        // Using raw SQL for the complex CTE report to ensure compatibility
-        let sql = r#"
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    // Using raw SQL for the complex CTE report to ensure compatibility
+                    let sql = r#"
             WITH leave_usage AS (
                 SELECT
                     lr.leave_type_id,
@@ -79,15 +75,18 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             WHERE emp.employee_id = $1 AND lb.year = $2 AND emp.workspace_id = $3
         "#;
 
-        let balances = diesel::sql_query(sql)
-            .bind::<diesel::sql_types::Uuid, _>(employee_id)
-            .bind::<diesel::sql_types::Int4, _>(year)
-            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-            .load::<crate::models::diesel::leave::EmployeeLeaveBalanceRaw>(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
+                    let balances = diesel::sql_query(sql)
+                        .bind::<diesel::sql_types::Uuid, _>(employee_id)
+                        .bind::<diesel::sql_types::Int4, _>(year)
+                        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                        .load::<crate::models::diesel::leave::EmployeeLeaveBalanceRaw>(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        Ok(balances.into_iter().map(Into::into).collect())
+                    Ok(balances.into_iter().map(Into::into).collect())
+                })
+            })
+            .await
     }
 
     async fn get_employee_balances_batch(
@@ -97,14 +96,9 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         year: i32,
     ) -> Result<std::collections::HashMap<Uuid, Vec<EmployeeLeaveBalance>>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
         if employee_ids.is_empty() {
             return Ok(std::collections::HashMap::new());
         }
@@ -152,7 +146,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(employee_ids)
             .bind::<diesel::sql_types::Int4, _>(year)
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-            .load::<crate::models::diesel::leave::EmployeeLeaveBalanceBatchRaw>(&mut *conn)
+            .load::<crate::models::diesel::leave::EmployeeLeaveBalanceBatchRaw>(conn)
             .await
             .map_err(AppError::from)?;
 
@@ -170,7 +164,10 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             map.entry(id).or_insert_with(Vec::new);
         }
 
-        Ok(map)
+                    Ok(map)
+                })
+            })
+            .await
     }
 
     async fn get_employee_balances_by_years(
@@ -183,13 +180,9 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         AppError,
     > {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
 
         // Initialize empty maps for all requested years upfront.
         let mut outer: std::collections::HashMap<
@@ -254,7 +247,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(employee_ids)
             .bind::<diesel::sql_types::Array<diesel::sql_types::Int4>, _>(years)
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-            .load::<crate::models::diesel::leave::EmployeeLeaveBalanceByYearsRaw>(&mut *conn)
+            .load::<crate::models::diesel::leave::EmployeeLeaveBalanceByYearsRaw>(conn)
             .await
             .map_err(AppError::from)?;
 
@@ -279,6 +272,9 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         }
 
         Ok(outer)
+                })
+            })
+            .await
     }
 
     async fn get_workspace_balances(
@@ -290,13 +286,9 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         search: Option<String>,
     ) -> Result<(Vec<WorkspaceLeaveBalance>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
 
         let search_term = format!("%{}%", search.unwrap_or_default());
 
@@ -334,7 +326,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
             .bind::<diesel::sql_types::Int4, _>(year)
             .bind::<diesel::sql_types::Text, _>(&search_term)
-            .get_result::<crate::models::diesel::BigIntCount>(&mut *conn)
+            .get_result::<crate::models::diesel::BigIntCount>(conn)
             .await
             .map_err(|e| AppError::Internal(format!("db count: {e}")))?
             .count;
@@ -425,11 +417,14 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             .bind::<diesel::sql_types::Text, _>(&search_term)
             .bind::<diesel::sql_types::BigInt, _>(limit)
             .bind::<diesel::sql_types::BigInt, _>(offset)
-            .load::<crate::models::diesel::leave::WorkspaceLeaveBalanceRaw>(&mut *conn)
+            .load::<crate::models::diesel::leave::WorkspaceLeaveBalanceRaw>(conn)
             .await
             .map_err(|e| AppError::Internal(format!("db data: {e}")))?;
 
         Ok((data.into_iter().map(Into::into).collect(), total))
+                })
+            })
+            .await
     }
 
     async fn upsert_leave_balance(
@@ -438,62 +433,60 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         balance: &LeaveBalance,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    // Check if employment exists and belongs to the workspace of this tenant
+                    let employment_exists = employments::table
+                        .filter(employments::id.eq(balance.employment_id()))
+                        .filter(employments::workspace_id.eq(workspace_id))
+                        .filter(employments::deleted_at.is_null())
+                        .select(employments::id)
+                        .first::<Uuid>(conn)
+                        .await
+                        .optional()
+                        .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
-        // Check if employment exists and belongs to the workspace of this tenant
-        let employment_exists = employments::table
-            .filter(employments::id.eq(balance.employment_id()))
-            .filter(employments::workspace_id.eq(workspace_id))
-            .filter(employments::deleted_at.is_null())
-            .select(employments::id)
-            .first::<Uuid>(&mut *conn)
+                    if employment_exists.is_none() {
+                        return Err(AppError::not_found(
+                            crate::utils::i18n::I18nKey::EmploymentNotFound,
+                        ));
+                    }
+
+                    let entity = LeaveBalanceEntity {
+                        id: balance.id(),
+                        employment_id: balance.employment_id(),
+                        year: balance.year(),
+                        entitlement: balance.entitlement(),
+                        carried_over: balance.carried_over(),
+                        created_at: Some(balance.created_at()),
+                        updated_at: Some(balance.updated_at()),
+                        accrued_amount: BigDecimal::from_str(&balance.accrued_amount().to_string())
+                            .unwrap_or_else(|_| BigDecimal::from(0)),
+                        leave_type_id: balance.leave_type_id(),
+                    };
+
+                    diesel::insert_into(leave_balances::table)
+                        .values(&entity)
+                        .on_conflict((
+                            leave_balances::employment_id,
+                            leave_balances::leave_type_id,
+                            leave_balances::year,
+                        ))
+                        .do_update()
+                        .set((
+                            leave_balances::entitlement.eq(entity.entitlement),
+                            leave_balances::carried_over.eq(entity.carried_over),
+                            leave_balances::updated_at.eq(diesel::dsl::now),
+                        ))
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
+
+                    Ok(())
+                })
+            })
             .await
-            .optional()
-            .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
-
-        if employment_exists.is_none() {
-            return Err(AppError::not_found(
-                crate::utils::i18n::I18nKey::EmploymentNotFound,
-            ));
-        }
-
-        let entity = LeaveBalanceEntity {
-            id: balance.id(),
-            employment_id: balance.employment_id(),
-            year: balance.year(),
-            entitlement: balance.entitlement(),
-            carried_over: balance.carried_over(),
-            created_at: Some(balance.created_at()),
-            updated_at: Some(balance.updated_at()),
-            accrued_amount: BigDecimal::from_str(&balance.accrued_amount().to_string())
-                .unwrap_or_else(|_| BigDecimal::from(0)),
-            leave_type_id: balance.leave_type_id(),
-        };
-
-        diesel::insert_into(leave_balances::table)
-            .values(&entity)
-            .on_conflict((
-                leave_balances::employment_id,
-                leave_balances::leave_type_id,
-                leave_balances::year,
-            ))
-            .do_update()
-            .set((
-                leave_balances::entitlement.eq(entity.entitlement),
-                leave_balances::carried_over.eq(entity.carried_over),
-                leave_balances::updated_at.eq(diesel::dsl::now),
-            ))
-            .execute(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
-
-        Ok(())
     }
 
     async fn adjust_balance(
@@ -506,80 +499,76 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         reason: &str,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let amount_bd = BigDecimal::from_str(&amount.to_string()).map_err(|e| {
+                        AppError::Internal(format!("BigDecimal conversion failed: {e}"))
+                    })?;
+                    let year = transaction_date.year();
 
-        let amount_bd = BigDecimal::from_str(&amount.to_string())
-            .map_err(|e| AppError::Internal(format!("BigDecimal conversion failed: {e}")))?;
-        let year = transaction_date.year();
+                    // Check if active employment exists and belongs to the workspace of this tenant
+                    let active_employment = employments::table
+                        .filter(employments::workspace_id.eq(workspace_id))
+                        .filter(employments::employee_id.eq(employee_id))
+                        .filter(employments::deleted_at.is_null())
+                        .order(employments::start_date.desc())
+                        .select(employments::id)
+                        .first::<Uuid>(conn)
+                        .await
+                        .optional()
+                        .map_err(|e| {
+                            AppError::Internal(format!("db check active employment: {e}"))
+                        })?;
 
-        conn.transaction::<_, AppError, _>(|conn| {
-            Box::pin(async move {
-                // Check if active employment exists and belongs to the workspace of this tenant
-                let active_employment = employments::table
-                    .filter(employments::workspace_id.eq(workspace_id))
-                    .filter(employments::employee_id.eq(employee_id))
-                    .filter(employments::deleted_at.is_null())
-                    .order(employments::start_date.desc())
-                    .select(employments::id)
-                    .first::<Uuid>(&mut *conn)
-                    .await
-                    .optional()
-                    .map_err(|e| AppError::Internal(format!("db check active employment: {e}")))?;
+                    let Some(active_emp_id) = active_employment else {
+                        return Err(AppError::not_found(
+                            crate::utils::i18n::I18nKey::EmploymentNotFound,
+                        ));
+                    };
 
-                let Some(active_emp_id) = active_employment else {
-                    return Err(AppError::not_found(
-                        crate::utils::i18n::I18nKey::EmploymentNotFound,
-                    ));
-                };
+                    // 1. Log adjustment
+                    diesel::insert_into(leave_accrual_logs::table)
+                        .values((
+                            leave_accrual_logs::workspace_id.eq(workspace_id),
+                            leave_accrual_logs::employment_id.eq(active_emp_id),
+                            leave_accrual_logs::accrual_date.eq(transaction_date),
+                            leave_accrual_logs::amount.eq(&amount_bd),
+                            leave_accrual_logs::leave_type_id.eq(leave_type_id),
+                            leave_accrual_logs::notes.eq(reason),
+                        ))
+                        .execute(conn)
+                        .await?;
 
-                // 1. Log adjustment
-                diesel::insert_into(leave_accrual_logs::table)
-                    .values((
-                        leave_accrual_logs::workspace_id.eq(workspace_id),
-                        leave_accrual_logs::employment_id.eq(active_emp_id),
-                        leave_accrual_logs::accrual_date.eq(transaction_date),
-                        leave_accrual_logs::amount.eq(&amount_bd),
-                        leave_accrual_logs::leave_type_id.eq(leave_type_id),
-                        leave_accrual_logs::notes.eq(reason),
-                    ))
-                    .execute(&mut *conn)
-                    .await?;
+                    // 2. Update balance
+                    diesel::insert_into(leave_balances::table)
+                        .values((
+                            leave_balances::id.eq(Uuid::new_v4()),
+                            leave_balances::employment_id.eq(active_emp_id),
+                            leave_balances::leave_type_id.eq(leave_type_id),
+                            leave_balances::year.eq(year),
+                            leave_balances::entitlement.eq(0),
+                            leave_balances::accrued_amount.eq(&amount_bd),
+                            leave_balances::carried_over.eq(0),
+                        ))
+                        .on_conflict((
+                            leave_balances::employment_id,
+                            leave_balances::leave_type_id,
+                            leave_balances::year,
+                        ))
+                        .do_update()
+                        .set((
+                            leave_balances::accrued_amount
+                                .eq(leave_balances::accrued_amount + &amount_bd),
+                            leave_balances::updated_at.eq(diesel::dsl::now),
+                        ))
+                        .execute(conn)
+                        .await?;
 
-                // 2. Update balance
-                diesel::insert_into(leave_balances::table)
-                    .values((
-                        leave_balances::id.eq(Uuid::new_v4()),
-                        leave_balances::employment_id.eq(active_emp_id),
-                        leave_balances::leave_type_id.eq(leave_type_id),
-                        leave_balances::year.eq(year),
-                        leave_balances::entitlement.eq(0),
-                        leave_balances::accrued_amount.eq(&amount_bd),
-                        leave_balances::carried_over.eq(0),
-                    ))
-                    .on_conflict((
-                        leave_balances::employment_id,
-                        leave_balances::leave_type_id,
-                        leave_balances::year,
-                    ))
-                    .do_update()
-                    .set((
-                        leave_balances::accrued_amount
-                            .eq(leave_balances::accrued_amount + &amount_bd),
-                        leave_balances::updated_at.eq(diesel::dsl::now),
-                    ))
-                    .execute(&mut *conn)
-                    .await?;
-
-                Ok::<_, AppError>(())
+                    Ok::<_, AppError>(())
+                })
             })
-        })
-        .await?;
+            .await?;
 
         Ok(())
     }
