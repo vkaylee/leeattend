@@ -9,6 +9,84 @@ use uuid::Uuid;
 
 #[allow(clippy::too_many_lines)]
 impl DieselRosterRepository {
+    /// Persist resolved segments atomically, replacing stale interval-backed rows.
+    ///
+    /// The read path invokes this operation in a detached task, while exposing the
+    /// transaction boundary here keeps the cleanup/insert sequence directly testable.
+    pub async fn persist_workspace_segments(
+        pools: crate::diesel_pool::DieselPools,
+        workspace_id: Uuid,
+        all_new_entities: Vec<crate::models::diesel::work_segment::NewWorkSegmentEntity>,
+    ) -> Result<(), AppError> {
+        let start = std::time::Instant::now();
+        let tenant_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
+
+        pools
+            .with_tenant_tx(&tenant_token, |conn| {
+                Box::pin(async move {
+                    let affected_pairs: Vec<(Uuid, chrono::NaiveDate)> = {
+                        let mut pairs: Vec<_> = all_new_entities
+                            .iter()
+                            .map(|entity| (entity.employment_id, entity.date))
+                            .collect();
+                        pairs.sort();
+                        pairs.dedup();
+                        pairs
+                    };
+
+                    let new_interval_ids: Vec<Uuid> = all_new_entities
+                        .iter()
+                        .filter_map(|entity| entity.interval_id)
+                        .collect();
+
+                    let mut deleted = 0u64;
+                    if !new_interval_ids.is_empty() {
+                        for (employment_id, date) in &affected_pairs {
+                            let deleted_count = diesel::delete(
+                                crate::schema::work_segments::table
+                                    .filter(
+                                        crate::schema::work_segments::workspace_id.eq(workspace_id),
+                                    )
+                                    .filter(
+                                        crate::schema::work_segments::employment_id
+                                            .eq(employment_id),
+                                    )
+                                    .filter(crate::schema::work_segments::date.eq(date))
+                                    .filter(crate::schema::work_segments::source.ne("manual"))
+                                    .filter(crate::schema::work_segments::interval_id.is_not_null())
+                                    .filter(
+                                        crate::schema::work_segments::interval_id
+                                            .ne_all(&new_interval_ids),
+                                    ),
+                            )
+                            .execute(conn)
+                            .await
+                            .map_err(AppError::from)?;
+                            deleted += deleted_count as u64;
+                        }
+                    }
+
+                    let inserted = diesel::insert_into(crate::schema::work_segments::table)
+                        .values(&all_new_entities)
+                        .on_conflict_do_nothing()
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
+
+                    tracing::info!(
+                        workspace_id = %workspace_id,
+                        segments_attempted = all_new_entities.len(),
+                        segments_inserted = inserted,
+                        segments_deleted = deleted,
+                        elapsed_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX),
+                        "work_segments.write_through.completed"
+                    );
+                    Ok(())
+                })
+            })
+            .await
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub(super) async fn get_workspace_segments(
         &self,
@@ -375,84 +453,13 @@ impl DieselRosterRepository {
                 let pools = self.diesel_pools.clone();
                 let ws_id = workspace_id;
                 tokio::spawn(async move {
-                    let start = std::time::Instant::now();
-                    let tenant_token = crate::diesel_pool::TenantAuthToken::system_override(ws_id);
-                    let write_result = pools
-                        .with_tenant_tx(&tenant_token, |conn| {
-                            Box::pin(async move {                    // Collect unique (employment_id, date) pairs for cleanup
-                    let affected_pairs: Vec<(Uuid, chrono::NaiveDate)> = {
-                        let mut pairs: Vec<_> = all_new_entities
-                            .iter()
-                            .map(|e| (e.employment_id, e.date))
-                            .collect();
-                        pairs.sort();
-                        pairs.dedup();
-                        pairs
-                    };
-
-                    // Collect interval_ids from new entities (only non-NULL)
-                    let new_interval_ids: Vec<Uuid> = all_new_entities
-                        .iter()
-                        .filter_map(|e| e.interval_id)
-                        .collect();
-
-                    // DELETE stale segments for each affected (employment_id, date) pair
-                    // Only delete non-manual segments with interval_id that's NOT in new set
-                    let mut deleted = 0u64;
-                    if !new_interval_ids.is_empty() {
-                        for (emp_id, date) in &affected_pairs {
-                            let delete_result = diesel::delete(
-                                crate::schema::work_segments::table
-                                    .filter(crate::schema::work_segments::workspace_id.eq(ws_id))
-                                    .filter(crate::schema::work_segments::employment_id.eq(emp_id))
-                                    .filter(crate::schema::work_segments::date.eq(date))
-                                    .filter(crate::schema::work_segments::source.ne("manual"))
-                                    .filter(crate::schema::work_segments::interval_id.is_not_null())
-                                    .filter(
-                                        crate::schema::work_segments::interval_id
-                                            .ne_all(&new_interval_ids),
-                                    ),
-                            )
-                            .execute(conn)
-                            .await;
-
-                            let deleted_count = delete_result.map_err(AppError::from)?;
-                            deleted += deleted_count as u64;
-                        }
-
-                        if deleted > 0 {
-                            tracing::info!(
-                                workspace_id = %ws_id,
-                                segments_deleted = deleted,
-                                "work_segments.write_through.cleanup"
-                            );
-                        }
-                    }
-
-                    let inserted = diesel::insert_into(crate::schema::work_segments::table)
-                        .values(&all_new_entities)
-                        .on_conflict_do_nothing()
-                        .execute(conn)
-                        .await
-                        .map_err(AppError::from)?;
-                    tracing::info!(
-                        workspace_id = %ws_id,
-                        segments_attempted = all_new_entities.len(),
-                        segments_inserted = inserted,
-                        segments_deleted = deleted,
-                        elapsed_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX),
-                        "work_segments.write_through.completed"
-                    );
-                                                Ok(())
-                            })
-                        })
-                        .await;
-
-                    if let Err(e) = write_result {
+                    if let Err(e) =
+                        Self::persist_workspace_segments(pools, ws_id, all_new_entities).await
+                    {
                         tracing::warn!(
                             workspace_id = %ws_id,
                             error = %e,
-                            "write-through: failed to open transaction"
+                            "work_segments.write_through.failed"
                         );
                     }
                 });
