@@ -207,6 +207,14 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                     map_db_err!(
                         working_pattern_details::table
                             .filter(working_pattern_details::pattern_id.eq(pattern_id))
+                            .filter(
+                                working_pattern_details::pattern_id.eq_any(
+                                    working_patterns::table
+                                        .filter(working_patterns::id.eq(pattern_id))
+                                        .filter(working_patterns::workspace_id.eq(workspace_id))
+                                        .select(working_patterns::id),
+                                )
+                            )
                             .order(working_pattern_details::schedule_day.asc())
                             .select(WorkingPatternDetailEntity::as_select())
                             .load(&mut *conn)
@@ -244,6 +252,19 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
 
                     if employment_exists.is_none() {
                         return Err(AppError::not_found(I18nKey::EmploymentNotFound));
+                    }
+
+                    let pattern_exists = working_patterns::table
+                        .filter(working_patterns::id.eq(pattern_id))
+                        .filter(working_patterns::workspace_id.eq(workspace_id))
+                        .select(working_patterns::id)
+                        .first::<Uuid>(&mut *conn)
+                        .await
+                        .optional()
+                        .map_err(|e| AppError::Internal(format!("db check pattern: {e}")))?;
+
+                    if pattern_exists.is_none() {
+                        return Err(AppError::not_found(I18nKey::NotFound));
                     }
 
                     map_db_err!(
@@ -315,6 +336,19 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
 
                     if valid_count != i64::try_from(employment_ids.len()).unwrap_or(0) {
                         return Err(AppError::not_found(I18nKey::EmploymentNotFound));
+                    }
+
+                    let pattern_exists = working_patterns::table
+                        .filter(working_patterns::id.eq(pattern_id))
+                        .filter(working_patterns::workspace_id.eq(workspace_id))
+                        .select(working_patterns::id)
+                        .first::<Uuid>(&mut *conn)
+                        .await
+                        .optional()
+                        .map_err(|e| AppError::Internal(format!("db check pattern: {e}")))?;
+
+                    if pattern_exists.is_none() {
+                        return Err(AppError::not_found(I18nKey::NotFound));
                     }
 
                     let conflicts: Vec<Uuid> = employee_working_patterns::table
