@@ -125,6 +125,21 @@ describe("useMonthlyRoster drag-select paint mode", () => {
     );
   });
 
+  it("toggles a cell from tap activation without starting a drag", () => {
+    const { result } = renderHook(() =>
+      useMonthlyRoster({ hook: createMockHook() }),
+    );
+
+    act(() => {
+      result.current.handleCellClick("emp-1", "2026-05-01");
+    });
+
+    expect(result.current.selectedCells).toEqual(
+      new Set(["emp-1:2026-05-01"]),
+    );
+    expect(result.current.isDragging).toBe(false);
+  });
+
   it("toggles a cell from keyboard activation", () => {
     const { result } = renderHook(() =>
       useMonthlyRoster({ hook: createMockHook() }),

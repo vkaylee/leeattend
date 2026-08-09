@@ -1,5 +1,6 @@
 import { Check, Clock3 } from "lucide-react";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { Locale } from "date-fns/locale";
 
@@ -20,12 +21,8 @@ interface RosterMobileListProps {
   currentLocale: Locale;
   monthDays: Date[];
   monthSchedules: EmployeeSchedule[];
+  onCellClick: (employeeId: string, dateStr: string) => void;
   onCellKeyDown: (employeeId: string, dateStr: string, e: React.KeyboardEvent) => void;
-  onCellPointerDown: (
-    employeeId: string,
-    dateStr: string,
-    e: React.PointerEvent,
-  ) => void;
   rowStatus?: Map<string, "saving" | "saved" | "error">;
   selectedCells: Set<string>;
   shifts?: Shift[];
@@ -36,12 +33,14 @@ export const RosterMobileList = memo(function RosterMobileList({
   currentLocale,
   monthDays,
   monthSchedules,
+  onCellClick,
   onCellKeyDown,
-  onCellPointerDown,
   rowStatus,
   selectedCells,
   shifts,
 }: RosterMobileListProps) {
+  const { t } = useTranslation();
+
   return (
     <div
       className="lg:hidden space-y-3 p-3"
@@ -94,7 +93,11 @@ export const RosterMobileList = memo(function RosterMobileList({
                 {status === "saving" ? <Clock3 aria-hidden="true" size={13} /> : null}
                 {status === "saved" ? <Check aria-hidden="true" size={13} /> : null}
                 <span className="sr-only">
-                  {status === "saving" ? "Saving" : status === "saved" ? "Saved" : ""}
+                  {status === "saving"
+                    ? t("common.saving", { defaultValue: "Saving..." })
+                    : status === "saved"
+                    ? t("common.saved", { defaultValue: "Saved" })
+                    : ""}
                 </span>
               </div>
             </header>
@@ -126,11 +129,11 @@ export const RosterMobileList = memo(function RosterMobileList({
                     data-employee-id={employeeId}
                     data-testid={`monthly-roster-mobile-day-${employeeId}-${dateStr}`}
                     key={dateStr}
+                    onClick={() => {
+                      onCellClick(employeeId, dateStr);
+                    }}
                     onKeyDown={(event) => {
                       onCellKeyDown(employeeId, dateStr, event);
-                    }}
-                    onPointerDown={(event) => {
-                      onCellPointerDown(employeeId, dateStr, event);
                     }}
                     role="button"
                     tabIndex={0}

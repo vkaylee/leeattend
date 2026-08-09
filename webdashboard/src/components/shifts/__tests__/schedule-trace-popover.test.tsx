@@ -120,24 +120,28 @@ describe("ScheduleTracePopover", () => {
     expect(screen.getByText("OFF")).toBeDefined();
   });
 
-  it("stops propagation when the trigger is clicked", async () => {
+  it("stops propagation when the trigger is clicked or activated by keyboard", async () => {
     const parentClick = vi.fn();
+    const parentKeyDown = vi.fn();
     const user = userEvent.setup();
 
     render(
-      <div 
+      <div
         onClick={parentClick}
-        onKeyDown={() => { /* noop */ }}
+        onKeyDown={parentKeyDown}
         role="button"
         tabIndex={0}
       >
         <ScheduleTracePopover source="roster" traces={mockTraces} />
-      </div>
+      </div>,
     );
 
     const trigger = screen.getByTestId("schedule-trace-trigger");
     await user.click(trigger);
+    trigger.focus();
+    await user.keyboard("{Enter}");
 
     expect(parentClick).not.toHaveBeenCalled();
+    expect(parentKeyDown).not.toHaveBeenCalled();
   });
 });

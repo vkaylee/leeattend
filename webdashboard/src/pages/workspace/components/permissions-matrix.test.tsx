@@ -13,6 +13,9 @@ vi.mock("react-i18next", () => ({
       if (key === "permissions.mobilePermissionCount") {
         return `${options?.count ?? 0} of ${options?.total ?? 0} enabled`;
       }
+      if (key === "permissions.employees.read.desc") {
+        return "Can view employees";
+      }
       return options?.defaultValue ?? key;
     },
   }),
@@ -91,6 +94,14 @@ describe("PermissionsMatrix mobile view", () => {
     }
 
     expect(within(mobile).getAllByRole("checkbox")).toHaveLength(roles.length * catalog.length);
+  });
+
+  it("renders translated permission descriptions on mobile", () => {
+    render(<PermissionsMatrix {...defaultProps} catalog={catalog} />, { wrapper: Wrapper });
+
+    expect(
+      within(screen.getByTestId("permissions-mobile-role-role-system")).getByText("Can view employees"),
+    ).toBeInTheDocument();
   });
 
   it("toggles a permission for the selected mobile role", () => {

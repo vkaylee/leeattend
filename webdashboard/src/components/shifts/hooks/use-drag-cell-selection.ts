@@ -14,6 +14,8 @@ interface UseDragCellSelectionProps {
 }
 
 interface UseDragCellSelectionReturn {
+  /** Click activation handler for mobile cells, after tap-vs-scroll resolution. */
+  handleCellClick: (employeeId: string, dateStr: string) => void;
   /** Keyboard activation handler for accessible mobile cells. */
   handleCellKeyDown: (employeeId: string, dateStr: string, e: React.KeyboardEvent) => void;
   /** PointerDown handler — attach to each grid cell. */
@@ -88,6 +90,10 @@ export function useDragCellSelection({
     });
   };
 
+  const handleCellClick = (employeeId: string, dateStr: string) => {
+    toggleCell(employeeId, dateStr, false);
+  };
+
   const handleCellPointerDown = (
     employeeId: string,
     dateStr: string,
@@ -156,6 +162,7 @@ export function useDragCellSelection({
 
   return {
     isDragging,
+    handleCellClick,
     handleCellKeyDown,
     handleCellPointerDown,
     handleCellPointerEnter,

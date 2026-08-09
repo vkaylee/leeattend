@@ -192,7 +192,7 @@ function TracePopoverOverlay({
   traces: import("@/lib/api/types").ScheduleTrace[];
 }) {
   return (
-    <div className="absolute top-0.5 right-0.5 z-30 opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity">
+    <div className="absolute top-0.5 right-0.5 z-30 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-60 lg:group-focus-within:opacity-100">
       <ScheduleTracePopover
         schedules={schedules.map((s) => {
           const shiftConfig = shifts?.find((sh) => sh.id === s.shift_id);

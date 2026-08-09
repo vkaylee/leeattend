@@ -66,6 +66,7 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
 
   const {
     isDragging,
+    handleCellClick,
     handleCellKeyDown,
     handleCellPointerDown,
     handleCellPointerEnter,
@@ -142,6 +143,7 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
     combinedSchedules,
     filteredSchedules,
     isDragging,
+    handleCellClick,
     handleCellKeyDown,
     handleCellPointerDown,
     handleCellPointerEnter,

@@ -60,6 +60,7 @@ export function MonthlyRosterGrid({
     selectedEmployeeIds,
     filteredSchedules,
     isDragging,
+    handleCellClick,
     handleCellKeyDown,
     handleCellPointerDown,
     handleCellPointerEnter,
@@ -183,8 +184,8 @@ export function MonthlyRosterGrid({
           currentLocale={currentLocale}
           monthDays={monthDays}
           monthSchedules={filteredSchedules}
+          onCellClick={handleCellClick}
           onCellKeyDown={handleCellKeyDown}
-          onCellPointerDown={handleCellPointerDown}
           rowStatus={rowStatus}
           selectedCells={selectedCells}
           shifts={shifts}

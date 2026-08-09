@@ -205,10 +205,12 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({
  
   return (
     <Popover.Root>
-      <Popover.Trigger 
+      <Popover.Trigger
+        aria-label={t("shifts.traceability.title", { defaultValue: "View schedule traceability" })}
         className="w-[18px] h-[18px] flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-500 dark:text-slate-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-500 cursor-pointer"
-        data-testid="schedule-trace-trigger" 
+        data-testid="schedule-trace-trigger"
         onClick={(e: React.MouseEvent) => { e.stopPropagation(); }}
+        onKeyDown={(e: React.KeyboardEvent) => { e.stopPropagation(); }}
       >
         <Info size={11} />
       </Popover.Trigger>

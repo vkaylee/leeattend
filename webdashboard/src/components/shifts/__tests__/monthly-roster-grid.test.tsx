@@ -259,6 +259,7 @@ const createMockMonthlyRoster = (overrides = {}) => {
     selectedEmployeesMeta: [],
     filteredSchedules: mockMonthSchedules,
     isDragging: false,
+    handleCellClick: vi.fn(),
     handleCellPointerDown: vi.fn(),
     handleCellPointerEnter: vi.fn(),
     handleApplyShift: vi.fn(),
@@ -315,7 +316,7 @@ const StatefulGridWrapper = ({ overrides = {} }: { overrides?: any }) => {
 describe("RosterMobileList", () => {
   it("renders one employee card with every month day and preserves cell activation", async () => {
     const user = userEvent.setup();
-    const onCellPointerDown = vi.fn();
+    const onCellClick = vi.fn();
     const onCellKeyDown = vi.fn();
 
     render(
@@ -324,7 +325,7 @@ describe("RosterMobileList", () => {
         monthDays={mockMonthDays}
         monthSchedules={mockMonthSchedules as any}
         onCellKeyDown={onCellKeyDown}
-        onCellPointerDown={onCellPointerDown}
+        onCellClick={onCellClick}
         selectedCells={new Set(["emp-1:2026-05-01"])}
         shifts={[]}
       />,
@@ -339,15 +340,11 @@ describe("RosterMobileList", () => {
     );
 
     await user.click(screen.getByTestId("monthly-roster-mobile-day-emp-2-2026-05-01"));
-    expect(onCellPointerDown).toHaveBeenCalledWith(
-      "emp-2",
-      "2026-05-01",
-      expect.objectContaining({ button: 0 }),
-    );
+    expect(onCellClick).toHaveBeenCalledWith("emp-2", "2026-05-01");
   });
 
   it("forwards keyboard activation for accessible day entries", () => {
-    const onCellPointerDown = vi.fn();
+    const onCellClick = vi.fn();
     const onCellKeyDown = vi.fn();
 
     render(
@@ -356,7 +353,7 @@ describe("RosterMobileList", () => {
         monthDays={mockMonthDays.slice(0, 1)}
         monthSchedules={mockMonthSchedules.slice(0, 1) as any}
         onCellKeyDown={onCellKeyDown}
-        onCellPointerDown={onCellPointerDown}
+        onCellClick={onCellClick}
         selectedCells={new Set()}
         shifts={[]}
       />,

@@ -296,7 +296,7 @@ export const MobilePermissionRoleSection = ({
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-bold text-slate-700 dark:text-slate-200">{permissionLabel}</p>
                         <p className="mt-0.5 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
-                          {t(perm.label_key.replace(/\\.name$/, ".desc"), { defaultValue: perm.id })}
+                          {t(perm.label_key.replace(/\.name$/, ".desc"), { defaultValue: perm.id })}
                         </p>
                       </div>
                       <PermissionToggle

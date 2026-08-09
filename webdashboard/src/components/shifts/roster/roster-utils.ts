@@ -22,7 +22,7 @@ export const getShiftSymbol = (
 /** Get cell color styles based on priority source */
 export const getCellStyles = (source?: string, isSelected?: boolean): string => {
   const baseStyles =
-    "transition-all relative border border-slate-100 dark:border-slate-800 text-center select-none cursor-pointer ";
+    "group transition-all relative border border-slate-100 dark:border-slate-800 text-center select-none cursor-pointer ";
 
   if (isSelected) {
     return baseStyles +
