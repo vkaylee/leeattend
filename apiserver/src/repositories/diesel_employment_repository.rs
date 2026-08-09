@@ -4,7 +4,7 @@ use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
 use crate::{
-    diesel_pool::DieselPools,
+    diesel_pool::{DieselPools, DieselPoolsTenantTxExt},
     errors::AppError,
     models::diesel::employment::{EmploymentEntity, UpdateDieselEmployment},
     models::employment::{
@@ -31,39 +31,40 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
     ) -> Result<Employment, AppError> {
         use crate::schema::employments::dsl::*;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        let workspace_id_val = auth_token.workspace_id();
 
-        let new_emp = EmploymentEntity {
-            id: Uuid::new_v4(),
-            workspace_id: auth_token.workspace_id(),
-            employee_id: req.employee_id,
-            employer_id: req.employer_id,
-            primary_location_id: req.primary_location_id,
-            department_id: req.department_id,
-            status: req.status.clone(),
-            start_date: req.start_date,
-            end_date: req.end_date,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-            deleted_at: None,
-            job_title: req.job_title.clone(),
-            employment_type: req.employment_type.clone(),
-            manager_employment_id: req.manager_employment_id,
-            notes: None,
-            termination_reason: None,
-        };
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let new_emp = EmploymentEntity {
+                        id: Uuid::new_v4(),
+                        workspace_id: workspace_id_val,
+                        employee_id: req.employee_id,
+                        employer_id: req.employer_id,
+                        primary_location_id: req.primary_location_id,
+                        department_id: req.department_id,
+                        status: req.status.clone(),
+                        start_date: req.start_date,
+                        end_date: req.end_date,
+                        created_at: Utc::now(),
+                        updated_at: Utc::now(),
+                        deleted_at: None,
+                        job_title: req.job_title.clone(),
+                        employment_type: req.employment_type.clone(),
+                        manager_employment_id: req.manager_employment_id,
+                        notes: None,
+                        termination_reason: None,
+                    };
 
-        let inserted = diesel::insert_into(employments)
-            .values(&new_emp)
-            .get_result::<EmploymentEntity>(&mut *conn)
-            .await?;
+                    let inserted = diesel::insert_into(employments)
+                        .values(&new_emp)
+                        .get_result::<EmploymentEntity>(conn)
+                        .await?;
 
-        Ok(inserted.into())
+                    Ok(inserted.into())
+                })
+            })
+            .await
     }
 
     async fn get_employment_by_id(
@@ -73,22 +74,23 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
     ) -> Result<Option<Employment>, AppError> {
         use crate::schema::employments::dsl::*;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        let workspace_id_val = auth_token.workspace_id();
 
-        let entity = employments
-            .filter(id.eq(employment_id_val))
-            .filter(workspace_id.eq(auth_token.workspace_id()))
-            .filter(deleted_at.is_null())
-            .first::<EmploymentEntity>(&mut *conn)
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let entity = employments
+                        .filter(id.eq(employment_id_val))
+                        .filter(workspace_id.eq(workspace_id_val))
+                        .filter(deleted_at.is_null())
+                        .first::<EmploymentEntity>(conn)
+                        .await
+                        .optional()?;
+
+                    Ok(entity.map(Into::into))
+                })
+            })
             .await
-            .optional()?;
-
-        Ok(entity.map(Into::into))
     }
 
     async fn list_employee_employments(
@@ -98,22 +100,23 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
     ) -> Result<Vec<Employment>, AppError> {
         use crate::schema::employments::dsl::*;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        let workspace_id_val = auth_token.workspace_id();
 
-        let list = employments
-            .filter(employee_id.eq(employee_id_val))
-            .filter(workspace_id.eq(auth_token.workspace_id()))
-            .filter(deleted_at.is_null())
-            .order(start_date.desc())
-            .load::<EmploymentEntity>(&mut *conn)
-            .await?;
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let list = employments
+                        .filter(employee_id.eq(employee_id_val))
+                        .filter(workspace_id.eq(workspace_id_val))
+                        .filter(deleted_at.is_null())
+                        .order(start_date.desc())
+                        .load::<EmploymentEntity>(conn)
+                        .await?;
 
-        Ok(list.into_iter().map(Into::into).collect())
+                    Ok(list.into_iter().map(Into::into).collect())
+                })
+            })
+            .await
     }
 
     async fn update_employment(
@@ -124,39 +127,43 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
     ) -> Result<Employment, AppError> {
         use crate::schema::employments::dsl::*;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        let workspace_id_val = auth_token.workspace_id();
 
-        let update_model = UpdateDieselEmployment {
-            employer_id: req.employer_id,
-            primary_location_id: req.primary_location_id,
-            department_id: req.department_id,
-            status: req.status.clone(),
-            start_date: req.start_date,
-            end_date: req.end_date,
-            job_title: req.job_title.clone(),
-            employment_type: req.employment_type.clone(),
-            manager_employment_id: req.manager_employment_id,
-            notes: req.notes.as_ref().map(|n| Some(n.clone())),
-            termination_reason: req.termination_reason.as_ref().map(|r| Some(r.clone())),
-            updated_at: Some(Utc::now()),
-        };
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let update_model = UpdateDieselEmployment {
+                        employer_id: req.employer_id,
+                        primary_location_id: req.primary_location_id,
+                        department_id: req.department_id,
+                        status: req.status.clone(),
+                        start_date: req.start_date,
+                        end_date: req.end_date,
+                        job_title: req.job_title.clone(),
+                        employment_type: req.employment_type.clone(),
+                        manager_employment_id: req.manager_employment_id,
+                        notes: req.notes.as_ref().map(|n| Some(n.clone())),
+                        termination_reason: req
+                            .termination_reason
+                            .as_ref()
+                            .map(|r| Some(r.clone())),
+                        updated_at: Some(Utc::now()),
+                    };
 
-        let updated = diesel::update(
-            employments
-                .filter(id.eq(employment_id_val))
-                .filter(workspace_id.eq(auth_token.workspace_id()))
-                .filter(deleted_at.is_null()),
-        )
-        .set(&update_model)
-        .get_result::<EmploymentEntity>(&mut *conn)
-        .await?;
+                    let updated = diesel::update(
+                        employments
+                            .filter(id.eq(employment_id_val))
+                            .filter(workspace_id.eq(workspace_id_val))
+                            .filter(deleted_at.is_null()),
+                    )
+                    .set(&update_model)
+                    .get_result::<EmploymentEntity>(conn)
+                    .await?;
 
-        Ok(updated.into())
+                    Ok(updated.into())
+                })
+            })
+            .await
     }
 
     async fn terminate_employment_transactional(
@@ -171,83 +178,83 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
         use crate::schema::employments::dsl::{deleted_at, employments, id, workspace_id};
         use crate::schema::leave_balances;
         use bigdecimal::BigDecimal;
-        use diesel_async::AsyncConnection;
         use std::str::FromStr;
 
-        let mut conn = self
-            .diesel_pools
-            .tenant_transaction_conn(auth_token)
-            .await?;
+        let workspace_id_val = auth_token.workspace_id();
 
-        conn.transaction(|conn| {
-            Box::pin(async move {
-                let update_model = UpdateDieselEmployment {
-                    employer_id: None,
-                    primary_location_id: None,
-                    department_id: None,
-                    status: Some("terminated".to_string()),
-                    start_date: None,
-                    end_date: Some(Some(termination_date)),
-                    job_title: None,
-                    employment_type: None,
-                    manager_employment_id: None,
-                    notes: Some(notes),
-                    termination_reason: Some(Some(termination_reason)),
-                    updated_at: Some(Utc::now()),
-                };
-
-                let updated = diesel::update(
-                    employments
-                        .filter(id.eq(employment_id_val))
-                        .filter(workspace_id.eq(auth_token.workspace_id()))
-                        .filter(deleted_at.is_null()),
-                )
-                .set(&update_model)
-                .get_result::<EmploymentEntity>(&mut *conn)
-                .await
-                .map_err(|e| AppError::Internal(format!("Failed to update employment: {e}")))?;
-
-                for bal in &balances {
-                    let accrued_bd = BigDecimal::from_str(&bal.accrued_amount().to_string())
-                        .map_err(|e| AppError::Internal(format!("BigDecimal parse failed: {e}")))?;
-                    let bal_entity = crate::models::diesel::leave::LeaveBalanceEntity {
-                        id: bal.id(),
-                        employment_id: bal.employment_id(),
-                        leave_type_id: bal.leave_type_id(),
-                        year: bal.year(),
-                        entitlement: bal.entitlement(),
-                        accrued_amount: accrued_bd,
-                        carried_over: bal.carried_over(),
-                        created_at: Some(bal.created_at()),
-                        updated_at: Some(bal.updated_at()),
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let update_model = UpdateDieselEmployment {
+                        employer_id: None,
+                        primary_location_id: None,
+                        department_id: None,
+                        status: Some("terminated".to_string()),
+                        start_date: None,
+                        end_date: Some(Some(termination_date)),
+                        job_title: None,
+                        employment_type: None,
+                        manager_employment_id: None,
+                        notes: Some(notes),
+                        termination_reason: Some(Some(termination_reason)),
+                        updated_at: Some(Utc::now()),
                     };
 
-                    diesel::insert_into(leave_balances::table)
-                        .values(&bal_entity)
-                        .on_conflict((
-                            leave_balances::employment_id,
-                            leave_balances::leave_type_id,
-                            leave_balances::year,
-                        ))
-                        .do_update()
-                        .set((
-                            leave_balances::entitlement.eq(bal_entity.entitlement),
-                            leave_balances::accrued_amount.eq(bal_entity.accrued_amount.clone()),
-                            leave_balances::carried_over.eq(bal_entity.carried_over),
-                            leave_balances::updated_at.eq(diesel::dsl::now),
-                        ))
-                        .execute(&mut *conn)
-                        .await
-                        .map_err(|e| {
-                            AppError::Internal(format!("Failed to upsert leave balance: {e}"))
-                        })?;
-                }
+                    let updated = diesel::update(
+                        employments
+                            .filter(id.eq(employment_id_val))
+                            .filter(workspace_id.eq(workspace_id_val))
+                            .filter(deleted_at.is_null()),
+                    )
+                    .set(&update_model)
+                    .get_result::<EmploymentEntity>(conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("Failed to update employment: {e}")))?;
 
-                Ok::<EmploymentEntity, AppError>(updated)
+                    for bal in &balances {
+                        let accrued_bd = BigDecimal::from_str(&bal.accrued_amount().to_string())
+                            .map_err(|e| {
+                                AppError::Internal(format!("BigDecimal parse failed: {e}"))
+                            })?;
+                        let bal_entity = crate::models::diesel::leave::LeaveBalanceEntity {
+                            id: bal.id(),
+                            employment_id: bal.employment_id(),
+                            leave_type_id: bal.leave_type_id(),
+                            year: bal.year(),
+                            entitlement: bal.entitlement(),
+                            accrued_amount: accrued_bd,
+                            carried_over: bal.carried_over(),
+                            created_at: Some(bal.created_at()),
+                            updated_at: Some(bal.updated_at()),
+                        };
+
+                        diesel::insert_into(leave_balances::table)
+                            .values(&bal_entity)
+                            .on_conflict((
+                                leave_balances::employment_id,
+                                leave_balances::leave_type_id,
+                                leave_balances::year,
+                            ))
+                            .do_update()
+                            .set((
+                                leave_balances::entitlement.eq(bal_entity.entitlement),
+                                leave_balances::accrued_amount
+                                    .eq(bal_entity.accrued_amount.clone()),
+                                leave_balances::carried_over.eq(bal_entity.carried_over),
+                                leave_balances::updated_at.eq(diesel::dsl::now),
+                            ))
+                            .execute(conn)
+                            .await
+                            .map_err(|e| {
+                                AppError::Internal(format!("Failed to upsert leave balance: {e}"))
+                            })?;
+                    }
+
+                    Ok::<EmploymentEntity, AppError>(updated)
+                })
             })
-        })
-        .await
-        .map(Into::into)
+            .await
+            .map(Into::into)
     }
 
     async fn delete_employment(
@@ -257,23 +264,24 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
     ) -> Result<(), AppError> {
         use crate::schema::employments::dsl::*;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        let workspace_id_val = auth_token.workspace_id();
 
-        diesel::update(
-            employments
-                .filter(id.eq(employment_id_val))
-                .filter(workspace_id.eq(auth_token.workspace_id())),
-        )
-        .set(deleted_at.eq(Some(Utc::now())))
-        .execute(&mut *conn)
-        .await?;
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    diesel::update(
+                        employments
+                            .filter(id.eq(employment_id_val))
+                            .filter(workspace_id.eq(workspace_id_val)),
+                    )
+                    .set(deleted_at.eq(Some(Utc::now())))
+                    .execute(conn)
+                    .await?;
 
-        Ok(())
+                    Ok(())
+                })
+            })
+            .await
     }
 
     async fn get_active_employment_on_date(
@@ -284,26 +292,27 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
     ) -> Result<Option<Employment>, AppError> {
         use crate::schema::employments::dsl::*;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        let workspace_id_val = auth_token.workspace_id();
 
-        let entity = employments
-            .filter(workspace_id.eq(auth_token.workspace_id()))
-            .filter(employee_id.eq(employee_id_val))
-            .filter(status.eq("active"))
-            .filter(start_date.le(date_val))
-            .filter(end_date.is_null().or(end_date.ge(date_val)))
-            .filter(deleted_at.is_null())
-            .order(start_date.desc())
-            .first::<EmploymentEntity>(&mut *conn)
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let entity = employments
+                        .filter(workspace_id.eq(workspace_id_val))
+                        .filter(employee_id.eq(employee_id_val))
+                        .filter(status.eq("active"))
+                        .filter(start_date.le(date_val))
+                        .filter(end_date.is_null().or(end_date.ge(date_val)))
+                        .filter(deleted_at.is_null())
+                        .order(start_date.desc())
+                        .first::<EmploymentEntity>(conn)
+                        .await
+                        .optional()?;
+
+                    Ok(entity.map(Into::into))
+                })
+            })
             .await
-            .optional()?;
-
-        Ok(entity.map(Into::into))
     }
 
     async fn resolve_employment_on_date(
@@ -314,32 +323,33 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
     ) -> Result<EmploymentResolution, AppError> {
         use crate::schema::employments::dsl::*;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        let workspace_id_val = auth_token.workspace_id();
 
-        // Does NOT filter on status — terminated employments whose date
-        // range covers date_val are still valid for historical log ingestion.
-        //
-        // Loads ALL covering rows rather than `.first()`: an overlapping range
-        // must be reported as ambiguous, not silently collapsed to the newest
-        // one. An employee has a handful of employments, so this is bounded.
-        let candidates = employments
-            .filter(workspace_id.eq(auth_token.workspace_id()))
-            .filter(employee_id.eq(employee_id_val))
-            .filter(start_date.le(date_val))
-            .filter(end_date.is_null().or(end_date.ge(date_val)))
-            .filter(deleted_at.is_null())
-            .order(start_date.desc())
-            .load::<EmploymentEntity>(&mut *conn)
-            .await?;
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    // Does NOT filter on status — terminated employments whose date
+                    // range covers date_val are still valid for historical log ingestion.
+                    //
+                    // Loads ALL covering rows rather than `.first()`: an overlapping range
+                    // must be reported as ambiguous, not silently collapsed to the newest
+                    // one. An employee has a handful of employments, so this is bounded.
+                    let candidates = employments
+                        .filter(workspace_id.eq(workspace_id_val))
+                        .filter(employee_id.eq(employee_id_val))
+                        .filter(start_date.le(date_val))
+                        .filter(end_date.is_null().or(end_date.ge(date_val)))
+                        .filter(deleted_at.is_null())
+                        .order(start_date.desc())
+                        .load::<EmploymentEntity>(conn)
+                        .await?;
 
-        Ok(EmploymentResolution::from_candidates(
-            candidates.into_iter().map(Into::into).collect(),
-        ))
+                    Ok(EmploymentResolution::from_candidates(
+                        candidates.into_iter().map(Into::into).collect(),
+                    ))
+                })
+            })
+            .await
     }
 
     async fn list_employments_effective_in_range(
@@ -351,26 +361,27 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
     ) -> Result<Vec<Employment>, AppError> {
         use crate::schema::employments::dsl::*;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        let workspace_id_val = auth_token.workspace_id();
 
-        // Employment overlaps [range_start, range_end] when:
-        //   start_date <= range_end AND (end_date IS NULL OR end_date >= range_start)
-        let list = employments
-            .filter(workspace_id.eq(auth_token.workspace_id()))
-            .filter(employee_id.eq(employee_id_val))
-            .filter(start_date.le(range_end))
-            .filter(end_date.is_null().or(end_date.ge(range_start)))
-            .filter(deleted_at.is_null())
-            .order(start_date.desc())
-            .load::<EmploymentEntity>(&mut *conn)
-            .await?;
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    // Employment overlaps [range_start, range_end] when:
+                    //   start_date <= range_end AND (end_date IS NULL OR end_date >= range_start)
+                    let list = employments
+                        .filter(workspace_id.eq(workspace_id_val))
+                        .filter(employee_id.eq(employee_id_val))
+                        .filter(start_date.le(range_end))
+                        .filter(end_date.is_null().or(end_date.ge(range_start)))
+                        .filter(deleted_at.is_null())
+                        .order(start_date.desc())
+                        .load::<EmploymentEntity>(conn)
+                        .await?;
 
-        Ok(list.into_iter().map(Into::into).collect())
+                    Ok(list.into_iter().map(Into::into).collect())
+                })
+            })
+            .await
     }
 
     async fn get_active_employments_for_workspace(
@@ -379,21 +390,22 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
     ) -> Result<Vec<Employment>, AppError> {
         use crate::schema::employments::dsl::*;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        let workspace_id_val = auth_token.workspace_id();
 
-        let list = employments
-            .filter(workspace_id.eq(auth_token.workspace_id()))
-            .filter(status.eq("active"))
-            .filter(deleted_at.is_null())
-            .load::<EmploymentEntity>(&mut *conn)
-            .await?;
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let list = employments
+                        .filter(workspace_id.eq(workspace_id_val))
+                        .filter(status.eq("active"))
+                        .filter(deleted_at.is_null())
+                        .load::<EmploymentEntity>(conn)
+                        .await?;
 
-        Ok(list.into_iter().map(Into::into).collect())
+                    Ok(list.into_iter().map(Into::into).collect())
+                })
+            })
+            .await
     }
 
     async fn get_active_employments_for_employees(
@@ -404,24 +416,25 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
     ) -> Result<Vec<Employment>, AppError> {
         use crate::schema::employments::dsl::*;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        let workspace_id_val = auth_token.workspace_id();
 
-        let list = employments
-            .filter(workspace_id.eq(auth_token.workspace_id()))
-            .filter(employee_id.eq_any(employee_ids_val))
-            .filter(status.eq("active"))
-            .filter(start_date.le(date_val))
-            .filter(end_date.is_null().or(end_date.ge(date_val)))
-            .filter(deleted_at.is_null())
-            .load::<EmploymentEntity>(&mut *conn)
-            .await?;
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let list = employments
+                        .filter(workspace_id.eq(workspace_id_val))
+                        .filter(employee_id.eq_any(employee_ids_val))
+                        .filter(status.eq("active"))
+                        .filter(start_date.le(date_val))
+                        .filter(end_date.is_null().or(end_date.ge(date_val)))
+                        .filter(deleted_at.is_null())
+                        .load::<EmploymentEntity>(conn)
+                        .await?;
 
-        Ok(list.into_iter().map(Into::into).collect())
+                    Ok(list.into_iter().map(Into::into).collect())
+                })
+            })
+            .await
     }
 
     async fn get_employments_for_employees(
@@ -431,21 +444,22 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
     ) -> Result<Vec<Employment>, AppError> {
         use crate::schema::employments::dsl::*;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        let workspace_id_val = auth_token.workspace_id();
 
-        let list = employments
-            .filter(workspace_id.eq(auth_token.workspace_id()))
-            .filter(employee_id.eq_any(employee_ids_val))
-            .filter(deleted_at.is_null())
-            .load::<EmploymentEntity>(&mut *conn)
-            .await?;
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let list = employments
+                        .filter(workspace_id.eq(workspace_id_val))
+                        .filter(employee_id.eq_any(employee_ids_val))
+                        .filter(deleted_at.is_null())
+                        .load::<EmploymentEntity>(conn)
+                        .await?;
 
-        Ok(list.into_iter().map(Into::into).collect())
+                    Ok(list.into_iter().map(Into::into).collect())
+                })
+            })
+            .await
     }
 
     async fn get_employments_by_ids(
@@ -455,21 +469,22 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
     ) -> Result<Vec<Employment>, AppError> {
         use crate::schema::employments::dsl::*;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        let workspace_id_val = auth_token.workspace_id();
 
-        let list = employments
-            .filter(workspace_id.eq(auth_token.workspace_id()))
-            .filter(id.eq_any(employment_ids_val))
-            .filter(deleted_at.is_null())
-            .load::<EmploymentEntity>(&mut *conn)
-            .await?;
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let list = employments
+                        .filter(workspace_id.eq(workspace_id_val))
+                        .filter(id.eq_any(employment_ids_val))
+                        .filter(deleted_at.is_null())
+                        .load::<EmploymentEntity>(conn)
+                        .await?;
 
-        Ok(list.into_iter().map(Into::into).collect())
+                    Ok(list.into_iter().map(Into::into).collect())
+                })
+            })
+            .await
     }
 }
 

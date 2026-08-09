@@ -4,7 +4,7 @@ use diesel::prelude::*;
 use diesel_async::{AsyncConnection, RunQueryDsl};
 use uuid::Uuid;
 
-use crate::diesel_pool::DieselPools;
+use crate::diesel_pool::{DieselPools, DieselPoolsTenantTxExt};
 use crate::errors::AppError;
 use crate::models::diesel::roster::{
     ShiftAuditLogEntity, ShiftDefaultIntervalEntity, ShiftTemplateEntity, ShiftVersionEntity,
@@ -12,7 +12,8 @@ use crate::models::diesel::roster::{
 use crate::models::shift::{Shift, ShiftVersionHistoryItem};
 use crate::repositories::shift_repository::ShiftRepository;
 use crate::schema::{
-    employee_shifts, shift_audit_log, shift_default_intervals, shift_templates, shift_versions,
+    employee_shifts, employments, shift_audit_log, shift_default_intervals, shift_templates,
+    shift_versions,
 };
 
 pub struct DieselShiftRepository {
@@ -55,13 +56,10 @@ impl ShiftRepository for DieselShiftRepository {
     ) -> Result<Shift, AppError> {
         let workspace_id = auth_token.0;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         conn.transaction::<_, AppError, _>(|conn| {
             Box::pin(async move {
@@ -183,27 +181,27 @@ impl ShiftRepository for DieselShiftRepository {
         template_id: Uuid,
     ) -> Result<Option<Shift>, AppError> {
         let workspace_id = auth_token.0;
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
 
-        let result: Option<(ShiftTemplateEntity, ShiftVersionEntity)> = shift_templates::table
-            .inner_join(
-                shift_versions::table
-                    .on(shift_templates::current_version_id.eq(shift_versions::id.nullable())),
-            )
-            .filter(shift_templates::id.eq(template_id))
-            .filter(shift_templates::workspace_id.eq(workspace_id))
-            .first::<(ShiftTemplateEntity, ShiftVersionEntity)>(&mut *conn)
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let result: Option<(ShiftTemplateEntity, ShiftVersionEntity)> =
+                        shift_templates::table
+                            .inner_join(
+                                shift_versions::table.on(shift_templates::current_version_id
+                                    .eq(shift_versions::id.nullable())),
+                            )
+                            .filter(shift_templates::id.eq(template_id))
+                            .filter(shift_templates::workspace_id.eq(workspace_id))
+                            .first::<(ShiftTemplateEntity, ShiftVersionEntity)>(conn)
+                            .await
+                            .optional()
+                            .map_err(AppError::from)?;
+
+                    Ok(result.map(|(t, v)| shift_from(&v, &t)))
+                })
+            })
             .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        Ok(result.map(|(t, v)| shift_from(&v, &t)))
     }
 
     // ── get_workspace_shifts (list current versions) ──────────────────────────────
@@ -216,103 +214,101 @@ impl ShiftRepository for DieselShiftRepository {
         limit: Option<i64>,
     ) -> Result<(Vec<Shift>, i64), AppError> {
         let workspace_id = auth_token.0;
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
 
-        // Base filter — reusable for both count and data queries
-        let make_filtered = || {
-            let mut q = shift_templates::table
-                .inner_join(
-                    shift_versions::table
-                        .on(shift_templates::current_version_id.eq(shift_versions::id.nullable())),
-                )
-                .filter(shift_templates::workspace_id.eq(workspace_id))
-                .filter(shift_versions::effective_to.is_null())
-                .into_boxed();
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    // Base filter — reusable for both count and data queries
+                    let make_filtered = || {
+                        let mut q = shift_templates::table
+                            .inner_join(
+                                shift_versions::table.on(shift_templates::current_version_id
+                                    .eq(shift_versions::id.nullable())),
+                            )
+                            .filter(shift_templates::workspace_id.eq(workspace_id))
+                            .filter(shift_versions::effective_to.is_null())
+                            .into_boxed();
 
-            if let Some(loc_id) = location_id {
-                q = q.filter(
-                    shift_versions::location_id
-                        .is_null()
-                        .or(shift_versions::location_id.eq(loc_id)),
-                );
-            }
-            if let Some(emp_id) = employer_id {
-                q = q.filter(
-                    shift_versions::employer_id
-                        .is_null()
-                        .or(shift_versions::employer_id.eq(emp_id)),
-                );
-            }
-            q
-        };
+                        if let Some(loc_id) = location_id {
+                            q = q.filter(
+                                shift_versions::location_id
+                                    .is_null()
+                                    .or(shift_versions::location_id.eq(loc_id)),
+                            );
+                        }
+                        if let Some(emp_id) = employer_id {
+                            q = q.filter(
+                                shift_versions::employer_id
+                                    .is_null()
+                                    .or(shift_versions::employer_id.eq(emp_id)),
+                            );
+                        }
+                        q
+                    };
 
-        let total = if page.is_some() || limit.is_some() {
-            make_filtered()
-                .select(diesel::dsl::count_star())
-                .first::<i64>(&mut *conn)
-                .await
-                .map_err(AppError::from)?
-        } else {
-            0
-        };
+                    let total = if page.is_some() || limit.is_some() {
+                        make_filtered()
+                            .select(diesel::dsl::count_star())
+                            .first::<i64>(conn)
+                            .await
+                            .map_err(AppError::from)?
+                    } else {
+                        0
+                    };
 
-        // Build data query from scratch (can't reuse make_filtered due to boxing)
-        let mut data_q = shift_templates::table
-            .inner_join(
-                shift_versions::table
-                    .on(shift_templates::current_version_id.eq(shift_versions::id.nullable())),
-            )
-            .filter(shift_templates::workspace_id.eq(workspace_id))
-            .filter(shift_versions::effective_to.is_null())
-            .select((
-                ShiftTemplateEntity::as_select(),
-                ShiftVersionEntity::as_select(),
-            ))
-            .order(shift_versions::name.asc())
-            .into_boxed();
+                    // Build data query from scratch (can't reuse make_filtered due to boxing)
+                    let mut data_q = shift_templates::table
+                        .inner_join(shift_versions::table.on(
+                            shift_templates::current_version_id.eq(shift_versions::id.nullable()),
+                        ))
+                        .filter(shift_templates::workspace_id.eq(workspace_id))
+                        .filter(shift_versions::effective_to.is_null())
+                        .select((
+                            ShiftTemplateEntity::as_select(),
+                            ShiftVersionEntity::as_select(),
+                        ))
+                        .order(shift_versions::name.asc())
+                        .into_boxed();
 
-        if let Some(loc_id) = location_id {
-            data_q = data_q.filter(
-                shift_versions::location_id
-                    .is_null()
-                    .or(shift_versions::location_id.eq(loc_id)),
-            );
-        }
-        if let Some(emp_id) = employer_id {
-            data_q = data_q.filter(
-                shift_versions::employer_id
-                    .is_null()
-                    .or(shift_versions::employer_id.eq(emp_id)),
-            );
-        }
+                    if let Some(loc_id) = location_id {
+                        data_q = data_q.filter(
+                            shift_versions::location_id
+                                .is_null()
+                                .or(shift_versions::location_id.eq(loc_id)),
+                        );
+                    }
+                    if let Some(emp_id) = employer_id {
+                        data_q = data_q.filter(
+                            shift_versions::employer_id
+                                .is_null()
+                                .or(shift_versions::employer_id.eq(emp_id)),
+                        );
+                    }
 
-        if let Some(l) = limit {
-            data_q = data_q.limit(l);
-        }
-        if let (Some(p), Some(l)) = (page, limit) {
-            data_q = data_q.offset((p - 1) * l);
-        }
+                    if let Some(l) = limit {
+                        data_q = data_q.limit(l);
+                    }
+                    if let (Some(p), Some(l)) = (page, limit) {
+                        data_q = data_q.offset((p - 1) * l);
+                    }
 
-        let rows: Vec<(ShiftTemplateEntity, ShiftVersionEntity)> = data_q
-            .load::<(ShiftTemplateEntity, ShiftVersionEntity)>(&mut *conn)
+                    let rows: Vec<(ShiftTemplateEntity, ShiftVersionEntity)> = data_q
+                        .load::<(ShiftTemplateEntity, ShiftVersionEntity)>(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    let final_total = if page.is_some() || limit.is_some() {
+                        total
+                    } else {
+                        i64::try_from(rows.len()).unwrap_or(0)
+                    };
+
+                    let shifts: Vec<Shift> = rows.iter().map(|(t, v)| shift_from(v, t)).collect();
+
+                    Ok((shifts, final_total))
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        let final_total = if page.is_some() || limit.is_some() {
-            total
-        } else {
-            i64::try_from(rows.len()).unwrap_or(0)
-        };
-
-        let shifts: Vec<Shift> = rows.iter().map(|(t, v)| shift_from(v, t)).collect();
-
-        Ok((shifts, final_total))
     }
 
     // ── create_new_version ────────────────────────────────────────────────────────
@@ -330,13 +326,10 @@ impl ShiftRepository for DieselShiftRepository {
         let now = Utc::now();
         let new_version_id = Uuid::new_v4();
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         conn.transaction::<_, AppError, _>(|conn| {
             Box::pin(async move {
@@ -502,13 +495,10 @@ impl ShiftRepository for DieselShiftRepository {
         template_id: Uuid,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.0;
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         conn.transaction::<_, AppError, _>(|conn| {
             Box::pin(async move {
@@ -550,32 +540,58 @@ impl ShiftRepository for DieselShiftRepository {
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
     ) -> Result<(), AppError> {
-        let _workspace_id = auth_token.0;
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.0)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let workspace_id = auth_token.0;
 
-        let new_assignment = crate::models::diesel::roster::EmployeeShiftEntity {
-            id: Uuid::new_v4(),
-            employment_id,
-            template_id,
-            start_date,
-            end_date,
-            created_at: Some(Utc::now()),
-            updated_at: Some(Utc::now()),
-        };
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let employment_in_workspace: bool = diesel::select(diesel::dsl::exists(
+                        employments::table
+                            .filter(employments::id.eq(employment_id))
+                            .filter(employments::workspace_id.eq(workspace_id))
+                            .filter(employments::deleted_at.is_null()),
+                    ))
+                    .get_result(conn)
+                    .await
+                    .map_err(AppError::from)?;
+                    if !employment_in_workspace {
+                        return Err(AppError::not_found(crate::utils::i18n::I18nKey::NotFound));
+                    }
 
-        diesel::insert_into(employee_shifts::table)
-            .values(&new_assignment)
-            .execute(&mut *conn)
+                    let template_in_workspace: bool = diesel::select(diesel::dsl::exists(
+                        shift_templates::table
+                            .filter(shift_templates::id.eq(template_id))
+                            .filter(shift_templates::workspace_id.eq(workspace_id)),
+                    ))
+                    .get_result(conn)
+                    .await
+                    .map_err(AppError::from)?;
+                    if !template_in_workspace {
+                        return Err(AppError::not_found(
+                            crate::utils::i18n::I18nKey::ShiftNotFound,
+                        ));
+                    }
+
+                    let new_assignment = crate::models::diesel::roster::EmployeeShiftEntity {
+                        id: Uuid::new_v4(),
+                        employment_id,
+                        template_id,
+                        start_date,
+                        end_date,
+                        created_at: Some(Utc::now()),
+                        updated_at: Some(Utc::now()),
+                    };
+
+                    diesel::insert_into(employee_shifts::table)
+                        .values(&new_assignment)
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
+
+                    Ok(())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(())
     }
 
     // ── get_employment_active_shift ────────────────────────────────────────────────
@@ -586,41 +602,42 @@ impl ShiftRepository for DieselShiftRepository {
         date: NaiveDate,
     ) -> Result<Option<Shift>, AppError> {
         let workspace_id = auth_token.0;
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
 
-        let result: Option<(ShiftTemplateEntity, ShiftVersionEntity)> = shift_templates::table
-            .inner_join(
-                employee_shifts::table.on(shift_templates::id.eq(employee_shifts::template_id)),
-            )
-            .inner_join(
-                shift_versions::table
-                    .on(shift_templates::current_version_id.eq(shift_versions::id.nullable())),
-            )
-            .filter(shift_templates::workspace_id.eq(workspace_id))
-            .filter(employee_shifts::employment_id.eq(employment_id))
-            .filter(employee_shifts::start_date.le(date))
-            .filter(
-                employee_shifts::end_date
-                    .is_null()
-                    .or(employee_shifts::end_date.ge(date)),
-            )
-            .order(employee_shifts::created_at.desc())
-            .select((
-                ShiftTemplateEntity::as_select(),
-                ShiftVersionEntity::as_select(),
-            ))
-            .first::<(ShiftTemplateEntity, ShiftVersionEntity)>(&mut *conn)
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let result: Option<(ShiftTemplateEntity, ShiftVersionEntity)> =
+                        shift_templates::table
+                            .inner_join(
+                                employee_shifts::table
+                                    .on(shift_templates::id.eq(employee_shifts::template_id)),
+                            )
+                            .inner_join(
+                                shift_versions::table.on(shift_templates::current_version_id
+                                    .eq(shift_versions::id.nullable())),
+                            )
+                            .filter(shift_templates::workspace_id.eq(workspace_id))
+                            .filter(employee_shifts::employment_id.eq(employment_id))
+                            .filter(employee_shifts::start_date.le(date))
+                            .filter(
+                                employee_shifts::end_date
+                                    .is_null()
+                                    .or(employee_shifts::end_date.ge(date)),
+                            )
+                            .order(employee_shifts::created_at.desc())
+                            .select((
+                                ShiftTemplateEntity::as_select(),
+                                ShiftVersionEntity::as_select(),
+                            ))
+                            .first::<(ShiftTemplateEntity, ShiftVersionEntity)>(conn)
+                            .await
+                            .optional()
+                            .map_err(AppError::from)?;
+
+                    Ok(result.map(|(t, v)| shift_from(&v, &t)))
+                })
+            })
             .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        Ok(result.map(|(t, v)| shift_from(&v, &t)))
     }
 
     // ── get_shift_versions ───────────────────────────────────────────────────────
@@ -630,81 +647,82 @@ impl ShiftRepository for DieselShiftRepository {
         template_id: Uuid,
     ) -> Result<Vec<ShiftVersionHistoryItem>, AppError> {
         let workspace_id = auth_token.0;
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
 
-        // Verify template exists in workspace
-        let _template: ShiftTemplateEntity = shift_templates::table
-            .filter(shift_templates::id.eq(template_id))
-            .filter(shift_templates::workspace_id.eq(workspace_id))
-            .first::<ShiftTemplateEntity>(&mut *conn)
-            .await
-            .optional()
-            .map_err(AppError::from)?
-            .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::ShiftNotFound))?;
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    // Verify template exists in workspace
+                    let _template: ShiftTemplateEntity = shift_templates::table
+                        .filter(shift_templates::id.eq(template_id))
+                        .filter(shift_templates::workspace_id.eq(workspace_id))
+                        .first::<ShiftTemplateEntity>(conn)
+                        .await
+                        .optional()
+                        .map_err(AppError::from)?
+                        .ok_or_else(|| {
+                            AppError::not_found(crate::utils::i18n::I18nKey::ShiftNotFound)
+                        })?;
 
-        // Fetch all versions for this template, ordered newest first
-        let versions: Vec<ShiftVersionEntity> = shift_versions::table
-            .filter(shift_versions::template_id.eq(template_id))
-            .filter(shift_versions::workspace_id.eq(workspace_id))
-            .order(shift_versions::version_number.desc())
-            .load::<ShiftVersionEntity>(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
+                    // Fetch all versions for this template, ordered newest first
+                    let versions: Vec<ShiftVersionEntity> = shift_versions::table
+                        .filter(shift_versions::template_id.eq(template_id))
+                        .filter(shift_versions::workspace_id.eq(workspace_id))
+                        .order(shift_versions::version_number.desc())
+                        .load::<ShiftVersionEntity>(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        // Batch-fetch all intervals for these versions (zero N+1)
-        let version_ids: Vec<Uuid> = versions.iter().map(|v| v.id).collect();
-        let all_intervals: Vec<ShiftDefaultIntervalEntity> = if version_ids.is_empty() {
-            vec![]
-        } else {
-            shift_default_intervals::table
-                .filter(shift_default_intervals::version_id.eq_any(&version_ids))
-                .order(shift_default_intervals::sort_order.asc())
-                .load::<ShiftDefaultIntervalEntity>(&mut *conn)
-                .await
-                .map_err(AppError::from)?
-        };
+                    // Batch-fetch all intervals for these versions (zero N+1)
+                    let version_ids: Vec<Uuid> = versions.iter().map(|v| v.id).collect();
+                    let all_intervals: Vec<ShiftDefaultIntervalEntity> = if version_ids.is_empty() {
+                        vec![]
+                    } else {
+                        shift_default_intervals::table
+                            .filter(shift_default_intervals::version_id.eq_any(&version_ids))
+                            .order(shift_default_intervals::sort_order.asc())
+                            .load::<ShiftDefaultIntervalEntity>(conn)
+                            .await
+                            .map_err(AppError::from)?
+                    };
 
-        // Group intervals by version_id
-        let mut intervals_by_version: std::collections::HashMap<
-            Uuid,
-            Vec<ShiftDefaultIntervalEntity>,
-        > = std::collections::HashMap::new();
-        for iv in all_intervals {
-            intervals_by_version
-                .entry(iv.version_id)
-                .or_default()
-                .push(iv);
-        }
+                    // Group intervals by version_id
+                    let mut intervals_by_version: std::collections::HashMap<
+                        Uuid,
+                        Vec<ShiftDefaultIntervalEntity>,
+                    > = std::collections::HashMap::new();
+                    for iv in all_intervals {
+                        intervals_by_version
+                            .entry(iv.version_id)
+                            .or_default()
+                            .push(iv);
+                    }
 
-        // Build response items
-        let items: Vec<ShiftVersionHistoryItem> = versions
-            .into_iter()
-            .map(|v| ShiftVersionHistoryItem {
-                id: v.id,
-                template_id: v.template_id,
-                version_number: v.version_number,
-                name: v.name,
-                report_symbol: v.report_symbol,
-                location_id: v.location_id,
-                employer_id: v.employer_id,
-                effective_from: v.effective_from,
-                effective_to: v.effective_to,
-                change_type: v.change_type,
-                change_reason: v.change_reason,
-                superseded_by: v.superseded_by,
-                created_by: v.created_by,
-                created_at: v.created_at,
-                intervals: intervals_by_version.remove(&v.id).unwrap_or_default(),
+                    // Build response items
+                    let items: Vec<ShiftVersionHistoryItem> = versions
+                        .into_iter()
+                        .map(|v| ShiftVersionHistoryItem {
+                            id: v.id,
+                            template_id: v.template_id,
+                            version_number: v.version_number,
+                            name: v.name,
+                            report_symbol: v.report_symbol,
+                            location_id: v.location_id,
+                            employer_id: v.employer_id,
+                            effective_from: v.effective_from,
+                            effective_to: v.effective_to,
+                            change_type: v.change_type,
+                            change_reason: v.change_reason,
+                            superseded_by: v.superseded_by,
+                            created_by: v.created_by,
+                            created_at: v.created_at,
+                            intervals: intervals_by_version.remove(&v.id).unwrap_or_default(),
+                        })
+                        .collect();
+
+                    Ok(items)
+                })
             })
-            .collect();
-
-        Ok(items)
+            .await
     }
 }
 

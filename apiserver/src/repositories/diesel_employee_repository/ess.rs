@@ -1,7 +1,7 @@
+use crate::diesel_pool::DieselPoolsTenantTxExt;
 use crate::errors::AppError;
 use async_trait::async_trait;
 use diesel::prelude::*;
-use diesel_async::AsyncConnection;
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
@@ -28,41 +28,39 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
         employee_id: Uuid,
     ) -> Result<Option<EmployeeProfile>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let result: Option<EmployeeProfileEntity> = employee_profiles::table
+                        .inner_join(employees::table)
+                        .select(EmployeeProfileEntity::as_select())
+                        .filter(employee_profiles::employee_id.eq(employee_id))
+                        .filter(employees::workspace_id.eq(workspace_id))
+                        .first(conn)
+                        .await
+                        .optional()
+                        .map_err(AppError::from)?;
 
-        let result: Option<EmployeeProfileEntity> = employee_profiles::table
-            .inner_join(employees::table)
-            .select(EmployeeProfileEntity::as_select())
-            .filter(employee_profiles::employee_id.eq(employee_id))
-            .filter(employees::workspace_id.eq(workspace_id))
-            .first(&mut *conn)
+                    if let Some(mut entity) = result {
+                        if let Some(crypto) = &self.crypto_service {
+                            if let Some(ref enc_nat_id) = entity.national_id {
+                                if let Ok(decrypted) = crypto.decrypt(enc_nat_id) {
+                                    entity.national_id = Some(decrypted);
+                                }
+                            }
+                            if let Some(ref enc_bank_acc) = entity.bank_account_number {
+                                if let Ok(decrypted) = crypto.decrypt(enc_bank_acc) {
+                                    entity.bank_account_number = Some(decrypted);
+                                }
+                            }
+                        }
+                        Ok(Some(entity.into()))
+                    } else {
+                        Ok(None)
+                    }
+                })
+            })
             .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        if let Some(mut entity) = result {
-            if let Some(crypto) = &self.crypto_service {
-                if let Some(ref enc_nat_id) = entity.national_id {
-                    if let Ok(decrypted) = crypto.decrypt(enc_nat_id) {
-                        entity.national_id = Some(decrypted);
-                    }
-                }
-                if let Some(ref enc_bank_acc) = entity.bank_account_number {
-                    if let Ok(decrypted) = crypto.decrypt(enc_bank_acc) {
-                        entity.bank_account_number = Some(decrypted);
-                    }
-                }
-            }
-            Ok(Some(entity.into()))
-        } else {
-            Ok(None)
-        }
     }
 
     async fn upsert_employee_profile(
@@ -72,20 +70,15 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
         req: &UpdateEmployeeProfileRequest,
     ) -> Result<EmployeeProfile, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
         let employee_exists = employees::table
             .filter(employees::id.eq(employee_id))
             .filter(employees::workspace_id.eq(workspace_id))
             .filter(employees::deleted_at.is_null())
             .select(employees::id)
-            .first::<Uuid>(&mut *conn)
+            .first::<Uuid>(conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db validation: {e}")))?
@@ -172,7 +165,7 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
                 )),
                 employee_profiles::updated_at.eq(chrono::Utc::now()),
             ))
-            .get_result(&mut *conn)
+            .get_result(conn)
             .await
             .map_err(AppError::from)?;
 
@@ -190,6 +183,10 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
         }
 
         Ok(result.into())
+
+                })
+            })
+            .await
     }
 
     async fn get_emergency_contacts(
@@ -198,28 +195,27 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
         employee_id: Uuid,
     ) -> Result<Vec<EmployeeEmergencyContact>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let results: Vec<EmployeeEmergencyContactEntity> =
+                        employee_emergency_contacts::table
+                            .inner_join(employees::table)
+                            .select(EmployeeEmergencyContactEntity::as_select())
+                            .filter(employee_emergency_contacts::employee_id.eq(employee_id))
+                            .filter(employees::workspace_id.eq(workspace_id))
+                            .order((
+                                employee_emergency_contacts::is_primary.desc(),
+                                employee_emergency_contacts::created_at.asc(),
+                            ))
+                            .load(conn)
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let results: Vec<EmployeeEmergencyContactEntity> = employee_emergency_contacts::table
-            .inner_join(employees::table)
-            .select(EmployeeEmergencyContactEntity::as_select())
-            .filter(employee_emergency_contacts::employee_id.eq(employee_id))
-            .filter(employees::workspace_id.eq(workspace_id))
-            .order((
-                employee_emergency_contacts::is_primary.desc(),
-                employee_emergency_contacts::created_at.asc(),
-            ))
-            .load(&mut *conn)
+                    Ok(results.into_iter().map(Into::into).collect())
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        Ok(results.into_iter().map(Into::into).collect())
     }
 
     async fn upsert_emergency_contact(
@@ -229,60 +225,57 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
         req: &CreateEmergencyContactRequest,
     ) -> Result<EmployeeEmergencyContact, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
-        let employee_exists = employees::table
-            .filter(employees::id.eq(employee_id))
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::deleted_at.is_null())
-            .select(employees::id)
-            .first::<Uuid>(&mut *conn)
-            .await
-            .optional()
-            .map_err(|e| AppError::Internal(format!("db validation: {e}")))?
-            .is_some();
-
-        if !employee_exists {
-            return Err(AppError::forbidden(crate::utils::i18n::I18nKey::Forbidden));
-        }
-
-        let is_primary = req.is_primary.unwrap_or(false);
-
-        conn.transaction::<_, AppError, _>(|conn| {
-            Box::pin(async move {
-                if is_primary {
-                    diesel::update(employee_emergency_contacts::table)
-                        .filter(employee_emergency_contacts::employee_id.eq(employee_id))
-                        .set(employee_emergency_contacts::is_primary.eq(false))
-                        .execute(&mut *conn)
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let employee_exists = employees::table
+                        .filter(employees::id.eq(employee_id))
+                        .filter(employees::workspace_id.eq(workspace_id))
+                        .filter(employees::deleted_at.is_null())
+                        .select(employees::id)
+                        .first::<Uuid>(conn)
                         .await
-                        .map_err(AppError::from)?;
-                }
+                        .optional()
+                        .map_err(|e| AppError::Internal(format!("db validation: {e}")))?
+                        .is_some();
 
-                let result: EmployeeEmergencyContactEntity =
-                    diesel::insert_into(employee_emergency_contacts::table)
-                        .values((
-                            employee_emergency_contacts::id.eq(Uuid::new_v4()),
-                            employee_emergency_contacts::employee_id.eq(employee_id),
-                            employee_emergency_contacts::contact_name.eq(&req.contact_name),
-                            employee_emergency_contacts::relationship.eq(&req.relationship),
-                            employee_emergency_contacts::phone.eq(&req.phone),
-                            employee_emergency_contacts::is_primary.eq(is_primary),
-                        ))
-                        .get_result(&mut *conn)
-                        .await
-                        .map_err(AppError::from)?;
+                    if !employee_exists {
+                        return Err(AppError::forbidden(crate::utils::i18n::I18nKey::Forbidden));
+                    }
 
-                Ok(result.into())
+                    let is_primary = req.is_primary.unwrap_or(false);
+                    if is_primary {
+                        diesel::update(employee_emergency_contacts::table)
+                            .filter(employee_emergency_contacts::employee_id.eq(employee_id))
+                            .filter(diesel::dsl::exists(
+                                employees::table
+                                    .filter(employees::id.eq(employee_id))
+                                    .filter(employees::workspace_id.eq(workspace_id)),
+                            ))
+                            .set(employee_emergency_contacts::is_primary.eq(false))
+                            .execute(conn)
+                            .await
+                            .map_err(AppError::from)?;
+                    }
+
+                    let result: EmployeeEmergencyContactEntity =
+                        diesel::insert_into(employee_emergency_contacts::table)
+                            .values((
+                                employee_emergency_contacts::id.eq(Uuid::new_v4()),
+                                employee_emergency_contacts::employee_id.eq(employee_id),
+                                employee_emergency_contacts::contact_name.eq(&req.contact_name),
+                                employee_emergency_contacts::relationship.eq(&req.relationship),
+                                employee_emergency_contacts::phone.eq(&req.phone),
+                                employee_emergency_contacts::is_primary.eq(is_primary),
+                            ))
+                            .get_result(conn)
+                            .await
+                            .map_err(AppError::from)?;
+
+                    Ok(result.into())
+                })
             })
-        })
-        .await
+            .await
     }
 
     async fn delete_emergency_contact(
@@ -292,27 +285,25 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
         contact_id: Uuid,
     ) -> Result<u64, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let affected = diesel::delete(employee_emergency_contacts::table)
+                        .filter(employee_emergency_contacts::id.eq(contact_id))
+                        .filter(employee_emergency_contacts::employee_id.eq(employee_id))
+                        .filter(diesel::dsl::exists(
+                            employees::table
+                                .filter(employees::id.eq(employee_id))
+                                .filter(employees::workspace_id.eq(workspace_id)),
+                        ))
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let affected = diesel::delete(employee_emergency_contacts::table)
-            .filter(employee_emergency_contacts::id.eq(contact_id))
-            .filter(employee_emergency_contacts::employee_id.eq(employee_id))
-            .filter(diesel::dsl::exists(
-                employees::table
-                    .filter(employees::id.eq(employee_id))
-                    .filter(employees::workspace_id.eq(workspace_id)),
-            ))
-            .execute(&mut *conn)
+                    Ok(affected as u64)
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(affected as u64)
     }
 
     async fn get_employee_documents(
@@ -321,44 +312,40 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
         employee_id: Uuid,
     ) -> Result<Vec<EmployeeDocument>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let results: Vec<EmployeeDocumentEntity> = employee_documents::table
+                        .select(EmployeeDocumentEntity::as_select())
+                        .filter(employee_documents::employee_id.eq(employee_id))
+                        .filter(employee_documents::workspace_id.eq(workspace_id))
+                        .order(employee_documents::created_at.desc())
+                        .load(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let results: Vec<EmployeeDocumentEntity> = employee_documents::table
-            .select(EmployeeDocumentEntity::as_select())
-            .filter(employee_documents::employee_id.eq(employee_id))
-            .filter(employee_documents::workspace_id.eq(workspace_id))
-            .order(employee_documents::created_at.desc())
-            .load(&mut *conn)
+                    Ok(results.into_iter().map(Into::into).collect())
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        Ok(results.into_iter().map(Into::into).collect())
     }
 
     async fn create_employee_document(&self, doc: &EmployeeDocument) -> Result<(), AppError> {
-        let workspace_id = doc.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(doc.workspace_id());
         let entity: EmployeeDocumentEntity = doc.clone().into();
 
-        diesel::insert_into(employee_documents::table)
-            .values(&entity)
-            .execute(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn| {
+                Box::pin(async move {
+                    diesel::insert_into(employee_documents::table)
+                        .values(&entity)
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        Ok(())
+                    Ok(())
+                })
+            })
+            .await
     }
 }

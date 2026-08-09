@@ -1,4 +1,4 @@
-use crate::diesel_pool::DieselPools;
+use crate::diesel_pool::{DieselPools, DieselPoolsTenantTxExt};
 use crate::errors::AppError;
 use crate::models::{AttendanceDailySummary, OtStatus};
 use crate::repositories::attendance_daily_summary_repository::{
@@ -43,24 +43,23 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
 
-        use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
-
-        ads::attendance_daily_summaries
-            .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::employment_id.eq(employment_id))
-            .filter(ads::date.eq(date))
-            .first::<AttendanceDailySummaryEntity>(&mut *conn)
+                    ads::attendance_daily_summaries
+                        .filter(ads::workspace_id.eq(workspace_id))
+                        .filter(ads::employment_id.eq(employment_id))
+                        .filter(ads::date.eq(date))
+                        .first::<AttendanceDailySummaryEntity>(conn)
+                        .await
+                        .optional()
+                        .map(|opt| opt.map(Into::into))
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))
+                })
+            })
             .await
-            .optional()
-            .map(|opt| opt.map(Into::into))
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
     }
 
     async fn get_summary_by_id(
@@ -71,23 +70,22 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
 
-        use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
-
-        ads::attendance_daily_summaries
-            .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::id.eq(id))
-            .first::<AttendanceDailySummaryEntity>(&mut *conn)
+                    ads::attendance_daily_summaries
+                        .filter(ads::workspace_id.eq(workspace_id))
+                        .filter(ads::id.eq(id))
+                        .first::<AttendanceDailySummaryEntity>(conn)
+                        .await
+                        .optional()
+                        .map(|opt| opt.map(Into::into))
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))
+                })
+            })
             .await
-            .optional()
-            .map(|opt| opt.map(Into::into))
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
     }
 
     async fn upsert_calculated_summary(
@@ -96,32 +94,44 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
     ) -> Result<(), AppError> {
         let workspace_id = args.auth_token.workspace_id();
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&args.auth_token.workspace_id())
-                .await?,
-        );
+        let employment_id = args.employment_id;
+        let date = args.date;
+        let actual_work_minutes = args.actual_work_minutes;
+        let system_detected_ot_minutes = args.system_detected_ot_minutes;
+        let standard_minutes = args.standard_minutes;
+        let early_ot_minutes = args.early_ot_minutes;
+        let late_ot_minutes = args.late_ot_minutes;
+        let break_ot_minutes = args.break_ot_minutes;
+        let is_weekend = args.is_weekend;
+        let new_status = args.new_status;
+        let is_holiday = args.is_holiday;
+        let holiday_name = args.holiday_name;
 
-        execute_upsert_calculated_summary(
-            &mut conn,
-            ExecuteUpsertCalculatedSummaryParams {
-                workspace_id,
-                employment_id: args.employment_id,
-                date: args.date,
-                actual_work_minutes: args.actual_work_minutes,
-                system_detected_ot_minutes: args.system_detected_ot_minutes,
-                standard_minutes: args.standard_minutes,
-                early_ot_minutes: args.early_ot_minutes,
-                late_ot_minutes: args.late_ot_minutes,
-                break_ot_minutes: args.break_ot_minutes,
-                is_weekend: args.is_weekend,
-                new_status: args.new_status,
-                is_holiday: args.is_holiday,
-                holiday_name: args.holiday_name,
-            },
-        )
-        .await
+        self.diesel_pools
+            .with_tenant_tx(&args.auth_token, |conn| {
+                Box::pin(async move {
+                    execute_upsert_calculated_summary(
+                        conn,
+                        ExecuteUpsertCalculatedSummaryParams {
+                            workspace_id,
+                            employment_id,
+                            date,
+                            actual_work_minutes,
+                            system_detected_ot_minutes,
+                            standard_minutes,
+                            early_ot_minutes,
+                            late_ot_minutes,
+                            break_ot_minutes,
+                            is_weekend,
+                            new_status,
+                            is_holiday,
+                            holiday_name,
+                        },
+                    )
+                    .await
+                })
+            })
+            .await
     }
 
     /// Batch-upserts calculated attendance summaries in a single SQL statement.
@@ -142,14 +152,14 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         let workspace_id = auth_token.workspace_id();
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
-
-        execute_batch_upsert_summaries(&mut conn, workspace_id, employment_id, summaries).await
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    execute_batch_upsert_summaries(conn, workspace_id, employment_id, summaries)
+                        .await
+                })
+            })
+            .await
     }
 
     async fn claim_ot(
@@ -163,33 +173,32 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let rows = diesel::update(ads::attendance_daily_summaries)
+                        .filter(ads::workspace_id.eq(workspace_id))
+                        .filter(ads::employment_id.eq(employment_id))
+                        .filter(ads::date.eq(date))
+                        .filter(
+                            ads::ot_status
+                                .eq(OtStatus::PendingEmployee)
+                                .or(ads::ot_status.eq(OtStatus::Rejected)),
+                        )
+                        .set((
+                            ads::claimed_ot_minutes.eq(claimed_minutes),
+                            ads::ot_reason.eq(reason),
+                            ads::ot_status.eq(OtStatus::PendingManager),
+                            ads::updated_at.eq(diesel::dsl::now),
+                        ))
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let rows = diesel::update(ads::attendance_daily_summaries)
-            .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::employment_id.eq(employment_id))
-            .filter(ads::date.eq(date))
-            .filter(
-                ads::ot_status
-                    .eq(OtStatus::PendingEmployee)
-                    .or(ads::ot_status.eq(OtStatus::Rejected)),
-            )
-            .set((
-                ads::claimed_ot_minutes.eq(claimed_minutes),
-                ads::ot_reason.eq(reason),
-                ads::ot_status.eq(OtStatus::PendingManager),
-                ads::updated_at.eq(diesel::dsl::now),
-            ))
-            .execute(&mut *conn)
+                    Ok(rows)
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(rows)
     }
 
     async fn approve_ot(
@@ -204,80 +213,88 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let rows = diesel::update(ads::attendance_daily_summaries)
+                        .filter(ads::workspace_id.eq(workspace_id))
+                        .filter(ads::employment_id.eq(employment_id))
+                        .filter(ads::date.eq(date))
+                        .filter(ads::ot_status.eq(OtStatus::PendingManager))
+                        .set((
+                            ads::approved_ot_minutes.eq(approved_minutes),
+                            ads::manager_note.eq(manager_note),
+                            ads::ot_status.eq(status),
+                            ads::updated_at.eq(diesel::dsl::now),
+                        ))
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let rows = diesel::update(ads::attendance_daily_summaries)
-            .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::employment_id.eq(employment_id))
-            .filter(ads::date.eq(date))
-            .filter(ads::ot_status.eq(OtStatus::PendingManager))
-            .set((
-                ads::approved_ot_minutes.eq(approved_minutes),
-                ads::manager_note.eq(manager_note),
-                ads::ot_status.eq(status),
-                ads::updated_at.eq(diesel::dsl::now),
-            ))
-            .execute(&mut *conn)
+                    Ok(rows)
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(rows)
     }
 
     async fn upsert_paper_ot(
         &self,
         args: UpsertPaperOtArgs,
     ) -> Result<AttendanceDailySummary, AppError> {
-        let workspace_id = args.auth_token.workspace_id();
+        let UpsertPaperOtArgs {
+            auth_token,
+            employment_id,
+            date,
+            claimed_minutes,
+            reason,
+            entered_by_user_id,
+            photo_url,
+        } = args;
+        let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
         use diesel::upsert::excluded;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&args.auth_token.workspace_id())
-                .await?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn| {
+                Box::pin(async move {
+                    use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
 
-        use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
-
-        diesel::insert_into(ads::attendance_daily_summaries)
-            .values((
-                ads::id.eq(Uuid::new_v4()),
-                ads::workspace_id.eq(workspace_id),
-                ads::employment_id.eq(args.employment_id),
-                ads::date.eq(args.date),
-                ads::claimed_ot_minutes.eq(args.claimed_minutes),
-                ads::ot_reason.eq(args.reason),
-                ads::ot_status.eq(OtStatus::PendingManager),
-                ads::entered_via.eq(Some("paper_form".to_string())),
-                ads::claim_entered_by_user_id.eq(Some(args.entered_by_user_id)),
-                ads::paper_form_photo_url.eq(args.photo_url),
-                ads::claim_entered_at.eq(Some(Utc::now())),
-                ads::actual_work_minutes.eq(0),
-                ads::system_detected_ot_minutes.eq(0),
-            ))
-            .on_conflict((ads::employment_id, ads::date))
-            .do_update()
-            .set((
-                ads::claimed_ot_minutes.eq(excluded(ads::claimed_ot_minutes)),
-                ads::ot_reason.eq(excluded(ads::ot_reason)),
-                ads::ot_status.eq(OtStatus::PendingManager),
-                ads::entered_via.eq(Some("paper_form".to_string())),
-                ads::claim_entered_by_user_id.eq(excluded(ads::claim_entered_by_user_id)),
-                ads::paper_form_photo_url.eq(excluded(ads::paper_form_photo_url)),
-                ads::claim_entered_at.eq(Some(Utc::now())),
-                ads::updated_at.eq(Utc::now()),
-            ))
-            .get_result::<AttendanceDailySummaryEntity>(&mut *conn)
+                    diesel::insert_into(ads::attendance_daily_summaries)
+                        .values((
+                            ads::id.eq(Uuid::new_v4()),
+                            ads::workspace_id.eq(workspace_id),
+                            ads::employment_id.eq(employment_id),
+                            ads::date.eq(date),
+                            ads::claimed_ot_minutes.eq(claimed_minutes),
+                            ads::ot_reason.eq(reason),
+                            ads::ot_status.eq(OtStatus::PendingManager),
+                            ads::entered_via.eq(Some("paper_form".to_string())),
+                            ads::claim_entered_by_user_id.eq(Some(entered_by_user_id)),
+                            ads::paper_form_photo_url.eq(photo_url),
+                            ads::claim_entered_at.eq(Some(Utc::now())),
+                            ads::actual_work_minutes.eq(0),
+                            ads::system_detected_ot_minutes.eq(0),
+                        ))
+                        .on_conflict((ads::employment_id, ads::date))
+                        .do_update()
+                        .set((
+                            ads::claimed_ot_minutes.eq(excluded(ads::claimed_ot_minutes)),
+                            ads::ot_reason.eq(excluded(ads::ot_reason)),
+                            ads::ot_status.eq(OtStatus::PendingManager),
+                            ads::entered_via.eq(Some("paper_form".to_string())),
+                            ads::claim_entered_by_user_id
+                                .eq(excluded(ads::claim_entered_by_user_id)),
+                            ads::paper_form_photo_url.eq(excluded(ads::paper_form_photo_url)),
+                            ads::claim_entered_at.eq(Some(Utc::now())),
+                            ads::updated_at.eq(Utc::now()),
+                        ))
+                        .get_result::<AttendanceDailySummaryEntity>(conn)
+                        .await
+                        .map(Into::into)
+                        .map_err(AppError::from)
+                })
+            })
             .await
-            .map(Into::into)
-            .map_err(AppError::from)
     }
 
     async fn get_batch_ot_statuses(
@@ -290,36 +307,35 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let rows = ads::attendance_daily_summaries
+                        .filter(ads::workspace_id.eq(workspace_id))
+                        .filter(ads::employment_id.eq_any(employment_ids))
+                        .filter(ads::date.ge(start_date))
+                        .filter(ads::date.le(end_date))
+                        .select((ads::employment_id, ads::date, ads::ot_status))
+                        .load::<(Uuid, NaiveDate, OtStatus)>(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let rows = ads::attendance_daily_summaries
-            .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::employment_id.eq_any(employment_ids))
-            .filter(ads::date.ge(start_date))
-            .filter(ads::date.le(end_date))
-            .select((ads::employment_id, ads::date, ads::ot_status))
-            .load::<(Uuid, NaiveDate, OtStatus)>(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
-
-        Ok(rows
-            .into_iter()
-            .map(|(eid, d, status)| {
-                let status_str = match status {
-                    OtStatus::None => "none",
-                    OtStatus::PendingEmployee => "pending_employee",
-                    OtStatus::PendingManager => "pending_manager",
-                    OtStatus::Approved => "approved",
-                    OtStatus::Rejected => "rejected",
-                };
-                ((eid, d), status_str.to_string())
+                    Ok(rows
+                        .into_iter()
+                        .map(|(eid, d, status)| {
+                            let status_str = match status {
+                                OtStatus::None => "none",
+                                OtStatus::PendingEmployee => "pending_employee",
+                                OtStatus::PendingManager => "pending_manager",
+                                OtStatus::Approved => "approved",
+                                OtStatus::Rejected => "rejected",
+                            };
+                            ((eid, d), status_str.to_string())
+                        })
+                        .collect())
+                })
             })
-            .collect())
+            .await
     }
 
     async fn get_summaries(
@@ -332,31 +348,30 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let mut query = ads::attendance_daily_summaries
+                        .filter(ads::workspace_id.eq(workspace_id))
+                        .filter(ads::date.ge(start_date))
+                        .filter(ads::date.le(end_date))
+                        .into_boxed();
 
-        let mut query = ads::attendance_daily_summaries
-            .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::date.ge(start_date))
-            .filter(ads::date.le(end_date))
-            .into_boxed();
+                    if let Some(eid) = employment_id {
+                        query = query.filter(ads::employment_id.eq(eid));
+                    }
 
-        if let Some(eid) = employment_id {
-            query = query.filter(ads::employment_id.eq(eid));
-        }
+                    use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
 
-        use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
-
-        query
-            .order_by((ads::date.asc(), ads::employment_id.asc()))
-            .load::<AttendanceDailySummaryEntity>(&mut *conn)
+                    query
+                        .order_by((ads::date.asc(), ads::employment_id.asc()))
+                        .load::<AttendanceDailySummaryEntity>(conn)
+                        .await
+                        .map(|list| list.into_iter().map(Into::into).collect())
+                        .map_err(AppError::from)
+                })
+            })
             .await
-            .map(|list| list.into_iter().map(Into::into).collect())
-            .map_err(AppError::from)
     }
 
     async fn get_summaries_for_period(
@@ -369,92 +384,99 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
 
-        use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
-
-        ads::attendance_daily_summaries
-            .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::employment_id.eq(employment_id))
-            .filter(ads::date.ge(start_date))
-            .filter(ads::date.le(end_date))
-            .order_by(ads::date.asc())
-            .load::<AttendanceDailySummaryEntity>(&mut *conn)
+                    ads::attendance_daily_summaries
+                        .filter(ads::workspace_id.eq(workspace_id))
+                        .filter(ads::employment_id.eq(employment_id))
+                        .filter(ads::date.ge(start_date))
+                        .filter(ads::date.le(end_date))
+                        .order_by(ads::date.asc())
+                        .load::<AttendanceDailySummaryEntity>(conn)
+                        .await
+                        .map(|list| list.into_iter().map(Into::into).collect())
+                        .map_err(AppError::from)
+                })
+            })
             .await
-            .map(|list| list.into_iter().map(Into::into).collect())
-            .map_err(AppError::from)
     }
 
     async fn get_summaries_paginated(
         &self,
         args: GetSummariesPaginatedArgs,
     ) -> Result<(Vec<AttendanceDailySummary>, usize), AppError> {
-        let workspace_id = args.auth_token.workspace_id();
+        let GetSummariesPaginatedArgs {
+            auth_token,
+            employment_id,
+            start_date,
+            end_date,
+            ot_status,
+            page,
+            limit,
+        } = args;
+        let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&args.auth_token.workspace_id())
-                .await?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn| {
+                Box::pin(async move {
+                    // Count total matching records
+                    let mut count_query = ads::attendance_daily_summaries
+                        .filter(ads::workspace_id.eq(workspace_id))
+                        .filter(ads::date.ge(start_date))
+                        .filter(ads::date.le(end_date))
+                        .into_boxed();
 
-        // Count total matching records
-        let mut count_query = ads::attendance_daily_summaries
-            .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::date.ge(args.start_date))
-            .filter(ads::date.le(args.end_date))
-            .into_boxed();
+                    if let Some(eid) = employment_id {
+                        count_query = count_query.filter(ads::employment_id.eq(eid));
+                    }
 
-        if let Some(eid) = args.employment_id {
-            count_query = count_query.filter(ads::employment_id.eq(eid));
-        }
+                    if let Some(ref status) = ot_status {
+                        count_query = count_query.filter(ads::ot_status.eq(status));
+                    }
 
-        if let Some(ref status) = args.ot_status {
-            count_query = count_query.filter(ads::ot_status.eq(status));
-        }
+                    let total: i64 = count_query
+                        .select(diesel::dsl::count_star())
+                        .first(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let total: i64 = count_query
-            .select(diesel::dsl::count_star())
-            .first(&mut *conn)
+                    // Fetch page
+                    let mut data_query = ads::attendance_daily_summaries
+                        .filter(ads::workspace_id.eq(workspace_id))
+                        .filter(ads::date.ge(start_date))
+                        .filter(ads::date.le(end_date))
+                        .into_boxed();
+
+                    if let Some(eid) = employment_id {
+                        data_query = data_query.filter(ads::employment_id.eq(eid));
+                    }
+
+                    if let Some(status) = ot_status {
+                        data_query = data_query.filter(ads::ot_status.eq(status));
+                    }
+
+                    use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
+
+                    let results = data_query
+                        .order_by((ads::date.asc(), ads::employment_id.asc()))
+                        .limit(limit)
+                        .offset((page - 1) * limit)
+                        .load::<AttendanceDailySummaryEntity>(conn)
+                        .await
+                        .map(|list| list.into_iter().map(Into::into).collect::<Vec<_>>())
+                        .map_err(AppError::from)?;
+
+                    let total_usize = usize::try_from(total)
+                        .map_err(|e| AppError::Internal(format!("Invalid total count: {e}")))?;
+
+                    Ok((results, total_usize))
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        // Fetch page
-        let mut data_query = ads::attendance_daily_summaries
-            .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::date.ge(args.start_date))
-            .filter(ads::date.le(args.end_date))
-            .into_boxed();
-
-        if let Some(eid) = args.employment_id {
-            data_query = data_query.filter(ads::employment_id.eq(eid));
-        }
-
-        if let Some(status) = args.ot_status {
-            data_query = data_query.filter(ads::ot_status.eq(status));
-        }
-
-        use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
-
-        let results = data_query
-            .order_by((ads::date.asc(), ads::employment_id.asc()))
-            .limit(args.limit)
-            .offset((args.page - 1) * args.limit)
-            .load::<AttendanceDailySummaryEntity>(&mut *conn)
-            .await
-            .map(|list| list.into_iter().map(Into::into).collect::<Vec<_>>())
-            .map_err(AppError::from)?;
-
-        let total_usize = usize::try_from(total)
-            .map_err(|e| AppError::Internal(format!("Invalid total count: {e}")))?;
-
-        Ok((results, total_usize))
     }
 
     async fn get_summaries_by_employments_batch(
@@ -472,31 +494,30 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
 
-        use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
+                    let rows = ads::attendance_daily_summaries
+                        .filter(ads::workspace_id.eq(workspace_id))
+                        .filter(ads::employment_id.eq_any(employment_ids))
+                        .filter(ads::date.ge(start_date))
+                        .filter(ads::date.le(end_date))
+                        .load::<AttendanceDailySummaryEntity>(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let rows = ads::attendance_daily_summaries
-            .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::employment_id.eq_any(employment_ids))
-            .filter(ads::date.ge(start_date))
-            .filter(ads::date.le(end_date))
-            .load::<AttendanceDailySummaryEntity>(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
-
-        Ok(rows
-            .into_iter()
-            .map(|entity| {
-                let summary: AttendanceDailySummary = entity.into();
-                ((summary.employment_id, summary.date), summary)
+                    Ok(rows
+                        .into_iter()
+                        .map(|entity| {
+                            let summary: AttendanceDailySummary = entity.into();
+                            ((summary.employment_id, summary.date), summary)
+                        })
+                        .collect())
+                })
             })
-            .collect())
+            .await
     }
 
     async fn get_distinct_work_days_from_summary(
@@ -509,26 +530,25 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let rows = ads::attendance_daily_summaries
+                        .filter(ads::workspace_id.eq(workspace_id))
+                        .filter(ads::employment_id.eq(employment_id))
+                        .filter(ads::date.ge(start_date))
+                        .filter(ads::date.le(end_date))
+                        .filter(ads::actual_work_minutes.gt(0))
+                        .select(ads::date)
+                        .distinct()
+                        .load::<NaiveDate>(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let rows = ads::attendance_daily_summaries
-            .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::employment_id.eq(employment_id))
-            .filter(ads::date.ge(start_date))
-            .filter(ads::date.le(end_date))
-            .filter(ads::actual_work_minutes.gt(0))
-            .select(ads::date)
-            .distinct()
-            .load::<NaiveDate>(&mut *conn)
+                    Ok(rows)
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(rows)
     }
 
     async fn get_summaries_by_ids(
@@ -543,24 +563,23 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
 
-        use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
+                    let rows = ads::attendance_daily_summaries
+                        .filter(ads::workspace_id.eq(workspace_id))
+                        .filter(ads::id.eq_any(ids))
+                        .select(AttendanceDailySummaryEntity::as_select())
+                        .load::<AttendanceDailySummaryEntity>(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let rows = ads::attendance_daily_summaries
-            .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::id.eq_any(ids))
-            .select(AttendanceDailySummaryEntity::as_select())
-            .load::<AttendanceDailySummaryEntity>(&mut *conn)
+                    Ok(rows.into_iter().map(Into::into).collect())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     async fn upsert_calculated_summary_tx(

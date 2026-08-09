@@ -1,4 +1,5 @@
 use super::*;
+use crate::diesel_pool::DieselPoolsTenantTxExt;
 use crate::errors::AppError;
 use crate::models::diesel::employee::{EmployeeEntity, EmployeeRow, UpdateDieselEmployee};
 use crate::models::{Employee, UpdateEmployeeRequest};
@@ -234,13 +235,11 @@ impl DieselEmployeeRepository {
             return Ok(false);
         }
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(&auth_token)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let new_entity: EmployeeEntity = employee.clone().into();
 
@@ -432,22 +431,20 @@ impl DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<u64, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let affected = diesel::update(employees::table)
+                        .filter(employees::id.eq(id))
+                        .filter(employees::workspace_id.eq(workspace_id))
+                        .set(employees::deleted_at.eq(Some(chrono::Utc::now())))
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let affected = diesel::update(employees::table)
-            .filter(employees::id.eq(id))
-            .filter(employees::workspace_id.eq(workspace_id))
-            .set(employees::deleted_at.eq(Some(chrono::Utc::now())))
-            .execute(&mut *conn)
+                    Ok(affected as u64)
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(affected as u64)
     }
 }

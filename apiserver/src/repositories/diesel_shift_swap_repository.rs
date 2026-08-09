@@ -4,7 +4,7 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
-use crate::diesel_pool::DieselPools;
+use crate::diesel_pool::{DieselPools, DieselPoolsTenantTxExt};
 use crate::errors::AppError;
 use crate::models::diesel::roster::ShiftSwapRequestEntity;
 use crate::models::shift_swap::{
@@ -133,43 +133,43 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         request: &ShiftSwapRequest,
     ) -> Result<ShiftSwapRequest, AppError> {
         let _workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
 
-        let entity = ShiftSwapRequestEntity {
-            id: request.id(),
-            workspace_id: request.workspace_id(),
-            requester_id: request.requester_id(),
-            target_id: request.target_id(),
-            swap_date: request.swap_date(),
-            requester_template_id: request.requester_shift_id(),
-            target_template_id: request.target_shift_id(),
-            status: match request.status() {
-                ShiftSwapStatus::PendingTarget => "pending_target".to_string(),
-                ShiftSwapStatus::PendingAdmin => "pending_admin".to_string(),
-                ShiftSwapStatus::Approved => "approved".to_string(),
-                ShiftSwapStatus::Rejected => "rejected".to_string(),
-                ShiftSwapStatus::Cancelled => "cancelled".to_string(),
-            },
-            reason: request.reason().map(String::from),
-            requested_by_user_id: request.requested_by_user_id(),
-            approved_by_user_id: request.approved_by_user_id(),
-            created_at: request.created_at(),
-            updated_at: request.updated_at(),
-        };
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let entity = ShiftSwapRequestEntity {
+                        id: request.id(),
+                        workspace_id: request.workspace_id(),
+                        requester_id: request.requester_id(),
+                        target_id: request.target_id(),
+                        swap_date: request.swap_date(),
+                        requester_template_id: request.requester_shift_id(),
+                        target_template_id: request.target_shift_id(),
+                        status: match request.status() {
+                            ShiftSwapStatus::PendingTarget => "pending_target".to_string(),
+                            ShiftSwapStatus::PendingAdmin => "pending_admin".to_string(),
+                            ShiftSwapStatus::Approved => "approved".to_string(),
+                            ShiftSwapStatus::Rejected => "rejected".to_string(),
+                            ShiftSwapStatus::Cancelled => "cancelled".to_string(),
+                        },
+                        reason: request.reason().map(String::from),
+                        requested_by_user_id: request.requested_by_user_id(),
+                        approved_by_user_id: request.approved_by_user_id(),
+                        created_at: request.created_at(),
+                        updated_at: request.updated_at(),
+                    };
 
-        let result: ShiftSwapRequestEntity = diesel::insert_into(shift_swap_requests::table)
-            .values(&entity)
-            .get_result(&mut *conn)
+                    let result: ShiftSwapRequestEntity =
+                        diesel::insert_into(shift_swap_requests::table)
+                            .values(&entity)
+                            .get_result(conn)
+                            .await
+                            .map_err(AppError::from)?;
+
+                    Ok(result.into())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(result.into())
     }
 
     async fn get_swap_request_by_id(
@@ -178,23 +178,22 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<ShiftSwapRequest>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
 
-        let entity: Option<ShiftSwapRequestEntity> = shift_swap_requests::table
-            .filter(shift_swap_requests::id.eq(id))
-            .filter(shift_swap_requests::workspace_id.eq(workspace_id))
-            .first(&mut *conn)
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let entity: Option<ShiftSwapRequestEntity> = shift_swap_requests::table
+                        .filter(shift_swap_requests::id.eq(id))
+                        .filter(shift_swap_requests::workspace_id.eq(workspace_id))
+                        .first(conn)
+                        .await
+                        .optional()
+                        .map_err(AppError::from)?;
+
+                    Ok(entity.map(Into::into))
+                })
+            })
             .await
-            .optional()
-            .map_err(AppError::from)?;
-
-        Ok(entity.map(Into::into))
     }
 
     async fn get_workspace_swaps(
@@ -203,100 +202,101 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         status_filter: Option<ShiftSwapStatus>,
     ) -> Result<Vec<ShiftSwapRequestWithNames>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
 
-        let status_str = status_filter.map(|s| match s {
-            ShiftSwapStatus::PendingTarget => "pending_target",
-            ShiftSwapStatus::PendingAdmin => "pending_admin",
-            ShiftSwapStatus::Approved => "approved",
-            ShiftSwapStatus::Rejected => "rejected",
-            ShiftSwapStatus::Cancelled => "cancelled",
-        });
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let status_str = status_filter.map(|s| match s {
+                        ShiftSwapStatus::PendingTarget => "pending_target",
+                        ShiftSwapStatus::PendingAdmin => "pending_admin",
+                        ShiftSwapStatus::Approved => "approved",
+                        ShiftSwapStatus::Rejected => "rejected",
+                        ShiftSwapStatus::Cancelled => "cancelled",
+                    });
 
-        let mut query = shift_swap_requests::table
-            .filter(shift_swap_requests::workspace_id.eq(workspace_id))
-            .into_boxed();
+                    let mut query = shift_swap_requests::table
+                        .filter(shift_swap_requests::workspace_id.eq(workspace_id))
+                        .into_boxed();
 
-        if let Some(s) = status_str {
-            query = query.filter(shift_swap_requests::status.eq(s));
-        }
+                    if let Some(s) = status_str {
+                        query = query.filter(shift_swap_requests::status.eq(s));
+                    }
 
-        let swaps: Vec<ShiftSwapRequestEntity> = query
-            .order(shift_swap_requests::created_at.desc())
-            .limit(100)
-            .load(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                    let swaps: Vec<ShiftSwapRequestEntity> = query
+                        .order(shift_swap_requests::created_at.desc())
+                        .limit(100)
+                        .load(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let mut employee_ids = std::collections::HashSet::new();
-        let mut shift_ids = std::collections::HashSet::new();
+                    let mut employee_ids = std::collections::HashSet::new();
+                    let mut shift_ids = std::collections::HashSet::new();
 
-        for s in &swaps {
-            employee_ids.insert(s.requester_id);
-            employee_ids.insert(s.target_id);
-            if let Some(id) = s.requester_template_id {
-                shift_ids.insert(id);
-            }
-            if let Some(id) = s.target_template_id {
-                shift_ids.insert(id);
-            }
-        }
+                    for s in &swaps {
+                        employee_ids.insert(s.requester_id);
+                        employee_ids.insert(s.target_id);
+                        if let Some(id) = s.requester_template_id {
+                            shift_ids.insert(id);
+                        }
+                        if let Some(id) = s.target_template_id {
+                            shift_ids.insert(id);
+                        }
+                    }
 
-        let employee_ids: Vec<Uuid> = employee_ids.into_iter().collect();
-        use crate::schema::employees;
-        let emps: Vec<(Uuid, String)> = employees::table
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::id.eq_any(employee_ids))
-            .select((employees::id, employees::full_name))
-            .load(&mut *conn)
-            .await
-            .unwrap_or_default();
-        let emp_map: std::collections::HashMap<Uuid, String> = emps.into_iter().collect();
+                    let employee_ids: Vec<Uuid> = employee_ids.into_iter().collect();
+                    use crate::schema::employees;
+                    let emps: Vec<(Uuid, String)> = employees::table
+                        .filter(employees::workspace_id.eq(workspace_id))
+                        .filter(employees::id.eq_any(employee_ids))
+                        .select((employees::id, employees::full_name))
+                        .load(conn)
+                        .await
+                        .unwrap_or_default();
+                    let emp_map: std::collections::HashMap<Uuid, String> =
+                        emps.into_iter().collect();
 
-        let shift_ids: Vec<Uuid> = shift_ids.into_iter().collect();
-        use crate::schema::shifts;
-        let shifts_data: Vec<(Uuid, String)> = shifts::table
-            .filter(shifts::workspace_id.eq(workspace_id))
-            .filter(shifts::id.eq_any(shift_ids))
-            .select((shifts::id, shifts::name))
-            .load(&mut *conn)
-            .await
-            .unwrap_or_default();
-        let shift_map: std::collections::HashMap<Uuid, String> = shifts_data.into_iter().collect();
+                    let shift_ids: Vec<Uuid> = shift_ids.into_iter().collect();
+                    use crate::schema::shifts;
+                    let shifts_data: Vec<(Uuid, String)> = shifts::table
+                        .filter(shifts::workspace_id.eq(workspace_id))
+                        .filter(shifts::id.eq_any(shift_ids))
+                        .select((shifts::id, shifts::name))
+                        .load(conn)
+                        .await
+                        .unwrap_or_default();
+                    let shift_map: std::collections::HashMap<Uuid, String> =
+                        shifts_data.into_iter().collect();
 
-        Ok(swaps
-            .into_iter()
-            .map(|s| ShiftSwapRequestWithNamesEntity {
-                id: s.id,
-                workspace_id: s.workspace_id,
-                requester_id: s.requester_id,
-                target_id: s.target_id,
-                swap_date: s.swap_date,
-                requester_template_id: s.requester_template_id,
-                target_template_id: s.target_template_id,
-                status: s.status,
-                reason: s.reason,
-                requested_by_user_id: s.requested_by_user_id,
-                approved_by_user_id: s.approved_by_user_id,
-                created_at: s.created_at,
-                updated_at: s.updated_at,
-                requester_name: emp_map.get(&s.requester_id).cloned(),
-                target_name: emp_map.get(&s.target_id).cloned(),
-                requester_shift_name: s
-                    .requester_template_id
-                    .and_then(|id| shift_map.get(&id).cloned()),
-                target_shift_name: s
-                    .target_template_id
-                    .and_then(|id| shift_map.get(&id).cloned()),
+                    Ok(swaps
+                        .into_iter()
+                        .map(|s| ShiftSwapRequestWithNamesEntity {
+                            id: s.id,
+                            workspace_id: s.workspace_id,
+                            requester_id: s.requester_id,
+                            target_id: s.target_id,
+                            swap_date: s.swap_date,
+                            requester_template_id: s.requester_template_id,
+                            target_template_id: s.target_template_id,
+                            status: s.status,
+                            reason: s.reason,
+                            requested_by_user_id: s.requested_by_user_id,
+                            approved_by_user_id: s.approved_by_user_id,
+                            created_at: s.created_at,
+                            updated_at: s.updated_at,
+                            requester_name: emp_map.get(&s.requester_id).cloned(),
+                            target_name: emp_map.get(&s.target_id).cloned(),
+                            requester_shift_name: s
+                                .requester_template_id
+                                .and_then(|id| shift_map.get(&id).cloned()),
+                            target_shift_name: s
+                                .target_template_id
+                                .and_then(|id| shift_map.get(&id).cloned()),
+                        })
+                        .map(Into::into)
+                        .collect())
+                })
             })
-            .map(Into::into)
-            .collect())
+            .await
     }
 
     async fn update_swap_status(
@@ -307,35 +307,34 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         approver_id: Option<Uuid>,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
 
-        let status_str = match status {
-            ShiftSwapStatus::PendingTarget => "pending_target",
-            ShiftSwapStatus::PendingAdmin => "pending_admin",
-            ShiftSwapStatus::Approved => "approved",
-            ShiftSwapStatus::Rejected => "rejected",
-            ShiftSwapStatus::Cancelled => "cancelled",
-        };
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let status_str = match status {
+                        ShiftSwapStatus::PendingTarget => "pending_target",
+                        ShiftSwapStatus::PendingAdmin => "pending_admin",
+                        ShiftSwapStatus::Approved => "approved",
+                        ShiftSwapStatus::Rejected => "rejected",
+                        ShiftSwapStatus::Cancelled => "cancelled",
+                    };
 
-        diesel::update(shift_swap_requests::table)
-            .filter(shift_swap_requests::id.eq(id))
-            .filter(shift_swap_requests::workspace_id.eq(workspace_id))
-            .set((
-                shift_swap_requests::status.eq(status_str),
-                shift_swap_requests::approved_by_user_id.eq(approver_id),
-                shift_swap_requests::updated_at.eq(Utc::now()),
-            ))
-            .execute(&mut *conn)
+                    diesel::update(shift_swap_requests::table)
+                        .filter(shift_swap_requests::id.eq(id))
+                        .filter(shift_swap_requests::workspace_id.eq(workspace_id))
+                        .set((
+                            shift_swap_requests::status.eq(status_str),
+                            shift_swap_requests::approved_by_user_id.eq(approver_id),
+                            shift_swap_requests::updated_at.eq(Utc::now()),
+                        ))
+                        .execute(conn)
+                        .await
+                        .map_err(AppError::from)?;
+
+                    Ok(())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(())
     }
 
     async fn get_employee_swaps(
@@ -344,90 +343,91 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<ShiftSwapRequestWithNames>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
 
-        let swaps: Vec<ShiftSwapRequestEntity> = shift_swap_requests::table
-            .filter(shift_swap_requests::workspace_id.eq(workspace_id))
-            .filter(
-                shift_swap_requests::requester_id
-                    .eq(employee_id)
-                    .or(shift_swap_requests::target_id.eq(employee_id)),
-            )
-            .order(shift_swap_requests::created_at.desc())
-            .limit(50)
-            .load(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let swaps: Vec<ShiftSwapRequestEntity> = shift_swap_requests::table
+                        .filter(shift_swap_requests::workspace_id.eq(workspace_id))
+                        .filter(
+                            shift_swap_requests::requester_id
+                                .eq(employee_id)
+                                .or(shift_swap_requests::target_id.eq(employee_id)),
+                        )
+                        .order(shift_swap_requests::created_at.desc())
+                        .limit(50)
+                        .load(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let mut employee_ids = std::collections::HashSet::new();
-        let mut shift_ids = std::collections::HashSet::new();
+                    let mut employee_ids = std::collections::HashSet::new();
+                    let mut shift_ids = std::collections::HashSet::new();
 
-        for s in &swaps {
-            employee_ids.insert(s.requester_id);
-            employee_ids.insert(s.target_id);
-            if let Some(id) = s.requester_template_id {
-                shift_ids.insert(id);
-            }
-            if let Some(id) = s.target_template_id {
-                shift_ids.insert(id);
-            }
-        }
+                    for s in &swaps {
+                        employee_ids.insert(s.requester_id);
+                        employee_ids.insert(s.target_id);
+                        if let Some(id) = s.requester_template_id {
+                            shift_ids.insert(id);
+                        }
+                        if let Some(id) = s.target_template_id {
+                            shift_ids.insert(id);
+                        }
+                    }
 
-        let employee_ids: Vec<Uuid> = employee_ids.into_iter().collect();
-        use crate::schema::employees;
-        let emps: Vec<(Uuid, String)> = employees::table
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::id.eq_any(employee_ids))
-            .select((employees::id, employees::full_name))
-            .load(&mut *conn)
-            .await
-            .unwrap_or_default();
-        let emp_map: std::collections::HashMap<Uuid, String> = emps.into_iter().collect();
+                    let employee_ids: Vec<Uuid> = employee_ids.into_iter().collect();
+                    use crate::schema::employees;
+                    let emps: Vec<(Uuid, String)> = employees::table
+                        .filter(employees::workspace_id.eq(workspace_id))
+                        .filter(employees::id.eq_any(employee_ids))
+                        .select((employees::id, employees::full_name))
+                        .load(conn)
+                        .await
+                        .unwrap_or_default();
+                    let emp_map: std::collections::HashMap<Uuid, String> =
+                        emps.into_iter().collect();
 
-        let shift_ids: Vec<Uuid> = shift_ids.into_iter().collect();
-        use crate::schema::shifts;
-        let shifts_data: Vec<(Uuid, String)> = shifts::table
-            .filter(shifts::workspace_id.eq(workspace_id))
-            .filter(shifts::id.eq_any(shift_ids))
-            .select((shifts::id, shifts::name))
-            .load(&mut *conn)
-            .await
-            .unwrap_or_default();
-        let shift_map: std::collections::HashMap<Uuid, String> = shifts_data.into_iter().collect();
+                    let shift_ids: Vec<Uuid> = shift_ids.into_iter().collect();
+                    use crate::schema::shifts;
+                    let shifts_data: Vec<(Uuid, String)> = shifts::table
+                        .filter(shifts::workspace_id.eq(workspace_id))
+                        .filter(shifts::id.eq_any(shift_ids))
+                        .select((shifts::id, shifts::name))
+                        .load(conn)
+                        .await
+                        .unwrap_or_default();
+                    let shift_map: std::collections::HashMap<Uuid, String> =
+                        shifts_data.into_iter().collect();
 
-        Ok(swaps
-            .into_iter()
-            .map(|s| ShiftSwapRequestWithNamesEntity {
-                id: s.id,
-                workspace_id: s.workspace_id,
-                requester_id: s.requester_id,
-                target_id: s.target_id,
-                swap_date: s.swap_date,
-                requester_template_id: s.requester_template_id,
-                target_template_id: s.target_template_id,
-                status: s.status,
-                reason: s.reason,
-                requested_by_user_id: s.requested_by_user_id,
-                approved_by_user_id: s.approved_by_user_id,
-                created_at: s.created_at,
-                updated_at: s.updated_at,
-                requester_name: emp_map.get(&s.requester_id).cloned(),
-                target_name: emp_map.get(&s.target_id).cloned(),
-                requester_shift_name: s
-                    .requester_template_id
-                    .and_then(|id| shift_map.get(&id).cloned()),
-                target_shift_name: s
-                    .target_template_id
-                    .and_then(|id| shift_map.get(&id).cloned()),
+                    Ok(swaps
+                        .into_iter()
+                        .map(|s| ShiftSwapRequestWithNamesEntity {
+                            id: s.id,
+                            workspace_id: s.workspace_id,
+                            requester_id: s.requester_id,
+                            target_id: s.target_id,
+                            swap_date: s.swap_date,
+                            requester_template_id: s.requester_template_id,
+                            target_template_id: s.target_template_id,
+                            status: s.status,
+                            reason: s.reason,
+                            requested_by_user_id: s.requested_by_user_id,
+                            approved_by_user_id: s.approved_by_user_id,
+                            created_at: s.created_at,
+                            updated_at: s.updated_at,
+                            requester_name: emp_map.get(&s.requester_id).cloned(),
+                            target_name: emp_map.get(&s.target_id).cloned(),
+                            requester_shift_name: s
+                                .requester_template_id
+                                .and_then(|id| shift_map.get(&id).cloned()),
+                            target_shift_name: s
+                                .target_template_id
+                                .and_then(|id| shift_map.get(&id).cloned()),
+                        })
+                        .map(Into::into)
+                        .collect())
+                })
             })
-            .map(Into::into)
-            .collect())
+            .await
     }
 
     async fn has_active_swap(
@@ -438,27 +438,26 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         swap_date: NaiveDate,
     ) -> Result<bool, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
 
-        let exists: bool = diesel::select(diesel::dsl::exists(
-            shift_swap_requests::table
-                .filter(shift_swap_requests::workspace_id.eq(workspace_id))
-                .filter(shift_swap_requests::requester_id.eq(requester_id))
-                .filter(shift_swap_requests::target_id.eq(target_id))
-                .filter(shift_swap_requests::swap_date.eq(swap_date))
-                .filter(shift_swap_requests::status.ne_all(["cancelled", "rejected"])),
-        ))
-        .get_result(&mut *conn)
-        .await
-        .map_err(AppError::from)?;
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let exists: bool = diesel::select(diesel::dsl::exists(
+                        shift_swap_requests::table
+                            .filter(shift_swap_requests::workspace_id.eq(workspace_id))
+                            .filter(shift_swap_requests::requester_id.eq(requester_id))
+                            .filter(shift_swap_requests::target_id.eq(target_id))
+                            .filter(shift_swap_requests::swap_date.eq(swap_date))
+                            .filter(shift_swap_requests::status.ne_all(["cancelled", "rejected"])),
+                    ))
+                    .get_result(conn)
+                    .await
+                    .map_err(AppError::from)?;
 
-        Ok(exists)
+                    Ok(exists)
+                })
+            })
+            .await
     }
 
     async fn has_approved_swap_on_date(
@@ -468,30 +467,29 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         swap_date: NaiveDate,
     ) -> Result<bool, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
 
-        let exists: bool = diesel::select(diesel::dsl::exists(
-            shift_swap_requests::table
-                .filter(shift_swap_requests::workspace_id.eq(workspace_id))
-                .filter(
-                    shift_swap_requests::requester_id
-                        .eq(employee_id)
-                        .or(shift_swap_requests::target_id.eq(employee_id)),
-                )
-                .filter(shift_swap_requests::swap_date.eq(swap_date))
-                .filter(shift_swap_requests::status.eq("approved")),
-        ))
-        .get_result(&mut *conn)
-        .await
-        .map_err(AppError::from)?;
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let exists: bool = diesel::select(diesel::dsl::exists(
+                        shift_swap_requests::table
+                            .filter(shift_swap_requests::workspace_id.eq(workspace_id))
+                            .filter(
+                                shift_swap_requests::requester_id
+                                    .eq(employee_id)
+                                    .or(shift_swap_requests::target_id.eq(employee_id)),
+                            )
+                            .filter(shift_swap_requests::swap_date.eq(swap_date))
+                            .filter(shift_swap_requests::status.eq("approved")),
+                    ))
+                    .get_result(conn)
+                    .await
+                    .map_err(AppError::from)?;
 
-        Ok(exists)
+                    Ok(exists)
+                })
+            })
+            .await
     }
 
     async fn get_workspace_swap_stats(
@@ -499,13 +497,10 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<SwapStats, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&auth_token.workspace_id())
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
 
         let result = shift_swap_requests::table
         .filter(shift_swap_requests::workspace_id.eq(workspace_id))
@@ -518,7 +513,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
             diesel::dsl::sql::<diesel::sql_types::BigInt>("COALESCE(SUM(CASE WHEN status = 'approved' AND created_at >= date_trunc('month', CURRENT_DATE) THEN 1 ELSE 0 END), 0)"),
             diesel::dsl::sql::<diesel::sql_types::BigInt>("COALESCE(SUM(CASE WHEN status = 'rejected' AND created_at >= date_trunc('month', CURRENT_DATE) THEN 1 ELSE 0 END), 0)"),
         ))
-        .first::<(i64, i64, i64, i64, i64, i64, i64)>(&mut *conn)
+        .first::<(i64, i64, i64, i64, i64, i64, i64)>(conn)
         .await
         .map_err(AppError::from)?;
 
@@ -533,6 +528,9 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         };
 
         Ok(entity.into())
+                })
+            })
+            .await
     }
 }
 

@@ -1,3 +1,4 @@
+use crate::diesel_pool::DieselPoolsTenantTxExt;
 use crate::errors::AppError;
 use async_trait::async_trait;
 use diesel::prelude::*;
@@ -67,18 +68,20 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employment_id: Uuid,
     ) -> Result<Vec<EmployeeAssignment>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants_tx
-            .get_connection(&auth_token.workspace_id())
-            .await?;
-        let assignments = employee_assignments::table
-            .filter(employee_assignments::workspace_id.eq(auth_token.workspace_id()))
-            .filter(employee_assignments::employment_id.eq(employment_id))
-            .order(employee_assignments::start_date.desc())
-            .load::<EmployeeAssignment>(&mut conn)
-            .await?;
-        Ok(assignments)
+        let workspace_id = auth_token.workspace_id();
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let assignments = employee_assignments::table
+                        .filter(employee_assignments::workspace_id.eq(workspace_id))
+                        .filter(employee_assignments::employment_id.eq(employment_id))
+                        .order(employee_assignments::start_date.desc())
+                        .load::<EmployeeAssignment>(conn)
+                        .await?;
+                    Ok(assignments)
+                })
+            })
+            .await
     }
 
     async fn get_employee_assignment(
@@ -87,19 +90,21 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
         employment_id: Uuid,
         assignment_id: Uuid,
     ) -> Result<Option<EmployeeAssignment>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants_tx
-            .get_connection(&auth_token.workspace_id())
-            .await?;
-        let assignment = employee_assignments::table
-            .filter(employee_assignments::id.eq(assignment_id))
-            .filter(employee_assignments::workspace_id.eq(auth_token.workspace_id()))
-            .filter(employee_assignments::employment_id.eq(employment_id))
-            .first::<EmployeeAssignment>(&mut conn)
+        let workspace_id = auth_token.workspace_id();
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let assignment = employee_assignments::table
+                        .filter(employee_assignments::id.eq(assignment_id))
+                        .filter(employee_assignments::workspace_id.eq(workspace_id))
+                        .filter(employee_assignments::employment_id.eq(employment_id))
+                        .first::<EmployeeAssignment>(conn)
+                        .await
+                        .optional()?;
+                    Ok(assignment)
+                })
+            })
             .await
-            .optional()?;
-        Ok(assignment)
     }
 
     async fn create_employee_assignment(
@@ -107,16 +112,24 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         assignment: &NewEmployeeAssignment,
     ) -> Result<EmployeeAssignment, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants_tx
-            .get_connection(&auth_token.workspace_id())
-            .await?;
-        let created = diesel::insert_into(employee_assignments::table)
-            .values(assignment)
-            .get_result(&mut conn)
-            .await?;
-        Ok(created)
+        let workspace_id = auth_token.workspace_id();
+        if assignment.workspace_id != workspace_id {
+            return Err(AppError::forbidden(
+                crate::utils::i18n::I18nKey::TenantMismatch,
+            ));
+        }
+
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let created = diesel::insert_into(employee_assignments::table)
+                        .values(assignment)
+                        .get_result(conn)
+                        .await?;
+                    Ok(created)
+                })
+            })
+            .await
     }
 
     async fn update_employee_assignment(
@@ -126,21 +139,23 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
         assignment_id: Uuid,
         req: &UpdateEmployeeAssignmentRequest,
     ) -> Result<EmployeeAssignment, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants_tx
-            .get_connection(&auth_token.workspace_id())
-            .await?;
-        let updated = diesel::update(
-            employee_assignments::table
-                .filter(employee_assignments::id.eq(assignment_id))
-                .filter(employee_assignments::workspace_id.eq(auth_token.workspace_id()))
-                .filter(employee_assignments::employment_id.eq(employment_id)),
-        )
-        .set(req)
-        .get_result(&mut conn)
-        .await?;
-        Ok(updated)
+        let workspace_id = auth_token.workspace_id();
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let updated = diesel::update(
+                        employee_assignments::table
+                            .filter(employee_assignments::id.eq(assignment_id))
+                            .filter(employee_assignments::workspace_id.eq(workspace_id))
+                            .filter(employee_assignments::employment_id.eq(employment_id)),
+                    )
+                    .set(req)
+                    .get_result(conn)
+                    .await?;
+                    Ok(updated)
+                })
+            })
+            .await
     }
 
     async fn delete_employee_assignment(
@@ -149,20 +164,22 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
         employment_id: Uuid,
         assignment_id: Uuid,
     ) -> Result<u64, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants_tx
-            .get_connection(&auth_token.workspace_id())
-            .await?;
-        let deleted = diesel::delete(
-            employee_assignments::table
-                .filter(employee_assignments::id.eq(assignment_id))
-                .filter(employee_assignments::workspace_id.eq(auth_token.workspace_id()))
-                .filter(employee_assignments::employment_id.eq(employment_id)),
-        )
-        .execute(&mut conn)
-        .await?;
-        Ok(deleted as u64)
+        let workspace_id = auth_token.workspace_id();
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let deleted = diesel::delete(
+                        employee_assignments::table
+                            .filter(employee_assignments::id.eq(assignment_id))
+                            .filter(employee_assignments::workspace_id.eq(workspace_id))
+                            .filter(employee_assignments::employment_id.eq(employment_id)),
+                    )
+                    .execute(conn)
+                    .await?;
+                    Ok(deleted as u64)
+                })
+            })
+            .await
     }
 
     async fn list_assignments_batch(
@@ -170,26 +187,30 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employment_ids: &[Uuid],
     ) -> Result<std::collections::HashMap<Uuid, Vec<EmployeeAssignment>>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants_tx
-            .get_connection(&auth_token.workspace_id())
-            .await?;
-        let assignments = employee_assignments::table
-            .filter(employee_assignments::workspace_id.eq(auth_token.workspace_id()))
-            .filter(employee_assignments::employment_id.eq_any(employment_ids))
-            .order((
-                employee_assignments::employment_id.asc(),
-                employee_assignments::start_date.desc(),
-            ))
-            .load::<EmployeeAssignment>(&mut conn)
-            .await?;
+        let workspace_id = auth_token.workspace_id();
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let assignments = employee_assignments::table
+                        .filter(employee_assignments::workspace_id.eq(workspace_id))
+                        .filter(employee_assignments::employment_id.eq_any(employment_ids))
+                        .order((
+                            employee_assignments::employment_id.asc(),
+                            employee_assignments::start_date.desc(),
+                        ))
+                        .load::<EmployeeAssignment>(conn)
+                        .await?;
 
-        let mut map: std::collections::HashMap<Uuid, Vec<EmployeeAssignment>> =
-            std::collections::HashMap::new();
-        for a in assignments {
-            map.entry(a.employment_id).or_default().push(a);
-        }
-        Ok(map)
+                    let mut map: std::collections::HashMap<Uuid, Vec<EmployeeAssignment>> =
+                        std::collections::HashMap::new();
+                    for assignment in assignments {
+                        map.entry(assignment.employment_id)
+                            .or_default()
+                            .push(assignment);
+                    }
+                    Ok(map)
+                })
+            })
+            .await
     }
 }

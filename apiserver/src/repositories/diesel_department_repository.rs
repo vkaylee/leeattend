@@ -5,6 +5,7 @@ use diesel_async::RunQueryDsl;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
+use crate::diesel_pool::DieselPoolsTenantTxExt;
 use crate::errors::AppError;
 use crate::models::diesel::department::{
     DieselDepartment, NewDieselDepartment, UpdateDieselDepartment,
@@ -786,102 +787,105 @@ impl DepartmentRepository for DieselDepartmentRepository {
         hours_per_day: Decimal,
         effective_date: NaiveDate,
     ) -> Result<DepartmentPayrollConfig, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenant_transaction_conn(auth_token)
-            .await?;
         let workspace_id = auth_token.workspace_id();
 
-        // Check if department exists and belongs to the workspace of this tenant
-        let department_exists = departments::table
-            .filter(departments::id.eq(department_id))
-            .filter(departments::workspace_id.eq(workspace_id))
-            .filter(departments::deleted_at.is_null())
-            .select(departments::id)
-            .first::<Uuid>(&mut *conn)
-            .await
-            .optional()
-            .map_err(|e| AppError::Internal(format!("db check department: {e}")))?;
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    // Check if department exists and belongs to the workspace of this tenant
+                    let department_exists = departments::table
+                        .filter(departments::id.eq(department_id))
+                        .filter(departments::workspace_id.eq(workspace_id))
+                        .filter(departments::deleted_at.is_null())
+                        .select(departments::id)
+                        .first::<Uuid>(conn)
+                        .await
+                        .optional()
+                        .map_err(|e| AppError::Internal(format!("db check department: {e}")))?;
 
-        if department_exists.is_none() {
-            return Err(AppError::not_found(
-                crate::utils::i18n::I18nKey::DepartmentNotFound,
-            ));
-        }
+                    if department_exists.is_none() {
+                        return Err(AppError::not_found(
+                            crate::utils::i18n::I18nKey::DepartmentNotFound,
+                        ));
+                    }
 
-        use crate::schema::workspace_config_entries;
+                    use crate::schema::workspace_config_entries;
 
-        let keys_and_values = vec![
-            ("payroll.fixed_std_days", std_working_days),
-            ("payroll.hours_per_day", hours_per_day),
-        ];
+                    let keys_and_values = vec![
+                        ("payroll.fixed_std_days", std_working_days),
+                        ("payroll.hours_per_day", hours_per_day),
+                    ];
 
-        let mut first_id = Uuid::new_v4();
+                    let mut first_id = Uuid::new_v4();
 
-        for (key, val) in keys_and_values {
-            let existing = workspace_config_entries::table
-                .filter(workspace_config_entries::workspace_id.eq(workspace_id))
-                .filter(workspace_config_entries::scope_type.eq("department"))
-                .filter(workspace_config_entries::scope_id.eq(department_id))
-                .filter(workspace_config_entries::config_key.eq(key))
-                .filter(workspace_config_entries::effective_from.eq(effective_date))
-                .first::<crate::models::WorkspaceConfigEntry>(&mut *conn)
-                .await
-                .optional()
-                .map_err(AppError::from)?;
+                    for (key, val) in keys_and_values {
+                        let existing = workspace_config_entries::table
+                            .filter(workspace_config_entries::workspace_id.eq(workspace_id))
+                            .filter(workspace_config_entries::scope_type.eq("department"))
+                            .filter(workspace_config_entries::scope_id.eq(department_id))
+                            .filter(workspace_config_entries::config_key.eq(key))
+                            .filter(workspace_config_entries::effective_from.eq(effective_date))
+                            .first::<crate::models::WorkspaceConfigEntry>(conn)
+                            .await
+                            .optional()
+                            .map_err(AppError::from)?;
 
-            if let Some(entry) = existing {
-                first_id = entry.id();
-                diesel::update(
-                    workspace_config_entries::table
-                        .filter(workspace_config_entries::id.eq(entry.id())),
-                )
-                .set((
-                    workspace_config_entries::value_decimal.eq(val),
-                    workspace_config_entries::updated_at.eq(chrono::Utc::now()),
-                ))
-                .execute(&mut *conn)
-                .await
-                .map_err(AppError::from)?;
-            } else {
-                let id = Uuid::new_v4();
-                if key == "payroll.fixed_std_days" {
-                    first_id = id;
-                }
-                let entry =
-                    crate::models::WorkspaceConfigEntry::new(NewWorkspaceConfigEntryParams {
-                        id,
-                        workspace_id,
-                        scope_type: "department".to_string(),
-                        scope_id: Some(department_id),
-                        config_key: key.to_string(),
-                        value_int: None,
-                        value_decimal: Some(val),
-                        value_text: None,
-                        value_bool: None,
-                        value_json: None,
-                        effective_from: effective_date,
-                        effective_to: None,
-                        created_by: None,
+                        if let Some(entry) = existing {
+                            first_id = entry.id();
+                            diesel::update(
+                                workspace_config_entries::table
+                                    .filter(workspace_config_entries::id.eq(entry.id())),
+                            )
+                            .set((
+                                workspace_config_entries::value_decimal.eq(val),
+                                workspace_config_entries::updated_at.eq(chrono::Utc::now()),
+                            ))
+                            .execute(conn)
+                            .await
+                            .map_err(AppError::from)?;
+                        } else {
+                            let id = Uuid::new_v4();
+                            if key == "payroll.fixed_std_days" {
+                                first_id = id;
+                            }
+                            let entry = crate::models::WorkspaceConfigEntry::new(
+                                NewWorkspaceConfigEntryParams {
+                                    id,
+                                    workspace_id,
+                                    scope_type: "department".to_string(),
+                                    scope_id: Some(department_id),
+                                    config_key: key.to_string(),
+                                    value_int: None,
+                                    value_decimal: Some(val),
+                                    value_text: None,
+                                    value_bool: None,
+                                    value_json: None,
+                                    effective_from: effective_date,
+                                    effective_to: None,
+                                    created_by: None,
+                                    created_at: chrono::Utc::now(),
+                                    updated_at: chrono::Utc::now(),
+                                },
+                            );
+                            diesel::insert_into(workspace_config_entries::table)
+                                .values(&entry)
+                                .execute(conn)
+                                .await
+                                .map_err(AppError::from)?;
+                        }
+                    }
+
+                    Ok(DepartmentPayrollConfig {
+                        id: first_id,
+                        department_id,
+                        std_working_days,
+                        hours_per_day,
+                        effective_date,
                         created_at: chrono::Utc::now(),
-                        updated_at: chrono::Utc::now(),
-                    });
-                diesel::insert_into(workspace_config_entries::table)
-                    .values(&entry)
-                    .execute(&mut *conn)
-                    .await
-                    .map_err(AppError::from)?;
-            }
-        }
-
-        Ok(DepartmentPayrollConfig {
-            id: first_id,
-            department_id,
-            std_working_days,
-            hours_per_day,
-            effective_date,
-            created_at: chrono::Utc::now(),
-        })
+                    })
+                })
+            })
+            .await
     }
 
     async fn get_department_payroll_config_at(

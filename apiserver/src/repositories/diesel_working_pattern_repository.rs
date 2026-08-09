@@ -1,9 +1,9 @@
 use chrono::NaiveDate;
 use diesel::prelude::*;
-use diesel_async::{AsyncConnection, RunQueryDsl};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use uuid::Uuid;
 
-use crate::diesel_pool::DieselPools;
+use crate::diesel_pool::{DieselPools, DieselPoolsTenantTxExt, TenantAuthToken};
 use crate::errors::AppError;
 use crate::models::diesel::working_pattern::{
     EmployeeWorkingPatternEntity, WorkingPatternDetailEntity, WorkingPatternEntity,
@@ -46,21 +46,14 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         cycle_length_days: Option<i32>,
         details: Vec<(i32, Option<Uuid>)>,
     ) -> Result<WorkingPattern, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
-        let name_owned = name.to_string();
-        let description_owned = description.map(ToString::to_string);
-        let pattern_type_owned = pattern_type.to_string();
-
-        let result = conn
-            .transaction(|conn| {
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
                 Box::pin(async move {
+                    let name_owned = name.to_string();
+                    let description_owned = description.map(ToString::to_string);
+                    let pattern_type_owned = pattern_type.to_string();
+
                     let pattern_entity = diesel::insert_into(working_patterns::table)
                         .values((
                             working_patterns::workspace_id.eq(workspace_id),
@@ -71,7 +64,12 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                         ))
                         .returning(WorkingPatternEntity::as_returning())
                         .get_result::<WorkingPatternEntity>(&mut *conn)
-                        .await?;
+                        .await
+                        .map_err(|e| {
+                            AppError::Internal(format!(
+                                "Failed to create pattern with details: {e}"
+                            ))
+                        })?;
 
                     let detail_records: Vec<_> = details
                         .into_iter()
@@ -88,44 +86,37 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                         diesel::insert_into(working_pattern_details::table)
                             .values(&detail_records)
                             .execute(&mut *conn)
-                            .await?;
+                            .await
+                            .map_err(|e| {
+                                AppError::Internal(format!(
+                                    "Failed to create pattern with details: {e}"
+                                ))
+                            })?;
                     }
 
-                    Ok::<_, diesel::result::Error>(pattern_entity)
+                    Ok(pattern_entity.into())
                 })
             })
             .await
-            .map_err(|e| {
-                AppError::Internal(format!("Failed to create pattern with details: {e}"))
-            })?;
-
-        Ok(result.into())
     }
 
     async fn update_pattern_with_details(
         &self,
         args: UpdatePatternWithDetailsArgs<'_>,
     ) -> Result<WorkingPattern, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&args.workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
-        let name_owned = args.name.to_string();
-        let description_owned = args.description.map(ToString::to_string);
-        let pattern_type_owned = args.pattern_type.to_string();
-        let pattern_id = args.pattern_id;
-
-        let workspace_id = args.workspace_id;
-        let cycle_length_days_val = args.cycle_length_days;
-        let details = args.details;
-
-        let result = conn
-            .transaction(move |conn| {
+        let auth_token = TenantAuthToken::system_override(args.workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
                 Box::pin(async move {
+                    let name_owned = args.name.to_string();
+                    let description_owned = args.description.map(ToString::to_string);
+                    let pattern_type_owned = args.pattern_type.to_string();
+                    let pattern_id = args.pattern_id;
+
+                    let workspace_id = args.workspace_id;
+                    let cycle_length_days_val = args.cycle_length_days;
+                    let details = args.details;
+
                     let pattern_entity = diesel::update(
                         working_patterns::table
                             .filter(working_patterns::id.eq(pattern_id))
@@ -139,14 +130,20 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                     ))
                     .returning(WorkingPatternEntity::as_returning())
                     .get_result::<WorkingPatternEntity>(&mut *conn)
-                    .await?;
+                    .await
+                    .map_err(|e| {
+                        AppError::Internal(format!("Failed to update pattern with details: {e}"))
+                    })?;
 
                     diesel::delete(
                         working_pattern_details::table
                             .filter(working_pattern_details::pattern_id.eq(pattern_id)),
                     )
                     .execute(&mut *conn)
-                    .await?;
+                    .await
+                    .map_err(|e| {
+                        AppError::Internal(format!("Failed to update pattern with details: {e}"))
+                    })?;
 
                     let detail_records: Vec<_> = details
                         .into_iter()
@@ -163,40 +160,39 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                         diesel::insert_into(working_pattern_details::table)
                             .values(&detail_records)
                             .execute(&mut *conn)
-                            .await?;
+                            .await
+                            .map_err(|e| {
+                                AppError::Internal(format!(
+                                    "Failed to update pattern with details: {e}"
+                                ))
+                            })?;
                     }
 
-                    Ok::<_, diesel::result::Error>(pattern_entity)
+                    Ok(pattern_entity.into())
                 })
             })
             .await
-            .map_err(|e| {
-                AppError::Internal(format!("Failed to update pattern with details: {e}"))
-            })?;
-
-        Ok(result.into())
     }
 
     async fn get_patterns(&self, workspace_id: Uuid) -> Result<Vec<WorkingPattern>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
-        map_db_err!(
-            working_patterns::table
-                .filter(working_patterns::workspace_id.eq(workspace_id))
-                .filter(working_patterns::is_active.eq(true))
-                .filter(working_patterns::deleted_at.is_null())
-                .order(working_patterns::name.asc())
-                .select(WorkingPatternEntity::as_select())
-                .load(&mut *conn)
-                .await
-        )
-        .map(|rows| rows.into_iter().map(Into::into).collect())
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    map_db_err!(
+                        working_patterns::table
+                            .filter(working_patterns::workspace_id.eq(workspace_id))
+                            .filter(working_patterns::is_active.eq(true))
+                            .filter(working_patterns::deleted_at.is_null())
+                            .order(working_patterns::name.asc())
+                            .select(WorkingPatternEntity::as_select())
+                            .load(&mut *conn)
+                            .await
+                    )
+                    .map(|rows| rows.into_iter().map(Into::into).collect())
+                })
+            })
+            .await
     }
 
     async fn get_pattern_details(
@@ -204,23 +200,22 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         workspace_id: Uuid,
         pattern_id: Uuid,
     ) -> Result<Vec<WorkingPatternDetail>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
-        map_db_err!(
-            working_pattern_details::table
-                .filter(working_pattern_details::pattern_id.eq(pattern_id))
-                .order(working_pattern_details::schedule_day.asc())
-                .select(WorkingPatternDetailEntity::as_select())
-                .load(&mut *conn)
-                .await
-        )
-        .map(|rows| rows.into_iter().map(Into::into).collect())
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    map_db_err!(
+                        working_pattern_details::table
+                            .filter(working_pattern_details::pattern_id.eq(pattern_id))
+                            .order(working_pattern_details::schedule_day.asc())
+                            .select(WorkingPatternDetailEntity::as_select())
+                            .load(&mut *conn)
+                            .await
+                    )
+                    .map(|rows| rows.into_iter().map(Into::into).collect())
+                })
+            })
+            .await
     }
 
     async fn assign_pattern(
@@ -232,44 +227,43 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         end_date: Option<NaiveDate>,
         anchor_date: Option<NaiveDate>,
     ) -> Result<EmployeeWorkingPattern, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    // Check if employment exists and belongs to the workspace of this tenant
+                    let employment_exists = crate::schema::employments::table
+                        .filter(crate::schema::employments::id.eq(employment_id))
+                        .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+                        .filter(crate::schema::employments::deleted_at.is_null())
+                        .select(crate::schema::employments::id)
+                        .first::<Uuid>(&mut *conn)
+                        .await
+                        .optional()
+                        .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
-        // Check if employment exists and belongs to the workspace of this tenant
-        let employment_exists = crate::schema::employments::table
-            .filter(crate::schema::employments::id.eq(employment_id))
-            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
-            .filter(crate::schema::employments::deleted_at.is_null())
-            .select(crate::schema::employments::id)
-            .first::<Uuid>(&mut *conn)
+                    if employment_exists.is_none() {
+                        return Err(AppError::not_found(I18nKey::EmploymentNotFound));
+                    }
+
+                    map_db_err!(
+                        diesel::insert_into(employee_working_patterns::table)
+                            .values((
+                                employee_working_patterns::workspace_id.eq(workspace_id),
+                                employee_working_patterns::employment_id.eq(employment_id),
+                                employee_working_patterns::pattern_id.eq(pattern_id),
+                                employee_working_patterns::start_date.eq(start_date),
+                                employee_working_patterns::end_date.eq(end_date),
+                                employee_working_patterns::anchor_date.eq(anchor_date),
+                            ))
+                            .returning(EmployeeWorkingPatternEntity::as_returning())
+                            .get_result(&mut *conn)
+                            .await
+                    )
+                    .map(Into::into)
+                })
+            })
             .await
-            .optional()
-            .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
-
-        if employment_exists.is_none() {
-            return Err(AppError::not_found(I18nKey::EmploymentNotFound));
-        }
-
-        map_db_err!(
-            diesel::insert_into(employee_working_patterns::table)
-                .values((
-                    employee_working_patterns::workspace_id.eq(workspace_id),
-                    employee_working_patterns::employment_id.eq(employment_id),
-                    employee_working_patterns::pattern_id.eq(pattern_id),
-                    employee_working_patterns::start_date.eq(start_date),
-                    employee_working_patterns::end_date.eq(end_date),
-                    employee_working_patterns::anchor_date.eq(anchor_date),
-                ))
-                .returning(EmployeeWorkingPatternEntity::as_returning())
-                .get_result(&mut *conn)
-                .await
-        )
-        .map(Into::into)
     }
 
     async fn get_employment_pattern_history(
@@ -277,24 +271,23 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         workspace_id: Uuid,
         employment_id: Uuid,
     ) -> Result<Vec<EmployeeWorkingPattern>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
-        map_db_err!(
-            employee_working_patterns::table
-                .filter(employee_working_patterns::workspace_id.eq(workspace_id))
-                .filter(employee_working_patterns::employment_id.eq(employment_id))
-                .order(employee_working_patterns::start_date.desc())
-                .select(EmployeeWorkingPatternEntity::as_select())
-                .load(&mut *conn)
-                .await
-        )
-        .map(|rows| rows.into_iter().map(Into::into).collect())
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    map_db_err!(
+                        employee_working_patterns::table
+                            .filter(employee_working_patterns::workspace_id.eq(workspace_id))
+                            .filter(employee_working_patterns::employment_id.eq(employment_id))
+                            .order(employee_working_patterns::start_date.desc())
+                            .select(EmployeeWorkingPatternEntity::as_select())
+                            .load(&mut *conn)
+                            .await
+                    )
+                    .map(|rows| rows.into_iter().map(Into::into).collect())
+                })
+            })
+            .await
     }
 
     async fn bulk_assign_pattern(
@@ -306,83 +299,75 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         end_date: Option<NaiveDate>,
         anchor_date: Option<NaiveDate>,
     ) -> Result<BulkAssignResponse, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    // Verify all employment_ids belong to this workspace
+                    let valid_count = crate::schema::employments::table
+                        .filter(crate::schema::employments::id.eq_any(employment_ids))
+                        .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+                        .filter(crate::schema::employments::deleted_at.is_null())
+                        .count()
+                        .get_result::<i64>(&mut *conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db check employments: {e}")))?;
 
-        // Verify all employment_ids belong to this workspace
-        let valid_count = crate::schema::employments::table
-            .filter(crate::schema::employments::id.eq_any(employment_ids))
-            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
-            .filter(crate::schema::employments::deleted_at.is_null())
-            .count()
-            .get_result::<i64>(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db check employments: {e}")))?;
+                    if valid_count != i64::try_from(employment_ids.len()).unwrap_or(0) {
+                        return Err(AppError::not_found(I18nKey::EmploymentNotFound));
+                    }
 
-        if valid_count != i64::try_from(employment_ids.len()).unwrap_or(0) {
-            return Err(AppError::not_found(I18nKey::EmploymentNotFound));
-        }
+                    let conflicts: Vec<Uuid> = employee_working_patterns::table
+                        .filter(employee_working_patterns::workspace_id.eq(workspace_id))
+                        .filter(employee_working_patterns::start_date.eq(start_date))
+                        .filter(employee_working_patterns::employment_id.eq_any(employment_ids))
+                        .select(employee_working_patterns::employment_id)
+                        .load(&mut *conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let conflicts: Vec<Uuid> = employee_working_patterns::table
-            .filter(employee_working_patterns::workspace_id.eq(workspace_id))
-            .filter(employee_working_patterns::start_date.eq(start_date))
-            .filter(employee_working_patterns::employment_id.eq_any(employment_ids))
-            .select(employee_working_patterns::employment_id)
-            .load(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                    if !conflicts.is_empty() {
+                        return Ok(BulkAssignResponse {
+                            success_count: 0,
+                            failed_employees: conflicts,
+                        });
+                    }
 
-        if !conflicts.is_empty() {
-            return Ok(BulkAssignResponse {
-                success_count: 0,
-                failed_employees: conflicts,
-            });
-        }
+                    let assignment_records: Vec<_> = employment_ids
+                        .iter()
+                        .map(|&employment_id| {
+                            (
+                                employee_working_patterns::workspace_id.eq(workspace_id),
+                                employee_working_patterns::employment_id.eq(employment_id),
+                                employee_working_patterns::pattern_id.eq(pattern_id),
+                                employee_working_patterns::start_date.eq(start_date),
+                                employee_working_patterns::end_date.eq(end_date),
+                                employee_working_patterns::anchor_date.eq(anchor_date),
+                            )
+                        })
+                        .collect();
 
-        let assignment_records: Vec<_> = employment_ids
-            .iter()
-            .map(|&employment_id| {
-                (
-                    employee_working_patterns::workspace_id.eq(workspace_id),
-                    employee_working_patterns::employment_id.eq(employment_id),
-                    employee_working_patterns::pattern_id.eq(pattern_id),
-                    employee_working_patterns::start_date.eq(start_date),
-                    employee_working_patterns::end_date.eq(end_date),
-                    employee_working_patterns::anchor_date.eq(anchor_date),
-                )
+                    if !assignment_records.is_empty() {
+                        diesel::insert_into(employee_working_patterns::table)
+                            .values(&assignment_records)
+                            .execute(&mut *conn)
+                            .await
+                            .map_err(AppError::from)?;
+                    }
+
+                    Ok(BulkAssignResponse {
+                        success_count: employment_ids.len(),
+                        failed_employees: vec![],
+                    })
+                })
             })
-            .collect();
-
-        if !assignment_records.is_empty() {
-            diesel::insert_into(employee_working_patterns::table)
-                .values(&assignment_records)
-                .execute(&mut *conn)
-                .await
-                .map_err(AppError::from)?;
-        }
-
-        Ok(BulkAssignResponse {
-            success_count: employment_ids.len(),
-            failed_employees: vec![],
-        })
+            .await
     }
 
     async fn delete_pattern(&self, workspace_id: Uuid, pattern_id: Uuid) -> Result<(), AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
-        let result = conn
-            .transaction(|conn| {
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
                 Box::pin(async move {
                     diesel::update(
                         working_patterns::table
@@ -391,15 +376,13 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                     )
                     .set(working_patterns::deleted_at.eq(chrono::Utc::now()))
                     .execute(&mut *conn)
-                    .await?;
+                    .await
+                    .map_err(|e| AppError::Internal(format!("Failed to delete pattern: {e}")))?;
 
-                    Ok::<_, diesel::result::Error>(())
+                    Ok(())
                 })
             })
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to delete pattern: {e}")))?;
-
-        Ok(result)
     }
 }
 

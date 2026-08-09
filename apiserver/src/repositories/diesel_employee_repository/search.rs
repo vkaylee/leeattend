@@ -1,4 +1,5 @@
 use super::*;
+use crate::diesel_pool::DieselPoolsTenantTxExt;
 use crate::errors::AppError;
 use crate::models::diesel::employee::EmployeeRow;
 use crate::models::Employee;
@@ -15,14 +16,9 @@ impl DieselEmployeeRepository {
         employee_id_number: &str,
     ) -> Result<Option<Employee>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
         let normalized_id = crate::utils::normalize_employee_id(employee_id_number);
         let query = format!(
             "{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND e.employee_id_number = $2 AND e.deleted_at IS NULL"
@@ -30,12 +26,16 @@ impl DieselEmployeeRepository {
         let emp: Option<EmployeeRow> = diesel::sql_query(&query)
             .bind::<UuidType, _>(workspace_id)
             .bind::<diesel::sql_types::Text, _>(normalized_id)
-            .get_result(&mut *conn)
+            .get_result(conn)
             .await
             .optional()
             .map_err(AppError::from)?;
 
         Ok(emp.map(Into::into))
+
+                })
+            })
+            .await
     }
 
     pub(super) async fn get_employee_by_id_impl(
@@ -44,24 +44,23 @@ impl DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<Employee>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
         let query = format!("{EMPLOYEE_SELECT_QUERY} WHERE e.id = $1 AND e.workspace_id = $2 AND e.deleted_at IS NULL");
         let emp: Option<EmployeeRow> = diesel::sql_query(&query)
             .bind::<UuidType, _>(id)
             .bind::<UuidType, _>(workspace_id)
-            .get_result(&mut *conn)
+            .get_result(conn)
             .await
             .optional()
             .map_err(AppError::from)?;
 
         Ok(emp.map(Into::into))
+
+                })
+            })
+            .await
     }
 
     pub(super) async fn get_employee_by_id_number_impl(
@@ -78,23 +77,22 @@ impl DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<Employee>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
         let query = format!("{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND e.id = ANY($2) AND e.deleted_at IS NULL");
         let emps: Vec<EmployeeRow> = diesel::sql_query(&query)
             .bind::<UuidType, _>(workspace_id)
             .bind::<diesel::sql_types::Array<UuidType>, _>(ids)
-            .load(&mut *conn)
+            .load(conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(emps.into_iter().map(Into::into).collect())
+
+                })
+            })
+            .await
     }
 
     pub(super) async fn get_employees_by_id_numbers_impl(
@@ -103,23 +101,22 @@ impl DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<Employee>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
         let query = format!("{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND e.employee_id_number = ANY($2) AND e.deleted_at IS NULL");
         let emps: Vec<EmployeeRow> = diesel::sql_query(&query)
             .bind::<UuidType, _>(workspace_id)
             .bind::<diesel::sql_types::Array<diesel::sql_types::Text>, _>(id_numbers)
-            .load(&mut *conn)
+            .load(conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(emps.into_iter().map(Into::into).collect())
+
+                })
+            })
+            .await
     }
 
     pub(super) async fn get_active_employees_impl(
@@ -127,24 +124,23 @@ impl DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<Employee>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
         let query = format!(
             "{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND EXISTS (SELECT 1 FROM employments em WHERE em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL) AND e.deleted_at IS NULL ORDER BY e.full_name ASC"
         );
         let emps: Vec<EmployeeRow> = diesel::sql_query(&query)
             .bind::<UuidType, _>(workspace_id)
-            .load(&mut *conn)
+            .load(conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(emps.into_iter().map(Into::into).collect())
+
+                })
+            })
+            .await
     }
 
     pub(super) async fn get_active_employee_ids_impl(
@@ -153,38 +149,36 @@ impl DieselEmployeeRepository {
         filter_ids: Option<&Vec<Uuid>>,
     ) -> Result<Vec<Uuid>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    use crate::schema::employments;
+                    let mut query = employees::table
+                        .select(employees::id)
+                        .filter(employees::workspace_id.eq(workspace_id))
+                        .filter(employees::deleted_at.is_null())
+                        .filter(diesel::dsl::exists(
+                            employments::table
+                                .filter(employments::employee_id.eq(employees::id))
+                                .filter(employments::status.eq("active"))
+                                .filter(employments::deleted_at.is_null()),
+                        ))
+                        .into_boxed();
 
-        use crate::schema::employments;
-        let mut query = employees::table
-            .select(employees::id)
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::deleted_at.is_null())
-            .filter(diesel::dsl::exists(
-                employments::table
-                    .filter(employments::employee_id.eq(employees::id))
-                    .filter(employments::status.eq("active"))
-                    .filter(employments::deleted_at.is_null()),
-            ))
-            .into_boxed();
+                    if let Some(ids) = filter_ids {
+                        query = query.filter(employees::id.eq_any(ids.clone()));
+                    }
 
-        if let Some(ids) = filter_ids {
-            query = query.filter(employees::id.eq_any(ids.clone()));
-        }
+                    let result: Vec<Uuid> = query
+                        .order(employees::created_at.asc())
+                        .load(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let result: Vec<Uuid> = query
-            .order(employees::created_at.asc())
-            .load(&mut *conn)
+                    Ok(result)
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        Ok(result)
     }
 
     pub(super) async fn get_existing_employee_ids_by_numbers_impl(
@@ -197,24 +191,22 @@ impl DieselEmployeeRepository {
             return Ok(Vec::new());
         }
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let result: Vec<String> = employees::table
+                        .select(employees::employee_id_number)
+                        .filter(employees::workspace_id.eq(workspace_id))
+                        .filter(employees::deleted_at.is_null())
+                        .filter(employees::employee_id_number.eq_any(id_numbers))
+                        .load(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let result: Vec<String> = employees::table
-            .select(employees::employee_id_number)
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::deleted_at.is_null())
-            .filter(employees::employee_id_number.eq_any(id_numbers))
-            .load(&mut *conn)
+                    Ok(result)
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        Ok(result)
     }
 
     pub(super) async fn get_employee_ids_by_numbers_impl(
@@ -227,28 +219,26 @@ impl DieselEmployeeRepository {
             return Ok(std::collections::HashMap::new());
         }
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let results: Vec<(String, Uuid)> = employees::table
+                        .select((employees::employee_id_number, employees::id))
+                        .filter(employees::workspace_id.eq(workspace_id))
+                        .filter(employees::deleted_at.is_null())
+                        .filter(employees::employee_id_number.eq_any(id_numbers))
+                        .load(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let results: Vec<(String, Uuid)> = employees::table
-            .select((employees::employee_id_number, employees::id))
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::deleted_at.is_null())
-            .filter(employees::employee_id_number.eq_any(id_numbers))
-            .load(&mut *conn)
+                    let mut map = std::collections::HashMap::new();
+                    for (num, id) in results {
+                        map.insert(num, id);
+                    }
+
+                    Ok(map)
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        let mut map = std::collections::HashMap::new();
-        for (num, id) in results {
-            map.insert(num, id);
-        }
-
-        Ok(map)
     }
 }

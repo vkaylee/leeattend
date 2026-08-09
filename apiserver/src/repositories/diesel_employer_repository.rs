@@ -1,4 +1,4 @@
-use crate::diesel_pool::{DieselPools, TenantAuthToken};
+use crate::diesel_pool::{DieselPools, DieselPoolsTenantTxExt, TenantAuthToken};
 use crate::errors::AppError;
 use crate::models::diesel::employer::EmployerEntity;
 use crate::models::{CreateEmployerRequest, Employer, UpdateEmployerRequest};
@@ -151,94 +151,96 @@ impl EmployerRepository for DieselEmployerRepository {
         id: Uuid,
         data: UpdateEmployerRequest,
     ) -> Result<Employer, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenant_transaction_conn(auth_token)
-            .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let mut existing = employers::table
-            .filter(employers::id.eq(id))
-            .filter(employers::workspace_id.eq(workspace_id))
-            .filter(employers::deleted_at.is_null())
-            .first::<EmployerEntity>(&mut *conn)
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let mut existing = employers::table
+                        .filter(employers::id.eq(id))
+                        .filter(employers::workspace_id.eq(workspace_id))
+                        .filter(employers::deleted_at.is_null())
+                        .first::<EmployerEntity>(conn)
+                        .await
+                        .map_err(AppError::from)?;
+
+                    if let Some(name) = data.name {
+                        existing.name = name;
+                    }
+                    if data.tax_code.is_some() || data.tax_code.is_none() {
+                        existing.tax_code = data.tax_code;
+                    }
+                    if data.legal_address.is_some() || data.legal_address.is_none() {
+                        existing.legal_address = data.legal_address;
+                    }
+                    if let Some(parent_opt) = data.parent_id {
+                        if parent_opt.is_none() {
+                            diesel::update(
+                                employers::table
+                                    .filter(employers::id.eq(id))
+                                    .filter(employers::workspace_id.eq(workspace_id)),
+                            )
+                            .set(employers::parent_id.eq(None::<Uuid>))
+                            .execute(conn)
+                            .await
+                            .map_err(AppError::from)?;
+                        }
+                        existing.parent_id = parent_opt;
+                    }
+                    if let Some(rel_opt) = data.relationship_type {
+                        if rel_opt.is_none() {
+                            diesel::update(
+                                employers::table
+                                    .filter(employers::id.eq(id))
+                                    .filter(employers::workspace_id.eq(workspace_id)),
+                            )
+                            .set(employers::relationship_type.eq(None::<String>))
+                            .execute(conn)
+                            .await
+                            .map_err(AppError::from)?;
+                        }
+                        existing.relationship_type = rel_opt;
+                    }
+                    if data.business_type.is_some() || data.business_type.is_none() {
+                        existing.business_type = data.business_type;
+                    }
+                    if data.registration_number.is_some() || data.registration_number.is_none() {
+                        existing.registration_number = data.registration_number;
+                    }
+                    if data.phone.is_some() || data.phone.is_none() {
+                        existing.phone = data.phone;
+                    }
+                    if data.email.is_some() || data.email.is_none() {
+                        existing.email = data.email;
+                    }
+                    if data.website.is_some() || data.website.is_none() {
+                        existing.website = data.website;
+                    }
+                    if data.incorporation_date.is_some() || data.incorporation_date.is_none() {
+                        existing.incorporation_date = data.incorporation_date;
+                    }
+                    if data.country_code.is_some() || data.country_code.is_none() {
+                        existing.country_code = data.country_code;
+                    }
+                    if data.currency_code.is_some() || data.currency_code.is_none() {
+                        existing.currency_code = data.currency_code;
+                    }
+                    existing.updated_at = Utc::now();
+
+                    let result = diesel::update(
+                        employers::table
+                            .filter(employers::id.eq(id))
+                            .filter(employers::workspace_id.eq(workspace_id)),
+                    )
+                    .set(&existing)
+                    .get_result::<EmployerEntity>(conn)
+                    .await
+                    .map_err(AppError::from)?;
+
+                    Ok(result.into())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        if let Some(name) = data.name {
-            existing.name = name;
-        }
-        if data.tax_code.is_some() || data.tax_code.is_none() {
-            existing.tax_code = data.tax_code;
-        }
-        if data.legal_address.is_some() || data.legal_address.is_none() {
-            existing.legal_address = data.legal_address;
-        }
-        if let Some(parent_opt) = data.parent_id {
-            if parent_opt.is_none() {
-                diesel::update(
-                    employers::table
-                        .filter(employers::id.eq(id))
-                        .filter(employers::workspace_id.eq(workspace_id)),
-                )
-                .set(employers::parent_id.eq(None::<Uuid>))
-                .execute(&mut *conn)
-                .await
-                .map_err(AppError::from)?;
-            }
-            existing.parent_id = parent_opt;
-        }
-        if let Some(rel_opt) = data.relationship_type {
-            if rel_opt.is_none() {
-                diesel::update(
-                    employers::table
-                        .filter(employers::id.eq(id))
-                        .filter(employers::workspace_id.eq(workspace_id)),
-                )
-                .set(employers::relationship_type.eq(None::<String>))
-                .execute(&mut *conn)
-                .await
-                .map_err(AppError::from)?;
-            }
-            existing.relationship_type = rel_opt;
-        }
-        if data.business_type.is_some() || data.business_type.is_none() {
-            existing.business_type = data.business_type;
-        }
-        if data.registration_number.is_some() || data.registration_number.is_none() {
-            existing.registration_number = data.registration_number;
-        }
-        if data.phone.is_some() || data.phone.is_none() {
-            existing.phone = data.phone;
-        }
-        if data.email.is_some() || data.email.is_none() {
-            existing.email = data.email;
-        }
-        if data.website.is_some() || data.website.is_none() {
-            existing.website = data.website;
-        }
-        if data.incorporation_date.is_some() || data.incorporation_date.is_none() {
-            existing.incorporation_date = data.incorporation_date;
-        }
-        if data.country_code.is_some() || data.country_code.is_none() {
-            existing.country_code = data.country_code;
-        }
-        if data.currency_code.is_some() || data.currency_code.is_none() {
-            existing.currency_code = data.currency_code;
-        }
-        existing.updated_at = Utc::now();
-
-        let result = diesel::update(
-            employers::table
-                .filter(employers::id.eq(id))
-                .filter(employers::workspace_id.eq(workspace_id)),
-        )
-        .set(&existing)
-        .get_result::<EmployerEntity>(&mut *conn)
-        .await
-        .map_err(AppError::from)?;
-
-        Ok(result.into())
     }
 
     async fn delete_employer(

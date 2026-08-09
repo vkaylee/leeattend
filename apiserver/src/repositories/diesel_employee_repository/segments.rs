@@ -1,4 +1,5 @@
 use super::*;
+use crate::diesel_pool::DieselPoolsTenantTxExt;
 use crate::errors::AppError;
 use crate::models::diesel::employee::{CountRow, EmployeeRow};
 use crate::models::Employee;
@@ -36,14 +37,9 @@ impl DieselEmployeeRepository {
             None
         };
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
         let search_sql = build_employee_search_sql(
             options.search_query(),
             options.sort_by(),
@@ -111,27 +107,27 @@ impl DieselEmployeeRepository {
                 .bind::<Nullable<Text>, _>(count_search_param)
                 .bind::<Nullable<Array<UuidType>>, _>(dept_ids)
                 .bind::<Array<UuidType>, _>(ids)
-                .get_result(&mut *conn)
+                .get_result(conn)
                 .await
                 .map_err(AppError::from)?,
             (true, None) => diesel::sql_query(&count_sql)
                 .bind::<UuidType, _>(workspace_id)
                 .bind::<Nullable<Text>, _>(count_search_param)
                 .bind::<Nullable<Array<UuidType>>, _>(dept_ids)
-                .get_result(&mut *conn)
+                .get_result(conn)
                 .await
                 .map_err(AppError::from)?,
             (false, Some(ids)) => diesel::sql_query(&count_sql)
                 .bind::<UuidType, _>(workspace_id)
                 .bind::<Nullable<Array<UuidType>>, _>(dept_ids)
                 .bind::<Array<UuidType>, _>(ids)
-                .get_result(&mut *conn)
+                .get_result(conn)
                 .await
                 .map_err(AppError::from)?,
             (false, None) => diesel::sql_query(&count_sql)
                 .bind::<UuidType, _>(workspace_id)
                 .bind::<Nullable<Array<UuidType>>, _>(dept_ids)
-                .get_result(&mut *conn)
+                .get_result(conn)
                 .await
                 .map_err(AppError::from)?,
         };
@@ -186,7 +182,7 @@ impl DieselEmployeeRepository {
                     options.department_ids().map(ToOwned::to_owned),
                 )
                 .bind::<Array<UuidType>, _>(ids)
-                .load(&mut *conn)
+                .load(conn)
                 .await
         } else {
             diesel::sql_query(&sql)
@@ -198,7 +194,7 @@ impl DieselEmployeeRepository {
                 .bind::<Nullable<Array<UuidType>>, _>(
                     options.department_ids().map(ToOwned::to_owned),
                 )
-                .load(&mut *conn)
+                .load(conn)
                 .await
         }
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -206,6 +202,10 @@ impl DieselEmployeeRepository {
         let employees: Vec<Employee> = employee_rows.into_iter().map(Into::into).collect();
 
         Ok((employees, total))
+
+                })
+            })
+            .await
     }
 
     #[allow(clippy::too_many_lines)]
@@ -217,196 +217,198 @@ impl DieselEmployeeRepository {
         let workspace_id = auth_token.workspace_id();
         use crate::schema::employments;
 
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    let mut count_query = employees::table
+                        .filter(employees::workspace_id.eq(workspace_id))
+                        .filter(employees::deleted_at.is_null())
+                        .into_boxed();
 
-        let mut count_query = employees::table
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::deleted_at.is_null())
-            .into_boxed();
+                    let status = args.status_filter().unwrap_or("active");
+                    match status {
+                        "active" => {
+                            if let Some((start, end)) = args.active_during() {
+                                count_query = count_query.filter(diesel::dsl::exists(
+                                    employments::table
+                                        .filter(employments::employee_id.eq(employees::id))
+                                        .filter(employments::deleted_at.is_null())
+                                        .filter(employments::start_date.le(end))
+                                        .filter(
+                                            employments::status.eq("active").or(
+                                                employments::status
+                                                    .eq("terminated")
+                                                    .and(employments::end_date.ge(start)),
+                                            ),
+                                        ),
+                                ));
+                            } else {
+                                count_query = count_query.filter(diesel::dsl::exists(
+                                    employments::table
+                                        .filter(employments::employee_id.eq(employees::id))
+                                        .filter(employments::deleted_at.is_null())
+                                        .filter(employments::status.eq("active")),
+                                ));
+                            }
+                        }
+                        "terminated" => {
+                            count_query = count_query.filter(diesel::dsl::exists(
+                                employments::table
+                                    .filter(employments::employee_id.eq(employees::id))
+                                    .filter(employments::deleted_at.is_null())
+                                    .filter(employments::status.eq("terminated")),
+                            ));
+                        }
+                        "all" => {
+                            count_query = count_query.filter(diesel::dsl::exists(
+                                employments::table
+                                    .filter(employments::employee_id.eq(employees::id))
+                                    .filter(employments::deleted_at.is_null()),
+                            ));
+                        }
+                        _ => {}
+                    }
 
-        let status = args.status_filter().unwrap_or("active");
-        match status {
-            "active" => {
-                if let Some((start, end)) = args.active_during() {
-                    count_query = count_query.filter(diesel::dsl::exists(
-                        employments::table
-                            .filter(employments::employee_id.eq(employees::id))
-                            .filter(employments::deleted_at.is_null())
-                            .filter(employments::start_date.le(end))
-                            .filter(
-                                employments::status.eq("active").or(employments::status
-                                    .eq("terminated")
-                                    .and(employments::end_date.ge(start))),
-                            ),
-                    ));
-                } else {
-                    count_query = count_query.filter(diesel::dsl::exists(
-                        employments::table
-                            .filter(employments::employee_id.eq(employees::id))
-                            .filter(employments::deleted_at.is_null())
-                            .filter(employments::status.eq("active")),
-                    ));
-                }
-            }
-            "terminated" => {
-                count_query = count_query.filter(diesel::dsl::exists(
-                    employments::table
-                        .filter(employments::employee_id.eq(employees::id))
-                        .filter(employments::deleted_at.is_null())
-                        .filter(employments::status.eq("terminated")),
-                ));
-            }
-            "all" => {
-                count_query = count_query.filter(diesel::dsl::exists(
-                    employments::table
-                        .filter(employments::employee_id.eq(employees::id))
-                        .filter(employments::deleted_at.is_null()),
-                ));
-            }
-            _ => {}
-        }
+                    if let Some(dept_id) = args.department_id() {
+                        if let Some((start, end)) = args.active_during() {
+                            count_query = count_query.filter(diesel::dsl::exists(
+                                employments::table
+                                    .filter(employments::employee_id.eq(employees::id))
+                                    .filter(employments::deleted_at.is_null())
+                                    .filter(employments::department_id.eq(dept_id))
+                                    .filter(employments::start_date.le(end))
+                                    .filter(
+                                        employments::status.eq("active").or(employments::status
+                                            .eq("terminated")
+                                            .and(employments::end_date.ge(start))),
+                                    ),
+                            ));
+                        } else {
+                            count_query = count_query.filter(diesel::dsl::exists(
+                                employments::table
+                                    .filter(employments::employee_id.eq(employees::id))
+                                    .filter(employments::deleted_at.is_null())
+                                    .filter(employments::department_id.eq(dept_id))
+                                    .filter(employments::status.eq("active")),
+                            ));
+                        }
+                    }
 
-        if let Some(dept_id) = args.department_id() {
-            if let Some((start, end)) = args.active_during() {
-                count_query = count_query.filter(diesel::dsl::exists(
-                    employments::table
-                        .filter(employments::employee_id.eq(employees::id))
-                        .filter(employments::deleted_at.is_null())
-                        .filter(employments::department_id.eq(dept_id))
-                        .filter(employments::start_date.le(end))
-                        .filter(
-                            employments::status.eq("active").or(employments::status
-                                .eq("terminated")
-                                .and(employments::end_date.ge(start))),
-                        ),
-                ));
-            } else {
-                count_query = count_query.filter(diesel::dsl::exists(
-                    employments::table
-                        .filter(employments::employee_id.eq(employees::id))
-                        .filter(employments::deleted_at.is_null())
-                        .filter(employments::department_id.eq(dept_id))
-                        .filter(employments::status.eq("active")),
-                ));
-            }
-        }
+                    if let Some(ids) = args.filter_ids() {
+                        count_query = count_query.filter(employees::id.eq_any(ids));
+                    }
 
-        if let Some(ids) = args.filter_ids() {
-            count_query = count_query.filter(employees::id.eq_any(ids));
-        }
+                    let total: i64 = count_query
+                        .count()
+                        .get_result(conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let total: i64 = count_query
-            .count()
-            .get_result(&mut *conn)
+                    if total == 0 {
+                        return Ok((vec![], 0));
+                    }
+
+                    let mut data_query = employees::table
+                        .filter(employees::workspace_id.eq(workspace_id))
+                        .filter(employees::deleted_at.is_null())
+                        .into_boxed();
+
+                    match status {
+                        "active" => {
+                            if let Some((start, end)) = args.active_during() {
+                                data_query = data_query.filter(diesel::dsl::exists(
+                                    employments::table
+                                        .filter(employments::employee_id.eq(employees::id))
+                                        .filter(employments::deleted_at.is_null())
+                                        .filter(employments::start_date.le(end))
+                                        .filter(
+                                            employments::status.eq("active").or(
+                                                employments::status
+                                                    .eq("terminated")
+                                                    .and(employments::end_date.ge(start)),
+                                            ),
+                                        ),
+                                ));
+                            } else {
+                                data_query = data_query.filter(diesel::dsl::exists(
+                                    employments::table
+                                        .filter(employments::employee_id.eq(employees::id))
+                                        .filter(employments::deleted_at.is_null())
+                                        .filter(employments::status.eq("active")),
+                                ));
+                            }
+                        }
+                        "terminated" => {
+                            data_query = data_query.filter(diesel::dsl::exists(
+                                employments::table
+                                    .filter(employments::employee_id.eq(employees::id))
+                                    .filter(employments::deleted_at.is_null())
+                                    .filter(employments::status.eq("terminated")),
+                            ));
+                        }
+                        "all" => {
+                            data_query = data_query.filter(diesel::dsl::exists(
+                                employments::table
+                                    .filter(employments::employee_id.eq(employees::id))
+                                    .filter(employments::deleted_at.is_null()),
+                            ));
+                        }
+                        _ => {}
+                    }
+
+                    if let Some(dept_id) = args.department_id() {
+                        if let Some((start, end)) = args.active_during() {
+                            data_query = data_query.filter(diesel::dsl::exists(
+                                employments::table
+                                    .filter(employments::employee_id.eq(employees::id))
+                                    .filter(employments::deleted_at.is_null())
+                                    .filter(employments::department_id.eq(dept_id))
+                                    .filter(employments::start_date.le(end))
+                                    .filter(
+                                        employments::status.eq("active").or(employments::status
+                                            .eq("terminated")
+                                            .and(employments::end_date.ge(start))),
+                                    ),
+                            ));
+                        } else {
+                            data_query = data_query.filter(diesel::dsl::exists(
+                                employments::table
+                                    .filter(employments::employee_id.eq(employees::id))
+                                    .filter(employments::deleted_at.is_null())
+                                    .filter(employments::department_id.eq(dept_id))
+                                    .filter(employments::status.eq("active")),
+                            ));
+                        }
+                    }
+
+                    if let Some(ids) = args.filter_ids() {
+                        data_query = data_query.filter(employees::id.eq_any(ids.clone()));
+                    }
+
+                    if args.sort_desc() {
+                        data_query = data_query.order(employees::created_at.desc());
+                    } else {
+                        data_query = data_query.order(employees::created_at.asc());
+                    }
+
+                    let offset = (args.page() - 1) * args.limit();
+
+                    let result: Vec<EmployeeBasicInfo> = data_query
+                        .select((
+                            employees::id,
+                            employees::full_name,
+                            employees::employee_id_number,
+                        ))
+                        .limit(args.limit())
+                        .offset(offset)
+                        .load(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    Ok((result, total))
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        if total == 0 {
-            return Ok((vec![], 0));
-        }
-
-        let mut data_query = employees::table
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::deleted_at.is_null())
-            .into_boxed();
-
-        match status {
-            "active" => {
-                if let Some((start, end)) = args.active_during() {
-                    data_query = data_query.filter(diesel::dsl::exists(
-                        employments::table
-                            .filter(employments::employee_id.eq(employees::id))
-                            .filter(employments::deleted_at.is_null())
-                            .filter(employments::start_date.le(end))
-                            .filter(
-                                employments::status.eq("active").or(employments::status
-                                    .eq("terminated")
-                                    .and(employments::end_date.ge(start))),
-                            ),
-                    ));
-                } else {
-                    data_query = data_query.filter(diesel::dsl::exists(
-                        employments::table
-                            .filter(employments::employee_id.eq(employees::id))
-                            .filter(employments::deleted_at.is_null())
-                            .filter(employments::status.eq("active")),
-                    ));
-                }
-            }
-            "terminated" => {
-                data_query = data_query.filter(diesel::dsl::exists(
-                    employments::table
-                        .filter(employments::employee_id.eq(employees::id))
-                        .filter(employments::deleted_at.is_null())
-                        .filter(employments::status.eq("terminated")),
-                ));
-            }
-            "all" => {
-                data_query = data_query.filter(diesel::dsl::exists(
-                    employments::table
-                        .filter(employments::employee_id.eq(employees::id))
-                        .filter(employments::deleted_at.is_null()),
-                ));
-            }
-            _ => {}
-        }
-
-        if let Some(dept_id) = args.department_id() {
-            if let Some((start, end)) = args.active_during() {
-                data_query = data_query.filter(diesel::dsl::exists(
-                    employments::table
-                        .filter(employments::employee_id.eq(employees::id))
-                        .filter(employments::deleted_at.is_null())
-                        .filter(employments::department_id.eq(dept_id))
-                        .filter(employments::start_date.le(end))
-                        .filter(
-                            employments::status.eq("active").or(employments::status
-                                .eq("terminated")
-                                .and(employments::end_date.ge(start))),
-                        ),
-                ));
-            } else {
-                data_query = data_query.filter(diesel::dsl::exists(
-                    employments::table
-                        .filter(employments::employee_id.eq(employees::id))
-                        .filter(employments::deleted_at.is_null())
-                        .filter(employments::department_id.eq(dept_id))
-                        .filter(employments::status.eq("active")),
-                ));
-            }
-        }
-
-        if let Some(ids) = args.filter_ids() {
-            data_query = data_query.filter(employees::id.eq_any(ids.clone()));
-        }
-
-        if args.sort_desc() {
-            data_query = data_query.order(employees::created_at.desc());
-        } else {
-            data_query = data_query.order(employees::created_at.asc());
-        }
-
-        let offset = (args.page() - 1) * args.limit();
-
-        let result: Vec<EmployeeBasicInfo> = data_query
-            .select((
-                employees::id,
-                employees::full_name,
-                employees::employee_id_number,
-            ))
-            .limit(args.limit())
-            .offset(offset)
-            .load(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        Ok((result, total))
     }
 
     pub(super) async fn get_employee_departments_at_impl(
@@ -415,14 +417,9 @@ impl DieselEmployeeRepository {
         date: chrono::NaiveDate,
     ) -> Result<std::collections::HashMap<Uuid, (Option<Uuid>, String)>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
         #[derive(Debug, diesel::QueryableByName)]
         struct DeptRow {
             #[diesel(sql_type = diesel::sql_types::Uuid)]
@@ -452,7 +449,7 @@ impl DieselEmployeeRepository {
         let rows: Vec<DeptRow> = diesel::sql_query(query)
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
             .bind::<diesel::sql_types::Date, _>(date)
-            .load(&mut *conn)
+            .load(conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -462,5 +459,9 @@ impl DieselEmployeeRepository {
         }
 
         Ok(map)
+
+                })
+            })
+            .await
     }
 }
