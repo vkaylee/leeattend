@@ -1,10 +1,11 @@
 use super::*;
+use crate::diesel_pool::{DieselPoolsTenantTxExt, TenantAuthToken};
 use crate::errors::AppError;
 use crate::models::diesel::payroll::PayslipRuleEvaluationEntity;
 use crate::models::diesel::payroll_rule::PayrollRuleTierEntity;
 use crate::models::PayslipRuleEvaluation;
 use chrono::{NaiveDate, Utc};
-use diesel_async::RunQueryDsl;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use std::str::FromStr;
 use uuid::Uuid;
 
@@ -17,28 +18,29 @@ impl DieselPayrollRepository {
         rule_code: String,
         amount: Decimal,
     ) -> Result<(), AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await?,
-        );
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    let entity = PayslipRuleEvaluationEntity {
+                        id: Uuid::new_v4(),
+                        payslip_id,
+                        rule_code,
+                        amount: bigdecimal::BigDecimal::from_str(&amount.to_string())
+                            .unwrap_or_default(),
+                        created_at: Utc::now(),
+                    };
 
-        let entity = PayslipRuleEvaluationEntity {
-            id: Uuid::new_v4(),
-            payslip_id,
-            rule_code,
-            amount: bigdecimal::BigDecimal::from_str(&amount.to_string()).unwrap_or_default(),
-            created_at: Utc::now(),
-        };
+                    diesel::insert_into(payslip_rule_evaluations::table)
+                        .values(&entity)
+                        .execute(&mut *conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        diesel::insert_into(payslip_rule_evaluations::table)
-            .values(&entity)
-            .execute(&mut *conn)
+                    Ok(())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(())
     }
 
     pub(super) async fn get_payslip_rule_evaluations(
@@ -46,21 +48,21 @@ impl DieselPayrollRepository {
         workspace_id: Uuid,
         payslip_id: Uuid,
     ) -> Result<Vec<PayslipRuleEvaluation>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await?,
-        );
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    let entities = payslip_rule_evaluations::table
+                        .filter(payslip_rule_evaluations::payslip_id.eq(payslip_id))
+                        .select(PayslipRuleEvaluationEntity::as_select())
+                        .load::<PayslipRuleEvaluationEntity>(&mut *conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let entities = payslip_rule_evaluations::table
-            .filter(payslip_rule_evaluations::payslip_id.eq(payslip_id))
-            .select(PayslipRuleEvaluationEntity::as_select())
-            .load::<PayslipRuleEvaluationEntity>(&mut *conn)
+                    Ok(entities.into_iter().map(Into::into).collect())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(entities.into_iter().map(Into::into).collect())
     }
 
     pub(super) async fn get_resolved_rule_assignments(
@@ -71,14 +73,11 @@ impl DieselPayrollRepository {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<ResolvedRuleAssignment>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await?,
-        );
-
-        let sql = r#"
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    let sql = r#"
             WITH resolved_assignments AS (
                 SELECT DISTINCT ON (rule_definition_id)
                     rule_definition_id, override_config, assignee_type
@@ -111,43 +110,48 @@ impl DieselPayrollRepository {
             ORDER BY d.display_order
         "#;
 
-        #[derive(QueryableByName)]
-        struct ResolvedRow {
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            pub rule_definition_id: Uuid,
-            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Jsonb>)]
-            pub override_config: Option<serde_json::Value>,
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            pub code: String,
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            pub calculation_method: String,
-            #[diesel(sql_type = diesel::sql_types::Jsonb)]
-            pub default_config: serde_json::Value,
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            pub category: String,
-        }
+                    #[derive(QueryableByName)]
+                    struct ResolvedRow {
+                        #[diesel(sql_type = diesel::sql_types::Uuid)]
+                        pub rule_definition_id: Uuid,
+                        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Jsonb>)]
+                        pub override_config: Option<serde_json::Value>,
+                        #[diesel(sql_type = diesel::sql_types::Text)]
+                        pub code: String,
+                        #[diesel(sql_type = diesel::sql_types::Text)]
+                        pub calculation_method: String,
+                        #[diesel(sql_type = diesel::sql_types::Jsonb)]
+                        pub default_config: serde_json::Value,
+                        #[diesel(sql_type = diesel::sql_types::Text)]
+                        pub category: String,
+                    }
 
-        let rows = diesel::sql_query(sql)
-            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-            .bind::<diesel::sql_types::Uuid, _>(employee_id)
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(department_id)
-            .bind::<diesel::sql_types::Date, _>(start_date)
-            .bind::<diesel::sql_types::Date, _>(end_date)
-            .load::<ResolvedRow>(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
+                    let rows = diesel::sql_query(sql)
+                        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                        .bind::<diesel::sql_types::Uuid, _>(employee_id)
+                        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(
+                            department_id,
+                        )
+                        .bind::<diesel::sql_types::Date, _>(start_date)
+                        .bind::<diesel::sql_types::Date, _>(end_date)
+                        .load::<ResolvedRow>(&mut *conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        Ok(rows
-            .into_iter()
-            .map(|r| ResolvedRuleAssignment {
-                rule_definition_id: r.rule_definition_id,
-                override_config: r.override_config,
-                code: r.code,
-                calculation_method: r.calculation_method.parse().unwrap_or_default(),
-                default_config: r.default_config,
-                category: r.category.parse().unwrap_or_default(),
+                    Ok(rows
+                        .into_iter()
+                        .map(|r| ResolvedRuleAssignment {
+                            rule_definition_id: r.rule_definition_id,
+                            override_config: r.override_config,
+                            code: r.code,
+                            calculation_method: r.calculation_method.parse().unwrap_or_default(),
+                            default_config: r.default_config,
+                            category: r.category.parse().unwrap_or_default(),
+                        })
+                        .collect())
+                })
             })
-            .collect())
+            .await
     }
 
     pub(super) async fn get_payroll_rule_tiers(
@@ -155,21 +159,21 @@ impl DieselPayrollRepository {
         workspace_id: Uuid,
         rule_definition_id: Uuid,
     ) -> Result<Vec<crate::models::PayrollRuleTier>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await?,
-        );
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    let entities = payroll_rule_tiers::table
+                        .filter(payroll_rule_tiers::rule_definition_id.eq(rule_definition_id))
+                        .order(payroll_rule_tiers::tier_order.asc())
+                        .load::<PayrollRuleTierEntity>(&mut *conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let entities = payroll_rule_tiers::table
-            .filter(payroll_rule_tiers::rule_definition_id.eq(rule_definition_id))
-            .order(payroll_rule_tiers::tier_order.asc())
-            .load::<PayrollRuleTierEntity>(&mut *conn)
+                    Ok(entities.into_iter().map(Into::into).collect())
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        Ok(entities.into_iter().map(Into::into).collect())
     }
 
     #[allow(clippy::too_many_lines)]
@@ -181,14 +185,11 @@ impl DieselPayrollRepository {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<std::collections::HashMap<Uuid, Vec<ResolvedRuleAssignment>>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await?,
-        );
-
-        let sql = r#"
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    let sql = r#"
             SELECT
                 r.rule_definition_id,
                 r.override_config,
@@ -207,115 +208,119 @@ impl DieselPayrollRepository {
               AND (r.effective_to IS NULL OR r.effective_to >= $2)
         "#;
 
-        #[derive(QueryableByName)]
-        struct RawAssignmentRow {
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            pub rule_definition_id: Uuid,
-            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Jsonb>)]
-            pub override_config: Option<serde_json::Value>,
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            pub assignee_type: String,
-            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
-            pub assignee_id: Option<Uuid>,
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            pub code: String,
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            pub calculation_method: String,
-            #[diesel(sql_type = diesel::sql_types::Jsonb)]
-            pub default_config: serde_json::Value,
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            pub category: String,
-            #[diesel(sql_type = diesel::sql_types::Integer)]
-            pub display_order: i32,
-        }
-
-        let rows = diesel::sql_query(sql)
-            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-            .bind::<diesel::sql_types::Date, _>(start_date)
-            .bind::<diesel::sql_types::Date, _>(end_date)
-            .load::<RawAssignmentRow>(&mut *conn)
-            .await
-            .map_err(AppError::from)?;
-
-        let mut result = std::collections::HashMap::new();
-
-        for &emp_id in employee_ids {
-            let dept_id = employee_departments.get(&emp_id).copied().flatten();
-
-            // Map to store resolved assignments for this employee: rule_definition_id -> (assignee_type, ResolvedRuleAssignment, display_order)
-            let mut resolved_rules: std::collections::HashMap<
-                Uuid,
-                (String, ResolvedRuleAssignment, i32),
-            > = std::collections::HashMap::new();
-
-            for row in &rows {
-                let matches = match row.assignee_type.as_str() {
-                    "employee" => row.assignee_id == Some(emp_id),
-                    "department" => dept_id.is_some() && row.assignee_id == dept_id,
-                    "workspace" => true,
-                    _ => false,
-                };
-
-                if matches {
-                    let precedence = match row.assignee_type.as_str() {
-                        "employee" => 1,
-                        "department" => 2,
-                        "workspace" => 3,
-                        _ => 4,
-                    };
-
-                    let should_update = if let Some((existing_type, _, _)) =
-                        resolved_rules.get(&row.rule_definition_id)
-                    {
-                        let existing_precedence = match existing_type.as_str() {
-                            "employee" => 1,
-                            "department" => 2,
-                            "workspace" => 3,
-                            _ => 4,
-                        };
-                        precedence < existing_precedence
-                    } else {
-                        true
-                    };
-
-                    if should_update {
-                        resolved_rules.insert(
-                            row.rule_definition_id,
-                            (
-                                row.assignee_type.clone(),
-                                ResolvedRuleAssignment {
-                                    rule_definition_id: row.rule_definition_id,
-                                    override_config: row.override_config.clone(),
-                                    code: row.code.clone(),
-                                    calculation_method: row
-                                        .calculation_method
-                                        .parse()
-                                        .unwrap_or_default(),
-                                    default_config: row.default_config.clone(),
-                                    category: row.category.parse().unwrap_or_default(),
-                                },
-                                row.display_order,
-                            ),
-                        );
+                    #[derive(QueryableByName)]
+                    struct RawAssignmentRow {
+                        #[diesel(sql_type = diesel::sql_types::Uuid)]
+                        pub rule_definition_id: Uuid,
+                        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Jsonb>)]
+                        pub override_config: Option<serde_json::Value>,
+                        #[diesel(sql_type = diesel::sql_types::Text)]
+                        pub assignee_type: String,
+                        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
+                        pub assignee_id: Option<Uuid>,
+                        #[diesel(sql_type = diesel::sql_types::Text)]
+                        pub code: String,
+                        #[diesel(sql_type = diesel::sql_types::Text)]
+                        pub calculation_method: String,
+                        #[diesel(sql_type = diesel::sql_types::Jsonb)]
+                        pub default_config: serde_json::Value,
+                        #[diesel(sql_type = diesel::sql_types::Text)]
+                        pub category: String,
+                        #[diesel(sql_type = diesel::sql_types::Integer)]
+                        pub display_order: i32,
                     }
-                }
-            }
 
-            let mut employee_tuples: Vec<(ResolvedRuleAssignment, i32)> = resolved_rules
-                .into_values()
-                .map(|(_, assignment, display_order)| (assignment, display_order))
-                .collect();
+                    let rows = diesel::sql_query(sql)
+                        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                        .bind::<diesel::sql_types::Date, _>(start_date)
+                        .bind::<diesel::sql_types::Date, _>(end_date)
+                        .load::<RawAssignmentRow>(&mut *conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-            employee_tuples.sort_by_key(|t| t.1);
-            let employee_assignments: Vec<ResolvedRuleAssignment> = employee_tuples
-                .into_iter()
-                .map(|(assignment, _)| assignment)
-                .collect();
+                    let mut result = std::collections::HashMap::new();
 
-            result.insert(emp_id, employee_assignments);
-        }
+                    for &emp_id in employee_ids {
+                        let dept_id = employee_departments.get(&emp_id).copied().flatten();
 
-        Ok(result)
+                        // Map to store resolved assignments for this employee: rule_definition_id -> (assignee_type, ResolvedRuleAssignment, display_order)
+                        let mut resolved_rules: std::collections::HashMap<
+                            Uuid,
+                            (String, ResolvedRuleAssignment, i32),
+                        > = std::collections::HashMap::new();
+
+                        for row in &rows {
+                            let matches = match row.assignee_type.as_str() {
+                                "employee" => row.assignee_id == Some(emp_id),
+                                "department" => dept_id.is_some() && row.assignee_id == dept_id,
+                                "workspace" => true,
+                                _ => false,
+                            };
+
+                            if matches {
+                                let precedence = match row.assignee_type.as_str() {
+                                    "employee" => 1,
+                                    "department" => 2,
+                                    "workspace" => 3,
+                                    _ => 4,
+                                };
+
+                                let should_update = if let Some((existing_type, _, _)) =
+                                    resolved_rules.get(&row.rule_definition_id)
+                                {
+                                    let existing_precedence = match existing_type.as_str() {
+                                        "employee" => 1,
+                                        "department" => 2,
+                                        "workspace" => 3,
+                                        _ => 4,
+                                    };
+                                    precedence < existing_precedence
+                                } else {
+                                    true
+                                };
+
+                                if should_update {
+                                    resolved_rules.insert(
+                                        row.rule_definition_id,
+                                        (
+                                            row.assignee_type.clone(),
+                                            ResolvedRuleAssignment {
+                                                rule_definition_id: row.rule_definition_id,
+                                                override_config: row.override_config.clone(),
+                                                code: row.code.clone(),
+                                                calculation_method: row
+                                                    .calculation_method
+                                                    .parse()
+                                                    .unwrap_or_default(),
+                                                default_config: row.default_config.clone(),
+                                                category: row.category.parse().unwrap_or_default(),
+                                            },
+                                            row.display_order,
+                                        ),
+                                    );
+                                }
+                            }
+                        }
+
+                        let mut employee_tuples: Vec<(ResolvedRuleAssignment, i32)> =
+                            resolved_rules
+                                .into_values()
+                                .map(|(_, assignment, display_order)| (assignment, display_order))
+                                .collect();
+
+                        employee_tuples.sort_by_key(|t| t.1);
+                        let employee_assignments: Vec<ResolvedRuleAssignment> = employee_tuples
+                            .into_iter()
+                            .map(|(assignment, _)| assignment)
+                            .collect();
+
+                        result.insert(emp_id, employee_assignments);
+                    }
+
+                    Ok(result)
+                })
+            })
+            .await
     }
 
     pub(super) async fn get_payroll_rule_tiers_batch(
@@ -324,30 +329,30 @@ impl DieselPayrollRepository {
         rule_definition_ids: &[Uuid],
     ) -> Result<std::collections::HashMap<Uuid, Vec<crate::models::PayrollRuleTier>>, AppError>
     {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await?,
-        );
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&auth_token, |conn: &mut AsyncPgConnection| {
+                Box::pin(async move {
+                    let entities = payroll_rule_tiers::table
+                        .filter(payroll_rule_tiers::rule_definition_id.eq_any(rule_definition_ids))
+                        .order(payroll_rule_tiers::tier_order.asc())
+                        .load::<PayrollRuleTierEntity>(&mut *conn)
+                        .await
+                        .map_err(AppError::from)?;
 
-        let entities = payroll_rule_tiers::table
-            .filter(payroll_rule_tiers::rule_definition_id.eq_any(rule_definition_ids))
-            .order(payroll_rule_tiers::tier_order.asc())
-            .load::<PayrollRuleTierEntity>(&mut *conn)
+                    let mut map = std::collections::HashMap::new();
+                    for &def_id in rule_definition_ids {
+                        map.insert(def_id, Vec::new());
+                    }
+
+                    for ent in entities {
+                        let def_id = ent.rule_definition_id;
+                        map.entry(def_id).or_insert_with(Vec::new).push(ent.into());
+                    }
+
+                    Ok(map)
+                })
+            })
             .await
-            .map_err(AppError::from)?;
-
-        let mut map = std::collections::HashMap::new();
-        for &def_id in rule_definition_ids {
-            map.insert(def_id, Vec::new());
-        }
-
-        for ent in entities {
-            let def_id = ent.rule_definition_id;
-            map.entry(def_id).or_insert_with(Vec::new).push(ent.into());
-        }
-
-        Ok(map)
     }
 }

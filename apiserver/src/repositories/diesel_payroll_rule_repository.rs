@@ -1,4 +1,4 @@
-use crate::diesel_pool::DieselPools;
+use crate::diesel_pool::{DieselPools, DieselPoolsTenantTxExt, TenantAuthToken};
 use crate::errors::AppError;
 use crate::models::diesel::payroll_rule::*;
 use crate::models::payroll_rule::*;
@@ -32,62 +32,65 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
         &self,
         args: CreatePayrollRuleDefinitionArgs,
     ) -> Result<PayrollRuleDefinition, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&args.workspace_id)
-                .await?,
-        );
+        let token = TenantAuthToken::system_override(args.workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    let entity = PayrollRuleDefinitionEntity {
+                        id: Uuid::new_v4(),
+                        workspace_id: args.workspace_id,
+                        name: args.name,
+                        description: args.description,
+                        code: args.code,
+                        category: args.category.to_string(),
+                        applies_to: args.applies_to.to_string(),
+                        calculation_method: args.calculation_method.to_string(),
+                        rule_config: args.rule_config,
+                        is_mandatory: args.is_mandatory,
+                        is_active: true,
+                        display_order: args.display_order,
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                    };
 
-        let entity = PayrollRuleDefinitionEntity {
-            id: Uuid::new_v4(),
-            workspace_id: args.workspace_id,
-            name: args.name,
-            description: args.description,
-            code: args.code,
-            category: args.category.to_string(),
-            applies_to: args.applies_to.to_string(),
-            calculation_method: args.calculation_method.to_string(),
-            rule_config: args.rule_config,
-            is_mandatory: args.is_mandatory,
-            is_active: true,
-            display_order: args.display_order,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        };
+                    let result = diesel::insert_into(payroll_rule_definitions::table)
+                        .values(&entity)
+                        .get_result::<PayrollRuleDefinitionEntity>(conn)
+                        .await
+                        .map_err(|e| {
+                            AppError::Internal(format!("Failed to create definition: {e}"))
+                        })?;
 
-        let result = diesel::insert_into(payroll_rule_definitions::table)
-            .values(&entity)
-            .get_result::<PayrollRuleDefinitionEntity>(&mut *conn)
+                    Ok(result.into())
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to create definition: {e}")))?;
-
-        Ok(result.into())
     }
 
     async fn get_definitions(
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<PayrollRuleDefinition>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    let entities = payroll_rule_definitions::table
+                        .filter(payroll_rule_definitions::workspace_id.eq(workspace_id))
+                        .order((
+                            payroll_rule_definitions::display_order.asc(),
+                            payroll_rule_definitions::created_at.desc(),
+                        ))
+                        .load::<PayrollRuleDefinitionEntity>(conn)
+                        .await
+                        .map_err(|e| {
+                            AppError::Internal(format!("Failed to fetch definitions: {e}"))
+                        })?;
 
-        let entities = payroll_rule_definitions::table
-            .filter(payroll_rule_definitions::workspace_id.eq(workspace_id))
-            .order((
-                payroll_rule_definitions::display_order.asc(),
-                payroll_rule_definitions::created_at.desc(),
-            ))
-            .load::<PayrollRuleDefinitionEntity>(&mut *conn)
+                    Ok(entities.into_iter().map(Into::into).collect())
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to fetch definitions: {e}")))?;
-
-        Ok(entities.into_iter().map(Into::into).collect())
     }
 
     async fn create_tier(
@@ -103,33 +106,34 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
             rate,
             fixed_amount,
         } = params;
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    let entity = PayrollRuleTierEntity {
+                        id: Uuid::new_v4(),
+                        rule_definition_id,
+                        tier_order,
+                        min_amount: BigDecimal::from_str(&min_amount.to_string())
+                            .unwrap_or_default(),
+                        max_amount: max_amount
+                            .map(|m| BigDecimal::from_str(&m.to_string()).unwrap_or_default()),
+                        rate: BigDecimal::from_str(&rate.to_string()).unwrap_or_default(),
+                        fixed_amount: BigDecimal::from_str(&fixed_amount.to_string())
+                            .unwrap_or_default(),
+                        created_at: chrono::Utc::now(),
+                    };
 
-        let entity = PayrollRuleTierEntity {
-            id: Uuid::new_v4(),
-            rule_definition_id,
-            tier_order,
-            min_amount: BigDecimal::from_str(&min_amount.to_string()).unwrap_or_default(),
-            max_amount: max_amount
-                .map(|m| BigDecimal::from_str(&m.to_string()).unwrap_or_default()),
-            rate: BigDecimal::from_str(&rate.to_string()).unwrap_or_default(),
-            fixed_amount: BigDecimal::from_str(&fixed_amount.to_string()).unwrap_or_default(),
-            created_at: chrono::Utc::now(),
-        };
+                    let result = diesel::insert_into(payroll_rule_tiers::table)
+                        .values(&entity)
+                        .get_result::<PayrollRuleTierEntity>(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("Failed to create tier: {e}")))?;
 
-        let result = diesel::insert_into(payroll_rule_tiers::table)
-            .values(&entity)
-            .get_result::<PayrollRuleTierEntity>(&mut *conn)
+                    Ok(result.into())
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to create tier: {e}")))?;
-
-        Ok(result.into())
     }
 
     async fn get_tiers_for_rule(
@@ -137,22 +141,21 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
         workspace_id: Uuid,
         rule_definition_id: Uuid,
     ) -> Result<Vec<PayrollRuleTier>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    let entities = payroll_rule_tiers::table
+                        .filter(payroll_rule_tiers::rule_definition_id.eq(rule_definition_id))
+                        .order(payroll_rule_tiers::tier_order.asc())
+                        .load::<PayrollRuleTierEntity>(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("Failed to fetch tiers: {e}")))?;
 
-        let entities = payroll_rule_tiers::table
-            .filter(payroll_rule_tiers::rule_definition_id.eq(rule_definition_id))
-            .order(payroll_rule_tiers::tier_order.asc())
-            .load::<PayrollRuleTierEntity>(&mut *conn)
+                    Ok(entities.into_iter().map(Into::into).collect())
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to fetch tiers: {e}")))?;
-
-        Ok(entities.into_iter().map(Into::into).collect())
     }
 
     async fn delete_tier(
@@ -161,64 +164,67 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
         rule_definition_id: Uuid,
         tier_id: Uuid,
     ) -> Result<(), AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    diesel::delete(payroll_rule_tiers::table)
+                        .filter(payroll_rule_tiers::id.eq(tier_id))
+                        .filter(payroll_rule_tiers::rule_definition_id.eq(rule_definition_id))
+                        .execute(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("Failed to delete tier: {e}")))?;
 
-        diesel::delete(payroll_rule_tiers::table)
-            .filter(payroll_rule_tiers::id.eq(tier_id))
-            .filter(payroll_rule_tiers::rule_definition_id.eq(rule_definition_id))
-            .execute(&mut *conn)
+                    Ok(())
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to delete tier: {e}")))?;
-
-        Ok(())
     }
 
     async fn assign_rule(
         &self,
         args: AssignPayrollRuleArgs,
     ) -> Result<PayrollRuleAssignment, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&args.workspace_id)
-                .await?,
-        );
+        let token = TenantAuthToken::system_override(args.workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    let entity = PayrollRuleAssignmentEntity {
+                        id: Uuid::new_v4(),
+                        workspace_id: args.workspace_id,
+                        rule_definition_id: args.rule_definition_id,
+                        assignee_type: args.assignee_type.to_string(),
+                        assignee_id: args.assignee_id,
+                        effective_from: args.effective_from,
+                        effective_to: args.effective_to,
+                        override_config: args.override_config,
+                        created_at: chrono::Utc::now(),
+                    };
 
-        let entity = PayrollRuleAssignmentEntity {
-            id: Uuid::new_v4(),
-            workspace_id: args.workspace_id,
-            rule_definition_id: args.rule_definition_id,
-            assignee_type: args.assignee_type.to_string(),
-            assignee_id: args.assignee_id,
-            effective_from: args.effective_from,
-            effective_to: args.effective_to,
-            override_config: args.override_config,
-            created_at: chrono::Utc::now(),
-        };
+                    let result = diesel::insert_into(payroll_rule_assignments::table)
+                        .values(&entity)
+                        .get_result::<PayrollRuleAssignmentEntity>(conn)
+                        .await
+                        .map_err(|e| {
+                            if let diesel::result::Error::DatabaseError(_, info) = &e {
+                                if info.constraint_name()
+                                    == Some(
+                                        "payroll_rule_assignments_workspace_id_rule_definition_id_a_excl",
+                                    )
+                                {
+                                    return AppError::conflict_args(
+                                        I18nKey::Conflict,
+                                        [("details", "This assignment overlaps with an existing assignment for the same rule and assignee in this time period.")],
+                                    );
+                                }
+                            }
+                            AppError::Internal(format!("Failed to assign payroll rule: {e}"))
+                        })?;
 
-        let result = diesel::insert_into(payroll_rule_assignments::table)
-            .values(&entity)
-            .get_result::<PayrollRuleAssignmentEntity>(&mut *conn)
+                    Ok(result.into())
+                })
+            })
             .await
-            .map_err(|e| {
-                if let diesel::result::Error::DatabaseError(_, info) = &e {
-                    if info.constraint_name() == Some("payroll_rule_assignments_workspace_id_rule_definition_id_a_excl") {
-                        return AppError::conflict_args(
-                            I18nKey::Conflict,
-                            [("details", "This assignment overlaps with an existing assignment for the same rule and assignee in this time period.")],
-                        );
-                    }
-                }
-                AppError::Internal(format!("Failed to assign payroll rule: {e}"))
-            })?;
-
-        Ok(result.into())
     }
 
     async fn get_assignments_for_rule(
@@ -226,23 +232,24 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
         workspace_id: Uuid,
         rule_definition_id: Uuid,
     ) -> Result<Vec<PayrollRuleAssignment>, AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    let entities = payroll_rule_assignments::table
+                        .filter(payroll_rule_assignments::workspace_id.eq(workspace_id))
+                        .filter(payroll_rule_assignments::rule_definition_id.eq(rule_definition_id))
+                        .order(payroll_rule_assignments::created_at.desc())
+                        .load::<PayrollRuleAssignmentEntity>(conn)
+                        .await
+                        .map_err(|e| {
+                            AppError::Internal(format!("Failed to fetch assignments: {e}"))
+                        })?;
 
-        let entities = payroll_rule_assignments::table
-            .filter(payroll_rule_assignments::workspace_id.eq(workspace_id))
-            .filter(payroll_rule_assignments::rule_definition_id.eq(rule_definition_id))
-            .order(payroll_rule_assignments::created_at.desc())
-            .load::<PayrollRuleAssignmentEntity>(&mut *conn)
+                    Ok(entities.into_iter().map(Into::into).collect())
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to fetch assignments: {e}")))?;
-
-        Ok(entities.into_iter().map(Into::into).collect())
     }
 
     async fn delete_assignment(
@@ -251,23 +258,24 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
         rule_definition_id: Uuid,
         assignment_id: Uuid,
     ) -> Result<(), AppError> {
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+        let token = TenantAuthToken::system_override(workspace_id);
+        self.diesel_pools
+            .with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    diesel::delete(payroll_rule_assignments::table)
+                        .filter(payroll_rule_assignments::id.eq(assignment_id))
+                        .filter(payroll_rule_assignments::workspace_id.eq(workspace_id))
+                        .filter(payroll_rule_assignments::rule_definition_id.eq(rule_definition_id))
+                        .execute(conn)
+                        .await
+                        .map_err(|e| {
+                            AppError::Internal(format!("Failed to delete assignment: {e}"))
+                        })?;
 
-        diesel::delete(payroll_rule_assignments::table)
-            .filter(payroll_rule_assignments::id.eq(assignment_id))
-            .filter(payroll_rule_assignments::workspace_id.eq(workspace_id))
-            .filter(payroll_rule_assignments::rule_definition_id.eq(rule_definition_id))
-            .execute(&mut *conn)
+                    Ok(())
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to delete assignment: {e}")))?;
-
-        Ok(())
     }
 }
 
