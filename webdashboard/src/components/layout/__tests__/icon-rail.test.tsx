@@ -265,6 +265,22 @@ describe("IconRail", () => {
     expect(onHover).toHaveBeenCalledWith(null);
   });
 
+  it("keeps tap/click navigation available on coarse pointers", () => {
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    const onHover = vi.fn();
+    const onClick = vi.fn();
+    render(<IconRail {...defaultProps} onHoverGroup={onHover} onClickGroup={onClick} />, { wrapper: Wrapper });
+
+    const orgBtn = screen.getByTestId("nav-rail-group-org");
+    fireEvent.mouseEnter(orgBtn);
+    fireEvent.mouseLeave(orgBtn);
+    expect(onHover).not.toHaveBeenCalled();
+
+    fireEvent.click(orgBtn);
+    expect(onClick).toHaveBeenCalledWith("org");
+    vi.unstubAllGlobals();
+  });
+
   // ── Tooltip ──────────────────────────────────────────────────
 
   it("renders tooltip via portal when hovering an icon", () => {

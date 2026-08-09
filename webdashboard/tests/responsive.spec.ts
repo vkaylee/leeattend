@@ -35,7 +35,7 @@ test.describe("Responsive layout contracts", () => {
   });
 
   test("keeps the end of the app content above the mobile bottom nav", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "responsive-mobile", "The bottom nav only exists on mobile.");
+    test.skip(testInfo.project.name !== "responsive-mobile" && testInfo.project.name !== "responsive-tablet", "The bottom nav only exists below lg.");
 
     const main = page.locator("[data-app-scroll-container]");
     const bottomNav = page.getByTestId("bottom-nav-more").locator("xpath=ancestor::nav");
@@ -47,7 +47,7 @@ test.describe("Responsive layout contracts", () => {
   });
 
   test("keeps bottom navigation controls at least 44px tall", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "responsive-mobile", "Touch targets are asserted on mobile.");
+    test.skip(testInfo.project.name !== "responsive-mobile" && testInfo.project.name !== "responsive-tablet", "Touch targets are asserted below lg.");
 
     const bottomNav = page.getByRole("navigation").last();
     const controls = [
@@ -61,5 +61,23 @@ test.describe("Responsive layout contracts", () => {
       expect(box!.width).toBeGreaterThanOrEqual(44);
       expect(box!.height).toBeGreaterThanOrEqual(44);
     }
+  });
+
+  test("keeps the pinned desktop panel beside the app content", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "responsive-desktop", "Pinned panel layout is asserted at the lg desktop boundary.");
+
+    await page.evaluate(() => localStorage.setItem("nav-rail-pinned", "true"));
+    await page.goto("/employees");
+
+    const mainShell = page.locator("[data-app-scroll-container]").locator("..");
+    const panel = page.getByTestId("nav-panel-org");
+    await expect(panel).toBeVisible();
+    await expect.poll(() => mainShell.getAttribute("class")).toContain("lg:ml-[calc(var(--nav-rail-width)+var(--nav-panel-width))]");
+
+    const panelBox = await panel.boundingBox();
+    const shellBox = await mainShell.boundingBox();
+    expect(panelBox).not.toBeNull();
+    expect(shellBox).not.toBeNull();
+    expect(shellBox!.x).toBeGreaterThanOrEqual(panelBox!.x + panelBox!.width);
   });
 });

@@ -39,6 +39,12 @@ function getInitialPinned(): boolean {
   }
 }
 
+/** Return true only when the current input can reliably hover navigation. */
+export function isHoverNavigationAvailable(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return true;
+  return window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+}
+
 // ── Hook ───────────────────────────────────────────────────────────
 
 export function useNavSidebar(locationPathname: string): NavSidebarState {
@@ -85,7 +91,7 @@ export function useNavSidebar(locationPathname: string): NavSidebarState {
   // ── Hover handler with debounce ──────────────────────────────
   const handleGroupHover = useCallback(
     (group: NavGroup | null) => {
-      if (isPinned) return;
+      if (isPinned || !isHoverNavigationAvailable()) return;
       clearTimers();
 
       if (group === null) {

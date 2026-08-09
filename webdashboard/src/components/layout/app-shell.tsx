@@ -140,7 +140,9 @@ export default function AppShell({ variant }: AppShellProps) {
       <div
         className={cn(
           "flex-1 flex flex-col min-w-0 h-dvh overflow-hidden relative transition-[margin-left] duration-300",
-          "lg:ml-[var(--nav-rail-width)]", // Always leave room for the icon rail on desktop
+          isPinned && panelOpen
+            ? "lg:ml-[calc(var(--nav-rail-width)+var(--nav-panel-width))]"
+            : "lg:ml-[var(--nav-rail-width)]",
         )}
       >
         <Navbar
@@ -152,7 +154,7 @@ export default function AppShell({ variant }: AppShellProps) {
           className={cn(
             "flex-1 relative scroll-smooth",
             isOrgChart ? "overflow-hidden p-0" : "overflow-y-auto p-4 md:p-6 lg:p-8 pl-safe pr-safe",
-            "pb-[var(--bottom-nav-height)] lg:pb-0", // Bottom nav clearance on mobile
+            "pb-[var(--bottom-nav-height)] md:pb-[var(--bottom-nav-height)] lg:pb-0", // Bottom nav clearance below desktop
           )}
         >
           <div

@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
 
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
+import { isHoverNavigationAvailable } from "@/hooks/use-nav-sidebar";
 import { useLanguage } from "@/hooks/use-language";
 import { useFilteredMenuItems } from "@/hooks/use-nav-menu-items";
 import { useNotifications } from "@/hooks/use-notifications";
@@ -168,8 +169,16 @@ const MenuLink = memo(function MenuLink({ group, icon: Icon, isActive, label, on
 
   const handleBlur = useCallback(() => { setHovered(false); }, [setHovered]);
   const handleFocus = useCallback(() => { setHovered(true); }, [setHovered]);
-  const handleMouseEnter = useCallback(() => { setHovered(true); onHover(true); }, [setHovered, onHover]);
-  const handleMouseLeave = useCallback(() => { setHovered(false); onHover(false); }, [setHovered, onHover]);
+  const handleMouseEnter = useCallback(() => {
+    if (!isHoverNavigationAvailable()) return;
+    setHovered(true);
+    onHover(true);
+  }, [setHovered, onHover]);
+  const handleMouseLeave = useCallback(() => {
+    if (!isHoverNavigationAvailable()) return;
+    setHovered(false);
+    onHover(false);
+  }, [setHovered, onHover]);
 
   if (to && (group === "dashboard" || group === "settings")) {
     return (
@@ -204,8 +213,12 @@ const IconTooltipButton = memo(function IconTooltipButton({
   const { el, hovered, setHovered, refCb } = useTooltipTarget<HTMLButtonElement>();
   const handleBlur = useCallback(() => { setHovered(false); }, [setHovered]);
   const handleFocus = useCallback(() => { setHovered(true); }, [setHovered]);
-  const handleMouseEnter = useCallback(() => { setHovered(true); }, [setHovered]);
-  const handleMouseLeave = useCallback(() => { setHovered(false); }, [setHovered]);
+  const handleMouseEnter = useCallback(() => {
+    if (isHoverNavigationAvailable()) setHovered(true);
+  }, [setHovered]);
+  const handleMouseLeave = useCallback(() => {
+    if (isHoverNavigationAvailable()) setHovered(false);
+  }, [setHovered]);
   return (
     <>
       <button
@@ -238,8 +251,12 @@ const IconTooltipLink = memo(function IconTooltipLink({
   const { el, hovered, setHovered, refCb } = useTooltipTarget<HTMLAnchorElement>();
   const handleBlur = useCallback(() => { setHovered(false); }, [setHovered]);
   const handleFocus = useCallback(() => { setHovered(true); }, [setHovered]);
-  const handleMouseEnter = useCallback(() => { setHovered(true); }, [setHovered]);
-  const handleMouseLeave = useCallback(() => { setHovered(false); }, [setHovered]);
+  const handleMouseEnter = useCallback(() => {
+    if (isHoverNavigationAvailable()) setHovered(true);
+  }, [setHovered]);
+  const handleMouseLeave = useCallback(() => {
+    if (isHoverNavigationAvailable()) setHovered(false);
+  }, [setHovered]);
   return (
     <Link
       aria-label={ariaLabel}
@@ -263,8 +280,12 @@ const IconLogoutButton = memo(function IconLogoutButton({ onLogout }: { onLogout
   const { el, hovered, setHovered, refCb } = useTooltipTarget<HTMLButtonElement>();
   const handleBlur = useCallback(() => { setHovered(false); }, [setHovered]);
   const handleFocus = useCallback(() => { setHovered(true); }, [setHovered]);
-  const handleMouseEnter = useCallback(() => { setHovered(true); }, [setHovered]);
-  const handleMouseLeave = useCallback(() => { setHovered(false); }, [setHovered]);
+  const handleMouseEnter = useCallback(() => {
+    if (isHoverNavigationAvailable()) setHovered(true);
+  }, [setHovered]);
+  const handleMouseLeave = useCallback(() => {
+    if (isHoverNavigationAvailable()) setHovered(false);
+  }, [setHovered]);
   return (
     <>
       <button
