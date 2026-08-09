@@ -3,6 +3,7 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
+use apiserver::diesel_pool::{DieselPoolsTenantTxExt, TenantAuthToken};
 use apiserver::models::{
     CreateEmployeeRequest, Employee, SanitizedEmployeeId, UpdateEmployeeRequest,
 };
@@ -23,19 +24,23 @@ async fn test_create_employee_id_normalization() {
     let token = factory.auth().create_token(user_id);
 
     let pool = factory.diesel_pools.clone();
-    let hq_loc_id = {
-        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
-        use apiserver::schema::work_locations::dsl::*;
-        use diesel::prelude::*;
-        use diesel_async::RunQueryDsl;
-        work_locations
-            .filter(workspace_id.eq(ws_id))
-            .filter(is_headquarters.eq(true))
-            .select(id)
-            .first::<uuid::Uuid>(&mut *conn)
-            .await
-            .unwrap()
-    };
+    let hq_loc_id = pool
+        .with_tenant_tx(&TenantAuthToken::system_override(ws_id), |conn| {
+            Box::pin(async move {
+                use apiserver::schema::work_locations::dsl::*;
+                use diesel::prelude::*;
+                use diesel_async::RunQueryDsl;
+                work_locations
+                    .filter(workspace_id.eq(ws_id))
+                    .filter(is_headquarters.eq(true))
+                    .select(id)
+                    .first::<uuid::Uuid>(conn)
+                    .await
+                    .map_err(apiserver::errors::AppError::from)
+            })
+        })
+        .await
+        .unwrap();
 
     let employer_id = Uuid::new_v4();
     crate::test_execute!(
@@ -112,19 +117,23 @@ async fn test_update_employee_id_normalization() {
         .await;
 
     let pool = factory.diesel_pools.clone();
-    let hq_loc_id = {
-        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
-        use apiserver::schema::work_locations::dsl::*;
-        use diesel::prelude::*;
-        use diesel_async::RunQueryDsl;
-        work_locations
-            .filter(workspace_id.eq(ws_id))
-            .filter(is_headquarters.eq(true))
-            .select(id)
-            .first::<uuid::Uuid>(&mut *conn)
-            .await
-            .unwrap()
-    };
+    let hq_loc_id = pool
+        .with_tenant_tx(&TenantAuthToken::system_override(ws_id), |conn| {
+            Box::pin(async move {
+                use apiserver::schema::work_locations::dsl::*;
+                use diesel::prelude::*;
+                use diesel_async::RunQueryDsl;
+                work_locations
+                    .filter(workspace_id.eq(ws_id))
+                    .filter(is_headquarters.eq(true))
+                    .select(id)
+                    .first::<uuid::Uuid>(conn)
+                    .await
+                    .map_err(apiserver::errors::AppError::from)
+            })
+        })
+        .await
+        .unwrap();
 
     // Update employee ID to "00200"
     let req_body = UpdateEmployeeRequest {
@@ -191,19 +200,23 @@ async fn test_employee_id_uniqueness_on_normalized_values() {
         .await;
 
     let pool = factory.diesel_pools.clone();
-    let hq_loc_id = {
-        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
-        use apiserver::schema::work_locations::dsl::*;
-        use diesel::prelude::*;
-        use diesel_async::RunQueryDsl;
-        work_locations
-            .filter(workspace_id.eq(ws_id))
-            .filter(is_headquarters.eq(true))
-            .select(id)
-            .first::<uuid::Uuid>(&mut *conn)
-            .await
-            .unwrap()
-    };
+    let hq_loc_id = pool
+        .with_tenant_tx(&TenantAuthToken::system_override(ws_id), |conn| {
+            Box::pin(async move {
+                use apiserver::schema::work_locations::dsl::*;
+                use diesel::prelude::*;
+                use diesel_async::RunQueryDsl;
+                work_locations
+                    .filter(workspace_id.eq(ws_id))
+                    .filter(is_headquarters.eq(true))
+                    .select(id)
+                    .first::<uuid::Uuid>(conn)
+                    .await
+                    .map_err(apiserver::errors::AppError::from)
+            })
+        })
+        .await
+        .unwrap();
     let employer_id = Uuid::new_v4();
     crate::test_execute!(
         &pool.api,

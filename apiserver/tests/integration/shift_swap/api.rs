@@ -10,6 +10,7 @@
 use crate::common::app::spawn_app_with_factory;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
+use apiserver::diesel_pool::{DieselPoolsTenantTxExt, TenantAuthToken};
 use apiserver::models::shift_swap::{ShiftSwapRequest, ShiftSwapRequestWithNames, ShiftSwapStatus};
 use apiserver::models::ShiftRoster;
 use chrono::{NaiveDate, Utc};
@@ -601,25 +602,25 @@ async fn test_same_shift_swap_rejected() {
     let s = setup().await;
     let client = reqwest::Client::new();
 
-    let hq_loc_id = {
-        let mut conn = s
-            ._db
-            .diesel_pools
-            .tenants_tx
-            .get_connection(&s.workspace_id)
-            .await
-            .unwrap();
-        use apiserver::schema::work_locations::dsl::*;
-        use diesel::prelude::*;
-        use diesel_async::RunQueryDsl;
-        work_locations
-            .filter(workspace_id.eq(s.workspace_id))
-            .filter(is_headquarters.eq(true))
-            .select(id)
-            .first::<uuid::Uuid>(&mut *conn)
-            .await
-            .unwrap()
-    };
+    let hq_loc_id = s
+        ._db
+        .diesel_pools
+        .with_tenant_tx(&TenantAuthToken::system_override(s.workspace_id), |conn| {
+            Box::pin(async move {
+                use apiserver::schema::work_locations::dsl::*;
+                use diesel::prelude::*;
+                use diesel_async::RunQueryDsl;
+                work_locations
+                    .filter(workspace_id.eq(s.workspace_id))
+                    .filter(is_headquarters.eq(true))
+                    .select(id)
+                    .first::<uuid::Uuid>(conn)
+                    .await
+                    .map_err(apiserver::errors::AppError::from)
+            })
+        })
+        .await
+        .unwrap();
 
     let emp_c = Uuid::new_v4();
     crate::test_execute!(

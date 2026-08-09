@@ -5,6 +5,7 @@
 use crate::common::app::spawn_app_with_factory;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
+use apiserver::diesel_pool::{DieselPoolsTenantTxExt, TenantAuthToken};
 use apiserver::services::tenant_provisioner::TenantProvisionerTrait;
 use apiserver::services::workspace_service::WorkspaceService;
 use reqwest::StatusCode;
@@ -333,18 +334,19 @@ async fn test_update_workspace_syncs_headquarters_timezone() {
     use apiserver::schema::work_locations;
     use diesel::prelude::*;
     use diesel_async::RunQueryDsl;
-    let mut conn = diesel_pools
-        .tenants_tx
-        .get_connection(&ws_id)
-        .await
-        .unwrap();
-    let mut conn = apiserver::diesel_pool::TransactionConn(conn);
-
-    let hq_id: Uuid = work_locations::table
-        .filter(work_locations::workspace_id.eq(ws_id))
-        .filter(work_locations::is_headquarters.eq(true))
-        .select(work_locations::id)
-        .first(&mut *conn)
+    let auth_token = TenantAuthToken::system_override(ws_id);
+    let hq_id: Uuid = diesel_pools
+        .with_tenant_tx(&auth_token, |conn| {
+            Box::pin(async move {
+                work_locations::table
+                    .filter(work_locations::workspace_id.eq(ws_id))
+                    .filter(work_locations::is_headquarters.eq(true))
+                    .select(work_locations::id)
+                    .first(conn)
+                    .await
+                    .map_err(apiserver::errors::AppError::from)
+            })
+        })
         .await
         .unwrap();
 
@@ -362,7 +364,7 @@ async fn test_update_workspace_syncs_headquarters_timezone() {
         dummy_migrator,
     )
     .update_workspace(
-        &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+        &auth_token,
         apiserver::services::workspace_service::UpdateWorkspaceArgs {
             ws_id,
             name: None,
@@ -381,10 +383,17 @@ async fn test_update_workspace_syncs_headquarters_timezone() {
     .expect("Failed to update workspace");
 
     // Verify headquarters location timezone
-    let hq_tz: String = work_locations::table
-        .filter(work_locations::id.eq(hq_id))
-        .select(work_locations::timezone)
-        .first(&mut *conn)
+    let hq_tz: String = diesel_pools
+        .with_tenant_tx(&auth_token, |conn| {
+            Box::pin(async move {
+                work_locations::table
+                    .filter(work_locations::id.eq(hq_id))
+                    .select(work_locations::timezone)
+                    .first(conn)
+                    .await
+                    .map_err(apiserver::errors::AppError::from)
+            })
+        })
         .await
         .unwrap();
 

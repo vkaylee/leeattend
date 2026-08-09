@@ -6,6 +6,7 @@
 
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
+use apiserver::diesel_pool::{DieselPoolsTenantTxExt, TenantAuthToken};
 use apiserver::models::WorkingCondition;
 use apiserver::repositories::{
     diesel_employee_repository::DieselEmployeeRepository,
@@ -653,8 +654,7 @@ async fn test_get_employee_timezone_fallback() {
 
     let mut tenant_conn = test_db
         .diesel_pools
-        .tenants_tx
-        .get_connection(&ws_id)
+        .tenant_transaction_conn(&TenantAuthToken::system_override(ws_id))
         .await
         .unwrap();
     let custom_loc_id = Uuid::new_v4();
@@ -731,8 +731,7 @@ async fn test_get_employee_timezone_at_date() {
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let mut tenant_conn = test_db
         .diesel_pools
-        .tenants_tx
-        .get_connection(&ws_id)
+        .tenant_transaction_conn(&TenantAuthToken::system_override(ws_id))
         .await
         .unwrap();
 
@@ -867,27 +866,29 @@ async fn test_employee_core_crud() {
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
 
-    let (hq_loc_id, employer_id) = {
-        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
-        use apiserver::schema::employers::dsl::employers;
-        use apiserver::schema::work_locations::dsl::*;
-        use diesel::prelude::*;
-        use diesel_async::RunQueryDsl;
-        let loc = work_locations
-            .filter(workspace_id.eq(ws_id))
-            .filter(is_headquarters.eq(true))
-            .select(id)
-            .first::<uuid::Uuid>(&mut *conn)
-            .await
-            .unwrap();
-        let emp_id = employers
-            .filter(apiserver::schema::employers::dsl::workspace_id.eq(ws_id))
-            .select(apiserver::schema::employers::dsl::id)
-            .first::<uuid::Uuid>(&mut *conn)
-            .await
-            .unwrap();
-        (loc, emp_id)
-    };
+    let (hq_loc_id, employer_id) = pool
+        .with_tenant_tx(&auth_token, |conn| {
+            Box::pin(async move {
+                use apiserver::schema::employers::dsl::employers;
+                use apiserver::schema::work_locations::dsl::*;
+                use diesel::prelude::*;
+                use diesel_async::RunQueryDsl;
+                let loc = work_locations
+                    .filter(workspace_id.eq(ws_id))
+                    .filter(is_headquarters.eq(true))
+                    .select(id)
+                    .first::<uuid::Uuid>(conn)
+                    .await?;
+                let emp_id = employers
+                    .filter(apiserver::schema::employers::dsl::workspace_id.eq(ws_id))
+                    .select(apiserver::schema::employers::dsl::id)
+                    .first::<uuid::Uuid>(conn)
+                    .await?;
+                Ok((loc, emp_id))
+            })
+        })
+        .await
+        .unwrap();
 
     // Create
     let new_emp = apiserver::models::Employee::new(
@@ -962,18 +963,23 @@ async fn test_employee_core_crud() {
     let rehired = rehired.unwrap();
     assert_eq!(rehired.is_active(), true);
 
-    let db_employment = {
-        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
-        use apiserver::schema::employments::dsl::*;
-        use diesel::prelude::*;
-        use diesel_async::RunQueryDsl;
-        employments
-            .filter(employee_id.eq(new_emp.id()))
-            .filter(status.eq("active"))
-            .first::<apiserver::models::diesel::employment::EmploymentEntity>(&mut *conn)
-            .await
-            .unwrap()
-    };
+    let new_emp_id = new_emp.id();
+    let db_employment = pool
+        .with_tenant_tx(&auth_token, |conn| {
+            Box::pin(async move {
+                use apiserver::schema::employments::dsl::*;
+                use diesel::prelude::*;
+                use diesel_async::RunQueryDsl;
+                employments
+                    .filter(employee_id.eq(new_emp_id))
+                    .filter(status.eq("active"))
+                    .first::<apiserver::models::diesel::employment::EmploymentEntity>(conn)
+                    .await
+                    .map_err(apiserver::errors::AppError::from)
+            })
+        })
+        .await
+        .unwrap();
     assert_eq!(
         db_employment.start_date,
         NaiveDate::from_ymd_opt(2026, 4, 1).unwrap()
@@ -981,14 +987,11 @@ async fn test_employee_core_crud() {
     assert!(db_employment.end_date.is_none());
 
     // Delete
-    let deleted = repo
-        .delete_employee(new_emp.id(), &auth_token)
-        .await
-        .unwrap();
+    let deleted = repo.delete_employee(new_emp_id, &auth_token).await.unwrap();
     assert_eq!(deleted, 1);
 
     let not_found = repo
-        .get_employee_by_id(new_emp.id(), &auth_token)
+        .get_employee_by_id(new_emp_id, &auth_token)
         .await
         .unwrap();
     assert!(not_found.is_none());
@@ -1185,32 +1188,40 @@ async fn test_temporal_segment_splitting_and_propagation() {
         .create()
         .await;
 
-    let hq_loc_id = {
-        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
-        use apiserver::schema::work_locations::dsl::*;
-        use diesel::prelude::*;
-        use diesel_async::RunQueryDsl;
-        work_locations
-            .filter(workspace_id.eq(ws_id))
-            .filter(is_headquarters.eq(true))
-            .select(id)
-            .first::<uuid::Uuid>(&mut *conn)
-            .await
-            .unwrap()
-    };
+    let hq_loc_id = pool
+        .with_tenant_tx(&auth_token, |conn| {
+            Box::pin(async move {
+                use apiserver::schema::work_locations::dsl::*;
+                use diesel::prelude::*;
+                use diesel_async::RunQueryDsl;
+                work_locations
+                    .filter(workspace_id.eq(ws_id))
+                    .filter(is_headquarters.eq(true))
+                    .select(id)
+                    .first::<uuid::Uuid>(conn)
+                    .await
+                    .map_err(apiserver::errors::AppError::from)
+            })
+        })
+        .await
+        .unwrap();
 
-    let test_employer_id = {
-        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
-        use apiserver::schema::employers::dsl::*;
-        use diesel::prelude::*;
-        use diesel_async::RunQueryDsl;
-        employers
-            .filter(workspace_id.eq(ws_id))
-            .select(id)
-            .first::<uuid::Uuid>(&mut *conn)
-            .await
-            .unwrap()
-    };
+    let test_employer_id = pool
+        .with_tenant_tx(&auth_token, |conn| {
+            Box::pin(async move {
+                use apiserver::schema::employers::dsl::*;
+                use diesel::prelude::*;
+                use diesel_async::RunQueryDsl;
+                employers
+                    .filter(workspace_id.eq(ws_id))
+                    .select(id)
+                    .first::<uuid::Uuid>(conn)
+                    .await
+                    .map_err(apiserver::errors::AppError::from)
+            })
+        })
+        .await
+        .unwrap();
 
     // Create an employee. By default, factory.employee() creates a starting active segment.
     let emp_id = factory
@@ -1221,21 +1232,24 @@ async fn test_temporal_segment_splitting_and_propagation() {
         .await;
 
     // Set the initial employment segment explicitly in DB
-    {
-        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
-        use apiserver::schema::employments::dsl::*;
-        use diesel::prelude::*;
-        use diesel_async::RunQueryDsl;
-        diesel::update(employments.filter(employee_id.eq(emp_id)))
-            .set((
-                start_date.eq(NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()),
-                end_date.eq(None::<NaiveDate>),
-                department_id.eq(Some(dept_a)),
-            ))
-            .execute(&mut *conn)
-            .await
-            .unwrap();
-    }
+    pool.with_tenant_tx(&auth_token, |conn| {
+        Box::pin(async move {
+            use apiserver::schema::employments::dsl::*;
+            use diesel::prelude::*;
+            use diesel_async::RunQueryDsl;
+            diesel::update(employments.filter(employee_id.eq(emp_id)))
+                .set((
+                    start_date.eq(NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()),
+                    end_date.eq(None::<NaiveDate>),
+                    department_id.eq(Some(dept_a)),
+                ))
+                .execute(conn)
+                .await?;
+            Ok(())
+        })
+    })
+    .await
+    .unwrap();
 
     let dep_repo = DieselDepartmentRepository::new(pool.clone());
 
@@ -1260,17 +1274,23 @@ async fn test_temporal_segment_splitting_and_propagation() {
     let get_segs = || {
         let pool = pool.clone();
         async move {
-            let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
-            use apiserver::schema::employments::dsl::*;
-            use diesel::prelude::*;
-            use diesel_async::RunQueryDsl;
-            employments
-                .filter(employee_id.eq(emp_id))
-                .filter(deleted_at.is_null())
-                .order(start_date.asc())
-                .load::<apiserver::models::diesel::employment::EmploymentEntity>(&mut *conn)
-                .await
-                .unwrap()
+            let token = TenantAuthToken::system_override(ws_id);
+            pool.with_tenant_tx(&token, |conn| {
+                Box::pin(async move {
+                    use apiserver::schema::employments::dsl::*;
+                    use diesel::prelude::*;
+                    use diesel_async::RunQueryDsl;
+                    employments
+                        .filter(employee_id.eq(emp_id))
+                        .filter(deleted_at.is_null())
+                        .order(start_date.asc())
+                        .load::<apiserver::models::diesel::employment::EmploymentEntity>(conn)
+                        .await
+                        .map_err(apiserver::errors::AppError::from)
+                })
+            })
+            .await
+            .unwrap()
         }
     };
 
@@ -1340,62 +1360,64 @@ async fn test_temporal_segment_splitting_and_propagation() {
     // Seg 3: 2026-04-01 -> 2026-05-31 (dept_c)  <-- inherited
     // Seg 4: 2026-06-01 -> None       (dept_a)  <-- override (different from dept_c)
     // ----------------------------------------------------
-    {
-        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
-        use apiserver::schema::employments::dsl::*;
-        use diesel::prelude::*;
-        use diesel_async::RunQueryDsl;
-        // Delete existing segments
-        diesel::delete(employments.filter(employee_id.eq(emp_id)))
-            .execute(&mut *conn)
-            .await
-            .unwrap();
+    pool.with_tenant_tx(&auth_token, |conn| {
+        Box::pin(async move {
+            use apiserver::schema::employments::dsl::*;
+            use diesel::prelude::*;
+            use diesel_async::RunQueryDsl;
+            // Delete existing segments
+            diesel::delete(employments.filter(employee_id.eq(emp_id)))
+                .execute(conn)
+                .await?;
 
-        let make_seg = |start: NaiveDate, end: Option<NaiveDate>, dept: Uuid| {
-            apiserver::models::diesel::employment::EmploymentEntity {
-                id: Uuid::new_v4(),
-                workspace_id: ws_id,
-                employee_id: emp_id,
-                employer_id: test_employer_id,
-                primary_location_id: Some(hq_loc_id),
-                department_id: Some(dept),
-                status: "active".to_string(),
-                start_date: start,
-                end_date: end,
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-                deleted_at: None,
-                job_title: None,
-                employment_type: "full_time".to_string(),
-                manager_employment_id: None,
-                notes: None,
-                termination_reason: None,
-            }
-        };
+            let make_seg = |start: NaiveDate, end: Option<NaiveDate>, dept: Uuid| {
+                apiserver::models::diesel::employment::EmploymentEntity {
+                    id: Uuid::new_v4(),
+                    workspace_id: ws_id,
+                    employee_id: emp_id,
+                    employer_id: test_employer_id,
+                    primary_location_id: Some(hq_loc_id),
+                    department_id: Some(dept),
+                    status: "active".to_string(),
+                    start_date: start,
+                    end_date: end,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                    deleted_at: None,
+                    job_title: None,
+                    employment_type: "full_time".to_string(),
+                    manager_employment_id: None,
+                    notes: None,
+                    termination_reason: None,
+                }
+            };
 
-        let s1 = make_seg(
-            NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-            Some(NaiveDate::from_ymd_opt(2026, 1, 31).unwrap()),
-            dept_a,
-        );
-        let s2 = make_seg(
-            NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
-            Some(NaiveDate::from_ymd_opt(2026, 3, 31).unwrap()),
-            dept_c,
-        );
-        let s3 = make_seg(
-            NaiveDate::from_ymd_opt(2026, 4, 1).unwrap(),
-            Some(NaiveDate::from_ymd_opt(2026, 5, 31).unwrap()),
-            dept_c,
-        );
-        let s4 = make_seg(NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(), None, dept_a);
+            let s1 = make_seg(
+                NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                Some(NaiveDate::from_ymd_opt(2026, 1, 31).unwrap()),
+                dept_a,
+            );
+            let s2 = make_seg(
+                NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+                Some(NaiveDate::from_ymd_opt(2026, 3, 31).unwrap()),
+                dept_c,
+            );
+            let s3 = make_seg(
+                NaiveDate::from_ymd_opt(2026, 4, 1).unwrap(),
+                Some(NaiveDate::from_ymd_opt(2026, 5, 31).unwrap()),
+                dept_c,
+            );
+            let s4 = make_seg(NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(), None, dept_a);
 
-        diesel::insert_into(employments)
-            .values(&vec![s1, s2, s3, s4])
-            .execute(&mut *conn)
-            .await
-            .unwrap();
-    }
+            diesel::insert_into(employments)
+                .values(&vec![s1, s2, s3, s4])
+                .execute(conn)
+                .await?;
+            Ok(())
+        })
+    })
+    .await
+    .unwrap();
 
     // Now, transfer to dept_b starting from 2026-03-01 (middle of Seg 2).
     // This should:

@@ -11,7 +11,7 @@ use crate::diesel_pool::{DieselPools, DieselPoolsTenantTxExt, TenantAuthToken};
 use crate::errors::AppError;
 
 const MAX_RANGE_DAYS: i64 = 366;
-const REPORT_QUERY: &str = r#"
+const REPORT_QUERY: &str = r"
 WITH params AS (
     SELECT $1::uuid AS workspace_id,
            $2::date AS start_date,
@@ -115,7 +115,7 @@ SELECT COUNT(*) FILTER (WHERE current_batch_days > corrected_qualifying_days)::b
        COALESCE(SUM(corrected_qualifying_days), 0)::bigint
            AS corrected_qualifying_days
 FROM comparison
-"#;
+";
 
 #[derive(Debug, Clone, Serialize)]
 pub struct QualifyingDaysBlastRadius {
@@ -164,20 +164,24 @@ pub fn parse_process_args() -> Result<(Uuid, String, NaiveDate, NaiveDate), AppE
         })?;
         match flag.as_str() {
             "--workspace-id" => {
-                workspace_id = Some(value.parse::<Uuid>().map_err(|_| {
+                workspace_id = Some(value.parse::<Uuid>().map_err(|_err| {
                     AppError::Internal("invalid --workspace-id; expected UUID".to_string())
                 })?);
             }
             "--timezone" => timezone = Some(value),
             "--from-date" => {
-                from_date = Some(NaiveDate::parse_from_str(&value, "%Y-%m-%d").map_err(|_| {
-                    AppError::Internal("invalid --from-date; expected YYYY-MM-DD".to_string())
-                })?);
+                from_date = Some(NaiveDate::parse_from_str(&value, "%Y-%m-%d").map_err(
+                    |_err| {
+                        AppError::Internal("invalid --from-date; expected YYYY-MM-DD".to_string())
+                    },
+                )?);
             }
             "--to-date" => {
-                to_date = Some(NaiveDate::parse_from_str(&value, "%Y-%m-%d").map_err(|_| {
-                    AppError::Internal("invalid --to-date; expected YYYY-MM-DD".to_string())
-                })?);
+                to_date = Some(
+                    NaiveDate::parse_from_str(&value, "%Y-%m-%d").map_err(|_err| {
+                        AppError::Internal("invalid --to-date; expected YYYY-MM-DD".to_string())
+                    })?,
+                );
             }
             _ => {
                 return Err(AppError::Internal(format!(
@@ -206,7 +210,7 @@ pub async fn run(
         return Err(AppError::Internal("timezone must not be empty".to_string()));
     }
     chrono_tz::Tz::from_str(timezone)
-        .map_err(|_| AppError::Internal(format!("invalid timezone: {timezone}")))?;
+        .map_err(|_err| AppError::Internal(format!("invalid timezone: {timezone}")))?;
     if to_date < from_date {
         return Err(AppError::Internal(
             "to_date must be on or after from_date".to_string(),

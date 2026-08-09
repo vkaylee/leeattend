@@ -3,6 +3,7 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
+use apiserver::diesel_pool::{DieselPoolsTenantTxExt, TenantAuthToken};
 use apiserver::models::Employee;
 use apiserver::AppState;
 use axum::http::StatusCode;
@@ -19,19 +20,23 @@ async fn test_employee_crud_lifecycle_smoke() {
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
     let pool = factory.diesel_pools.clone();
-    let hq_loc_id = {
-        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
-        use apiserver::schema::work_locations::dsl::*;
-        use diesel::prelude::*;
-        use diesel_async::RunQueryDsl;
-        work_locations
-            .filter(workspace_id.eq(ws_id))
-            .filter(is_headquarters.eq(true))
-            .select(id)
-            .first::<uuid::Uuid>(&mut *conn)
-            .await
-            .unwrap()
-    };
+    let hq_loc_id = pool
+        .with_tenant_tx(&TenantAuthToken::system_override(ws_id), |conn| {
+            Box::pin(async move {
+                use apiserver::schema::work_locations::dsl::*;
+                use diesel::prelude::*;
+                use diesel_async::RunQueryDsl;
+                work_locations
+                    .filter(workspace_id.eq(ws_id))
+                    .filter(is_headquarters.eq(true))
+                    .select(id)
+                    .first::<uuid::Uuid>(conn)
+                    .await
+                    .map_err(apiserver::errors::AppError::from)
+            })
+        })
+        .await
+        .unwrap();
 
     let employer_id: Uuid = crate::test_query_scalar_uuid!(
         &_test_db.diesel_pools.api,
@@ -215,19 +220,23 @@ async fn test_employee_user_id_uniqueness() {
     let target_user_id = factory.user().create().await;
 
     let pool = factory.diesel_pools.clone();
-    let hq_loc_id = {
-        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
-        use apiserver::schema::work_locations::dsl::*;
-        use diesel::prelude::*;
-        use diesel_async::RunQueryDsl;
-        work_locations
-            .filter(workspace_id.eq(ws_id))
-            .filter(is_headquarters.eq(true))
-            .select(id)
-            .first::<uuid::Uuid>(&mut *conn)
-            .await
-            .unwrap()
-    };
+    let hq_loc_id = pool
+        .with_tenant_tx(&TenantAuthToken::system_override(ws_id), |conn| {
+            Box::pin(async move {
+                use apiserver::schema::work_locations::dsl::*;
+                use diesel::prelude::*;
+                use diesel_async::RunQueryDsl;
+                work_locations
+                    .filter(workspace_id.eq(ws_id))
+                    .filter(is_headquarters.eq(true))
+                    .select(id)
+                    .first::<uuid::Uuid>(conn)
+                    .await
+                    .map_err(apiserver::errors::AppError::from)
+            })
+        })
+        .await
+        .unwrap();
 
     let employer_id: Uuid = crate::test_query_scalar_uuid!(
         &_test_db.diesel_pools.api,

@@ -60,11 +60,13 @@ mod tests {
 
     #[test]
     fn test_redis_resource_limits_are_bounded() {
-        assert!(MAX_QUEUE_LENGTH > 0);
-        assert!(MAX_DLQ_LENGTH > 0);
-        assert!(MAX_RECENT_JOBS > 0);
-        assert!(MAX_SERIALIZED_JOB_BYTES >= 1024);
-        assert!(MAX_RECENT_JOBS <= 1000);
+        const {
+            assert!(MAX_QUEUE_LENGTH > 0);
+            assert!(MAX_DLQ_LENGTH > 0);
+            assert!(MAX_RECENT_JOBS > 0);
+            assert!(MAX_SERIALIZED_JOB_BYTES >= 1024);
+            assert!(MAX_RECENT_JOBS <= 1000);
+        }
     }
 
     #[test]
@@ -903,7 +905,7 @@ mod tests {
             crate::queue::JobPriority::Low,
         );
 
-        for _ in 0..(MAX_DLQ_LENGTH + 1) {
+        for _ in 0..=MAX_DLQ_LENGTH {
             queue
                 .move_to_dlq(&job, "test failure")
                 .await

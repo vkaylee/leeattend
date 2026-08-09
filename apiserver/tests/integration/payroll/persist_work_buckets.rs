@@ -2,6 +2,7 @@
 //! are persisted correctly and payroll reads them as single source of truth.
 
 use crate::common::factory::TestFactory;
+use apiserver::diesel_pool::{DieselPoolsTenantTxExt, TenantAuthToken};
 use apiserver::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
 use apiserver::services::attendance_summary_service::{
     AttendanceSummaryService, AttendanceSummaryServiceArgs,
@@ -169,23 +170,23 @@ async fn test_persist_work_buckets_and_payroll_consistency() {
         .expect("recalculate_daily_summary should succeed");
 
     // ---- Phase 2: verify persisted fields in DB ----
-    let summary = {
-        let mut conn = diesel_pools
-            .tenants_tx
-            .get_connection(&workspace_id)
-            .await
-            .unwrap();
-        use apiserver::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
-        use apiserver::schema::attendance_daily_summaries::dsl as ads;
-        use diesel::prelude::*;
+    let summary = diesel_pools
+        .with_tenant_tx(&auth_token, |conn| {
+            Box::pin(async move {
+                use apiserver::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
+                use apiserver::schema::attendance_daily_summaries::dsl as ads;
+                use diesel::prelude::*;
 
-        ads::attendance_daily_summaries
-            .filter(ads::employment_id.eq(employment_id))
-            .filter(ads::date.eq(work_date))
-            .first::<AttendanceDailySummaryEntity>(&mut *conn)
-            .await
-            .unwrap()
-    };
+                ads::attendance_daily_summaries
+                    .filter(ads::employment_id.eq(employment_id))
+                    .filter(ads::date.eq(work_date))
+                    .first::<AttendanceDailySummaryEntity>(conn)
+                    .await
+                    .map_err(apiserver::errors::AppError::from)
+            })
+        })
+        .await
+        .unwrap();
 
     // Monday → is_weekend = false
     assert!(!summary.is_weekend, "Monday should not be weekend");
@@ -410,23 +411,23 @@ async fn test_is_weekend_persisted_for_saturday() {
         .expect("recalculate_daily_summary should succeed");
 
     // Verify is_weekend in DB
-    let summary = {
-        let mut conn = diesel_pools
-            .tenants_tx
-            .get_connection(&workspace_id)
-            .await
-            .unwrap();
-        use apiserver::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
-        use apiserver::schema::attendance_daily_summaries::dsl as ads;
-        use diesel::prelude::*;
+    let summary = diesel_pools
+        .with_tenant_tx(&auth_token, |conn| {
+            Box::pin(async move {
+                use apiserver::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
+                use apiserver::schema::attendance_daily_summaries::dsl as ads;
+                use diesel::prelude::*;
 
-        ads::attendance_daily_summaries
-            .filter(ads::employment_id.eq(employment_id))
-            .filter(ads::date.eq(saturday))
-            .first::<AttendanceDailySummaryEntity>(&mut *conn)
-            .await
-            .unwrap()
-    };
+                ads::attendance_daily_summaries
+                    .filter(ads::employment_id.eq(employment_id))
+                    .filter(ads::date.eq(saturday))
+                    .first::<AttendanceDailySummaryEntity>(conn)
+                    .await
+                    .map_err(apiserver::errors::AppError::from)
+            })
+        })
+        .await
+        .unwrap();
 
     assert!(summary.is_weekend, "Saturday must have is_weekend=true");
     // 8:00-12:00 with no break = 240 standard minutes on Saturday

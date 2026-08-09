@@ -115,14 +115,7 @@ pub async fn create_holiday(
         .leaves()
         .holiday_repo()
         .create_holiday(&ctx.auth_token, &req)
-        .await
-        .map_err(|e| {
-            if e.to_string().contains("unique") || e.to_string().contains("duplicate") {
-                AppError::conflict(I18nKey::HolidayAlreadyExists)
-            } else {
-                AppError::Internal(e.to_string())
-            }
-        })?;
+        .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
         cache.invalidate(ctx.workspace_id).await;

@@ -1,4 +1,4 @@
-use crate::diesel_pool::{DbPoolConfig, DieselPools};
+use crate::diesel_pool::{DbPoolConfig, DieselPools, TenantAuthToken};
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -85,23 +85,19 @@ pub async fn register_workspace_tenants_and_migrate(
             continue;
         };
 
-        // Resolve migration URL via the session pool manager.
-        let migration_url = match diesel_pools
-            .tenants_sess
-            .resolve_migration_url(&ws_id, &tenant_url)
-        {
-            Ok(url) => url,
-            Err(e) => {
-                tracing::warn!(
-                    workspace_id = %ws_id,
-                    error = %e,
-                    "Failed to resolve tenant migration URL — skipping"
-                );
-                continue;
-            }
-        };
+        // Acquire through the session-pool helper, then release before the blocking migration.
+        // TenantPoolManager resolves migration URLs identically to the decrypted tenant URL.
+        let tenant_token = TenantAuthToken::system_override(ws_id);
+        if let Err(e) = diesel_pools.tenant_session_conn(&tenant_token).await {
+            tracing::warn!(
+                workspace_id = %ws_id,
+                error = %e,
+                "Failed to acquire tenant session connection — skipping"
+            );
+            continue;
+        }
 
-        migration_targets.push((ws_id, migration_url));
+        migration_targets.push((ws_id, tenant_url));
     }
 
     if !migration_targets.is_empty() {

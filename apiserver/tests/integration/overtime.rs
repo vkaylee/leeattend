@@ -274,8 +274,9 @@ async fn test_overtime_request_status_serialization() {
 
     let mut tenant_conn = test_db
         .diesel_pools
-        .tenants_tx
-        .get_connection(&admin_ws_id)
+        .tenant_transaction_conn(&apiserver::diesel_pool::TenantAuthToken::system_override(
+            admin_ws_id,
+        ))
         .await
         .unwrap();
 

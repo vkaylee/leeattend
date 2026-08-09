@@ -38,8 +38,9 @@ async fn test_employee_assignment_crud_and_status_enum() {
 
     let mut tenant_conn = test_db
         .diesel_pools
-        .tenants_tx
-        .get_connection(&ws_id)
+        .tenant_transaction_conn(&apiserver::diesel_pool::TenantAuthToken::system_override(
+            ws_id,
+        ))
         .await
         .unwrap();
 
@@ -171,8 +172,9 @@ async fn test_employee_assignments_api_crud() {
     let tokyo_loc_id = Uuid::new_v4();
     let mut tenant_conn = _test_db
         .diesel_pools
-        .tenants_tx
-        .get_connection(&ws_id)
+        .tenant_transaction_conn(&apiserver::diesel_pool::TenantAuthToken::system_override(
+            ws_id,
+        ))
         .await
         .unwrap();
 

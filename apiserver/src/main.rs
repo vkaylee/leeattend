@@ -280,6 +280,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[allow(clippy::disallowed_macros)]
 async fn run_qualifying_days_blast_radius() -> Result<(), Box<dyn std::error::Error>> {
     let (workspace_id, timezone, from_date, to_date) =
         apiserver::diagnostics::qualifying_days_blast_radius::parse_process_args()?;
