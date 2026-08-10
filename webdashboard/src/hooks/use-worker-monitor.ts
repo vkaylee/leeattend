@@ -25,11 +25,11 @@ export function useWorkerJobs(params: Omit<FetchMonitorJobsParams, "cursor">) {
   });
 }
 
-export function useWorkerMonitor(sseConnected = false) {
+export function useWorkerMonitor(streamFresh = false) {
   const query = useQuery({
     queryKey: monitorKeys.overview(),
     queryFn: fetchMonitorOverview,
-    refetchInterval: sseConnected ? false : MONITOR_REFETCH_INTERVAL_MS,
+    refetchInterval: streamFresh ? false : MONITOR_REFETCH_INTERVAL_MS,
   });
 
   return {

@@ -5,47 +5,17 @@ export interface ReportExportJobProgress {
   total_batches: number;
 }
 
-export interface WorkerMonitorStats {
-  active_workers: number;
-  completed_today: number;
-  failed_today: number;
-  idle_workers: number;
-  job_type_stats: JobTypeStats[];
-  pending_high: number;
-  pending_low: number;
-  pending_normal?: number;
-  pending_tasks: number;
-  recent_jobs: RecentJob[];
-  total_workers: number;
-  workers: import("@/lib/api/types").WorkerHeartbeat[];
-}
+import type { components } from "@/types/api-generated";
 
-export interface JobTypeStats {
-  completed: number;
-  failed: number;
-  pending: number;
-  processing: number;
-  task_type: string;
-  total: number;
-}
-
-export interface MonitorJobsResponse {
-  jobs: RecentJob[];
-  next_cursor?: number | null;
-}
-
-export interface RecentJob {
-  completed_at?: string | null;
-  completed_batches: number;
-  created_at: string;
-  error_summary?: string | null;
-  failed_batches: number;
-  job_id: string;
-  report_type?: string | null;
-  status: string;
-  task_type?: string | null;
-  total_batches: number;
-}
+export type WorkerMonitorStats = components["schemas"]["MonitorOverviewResponse"];
+export type JobTypeStats = components["schemas"]["JobTypeStats"];
+export type MonitorJobsResponse = components["schemas"]["MonitorJobsResponse"];
+export type RecentJob = components["schemas"]["MonitorJob"];
+export type MonitorInfraJobState = components["schemas"]["MonitorInfraJobState"];
+export type MonitorInfraJobEvent = components["schemas"]["MonitorInfraJobEvent"];
+export type MonitorInfraJobRecord = components["schemas"]["MonitorInfraJobRecord"];
+export type MonitorDurableJobsSection = components["schemas"]["MonitorDurableJobsSection"];
+export type MonitorQuality = components["schemas"]["MonitorQuality"];
 
 
 export interface ReportExportJob {

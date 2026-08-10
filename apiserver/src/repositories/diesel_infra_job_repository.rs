@@ -4,7 +4,8 @@ use crate::models::diesel::infra_job::{
     InfraJobEvent, InfraJobRecord, NewInfraJobEvent, NewInfraJobRecord,
 };
 use crate::repositories::infra_job_repository::{
-    CreateInfraJobParams, InfraJobRepository, TransitionInfraJobParams,
+    CreateInfraJobParams, InfraJobCursor, InfraJobPage, InfraJobRepository, ListInfraJobsParams,
+    TransitionInfraJobParams,
 };
 use async_trait::async_trait;
 use chrono::Utc;
@@ -263,6 +264,67 @@ impl InfraJobRepository for DieselInfraJobRepository {
             .map_err(|e| AppError::Internal(format!("Failed to read infra job {job_id}: {e}")))
     }
 
+    async fn list_global(&self, params: ListInfraJobsParams) -> Result<InfraJobPage, AppError> {
+        let mut conn = self.api_conn().await?;
+        let bounded_limit = params.limit.clamp(1, 100);
+        let bounded_limit_usize = usize::try_from(bounded_limit).map_err(|_conversion_error| {
+            AppError::Internal("Invalid durable monitor query limit".to_string())
+        })?;
+        let records = crate::schema::infra_job_records::table.into_boxed();
+        let mut query = records;
+
+        if let Some(cursor) = params.cursor {
+            query = query.filter(
+                crate::schema::infra_job_records::created_at
+                    .lt(cursor.created_at)
+                    .or(crate::schema::infra_job_records::created_at
+                        .eq(cursor.created_at)
+                        .and(crate::schema::infra_job_records::id.lt(cursor.id))),
+            );
+        }
+        if let Some(state) = params.state {
+            query = query.filter(crate::schema::infra_job_records::state.eq(state));
+        }
+        if let Some(task_type) = params.task_type {
+            query = query.filter(crate::schema::infra_job_records::task_type.eq(task_type));
+        }
+        if let Some(job_id) = params.job_id {
+            query = query.filter(crate::schema::infra_job_records::id.eq(job_id));
+        }
+        if let Some(search) = params.search {
+            query = query.filter(
+                crate::schema::infra_job_records::task_type
+                    .eq(search.clone())
+                    .or(crate::schema::infra_job_records::error_code.eq(search)),
+            );
+        }
+
+        let mut jobs = query
+            .order((
+                crate::schema::infra_job_records::created_at.desc(),
+                crate::schema::infra_job_records::id.desc(),
+            ))
+            .limit(bounded_limit + 1)
+            .load::<InfraJobRecord>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to list global infra jobs: {e}")))?;
+
+        let next_cursor = if jobs.len() > bounded_limit_usize {
+            let cursor_job = jobs.get(bounded_limit_usize - 1).cloned().ok_or_else(|| {
+                AppError::Internal("Missing global infra job cursor row".to_string())
+            })?;
+            jobs.truncate(bounded_limit_usize);
+            Some(InfraJobCursor {
+                created_at: cursor_job.created_at,
+                id: cursor_job.id,
+            })
+        } else {
+            None
+        };
+
+        Ok(InfraJobPage { jobs, next_cursor })
+    }
+
     async fn list_events(
         &self,
         workspace_id: Uuid,
@@ -282,6 +344,39 @@ impl InfraJobRepository for DieselInfraJobRepository {
             .load::<InfraJobEvent>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to list infra job events: {e}")))
+    }
+
+    async fn list_events_bulk(
+        &self,
+        workspace_id: Option<Uuid>,
+        job_ids: &[Uuid],
+        total_limit: i64,
+    ) -> Result<Vec<InfraJobEvent>, AppError> {
+        if job_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut conn = self.api_conn().await?;
+        let bounded_limit = total_limit.clamp(1, 1_000);
+        let mut query = crate::schema::infra_job_events::table
+            .filter(crate::schema::infra_job_events::job_id.eq_any(job_ids))
+            .into_boxed();
+        if let Some(workspace_id) = workspace_id {
+            query = query.filter(crate::schema::infra_job_events::workspace_id.eq(workspace_id));
+        }
+
+        query
+            .order((
+                crate::schema::infra_job_events::job_id.asc(),
+                crate::schema::infra_job_events::created_at.asc(),
+                crate::schema::infra_job_events::id.asc(),
+            ))
+            .limit(bounded_limit)
+            .load::<InfraJobEvent>(&mut *conn)
+            .await
+            .map_err(|e| {
+                AppError::Internal(format!("Failed to list infra job events in bulk: {e}"))
+            })
     }
 }
 

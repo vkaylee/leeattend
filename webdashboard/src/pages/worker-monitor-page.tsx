@@ -21,9 +21,19 @@ import { WorkersTable } from "./monitor/workers-table";
 
 export default function WorkerMonitorPage() {
   const { t } = useTranslation();
-  const { connected: sseConnected } = useMonitorStream();
-  const liveStatus = sseConnected ? "live" : "polling";
-  const { stats, workers, recentJobs, isLoading, isFetching, error, refetch } = useWorkerMonitor(sseConnected);
+  const stream = useMonitorStream();
+  const { stats, workers, recentJobs, isLoading, isFetching, error, refetch } = useWorkerMonitor(stream.isFresh);
+  const quality = stats?.quality;
+  const streamIsLive = stream.status === "live";
+  const streamStatusLabel = stream.status === "live"
+    ? t("monitor.live_updates", { seconds: MONITOR_REFETCH_INTERVAL_S })
+    : stream.status === "stale"
+      ? t("monitor.stale_updates", { defaultValue: "Live stream is stale; polling fallback is active" })
+      : stream.status === "error"
+        ? t("monitor.stream_error", { defaultValue: "Live stream unavailable; polling fallback is active" })
+        : stream.status === "degraded"
+          ? t("monitor.degraded_updates", { defaultValue: "Degraded monitoring data; polling fallback is active" })
+          : t("monitor.connecting_updates", { defaultValue: "Connecting to live monitoring…" });
   const utilization = useWorkerUtilization(stats);
   const queuePressure = useQueuePressure(stats);
   const jobDistribution = useJobStatusDistribution(recentJobs);
@@ -45,6 +55,18 @@ export default function WorkerMonitorPage() {
         </div>
       ) : null}
 
+      {quality && quality.data_quality !== "complete" ? (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+          <AlertTriangle aria-hidden="true" className="mt-0.5 shrink-0" size={18} />
+          <div>
+            <div>{t("monitor.partial_data", { defaultValue: "Some monitoring sources are unavailable. Values marked unknown are not zero." })}</div>
+            <div className="mt-1 text-xs font-normal opacity-80">
+              {quality.unknown_fields.length > 0 ? quality.unknown_fields.join(", ") : quality.data_quality}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <MonitorStatCards isLoading={isLoading} stats={stats} t={t} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -59,13 +81,11 @@ export default function WorkerMonitorPage() {
         role="status"
       >
         <div className="relative flex h-3 w-3" aria-hidden="true">
-          <span aria-hidden="true" className={cn("absolute inline-flex h-full w-full rounded-full opacity-75", liveStatus === "live" ? "animate-ping bg-emerald-400" : "bg-amber-400")} />
-          <span aria-hidden="true" className={cn("relative inline-flex rounded-full h-3 w-3", liveStatus === "live" ? "bg-emerald-500" : "bg-amber-500")} />
+          <span aria-hidden="true" className={cn("absolute inline-flex h-full w-full rounded-full opacity-75", streamIsLive ? "animate-ping bg-emerald-400" : "bg-amber-400")} />
+          <span aria-hidden="true" className={cn("relative inline-flex rounded-full h-3 w-3", streamIsLive ? "bg-emerald-500" : "bg-amber-500")} />
         </div>
         <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-          {liveStatus === "live"
-            ? t("monitor.live_updates", { seconds: MONITOR_REFETCH_INTERVAL_S })
-            : t("monitor.polling_updates", { seconds: MONITOR_REFETCH_INTERVAL_S, defaultValue: "Polling updates every {{seconds}}s" })}
+          {streamStatusLabel}
         </span>
         {isFetching ? <Loader2 aria-hidden="true" className="text-slate-400 dark:text-slate-500 animate-spin" size={14} /> : null}
       </div>

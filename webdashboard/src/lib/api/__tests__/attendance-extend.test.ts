@@ -303,10 +303,14 @@ describe("attendance API (extended)", () => {
     expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/monitor/overview");
   });
 
-  it("fetchMonitorJobs: GET with cursor/query, defaults when null", async () => {
+  it("fetchMonitorJobs: marks all sources unavailable when response is null", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(null));
     const result = await fetchMonitorJobs({ limit: 10 });
-    expect(result).toEqual({ jobs: [], next_cursor: null });
+    expect(result.jobs).toEqual([]);
+    expect(result.next_cursor).toBeNull();
+    expect(result.durable_jobs.status).toBe("unavailable");
+    expect(result.durable_jobs.jobs).toBeNull();
+    expect(result.quality.data_quality).toBe("unavailable");
   });
 
   it("fetchMonitorJobs: GET returns jobs", async () => {

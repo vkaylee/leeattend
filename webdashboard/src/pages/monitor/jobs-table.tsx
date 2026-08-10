@@ -11,7 +11,7 @@ import { Typography } from "@/components/ui/typography";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useWorkerJobs } from "@/hooks/use-worker-monitor";
-import { RecentJob } from "@/lib/api/types";
+import { MonitorInfraJobRecord, RecentJob } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 import { getStatusStyle, JobDetailsDrawer } from "./job-details-drawer";
@@ -102,6 +102,7 @@ function SkeletonRow() {
 // eslint-disable-next-line max-lines-per-function -- table component with search, pagination, status filters, modals
 export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
   const [selectedJob, setSelectedJob] = useState<RecentJob | null>(null);
+  const [selectedDurableJob, setSelectedDurableJob] = useState<MonitorInfraJobRecord | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -126,6 +127,13 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
   const jobs = useMemo(() => {
     return data?.pages.flatMap((page) => page.jobs) ?? [];
   }, [data]);
+
+  const durableJobs = useMemo(() => {
+    const section = data?.pages[0]?.durable_jobs;
+    return section?.status === "available" ? (section.jobs ?? []) : [];
+  }, [data]);
+
+  const durableJobsUnavailable = data?.pages[0]?.durable_jobs?.status === "unavailable";
 
   const mobileLoadMoreRef = useInfiniteScroll<HTMLDivElement>({
     fetchNextPage: () => { void fetchNextPage(); },
@@ -350,10 +358,69 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
         ) : null}
       </div>
 
+      <section
+        aria-labelledby="durable-monitor-jobs-heading"
+        className="overflow-hidden rounded-[2.5rem] border border-slate-100 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/10"
+      >
+        <div className="border-b border-slate-100 p-6 dark:border-slate-800">
+          <Typography className="text-lg font-bold uppercase tracking-tight text-slate-700 dark:text-slate-200" id="durable-monitor-jobs-heading" variant="h4">
+            {t("monitor.durable_jobs", { defaultValue: "Durable infrastructure jobs" })}
+          </Typography>
+          <Typography className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 opacity-60 dark:text-slate-400" variant="p">
+            {t("monitor.durable_jobs_subtitle", { defaultValue: "Authoritative lifecycle records and sanitized events" })}
+          </Typography>
+        </div>
+        {durableJobsUnavailable ? (
+          <div className="p-6 text-sm text-amber-700 dark:text-amber-300">
+            {t("monitor.durable_jobs_unavailable", { defaultValue: "Durable job data is temporarily unavailable." })}
+          </div>
+        ) : durableJobs.length === 0 ? (
+          <div className="p-6 text-sm text-slate-500 dark:text-slate-400">
+            {t("monitor.no_durable_jobs", { defaultValue: "No durable infrastructure jobs are available." })}
+          </div>
+        ) : (
+          <div className="grid gap-3 p-4 sm:p-6">
+            {durableJobs.map((job) => {
+              const { className: statusClassName, icon: statusIcon } = getStatusStyle(job.state);
+              return (
+                <button
+                  className="flex w-full flex-col gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left transition-colors hover:border-blue-200 hover:bg-blue-50/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-800 dark:bg-slate-800/40 dark:hover:border-blue-800 dark:hover:bg-blue-950/20"
+                  key={job.job_id}
+                  onClick={() => {
+                    setSelectedJob(null);
+                    setSelectedDurableJob(job);
+                  }}
+                  type="button"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <code className="font-mono text-xs text-slate-600 dark:text-slate-300">{job.job_id.slice(0, 8)}…</code>
+                    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider", statusClassName)}>
+                      {statusIcon}
+                      {job.state}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs text-slate-500 dark:text-slate-400 sm:grid-cols-4">
+                    <span>{t("monitor.job_type", { defaultValue: "Type" })}: <strong className="text-slate-700 dark:text-slate-200">{job.task_type}</strong></span>
+                    <span>{t("monitor.priority", { defaultValue: "Priority" })}: <strong className="text-slate-700 dark:text-slate-200">{job.priority}</strong></span>
+                    <span>{t("monitor.attempt", { defaultValue: "Attempt" })}: <strong className="text-slate-700 dark:text-slate-200">{job.attempt_count}</strong></span>
+                    <span>{t("monitor.events", { defaultValue: "Events" })}: <strong className="text-slate-700 dark:text-slate-200">{job.events.length}</strong></span>
+                  </div>
+                  {job.error_summary ? <div className="truncate text-xs text-rose-600 dark:text-rose-400">{job.error_code ? `${job.error_code}: ` : ""}{job.error_summary}</div> : null}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       <JobDetailsDrawer
-        isOpen={selectedJob !== null}
+        durableJob={selectedDurableJob}
+        isOpen={selectedJob !== null || selectedDurableJob !== null}
         job={selectedJob}
-        onClose={() => { setSelectedJob(null); }}
+        onClose={() => {
+          setSelectedJob(null);
+          setSelectedDurableJob(null);
+        }}
         t={t}
       />
     </>

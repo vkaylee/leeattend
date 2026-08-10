@@ -296,6 +296,7 @@ use utoipa::OpenApi;
         crate::handlers::system_db_clusters::update_db_cluster_status,
         crate::handlers::worker_monitor::get_monitor_overview,
         crate::handlers::worker_monitor::get_monitor_jobs,
+        crate::handlers::jobs::get_durable_monitor_job,
         crate::handlers::workspaces::audit::get_audit_logs,
 
         // Agent Paths
@@ -828,6 +829,14 @@ use utoipa::OpenApi;
             crate::handlers::worker_monitor::WorkerStatus,
             crate::handlers::worker_monitor::WorkerHeartbeat,
             crate::handlers::worker_monitor::MonitorJob,
+            crate::handlers::worker_monitor::MonitorInfraJobState,
+            crate::handlers::worker_monitor::MonitorSourceStatus,
+            crate::handlers::worker_monitor::MonitorDataQuality,
+            crate::handlers::worker_monitor::MonitorSourceHealth,
+            crate::handlers::worker_monitor::MonitorQuality,
+            crate::handlers::worker_monitor::MonitorInfraJobEvent,
+            crate::handlers::worker_monitor::MonitorInfraJobRecord,
+            crate::handlers::worker_monitor::MonitorDurableJobsSection,
             crate::handlers::worker_monitor::MonitorOverviewResponse,
             crate::handlers::worker_monitor::MonitorJobsResponse,
             crate::handlers::worker_monitor::MonitorStreamError,

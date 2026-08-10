@@ -5,8 +5,9 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::errors::AppError;
+use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
+use crate::handlers::worker_monitor::{durable_event_dto, durable_job_dto, MonitorInfraJobRecord};
 use crate::state::AppState;
 use crate::utils::i18n::I18nKey;
 
@@ -29,7 +30,11 @@ pub async fn get_generic_job_status(
     ctx: MemberContext,
     Path(params): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let (_ws_id, job_id) = params;
+    let (path_workspace_id, job_id) = params;
+    if path_workspace_id != ctx.workspace_id {
+        return Err(AppError::forbidden(I18nKey::Forbidden));
+    }
+
     let queue = state.infra().job_queue()?;
 
     let meta = queue
@@ -62,4 +67,40 @@ pub async fn get_generic_job_status(
         "created_at": meta.created_at,
         "completed_at": meta.completed_at
     })))
+}
+
+/// GET /workspaces/{ws_id}/monitor/jobs/{job_id}
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/monitor/jobs/{job_id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("job_id" = Uuid, Path, description = "Durable job ID")
+    ),
+    responses(
+        (status = 200, description = "Get durable infrastructure job and lifecycle events", body = MonitorInfraJobRecord)
+    )
+)]
+#[tracing::instrument(skip(state, ctx))]
+pub async fn get_durable_monitor_job(
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Path((path_workspace_id, job_id)): Path<(Uuid, Uuid)>,
+) -> AppResult<Json<MonitorInfraJobRecord>> {
+    if path_workspace_id != ctx.workspace_id {
+        return Err(AppError::forbidden(I18nKey::Forbidden));
+    }
+
+    let service = state.infra().infra_job_service();
+    let job = service
+        .get(ctx.workspace_id, job_id)
+        .await?
+        .ok_or_else(|| AppError::not_found(I18nKey::JobNotFound))?;
+    let events = service.list_events(ctx.workspace_id, job_id, 200).await?;
+    let events = events
+        .iter()
+        .map(durable_event_dto)
+        .collect::<AppResult<Vec<_>>>()?;
+
+    Ok(Json(durable_job_dto(&job, events)?))
 }

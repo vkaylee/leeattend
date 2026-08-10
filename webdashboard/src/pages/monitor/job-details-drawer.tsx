@@ -9,7 +9,7 @@ import Sheet from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { RecentJob } from "@/lib/api/types";
+import { MonitorInfraJobRecord, RecentJob } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 interface StatusStyle {
@@ -205,14 +205,77 @@ function JobTimeInfoCard({
 }
 
 interface JobDetailsDrawerProps {
+  durableJob?: MonitorInfraJobRecord | null;
   isOpen: boolean;
   job: RecentJob | null;
   onClose: () => void;
   t: TFunction;
 }
 
-export function JobDetailsDrawer({ isOpen, onClose, job, t }: JobDetailsDrawerProps) {
+export function JobDetailsDrawer({ durableJob, isOpen, onClose, job, t }: JobDetailsDrawerProps) {
   const toast = useToast();
+  const { formatDateTimeLocale } = useDateTimeFormatter();
+  if (!job && !durableJob) return null;
+
+  const copyToClipboard = (text: string, successMessage: string) => {
+    void navigator.clipboard.writeText(text);
+    toast.success(successMessage);
+  };
+
+  if (durableJob) {
+    const { className: statusClassName, icon: statusIcon } = getStatusStyle(durableJob.state);
+    return (
+      <Sheet
+        isOpen={isOpen}
+        onClose={onClose}
+        subtitle={durableJob.task_type}
+        title={t("monitor.durable_job_details_title", { defaultValue: "Durable Job Details" })}
+      >
+        <div className="space-y-6 pb-10">
+          <JobHeaderCard jobId={durableJob.job_id} onCopy={copyToClipboard} t={t} />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-6 dark:border-slate-800 dark:bg-slate-800/50">
+              <Typography className="text-[10px] font-bold uppercase tracking-widest text-slate-400" variant="p">{t("monitor.status", { defaultValue: "Status" })}</Typography>
+              <span className={cn("mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider", statusClassName)}>
+                {statusIcon}
+                {durableJob.state}
+              </span>
+            </div>
+            <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-6 dark:border-slate-800 dark:bg-slate-800/50">
+              <Typography className="text-[10px] font-bold uppercase tracking-widest text-slate-400" variant="p">{t("monitor.attempt", { defaultValue: "Attempt" })}</Typography>
+              <Typography className="mt-3 text-lg font-bold text-slate-700 dark:text-slate-200" variant="h4">{durableJob.attempt_count}</Typography>
+            </div>
+          </div>
+          <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-6 text-sm dark:border-slate-800 dark:bg-slate-800/50">
+            <div className="flex justify-between gap-4"><span className="text-slate-400">{t("monitor.request_id", { defaultValue: "Request ID" })}</span><code className="max-w-[65%] truncate text-right text-xs text-slate-700 dark:text-slate-300">{durableJob.request_id ?? "—"}</code></div>
+            <div className="mt-3 flex justify-between gap-4"><span className="text-slate-400">{t("monitor.trace_id", { defaultValue: "Trace ID" })}</span><code className="max-w-[65%] truncate text-right text-xs text-slate-700 dark:text-slate-300">{durableJob.trace_id ?? "—"}</code></div>
+            <div className="mt-3 flex justify-between gap-4"><span className="text-slate-400">{t("monitor.created_at", { defaultValue: "Created At" })}</span><span className="text-right text-slate-700 dark:text-slate-300">{formatDateTimeLocale(durableJob.created_at)}</span></div>
+            {durableJob.error_code || durableJob.error_summary ? <div className="mt-3 flex justify-between gap-4"><span className="text-slate-400">{t("monitor.error_summary", { defaultValue: "Error Summary" })}</span><span className="max-w-[65%] text-right text-slate-700 dark:text-slate-300">{durableJob.error_code ? `${durableJob.error_code}: ` : ""}{durableJob.error_summary ?? "—"}</span></div> : null}
+          </div>
+          <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-6 dark:border-slate-800 dark:bg-slate-800/50">
+            <Typography className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400" variant="p">{t("monitor.lifecycle_timeline", { defaultValue: "Lifecycle Timeline" })}</Typography>
+            <ol className="mt-5 space-y-4 border-l border-slate-200 pl-5 dark:border-slate-700">
+              {durableJob.events.map((event) => (
+                <li className="relative" key={event.event_id}>
+                  <span aria-hidden="true" className="absolute -left-[1.35rem] top-1.5 h-2 w-2 rounded-full bg-blue-500" />
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <strong className="text-slate-700 dark:text-slate-200">{event.to_state}</strong>
+                    <time className="text-slate-400" dateTime={event.created_at}>{formatDateTimeLocale(event.created_at)}</time>
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{event.event_type}{event.worker_id ? ` · ${event.worker_id}` : ""}{event.error_code ? ` · ${event.error_code}` : ""}</div>
+                  {event.error_summary ? <div className="mt-1 text-xs text-rose-600 dark:text-rose-400">{event.error_summary}</div> : null}
+                </li>
+              ))}
+            </ol>
+          </div>
+          <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-6 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
+            {t("monitor.diagnostics_redacted", { defaultValue: "Sensitive diagnostic payloads are not displayed in the monitor." })}
+          </div>
+        </div>
+      </Sheet>
+    );
+  }
+
   if (!job) return null;
 
   const taskTypeKey = job.task_type ?? job.report_type;
@@ -230,11 +293,6 @@ export function JobDetailsDrawer({ isOpen, onClose, job, t }: JobDetailsDrawerPr
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}m ${remainingSeconds}s`;
-  };
-
-  const copyToClipboard = (text: string, successMessage: string) => {
-    void navigator.clipboard.writeText(text);
-    toast.success(successMessage);
   };
 
   const durationText = durationMs !== null

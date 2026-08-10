@@ -4194,6 +4194,23 @@ export interface paths {
         patch: operations["update_item_status"];
         trace?: never;
     };
+    "/workspaces/{ws_id}/monitor/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/monitor/jobs/{job_id} */
+        get: operations["get_durable_monitor_job"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{ws_id}/overtime/policies": {
         parameters: {
             query?: never;
@@ -6779,6 +6796,69 @@ export interface components {
             /** Format: uuid */
             workspace_id: string;
         };
+        /** @enum {string} */
+        MonitorDataQuality: "complete" | "partial" | "degraded" | "unavailable";
+        MonitorDurableJobsSection: {
+            error_code?: string | null;
+            jobs?: components["schemas"]["MonitorInfraJobRecord"][] | null;
+            limit: number;
+            next_cursor_token?: string | null;
+            status: components["schemas"]["MonitorSourceStatus"];
+        };
+        MonitorInfraJobEvent: {
+            /** Format: int32 */
+            attempt_count: number;
+            /** Format: date-time */
+            created_at: string;
+            error_code?: string | null;
+            error_summary?: string | null;
+            /** Format: uuid */
+            event_id: string;
+            event_type: string;
+            from_state?: null | components["schemas"]["MonitorInfraJobState"];
+            /** Format: uuid */
+            job_id: string;
+            /** Format: uuid */
+            request_id?: string | null;
+            to_state: components["schemas"]["MonitorInfraJobState"];
+            trace_id?: string | null;
+            worker_id?: string | null;
+        };
+        MonitorInfraJobRecord: {
+            /** Format: int32 */
+            attempt_count: number;
+            /** Format: date-time */
+            created_at: string;
+            error_code?: string | null;
+            error_summary?: string | null;
+            events: components["schemas"]["MonitorInfraJobEvent"][];
+            /** Format: date-time */
+            finished_at?: string | null;
+            /** Format: uuid */
+            job_id: string;
+            /** Format: uuid */
+            parent_job_id?: string | null;
+            priority: string;
+            /** Format: date-time */
+            queued_at?: string | null;
+            /** Format: uuid */
+            request_id?: string | null;
+            /** Format: date-time */
+            started_at?: string | null;
+            state: components["schemas"]["MonitorInfraJobState"];
+            task_type: string;
+            trace_id?: string | null;
+            /** Format: date-time */
+            updated_at: string;
+            worker?: string | null;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        /**
+         * @description Durable lifecycle states are intentionally distinct from the legacy Redis status set.
+         * @enum {string}
+         */
+        MonitorInfraJobState: "dispatching" | "queued" | "processing" | "completed" | "failed" | "retryable" | "dead_letter" | "lost";
         /**
          * @description Privacy-safe job representation for infrastructure monitoring.
          *
@@ -6804,9 +6884,11 @@ export interface components {
             total_batches: number;
         };
         MonitorJobsResponse: {
+            durable_jobs: components["schemas"]["MonitorDurableJobsSection"];
             jobs: components["schemas"]["MonitorJob"][];
             /** Format: int64 */
             next_cursor?: number | null;
+            quality: components["schemas"]["MonitorQuality"];
         };
         /** @description Combined monitor overview response — stats + worker list in one call. */
         MonitorOverviewResponse: {
@@ -6814,6 +6896,7 @@ export interface components {
             active_workers: number;
             /** Format: int64 */
             completed_today: number;
+            durable_jobs: components["schemas"]["MonitorDurableJobsSection"];
             /** Format: int64 */
             failed_today: number;
             /** Format: int64 */
@@ -6829,11 +6912,27 @@ export interface components {
             pending_normal: number;
             /** Format: int64 */
             pending_tasks: number;
+            quality: components["schemas"]["MonitorQuality"];
             recent_jobs: components["schemas"]["MonitorJob"][];
             /** Format: int64 */
             total_workers: number;
             workers: components["schemas"]["WorkerHeartbeat"][];
         };
+        MonitorQuality: {
+            data_quality: components["schemas"]["MonitorDataQuality"];
+            durable_db: components["schemas"]["MonitorSourceHealth"];
+            freshness: string;
+            redis: components["schemas"]["MonitorSourceHealth"];
+            snapshot_sequence: string;
+            unknown_fields: string[];
+            worker_heartbeats: components["schemas"]["MonitorSourceHealth"];
+        };
+        MonitorSourceHealth: {
+            error_code?: string | null;
+            status: components["schemas"]["MonitorSourceStatus"];
+        };
+        /** @enum {string} */
+        MonitorSourceStatus: "available" | "unavailable";
         MonitorStreamError: {
             code: string;
             message: string;
@@ -10082,16 +10181,24 @@ export interface operations {
     get_monitor_jobs: {
         parameters: {
             query?: {
-                /** @description Cursor timestamp for pagination (exclusive) */
+                /** @description Cursor timestamp for Redis pagination (exclusive). */
                 cursor?: number | null;
-                /** @description Number of items to return (default: 20) */
+                /** @description Number of legacy Redis items to return (default: 20). */
                 limit?: number | null;
-                /** @description Status filter: pending, processing, completed, failed */
+                /** @description Legacy Redis status filter: pending, processing, completed, failed. */
                 status?: string | null;
-                /** @description Task type filter */
+                /** @description Task type filter applied to both compatible sources. */
                 task_type?: string | null;
-                /** @description Search query matching the exact job ID only. */
+                /** @description Bounded exact task type/error-code search for durable records. */
                 search?: string | null;
+                /** @description Exact durable lifecycle state. */
+                state?: string | null;
+                /** @description Exact durable job identifier. */
+                job_id?: string | null;
+                /** @description Opaque durable composite cursor. */
+                durable_cursor?: string | null;
+                /** @description Number of durable items to return (default: 20). */
+                durable_limit?: number | null;
             };
             header?: never;
             path?: never;
@@ -17924,6 +18031,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LifecycleChecklistResponse"];
+                };
+            };
+        };
+    };
+    get_durable_monitor_job: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Durable job ID */
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get durable infrastructure job and lifecycle events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorInfraJobRecord"];
                 };
             };
         };

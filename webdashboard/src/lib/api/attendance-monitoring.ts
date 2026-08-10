@@ -64,8 +64,11 @@ export async function fetchMonitorOverview(): Promise<WorkerMonitorStats> {
 
 export interface FetchMonitorJobsParams {
   cursor?: number | null;
+  durable_cursor?: string | null;
+  durable_limit?: number;
   limit?: number;
   search?: string;
+  state?: string;
   status?: string;
   task_type?: string;
 }
@@ -75,15 +78,31 @@ export async function fetchMonitorJobs(params: FetchMonitorJobsParams): Promise<
     params: {
       query: {
         cursor: params.cursor ?? undefined,
+        durable_cursor: params.durable_cursor ?? undefined,
+        durable_limit: params.durable_limit,
         limit: params.limit,
         search: params.search ?? undefined,
+        state: params.state ?? undefined,
         status: params.status ?? undefined,
         task_type: params.task_type ?? undefined,
       },
     },
   });
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- SafeClient types say non-null but API may return null
-  return resData ?? { jobs: [], next_cursor: null };
+  return resData ?? {
+    durable_jobs: { error_code: "MONITOR_UNAVAILABLE", jobs: null, limit: params.durable_limit ?? 20, next_cursor_token: null, status: "unavailable" },
+    jobs: [],
+    next_cursor: null,
+    quality: {
+      data_quality: "unavailable",
+      durable_db: { error_code: "MONITOR_UNAVAILABLE", status: "unavailable" },
+      freshness: "unknown",
+      redis: { error_code: "MONITOR_UNAVAILABLE", status: "unavailable" },
+      snapshot_sequence: "unknown",
+      unknown_fields: ["jobs", "durable_jobs"],
+      worker_heartbeats: { error_code: "MONITOR_UNAVAILABLE", status: "unavailable" },
+    },
+  };
 }
 
 // ── OT Claim Behalf Assignments (factory-generated CRUD) ────────────────────

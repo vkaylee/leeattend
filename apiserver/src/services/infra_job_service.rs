@@ -2,7 +2,8 @@ use crate::errors::AppError;
 use crate::models::diesel::infra_job::{InfraJobEvent, InfraJobRecord};
 use crate::queue::{Job, JobQueue};
 use crate::repositories::infra_job_repository::{
-    CreateInfraJobParams, InfraJobRepository, TransitionInfraJobParams,
+    CreateInfraJobParams, InfraJobCursor, InfraJobPage, InfraJobRepository, ListInfraJobsParams,
+    TransitionInfraJobParams,
 };
 use std::sync::Arc;
 use uuid::Uuid;
@@ -137,6 +138,10 @@ impl InfraJobService {
         self.repository.get(workspace_id, job_id).await
     }
 
+    pub async fn list_global(&self, params: ListInfraJobsParams) -> Result<InfraJobPage, AppError> {
+        self.repository.list_global(params).await
+    }
+
     pub async fn list_events(
         &self,
         workspace_id: Uuid,
@@ -146,6 +151,36 @@ impl InfraJobService {
         self.repository
             .list_events(workspace_id, job_id, limit)
             .await
+    }
+
+    pub async fn list_events_bulk(
+        &self,
+        workspace_id: Option<Uuid>,
+        job_ids: &[Uuid],
+        total_limit: i64,
+    ) -> Result<Vec<InfraJobEvent>, AppError> {
+        self.repository
+            .list_events_bulk(workspace_id, job_ids, total_limit)
+            .await
+    }
+
+    pub fn cursor_token(cursor: &InfraJobCursor) -> String {
+        format!("{}:{}", cursor.created_at.timestamp_micros(), cursor.id)
+    }
+
+    pub fn parse_cursor_token(token: &str) -> Result<InfraJobCursor, AppError> {
+        let (timestamp, id) = token
+            .split_once(':')
+            .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::Validation))?;
+        let micros = timestamp.parse::<i64>().map_err(|_parse_error| {
+            AppError::validation(crate::utils::i18n::I18nKey::Validation)
+        })?;
+        let created_at = chrono::DateTime::<chrono::Utc>::from_timestamp_micros(micros)
+            .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::Validation))?;
+        let id = Uuid::parse_str(id).map_err(|_parse_error| {
+            AppError::validation(crate::utils::i18n::I18nKey::Validation)
+        })?;
+        Ok(InfraJobCursor { created_at, id })
     }
 }
 

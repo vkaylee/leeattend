@@ -21,6 +21,7 @@ use uuid::Uuid;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::system_auth::SystemContext;
 use crate::models::enums::SystemRoleType;
+use crate::repositories::infra_job_repository::ListInfraJobsParams;
 use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
@@ -38,6 +39,16 @@ const MAX_MONITOR_SEARCH_CHARS: usize = 64;
 const MONITOR_QUERY_TIMEOUT_SECS: u64 = 5;
 
 const MONITOR_STATUSES: [&str; 4] = ["pending", "processing", "completed", "failed"];
+const MONITOR_DURABLE_STATES: [&str; 8] = [
+    "dispatching",
+    "queued",
+    "processing",
+    "completed",
+    "failed",
+    "retryable",
+    "dead_letter",
+    "lost",
+];
 const MONITOR_TASK_TYPES: [&str; 18] = [
     "attendance_report",
     "payroll_report",
@@ -186,6 +197,204 @@ impl From<&crate::queue::JobMetadata> for MonitorJob {
     }
 }
 
+/// Durable lifecycle states are intentionally distinct from the legacy Redis status set.
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum MonitorInfraJobState {
+    Dispatching,
+    Queued,
+    Processing,
+    Completed,
+    Failed,
+    Retryable,
+    #[serde(rename = "dead_letter")]
+    DeadLetter,
+    Lost,
+}
+
+impl TryFrom<&str> for MonitorInfraJobState {
+    type Error = AppError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "dispatching" => Ok(Self::Dispatching),
+            "queued" => Ok(Self::Queued),
+            "processing" => Ok(Self::Processing),
+            "completed" => Ok(Self::Completed),
+            "failed" => Ok(Self::Failed),
+            "retryable" => Ok(Self::Retryable),
+            "dead_letter" => Ok(Self::DeadLetter),
+            "lost" => Ok(Self::Lost),
+            _ => Err(AppError::Internal(
+                "Unknown durable monitor job state".to_string(),
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum MonitorSourceStatus {
+    Available,
+    Unavailable,
+}
+
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum MonitorDataQuality {
+    Complete,
+    Partial,
+    Degraded,
+    Unavailable,
+}
+
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct MonitorSourceHealth {
+    pub status: MonitorSourceStatus,
+    pub error_code: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct MonitorQuality {
+    pub data_quality: MonitorDataQuality,
+    pub freshness: String,
+    pub snapshot_sequence: String,
+    pub unknown_fields: Vec<String>,
+    pub redis: MonitorSourceHealth,
+    pub durable_db: MonitorSourceHealth,
+    pub worker_heartbeats: MonitorSourceHealth,
+}
+
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct MonitorInfraJobEvent {
+    pub event_id: Uuid,
+    pub job_id: Uuid,
+    pub event_type: String,
+    pub from_state: Option<MonitorInfraJobState>,
+    pub to_state: MonitorInfraJobState,
+    pub attempt_count: i32,
+    pub worker_id: Option<String>,
+    pub request_id: Option<Uuid>,
+    pub trace_id: Option<String>,
+    pub error_code: Option<String>,
+    pub error_summary: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct MonitorInfraJobRecord {
+    pub job_id: Uuid,
+    pub parent_job_id: Option<Uuid>,
+    pub workspace_id: Uuid,
+    pub task_type: String,
+    pub priority: String,
+    pub state: MonitorInfraJobState,
+    pub attempt_count: i32,
+    pub worker: Option<String>,
+    pub request_id: Option<Uuid>,
+    pub trace_id: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub queued_at: Option<DateTime<Utc>>,
+    pub started_at: Option<DateTime<Utc>>,
+    pub finished_at: Option<DateTime<Utc>>,
+    pub updated_at: DateTime<Utc>,
+    pub error_code: Option<String>,
+    pub error_summary: Option<String>,
+    pub events: Vec<MonitorInfraJobEvent>,
+}
+
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct MonitorDurableJobsSection {
+    pub status: MonitorSourceStatus,
+    pub error_code: Option<String>,
+    pub jobs: Option<Vec<MonitorInfraJobRecord>>,
+    pub next_cursor_token: Option<String>,
+    pub limit: usize,
+}
+
+fn sanitize_monitor_summary(value: &str) -> String {
+    let normalized = value.split_whitespace().collect::<Vec<_>>().join(" ");
+    let redacted = normalized
+        .split(' ')
+        .map(|part| {
+            let digits = part.chars().filter(char::is_ascii_digit).count();
+            if part.contains('@') || digits >= 8 {
+                "[REDACTED]"
+            } else {
+                part
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+    let mut summary = redacted
+        .chars()
+        .take(MAX_MONITOR_ERROR_SUMMARY_CHARS)
+        .collect::<String>();
+    if redacted.chars().count() > MAX_MONITOR_ERROR_SUMMARY_CHARS {
+        summary.push('…');
+    }
+    summary
+}
+
+fn sanitize_monitor_code(value: Option<&str>) -> Option<String> {
+    value
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| value.chars().take(100).collect())
+}
+
+pub(crate) fn durable_event_dto(
+    event: &crate::models::diesel::infra_job::InfraJobEvent,
+) -> AppResult<MonitorInfraJobEvent> {
+    Ok(MonitorInfraJobEvent {
+        event_id: event.id,
+        job_id: event.job_id,
+        event_type: event.event_type.clone(),
+        from_state: event
+            .from_state
+            .as_deref()
+            .map(MonitorInfraJobState::try_from)
+            .transpose()?,
+        to_state: MonitorInfraJobState::try_from(event.to_state.as_str())?,
+        attempt_count: event.attempt_count,
+        worker_id: event.worker_id.clone(),
+        request_id: event.request_id,
+        trace_id: event.trace_id.clone(),
+        error_code: sanitize_monitor_code(event.reason_code.as_deref()),
+        error_summary: event
+            .reason_summary
+            .as_deref()
+            .map(sanitize_monitor_summary),
+        created_at: event.created_at,
+    })
+}
+
+pub(crate) fn durable_job_dto(
+    job: &crate::models::diesel::infra_job::InfraJobRecord,
+    events: Vec<MonitorInfraJobEvent>,
+) -> AppResult<MonitorInfraJobRecord> {
+    Ok(MonitorInfraJobRecord {
+        job_id: job.id,
+        parent_job_id: job.parent_job_id,
+        workspace_id: job.workspace_id,
+        task_type: job.task_type.clone(),
+        priority: job.priority.clone(),
+        state: MonitorInfraJobState::try_from(job.state.as_str())?,
+        attempt_count: job.attempt_count,
+        worker: job.lease_owner.clone(),
+        request_id: job.request_id,
+        trace_id: job.trace_id.clone(),
+        created_at: job.created_at,
+        queued_at: job.queued_at,
+        started_at: job.started_at,
+        finished_at: job.finished_at,
+        updated_at: job.updated_at,
+        error_code: sanitize_monitor_code(job.error_code.as_deref()),
+        error_summary: job.error_summary.as_deref().map(sanitize_monitor_summary),
+        events,
+    })
+}
+
 /// Combined monitor overview response — stats + worker list in one call.
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct MonitorOverviewResponse {
@@ -202,12 +411,16 @@ pub struct MonitorOverviewResponse {
     pub workers: Vec<WorkerHeartbeat>,
     pub recent_jobs: Vec<MonitorJob>,
     pub job_type_stats: Vec<JobTypeStats>,
+    pub durable_jobs: MonitorDurableJobsSection,
+    pub quality: MonitorQuality,
 }
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct MonitorJobsResponse {
     pub jobs: Vec<MonitorJob>,
     pub next_cursor: Option<i64>,
+    pub durable_jobs: MonitorDurableJobsSection,
+    pub quality: MonitorQuality,
 }
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]
@@ -284,7 +497,123 @@ fn compute_job_type_stats(all_recent_jobs: &[crate::queue::JobMetadata]) -> Vec<
     job_type_stats
 }
 
-/// Shared logic: fetch the full monitor overview from Redis.
+async fn load_durable_jobs_section(
+    state: &Arc<AppState>,
+    params: ListInfraJobsParams,
+    limit: usize,
+) -> MonitorDurableJobsSection {
+    let service = state.infra().infra_job_service();
+    let page = match service.list_global(params).await {
+        Ok(page) => page,
+        Err(error) => {
+            tracing::warn!(error = %error, "Durable monitor read unavailable");
+            return MonitorDurableJobsSection {
+                status: MonitorSourceStatus::Unavailable,
+                error_code: Some("DURABLE_MONITOR_UNAVAILABLE".to_string()),
+                jobs: None,
+                next_cursor_token: None,
+                limit,
+            };
+        }
+    };
+
+    let job_ids = page.jobs.iter().map(|job| job.id).collect::<Vec<_>>();
+    let events = match service.list_events_bulk(None, &job_ids, 400).await {
+        Ok(events) => events,
+        Err(error) => {
+            tracing::warn!(error = %error, "Durable monitor event read unavailable");
+            return MonitorDurableJobsSection {
+                status: MonitorSourceStatus::Unavailable,
+                error_code: Some("DURABLE_MONITOR_EVENTS_UNAVAILABLE".to_string()),
+                jobs: None,
+                next_cursor_token: None,
+                limit,
+            };
+        }
+    };
+
+    let mut events_by_job = std::collections::HashMap::<Uuid, Vec<MonitorInfraJobEvent>>::new();
+    for event in events {
+        match durable_event_dto(&event) {
+            Ok(event) => events_by_job.entry(event.job_id).or_default().push(event),
+            Err(error) => {
+                tracing::error!(error = %error, "Durable monitor event state is invalid");
+                return MonitorDurableJobsSection {
+                    status: MonitorSourceStatus::Unavailable,
+                    error_code: Some("DURABLE_MONITOR_INVALID_STATE".to_string()),
+                    jobs: None,
+                    next_cursor_token: None,
+                    limit,
+                };
+            }
+        }
+    }
+
+    let mut jobs = Vec::with_capacity(page.jobs.len());
+    for job in page.jobs {
+        let events = events_by_job.remove(&job.id).unwrap_or_default();
+        match durable_job_dto(&job, events) {
+            Ok(job) => jobs.push(job),
+            Err(error) => {
+                tracing::error!(error = %error, "Durable monitor job state is invalid");
+                return MonitorDurableJobsSection {
+                    status: MonitorSourceStatus::Unavailable,
+                    error_code: Some("DURABLE_MONITOR_INVALID_STATE".to_string()),
+                    jobs: None,
+                    next_cursor_token: None,
+                    limit,
+                };
+            }
+        }
+    }
+
+    let next_cursor_token = page
+        .next_cursor
+        .as_ref()
+        .map(crate::services::InfraJobService::cursor_token);
+    MonitorDurableJobsSection {
+        status: MonitorSourceStatus::Available,
+        error_code: None,
+        jobs: Some(jobs),
+        next_cursor_token,
+        limit,
+    }
+}
+
+fn monitor_quality(
+    durable_jobs: &MonitorDurableJobsSection,
+    observed_at: DateTime<Utc>,
+) -> MonitorQuality {
+    let durable_available = matches!(&durable_jobs.status, MonitorSourceStatus::Available);
+    MonitorQuality {
+        data_quality: if durable_available {
+            MonitorDataQuality::Complete
+        } else {
+            MonitorDataQuality::Partial
+        },
+        freshness: "fresh".to_string(),
+        snapshot_sequence: format!("{}-{}", observed_at.timestamp_micros(), Uuid::new_v4()),
+        unknown_fields: if durable_available {
+            Vec::new()
+        } else {
+            vec!["durable_jobs".to_string(), "durable_events".to_string()]
+        },
+        redis: MonitorSourceHealth {
+            status: MonitorSourceStatus::Available,
+            error_code: None,
+        },
+        durable_db: MonitorSourceHealth {
+            status: durable_jobs.status.clone(),
+            error_code: durable_jobs.error_code.clone(),
+        },
+        worker_heartbeats: MonitorSourceHealth {
+            status: MonitorSourceStatus::Available,
+            error_code: None,
+        },
+    }
+}
+
+/// Shared logic: fetch the full monitor overview from Redis and the durable ledger.
 async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOverviewResponse> {
     let redis = state.infra().require_redis()?;
 
@@ -374,6 +703,17 @@ async fn fetch_overview_data_inner(
         .collect::<Vec<_>>();
     recent_jobs.truncate(10);
 
+    let durable_jobs = load_durable_jobs_section(
+        state,
+        ListInfraJobsParams {
+            limit: 10,
+            ..Default::default()
+        },
+        10,
+    )
+    .await;
+    let quality = monitor_quality(&durable_jobs, now);
+
     Ok(MonitorOverviewResponse {
         pending_tasks,
         pending_high,
@@ -388,6 +728,8 @@ async fn fetch_overview_data_inner(
         workers,
         recent_jobs,
         job_type_stats,
+        durable_jobs,
+        quality,
     })
 }
 
@@ -413,16 +755,24 @@ pub async fn get_monitor_overview(
 /// Query parameters for listing monitor jobs.
 #[derive(Debug, Deserialize, utoipa::IntoParams)]
 pub struct MonitorJobsParams {
-    /// Cursor timestamp for pagination (exclusive)
+    /// Cursor timestamp for Redis pagination (exclusive).
     pub cursor: Option<i64>,
-    /// Number of items to return (default: 20)
+    /// Number of legacy Redis items to return (default: 20).
     pub limit: Option<usize>,
-    /// Status filter: pending, processing, completed, failed
+    /// Legacy Redis status filter: pending, processing, completed, failed.
     pub status: Option<String>,
-    /// Task type filter
+    /// Task type filter applied to both compatible sources.
     pub task_type: Option<String>,
-    /// Search query matching the exact job ID only.
+    /// Bounded exact task type/error-code search for durable records.
     pub search: Option<String>,
+    /// Exact durable lifecycle state.
+    pub state: Option<String>,
+    /// Exact durable job identifier.
+    pub job_id: Option<Uuid>,
+    /// Opaque durable composite cursor.
+    pub durable_cursor: Option<String>,
+    /// Number of durable items to return (default: 20).
+    pub durable_limit: Option<usize>,
 }
 
 /// Get paginated and filtered background jobs.
@@ -473,19 +823,62 @@ pub async fn get_monitor_jobs(
         return Err(AppError::validation(I18nKey::Validation));
     }
 
+    let state_filter = params.state.map(|value| value.trim().to_ascii_lowercase());
+    if state_filter
+        .as_deref()
+        .is_some_and(|value| !MONITOR_DURABLE_STATES.contains(&value))
+    {
+        return Err(AppError::validation(I18nKey::Validation));
+    }
+
+    let durable_cursor = params
+        .durable_cursor
+        .as_deref()
+        .map(crate::services::InfraJobService::parse_cursor_token)
+        .transpose()?;
+    let durable_limit = params
+        .durable_limit
+        .unwrap_or(20)
+        .clamp(1, MAX_MONITOR_QUERY_LIMIT);
+    let durable_limit_i64 = i64::try_from(durable_limit)
+        .map_err(|_conversion_error| AppError::validation(I18nKey::Validation))?;
+
     let queue = state.infra().job_queue()?;
 
     let (jobs, next_cursor) = queue
-        .list_jobs_paginated(params.cursor, limit, status, task_type, search)
+        .list_jobs_paginated(
+            params.cursor,
+            limit,
+            status,
+            task_type.clone(),
+            search.clone(),
+        )
         .await
         .map_err(|error| {
             tracing::error!(error = %error, "Monitor job listing failed");
             AppError::service_unavailable(I18nKey::ServiceUnavailable)
         })?;
 
+    let durable_jobs = load_durable_jobs_section(
+        &state,
+        ListInfraJobsParams {
+            cursor: durable_cursor,
+            limit: durable_limit_i64,
+            state: state_filter,
+            task_type,
+            job_id: params.job_id,
+            search,
+        },
+        durable_limit,
+    )
+    .await;
+    let quality = monitor_quality(&durable_jobs, Utc::now());
+
     Ok(Json(MonitorJobsResponse {
         jobs: jobs.iter().map(MonitorJob::from).collect(),
         next_cursor,
+        durable_jobs,
+        quality,
     }))
 }
 
@@ -644,6 +1037,31 @@ mod tests {
             workers: vec![],
             recent_jobs: vec![],
             job_type_stats: vec![],
+            durable_jobs: MonitorDurableJobsSection {
+                status: MonitorSourceStatus::Available,
+                error_code: None,
+                jobs: Some(vec![]),
+                next_cursor_token: None,
+                limit: 10,
+            },
+            quality: MonitorQuality {
+                data_quality: MonitorDataQuality::Complete,
+                freshness: "fresh".to_string(),
+                snapshot_sequence: "test-sequence".to_string(),
+                unknown_fields: vec![],
+                redis: MonitorSourceHealth {
+                    status: MonitorSourceStatus::Available,
+                    error_code: None,
+                },
+                durable_db: MonitorSourceHealth {
+                    status: MonitorSourceStatus::Available,
+                    error_code: None,
+                },
+                worker_heartbeats: MonitorSourceHealth {
+                    status: MonitorSourceStatus::Available,
+                    error_code: None,
+                },
+            },
         };
 
         let json = serde_json::to_string(&overview)

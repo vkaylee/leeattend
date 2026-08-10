@@ -34,6 +34,28 @@ pub struct TransitionInfraJobParams {
     pub reason_summary: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+pub struct InfraJobCursor {
+    pub created_at: DateTime<Utc>,
+    pub id: Uuid,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ListInfraJobsParams {
+    pub cursor: Option<InfraJobCursor>,
+    pub limit: i64,
+    pub state: Option<String>,
+    pub task_type: Option<String>,
+    pub job_id: Option<Uuid>,
+    pub search: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct InfraJobPage {
+    pub jobs: Vec<InfraJobRecord>,
+    pub next_cursor: Option<InfraJobCursor>,
+}
+
 #[async_trait]
 pub trait InfraJobRepository: Send + Sync {
     async fn create(&self, params: CreateInfraJobParams) -> Result<InfraJobRecord, AppError>;
@@ -49,10 +71,19 @@ pub trait InfraJobRepository: Send + Sync {
         job_id: Uuid,
     ) -> Result<Option<InfraJobRecord>, AppError>;
 
+    async fn list_global(&self, params: ListInfraJobsParams) -> Result<InfraJobPage, AppError>;
+
     async fn list_events(
         &self,
         workspace_id: Uuid,
         job_id: Uuid,
         limit: i64,
+    ) -> Result<Vec<InfraJobEvent>, AppError>;
+
+    async fn list_events_bulk(
+        &self,
+        workspace_id: Option<Uuid>,
+        job_ids: &[Uuid],
+        total_limit: i64,
     ) -> Result<Vec<InfraJobEvent>, AppError>;
 }

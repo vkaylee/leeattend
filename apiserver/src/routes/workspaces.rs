@@ -156,6 +156,10 @@ pub fn router() -> Router<Arc<AppState>> {
             "/workspaces/:ws_id/jobs/:job_id",
             get(handlers::get_generic_job_status),
         )
+        .route(
+            "/workspaces/:ws_id/monitor/jobs/:job_id",
+            get(handlers::get_durable_monitor_job),
+        )
         // Salary Bases
         .route(
             "/workspaces/:ws_id/salary-bases",
