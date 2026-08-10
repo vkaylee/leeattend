@@ -183,9 +183,16 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let session_repo: Arc<dyn apiserver::repositories::SessionRepository> = Arc::new(
         apiserver::repositories::DieselSessionRepository::new(diesel_pools.clone()),
     );
-    let roster_repo: Arc<dyn apiserver::repositories::roster::RosterRepository> = Arc::new(
-        apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone()),
-    );
+    let roster_cache = shared_redis_pool
+        .clone()
+        .map(|redis| Arc::new(apiserver::cache::RosterCache::new(redis)));
+    let roster_repo: Arc<dyn apiserver::repositories::roster::RosterRepository> = {
+        let mut repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
+        if let Some(cache) = roster_cache.clone() {
+            repo = repo.with_roster_cache(cache);
+        }
+        Arc::new(repo)
+    };
     let shift_repo: Arc<dyn apiserver::repositories::shift_repository::ShiftRepository> = Arc::new(
         apiserver::repositories::DieselShiftRepository::new(diesel_pools.clone()),
     );
@@ -822,7 +829,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
                 Arc::new(apiserver::cache::RedisCache::new(r))
                     as Arc<dyn apiserver::repositories::CacheRepository>
             }),
-            None,
+            roster_cache,
             shared_redis_pool.map(|r| {
                 Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r))
                     as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>
@@ -921,9 +928,16 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
     let session_repo: Arc<dyn apiserver::repositories::SessionRepository> = Arc::new(
         apiserver::repositories::DieselSessionRepository::new(diesel_pools.clone()),
     );
-    let roster_repo: Arc<dyn apiserver::repositories::roster::RosterRepository> = Arc::new(
-        apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone()),
-    );
+    let roster_cache = shared_redis_pool
+        .clone()
+        .map(|redis| Arc::new(apiserver::cache::RosterCache::new(redis)));
+    let roster_repo: Arc<dyn apiserver::repositories::roster::RosterRepository> = {
+        let mut repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
+        if let Some(cache) = roster_cache.clone() {
+            repo = repo.with_roster_cache(cache);
+        }
+        Arc::new(repo)
+    };
     let shift_repo: Arc<dyn apiserver::repositories::shift_repository::ShiftRepository> = Arc::new(
         apiserver::repositories::DieselShiftRepository::new(diesel_pools.clone()),
     );
@@ -1584,7 +1598,7 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
                 Arc::new(apiserver::cache::RedisCache::new(r))
                     as Arc<dyn apiserver::repositories::CacheRepository>
             }),
-            None,
+            roster_cache,
             shared_redis_pool.clone().map(|r| {
                 Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r))
                     as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>
@@ -1716,9 +1730,16 @@ pub async fn setup_app_tower_internal_extended(
     let session_repo: Arc<dyn apiserver::repositories::SessionRepository> = Arc::new(
         apiserver::repositories::DieselSessionRepository::new(diesel_pools.clone()),
     );
-    let roster_repo: Arc<dyn apiserver::repositories::roster::RosterRepository> = Arc::new(
-        apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone()),
-    );
+    let roster_cache = shared_redis_pool
+        .clone()
+        .map(|redis| Arc::new(apiserver::cache::RosterCache::new(redis)));
+    let roster_repo: Arc<dyn apiserver::repositories::roster::RosterRepository> = {
+        let mut repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
+        if let Some(cache) = roster_cache.clone() {
+            repo = repo.with_roster_cache(cache);
+        }
+        Arc::new(repo)
+    };
     let shift_repo: Arc<dyn apiserver::repositories::shift_repository::ShiftRepository> = Arc::new(
         apiserver::repositories::DieselShiftRepository::new(diesel_pools.clone()),
     );
@@ -2399,7 +2420,7 @@ pub async fn setup_app_tower_internal_extended(
                 Arc::new(apiserver::cache::RedisCache::new(r))
                     as Arc<dyn apiserver::repositories::CacheRepository>
             }),
-            None,
+            roster_cache,
             shared_redis_pool.clone().map(|r| {
                 Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r))
                     as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>

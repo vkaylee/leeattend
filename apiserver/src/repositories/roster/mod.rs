@@ -69,6 +69,33 @@ pub trait RosterRepository: Send + Sync {
         end_date: NaiveDate,
     ) -> Result<std::collections::HashMap<Uuid, Vec<ShiftRoster>>, AppError>;
 
+    async fn get_employment_rosters_batch_by_windows(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        windows: &[(Uuid, NaiveDate, NaiveDate)],
+    ) -> Result<std::collections::HashMap<Uuid, Vec<ShiftRoster>>, AppError> {
+        if windows.is_empty() {
+            return Ok(std::collections::HashMap::new());
+        }
+
+        let mut employment_ids: Vec<Uuid> = windows.iter().map(|(id, _, _)| *id).collect();
+        employment_ids.sort_unstable();
+        employment_ids.dedup();
+        let query_start = windows
+            .iter()
+            .map(|(_, start, _)| *start)
+            .min()
+            .ok_or_else(|| AppError::Internal("roster: missing query start".to_string()))?;
+        let query_end = windows
+            .iter()
+            .map(|(_, _, end)| *end)
+            .max()
+            .ok_or_else(|| AppError::Internal("roster: missing query end".to_string()))?;
+
+        self.get_employment_rosters_batch(auth_token, &employment_ids, query_start, query_end)
+            .await
+    }
+
     async fn upsert_roster(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

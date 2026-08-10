@@ -3,10 +3,13 @@
 //! Tests for `build_roster_data` — the async loader that fetches all
 //! roster-related data for a workspace in parallel queries.
 
+use crate::common::app::create_test_redis_pool;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::cache::build_roster_data;
+use apiserver::cache::{build_roster_data, RosterCache};
 use chrono::NaiveDate;
+use redis::AsyncCommands;
+use std::sync::Arc;
 
 // ---------------------------------------------------------------------------
 // Empty / baseline
@@ -316,4 +319,99 @@ async fn test_build_returns_arc_with_consistent_data() {
             .expect("same shift should exist in both");
         assert_eq!(shift.name(), other.name());
     }
+}
+
+// ---------------------------------------------------------------------------
+// Redis-backed cache behavior
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn test_redis_cache_reuses_and_refreshes_workspace_snapshot() {
+    let Some(redis) = create_test_redis_pool().await else {
+        return;
+    };
+
+    let test_db = TestDatabase::new().await;
+    let factory = TestFactory::new(test_db.diesel_pools.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let workspace_id = factory.workspace().create().await;
+    let first_shift = factory.shift().with_workspace(workspace_id).create().await;
+    let cache = RosterCache::new(redis);
+
+    let first = cache
+        .get_roster_data(workspace_id, &diesel_pools)
+        .await
+        .expect("initial roster cache load should succeed");
+    let second = cache
+        .get_roster_data(workspace_id, &diesel_pools)
+        .await
+        .expect("cached roster load should succeed");
+
+    assert!(Arc::ptr_eq(&first, &second));
+    assert!(first.shifts.contains_key(&first_shift));
+
+    let second_shift = factory.shift().with_workspace(workspace_id).create().await;
+    cache.invalidate(workspace_id).await;
+
+    let refreshed = cache
+        .get_roster_data(workspace_id, &diesel_pools)
+        .await
+        .expect("invalidated roster cache load should succeed");
+    assert!(!Arc::ptr_eq(&first, &refreshed));
+    assert!(refreshed.shifts.contains_key(&second_shift));
+}
+
+#[tokio::test]
+async fn test_redis_cache_version_is_monotonic_and_workspace_scoped() {
+    let Some(redis) = create_test_redis_pool().await else {
+        return;
+    };
+
+    let test_db = TestDatabase::new().await;
+    let factory = TestFactory::new(test_db.diesel_pools.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let workspace_a = factory.workspace().create().await;
+    let workspace_b = factory.workspace().create().await;
+    factory.shift().with_workspace(workspace_a).create().await;
+    factory.shift().with_workspace(workspace_b).create().await;
+    let cache = RosterCache::new(redis.clone());
+
+    let data_b = cache
+        .get_roster_data(workspace_b, &diesel_pools)
+        .await
+        .expect("workspace B cache load should succeed");
+    let key_a = format!("roster:version:{workspace_a}");
+    let key_b = format!("roster:version:{workspace_b}");
+    let mut conn = redis.conn();
+    conn.set::<_, _, ()>(&key_a, i64::MAX - 2)
+        .await
+        .expect("seeded Redis version should be writable");
+    let before_b: Option<i64> = conn
+        .get(&key_b)
+        .await
+        .expect("workspace B version should be readable");
+    drop(conn);
+
+    cache.invalidate(workspace_a).await;
+    cache.invalidate(workspace_a).await;
+
+    let mut conn = redis.conn();
+    let after_a: i64 = conn
+        .get(&key_a)
+        .await
+        .expect("workspace A version should be readable");
+    let after_b: Option<i64> = conn
+        .get(&key_b)
+        .await
+        .expect("workspace B version should remain readable");
+    drop(conn);
+
+    assert_eq!(after_a, i64::MAX);
+    assert_eq!(after_b, before_b);
+
+    let data_b_again = cache
+        .get_roster_data(workspace_b, &diesel_pools)
+        .await
+        .expect("workspace B cached load should succeed");
+    assert!(Arc::ptr_eq(&data_b, &data_b_again));
 }

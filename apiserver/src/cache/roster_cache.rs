@@ -10,7 +10,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::repositories::diesel_department_repository::EmployeeDepartmentHistoryEntity;
-use chrono::{NaiveDate, NaiveTime, Utc};
+use chrono::{NaiveDate, NaiveTime};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use moka::future::Cache;
@@ -442,31 +442,64 @@ impl RosterCache {
 
     /// Read the current version stamp from Redis.
     ///
-    /// Returns `Utc::now().timestamp()` on miss or error so that the caller
-    /// always triggers a fresh load in those cases.
-    async fn fetch_version(&self, workspace_id: Uuid) -> i64 {
+    /// A missing key is atomically initialized to zero so an existing local
+    /// entry can never be mistaken for a valid cache hit after Redis loses the
+    /// version key. Redis read failures return `None`, forcing callers to bypass
+    /// the local cache rather than risk serving stale data.
+    async fn fetch_version(&self, workspace_id: Uuid) -> Option<i64> {
         let key = Self::version_key(workspace_id);
         let mut conn = self.redis.conn();
         match conn.get::<_, Option<i64>>(&key).await {
-            Ok(Some(v)) => v,
-            Ok(None) => Utc::now().timestamp(),
+            Ok(Some(v)) => Some(v),
+            Ok(None) => match conn.incr::<_, _, i64>(&key, 0).await {
+                Ok(v) => Some(v),
+                Err(e) => {
+                    tracing::warn!(
+                        workspace_id = %workspace_id,
+                        error = %e,
+                        "Redis INCR version initialization failed"
+                    );
+                    None
+                }
+            },
             Err(e) => {
                 tracing::warn!(workspace_id = %workspace_id, error = %e, "Redis GET version failed");
-                Utc::now().timestamp()
+                None
             }
         }
     }
 
     // --- public API --------------------------------------------------------
 
-    /// Bump the version stamp in Redis and evict the moka entry.
+    /// Atomically bump the version stamp in Redis and evict the moka entry.
     ///
     /// Call this whenever roster-related tables are mutated for a workspace.
+    /// Redis `INCR` prevents same-second collisions and never moves a version
+    /// backwards when an existing stamp is ahead of the wall clock.
     pub async fn invalidate(&self, workspace_id: Uuid) {
         let key = Self::version_key(workspace_id);
-        let mut conn = self.redis.conn();
-        if let Err(e) = conn.set::<_, _, ()>(&key, Utc::now().timestamp()).await {
-            tracing::warn!(workspace_id = %workspace_id, error = %e, "Redis SET version failed during invalidate");
+        let mut last_error = None;
+        for attempt in 0..3 {
+            let mut conn = self.redis.conn();
+            match conn.incr::<_, _, i64>(&key, 1).await {
+                Ok(_) => {
+                    last_error = None;
+                    break;
+                }
+                Err(error) => {
+                    last_error = Some(error);
+                    if attempt < 2 {
+                        tokio::time::sleep(Duration::from_millis(25 * (attempt + 1))).await;
+                    }
+                }
+            }
+        }
+        if let Some(error) = last_error {
+            tracing::warn!(
+                workspace_id = %workspace_id,
+                error = %error,
+                "Redis INCR version failed during invalidate after retries"
+            );
         }
         self.cache.invalidate(&workspace_id).await;
     }
@@ -481,7 +514,10 @@ impl RosterCache {
         workspace_id: Uuid,
         diesel_pools: &crate::diesel_pool::DieselPools,
     ) -> Result<Arc<RosterData>, String> {
-        let remote_version = self.fetch_version(workspace_id).await;
+        let Some(remote_version) = self.fetch_version(workspace_id).await else {
+            self.cache.invalidate(&workspace_id).await;
+            return build_roster_data(diesel_pools, workspace_id).await;
+        };
 
         // Fast path: version match in local cache
         if let Some((data, ver)) = self.cache.get(&workspace_id).await {

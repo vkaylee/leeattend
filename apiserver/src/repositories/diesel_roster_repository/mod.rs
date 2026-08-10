@@ -148,6 +148,15 @@ impl RosterRepository for DieselRosterRepository {
             .await
     }
 
+    async fn get_employment_rosters_batch_by_windows(
+        &self,
+        auth_token: &TenantAuthToken,
+        windows: &[(Uuid, NaiveDate, NaiveDate)],
+    ) -> Result<HashMap<Uuid, Vec<ShiftRoster>>, AppError> {
+        self.get_employment_rosters_batch_by_windows(auth_token, windows)
+            .await
+    }
+
     async fn upsert_roster(
         &self,
         auth_token: &TenantAuthToken,

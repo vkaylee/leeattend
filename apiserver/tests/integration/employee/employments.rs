@@ -5,6 +5,7 @@ use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::AppState;
 use axum::http::StatusCode;
+use redis::AsyncCommands;
 use serde_json::json;
 use std::sync::Arc;
 use tower::ServiceExt;
@@ -353,4 +354,121 @@ async fn test_employment_crud_lifecycle() {
         .unwrap();
 
     assert_eq!(res_delete.status(), StatusCode::NO_CONTENT);
+}
+
+#[tokio::test]
+async fn test_employment_mutations_invalidate_roster_cache() {
+    let (_test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+    let Some(redis) = factory.redis_pool.clone() else {
+        return;
+    };
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employer_id = Uuid::new_v4();
+    crate::test_execute!(
+        &state.infra().diesel().api,
+        "INSERT INTO employers (id, workspace_id, name, tax_code, legal_address, created_at, updated_at) VALUES ($1, $2, 'Cache Employer', 'CACHE-1', 'Addr', NOW(), NOW())",
+        diesel::sql_types::Uuid,
+        employer_id,
+        diesel::sql_types::Uuid,
+        ws_id
+    );
+
+    let cache = state
+        .infra()
+        .roster_cache()
+        .expect("Redis-backed test app must inject RosterCache");
+    cache
+        .get_roster_data(ws_id, state.infra().diesel())
+        .await
+        .expect("warming roster cache should succeed");
+    let version_key = format!("roster:version:{ws_id}");
+    let mut conn = redis.conn();
+    let initial: Option<i64> = conn
+        .get(&version_key)
+        .await
+        .expect("initial roster version should be readable");
+    drop(conn);
+
+    let payload = json!({
+        "employee_id": emp_id.to_string(),
+        "employer_id": employer_id.to_string(),
+        "status": "active",
+        "start_date": "2026-01-01",
+        "end_date": "2026-12-31",
+        "employment_type": "primary",
+        "job_title": "Cache Engineer"
+    });
+    let created = app
+        .clone()
+        .oneshot(make_req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/employments"),
+            ws_id,
+            user_id,
+            Some(payload),
+        ))
+        .await
+        .expect("create request should complete");
+    assert_eq!(created.status(), StatusCode::CREATED);
+    let created_body = axum::body::to_bytes(created.into_body(), usize::MAX)
+        .await
+        .expect("created response body should be readable");
+    let created_json: serde_json::Value =
+        serde_json::from_slice(&created_body).expect("created response should be JSON");
+    let employment_id = created_json["id"]
+        .as_str()
+        .expect("created employment should have an id")
+        .to_string();
+
+    let mut conn = redis.conn();
+    let after_create: i64 = conn
+        .get(&version_key)
+        .await
+        .expect("create should advance roster version");
+    drop(conn);
+    assert!(after_create > initial.unwrap_or_default());
+
+    let updated = app
+        .clone()
+        .oneshot(make_req(
+            "PATCH",
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/employments/{employment_id}"),
+            ws_id,
+            user_id,
+            Some(json!({"job_title": "Senior Cache Engineer"})),
+        ))
+        .await
+        .expect("update request should complete");
+    assert_eq!(updated.status(), StatusCode::OK);
+
+    let mut conn = redis.conn();
+    let after_update: i64 = conn
+        .get(&version_key)
+        .await
+        .expect("update should advance roster version");
+    drop(conn);
+    assert!(after_update > after_create);
+
+    let deleted = app
+        .oneshot(make_req(
+            "DELETE",
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/employments/{employment_id}"),
+            ws_id,
+            user_id,
+            None,
+        ))
+        .await
+        .expect("delete request should complete");
+    assert_eq!(deleted.status(), StatusCode::NO_CONTENT);
+
+    let mut conn = redis.conn();
+    let after_delete: i64 = conn
+        .get(&version_key)
+        .await
+        .expect("delete should advance roster version");
+    assert!(after_delete > after_update);
 }

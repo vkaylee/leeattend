@@ -242,6 +242,13 @@ impl DieselRosterRepository {
         &self,
         workspace_id: Uuid,
     ) -> Result<std::sync::Arc<crate::cache::RosterData>, AppError> {
+        if let Some(ref cache) = self.roster_cache {
+            return cache
+                .get_roster_data(workspace_id, &self.diesel_pools)
+                .await
+                .map_err(|e| AppError::Internal(format!("roster_cache: {e}")));
+        }
+
         crate::cache::build_roster_data(&self.diesel_pools, workspace_id)
             .await
             .map_err(|e| AppError::Internal(format!("db build: {e}")))

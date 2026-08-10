@@ -122,6 +122,10 @@ pub async fn create_employment(
         .create_employment(&ctx.auth_token, &payload)
         .await?;
 
+    if let Some(cache) = state.infra().roster_cache() {
+        cache.invalidate(ctx.workspace_id).await;
+    }
+
     let custom_fields = state
         .core()
         .custom_field_service()
@@ -161,6 +165,10 @@ pub async fn update_employment(
         .update_employment(&ctx.auth_token, employment_id, &payload)
         .await?;
 
+    if let Some(cache) = state.infra().roster_cache() {
+        cache.invalidate(ctx.workspace_id).await;
+    }
+
     let custom_fields = state
         .core()
         .custom_field_service()
@@ -197,6 +205,10 @@ pub async fn delete_employment(
         .employment_repo()
         .delete_employment(&ctx.auth_token, employment_id)
         .await?;
+
+    if let Some(cache) = state.infra().roster_cache() {
+        cache.invalidate(ctx.workspace_id).await;
+    }
 
     Ok(StatusCode::NO_CONTENT)
 }

@@ -733,28 +733,38 @@ pub async fn bulk_upsert_roster(
         .active_employment_id()
         .ok_or_else(|| AppError::validation(I18nKey::NoActiveEmployment))?;
 
-    // Compliance check: validate each shift_id across its assigned dates
+    // Compliance check: validate each shift_id across its assigned dates.
+    // Preserve first-seen order while grouping so validation is deterministic.
     let mut shift_dates: std::collections::HashMap<Uuid, Vec<NaiveDate>> =
         std::collections::HashMap::new();
+    let mut shift_order = Vec::new();
     for item in &req.items {
         if let Some(sid) = item.shift_id {
+            if !shift_dates.contains_key(&sid) {
+                shift_order.push(sid);
+            }
             shift_dates.entry(sid).or_default().push(item.date);
         }
     }
-    for (shift_id, dates) in &shift_dates {
-        let compliance_req = ComplianceCheckRequest {
-            employment_id: active_employment_id,
-            shift_id: *shift_id,
-            dates: dates.clone(),
-            allow_warnings: req.allow_warnings,
-            override_reason: req.override_reason.clone(),
-        };
-        state
-            .shifts()
-            .compliance()
-            .validate_assignments(ctx.workspace_id, &ctx.auth_token, &compliance_req)
-            .await?;
-    }
+    let compliance_reqs: Vec<ComplianceCheckRequest> = shift_order
+        .into_iter()
+        .filter_map(|shift_id| {
+            shift_dates
+                .remove(&shift_id)
+                .map(|dates| ComplianceCheckRequest {
+                    employment_id: active_employment_id,
+                    shift_id,
+                    dates,
+                    allow_warnings: req.allow_warnings,
+                    override_reason: req.override_reason.clone(),
+                })
+        })
+        .collect();
+    state
+        .shifts()
+        .compliance()
+        .validate_assignments_batch(ctx.workspace_id, &ctx.auth_token, &compliance_reqs)
+        .await?;
 
     let dates: Vec<NaiveDate> = req.items.iter().map(|i| i.date).collect();
     state

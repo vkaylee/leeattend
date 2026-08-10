@@ -56,91 +56,134 @@ impl ComplianceValidationService {
         auth_token: &TenantAuthToken,
         request: &ComplianceCheckRequest,
     ) -> AppResult<ComplianceCheckResponse> {
-        // 1. Load rules
-        let rules = self.compliance_repo.get_rules(auth_token).await?;
+        let mut responses = self
+            .validate_assignments_batch(workspace_id, auth_token, std::slice::from_ref(request))
+            .await?;
+        responses
+            .pop()
+            .ok_or_else(|| AppError::Internal("compliance: empty batch response".to_string()))
+    }
 
-        // 2. If compliance is disabled, skip all checks
-        if !rules.is_enabled {
-            return Ok(ComplianceCheckResponse {
-                compliant: true,
-                violations: vec![],
-                requires_override: false,
-            });
+    /// Validate several assignment groups against one shared data snapshot.
+    ///
+    /// Rules, existing rosters, and workspace roster data are loaded once for
+    /// the batch. Each request is then narrowed to its original date window and
+    /// evaluated in input order, preserving singleton validation semantics.
+    #[tracing::instrument(skip_all, err)]
+    pub async fn validate_assignments_batch(
+        &self,
+        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
+        requests: &[ComplianceCheckRequest],
+    ) -> AppResult<Vec<ComplianceCheckResponse>> {
+        if requests.is_empty() {
+            return Ok(Vec::new());
         }
 
-        // 3. Load existing rosters for this employment across the date range ±1 day
-        let min_date = request
-            .dates
-            .iter()
-            .min()
-            .copied()
-            .ok_or_else(|| AppError::validation(I18nKey::Validation))?;
-        let max_date = request
-            .dates
-            .iter()
-            .max()
-            .copied()
-            .ok_or_else(|| AppError::validation(I18nKey::Validation))?;
-        let query_start = min_date - chrono::Duration::days(1);
-        let query_end = max_date + chrono::Duration::days(1);
+        let rules = self.compliance_repo.get_rules(auth_token).await?;
+        if !rules.is_enabled {
+            return Ok(requests
+                .iter()
+                .map(|_| ComplianceCheckResponse {
+                    compliant: true,
+                    violations: vec![],
+                    requires_override: false,
+                })
+                .collect());
+        }
 
+        let windows: Vec<(NaiveDate, NaiveDate)> = requests
+            .iter()
+            .map(|request| {
+                let min_date = request
+                    .dates
+                    .iter()
+                    .min()
+                    .copied()
+                    .ok_or_else(|| AppError::validation(I18nKey::Validation))?;
+                let max_date = request
+                    .dates
+                    .iter()
+                    .max()
+                    .copied()
+                    .ok_or_else(|| AppError::validation(I18nKey::Validation))?;
+                Ok((
+                    min_date - chrono::Duration::days(1),
+                    max_date + chrono::Duration::days(1),
+                ))
+            })
+            .collect::<AppResult<Vec<_>>>()?;
+
+        let request_windows: Vec<(Uuid, NaiveDate, NaiveDate)> = requests
+            .iter()
+            .zip(&windows)
+            .map(|(request, (start, end))| (request.employment_id, *start, *end))
+            .collect();
         let existing_map = self
             .roster_repo
-            .get_employment_rosters_batch(
-                auth_token,
-                &[request.employment_id],
-                query_start,
-                query_end,
-            )
+            .get_employment_rosters_batch_by_windows(auth_token, &request_windows)
             .await?;
-
-        let existing_rosters: Vec<&ShiftRoster> = existing_map
-            .get(&request.employment_id)
-            .map(|v| v.iter().collect())
-            .unwrap_or_default();
-
-        // 4. Load roster data for interval info
         let roster_data = self.roster_repo.get_raw_roster_data(workspace_id).await?;
 
-        // 5. Run the four compliance checks
+        let mut responses = Vec::with_capacity(requests.len());
+        for (request, (window_start, window_end)) in requests.iter().zip(windows) {
+            let existing_rosters: Vec<&ShiftRoster> = existing_map
+                .get(&request.employment_id)
+                .map(|rosters| {
+                    rosters
+                        .iter()
+                        .filter(|roster| roster.date >= window_start && roster.date <= window_end)
+                        .collect()
+                })
+                .unwrap_or_default();
+
+            responses.push(Self::evaluate_one(
+                request,
+                &existing_rosters,
+                &roster_data,
+                &rules,
+            )?);
+        }
+
+        Ok(responses)
+    }
+
+    fn evaluate_one(
+        request: &ComplianceCheckRequest,
+        existing_rosters: &[&ShiftRoster],
+        roster_data: &crate::cache::RosterData,
+        rules: &crate::models::compliance::ComplianceRules,
+    ) -> AppResult<ComplianceCheckResponse> {
         let mut violations: Vec<ComplianceViolation> = Vec::new();
 
-        // Check A: Overlap detection (HARD)
         Self::check_overlaps(
             request,
-            &existing_rosters,
+            existing_rosters,
             &roster_data.shift_intervals,
             &mut violations,
         );
-
-        // Check B: Rest period (SOFT)
         Self::check_rest_period(
             request,
-            &existing_rosters,
+            existing_rosters,
             &roster_data.shift_intervals,
             rules.min_rest_period_hours,
             &mut violations,
         );
-
-        // Check C: Weekly hours (SOFT)
         Self::check_weekly_hours(
             request,
-            &existing_rosters,
+            existing_rosters,
             &roster_data.shift_intervals,
             rules.max_weekly_hours,
             &mut violations,
         );
-
-        // Check D: Monthly OT (SOFT)
         Self::check_monthly_ot(
             request,
-            &existing_rosters,
+            existing_rosters,
             &roster_data.shift_intervals,
             rules.max_monthly_ot_hours,
             &mut violations,
         );
 
-        // 6. Resolve
         let has_hard = violations
             .iter()
             .any(|v| v.severity == ViolationSeverity::Hard);
@@ -154,15 +197,13 @@ impl ComplianceValidationService {
 
         if has_soft {
             if request.allow_warnings && request.override_reason.is_some() {
-                // Manager overrode with reason — proceed
                 return Ok(ComplianceCheckResponse {
                     compliant: true,
-                    violations, // include for audit
+                    violations,
                     requires_override: false,
                 });
             }
 
-            // Soft violations without override → conflict with structured payload
             let violations_json = serde_json::to_value(&violations).unwrap_or_default();
             return Err(AppError::conflict_with_retry(
                 I18nKey::ComplianceOverrideRequired,
