@@ -1,23 +1,34 @@
-WITH active_emps AS (
-    SELECT e.id FROM employees e
-    JOIN employments emp ON e.id = emp.employee_id
-    WHERE e.workspace_id = $1
+WITH active_employments AS (
+    SELECT emp.employee_id,
+           ROW_NUMBER() OVER (
+               PARTITION BY emp.employee_id
+               ORDER BY emp.start_date DESC, emp.id DESC
+           ) AS employment_rank
+    FROM employments emp
+    JOIN employees e
+      ON e.id = emp.employee_id
+     AND e.workspace_id = $1
+     AND e.deleted_at IS NULL
+    WHERE emp.workspace_id = $1
       AND emp.status = 'active'
       AND emp.deleted_at IS NULL
-      AND $2 BETWEEN emp.start_date AND COALESCE(emp.end_date, '9999-12-31'::date)
+      AND emp.start_date <= $2
+      AND (emp.end_date IS NULL OR emp.end_date >= $2)
 ),
-dynamic_payroll AS (
-    SELECT esc.employee_id, SUM(esc.amount) as total_amount
+latest_components AS (
+    SELECT esc.employee_id,
+           esc.component_definition_id,
+           esc.amount,
+           ROW_NUMBER() OVER (
+               PARTITION BY esc.employee_id, esc.component_definition_id
+               ORDER BY esc.effective_date DESC
+           ) AS component_rank
     FROM employee_salary_components esc
-    INNER JOIN (
-        SELECT employee_id, component_definition_id, MAX(effective_date) as max_date
-        FROM employee_salary_components
-        WHERE effective_date <= $2
-        GROUP BY employee_id, component_definition_id
-    ) latest ON esc.employee_id = latest.employee_id
-             AND esc.component_definition_id = latest.component_definition_id
-             AND esc.effective_date = latest.max_date
-    WHERE esc.employee_id IN (SELECT id FROM active_emps)
-    GROUP BY esc.employee_id
+    JOIN active_employments ae
+      ON ae.employee_id = esc.employee_id
+     AND ae.employment_rank = 1
+    WHERE esc.effective_date <= $2
 )
-SELECT COALESCE(SUM(total_amount), 0)::numeric as amount FROM dynamic_payroll
+SELECT COALESCE(SUM(amount), 0)::numeric AS amount
+FROM latest_components
+WHERE component_rank = 1

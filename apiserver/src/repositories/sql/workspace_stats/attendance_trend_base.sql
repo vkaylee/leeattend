@@ -2,36 +2,70 @@ WITH days AS (
     SELECT d::date AS date
     FROM generate_series(($1::date - INTERVAL '29 days'), $1::date, '1 day'::interval) AS d
 ),
-active_employments AS (
-    SELECT id FROM employments WHERE workspace_id = $2 AND status = 'active' AND deleted_at IS NULL
+daily_active AS (
+    SELECT d.date,
+           COUNT(DISTINCT emp.employee_id)::bigint AS active_employees
+    FROM days d
+    JOIN employments emp
+      ON emp.workspace_id = $2
+     AND emp.status = 'active'
+     AND emp.deleted_at IS NULL
+     AND emp.start_date <= d.date
+     AND (emp.end_date IS NULL OR emp.end_date >= d.date)
+    JOIN employees e
+      ON e.id = emp.employee_id
+     AND e.workspace_id = $2
+     AND e.deleted_at IS NULL
+    GROUP BY d.date
 ),
 daily_present AS (
     SELECT d.date,
-           COUNT(DISTINCT te.employment_id) AS present
+           COUNT(DISTINCT emp.employee_id)::bigint AS present
     FROM days d
-    LEFT JOIN time_entries te
-        ON te.punch_in_time >= $3
-        AND te.punch_in_time < $4
-        AND (te.punch_in_time AT TIME ZONE $5)::date = d.date
-        AND te.employment_id IN (SELECT id FROM active_employments)
+    JOIN time_entries te
+      ON te.punch_in_time >= $3
+     AND te.punch_in_time < $4
+     AND (te.punch_in_time AT TIME ZONE $5)::date = d.date
+    JOIN employments emp
+      ON emp.id = te.employment_id
+     AND emp.workspace_id = $2
+     AND emp.status = 'active'
+     AND emp.deleted_at IS NULL
+     AND emp.start_date <= d.date
+     AND (emp.end_date IS NULL OR emp.end_date >= d.date)
+    JOIN employees e
+      ON e.id = emp.employee_id
+     AND e.workspace_id = $2
+     AND e.deleted_at IS NULL
     GROUP BY d.date
 ),
 daily_leave AS (
     SELECT d.date,
-           COUNT(DISTINCT lr.employment_id) AS on_leave
+           COUNT(DISTINCT emp.employee_id)::bigint AS on_leave
     FROM days d
-    LEFT JOIN (
-        leave_requests lr
-        JOIN employments emp ON lr.employment_id = emp.id AND emp.deleted_at IS NULL
-    ) ON lr.status IN ('approved', 'pre_approved')
-      AND lr.start_date <= d.date
-      AND lr.end_date >= d.date
-      AND emp.id IN (SELECT id FROM active_employments)
+    JOIN leave_requests lr
+      ON lr.status IN ('approved', 'pre_approved')
+     AND lr.start_date <= d.date
+     AND lr.end_date >= d.date
+    JOIN employments emp
+      ON emp.id = lr.employment_id
+     AND emp.workspace_id = $2
+     AND emp.status = 'active'
+     AND emp.deleted_at IS NULL
+     AND emp.start_date <= d.date
+     AND (emp.end_date IS NULL OR emp.end_date >= d.date)
+    JOIN employees e
+      ON e.id = emp.employee_id
+     AND e.workspace_id = $2
+     AND e.deleted_at IS NULL
     GROUP BY d.date
 )
-SELECT dp.date,
+SELECT d.date,
        COALESCE(dp.present, 0)::bigint AS present,
-       COALESCE(dle.on_leave, 0)::bigint AS on_leave
-FROM daily_present dp
-LEFT JOIN daily_leave dle ON dp.date = dle.date
-ORDER BY dp.date ASC
+       COALESCE(dl.on_leave, 0)::bigint AS on_leave,
+       COALESCE(da.active_employees, 0)::bigint AS active_employees
+FROM days d
+LEFT JOIN daily_present dp ON dp.date = d.date
+LEFT JOIN daily_leave dl ON dl.date = d.date
+LEFT JOIN daily_active da ON da.date = d.date
+ORDER BY d.date ASC

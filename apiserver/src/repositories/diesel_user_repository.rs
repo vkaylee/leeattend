@@ -373,67 +373,76 @@ impl UserRepository for DieselUserRepository {
                 Box::pin(async move {
                     use crate::schema::dashboard_preferences;
 
-                    let existing = dashboard_preferences::table
-                        .filter(dashboard_preferences::user_id.eq(user_id))
-                        .filter(dashboard_preferences::workspace_id.eq(workspace_id))
-                        .first::<crate::models::diesel::core::DashboardPreferenceEntity>(conn)
-                        .await
-                        .optional()
-                        .map_err(AppError::from)?;
-
-                    if let Some(mut prefs) = existing {
-                        // Update fields
-                        if let Some(av) = req.active_view {
-                            prefs.active_view = av;
-                        }
-                        if let Some(vw) = req.visible_widgets {
-                            prefs.visible_widgets = vw;
-                        }
-                        if let Some(wo) = req.widget_order {
-                            prefs.widget_order = wo;
-                        }
-                        if let Some(cs) = req.collapsed_sections {
-                            prefs.collapsed_sections = cs;
-                        }
-
-                        let entity = diesel::update(
-                            dashboard_preferences::table
-                                .filter(dashboard_preferences::id.eq(prefs.id)),
-                        )
-                        .set((
-                            dashboard_preferences::active_view.eq(prefs.active_view),
-                            dashboard_preferences::visible_widgets.eq(prefs.visible_widgets),
-                            dashboard_preferences::widget_order.eq(prefs.widget_order),
-                            dashboard_preferences::collapsed_sections.eq(prefs.collapsed_sections),
-                            dashboard_preferences::updated_at.eq(chrono::Utc::now()),
-                        ))
-                        .get_result::<crate::models::diesel::core::DashboardPreferenceEntity>(conn)
-                        .await
-                        .map_err(AppError::from)?;
-                        return Ok(entity.into());
-                    }
-
-                    // Insert new
-                    let entity = diesel::insert_into(dashboard_preferences::table)
+                    diesel::insert_into(dashboard_preferences::table)
                         .values((
                             dashboard_preferences::id.eq(Uuid::new_v4()),
                             dashboard_preferences::user_id.eq(user_id),
                             dashboard_preferences::workspace_id.eq(workspace_id),
-                            dashboard_preferences::active_view
-                                .eq(req.active_view.unwrap_or_else(|| "overview".to_string())),
-                            dashboard_preferences::visible_widgets
-                                .eq(req.visible_widgets.unwrap_or_else(|| serde_json::json!({}))),
-                            dashboard_preferences::widget_order
-                                .eq(req.widget_order.unwrap_or_else(|| serde_json::json!([]))),
-                            dashboard_preferences::collapsed_sections.eq(req
-                                .collapsed_sections
-                                .unwrap_or_else(|| serde_json::json!({}))),
+                            dashboard_preferences::active_view.eq(req
+                                .active_view
+                                .clone()
+                                .unwrap_or_else(|| "overview".to_string())),
+                            dashboard_preferences::visible_widgets.eq(req
+                                .visible_widgets
+                                .clone()
+                                .unwrap_or_else(
+                                    crate::handlers::dashboard_preferences::default_visible_widgets,
+                                )),
+                            dashboard_preferences::widget_order.eq(req
+                                .widget_order
+                                .clone()
+                                .unwrap_or_else(
+                                    crate::handlers::dashboard_preferences::default_widget_order,
+                                )),
+                            dashboard_preferences::collapsed_sections
+                                .eq(req.collapsed_sections.clone().unwrap_or_else(
+                                crate::handlers::dashboard_preferences::default_collapsed_sections,
+                            )),
                             dashboard_preferences::created_at.eq(chrono::Utc::now()),
                             dashboard_preferences::updated_at.eq(chrono::Utc::now()),
                         ))
-                        .get_result::<crate::models::diesel::core::DashboardPreferenceEntity>(conn)
+                        .on_conflict((
+                            dashboard_preferences::user_id,
+                            dashboard_preferences::workspace_id,
+                        ))
+                        .do_nothing()
+                        .execute(conn)
                         .await
                         .map_err(AppError::from)?;
+
+                    let mut prefs = dashboard_preferences::table
+                        .filter(dashboard_preferences::user_id.eq(user_id))
+                        .filter(dashboard_preferences::workspace_id.eq(workspace_id))
+                        .first::<crate::models::diesel::core::DashboardPreferenceEntity>(conn)
+                        .await
+                        .map_err(AppError::from)?;
+
+                    if let Some(active_view) = req.active_view {
+                        prefs.active_view = active_view;
+                    }
+                    if let Some(visible_widgets) = req.visible_widgets {
+                        prefs.visible_widgets = visible_widgets;
+                    }
+                    if let Some(widget_order) = req.widget_order {
+                        prefs.widget_order = widget_order;
+                    }
+                    if let Some(collapsed_sections) = req.collapsed_sections {
+                        prefs.collapsed_sections = collapsed_sections;
+                    }
+
+                    let entity = diesel::update(
+                        dashboard_preferences::table.filter(dashboard_preferences::id.eq(prefs.id)),
+                    )
+                    .set((
+                        dashboard_preferences::active_view.eq(prefs.active_view),
+                        dashboard_preferences::visible_widgets.eq(prefs.visible_widgets),
+                        dashboard_preferences::widget_order.eq(prefs.widget_order),
+                        dashboard_preferences::collapsed_sections.eq(prefs.collapsed_sections),
+                        dashboard_preferences::updated_at.eq(chrono::Utc::now()),
+                    ))
+                    .get_result::<crate::models::diesel::core::DashboardPreferenceEntity>(conn)
+                    .await
+                    .map_err(AppError::from)?;
                     Ok(entity.into())
                 })
             })

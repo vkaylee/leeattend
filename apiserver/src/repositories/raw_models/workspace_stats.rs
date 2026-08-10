@@ -18,6 +18,8 @@ pub struct BaseRow {
     pub present: i64,
     #[diesel(sql_type = BigInt)]
     pub on_leave: i64,
+    #[diesel(sql_type = BigInt)]
+    pub active_employees: i64,
 }
 
 #[derive(QueryableByName)]
@@ -121,7 +123,7 @@ pub struct DayRow {
 #[derive(QueryableByName)]
 pub struct EmployeeFirstPunchRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     #[diesel(sql_type = Date)]
     pub work_date: NaiveDate,
     #[diesel(sql_type = Time)]
@@ -131,7 +133,7 @@ pub struct EmployeeFirstPunchRow {
 #[derive(QueryableByName)]
 pub struct EmployeeFirstPunchTodayRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     #[diesel(sql_type = Time)]
     pub first_punch: chrono::NaiveTime,
 }
@@ -139,7 +141,7 @@ pub struct EmployeeFirstPunchTodayRow {
 #[derive(QueryableByName)]
 pub struct EmployeeLastPunchRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     #[diesel(sql_type = Time)]
     pub last_punch_out: chrono::NaiveTime,
 }
@@ -147,7 +149,7 @@ pub struct EmployeeLastPunchRow {
 #[derive(QueryableByName)]
 pub struct EmployeeDepartmentRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     pub department_id: Uuid,
 }
@@ -169,6 +171,7 @@ mod tests {
             date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             present: 10,
             on_leave: 2,
+            active_employees: 20,
         };
         assert_eq!(base.present, 10);
 

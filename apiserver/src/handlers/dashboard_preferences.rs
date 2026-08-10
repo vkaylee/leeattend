@@ -1,10 +1,11 @@
 use axum::{extract::State, response::Json};
 use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::domain::permissions::Permission;
-use crate::errors::AppResult;
+use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::AppState;
 
@@ -29,9 +30,142 @@ pub struct UpdateDashboardPreferences {
     pub collapsed_sections: Option<serde_json::Value>,
 }
 
+const WIDGET_IDS: &[&str] = &[
+    "kpi_cards",
+    "donut_chart",
+    "quick_stats",
+    "attendance_trend",
+    "department_chart",
+    "overtime_trend",
+    "peak_times",
+    "leave_types",
+    "lateness_by_day",
+    "recruitment_sources",
+    "turnover_analytics",
+    "unexcused_absences",
+    "promo_cards",
+];
+
+fn invalid_preferences() -> AppError {
+    AppError::validation(crate::utils::i18n::I18nKey::Validation)
+}
+
+fn default_object(value: Value) -> Map<String, Value> {
+    match value {
+        Value::Object(map) => map,
+        _ => Map::new(),
+    }
+}
+
+fn normalize_visible_widgets(value: Value) -> AppResult<Value> {
+    let Value::Object(raw) = value else {
+        return Err(invalid_preferences());
+    };
+    let mut merged = default_object(default_visible_widgets());
+    for (widget_id, enabled) in raw {
+        if let Some(default_enabled) = merged.get_mut(&widget_id) {
+            if !enabled.is_boolean() {
+                return Err(invalid_preferences());
+            }
+            *default_enabled = enabled;
+        }
+    }
+    Ok(Value::Object(merged))
+}
+
+fn normalize_widget_order(value: Value) -> AppResult<Value> {
+    let Value::Array(raw) = value else {
+        return Err(invalid_preferences());
+    };
+    let mut seen = std::collections::HashSet::new();
+    let mut order = Vec::with_capacity(WIDGET_IDS.len());
+    for item in raw {
+        let Some(widget_id) = item.as_str() else {
+            return Err(invalid_preferences());
+        };
+        if WIDGET_IDS.contains(&widget_id) && seen.insert(widget_id) {
+            order.push(Value::String(widget_id.to_string()));
+        }
+    }
+    for widget_id in WIDGET_IDS {
+        if seen.insert(*widget_id) {
+            order.push(Value::String((*widget_id).to_string()));
+        }
+    }
+    Ok(Value::Array(order))
+}
+
+fn normalize_collapsed_sections(value: Value) -> AppResult<Value> {
+    let Value::Object(raw) = value else {
+        return Err(invalid_preferences());
+    };
+    let mut merged = default_object(default_collapsed_sections());
+    for (section_id, collapsed) in raw {
+        if !collapsed.is_boolean() {
+            return Err(invalid_preferences());
+        }
+        merged.insert(section_id, collapsed);
+    }
+    Ok(Value::Object(merged))
+}
+
+fn normalize_update(body: UpdateDashboardPreferences) -> AppResult<UpdateDashboardPreferences> {
+    let active_view = body
+        .active_view
+        .map(|view| {
+            if matches!(
+                view.as_str(),
+                "overview" | "attendance" | "trends" | "custom"
+            ) {
+                Ok(view)
+            } else {
+                Err(invalid_preferences())
+            }
+        })
+        .transpose()?;
+
+    Ok(UpdateDashboardPreferences {
+        active_view,
+        visible_widgets: body
+            .visible_widgets
+            .map(normalize_visible_widgets)
+            .transpose()?,
+        widget_order: body.widget_order.map(normalize_widget_order).transpose()?,
+        collapsed_sections: body
+            .collapsed_sections
+            .map(normalize_collapsed_sections)
+            .transpose()?,
+    })
+}
+
+fn normalize_response(preferences: DashboardPreferences) -> AppResult<DashboardPreferences> {
+    let normalized = normalize_update(UpdateDashboardPreferences {
+        active_view: Some(preferences.active_view),
+        visible_widgets: Some(preferences.visible_widgets),
+        widget_order: Some(preferences.widget_order),
+        collapsed_sections: Some(preferences.collapsed_sections),
+    })?;
+
+    Ok(DashboardPreferences {
+        id: preferences.id,
+        user_id: preferences.user_id,
+        workspace_id: preferences.workspace_id,
+        active_view: normalized
+            .active_view
+            .unwrap_or_else(|| "overview".to_string()),
+        visible_widgets: normalized
+            .visible_widgets
+            .unwrap_or_else(default_visible_widgets),
+        widget_order: normalized.widget_order.unwrap_or_else(default_widget_order),
+        collapsed_sections: normalized
+            .collapsed_sections
+            .unwrap_or_else(default_collapsed_sections),
+    })
+}
+
 // ── Default preferences ────────────────────────────────────────────
 
-fn default_visible_widgets() -> serde_json::Value {
+pub(crate) fn default_visible_widgets() -> serde_json::Value {
     serde_json::json!({
         "kpi_cards": true,
         "donut_chart": true,
@@ -49,7 +183,7 @@ fn default_visible_widgets() -> serde_json::Value {
     })
 }
 
-fn default_widget_order() -> serde_json::Value {
+pub(crate) fn default_widget_order() -> serde_json::Value {
     serde_json::json!([
         "kpi_cards",
         "donut_chart",
@@ -67,7 +201,7 @@ fn default_widget_order() -> serde_json::Value {
     ])
 }
 
-fn default_collapsed_sections() -> serde_json::Value {
+pub(crate) fn default_collapsed_sections() -> serde_json::Value {
     serde_json::json!({
         "summary": false,
         "charts": false,
@@ -106,19 +240,16 @@ pub async fn get_dashboard_preferences(
         .await?;
 
     match prefs {
-        Some(p) => Ok(Json(p)),
-        None => {
-            // Return defaults without persisting
-            Ok(Json(DashboardPreferences {
-                id: Uuid::nil(),
-                user_id,
-                workspace_id,
-                active_view: "overview".to_string(),
-                visible_widgets: default_visible_widgets(),
-                widget_order: default_widget_order(),
-                collapsed_sections: default_collapsed_sections(),
-            }))
-        }
+        Some(p) => Ok(Json(normalize_response(p)?)),
+        None => Ok(Json(DashboardPreferences {
+            id: Uuid::nil(),
+            user_id,
+            workspace_id,
+            active_view: "overview".to_string(),
+            visible_widgets: default_visible_widgets(),
+            widget_order: default_widget_order(),
+            collapsed_sections: default_collapsed_sections(),
+        })),
     }
 }
 
@@ -142,8 +273,8 @@ pub async fn update_dashboard_preferences(
     Json(body): Json<UpdateDashboardPreferences>,
 ) -> AppResult<Json<DashboardPreferences>> {
     ctx.require_permission(Permission::DashboardPreferences)?;
-    let _workspace_id = ctx.workspace_id;
     let user_id = ctx.user_id;
+    let body = normalize_update(body)?;
 
     let result = state
         .core()

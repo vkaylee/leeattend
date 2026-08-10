@@ -1,8 +1,18 @@
-SELECT te.employment_id AS employee_id,
+SELECT te.employment_id,
        (te.punch_in_time AT TIME ZONE $3)::date AS work_date,
        MIN(te.punch_in_time AT TIME ZONE $3)::time AS first_punch
 FROM time_entries te
+JOIN employments emp
+  ON emp.id = te.employment_id
+ AND emp.workspace_id = $4
+ AND emp.status = 'active'
+ AND emp.deleted_at IS NULL
+ AND (te.punch_in_time AT TIME ZONE $3)::date >= emp.start_date
+ AND (emp.end_date IS NULL OR (te.punch_in_time AT TIME ZONE $3)::date <= emp.end_date)
+JOIN employees e
+  ON e.id = emp.employee_id
+ AND e.workspace_id = $4
+ AND e.deleted_at IS NULL
 WHERE te.punch_in_time >= $1
   AND te.punch_in_time < $2
-  AND te.employment_id IN (SELECT id FROM employments WHERE workspace_id = $4 AND status = 'active' AND deleted_at IS NULL)
 GROUP BY te.employment_id, (te.punch_in_time AT TIME ZONE $3)::date

@@ -63,10 +63,9 @@ impl From<DashboardPreferenceEntity>
             user_id: entity.user_id,
             workspace_id: entity.workspace_id,
             active_view: entity.active_view,
-            visible_widgets: serde_json::from_value(entity.visible_widgets).unwrap_or_default(),
-            widget_order: serde_json::from_value(entity.widget_order).unwrap_or_default(),
-            collapsed_sections: serde_json::from_value(entity.collapsed_sections)
-                .unwrap_or_default(),
+            visible_widgets: entity.visible_widgets,
+            widget_order: entity.widget_order,
+            collapsed_sections: entity.collapsed_sections,
         }
     }
 }
