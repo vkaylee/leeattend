@@ -83,12 +83,12 @@ fn normalize_widget_order(value: Value) -> AppResult<Value> {
         let Some(widget_id) = item.as_str() else {
             return Err(invalid_preferences());
         };
-        if WIDGET_IDS.contains(&widget_id) && seen.insert(widget_id) {
+        if WIDGET_IDS.contains(&widget_id) && seen.insert(widget_id.to_string()) {
             order.push(Value::String(widget_id.to_string()));
         }
     }
     for widget_id in WIDGET_IDS {
-        if seen.insert(*widget_id) {
+        if seen.insert((*widget_id).to_string()) {
             order.push(Value::String((*widget_id).to_string()));
         }
     }

@@ -201,7 +201,8 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             .map(|r| {
                 let late = late_employments_by_date
                     .get(&r.date)
-                    .map_or(0_i64, |employments| employments.len() as i64);
+                    .and_then(|employments| i64::try_from(employments.len()).ok())
+                    .unwrap_or(0);
                 let absent = (r.active_employees - r.present - r.on_leave).max(0);
                 AttendanceTrendPoint {
                     date: r.date,
@@ -347,7 +348,9 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
 
         let late_map: std::collections::HashMap<Uuid, i64> = late_employments_by_department
             .into_iter()
-            .map(|(department_id, employments)| (department_id, employments.len() as i64))
+            .map(|(department_id, employments)| {
+                (department_id, i64::try_from(employments.len()).unwrap_or(0))
+            })
             .collect();
 
         let leave_rows: Vec<LeaveRow> = diesel::sql_query(include_str!(
@@ -889,7 +892,9 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
                             #[allow(clippy::cast_precision_loss)]
                             let late_mins = (first_punch - shift_start).num_seconds() as f64 / 60.0;
                             let dow = i32::try_from(s.date().weekday().number_from_monday())
-                                .map_err(|_| AppError::Internal("Invalid weekday".to_string()))?;
+                                .map_err(|error| {
+                                    AppError::Internal(format!("Invalid weekday: {error}"))
+                                })?;
                             let entry = dow_stats.entry(dow).or_insert((0, 0.0));
                             entry.0 += 1;
                             entry.1 += late_mins;
@@ -906,8 +911,9 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
                 if late_count > 0 {
                     #[allow(clippy::cast_precision_loss)]
                     let avg_late_minutes = total_late_minutes / (late_count as f64);
-                    let day_idx = usize::try_from(dow - 1)
-                        .map_err(|_| AppError::Internal("Invalid weekday index".to_string()))?;
+                    let day_idx = usize::try_from(dow - 1).map_err(|error| {
+                        AppError::Internal(format!("Invalid weekday index: {error}"))
+                    })?;
                     result.push(LatenessByDay {
                         day: day_names[day_idx].to_string(),
                         late_count,

@@ -163,6 +163,8 @@ pub struct JobWorker {
     /// Durable delivery-record layer for `LogIngestion` jobs (claim/lease/
     /// complete + reaper). Built once per worker over the same Redis pool.
     delivery: IngestionDeliveryStore,
+    /// Authoritative lifecycle ledger for infrastructure jobs.
+    infra_job_service: Arc<crate::services::InfraJobService>,
 }
 
 impl JobWorker {
@@ -203,6 +205,9 @@ impl JobWorker {
         Self {
             queue: JobQueue::new(redis.clone()),
             delivery: IngestionDeliveryStore::new(redis.clone()),
+            infra_job_service: Arc::new(crate::services::InfraJobService::new(Arc::new(
+                crate::repositories::DieselInfraJobRepository::new(diesel.clone()),
+            ))),
             redis,
             queue_repo,
             publisher_repo,
@@ -281,6 +286,69 @@ impl JobWorker {
 
             match job_result {
                 Ok(Some(job)) => {
+                    let lease_token = match worker.claim_durable_job(&job).await {
+                        Ok(token) => token,
+                        Err(error) => {
+                            warn!(
+                                job_id = %job.job_id,
+                                workspace_id = %job.workspace_id,
+                                error = %error,
+                                "infra_job_claim_failed"
+                            );
+                            match worker
+                                .infra_job_service
+                                .get(job.workspace_id, job.job_id)
+                                .await
+                            {
+                                Ok(Some(record)) if record.state == "queued" => {
+                                    if let Err(requeue_error) =
+                                        worker.queue.enqueue_single(job).await
+                                    {
+                                        error!(
+                                            job_id = %record.id,
+                                            error = %requeue_error,
+                                            "infra_job_requeue_after_claim_failure_failed"
+                                        );
+                                    }
+                                }
+                                Ok(Some(record)) => {
+                                    warn!(
+                                        job_id = %record.id,
+                                        state = %record.state,
+                                        "infra_job_claim_skipped_non_queued"
+                                    );
+                                }
+                                Ok(None) => {
+                                    // A legacy job has no ledger record; preserve compatibility.
+                                    let job_id = job.job_id;
+                                    if let Err(requeue_error) =
+                                        worker.queue.enqueue_single(job).await
+                                    {
+                                        error!(
+                                            job_id = %job_id,
+                                            error = %requeue_error,
+                                            "legacy_job_requeue_after_claim_failure_failed"
+                                        );
+                                    }
+                                }
+                                Err(read_error) => {
+                                    let job_id = job.job_id;
+                                    if let Err(requeue_error) =
+                                        worker.queue.enqueue_single(job).await
+                                    {
+                                        error!(
+                                            job_id = %job_id,
+                                            error = %requeue_error,
+                                            read_error = %read_error,
+                                            "infra_job_requeue_after_ledger_failure_failed"
+                                        );
+                                    }
+                                }
+                            }
+                            drop(permit);
+                            continue;
+                        }
+                    };
                     let worker_clone = Arc::clone(&worker);
                     let job_id = job.job_id;
                     let timeout_secs = worker.config.job_timeout_secs;
@@ -302,9 +370,19 @@ impl JobWorker {
 
                         let result = tokio::time::timeout(
                             Duration::from_secs(timeout_secs),
-                            worker_clone.process_job(job),
+                            worker_clone.process_job(job.clone()),
                         )
                         .await;
+                        let outcome = match &result {
+                            Ok(Ok(())) => Ok(()),
+                            Ok(Err(error)) => Err(error.clone()),
+                            Err(_) => Err(format!("Job timed out after {timeout_secs} seconds")),
+                        };
+                        if let Some(lease_token) = lease_token {
+                            worker_clone
+                                .record_durable_outcome(&job, lease_token, &outcome)
+                                .await;
+                        }
 
                         // Update daily stats based on result
                         let success = matches!(result, Ok(Ok(())));
@@ -390,6 +468,107 @@ impl JobWorker {
         let _ = reaper_task.await;
 
         info!("Job worker stopped");
+    }
+
+    async fn claim_durable_job(&self, job: &Job) -> Result<Option<Uuid>, String> {
+        let Some(record) = self
+            .infra_job_service
+            .get(job.workspace_id, job.job_id)
+            .await
+            .map_err(|error| error.to_string())?
+        else {
+            // Compatibility path for jobs created before ledger rollout.
+            return Ok(None);
+        };
+
+        if record.state != "queued" {
+            return Err(format!(
+                "job {} is not claimable from state {}",
+                job.job_id, record.state
+            ));
+        }
+
+        let lease_token = Uuid::new_v4();
+        let request_id = job
+            .trace_context
+            .as_deref()
+            .and_then(|value| Uuid::parse_str(value).ok());
+        self.infra_job_service
+            .transition(
+                crate::repositories::infra_job_repository::TransitionInfraJobParams {
+                    job_id: job.job_id,
+                    workspace_id: job.workspace_id,
+                    expected_state: Some("queued".to_string()),
+                    to_state: "processing".to_string(),
+                    event_type: "worker_claimed".to_string(),
+                    lease_token: Some(lease_token),
+                    lease_owner: Some(self.worker_id.to_string()),
+                    lease_expires_at: Some(
+                        Utc::now()
+                            + chrono::Duration::seconds(self.config.job_timeout_secs.cast_signed()),
+                    ),
+                    next_attempt_at: None,
+                    worker_id: Some(self.worker_id.to_string()),
+                    request_id,
+                    trace_id: job.trace_context.clone(),
+                    reason_code: None,
+                    reason_summary: None,
+                },
+            )
+            .await
+            .map_err(|error| error.to_string())?;
+
+        Ok(Some(lease_token))
+    }
+
+    async fn record_durable_outcome(
+        &self,
+        job: &Job,
+        lease_token: Uuid,
+        result: &Result<(), String>,
+    ) {
+        let (to_state, event_type, reason_code, reason_summary) = match result {
+            Ok(()) => ("completed", "worker_completed", None, None),
+            Err(_) => (
+                "failed",
+                "worker_failed",
+                Some("worker_execution_failed"),
+                Some("Worker execution failed".to_string()),
+            ),
+        };
+        let request_id = job
+            .trace_context
+            .as_deref()
+            .and_then(|value| Uuid::parse_str(value).ok());
+        if let Err(error) = self
+            .infra_job_service
+            .transition(
+                crate::repositories::infra_job_repository::TransitionInfraJobParams {
+                    job_id: job.job_id,
+                    workspace_id: job.workspace_id,
+                    expected_state: Some("processing".to_string()),
+                    to_state: to_state.to_string(),
+                    event_type: event_type.to_string(),
+                    lease_token: Some(lease_token),
+                    lease_owner: None,
+                    lease_expires_at: None,
+                    next_attempt_at: None,
+                    worker_id: Some(self.worker_id.to_string()),
+                    request_id,
+                    trace_id: job.trace_context.clone(),
+                    reason_code: reason_code.map(str::to_string),
+                    reason_summary,
+                },
+            )
+            .await
+        {
+            error!(
+                job_id = %job.job_id,
+                workspace_id = %job.workspace_id,
+                error = %error,
+                "infra_job_outcome_persist_failed"
+            );
+        }
     }
 
     /// Background loop that sends heartbeats every 5 seconds.

@@ -1,5 +1,6 @@
 WITH active_employments AS (
-    SELECT emp.employee_id,
+    SELECT emp.id AS employment_id,
+           emp.employee_id,
            ROW_NUMBER() OVER (
                PARTITION BY emp.employee_id
                ORDER BY emp.start_date DESC, emp.id DESC
@@ -16,16 +17,16 @@ WITH active_employments AS (
       AND (emp.end_date IS NULL OR emp.end_date >= $2)
 ),
 latest_components AS (
-    SELECT esc.employee_id,
+    SELECT esc.employment_id,
            esc.component_definition_id,
            esc.amount,
            ROW_NUMBER() OVER (
-               PARTITION BY esc.employee_id, esc.component_definition_id
+               PARTITION BY esc.employment_id, esc.component_definition_id
                ORDER BY esc.effective_date DESC
            ) AS component_rank
     FROM employee_salary_components esc
     JOIN active_employments ae
-      ON ae.employee_id = esc.employee_id
+      ON ae.employment_id = esc.employment_id
      AND ae.employment_rank = 1
     WHERE esc.effective_date <= $2
 )

@@ -22,6 +22,7 @@ pub mod feature_flag;
 pub mod file;
 pub mod holiday;
 pub mod import_job;
+pub mod infra_job;
 pub mod leave;
 pub mod lifecycle_checklist;
 pub mod outbox_job;

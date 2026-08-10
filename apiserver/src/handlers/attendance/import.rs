@@ -178,8 +178,10 @@ pub async fn upload_employee_excel(
     );
 
     let queue = state.infra().job_queue()?;
-    queue
-        .enqueue_jobs(vec![job])
+    state
+        .infra()
+        .infra_job_service()
+        .enqueue_durable(&queue, job)
         .await
         .map_err(|e| AppError::Internal(format!("Failed to enqueue employee import job: {e}")))?;
 

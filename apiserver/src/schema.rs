@@ -2008,6 +2008,64 @@ diesel::table! {
 }
 
 diesel::table! {
+    infra_job_records (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        parent_job_id -> Nullable<Uuid>,
+        #[max_length = 100]
+        task_type -> Varchar,
+        #[max_length = 20]
+        priority -> Varchar,
+        #[max_length = 30]
+        state -> Varchar,
+        attempt_count -> Int4,
+        #[max_length = 100]
+        lease_owner -> Nullable<Varchar>,
+        lease_token -> Nullable<Uuid>,
+        lease_expires_at -> Nullable<Timestamptz>,
+        next_attempt_at -> Nullable<Timestamptz>,
+        request_id -> Nullable<Uuid>,
+        #[max_length = 128]
+        trace_id -> Nullable<Varchar>,
+        #[max_length = 128]
+        payload_hash -> Nullable<Varchar>,
+        #[max_length = 100]
+        error_code -> Nullable<Varchar>,
+        error_summary -> Nullable<Text>,
+        created_at -> Timestamptz,
+        queued_at -> Nullable<Timestamptz>,
+        started_at -> Nullable<Timestamptz>,
+        finished_at -> Nullable<Timestamptz>,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    infra_job_events (id) {
+        id -> Uuid,
+        job_id -> Uuid,
+        workspace_id -> Uuid,
+        #[max_length = 40]
+        event_type -> Varchar,
+        #[max_length = 30]
+        from_state -> Nullable<Varchar>,
+        #[max_length = 30]
+        to_state -> Varchar,
+        attempt_count -> Int4,
+        lease_token -> Nullable<Uuid>,
+        #[max_length = 100]
+        worker_id -> Nullable<Varchar>,
+        request_id -> Nullable<Uuid>,
+        #[max_length = 128]
+        trace_id -> Nullable<Varchar>,
+        #[max_length = 100]
+        reason_code -> Nullable<Varchar>,
+        reason_summary -> Nullable<Text>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     system_settings (key) {
         #[max_length = 100]
         key -> Varchar,
@@ -2539,6 +2597,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     employments,
     feature_flags,
     holidays,
+    infra_job_events,
+    infra_job_records,
     leave_accrual_logs,
     leave_balances,
     leave_policy_assignments,
