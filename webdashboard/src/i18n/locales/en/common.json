@@ -1501,6 +1501,23 @@
     "reset_token_invalid": "This reset link is invalid or has expired.",
     "back_to_login": "Back to Login"
   },
+  "monitor": {
+    "durable_job_details_title": "Durable Job Details",
+    "attempt": "Attempt",
+    "request_id": "Request ID",
+    "trace_id": "Trace ID",
+    "lifecycle_timeline": "Lifecycle Timeline",
+    "durable_jobs": "Durable Jobs",
+    "durable_jobs_subtitle": "Durable background jobs and their lifecycle history",
+    "durable_jobs_unavailable": "Durable job data is unavailable.",
+    "no_durable_jobs": "No durable jobs found.",
+    "events": "Events",
+    "stale_updates": "Stale updates",
+    "stream_error": "Stream error",
+    "degraded_updates": "Updates are degraded.",
+    "connecting_updates": "Connecting to live updates...",
+    "partial_data": "Partial data"
+  },
   "report_export": {
     "title": "Export Report",
     "subtitle": "Generate Excel file for download",

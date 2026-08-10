@@ -1501,6 +1501,23 @@
     "reset_token_invalid": "Liên kết đặt lại này không hợp lệ hoặc đã hết hạn.",
     "back_to_login": "Quay lại đăng nhập"
   },
+  "monitor": {
+    "durable_job_details_title": "Chi tiết tác vụ bền vững",
+    "attempt": "Lần thử",
+    "request_id": "Mã yêu cầu",
+    "trace_id": "Mã truy vết",
+    "lifecycle_timeline": "Dòng thời gian vòng đời",
+    "durable_jobs": "Tác vụ bền vững",
+    "durable_jobs_subtitle": "Các tác vụ nền bền vững và lịch sử vòng đời của chúng",
+    "durable_jobs_unavailable": "Dữ liệu tác vụ bền vững hiện không khả dụng.",
+    "no_durable_jobs": "Không tìm thấy tác vụ bền vững nào.",
+    "events": "Sự kiện",
+    "stale_updates": "Cập nhật đã cũ",
+    "stream_error": "Lỗi luồng",
+    "degraded_updates": "Cập nhật đang bị suy giảm.",
+    "connecting_updates": "Đang kết nối cập nhật trực tiếp...",
+    "partial_data": "Dữ liệu không đầy đủ"
+  },
   "report_export": {
     "title": "Xuất Báo Cáo",
     "subtitle": "Tạo file Excel để tải về",

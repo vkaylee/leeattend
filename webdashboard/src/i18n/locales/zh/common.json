@@ -1501,6 +1501,23 @@
     "reset_token_invalid": "该重置链接无效或已过期。",
     "back_to_login": "返回登录"
   },
+  "monitor": {
+    "durable_job_details_title": "持久任务详情",
+    "attempt": "尝试次数",
+    "request_id": "请求 ID",
+    "trace_id": "追踪 ID",
+    "lifecycle_timeline": "生命周期时间线",
+    "durable_jobs": "持久任务",
+    "durable_jobs_subtitle": "持久后台任务及其生命周期历史",
+    "durable_jobs_unavailable": "持久任务数据不可用。",
+    "no_durable_jobs": "未找到持久任务。",
+    "events": "事件",
+    "stale_updates": "更新已过期",
+    "stream_error": "流错误",
+    "degraded_updates": "更新已降级。",
+    "connecting_updates": "正在连接实时更新...",
+    "partial_data": "部分数据"
+  },
   "report_export": {
     "title": "导出报告",
     "subtitle": "生成 Excel 文件下载",

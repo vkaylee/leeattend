@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { TFunction } from "i18next";
 
+import Button from "@/components/ui/button";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { FilterTrigger } from "@/components/ui/filter-trigger";
 import ResponsiveTable from "@/components/ui/responsive-table";
@@ -383,7 +384,7 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
             {durableJobs.map((job) => {
               const { className: statusClassName, icon: statusIcon } = getStatusStyle(job.state);
               return (
-                <button
+                <Button
                   className="flex w-full flex-col gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left transition-colors hover:border-blue-200 hover:bg-blue-50/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-800 dark:bg-slate-800/40 dark:hover:border-blue-800 dark:hover:bg-blue-950/20"
                   key={job.job_id}
                   onClick={() => {
@@ -406,7 +407,7 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
                     <span>{t("monitor.events", { defaultValue: "Events" })}: <strong className="text-slate-700 dark:text-slate-200">{job.events.length}</strong></span>
                   </div>
                   {job.error_summary ? <div className="truncate text-xs text-rose-600 dark:text-rose-400">{job.error_code ? `${job.error_code}: ` : ""}{job.error_summary}</div> : null}
-                </button>
+                </Button>
               );
             })}
           </div>
