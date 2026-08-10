@@ -32,6 +32,7 @@ pub async fn get_attendance_trend(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<AttendanceTrendPoint>>> {
+    ctx.require_permission(Permission::DashboardRead)?;
     let _workspace_id = ctx.workspace_id;
 
     let result = state
@@ -62,6 +63,7 @@ pub async fn get_department_attendance(
     ctx: MemberContext,
     Query(params): Query<DeptAttendanceQuery>,
 ) -> AppResult<Json<Vec<DepartmentAttendancePoint>>> {
+    ctx.require_permission(Permission::DashboardRead)?;
     let _workspace_id = ctx.workspace_id;
 
     let range = params.range.unwrap_or_else(|| "today".to_string());
@@ -98,6 +100,7 @@ pub async fn get_unexcused_absences(
     ctx: MemberContext,
     Query(params): Query<UnexcusedAbsencesQuery>,
 ) -> AppResult<Json<Vec<UnexcusedAbsencesPoint>>> {
+    ctx.require_permission(Permission::DashboardRead)?;
     let workspace_id = ctx.workspace_id;
 
     // Resolve workspace tz for correct local "today"
@@ -149,6 +152,7 @@ pub async fn get_overtime_trend(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<OvertimeTrendPoint>>> {
+    ctx.require_permission(Permission::DashboardRead)?;
     let _workspace_id = ctx.workspace_id;
 
     let result = state
@@ -170,6 +174,7 @@ pub async fn get_workspace_stats(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<WorkspaceStats>> {
+    ctx.require_permission(Permission::DashboardRead)?;
     let _workspace_id = ctx.workspace_id;
 
     let result = state
@@ -193,6 +198,7 @@ pub async fn get_peak_times(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<PeakTimeSlot>>> {
+    ctx.require_permission(Permission::DashboardRead)?;
     let _workspace_id = ctx.workspace_id;
 
     let result = state
@@ -216,6 +222,7 @@ pub async fn get_leave_types_breakdown(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<LeaveTypeBreakdown>>> {
+    ctx.require_permission(Permission::DashboardRead)?;
     let _workspace_id = ctx.workspace_id;
 
     let result = state
@@ -239,6 +246,7 @@ pub async fn get_lateness_by_day(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<LatenessByDay>>> {
+    ctx.require_permission(Permission::DashboardRead)?;
     let _workspace_id = ctx.workspace_id;
 
     let result = state

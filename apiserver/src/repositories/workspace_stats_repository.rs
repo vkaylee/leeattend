@@ -198,8 +198,14 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let tz_name = tz.name();
         let today = Self::workspace_local_date(tz);
         let start_date = match range {
+            "today" => today,
             "week" => today - chrono::Duration::days(6),
-            _ => today,
+            "month" => today - chrono::Duration::days(29),
+            _ => {
+                return Err(AppError::validation(
+                    crate::utils::i18n::I18nKey::Validation,
+                ))
+            }
         };
 
         let mut conn = self
@@ -237,89 +243,73 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         .bind::<diesel::sql_types::Date, _>(today)
         .bind::<diesel::sql_types::Timestamptz, _>(utc_range_end_exclusive)
         .load(&mut *conn)
-        .await
-        .unwrap_or_else(|e| {
-            tracing::warn!(error = %e, "present count query failed, degrading gracefully");
-            vec![]
-        });
+        .await?;
 
         let present_map: std::collections::HashMap<Uuid, i64> = present_rows
             .into_iter()
             .map(|r| (r.department_id, r.present_count))
             .collect();
 
-        let late_map: std::collections::HashMap<Uuid, i64> = if range == "today" {
-            let utc_today_start = tz::start_of_day_utc(&tz, today)
-                .map_err(|e| AppError::Internal(format!("Invalid date: {e}")))?;
-            let utc_today_end_exclusive = tz::start_of_day_utc(
-                &tz,
-                today
-                    .succ_opt()
-                    .ok_or_else(|| AppError::Internal("Date overflow".to_string()))?,
-            )
-            .map_err(|e| AppError::Internal(format!("Invalid date: {e}")))?;
+        // Resolve late punches across the selected range. The previous implementation
+        // only populated this map for `today`, which made the week view silently report
+        // zero late employees even when late punches existed earlier in the week.
+        let punch_rows: Vec<EmployeeFirstPunchRow> =
+            diesel::sql_query(include_str!("sql/workspace_stats/first_punches_range.sql"))
+                .bind::<diesel::sql_types::Timestamptz, _>(utc_range_start)
+                .bind::<diesel::sql_types::Timestamptz, _>(utc_range_end_exclusive)
+                .bind::<diesel::sql_types::Text, _>(tz_name)
+                .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                .load(&mut *conn)
+                .await?;
 
-            // Fetch today's first punches
-            let punch_rows: Vec<EmployeeFirstPunchTodayRow> =
-                diesel::sql_query(include_str!("sql/workspace_stats/first_punches_today.sql"))
-                    .bind::<diesel::sql_types::Timestamptz, _>(utc_today_start)
-                    .bind::<diesel::sql_types::Timestamptz, _>(utc_today_end_exclusive)
-                    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-                    .bind::<diesel::sql_types::Text, _>(tz_name)
-                    .load(&mut *conn)
-                    .await
-                    .unwrap_or_default();
+        let dept_rows: Vec<EmployeeDepartmentRow> = diesel::sql_query(include_str!(
+            "sql/workspace_stats/employee_departments_today.sql"
+        ))
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .load(&mut *conn)
+        .await?;
 
-            // Fetch employee department mappings
-            let dept_rows: Vec<EmployeeDepartmentRow> = diesel::sql_query(include_str!(
-                "sql/workspace_stats/employee_departments_today.sql"
-            ))
-            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-            .bind::<diesel::sql_types::Date, _>(today)
-            .load(&mut *conn)
-            .await
-            .unwrap_or_default();
+        let dept_map: std::collections::HashMap<Uuid, Uuid> = dept_rows
+            .into_iter()
+            .map(|r| (r.employee_id, r.department_id))
+            .collect();
 
-            let dept_map: std::collections::HashMap<Uuid, Uuid> = dept_rows
-                .into_iter()
-                .map(|r| (r.employee_id, r.department_id))
-                .collect();
+        let roster_repo =
+            crate::repositories::diesel_roster_repository::DieselRosterRepository::new(
+                self.diesel_pools.clone(),
+            );
+        let (schedules, _) = roster_repo
+            .get_workspace_schedules(None, auth_token, start_date, today, None, None, None)
+            .await?;
 
-            // Resolve today's schedules
-            let roster_repo =
-                crate::repositories::diesel_roster_repository::DieselRosterRepository::new(
-                    self.diesel_pools.clone(),
-                );
-            let (schedules, _) = roster_repo
-                .get_workspace_schedules(None, auth_token, today, today, None, None, None)
-                .await
-                .unwrap_or_default();
+        let mut punch_map = std::collections::HashMap::new();
+        for row in punch_rows {
+            punch_map.insert((row.employee_id, row.work_date), row.first_punch);
+        }
 
-            let mut punch_map = std::collections::HashMap::new();
-            for row in punch_rows {
-                punch_map.insert(row.employee_id, row.first_punch);
-            }
+        let mut late_dept_counts = std::collections::HashMap::new();
+        for schedule in schedules {
+            let Some(dept_id) = dept_map.get(&schedule.employment_id()) else {
+                continue;
+            };
 
-            let mut late_dept_counts = std::collections::HashMap::new();
-            for schedule in schedules {
-                if let Some(dept_id) = dept_map.get(&schedule.employment_id()) {
-                    if !schedule.schedules().is_empty() {
-                        let s = &schedule.schedules()[0];
-                        if let Some(shift_start) = s.start_time() {
-                            if let Some(&first_punch) = punch_map.get(&schedule.employment_id()) {
-                                if first_punch > shift_start {
-                                    *late_dept_counts.entry(*dept_id).or_insert(0i64) += 1;
-                                }
-                            }
-                        }
-                    }
+            for daily_schedule in schedule.schedules() {
+                let Some(shift_start) = daily_schedule.start_time() else {
+                    continue;
+                };
+                let Some(&first_punch) =
+                    punch_map.get(&(schedule.employment_id(), daily_schedule.date()))
+                else {
+                    continue;
+                };
+
+                if first_punch > shift_start {
+                    *late_dept_counts.entry(*dept_id).or_insert(0i64) += 1;
                 }
             }
+        }
 
-            late_dept_counts
-        } else {
-            std::collections::HashMap::new()
-        };
+        let late_map = late_dept_counts;
 
         let leave_rows: Vec<LeaveRow> = diesel::sql_query(include_str!(
             "sql/workspace_stats/department_attendance_leave.sql"
@@ -328,11 +318,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         .bind::<diesel::sql_types::Date, _>(start_date)
         .bind::<diesel::sql_types::Date, _>(today)
         .load(&mut *conn)
-        .await
-        .unwrap_or_else(|e| {
-            tracing::warn!(error = %e, "leave count query failed, degrading gracefully");
-            vec![]
-        });
+        .await?;
 
         let leave_map: std::collections::HashMap<Uuid, i64> = leave_rows
             .into_iter()
@@ -693,12 +679,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
                 .bind::<diesel::sql_types::Timestamptz, _>(utc_start)
                 .bind::<diesel::sql_types::Timestamptz, _>(utc_end_exclusive)
                 .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                .bind::<diesel::sql_types::Text, _>(tz.name())
+                .bind::<diesel::sql_types::Date, _>(today)
                 .load(&mut *conn)
-                .await
-                .unwrap_or_else(|e| {
-                    tracing::warn!(error = %e, "peak times query failed, degrading gracefully");
-                    vec![]
-                });
+                .await?;
 
         let result = rows
             .into_iter()

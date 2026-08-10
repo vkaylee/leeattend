@@ -100,6 +100,7 @@ impl ReportService {
             department_name: String,
             unexcused_count: i64,
             total_absent_count: i64,
+            total_leave_count: i64,
             consecutive_count: i64,
         }
 
@@ -133,6 +134,7 @@ impl ReportService {
 
             let mut unexcused = 0i64;
             let mut total_absent = 0i64;
+            let mut total_leave = 0i64;
             let mut consecutive = 0i64;
             let mut last_present_date: Option<NaiveDate> = None;
 
@@ -166,6 +168,13 @@ impl ReportService {
                     None,
                 ));
 
+                if matches!(
+                    status,
+                    AttendanceStatus::Leave | AttendanceStatus::HolidayLeave
+                ) {
+                    total_leave += 1;
+                }
+
                 if status == AttendanceStatus::Absent {
                     total_absent += 1;
 
@@ -182,13 +191,14 @@ impl ReportService {
             }
 
             emp_stats.insert(
-                emp_sched.employment_id(),
+                employee_id,
                 EmployeeStats {
                     employee_name: emp_sched.full_name().to_string(),
                     department_id: dept_id,
                     department_name: dept_name,
                     unexcused_count: unexcused,
                     total_absent_count: total_absent,
+                    total_leave_count: total_leave,
                     consecutive_count: consecutive,
                 },
             );
@@ -206,29 +216,33 @@ impl ReportService {
                     unexcused_count: stats.unexcused_count,
                     consecutive_count: stats.consecutive_count,
                     total_absent_count: stats.total_absent_count,
-                    total_leave_count: 0,
+                    total_leave_count: stats.total_leave_count,
                 })
                 .collect();
             result.sort_by(|a, b| b.unexcused_count.cmp(&a.unexcused_count));
             Ok(result)
         } else {
             // Aggregate by department
-            let mut dept_agg: HashMap<(Uuid, String), (i64, i64, i64)> = HashMap::new();
+            let mut dept_agg: HashMap<(Uuid, String), (i64, i64, i64, i64)> = HashMap::new();
             for stats in emp_stats.values() {
                 let key = (
                     stats.department_id.unwrap_or(unassigned_id),
                     stats.department_name.clone(),
                 );
-                let entry = dept_agg.entry(key).or_insert((0, 0, 0));
+                let entry = dept_agg.entry(key).or_insert((0, 0, 0, 0));
                 entry.0 += stats.unexcused_count;
                 entry.1 += stats.total_absent_count;
-                entry.2 += stats.consecutive_count;
+                entry.2 += stats.total_leave_count;
+                entry.3 += stats.consecutive_count;
             }
 
             let mut result: Vec<UnexcusedAbsencesPoint> = dept_agg
                 .into_iter()
                 .map(
-                    |((dept_id, dept_name), (unexcused, total_absent, consecutive))| {
+                    |(
+                        (dept_id, dept_name),
+                        (unexcused, total_absent, total_leave, consecutive),
+                    )| {
                         UnexcusedAbsencesPoint {
                             department_id: dept_id,
                             department_name: dept_name,
@@ -237,7 +251,7 @@ impl ReportService {
                             unexcused_count: unexcused,
                             consecutive_count: consecutive,
                             total_absent_count: total_absent,
-                            total_leave_count: 0,
+                            total_leave_count: total_leave,
                         }
                     },
                 )

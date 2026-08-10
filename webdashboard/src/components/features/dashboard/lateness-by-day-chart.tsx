@@ -33,7 +33,7 @@ function ChartGradients() {
 }
 
 export default function LatenessByDayChart() {
-    const { data: days, isLoading } = useLatenessByDay();
+    const { data: days, error, isLoading } = useLatenessByDay();
 
     const chartData = days ?? [];
 
@@ -47,6 +47,8 @@ export default function LatenessByDayChart() {
 
             {isLoading ? (
                 <ChartLoading />
+            ) : error ? (
+                <ChartError />
             ) : !hasData ? (
                 <ChartEmpty />
             ) : (
@@ -79,6 +81,18 @@ function ChartLoading() {
     return (
         <div className="h-[280px] flex items-center justify-center">
             <div className="w-8 h-8 border-2 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 rounded-full animate-spin" />
+        </div>
+    );
+}
+
+function ChartError() {
+    const { t } = useTranslation();
+    return (
+        <div className="h-[280px] flex flex-col items-center justify-center text-center">
+            <CalendarClock className="text-red-200 dark:text-red-900 mb-4" size={48} />
+            <Typography className="text-[10px] font-bold text-red-400 dark:text-red-500 uppercase tracking-widest" variant="p">
+                {t("dashboard.connection_error")}
+            </Typography>
         </div>
     );
 }
@@ -119,16 +133,6 @@ function ChartMain({ chartData }: { chartData: { avg_late_minutes: number; day: 
                     className="text-slate-400 dark:text-slate-500"
                     tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
                     tickLine={false}
-                    yAxisId="left"
-                />
-                <YAxis
-                    axisLine={false}
-                    className="text-slate-400 dark:text-slate-500"
-                    orientation="right"
-                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                    tickLine={false}
-                    unit="m"
-                    yAxisId="right"
                 />
                 <Tooltip
                     contentStyle={{
@@ -152,7 +156,6 @@ function ChartMain({ chartData }: { chartData: { avg_late_minutes: number; day: 
                     fill="url(#gradLateCount)"
                     name={t("dashboard.hr.late_count")}
                     radius={[6, 6, 0, 0]}
-                    yAxisId="left"
                 />
                 <Line
                     activeDot={{ r: 6 }}
@@ -162,7 +165,6 @@ function ChartMain({ chartData }: { chartData: { avg_late_minutes: number; day: 
                     stroke={COLORS.avg_minutes}
                     strokeWidth={2.5}
                     type="monotone"
-                    yAxisId="right"
                 />
             </ComposedChart>
         </ResponsiveContainer>

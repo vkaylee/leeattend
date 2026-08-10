@@ -163,6 +163,7 @@ pub async fn get_recruitment_source_breakdown(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<RecruitmentSourceBreakdown>>> {
+    ctx.require_permission(Permission::DashboardRead)?;
     let _workspace_id = ctx.workspace_id;
 
     let breakdown = state
@@ -193,6 +194,7 @@ pub async fn get_turnover_analytics(
     ctx: MemberContext,
     axum::extract::Query(params): axum::extract::Query<TurnoverQueryParams>,
 ) -> AppResult<Json<crate::models::TurnoverAnalytics>> {
+    ctx.require_permission(Permission::DashboardRead)?;
     let workspace_tz = state
         .core()
         .workspace_repo()

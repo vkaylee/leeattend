@@ -6,20 +6,20 @@ WITH today_entries AS (
       AND te.punch_in_time < $2
       AND emp.workspace_id = $3
       AND emp.status = 'active'
-      AND CURRENT_DATE BETWEEN emp.start_date AND COALESCE(emp.end_date, '9999-12-31'::date)
+      AND $5 BETWEEN emp.start_date AND COALESCE(emp.end_date, '9999-12-31'::date)
 ),
 check_ins AS (
     SELECT
-        (EXTRACT(HOUR FROM punch_in_time)::int * 2
-         + FLOOR(EXTRACT(MINUTE FROM punch_in_time) / 30)::int) AS slot_index,
+        (EXTRACT(HOUR FROM (punch_in_time AT TIME ZONE $4))::int * 2
+         + FLOOR(EXTRACT(MINUTE FROM (punch_in_time AT TIME ZONE $4)) / 30)::int) AS slot_index,
         COUNT(*) AS check_in
     FROM today_entries
     GROUP BY slot_index
 ),
 check_outs AS (
     SELECT
-        (EXTRACT(HOUR FROM punch_out_time)::int * 2
-         + FLOOR(EXTRACT(MINUTE FROM punch_out_time) / 30)::int) AS slot_index,
+        (EXTRACT(HOUR FROM (punch_out_time AT TIME ZONE $4))::int * 2
+         + FLOOR(EXTRACT(MINUTE FROM (punch_out_time AT TIME ZONE $4)) / 30)::int) AS slot_index,
         COUNT(*) AS check_out
     FROM today_entries
     WHERE punch_out_time IS NOT NULL
