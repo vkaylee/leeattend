@@ -10,6 +10,30 @@ export async function setupApiMocks(page: Page) {
   let nextDeviceId = 100;
   let activeWorkspace = structuredClone(MOCK_WORKSPACE);
   let exportJobCalls = 0;
+  const dashboardWidgetIds = new Set([
+    "kpi_cards", "donut_chart", "quick_stats", "attendance_trend", "department_chart",
+    "overtime_trend", "peak_times", "leave_types", "lateness_by_day", "recruitment_sources",
+    "turnover_analytics", "unexcused_absences", "promo_cards",
+  ]);
+  const dashboardViews = new Set(["overview", "attendance", "trends", "custom"]);
+  let dashboardPreferences = {
+    id: "dashboard-pref-mock-1",
+    user_id: MOCK_USER.id,
+    workspace_id: MOCK_WORKSPACE.id,
+    active_view: "overview",
+    visible_widgets: {
+      kpi_cards: true, donut_chart: true, quick_stats: true, attendance_trend: true,
+      department_chart: true, overtime_trend: false, peak_times: false, leave_types: false,
+      lateness_by_day: false, recruitment_sources: true, turnover_analytics: false,
+      unexcused_absences: false, promo_cards: false,
+    },
+    widget_order: [
+      "kpi_cards", "donut_chart", "quick_stats", "attendance_trend", "department_chart",
+      "overtime_trend", "peak_times", "leave_types", "lateness_by_day", "recruitment_sources",
+      "turnover_analytics", "unexcused_absences", "promo_cards",
+    ],
+    collapsed_sections: { summary: false, charts: false, actions: true },
+  };
 
   // Chặn các request gọi đến Backend API (/api/...)
   // Loại trừ các file tĩnh (.ts, .js, .css, .jsx, .tsx) của Vite
@@ -235,15 +259,63 @@ export async function setupApiMocks(page: Page) {
     }
 
     if (/\/api\/dashboard\/preferences/.exec(pathname)) {
-      return fulfill({
-        id: "dashboard-pref-mock-1",
-        user_id: MOCK_USER.id,
-        workspace_id: MOCK_WORKSPACE.id,
-        active_view: "overview",
-        visible_widgets: {},
-        widget_order: [],
-        collapsed_sections: {},
-      });
+      if (method === 'GET') return fulfill(structuredClone(dashboardPreferences));
+      if (method !== 'PUT') return fulfill({ error: "method_not_allowed" }, 405);
+
+      let body: unknown;
+      try {
+        body = JSON.parse(route.request().postData() ?? '{}');
+      } catch {
+        return fulfill({ error: "invalid_json" }, 400);
+      }
+
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        return fulfill({ error: "invalid_preferences_body" }, 400);
+      }
+
+      const update = body as Record<string, unknown>;
+      const allowedKeys = new Set(["active_view", "visible_widgets", "widget_order", "collapsed_sections"]);
+      if (Object.keys(update).some((key) => !allowedKeys.has(key))) {
+        return fulfill({ error: "unknown_preferences_field" }, 400);
+      }
+      if ("active_view" in update && (typeof update.active_view !== 'string' || !dashboardViews.has(update.active_view))) {
+        return fulfill({ error: "invalid_active_view" }, 400);
+      }
+      if ("visible_widgets" in update && (
+        !update.visible_widgets || typeof update.visible_widgets !== 'object' || Array.isArray(update.visible_widgets) ||
+        Object.entries(update.visible_widgets).some(([id, enabled]) => !dashboardWidgetIds.has(id) || typeof enabled !== 'boolean')
+      )) {
+        return fulfill({ error: "invalid_visible_widgets" }, 400);
+      }
+      if ("widget_order" in update && (
+        !Array.isArray(update.widget_order) ||
+        update.widget_order.some((id) => typeof id !== 'string' || !dashboardWidgetIds.has(id))
+      )) {
+        return fulfill({ error: "invalid_widget_order" }, 400);
+      }
+      if ("collapsed_sections" in update && (
+        !update.collapsed_sections || typeof update.collapsed_sections !== 'object' || Array.isArray(update.collapsed_sections) ||
+        Object.values(update.collapsed_sections).some((collapsed) => typeof collapsed !== 'boolean')
+      )) {
+        return fulfill({ error: "invalid_collapsed_sections" }, 400);
+      }
+
+      dashboardPreferences = {
+        ...dashboardPreferences,
+        active_view: "active_view" in update
+          ? update.active_view as string
+          : dashboardPreferences.active_view,
+        visible_widgets: "visible_widgets" in update
+          ? { ...dashboardPreferences.visible_widgets, ...(update.visible_widgets as Record<string, boolean>) }
+          : dashboardPreferences.visible_widgets,
+        widget_order: "widget_order" in update
+          ? [...(update.widget_order as string[])]
+          : dashboardPreferences.widget_order,
+        collapsed_sections: "collapsed_sections" in update
+          ? { ...dashboardPreferences.collapsed_sections, ...(update.collapsed_sections as Record<string, boolean>) }
+          : dashboardPreferences.collapsed_sections,
+      };
+      return fulfill(structuredClone(dashboardPreferences));
     }
 
     if (/\/api\/health/.exec(pathname)) {

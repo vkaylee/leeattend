@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { apiFetch } from "@/lib/api/helpers";
 
@@ -38,6 +38,14 @@ interface LocalOverrides {
     widgetOrder: WidgetId[] | null;
 }
 
+type DashboardPreferencesUpdate = Partial<Omit<DashboardLayoutPreferences, "id" | "user_id" | "workspace_id">>;
+
+interface PendingDashboardWrite {
+    sequence: number;
+    update: DashboardPreferencesUpdate;
+    rollbackLocal: LocalOverrides;
+}
+
 // ── Hook: useDashboardLayout ───────────────────────────────────────
 
 function useDashboardPreferences(workspaceId: string | undefined) {
@@ -58,12 +66,9 @@ function useDashboardPreferences(workspaceId: string | undefined) {
     });
 }
 
-function useDashboardMutation(workspaceId: string | undefined) {
-    const queryClient = useQueryClient();
-    const queryKey = ["dashboard-preferences", workspaceId];
-
+function useDashboardMutation() {
     return useMutation({
-        mutationFn: async (update: Partial<Omit<DashboardLayoutPreferences, "id" | "user_id" | "workspace_id">>) => {
+        mutationFn: async (update: DashboardPreferencesUpdate) => {
             const response = await apiFetch("/v1/dashboard/preferences", {
                 method: "PUT",
                 body: JSON.stringify(update),
@@ -77,9 +82,6 @@ function useDashboardMutation(workspaceId: string | undefined) {
                 throw new DashboardPreferencesError("Dashboard preferences returned an invalid response.", response.status);
             }
         },
-        onSuccess: (data) => {
-            queryClient.setQueryData(queryKey, data);
-        },
     });
 }
 
@@ -87,87 +89,192 @@ export function useDashboardLayout() {
     const { workspace } = useWorkspace();
     const wsId = workspace ? workspace.id : undefined;
     const { data: preferences, isLoading, error } = useDashboardPreferences(wsId);
-    const mutation = useDashboardMutation(wsId);
-
-    const [local, setLocal] = useState<LocalOverrides>({
+    const mutation = useDashboardMutation();
+    const queryClient = useQueryClient();
+    const queryKey = ["dashboard-preferences", wsId];
+    const emptyOverrides: LocalOverrides = {
         activeView: null,
         collapsedSections: null,
         visibleWidgets: null,
         widgetOrder: null,
-    });
+    };
+    const [local, setLocal] = useState<LocalOverrides>(emptyOverrides);
+    const localRef = useRef<LocalOverrides>(emptyOverrides);
+    const mutationSequence = useRef(0);
+    const activeWriteRef = useRef<PendingDashboardWrite | null>(null);
+    const queuedWriteRef = useRef<PendingDashboardWrite | null>(null);
+    const [saveError, setSaveError] = useState<DashboardPreferencesError | null>(null);
     const [prevWorkspaceId, setPrevWorkspaceId] = useState<string | undefined>(wsId);
 
     if (wsId !== prevWorkspaceId) {
         setPrevWorkspaceId(wsId);
-        setLocal({
-            activeView: null,
-            collapsedSections: null,
-            visibleWidgets: null,
-            widgetOrder: null,
-        });
+        localRef.current = emptyOverrides;
+        activeWriteRef.current = null;
+        queuedWriteRef.current = null;
+        setLocal(emptyOverrides);
+        setSaveError(null);
+        mutationSequence.current += 1;
     }
+
+    const getEffectiveState = () => {
+        const currentActiveView = getActiveView(localRef.current.activeView, preferences);
+        return {
+            activeView: currentActiveView,
+            visibleWidgets: getCurrentVisibleWidgets(
+                localRef.current.visibleWidgets,
+                currentActiveView,
+                preferences,
+            ),
+            widgetOrder: getCurrentWidgetOrder(
+                localRef.current.widgetOrder,
+                currentActiveView,
+                preferences,
+            ),
+            collapsedSections: getCollapsedSections(localRef.current.collapsedSections, preferences),
+        };
+    };
 
     const activeView = getActiveView(local.activeView, preferences);
     const visibleWidgets = getCurrentVisibleWidgets(local.visibleWidgets, activeView, preferences);
     const widgetOrder = getCurrentWidgetOrder(local.widgetOrder, activeView, preferences);
     const collapsedSections = getCollapsedSections(local.collapsedSections, preferences);
 
+    const startWrite = (write: PendingDashboardWrite) => {
+        activeWriteRef.current = write;
+        void mutation.mutateAsync(write.update)
+            .then((data) => {
+                if (activeWriteRef.current !== write) return;
+                queryClient.setQueryData(queryKey, data);
+                const queued = queuedWriteRef.current;
+                if (queued) {
+                    queuedWriteRef.current = null;
+                    startWrite({
+                        ...queued,
+                        rollbackLocal: emptyOverrides,
+                    });
+                    return;
+                }
+                activeWriteRef.current = null;
+                if (write.sequence !== mutationSequence.current) return;
+                localRef.current = emptyOverrides;
+                setLocal(emptyOverrides);
+                setSaveError(null);
+            })
+            .catch((error: unknown) => {
+                if (activeWriteRef.current !== write) return;
+                const queued = queuedWriteRef.current;
+                if (queued) {
+                    queuedWriteRef.current = null;
+                    startWrite(queued);
+                    return;
+                }
+                activeWriteRef.current = null;
+                if (write.sequence !== mutationSequence.current) return;
+                localRef.current = write.rollbackLocal;
+                setLocal(write.rollbackLocal);
+                setSaveError(
+                    error instanceof DashboardPreferencesError
+                        ? error
+                        : new DashboardPreferencesError("Dashboard preferences could not be saved."),
+                );
+            });
+    };
+
+    const persist = (nextLocal: LocalOverrides, update: DashboardPreferencesUpdate) => {
+        const previousLocal = localRef.current;
+        const sequence = mutationSequence.current + 1;
+        mutationSequence.current = sequence;
+        setSaveError(null);
+        localRef.current = nextLocal;
+        setLocal(nextLocal);
+
+        const activeWrite = activeWriteRef.current;
+        const write: PendingDashboardWrite = {
+            sequence,
+            update,
+            rollbackLocal: activeWrite?.rollbackLocal ?? previousLocal,
+        };
+        if (activeWrite) {
+            queuedWriteRef.current = write;
+        } else {
+            startWrite(write);
+        }
+    };
+
     const setActiveView = (view: DashboardView) => {
+        const current = getEffectiveState();
         const newVisible = getNewVisibleForView(view, preferences);
         const newOrder = getNewOrderForView(view, preferences);
-        setLocal((p) => ({ ...p, activeView: view, visibleWidgets: newVisible, widgetOrder: newOrder }));
-        mutation.mutate({
+        const nextLocal: LocalOverrides = {
+            ...localRef.current,
+            activeView: view,
+            visibleWidgets: newVisible,
+            widgetOrder: newOrder,
+        };
+        persist(nextLocal, {
             active_view: view,
             visible_widgets: newVisible,
             widget_order: newOrder,
-            collapsed_sections: collapsedSections,
+            collapsed_sections: current.collapsedSections,
         });
     };
 
     const toggleWidget = (widgetId: WidgetId) => {
-        const updated = { ...visibleWidgets, [widgetId]: !visibleWidgets[widgetId] };
+        const current = getEffectiveState();
+        const updated = { ...current.visibleWidgets, [widgetId]: !current.visibleWidgets[widgetId] };
         const order = getNewOrderForView("custom", preferences);
-        setLocal((p) => ({ ...p, activeView: "custom", visibleWidgets: updated, widgetOrder: order }));
-        mutation.mutate({
+        const nextLocal: LocalOverrides = {
+            ...localRef.current,
+            activeView: "custom",
+            visibleWidgets: updated,
+            widgetOrder: order,
+        };
+        persist(nextLocal, {
             active_view: "custom",
             visible_widgets: updated,
             widget_order: order,
-            collapsed_sections: collapsedSections,
+            collapsed_sections: current.collapsedSections,
         });
     };
 
     const setWidgetOrderAction = (order: WidgetId[]) => {
-        setLocal((p) => ({ ...p, activeView: "custom", widgetOrder: order }));
-        mutation.mutate({
+        const current = getEffectiveState();
+        const nextLocal: LocalOverrides = {
+            ...localRef.current,
+            activeView: "custom",
+            widgetOrder: order,
+        };
+        persist(nextLocal, {
             active_view: "custom",
-            visible_widgets: visibleWidgets,
+            visible_widgets: current.visibleWidgets,
             widget_order: order,
-            collapsed_sections: collapsedSections,
+            collapsed_sections: current.collapsedSections,
         });
     };
 
     const toggleSection = (sectionId: string) => {
-        const updated = { ...collapsedSections, [sectionId]: !collapsedSections[sectionId] };
-        setLocal((p) => ({ ...p, collapsedSections: updated }));
-        mutation.mutate({
-            active_view: activeView,
-            visible_widgets: visibleWidgets,
-            widget_order: widgetOrder,
+        const current = getEffectiveState();
+        const updated = { ...current.collapsedSections, [sectionId]: !current.collapsedSections[sectionId] };
+        const nextLocal = { ...localRef.current, collapsedSections: updated };
+        persist(nextLocal, {
+            active_view: current.activeView,
+            visible_widgets: current.visibleWidgets,
+            widget_order: current.widgetOrder,
             collapsed_sections: updated,
         });
     };
 
     const resetToDefault = () => {
         const defaultCollapsed = { summary: false, charts: false, actions: true };
-        const visible = getNewVisibleForView("overview", preferences);
-        const order = getNewOrderForView("overview", preferences);
-        setLocal({
+        const visible = getNewVisibleForView("overview", undefined);
+        const order = getNewOrderForView("overview", undefined);
+        const nextLocal: LocalOverrides = {
             activeView: "overview",
             visibleWidgets: visible,
             widgetOrder: order,
             collapsedSections: defaultCollapsed,
-        });
-        mutation.mutate({
+        };
+        persist(nextLocal, {
             active_view: "overview",
             visible_widgets: visible,
             widget_order: order,
@@ -182,6 +289,7 @@ export function useDashboardLayout() {
         collapsedSections,
         isLoading,
         error,
+        saveError,
         isSaving: mutation.isPending,
         setActiveView,
         toggleWidget,

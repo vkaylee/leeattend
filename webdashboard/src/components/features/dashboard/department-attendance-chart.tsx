@@ -15,6 +15,7 @@ import {
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
+import { DashboardChartError, useDashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { useDepartmentAttendance } from "@/hooks/use-dashboard";
 import { cn } from "@/lib/utils";
 
@@ -109,6 +110,7 @@ export default function DepartmentAttendanceChart() {
     const { t } = useTranslation();
     const [range, setRange] = useState<"today" | "week">("today");
     const { data, error, isLoading } = useDepartmentAttendance(range);
+    useDashboardChartError(Boolean(error));
 
     const chartData = (data ?? []).map((d) => ({
         ...d,
@@ -171,12 +173,7 @@ export default function DepartmentAttendanceChart() {
                     <div className="w-8 h-8 border-2 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 rounded-full animate-spin" />
                 </div>
             ) : error ? (
-                <div className="h-[320px] flex flex-col items-center justify-center text-center">
-                    <Building2 className="text-red-200 dark:text-red-900 mb-4" size={48} />
-                    <Typography className="text-[10px] font-bold text-red-400 dark:text-red-500 uppercase tracking-widest" variant="p">
-                        {t("dashboard.connection_error")}
-                    </Typography>
-                </div>
+                <DashboardChartError icon={<Building2 size={48} />} />
             ) : !hasData ? (
                 <div className="h-[320px] flex flex-col items-center justify-center">
                     <Building2 className="text-slate-200 dark:text-slate-700 mb-4" size={48} />

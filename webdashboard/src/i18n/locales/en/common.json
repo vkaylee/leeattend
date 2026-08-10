@@ -1343,6 +1343,7 @@
       "turnover_by_source": "Source",
       "turnover_by_dept": "Department",
       "turnover_total": "Total Terminated",
+      "turnover_period": "Turnover period",
       "turnover_period_3m": "Last 3 Months",
       "turnover_period_6m": "Last 6 Months",
       "turnover_period_1y": "Last 1 Year",

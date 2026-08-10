@@ -1343,6 +1343,7 @@
       "turnover_by_source": "来源",
       "turnover_by_dept": "部门",
       "turnover_total": "总离职数",
+      "turnover_period": "离职时间范围",
       "turnover_period_3m": "最近3个月",
       "turnover_period_6m": "最近6个月",
       "turnover_period_1y": "最近1年",

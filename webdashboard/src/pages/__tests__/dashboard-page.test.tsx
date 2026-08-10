@@ -56,7 +56,7 @@ vi.mock("@/hooks/use-currency", () => ({
 }));
 
 vi.mock("@/hooks/use-dashboard-charts", () => ({
-  useDashboardCharts: () => [],
+  useDashboardCharts: () => ({ chartElements: [], chartErrorCount: 0 }),
 }));
 
 let shouldQuickStatsThrow = false;

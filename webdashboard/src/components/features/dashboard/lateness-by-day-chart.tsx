@@ -13,6 +13,7 @@ import {
     ComposedChart,
 } from "recharts";
 
+import { DashboardChartError, useDashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { Typography } from "@/components/ui/typography";
 import { useLatenessByDay } from "@/hooks/use-dashboard";
 
@@ -34,6 +35,7 @@ function ChartGradients() {
 
 export default function LatenessByDayChart() {
     const { data: days, error, isLoading } = useLatenessByDay();
+    useDashboardChartError(Boolean(error));
 
     const chartData = days ?? [];
 
@@ -86,15 +88,7 @@ function ChartLoading() {
 }
 
 function ChartError() {
-    const { t } = useTranslation();
-    return (
-        <div className="h-[280px] flex flex-col items-center justify-center text-center">
-            <CalendarClock className="text-red-200 dark:text-red-900 mb-4" size={48} />
-            <Typography className="text-[10px] font-bold text-red-400 dark:text-red-500 uppercase tracking-widest" variant="p">
-                {t("dashboard.connection_error")}
-            </Typography>
-        </div>
-    );
+    return <DashboardChartError icon={<CalendarClock size={48} />} />;
 }
 
 function ChartEmpty() {

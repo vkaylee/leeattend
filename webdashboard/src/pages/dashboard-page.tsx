@@ -39,7 +39,7 @@ export default function DashboardPage() {
   const { setActions } = useHeaderActions();
 
   const {
-    visibleWidgets, widgetOrder, collapsedSections, isSaving,
+    visibleWidgets, widgetOrder, collapsedSections, isSaving, saveError,
     toggleWidget, setWidgetOrder, toggleSection, resetToDefault, allWidgets,
   } = useDashboardLayout();
 
@@ -55,7 +55,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const updateActions = () => {
       setActionsRef.current(
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
           <Button
             aria-label={tRef.current("dashboard.customize.reset")}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-200 dark:hover:border-primary-700 transition-all shadow-sm h-auto"
@@ -66,7 +66,7 @@ export default function DashboardPage() {
             <RotateCcw size={13} />
             <span className="hidden sm:inline">{tRef.current("dashboard.customize.reset")}</span>
           </Button>
-          <div className="flex bg-slate-100 dark:bg-slate-700/50 p-0.5 rounded-full border border-slate-200 dark:border-slate-700/50 shadow-inner">
+          <div className="flex shrink-0 bg-slate-100 dark:bg-slate-700/50 p-0.5 rounded-full border border-slate-200 dark:border-slate-700/50 shadow-inner">
             <Button
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all h-auto shadow-none border border-transparent",
@@ -128,7 +128,7 @@ export default function DashboardPage() {
   }, [hrStats, t]);
 
   const hasDonutData = useMemo(() => donutData.some((d) => d.value > 0), [donutData]);
-  const chartElements = useDashboardCharts(widgetOrder, visibleWidgets);
+  const { chartElements, chartErrorCount } = useDashboardCharts(widgetOrder, visibleWidgets);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
@@ -172,7 +172,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {error ? <DashboardErrorBanner /> : null}
+      {error || saveError || chartErrorCount > 0 ? <DashboardErrorBanner /> : null}
 
       <CustomizePanel
         allWidgets={allWidgets} isOpen={customizeOpen} isSaving={isSaving}

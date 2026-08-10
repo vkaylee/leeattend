@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 // Preset view configurations for dashboard layout.
 // Split out from use-dashboard-layout.ts to keep the hook file under max-lines.
 
@@ -30,86 +32,8 @@ export interface DashboardLayoutPreferences {
 
 interface PresetViewConfig {
     order: WidgetId[];
-    visible: Partial<Record<WidgetId, boolean>>;
+    visible: Record<WidgetId, boolean>;
 }
-
-export const PRESET_VIEWS: Record<Exclude<DashboardView, "custom">, PresetViewConfig> = {
-    overview: {
-        visible: {
-            kpi_cards: true,
-            donut_chart: true,
-            quick_stats: true,
-            attendance_trend: true,
-            department_chart: false,
-            overtime_trend: false,
-            peak_times: false,
-            leave_types: false,
-            lateness_by_day: false,
-            recruitment_sources: true,
-            turnover_analytics: false,
-            unexcused_absences: false,
-            promo_cards: false,
-        },
-        order: [
-            "kpi_cards",
-            "donut_chart",
-            "quick_stats",
-            "attendance_trend",
-            "recruitment_sources",
-        ],
-    },
-    attendance: {
-        visible: {
-            kpi_cards: true,
-            donut_chart: false,
-            quick_stats: false,
-            attendance_trend: true,
-            department_chart: true,
-            overtime_trend: false,
-            peak_times: true,
-            leave_types: false,
-            lateness_by_day: false,
-            recruitment_sources: false,
-            turnover_analytics: false,
-            unexcused_absences: false,
-            promo_cards: false,
-        },
-        order: [
-            "kpi_cards",
-            "attendance_trend",
-            "department_chart",
-            "peak_times",
-        ],
-    },
-    trends: {
-        visible: {
-            kpi_cards: false,
-            donut_chart: false,
-            quick_stats: false,
-            attendance_trend: true,
-            department_chart: false,
-            overtime_trend: true,
-            peak_times: false,
-            leave_types: true,
-            lateness_by_day: true,
-            recruitment_sources: true,
-            turnover_analytics: true,
-            unexcused_absences: true,
-            promo_cards: false,
-        },
-        order: [
-            "attendance_trend",
-            "overtime_trend",
-            "leave_types",
-            "lateness_by_day",
-            "recruitment_sources",
-            "turnover_analytics",
-            "unexcused_absences",
-        ],
-    },
-};
-
-// ── All widgets for "custom" mode ────────────────────────────────
 
 export const ALL_WIDGETS: { id: WidgetId; labelKey: string }[] = [
     { id: "kpi_cards", labelKey: "dashboard.widgets.kpi_cards" },
@@ -128,7 +52,101 @@ export const ALL_WIDGETS: { id: WidgetId; labelKey: string }[] = [
 ];
 
 const WIDGET_ID_SET = new Set<WidgetId>(ALL_WIDGETS.map((widget) => widget.id));
-const DEFAULT_WIDGET_ORDER = ALL_WIDGETS.map((widget) => widget.id);
+const DEFAULT_WIDGET_ORDER: WidgetId[] = [
+    "kpi_cards",
+    "donut_chart",
+    "quick_stats",
+    "attendance_trend",
+    "department_chart",
+    "overtime_trend",
+    "peak_times",
+    "leave_types",
+    "lateness_by_day",
+    "recruitment_sources",
+    "turnover_analytics",
+    "unexcused_absences",
+    "promo_cards",
+];
+
+export const DEFAULT_VISIBLE_WIDGETS: Record<WidgetId, boolean> = {
+    kpi_cards: true,
+    donut_chart: true,
+    quick_stats: true,
+    attendance_trend: true,
+    department_chart: true,
+    overtime_trend: false,
+    peak_times: false,
+    leave_types: false,
+    lateness_by_day: false,
+    recruitment_sources: true,
+    turnover_analytics: false,
+    unexcused_absences: false,
+    promo_cards: false,
+};
+
+export const DEFAULT_COLLAPSED_SECTIONS: Record<string, boolean> = {
+    summary: false,
+    charts: false,
+    actions: true,
+};
+
+export const PRESET_VIEWS: Record<Exclude<DashboardView, "custom">, PresetViewConfig> = {
+    overview: {
+        visible: { ...DEFAULT_VISIBLE_WIDGETS },
+        order: [...DEFAULT_WIDGET_ORDER],
+    },
+    attendance: {
+        visible: {
+            ...DEFAULT_VISIBLE_WIDGETS,
+            donut_chart: false,
+            quick_stats: false,
+            department_chart: true,
+            peak_times: true,
+            recruitment_sources: false,
+        },
+        order: ["kpi_cards", "attendance_trend", "department_chart", "peak_times"],
+    },
+    trends: {
+        visible: {
+            ...DEFAULT_VISIBLE_WIDGETS,
+            kpi_cards: false,
+            donut_chart: false,
+            quick_stats: false,
+            overtime_trend: true,
+            leave_types: true,
+            lateness_by_day: true,
+            recruitment_sources: true,
+            turnover_analytics: true,
+            unexcused_absences: true,
+        },
+        order: [
+            "attendance_trend",
+            "overtime_trend",
+            "leave_types",
+            "lateness_by_day",
+            "recruitment_sources",
+            "turnover_analytics",
+            "unexcused_absences",
+        ],
+    },
+};
+
+const dashboardPreferencesResponseSchema = z.object({
+    active_view: z.enum(["overview", "attendance", "trends", "custom"]),
+    collapsed_sections: z.record(z.string(), z.boolean()),
+    id: z.string().min(1),
+    user_id: z.string().min(1),
+    visible_widgets: z.record(z.string(), z.boolean()),
+    widget_order: z.array(z.string()),
+    workspace_id: z.string().min(1),
+}).strict();
+
+export class DashboardPreferencesContractError extends Error {
+    constructor() {
+        super("Dashboard preferences response does not match the API contract.");
+        this.name = "DashboardPreferencesContractError";
+    }
+}
 
 export function sanitizeWidgetOrder(value: unknown): WidgetId[] {
     const seen = new Set<WidgetId>();
@@ -149,7 +167,7 @@ export function sanitizeWidgetOrder(value: unknown): WidgetId[] {
 }
 
 export function sanitizeVisibleWidgets(value: unknown): Record<WidgetId, boolean> {
-    const visible = Object.fromEntries(DEFAULT_WIDGET_ORDER.map((id) => [id, true])) as Record<WidgetId, boolean>;
+    const visible = { ...DEFAULT_VISIBLE_WIDGETS };
     if (!value || typeof value !== "object" || Array.isArray(value)) return visible;
     Object.entries(value).forEach(([candidate, enabled]) => {
         if (WIDGET_ID_SET.has(candidate as WidgetId) && typeof enabled === "boolean") {
@@ -159,26 +177,24 @@ export function sanitizeVisibleWidgets(value: unknown): Record<WidgetId, boolean
     return visible;
 }
 
+/**
+ * Validates the current API envelope, then removes legacy/unknown widget IDs
+ * while merging the backend's defaults for omitted fields.
+ */
 export function sanitizeDashboardPreferences(value: unknown): DashboardLayoutPreferences {
-    const raw = value && typeof value === "object" ? value as Record<string, unknown> : {};
-    const activeView = raw.active_view === "attendance" || raw.active_view === "trends" || raw.active_view === "custom"
-        ? raw.active_view
-        : "overview";
-    const collapsedRaw = raw.collapsed_sections;
-    const collapsedSections: Record<string, boolean> = { summary: false, charts: false, actions: true };
-    if (collapsedRaw && typeof collapsedRaw === "object" && !Array.isArray(collapsedRaw)) {
-        Object.entries(collapsedRaw).forEach(([section, collapsed]) => {
-            if (typeof collapsed === "boolean") collapsedSections[section] = collapsed;
-        });
+    const parsed = dashboardPreferencesResponseSchema.safeParse(value);
+    if (!parsed.success) {
+        throw new DashboardPreferencesContractError();
     }
+
     return {
-        active_view: activeView,
-        collapsed_sections: collapsedSections,
-        id: typeof raw.id === "string" ? raw.id : "",
-        user_id: typeof raw.user_id === "string" ? raw.user_id : "",
-        visible_widgets: sanitizeVisibleWidgets(raw.visible_widgets),
-        widget_order: sanitizeWidgetOrder(raw.widget_order),
-        workspace_id: typeof raw.workspace_id === "string" ? raw.workspace_id : "",
+        active_view: parsed.data.active_view,
+        collapsed_sections: { ...DEFAULT_COLLAPSED_SECTIONS, ...parsed.data.collapsed_sections },
+        id: parsed.data.id,
+        user_id: parsed.data.user_id,
+        visible_widgets: sanitizeVisibleWidgets(parsed.data.visible_widgets),
+        widget_order: sanitizeWidgetOrder(parsed.data.widget_order),
+        workspace_id: parsed.data.workspace_id,
     };
 }
 
@@ -186,31 +202,25 @@ export function sanitizeDashboardPreferences(value: unknown): DashboardLayoutPre
 
 export function getNewVisibleForView(
     view: DashboardView,
-    preferences: DashboardLayoutPreferences | undefined
+    preferences: DashboardLayoutPreferences | undefined,
 ): Record<WidgetId, boolean> {
-    if (view === "custom") {
-        const prefsVisible = preferences?.visible_widgets;
-        if (prefsVisible && Object.keys(prefsVisible).length > 0) {
-            return sanitizeVisibleWidgets(prefsVisible);
-        }
-        return sanitizeVisibleWidgets(undefined);
-    }
-    return PRESET_VIEWS[view].visible as Record<WidgetId, boolean>;
+    if (preferences?.active_view === view) return sanitizeVisibleWidgets(preferences.visible_widgets);
+    if (view === "custom") return sanitizeVisibleWidgets(undefined);
+    return { ...PRESET_VIEWS[view].visible };
 }
 
 export function getNewOrderForView(
     view: DashboardView,
-    preferences: DashboardLayoutPreferences | undefined
+    preferences: DashboardLayoutPreferences | undefined,
 ): WidgetId[] {
-    if (view === "custom") {
-        return sanitizeWidgetOrder(preferences?.widget_order);
-    }
-    return PRESET_VIEWS[view].order;
+    if (preferences?.active_view === view) return sanitizeWidgetOrder(preferences.widget_order);
+    if (view === "custom") return [...DEFAULT_WIDGET_ORDER];
+    return [...PRESET_VIEWS[view].order];
 }
 
 export function getActiveView(
     localActiveView: DashboardView | null,
-    preferences: DashboardLayoutPreferences | undefined
+    preferences: DashboardLayoutPreferences | undefined,
 ): DashboardView {
     const candidate = localActiveView ?? preferences?.active_view;
     return candidate === "attendance" || candidate === "trends" || candidate === "custom" ? candidate : "overview";
@@ -218,23 +228,23 @@ export function getActiveView(
 
 export function getCollapsedSections(
     localCollapsedSections: Record<string, boolean> | null,
-    preferences: DashboardLayoutPreferences | undefined
+    preferences: DashboardLayoutPreferences | undefined,
 ): Record<string, boolean> {
-    return localCollapsedSections ?? preferences?.collapsed_sections ?? { summary: false, charts: false, actions: true };
+    return localCollapsedSections ?? preferences?.collapsed_sections ?? { ...DEFAULT_COLLAPSED_SECTIONS };
 }
 
 export function getCurrentVisibleWidgets(
     localVisible: Record<WidgetId, boolean> | null,
     activeView: DashboardView,
-    preferences: DashboardLayoutPreferences | undefined
+    preferences: DashboardLayoutPreferences | undefined,
 ): Record<WidgetId, boolean> {
-    return localVisible ?? getNewVisibleForView(activeView, preferences);
+    return localVisible ? sanitizeVisibleWidgets(localVisible) : getNewVisibleForView(activeView, preferences);
 }
 
 export function getCurrentWidgetOrder(
     localOrder: WidgetId[] | null,
     activeView: DashboardView,
-    preferences: DashboardLayoutPreferences | undefined
+    preferences: DashboardLayoutPreferences | undefined,
 ): WidgetId[] {
     return localOrder ? sanitizeWidgetOrder(localOrder) : getNewOrderForView(activeView, preferences);
 }

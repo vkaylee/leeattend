@@ -1,17 +1,52 @@
-import type { ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Typography } from "@/components/ui/typography";
+
+interface DashboardChartErrorContextValue {
+  reportError: (hasError: boolean) => void;
+}
+
+const DashboardChartErrorContext = createContext<DashboardChartErrorContextValue | null>(null);
+
+interface DashboardChartErrorProviderProps {
+  children: ReactNode;
+  onErrorChange?: (hasError: boolean) => void;
+}
+
+export function DashboardChartErrorProvider({ children, onErrorChange }: DashboardChartErrorProviderProps) {
+  return (
+    <DashboardChartErrorContext.Provider value={{ reportError: onErrorChange ?? (() => undefined) }}>
+      {children}
+    </DashboardChartErrorContext.Provider>
+  );
+}
+
+export function useDashboardChartError(hasError: boolean) {
+  const context = useContext(DashboardChartErrorContext);
+
+  useEffect(() => {
+    context?.reportError(hasError);
+    return () => {
+      context?.reportError(false);
+    };
+  }, [context, hasError]);
+}
 
 interface DashboardChartErrorProps {
   icon: ReactNode;
 }
 
 export function DashboardChartError({ icon }: DashboardChartErrorProps) {
+  useDashboardChartError(true);
   const { t } = useTranslation();
 
   return (
-    <div className="h-[280px] flex flex-col items-center justify-center text-center" role="alert">
+    <div
+      aria-live="assertive"
+      className="h-[280px] flex flex-col items-center justify-center text-center"
+      role="alert"
+    >
       <div className="text-rose-300 dark:text-rose-800 mb-4">{icon}</div>
       <Typography className="text-[10px] font-bold text-rose-500 dark:text-rose-400 uppercase tracking-widest" variant="p">
         {t("dashboard.connection_error")}

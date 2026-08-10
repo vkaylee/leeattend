@@ -14,7 +14,7 @@ import {
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
+import { DashboardChartError, useDashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { useUnexcusedAbsences } from "@/hooks/use-dashboard";
 import { cn } from "@/lib/utils";
 
@@ -126,6 +126,7 @@ export default function UnexcusedAbsencesChart() {
     }, [preset]);
 
     const { data, error, isLoading } = useUnexcusedAbsences(startDate, endDate, groupBy);
+    useDashboardChartError(Boolean(error));
 
     const chartData = (data ?? [])
         .map((d) => ({
@@ -192,7 +193,7 @@ function ChartHeader({
 }: ChartHeaderProps) {
     const { t } = useTranslation();
     return (
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-4">
                 <div className="bg-red-50 dark:bg-red-950 w-12 h-12 rounded-[1rem] flex items-center justify-center text-red-600 dark:text-red-400 shadow-inner border border-red-100 dark:border-red-800">
                     <ShieldAlert size={22} />
@@ -207,8 +208,8 @@ function ChartHeader({
                 </div>
             </div>
 
-            <div className="flex items-center gap-3">
-                <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-[14px] border border-slate-200 dark:border-slate-700/50 shadow-inner">
+            <div className="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-3">
+                <div className="flex shrink-0 max-w-full overflow-x-auto scrollbar-hide bg-slate-100 dark:bg-slate-700/50 p-1 rounded-[14px] border border-slate-200 dark:border-slate-700/50 shadow-inner">
                     {groupByOptions.map((g) => {
                         const Icon = g.icon;
                         return (
@@ -231,7 +232,7 @@ function ChartHeader({
                     })}
                 </div>
 
-                <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-[14px] border border-slate-200 dark:border-slate-700/50 shadow-inner">
+                <div className="flex shrink-0 max-w-full overflow-x-auto scrollbar-hide bg-slate-100 dark:bg-slate-700/50 p-1 rounded-[14px] border border-slate-200 dark:border-slate-700/50 shadow-inner">
                     {presets.map((p) => (
                         <Button
                             className={cn(

@@ -61,7 +61,7 @@ export default function Navbar({ currentWorkspaceName }: NavbarProps) {
 
       {/* Quick Actions slot (injected by child pages via context) */}
       {!!actions && (
-        <div className="min-w-0 max-w-[60vw] md:max-w-none overflow-x-auto scrollbar-hide flex-shrink-0 min-h-11 items-center gap-2 py-1">
+        <div className="flex min-w-0 max-w-[60vw] md:max-w-none overflow-x-auto scrollbar-hide flex-shrink-0 min-h-11 items-center gap-2 py-1">
           {actions}
         </div>
       )}

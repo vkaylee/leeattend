@@ -49,7 +49,23 @@ export default defineConfig({
     projects: [
     {
       name: "chromium",
+      testIgnore: /dashboard\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "dashboard-desktop",
+      testMatch: /dashboard\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "dashboard-tablet",
+      testMatch: /dashboard\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"], viewport: { width: 800, height: 1024 } },
+    },
+    {
+      name: "dashboard-mobile",
+      testMatch: /dashboard\.spec\.ts/,
+      use: { ...devices["Pixel 7"] },
     },
     {
       name: "responsive-desktop",

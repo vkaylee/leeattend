@@ -11,6 +11,7 @@ interface ErrorBoundaryProps {
   children?: React.ReactNode;
   fallback?: React.ReactNode;
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
+  onErrorChange?: (hasError: boolean) => void;
   variant?: "full" | "compact";
 }
 
@@ -38,9 +39,15 @@ export class ErrorBoundary extends Component<
       extra: { componentStack: errorInfo.componentStack },
     });
     this.props.onError?.(error, errorInfo);
+    this.props.onErrorChange?.(true);
+  }
+
+  componentWillUnmount() {
+    this.props.onErrorChange?.(false);
   }
 
   handleRetry = () => {
+    this.props.onErrorChange?.(false);
     this.setState({ hasError: false, error: null });
   };
 

@@ -3,6 +3,7 @@ import React, { lazy, Suspense, memo } from "react";
 import type { WidgetId } from "@/hooks/use-dashboard-layout";
 
 import { ErrorBoundary } from "@/components/common/error-boundary";
+import { DashboardChartErrorProvider } from "@/components/features/dashboard/dashboard-chart-state";
 
 // ── Lazy-loaded chart components ───────────────────────────────────
 
@@ -62,6 +63,7 @@ function ChartSkeleton() {
 // ── Widget Renderer ────────────────────────────────────────────────
 
 interface WidgetRendererProps {
+    onErrorChange?: (hasError: boolean) => void;
     widgetId: WidgetId;
 }
 
@@ -72,7 +74,7 @@ interface WidgetRendererProps {
  * This renderer handles chart-type widgets with lazy loading.
  */
  
-const WidgetRenderer = memo(function WidgetRenderer({ widgetId }: WidgetRendererProps) {
+const WidgetRenderer = memo(function WidgetRenderer({ onErrorChange, widgetId }: WidgetRendererProps) {
     const ChartComponent = chartMap[widgetId];
 
     if (!ChartComponent) {
@@ -82,11 +84,13 @@ const WidgetRenderer = memo(function WidgetRenderer({ widgetId }: WidgetRenderer
     }
 
     return (
-        <ErrorBoundary variant="compact">
-            <Suspense fallback={<ChartSkeleton />}>
-                <ChartComponent />
-            </Suspense>
-        </ErrorBoundary>
+        <DashboardChartErrorProvider onErrorChange={onErrorChange}>
+            <ErrorBoundary onErrorChange={onErrorChange} variant="compact">
+                <Suspense fallback={<ChartSkeleton />}>
+                    <ChartComponent />
+                </Suspense>
+            </ErrorBoundary>
+        </DashboardChartErrorProvider>
     );
 });
 
