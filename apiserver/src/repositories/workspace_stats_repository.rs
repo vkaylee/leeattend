@@ -119,6 +119,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         .load(&mut *conn)
         .await?;
 
+        // Release the tenant connection while the roster repository acquires
+        // its own connection.
+        drop(conn);
+
         // Resolve workspace schedules for the range in Rust
         let roster_repo =
             crate::repositories::diesel_roster_repository::DieselRosterRepository::new(
@@ -127,7 +131,15 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let (schedules, _) = roster_repo
             .get_workspace_schedules(None, auth_token, start_date, today, None, None, None)
             .await
-            .unwrap_or_default();
+            .map_err(|e| {
+                tracing::error!(workspace_id = ?workspace_id, operation = "dashboard_roster", error = %e, "dashboard roster query failed");
+                e
+            })?;
+
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         // Fetch first punches in range
         let punch_rows: Vec<EmployeeFirstPunchRow> =
@@ -138,7 +150,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
                 .bind::<diesel::sql_types::Uuid, _>(workspace_id)
                 .load(&mut *conn)
                 .await
-                .unwrap_or_default();
+                .map_err(|e| {
+                    tracing::error!(workspace_id = ?workspace_id, operation = "dashboard_punches", error = %e, "dashboard query failed");
+                    AppError::from(e)
+                })?;
 
         let mut punch_map = std::collections::HashMap::new();
         for row in punch_rows {
@@ -167,7 +182,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         .get_result::<CountRow>(&mut *conn)
         .await
         .map(|r| r.count)
-        .unwrap_or(0);
+        .map_err(|e| {
+            tracing::error!(workspace_id = ?workspace_id, operation = "attendance_total_active", error = %e, "dashboard query failed");
+            AppError::from(e)
+        })?;
 
         let trend = base_rows
             .into_iter()
@@ -365,10 +383,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
                 .bind::<diesel::sql_types::Date, _>(today)
                 .load(&mut *conn)
                 .await
-                .unwrap_or_else(|e| {
-                    tracing::warn!(error = %e, "overtime trend query failed, degrading gracefully");
-                    vec![]
-                });
+                .map_err(|e| {
+                    tracing::error!(workspace_id = ?workspace_id, operation = "overtime_trend", error = %e, "dashboard query failed");
+                    AppError::from(e)
+                })?;
 
         let trend = rows
             .into_iter()
@@ -426,7 +444,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
                     .get_result::<CountRow>(&mut *conn)
                     .await
                     .map(|r| r.count)
-                    .unwrap_or(0),
+                    .map_err(|e| {
+                        tracing::error!(workspace_id = ?workspace_id, operation = "workspace_stats_count", error = %e, "dashboard query failed");
+                        AppError::from(e)
+                    })?,
                 )
             }
         };
@@ -448,7 +469,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
                     .get_result::<CountRow>(&mut *conn)
                     .await
                     .map(|r| r.count)
-                    .unwrap_or(0),
+                    .map_err(|e| {
+                        tracing::error!(workspace_id = ?workspace_id, operation = "workspace_stats_count", error = %e, "dashboard query failed");
+                        AppError::from(e)
+                    })?,
                 )
             }
         };
@@ -467,7 +491,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
                     .get_result::<CountRow>(&mut *conn)
                     .await
                     .map(|r| r.count)
-                    .unwrap_or(0),
+                    .map_err(|e| {
+                        tracing::error!(workspace_id = ?workspace_id, operation = "workspace_stats_count", error = %e, "dashboard query failed");
+                        AppError::from(e)
+                    })?,
                 )
             }
         };
@@ -481,10 +508,14 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
                         "sql/workspace_stats/workspace_stats_payroll.sql"
                     ))
                     .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                    .bind::<diesel::sql_types::Date, _>(today)
                     .get_result::<DecimalRow>(&mut *conn)
                     .await
                     .map(|r| r.amount)
-                    .unwrap_or(rust_decimal::Decimal::ZERO),
+                    .map_err(|e| {
+                        tracing::error!(workspace_id = ?workspace_id, operation = "workspace_stats_payroll", error = %e, "dashboard query failed");
+                        AppError::from(e)
+                    })?,
                 )
             }
         };
@@ -505,7 +536,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
                     .get_result::<CountRow>(&mut *conn)
                     .await
                     .map(|r| r.count)
-                    .unwrap_or(0),
+                    .map_err(|e| {
+                        tracing::error!(workspace_id = ?workspace_id, operation = "workspace_stats_count", error = %e, "dashboard query failed");
+                        AppError::from(e)
+                    })?,
                 )
             }
         };
@@ -522,7 +556,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
                         .bind::<diesel::sql_types::Text, _>(tz_name)
                         .load(&mut *conn)
                         .await
-                        .unwrap_or_default(),
+                        .map_err(|e| {
+                            tracing::error!(workspace_id = ?workspace_id, operation = "workspace_stats_punches", error = %e, "dashboard query failed");
+                            AppError::from(e)
+                        })?,
                 )
             }
         };
@@ -539,7 +576,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
                         .bind::<diesel::sql_types::Text, _>(tz_name)
                         .load(&mut *conn)
                         .await
-                        .unwrap_or_default(),
+                        .map_err(|e| {
+                            tracing::error!(workspace_id = ?workspace_id, operation = "workspace_stats_punches", error = %e, "dashboard query failed");
+                            AppError::from(e)
+                        })?,
                 )
             }
         };
@@ -562,33 +602,25 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
                     .bind::<diesel::sql_types::Uuid, _>(workspace_id)
                     .get_result::<FloatRow>(&mut *conn)
                     .await
-                    .ok()
-                    .and_then(|r| r.amount),
+                    .map(|r| r.amount)
+                    .map_err(|e| {
+                        tracing::error!(workspace_id = ?workspace_id, operation = "workspace_stats_average_work", error = %e, "dashboard query failed");
+                        AppError::from(e)
+                    })?,
                 )
             }
         };
 
-        // try_join! short-circuits on connection errors but individual
-        // query failures are already handled within each future.
-        let (
-            total_employees,
-            present_today,
-            pending_leave,
-            payroll,
-            on_leave_today,
-            first_punch_rows,
-            last_punch_rows,
-            avg_work_minutes,
-        ) = tokio::try_join!(
-            f_total_employees,
-            f_present_today,
-            f_pending_leave,
-            f_payroll,
-            f_on_leave_today,
-            f_first_punches,
-            f_last_punches,
-            f_avg_work,
-        )?;
+        // Read sequentially so a tenant pool of five connections is never
+        // saturated by this endpoint's eight independent queries.
+        let total_employees = f_total_employees.await?;
+        let present_today = f_present_today.await?;
+        let pending_leave = f_pending_leave.await?;
+        let payroll = f_payroll.await?;
+        let on_leave_today = f_on_leave_today.await?;
+        let first_punch_rows = f_first_punches.await?;
+        let last_punch_rows = f_last_punches.await?;
+        let avg_work_minutes = f_avg_work.await?;
 
         let absent_today = (total_employees - present_today - on_leave_today).max(0);
 
@@ -611,7 +643,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let (schedules, _) = roster_repo
             .get_workspace_schedules(None, auth_token, today, today, None, None, None)
             .await
-            .unwrap_or_default();
+            .map_err(|e| {
+                tracing::error!(workspace_id = ?workspace_id, operation = "workspace_stats_roster", error = %e, "dashboard roster query failed");
+                e
+            })?;
 
         let mut late_today = 0;
         let mut early_departure_today = 0;
@@ -717,12 +752,13 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         .bind::<diesel::sql_types::Date, _>(month_start)
         .bind::<diesel::sql_types::Date, _>(today)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .bind::<diesel::sql_types::Date, _>(today)
         .load(&mut *conn)
         .await
-        .unwrap_or_else(|e| {
-            tracing::warn!(error = %e, "leave types query failed, degrading gracefully");
-            vec![]
-        });
+        .map_err(|e| {
+            tracing::error!(workspace_id = ?workspace_id, operation = "leave_types_breakdown", error = %e, "dashboard query failed");
+            AppError::from(e)
+        })?;
 
         let result = rows
             .into_iter()
@@ -761,6 +797,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             .tenant_transaction_conn(auth_token)
             .await?;
 
+        // Release the tenant connection while the roster repository acquires
+        // its own connection.
+        drop(conn);
+
         // Resolve workspace schedules for the range in Rust
         let roster_repo =
             crate::repositories::diesel_roster_repository::DieselRosterRepository::new(
@@ -769,7 +809,15 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let (schedules, _) = roster_repo
             .get_workspace_schedules(None, auth_token, start_date, today, None, None, None)
             .await
-            .unwrap_or_default();
+            .map_err(|e| {
+                tracing::error!(workspace_id = ?workspace_id, operation = "dashboard_roster", error = %e, "dashboard roster query failed");
+                e
+            })?;
+
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         // Fetch first punches in range
         let punch_rows: Vec<EmployeeFirstPunchRow> =
@@ -780,7 +828,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
                 .bind::<diesel::sql_types::Uuid, _>(workspace_id)
                 .load(&mut *conn)
                 .await
-                .unwrap_or_default();
+                .map_err(|e| {
+                    tracing::error!(workspace_id = ?workspace_id, operation = "dashboard_punches", error = %e, "dashboard query failed");
+                    AppError::from(e)
+                })?;
 
         let mut punch_map = std::collections::HashMap::new();
         for row in punch_rows {

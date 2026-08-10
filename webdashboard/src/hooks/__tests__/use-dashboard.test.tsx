@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as api from "@/lib/api";
 
 import {
+    DashboardQueryError,
     useDashboardStats,
     useAttendanceTrend,
     useDepartmentAttendance,
@@ -77,6 +78,7 @@ describe("use-dashboard hooks", () => {
         it("handles error when fetch fails", async () => {
             vi.mocked(api.apiFetch).mockResolvedValueOnce({
                 ok: false,
+                status: 503,
             } as unknown as never);
 
             const { result } = renderHook(() => useDashboardStats(), {
@@ -84,7 +86,13 @@ describe("use-dashboard hooks", () => {
             });
 
             await waitFor(() => { expect(result.current.isError).toBe(true); });
-            expect(result.current.error?.message).toBe("Failed to fetch workspace-stats");
+            expect(result.current.error).toBeInstanceOf(DashboardQueryError);
+            expect(result.current.error).toMatchObject({
+                code: "HTTP_ERROR",
+                endpoint: "/v1/dashboard/workspace-stats",
+                queryKey: "workspace-stats",
+                status: 503,
+            });
         });
     });
 

@@ -4,7 +4,7 @@ WITH active_emps AS (
     WHERE e.workspace_id = $1
       AND emp.status = 'active'
       AND emp.deleted_at IS NULL
-      AND CURRENT_DATE BETWEEN emp.start_date AND COALESCE(emp.end_date, '9999-12-31'::date)
+      AND $2 BETWEEN emp.start_date AND COALESCE(emp.end_date, '9999-12-31'::date)
 ),
 dynamic_payroll AS (
     SELECT esc.employee_id, SUM(esc.amount) as total_amount
@@ -12,7 +12,7 @@ dynamic_payroll AS (
     INNER JOIN (
         SELECT employee_id, component_definition_id, MAX(effective_date) as max_date
         FROM employee_salary_components
-        WHERE effective_date <= CURRENT_DATE
+        WHERE effective_date <= $2
         GROUP BY employee_id, component_definition_id
     ) latest ON esc.employee_id = latest.employee_id
              AND esc.component_definition_id = latest.component_definition_id

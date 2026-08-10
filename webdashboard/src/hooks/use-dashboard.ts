@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
 
+import { dashboardSchemaByKey, type DashboardSchemaKey } from "./dashboard-schemas";
+
 import {
   type AttendanceTrendPoint,
   type DepartmentAttendancePoint,
@@ -31,6 +33,39 @@ export type {
 
 // ── Factory: reusable useQuery wrapper with workspace guard ────────────────
 
+export type DashboardQueryErrorCode =
+  | "NO_WORKSPACE"
+  | "HTTP_ERROR"
+  | "INVALID_PAYLOAD";
+
+export class DashboardQueryError extends Error {
+  readonly code: DashboardQueryErrorCode;
+  readonly endpoint: string;
+  readonly queryKey: string;
+  readonly status?: number;
+
+  constructor({
+    code,
+    endpoint,
+    message,
+    queryKey,
+    status,
+  }: {
+    code: DashboardQueryErrorCode;
+    endpoint: string;
+    message: string;
+    queryKey: string;
+    status?: number;
+  }) {
+    super(message);
+    this.name = "DashboardQueryError";
+    this.code = code;
+    this.endpoint = endpoint;
+    this.queryKey = queryKey;
+    this.status = status;
+  }
+}
+
 interface DashboardQueryOptions {
   /** Additional enabled condition ANDed with the workspace guard. */
   extraEnabled?: boolean;
@@ -39,7 +74,7 @@ interface DashboardQueryOptions {
   /** Lazily builds the API path (captures hook args in closure). */
   getPath: () => string;
   /** Unique cache key segment (e.g. "workspace-stats"). */
-  key: string;
+  key: DashboardSchemaKey;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T determines return type through useQuery<T>
@@ -49,15 +84,39 @@ function useDashboardQuery<T>(options: DashboardQueryOptions) {
   return useQuery<T>({
     queryKey: [options.key, workspace?.id, ...(options.extraQueryKeyParams ?? [])],
     queryFn: async () => {
-      if (!workspace) throw new Error("No workspace selected");
-
-      const response = await apiFetch(options.getPath());
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch ${options.key}`);
+      const endpoint = options.getPath();
+      if (!workspace) {
+        throw new DashboardQueryError({
+          code: "NO_WORKSPACE",
+          endpoint,
+          message: "Select a workspace to load dashboard data.",
+          queryKey: options.key,
+        });
       }
 
-      return response.json() as Promise<T>;
+      const response = await apiFetch(endpoint);
+      if (!response.ok) {
+        throw new DashboardQueryError({
+          code: "HTTP_ERROR",
+          endpoint,
+          message: "Dashboard data could not be loaded.",
+          queryKey: options.key,
+          status: response.status,
+        });
+      }
+
+      try {
+        const payload: unknown = await response.json();
+        return dashboardSchemaByKey[options.key].parse(payload) as T;
+      } catch {
+        throw new DashboardQueryError({
+          code: "INVALID_PAYLOAD",
+          endpoint,
+          message: "Dashboard returned an invalid response.",
+          queryKey: options.key,
+          status: response.status,
+        });
+      }
     },
     enabled: !!workspace && (options.extraEnabled ?? true),
   });
@@ -137,8 +196,10 @@ export const useRecruitmentSourceBreakdown = () =>
 export function useTurnoverAnalytics(startDate: string, endDate: string) {
   return useDashboardQuery<TurnoverAnalytics>({
     key: "turnover-analytics",
-    getPath: () =>
-      `/v1/dashboard/turnover-analytics?start=${startDate}&end=${endDate}`,
+    getPath: () => {
+      const params = new URLSearchParams({ start: startDate, end: endDate });
+      return `/v1/dashboard/turnover-analytics?${params.toString()}`;
+    },
     extraQueryKeyParams: [startDate, endDate],
     extraEnabled: !!startDate && !!endDate,
   });

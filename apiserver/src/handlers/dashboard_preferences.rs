@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::permissions::Permission;
 use crate::errors::AppResult;
 use crate::handlers::common::MemberContext;
 use crate::AppState;
@@ -41,7 +42,9 @@ fn default_visible_widgets() -> serde_json::Value {
         "peak_times": false,
         "leave_types": false,
         "lateness_by_day": false,
+        "recruitment_sources": true,
         "turnover_analytics": false,
+        "unexcused_absences": false,
         "promo_cards": false
     })
 }
@@ -57,7 +60,9 @@ fn default_widget_order() -> serde_json::Value {
         "peak_times",
         "leave_types",
         "lateness_by_day",
+        "recruitment_sources",
         "turnover_analytics",
+        "unexcused_absences",
         "promo_cards"
     ])
 }
@@ -90,6 +95,7 @@ pub async fn get_dashboard_preferences(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<DashboardPreferences>> {
+    ctx.require_permission(Permission::DashboardPreferences)?;
     let workspace_id = ctx.workspace_id;
     let user_id = ctx.user_id;
 
@@ -135,6 +141,7 @@ pub async fn update_dashboard_preferences(
     ctx: MemberContext,
     Json(body): Json<UpdateDashboardPreferences>,
 ) -> AppResult<Json<DashboardPreferences>> {
+    ctx.require_permission(Permission::DashboardPreferences)?;
     let _workspace_id = ctx.workspace_id;
     let user_id = ctx.user_id;
 

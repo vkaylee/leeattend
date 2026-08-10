@@ -13,6 +13,7 @@ import {
 } from "recharts";
 
 import { Typography } from "@/components/ui/typography";
+import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { usePeakTimes } from "@/hooks/use-dashboard";
 
 const COLORS = {
@@ -36,7 +37,7 @@ function ChartGradients() {
 }
 
 export default function PeakTimesChart() {
-    const { data: slots, isLoading } = usePeakTimes();
+    const { data: slots, error, isLoading } = usePeakTimes();
 
     const chartData = slots ?? [];
 
@@ -50,6 +51,8 @@ export default function PeakTimesChart() {
 
             {isLoading ? (
                 <ChartLoading />
+            ) : error ? (
+                <DashboardChartError icon={<BarChart3 size={48} />} />
             ) : !hasData ? (
                 <ChartEmpty />
             ) : (

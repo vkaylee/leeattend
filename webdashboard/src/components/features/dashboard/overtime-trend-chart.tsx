@@ -13,6 +13,7 @@ import {
 } from "recharts";
 
 import { Typography } from "@/components/ui/typography";
+import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { useOvertimeTrend } from "@/hooks/use-dashboard";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
@@ -68,7 +69,7 @@ function OvertimeEmptyState({ t }: { t: (k: string) => string }) {
 export default function OvertimeTrendChart() {
     const { t } = useTranslation();
     const { formatDate } = useDateTimeFormatter();
-    const { data: trend, isLoading } = useOvertimeTrend();
+    const { data: trend, error, isLoading } = useOvertimeTrend();
 
     const { chartData, hasData } = getOvertimeChartData(trend, formatDate);
 
@@ -80,6 +81,8 @@ export default function OvertimeTrendChart() {
                 <div className="h-[280px] flex items-center justify-center">
                     <div className="w-8 h-8 border-2 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 rounded-full animate-spin" />
                 </div>
+            ) : error ? (
+                <DashboardChartError icon={<Clock size={48} />} />
             ) : !hasData ? (
                 <OvertimeEmptyState t={t} />
             ) : (

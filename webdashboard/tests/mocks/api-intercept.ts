@@ -24,12 +24,15 @@ export async function setupApiMocks(page: Page) {
     
 
  
-    const fulfill = async (data: unknown, status = 200) => {
-      
+    const fulfill = async (data?: unknown, status = 200) => {
+      if (data === undefined) {
+        return route.fulfill({ status });
+      }
+
       return route.fulfill({
         status,
         contentType: 'application/json',
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
       });
     };
 
@@ -150,56 +153,96 @@ export async function setupApiMocks(page: Page) {
 
     // 7. Dashboard Stats & Trends
     if (/\/api\/dashboard\/workspace-stats/.exec(pathname)) {
-      return fulfill({ employee_count: 2, present_today: 1, on_leave: 0, pending_requests: 0 });
+      return fulfill({
+        absent_today: 2,
+        avg_work_hours_today: 7.5,
+        early_departure_today: 0,
+        estimated_monthly_payroll: "125000.00",
+        late_today: 1,
+        on_leave_today: 0,
+        pending_leave_requests: 0,
+        present_today: 20,
+        total_employees: 22,
+      });
     }
 
     if (/\/api\/dashboard\/attendance-trend/.exec(pathname)) {
       return fulfill([
-        { date: "2026-01-10", present: 20, absent: 2, late: 1 },
-        { date: "2026-01-11", present: 22, absent: 0, late: 0 }
+        { date: "2026-01-10", present: 20, absent: 2, late: 1, on_leave: 0 },
+        { date: "2026-01-11", present: 22, absent: 0, late: 0, on_leave: 1 },
       ]);
     }
 
+    if (/\/api\/dashboard\/department-attendance/.exec(pathname)) {
+      return fulfill([{
+        absent: 1,
+        department_id: "dept-1",
+        department_name: "Kỹ thuật",
+        late: 2,
+        on_leave: 0,
+        on_time: 19,
+      }]);
+    }
+
     if (/\/api\/dashboard\/unexcused-absences/.exec(pathname)) {
-      return fulfill({
-        data: [],
-        pagination: { total_count: 0, page: 1, page_size: 50, totalpages: 0 }
-      });
+      return fulfill([]);
     }
 
     if (/\/api\/dashboard\/overtime-trend/.exec(pathname)) {
       return fulfill([
-        { date: "2026-01-10", hours: 5.5 },
-        { date: "2026-01-11", hours: 3.2 }
+        { date: "2026-01-10", system_ot_hours: 5.5, approved_ot_hours: 4 },
+        { date: "2026-01-11", system_ot_hours: 3.2, approved_ot_hours: 2.5 },
       ]);
     }
 
     if (/\/api\/dashboard\/peak-times/.exec(pathname)) {
       return fulfill([
-        { hour: 8, count: 15 },
-        { hour: 9, count: 5 }
+        { time_slot: "08:00", check_in: 15, check_out: 2 },
+        { time_slot: "09:00", check_in: 5, check_out: 1 },
       ]);
     }
 
     if (/\/api\/dashboard\/leave-types/.exec(pathname)) {
       return fulfill([
-        { type: "SICK", count: 2 },
-        { type: "ANNUAL", count: 5 }
+        { leave_type: "SICK", count: 2 },
+        { leave_type: "ANNUAL", count: 5 },
       ]);
     }
 
     if (/\/api\/dashboard\/lateness-by-day/.exec(pathname)) {
       return fulfill([
-        { day: "Mon", count: 3 },
-        { day: "Tue", count: 1 }
+        { day: "Mon", late_count: 3, avg_late_minutes: 12 },
+        { day: "Tue", late_count: 1, avg_late_minutes: 8 },
       ]);
+    }
+
+    if (/\/api\/dashboard\/recruitment-sources/.exec(pathname)) {
+      return fulfill([
+        { source_name: "Referral", source_type: "referral", count: 4 },
+        { source_name: "Job board", source_type: "job_board", count: 2 },
+      ]);
+    }
+
+    if (/\/api\/dashboard\/turnover-analytics/.exec(pathname)) {
+      return fulfill({
+        by_department: [{ department_name: "Kỹ thuật", count: 1 }],
+        by_source: [{ source_name: "Referral", source_type: "referral", count: 1 }],
+        period_start: "2026-01-01",
+        period_end: "2026-01-31",
+        tenure_distribution: [{ bucket: "0-1 year", count: 1 }],
+        total_terminated: 1,
+      });
     }
 
     if (/\/api\/dashboard\/preferences/.exec(pathname)) {
       return fulfill({
-        dashboard_layout: {},
-        theme: "light",
-        notifications_enabled: true
+        id: "dashboard-pref-mock-1",
+        user_id: MOCK_USER.id,
+        workspace_id: MOCK_WORKSPACE.id,
+        active_view: "overview",
+        visible_widgets: {},
+        widget_order: [],
+        collapsed_sections: {},
       });
     }
 
@@ -323,9 +366,13 @@ export async function setupApiMocks(page: Page) {
           last_seen: new Date().toISOString(),
           devices: devices.map(d => ({
             device_id: d.id,
-            is_connected: d.is_enabled,
-            employee_count: 0,
-            last_sync: new Date().toISOString()
+            status: d.is_enabled ? "online" : "offline",
+            last_sync: new Date().toISOString(),
+            info: {
+              device_time: new Date().toISOString(),
+              logs_count: 0,
+              users_count: 0,
+            },
           }))
         }
       ]);
@@ -354,9 +401,10 @@ export async function setupApiMocks(page: Page) {
           last_status: "pending",
           created_at: new Date().toISOString(),
           workspace_id: MOCK_WORKSPACE.id,
+          max_concurrent_workers: 2,
         };
         devices.push(newDevice);
-        return fulfill(newDevice, 201);
+        return fulfill({ id: newDevice.id }, 201);
       }
 
       // Extract device ID from URL pattern /api/devices/{id}
@@ -370,20 +418,43 @@ export async function setupApiMocks(page: Page) {
           const index = devices.findIndex(d => d.id === deviceId);
           if (index >= 0) {
             devices[index] = { ...devices[index], ...body };
-            return fulfill(devices[index]);
+            return fulfill(undefined, 200);
           }
           return fulfill({ error: "not found" }, 404);
         }
 
+        // GET /api/devices/:id/info
+        if (method === 'GET' && pathname.endsWith(`/devices/${deviceId}/info`)) {
+          const device = devices.find(d => d.id === deviceId);
+          if (!device) return fulfill({ error: "not found" }, 404);
+          return fulfill({
+            device_time: new Date().toISOString(),
+            firmware: "mock-firmware",
+            hw_name: device.name,
+            last_info_update: new Date().toISOString(),
+            last_sync: new Date().toISOString(),
+            logs_capacity: 10000,
+            logs_count: 0,
+            mac: "00:00:00:00:00:01",
+            platform: device.brand,
+            serial: device.id,
+            users_capacity: 1000,
+            users_count: 0,
+          });
+        }
+
         // DELETE /api/devices/:id
         if (method === 'DELETE') {
+          const exists = devices.some(d => d.id === deviceId);
+          if (!exists) return fulfill({ error: "not found" }, 404);
           devices = devices.filter(d => d.id !== deviceId);
-          return fulfill({ success: true });
+          return fulfill(undefined, 204);
         }
       }
 
-      // Fallback for unhandled device routes
-      return fulfill(devices);
+      // Fail closed for an unrecognized device route instead of returning a
+      // truthy list that hides contract regressions in the UI.
+      return fulfill({ error: "unhandled device route" }, 404);
     }
 
     // 11. Working Patterns, Shifts, Schedules, Holidays, Leaves (Common workspace resources)
@@ -472,9 +543,10 @@ export async function setupApiMocks(page: Page) {
       });
     }
 
-    // Mặc định trả về success cho các POST/PUT/DELETE khác để không gãy flow UI
+    // Keep unknown mutations visible to tests instead of masking a missing
+    // endpoint with a successful response.
     if (['POST', 'PUT', 'DELETE'].includes(method)) {
-      return fulfill({ success: true, id: "new-id" });
+      return fulfill({ error: "unhandled endpoint" }, 404);
     }
 
     // Fallback cho các API khác - Luôn trả về Array rỗng nếu không biết, 

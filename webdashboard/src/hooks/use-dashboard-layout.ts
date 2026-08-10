@@ -11,6 +11,7 @@ import {
     getCurrentWidgetOrder,
     getNewOrderForView,
     getNewVisibleForView,
+    sanitizeDashboardPreferences,
     type DashboardLayoutPreferences,
     type DashboardView,
     type WidgetId,
@@ -19,6 +20,16 @@ import {
 export type { DashboardView, WidgetId } from "./use-dashboard-layout-presets";
 export { ALL_WIDGETS } from "./use-dashboard-layout-presets";
 import { useWorkspace } from "./use-workspace";
+
+export class DashboardPreferencesError extends Error {
+    readonly status?: number;
+
+    constructor(message: string, status?: number) {
+        super(message);
+        this.name = "DashboardPreferencesError";
+        this.status = status;
+    }
+}
 
 interface LocalOverrides {
     activeView: DashboardView | null;
@@ -34,8 +45,14 @@ function useDashboardPreferences(workspaceId: string | undefined) {
         queryKey: ["dashboard-preferences", workspaceId],
         queryFn: async () => {
             const response = await apiFetch("/v1/dashboard/preferences");
-            if (!response.ok) throw new Error("Failed to fetch dashboard preferences");
-            return (await response.json()) as DashboardLayoutPreferences;
+            if (!response.ok) {
+                throw new DashboardPreferencesError("Dashboard preferences could not be loaded.", response.status);
+            }
+            try {
+                return sanitizeDashboardPreferences(await response.json());
+            } catch {
+                throw new DashboardPreferencesError("Dashboard preferences returned an invalid response.", response.status);
+            }
         },
         enabled: !!workspaceId,
     });
@@ -51,8 +68,14 @@ function useDashboardMutation(workspaceId: string | undefined) {
                 method: "PUT",
                 body: JSON.stringify(update),
             });
-            if (!response.ok) throw new Error("Failed to save dashboard preferences");
-            return (await response.json()) as DashboardLayoutPreferences;
+            if (!response.ok) {
+                throw new DashboardPreferencesError("Dashboard preferences could not be saved.", response.status);
+            }
+            try {
+                return sanitizeDashboardPreferences(await response.json());
+            } catch {
+                throw new DashboardPreferencesError("Dashboard preferences returned an invalid response.", response.status);
+            }
         },
         onSuccess: (data) => {
             queryClient.setQueryData(queryKey, data);

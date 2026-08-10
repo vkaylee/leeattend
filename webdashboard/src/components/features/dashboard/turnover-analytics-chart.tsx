@@ -17,6 +17,7 @@ import {
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
+import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { useTurnoverAnalytics } from "@/hooks/use-dashboard";
 import { cn } from "@/lib/utils";
 
@@ -158,7 +159,7 @@ export default function TurnoverAnalyticsChart() {
     const periods = useMemo(() => getPeriodOptions(t), [t]);
     const currentPeriod = periods.find((p) => p.value === selectedPeriod) ?? periods[1];
 
-    const { data, isLoading } = useTurnoverAnalytics(
+    const { data, error, isLoading } = useTurnoverAnalytics(
         currentPeriod.startDate,
         currentPeriod.endDate
     );
@@ -174,6 +175,21 @@ export default function TurnoverAnalyticsChart() {
             <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm animate-pulse">
                 <div className="h-4 w-48 bg-slate-200 dark:bg-slate-700 rounded-full mb-8" />
                 <div className="h-64 bg-slate-100 dark:bg-slate-800 rounded-3xl" />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
+                <ChartHeader
+                    data={undefined}
+                    periods={periods}
+                    selectedPeriod={selectedPeriod}
+                    setSelectedPeriod={setSelectedPeriod}
+                    t={t}
+                />
+                <DashboardChartError icon={<span className="text-4xl" aria-hidden="true">!</span>} />
             </div>
         );
     }

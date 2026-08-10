@@ -11,6 +11,7 @@ import {
 } from "recharts";
 
 import { Typography } from "@/components/ui/typography";
+import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { useLeaveTypesBreakdown } from "@/hooks/use-dashboard";
 
 const LEAVE_COLORS = [
@@ -26,7 +27,7 @@ const LEAVE_COLORS = [
 
 export default function LeaveTypesChart() {
     const { t } = useTranslation();
-    const { data: leaveTypes, isLoading } = useLeaveTypesBreakdown();
+    const { data: leaveTypes, error, isLoading } = useLeaveTypesBreakdown();
 
     const chartData = (leaveTypes ?? []).map((item, index) => ({
         ...item,
@@ -55,6 +56,8 @@ export default function LeaveTypesChart() {
                 <div className="h-[280px] flex items-center justify-center">
                     <div className="w-8 h-8 border-2 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 rounded-full animate-spin" />
                 </div>
+            ) : error ? (
+                <DashboardChartError icon={<PieChartIcon size={48} />} />
             ) : !hasData ? (
                 <div className="h-[280px] flex flex-col items-center justify-center">
                     <PieChartIcon className="text-slate-200 dark:text-slate-700 mb-4" size={48} />

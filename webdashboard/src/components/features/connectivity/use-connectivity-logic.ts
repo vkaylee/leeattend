@@ -155,7 +155,17 @@ export function useConnectivityActions({
     e.preventDefault();
     try {
       if (editingDevice) {
-        await updateDevice(editingDevice.id, editingDevice);
+        const updatePayload: UpdateDeviceRequest = {
+          brand: editingDevice.brand,
+          ip: editingDevice.ip,
+          is_enabled: editingDevice.is_enabled,
+          location_id: editingDevice.location_id ?? null,
+          name: editingDevice.name,
+          password: editingDevice.password ?? null,
+          port: editingDevice.port,
+          timezone: editingDevice.timezone ?? null,
+        };
+        await updateDevice(editingDevice.id, updatePayload);
         toast.success(t("devices.toast.update_success"));
         setEditingDevice(null);
       } else {

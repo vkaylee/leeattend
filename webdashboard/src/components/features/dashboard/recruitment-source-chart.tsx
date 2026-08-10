@@ -10,6 +10,7 @@ import {
 } from "recharts";
 
 import { Typography } from "@/components/ui/typography";
+import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { useRecruitmentSourceBreakdown } from "@/hooks/use-dashboard";
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -90,13 +91,22 @@ function RecruitmentLegend({ chartData }: { chartData: RecruitmentChartEntry[] }
 
 export default function RecruitmentSourceChart() {
     const { t } = useTranslation();
-    const { data, isLoading } = useRecruitmentSourceBreakdown();
+    const { data, error, isLoading } = useRecruitmentSourceBreakdown();
 
     if (isLoading) {
         return (
             <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm animate-pulse">
                 <div className="h-4 w-40 bg-slate-200 dark:bg-slate-700 rounded-full mb-8" />
                 <div className="h-64 bg-slate-100 dark:bg-slate-800 rounded-3xl" />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
+                <RecruitmentHeader t={t} />
+                <DashboardChartError icon={<span className="text-4xl" aria-hidden="true">!</span>} />
             </div>
         );
     }

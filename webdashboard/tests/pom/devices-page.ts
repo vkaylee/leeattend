@@ -42,8 +42,6 @@ export class DevicesPage extends BasePage {
       await this.page.getByTestId(`agent-header-${agentId}`).click(); // Expand first if not visible
     }
     await addBtn.click();
-    await this.page.waitForTimeout(1000);
-    await this.page.screenshot({ path: 'add-device-fail.png', fullPage: true });
     await expect(this.page.getByTestId('add-device-form')).toBeVisible();
   }
 
@@ -54,7 +52,7 @@ export class DevicesPage extends BasePage {
     password?: string;
     agentId?: string; // Note: In current UI, agent is often pre-selected or read-only in Add form
     brand?: string;
-    timezone?: string; // Note: Timezone removed from current UI
+    timezone?: string;
   }) {
     if (data.name !== undefined) {
       await this.page.getByTestId('device-name-input').fill(data.name);
@@ -75,8 +73,9 @@ export class DevicesPage extends BasePage {
       await this.page.getByTestId(`device-brand-select-option-${data.brand}`).click();
     }
     
-    // Note: agentId and timezone are currently skipped as they are either pre-selected
-    // or removed from the UI. If needed in the future, add them here.
+    if (data.timezone !== undefined) {
+      await this.page.getByTestId('device-timezone-select').selectOption(data.timezone);
+    }
   }
 
   async submitDeviceForm() {

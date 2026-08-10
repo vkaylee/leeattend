@@ -98,6 +98,7 @@ export const MOCK_DEVICES_INITIAL: Device[] = [
     last_status: "online",
     created_at: "2025-01-01T00:00:00Z",
     workspace_id: "ws-mock-123",
+    max_concurrent_workers: 2,
   },
   {
     id: "device-mock-2",
@@ -112,5 +113,6 @@ export const MOCK_DEVICES_INITIAL: Device[] = [
     last_status: "offline",
     created_at: "2025-01-02T00:00:00Z",
     workspace_id: "ws-mock-123",
+    max_concurrent_workers: 2,
   },
 ];

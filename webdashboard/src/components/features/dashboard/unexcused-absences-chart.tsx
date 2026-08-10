@@ -14,6 +14,7 @@ import {
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
+import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { useUnexcusedAbsences } from "@/hooks/use-dashboard";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +22,7 @@ type RangePreset = "7d" | "30d" | "custom";
 type GroupBy = "department" | "employee";
 
 function toISODate(d: Date): string {
-    return d.toISOString().slice(0, 10);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 const COLORS = {
@@ -124,7 +125,7 @@ export default function UnexcusedAbsencesChart() {
         return { startDate: toISODate(s), endDate: toISODate(now) };
     }, [preset]);
 
-    const { data, isLoading } = useUnexcusedAbsences(startDate, endDate, groupBy);
+    const { data, error, isLoading } = useUnexcusedAbsences(startDate, endDate, groupBy);
 
     const chartData = (data ?? [])
         .map((d) => ({
@@ -161,6 +162,8 @@ export default function UnexcusedAbsencesChart() {
 
             {isLoading ? (
                 <ChartLoading />
+            ) : error ? (
+                <DashboardChartError icon={<ShieldAlert size={48} />} />
             ) : !hasData ? (
                 <ChartEmpty />
             ) : (

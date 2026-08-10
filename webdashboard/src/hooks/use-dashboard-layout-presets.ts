@@ -127,6 +127,61 @@ export const ALL_WIDGETS: { id: WidgetId; labelKey: string }[] = [
     { id: "promo_cards", labelKey: "dashboard.widgets.promo_cards" },
 ];
 
+const WIDGET_ID_SET = new Set<WidgetId>(ALL_WIDGETS.map((widget) => widget.id));
+const DEFAULT_WIDGET_ORDER = ALL_WIDGETS.map((widget) => widget.id);
+
+export function sanitizeWidgetOrder(value: unknown): WidgetId[] {
+    const seen = new Set<WidgetId>();
+    const order: WidgetId[] = [];
+    if (Array.isArray(value)) {
+        value.forEach((candidate) => {
+            if (typeof candidate !== "string" || !WIDGET_ID_SET.has(candidate as WidgetId)) return;
+            const id = candidate as WidgetId;
+            if (seen.has(id)) return;
+            seen.add(id);
+            order.push(id);
+        });
+    }
+    DEFAULT_WIDGET_ORDER.forEach((id) => {
+        if (!seen.has(id)) order.push(id);
+    });
+    return order;
+}
+
+export function sanitizeVisibleWidgets(value: unknown): Record<WidgetId, boolean> {
+    const visible = Object.fromEntries(DEFAULT_WIDGET_ORDER.map((id) => [id, true])) as Record<WidgetId, boolean>;
+    if (!value || typeof value !== "object" || Array.isArray(value)) return visible;
+    Object.entries(value).forEach(([candidate, enabled]) => {
+        if (WIDGET_ID_SET.has(candidate as WidgetId) && typeof enabled === "boolean") {
+            visible[candidate as WidgetId] = enabled;
+        }
+    });
+    return visible;
+}
+
+export function sanitizeDashboardPreferences(value: unknown): DashboardLayoutPreferences {
+    const raw = value && typeof value === "object" ? value as Record<string, unknown> : {};
+    const activeView = raw.active_view === "attendance" || raw.active_view === "trends" || raw.active_view === "custom"
+        ? raw.active_view
+        : "overview";
+    const collapsedRaw = raw.collapsed_sections;
+    const collapsedSections: Record<string, boolean> = { summary: false, charts: false, actions: true };
+    if (collapsedRaw && typeof collapsedRaw === "object" && !Array.isArray(collapsedRaw)) {
+        Object.entries(collapsedRaw).forEach(([section, collapsed]) => {
+            if (typeof collapsed === "boolean") collapsedSections[section] = collapsed;
+        });
+    }
+    return {
+        active_view: activeView,
+        collapsed_sections: collapsedSections,
+        id: typeof raw.id === "string" ? raw.id : "",
+        user_id: typeof raw.user_id === "string" ? raw.user_id : "",
+        visible_widgets: sanitizeVisibleWidgets(raw.visible_widgets),
+        widget_order: sanitizeWidgetOrder(raw.widget_order),
+        workspace_id: typeof raw.workspace_id === "string" ? raw.workspace_id : "",
+    };
+}
+
 // ── Helpers for resolving view-dependent widget state ─────────────────
 
 export function getNewVisibleForView(
@@ -136,13 +191,9 @@ export function getNewVisibleForView(
     if (view === "custom") {
         const prefsVisible = preferences?.visible_widgets;
         if (prefsVisible && Object.keys(prefsVisible).length > 0) {
-            return prefsVisible;
+            return sanitizeVisibleWidgets(prefsVisible);
         }
-        const defaults = {} as Record<WidgetId, boolean>;
-        ALL_WIDGETS.forEach((w) => {
-            defaults[w.id] = true;
-        });
-        return defaults;
+        return sanitizeVisibleWidgets(undefined);
     }
     return PRESET_VIEWS[view].visible as Record<WidgetId, boolean>;
 }
@@ -152,11 +203,7 @@ export function getNewOrderForView(
     preferences: DashboardLayoutPreferences | undefined
 ): WidgetId[] {
     if (view === "custom") {
-        const prefsOrder = preferences?.widget_order;
-        if (prefsOrder && prefsOrder.length > 0) {
-            return prefsOrder;
-        }
-        return ALL_WIDGETS.map((w) => w.id);
+        return sanitizeWidgetOrder(preferences?.widget_order);
     }
     return PRESET_VIEWS[view].order;
 }
@@ -165,14 +212,15 @@ export function getActiveView(
     localActiveView: DashboardView | null,
     preferences: DashboardLayoutPreferences | undefined
 ): DashboardView {
-    return localActiveView ?? preferences?.active_view ?? "overview";
+    const candidate = localActiveView ?? preferences?.active_view;
+    return candidate === "attendance" || candidate === "trends" || candidate === "custom" ? candidate : "overview";
 }
 
 export function getCollapsedSections(
     localCollapsedSections: Record<string, boolean> | null,
     preferences: DashboardLayoutPreferences | undefined
 ): Record<string, boolean> {
-    return localCollapsedSections ?? preferences?.collapsed_sections ?? {};
+    return localCollapsedSections ?? preferences?.collapsed_sections ?? { summary: false, charts: false, actions: true };
 }
 
 export function getCurrentVisibleWidgets(
@@ -188,5 +236,5 @@ export function getCurrentWidgetOrder(
     activeView: DashboardView,
     preferences: DashboardLayoutPreferences | undefined
 ): WidgetId[] {
-    return localOrder ?? getNewOrderForView(activeView, preferences);
+    return localOrder ? sanitizeWidgetOrder(localOrder) : getNewOrderForView(activeView, preferences);
 }
