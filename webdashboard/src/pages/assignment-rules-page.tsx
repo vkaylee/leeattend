@@ -3,6 +3,7 @@ import { Plus, AlertCircle } from "lucide-react";
 import React from "react";
 
 import Button from "@/components/ui/button";
+import { PageContainer } from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { Typography } from "@/components/ui/typography";
 
@@ -24,7 +25,7 @@ export default function AssignmentRulesPage({ hideHeaderTitle }: { hideHeaderTit
   } = useAssignmentRules();
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
+    <PageContainer>
       <PageHeader
         actions={
           <Button
@@ -71,6 +72,6 @@ export default function AssignmentRulesPage({ hideHeaderTitle }: { hideHeaderTit
       </div>
 
       <ConfirmationDialog />
-    </div>
+    </PageContainer>
   );
 }

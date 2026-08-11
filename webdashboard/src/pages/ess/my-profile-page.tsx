@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 
 import { fetchEmployeeEmployments, getCurrentWorkspaceId } from "@/lib/api";
 
+import { PageContainer } from "@/components/ui/page-container";
+
 import { AddContactModal } from "./components/add-contact-modal";
 import { BankDetailsSection } from "./components/bank-details-section";
 import { EmergencyContactsSection } from "./components/emergency-contacts-section";
@@ -53,7 +55,7 @@ export default function MyProfilePage() {
   const hireDate = activeEmployment?.start_date ?? "—";
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
+    <PageContainer>
       <Header activeTab={activeTab} setActiveTab={setActiveTab} t={t} />
 
       <div className="animate-in slide-in-from-bottom-8 duration-700">
@@ -106,6 +108,6 @@ export default function MyProfilePage() {
         setNewContact={setNewContact}
       />
       <ConfirmationDialog />
-    </div>
+    </PageContainer>
   );
 }

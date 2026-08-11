@@ -40,13 +40,14 @@ describe("PageHeader Component", () => {
   // ── Actions ─────────────────────────────────────────────────────
 
   it("renders actions when provided", () => {
-    render(
+    const { container } = render(
       <PageHeader
         actions={<button data-testid="add-btn">Add</button>}
         title="Members"
       />,
     );
     expect(screen.getByTestId("add-btn")).toBeInTheDocument();
+    expect(container.querySelector(".w-full.flex-wrap")).toHaveClass("md:w-auto");
   });
 
   it("does not render actions container when not provided", () => {

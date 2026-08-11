@@ -65,6 +65,7 @@ pub fn build_workers(
                 let outbox_sweep = crate::worker::OutboxSweepScheduler::new(
                     Arc::clone(&services.outbox),
                     Arc::clone(&coordinator),
+                    roster_cache.clone(),
                 );
 
                 (

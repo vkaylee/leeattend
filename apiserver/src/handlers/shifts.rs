@@ -4,6 +4,7 @@ use axum::{
     response::{IntoResponse, Json},
 };
 use chrono::NaiveDate;
+use std::collections::HashSet;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -264,7 +265,7 @@ pub async fn create_shift(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(workspace_id).await;
+        cache.evict_local(workspace_id).await;
     }
 
     Ok((StatusCode::CREATED, Json(shift)))
@@ -297,7 +298,7 @@ pub async fn update_shift(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     Ok(Json(shift))
@@ -373,7 +374,7 @@ pub async fn assign_shift(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     // Recalculate attendance for days already worked under the reassigned shift.
@@ -690,7 +691,7 @@ pub async fn upsert_roster(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     reprocess_after_roster_change(&state, ctx.workspace_id, active_employment_id, req.date).await;
@@ -723,6 +724,11 @@ pub async fn bulk_upsert_roster(
         return Err(AppError::validation(I18nKey::RosterBatchTooLarge));
     }
 
+    let mut dates = HashSet::with_capacity(req.items.len());
+    if req.items.iter().any(|item| !dates.insert(item.date)) {
+        return Err(AppError::validation(I18nKey::Validation));
+    }
+
     let emp = state
         .employees()
         .repo()
@@ -733,28 +739,38 @@ pub async fn bulk_upsert_roster(
         .active_employment_id()
         .ok_or_else(|| AppError::validation(I18nKey::NoActiveEmployment))?;
 
-    // Compliance check: validate each shift_id across its assigned dates
+    // Compliance check: validate each shift_id across its assigned dates.
+    // Preserve first-seen order while grouping so validation is deterministic.
     let mut shift_dates: std::collections::HashMap<Uuid, Vec<NaiveDate>> =
         std::collections::HashMap::new();
+    let mut shift_order = Vec::new();
     for item in &req.items {
         if let Some(sid) = item.shift_id {
+            if !shift_dates.contains_key(&sid) {
+                shift_order.push(sid);
+            }
             shift_dates.entry(sid).or_default().push(item.date);
         }
     }
-    for (shift_id, dates) in &shift_dates {
-        let compliance_req = ComplianceCheckRequest {
-            employment_id: active_employment_id,
-            shift_id: *shift_id,
-            dates: dates.clone(),
-            allow_warnings: req.allow_warnings,
-            override_reason: req.override_reason.clone(),
-        };
-        state
-            .shifts()
-            .compliance()
-            .validate_assignments(ctx.workspace_id, &ctx.auth_token, &compliance_req)
-            .await?;
-    }
+    let compliance_reqs: Vec<ComplianceCheckRequest> = shift_order
+        .into_iter()
+        .filter_map(|shift_id| {
+            shift_dates
+                .remove(&shift_id)
+                .map(|dates| ComplianceCheckRequest {
+                    employment_id: active_employment_id,
+                    shift_id,
+                    dates,
+                    allow_warnings: req.allow_warnings,
+                    override_reason: req.override_reason.clone(),
+                })
+        })
+        .collect();
+    state
+        .shifts()
+        .compliance()
+        .validate_assignments_batch(ctx.workspace_id, &ctx.auth_token, &compliance_reqs)
+        .await?;
 
     let dates: Vec<NaiveDate> = req.items.iter().map(|i| i.date).collect();
     state
@@ -764,7 +780,7 @@ pub async fn bulk_upsert_roster(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     // The roster write above is durable; attendance recalculation is offloaded to
@@ -836,7 +852,7 @@ pub async fn delete_roster(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     reprocess_after_roster_change(&state, ctx.workspace_id, active_employment_id, date).await;

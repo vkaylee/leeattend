@@ -1,0 +1,13 @@
+DROP TRIGGER IF EXISTS trg_roster_cache_invalidation_shift_templates ON public.shift_templates;
+DROP TRIGGER IF EXISTS trg_roster_cache_invalidation_shift_versions ON public.shift_versions;
+DROP TRIGGER IF EXISTS trg_roster_cache_invalidation_employee_shifts ON public.employee_shifts;
+DROP TRIGGER IF EXISTS trg_roster_cache_invalidation_employee_working_patterns ON public.employee_working_patterns;
+DROP TRIGGER IF EXISTS trg_roster_cache_invalidation_working_pattern_details ON public.working_pattern_details;
+DROP TRIGGER IF EXISTS trg_roster_cache_invalidation_working_patterns ON public.working_patterns;
+DROP TRIGGER IF EXISTS trg_roster_cache_invalidation_assignment_rules ON public.assignment_rules;
+DROP TRIGGER IF EXISTS trg_roster_cache_invalidation_employments ON public.employments;
+DROP TRIGGER IF EXISTS trg_roster_cache_invalidation_employees ON public.employees;
+DROP TRIGGER IF EXISTS trg_roster_cache_invalidation_shift_default_intervals ON public.shift_default_intervals;
+DROP TRIGGER IF EXISTS trg_roster_cache_invalidation_work_segments ON public.work_segments;
+
+DROP FUNCTION IF EXISTS public.enqueue_roster_cache_invalidation();

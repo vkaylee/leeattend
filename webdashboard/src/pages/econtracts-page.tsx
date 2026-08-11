@@ -12,6 +12,7 @@ import { EContractsFilters } from "@/components/features/employees/econtracts-fi
 import { EContractsTable } from "@/components/features/employees/econtracts-table";
 import Button from "@/components/ui/button";
 import FormField from "@/components/ui/form-field";
+import { PageContainer } from "@/components/ui/page-container";
 import Modal from "@/components/ui/modal";
 import PageHeader from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
@@ -175,7 +176,7 @@ export default function EContractsPage() {
   const isPageLoading = isLoadingContracts || isLoadingEmployees;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
+    <PageContainer>
       <PageHeader
         actions={
           <div className="flex flex-wrap items-center gap-3">
@@ -258,6 +259,6 @@ export default function EContractsPage() {
       ) : null}
 
       <ConfirmationDialog />
-    </div>
+    </PageContainer>
   );
 }

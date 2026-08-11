@@ -1,5 +1,7 @@
 import React from "react";
 
+import { PageContainer } from "@/components/ui/page-container";
+
 import { LeaveBalancesFilters } from "./leave-balances/components/leave-balances-filters";
 import { LeaveBalancesHeader } from "./leave-balances/components/leave-balances-header";
 import { LeaveBalancesModals } from "./leave-balances/components/leave-balances-modals";
@@ -32,7 +34,7 @@ export default function LeaveBalancesPage() {
   } = useLeaveBalances();
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
+    <PageContainer>
       <LeaveBalancesHeader
         isPending={accrualMutation.isPending}
         onRunAccrual={handleRunAccrual}
@@ -79,6 +81,6 @@ export default function LeaveBalancesPage() {
       />
 
       <ConfirmationDialog />
-    </div>
+    </PageContainer>
   );
 }

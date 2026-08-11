@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { apiFetch } from "@/lib/api/helpers";
 
@@ -37,6 +37,13 @@ interface LocalOverrides {
     visibleWidgets: Record<WidgetId, boolean> | null;
     widgetOrder: WidgetId[] | null;
 }
+
+const EMPTY_LOCAL_OVERRIDES: LocalOverrides = {
+    activeView: null,
+    collapsedSections: null,
+    visibleWidgets: null,
+    widgetOrder: null,
+};
 
 type DashboardPreferencesUpdate = Partial<Omit<DashboardLayoutPreferences, "id" | "user_id" | "workspace_id">>;
 
@@ -92,29 +99,24 @@ export function useDashboardLayout() {
     const mutation = useDashboardMutation();
     const queryClient = useQueryClient();
     const queryKey = ["dashboard-preferences", wsId];
-    const emptyOverrides: LocalOverrides = {
-        activeView: null,
-        collapsedSections: null,
-        visibleWidgets: null,
-        widgetOrder: null,
-    };
-    const [local, setLocal] = useState<LocalOverrides>(emptyOverrides);
-    const localRef = useRef<LocalOverrides>(emptyOverrides);
+    const [local, setLocal] = useState<LocalOverrides>(EMPTY_LOCAL_OVERRIDES);
+    const localRef = useRef<LocalOverrides>(EMPTY_LOCAL_OVERRIDES);
     const mutationSequence = useRef(0);
     const activeWriteRef = useRef<PendingDashboardWrite | null>(null);
     const queuedWriteRef = useRef<PendingDashboardWrite | null>(null);
     const [saveError, setSaveError] = useState<DashboardPreferencesError | null>(null);
     const [prevWorkspaceId, setPrevWorkspaceId] = useState<string | undefined>(wsId);
 
-    if (wsId !== prevWorkspaceId) {
+    useEffect(() => {
+        if (wsId === prevWorkspaceId) return;
         setPrevWorkspaceId(wsId);
-        localRef.current = emptyOverrides;
+        localRef.current = EMPTY_LOCAL_OVERRIDES;
         activeWriteRef.current = null;
         queuedWriteRef.current = null;
-        setLocal(emptyOverrides);
+        setLocal(EMPTY_LOCAL_OVERRIDES);
         setSaveError(null);
         mutationSequence.current += 1;
-    }
+    }, [prevWorkspaceId, wsId]);
 
     const getEffectiveState = () => {
         const currentActiveView = getActiveView(localRef.current.activeView, preferences);
@@ -150,14 +152,14 @@ export function useDashboardLayout() {
                     queuedWriteRef.current = null;
                     startWrite({
                         ...queued,
-                        rollbackLocal: emptyOverrides,
+                        rollbackLocal: EMPTY_LOCAL_OVERRIDES,
                     });
                     return;
                 }
                 activeWriteRef.current = null;
                 if (write.sequence !== mutationSequence.current) return;
-                localRef.current = emptyOverrides;
-                setLocal(emptyOverrides);
+                localRef.current = EMPTY_LOCAL_OVERRIDES;
+                setLocal(EMPTY_LOCAL_OVERRIDES);
                 setSaveError(null);
             })
             .catch((error: unknown) => {

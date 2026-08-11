@@ -23,6 +23,15 @@ pub trait OutboxJobRepository: Send + Sync {
         error_message: Option<String>,
     ) -> Result<(), AppError>;
 
+    async fn update_job_status_if_current(
+        &self,
+        auth_token: &TenantAuthToken,
+        id: Uuid,
+        expected_status: &str,
+        status: &str,
+        error_message: Option<String>,
+    ) -> Result<(), AppError>;
+
     async fn get_pending_jobs(
         &self,
         auth_token: &TenantAuthToken,
@@ -38,6 +47,13 @@ pub trait OutboxJobRepository: Send + Sync {
 
     async fn get_all_stuck_jobs(
         &self,
+        older_than: chrono::DateTime<chrono::Utc>,
+        limit: i64,
+    ) -> Result<Vec<OutboxJob>, AppError>;
+
+    async fn get_all_stuck_jobs_by_type(
+        &self,
+        job_type: &str,
         older_than: chrono::DateTime<chrono::Utc>,
         limit: i64,
     ) -> Result<Vec<OutboxJob>, AppError>;

@@ -2,6 +2,8 @@ import { useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { PageContainer } from "@/components/ui/page-container";
+
 import { PatternHeader } from "./attendance/components/working-patterns/header";
 import { PatternModals } from "./attendance/components/working-patterns/modals";
 import { PatternGrid } from "./attendance/components/working-patterns/pattern-grid";
@@ -44,7 +46,7 @@ export default function WorkingPatternsPage({ hideHeaderTitle }: { hideHeaderTit
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
+    <PageContainer>
       <PatternHeader
         hideTitle={hideHeaderTitle}
         onBulkAssignClick={() => {
@@ -97,6 +99,6 @@ export default function WorkingPatternsPage({ hideHeaderTitle }: { hideHeaderTit
 
       <PatternModals hook={hook} />
       <ConfirmationDialog />
-    </div>
+    </PageContainer>
   );
 }

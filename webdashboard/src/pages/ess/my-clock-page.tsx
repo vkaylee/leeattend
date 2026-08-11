@@ -10,6 +10,7 @@ import {
   AdjustmentRequestModal,
 } from "@/components/time-tracking/adjustment-request-modal";
 import { PunchCard } from "@/components/time-tracking/punch-card";
+import { PageContainer } from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
@@ -84,7 +85,7 @@ export default function MyClockPage() {
   if (!employee) return <EmptyState t={t} />;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
+    <PageContainer>
       <PageHeader data-testid="ess-clock-title" subtitle={t("ess.clock.subtitle")} title={t("ess.clock.title")} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -111,7 +112,7 @@ export default function MyClockPage() {
         onSubmit={handleAdjustmentSubmit}
         timezone={workspace?.timezone ?? "UTC"}
       />
-    </div>
+    </PageContainer>
   );
 }
 

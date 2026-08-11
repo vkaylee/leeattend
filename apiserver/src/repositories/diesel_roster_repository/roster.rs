@@ -245,6 +245,51 @@ impl DieselRosterRepository {
             .await
     }
 
+    pub(super) async fn get_employment_rosters_batch_by_windows(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        windows: &[(Uuid, NaiveDate, NaiveDate)],
+    ) -> Result<std::collections::HashMap<Uuid, Vec<ShiftRoster>>, AppError> {
+        if windows.is_empty() {
+            return Ok(std::collections::HashMap::new());
+        }
+
+        let workspace_id = auth_token.workspace_id();
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    // UUIDs and dates are strongly typed before interpolation here;
+                    // the predicate contains no caller-controlled raw text.
+                    use std::fmt::Write as _;
+                    let mut predicate = String::from("FALSE");
+                    for (employment_id, start_date, end_date) in windows {
+                        let _ = write!(
+                            predicate,
+                            " OR (shift_rosters.employment_id = '{employment_id}' AND shift_rosters.date >= '{start_date}' AND shift_rosters.date <= '{end_date}')"
+                        );
+                    }
+
+                    let rosters = shift_rosters::table
+                        .inner_join(employments::table)
+                        .filter(employments::workspace_id.eq(workspace_id))
+                        .filter(diesel::dsl::sql::<diesel::sql_types::Bool>(&predicate))
+                        .select(shift_rosters::all_columns)
+                        .load::<ShiftRosterEntity>(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db roster windows: {e}")))?;
+
+                    let mut map = std::collections::HashMap::new();
+                    for roster in rosters {
+                        map.entry(roster.employment_id)
+                            .or_insert_with(Vec::new)
+                            .push(roster.into());
+                    }
+                    Ok(map)
+                })
+            })
+            .await
+    }
+
     pub(super) async fn upsert_roster(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -267,6 +312,23 @@ impl DieselRosterRepository {
 
                     if employment_exists.is_none() {
                         return Err(AppError::not_found(I18nKey::EmploymentNotFound));
+                    }
+
+                    if let Some(template_id) = roster.shift_id {
+                        let template_exists = shift_templates::table
+                            .filter(shift_templates::id.eq(template_id))
+                            .filter(shift_templates::workspace_id.eq(workspace_id))
+                            .select(shift_templates::id)
+                            .first::<Uuid>(conn)
+                            .await
+                            .optional()
+                            .map_err(|e| {
+                                AppError::Internal(format!("db check shift template: {e}"))
+                            })?;
+
+                        if template_exists.is_none() {
+                            return Err(AppError::not_found(I18nKey::ShiftNotFound));
+                        }
                     }
 
                     let entity: crate::models::diesel::roster::ShiftRosterEntity =
@@ -318,6 +380,26 @@ impl DieselRosterRepository {
 
                     if employment_exists.is_none() {
                         return Err(AppError::not_found(I18nKey::EmploymentNotFound));
+                    }
+
+                    let mut template_ids: Vec<Uuid> =
+                        items.iter().filter_map(|item| item.shift_id).collect();
+                    template_ids.sort_unstable();
+                    template_ids.dedup();
+                    if !template_ids.is_empty() {
+                        let valid_template_ids = shift_templates::table
+                            .filter(shift_templates::workspace_id.eq(workspace_id))
+                            .filter(shift_templates::id.eq_any(&template_ids))
+                            .select(shift_templates::id)
+                            .load::<Uuid>(conn)
+                            .await
+                            .map_err(|e| {
+                                AppError::Internal(format!("db check shift templates: {e}"))
+                            })?;
+
+                        if valid_template_ids.len() != template_ids.len() {
+                            return Err(AppError::not_found(I18nKey::ShiftNotFound));
+                        }
                     }
 
                     let entities: Vec<ShiftRosterEntity> = items

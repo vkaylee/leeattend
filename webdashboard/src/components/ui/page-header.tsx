@@ -3,7 +3,6 @@ import React, { memo } from "react";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
-
 // ── Component ──────────────────────────────────────────────────────
 
 export interface PageHeaderProps {
@@ -20,7 +19,6 @@ export interface PageHeaderProps {
   title: string;
 }
 
-
 const PageHeader = memo(function PageHeader({
   title,
   subtitle,
@@ -33,7 +31,7 @@ const PageHeader = memo(function PageHeader({
   return (
     <div
       className={cn(
-        "flex flex-col md:flex-row md:items-center justify-between gap-6 px-2",
+        "flex flex-col items-stretch md:flex-row md:items-center justify-between gap-6",
         className,
       )}
     >
@@ -59,7 +57,7 @@ const PageHeader = memo(function PageHeader({
         </div>
       )}
       {!!actions && (
-        <div className="flex items-center gap-3 animate-in fade-in slide-in-from-right-4 duration-700">
+        <div className="flex w-full flex-wrap items-center justify-start gap-3 animate-in fade-in slide-in-from-right-4 duration-700 md:w-auto md:justify-end">
           {actions}
         </div>
       )}

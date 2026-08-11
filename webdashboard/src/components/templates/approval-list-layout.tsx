@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { ErrorBoundary } from "@/components/common/error-boundary";
 import Button from "@/components/ui/button";
+import { PageContainer } from "@/components/ui/page-container";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +16,7 @@ export interface TabConfig {
 
 function ApprovalListTabs({ activeTab, onTabChange, tabs }: { activeTab: string; onTabChange: (tabId: string) => void; tabs: TabConfig[] }) {
   return (
-    <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-primary-200 dark:border-primary-800/50/50 shadow-inner">
+    <div className="flex w-full max-w-full overflow-x-auto scrollbar-hide bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] border border-primary-200 dark:border-primary-800/50/50 shadow-inner sm:w-fit" role="tablist">
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         
@@ -42,12 +43,16 @@ function ApprovalListTabs({ activeTab, onTabChange, tabs }: { activeTab: string;
         }
 
         return (
-          <Button className={cn(
-              "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
-              activeClasses
+          <Button
+            aria-selected={isActive}
+            className={cn(
+              "flex shrink-0 items-center gap-2 px-4 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all sm:px-8",
+              activeClasses,
             )}
             key={tab.id}
             onClick={() => { onTabChange(tab.id); }}
+            role="tab"
+            type="button"
             variant="ghost"
           >
             {tab.icon} {tab.label}
@@ -97,9 +102,9 @@ export default function ApprovalListLayout({
 
   return (
     <ErrorBoundary>
-      <div className="space-y-6 animate-in fade-in duration-700 pb-20">
+      <PageContainer>
       {!hideHeader && (
-        <div className="flex flex-col md:flex-row justify-between items-center gap-8 px-2">
+        <div className="flex flex-col items-stretch md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-1">
             <Typography as="h1" className="text-2xl font-bold tracking-tight text-slate-850 dark:text-slate-100 normal-case mb-0.5" variant="h3">
               {title}
@@ -110,7 +115,7 @@ export default function ApprovalListLayout({
               </Typography>
             )}
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex w-full flex-wrap items-center justify-start gap-3 md:w-auto md:justify-end">
             {headerActions}
           </div>
         </div>
@@ -140,8 +145,8 @@ export default function ApprovalListLayout({
                 return (
                   <th
                     className={cn(
-                      "py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]",
-                      isFirst ? "px-10" : isLast ? "px-10" : "px-8",
+                      "py-4 md:py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]",
+                      isFirst ? "px-4 md:px-10" : isLast ? "px-4 md:px-10" : "px-4 md:px-8",
                       alignClass
                     )}
                     key={index}
@@ -157,7 +162,7 @@ export default function ApprovalListLayout({
               Array.from({ length: 3 }).map((_, i) => (
                  <tr className="animate-pulse border-b border-primary-50 dark:border-primary-800/30" key={`skeleton-${i}`}>
                    {tableHeaders.map((_, colIdx) => (
-                     <td className="px-8 py-8" key={`skel-col-${colIdx}`}>
+                     <td className="px-4 py-6 md:px-8 md:py-8" key={`skel-col-${colIdx}`}>
                        <div className={cn("h-4 bg-slate-200 dark:bg-slate-800 rounded-lg opacity-50", colIdx === 0 ? "w-32" : colIdx === tableHeaders.length - 1 ? "w-24 ml-auto" : "w-20")} />
                      </td>
                    ))}
@@ -165,7 +170,7 @@ export default function ApprovalListLayout({
                ))
             ) : isEmpty ? (
               <tr>
-                <td className="px-10 py-32 text-center text-primary-400 font-bold italic uppercase tracking-widest text-xs opacity-50" colSpan={tableHeaders.length}>
+                <td className="px-4 py-24 md:px-10 md:py-32 text-center text-primary-400 font-bold italic uppercase tracking-widest text-xs opacity-50" colSpan={tableHeaders.length}>
                   {emptyMessage ?? t("common.no_data")}
                 </td>
               </tr>
@@ -178,7 +183,7 @@ export default function ApprovalListLayout({
       </div>
 
       {modals}
-      </div>
+      </PageContainer>
     </ErrorBoundary>
   );
 }

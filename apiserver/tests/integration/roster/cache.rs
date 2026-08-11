@@ -3,10 +3,13 @@
 //! Tests for `build_roster_data` — the async loader that fetches all
 //! roster-related data for a workspace in parallel queries.
 
+use crate::common::app::require_test_redis_pool;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::cache::build_roster_data;
+use apiserver::cache::{build_roster_data, RosterCache};
 use chrono::NaiveDate;
+use redis::AsyncCommands;
+use std::sync::Arc;
 
 // ---------------------------------------------------------------------------
 // Empty / baseline
@@ -316,4 +319,186 @@ async fn test_build_returns_arc_with_consistent_data() {
             .expect("same shift should exist in both");
         assert_eq!(shift.name(), other.name());
     }
+}
+
+// ---------------------------------------------------------------------------
+// Redis-backed cache behavior
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn test_redis_cache_reuses_and_refreshes_workspace_snapshot() {
+    let redis = require_test_redis_pool("roster cache integration test").await;
+
+    let test_db = TestDatabase::new().await;
+    let factory = TestFactory::new(test_db.diesel_pools.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let workspace_id = factory.workspace().create().await;
+    let first_shift = factory.shift().with_workspace(workspace_id).create().await;
+    let cache = RosterCache::new(redis);
+    cache
+        .bump_version(workspace_id)
+        .await
+        .expect("Redis version initialization should succeed");
+
+    let first = cache
+        .get_roster_data(workspace_id, &diesel_pools)
+        .await
+        .expect("initial roster cache load should succeed");
+    let second = cache
+        .get_roster_data(workspace_id, &diesel_pools)
+        .await
+        .expect("cached roster load should succeed");
+
+    assert!(Arc::ptr_eq(&first, &second));
+    assert!(first.shifts.contains_key(&first_shift));
+
+    let second_shift = factory.shift().with_workspace(workspace_id).create().await;
+    cache
+        .bump_version(workspace_id)
+        .await
+        .expect("Redis version bump should succeed");
+    cache.evict_local(workspace_id).await;
+
+    let refreshed = cache
+        .get_roster_data(workspace_id, &diesel_pools)
+        .await
+        .expect("invalidated roster cache load should succeed");
+    assert!(!Arc::ptr_eq(&first, &refreshed));
+    assert!(refreshed.shifts.contains_key(&second_shift));
+}
+
+#[tokio::test]
+async fn test_redis_cache_key_loss_bypasses_local_snapshot() {
+    let redis = require_test_redis_pool("roster cache key-loss integration test").await;
+
+    let test_db = TestDatabase::new().await;
+    let factory = TestFactory::new(test_db.diesel_pools.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let workspace_id = factory.workspace().create().await;
+    let first_shift = factory.shift().with_workspace(workspace_id).create().await;
+    let cache = RosterCache::new(redis.clone());
+    cache
+        .bump_version(workspace_id)
+        .await
+        .expect("Redis version initialization should succeed");
+
+    let first = cache
+        .get_roster_data(workspace_id, &diesel_pools)
+        .await
+        .expect("initial roster cache load should succeed");
+    assert!(first.shifts.contains_key(&first_shift));
+
+    let second_shift = factory.shift().with_workspace(workspace_id).create().await;
+    let key = format!("roster:version:{workspace_id}");
+    let mut conn = redis.conn();
+    conn.del::<_, ()>(&key)
+        .await
+        .expect("Redis version key should be deletable for key-loss test");
+    drop(conn);
+
+    let refreshed = cache
+        .get_roster_data(workspace_id, &diesel_pools)
+        .await
+        .expect("cache should fall back to a direct DB load after key loss");
+    assert!(refreshed.shifts.contains_key(&second_shift));
+
+    let mut conn = redis.conn();
+    let remaining_generation: Option<String> = conn
+        .get(&key)
+        .await
+        .expect("Redis version key should remain readable after key-loss load");
+    drop(conn);
+    assert!(remaining_generation.is_none());
+}
+
+#[tokio::test]
+async fn test_redis_generation_key_loss_cannot_reuse_stale_local_token() {
+    let redis = require_test_redis_pool("roster cache generation collision test").await;
+
+    let test_db = TestDatabase::new().await;
+    let factory = TestFactory::new(test_db.diesel_pools.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let workspace_id = factory.workspace().create().await;
+    let first_shift = factory.shift().with_workspace(workspace_id).create().await;
+    let cache = RosterCache::new(redis.clone());
+    let replica = cache.new_replica();
+    cache
+        .bump_version(workspace_id)
+        .await
+        .expect("Redis version initialization should succeed");
+
+    let stale_snapshot = replica
+        .get_roster_data(workspace_id, &diesel_pools)
+        .await
+        .expect("initial replica roster load should succeed");
+    assert!(stale_snapshot.shifts.contains_key(&first_shift));
+
+    let key = format!("roster:version:{workspace_id}");
+    let mut conn = redis.conn();
+    conn.del::<_, ()>(&key)
+        .await
+        .expect("Redis version key should be deletable");
+    drop(conn);
+
+    let second_shift = factory.shift().with_workspace(workspace_id).create().await;
+    cache
+        .bump_version(workspace_id)
+        .await
+        .expect("Redis generation should be replaceable after key loss");
+
+    let refreshed = replica
+        .get_roster_data(workspace_id, &diesel_pools)
+        .await
+        .expect("replica should reject the stale local token");
+    assert!(refreshed.shifts.contains_key(&second_shift));
+    assert!(!Arc::ptr_eq(&stale_snapshot, &refreshed));
+}
+
+#[tokio::test]
+async fn test_redis_cache_generation_tokens_are_unique_and_workspace_scoped() {
+    let redis = require_test_redis_pool("roster cache integration test").await;
+
+    let test_db = TestDatabase::new().await;
+    let factory = TestFactory::new(test_db.diesel_pools.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let workspace_a = factory.workspace().create().await;
+    let workspace_b = factory.workspace().create().await;
+    factory.shift().with_workspace(workspace_a).create().await;
+    factory.shift().with_workspace(workspace_b).create().await;
+    let cache = RosterCache::new(redis.clone());
+    let workspace_b_generation = cache
+        .bump_version(workspace_b)
+        .await
+        .expect("Redis version initialization should succeed");
+
+    let data_b = cache
+        .get_roster_data(workspace_b, &diesel_pools)
+        .await
+        .expect("workspace B cache load should succeed");
+
+    let first_a_generation = cache
+        .bump_version(workspace_a)
+        .await
+        .expect("workspace A version bump should succeed");
+    let second_a_generation = cache
+        .bump_version(workspace_a)
+        .await
+        .expect("workspace A version bump should succeed");
+    assert_ne!(first_a_generation, second_a_generation);
+
+    let key_b = format!("roster:version:{workspace_b}");
+    let mut conn = redis.conn();
+    let after_b: String = conn
+        .get(&key_b)
+        .await
+        .expect("workspace B version should remain readable");
+    drop(conn);
+
+    assert_eq!(after_b, workspace_b_generation.to_string());
+
+    let data_b_again = cache
+        .get_roster_data(workspace_b, &diesel_pools)
+        .await
+        .expect("workspace B cached load should succeed");
+    assert!(Arc::ptr_eq(&data_b, &data_b_again));
 }

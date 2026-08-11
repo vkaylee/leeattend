@@ -1,5 +1,7 @@
 import React from "react";
 
+import { PageContainer } from "@/components/ui/page-container";
+
 import { PersonalizationTab } from "./profile/components/personalization-tab";
 import { ProfileHeader } from "./profile/components/profile-header";
 import { ProfileTab } from "./profile/components/profile-tab";
@@ -27,7 +29,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
+    <PageContainer>
       <ProfileHeader 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
@@ -52,6 +54,6 @@ export default function ProfilePage() {
           <SecurityTab />
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

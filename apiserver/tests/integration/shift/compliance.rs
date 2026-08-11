@@ -250,3 +250,123 @@ async fn test_compliance_override_with_reason() {
         "Override with reason must succeed"
     );
 }
+
+/// A single bulk request can contain multiple shift groups and day-off entries.
+#[tokio::test]
+async fn test_bulk_compliance_validates_multiple_shift_groups() {
+    let (address, workspace_id, user_id, factory, _db): (
+        String,
+        Uuid,
+        Uuid,
+        TestFactory,
+        TestDatabase,
+    ) = spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+    let auth_token = factory.auth().create_token(user_id);
+    let emp_id = factory
+        .employee()
+        .with_workspace(workspace_id)
+        .create()
+        .await;
+    let today = Utc::now().date_naive();
+    let later = today + chrono::Duration::days(2);
+    let shift_a = factory
+        .shift()
+        .with_workspace(workspace_id)
+        .with_name("Batch Shift A")
+        .create()
+        .await;
+    let shift_b = factory
+        .shift()
+        .with_workspace(workspace_id)
+        .with_name("Batch Shift B")
+        .create()
+        .await;
+    let shift_conflict = factory
+        .shift()
+        .with_workspace(workspace_id)
+        .with_name("Batch Shift Conflict")
+        .with_times(
+            NaiveTime::from_hms_opt(9, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+        )
+        .create()
+        .await;
+
+    let duplicate_date_response = client
+        .post(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/employees/{emp_id}/rosters/bulk"
+        ))
+        .header("Authorization", format!("Bearer {auth_token}"))
+        .json(&serde_json::json!({
+            "items": [
+                {"date": today.to_string(), "shift_id": shift_a},
+                {"date": today.to_string(), "shift_id": shift_conflict}
+            ],
+            "allow_warnings": false
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(
+        duplicate_date_response.status(),
+        StatusCode::BAD_REQUEST,
+        "a bulk request must reject duplicate dates instead of silently overwriting"
+    );
+
+    let seed = client
+        .post(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/employees/{emp_id}/rosters/bulk"
+        ))
+        .header("Authorization", format!("Bearer {auth_token}"))
+        .json(&serde_json::json!({
+            "items": [{"date": later.to_string(), "shift_id": shift_b}],
+            "allow_warnings": false
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(seed.status(), StatusCode::ACCEPTED);
+
+    let response = client
+        .post(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/employees/{emp_id}/rosters/bulk"
+        ))
+        .header("Authorization", format!("Bearer {auth_token}"))
+        .json(&serde_json::json!({
+            "items": [
+                {"date": today.to_string(), "shift_id": shift_a},
+                {"date": (today + chrono::Duration::days(1)).to_string(), "shift_id": null},
+                {"date": later.to_string(), "shift_id": shift_conflict}
+            ],
+            "allow_warnings": false
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "a conflict in the second shift group must reject the whole batch"
+    );
+
+    let roster_response = client
+        .get(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/employees/{emp_id}/rosters?start_date={today}&end_date={later}"
+        ))
+        .header("Authorization", format!("Bearer {auth_token}"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(roster_response.status(), StatusCode::OK);
+    let roster_body: serde_json::Value = roster_response.json().await.unwrap();
+    let rosters = roster_body["data"]
+        .as_array()
+        .expect("roster data must be an array");
+    assert_eq!(
+        rosters.len(),
+        1,
+        "failed validation must not partially persist shift A"
+    );
+}

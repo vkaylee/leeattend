@@ -152,7 +152,7 @@ pub async fn create_work_segment(
 
     // Invalidate roster cache because segments changed
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     Ok((StatusCode::CREATED, Json(segment)))
@@ -187,7 +187,7 @@ pub async fn update_work_segment(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     Ok(Json(segment))
@@ -228,7 +228,7 @@ pub async fn delete_work_segment(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     Ok(StatusCode::NO_CONTENT)
@@ -264,7 +264,7 @@ pub async fn bulk_create_work_segments(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     Ok((StatusCode::CREATED, Json(segments)))

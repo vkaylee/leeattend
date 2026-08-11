@@ -4,17 +4,16 @@
 //! workspace roster data.  Singleflight loading prevents thundering-herd
 //! on cache miss.  Falls back to direct DB load when Redis is unavailable.
 
-use parking_lot::Mutex;
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
-
 use crate::repositories::diesel_department_repository::EmployeeDepartmentHistoryEntity;
-use chrono::{NaiveDate, NaiveTime, Utc};
+use chrono::{NaiveDate, NaiveTime};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use moka::future::Cache;
+use parking_lot::Mutex;
 use redis::AsyncCommands;
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::watch;
 use uuid::Uuid;
 
@@ -409,14 +408,14 @@ type SingleflightMap =
 /// In-memory LRU cache for workspace roster data, version-stamped via Redis.
 ///
 /// * moka LRU holds up to 100 workspaces.
-/// * A Redis key (`roster:version:{workspace_id}`) tracks the current version
-///   timestamp.  When the local cached version matches the remote one the
-///   moka entry is returned directly.
+/// * A Redis key (`roster:version:{workspace_id}`) tracks the current opaque
+///   generation token. When the local cached generation matches the remote one,
+///   the moka entry is returned directly.
 /// * Concurrent misses for the same workspace are coalesced via a
 ///   `tokio::sync::watch` channel (singleflight pattern).
 pub struct RosterCache {
-    /// moka LRU: workspace_id -> (data, version_timestamp)
-    cache: Cache<Uuid, (Arc<RosterData>, i64)>,
+    /// moka LRU: workspace_id -> (data, generation_token)
+    cache: Cache<Uuid, (Arc<RosterData>, Uuid)>,
     /// Redis pool for version key reads / writes
     redis: RedisPool,
     /// Singleflight map: workspace_id -> watch sender (leader holds this)
@@ -433,6 +432,12 @@ impl RosterCache {
         }
     }
 
+    /// Construct an independent local cache sharing this cache's Redis generation store.
+    #[must_use]
+    pub fn new_replica(&self) -> Self {
+        Self::new(self.redis.clone())
+    }
+
     // --- helpers -----------------------------------------------------------
 
     /// Redis key for the version stamp of a workspace's roster data.
@@ -442,32 +447,51 @@ impl RosterCache {
 
     /// Read the current version stamp from Redis.
     ///
-    /// Returns `Utc::now().timestamp()` on miss or error so that the caller
-    /// always triggers a fresh load in those cases.
-    async fn fetch_version(&self, workspace_id: Uuid) -> i64 {
+    /// A missing key is treated as unknown so an existing local entry can never
+    /// be mistaken for a valid cache hit after Redis loses the version key.
+    /// Redis read failures also return `None`, forcing callers to bypass the
+    /// local cache rather than risk serving stale data.
+    async fn fetch_version(&self, workspace_id: Uuid) -> Option<Uuid> {
         let key = Self::version_key(workspace_id);
         let mut conn = self.redis.conn();
-        match conn.get::<_, Option<i64>>(&key).await {
-            Ok(Some(v)) => v,
-            Ok(None) => Utc::now().timestamp(),
+        match conn.get::<_, Option<String>>(&key).await {
+            Ok(Some(value)) => {
+                if let Ok(generation) = Uuid::parse_str(&value) {
+                    Some(generation)
+                } else {
+                    tracing::warn!(
+                        workspace_id = %workspace_id,
+                        "Redis roster generation is malformed"
+                    );
+                    None
+                }
+            }
+            Ok(None) => None,
             Err(e) => {
                 tracing::warn!(workspace_id = %workspace_id, error = %e, "Redis GET version failed");
-                Utc::now().timestamp()
+                None
             }
         }
     }
 
     // --- public API --------------------------------------------------------
 
-    /// Bump the version stamp in Redis and evict the moka entry.
+    /// Advance the shared Redis generation for a workspace.
     ///
-    /// Call this whenever roster-related tables are mutated for a workspace.
-    pub async fn invalidate(&self, workspace_id: Uuid) {
+    /// This operation deliberately performs no request-path retries. Callers
+    /// that need durability must retry the associated outbox job instead.
+    pub async fn bump_version(&self, workspace_id: Uuid) -> Result<Uuid, String> {
         let key = Self::version_key(workspace_id);
+        let generation = Uuid::new_v4();
         let mut conn = self.redis.conn();
-        if let Err(e) = conn.set::<_, _, ()>(&key, Utc::now().timestamp()).await {
-            tracing::warn!(workspace_id = %workspace_id, error = %e, "Redis SET version failed during invalidate");
-        }
+        conn.set::<_, _, ()>(&key, generation.to_string())
+            .await
+            .map_err(|error| error.to_string())?;
+        Ok(generation)
+    }
+
+    /// Evict only this process's local roster snapshot.
+    pub async fn evict_local(&self, workspace_id: Uuid) {
         self.cache.invalidate(&workspace_id).await;
     }
 
@@ -482,11 +506,19 @@ impl RosterCache {
         diesel_pools: &crate::diesel_pool::DieselPools,
     ) -> Result<Arc<RosterData>, String> {
         let remote_version = self.fetch_version(workspace_id).await;
+        if remote_version.is_none() {
+            // Redis is authoritative for cache generations. Never serve or
+            // populate a local snapshot while its generation is unknown.
+            self.cache.invalidate(&workspace_id).await;
+        }
 
-        // Fast path: version match in local cache
-        if let Some((data, ver)) = self.cache.get(&workspace_id).await {
-            if ver == remote_version {
-                return Ok(data);
+        // Fast path: version match in local cache. This path is unavailable
+        // when Redis cannot provide a trustworthy generation.
+        if let Some(remote_version) = remote_version {
+            if let Some((data, ver)) = self.cache.get(&workspace_id).await {
+                if ver == remote_version {
+                    return Ok(data);
+                }
             }
         }
 
@@ -507,7 +539,7 @@ impl RosterCache {
         &self,
         workspace_id: Uuid,
         diesel_pools: &crate::diesel_pool::DieselPools,
-        version: i64,
+        version: Option<Uuid>,
     ) -> Result<Arc<RosterData>, String> {
         // Determine leader vs follower while holding the mutex only briefly.
         let (is_leader, mut rx) = {
@@ -527,7 +559,47 @@ impl RosterCache {
 
         if is_leader {
             // --- leader path -----------------------------------------------
-            let result = build_roster_data(diesel_pools, workspace_id).await;
+            // Validate the generation after loading so a mutation committed
+            // during the database fetch cannot publish an obsolete snapshot.
+            let mut load_version = version;
+            let mut result = Err("Roster generation remained unstable during load".to_string());
+            let mut consistent = false;
+
+            for attempt in 0..2 {
+                let loaded = build_roster_data(diesel_pools, workspace_id).await;
+                match loaded {
+                    Err(error) => {
+                        result = Err(error);
+                        consistent = true;
+                        break;
+                    }
+                    Ok(data) if load_version.is_none() => {
+                        result = Ok(data);
+                        consistent = true;
+                        break;
+                    }
+                    Ok(data) => match self.fetch_version(workspace_id).await {
+                        Some(current) if Some(current) == load_version => {
+                            result = Ok(data);
+                            consistent = true;
+                            break;
+                        }
+                        Some(current) if attempt == 0 => {
+                            load_version = Some(current);
+                        }
+                        _ => {
+                            result = Err("Roster generation changed while loading workspace data"
+                                .to_string());
+                            consistent = true;
+                            break;
+                        }
+                    },
+                }
+            }
+
+            if !consistent {
+                result = Err("Roster generation remained unstable during load".to_string());
+            }
 
             // Remove ourselves from the inflight map and retrieve the sender.
             let sender = self.inflight.lock().remove(&workspace_id);
@@ -537,8 +609,8 @@ impl RosterCache {
                 let _ = sender.send(Some(result.as_ref().map(Arc::clone).map_err(Clone::clone)));
             }
 
-            // On success, insert into moka.
-            if let Ok(ref data) = result {
+            // Only cache results under a trustworthy Redis generation.
+            if let (Ok(data), Some(version)) = (&result, load_version) {
                 self.cache
                     .insert(workspace_id, (Arc::clone(data), version))
                     .await;
@@ -562,16 +634,32 @@ impl RosterCache {
             // Mutable borrow from wait_for is now fully dropped.
 
             if leader_finished {
+                if let Some(expected) = version {
+                    if self.fetch_version(workspace_id).await != Some(expected) {
+                        return Err("Roster generation changed while waiting for workspace data"
+                            .to_string());
+                    }
+                }
+
                 // Leader finished — extract the result via shared borrow.
                 let value = rx.borrow();
                 match value.as_ref() {
                     Some(Ok(data)) => Ok(Arc::clone(data)),
                     Some(Err(e)) => Err(e.clone()),
-                    None => unreachable!("wait_for ensures Some"),
+                    None => {
+                        Err("Roster cache leader closed before publishing a result".to_string())
+                    }
                 }
             } else {
-                // Timeout or channel closed — fall back to direct load.
-                build_roster_data(diesel_pools, workspace_id).await
+                // Timeout or channel closed — fall back to a direct load, but
+                // still reject it if the known generation changed.
+                let result = build_roster_data(diesel_pools, workspace_id).await;
+                if let Some(expected) = version {
+                    if self.fetch_version(workspace_id).await != Some(expected) {
+                        return Err("Roster generation changed during workspace reload".to_string());
+                    }
+                }
+                result
             }
         }
     }

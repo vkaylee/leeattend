@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import { PageContainer } from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import { useMyProfile } from "@/hooks/use-ess";
 import { useMyOtAssignments, useEmployeeQuota } from "@/hooks/use-overtime-requests";
@@ -27,7 +28,7 @@ export default function EssOtPage() {
   if (!wsId || !employeeId) return null;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
+    <PageContainer>
       <PageHeader
         actions={
           <Button
@@ -61,6 +62,6 @@ export default function EssOtPage() {
           wsId={wsId}
         />
       ) : null}
-    </div>
+    </PageContainer>
   );
 }

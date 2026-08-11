@@ -22,6 +22,7 @@ import ApprovalListLayout from "@/components/templates/approval-list-layout";
 import Button from "@/components/ui/button";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { FilterTrigger } from "@/components/ui/filter-trigger";
+import { PageContainer } from "@/components/ui/page-container";
 import { PageTabs, PageTab } from "@/components/ui/page-tabs";
 import ResponsiveTable from "@/components/ui/responsive-table";
 import ResponsiveToolbar from "@/components/ui/responsive-toolbar";
@@ -123,14 +124,14 @@ export default function LeaveRequestsPage() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
-      <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-4 px-1">
+    <PageContainer>
+      <div className="flex flex-col items-stretch gap-4 border-b border-slate-50 pb-4 px-1 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
         <Typography className="text-2xl font-bold text-slate-850 dark:text-slate-100 tracking-tight normal-case" variant="h3">{t("leave_requests.title")}</Typography>
-        <div className="flex gap-3">
-          <Button className="rounded-xl h-10 text-xs font-bold uppercase tracking-wider shadow-sm" onClick={() => { setIsImportModalOpen(true); }} variant="outline">
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+          <Button className="h-10 w-full rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm sm:w-auto" onClick={() => { setIsImportModalOpen(true); }} variant="outline">
             <Upload className="w-4 h-4 mr-2" />{t("leave_requests.import_excel")}
           </Button>
-          <Button className="rounded-xl h-10 text-xs font-bold uppercase tracking-wider shadow-md" onClick={() => { setIsModalOpen(true); }} variant="primary">
+          <Button className="h-10 w-full rounded-xl text-xs font-bold uppercase tracking-wider shadow-md sm:w-auto" onClick={() => { setIsModalOpen(true); }} variant="primary">
             <Plus className="w-4 h-4 mr-2" />{t("leave_requests.add")}
           </Button>
         </div>
@@ -223,6 +224,6 @@ export default function LeaveRequestsPage() {
       {activeTab !== "behalf_assignments" && (
         <FloatingRecordBadge label={t("common.pagination.records")} loaded={requests.length} total={requestsTotal} />
       )}
-    </div>
+    </PageContainer>
   );
 }
