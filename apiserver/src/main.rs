@@ -173,26 +173,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 2. Connect pools (API/worker/tenant all go through PgBouncer)
     let diesel_pools = DieselPools::connect(&db_config)?;
 
-    // 3. Run pending migrations & reconcile in the background
-    let db_config_clone = db_config.clone();
-    let diesel_pools_clone = diesel_pools.clone();
-    tokio::spawn(async move {
-        tracing::info!("Starting background tenant migrations and reconciliation...");
-        if let Err(e) =
-            apiserver::utils::startup_reconciliation::register_workspace_tenants_and_migrate(
-                &db_config_clone,
-                &diesel_pools_clone,
-                backup_cache,
-            )
-            .await
-        {
-            tracing::error!("Error during background tenant migrations: {:?}", e);
-        } else {
-            tracing::info!(
-                "Background tenant migrations and reconciliation completed successfully."
-            );
-        }
-    });
+    // 3. Run pending tenant migrations and reconcile before serving requests.
+    // This fail-closed gate guarantees every tenant has the durable invalidation
+    // triggers before any mutation can reach the request path.
+    tracing::info!("Starting tenant migrations and reconciliation...");
+    apiserver::utils::startup_reconciliation::register_workspace_tenants_and_migrate(
+        &db_config,
+        &diesel_pools,
+        backup_cache,
+    )
+    .await?;
+    tracing::info!("Tenant migrations and reconciliation completed successfully.");
 
     // ╔═══════════════════════════════════════════════════════════════╗
     // ║  POOL ASSIGNMENT RULES                                       ║
@@ -205,7 +196,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ║  ⚠  DO NOT use state.infra().db.reader() for mutations (INSERT/etc)   ║
     // ╚═══════════════════════════════════════════════════════════════╝
 
-    // Initialize Redis for distributed job processing and presence tracking (optional)
+    // Initialize Redis for durable roster-cache invalidation and distributed processing
     tracing::info!("Initializing Redis connection...");
     let redis_pool = init_redis(&registry).await?;
     tracing::info!("Redis initialization complete");
@@ -320,10 +311,10 @@ async fn run_qualifying_days_blast_radius() -> Result<(), Box<dyn std::error::Er
 async fn init_redis(
     registry: &apiserver::utils::env_registry::EnvRegistry,
 ) -> Result<Option<RedisPool>, Box<dyn std::error::Error>> {
-    let Some(url) = registry.get("REDIS_URL") else {
-        tracing::info!("REDIS_URL not set, distributed processing and presence tracking disabled");
-        return Ok(None);
-    };
+    let url = registry.get("REDIS_URL").ok_or_else(|| {
+        tracing::error!("REDIS_URL is required for durable processing");
+        "REDIS_URL is required for durable roster-cache invalidation".to_string()
+    })?;
 
     tracing::info!("Connecting to configured Redis service");
 

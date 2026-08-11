@@ -284,6 +284,44 @@ mod tests {
     use crate::repositories::workspace_repository::MockWorkspaceRepository;
 
     #[tokio::test]
+    async fn test_roster_invalidation_malformed_payload_is_failed() {
+        let ws_id = Uuid::new_v4();
+        let job_id = Uuid::new_v4();
+        let mut mock_outbox_repo = MockOutboxJobRepository::new();
+        mock_outbox_repo
+            .expect_update_job_status_if_current()
+            .withf(move |token, id, expected, status, error| {
+                token.workspace_id() == ws_id
+                    && *id == job_id
+                    && expected == "running"
+                    && status == "failed"
+                    && error.as_deref() == Some("Invalid roster cache invalidation payload")
+            })
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let outbox_service = Arc::new(OutboxJobService::new(Arc::new(mock_outbox_repo)));
+        let coordinator = Arc::new(ReportCoordinator::new(
+            Arc::new(MockQueueRepository::new()),
+            Arc::new(MockEmployeeRepository::new()),
+            Arc::new(MockWorkspaceRepository::new()),
+            outbox_service.clone(),
+        ));
+        let scheduler = OutboxSweepScheduler::new(outbox_service, coordinator, None);
+        let job = OutboxJob::new(NewOutboxJobParams {
+            id: job_id,
+            workspace_id: ws_id,
+            job_type: "RosterCacheInvalidation".to_string(),
+            payload: serde_json::json!(["malformed"]),
+            status: "running".to_string(),
+            error_message: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        });
+
+        scheduler.process_roster_cache_invalidation(&job).await;
+    }
+
+    #[tokio::test]
     async fn test_outbox_sweep_re_enqueues_stuck_job() {
         let ws_id = Uuid::new_v4();
         let requester_id = Uuid::new_v4();

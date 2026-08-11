@@ -154,15 +154,15 @@ pub async fn create_test_redis_pool() -> Option<apiserver::queue::RedisPool> {
     None
 }
 
-/// Return a Redis pool for tests that verify Redis behavior and report an
-/// explicit skip when Redis is not configured in the test environment.
+/// Return a Redis pool for tests that verify Redis behavior.
+///
+/// Redis-backed integration tests must fail when Redis is unavailable instead
+/// of silently passing without exercising the behavior under test.
 #[allow(dead_code)]
-pub async fn require_test_redis_pool(test_name: &str) -> Option<apiserver::queue::RedisPool> {
-    let pool = create_test_redis_pool().await;
-    if pool.is_none() {
-        eprintln!("SKIPPED {test_name}: Redis integration tests require REDIS_URL");
-    }
-    pool
+pub async fn require_test_redis_pool(test_name: &str) -> apiserver::queue::RedisPool {
+    create_test_redis_pool()
+        .await
+        .unwrap_or_else(|| panic!("{test_name} requires REDIS_URL and a reachable Redis service"))
 }
 
 /// Basic app spawn - returns address (URL) and `TestDatabase`

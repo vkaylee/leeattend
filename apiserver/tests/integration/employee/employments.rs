@@ -6,6 +6,8 @@ use crate::common::factory::TestFactory;
 use apiserver::worker::OutboxSweepScheduler;
 use apiserver::AppState;
 use axum::http::StatusCode;
+use diesel_async::RunQueryDsl;
+use redis::AsyncCommands;
 use serde_json::json;
 use std::sync::Arc;
 use tower::ServiceExt;
@@ -376,28 +378,124 @@ async fn test_employment_mutations_invalidate_roster_cache() {
         },
     )
     .expect("test database migrations should be current");
-    let trigger_count = crate::test_query_scalar_i64!(
+    let missing_trigger_count = crate::test_query_scalar_i64!(
         &test_db.diesel_pools.api,
-        "SELECT COUNT(*) FROM pg_trigger WHERE tgname = 'trg_roster_cache_invalidation_employments'");
-    if trigger_count == 0 {
-        crate::test_batch_execute!(
-            &test_db.diesel_pools.api,
-            include_str!(
-                "../../../migrations/tenant/20260810000001_roster_cache_invalidation_outbox/up.sql"
-            )
-        );
-    }
-    let trigger_count = crate::test_query_scalar_i64!(
-        &test_db.diesel_pools.api,
-        "SELECT COUNT(*) FROM pg_trigger WHERE tgname = 'trg_roster_cache_invalidation_employments'");
-    assert!(
-        trigger_count > 0,
-        "roster invalidation migration did not install employment trigger"
+        r#"
+        WITH expected(trigger_name) AS (
+            VALUES
+                ('trg_roster_cache_invalidation_shift_templates'::text),
+                ('trg_roster_cache_invalidation_shift_versions'),
+                ('trg_roster_cache_invalidation_employee_shifts'),
+                ('trg_roster_cache_invalidation_employee_working_patterns'),
+                ('trg_roster_cache_invalidation_working_pattern_details'),
+                ('trg_roster_cache_invalidation_working_patterns'),
+                ('trg_roster_cache_invalidation_assignment_rules'),
+                ('trg_roster_cache_invalidation_employments'),
+                ('trg_roster_cache_invalidation_employees'),
+                ('trg_roster_cache_invalidation_shift_default_intervals'),
+                ('trg_roster_cache_invalidation_work_segments')
+        )
+        SELECT COUNT(*)
+        FROM expected
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM pg_trigger
+            WHERE NOT tgisinternal
+              AND tgname::text = expected.trigger_name
+        )
+        "#
     );
-    let Some(cache) = state.infra().roster_cache() else {
-        eprintln!("SKIPPED employment roster invalidation test: REDIS_URL is required");
-        return;
-    };
+    let migration_applied = crate::test_query_scalar_i64!(
+        &test_db.diesel_pools.api,
+        "SELECT COUNT(*) FROM __diesel_schema_migrations WHERE version = '20260811000000'"
+    );
+    assert_eq!(
+        migration_applied, 1,
+        "roster invalidation migration was not applied"
+    );
+    assert_eq!(
+        missing_trigger_count, 0,
+        "roster invalidation migration did not install every durable roster trigger"
+    );
+
+    // Exercise the upgrade path for tenants that applied the original migration
+    // before its version collided with a system migration. The follow-up must be
+    // idempotent, and rolling it back must leave the original trigger set intact.
+    crate::test_batch_execute!(
+        &test_db.diesel_pools.api,
+        include_str!(
+            "../../../migrations/tenant/20260810000001_roster_cache_invalidation_outbox/down.sql"
+        )
+    );
+    crate::test_batch_execute!(
+        &test_db.diesel_pools.api,
+        include_str!(
+            "../../../migrations/tenant/20260810000001_roster_cache_invalidation_outbox/up.sql"
+        )
+    );
+    let old_trigger_count = crate::test_query_scalar_i64!(
+        &test_db.diesel_pools.api,
+        "SELECT COUNT(*) FROM pg_trigger WHERE NOT tgisinternal AND tgname::text LIKE 'trg_roster_cache_invalidation_%'"
+    );
+    assert_eq!(
+        old_trigger_count, 11,
+        "original migration trigger set is incomplete"
+    );
+
+    crate::test_batch_execute!(
+        &test_db.diesel_pools.api,
+        include_str!(
+            "../../../migrations/tenant/20260811000000_roster_cache_invalidation_outbox/up.sql"
+        )
+    );
+    crate::test_batch_execute!(
+        &test_db.diesel_pools.api,
+        include_str!(
+            "../../../migrations/tenant/20260811000000_roster_cache_invalidation_outbox/up.sql"
+        )
+    );
+    let upgraded_trigger_count = crate::test_query_scalar_i64!(
+        &test_db.diesel_pools.api,
+        "SELECT COUNT(*) FROM pg_trigger WHERE NOT tgisinternal AND tgname::text LIKE 'trg_roster_cache_invalidation_%'"
+    );
+    assert_eq!(
+        upgraded_trigger_count, 11,
+        "follow-up migration must be idempotent"
+    );
+    assert_eq!(
+        crate::test_query_scalar_i64!(
+            &test_db.diesel_pools.api,
+            "SELECT COUNT(*) FROM __diesel_schema_migrations WHERE version = '20260810000001'"
+        ),
+        1,
+        "original migration history must remain recorded"
+    );
+
+    crate::test_batch_execute!(
+        &test_db.diesel_pools.api,
+        include_str!(
+            "../../../migrations/tenant/20260811000000_roster_cache_invalidation_outbox/down.sql"
+        )
+    );
+    let rollback_trigger_count = crate::test_query_scalar_i64!(
+        &test_db.diesel_pools.api,
+        "SELECT COUNT(*) FROM pg_trigger WHERE NOT tgisinternal AND tgname::text LIKE 'trg_roster_cache_invalidation_%'"
+    );
+    assert_eq!(
+        rollback_trigger_count, 11,
+        "follow-up rollback must preserve the original trigger set"
+    );
+    crate::test_batch_execute!(
+        &test_db.diesel_pools.api,
+        include_str!(
+            "../../../migrations/tenant/20260811000000_roster_cache_invalidation_outbox/up.sql"
+        )
+    );
+
+    let cache = state
+        .infra()
+        .roster_cache()
+        .expect("employment roster invalidation test requires REDIS_URL");
     let coordinator = state
         .reports()
         .coordinator()
@@ -640,4 +738,86 @@ async fn test_employment_mutations_invalidate_roster_cache() {
         .expect("replica should refresh after delete generation bump");
     assert!(!after_delete.dept_history.contains_key(&emp_id));
     assert!(!after_delete_replica.dept_history.contains_key(&emp_id));
+}
+
+#[tokio::test]
+async fn test_roster_invalidation_replaces_malformed_generation() {
+    let (test_db, factory, state, _app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let cache = state
+        .infra()
+        .roster_cache()
+        .expect("Redis-backed test app must configure roster cache");
+    let coordinator = state
+        .reports()
+        .coordinator()
+        .cloned()
+        .expect("Redis-backed test app must configure report coordinator");
+    let scheduler = OutboxSweepScheduler::new(
+        coordinator.clone().outbox_service().clone(),
+        coordinator,
+        Some(Arc::clone(cache)),
+    );
+
+    let key = format!("roster:version:{ws_id}");
+    let mut redis_conn = state
+        .infra()
+        .redis_pool()
+        .expect("Redis-backed test app must expose Redis pool")
+        .conn();
+    redis_conn
+        .set::<_, _, ()>(&key, "not-a-valid-generation")
+        .await
+        .expect("Redis generation test value should be writable");
+    drop(redis_conn);
+
+    let job_id = Uuid::new_v4();
+    let ten_minutes_ago = chrono::Utc::now() - chrono::Duration::minutes(10);
+    let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
+    let mut tenant_conn = test_db
+        .diesel_pools
+        .tenant_transaction_conn(&auth_token)
+        .await
+        .expect("tenant connection should succeed");
+    diesel::sql_query(
+        "INSERT INTO outbox_jobs (id, workspace_id, job_type, payload, status, created_at, updated_at) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7)",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(job_id)
+    .bind::<diesel::sql_types::Uuid, _>(ws_id)
+    .bind::<diesel::sql_types::Text, _>("RosterCacheInvalidation")
+    .bind::<diesel::sql_types::Jsonb, _>(json!({}))
+    .bind::<diesel::sql_types::Text, _>("pending")
+    .bind::<diesel::sql_types::Timestamptz, _>(ten_minutes_ago)
+    .bind::<diesel::sql_types::Timestamptz, _>(ten_minutes_ago)
+    .execute(&mut *tenant_conn)
+    .await
+    .expect("invalidation job should be insertable");
+    drop(tenant_conn);
+
+    scheduler
+        .sweep_once()
+        .await
+        .expect("malformed Redis generation should be replaced by the worker");
+
+    let status: String = crate::test_query_scalar_string!(
+        &test_db.diesel_pools.api,
+        "SELECT status AS val FROM outbox_jobs WHERE id = $1",
+        diesel::sql_types::Uuid,
+        job_id
+    );
+    assert_eq!(status, "completed");
+
+    let mut redis_conn = state
+        .infra()
+        .redis_pool()
+        .expect("Redis-backed test app must expose Redis pool")
+        .conn();
+    let generation: String = redis_conn
+        .get(&key)
+        .await
+        .expect("worker should write a generation token");
+    assert!(Uuid::parse_str(&generation).is_ok());
 }

@@ -1,4 +1,5 @@
 use crate::diesel_pool::{DbPoolConfig, DieselPools, TenantAuthToken};
+use crate::errors::AppError;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -8,7 +9,7 @@ pub async fn register_workspace_tenants_and_migrate(
     db_config: &DbPoolConfig,
     diesel_pools: &DieselPools,
     backup_cache: HashMap<Uuid, (String, String, rust_decimal::Decimal)>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), AppError> {
     // Query workspaces from system DB via direct connection
     let primary_url = db_config.primary_url.clone();
     let workspaces: Vec<(Uuid, Option<String>)> = match tokio::task::spawn_blocking(move || {
@@ -40,13 +41,11 @@ pub async fn register_workspace_tenants_and_migrate(
     .await
     {
         Ok(Ok(r)) => r,
-        Ok(Err(e)) => {
-            tracing::warn!("{e} — skipping tenant migrations");
-            return Ok(());
-        }
+        Ok(Err(e)) => return Err(AppError::Internal(e)),
         Err(e) => {
-            tracing::error!("Failed to spawn blocking task for workspace query: {e}");
-            return Ok(());
+            return Err(AppError::Internal(format!(
+                "Failed to query workspaces during startup: {e}"
+            )))
         }
     };
 
@@ -63,7 +62,9 @@ pub async fn register_workspace_tenants_and_migrate(
                 .map_err(|e| format!("Invalid ENCRYPTION_KEYS_JSON: {e}"))?;
             Some(crypto)
         } else if app_env == "production" {
-            return Err(Box::from("ENCRYPTION_KEYS_JSON must be set in production"));
+            return Err(AppError::Internal(
+                "ENCRYPTION_KEYS_JSON must be set in production".to_string(),
+            ));
         } else {
             None
         };
@@ -78,24 +79,22 @@ pub async fn register_workspace_tenants_and_migrate(
                 encrypted
             }
         } else {
-            tracing::warn!(
-                "Workspace {} missing custom_db_url_encrypted! Skipping migration.",
-                ws_id
-            );
-            continue;
+            return Err(AppError::Internal(format!(
+                "Workspace {ws_id} is missing custom_db_url_encrypted"
+            )));
         };
 
         // Acquire through the session-pool helper, then release before the blocking migration.
         // TenantPoolManager resolves migration URLs identically to the decrypted tenant URL.
         let tenant_token = TenantAuthToken::system_override(ws_id);
-        if let Err(e) = diesel_pools.tenant_session_conn(&tenant_token).await {
-            tracing::warn!(
-                workspace_id = %ws_id,
-                error = %e,
-                "Failed to acquire tenant session connection — skipping"
-            );
-            continue;
-        }
+        diesel_pools
+            .tenant_session_conn(&tenant_token)
+            .await
+            .map_err(|e| {
+                AppError::Internal(format!(
+                    "Failed to acquire tenant session connection for workspace {ws_id}: {e}"
+                ))
+            })?;
 
         migration_targets.push((ws_id, tenant_url));
     }
@@ -107,33 +106,24 @@ pub async fn register_workspace_tenants_and_migrate(
         );
 
         let cache_clone = backup_cache.clone();
-        match tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || -> Result<(), AppError> {
             for (ws_id, migration_url) in &migration_targets {
-                if let Err(e) = DieselPools::run_single_tenant_migration(migration_url, ws_id) {
-                    tracing::warn!(
-                        workspace_id = %ws_id,
-                        error = %e,
-                        "Tenant migration failed — skipping workspace"
-                    );
-                    continue;
-                }
+                DieselPools::run_single_tenant_migration(migration_url, ws_id).map_err(|e| {
+                    AppError::Internal(format!(
+                        "Tenant migration failed for workspace {ws_id}: {e}"
+                    ))
+                })?;
 
-                // Run EAV reconciliation
+                // Run EAV reconciliation before allowing the application to serve.
                 let backup_info = cache_clone.get(ws_id);
-                if let Err(e) = reconcile_tenant_database(migration_url, ws_id, backup_info) {
-                    tracing::error!(
-                        workspace_id = %ws_id,
-                        error = %e,
-                        "Failed to reconcile tenant database: {e}"
-                    );
-                }
+                reconcile_tenant_database(migration_url, ws_id, backup_info).map_err(|e| {
+                    AppError::Internal(format!("Failed to reconcile workspace {ws_id}: {e}"))
+                })?;
             }
+            Ok(())
         })
         .await
-        {
-            Ok(()) => {}
-            Err(e) => tracing::error!("Tenant migration task panicked: {e}"),
-        }
+        .map_err(|e| AppError::Internal(format!("Tenant migration task panicked: {e}")))??;
     }
     Ok(())
 }

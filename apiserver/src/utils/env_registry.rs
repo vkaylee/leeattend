@@ -705,8 +705,8 @@ pub static ALL_ENV_VARS: &[EnvVarDef] = &[
         key: "REDIS_URL",
         aliases: &[],
         category: EnvCategory::Redis,
-        description: "Redis connection URL. Distributed job processing and presence are disabled if unset.",
-        required_always: false,
+        description: "Redis connection URL. Required for durable roster-cache invalidation and distributed jobs.",
+        required_always: true,
         required_in_prod: false,
         default_value: None,
         sensitivity: Sensitivity::Connection,
@@ -1063,6 +1063,7 @@ mod tests {
         std::env::set_var("DB_PRIMARY_URL", "postgres://u:p@localhost:5432/db");
         std::env::set_var("DB_POOLER_TX_URL", "postgres://u:p@localhost:6543/db");
         std::env::set_var("DB_POOLER_SESS_URL", "postgres://u:p@localhost:5452/db");
+        std::env::set_var("REDIS_URL", "redis://localhost:6379");
     }
 
     #[test]
@@ -1101,9 +1102,9 @@ mod tests {
         assert_eq!(s3.source, ValueSource::Default);
         assert_eq!(s3.value, "http://localhost:9000");
 
-        // REDIS_URL is optional
+        // REDIS_URL is required for durable processing
         let redis = registry.get_resolved("REDIS_URL").unwrap();
-        assert_eq!(redis.source, ValueSource::Missing);
+        assert_eq!(redis.source, ValueSource::Env);
     }
 
     #[test]
@@ -1181,6 +1182,7 @@ mod tests {
         std::env::set_var("DATABASE_URL", "postgres://u:p@localhost:5432/db");
         std::env::set_var("DB_POOLER_TX_URL", "postgres://u:p@localhost:6543/db");
         std::env::set_var("DB_POOLER_SESS_URL", "postgres://u:p@localhost:5452/db");
+        std::env::set_var("REDIS_URL", "redis://localhost:6379");
 
         let registry = EnvRegistry::resolve().unwrap();
         // DB_PRIMARY_URL should resolve from DATABASE_URL alias
@@ -1284,7 +1286,6 @@ mod tests {
         clear_all_env_vars();
         set_minimum_env();
         std::env::set_var("APP_PORT", "9090");
-        std::env::remove_var("REDIS_URL");
 
         let registry = EnvRegistry::resolve().unwrap();
 
@@ -1297,9 +1298,9 @@ mod tests {
         let host = registry.get_resolved("APP_HOST").unwrap();
         assert_eq!(host.source, ValueSource::Default);
 
-        // Optional missing
+        // Required external service
         let redis = registry.get_resolved("REDIS_URL").unwrap();
-        assert_eq!(redis.source, ValueSource::Missing);
+        assert_eq!(redis.source, ValueSource::Env);
     }
 
     #[test]

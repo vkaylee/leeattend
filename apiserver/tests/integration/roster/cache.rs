@@ -327,9 +327,7 @@ async fn test_build_returns_arc_with_consistent_data() {
 
 #[tokio::test]
 async fn test_redis_cache_reuses_and_refreshes_workspace_snapshot() {
-    let Some(redis) = require_test_redis_pool("roster cache integration test").await else {
-        return;
-    };
+    let redis = require_test_redis_pool("roster cache integration test").await;
 
     let test_db = TestDatabase::new().await;
     let factory = TestFactory::new(test_db.diesel_pools.clone());
@@ -371,10 +369,7 @@ async fn test_redis_cache_reuses_and_refreshes_workspace_snapshot() {
 
 #[tokio::test]
 async fn test_redis_cache_key_loss_bypasses_local_snapshot() {
-    let Some(redis) = require_test_redis_pool("roster cache key-loss integration test").await
-    else {
-        return;
-    };
+    let redis = require_test_redis_pool("roster cache key-loss integration test").await;
 
     let test_db = TestDatabase::new().await;
     let factory = TestFactory::new(test_db.diesel_pools.clone());
@@ -406,13 +401,62 @@ async fn test_redis_cache_key_loss_bypasses_local_snapshot() {
         .await
         .expect("cache should fall back to a direct DB load after key loss");
     assert!(refreshed.shifts.contains_key(&second_shift));
+
+    let mut conn = redis.conn();
+    let remaining_generation: Option<String> = conn
+        .get(&key)
+        .await
+        .expect("Redis version key should remain readable after key-loss load");
+    drop(conn);
+    assert!(remaining_generation.is_none());
 }
 
 #[tokio::test]
-async fn test_redis_cache_version_is_monotonic_and_workspace_scoped() {
-    let Some(redis) = require_test_redis_pool("roster cache integration test").await else {
-        return;
-    };
+async fn test_redis_generation_key_loss_cannot_reuse_stale_local_token() {
+    let redis = require_test_redis_pool("roster cache generation collision test").await;
+
+    let test_db = TestDatabase::new().await;
+    let factory = TestFactory::new(test_db.diesel_pools.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let workspace_id = factory.workspace().create().await;
+    let first_shift = factory.shift().with_workspace(workspace_id).create().await;
+    let cache = RosterCache::new(redis.clone());
+    let replica = cache.new_replica();
+    cache
+        .bump_version(workspace_id)
+        .await
+        .expect("Redis version initialization should succeed");
+
+    let stale_snapshot = replica
+        .get_roster_data(workspace_id, &diesel_pools)
+        .await
+        .expect("initial replica roster load should succeed");
+    assert!(stale_snapshot.shifts.contains_key(&first_shift));
+
+    let key = format!("roster:version:{workspace_id}");
+    let mut conn = redis.conn();
+    conn.del::<_, ()>(&key)
+        .await
+        .expect("Redis version key should be deletable");
+    drop(conn);
+
+    let second_shift = factory.shift().with_workspace(workspace_id).create().await;
+    cache
+        .bump_version(workspace_id)
+        .await
+        .expect("Redis generation should be replaceable after key loss");
+
+    let refreshed = replica
+        .get_roster_data(workspace_id, &diesel_pools)
+        .await
+        .expect("replica should reject the stale local token");
+    assert!(refreshed.shifts.contains_key(&second_shift));
+    assert!(!Arc::ptr_eq(&stale_snapshot, &refreshed));
+}
+
+#[tokio::test]
+async fn test_redis_cache_generation_tokens_are_unique_and_workspace_scoped() {
+    let redis = require_test_redis_pool("roster cache integration test").await;
 
     let test_db = TestDatabase::new().await;
     let factory = TestFactory::new(test_db.diesel_pools.clone());
@@ -422,7 +466,7 @@ async fn test_redis_cache_version_is_monotonic_and_workspace_scoped() {
     factory.shift().with_workspace(workspace_a).create().await;
     factory.shift().with_workspace(workspace_b).create().await;
     let cache = RosterCache::new(redis.clone());
-    cache
+    let workspace_b_generation = cache
         .bump_version(workspace_b)
         .await
         .expect("Redis version initialization should succeed");
@@ -431,40 +475,26 @@ async fn test_redis_cache_version_is_monotonic_and_workspace_scoped() {
         .get_roster_data(workspace_b, &diesel_pools)
         .await
         .expect("workspace B cache load should succeed");
-    let key_a = format!("roster:version:{workspace_a}");
+
+    let first_a_generation = cache
+        .bump_version(workspace_a)
+        .await
+        .expect("workspace A version bump should succeed");
+    let second_a_generation = cache
+        .bump_version(workspace_a)
+        .await
+        .expect("workspace A version bump should succeed");
+    assert_ne!(first_a_generation, second_a_generation);
+
     let key_b = format!("roster:version:{workspace_b}");
     let mut conn = redis.conn();
-    conn.set::<_, _, ()>(&key_a, i64::MAX - 2)
-        .await
-        .expect("seeded Redis version should be writable");
-    let before_b: Option<i64> = conn
-        .get(&key_b)
-        .await
-        .expect("workspace B version should be readable");
-    drop(conn);
-
-    cache
-        .bump_version(workspace_a)
-        .await
-        .expect("workspace A version bump should succeed");
-    cache
-        .bump_version(workspace_a)
-        .await
-        .expect("workspace A version bump should succeed");
-
-    let mut conn = redis.conn();
-    let after_a: i64 = conn
-        .get(&key_a)
-        .await
-        .expect("workspace A version should be readable");
-    let after_b: Option<i64> = conn
+    let after_b: String = conn
         .get(&key_b)
         .await
         .expect("workspace B version should remain readable");
     drop(conn);
 
-    assert_eq!(after_a, i64::MAX);
-    assert_eq!(after_b, before_b);
+    assert_eq!(after_b, workspace_b_generation.to_string());
 
     let data_b_again = cache
         .get_roster_data(workspace_b, &diesel_pools)

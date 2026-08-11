@@ -4,6 +4,7 @@ use axum::{
     response::{IntoResponse, Json},
 };
 use chrono::NaiveDate;
+use std::collections::HashSet;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -721,6 +722,11 @@ pub async fn bulk_upsert_roster(
 
     if req.items.len() > MAX_ROSTER_BULK_ITEMS {
         return Err(AppError::validation(I18nKey::RosterBatchTooLarge));
+    }
+
+    let mut dates = HashSet::with_capacity(req.items.len());
+    if req.items.iter().any(|item| !dates.insert(item.date)) {
+        return Err(AppError::validation(I18nKey::Validation));
     }
 
     let emp = state

@@ -293,6 +293,27 @@ async fn test_bulk_compliance_validates_multiple_shift_groups() {
         .create()
         .await;
 
+    let duplicate_date_response = client
+        .post(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/employees/{emp_id}/rosters/bulk"
+        ))
+        .header("Authorization", format!("Bearer {auth_token}"))
+        .json(&serde_json::json!({
+            "items": [
+                {"date": today.to_string(), "shift_id": shift_a},
+                {"date": today.to_string(), "shift_id": shift_conflict}
+            ],
+            "allow_warnings": false
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(
+        duplicate_date_response.status(),
+        StatusCode::BAD_REQUEST,
+        "a bulk request must reject duplicate dates instead of silently overwriting"
+    );
+
     let seed = client
         .post(format!(
             "{address}/api/v1/workspaces/{workspace_id}/employees/{emp_id}/rosters/bulk"
