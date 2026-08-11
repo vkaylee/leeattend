@@ -42,6 +42,20 @@ vi.mock("@/hooks/use-monitor-charts", () => ({
     ],
 }));
 
+const testMetric = (unit = "jobs") => ({
+    value: 0,
+    unit,
+    formula: "test fixture",
+    time_window: {
+        start: "2026-01-01T00:00:00.000Z",
+        end: "2026-01-01T00:15:00.000Z",
+        duration_seconds: 900,
+    },
+    observed_at: "2026-01-01T00:15:00.000Z",
+    source: "test_fixture",
+    unknown: null,
+});
+
 const mockMonitorData = {
     pending_tasks: 5,
     pending_high: 3,
@@ -51,6 +65,35 @@ const mockMonitorData = {
     idle_workers: 1,
     completed_today: 42,
     failed_today: 1,
+    queue_health: {
+        dead_letter_depth: testMetric(),
+        depth_high: testMetric(),
+        depth_low: testMetric(),
+        depth_normal: testMetric(),
+        depth_total: testMetric(),
+        enqueue_rate_per_second: testMetric("jobs/second"),
+        estimated_drain_seconds: testMetric("seconds"),
+        growth_rate_per_second: testMetric("jobs/second"),
+        oldest_queued_age_seconds: testMetric("seconds"),
+        processing_rate_per_second: testMetric("jobs/second"),
+        queue_wait_seconds_p50: testMetric("seconds"),
+        queue_wait_seconds_p95: testMetric("seconds"),
+    },
+    reliability: {
+        consecutive_failures: testMetric(),
+        dead_letter_count: testMetric(),
+        execution_seconds_p50: testMetric("seconds"),
+        execution_seconds_p95: testMetric("seconds"),
+        execution_seconds_p99: testMetric("seconds"),
+        failure_rate: testMetric("ratio"),
+        lost_count: testMetric(),
+        retryable_count: testMetric(),
+        success_rate: testMetric("ratio"),
+        timeout_count: testMetric(),
+    },
+    oldest_queued_job: null,
+    oldest_running_job: null,
+    task_type_reliability: [],
     job_type_stats: [
         {
             task_type: "attendance_report",

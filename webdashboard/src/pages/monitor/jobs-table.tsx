@@ -113,6 +113,7 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
   const queryParams = useMemo(() => ({
     limit: 20,
     search: debouncedSearchTerm || undefined,
+    state: statusFilter === "all" ? undefined : statusFilter,
     status: statusFilter === "all" ? undefined : statusFilter,
     task_type: typeFilter === "all" ? undefined : typeFilter,
   }), [debouncedSearchTerm, statusFilter, typeFilter]);
@@ -130,8 +131,9 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
   }, [data]);
 
   const durableJobs = useMemo(() => {
-    const section = data?.pages[0]?.durable_jobs;
-    return section?.status === "available" ? (section.jobs ?? []) : [];
+    return data?.pages.flatMap((page) => (
+      page.durable_jobs?.status === "available" ? (page.durable_jobs.jobs ?? []) : []
+    )) ?? [];
   }, [data]);
 
   const durableJobsUnavailable = data?.pages[0]?.durable_jobs?.status === "unavailable";

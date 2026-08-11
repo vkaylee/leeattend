@@ -136,6 +136,18 @@ async fn test_monitor_overview_rest() {
     let body: serde_json::Value = response.json().await.unwrap();
     assert!(body["pending_normal"].is_number());
 
+    let queue_depth = &body["queue_health"]["depth_total"];
+    assert!(queue_depth["value"].is_number());
+    assert_eq!(queue_depth["unit"], "jobs");
+    assert!(queue_depth["formula"]
+        .as_str()
+        .is_some_and(|value| !value.is_empty()));
+    assert!(queue_depth["time_window"]["start"].is_string());
+    assert!(queue_depth["time_window"]["end"].is_string());
+    assert!(queue_depth["observed_at"].is_string());
+    assert_eq!(body["thresholds"]["source"], "backend_default");
+    assert!(body["reliability"]["success_rate"]["unknown"]["code"].is_string());
+
     // total_workers might be more than 1 if other tests are running, but should be at least 1
     assert!(body["total_workers"].as_u64().unwrap() >= 1);
     let workers = body["workers"].as_array().unwrap();
@@ -200,6 +212,8 @@ async fn test_monitor_stream_sse() {
     assert!(body.contains("event: monitor-update"));
     assert!(body.contains("sse-test-host"));
     assert!(body.contains("\"status\":\"PROCESSING\""));
+    assert!(body.contains("\"queue_health\""));
+    assert!(body.contains("\"observed_at\""));
 }
 
 #[tokio::test]

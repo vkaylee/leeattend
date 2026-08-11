@@ -4,11 +4,11 @@ use crate::models::diesel::infra_job::{
     InfraJobEvent, InfraJobRecord, NewInfraJobEvent, NewInfraJobRecord,
 };
 use crate::repositories::infra_job_repository::{
-    CreateInfraJobParams, InfraJobCursor, InfraJobPage, InfraJobRepository, ListInfraJobsParams,
-    TransitionInfraJobParams,
+    CreateInfraJobParams, InfraJobCursor, InfraJobMonitorData, InfraJobPage, InfraJobRepository,
+    ListInfraJobsParams, TransitionInfraJobParams,
 };
 use async_trait::async_trait;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncConnection, RunQueryDsl};
 use uuid::Uuid;
@@ -126,6 +126,7 @@ impl InfraJobRepository for DieselInfraJobRepository {
                 let current = crate::schema::infra_job_records::table
                     .filter(crate::schema::infra_job_records::id.eq(job_id))
                     .filter(crate::schema::infra_job_records::workspace_id.eq(workspace_id))
+                    .for_update()
                     .first::<InfraJobRecord>(&mut *conn)
                     .await
                     .map_err(|e| match e {
@@ -377,6 +378,54 @@ impl InfraJobRepository for DieselInfraJobRepository {
             .map_err(|e| {
                 AppError::Internal(format!("Failed to list infra job events in bulk: {e}"))
             })
+    }
+
+    async fn load_monitor_data(
+        &self,
+        since: DateTime<Utc>,
+        limit: i64,
+    ) -> Result<InfraJobMonitorData, AppError> {
+        let mut conn = self.api_conn().await?;
+        let bounded_limit = limit.clamp(1, 20_000);
+        let bounded_limit_usize = usize::try_from(bounded_limit).map_err(|error| {
+            AppError::Internal(format!("Invalid monitor aggregation limit: {error}"))
+        })?;
+
+        let mut records = crate::schema::infra_job_records::table
+            .order(crate::schema::infra_job_records::updated_at.desc())
+            .limit(bounded_limit + 1)
+            .load::<InfraJobRecord>(&mut *conn)
+            .await
+            .map_err(|error| {
+                AppError::Internal(format!("Failed to load monitor job records: {error}"))
+            })?;
+        let records_truncated = records.len() > bounded_limit_usize;
+        if records_truncated {
+            records.truncate(bounded_limit_usize);
+        }
+
+        let mut events = crate::schema::infra_job_events::table
+            .filter(crate::schema::infra_job_events::created_at.ge(since))
+            .order((
+                crate::schema::infra_job_events::created_at.asc(),
+                crate::schema::infra_job_events::id.asc(),
+            ))
+            .limit(bounded_limit + 1)
+            .load::<InfraJobEvent>(&mut *conn)
+            .await
+            .map_err(|error| {
+                AppError::Internal(format!("Failed to load monitor job events: {error}"))
+            })?;
+        let events_truncated = events.len() > bounded_limit_usize;
+        if events_truncated {
+            events.truncate(bounded_limit_usize);
+        }
+
+        Ok(InfraJobMonitorData {
+            records,
+            events,
+            truncated: records_truncated || events_truncated,
+        })
     }
 }
 

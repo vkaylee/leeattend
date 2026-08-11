@@ -8,6 +8,7 @@ import {
   DailyAttendanceReport,
   WorkerMonitorStats,
   MonitorJobsResponse,
+  MonitorMetric,
   CreateReportExportRequest,
   CreateReportExportResponse,
 } from "./types";
@@ -57,14 +58,33 @@ export async function downloadExportReport(
 
 // --- Worker Monitoring (Global Infrastructure) ---
 
+const unknownMonitorMetric = (unit = "unknown"): MonitorMetric => ({
+  formula: "source unavailable",
+  observed_at: new Date(0).toISOString(),
+  source: "unavailable",
+  time_window: {
+    duration_seconds: 0,
+    end: new Date(0).toISOString(),
+    start: new Date(0).toISOString(),
+  },
+  unit,
+  unknown: {
+    code: "MONITOR_UNAVAILABLE",
+    reason: "Monitoring source unavailable",
+  },
+  value: null,
+});
+
 export async function fetchMonitorOverview(): Promise<WorkerMonitorStats> {
   const { data: resData } = await client.GET("/monitor/overview", {});
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- SafeClient types say non-null but API may return null
   return resData ?? {
     active_workers: null,
     completed_today: null,
-    durable_jobs: { error_code: "MONITOR_UNAVAILABLE", jobs: null, limit: 20, next_cursor_token: null, status: "unavailable" },
+    durable_jobs: { error_code: "MONITOR_UNAVAILABLE", events_truncated: false, jobs: null, limit: 20, next_cursor_token: null, status: "unavailable" },
     failed_today: null,
+    oldest_queued_job: null,
+    oldest_running_job: null,
     idle_workers: null,
     job_type_stats: [],
     observed_at: new Date(0).toISOString(),
@@ -72,6 +92,40 @@ export async function fetchMonitorOverview(): Promise<WorkerMonitorStats> {
     pending_low: null,
     pending_normal: null,
     pending_tasks: null,
+    queue_health: {
+      dead_letter_depth: unknownMonitorMetric("jobs"),
+      depth_high: unknownMonitorMetric("jobs"),
+      depth_low: unknownMonitorMetric("jobs"),
+      depth_normal: unknownMonitorMetric("jobs"),
+      depth_total: unknownMonitorMetric("jobs"),
+      enqueue_rate_per_second: unknownMonitorMetric("jobs/second"),
+      estimated_drain_seconds: unknownMonitorMetric("seconds"),
+      growth_rate_per_second: unknownMonitorMetric("jobs/second"),
+      oldest_queued_age_seconds: unknownMonitorMetric("seconds"),
+      processing_rate_per_second: unknownMonitorMetric("jobs/second"),
+      queue_wait_seconds_p50: unknownMonitorMetric("seconds"),
+      queue_wait_seconds_p95: unknownMonitorMetric("seconds"),
+    },
+    reliability: {
+      consecutive_failures: unknownMonitorMetric("jobs"),
+      dead_letter_count: unknownMonitorMetric("jobs"),
+      execution_seconds_p50: unknownMonitorMetric("seconds"),
+      execution_seconds_p95: unknownMonitorMetric("seconds"),
+      execution_seconds_p99: unknownMonitorMetric("seconds"),
+      failure_rate: unknownMonitorMetric("ratio"),
+      lost_count: unknownMonitorMetric("jobs"),
+      retryable_count: unknownMonitorMetric("jobs"),
+      success_rate: unknownMonitorMetric("ratio"),
+      timeout_count: unknownMonitorMetric("jobs"),
+    },
+    task_type_reliability: [],
+    thresholds: {
+      live_after_seconds: 15,
+      queue_pressure: { critical_at: 16, high_at: 6, medium_at: 1, source: "unavailable" },
+      source: "unavailable",
+      stale_after_seconds: 60,
+      worker_utilization: { critical_at_percent: 80, scale_down_below_percent: 30, source: "unavailable", warning_at_percent: 50 },
+    },
     quality: {
       data_quality: "unavailable",
       durable_db: { error_code: "MONITOR_UNAVAILABLE", status: "unavailable" },
@@ -92,6 +146,12 @@ export async function fetchMonitorOverview(): Promise<WorkerMonitorStats> {
         "recent_jobs",
         "total_workers",
         "workers",
+        "queue_health",
+        "reliability",
+        "oldest_queued_job",
+        "oldest_running_job",
+        "task_type_reliability",
+        "thresholds",
       ],
       worker_heartbeats: { error_code: "MONITOR_UNAVAILABLE", status: "unavailable" },
     },
@@ -130,7 +190,7 @@ export async function fetchMonitorJobs(params: FetchMonitorJobsParams): Promise<
   });
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- SafeClient types say non-null but API may return null
   return resData ?? {
-    durable_jobs: { error_code: "MONITOR_UNAVAILABLE", jobs: null, limit: params.durable_limit ?? 20, next_cursor_token: null, status: "unavailable" },
+    durable_jobs: { error_code: "MONITOR_UNAVAILABLE", events_truncated: false, jobs: null, limit: params.durable_limit ?? 20, next_cursor_token: null, status: "unavailable" },
     jobs: [],
     next_cursor: null,
     quality: {

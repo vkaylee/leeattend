@@ -382,7 +382,7 @@ impl JobWorker {
                         };
                         if let Some(lease_token) = lease_token {
                             worker_clone
-                                .record_durable_outcome(&job, lease_token, &outcome)
+                                .record_durable_outcome(&job, lease_token, &outcome, result.is_err())
                                 .await;
                         }
 
@@ -528,9 +528,16 @@ impl JobWorker {
         job: &Job,
         lease_token: Uuid,
         result: &Result<(), String>,
+        timed_out: bool,
     ) {
         let (to_state, event_type, reason_code, reason_summary) = match result {
             Ok(()) => ("completed", "worker_completed", None, None),
+            Err(_) if timed_out => (
+                "failed",
+                "worker_timeout",
+                Some("worker_timeout"),
+                Some("Worker execution timed out".to_string()),
+            ),
             Err(_) => (
                 "failed",
                 "worker_failed",

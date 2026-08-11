@@ -2,8 +2,8 @@ use crate::errors::AppError;
 use crate::models::diesel::infra_job::{InfraJobEvent, InfraJobRecord};
 use crate::queue::{Job, JobQueue};
 use crate::repositories::infra_job_repository::{
-    CreateInfraJobParams, InfraJobCursor, InfraJobPage, InfraJobRepository, ListInfraJobsParams,
-    TransitionInfraJobParams,
+    CreateInfraJobParams, InfraJobCursor, InfraJobMonitorData, InfraJobPage, InfraJobRepository,
+    ListInfraJobsParams, TransitionInfraJobParams,
 };
 use std::sync::Arc;
 use uuid::Uuid;
@@ -162,6 +162,14 @@ impl InfraJobService {
         self.repository
             .list_events_bulk(workspace_id, job_ids, total_limit)
             .await
+    }
+
+    pub async fn load_monitor_data(
+        &self,
+        since: chrono::DateTime<chrono::Utc>,
+        limit: i64,
+    ) -> Result<InfraJobMonitorData, AppError> {
+        self.repository.load_monitor_data(since, limit).await
     }
 
     pub fn cursor_token(cursor: &InfraJobCursor) -> String {

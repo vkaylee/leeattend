@@ -16,6 +16,10 @@ export type MonitorInfraJobEvent = components["schemas"]["MonitorInfraJobEvent"]
 export type MonitorInfraJobRecord = components["schemas"]["MonitorInfraJobRecord"];
 export type MonitorDurableJobsSection = components["schemas"]["MonitorDurableJobsSection"];
 export type MonitorQuality = components["schemas"]["MonitorQuality"];
+export type MonitorMetric = components["schemas"]["MonitorMetric"];
+export type MonitorQueueHealth = components["schemas"]["MonitorQueueHealth"];
+export type MonitorReliability = components["schemas"]["MonitorReliability"];
+export type MonitorOperationalThresholds = components["schemas"]["MonitorOperationalThresholds"];
 
 
 export interface ReportExportJob {

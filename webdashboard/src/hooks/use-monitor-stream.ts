@@ -58,6 +58,50 @@ function isMonitorSourceHealth(value: unknown): boolean {
   return value.error_code === undefined || value.error_code === null || typeof value.error_code === "string";
 }
 
+function isMonitorMetric(value: unknown): boolean {
+  if (!isRecord(value) || typeof value.unit !== "string" || typeof value.formula !== "string" || typeof value.source !== "string") return false;
+  if (value.value !== undefined && value.value !== null && !isNullableNonNegativeNumber(value.value)) return false;
+  if (value.observed_at !== undefined && (typeof value.observed_at !== "string" || !Number.isFinite(Date.parse(value.observed_at)))) return false;
+  if (!isRecord(value.time_window)) return false;
+  if (typeof value.time_window.start !== "string" || !Number.isFinite(Date.parse(value.time_window.start))) return false;
+  if (typeof value.time_window.end !== "string" || !Number.isFinite(Date.parse(value.time_window.end))) return false;
+  if (!isNullableNonNegativeNumber(value.time_window.duration_seconds)) return false;
+  return value.unknown === undefined || value.unknown === null || (
+    isRecord(value.unknown) && typeof value.unknown.code === "string" && typeof value.unknown.reason === "string"
+  );
+}
+
+function isMetricSection(value: unknown, fields: string[]): boolean {
+  return isRecord(value) && fields.every((field) => isMonitorMetric(value[field]));
+}
+
+function hasValidOperationalContract(value: Record<string, unknown>): boolean {
+  const queueFields = [
+    "dead_letter_depth", "depth_high", "depth_low", "depth_normal", "depth_total",
+    "enqueue_rate_per_second", "estimated_drain_seconds", "growth_rate_per_second",
+    "oldest_queued_age_seconds", "processing_rate_per_second", "queue_wait_seconds_p50", "queue_wait_seconds_p95",
+  ];
+  const reliabilityFields = [
+    "consecutive_failures", "dead_letter_count", "execution_seconds_p50", "execution_seconds_p95",
+    "execution_seconds_p99", "failure_rate", "lost_count", "retryable_count", "success_rate", "timeout_count",
+  ];
+  const queueValid = value.queue_health === undefined || isMetricSection(value.queue_health, queueFields);
+  const reliabilityValid = value.reliability === undefined || isMetricSection(value.reliability, reliabilityFields);
+  const thresholds = value.thresholds;
+  const thresholdsValid = thresholds === undefined || (
+    isRecord(thresholds) && typeof thresholds.source === "string" &&
+    isRecord(thresholds.queue_pressure) &&
+    isNullableNonNegativeNumber(thresholds.queue_pressure.medium_at) &&
+    isNullableNonNegativeNumber(thresholds.queue_pressure.high_at) &&
+    isNullableNonNegativeNumber(thresholds.queue_pressure.critical_at) &&
+    isRecord(thresholds.worker_utilization) &&
+    isNullableNonNegativeNumber(thresholds.worker_utilization.scale_down_below_percent) &&
+    isNullableNonNegativeNumber(thresholds.worker_utilization.warning_at_percent) &&
+    isNullableNonNegativeNumber(thresholds.worker_utilization.critical_at_percent)
+  );
+  return queueValid && reliabilityValid && thresholdsValid;
+}
+
 function isWorkerHeartbeat(value: unknown): boolean {
   if (!isRecord(value)) return false;
   return (
@@ -95,6 +139,7 @@ function isMonitorSnapshot(value: unknown): value is WorkerMonitorStats {
     Number.isFinite(value.snapshot_age_seconds) &&
     value.snapshot_age_seconds >= 0 &&
     hasValidMetrics &&
+    hasValidOperationalContract(value) &&
     Array.isArray(value.workers) &&
     value.workers.every(isWorkerHeartbeat) &&
     Array.isArray(value.recent_jobs) &&

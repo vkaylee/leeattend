@@ -18,11 +18,11 @@ export default function WorkerUtilizationGauge({ data, isLoading }: Props) {
 
   const chartData = [{ value: data.percent ?? 0, fill: "url(#gaugeGradient)" }];
   const percentColor =
-    data.percent === null
+    data.percent === null || !data.thresholdsAvailable
       ? "text-slate-400 dark:text-slate-500"
-      : data.percent >= 80
+      : data.percent >= (data.criticalAtPercent ?? Number.POSITIVE_INFINITY)
         ? "text-rose-500"
-        : data.percent >= 50
+        : data.percent >= (data.warningAtPercent ?? Number.POSITIVE_INFINITY)
           ? "text-amber-500"
           : "text-emerald-500";
 
@@ -109,12 +109,12 @@ export default function WorkerUtilizationGauge({ data, isLoading }: Props) {
       </div>
 
       {/* Scaling hints */}
-      {!isLoading && data.percent !== null && data.percent > 80 && (
+      {!isLoading && data.percent !== null && data.thresholdsAvailable && data.percent >= (data.criticalAtPercent ?? Number.POSITIVE_INFINITY) && (
         <Typography className="text-[10px] text-rose-500 dark:text-rose-400 font-medium text-center" variant="p">
           {t("monitor.charts.scale_up_warning")}
         </Typography>
       )}
-      {!isLoading && data.percent !== null && data.percent < 30 && data.percent > 0 && (
+      {!isLoading && data.percent !== null && data.thresholdsAvailable && data.percent < (data.scaleDownBelowPercent ?? 0) && data.percent > 0 && (
         <Typography className="text-[10px] text-sky-500 dark:text-sky-400 font-medium text-center" variant="p">
           {t("monitor.charts.scale_down_hint")}
         </Typography>

@@ -62,20 +62,33 @@ const renderWithProviders = (component: React.ReactElement) => {
     );
 };
 
+const backendUtilizationThresholds = {
+    thresholdsAvailable: true,
+    scaleDownBelowPercent: 30,
+    warningAtPercent: 50,
+    criticalAtPercent: 80,
+};
+
 // =============================================================================
 // WorkerUtilizationGauge
 // =============================================================================
 describe("WorkerUtilizationGauge", () => {
     it("renders gauge with correct percentage", () => {
         renderWithProviders(
-            <WorkerUtilizationGauge data={{ active: 3, idle: 2, total: 5, percent: 60 }} isLoading={false} />
+            <WorkerUtilizationGauge
+                data={{ active: 3, idle: 2, total: 5, percent: 60, ...backendUtilizationThresholds }}
+                isLoading={false}
+            />
         );
         expect(screen.getByText("60%")).toBeInTheDocument();
     });
 
     it("shows loading state", () => {
         renderWithProviders(
-            <WorkerUtilizationGauge data={{ active: 0, idle: 0, total: 0, percent: 0 }} isLoading={true} />
+            <WorkerUtilizationGauge
+                data={{ active: 0, idle: 0, total: 0, percent: 0, ...backendUtilizationThresholds }}
+                isLoading={true}
+            />
         );
         expect(screen.queryByText("0%")).not.toBeInTheDocument();
         expect(screen.queryByTestId("radial-chart")).not.toBeInTheDocument();
@@ -83,21 +96,30 @@ describe("WorkerUtilizationGauge", () => {
 
     it("shows scale-up warning when utilization > 80%", () => {
         renderWithProviders(
-            <WorkerUtilizationGauge data={{ active: 9, idle: 1, total: 10, percent: 90 }} isLoading={false} />
+            <WorkerUtilizationGauge
+                data={{ active: 9, idle: 1, total: 10, percent: 90, ...backendUtilizationThresholds }}
+                isLoading={false}
+            />
         );
         expect(screen.getByText(/monitor.charts.scale_up_warning/)).toBeInTheDocument();
     });
 
     it("shows scale-down hint when utilization < 30%", () => {
         renderWithProviders(
-            <WorkerUtilizationGauge data={{ active: 1, idle: 9, total: 10, percent: 10 }} isLoading={false} />
+            <WorkerUtilizationGauge
+                data={{ active: 1, idle: 9, total: 10, percent: 10, ...backendUtilizationThresholds }}
+                isLoading={false}
+            />
         );
         expect(screen.getByText(/monitor.charts.scale_down_hint/)).toBeInTheDocument();
     });
 
     it("does not show scaling hints for normal utilization", () => {
         renderWithProviders(
-            <WorkerUtilizationGauge data={{ active: 3, idle: 2, total: 5, percent: 60 }} isLoading={false} />
+            <WorkerUtilizationGauge
+                data={{ active: 3, idle: 2, total: 5, percent: 60, ...backendUtilizationThresholds }}
+                isLoading={false}
+            />
         );
         expect(screen.queryByText(/scale_up_warning/)).not.toBeInTheDocument();
         expect(screen.queryByText(/scale_down_hint/)).not.toBeInTheDocument();
@@ -105,14 +127,20 @@ describe("WorkerUtilizationGauge", () => {
 
     it("renders chart title", () => {
         renderWithProviders(
-            <WorkerUtilizationGauge data={{ active: 0, idle: 0, total: 0, percent: 0 }} isLoading={false} />
+            <WorkerUtilizationGauge
+                data={{ active: 0, idle: 0, total: 0, percent: 0, ...backendUtilizationThresholds }}
+                isLoading={false}
+            />
         );
         expect(screen.getAllByText("monitor.charts.utilization").length).toBeGreaterThanOrEqual(1);
     });
 
     it("renders active and idle pills", () => {
         renderWithProviders(
-            <WorkerUtilizationGauge data={{ active: 3, idle: 2, total: 5, percent: 60 }} isLoading={false} />
+            <WorkerUtilizationGauge
+                data={{ active: 3, idle: 2, total: 5, percent: 60, ...backendUtilizationThresholds }}
+                isLoading={false}
+            />
         );
         // Active pill
         expect(screen.getByText(/3/)).toBeInTheDocument();

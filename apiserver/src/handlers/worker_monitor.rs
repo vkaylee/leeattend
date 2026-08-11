@@ -38,6 +38,9 @@ const MAX_MONITOR_QUERY_LIMIT: usize = 100;
 const MAX_MONITOR_SEARCH_CHARS: usize = 64;
 const MONITOR_QUERY_TIMEOUT_SECS: u64 = 5;
 const MONITOR_SOURCE_TIMEOUT_SECS: u64 = 1;
+const MONITOR_WINDOW_SECS: i64 = 15 * 60;
+const MONITOR_AGGREGATION_LIMIT: i64 = 20_000;
+const DLQ_KEY: &str = "report:dlq";
 
 const MONITOR_STATUSES: [&str; 4] = ["pending", "processing", "completed", "failed"];
 const MONITOR_DURABLE_STATES: [&str; 8] = [
@@ -359,6 +362,7 @@ pub struct MonitorDurableJobsSection {
     pub jobs: Option<Vec<MonitorInfraJobRecord>>,
     pub next_cursor_token: Option<String>,
     pub limit: usize,
+    pub events_truncated: bool,
 }
 
 fn sanitize_monitor_summary(value: &str) -> String {
@@ -444,6 +448,107 @@ pub(crate) fn durable_job_dto(
     })
 }
 
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct MonitorMetricUnknown {
+    pub code: String,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct MonitorMetricWindow {
+    pub start: DateTime<Utc>,
+    pub end: DateTime<Utc>,
+    pub duration_seconds: i64,
+}
+
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct MonitorMetric {
+    pub value: Option<f64>,
+    pub unit: String,
+    pub formula: String,
+    pub time_window: MonitorMetricWindow,
+    pub observed_at: DateTime<Utc>,
+    pub source: String,
+    pub unknown: Option<MonitorMetricUnknown>,
+}
+
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct MonitorQueueHealth {
+    pub depth_high: MonitorMetric,
+    pub depth_normal: MonitorMetric,
+    pub depth_low: MonitorMetric,
+    pub depth_total: MonitorMetric,
+    pub dead_letter_depth: MonitorMetric,
+    pub oldest_queued_age_seconds: MonitorMetric,
+    pub enqueue_rate_per_second: MonitorMetric,
+    pub processing_rate_per_second: MonitorMetric,
+    pub growth_rate_per_second: MonitorMetric,
+    pub estimated_drain_seconds: MonitorMetric,
+    pub queue_wait_seconds_p50: MonitorMetric,
+    pub queue_wait_seconds_p95: MonitorMetric,
+}
+
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct MonitorReliability {
+    pub success_rate: MonitorMetric,
+    pub failure_rate: MonitorMetric,
+    pub consecutive_failures: MonitorMetric,
+    pub retryable_count: MonitorMetric,
+    pub dead_letter_count: MonitorMetric,
+    pub lost_count: MonitorMetric,
+    pub timeout_count: MonitorMetric,
+    pub execution_seconds_p50: MonitorMetric,
+    pub execution_seconds_p95: MonitorMetric,
+    pub execution_seconds_p99: MonitorMetric,
+}
+
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct MonitorOldestJob {
+    pub job_id: Uuid,
+    pub task_type: String,
+    pub queued_at: Option<DateTime<Utc>>,
+    pub started_at: Option<DateTime<Utc>>,
+    pub age_seconds: u64,
+}
+
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct MonitorTaskTypeReliability {
+    pub task_type: String,
+    pub queued: u64,
+    pub processing: u64,
+    pub completed: u64,
+    pub failed: u64,
+    pub retryable: u64,
+    pub dead_letter: u64,
+    pub lost: u64,
+    pub success_rate: MonitorMetric,
+}
+
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct MonitorQueueThresholds {
+    pub medium_at: u64,
+    pub high_at: u64,
+    pub critical_at: u64,
+    pub source: String,
+}
+
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct MonitorUtilizationThresholds {
+    pub scale_down_below_percent: u64,
+    pub warning_at_percent: u64,
+    pub critical_at_percent: u64,
+    pub source: String,
+}
+
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct MonitorOperationalThresholds {
+    pub queue_pressure: MonitorQueueThresholds,
+    pub worker_utilization: MonitorUtilizationThresholds,
+    pub live_after_seconds: u64,
+    pub stale_after_seconds: u64,
+    pub source: String,
+}
+
 /// Canonical operational monitoring snapshot.
 ///
 /// Numeric values are nullable when their source could not be measured. A zero
@@ -465,6 +570,12 @@ pub struct MonitorOperationalSnapshot {
     pub recent_jobs: Vec<MonitorJob>,
     pub job_type_stats: Vec<JobTypeStats>,
     pub durable_jobs: MonitorDurableJobsSection,
+    pub queue_health: MonitorQueueHealth,
+    pub reliability: MonitorReliability,
+    pub oldest_queued_job: Option<MonitorOldestJob>,
+    pub oldest_running_job: Option<MonitorOldestJob>,
+    pub task_type_reliability: Vec<MonitorTaskTypeReliability>,
+    pub thresholds: MonitorOperationalThresholds,
     pub quality: MonitorQuality,
 }
 
@@ -569,12 +680,18 @@ async fn load_durable_jobs_section(
                 jobs: None,
                 next_cursor_token: None,
                 limit,
+                events_truncated: false,
             };
         }
     };
 
     let job_ids = page.jobs.iter().map(|job| job.id).collect::<Vec<_>>();
-    let events = match service.list_events_bulk(None, &job_ids, 400).await {
+    const DURABLE_EVENT_LIMIT: i64 = 400;
+    const DURABLE_EVENT_LIMIT_USIZE: usize = 400;
+    let events = match service
+        .list_events_bulk(None, &job_ids, DURABLE_EVENT_LIMIT)
+        .await
+    {
         Ok(events) => events,
         Err(error) => {
             tracing::warn!(error = %error, "Durable monitor event read unavailable");
@@ -584,10 +701,15 @@ async fn load_durable_jobs_section(
                 jobs: None,
                 next_cursor_token: None,
                 limit,
+                events_truncated: false,
             };
         }
     };
 
+    // The repository applies a global limit across all jobs. Treat a full page as
+    // potentially incomplete so consumers never mistake partial history for a
+    // complete event timeline.
+    let events_truncated = events.len() >= DURABLE_EVENT_LIMIT_USIZE;
     let mut events_by_job = std::collections::HashMap::<Uuid, Vec<MonitorInfraJobEvent>>::new();
     for event in events {
         match durable_event_dto(&event) {
@@ -600,6 +722,7 @@ async fn load_durable_jobs_section(
                     jobs: None,
                     next_cursor_token: None,
                     limit,
+                    events_truncated: false,
                 };
             }
         }
@@ -618,6 +741,7 @@ async fn load_durable_jobs_section(
                     jobs: None,
                     next_cursor_token: None,
                     limit,
+                    events_truncated: false,
                 };
             }
         }
@@ -633,6 +757,7 @@ async fn load_durable_jobs_section(
         jobs: Some(jobs),
         next_cursor_token,
         limit,
+        events_truncated,
     }
 }
 
@@ -669,6 +794,7 @@ struct RedisMonitorSnapshot {
     pending_high: Option<u64>,
     pending_normal: Option<u64>,
     pending_low: Option<u64>,
+    dead_letter_depth: Option<u64>,
     completed_today: Option<u64>,
     failed_today: Option<u64>,
     workers: Vec<WorkerHeartbeat>,
@@ -683,6 +809,7 @@ impl RedisMonitorSnapshot {
             pending_high: None,
             pending_normal: None,
             pending_low: None,
+            dead_letter_depth: None,
             completed_today: None,
             failed_today: None,
             workers: Vec::new(),
@@ -716,8 +843,9 @@ fn monitor_quality(
         .count();
     let degraded = sources
         .iter()
-        .any(|status| matches!(status, MonitorSourceStatus::Degraded));
-    let data_quality = if available == sources.len() {
+        .any(|status| matches!(status, MonitorSourceStatus::Degraded))
+        || durable_jobs.events_truncated;
+    let data_quality = if available == sources.len() && !degraded {
         MonitorDataQuality::Complete
     } else if available == 0 && !degraded {
         MonitorDataQuality::Unavailable
@@ -729,9 +857,19 @@ fn monitor_quality(
     let mut unknown_fields = Vec::new();
     if !matches!(redis.status, MonitorSourceStatus::Available) {
         unknown_fields.extend(
-            ["pending_tasks", "completed_today", "recent_jobs"]
-                .into_iter()
-                .map(str::to_string),
+            [
+                "pending_tasks",
+                "pending_high",
+                "pending_normal",
+                "pending_low",
+                "dead_letter_depth",
+                "completed_today",
+                "failed_today",
+                "recent_jobs",
+                "queue_health.depth",
+            ]
+            .into_iter()
+            .map(str::to_string),
         );
     }
     if !matches!(worker_heartbeats.status, MonitorSourceStatus::Available) {
@@ -743,6 +881,8 @@ fn monitor_quality(
                 .into_iter()
                 .map(str::to_string),
         );
+    } else if durable_jobs.events_truncated {
+        unknown_fields.push("durable_events_partial".to_string());
     }
     MonitorQuality {
         data_quality,
@@ -760,6 +900,7 @@ struct RedisQueueSnapshot {
     pending_high: Option<u64>,
     pending_normal: Option<u64>,
     pending_low: Option<u64>,
+    dead_letter_depth: Option<u64>,
     completed_today: Option<u64>,
     failed_today: Option<u64>,
     recent_jobs: Vec<crate::queue::JobMetadata>,
@@ -772,6 +913,7 @@ async fn load_redis_queue_snapshot(redis: &crate::queue::RedisPool) -> RedisQueu
     let pending_high = read_queue_length(&mut conn, QUEUE_HIGH, &mut successful_reads).await;
     let pending_normal = read_queue_length(&mut conn, QUEUE_NORMAL, &mut successful_reads).await;
     let pending_low = read_queue_length(&mut conn, QUEUE_LOW, &mut successful_reads).await;
+    let dead_letter_depth = read_queue_length(&mut conn, DLQ_KEY, &mut successful_reads).await;
     let today = Utc::now().format("%Y-%m-%d").to_string();
     let completed_today = read_stat_counter(
         &mut conn,
@@ -804,6 +946,7 @@ async fn load_redis_queue_snapshot(redis: &crate::queue::RedisPool) -> RedisQueu
         pending_high,
         pending_normal,
         pending_low,
+        dead_letter_depth,
         completed_today,
         failed_today,
         recent_jobs,
@@ -905,7 +1048,7 @@ async fn load_redis_monitor_snapshot(
     let queue = load_redis_queue_snapshot(redis).await;
     let mut conn = redis.conn();
     let (workers, worker_heartbeats) = load_worker_heartbeat_snapshot(&mut conn, observed_at).await;
-    let total_reads = 6usize;
+    let total_reads = 7usize;
     let redis_status = if queue.successful_reads == 0 {
         MonitorSourceStatus::Unavailable
     } else if queue.successful_reads == total_reads {
@@ -917,6 +1060,7 @@ async fn load_redis_monitor_snapshot(
         pending_high: queue.pending_high,
         pending_normal: queue.pending_normal,
         pending_low: queue.pending_low,
+        dead_letter_depth: queue.dead_letter_depth,
         completed_today: queue.completed_today,
         failed_today: queue.failed_today,
         workers,
@@ -948,6 +1092,618 @@ async fn load_redis_monitor_snapshot_bounded(
     }
 }
 
+#[derive(Debug, Default)]
+struct DurableMonitorMetrics {
+    enqueue_count: u64,
+    processing_count: u64,
+    success_count: u64,
+    failure_count: u64,
+    retryable_count: u64,
+    dead_letter_count: u64,
+    lost_count: u64,
+    timeout_count: u64,
+    consecutive_failures: u64,
+    queue_wait_samples: Vec<f64>,
+    execution_samples: Vec<f64>,
+    oldest_queued_job: Option<MonitorOldestJob>,
+    oldest_running_job: Option<MonitorOldestJob>,
+    task_types: std::collections::BTreeMap<String, MonitorTaskTypeAccumulator>,
+}
+
+#[derive(Debug, Default)]
+struct MonitorTaskTypeAccumulator {
+    queued: u64,
+    processing: u64,
+    completed: u64,
+    failed: u64,
+    retryable: u64,
+    dead_letter: u64,
+    lost: u64,
+}
+
+fn monitor_metric_window(observed_at: DateTime<Utc>) -> MonitorMetricWindow {
+    MonitorMetricWindow {
+        start: observed_at - TimeDelta::seconds(MONITOR_WINDOW_SECS),
+        end: observed_at,
+        duration_seconds: MONITOR_WINDOW_SECS,
+    }
+}
+
+fn known_monitor_metric(
+    value: f64,
+    unit: &str,
+    formula: &str,
+    source: &str,
+    observed_at: DateTime<Utc>,
+) -> MonitorMetric {
+    MonitorMetric {
+        value: Some(value),
+        unit: unit.to_string(),
+        formula: formula.to_string(),
+        time_window: monitor_metric_window(observed_at),
+        observed_at,
+        source: source.to_string(),
+        unknown: None,
+    }
+}
+
+fn unknown_monitor_metric(
+    unit: &str,
+    formula: &str,
+    source: &str,
+    code: &str,
+    reason: &str,
+    observed_at: DateTime<Utc>,
+) -> MonitorMetric {
+    MonitorMetric {
+        value: None,
+        unit: unit.to_string(),
+        formula: formula.to_string(),
+        time_window: monitor_metric_window(observed_at),
+        observed_at,
+        source: source.to_string(),
+        unknown: Some(MonitorMetricUnknown {
+            code: code.to_string(),
+            reason: reason.to_string(),
+        }),
+    }
+}
+
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    clippy::cast_sign_loss
+)]
+fn percentile(values: &[f64], quantile: f64) -> Option<f64> {
+    if values.is_empty() {
+        return None;
+    }
+    let mut sorted = values.to_vec();
+    sorted.sort_by(f64::total_cmp);
+    let index = ((sorted.len() as f64 * quantile).ceil() as usize).saturating_sub(1);
+    sorted.get(index.min(sorted.len() - 1)).copied()
+}
+
+#[allow(clippy::cast_precision_loss, clippy::too_many_lines)]
+fn build_durable_monitor_metrics(
+    data: &crate::repositories::infra_job_repository::InfraJobMonitorData,
+    observed_at: DateTime<Utc>,
+) -> DurableMonitorMetrics {
+    let mut metrics = DurableMonitorMetrics::default();
+    let task_by_job = data
+        .records
+        .iter()
+        .map(|record| (record.id, record.task_type.clone()))
+        .collect::<std::collections::HashMap<_, _>>();
+
+    let mut terminal_outcomes = Vec::new();
+    for event in &data.events {
+        let task_type = task_by_job
+            .get(&event.job_id)
+            .cloned()
+            .unwrap_or_else(|| "unknown".to_string());
+        let task = metrics.task_types.entry(task_type).or_default();
+        match event.to_state.as_str() {
+            "queued" => {
+                metrics.enqueue_count += 1;
+                task.queued += 1;
+            }
+            "processing" => {
+                metrics.processing_count += 1;
+                task.processing += 1;
+            }
+            "completed" => {
+                metrics.success_count += 1;
+                task.completed += 1;
+                terminal_outcomes.push(true);
+            }
+            "failed" => {
+                metrics.failure_count += 1;
+                task.failed += 1;
+                terminal_outcomes.push(false);
+                if event.reason_code.as_deref() == Some("worker_timeout") {
+                    metrics.timeout_count += 1;
+                }
+            }
+            "retryable" => {
+                metrics.retryable_count += 1;
+                task.retryable += 1;
+            }
+            "dead_letter" => {
+                metrics.dead_letter_count += 1;
+                metrics.failure_count += 1;
+                task.dead_letter += 1;
+                terminal_outcomes.push(false);
+            }
+            "lost" => {
+                metrics.lost_count += 1;
+                metrics.failure_count += 1;
+                task.lost += 1;
+                terminal_outcomes.push(false);
+            }
+            _ => {}
+        }
+    }
+
+    metrics.consecutive_failures = terminal_outcomes
+        .into_iter()
+        .rev()
+        .take_while(|success| !success)
+        .count() as u64;
+
+    for record in &data.records {
+        if let (Some(queued_at), Some(started_at)) = (record.queued_at, record.started_at) {
+            let wait = started_at
+                .signed_duration_since(queued_at)
+                .num_milliseconds();
+            if wait >= 0
+                && started_at >= monitor_metric_window(observed_at).start
+                && started_at <= observed_at
+            {
+                metrics.queue_wait_samples.push(wait as f64 / 1_000.0);
+            }
+        }
+        if let (Some(started_at), Some(finished_at)) = (record.started_at, record.finished_at) {
+            let duration = finished_at
+                .signed_duration_since(started_at)
+                .num_milliseconds();
+            if duration >= 0 && finished_at >= monitor_metric_window(observed_at).start {
+                metrics.execution_samples.push(duration as f64 / 1_000.0);
+            }
+        }
+        let age_seconds = |timestamp: DateTime<Utc>| {
+            observed_at
+                .signed_duration_since(timestamp)
+                .num_seconds()
+                .max(0)
+                .cast_unsigned()
+        };
+        match (record.state.as_str(), record.queued_at, record.started_at) {
+            ("queued", Some(queued_at), _) => {
+                let replace = metrics
+                    .oldest_queued_job
+                    .as_ref()
+                    .is_none_or(|oldest| queued_at < oldest.queued_at.unwrap_or(queued_at));
+                if replace {
+                    metrics.oldest_queued_job = Some(MonitorOldestJob {
+                        job_id: record.id,
+                        task_type: record.task_type.clone(),
+                        queued_at: Some(queued_at),
+                        started_at: None,
+                        age_seconds: age_seconds(queued_at),
+                    });
+                }
+            }
+            ("processing", _, Some(started_at)) => {
+                let replace = metrics
+                    .oldest_running_job
+                    .as_ref()
+                    .is_none_or(|oldest| started_at < oldest.started_at.unwrap_or(started_at));
+                if replace {
+                    metrics.oldest_running_job = Some(MonitorOldestJob {
+                        job_id: record.id,
+                        task_type: record.task_type.clone(),
+                        queued_at: record.queued_at,
+                        started_at: Some(started_at),
+                        age_seconds: age_seconds(started_at),
+                    });
+                }
+            }
+            _ => {}
+        }
+    }
+    metrics
+}
+
+fn monitor_optional_metric(
+    value: Option<f64>,
+    unit: &str,
+    formula: &str,
+    source: &str,
+    unknown_code: &str,
+    unknown_reason: &str,
+    observed_at: DateTime<Utc>,
+) -> MonitorMetric {
+    value.map_or_else(
+        || {
+            unknown_monitor_metric(
+                unit,
+                formula,
+                source,
+                unknown_code,
+                unknown_reason,
+                observed_at,
+            )
+        },
+        |value| known_monitor_metric(value, unit, formula, source, observed_at),
+    )
+}
+
+#[allow(clippy::cast_precision_loss, clippy::too_many_lines)]
+fn build_queue_health(
+    redis: &RedisMonitorSnapshot,
+    durable: Option<(&DurableMonitorMetrics, bool)>,
+    observed_at: DateTime<Utc>,
+) -> MonitorQueueHealth {
+    let redis_source = "redis:worker_queues";
+    let durable_source = "postgres:infra_job_events";
+    let unavailable_reason = "The source did not provide a trustworthy value for this metric.";
+    let depth_total = match (redis.pending_high, redis.pending_normal, redis.pending_low) {
+        (Some(high), Some(normal), Some(low)) => Some((high + normal + low) as f64),
+        _ => None,
+    };
+    let (enqueue_rate, processing_rate, growth_rate, drain_time) =
+        if let Some((metrics, complete)) = durable {
+            let duration = MONITOR_WINDOW_SECS as f64;
+            let enqueue = metrics.enqueue_count as f64 / duration;
+            let processing = metrics.processing_count as f64 / duration;
+            let growth = enqueue - processing;
+            let drain = match (depth_total, processing - enqueue) {
+                (Some(depth), rate) if rate > 0.0 => Some(depth / rate),
+                _ => None,
+            };
+            let sample_unknown = if complete {
+                None
+            } else {
+                Some("AGGREGATION_BOUNDED")
+            };
+            (
+                sample_unknown.map_or(Some(enqueue), |_| None),
+                sample_unknown.map_or(Some(processing), |_| None),
+                sample_unknown.map_or(Some(growth), |_| None),
+                sample_unknown.map_or(drain, |_| None),
+            )
+        } else {
+            (None, None, None, None)
+        };
+    let wait_p50_value = durable
+        .and_then(|(metrics, complete)| {
+            complete.then(|| percentile(&metrics.queue_wait_samples, 0.5))
+        })
+        .flatten();
+    let wait_p95_value = durable
+        .and_then(|(metrics, complete)| {
+            complete.then(|| percentile(&metrics.queue_wait_samples, 0.95))
+        })
+        .flatten();
+
+    MonitorQueueHealth {
+        depth_high: monitor_optional_metric(
+            redis.pending_high.map(|value| value as f64),
+            "jobs",
+            "LLEN(worker:jobs:high)",
+            redis_source,
+            "REDIS_QUEUE_UNAVAILABLE",
+            unavailable_reason,
+            observed_at,
+        ),
+        depth_normal: monitor_optional_metric(
+            redis.pending_normal.map(|value| value as f64),
+            "jobs",
+            "LLEN(worker:jobs:normal)",
+            redis_source,
+            "REDIS_QUEUE_UNAVAILABLE",
+            unavailable_reason,
+            observed_at,
+        ),
+        depth_low: monitor_optional_metric(
+            redis.pending_low.map(|value| value as f64),
+            "jobs",
+            "LLEN(worker:jobs:low)",
+            redis_source,
+            "REDIS_QUEUE_UNAVAILABLE",
+            unavailable_reason,
+            observed_at,
+        ),
+        depth_total: monitor_optional_metric(
+            depth_total,
+            "jobs",
+            "high + normal + low queue depth",
+            redis_source,
+            "REDIS_QUEUE_PARTIAL",
+            unavailable_reason,
+            observed_at,
+        ),
+        dead_letter_depth: monitor_optional_metric(
+            redis.dead_letter_depth.map(|value| value as f64),
+            "jobs",
+            "LLEN(report:dlq)",
+            redis_source,
+            "REDIS_DLQ_UNAVAILABLE",
+            unavailable_reason,
+            observed_at,
+        ),
+        oldest_queued_age_seconds: monitor_optional_metric(
+            durable.and_then(|(metrics, complete)| {
+                complete.then(|| {
+                    metrics
+                        .oldest_queued_job
+                        .as_ref()
+                        .map(|job| job.age_seconds as f64)
+                        .unwrap_or(0.0)
+                })
+            }),
+            "seconds",
+            "observed_at - oldest queued_at",
+            durable_source,
+            "DURABLE_MONITOR_UNAVAILABLE",
+            unavailable_reason,
+            observed_at,
+        ),
+        enqueue_rate_per_second: monitor_optional_metric(
+            enqueue_rate,
+            "jobs/second",
+            "count(queued events in window) / window_seconds",
+            durable_source,
+            "DURABLE_METRICS_UNKNOWN",
+            unavailable_reason,
+            observed_at,
+        ),
+        processing_rate_per_second: monitor_optional_metric(
+            processing_rate,
+            "jobs/second",
+            "count(processing events in window) / window_seconds",
+            durable_source,
+            "DURABLE_METRICS_UNKNOWN",
+            unavailable_reason,
+            observed_at,
+        ),
+        growth_rate_per_second: monitor_optional_metric(
+            growth_rate,
+            "jobs/second",
+            "enqueue_rate - processing_rate",
+            durable_source,
+            "DURABLE_METRICS_UNKNOWN",
+            unavailable_reason,
+            observed_at,
+        ),
+        estimated_drain_seconds: monitor_optional_metric(
+            drain_time,
+            "seconds",
+            "queue_depth / max(processing_rate - enqueue_rate, 0)",
+            durable_source,
+            "QUEUE_NOT_DRAINING",
+            "Net processing rate is not positive or the source is incomplete.",
+            observed_at,
+        ),
+        queue_wait_seconds_p50: monitor_optional_metric(
+            wait_p50_value,
+            "seconds",
+            "p50(started_at - queued_at)",
+            durable_source,
+            "QUEUE_WAIT_NO_SAMPLES",
+            "No complete queue wait samples were available.",
+            observed_at,
+        ),
+        queue_wait_seconds_p95: monitor_optional_metric(
+            wait_p95_value,
+            "seconds",
+            "p95(started_at - queued_at)",
+            durable_source,
+            "QUEUE_WAIT_NO_SAMPLES",
+            "No complete queue wait samples were available.",
+            observed_at,
+        ),
+    }
+}
+
+#[allow(clippy::cast_precision_loss)]
+fn build_task_type_reliability(
+    durable: Option<(&DurableMonitorMetrics, bool)>,
+    observed_at: DateTime<Utc>,
+) -> Vec<MonitorTaskTypeReliability> {
+    let Some((metrics, complete)) = durable else {
+        return Vec::new();
+    };
+    let source = "postgres:infra_job_events";
+    metrics
+        .task_types
+        .iter()
+        .map(|(task_type, counts)| {
+            let terminal = counts.completed + counts.failed + counts.dead_letter + counts.lost;
+            let rate = complete
+                .then_some(terminal)
+                .filter(|total| *total > 0)
+                .map(|total| counts.completed as f64 / total as f64);
+            MonitorTaskTypeReliability {
+                task_type: task_type.clone(),
+                queued: counts.queued,
+                processing: counts.processing,
+                completed: counts.completed,
+                failed: counts.failed,
+                retryable: counts.retryable,
+                dead_letter: counts.dead_letter,
+                lost: counts.lost,
+                success_rate: monitor_optional_metric(
+                    rate,
+                    "ratio",
+                    "completed / (completed + failed + dead_letter + lost)",
+                    source,
+                    "TASK_TYPE_NO_SAMPLES",
+                    "No complete terminal outcomes were available for this task type.",
+                    observed_at,
+                ),
+            }
+        })
+        .collect()
+}
+
+#[allow(clippy::cast_precision_loss, clippy::too_many_lines)]
+fn build_reliability(
+    durable: Option<(&DurableMonitorMetrics, bool)>,
+    observed_at: DateTime<Utc>,
+) -> MonitorReliability {
+    let source = "postgres:infra_job_events";
+    let complete = durable.is_some_and(|(_, complete)| complete);
+    let metrics = durable.map(|(metrics, _)| metrics);
+    let terminal_total = metrics
+        .map(|m| m.success_count + m.failure_count)
+        .unwrap_or(0);
+    let success_rate = metrics.and_then(|m| {
+        (terminal_total > 0).then_some(m.success_count as f64 / terminal_total as f64)
+    });
+    let failure_rate = metrics.and_then(|m| {
+        (terminal_total > 0).then_some(m.failure_count as f64 / terminal_total as f64)
+    });
+    let metric_or_unknown = |value: Option<f64>, formula: &str, code: &str, reason: &str| {
+        monitor_optional_metric(
+            complete.then_some(value).flatten(),
+            "ratio",
+            formula,
+            source,
+            code,
+            reason,
+            observed_at,
+        )
+    };
+    MonitorReliability {
+        success_rate: metric_or_unknown(
+            success_rate,
+            "completed / (completed + failed + dead_letter + lost)",
+            "RELIABILITY_NO_SAMPLES",
+            "No terminal job outcomes were available.",
+        ),
+        failure_rate: metric_or_unknown(
+            failure_rate,
+            "(failed + dead_letter + lost) / (completed + failed + dead_letter + lost)",
+            "RELIABILITY_NO_SAMPLES",
+            "No terminal job outcomes were available.",
+        ),
+        consecutive_failures: monitor_optional_metric(
+            complete
+                .then_some(metrics.map(|m| m.consecutive_failures as f64))
+                .flatten(),
+            "jobs",
+            "count of trailing failed, dead_letter, or lost terminal outcomes",
+            source,
+            "RELIABILITY_UNKNOWN",
+            unavailable_reason(),
+            observed_at,
+        ),
+        retryable_count: monitor_optional_metric(
+            complete
+                .then_some(metrics.map(|m| m.retryable_count as f64))
+                .flatten(),
+            "jobs",
+            "count(to_state = retryable)",
+            source,
+            "RELIABILITY_UNKNOWN",
+            unavailable_reason(),
+            observed_at,
+        ),
+        dead_letter_count: monitor_optional_metric(
+            complete
+                .then_some(metrics.map(|m| m.dead_letter_count as f64))
+                .flatten(),
+            "jobs",
+            "count(to_state = dead_letter)",
+            source,
+            "RELIABILITY_UNKNOWN",
+            unavailable_reason(),
+            observed_at,
+        ),
+        lost_count: monitor_optional_metric(
+            complete
+                .then_some(metrics.map(|m| m.lost_count as f64))
+                .flatten(),
+            "jobs",
+            "count(to_state = lost)",
+            source,
+            "RELIABILITY_UNKNOWN",
+            unavailable_reason(),
+            observed_at,
+        ),
+        timeout_count: monitor_optional_metric(
+            complete
+                .then_some(metrics.map(|m| m.timeout_count as f64))
+                .flatten(),
+            "jobs",
+            "count(reason_code = worker_timeout)",
+            source,
+            "RELIABILITY_UNKNOWN",
+            unavailable_reason(),
+            observed_at,
+        ),
+        execution_seconds_p50: monitor_optional_metric(
+            complete
+                .then(|| metrics.and_then(|m| percentile(&m.execution_samples, 0.5)))
+                .flatten(),
+            "seconds",
+            "p50(finished_at - started_at)",
+            source,
+            "EXECUTION_NO_SAMPLES",
+            "No complete execution duration samples were available.",
+            observed_at,
+        ),
+        execution_seconds_p95: monitor_optional_metric(
+            complete
+                .then(|| metrics.and_then(|m| percentile(&m.execution_samples, 0.95)))
+                .flatten(),
+            "seconds",
+            "p95(finished_at - started_at)",
+            source,
+            "EXECUTION_NO_SAMPLES",
+            "No complete execution duration samples were available.",
+            observed_at,
+        ),
+        execution_seconds_p99: monitor_optional_metric(
+            complete
+                .then(|| metrics.and_then(|m| percentile(&m.execution_samples, 0.99)))
+                .flatten(),
+            "seconds",
+            "p99(finished_at - started_at)",
+            source,
+            "EXECUTION_NO_SAMPLES",
+            "No complete execution duration samples were available.",
+            observed_at,
+        ),
+    }
+}
+
+fn unavailable_reason() -> &'static str {
+    "The durable telemetry source is unavailable or bounded before the requested metric could be trusted."
+}
+
+fn build_monitor_thresholds() -> MonitorOperationalThresholds {
+    MonitorOperationalThresholds {
+        queue_pressure: MonitorQueueThresholds {
+            medium_at: 1,
+            high_at: 6,
+            critical_at: 16,
+            source: "backend_default".to_string(),
+        },
+        worker_utilization: MonitorUtilizationThresholds {
+            scale_down_below_percent: 30,
+            warning_at_percent: 50,
+            critical_at_percent: 80,
+            source: "backend_default".to_string(),
+        },
+        live_after_seconds: LIVE_THRESHOLD_SECS,
+        stale_after_seconds: STALE_THRESHOLD_SECS as u64,
+        source: "backend_default".to_string(),
+    }
+}
+
 /// Shared logic: fetch the full monitor overview without making Redis a hard dependency.
 async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOperationalSnapshot> {
     tokio::time::timeout(
@@ -961,6 +1717,7 @@ async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOperatio
     })?
 }
 
+#[allow(clippy::too_many_lines)]
 async fn fetch_overview_data_inner(state: &Arc<AppState>) -> AppResult<MonitorOperationalSnapshot> {
     let observed_at = Utc::now();
     let redis_snapshot =
@@ -974,12 +1731,89 @@ async fn fetch_overview_data_inner(state: &Arc<AppState>) -> AppResult<MonitorOp
         10,
     )
     .await;
-    let quality = monitor_quality(
+    let mut quality = monitor_quality(
         &redis_snapshot.redis,
         &durable_jobs,
         &redis_snapshot.worker_heartbeats,
         observed_at,
     );
+    let durable_data = if matches!(durable_jobs.status, MonitorSourceStatus::Available) {
+        state
+            .infra()
+            .infra_job_service()
+            .load_monitor_data(
+                observed_at - TimeDelta::seconds(MONITOR_WINDOW_SECS),
+                MONITOR_AGGREGATION_LIMIT,
+            )
+            .await
+            .ok()
+    } else {
+        None
+    };
+    let durable_metrics = durable_data.as_ref().map(|data| {
+        (
+            build_durable_monitor_metrics(data, observed_at),
+            !data.truncated,
+        )
+    });
+    if durable_metrics.is_none() {
+        if matches!(durable_jobs.status, MonitorSourceStatus::Available) {
+            quality.durable_db = MonitorSourceHealth {
+                status: MonitorSourceStatus::Degraded,
+                error_code: Some("DURABLE_METRICS_UNAVAILABLE".to_string()),
+            };
+            quality.data_quality = MonitorDataQuality::Degraded;
+        }
+        quality.unknown_fields.extend(
+            [
+                "queue_health.historical_rates",
+                "queue_health.queue_wait",
+                "reliability",
+                "oldest_queued_job",
+                "oldest_running_job",
+                "task_type_reliability",
+            ]
+            .into_iter()
+            .map(str::to_string),
+        );
+    } else if durable_metrics
+        .as_ref()
+        .is_some_and(|(_, complete)| !complete)
+    {
+        quality.data_quality = MonitorDataQuality::Degraded;
+        quality
+            .unknown_fields
+            .push("durable_metrics_bounded".to_string());
+    }
+    let queue_health = build_queue_health(
+        &redis_snapshot,
+        durable_metrics
+            .as_ref()
+            .map(|(metrics, complete)| (metrics, *complete)),
+        observed_at,
+    );
+    let reliability = build_reliability(
+        durable_metrics
+            .as_ref()
+            .map(|(metrics, complete)| (metrics, *complete)),
+        observed_at,
+    );
+    let task_type_reliability = build_task_type_reliability(
+        durable_metrics
+            .as_ref()
+            .map(|(metrics, complete)| (metrics, *complete)),
+        observed_at,
+    );
+    let oldest_queued_job = durable_metrics.as_ref().and_then(|(metrics, complete)| {
+        complete
+            .then(|| metrics.oldest_queued_job.clone())
+            .flatten()
+    });
+    let oldest_running_job = durable_metrics.as_ref().and_then(|(metrics, complete)| {
+        complete
+            .then(|| metrics.oldest_running_job.clone())
+            .flatten()
+    });
     let pending_tasks = match (
         redis_snapshot.pending_high,
         redis_snapshot.pending_normal,
@@ -1030,6 +1864,12 @@ async fn fetch_overview_data_inner(state: &Arc<AppState>) -> AppResult<MonitorOp
         recent_jobs,
         job_type_stats,
         durable_jobs,
+        queue_health,
+        reliability,
+        oldest_queued_job,
+        oldest_running_job,
+        task_type_reliability,
+        thresholds: build_monitor_thresholds(),
         quality,
     })
 }
@@ -1368,7 +2208,35 @@ mod tests {
                 jobs: Some(vec![]),
                 next_cursor_token: None,
                 limit: 10,
+                events_truncated: false,
             },
+            queue_health: build_queue_health(
+                &RedisMonitorSnapshot {
+                    pending_high: Some(100),
+                    pending_normal: Some(0),
+                    pending_low: Some(50),
+                    dead_letter_depth: Some(0),
+                    completed_today: Some(1200),
+                    failed_today: Some(3),
+                    workers: vec![],
+                    recent_jobs: vec![],
+                    redis: MonitorSourceHealth {
+                        status: MonitorSourceStatus::Available,
+                        error_code: None,
+                    },
+                    worker_heartbeats: MonitorSourceHealth {
+                        status: MonitorSourceStatus::Available,
+                        error_code: None,
+                    },
+                },
+                None,
+                Utc::now(),
+            ),
+            reliability: build_reliability(None, Utc::now()),
+            oldest_queued_job: None,
+            oldest_running_job: None,
+            task_type_reliability: vec![],
+            thresholds: build_monitor_thresholds(),
             quality: MonitorQuality {
                 data_quality: MonitorDataQuality::Complete,
                 freshness: MonitorFreshness::Fresh,
@@ -1544,6 +2412,7 @@ mod tests {
             jobs: Some(Vec::new()),
             next_cursor_token: None,
             limit: 10,
+            events_truncated: false,
         };
 
         let quality = monitor_quality(&available, &durable_jobs, &available, Utc::now());
@@ -1551,6 +2420,30 @@ mod tests {
         assert_eq!(quality.data_quality, MonitorDataQuality::Complete);
         assert_eq!(quality.freshness, MonitorFreshness::Fresh);
         assert!(quality.unknown_fields.is_empty());
+    }
+
+    #[test]
+    fn test_monitor_quality_marks_truncated_durable_events_as_degraded() {
+        let available = MonitorSourceHealth {
+            status: MonitorSourceStatus::Available,
+            error_code: None,
+        };
+        let durable_jobs = MonitorDurableJobsSection {
+            status: MonitorSourceStatus::Available,
+            error_code: None,
+            jobs: Some(Vec::new()),
+            next_cursor_token: None,
+            limit: 10,
+            events_truncated: true,
+        };
+
+        let quality = monitor_quality(&available, &durable_jobs, &available, Utc::now());
+
+        assert_eq!(quality.data_quality, MonitorDataQuality::Degraded);
+        assert!(quality
+            .unknown_fields
+            .iter()
+            .any(|field| field == "durable_events_partial"));
     }
 
     #[test]
@@ -1569,6 +2462,7 @@ mod tests {
             jobs: Some(Vec::new()),
             next_cursor_token: None,
             limit: 10,
+            events_truncated: false,
         };
 
         let quality = monitor_quality(&unavailable, &durable_jobs, &unavailable, Utc::now());
@@ -1594,6 +2488,7 @@ mod tests {
             jobs: None,
             next_cursor_token: None,
             limit: 10,
+            events_truncated: false,
         };
         let degraded_quality =
             monitor_quality(&available, &degraded_durable_jobs, &available, Utc::now());
@@ -1611,5 +2506,74 @@ mod tests {
         assert_eq!(active, 0);
         assert_eq!(idle, 0);
         assert!(workers.is_empty());
+    }
+
+    #[test]
+    fn test_percentile_is_deterministic_and_unknown_without_samples() {
+        assert_eq!(percentile(&[], 0.5), None);
+        assert_eq!(percentile(&[1.0, 3.0, 2.0, 4.0], 0.5), Some(2.0));
+        assert_eq!(percentile(&[1.0, 3.0, 2.0, 4.0], 0.95), Some(4.0));
+    }
+
+    #[test]
+    fn test_queue_health_preserves_unknown_when_redis_is_unavailable() {
+        let observed_at = Utc::now();
+        let snapshot = RedisMonitorSnapshot {
+            pending_high: None,
+            pending_normal: None,
+            pending_low: None,
+            dead_letter_depth: None,
+            completed_today: None,
+            failed_today: None,
+            workers: Vec::new(),
+            recent_jobs: Vec::new(),
+            redis: MonitorSourceHealth {
+                status: MonitorSourceStatus::Unavailable,
+                error_code: Some("REDIS_DOWN".to_string()),
+            },
+            worker_heartbeats: MonitorSourceHealth {
+                status: MonitorSourceStatus::Unavailable,
+                error_code: Some("REDIS_DOWN".to_string()),
+            },
+        };
+
+        let health = build_queue_health(&snapshot, None, observed_at);
+
+        assert_eq!(health.depth_total.value, None);
+        assert_eq!(health.depth_total.source, "redis:worker_queues");
+        assert_eq!(
+            health
+                .depth_total
+                .unknown
+                .as_ref()
+                .map(|unknown| unknown.code.as_str()),
+            Some("REDIS_QUEUE_PARTIAL")
+        );
+    }
+
+    #[test]
+    fn test_reliability_is_unknown_without_durable_samples() {
+        let reliability = build_reliability(None, Utc::now());
+
+        assert_eq!(reliability.success_rate.value, None);
+        assert_eq!(reliability.failure_rate.value, None);
+        assert_eq!(reliability.retryable_count.value, None);
+        assert_eq!(
+            reliability
+                .success_rate
+                .unknown
+                .as_ref()
+                .map(|unknown| unknown.code.as_str()),
+            Some("RELIABILITY_NO_SAMPLES")
+        );
+    }
+
+    #[test]
+    fn test_operational_thresholds_are_backend_owned() {
+        let thresholds = build_monitor_thresholds();
+
+        assert_eq!(thresholds.source, "backend_default");
+        assert_eq!(thresholds.queue_pressure.medium_at, 1);
+        assert_eq!(thresholds.worker_utilization.critical_at_percent, 80);
     }
 }

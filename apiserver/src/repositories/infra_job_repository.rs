@@ -56,6 +56,13 @@ pub struct InfraJobPage {
     pub next_cursor: Option<InfraJobCursor>,
 }
 
+#[derive(Debug, Clone)]
+pub struct InfraJobMonitorData {
+    pub records: Vec<InfraJobRecord>,
+    pub events: Vec<InfraJobEvent>,
+    pub truncated: bool,
+}
+
 #[async_trait]
 pub trait InfraJobRepository: Send + Sync {
     async fn create(&self, params: CreateInfraJobParams) -> Result<InfraJobRecord, AppError>;
@@ -86,4 +93,10 @@ pub trait InfraJobRepository: Send + Sync {
         job_ids: &[Uuid],
         total_limit: i64,
     ) -> Result<Vec<InfraJobEvent>, AppError>;
+
+    async fn load_monitor_data(
+        &self,
+        since: DateTime<Utc>,
+        limit: i64,
+    ) -> Result<InfraJobMonitorData, AppError>;
 }

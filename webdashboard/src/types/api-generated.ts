@@ -6800,6 +6800,7 @@ export interface components {
         MonitorDataQuality: "complete" | "partial" | "degraded" | "unavailable";
         MonitorDurableJobsSection: {
             error_code?: string | null;
+            events_truncated: boolean;
             jobs?: components["schemas"]["MonitorInfraJobRecord"][] | null;
             limit: number;
             next_cursor_token?: string | null;
@@ -6892,6 +6893,40 @@ export interface components {
             next_cursor?: number | null;
             quality: components["schemas"]["MonitorQuality"];
         };
+        MonitorMetric: {
+            formula: string;
+            /** Format: date-time */
+            observed_at: string;
+            source: string;
+            time_window: components["schemas"]["MonitorMetricWindow"];
+            unit: string;
+            unknown?: null | components["schemas"]["MonitorMetricUnknown"];
+            /** Format: double */
+            value?: number | null;
+        };
+        MonitorMetricUnknown: {
+            code: string;
+            reason: string;
+        };
+        MonitorMetricWindow: {
+            /** Format: int64 */
+            duration_seconds: number;
+            /** Format: date-time */
+            end: string;
+            /** Format: date-time */
+            start: string;
+        };
+        MonitorOldestJob: {
+            /** Format: int64 */
+            age_seconds: number;
+            /** Format: uuid */
+            job_id: string;
+            /** Format: date-time */
+            queued_at?: string | null;
+            /** Format: date-time */
+            started_at?: string | null;
+            task_type: string;
+        };
         /**
          * @description Canonical operational monitoring snapshot.
          *
@@ -6911,6 +6946,8 @@ export interface components {
             job_type_stats: components["schemas"]["JobTypeStats"][];
             /** Format: date-time */
             observed_at: string;
+            oldest_queued_job?: null | components["schemas"]["MonitorOldestJob"];
+            oldest_running_job?: null | components["schemas"]["MonitorOldestJob"];
             /** Format: int64 */
             pending_high?: number | null;
             /** Format: int64 */
@@ -6920,12 +6957,25 @@ export interface components {
             /** Format: int64 */
             pending_tasks?: number | null;
             quality: components["schemas"]["MonitorQuality"];
+            queue_health: components["schemas"]["MonitorQueueHealth"];
             recent_jobs: components["schemas"]["MonitorJob"][];
+            reliability: components["schemas"]["MonitorReliability"];
             /** Format: int64 */
             snapshot_age_seconds: number;
+            task_type_reliability: components["schemas"]["MonitorTaskTypeReliability"][];
+            thresholds: components["schemas"]["MonitorOperationalThresholds"];
             /** Format: int64 */
             total_workers?: number | null;
             workers: components["schemas"]["WorkerHeartbeat"][];
+        };
+        MonitorOperationalThresholds: {
+            /** Format: int64 */
+            live_after_seconds: number;
+            queue_pressure: components["schemas"]["MonitorQueueThresholds"];
+            source: string;
+            /** Format: int64 */
+            stale_after_seconds: number;
+            worker_utilization: components["schemas"]["MonitorUtilizationThresholds"];
         };
         MonitorQuality: {
             data_quality: components["schemas"]["MonitorDataQuality"];
@@ -6935,6 +6985,41 @@ export interface components {
             snapshot_sequence: string;
             unknown_fields: string[];
             worker_heartbeats: components["schemas"]["MonitorSourceHealth"];
+        };
+        MonitorQueueHealth: {
+            dead_letter_depth: components["schemas"]["MonitorMetric"];
+            depth_high: components["schemas"]["MonitorMetric"];
+            depth_low: components["schemas"]["MonitorMetric"];
+            depth_normal: components["schemas"]["MonitorMetric"];
+            depth_total: components["schemas"]["MonitorMetric"];
+            enqueue_rate_per_second: components["schemas"]["MonitorMetric"];
+            estimated_drain_seconds: components["schemas"]["MonitorMetric"];
+            growth_rate_per_second: components["schemas"]["MonitorMetric"];
+            oldest_queued_age_seconds: components["schemas"]["MonitorMetric"];
+            processing_rate_per_second: components["schemas"]["MonitorMetric"];
+            queue_wait_seconds_p50: components["schemas"]["MonitorMetric"];
+            queue_wait_seconds_p95: components["schemas"]["MonitorMetric"];
+        };
+        MonitorQueueThresholds: {
+            /** Format: int64 */
+            critical_at: number;
+            /** Format: int64 */
+            high_at: number;
+            /** Format: int64 */
+            medium_at: number;
+            source: string;
+        };
+        MonitorReliability: {
+            consecutive_failures: components["schemas"]["MonitorMetric"];
+            dead_letter_count: components["schemas"]["MonitorMetric"];
+            execution_seconds_p50: components["schemas"]["MonitorMetric"];
+            execution_seconds_p95: components["schemas"]["MonitorMetric"];
+            execution_seconds_p99: components["schemas"]["MonitorMetric"];
+            failure_rate: components["schemas"]["MonitorMetric"];
+            lost_count: components["schemas"]["MonitorMetric"];
+            retryable_count: components["schemas"]["MonitorMetric"];
+            success_rate: components["schemas"]["MonitorMetric"];
+            timeout_count: components["schemas"]["MonitorMetric"];
         };
         MonitorSourceHealth: {
             error_code?: string | null;
@@ -6946,6 +7031,33 @@ export interface components {
             code: string;
             message: string;
             retryable: boolean;
+        };
+        MonitorTaskTypeReliability: {
+            /** Format: int64 */
+            completed: number;
+            /** Format: int64 */
+            dead_letter: number;
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            lost: number;
+            /** Format: int64 */
+            processing: number;
+            /** Format: int64 */
+            queued: number;
+            /** Format: int64 */
+            retryable: number;
+            success_rate: components["schemas"]["MonitorMetric"];
+            task_type: string;
+        };
+        MonitorUtilizationThresholds: {
+            /** Format: int64 */
+            critical_at_percent: number;
+            /** Format: int64 */
+            scale_down_below_percent: number;
+            source: string;
+            /** Format: int64 */
+            warning_at_percent: number;
         };
         MyProfileResponse: {
             emergency_contacts: components["schemas"]["EmployeeEmergencyContact"][];
