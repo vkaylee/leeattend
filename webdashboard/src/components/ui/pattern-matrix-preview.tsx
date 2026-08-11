@@ -200,10 +200,6 @@ function DayCellContent({
           assignedDetails.map((d, i) => {
             const shift = shifts?.find((s) => s.id === d.shift_id);
             const shiftName = shift?.name ?? "—";
-            const shortName =
-              shiftName.length > 10
-                ? shiftName.substring(0, 10) + "…"
-                : shiftName;
             const colorCls = shiftColorClass(
               d.shift_id ?? "",
               allShiftIds,
@@ -212,12 +208,12 @@ function DayCellContent({
             return (
               <span
                 className={cn(
-                  "px-1.5 py-0.5 rounded-md border text-[7px] font-bold uppercase truncate max-w-full text-center leading-tight",
+                  "w-full max-w-full min-w-0 px-1.5 py-0.5 rounded-md border text-[7px] font-bold uppercase whitespace-normal break-words text-center leading-tight",
                   colorCls,
                 )}
                 key={i}
               >
-                {shortName}
+                {shiftName}
               </span>
             );
           })
