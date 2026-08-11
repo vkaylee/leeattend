@@ -3,20 +3,22 @@ import { useMemo } from "react";
 import type { WorkerMonitorStats, RecentJob } from "@/lib/api/types";
 
 export interface UtilizationData {
-    active: number;
-    idle: number;
-    percent: number;
-    total: number;
+    active: number | null;
+    idle: number | null;
+    percent: number | null;
+    total: number | null;
+    unavailable: boolean;
 }
 
 export type PressureLevel = "low" | "medium" | "high" | "critical";
 
 export interface QueuePressureData {
-    high: number;
-    normal: number;
-    low: number;
-    pressureLevel: PressureLevel;
-    total: number;
+    high: number | null;
+    normal: number | null;
+    low: number | null;
+    pressureLevel: PressureLevel | "unavailable";
+    total: number | null;
+    unavailable: boolean;
 }
 
 export interface JobStatusCount {
@@ -35,10 +37,16 @@ const STATUS_COLORS: Record<string, string> = {
 
 export const useWorkerUtilization = (stats: WorkerMonitorStats | undefined): UtilizationData => {
     return useMemo(() => {
-        if (!stats) return { active: 0, idle: 0, total: 0, percent: 0 };
-        const total = stats.total_workers;
-        const percent = total > 0 ? Math.round((stats.active_workers / total) * 100) : 0;
-        return { active: stats.active_workers, idle: stats.idle_workers, total, percent };
+        const active = stats?.active_workers ?? null;
+        const idle = stats?.idle_workers ?? null;
+        const total = stats?.total_workers ?? null;
+        const unavailable = active === null || idle === null || total === null;
+        const percent = unavailable
+            ? null
+            : total > 0
+                ? Math.round((active / total) * 100)
+                : 0;
+        return { active, idle, total, percent, unavailable };
     }, [stats]);
 };
 
@@ -51,12 +59,19 @@ function derivePressureLevel(total: number): PressureLevel {
 
 export const useQueuePressure = (stats: WorkerMonitorStats | undefined): QueuePressureData => {
     return useMemo(() => {
-        if (!stats) return { high: 0, normal: 0, low: 0, total: 0, pressureLevel: "low" };
-        const high = stats.pending_high;
-        const normal = stats.pending_normal ?? 0;
-        const low = stats.pending_low;
-        const total = high + normal + low;
-        return { high, normal, low, total, pressureLevel: derivePressureLevel(total) };
+        const high = stats?.pending_high ?? null;
+        const normal = stats?.pending_normal ?? null;
+        const low = stats?.pending_low ?? null;
+        const unavailable = high === null || normal === null || low === null;
+        const total = unavailable ? null : high + normal + low;
+        return {
+            high,
+            normal,
+            low,
+            total,
+            pressureLevel: unavailable || total === null ? "unavailable" : derivePressureLevel(total),
+            unavailable,
+        };
     }, [stats]);
 };
 

@@ -10,6 +10,18 @@
     "priority": "Độ ưu tiên",
     "count": "Số lượng",
     "error_summary": "Tóm tắt lỗi",
-    "diagnostics_redacted": "Dữ liệu chẩn đoán nhạy cảm không được hiển thị trong trang giám sát."
+    "diagnostics_redacted": "Dữ liệu chẩn đoán nhạy cảm không được hiển thị trong trang giám sát.",
+    "metric_unavailable": "Chỉ số không khả dụng",
+    "heartbeat_age": "{{seconds}} giây kể từ nhịp tim cuối",
+    "worker_liveness_label": "Trạng thái sống của worker: {{status}}",
+    "liveness": "Trạng thái sống",
+    "source_redis": "Redis",
+    "source_workers": "Nhịp tim worker",
+    "source_durable": "Công việc bền vững",
+    "snapshot_metadata": "Thông tin snapshot",
+    "snapshot_age": "Tuổi snapshot",
+    "seconds_value": "{{seconds}} giây",
+    "observed_at": "Thời điểm quan sát",
+    "source_quality": "Chất lượng nguồn"
   }
 }

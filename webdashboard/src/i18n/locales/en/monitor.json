@@ -10,6 +10,18 @@
     "priority": "Priority",
     "count": "Count",
     "error_summary": "Error Summary",
-    "diagnostics_redacted": "Sensitive diagnostic payloads are not displayed in the monitor."
+    "diagnostics_redacted": "Sensitive diagnostic payloads are not displayed in the monitor.",
+    "metric_unavailable": "Metric unavailable",
+    "heartbeat_age": "{{seconds}}s since heartbeat",
+    "worker_liveness_label": "Worker liveness: {{status}}",
+    "liveness": "Liveness",
+    "source_redis": "Redis",
+    "source_workers": "Worker heartbeats",
+    "source_durable": "Durable jobs",
+    "snapshot_metadata": "Snapshot metadata",
+    "snapshot_age": "Snapshot age",
+    "seconds_value": "{{seconds}}s",
+    "observed_at": "Observed at",
+    "source_quality": "Source quality"
   }
 }

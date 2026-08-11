@@ -6805,6 +6805,8 @@ export interface components {
             next_cursor_token?: string | null;
             status: components["schemas"]["MonitorSourceStatus"];
         };
+        /** @enum {string} */
+        MonitorFreshness: "fresh" | "aging" | "stale" | "unknown";
         MonitorInfraJobEvent: {
             /** Format: int32 */
             attempt_count: number;
@@ -6890,38 +6892,45 @@ export interface components {
             next_cursor?: number | null;
             quality: components["schemas"]["MonitorQuality"];
         };
-        /** @description Combined monitor overview response — stats + worker list in one call. */
-        MonitorOverviewResponse: {
+        /**
+         * @description Canonical operational monitoring snapshot.
+         *
+         *     Numeric values are nullable when their source could not be measured. A zero
+         *     is therefore a measured zero, never a placeholder for an unavailable source.
+         */
+        MonitorOperationalSnapshot: {
             /** Format: int64 */
-            active_workers: number;
+            active_workers?: number | null;
             /** Format: int64 */
-            completed_today: number;
+            completed_today?: number | null;
             durable_jobs: components["schemas"]["MonitorDurableJobsSection"];
             /** Format: int64 */
-            failed_today: number;
+            failed_today?: number | null;
             /** Format: int64 */
-            idle_workers: number;
+            idle_workers?: number | null;
             job_type_stats: components["schemas"]["JobTypeStats"][];
             /** Format: date-time */
             observed_at: string;
             /** Format: int64 */
-            pending_high: number;
+            pending_high?: number | null;
             /** Format: int64 */
-            pending_low: number;
+            pending_low?: number | null;
             /** Format: int64 */
-            pending_normal: number;
+            pending_normal?: number | null;
             /** Format: int64 */
-            pending_tasks: number;
+            pending_tasks?: number | null;
             quality: components["schemas"]["MonitorQuality"];
             recent_jobs: components["schemas"]["MonitorJob"][];
             /** Format: int64 */
-            total_workers: number;
+            snapshot_age_seconds: number;
+            /** Format: int64 */
+            total_workers?: number | null;
             workers: components["schemas"]["WorkerHeartbeat"][];
         };
         MonitorQuality: {
             data_quality: components["schemas"]["MonitorDataQuality"];
             durable_db: components["schemas"]["MonitorSourceHealth"];
-            freshness: string;
+            freshness: components["schemas"]["MonitorFreshness"];
             redis: components["schemas"]["MonitorSourceHealth"];
             snapshot_sequence: string;
             unknown_fields: string[];
@@ -6932,7 +6941,7 @@ export interface components {
             status: components["schemas"]["MonitorSourceStatus"];
         };
         /** @enum {string} */
-        MonitorSourceStatus: "available" | "unavailable";
+        MonitorSourceStatus: "available" | "degraded" | "unavailable";
         MonitorStreamError: {
             code: string;
             message: string;
@@ -8584,16 +8593,28 @@ export interface components {
             /** Format: int64 */
             total_count: number;
         };
-        /** @description Worker heartbeat payload stored in Redis */
+        /** @description Worker heartbeat payload stored in Redis and enriched for monitor responses. */
         WorkerHeartbeat: {
             current_task_type?: string | null;
+            /**
+             * Format: int64
+             * @description Seconds elapsed since `last_seen_at` when the snapshot was assembled.
+             */
+            heartbeat_age_seconds?: number;
             host: string;
             /** Format: uuid */
             id: string;
             /** Format: date-time */
             last_seen_at: string;
+            /** @description Measured liveness at the time the snapshot was assembled. */
+            liveness?: components["schemas"]["WorkerLiveness"];
             status: components["schemas"]["WorkerStatus"];
         };
+        /**
+         * @description Liveness measured from the worker heartbeat timestamp at snapshot time.
+         * @enum {string}
+         */
+        WorkerLiveness: "live" | "stale" | "offline";
         /**
          * @description Worker status enum
          * @enum {string}
@@ -10226,13 +10247,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Monitor overview statistics and active worker status */
+            /** @description Operational monitor snapshot with independent source health */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MonitorOverviewResponse"];
+                    "application/json": components["schemas"]["MonitorOperationalSnapshot"];
                 };
             };
         };

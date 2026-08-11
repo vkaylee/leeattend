@@ -10,6 +10,18 @@
     "priority": "优先级",
     "count": "数量",
     "error_summary": "错误摘要",
-    "diagnostics_redacted": "监控页面不会显示敏感诊断数据。"
+    "diagnostics_redacted": "监控页面不会显示敏感诊断数据。",
+    "metric_unavailable": "指标不可用",
+    "heartbeat_age": "距上次心跳 {{seconds}} 秒",
+    "worker_liveness_label": "工作进程存活状态：{{status}}",
+    "liveness": "存活状态",
+    "source_redis": "Redis",
+    "source_workers": "工作进程心跳",
+    "source_durable": "持久化任务",
+    "snapshot_metadata": "快照信息",
+    "snapshot_age": "快照年龄",
+    "seconds_value": "{{seconds}} 秒",
+    "observed_at": "观测时间",
+    "source_quality": "数据源质量"
   }
 }

@@ -37,6 +37,7 @@ const MAX_MONITOR_JOBS: usize = 100;
 const MAX_MONITOR_QUERY_LIMIT: usize = 100;
 const MAX_MONITOR_SEARCH_CHARS: usize = 64;
 const MONITOR_QUERY_TIMEOUT_SECS: u64 = 5;
+const MONITOR_SOURCE_TIMEOUT_SECS: u64 = 1;
 
 const MONITOR_STATUSES: [&str; 4] = ["pending", "processing", "completed", "failed"];
 const MONITOR_DURABLE_STATES: [&str; 8] = [
@@ -70,7 +71,9 @@ const MONITOR_TASK_TYPES: [&str; 18] = [
     "detail",
 ];
 
-/// Workers not seen within this duration are considered stale and excluded.
+/// Heartbeats within three intervals are considered live.
+const LIVE_THRESHOLD_SECS: u64 = 15;
+/// Heartbeats older than this are no longer usable for operational decisions.
 const STALE_THRESHOLD_SECS: i64 = 60;
 
 /// SSE push interval in seconds.
@@ -84,7 +87,17 @@ pub enum WorkerStatus {
     Processing,
 }
 
-/// Worker heartbeat payload stored in Redis
+/// Liveness measured from the worker heartbeat timestamp at snapshot time.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, utoipa::ToSchema, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum WorkerLiveness {
+    #[default]
+    Live,
+    Stale,
+    Offline,
+}
+
+/// Worker heartbeat payload stored in Redis and enriched for monitor responses.
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct WorkerHeartbeat {
     id: Uuid,
@@ -92,6 +105,12 @@ pub struct WorkerHeartbeat {
     status: WorkerStatus,
     current_task_type: Option<String>,
     last_seen_at: DateTime<Utc>,
+    /// Measured liveness at the time the snapshot was assembled.
+    #[serde(default)]
+    liveness: WorkerLiveness,
+    /// Seconds elapsed since `last_seen_at` when the snapshot was assembled.
+    #[serde(default)]
+    heartbeat_age_seconds: u64,
 }
 
 impl WorkerHeartbeat {
@@ -108,6 +127,8 @@ impl WorkerHeartbeat {
             status,
             current_task_type,
             last_seen_at,
+            liveness: WorkerLiveness::Live,
+            heartbeat_age_seconds: 0,
         }
     }
 
@@ -129,6 +150,24 @@ impl WorkerHeartbeat {
 
     pub fn last_seen_at(&self) -> DateTime<Utc> {
         self.last_seen_at
+    }
+
+    pub fn liveness(&self) -> WorkerLiveness {
+        self.liveness
+    }
+
+    pub fn heartbeat_age_seconds(&self) -> u64 {
+        self.heartbeat_age_seconds
+    }
+
+    fn measure_liveness(&mut self, observed_at: DateTime<Utc>) {
+        let age = observed_at
+            .signed_duration_since(self.last_seen_at)
+            .num_seconds()
+            .max(0)
+            .cast_unsigned();
+        self.heartbeat_age_seconds = age;
+        self.liveness = worker_liveness_for_age(age);
     }
 }
 
@@ -232,20 +271,30 @@ impl TryFrom<&str> for MonitorInfraJobState {
     }
 }
 
-#[derive(Debug, Clone, Serialize, utoipa::ToSchema, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, utoipa::ToSchema, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum MonitorSourceStatus {
     Available,
+    Degraded,
     Unavailable,
 }
 
-#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, Copy, Serialize, utoipa::ToSchema, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum MonitorDataQuality {
     Complete,
     Partial,
     Degraded,
     Unavailable,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, utoipa::ToSchema, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum MonitorFreshness {
+    Fresh,
+    Aging,
+    Stale,
+    Unknown,
 }
 
 #[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
@@ -257,7 +306,7 @@ pub struct MonitorSourceHealth {
 #[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
 pub struct MonitorQuality {
     pub data_quality: MonitorDataQuality,
-    pub freshness: String,
+    pub freshness: MonitorFreshness,
     pub snapshot_sequence: String,
     pub unknown_fields: Vec<String>,
     pub redis: MonitorSourceHealth,
@@ -395,25 +444,32 @@ pub(crate) fn durable_job_dto(
     })
 }
 
-/// Combined monitor overview response — stats + worker list in one call.
+/// Canonical operational monitoring snapshot.
+///
+/// Numeric values are nullable when their source could not be measured. A zero
+/// is therefore a measured zero, never a placeholder for an unavailable source.
 #[derive(Debug, Serialize, utoipa::ToSchema)]
-pub struct MonitorOverviewResponse {
-    pub pending_tasks: u64,
-    pub pending_high: u64,
-    pub pending_normal: u64,
-    pub pending_low: u64,
-    pub total_workers: u64,
-    pub active_workers: u64,
-    pub idle_workers: u64,
-    pub completed_today: u64,
-    pub failed_today: u64,
+pub struct MonitorOperationalSnapshot {
+    pub pending_tasks: Option<u64>,
+    pub pending_high: Option<u64>,
+    pub pending_normal: Option<u64>,
+    pub pending_low: Option<u64>,
+    pub total_workers: Option<u64>,
+    pub active_workers: Option<u64>,
+    pub idle_workers: Option<u64>,
+    pub completed_today: Option<u64>,
+    pub failed_today: Option<u64>,
     pub observed_at: DateTime<Utc>,
+    pub snapshot_age_seconds: u64,
     pub workers: Vec<WorkerHeartbeat>,
     pub recent_jobs: Vec<MonitorJob>,
     pub job_type_stats: Vec<JobTypeStats>,
     pub durable_jobs: MonitorDurableJobsSection,
     pub quality: MonitorQuality,
 }
+
+/// Compatibility name retained for callers compiled against the former schema.
+pub type MonitorOverviewResponse = MonitorOperationalSnapshot;
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct MonitorJobsResponse {
@@ -580,46 +636,323 @@ async fn load_durable_jobs_section(
     }
 }
 
-fn monitor_quality(
-    durable_jobs: &MonitorDurableJobsSection,
-    observed_at: DateTime<Utc>,
-) -> MonitorQuality {
-    let durable_available = matches!(&durable_jobs.status, MonitorSourceStatus::Available);
-    MonitorQuality {
-        data_quality: if durable_available {
-            MonitorDataQuality::Complete
-        } else {
-            MonitorDataQuality::Partial
-        },
-        freshness: "fresh".to_string(),
-        snapshot_sequence: format!("{}-{}", observed_at.timestamp_micros(), Uuid::new_v4()),
-        unknown_fields: if durable_available {
-            Vec::new()
-        } else {
-            vec!["durable_jobs".to_string(), "durable_events".to_string()]
-        },
-        redis: MonitorSourceHealth {
-            status: MonitorSourceStatus::Available,
-            error_code: None,
-        },
-        durable_db: MonitorSourceHealth {
-            status: durable_jobs.status.clone(),
-            error_code: durable_jobs.error_code.clone(),
-        },
-        worker_heartbeats: MonitorSourceHealth {
-            status: MonitorSourceStatus::Available,
-            error_code: None,
-        },
+fn worker_liveness_for_age(age_seconds: u64) -> WorkerLiveness {
+    if age_seconds <= LIVE_THRESHOLD_SECS {
+        WorkerLiveness::Live
+    } else if age_seconds <= STALE_THRESHOLD_SECS as u64 {
+        WorkerLiveness::Stale
+    } else {
+        WorkerLiveness::Offline
     }
 }
 
-/// Shared logic: fetch the full monitor overview from Redis and the durable ledger.
-async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOverviewResponse> {
-    let redis = state.infra().require_redis()?;
+fn monitor_freshness_for_age(age_seconds: u64) -> MonitorFreshness {
+    if age_seconds <= LIVE_THRESHOLD_SECS {
+        MonitorFreshness::Fresh
+    } else if age_seconds <= STALE_THRESHOLD_SECS as u64 {
+        MonitorFreshness::Aging
+    } else {
+        MonitorFreshness::Stale
+    }
+}
 
+fn snapshot_age_seconds(observed_at: DateTime<Utc>) -> u64 {
+    Utc::now()
+        .signed_duration_since(observed_at)
+        .num_seconds()
+        .max(0)
+        .cast_unsigned()
+}
+
+#[derive(Debug)]
+struct RedisMonitorSnapshot {
+    pending_high: Option<u64>,
+    pending_normal: Option<u64>,
+    pending_low: Option<u64>,
+    completed_today: Option<u64>,
+    failed_today: Option<u64>,
+    workers: Vec<WorkerHeartbeat>,
+    recent_jobs: Vec<crate::queue::JobMetadata>,
+    redis: MonitorSourceHealth,
+    worker_heartbeats: MonitorSourceHealth,
+}
+
+impl RedisMonitorSnapshot {
+    fn unavailable(error_code: &str) -> Self {
+        Self {
+            pending_high: None,
+            pending_normal: None,
+            pending_low: None,
+            completed_today: None,
+            failed_today: None,
+            workers: Vec::new(),
+            recent_jobs: Vec::new(),
+            redis: MonitorSourceHealth {
+                status: MonitorSourceStatus::Unavailable,
+                error_code: Some(error_code.to_string()),
+            },
+            worker_heartbeats: MonitorSourceHealth {
+                status: MonitorSourceStatus::Unavailable,
+                error_code: Some(error_code.to_string()),
+            },
+        }
+    }
+}
+
+fn monitor_quality(
+    redis: &MonitorSourceHealth,
+    durable_jobs: &MonitorDurableJobsSection,
+    worker_heartbeats: &MonitorSourceHealth,
+    observed_at: DateTime<Utc>,
+) -> MonitorQuality {
+    let durable = MonitorSourceHealth {
+        status: durable_jobs.status,
+        error_code: durable_jobs.error_code.clone(),
+    };
+    let sources = [&redis.status, &durable.status, &worker_heartbeats.status];
+    let available = sources
+        .iter()
+        .filter(|status| matches!(status, MonitorSourceStatus::Available))
+        .count();
+    let degraded = sources
+        .iter()
+        .any(|status| matches!(status, MonitorSourceStatus::Degraded));
+    let data_quality = if available == sources.len() {
+        MonitorDataQuality::Complete
+    } else if available == 0 && !degraded {
+        MonitorDataQuality::Unavailable
+    } else if degraded {
+        MonitorDataQuality::Degraded
+    } else {
+        MonitorDataQuality::Partial
+    };
+    let mut unknown_fields = Vec::new();
+    if !matches!(redis.status, MonitorSourceStatus::Available) {
+        unknown_fields.extend(
+            ["pending_tasks", "completed_today", "recent_jobs"]
+                .into_iter()
+                .map(str::to_string),
+        );
+    }
+    if !matches!(worker_heartbeats.status, MonitorSourceStatus::Available) {
+        unknown_fields.push("workers".to_string());
+    }
+    if !matches!(durable.status, MonitorSourceStatus::Available) {
+        unknown_fields.extend(
+            ["durable_jobs", "durable_events"]
+                .into_iter()
+                .map(str::to_string),
+        );
+    }
+    MonitorQuality {
+        data_quality,
+        freshness: monitor_freshness_for_age(snapshot_age_seconds(observed_at)),
+        snapshot_sequence: format!("{}-{}", observed_at.timestamp_micros(), Uuid::new_v4()),
+        unknown_fields,
+        redis: redis.clone(),
+        durable_db: durable,
+        worker_heartbeats: worker_heartbeats.clone(),
+    }
+}
+
+#[derive(Debug)]
+struct RedisQueueSnapshot {
+    pending_high: Option<u64>,
+    pending_normal: Option<u64>,
+    pending_low: Option<u64>,
+    completed_today: Option<u64>,
+    failed_today: Option<u64>,
+    recent_jobs: Vec<crate::queue::JobMetadata>,
+    successful_reads: usize,
+}
+
+async fn load_redis_queue_snapshot(redis: &crate::queue::RedisPool) -> RedisQueueSnapshot {
+    let mut conn = redis.conn();
+    let mut successful_reads = 0usize;
+    let pending_high = read_queue_length(&mut conn, QUEUE_HIGH, &mut successful_reads).await;
+    let pending_normal = read_queue_length(&mut conn, QUEUE_NORMAL, &mut successful_reads).await;
+    let pending_low = read_queue_length(&mut conn, QUEUE_LOW, &mut successful_reads).await;
+    let today = Utc::now().format("%Y-%m-%d").to_string();
+    let completed_today = read_stat_counter(
+        &mut conn,
+        &format!("{STATS_COMPLETED_PREFIX}{today}"),
+        "completed",
+        &mut successful_reads,
+    )
+    .await;
+    let failed_today = read_stat_counter(
+        &mut conn,
+        &format!("{STATS_FAILED_PREFIX}{today}"),
+        "failed",
+        &mut successful_reads,
+    )
+    .await;
+    let recent_jobs = match crate::queue::JobQueue::new(redis.clone())
+        .list_recent_jobs_indexed(MAX_MONITOR_JOBS)
+        .await
+    {
+        Ok(jobs) => {
+            successful_reads += 1;
+            jobs
+        }
+        Err(error) => {
+            tracing::warn!(error = %error, "Monitor recent jobs read unavailable");
+            Vec::new()
+        }
+    };
+    RedisQueueSnapshot {
+        pending_high,
+        pending_normal,
+        pending_low,
+        completed_today,
+        failed_today,
+        recent_jobs,
+        successful_reads,
+    }
+}
+
+async fn read_queue_length(
+    conn: &mut redis::aio::ConnectionManager,
+    key: &str,
+    successful_reads: &mut usize,
+) -> Option<u64> {
+    match conn.llen(key).await {
+        Ok(value) => {
+            *successful_reads += 1;
+            Some(value)
+        }
+        Err(error) => {
+            tracing::warn!(error = %error, queue = key, "Monitor queue read unavailable");
+            None
+        }
+    }
+}
+
+async fn read_stat_counter(
+    conn: &mut redis::aio::ConnectionManager,
+    key: &str,
+    stat_name: &str,
+    successful_reads: &mut usize,
+) -> Option<u64> {
+    match conn.get::<_, Option<u64>>(key).await {
+        Ok(value) => {
+            *successful_reads += 1;
+            Some(value.unwrap_or(0))
+        }
+        Err(error) => {
+            tracing::warn!(error = %error, stat = stat_name, "Monitor stats read unavailable");
+            None
+        }
+    }
+}
+
+async fn load_worker_heartbeat_snapshot(
+    conn: &mut redis::aio::ConnectionManager,
+    observed_at: DateTime<Utc>,
+) -> (Vec<WorkerHeartbeat>, MonitorSourceHealth) {
+    let pattern = format!("{WORKER_HEARTBEAT_PREFIX}*");
+    let heartbeat_read = match scan_keys(conn, &pattern).await {
+        Ok(worker_keys) if worker_keys.is_empty() => Ok(Vec::new()),
+        Ok(worker_keys) => conn
+            .mget::<_, Vec<Option<String>>>(&worker_keys)
+            .await
+            .map_err(|_error| {
+                redis::RedisError::from((redis::ErrorKind::IoError, "heartbeat read failed"))
+            }),
+        Err(error) => Err(error),
+    };
+    match heartbeat_read {
+        Ok(values) => {
+            let malformed = values
+                .iter()
+                .flatten()
+                .any(|value| serde_json::from_str::<WorkerHeartbeat>(value).is_err());
+            let stale_cutoff = observed_at - TimeDelta::seconds(STALE_THRESHOLD_SECS);
+            let (_, _, workers) = filter_stale_workers_at(values, stale_cutoff, observed_at);
+            (
+                workers,
+                MonitorSourceHealth {
+                    status: if malformed {
+                        MonitorSourceStatus::Degraded
+                    } else {
+                        MonitorSourceStatus::Available
+                    },
+                    error_code: malformed.then(|| "WORKER_HEARTBEAT_PAYLOAD_INVALID".to_string()),
+                },
+            )
+        }
+        Err(error) => {
+            tracing::warn!(error = %error, "Monitor worker heartbeat read unavailable");
+            (
+                Vec::new(),
+                MonitorSourceHealth {
+                    status: MonitorSourceStatus::Unavailable,
+                    error_code: Some("WORKER_HEARTBEATS_UNAVAILABLE".to_string()),
+                },
+            )
+        }
+    }
+}
+
+async fn load_redis_monitor_snapshot(
+    redis: Option<&crate::queue::RedisPool>,
+    observed_at: DateTime<Utc>,
+) -> RedisMonitorSnapshot {
+    let Some(redis) = redis else {
+        return RedisMonitorSnapshot::unavailable("REDIS_NOT_CONFIGURED");
+    };
+
+    let queue = load_redis_queue_snapshot(redis).await;
+    let mut conn = redis.conn();
+    let (workers, worker_heartbeats) = load_worker_heartbeat_snapshot(&mut conn, observed_at).await;
+    let total_reads = 6usize;
+    let redis_status = if queue.successful_reads == 0 {
+        MonitorSourceStatus::Unavailable
+    } else if queue.successful_reads == total_reads {
+        MonitorSourceStatus::Available
+    } else {
+        MonitorSourceStatus::Degraded
+    };
+    RedisMonitorSnapshot {
+        pending_high: queue.pending_high,
+        pending_normal: queue.pending_normal,
+        pending_low: queue.pending_low,
+        completed_today: queue.completed_today,
+        failed_today: queue.failed_today,
+        workers,
+        recent_jobs: queue.recent_jobs,
+        redis: MonitorSourceHealth {
+            status: redis_status,
+            error_code: (queue.successful_reads < total_reads)
+                .then(|| "REDIS_MONITOR_PARTIAL".to_string()),
+        },
+        worker_heartbeats,
+    }
+}
+
+async fn load_redis_monitor_snapshot_bounded(
+    redis: Option<&crate::queue::RedisPool>,
+    observed_at: DateTime<Utc>,
+) -> RedisMonitorSnapshot {
+    match tokio::time::timeout(
+        Duration::from_secs(MONITOR_SOURCE_TIMEOUT_SECS),
+        load_redis_monitor_snapshot(redis, observed_at),
+    )
+    .await
+    {
+        Ok(snapshot) => snapshot,
+        Err(error) => {
+            tracing::warn!(error = %error, "Redis monitor snapshot timed out");
+            RedisMonitorSnapshot::unavailable("REDIS_MONITOR_TIMEOUT")
+        }
+    }
+}
+
+/// Shared logic: fetch the full monitor overview without making Redis a hard dependency.
+async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOperationalSnapshot> {
     tokio::time::timeout(
         Duration::from_secs(MONITOR_QUERY_TIMEOUT_SECS),
-        fetch_overview_data_inner(state, redis),
+        fetch_overview_data_inner(state),
     )
     .await
     .map_err(|error| {
@@ -628,81 +961,10 @@ async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOverview
     })?
 }
 
-async fn fetch_overview_data_inner(
-    state: &Arc<AppState>,
-    redis: &crate::queue::RedisPool,
-) -> AppResult<MonitorOverviewResponse> {
-    let mut conn = redis.conn();
-
-    // Queue lengths are O(1); include every priority queue in the total.
-    let pending_high: u64 = conn.llen(QUEUE_HIGH).await.map_err(|error| {
-        tracing::error!(error = %error, "Monitor high queue read failed");
-        AppError::service_unavailable(I18nKey::ServiceUnavailable)
-    })?;
-    let pending_normal: u64 = conn.llen(QUEUE_NORMAL).await.map_err(|error| {
-        tracing::error!(error = %error, "Monitor normal queue read failed");
-        AppError::service_unavailable(I18nKey::ServiceUnavailable)
-    })?;
-    let pending_low: u64 = conn.llen(QUEUE_LOW).await.map_err(|error| {
-        tracing::error!(error = %error, "Monitor low queue read failed");
-        AppError::service_unavailable(I18nKey::ServiceUnavailable)
-    })?;
-    let pending_tasks = pending_high + pending_normal + pending_low;
-
-    // Get today's stats counters.
-    let today = Utc::now().format("%Y-%m-%d").to_string();
-    let completed_key = format!("{STATS_COMPLETED_PREFIX}{today}");
-    let failed_key = format!("{STATS_FAILED_PREFIX}{today}");
-
-    let completed_today: u64 = conn
-        .get::<_, Option<u64>>(&completed_key)
-        .await
-        .map_err(|error| {
-            tracing::error!(error = %error, "Monitor completed stats read failed");
-            AppError::service_unavailable(I18nKey::ServiceUnavailable)
-        })?
-        .unwrap_or(0);
-    let failed_today: u64 = conn
-        .get::<_, Option<u64>>(&failed_key)
-        .await
-        .map_err(|error| {
-            tracing::error!(error = %error, "Monitor failed stats read failed");
-            AppError::service_unavailable(I18nKey::ServiceUnavailable)
-        })?
-        .unwrap_or(0);
-
-    // Scan only the small worker-heartbeat namespace.
-    let pattern = format!("{WORKER_HEARTBEAT_PREFIX}*");
-    let worker_keys = scan_keys(&mut conn, &pattern).await.map_err(|error| {
-        tracing::error!(error = %error, "Monitor worker heartbeat scan failed");
-        AppError::service_unavailable(I18nKey::ServiceUnavailable)
-    })?;
-
-    let now = Utc::now();
-    let stale_cutoff = now - TimeDelta::seconds(STALE_THRESHOLD_SECS);
-
-    let (active_workers, idle_workers, workers) = if worker_keys.is_empty() {
-        (0, 0, Vec::new())
-    } else {
-        let values: Vec<Option<String>> = conn.mget(&worker_keys).await.map_err(|error| {
-            AppError::Internal(format!("monitor worker heartbeat read failed: {error}"))
-        })?;
-        filter_stale_workers(values, stale_cutoff)
-    };
-
-    let total_workers = workers.len() as u64;
-    let queue = state.infra().job_queue()?;
-    let all_recent_jobs = queue
-        .list_recent_jobs_indexed(MAX_MONITOR_JOBS)
-        .await
-        .map_err(|error| AppError::Internal(format!("monitor recent jobs read failed: {error}")))?;
-    let job_type_stats = compute_job_type_stats(&all_recent_jobs);
-    let mut recent_jobs = all_recent_jobs
-        .iter()
-        .map(MonitorJob::from)
-        .collect::<Vec<_>>();
-    recent_jobs.truncate(10);
-
+async fn fetch_overview_data_inner(state: &Arc<AppState>) -> AppResult<MonitorOperationalSnapshot> {
+    let observed_at = Utc::now();
+    let redis_snapshot =
+        load_redis_monitor_snapshot_bounded(state.infra().redis(), observed_at).await;
     let durable_jobs = load_durable_jobs_section(
         state,
         ListInfraJobsParams {
@@ -712,19 +974,58 @@ async fn fetch_overview_data_inner(
         10,
     )
     .await;
-    let quality = monitor_quality(&durable_jobs, now);
-
-    Ok(MonitorOverviewResponse {
+    let quality = monitor_quality(
+        &redis_snapshot.redis,
+        &durable_jobs,
+        &redis_snapshot.worker_heartbeats,
+        observed_at,
+    );
+    let pending_tasks = match (
+        redis_snapshot.pending_high,
+        redis_snapshot.pending_normal,
+        redis_snapshot.pending_low,
+    ) {
+        (Some(high), Some(normal), Some(low)) => Some(high + normal + low),
+        _ => None,
+    };
+    let job_type_stats = compute_job_type_stats(&redis_snapshot.recent_jobs);
+    let mut recent_jobs = redis_snapshot
+        .recent_jobs
+        .iter()
+        .map(MonitorJob::from)
+        .collect::<Vec<_>>();
+    recent_jobs.truncate(10);
+    let heartbeat_available = matches!(
+        redis_snapshot.worker_heartbeats.status,
+        MonitorSourceStatus::Available
+    );
+    let workers = redis_snapshot.workers;
+    let total_workers = heartbeat_available.then_some(workers.len() as u64);
+    let active_workers = heartbeat_available.then_some(
+        workers
+            .iter()
+            .filter(|worker| worker.status() == &WorkerStatus::Processing)
+            .count() as u64,
+    );
+    let idle_workers = heartbeat_available.then_some(
+        workers
+            .iter()
+            .filter(|worker| worker.status() == &WorkerStatus::Idle)
+            .count() as u64,
+    );
+    let snapshot_age_seconds = snapshot_age_seconds(observed_at);
+    Ok(MonitorOperationalSnapshot {
         pending_tasks,
-        pending_high,
-        pending_normal,
-        pending_low,
+        pending_high: redis_snapshot.pending_high,
+        pending_normal: redis_snapshot.pending_normal,
+        pending_low: redis_snapshot.pending_low,
         total_workers,
         active_workers,
         idle_workers,
-        completed_today,
-        failed_today,
-        observed_at: now,
+        completed_today: redis_snapshot.completed_today,
+        failed_today: redis_snapshot.failed_today,
+        observed_at,
+        snapshot_age_seconds,
         workers,
         recent_jobs,
         job_type_stats,
@@ -741,13 +1042,13 @@ async fn fetch_overview_data_inner(
     get,
     path = "/monitor/overview",
     responses(
-        (status = 200, description = "Monitor overview statistics and active worker status", body = MonitorOverviewResponse)
+        (status = 200, description = "Operational monitor snapshot with independent source health", body = MonitorOperationalSnapshot)
     )
 )]
 pub async fn get_monitor_overview(
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
-) -> AppResult<Json<MonitorOverviewResponse>> {
+) -> AppResult<Json<MonitorOperationalSnapshot>> {
     ctx.require_any_role(&[SystemRoleType::PlatformAdmin, SystemRoleType::Support])?;
     Ok(Json(fetch_overview_data(&state).await?))
 }
@@ -843,21 +1144,29 @@ pub async fn get_monitor_jobs(
     let durable_limit_i64 = i64::try_from(durable_limit)
         .map_err(|_conversion_error| AppError::validation(I18nKey::Validation))?;
 
-    let queue = state.infra().job_queue()?;
-
-    let (jobs, next_cursor) = queue
-        .list_jobs_paginated(
-            params.cursor,
-            limit,
-            status,
-            task_type.clone(),
-            search.clone(),
-        )
-        .await
-        .map_err(|error| {
-            tracing::error!(error = %error, "Monitor job listing failed");
-            AppError::service_unavailable(I18nKey::ServiceUnavailable)
-        })?;
+    let observed_at = Utc::now();
+    let redis_snapshot =
+        load_redis_monitor_snapshot_bounded(state.infra().redis(), observed_at).await;
+    let (jobs, next_cursor) = if let Some(redis) = state.infra().redis() {
+        match crate::queue::JobQueue::new(redis.clone())
+            .list_jobs_paginated(
+                params.cursor,
+                limit,
+                status,
+                task_type.clone(),
+                search.clone(),
+            )
+            .await
+        {
+            Ok(page) => page,
+            Err(error) => {
+                tracing::warn!(error = %error, "Monitor job listing unavailable");
+                (Vec::new(), None)
+            }
+        }
+    } else {
+        (Vec::new(), None)
+    };
 
     let durable_jobs = load_durable_jobs_section(
         &state,
@@ -872,7 +1181,12 @@ pub async fn get_monitor_jobs(
         durable_limit,
     )
     .await;
-    let quality = monitor_quality(&durable_jobs, Utc::now());
+    let quality = monitor_quality(
+        &redis_snapshot.redis,
+        &durable_jobs,
+        &redis_snapshot.worker_heartbeats,
+        observed_at,
+    );
 
     Ok(Json(MonitorJobsResponse {
         jobs: jobs.iter().map(MonitorJob::from).collect(),
@@ -922,22 +1236,32 @@ pub async fn monitor_stream_sse(
     Ok(Sse::new(event_stream).keep_alive(KeepAlive::default()))
 }
 
-/// Helper to parse worker heartbeats from Redis strings and filter out stale ones.
-/// Returns (active_workers_count, idle_workers_count, filtered_workers_list).
+/// Helper retained for focused unit tests and compatibility with older callers.
+#[cfg(test)]
 fn filter_stale_workers(
     values: Vec<Option<String>>,
     stale_cutoff: DateTime<Utc>,
+) -> (u64, u64, Vec<WorkerHeartbeat>) {
+    filter_stale_workers_at(values, stale_cutoff, Utc::now())
+}
+
+/// Parse worker heartbeats and attach measured age/liveness metadata.
+///
+/// Stale records are retained so operators can distinguish a slow worker from
+/// an absent one. Redis key expiry is what removes an offline worker entirely;
+/// an old record that remains readable is explicitly marked `offline`.
+fn filter_stale_workers_at(
+    values: Vec<Option<String>>,
+    _stale_cutoff: DateTime<Utc>,
+    observed_at: DateTime<Utc>,
 ) -> (u64, u64, Vec<WorkerHeartbeat>) {
     let mut workers = Vec::new();
     let mut active = 0u64;
     let mut idle = 0u64;
 
     for value in values.into_iter().flatten() {
-        if let Ok(heartbeat) = serde_json::from_str::<WorkerHeartbeat>(&value) {
-            // Skip stale workers (not seen within threshold)
-            if heartbeat.last_seen_at() < stale_cutoff {
-                continue;
-            }
+        if let Ok(mut heartbeat) = serde_json::from_str::<WorkerHeartbeat>(&value) {
+            heartbeat.measure_liveness(observed_at);
             match heartbeat.status() {
                 WorkerStatus::Processing => active += 1,
                 WorkerStatus::Idle => idle += 1,
@@ -1024,16 +1348,17 @@ mod tests {
     #[test]
     fn test_monitor_overview_response_serialization() {
         let overview = MonitorOverviewResponse {
-            pending_tasks: 150,
-            pending_high: 100,
-            pending_normal: 0,
-            pending_low: 50,
-            total_workers: 50,
-            active_workers: 45,
-            idle_workers: 5,
-            completed_today: 1200,
-            failed_today: 3,
+            pending_tasks: Some(150),
+            pending_high: Some(100),
+            pending_normal: Some(0),
+            pending_low: Some(50),
+            total_workers: Some(50),
+            active_workers: Some(45),
+            idle_workers: Some(5),
+            completed_today: Some(1200),
+            failed_today: Some(3),
             observed_at: Utc::now(),
+            snapshot_age_seconds: 0,
             workers: vec![],
             recent_jobs: vec![],
             job_type_stats: vec![],
@@ -1046,7 +1371,7 @@ mod tests {
             },
             quality: MonitorQuality {
                 data_quality: MonitorDataQuality::Complete,
-                freshness: "fresh".to_string(),
+                freshness: MonitorFreshness::Fresh,
                 snapshot_sequence: "test-sequence".to_string(),
                 unknown_fields: vec![],
                 redis: MonitorSourceHealth {
@@ -1147,15 +1472,144 @@ mod tests {
 
         let (active, idle, workers) = filter_stale_workers(values, stale_cutoff);
 
-        // Should only count w1 (active) and w2 (idle). w3 is stale, others invalid
-        assert_eq!(active, 1);
+        // Stale workers remain visible with measured liveness; malformed values are omitted.
+        assert_eq!(active, 2);
         assert_eq!(idle, 1);
-        assert_eq!(workers.len(), 2);
+        assert_eq!(workers.len(), 3);
 
-        // Ensure w3 was dropped
-        let hosts: Vec<String> = workers.into_iter().map(|w| w.host().to_string()).collect();
-        assert!(hosts.contains(&"h1".to_string()));
-        assert!(hosts.contains(&"h2".to_string()));
-        assert!(!hosts.contains(&"h3".to_string()));
+        let stale_worker = workers
+            .iter()
+            .find(|worker| worker.host() == "h2")
+            .expect("stale worker should remain visible");
+        assert_eq!(stale_worker.liveness(), WorkerLiveness::Stale);
+        assert!(stale_worker.heartbeat_age_seconds() > LIVE_THRESHOLD_SECS);
+        let offline_worker = workers
+            .iter()
+            .find(|worker| worker.host() == "h3")
+            .expect("offline worker record should remain visible");
+        assert_eq!(offline_worker.liveness(), WorkerLiveness::Offline);
+    }
+
+    #[test]
+    fn test_worker_liveness_boundaries_match_contract() {
+        assert_eq!(worker_liveness_for_age(0), WorkerLiveness::Live);
+        assert_eq!(
+            worker_liveness_for_age(LIVE_THRESHOLD_SECS),
+            WorkerLiveness::Live
+        );
+        assert_eq!(
+            worker_liveness_for_age(LIVE_THRESHOLD_SECS + 1),
+            WorkerLiveness::Stale
+        );
+        assert_eq!(
+            worker_liveness_for_age(STALE_THRESHOLD_SECS as u64),
+            WorkerLiveness::Stale
+        );
+        assert_eq!(
+            worker_liveness_for_age(STALE_THRESHOLD_SECS as u64 + 1),
+            WorkerLiveness::Offline
+        );
+    }
+
+    #[test]
+    fn test_monitor_freshness_boundaries_match_contract() {
+        assert_eq!(monitor_freshness_for_age(0), MonitorFreshness::Fresh);
+        assert_eq!(
+            monitor_freshness_for_age(LIVE_THRESHOLD_SECS),
+            MonitorFreshness::Fresh
+        );
+        assert_eq!(
+            monitor_freshness_for_age(LIVE_THRESHOLD_SECS + 1),
+            MonitorFreshness::Aging
+        );
+        assert_eq!(
+            monitor_freshness_for_age(STALE_THRESHOLD_SECS as u64),
+            MonitorFreshness::Aging
+        );
+        assert_eq!(
+            monitor_freshness_for_age(STALE_THRESHOLD_SECS as u64 + 1),
+            MonitorFreshness::Stale
+        );
+    }
+
+    #[test]
+    fn test_monitor_quality_is_complete_when_all_sources_are_available() {
+        let available = MonitorSourceHealth {
+            status: MonitorSourceStatus::Available,
+            error_code: None,
+        };
+        let durable_jobs = MonitorDurableJobsSection {
+            status: MonitorSourceStatus::Available,
+            error_code: None,
+            jobs: Some(Vec::new()),
+            next_cursor_token: None,
+            limit: 10,
+        };
+
+        let quality = monitor_quality(&available, &durable_jobs, &available, Utc::now());
+
+        assert_eq!(quality.data_quality, MonitorDataQuality::Complete);
+        assert_eq!(quality.freshness, MonitorFreshness::Fresh);
+        assert!(quality.unknown_fields.is_empty());
+    }
+
+    #[test]
+    fn test_monitor_quality_marks_unavailable_sources_and_unknown_fields() {
+        let unavailable = MonitorSourceHealth {
+            status: MonitorSourceStatus::Unavailable,
+            error_code: Some("SOURCE_DOWN".to_string()),
+        };
+        let available = MonitorSourceHealth {
+            status: MonitorSourceStatus::Available,
+            error_code: None,
+        };
+        let durable_jobs = MonitorDurableJobsSection {
+            status: MonitorSourceStatus::Available,
+            error_code: None,
+            jobs: Some(Vec::new()),
+            next_cursor_token: None,
+            limit: 10,
+        };
+
+        let quality = monitor_quality(&unavailable, &durable_jobs, &unavailable, Utc::now());
+
+        assert_eq!(quality.data_quality, MonitorDataQuality::Partial);
+        assert!(quality
+            .unknown_fields
+            .iter()
+            .any(|field| field == "pending_tasks"));
+        assert!(quality
+            .unknown_fields
+            .iter()
+            .any(|field| field == "workers"));
+        assert_eq!(quality.redis.error_code.as_deref(), Some("SOURCE_DOWN"));
+        assert_eq!(
+            quality.worker_heartbeats.status,
+            MonitorSourceStatus::Unavailable
+        );
+
+        let degraded_durable_jobs = MonitorDurableJobsSection {
+            status: MonitorSourceStatus::Degraded,
+            error_code: Some("PARTIAL_SOURCE".to_string()),
+            jobs: None,
+            next_cursor_token: None,
+            limit: 10,
+        };
+        let degraded_quality =
+            monitor_quality(&available, &degraded_durable_jobs, &available, Utc::now());
+        assert_eq!(degraded_quality.data_quality, MonitorDataQuality::Degraded);
+    }
+
+    #[test]
+    fn test_empty_worker_heartbeat_set_reports_measured_zero_workers() {
+        let observed_at = Utc::now();
+        let stale_cutoff = observed_at - TimeDelta::seconds(STALE_THRESHOLD_SECS);
+
+        let (active, idle, workers) =
+            filter_stale_workers_at(Vec::new(), stale_cutoff, observed_at);
+
+        assert_eq!(active, 0);
+        assert_eq!(idle, 0);
+        assert!(workers.is_empty());
     }
 }

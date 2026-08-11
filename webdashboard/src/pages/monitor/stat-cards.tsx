@@ -23,16 +23,6 @@ interface MonitorStatCardsProps {
 }
 
 export function MonitorStatCards({ isLoading, stats, t }: MonitorStatCardsProps) {
-  const s = stats ?? {
-    active_workers: 0,
-    completed_today: 0,
-    failed_today: 0,
-    idle_workers: 0,
-    pending_high: 0,
-    pending_low: 0,
-    total_workers: 0,
-  };
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-6">
       <StatCard
@@ -41,7 +31,7 @@ export function MonitorStatCards({ isLoading, stats, t }: MonitorStatCardsProps)
         icon={ArrowUp}
         isLoading={isLoading}
         label={t("monitor.pending_high")}
-        value={s.pending_high}
+        value={stats?.pending_high}
       />
       <StatCard
         bgIcon="text-amber-100"
@@ -49,7 +39,7 @@ export function MonitorStatCards({ isLoading, stats, t }: MonitorStatCardsProps)
         icon={ArrowDown}
         isLoading={isLoading}
         label={t("monitor.pending_low")}
-        value={s.pending_low}
+        value={stats?.pending_low}
       />
       <StatCard
         bgIcon="text-emerald-100"
@@ -57,7 +47,7 @@ export function MonitorStatCards({ isLoading, stats, t }: MonitorStatCardsProps)
         icon={Zap}
         isLoading={isLoading}
         label={t("monitor.active_workers")}
-        value={s.active_workers}
+        value={stats?.active_workers}
       />
       <StatCard
         bgIcon="text-slate-100"
@@ -65,7 +55,7 @@ export function MonitorStatCards({ isLoading, stats, t }: MonitorStatCardsProps)
         icon={Coffee}
         isLoading={isLoading}
         label={t("monitor.idle_workers")}
-        value={s.idle_workers}
+        value={stats?.idle_workers}
       />
       <StatCard
         bgIcon="text-primary-100"
@@ -73,7 +63,7 @@ export function MonitorStatCards({ isLoading, stats, t }: MonitorStatCardsProps)
         icon={CheckCircle2}
         isLoading={isLoading}
         label={t("monitor.completed_today")}
-        value={s.completed_today}
+        value={stats?.completed_today}
       />
       <StatCard
         bgIcon="text-rose-100"
@@ -81,7 +71,7 @@ export function MonitorStatCards({ isLoading, stats, t }: MonitorStatCardsProps)
         icon={XCircle}
         isLoading={isLoading}
         label={t("monitor.failed_today")}
-        value={s.failed_today}
+        value={stats?.failed_today}
       />
       <StatCard
         bgIcon="text-emerald-100 dark:text-emerald-800"
@@ -89,7 +79,7 @@ export function MonitorStatCards({ isLoading, stats, t }: MonitorStatCardsProps)
         icon={Server}
         isLoading={isLoading}
         label={t("monitor.total_workers")}
-        value={s.total_workers}
+        value={stats?.total_workers}
       />
     </div>
   );
@@ -108,7 +98,7 @@ function StatCard({
   icon: LucideIcon;
   isLoading: boolean;
   label: string;
-  value: number;
+  value: number | null | undefined;
 }) {
   return (
     <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-black/10 hover:shadow-xl dark:hover:shadow-black/20 transition-all group relative overflow-hidden">
@@ -119,7 +109,7 @@ function StatCard({
         {label}
       </Typography>
       <Typography className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter" variant="p">
-        {isLoading ? "..." : value}
+        {isLoading ? "..." : value ?? "—"}
       </Typography>
       <Icon
         className={cn(

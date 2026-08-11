@@ -1,13 +1,21 @@
 //! Worker Monitor integration tests
 
-use crate::common::app::spawn_app_with_factory;
+use crate::common::app::{
+    setup_app_tower, setup_app_tower_with_durable_db_url, setup_app_tower_without_redis,
+    spawn_app_with_factory,
+};
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
+use apiserver::handlers::system_auth::SystemContext;
+use apiserver::handlers::worker_monitor::{get_monitor_overview, MonitorSourceStatus};
+use apiserver::models::enums::SystemRoleType;
 use apiserver::queue::RedisPool;
+use axum::extract::State;
 use chrono::{Duration, Utc};
 use futures_util::StreamExt;
 use redis::AsyncCommands;
 use reqwest::StatusCode;
+use std::collections::HashSet;
 use uuid::Uuid;
 
 /// Grant a system role to the given user so they can access system endpoints.
@@ -419,4 +427,81 @@ async fn test_monitor_durable_detail_enforces_workspace_isolation() {
         .await
         .expect("cross-workspace detail request should complete");
     assert_eq!(forbidden.status(), StatusCode::FORBIDDEN);
+}
+
+fn platform_admin_context() -> SystemContext {
+    SystemContext {
+        user_id: Uuid::nil(),
+        roles: HashSet::from([SystemRoleType::PlatformAdmin]),
+    }
+}
+
+#[tokio::test]
+async fn test_monitor_overview_reports_redis_unavailable_without_fabricating_zeroes() {
+    let (_test_db, _factory, state, _app) = setup_app_tower_without_redis().await;
+
+    let response = get_monitor_overview(State(state), platform_admin_context())
+        .await
+        .expect("monitor overview should remain available without Redis");
+    let snapshot = response.0;
+
+    assert_eq!(
+        snapshot.quality.redis.status,
+        MonitorSourceStatus::Unavailable
+    );
+    assert_eq!(
+        snapshot.quality.worker_heartbeats.status,
+        MonitorSourceStatus::Unavailable
+    );
+    assert!(snapshot.pending_tasks.is_none());
+    assert!(snapshot.total_workers.is_none());
+    assert!(snapshot.active_workers.is_none());
+    assert!(snapshot.idle_workers.is_none());
+}
+
+#[tokio::test]
+async fn test_monitor_overview_reports_durable_db_unavailable_independently() {
+    let (_test_db, _factory, state, _app) = setup_app_tower_with_durable_db_url(
+        "postgres://postgres:postgres@127.0.0.1:1/monitor_unavailable",
+    )
+    .await;
+
+    let response = get_monitor_overview(State(state), platform_admin_context())
+        .await
+        .expect("monitor overview should degrade when durable DB is unavailable");
+    let snapshot = response.0;
+
+    assert_eq!(
+        snapshot.quality.durable_db.status,
+        MonitorSourceStatus::Unavailable
+    );
+    assert_eq!(
+        snapshot.quality.durable_db.error_code.as_deref(),
+        Some("DURABLE_MONITOR_UNAVAILABLE")
+    );
+    assert!(snapshot.durable_jobs.jobs.is_none());
+    assert!(snapshot
+        .quality
+        .unknown_fields
+        .iter()
+        .any(|field| field == "durable_jobs"));
+}
+
+#[tokio::test]
+async fn test_monitor_overview_reports_zero_workers_when_heartbeat_source_is_empty() {
+    let (_test_db, _factory, state, _app) = setup_app_tower().await;
+
+    let response = get_monitor_overview(State(state), platform_admin_context())
+        .await
+        .expect("monitor overview should load with no worker heartbeats");
+    let snapshot = response.0;
+
+    assert_eq!(
+        snapshot.quality.worker_heartbeats.status,
+        MonitorSourceStatus::Available
+    );
+    assert!(snapshot.workers.is_empty());
+    assert_eq!(snapshot.total_workers, Some(0));
+    assert_eq!(snapshot.active_workers, Some(0));
+    assert_eq!(snapshot.idle_workers, Some(0));
 }

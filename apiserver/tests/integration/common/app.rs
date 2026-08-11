@@ -1711,8 +1711,25 @@ pub async fn setup_app_tower_internal(
     setup_app_tower_internal_extended(use_redis).await
 }
 
+/// Setup a Tower app whose durable-monitor repositories use a caller-supplied
+/// lazy pool URL. The test factory still uses the healthy test database so the
+/// app can be built without making the invalid pool connect during setup.
+#[allow(dead_code)]
+pub async fn setup_app_tower_with_durable_db_url(
+    durable_db_url: &str,
+) -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
+    setup_app_tower_internal_extended_with_db_url(true, Some(durable_db_url)).await
+}
+
 pub async fn setup_app_tower_internal_extended(
     use_redis: bool,
+) -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
+    setup_app_tower_internal_extended_with_db_url(use_redis, None).await
+}
+
+async fn setup_app_tower_internal_extended_with_db_url(
+    use_redis: bool,
+    durable_db_url: Option<&str>,
 ) -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
     init_tracing();
     let test_db = TestDatabase::new().await;
@@ -1722,7 +1739,10 @@ pub async fn setup_app_tower_internal_extended(
         None
     };
     let pool = test_db.diesel_pools.clone().clone();
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let diesel_db_url = durable_db_url
+        .map(str::to_owned)
+        .unwrap_or_else(|| test_db.url());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&diesel_db_url);
     let factory = TestFactory::new(pool.clone()).with_redis(shared_redis_pool.clone());
 
     let agent_repo = Arc::new(apiserver::repositories::DieselAgentRepository::new(

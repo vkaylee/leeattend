@@ -135,6 +135,7 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
   }, [data]);
 
   const durableJobsUnavailable = data?.pages[0]?.durable_jobs?.status === "unavailable";
+  const redisJobsUnavailable = data?.pages[0]?.quality?.redis.status === "unavailable";
 
   const mobileLoadMoreRef = useInfiniteScroll<HTMLDivElement>({
     fetchNextPage: () => { void fetchNextPage(); },
@@ -232,7 +233,9 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
           data={jobs}
           emptyState={{
             icon: <Briefcase className="h-10 w-10" />,
-            title: t("monitor.no_matching_jobs", { defaultValue: "No jobs match your search filters" }),
+            title: redisJobsUnavailable
+              ? t("monitor.metric_unavailable", { defaultValue: "Recent jobs source unavailable" })
+              : t("monitor.no_matching_jobs", { defaultValue: "No jobs match your search filters" }),
           }}
           getCardKey={(job) => job.job_id}
           isLoading={isLoading}

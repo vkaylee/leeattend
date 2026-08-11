@@ -59,7 +59,47 @@ export async function downloadExportReport(
 
 export async function fetchMonitorOverview(): Promise<WorkerMonitorStats> {
   const { data: resData } = await client.GET("/monitor/overview", {});
-  return resData;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- SafeClient types say non-null but API may return null
+  return resData ?? {
+    active_workers: null,
+    completed_today: null,
+    durable_jobs: { error_code: "MONITOR_UNAVAILABLE", jobs: null, limit: 20, next_cursor_token: null, status: "unavailable" },
+    failed_today: null,
+    idle_workers: null,
+    job_type_stats: [],
+    observed_at: new Date(0).toISOString(),
+    pending_high: null,
+    pending_low: null,
+    pending_normal: null,
+    pending_tasks: null,
+    quality: {
+      data_quality: "unavailable",
+      durable_db: { error_code: "MONITOR_UNAVAILABLE", status: "unavailable" },
+      freshness: "unknown",
+      redis: { error_code: "MONITOR_UNAVAILABLE", status: "unavailable" },
+      snapshot_sequence: "unknown",
+      unknown_fields: [
+        "active_workers",
+        "completed_today",
+        "durable_jobs",
+        "failed_today",
+        "idle_workers",
+        "job_type_stats",
+        "pending_high",
+        "pending_low",
+        "pending_normal",
+        "pending_tasks",
+        "recent_jobs",
+        "total_workers",
+        "workers",
+      ],
+      worker_heartbeats: { error_code: "MONITOR_UNAVAILABLE", status: "unavailable" },
+    },
+    recent_jobs: [],
+    snapshot_age_seconds: Number.MAX_SAFE_INTEGER,
+    total_workers: null,
+    workers: [],
+  };
 }
 
 export interface FetchMonitorJobsParams {

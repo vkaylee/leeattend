@@ -1,4 +1,4 @@
-import { Coffee, Cpu, Server, Zap } from "lucide-react";
+import { Activity, CircleOff, Clock3, Coffee, Cpu, LucideIcon, Server, Zap } from "lucide-react";
 import React from "react";
 
 import { formatDistanceToNow } from "date-fns";
@@ -10,12 +10,70 @@ import { WorkerHeartbeat } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 interface WorkersTableProps {
+  isUnavailable?: boolean;
   t: TFunction;
   workers: WorkerHeartbeat[];
 }
 
-function WorkerMobileCard({ worker, formatDate }: {
+type WorkerLiveness = NonNullable<WorkerHeartbeat["liveness"]>;
+
+const LIVENESS_STYLES: Record<WorkerLiveness, { icon: LucideIcon; className: string }> = {
+  live: {
+    icon: Activity,
+    className: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300",
+  },
+  stale: {
+    icon: Clock3,
+    className: "bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300",
+  },
+  offline: {
+    icon: CircleOff,
+    className: "bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-300",
+  },
+};
+
+function livenessLabel(t: TFunction, liveness: WorkerLiveness | undefined): string {
+  return liveness
+    ? t(`monitor.worker_liveness.${liveness}`, { defaultValue: liveness })
+    : t("monitor.metric_unavailable", { defaultValue: "Unavailable" });
+}
+
+function heartbeatAgeLabel(t: TFunction, age: number | null | undefined): string {
+  return age === null || age === undefined
+    ? "—"
+    : t("monitor.heartbeat_age", { defaultValue: `${age}s since heartbeat`, seconds: age });
+}
+
+function LivenessBadge({ liveness, t }: { liveness: WorkerLiveness | undefined; t: TFunction }) {
+  if (!liveness) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-700 dark:text-slate-400">
+        <CircleOff aria-hidden="true" size={10} />
+        {livenessLabel(t, liveness)}
+      </span>
+    );
+  }
+
+  const style = LIVENESS_STYLES[liveness];
+  const Icon = style.icon;
+  const label = livenessLabel(t, liveness);
+  return (
+    <span
+      aria-label={t("monitor.worker_liveness_label", { defaultValue: `Worker liveness: ${label}`, status: label })}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+        style.className
+      )}
+    >
+      <Icon aria-hidden="true" size={10} />
+      {label}
+    </span>
+  );
+}
+
+function WorkerMobileCard({ t, worker, formatDate }: {
   formatDate: (d: Date, o?: { addSuffix?: boolean }) => string;
+  t: TFunction;
   worker: WorkerHeartbeat;
 }) {
   return (
@@ -36,24 +94,28 @@ function WorkerMobileCard({ worker, formatDate }: {
                 : "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400"
             )}
           >
-            {worker.status === "PROCESSING" ? <Zap size={10} /> : <Coffee size={10} />}
-            {worker.status}
+            {worker.status === "PROCESSING" ? <Zap aria-hidden="true" size={10} /> : <Coffee aria-hidden="true" size={10} />}
+            {t(`monitor.worker_status.${worker.status.toLowerCase()}`, { defaultValue: worker.status })}
           </span>
+          <LivenessBadge liveness={worker.liveness} t={t} />
         </div>
         <div className="mt-2 flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
           <span>{worker.host}</span>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
           <div>
-            <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Task</div>
+            <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{t("monitor.current_task", { defaultValue: "Task" })}</div>
             <div className="mt-0.5 text-xs font-medium text-slate-700 dark:text-slate-200">
               {worker.current_task_type ?? "—"}
             </div>
           </div>
           <div>
-            <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Last Seen</div>
+            <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{t("monitor.last_seen", { defaultValue: "Last seen" })}</div>
             <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
               {formatDate(new Date(worker.last_seen_at), { addSuffix: true })}
+              <span className="block text-[10px] text-slate-400 dark:text-slate-500">
+                {heartbeatAgeLabel(t, worker.heartbeat_age_seconds)}
+              </span>
             </div>
           </div>
         </div>
@@ -62,7 +124,7 @@ function WorkerMobileCard({ worker, formatDate }: {
   );
 }
 
-export function WorkersTable({ t, workers }: WorkersTableProps) {
+export function WorkersTable({ isUnavailable = false, t, workers }: WorkersTableProps) {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-[2.5rem] dark:shadow-black/10">
       <div className="border-b border-slate-100 p-6 dark:border-slate-800">
@@ -78,11 +140,13 @@ export function WorkersTable({ t, workers }: WorkersTableProps) {
         data={workers}
         emptyState={{
           icon: <Server className="h-10 w-10" />,
-          title: t("monitor.no_workers"),
+          title: isUnavailable
+            ? t("monitor.metric_unavailable", { defaultValue: "Worker heartbeat source unavailable" })
+            : t("monitor.no_workers"),
         }}
         getCardKey={(w) => w.id}
         renderCard={(worker) => (
-          <WorkerMobileCard formatDate={formatDistanceToNow} worker={worker} />
+          <WorkerMobileCard formatDate={formatDistanceToNow} t={t} worker={worker} />
         )}
         renderDesktopTable={() => (
           <div className="overflow-x-auto">
@@ -97,6 +161,9 @@ export function WorkersTable({ t, workers }: WorkersTableProps) {
                   </th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                     {t("monitor.status")}
+                  </th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                    {t("monitor.liveness", { defaultValue: "Liveness" })}
                   </th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                     {t("monitor.current_task")}
@@ -135,8 +202,14 @@ export function WorkersTable({ t, workers }: WorkersTableProps) {
                             : "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400"
                         )}
                       >
-                        {worker.status === "PROCESSING" ? <Zap size={12} /> : <Coffee size={12} />}
-                        {worker.status}
+                        {worker.status === "PROCESSING" ? <Zap aria-hidden="true" size={12} /> : <Coffee aria-hidden="true" size={12} />}
+                        {t(`monitor.worker_status.${worker.status.toLowerCase()}`, { defaultValue: worker.status })}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <LivenessBadge liveness={worker.liveness} t={t} />
+                      <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
+                        {heartbeatAgeLabel(t, worker.heartbeat_age_seconds)}
                       </span>
                     </td>
                     <td className="px-6 py-4">

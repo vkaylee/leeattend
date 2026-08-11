@@ -32,7 +32,9 @@ const REAP_INTERVAL_SECS: u64 = 30;
 // Redis key patterns for monitoring
 const WORKER_HEARTBEAT_PREFIX: &str = "monitor:worker:";
 const HEARTBEAT_INTERVAL_SECS: u64 = 5;
-const HEARTBEAT_TTL_SECS: i64 = 15;
+// Keep the key past the monitor's stale threshold so operators can see a
+// stopped worker transition through STALE before Redis marks it OFFLINE.
+const HEARTBEAT_TTL_SECS: i64 = 90;
 
 /// Worker status for heartbeat
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -1038,9 +1040,9 @@ mod tests {
 
     #[test]
     fn test_heartbeat_timing_constants() {
-        // Heartbeat every 5s, TTL 15s = 3 missed heartbeats before expiry
+        // Heartbeat every 5s, TTL 90s keeps stale records observable before expiry.
         assert_eq!(HEARTBEAT_INTERVAL_SECS, 5);
-        assert_eq!(HEARTBEAT_TTL_SECS, 15);
+        assert_eq!(HEARTBEAT_TTL_SECS, 90);
         assert!(HEARTBEAT_TTL_SECS >= HEARTBEAT_INTERVAL_SECS as i64 * 2);
     }
 

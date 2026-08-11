@@ -16,13 +16,15 @@ interface Props {
 export default function WorkerUtilizationGauge({ data, isLoading }: Props) {
   const { t } = useTranslation();
 
-  const chartData = [{ value: data.percent, fill: "url(#gaugeGradient)" }];
+  const chartData = [{ value: data.percent ?? 0, fill: "url(#gaugeGradient)" }];
   const percentColor =
-    data.percent >= 80
-      ? "text-rose-500"
-      : data.percent >= 50
-        ? "text-amber-500"
-        : "text-emerald-500";
+    data.percent === null
+      ? "text-slate-400 dark:text-slate-500"
+      : data.percent >= 80
+        ? "text-rose-500"
+        : data.percent >= 50
+          ? "text-amber-500"
+          : "text-emerald-500";
 
   return (
     <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 rounded-[2rem] p-6 shadow-lg dark:shadow-black/20 flex flex-col items-center gap-4 relative overflow-hidden group">
@@ -38,6 +40,13 @@ export default function WorkerUtilizationGauge({ data, isLoading }: Props) {
       {isLoading ? (
         <div className="w-[160px] h-[160px] flex items-center justify-center">
           <div className="w-20 h-20 rounded-full border-4 border-slate-100 dark:border-slate-700 border-t-emerald-400 animate-spin" />
+        </div>
+      ) : data.unavailable ? (
+        <div className="w-[160px] h-[160px] flex flex-col items-center justify-center gap-2 text-center" role="status">
+          <span className="text-4xl font-black tracking-tighter text-slate-400 dark:text-slate-500" aria-hidden="true">—</span>
+          <Typography className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">
+            {t("monitor.metric_unavailable", { defaultValue: "Metric unavailable" })}
+          </Typography>
         </div>
       ) : (
         <div className="relative">
@@ -78,7 +87,7 @@ export default function WorkerUtilizationGauge({ data, isLoading }: Props) {
                 percentColor
               )}
             >
-              {data.percent}%
+              {data.percent === null ? "—" : `${data.percent}%`}
             </span>
             <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
               {t("monitor.charts.utilization")}
@@ -91,21 +100,21 @@ export default function WorkerUtilizationGauge({ data, isLoading }: Props) {
       <div className="flex items-center gap-3">
         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-300 text-[10px] font-bold uppercase tracking-wider border border-emerald-100 dark:border-emerald-800/50">
           <Zap size={10} />
-          {data.active} {t("monitor.active_short", { defaultValue: "active" })}
+          {data.active ?? "—"} {t("monitor.active_short", { defaultValue: "active" })}
         </span>
         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider border border-slate-100 dark:border-slate-700/50">
           <Coffee size={10} />
-          {data.idle} {t("monitor.idle_short", { defaultValue: "idle" })}
+          {data.idle ?? "—"} {t("monitor.idle_short", { defaultValue: "idle" })}
         </span>
       </div>
 
       {/* Scaling hints */}
-      {!isLoading && data.percent > 80 && (
+      {!isLoading && data.percent !== null && data.percent > 80 && (
         <Typography className="text-[10px] text-rose-500 dark:text-rose-400 font-medium text-center" variant="p">
           {t("monitor.charts.scale_up_warning")}
         </Typography>
       )}
-      {!isLoading && data.percent < 30 && data.percent > 0 && (
+      {!isLoading && data.percent !== null && data.percent < 30 && data.percent > 0 && (
         <Typography className="text-[10px] text-sky-500 dark:text-sky-400 font-medium text-center" variant="p">
           {t("monitor.charts.scale_down_hint")}
         </Typography>

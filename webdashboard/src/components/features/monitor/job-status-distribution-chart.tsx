@@ -10,9 +10,10 @@ import { cn } from "@/lib/utils";
 interface Props {
   data: JobStatusCount[];
   isLoading: boolean;
+  unavailable?: boolean;
 }
 
-export default function JobStatusDistributionChart({ data, isLoading }: Props) {
+export default function JobStatusDistributionChart({ data, isLoading, unavailable = false }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -30,10 +31,19 @@ export default function JobStatusDistributionChart({ data, isLoading }: Props) {
         <div className="w-[160px] h-[160px] flex items-center justify-center">
           <div className="w-20 h-20 rounded-full border-4 border-slate-100 dark:border-slate-700 border-t-blue-400 animate-spin" />
         </div>
+      ) : unavailable ? (
+        <div className="h-[160px] flex flex-col items-center justify-center gap-2 text-center" role="status">
+          <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center">
+            <span aria-hidden="true" className="text-xl text-slate-400">—</span>
+          </div>
+          <Typography className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">
+            {t("monitor.metric_unavailable", { defaultValue: "Metric unavailable" })}
+          </Typography>
+        </div>
       ) : data.length === 0 ? (
         <div className="h-[160px] flex flex-col items-center justify-center gap-2">
           <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center">
-            <span className="text-xl">📊</span>
+            <span aria-hidden="true" className="text-xl">📊</span>
           </div>
           <Typography className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">
             {t("monitor.no_data", { defaultValue: "No data" })}

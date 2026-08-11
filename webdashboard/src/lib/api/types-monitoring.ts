@@ -7,7 +7,7 @@ export interface ReportExportJobProgress {
 
 import type { components } from "@/types/api-generated";
 
-export type WorkerMonitorStats = components["schemas"]["MonitorOverviewResponse"];
+export type WorkerMonitorStats = components["schemas"]["MonitorOperationalSnapshot"];
 export type JobTypeStats = components["schemas"]["JobTypeStats"];
 export type MonitorJobsResponse = components["schemas"]["MonitorJobsResponse"];
 export type RecentJob = components["schemas"]["MonitorJob"];

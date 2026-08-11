@@ -12,7 +12,7 @@ interface Props {
   isLoading: boolean;
 }
 
-const PRESSURE_CONFIG: Record<PressureLevel, { label: string; color: string; bg: string; border: string }> = {
+const PRESSURE_CONFIG: Record<PressureLevel | "unavailable", { label: string; color: string; bg: string; border: string }> = {
   low: {
     label: "Low",
     color: "text-emerald-600 dark:text-emerald-300",
@@ -36,6 +36,12 @@ const PRESSURE_CONFIG: Record<PressureLevel, { label: string; color: string; bg:
     color: "text-rose-600 dark:text-rose-300",
     bg: "bg-rose-50 dark:bg-rose-950/60",
     border: "border-rose-100 dark:border-rose-800/50",
+  },
+  unavailable: {
+    label: "Unavailable",
+    color: "text-slate-500 dark:text-slate-400",
+    bg: "bg-slate-100 dark:bg-slate-800/60",
+    border: "border-slate-200 dark:border-slate-700",
   },
 };
 
@@ -70,7 +76,9 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
           )}
           data-testid="pressure-badge"
         >
-          {pressure.label}
+          {data.unavailable
+            ? t("monitor.metric_unavailable", { defaultValue: "Unavailable" })
+            : t(`monitor.pressure_levels.${data.pressureLevel}`, { defaultValue: pressure.label })}
         </span>
       </div>
 
@@ -78,10 +86,19 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
         <div className="h-[160px] flex items-center justify-center">
           <div className="w-20 h-20 rounded-full border-4 border-slate-100 dark:border-slate-700 border-t-orange-400 animate-spin" />
         </div>
+      ) : data.unavailable ? (
+        <div className="h-[160px] flex flex-col items-center justify-center gap-2 text-center" role="status">
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800/60 flex items-center justify-center">
+            <span className="text-xl text-slate-400" aria-hidden="true">—</span>
+          </div>
+          <Typography className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">
+            {t("monitor.metric_unavailable", { defaultValue: "Metric unavailable" })}
+          </Typography>
+        </div>
       ) : data.total === 0 ? (
         <div className="h-[160px] flex flex-col items-center justify-center gap-2">
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
-            <span className="text-xl">✓</span>
+            <span className="text-xl" aria-hidden="true">✓</span>
           </div>
           <Typography className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">
             {t("monitor.queue_empty", { defaultValue: "Queue clear" })}
@@ -126,7 +143,7 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
 
       <div className="text-center">
         <span className="text-2xl font-black text-slate-700 dark:text-slate-200 tracking-tighter tabular-nums">
-          {data.total}
+          {data.total ?? "—"}
         </span>
         <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1.5">
           {t("monitor.total_pending", { defaultValue: "total" })}
@@ -145,7 +162,7 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
           {chartData.map((entry) => (
             <tr key={entry.name}>
               <th scope="row">{entry.name}</th>
-              <td>{entry.value}</td>
+              <td>{entry.value ?? "—"}</td>
             </tr>
           ))}
         </tbody>
