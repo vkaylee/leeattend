@@ -1569,6 +1569,7 @@
     },
     "export_excel": "Export Excel",
     "view_raw_logs": "View Raw Logs",
+    "view_raw_logs_short": "Raw Logs",
     "all_departments": "All",
     "all_employers": "All",
     "search_placeholder": "Search by employee name...",
@@ -1577,8 +1578,10 @@
     "employees": "Employees",
     "report_type": "Report Type",
     "tabs": {
+      "label": "Report view",
       "summary": "Monthly Summary",
-      "daily": "Daily Details"
+      "daily": "Daily Details",
+      "daily_short": "Daily"
     },
     "reprocess": {
       "button": "Recalculate",
@@ -1616,7 +1619,9 @@
       "title": "Quick Stats",
       "total_hours": "Total Hours",
       "std_hours": "Regular Hours",
+      "std_hours_short": "Regular",
       "ot_hours": "Overtime Hours",
+      "ot_hours_short": "Overtime",
       "total_units": "Total Units"
     },
     "timekeeping_unit": {

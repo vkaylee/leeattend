@@ -23,6 +23,22 @@ describe("Sheet", () => {
         expect(screen.getByText("Sheet content")).toBeInTheDocument();
     });
 
+    it("names the dialog from its visible title", () => {
+        render(<Sheet {...defaultProps} />);
+
+        const dialog = screen.getByRole("dialog", { name: "Test Sheet" });
+        const titleId = dialog.getAttribute("aria-labelledby");
+
+        expect(titleId).toBeTruthy();
+        expect(document.getElementById(titleId!)).toHaveTextContent("Test Sheet");
+    });
+
+    it("preserves an explicit accessible title id", () => {
+        render(<Sheet {...defaultProps} ariaLabelledBy="custom-title" />);
+
+        expect(screen.getByTestId("sheet-panel")).toHaveAttribute("aria-labelledby", "custom-title");
+    });
+
     it("renders subtitle when provided", () => {
         render(<Sheet {...defaultProps} subtitle="Sub text" />);
         expect(screen.getByText("Sub text")).toBeInTheDocument();

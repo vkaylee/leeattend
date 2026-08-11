@@ -1569,6 +1569,7 @@
     },
     "export_excel": "Xuất Excel",
     "view_raw_logs": "Xem Nhật Ký Thô",
+    "view_raw_logs_short": "Nhật ký thô",
     "all_departments": "Tất cả",
     "all_employers": "Tất cả",
     "search_placeholder": "Tìm theo tên nhân viên...",
@@ -1577,8 +1578,10 @@
     "employees": "Nhân viên",
     "report_type": "Loại báo cáo",
     "tabs": {
+      "label": "Chế độ xem báo cáo",
       "summary": "Tổng hợp tháng",
-      "daily": "Chi tiết hàng ngày"
+      "daily": "Chi tiết hàng ngày",
+      "daily_short": "Hàng ngày"
     },
     "reprocess": {
       "button": "Tính lại",
@@ -1616,7 +1619,9 @@
       "title": "Thống kê nhanh",
       "total_hours": "Tổng giờ công",
       "std_hours": "Giờ trong ca",
+      "std_hours_short": "Giờ ca",
       "ot_hours": "Giờ tăng ca",
+      "ot_hours_short": "Tăng ca",
       "total_units": "Tổng đơn vị"
     },
     "timekeeping_unit": {

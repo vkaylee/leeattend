@@ -189,9 +189,125 @@ describe("EmployeeDailyDrawer", () => {
         const shiftTexts = await screen.findAllByText(/08:00 — 17:00/i);
         expect(shiftTexts.length).toBeGreaterThan(0);
 
-        // Verify that the sheet panel has the correct width constraints to prevent resizing
+        // Verify that the sheet panel stays full-width on mobile and wide on desktop.
         const sheetPanel = screen.getByTestId("sheet-panel");
-        expect(sheetPanel).toHaveClass("w-[95vw]", "xl:w-[1200px]", "!max-w-[95vw]");
+        expect(screen.getByRole("dialog", { name: "John Doe" })).toBe(sheetPanel);
+        expect(sheetPanel).toHaveClass("!w-full", "!max-w-full", "sm:!w-[95vw]", "sm:!max-w-[95vw]", "xl:!w-[1200px]");
+    });
+
+    it("exposes tab semantics and keeps the active panel associated", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
+
+        const tablist = await screen.findByRole("tablist", { name: "reports.tabs.label" });
+        const tabs = screen.getAllByRole("tab");
+        expect(tablist).toHaveAttribute("aria-label", "reports.tabs.label");
+        expect(tabs).toHaveLength(2);
+
+        const dailyTab = screen.getByRole("tab", { name: /reports.tabs.daily/i });
+        const rawTab = screen.getByRole("tab", { name: /reports.view_raw_logs/i });
+        const dailyPanel = screen.getByRole("tabpanel");
+
+        expect(dailyTab).toHaveAttribute("aria-selected", "true");
+        expect(rawTab).toHaveAttribute("aria-selected", "false");
+        expect(dailyTab).toHaveAttribute("aria-controls", dailyPanel.id);
+        expect(dailyPanel).toHaveAttribute("aria-labelledby", dailyTab.id);
+
+        const allPanels = screen.getAllByRole("tabpanel", { hidden: true });
+        expect(allPanels).toHaveLength(2);
+        const rawPanelReference = allPanels.find((panel) => panel.id === rawTab.getAttribute("aria-controls"));
+        expect(rawPanelReference).not.toBeUndefined();
+        expect(rawPanelReference).toHaveAttribute("aria-labelledby", rawTab.id);
+
+        await user.click(rawTab);
+
+        const rawPanel = await screen.findByRole("tabpanel");
+        expect(rawTab).toHaveAttribute("aria-selected", "true");
+        expect(dailyTab).toHaveAttribute("aria-selected", "false");
+        expect(rawTab).toHaveAttribute("aria-controls", rawPanel.id);
+        expect(rawPanel).toHaveAttribute("aria-labelledby", rawTab.id);
+    });
+
+    it("moves focus with arrow and Home/End tab navigation", async () => {
+        renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
+
+        const dailyTab = await screen.findByRole("tab", { name: /reports.tabs.daily/i });
+        const rawTab = screen.getByRole("tab", { name: /reports.view_raw_logs/i });
+
+        dailyTab.focus();
+        fireEvent.keyDown(dailyTab, { key: "ArrowRight" });
+        expect(rawTab).toHaveFocus();
+        expect(rawTab).toHaveAttribute("tabindex", "0");
+        expect(dailyTab).toHaveAttribute("tabindex", "-1");
+
+        fireEvent.keyDown(rawTab, { key: "Home" });
+        expect(dailyTab).toHaveFocus();
+
+        fireEvent.keyDown(dailyTab, { key: "End" });
+        expect(rawTab).toHaveFocus();
+    });
+
+    it("keeps the responsive header controls touch-friendly", async () => {
+        renderWithProviders(
+            <EmployeeDailyDrawer
+                {...defaultProps}
+                employers={[
+                    { employerId: "employer-1", employerName: "Acme Corporation" },
+                    { employerId: "employer-2", employerName: "Globex Corporation" },
+                ]}
+                employerId="employer-1"
+            />,
+        );
+
+        const employerTrigger = await screen.findByRole("button", { name: /Acme Corporation/i });
+        const tablist = screen.getByRole("tablist");
+        const tabs = screen.getAllByRole("tab");
+        const metrics = Array.from(document.querySelectorAll("[aria-busy]"));
+
+        expect(employerTrigger).toHaveClass("min-h-11", "w-full", "sm:w-auto");
+        expect(tablist).toHaveClass("min-h-11", "w-full", "sm:w-auto");
+        expect(tablist).toHaveAttribute("aria-orientation", "horizontal");
+        expect(tabs).toHaveLength(2);
+        tabs.forEach((tab) => expect(tab).toHaveClass("min-h-9"));
+        expect(metrics).toHaveLength(2);
+        metrics.forEach((metric) => expect(metric).toHaveClass("min-h-11"));
+    });
+
+    it("keeps KPI slots mounted while report data is loading", async () => {
+        (api.fetchAttendanceReport as import("vitest").Mock).mockReturnValueOnce(new Promise(() => {}));
+
+        renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
+
+        const metricLabels = [
+            "reports.quick_stats.std_hours",
+            "reports.quick_stats.ot_hours",
+        ];
+
+        metricLabels.forEach((label) => {
+            const metric = screen.getByText(label).closest("[aria-busy]");
+            expect(metric).not.toBeNull();
+            expect(metric).toHaveAttribute("aria-busy", "true");
+            expect(metric).toHaveClass("min-h-11");
+        });
+    });
+
+    it("keeps both KPI slots visible after switching to raw logs", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
+
+        await screen.findAllByText(/08:00 — 17:00/i);
+        await user.click(screen.getByRole("tab", { name: /reports.view_raw_logs/i }));
+
+        const metricLabels = [
+            "reports.quick_stats.std_hours",
+            "reports.quick_stats.ot_hours",
+        ];
+
+        metricLabels.forEach((label) => {
+            const metric = screen.getByText(label).closest("[aria-busy]");
+            expect(metric).not.toBeNull();
+            expect(metric).toHaveClass("min-h-11");
+        });
     });
 
     it("opens reprocess modal and calls reprocess mutation", async () => {
@@ -325,7 +441,7 @@ describe("EmployeeDailyDrawer", () => {
         await screen.findAllByText(/08:00 — 17:00/i);
 
         // Find the "View Raw Logs" toggle button
-        const rawLogsToggle = await screen.findByRole("button", { name: /View Raw Logs|reports.view_raw_logs/i });
+        const rawLogsToggle = await screen.findByRole("tab", { name: /View Raw Logs|reports.view_raw_logs/i });
         await user.click(rawLogsToggle);
 
         // Verify the API was called
@@ -352,7 +468,7 @@ describe("EmployeeDailyDrawer", () => {
         // The content wrapper inside the Sheet should have flex flex-col for height filling
         const sheetPanel = screen.getByTestId("sheet-panel");
         // Find the content wrapper with -mx-10 class (negative margin wrapper)
-        const contentWrapper = sheetPanel.querySelector(".-mx-10");
+        const contentWrapper = sheetPanel.querySelector(".-mx-4");
         expect(contentWrapper).not.toBeNull();
         expect(contentWrapper!.className).toContain("flex");
         expect(contentWrapper!.className).toContain("flex-col");
@@ -365,7 +481,7 @@ describe("EmployeeDailyDrawer", () => {
 
         // The Sheet content area should have !overflow-hidden
         const sheetPanel = screen.getByTestId("sheet-panel");
-        const contentArea = sheetPanel.querySelector(".flex-1");
+        const contentArea = sheetPanel.querySelector(".overflow-y-auto");
         expect(contentArea).not.toBeNull();
         expect(contentArea!.className).toContain("!overflow-hidden");
     });
@@ -377,32 +493,31 @@ describe("EmployeeDailyDrawer", () => {
         await screen.findAllByText(/08:00 — 17:00/i);
 
         // Switch to raw logs view
-        const rawLogsToggle = await screen.findByRole("button", { name: /View Raw Logs|reports.view_raw_logs/i });
+        const rawLogsToggle = await screen.findByRole("tab", { name: /View Raw Logs|reports.view_raw_logs/i });
         await user.click(rawLogsToggle);
 
         await waitFor(() => {
             expect(api.fetchRawAttendanceLogs).toHaveBeenCalled();
         });
 
-        // The raw logs scroll container should use flex-1 min-h-0
-        const sheetPanel = screen.getByTestId("sheet-panel");
-        const rawScrollContainer = sheetPanel.querySelector(".flex-1.min-h-0");
-        expect(rawScrollContainer).not.toBeNull();
-        expect(rawScrollContainer!.className).toContain("overflow-auto");
+        // The raw logs panel should fill the available height and expose an inner scroller.
+        const rawPanel = screen.getByRole("tabpanel");
+        expect(rawPanel).toHaveClass("flex", "flex-1", "min-h-0");
+        expect(rawPanel.querySelector(".overflow-auto")).not.toBeNull();
     });
 
     it("switches tabs using ArrowLeft and ArrowRight keys", async () => {
         renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
 
         // By default it is in daily mode
-        const dailyToggle = await screen.findByRole("button", { name: /reports.tabs.daily/i });
-        const rawLogsToggle = await screen.findByRole("button", { name: /reports.view_raw_logs/i });
+        const dailyToggle = await screen.findByRole("tab", { name: /reports.tabs.daily/i });
+        const rawLogsToggle = await screen.findByRole("tab", { name: /reports.view_raw_logs/i });
 
         // The daily toggle should have the active class initially
         expect(dailyToggle.className).toContain("text-primary-600");
 
         // Press ArrowRight to switch to raw mode
-        fireEvent.keyDown(window, { key: "ArrowRight" });
+        fireEvent.keyDown(dailyToggle, { key: "ArrowRight" });
 
         // Now raw log toggle should be active
         await waitFor(() => {
@@ -412,7 +527,7 @@ describe("EmployeeDailyDrawer", () => {
         expect(api.fetchRawAttendanceLogs).toHaveBeenCalled();
 
         // Press ArrowLeft to switch back to daily mode
-        fireEvent.keyDown(window, { key: "ArrowLeft" });
+        fireEvent.keyDown(rawLogsToggle, { key: "ArrowLeft" });
 
         // Now daily toggle should be active again
         await waitFor(() => {
@@ -423,8 +538,8 @@ describe("EmployeeDailyDrawer", () => {
     it("does not switch tabs when typing in an input field", async () => {
         renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
 
-        const dailyToggle = await screen.findByRole("button", { name: /reports.tabs.daily/i });
-        const rawLogsToggle = await screen.findByRole("button", { name: /reports.view_raw_logs/i });
+        const dailyToggle = await screen.findByRole("tab", { name: /reports.tabs.daily/i });
+        const rawLogsToggle = await screen.findByRole("tab", { name: /reports.view_raw_logs/i });
 
         // Create a dummy input to simulate typing
         const input = document.createElement("input");
@@ -440,11 +555,27 @@ describe("EmployeeDailyDrawer", () => {
         document.body.removeChild(input);
     });
 
+    it("does not switch tabs from a tabpanel", async () => {
+        renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
+
+        const dailyTab = await screen.findByRole("tab", { name: /reports.tabs.daily/i });
+        const rawTab = screen.getByRole("tab", { name: /reports.view_raw_logs/i });
+        const dailyPanel = screen.getByRole("tabpanel");
+
+        dailyPanel.focus();
+        fireEvent.keyDown(dailyPanel, { key: "ArrowRight" });
+        fireEvent.keyDown(dailyPanel, { key: "Home" });
+
+        expect(dailyTab).toHaveAttribute("aria-selected", "true");
+        expect(rawTab).toHaveAttribute("aria-selected", "false");
+        expect(dailyPanel).toHaveFocus();
+    });
+
     it("resets to daily tab when re-opened", async () => {
         const { rerender } = renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
 
         // Find toggles
-        const rawLogsToggle = await screen.findByRole("button", { name: /reports.view_raw_logs/i });
+        const rawLogsToggle = await screen.findByRole("tab", { name: /reports.view_raw_logs/i });
 
         // Switch to raw
         fireEvent.click(rawLogsToggle);
@@ -473,7 +604,7 @@ describe("EmployeeDailyDrawer", () => {
         );
 
         // Find standard toggle again
-        const dailyToggle2 = await screen.findByRole("button", { name: /reports.tabs.daily/i });
+        const dailyToggle2 = await screen.findByRole("tab", { name: /reports.tabs.daily/i });
 
         // It should be reset back to daily view
         await waitFor(() => {
@@ -489,7 +620,7 @@ describe("EmployeeDailyDrawer", () => {
 
         // Find the content wrapper that has the ref
         const sheetPanel = screen.getByTestId("sheet-panel");
-        const contentWrapper = sheetPanel.querySelector(".-mx-10");
+        const contentWrapper = sheetPanel.querySelector(".-mx-4");
         expect(contentWrapper).not.toBeNull();
 
         // The scroll container is the overflow-auto child or the wrapper itself

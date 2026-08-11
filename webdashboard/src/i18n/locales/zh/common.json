@@ -1569,6 +1569,7 @@
     },
     "export_excel": "导出 Excel",
     "view_raw_logs": "查看原始日志",
+    "view_raw_logs_short": "原始日志",
     "all_departments": "全部",
     "all_employers": "全部",
     "search_placeholder": "按员工姓名搜索...",
@@ -1577,8 +1578,10 @@
     "employees": "员工",
     "report_type": "报告类型",
     "tabs": {
+      "label": "报告视图",
       "summary": "月度摘要",
-      "daily": "每日详情"
+      "daily": "每日详情",
+      "daily_short": "每日"
     },
     "status": {
       "present": "准时",
@@ -1605,7 +1608,9 @@
       "total_hours": "总工时",
       "total_units": "总单位",
       "std_hours": "标准工时",
-      "ot_hours": "加班工时"
+      "std_hours_short": "标准",
+      "ot_hours": "加班工时",
+      "ot_hours_short": "加班"
     },
     "timekeeping_unit": {
       "day": "工",

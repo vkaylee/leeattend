@@ -1,5 +1,5 @@
 import { X, Menu } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Typography } from "@/components/ui/typography";
@@ -79,6 +79,7 @@ function getPanelTransform(side: "left" | "right", isOpen: boolean): string {
 
 function SheetHeader({
   title,
+  titleId,
   subtitle,
   headerExtra,
   onClose
@@ -87,38 +88,39 @@ function SheetHeader({
   onClose: () => void;
   subtitle?: string;
   title?: string;
+  titleId?: string;
 }) {
   return (
-    <div className="flex items-center justify-between p-4 sm:p-10 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-inner border border-primary-100/50 dark:border-primary-800/50">
-          <Menu size={24} />
+    <div className={`grid items-start gap-4 border-b border-slate-50 bg-slate-50/30 p-4 dark:border-slate-800 dark:bg-slate-800/30 sm:items-center sm:p-10 ${headerExtra ? "grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_auto_auto]" : "grid-cols-[minmax(0,1fr)_auto]"}`}>
+      <div className="row-start-1 flex min-w-0 items-center gap-3 sm:gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-primary-100/50 bg-primary-50 text-primary-600 shadow-inner dark:border-primary-800/50 dark:bg-primary-950 dark:text-primary-400">
+          <Menu aria-hidden="true" size={24} />
         </div>
-        <div>
+        <div className="min-w-0">
           {title ? (
-            <Typography className="text-xl font-bold text-slate-700 dark:text-slate-200 tracking-tight uppercase" variant="h2">
+            <Typography className="break-words text-xl font-bold uppercase tracking-tight text-slate-700 dark:text-slate-200" id={titleId} variant="h2">
               {title}
             </Typography>
           ) : null}
           {subtitle ? (
-            <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-70" variant="p">
+            <Typography className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 opacity-70 dark:text-slate-400" variant="p">
               {subtitle}
             </Typography>
           ) : null}
         </div>
       </div>
       {headerExtra ? (
-        <div className="flex items-center gap-2">
+        <div className="col-span-2 row-start-2 flex min-w-0 flex-wrap items-center gap-2 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:justify-self-end">
           {headerExtra}
         </div>
       ) : null}
       <button
         aria-label="Close"
-        className="p-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all shadow-md border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 active:scale-90 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+        className={`col-start-2 row-start-1 flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-100 bg-white p-3 text-slate-500 shadow-md transition-all hover:bg-slate-50 hover:text-rose-600 active:scale-90 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-rose-400 ${headerExtra ? "sm:col-start-3" : ""}`}
         onClick={onClose}
         type="button"
       >
-        <X className="w-5 h-5" />
+        <X aria-hidden="true" className="h-5 w-5" />
       </button>
     </div>
   );
@@ -138,6 +140,8 @@ export default function Sheet({
   headerExtra,
   hideHeader,
 }: SheetProps) {
+  const generatedTitleId = useId();
+  const resolvedAriaLabelledBy = ariaLabelledBy ?? (title ? generatedTitleId : undefined);
   const isVisible = useSheetState(isOpen, onClose);
   const containerRef = useFocusTrap(isOpen);
   useScrollLock(isOpen);
@@ -166,7 +170,7 @@ export default function Sheet({
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- Custom interactive element (click-away/backdrop/dropzone); keyboard interaction not applicable */}
         <div
             aria-describedby={ariaDescribedBy}
-            aria-labelledby={ariaLabelledBy}
+            aria-labelledby={resolvedAriaLabelledBy}
             aria-modal="true"
           className={cn(
               "pointer-events-auto w-screen max-w-md transform transition duration-500 ease-in-out bg-white dark:bg-slate-900 shadow-premium-2xl flex flex-col h-full",
@@ -179,7 +183,7 @@ export default function Sheet({
           role="dialog"
         >
           {/* Header */}
-          {!hideHeader && <SheetHeader headerExtra={headerExtra} onClose={onClose} subtitle={subtitle} title={title} />}
+          {!hideHeader && <SheetHeader headerExtra={headerExtra} onClose={onClose} subtitle={subtitle} title={title} titleId={title ? generatedTitleId : undefined} />}
 
           {/* Content */}
           <div className={cn("flex-1 overflow-y-auto overscroll-contain p-4 sm:p-10 relative scroll-smooth", contentClassName)}>

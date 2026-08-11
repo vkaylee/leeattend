@@ -410,7 +410,7 @@ describe("ReportsPage", () => {
     expect(searchInput).not.toHaveFocus();
 
     // We should see the daily report data because the drawer is open
-    const rawLogsToggle = await screen.findByRole("button", { name: /Nhật ký thô|View Raw Logs|reports.view_raw_logs/i });
+    const rawLogsToggle = await screen.findByRole("tab", { name: /Nhật ký thô|View Raw Logs|reports.view_raw_logs/i });
     expect(rawLogsToggle).toBeInTheDocument();
 
     await waitFor(() => {
@@ -459,13 +459,13 @@ describe("ReportsPage", () => {
     expect(searchInput).not.toHaveFocus();
 
     // Check if we can switch tabs via ArrowRight (since focus is no longer on input)
-    const dailyToggle = await screen.findByRole("button", { name: /Daily|Chi tiết/i });
-    const rawLogsToggle = await screen.findByRole("button", { name: /View Raw Logs|Nhật ký thô/i });
+    const dailyToggle = await screen.findByRole("tab", { name: /Daily|Chi tiết/i });
+    const rawLogsToggle = await screen.findByRole("tab", { name: /View Raw Logs|Nhật ký thô/i });
 
     expect(dailyToggle.className).toContain("text-primary-600");
 
     // Simulate ArrowRight
-    fireEvent.keyDown(window, { key: "ArrowRight" });
+    fireEvent.keyDown(dailyToggle, { key: "ArrowRight" });
 
     // Tab should switch
     await waitFor(() => {

@@ -1,7 +1,7 @@
 import type { TFunction } from "i18next";
 
 import { CalendarCheck, FileBarChart, Clock, Briefcase, ChevronDown } from "lucide-react";
-import React, { useRef, useEffect } from "react";
+import React, { useEffect, useId, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { DailyAttendanceReport, AttendanceAdjustmentRequest, Shift } from "@/lib/api";
@@ -15,6 +15,7 @@ import {
 import Sheet from "@/components/ui/sheet";
 import { useDebug } from "@/context/debug-context";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { cn } from "@/lib/utils";
 
 import ConfirmAttendanceModal from "./confirm-attendance-modal";
 import ConfirmReprocessModal from "./confirm-reprocess-modal";
@@ -34,6 +35,11 @@ interface EmployeeDailyDrawerProps {
     workspaceId: string;
 }
 
+interface DrawerTabRefs {
+    daily: React.RefObject<HTMLButtonElement | null>;
+    raw: React.RefObject<HTMLButtonElement | null>;
+}
+
 interface EmployeeDailyDrawerHeaderProps {
     employers?: { employerId?: string; employerName: string; employeeIdNumber?: string }[];
     isLoading: boolean;
@@ -42,9 +48,55 @@ interface EmployeeDailyDrawerHeaderProps {
     selectedEmployerId?: string;
     setViewMode: (mode: "daily" | "raw") => void;
     t: TFunction;
+    tabIdPrefix: string;
+    tabRefs: DrawerTabRefs;
     totalOtHours: string | number;
     totalStdHours: string | number;
     viewMode: "daily" | "raw";
+}
+
+interface DrawerMetricProps {
+    icon: React.ReactNode;
+    isLoading: boolean;
+    label: string;
+    shortLabel: string;
+    tone: "neutral" | "overtime";
+    value: string;
+}
+
+function DrawerMetric({ icon, isLoading, label, shortLabel, tone, value }: DrawerMetricProps) {
+    const isOvertime = tone === "overtime";
+
+    return (
+        <div
+            aria-busy={isLoading}
+            className={cn(
+                "flex min-h-11 min-w-0 items-center gap-2 rounded-lg border px-3 py-2 shadow-sm",
+                isOvertime
+                    ? "border-orange-800 bg-gradient-to-r from-orange-900 to-orange-950"
+                    : "border-slate-800 bg-slate-900 dark:bg-slate-800",
+            )}
+        >
+            {icon}
+            <span className={cn(
+                "min-w-0 truncate text-[10px] font-bold uppercase tracking-wide",
+                isOvertime ? "text-orange-200/80" : "text-slate-300",
+            )}>
+                <span className="sm:hidden">{shortLabel}</span>
+                <span className="hidden sm:inline">{label}</span>
+            </span>
+            {isLoading ? (
+                <span aria-hidden="true" className="ml-auto h-4 w-10 shrink-0 animate-pulse rounded bg-white/20" />
+            ) : (
+                <span className={cn(
+                    "ml-auto shrink-0 font-mono text-sm font-bold tracking-tight",
+                    isOvertime ? "text-orange-100" : "text-white",
+                )}>
+                    {value}
+                </span>
+            )}
+        </div>
+    );
 }
 
   // eslint-disable-next-line complexity
@@ -56,46 +108,52 @@ function EmployeeDailyDrawerHeader({
     totalStdHours,
     totalOtHours,
     t,
+    tabIdPrefix,
+    tabRefs,
     employers = [],
     selectedEmployerId = "",
     onEmployerChange,
 }: EmployeeDailyDrawerHeaderProps) {
+    const dailyTabId = `${tabIdPrefix}-daily-tab`;
+    const rawTabId = `${tabIdPrefix}-raw-tab`;
+
     return (
-        <>
+        <div className="flex w-full min-w-0 flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             {employers.length > 1 && (
-                <div className="mr-4">
+                <div className="w-full min-w-0 sm:w-auto">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
-                                className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all h-auto"
+                                className="flex min-h-11 w-full min-w-0 items-center justify-between gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-left text-xs font-bold text-slate-700 transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700/50 sm:w-auto sm:max-w-64"
                                 variant="ghost"
                             >
-                                <Briefcase className="text-primary-500" size={12} />
-                                <span>
-                                    {employers.find(e => e.employerId === selectedEmployerId)?.employerName ?? t("common.employer")}
+                                <span className="flex min-w-0 items-center gap-1.5">
+                                    <Briefcase aria-hidden="true" className="shrink-0 text-primary-500" size={14} />
+                                    <span className="truncate">{employers.find(e => e.employerId === selectedEmployerId)?.employerName ?? t("common.employer")}</span>
                                 </span>
-                                <ChevronDown className="opacity-50" size={12} />
+                                <ChevronDown aria-hidden="true" className="shrink-0 opacity-50" size={14} />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
                             align="start"
-                            className="w-64 p-2 rounded-2xl shadow-premium border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/95 backdrop-blur-xl"
+                            className="w-[calc(100vw-2rem)] max-w-64 rounded-2xl border-slate-100 bg-white p-2 shadow-premium backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/95"
                             sideOffset={8}
                         >
                             {employers.map((employer) => (
                                 <Button
-                                    className={`w-full justify-start text-left px-3 py-2 rounded-xl text-xs font-bold transition-all h-auto mb-1 ${
+                                    className={cn(
+                                        "mb-1 min-h-11 w-full justify-start rounded-xl px-3 py-2 text-left text-xs font-bold transition-all",
                                         selectedEmployerId === employer.employerId
-                                            ? "bg-primary-50 dark:bg-primary-950/30 text-primary-600 dark:text-primary-400"
-                                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                                    }`}
+                                            ? "bg-primary-50 text-primary-600 dark:bg-primary-950/30 dark:text-primary-400"
+                                            : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800/50",
+                                    )}
                                     key={employer.employerId ?? "none"}
                                     onClick={() => { onEmployerChange(employer.employerId); }}
                                     variant="ghost"
                                 >
-                                    <div className="flex flex-col">
-                                        <span>{employer.employerName}</span>
-                                        {!!employer.employeeIdNumber && <span className="text-[9px] text-slate-400 font-mono mt-0.5">{employer.employeeIdNumber}</span>}
+                                    <div className="flex min-w-0 flex-col">
+                                        <span className="truncate">{employer.employerName}</span>
+                                        {!!employer.employeeIdNumber && <span className="mt-0.5 font-mono text-[10px] text-slate-400">{employer.employeeIdNumber}</span>}
                                     </div>
                                 </Button>
                             ))}
@@ -103,45 +161,70 @@ function EmployeeDailyDrawerHeader({
                     </DropdownMenu>
                 </div>
             )}
-            <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
+            <div aria-label={t("reports.tabs.label")} aria-orientation="horizontal" className="flex min-h-11 w-full min-w-0 rounded-lg border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-800 sm:w-auto" role="tablist">
                 <Button
-                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all h-auto ${viewMode === "daily"
-                        ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm hover:bg-white dark:hover:bg-slate-700"
-                        : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                        }`}
+                    aria-controls={`${tabIdPrefix}-daily-panel`}
+                    aria-selected={viewMode === "daily"}
+                    className={cn(
+                        "min-h-9 flex-1 rounded-md px-3 text-[11px] font-bold uppercase tracking-wide transition-all sm:min-h-10 sm:flex-none sm:text-[10px] sm:tracking-widest",
+                        viewMode === "daily"
+                            ? "bg-white text-primary-600 shadow-sm hover:bg-white dark:bg-slate-700 dark:text-primary-400 dark:hover:bg-slate-700"
+                            : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200",
+                    )}
+                    id={dailyTabId}
                     onClick={() => { setViewMode("daily"); }}
+                    ref={tabRefs.daily}
+                    role="tab"
+                    tabIndex={viewMode === "daily" ? 0 : -1}
+                    type="button"
                     variant="ghost"
                 >
-                    {t("reports.tabs.daily")}
+                    <span className="sm:hidden">{t("reports.tabs.daily_short")}</span>
+                    <span className="hidden sm:inline">{t("reports.tabs.daily")}</span>
                 </Button>
                 <Button
-                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all h-auto ${viewMode === "raw"
-                        ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm hover:bg-white dark:hover:bg-slate-700"
-                        : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                        }`}
+                    aria-controls={`${tabIdPrefix}-raw-panel`}
+                    aria-selected={viewMode === "raw"}
+                    className={cn(
+                        "min-h-9 flex-1 rounded-md px-3 text-[11px] font-bold uppercase tracking-wide transition-all sm:min-h-10 sm:flex-none sm:text-[10px] sm:tracking-widest",
+                        viewMode === "raw"
+                            ? "bg-white text-primary-600 shadow-sm hover:bg-white dark:bg-slate-700 dark:text-primary-400 dark:hover:bg-slate-700"
+                            : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200",
+                    )}
+                    id={rawTabId}
                     onClick={() => { setViewMode("raw"); }}
+                    ref={tabRefs.raw}
+                    role="tab"
+                    tabIndex={viewMode === "raw" ? 0 : -1}
+                    type="button"
                     variant="ghost"
                 >
-                    <span className="flex items-center gap-1.5"><CalendarCheck size={12} /> {t("reports.view_raw_logs")}</span>
+                    <span className="flex items-center justify-center gap-1.5">
+                        <CalendarCheck aria-hidden="true" size={14} />
+                        <span className="sm:hidden">{t("reports.view_raw_logs_short")}</span>
+                        <span className="hidden sm:inline">{t("reports.view_raw_logs")}</span>
+                    </span>
                 </Button>
             </div>
-            {viewMode === "daily" && !isLoading && reportData.length > 0 ? (
-                <>
-                    <div className="flex items-center gap-1.5 bg-slate-900 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-800 dark:border-slate-700 shadow-sm">
-                        <FileBarChart className="text-primary-400" size={12} />
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t("reports.quick_stats.std_hours")}</span>
-                        <span className="font-mono font-bold text-white text-xs tracking-tighter">{totalStdHours}h</span>
-                    </div>
-                    {Number(totalOtHours) > 0 ? (
-                        <div className="flex items-center gap-1.5 bg-gradient-to-r from-orange-900 to-orange-950 px-3 py-1.5 rounded-lg border border-orange-800 shadow-sm">
-                            <Clock className="text-orange-400" size={12} />
-                            <span className="text-[9px] font-bold text-orange-400/70 uppercase tracking-widest">{t("reports.quick_stats.ot_hours")}</span>
-                            <span className="font-mono font-bold text-orange-100 text-xs tracking-tighter">{totalOtHours}h</span>
-                        </div>
-                    ) : null}
-                </>
-            ) : null}
-        </>
+            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+                <DrawerMetric
+                    icon={<FileBarChart aria-hidden="true" className="shrink-0 text-primary-400" size={14} />}
+                    isLoading={isLoading}
+                    label={t("reports.quick_stats.std_hours")}
+                    shortLabel={t("reports.quick_stats.std_hours_short")}
+                    tone="neutral"
+                    value={`${reportData.length > 0 ? totalStdHours : "—"}h`}
+                />
+                <DrawerMetric
+                    icon={<Clock aria-hidden="true" className="shrink-0 text-orange-400" size={14} />}
+                    isLoading={isLoading}
+                    label={t("reports.quick_stats.ot_hours")}
+                    shortLabel={t("reports.quick_stats.ot_hours_short")}
+                    tone="overtime"
+                    value={`${reportData.length > 0 ? totalOtHours : "—"}h`}
+                />
+            </div>
+        </div>
     );
 }
 
@@ -214,9 +297,25 @@ function shouldIgnoreKeyboardEvent(e: KeyboardEvent) {
     return e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
 }
 
-function handleTabSwitch(e: KeyboardEvent, viewMode: "daily" | "raw", setViewMode: (mode: "daily" | "raw") => void) {
-    if (e.key === "ArrowRight" && viewMode === "daily") setViewMode("raw");
-    if (e.key === "ArrowLeft" && viewMode === "raw") setViewMode("daily");
+function handleTabSwitch(
+    e: KeyboardEvent,
+    viewMode: "daily" | "raw",
+    setViewMode: (mode: "daily" | "raw") => void,
+    tabRefs: DrawerTabRefs,
+) {
+    if (!(e.target instanceof Element) || !e.target.closest('[role="tablist"]')) return;
+
+    const nextMode = e.key === "ArrowRight" || e.key === "End"
+        ? "raw"
+        : e.key === "ArrowLeft" || e.key === "Home"
+            ? "daily"
+            : null;
+
+    if (!nextMode) return;
+
+    e.preventDefault();
+    tabRefs[nextMode].current?.focus();
+    if (nextMode !== viewMode) setViewMode(nextMode);
 }
 
 function handleScroll(e: KeyboardEvent, contentRef: React.RefObject<HTMLDivElement | null>) {
@@ -228,19 +327,25 @@ function handleScroll(e: KeyboardEvent, contentRef: React.RefObject<HTMLDivEleme
     }
 }
 
-function useDrawerKeyboardNavigation(isOpen: boolean, viewMode: "daily" | "raw", setViewMode: (mode: "daily" | "raw") => void, contentRef: React.RefObject<HTMLDivElement | null>) {
+function useDrawerKeyboardNavigation(
+    isOpen: boolean,
+    viewMode: "daily" | "raw",
+    setViewMode: (mode: "daily" | "raw") => void,
+    contentRef: React.RefObject<HTMLDivElement | null>,
+    tabRefs: DrawerTabRefs,
+) {
     useEffect(() => {
         if (!isOpen) return;
 
         const handleKeyDown = (e: KeyboardEvent) => {
             if (shouldIgnoreKeyboardEvent(e)) return;
-            handleTabSwitch(e, viewMode, setViewMode);
+            handleTabSwitch(e, viewMode, setViewMode, tabRefs);
             handleScroll(e, contentRef);
         };
 
         window.addEventListener("keydown", handleKeyDown);
         return () => { window.removeEventListener("keydown", handleKeyDown); };
-    }, [isOpen, viewMode, setViewMode, contentRef]);
+    }, [isOpen, viewMode, setViewMode, contentRef, tabRefs]);
 }
 
 export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
@@ -249,16 +354,23 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
     const { formatDate, formatTime } = useDateTimeFormatter();
     const { isEnabled: isDebugMode } = useDebug();
     const contentRef = useRef<HTMLDivElement>(null);
+    const tabIdPrefix = useId();
+    const dailyTabRef = useRef<HTMLButtonElement>(null);
+    const rawTabRef = useRef<HTMLButtonElement>(null);
+    const tabRefs = useMemo<DrawerTabRefs>(() => ({
+        daily: dailyTabRef,
+        raw: rawTabRef,
+    }), [dailyTabRef, rawTabRef]);
 
     const data = useEmployeeDailyDrawer(props);
 
     // Keyboard navigation for tabs + scroll
-    useDrawerKeyboardNavigation(isOpen, data.viewMode, data.setViewMode, contentRef);
+    useDrawerKeyboardNavigation(isOpen, data.viewMode, data.setViewMode, contentRef, tabRefs);
 
     return (
         <>
             <Sheet
-                className="w-[95vw] xl:w-[1200px] !max-w-[95vw]"
+                className="!w-full !max-w-full sm:!w-[95vw] sm:!max-w-[95vw] xl:!w-[1200px]"
                 contentClassName="!overflow-hidden"
                 headerExtra={
                     <EmployeeDailyDrawerHeader
@@ -269,6 +381,8 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                         selectedEmployerId={data.selectedEmployerId}
                         setViewMode={data.setViewMode}
                         t={t}
+                        tabIdPrefix={tabIdPrefix}
+                        tabRefs={tabRefs}
                         totalOtHours={data.totalOtHours}
                         totalStdHours={data.totalStdHours}
                         viewMode={data.viewMode}
@@ -279,35 +393,54 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                 subtitle={`${formatDate(dateRange.start)} — ${formatDate(dateRange.end)}`}
                 title={employeeName}
             >
-                <div className="-mx-10 -mt-4 -mb-10 h-[calc(100%+theme(spacing.14))] flex flex-col" ref={contentRef}>
-                    {data.viewMode === "raw" ? (
-                        <RawLogsTable
-                            fetchNextPage={data.fetchNextPage}
-                            hasNextPage={data.hasNextPage}
-                            isFetchingNextPage={data.isFetchingNextPage}
-                            rawLogsData={data.rawLogsData}
-                            rawLogsLoading={data.rawLogsLoading}
-                        />
-                    ) : (
-                        <DailyReportTable
-                            adjustmentMap={data.adjustmentMap}
-                            confirmingRow={data.confirmingRow}
-                            data={data.reportData}
-                            expandedDebugRows={data.expandedDebugRows}
-                            formatDate={formatDate}
-                            formatTime={formatTime}
-                            hideEmployeeName
-                            isDebugMode={isDebugMode}
-                            isLoading={data.isLoading}
-                            onApproveOt={data.handleApproveOt}
-                            onConfirmClick={data.handleConfirmClick}
-                            onReprocessClick={data.handleReprocessClick}
-                            onResolveUnscheduled={data.handleResolveUnscheduled}
-                            onToggleExpandRow={data.toggleExpandRow}
-                            reprocessingRow={data.reprocessingRow}
-                            t={t}
-                        />
-                    )}
+                <div className="-mx-4 -mt-4 -mb-4 flex min-h-0 flex-1 flex-col sm:-mx-10 sm:-mb-10" ref={contentRef}>
+                    <div
+                        aria-labelledby={`${tabIdPrefix}-daily-tab`}
+                        className="flex min-h-0 flex-1 flex-col"
+                        hidden={data.viewMode !== "daily"}
+                        id={`${tabIdPrefix}-daily-panel`}
+                        role="tabpanel"
+                        tabIndex={0}
+                    >
+                        {data.viewMode === "daily" ? (
+                            <DailyReportTable
+                                adjustmentMap={data.adjustmentMap}
+                                confirmingRow={data.confirmingRow}
+                                data={data.reportData}
+                                expandedDebugRows={data.expandedDebugRows}
+                                formatDate={formatDate}
+                                formatTime={formatTime}
+                                hideEmployeeName
+                                isDebugMode={isDebugMode}
+                                isLoading={data.isLoading}
+                                onApproveOt={data.handleApproveOt}
+                                onConfirmClick={data.handleConfirmClick}
+                                onReprocessClick={data.handleReprocessClick}
+                                onResolveUnscheduled={data.handleResolveUnscheduled}
+                                onToggleExpandRow={data.toggleExpandRow}
+                                reprocessingRow={data.reprocessingRow}
+                                t={t}
+                            />
+                        ) : null}
+                    </div>
+                    <div
+                        aria-labelledby={`${tabIdPrefix}-raw-tab`}
+                        className="flex min-h-0 flex-1 flex-col"
+                        hidden={data.viewMode !== "raw"}
+                        id={`${tabIdPrefix}-raw-panel`}
+                        role="tabpanel"
+                        tabIndex={0}
+                    >
+                        {data.viewMode === "raw" ? (
+                            <RawLogsTable
+                                fetchNextPage={data.fetchNextPage}
+                                hasNextPage={data.hasNextPage}
+                                isFetchingNextPage={data.isFetchingNextPage}
+                                rawLogsData={data.rawLogsData}
+                                rawLogsLoading={data.rawLogsLoading}
+                            />
+                        ) : null}
+                    </div>
                 </div>
             </Sheet>
 
