@@ -9,6 +9,7 @@ import FloatingRecordBadge from "@/components/common/floating-record-badge";
 import AttendanceImportDialog from "@/components/features/attendance/attendance-import-dialog";
 import { CreateAdjustmentModal } from "@/components/features/attendance/create-adjustment-modal";
 import { PDFPreviewModal } from "@/components/files/pdf-preview-modal";
+import { PageContainer } from "@/components/ui/page-container";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspace } from "@/hooks/use-workspace";
 
@@ -67,7 +68,7 @@ export default function AttendanceAdjustmentsPage() {
   const canSubmit = hasPermission("attendance:adjustments:submit_on_behalf");
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
+    <PageContainer>
       <AdjustmentsHeader
         canSubmit={canSubmit}
         onImportClick={() => { setIsImportDialogOpen(true); }}
@@ -162,12 +163,12 @@ export default function AttendanceAdjustmentsPage() {
       />
 
       {activeTab !== "behalf_assignments" && (
-        <FloatingRecordBadge 
-          label={t("common.pagination.records")} 
-          loaded={requests.length} 
-          total={requestsTotal} 
+        <FloatingRecordBadge
+          label={t("common.pagination.records")}
+          loaded={requests.length}
+          total={requestsTotal}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }

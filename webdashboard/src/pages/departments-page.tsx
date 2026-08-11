@@ -10,6 +10,7 @@ import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import EmptyState from "@/components/ui/empty-state";
+import { PageContainer } from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
 import ResponsiveTable from "@/components/ui/responsive-table";
 
@@ -46,7 +47,7 @@ export default function DepartmentsPage() {
   if (!wsId) return <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
+    <PageContainer>
       <PageHeader
         actions={
           <Button data-testid="add-dept-btn" icon={<Plus size={18} />} onClick={() => { setEditingDept(null); setIsModalOpen(true); }} variant="ghost">{t("departments.add_btn").toUpperCase()}</Button>
@@ -344,6 +345,6 @@ export default function DepartmentsPage() {
       />
 
       <ConfirmationDialog />
-    </div>
+    </PageContainer>
   );
 }

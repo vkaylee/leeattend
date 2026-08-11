@@ -74,7 +74,8 @@ export class DevicesPage extends BasePage {
     }
     
     if (data.timezone !== undefined) {
-      await this.page.getByTestId('device-timezone-select').selectOption(data.timezone);
+      await this.page.getByTestId('device-timezone-select').click();
+      await this.page.getByRole('option', { name: data.timezone }).click();
     }
   }
 

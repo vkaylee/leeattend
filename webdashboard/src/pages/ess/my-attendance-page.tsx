@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { addMonths, endOfMonth, format, startOfMonth, subMonths } from "date-fns";
 
 import { ClaimOtDialog } from "@/components/ess/claim-ot-dialog";
+import { PageContainer } from "@/components/ui/page-container";
 import { Typography } from "@/components/ui/typography";
 import { useMyAttendance, useMyAttendanceSummaries } from "@/hooks/use-ess";
 import { AttendanceDailySummary } from "@/lib/api/types";
@@ -41,7 +42,7 @@ export default function MyAttendancePage() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
+    <PageContainer>
       <AttendanceHeader
         currentMonth={currentMonth}
         handleMonthYearChange={handleMonthYearChange}
@@ -67,7 +68,7 @@ export default function MyAttendancePage() {
       </div>
 
       <ClaimOtDialog onOpenChange={setClaimOpen} open={claimOpen} summary={selectedSummary} />
-    </div>
+    </PageContainer>
   );
 }
 

@@ -153,7 +153,7 @@ export default function AppShell({ variant }: AppShellProps) {
           data-app-scroll-container
           className={cn(
             "flex-1 relative scroll-smooth",
-            isOrgChart ? "overflow-hidden p-0" : "overflow-y-auto p-4 md:p-6 lg:p-8 pl-safe pr-safe",
+            isOrgChart ? "overflow-hidden p-0" : "overflow-y-auto py-4 md:py-6 lg:py-8 pl-safe pr-safe md:px-6 lg:px-8",
             "pb-[var(--bottom-nav-height)] md:pb-[var(--bottom-nav-height)] lg:pb-0", // Bottom nav clearance below desktop
           )}
         >

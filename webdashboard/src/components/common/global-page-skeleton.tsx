@@ -1,8 +1,9 @@
+import { PageContainer } from "@/components/ui/page-container";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function GlobalPageSkeleton() {
   return (
-    <div className="p-6 space-y-6 w-full animate-in fade-in duration-300">
+    <PageContainer className="duration-300">
       <div className="flex items-center justify-between">
         <Skeleton className="h-8 w-48 rounded-full" />
         <Skeleton className="h-10 w-32 rounded-lg" />
@@ -13,6 +14,6 @@ export function GlobalPageSkeleton() {
         ))}
       </div>
       <Skeleton className="h-[400px] w-full rounded-[2rem]" />
-    </div>
+    </PageContainer>
   );
 }
