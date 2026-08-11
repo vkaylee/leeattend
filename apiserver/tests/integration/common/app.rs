@@ -142,20 +142,27 @@ pub async fn create_test_redis_pool() -> Option<apiserver::queue::RedisPool> {
             Ok(p) => return Some(p),
             Err(e) if attempt < 9 => {
                 tracing::warn!(
-                    "Failed to connect to redis at {} (attempt {}): {}",
-                    url,
                     attempt,
-                    e
+                    error = ?e,
+                    "Failed to connect to Redis test service; retrying"
                 );
                 tokio::time::sleep(std::time::Duration::from_millis(500 * (attempt + 1))).await;
             }
-            Err(e) => panic!(
-                "Failed to create Redis pool for test factory after 10 attempts: {}",
-                e
-            ),
+            Err(e) => panic!("Failed to create Redis test pool after 10 attempts: {e}"),
         }
     }
     None
+}
+
+/// Return a Redis pool for tests that verify Redis behavior and report an
+/// explicit skip when Redis is not configured in the test environment.
+#[allow(dead_code)]
+pub async fn require_test_redis_pool(test_name: &str) -> Option<apiserver::queue::RedisPool> {
+    let pool = create_test_redis_pool().await;
+    if pool.is_none() {
+        eprintln!("SKIPPED {test_name}: Redis integration tests require REDIS_URL");
+    }
+    pool
 }
 
 /// Basic app spawn - returns address (URL) and `TestDatabase`

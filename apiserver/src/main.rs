@@ -207,7 +207,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize Redis for distributed job processing and presence tracking (optional)
     tracing::info!("Initializing Redis connection...");
-    let redis_pool = init_redis(&registry).await;
+    let redis_pool = init_redis(&registry).await?;
     tracing::info!("Redis initialization complete");
 
     let (state, workers) = AppState::build(diesel_pools, redis_pool, &registry).await?;
@@ -317,23 +317,25 @@ async fn run_qualifying_days_blast_radius() -> Result<(), Box<dyn std::error::Er
     Ok(())
 }
 
-async fn init_redis(registry: &apiserver::utils::env_registry::EnvRegistry) -> Option<RedisPool> {
+async fn init_redis(
+    registry: &apiserver::utils::env_registry::EnvRegistry,
+) -> Result<Option<RedisPool>, Box<dyn std::error::Error>> {
     let Some(url) = registry.get("REDIS_URL") else {
         tracing::info!("REDIS_URL not set, distributed processing and presence tracking disabled");
-        return None;
+        return Ok(None);
     };
 
-    tracing::info!("Connecting to Redis at {}", url);
+    tracing::info!("Connecting to configured Redis service");
 
     let pool = match timeout(std::time::Duration::from_secs(5), RedisPool::new(url)).await {
-        Ok(Ok(p)) => p,
-        Ok(Err(e)) => {
-            tracing::warn!("Redis connection failed: {}", e);
-            return None;
+        Ok(Ok(pool)) => pool,
+        Ok(Err(error)) => {
+            tracing::error!(error = ?error, "Redis connection failed; refusing to start");
+            return Err("Redis is configured but unavailable".into());
         }
         Err(_) => {
-            tracing::warn!("Redis connection timed out");
-            return None;
+            tracing::error!("Redis connection timed out; refusing to start");
+            return Err("Redis is configured but unavailable".into());
         }
     };
 
@@ -341,15 +343,15 @@ async fn init_redis(registry: &apiserver::utils::env_registry::EnvRegistry) -> O
     match timeout(std::time::Duration::from_secs(5), pool.health_check()).await {
         Ok(Ok(())) => {
             tracing::info!("Redis connected for distributed processing and presence");
-            Some(pool)
+            Ok(Some(pool))
         }
-        Ok(Err(e)) => {
-            tracing::warn!("Redis health check failed: {}", e);
-            None
+        Ok(Err(error)) => {
+            tracing::error!(error = ?error, "Redis health check failed; refusing to start");
+            Err("Redis is configured but unavailable".into())
         }
         Err(_) => {
-            tracing::warn!("Redis health check timed out");
-            None
+            tracing::error!("Redis health check timed out; refusing to start");
+            Err("Redis is configured but unavailable".into())
         }
     }
 }

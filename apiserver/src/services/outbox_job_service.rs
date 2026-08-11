@@ -57,6 +57,19 @@ impl OutboxJobService {
             .await
     }
 
+    pub async fn update_job_status_if_current(
+        &self,
+        auth_token: &TenantAuthToken,
+        id: Uuid,
+        expected_status: &str,
+        status: &str,
+        error_message: Option<String>,
+    ) -> Result<(), AppError> {
+        self.outbox_repo
+            .update_job_status_if_current(auth_token, id, expected_status, status, error_message)
+            .await
+    }
+
     pub async fn get_pending_jobs(
         &self,
         auth_token: &TenantAuthToken,
@@ -82,6 +95,17 @@ impl OutboxJobService {
         limit: i64,
     ) -> Result<Vec<OutboxJob>, AppError> {
         self.outbox_repo.get_all_stuck_jobs(older_than, limit).await
+    }
+
+    pub async fn get_all_stuck_jobs_by_type(
+        &self,
+        job_type: &str,
+        older_than: chrono::DateTime<chrono::Utc>,
+        limit: i64,
+    ) -> Result<Vec<OutboxJob>, AppError> {
+        self.outbox_repo
+            .get_all_stuck_jobs_by_type(job_type, older_than, limit)
+            .await
     }
 
     pub async fn update_job_status(

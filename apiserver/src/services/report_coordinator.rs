@@ -122,6 +122,10 @@ impl ReportCoordinator {
         }
     }
 
+    pub fn outbox_service(&self) -> &Arc<OutboxJobService> {
+        &self.outbox_service
+    }
+
     /// Create a new distributed job.
     ///
     /// Splits employees into batches of BATCH_SIZE, creates micro-jobs,

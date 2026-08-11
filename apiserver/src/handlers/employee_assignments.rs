@@ -188,7 +188,7 @@ pub async fn create_employee_assignment(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     Ok(Json(created))
@@ -244,7 +244,7 @@ pub async fn update_employee_assignment(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     Ok(Json(updated))
@@ -298,7 +298,7 @@ pub async fn delete_employee_assignment(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     if deleted_count == 0 {

@@ -123,7 +123,7 @@ pub async fn create_employment(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     let custom_fields = state
@@ -166,7 +166,7 @@ pub async fn update_employment(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     let custom_fields = state
@@ -207,7 +207,7 @@ pub async fn delete_employment(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     Ok(StatusCode::NO_CONTENT)

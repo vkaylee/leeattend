@@ -18,6 +18,24 @@ macro_rules! test_execute {
     }};
 }
 
+/// Execute a SQL batch containing multiple statements.
+///
+/// Diesel's prepared `sql_query` path accepts one statement only; migration
+/// fixtures contain several DDL statements and must use the connection's
+/// simple-protocol batch executor instead.
+#[macro_export]
+macro_rules! test_batch_execute {
+    ($pool:expr, $query:expr) => {{
+        let mut conn = $pool
+            .get()
+            .await
+            .expect("Failed to get connection from pool");
+        diesel_async::SimpleAsyncConnection::batch_execute(&mut *conn, $query)
+            .await
+            .expect("Failed to execute test_batch_execute")
+    }};
+}
+
 #[macro_export]
 macro_rules! test_query_scalar_uuid {
     ($pool:expr, $query:expr $(, $bind_type:ty, $bind_val:expr)*) => {{

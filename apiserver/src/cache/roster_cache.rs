@@ -4,17 +4,16 @@
 //! workspace roster data.  Singleflight loading prevents thundering-herd
 //! on cache miss.  Falls back to direct DB load when Redis is unavailable.
 
-use parking_lot::Mutex;
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
-
 use crate::repositories::diesel_department_repository::EmployeeDepartmentHistoryEntity;
 use chrono::{NaiveDate, NaiveTime};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use moka::future::Cache;
+use parking_lot::Mutex;
 use redis::AsyncCommands;
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::watch;
 use uuid::Uuid;
 
@@ -433,6 +432,12 @@ impl RosterCache {
         }
     }
 
+    /// Construct an independent local cache sharing this cache's Redis generation store.
+    #[must_use]
+    pub fn new_replica(&self) -> Self {
+        Self::new(self.redis.clone())
+    }
+
     // --- helpers -----------------------------------------------------------
 
     /// Redis key for the version stamp of a workspace's roster data.
@@ -442,26 +447,16 @@ impl RosterCache {
 
     /// Read the current version stamp from Redis.
     ///
-    /// A missing key is atomically initialized to zero so an existing local
-    /// entry can never be mistaken for a valid cache hit after Redis loses the
-    /// version key. Redis read failures return `None`, forcing callers to bypass
-    /// the local cache rather than risk serving stale data.
+    /// A missing key is treated as unknown so an existing local entry can never
+    /// be mistaken for a valid cache hit after Redis loses the version key.
+    /// Redis read failures also return `None`, forcing callers to bypass the
+    /// local cache rather than risk serving stale data.
     async fn fetch_version(&self, workspace_id: Uuid) -> Option<i64> {
         let key = Self::version_key(workspace_id);
         let mut conn = self.redis.conn();
         match conn.get::<_, Option<i64>>(&key).await {
             Ok(Some(v)) => Some(v),
-            Ok(None) => match conn.incr::<_, _, i64>(&key, 0).await {
-                Ok(v) => Some(v),
-                Err(e) => {
-                    tracing::warn!(
-                        workspace_id = %workspace_id,
-                        error = %e,
-                        "Redis INCR version initialization failed"
-                    );
-                    None
-                }
-            },
+            Ok(None) => None,
             Err(e) => {
                 tracing::warn!(workspace_id = %workspace_id, error = %e, "Redis GET version failed");
                 None
@@ -471,36 +466,20 @@ impl RosterCache {
 
     // --- public API --------------------------------------------------------
 
-    /// Atomically bump the version stamp in Redis and evict the moka entry.
+    /// Advance the shared Redis generation for a workspace.
     ///
-    /// Call this whenever roster-related tables are mutated for a workspace.
-    /// Redis `INCR` prevents same-second collisions and never moves a version
-    /// backwards when an existing stamp is ahead of the wall clock.
-    pub async fn invalidate(&self, workspace_id: Uuid) {
+    /// This operation deliberately performs no request-path retries. Callers
+    /// that need durability must retry the associated outbox job instead.
+    pub async fn bump_version(&self, workspace_id: Uuid) -> Result<i64, String> {
         let key = Self::version_key(workspace_id);
-        let mut last_error = None;
-        for attempt in 0..3 {
-            let mut conn = self.redis.conn();
-            match conn.incr::<_, _, i64>(&key, 1).await {
-                Ok(_) => {
-                    last_error = None;
-                    break;
-                }
-                Err(error) => {
-                    last_error = Some(error);
-                    if attempt < 2 {
-                        tokio::time::sleep(Duration::from_millis(25 * (attempt + 1))).await;
-                    }
-                }
-            }
-        }
-        if let Some(error) = last_error {
-            tracing::warn!(
-                workspace_id = %workspace_id,
-                error = %error,
-                "Redis INCR version failed during invalidate after retries"
-            );
-        }
+        let mut conn = self.redis.conn();
+        conn.incr::<_, _, i64>(&key, 1)
+            .await
+            .map_err(|error| error.to_string())
+    }
+
+    /// Evict only this process's local roster snapshot.
+    pub async fn evict_local(&self, workspace_id: Uuid) {
         self.cache.invalidate(&workspace_id).await;
     }
 

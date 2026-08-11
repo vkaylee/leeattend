@@ -344,7 +344,7 @@ pub async fn update_employee(
         .update_employee(id, &ctx.auth_token, req)
         .await?;
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
     Ok(Json(employee))
 }
@@ -377,7 +377,7 @@ pub async fn delete_employee(
         .await
         .map_err(|_e| AppError::not_found(I18nKey::EmployeeNotFound))?;
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
     Ok(StatusCode::NO_CONTENT)
 }
@@ -410,7 +410,7 @@ pub async fn rehire_employee(
         .rehire_employee(id, &ctx.auth_token, req)
         .await?;
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
     Ok(Json(employee))
 }
@@ -469,7 +469,7 @@ pub async fn transfer_employee(
         .transfer_employee(id, &ctx.auth_token, req)
         .await?;
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
     Ok(Json(history))
 }

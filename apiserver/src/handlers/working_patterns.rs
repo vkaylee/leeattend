@@ -48,7 +48,7 @@ pub async fn create_pattern(
     .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     Ok((StatusCode::CREATED, Json(pattern)))
@@ -155,7 +155,7 @@ pub async fn assign_pattern(
     .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     Ok(Json(assignment))
@@ -214,7 +214,7 @@ pub async fn bulk_assign_pattern(
     .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     Ok(Json(result))
@@ -272,7 +272,7 @@ pub async fn delete_pattern(
     .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     Ok(StatusCode::NO_CONTENT)
@@ -309,7 +309,7 @@ pub async fn update_pattern(
     .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     Ok(Json(pattern))

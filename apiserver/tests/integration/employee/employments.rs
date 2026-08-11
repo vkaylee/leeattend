@@ -3,9 +3,9 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
+use apiserver::worker::OutboxSweepScheduler;
 use apiserver::AppState;
 use axum::http::StatusCode;
-use redis::AsyncCommands;
 use serde_json::json;
 use std::sync::Arc;
 use tower::ServiceExt;
@@ -358,15 +358,111 @@ async fn test_employment_crud_lifecycle() {
 
 #[tokio::test]
 async fn test_employment_mutations_invalidate_roster_cache() {
-    let (_test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+    let (test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
-    let Some(redis) = factory.redis_pool.clone() else {
+    apiserver::diesel_pool::DieselPools::run_all_migrations_for_test(
+        &apiserver::diesel_pool::DbPoolConfig {
+            primary_url: test_db.url(),
+            pooler_tx_url: String::new(),
+            pooler_sess_url: String::new(),
+            tenant_pooler_tx_url: String::new(),
+            tenant_pooler_sess_url: String::new(),
+            reader_url: None,
+            api_max_conn: 1,
+            api_acquire_timeout_secs: 5,
+            worker_max_conn: 1,
+            worker_acquire_timeout_secs: 5,
+            tenant_max_conn: 1,
+        },
+    )
+    .expect("test database migrations should be current");
+    let trigger_count = crate::test_query_scalar_i64!(
+        &test_db.diesel_pools.api,
+        "SELECT COUNT(*) FROM pg_trigger WHERE tgname = 'trg_roster_cache_invalidation_employments'");
+    if trigger_count == 0 {
+        crate::test_batch_execute!(
+            &test_db.diesel_pools.api,
+            include_str!(
+                "../../../migrations/tenant/20260810000001_roster_cache_invalidation_outbox/up.sql"
+            )
+        );
+    }
+    let trigger_count = crate::test_query_scalar_i64!(
+        &test_db.diesel_pools.api,
+        "SELECT COUNT(*) FROM pg_trigger WHERE tgname = 'trg_roster_cache_invalidation_employments'");
+    assert!(
+        trigger_count > 0,
+        "roster invalidation migration did not install employment trigger"
+    );
+    let Some(cache) = state.infra().roster_cache() else {
+        eprintln!("SKIPPED employment roster invalidation test: REDIS_URL is required");
         return;
     };
+    let coordinator = state
+        .reports()
+        .coordinator()
+        .cloned()
+        .expect("Redis-backed test app must configure report coordinator");
+    let scheduler = OutboxSweepScheduler::new(
+        coordinator.outbox_service().clone(),
+        coordinator,
+        Some(Arc::clone(cache)),
+    );
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    // Verify AFTER DELETE interval triggers can resolve the parent workspace
+    // from OLD.version_id after the interval row has already been removed.
+    let interval_template_id = factory.shift().with_workspace(ws_id).create().await;
+    let interval_version_id = crate::test_query_scalar_uuid!(
+        &state.infra().diesel().api,
+        "SELECT current_version_id AS id FROM shift_templates WHERE id = $1",
+        diesel::sql_types::Uuid,
+        interval_template_id
+    );
+    let interval_id = crate::test_query_scalar_uuid!(
+        &state.infra().diesel().api,
+        "SELECT id FROM shift_default_intervals WHERE version_id = $1 ORDER BY sort_order LIMIT 1",
+        diesel::sql_types::Uuid,
+        interval_version_id
+    );
+    let pending_before_interval_delete = crate::test_query_scalar_i64!(
+        &state.infra().diesel().api,
+        "SELECT COUNT(*) FROM outbox_jobs WHERE workspace_id = $1 AND job_type = 'RosterCacheInvalidation' AND status = 'pending'",
+        diesel::sql_types::Uuid,
+        ws_id
+    );
+    crate::test_execute!(
+        &state.infra().diesel().api,
+        "DELETE FROM shift_default_intervals WHERE id = $1",
+        diesel::sql_types::Uuid,
+        interval_id
+    );
+    let pending_after_interval_delete = crate::test_query_scalar_i64!(
+        &state.infra().diesel().api,
+        "SELECT COUNT(*) FROM outbox_jobs WHERE workspace_id = $1 AND job_type = 'RosterCacheInvalidation' AND status = 'pending'",
+        diesel::sql_types::Uuid,
+        ws_id
+    );
+    assert!(
+        pending_after_interval_delete > pending_before_interval_delete,
+        "deleting a roster interval must enqueue durable invalidation"
+    );
+
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let department_a = factory
+        .department()
+        .with_workspace(ws_id)
+        .with_name("Cache Department A")
+        .create()
+        .await;
+    let department_b = factory
+        .department()
+        .with_workspace(ws_id)
+        .with_name("Cache Department B")
+        .create()
+        .await;
     let employer_id = Uuid::new_v4();
     crate::test_execute!(
         &state.infra().diesel().api,
@@ -377,25 +473,28 @@ async fn test_employment_mutations_invalidate_roster_cache() {
         ws_id
     );
 
-    let cache = state
-        .infra()
-        .roster_cache()
-        .expect("Redis-backed test app must inject RosterCache");
-    cache
+    let replica_cache = cache.new_replica();
+    let before = cache
         .get_roster_data(ws_id, state.infra().diesel())
         .await
         .expect("warming roster cache should succeed");
-    let version_key = format!("roster:version:{ws_id}");
-    let mut conn = redis.conn();
-    let initial: Option<i64> = conn
-        .get(&version_key)
+    let before_replica = replica_cache
+        .get_roster_data(ws_id, state.infra().diesel())
         .await
-        .expect("initial roster version should be readable");
-    drop(conn);
+        .expect("warming replica roster cache should succeed");
+    assert!(!before.dept_history.contains_key(&emp_id));
+    assert!(!before_replica.dept_history.contains_key(&emp_id));
 
+    let pending_before_create = crate::test_query_scalar_i64!(
+        &state.infra().diesel().api,
+        "SELECT COUNT(*) FROM outbox_jobs WHERE workspace_id = $1 AND job_type = 'RosterCacheInvalidation' AND status = 'pending'",
+        diesel::sql_types::Uuid,
+        ws_id
+    );
     let payload = json!({
         "employee_id": emp_id.to_string(),
         "employer_id": employer_id.to_string(),
+        "department_id": department_a.to_string(),
         "status": "active",
         "start_date": "2026-01-01",
         "end_date": "2026-12-31",
@@ -424,14 +523,40 @@ async fn test_employment_mutations_invalidate_roster_cache() {
         .expect("created employment should have an id")
         .to_string();
 
-    let mut conn = redis.conn();
-    let after_create: i64 = conn
-        .get(&version_key)
+    let pending_after_create = crate::test_query_scalar_i64!(
+        &state.infra().diesel().api,
+        "SELECT COUNT(*) FROM outbox_jobs WHERE workspace_id = $1 AND job_type = 'RosterCacheInvalidation' AND status = 'pending'",
+        diesel::sql_types::Uuid,
+        ws_id
+    );
+    assert!(pending_after_create > pending_before_create);
+    scheduler
+        .sweep_once()
         .await
-        .expect("create should advance roster version");
-    drop(conn);
-    assert!(after_create > initial.unwrap_or_default());
+        .expect("durable roster invalidation sweep should succeed");
+    let after_create = cache
+        .get_roster_data(ws_id, state.infra().diesel())
+        .await
+        .expect("created roster snapshot should load");
+    let after_create_replica = replica_cache
+        .get_roster_data(ws_id, state.infra().diesel())
+        .await
+        .expect("replica should refresh after create generation bump");
+    assert_eq!(
+        after_create.dept_history[&emp_id][0].department_id,
+        department_a
+    );
+    assert_eq!(
+        after_create_replica.dept_history[&emp_id][0].department_id,
+        department_a
+    );
 
+    let pending_before_update = crate::test_query_scalar_i64!(
+        &state.infra().diesel().api,
+        "SELECT COUNT(*) FROM outbox_jobs WHERE workspace_id = $1 AND job_type = 'RosterCacheInvalidation' AND status = 'pending'",
+        diesel::sql_types::Uuid,
+        ws_id
+    );
     let updated = app
         .clone()
         .oneshot(make_req(
@@ -439,20 +564,49 @@ async fn test_employment_mutations_invalidate_roster_cache() {
             &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/employments/{employment_id}"),
             ws_id,
             user_id,
-            Some(json!({"job_title": "Senior Cache Engineer"})),
+            Some(json!({
+                "department_id": department_b,
+                "job_title": "Senior Cache Engineer"
+            })),
         ))
         .await
         .expect("update request should complete");
     assert_eq!(updated.status(), StatusCode::OK);
 
-    let mut conn = redis.conn();
-    let after_update: i64 = conn
-        .get(&version_key)
+    let pending_after_update = crate::test_query_scalar_i64!(
+        &state.infra().diesel().api,
+        "SELECT COUNT(*) FROM outbox_jobs WHERE workspace_id = $1 AND job_type = 'RosterCacheInvalidation' AND status = 'pending'",
+        diesel::sql_types::Uuid,
+        ws_id
+    );
+    assert!(pending_after_update > pending_before_update);
+    scheduler
+        .sweep_once()
         .await
-        .expect("update should advance roster version");
-    drop(conn);
-    assert!(after_update > after_create);
+        .expect("durable roster invalidation sweep should succeed after update");
+    let after_update = cache
+        .get_roster_data(ws_id, state.infra().diesel())
+        .await
+        .expect("updated roster snapshot should load");
+    let after_update_replica = replica_cache
+        .get_roster_data(ws_id, state.infra().diesel())
+        .await
+        .expect("replica should refresh after update generation bump");
+    assert_eq!(
+        after_update.dept_history[&emp_id][0].department_id,
+        department_b
+    );
+    assert_eq!(
+        after_update_replica.dept_history[&emp_id][0].department_id,
+        department_b
+    );
 
+    let pending_before_delete = crate::test_query_scalar_i64!(
+        &state.infra().diesel().api,
+        "SELECT COUNT(*) FROM outbox_jobs WHERE workspace_id = $1 AND job_type = 'RosterCacheInvalidation' AND status = 'pending'",
+        diesel::sql_types::Uuid,
+        ws_id
+    );
     let deleted = app
         .oneshot(make_req(
             "DELETE",
@@ -465,10 +619,25 @@ async fn test_employment_mutations_invalidate_roster_cache() {
         .expect("delete request should complete");
     assert_eq!(deleted.status(), StatusCode::NO_CONTENT);
 
-    let mut conn = redis.conn();
-    let after_delete: i64 = conn
-        .get(&version_key)
+    let pending_after_delete = crate::test_query_scalar_i64!(
+        &state.infra().diesel().api,
+        "SELECT COUNT(*) FROM outbox_jobs WHERE workspace_id = $1 AND job_type = 'RosterCacheInvalidation' AND status = 'pending'",
+        diesel::sql_types::Uuid,
+        ws_id
+    );
+    assert!(pending_after_delete > pending_before_delete);
+    scheduler
+        .sweep_once()
         .await
-        .expect("delete should advance roster version");
-    assert!(after_delete > after_update);
+        .expect("durable roster invalidation sweep should succeed after delete");
+    let after_delete = cache
+        .get_roster_data(ws_id, state.infra().diesel())
+        .await
+        .expect("deleted roster snapshot should load");
+    let after_delete_replica = replica_cache
+        .get_roster_data(ws_id, state.infra().diesel())
+        .await
+        .expect("replica should refresh after delete generation bump");
+    assert!(!after_delete.dept_history.contains_key(&emp_id));
+    assert!(!after_delete_replica.dept_history.contains_key(&emp_id));
 }

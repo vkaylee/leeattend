@@ -87,6 +87,38 @@ impl OutboxJobRepository for DieselOutboxJobRepository {
         Ok(())
     }
 
+    async fn update_job_status_if_current(
+        &self,
+        auth_token: &TenantAuthToken,
+        id: Uuid,
+        expected_status: &str,
+        status: &str,
+        error_message: Option<String>,
+    ) -> Result<(), AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+        let workspace_id = auth_token.workspace_id();
+
+        diesel::update(
+            outbox_jobs::table
+                .filter(outbox_jobs::id.eq(id))
+                .filter(outbox_jobs::workspace_id.eq(workspace_id))
+                .filter(outbox_jobs::status.eq(expected_status.to_string())),
+        )
+        .set((
+            outbox_jobs::status.eq(status.to_string()),
+            outbox_jobs::error_message.eq(error_message),
+            outbox_jobs::updated_at.eq(Utc::now()),
+        ))
+        .execute(&mut *conn)
+        .await
+        .map_err(AppError::from)?;
+
+        Ok(())
+    }
+
     async fn get_pending_jobs(
         &self,
         auth_token: &TenantAuthToken,
@@ -204,6 +236,90 @@ impl OutboxJobRepository for DieselOutboxJobRepository {
                             workspace_id = %ws.id,
                             error = ?e,
                             "Failed to claim stuck outbox jobs for tenant"
+                        );
+                        Ok(Vec::new())
+                    }
+                }
+            });
+        }
+
+        use futures_util::stream::StreamExt;
+        let mut stream = futures_util::stream::iter(futures).buffer_unordered(10);
+        let mut all_jobs = Vec::new();
+        while let Some(res) = stream.next().await {
+            all_jobs.extend(res?);
+        }
+        Ok(all_jobs)
+    }
+
+    async fn get_all_stuck_jobs_by_type(
+        &self,
+        job_type: &str,
+        older_than: chrono::DateTime<chrono::Utc>,
+        limit: i64,
+    ) -> Result<Vec<OutboxJob>, AppError> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let workspaces = workspaces::table
+            .select(WorkspaceEntity::as_select())
+            .load::<WorkspaceEntity>(&mut *conn)
+            .await
+            .map_err(AppError::from)?;
+
+        let mut futures = Vec::new();
+        for ws in workspaces {
+            let pools = self.diesel_pools.clone();
+            let job_type = job_type.to_string();
+            futures.push(async move {
+                let auth_token = TenantAuthToken::system_override(ws.id);
+                let mut conn = match pools.tenant_transaction_conn(&auth_token).await {
+                    Ok(conn) => conn,
+                    Err(e) => {
+                        tracing::error!(
+                            workspace_id = %ws.id,
+                            error = ?e,
+                            "Failed to get tenant database connection for typed outbox sweep"
+                        );
+                        return Ok::<_, AppError>(Vec::new());
+                    }
+                };
+
+                let results = diesel::sql_query(
+                    "UPDATE outbox_jobs \
+                     SET status = 'running', updated_at = $1 \
+                     WHERE id IN ( \
+                         SELECT id FROM outbox_jobs \
+                         WHERE workspace_id = $2 \
+                           AND job_type = $3 \
+                           AND (status = 'pending' OR (status = 'running' AND updated_at < $4)) \
+                         ORDER BY updated_at ASC \
+                         LIMIT $5 \
+                         FOR UPDATE SKIP LOCKED \
+                     ) \
+                     RETURNING id, workspace_id, job_type, payload, status, \
+                               error_message, created_at, updated_at",
+                )
+                .bind::<diesel::sql_types::Timestamptz, _>(Utc::now())
+                .bind::<diesel::sql_types::Uuid, _>(ws.id)
+                .bind::<diesel::sql_types::Varchar, _>(job_type)
+                .bind::<diesel::sql_types::Timestamptz, _>(older_than)
+                .bind::<diesel::sql_types::BigInt, _>(limit)
+                .get_results::<OutboxJobEntity>(&mut *conn)
+                .await;
+
+                match results {
+                    Ok(jobs) => Ok(jobs.into_iter().map(Into::into).collect::<Vec<OutboxJob>>()),
+                    Err(e) => {
+                        tracing::error!(
+                            workspace_id = %ws.id,
+                            error = ?e,
+                            "Failed to claim typed outbox jobs for tenant"
                         );
                         Ok(Vec::new())
                     }

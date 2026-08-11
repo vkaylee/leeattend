@@ -13,14 +13,20 @@ use crate::worker::handlers::WorkflowCompletedHandler;
 pub struct OutboxSweepScheduler {
     outbox_service: Arc<OutboxJobService>,
     coordinator: Arc<ReportCoordinator>,
+    roster_cache: Option<Arc<crate::cache::RosterCache>>,
     workflow_handler: Option<Arc<WorkflowCompletedHandler>>,
 }
 
 impl OutboxSweepScheduler {
-    pub fn new(outbox_service: Arc<OutboxJobService>, coordinator: Arc<ReportCoordinator>) -> Self {
+    pub fn new(
+        outbox_service: Arc<OutboxJobService>,
+        coordinator: Arc<ReportCoordinator>,
+        roster_cache: Option<Arc<crate::cache::RosterCache>>,
+    ) -> Self {
         Self {
             outbox_service,
             coordinator,
+            roster_cache,
             workflow_handler: None,
         }
     }
@@ -41,7 +47,7 @@ impl OutboxSweepScheduler {
                 tokio::select! {
                     () = cancel_token.cancelled() => break,
                     _ = tick.tick() => {
-                        if let Err(e) = self.sweep().await {
+                        if let Err(e) = self.sweep_once().await {
                             error!(error = ?e, "Failed to run outbox sweep");
                         }
                     }
@@ -51,9 +57,18 @@ impl OutboxSweepScheduler {
         })
     }
 
-    async fn sweep(&self) -> Result<(), crate::errors::AppError> {
-        let older_than = chrono::Utc::now() - chrono::Duration::minutes(5);
+    pub async fn sweep_once(&self) -> Result<(), crate::errors::AppError> {
+        let invalidation_older_than = chrono::Utc::now() - chrono::Duration::seconds(30);
+        let invalidation_jobs = self
+            .outbox_service
+            .get_all_stuck_jobs_by_type("RosterCacheInvalidation", invalidation_older_than, 100)
+            .await?;
 
+        for job in invalidation_jobs {
+            self.process_roster_cache_invalidation(&job).await;
+        }
+
+        let older_than = chrono::Utc::now() - chrono::Duration::minutes(5);
         let stuck_jobs = self
             .outbox_service
             .get_all_stuck_jobs(older_than, 10)
@@ -77,6 +92,71 @@ impl OutboxSweepScheduler {
         }
 
         Ok(())
+    }
+
+    async fn process_roster_cache_invalidation(&self, job: &crate::models::OutboxJob) {
+        let ws_id = job.workspace_id();
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(ws_id);
+
+        if !job.payload().is_object() {
+            error!(
+                job_id = %job.id(),
+                workspace_id = %ws_id,
+                "Invalid roster cache invalidation payload"
+            );
+            let _ = self
+                .outbox_service
+                .update_job_status_if_current(
+                    &auth_token,
+                    job.id(),
+                    "running",
+                    "failed",
+                    Some("Invalid roster cache invalidation payload".to_string()),
+                )
+                .await;
+            return;
+        }
+
+        let Some(cache) = &self.roster_cache else {
+            error!(
+                job_id = %job.id(),
+                workspace_id = %ws_id,
+                "Roster cache invalidation worker has no Redis-backed cache"
+            );
+            return;
+        };
+
+        if cache.bump_version(ws_id).await.is_ok() {
+            cache.evict_local(ws_id).await;
+            if let Err(error) = self
+                .outbox_service
+                .update_job_status_if_current(&auth_token, job.id(), "running", "completed", None)
+                .await
+            {
+                error!(
+                    job_id = %job.id(),
+                    workspace_id = %ws_id,
+                    error = ?error,
+                    "Roster cache generation advanced but outbox completion failed"
+                );
+            }
+        } else {
+            tracing::warn!(
+                job_id = %job.id(),
+                workspace_id = %ws_id,
+                "Redis unavailable while processing roster cache invalidation; retrying"
+            );
+            let _ = self
+                .outbox_service
+                .update_job_status_if_current(
+                    &auth_token,
+                    job.id(),
+                    "running",
+                    "pending",
+                    Some("Redis temporarily unavailable".to_string()),
+                )
+                .await;
+        }
     }
 
     async fn process_attendance_report(&self, ws_id: Uuid, job: &crate::models::OutboxJob) {
@@ -268,6 +348,15 @@ mod tests {
 
         let job_clone = job.clone();
         mock_outbox_repo
+            .expect_get_all_stuck_jobs_by_type()
+            .with(
+                mockall::predicate::eq("RosterCacheInvalidation"),
+                mockall::predicate::always(),
+                mockall::predicate::eq(100),
+            )
+            .returning(|_, _, _| Ok(vec![]));
+
+        mock_outbox_repo
             .expect_get_all_stuck_jobs()
             .with(mockall::predicate::always(), mockall::predicate::eq(10))
             .returning(move |_, _| Ok(vec![job_clone.clone()]));
@@ -291,9 +380,9 @@ mod tests {
             outbox_service.clone(),
         ));
 
-        let scheduler = OutboxSweepScheduler::new(outbox_service, coordinator);
+        let scheduler = OutboxSweepScheduler::new(outbox_service, coordinator, None);
 
-        let result = scheduler.sweep().await;
+        let result = scheduler.sweep_once().await;
         assert!(result.is_ok());
     }
 }

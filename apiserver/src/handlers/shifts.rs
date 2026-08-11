@@ -264,7 +264,7 @@ pub async fn create_shift(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(workspace_id).await;
+        cache.evict_local(workspace_id).await;
     }
 
     Ok((StatusCode::CREATED, Json(shift)))
@@ -297,7 +297,7 @@ pub async fn update_shift(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     Ok(Json(shift))
@@ -373,7 +373,7 @@ pub async fn assign_shift(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     // Recalculate attendance for days already worked under the reassigned shift.
@@ -690,7 +690,7 @@ pub async fn upsert_roster(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     reprocess_after_roster_change(&state, ctx.workspace_id, active_employment_id, req.date).await;
@@ -774,7 +774,7 @@ pub async fn bulk_upsert_roster(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     // The roster write above is durable; attendance recalculation is offloaded to
@@ -846,7 +846,7 @@ pub async fn delete_roster(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     reprocess_after_roster_change(&state, ctx.workspace_id, active_employment_id, date).await;

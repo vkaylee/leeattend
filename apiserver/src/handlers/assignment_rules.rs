@@ -68,7 +68,7 @@ pub async fn create_assignment_rule(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     Ok((StatusCode::CREATED, Json(rule)))
@@ -105,7 +105,7 @@ pub async fn update_assignment_rule(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     Ok(Json(rule))
@@ -140,7 +140,7 @@ pub async fn delete_assignment_rule(
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
-        cache.invalidate(ctx.workspace_id).await;
+        cache.evict_local(ctx.workspace_id).await;
     }
 
     Ok(StatusCode::NO_CONTENT)
