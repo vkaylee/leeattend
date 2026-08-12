@@ -58,7 +58,7 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
   return (
     <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 rounded-[2rem] p-6 shadow-lg dark:shadow-black/20 flex flex-col gap-4 relative overflow-hidden group">
       {/* Hover glow */}
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 motion-safe:transition-opacity duration-700 motion-reduce:transition-none pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full bg-gradient-to-br from-orange-400/15 to-amber-400/10 blur-2xl" />
       </div>
 
@@ -84,7 +84,7 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
 
       {isLoading ? (
         <div className="h-[160px] flex items-center justify-center">
-          <div className="w-20 h-20 rounded-full border-4 border-slate-100 dark:border-slate-700 border-t-orange-400 animate-spin" />
+          <div className="w-20 h-20 rounded-full border-4 border-slate-100 dark:border-slate-700 border-t-orange-400 motion-safe:animate-spin" />
         </div>
       ) : data.unavailable ? (
         <div className="h-[160px] flex flex-col items-center justify-center gap-2 text-center" role="status">

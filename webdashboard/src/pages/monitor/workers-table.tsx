@@ -34,8 +34,17 @@ const LIVENESS_STYLES: Record<WorkerLiveness, { icon: LucideIcon; className: str
 
 function livenessLabel(t: TFunction, liveness: WorkerLiveness | undefined): string {
   return liveness
-    ? t(`monitor.worker_liveness.${liveness}`, { defaultValue: liveness })
+    ? t(`monitor.worker_liveness.${liveness}`, { defaultValue: t("monitor.unknown_status", { defaultValue: "Status unavailable" }) })
     : t("monitor.metric_unavailable", { defaultValue: "Unavailable" });
+}
+
+function workerStatusLabel(t: TFunction, status: string): string {
+  const normalized = status.toLowerCase();
+  const defaults: Record<string, string> = {
+    idle: "Idle",
+    processing: "Processing",
+  };
+  return t(`monitor.worker_status.${normalized}`, { defaultValue: defaults[normalized] ?? t("monitor.unknown_status", { defaultValue: "Status unavailable" }) });
 }
 
 function heartbeatAgeLabel(t: TFunction, age: number | null | undefined): string {
@@ -95,7 +104,7 @@ function WorkerMobileCard({ t, worker, formatDate }: {
             )}
           >
             {worker.status === "PROCESSING" ? <Zap aria-hidden="true" size={10} /> : <Coffee aria-hidden="true" size={10} />}
-            {t(`monitor.worker_status.${worker.status.toLowerCase()}`, { defaultValue: worker.status })}
+            {workerStatusLabel(t, worker.status)}
           </span>
           <LivenessBadge liveness={worker.liveness} t={t} />
         </div>
@@ -176,7 +185,7 @@ export function WorkersTable({ isUnavailable = false, t, workers }: WorkersTable
               <tbody>
                 {workers.map((worker) => (
                   <tr
-                    className="border-t border-slate-50 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                    className="border-t border-slate-50 motion-safe:transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
                     key={worker.id}
                   >
                     <td className="px-6 py-4">
@@ -203,7 +212,7 @@ export function WorkersTable({ isUnavailable = false, t, workers }: WorkersTable
                         )}
                       >
                         {worker.status === "PROCESSING" ? <Zap aria-hidden="true" size={12} /> : <Coffee aria-hidden="true" size={12} />}
-                        {t(`monitor.worker_status.${worker.status.toLowerCase()}`, { defaultValue: worker.status })}
+                        {workerStatusLabel(t, worker.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4">

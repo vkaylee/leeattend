@@ -33,7 +33,7 @@ export function getStatusStyle(status: string): StatusStyle {
     case "processing":
       return {
         className: "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300",
-        icon: <Loader2 className="animate-spin" size={12} />,
+        icon: <Loader2 className="motion-safe:animate-spin" size={12} />,
       };
     case "retryable":
       return {
@@ -81,7 +81,7 @@ function JobHeaderCard({
         </Typography>
         <Button
           aria-label={t("monitor.copy_job_id", { defaultValue: "Copy Job ID" })}
-          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-slate-500 dark:text-slate-400 h-auto min-w-0"
+          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg motion-safe:transition-colors text-slate-500 dark:text-slate-400 h-auto min-w-0"
           onClick={() => {
             onCopy(jobId, t("monitor.job_id_copied", { defaultValue: "Copied Job ID!" }));
           }}
@@ -95,6 +95,20 @@ function JobHeaderCard({
       </code>
     </div>
   );
+}
+
+function localizedJobStatus(t: TFunction, status: string): string {
+  const defaults: Record<string, string> = {
+    completed: "Completed",
+    failed: "Failed",
+    processing: "Processing",
+    retryable: "Retryable",
+    dead_letter: "Dead letter",
+    lost: "Lost",
+    queued: "Queued",
+    dispatching: "Dispatching",
+  };
+  return t(`monitor.status_${status}`, { defaultValue: defaults[status] ?? t("monitor.unknown_status", { defaultValue: "Status unavailable" }) });
 }
 
 function JobStatusCard({
@@ -122,7 +136,7 @@ function JobStatusCard({
             )}
           >
             {statusIcon}
-            {status}
+            {localizedJobStatus(t, status)}
           </span>
         </div>
       </div>
@@ -259,7 +273,7 @@ export function JobDetailsDrawer({ durableJob, isOpen, onClose, job, t }: JobDet
               <Typography className="text-[10px] font-bold uppercase tracking-widest text-slate-400" variant="p">{t("monitor.status", { defaultValue: "Status" })}</Typography>
               <span className={cn("mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider", statusClassName)}>
                 {statusIcon}
-                {t(`monitor.status_${durableJob.state}`, { defaultValue: durableJob.state.replace("_", " ") })}
+                {localizedJobStatus(t, durableJob.state)}
               </span>
             </div>
             <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-6 dark:border-slate-800 dark:bg-slate-800/50">

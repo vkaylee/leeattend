@@ -80,7 +80,7 @@ describe("WorkerUtilizationGauge", () => {
                 isLoading={false}
             />
         );
-        expect(screen.getByText("60%")).toBeInTheDocument();
+        expect(screen.getByText("60%", { selector: "span" })).toBeInTheDocument();
     });
 
     it("shows loading state", () => {
@@ -90,7 +90,7 @@ describe("WorkerUtilizationGauge", () => {
                 isLoading={true}
             />
         );
-        expect(screen.queryByText("0%")).not.toBeInTheDocument();
+        expect(screen.queryByText("0%", { selector: "span" })).not.toBeInTheDocument();
         expect(screen.queryByTestId("radial-chart")).not.toBeInTheDocument();
     });
 
@@ -142,10 +142,9 @@ describe("WorkerUtilizationGauge", () => {
                 isLoading={false}
             />
         );
-        // Active pill
-        expect(screen.getByText(/3/)).toBeInTheDocument();
-        // Idle pill
-        expect(screen.getByText(/2/)).toBeInTheDocument();
+        // Active and idle pills
+        expect(screen.getByText(/3 active/)).toBeInTheDocument();
+        expect(screen.getByText(/2 idle/)).toBeInTheDocument();
     });
 });
 
@@ -213,9 +212,9 @@ describe("JobStatusDistributionChart", () => {
         renderWithProviders(
             <JobStatusDistributionChart data={mockDistribution} isLoading={false} />
         );
-        expect(screen.getByTestId("legend-completed")).toHaveTextContent("completed 72.7%");
-        expect(screen.getByTestId("legend-failed")).toHaveTextContent("failed 18.2%");
-        expect(screen.getByTestId("legend-processing")).toHaveTextContent("processing 9.1%");
+        expect(screen.getByTestId("legend-completed")).toHaveTextContent("Completed 72.7%");
+        expect(screen.getByTestId("legend-failed")).toHaveTextContent("Failed 18.2%");
+        expect(screen.getByTestId("legend-processing")).toHaveTextContent("Processing 9.1%");
     });
 
     it("shows loading state", () => {

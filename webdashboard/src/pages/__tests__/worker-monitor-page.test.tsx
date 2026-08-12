@@ -250,8 +250,8 @@ describe("WorkerMonitorPage", () => {
 
     it("shows processing and idle status badges", () => {
         renderPage();
-        expect(screen.getAllByText("PROCESSING").length).toBeGreaterThan(0);
-        expect(screen.getAllByText("IDLE").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("Processing").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("Idle").length).toBeGreaterThan(0);
     });
 
     it("renders truncated worker IDs", () => {
