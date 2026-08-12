@@ -71,7 +71,8 @@ impl MonitorAlertRepository for DieselMonitorAlertRepository {
             .await
             .map_err(|error| AppError::Internal(format!("Failed to list monitor alerts: {error}")))?;
         let next_cursor = if alerts.len() > usize::try_from(limit).unwrap_or(0) {
-            alerts.pop().map(|alert| MonitorAlertCursor {
+            alerts.pop();
+            alerts.last().map(|alert| MonitorAlertCursor {
                 last_seen_at: alert.last_seen_at,
                 id: alert.id,
             })
