@@ -322,6 +322,12 @@ impl InfraJobRepository for DieselInfraJobRepository {
         if let Some(job_id) = params.job_id {
             query = query.filter(crate::schema::infra_job_records::id.eq(job_id));
         }
+        if let Some(request_id) = params.request_id {
+            query = query.filter(crate::schema::infra_job_records::request_id.eq(request_id));
+        }
+        if let Some(trace_id) = params.trace_id {
+            query = query.filter(crate::schema::infra_job_records::trace_id.eq(trace_id));
+        }
         if let Some(search) = params.search {
             let search = search.trim();
             if !search.is_empty() {

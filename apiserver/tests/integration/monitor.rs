@@ -294,6 +294,71 @@ async fn test_monitor_jobs_preserves_durable_states_and_sanitizes_fields() {
 }
 
 #[tokio::test]
+async fn test_monitor_correlations_validates_and_sanitizes_lookup() {
+    let (address, workspace_id, user_id, factory, _db): (
+        String,
+        Uuid,
+        Uuid,
+        TestFactory,
+        TestDatabase,
+    ) = spawn_app_with_factory().await;
+    grant_platform_admin(&factory, user_id).await;
+    let (job_id, request_id, trace_id) =
+        seed_durable_job(&factory, workspace_id, "failed", Utc::now()).await;
+    let client = reqwest::Client::new();
+
+    let response = client
+        .get(format!("{address}/api/v1/monitor/correlations?request_id={request_id}"))
+        .header("X-User-Id", user_id.to_string())
+        .send()
+        .await
+        .expect("correlation request should succeed");
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await.expect("correlation response JSON");
+    assert_eq!(body["jobs"][0]["job_id"], job_id.to_string());
+    assert_eq!(body["jobs"][0]["request_id"], request_id.to_string());
+    assert_eq!(body["jobs"][0]["trace_id"], trace_id);
+    let body_text = serde_json::to_string(&body).expect("response should serialize");
+    assert!(!body_text.contains("lease_token"));
+    assert!(!body_text.contains("payload"));
+    assert!(!body_text.contains("raw error"));
+
+    let invalid = client
+        .get(format!("{address}/api/v1/monitor/correlations?trace_id=bad%20trace"))
+        .header("X-User-Id", user_id.to_string())
+        .send()
+        .await
+        .expect("invalid correlation request should complete");
+    assert_eq!(invalid.status(), StatusCode::BAD_REQUEST);
+
+    let both = client
+        .get(format!("{address}/api/v1/monitor/correlations?request_id={request_id}&trace_id={trace_id}"))
+        .header("X-User-Id", user_id.to_string())
+        .send()
+        .await
+        .expect("ambiguous correlation request should complete");
+    assert_eq!(both.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn test_monitor_correlations_requires_platform_admin_or_support() {
+    let (address, _workspace_id, user_id, _factory, _db): (
+        String,
+        Uuid,
+        Uuid,
+        TestFactory,
+        TestDatabase,
+    ) = spawn_app_with_factory().await;
+    let response = reqwest::Client::new()
+        .get(format!("{address}/api/v1/monitor/correlations?request_id={}", Uuid::new_v4()))
+        .header("X-User-Id", user_id.to_string())
+        .send()
+        .await
+        .expect("correlation authorization request should complete");
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
 async fn test_monitor_jobs_requires_platform_admin_or_support() {
     let (address, _workspace_id, user_id, _factory, _db): (
         String,

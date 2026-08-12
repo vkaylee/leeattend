@@ -52,6 +52,11 @@ pub fn router(state: &Arc<AppState>) -> Router<Arc<AppState>> {
             "/monitor/jobs",
             get(handlers::worker_monitor::get_monitor_jobs),
         )
+        // Safe durable job correlation lookup
+        .route(
+            "/monitor/correlations",
+            get(handlers::worker_monitor::get_monitor_correlations),
+        )
         // Worker monitoring SSE stream
         .route(
             "/monitor/stream",

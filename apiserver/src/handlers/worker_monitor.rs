@@ -36,6 +36,9 @@ const MAX_MONITOR_ERROR_SUMMARY_CHARS: usize = 160;
 const MAX_MONITOR_JOBS: usize = 100;
 const MAX_MONITOR_QUERY_LIMIT: usize = 100;
 const MAX_MONITOR_SEARCH_CHARS: usize = 64;
+const MAX_CORRELATION_TRACE_CHARS: usize = 128;
+const MAX_CORRELATION_JOBS: usize = 25;
+const MAX_CORRELATION_EVENTS: i64 = 200;
 const MONITOR_QUERY_TIMEOUT_SECS: u64 = 5;
 const MONITOR_SOURCE_TIMEOUT_SECS: u64 = 1;
 const MONITOR_WINDOW_SECS: i64 = 15 * 60;
@@ -591,6 +594,18 @@ pub struct MonitorJobsResponse {
     pub next_cursor: Option<i64>,
     pub durable_jobs: MonitorDurableJobsSection,
     pub quality: MonitorQuality,
+}
+
+#[derive(Debug, Deserialize, utoipa::IntoParams)]
+pub struct MonitorCorrelationParams {
+    pub request_id: Option<String>,
+    pub trace_id: Option<String>,
+}
+
+#[derive(Debug, Serialize, utoipa::ToSchema)]
+pub struct MonitorCorrelationsResponse {
+    pub jobs: Vec<MonitorInfraJobRecord>,
+    pub events_truncated: bool,
 }
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]
@@ -2158,6 +2173,93 @@ pub struct MonitorJobsParams {
     pub include_legacy: Option<bool>,
     /// Include durable ledger jobs in this page (default: true).
     pub include_durable: Option<bool>,
+}
+
+/// Get bounded durable jobs and lifecycle events by request or trace correlation.
+///
+/// Route: GET /monitor/correlations
+/// Requires: PlatformAdmin or Support
+#[utoipa::path(
+    get,
+    path = "/monitor/correlations",
+    params(MonitorCorrelationParams),
+    responses(
+        (status = 200, description = "Correlated durable jobs and sanitized lifecycle events", body = MonitorCorrelationsResponse)
+    )
+)]
+#[tracing::instrument(skip(state, ctx), fields(correlation = tracing::field::Empty))]
+pub async fn get_monitor_correlations(
+    State(state): State<Arc<AppState>>,
+    ctx: SystemContext,
+    Query(params): Query<MonitorCorrelationParams>,
+) -> AppResult<Json<MonitorCorrelationsResponse>> {
+    ctx.require_any_role(&[SystemRoleType::PlatformAdmin, SystemRoleType::Support])?;
+
+    let request_id = params
+        .request_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(Uuid::parse_str)
+        .transpose()
+        .map_err(|_error| AppError::validation(I18nKey::Validation))?;
+    let trace_id = params
+        .trace_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned);
+    if request_id.is_none() == trace_id.is_none()
+        || trace_id.as_deref().is_some_and(|value| {
+            value.chars().count() > MAX_CORRELATION_TRACE_CHARS
+                || !value
+                    .chars()
+                    .all(|character| character.is_ascii_alphanumeric() || "-_.".contains(character))
+        })
+    {
+        return Err(AppError::validation(I18nKey::Validation));
+    }
+
+    let service = state.infra().infra_job_service();
+    let page = tokio::time::timeout(
+        Duration::from_secs(MONITOR_QUERY_TIMEOUT_SECS),
+        service.list_correlations(
+            request_id,
+            trace_id,
+            i64::try_from(MAX_CORRELATION_JOBS)
+                .map_err(|_error| AppError::validation(I18nKey::Validation))?,
+        ),
+    )
+    .await
+    .map_err(|_error| AppError::service_unavailable(I18nKey::ServiceUnavailable))??;
+
+    let job_ids = page.jobs.iter().map(|job| job.id).collect::<Vec<_>>();
+    let events = tokio::time::timeout(
+        Duration::from_secs(MONITOR_SOURCE_TIMEOUT_SECS),
+        service.list_events_bulk(None, &job_ids, MAX_CORRELATION_EVENTS),
+    )
+    .await
+    .map_err(|_error| AppError::service_unavailable(I18nKey::ServiceUnavailable))??;
+    let events_limit = usize::try_from(MAX_CORRELATION_EVENTS)
+        .map_err(|_error| AppError::validation(I18nKey::Validation))?;
+    let events_truncated = events.len() >= events_limit;
+    let mut events_by_job = std::collections::HashMap::<Uuid, Vec<MonitorInfraJobEvent>>::new();
+    for event in events {
+        events_by_job
+            .entry(event.job_id)
+            .or_default()
+            .push(durable_event_dto(&event)?);
+    }
+    let jobs = page
+        .jobs
+        .iter()
+        .map(|job| durable_job_dto(job, events_by_job.remove(&job.id).unwrap_or_default()))
+        .collect::<AppResult<Vec<_>>>()?;
+
+    Ok(Json(MonitorCorrelationsResponse {
+        jobs,
+        events_truncated,
+    }))
 }
 
 /// Get paginated and filtered background jobs.

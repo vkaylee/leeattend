@@ -142,6 +142,22 @@ impl InfraJobService {
         self.repository.list_global(params).await
     }
 
+    pub async fn list_correlations(
+        &self,
+        request_id: Option<Uuid>,
+        trace_id: Option<String>,
+        limit: i64,
+    ) -> Result<InfraJobPage, AppError> {
+        self.repository
+            .list_global(ListInfraJobsParams {
+                limit,
+                request_id,
+                trace_id,
+                ..Default::default()
+            })
+            .await
+    }
+
     pub async fn list_events(
         &self,
         workspace_id: Uuid,

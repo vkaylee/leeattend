@@ -47,6 +47,8 @@ pub struct ListInfraJobsParams {
     pub state: Option<String>,
     pub task_type: Option<String>,
     pub job_id: Option<Uuid>,
+    pub request_id: Option<Uuid>,
+    pub trace_id: Option<String>,
     pub search: Option<String>,
 }
 

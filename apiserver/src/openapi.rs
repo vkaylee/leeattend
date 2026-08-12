@@ -298,6 +298,7 @@ use utoipa::OpenApi;
         crate::handlers::system_db_clusters::update_db_cluster_status,
         crate::handlers::worker_monitor::get_monitor_overview,
         crate::handlers::worker_monitor::get_monitor_jobs,
+        crate::handlers::worker_monitor::get_monitor_correlations,
         crate::handlers::jobs::get_durable_monitor_job,
         crate::handlers::workspaces::audit::get_audit_logs,
 
@@ -846,6 +847,8 @@ use utoipa::OpenApi;
             crate::handlers::worker_monitor::MonitorDurableJobsSection,
             crate::handlers::worker_monitor::MonitorOverviewResponse,
             crate::handlers::worker_monitor::MonitorJobsResponse,
+            crate::handlers::worker_monitor::MonitorCorrelationParams,
+            crate::handlers::worker_monitor::MonitorCorrelationsResponse,
             crate::handlers::worker_monitor::MonitorStreamError,
             crate::handlers::worker_monitor::JobTypeStats,
             crate::handlers::worker_monitor::MonitorMetricUnknown,
