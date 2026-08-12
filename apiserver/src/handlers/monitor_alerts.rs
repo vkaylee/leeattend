@@ -143,15 +143,11 @@ fn parse_alert_cursor(token: &str) -> AppResult<MonitorAlertCursor> {
         .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::Validation))?;
     let micros = timestamp
         .parse::<i64>()
-        .map_err(|_parse_error| {
-            AppError::validation(crate::utils::i18n::I18nKey::Validation)
-        })?;
+        .map_err(|_parse_error| AppError::validation(crate::utils::i18n::I18nKey::Validation))?;
     let last_seen_at = chrono::DateTime::<chrono::Utc>::from_timestamp_micros(micros)
         .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::Validation))?;
     let id = Uuid::parse_str(id)
-        .map_err(|_parse_error| {
-            AppError::validation(crate::utils::i18n::I18nKey::Validation)
-        })?;
+        .map_err(|_parse_error| AppError::validation(crate::utils::i18n::I18nKey::Validation))?;
     Ok(MonitorAlertCursor { last_seen_at, id })
 }
 
