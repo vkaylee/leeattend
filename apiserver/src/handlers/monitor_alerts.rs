@@ -179,7 +179,11 @@ pub async fn list_monitor_alerts(
     ctx.require_any_role(&[SystemRoleType::PlatformAdmin, SystemRoleType::Support])?;
     let status = validate_filter(query.status, &["active", "resolved"])?;
     let severity = validate_filter(query.severity, &["info", "warning", "critical"])?;
-    let cursor = query.cursor.as_deref().map(parse_alert_cursor).transpose()?;
+    let cursor = query
+        .cursor
+        .as_deref()
+        .map(parse_alert_cursor)
+        .transpose()?;
     let limit = query.limit.unwrap_or(50).clamp(1, MAX_ALERT_LIMIT);
     let page = state
         .infra()
