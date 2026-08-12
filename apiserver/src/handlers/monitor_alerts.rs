@@ -10,7 +10,9 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::system_auth::SystemContext;
 use crate::models::diesel::monitor_alert::{MonitorAlert, MonitorAlertEvent};
 use crate::models::enums::SystemRoleType;
-use crate::repositories::monitor_alert_repository::{ListMonitorAlertsParams, MonitorAlertAction};
+use crate::repositories::monitor_alert_repository::{
+    ListMonitorAlertsParams, MonitorAlertAction, MonitorAlertCursor,
+};
 use crate::AppState;
 
 const MAX_ALERT_LIMIT: i64 = 100;
@@ -20,6 +22,8 @@ const MAX_REASON_CHARS: usize = 500;
 pub struct MonitorAlertQuery {
     pub status: Option<String>,
     pub severity: Option<String>,
+    /// Opaque cursor from the previous page, ordered by last_seen_at DESC, id DESC.
+    pub cursor: Option<String>,
     pub limit: Option<i64>,
 }
 
@@ -36,6 +40,15 @@ pub struct MonitorAlertResponse {
     pub last_seen_at: chrono::DateTime<chrono::Utc>,
     pub occurrence_count: i32,
     pub resolved_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Serialize, utoipa::ToSchema)]
+pub struct MonitorAlertsResponse {
+    pub data: Vec<MonitorAlertResponse>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+    pub next_cursor: Option<String>,
 }
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]
@@ -120,6 +133,24 @@ fn sanitize_code(value: &str) -> String {
     value.trim().chars().take(100).collect()
 }
 
+fn alert_cursor_token(cursor: &MonitorAlertCursor) -> String {
+    format!("{}:{}", cursor.last_seen_at.timestamp_micros(), cursor.id)
+}
+
+fn parse_alert_cursor(token: &str) -> AppResult<MonitorAlertCursor> {
+    let (timestamp, id) = token
+        .split_once(':')
+        .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::Validation))?;
+    let micros = timestamp
+        .parse::<i64>()
+        .map_err(|_| AppError::validation(crate::utils::i18n::I18nKey::Validation))?;
+    let last_seen_at = chrono::DateTime::<chrono::Utc>::from_timestamp_micros(micros)
+        .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::Validation))?;
+    let id = Uuid::parse_str(id)
+        .map_err(|_| AppError::validation(crate::utils::i18n::I18nKey::Validation))?;
+    Ok(MonitorAlertCursor { last_seen_at, id })
+}
+
 fn validate_filter(value: Option<String>, allowed: &[&str]) -> AppResult<Option<String>> {
     let Some(value) = value else {
         return Ok(None);
@@ -134,28 +165,39 @@ fn validate_filter(value: Option<String>, allowed: &[&str]) -> AppResult<Option<
     }
 }
 
-#[utoipa::path(get, path = "/monitor/alerts", params(MonitorAlertQuery), responses((status = 200, body = [MonitorAlertResponse])))]
+#[utoipa::path(
+    get,
+    path = "/monitor/alerts",
+    params(MonitorAlertQuery),
+    responses((status = 200, description = "Paginated monitor alerts", body = MonitorAlertsResponse))
+)]
 pub async fn list_monitor_alerts(
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
     Query(query): Query<MonitorAlertQuery>,
-) -> AppResult<Json<Vec<MonitorAlertResponse>>> {
+) -> AppResult<Json<MonitorAlertsResponse>> {
     ctx.require_any_role(&[SystemRoleType::PlatformAdmin, SystemRoleType::Support])?;
     let status = validate_filter(query.status, &["active", "resolved"])?;
     let severity = validate_filter(query.severity, &["info", "warning", "critical"])?;
+    let cursor = query.cursor.as_deref().map(parse_alert_cursor).transpose()?;
     let limit = query.limit.unwrap_or(50).clamp(1, MAX_ALERT_LIMIT);
-    let alerts = state
+    let page = state
         .infra()
         .monitor_alert_service()
         .list_alerts(ListMonitorAlertsParams {
             status,
             severity,
+            cursor,
             limit,
         })
         .await?;
-    Ok(Json(
-        alerts.into_iter().map(MonitorAlertResponse::from).collect(),
-    ))
+    Ok(Json(MonitorAlertsResponse {
+        data: page.alerts.into_iter().map(MonitorAlertResponse::from).collect(),
+        total: usize::try_from(page.total).unwrap_or(0),
+        page: 1,
+        limit,
+        next_cursor: page.next_cursor.as_ref().map(alert_cursor_token),
+    }))
 }
 
 async fn mutate_monitor_alert(

@@ -2,7 +2,8 @@ use crate::diesel_pool::{DieselPools, TransactionConn};
 use crate::errors::AppError;
 use crate::models::diesel::monitor_alert::{MonitorAlert, MonitorAlertEvent};
 use crate::repositories::monitor_alert_repository::{
-    ListMonitorAlertsParams, MonitorAlertAction, MonitorAlertRepository,
+    ListMonitorAlertsParams, MonitorAlertAction, MonitorAlertCursor, MonitorAlertPage,
+    MonitorAlertRepository,
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -38,25 +39,56 @@ impl MonitorAlertRepository for DieselMonitorAlertRepository {
     async fn list_alerts(
         &self,
         params: ListMonitorAlertsParams,
-    ) -> Result<Vec<MonitorAlert>, AppError> {
+    ) -> Result<MonitorAlertPage, AppError> {
         let mut conn = self.api_conn().await?;
         let limit = params.limit.clamp(1, 100);
         let mut query = crate::schema::monitor_alerts::table.into_boxed();
+        let mut count_query = crate::schema::monitor_alerts::table.into_boxed();
         if let Some(status) = params.status {
-            query = query.filter(crate::schema::monitor_alerts::status.eq(status));
+            query = query.filter(crate::schema::monitor_alerts::status.eq(status.clone()));
+            count_query = count_query.filter(crate::schema::monitor_alerts::status.eq(status));
         }
         if let Some(severity) = params.severity {
-            query = query.filter(crate::schema::monitor_alerts::severity.eq(severity));
+            query = query.filter(crate::schema::monitor_alerts::severity.eq(severity.clone()));
+            count_query = count_query.filter(crate::schema::monitor_alerts::severity.eq(severity));
         }
-        query
+        if let Some(cursor) = params.cursor {
+            let cursor_filter = crate::schema::monitor_alerts::last_seen_at
+                .lt(cursor.last_seen_at)
+                .or(crate::schema::monitor_alerts::last_seen_at
+                    .eq(cursor.last_seen_at)
+                    .and(crate::schema::monitor_alerts::id.lt(cursor.id)));
+            query = query.filter(cursor_filter);
+        }
+
+        let mut alerts = query
             .order((
                 crate::schema::monitor_alerts::last_seen_at.desc(),
                 crate::schema::monitor_alerts::id.desc(),
             ))
-            .limit(limit)
+            .limit(limit + 1)
             .load::<MonitorAlert>(&mut *conn)
             .await
-            .map_err(|error| AppError::Internal(format!("Failed to list monitor alerts: {error}")))
+            .map_err(|error| AppError::Internal(format!("Failed to list monitor alerts: {error}")))?;
+        let next_cursor = if alerts.len() > usize::try_from(limit).unwrap_or(0) {
+            alerts.pop().map(|alert| MonitorAlertCursor {
+                last_seen_at: alert.last_seen_at,
+                id: alert.id,
+            })
+        } else {
+            None
+        };
+        let total = count_query
+            .count()
+            .get_result::<i64>(&mut *conn)
+            .await
+            .map_err(|error| AppError::Internal(format!("Failed to count monitor alerts: {error}")))?;
+
+        Ok(MonitorAlertPage {
+            alerts,
+            total,
+            next_cursor,
+        })
     }
 
     async fn get_alert(&self, alert_id: Uuid) -> Result<Option<MonitorAlert>, AppError> {

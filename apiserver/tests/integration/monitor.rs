@@ -618,6 +618,57 @@ async fn seed_monitor_alert(factory: &TestFactory, status: &str) -> Uuid {
 }
 
 #[tokio::test]
+async fn test_monitor_alert_list_is_cursor_paginated_and_bounded() {
+    let (address, _workspace_id, user_id, factory, _db): (
+        String,
+        Uuid,
+        Uuid,
+        TestFactory,
+        TestDatabase,
+    ) = spawn_app_with_factory().await;
+    grant_platform_admin(&factory, user_id).await;
+    for status in ["active", "resolved", "active"] {
+        seed_monitor_alert(&factory, status).await;
+    }
+    let client = reqwest::Client::new();
+    let first = client
+        .get(format!("{address}/api/v1/monitor/alerts?limit=2"))
+        .header("X-User-Id", user_id.to_string())
+        .send()
+        .await
+        .expect("first alert page should complete");
+    assert_eq!(first.status(), StatusCode::OK);
+    let body: serde_json::Value = first.json().await.expect("alert page should be JSON");
+    assert_eq!(body["data"].as_array().map(Vec::len), Some(2));
+    assert_eq!(body["limit"], 2);
+    assert!(body["total"].as_u64().is_some_and(|total| total >= 3));
+    let cursor = body["next_cursor"]
+        .as_str()
+        .expect("first alert page should have a cursor");
+
+    let second = client
+        .get(format!("{address}/api/v1/monitor/alerts?limit=2&cursor={cursor}"))
+        .header("X-User-Id", user_id.to_string())
+        .send()
+        .await
+        .expect("second alert page should complete");
+    assert_eq!(second.status(), StatusCode::OK);
+    let second_body: serde_json::Value = second.json().await.expect("second page should be JSON");
+    assert_eq!(second_body["data"].as_array().map(Vec::len), Some(1));
+    assert!(second_body["next_cursor"].is_null());
+
+    let unbounded = client
+        .get(format!("{address}/api/v1/monitor/alerts?limit=10000"))
+        .header("X-User-Id", user_id.to_string())
+        .send()
+        .await
+        .expect("bounded alert request should complete");
+    assert_eq!(unbounded.status(), StatusCode::OK);
+    let unbounded_body: serde_json::Value = unbounded.json().await.expect("bounded page should be JSON");
+    assert_eq!(unbounded_body["limit"], 100);
+}
+
+#[tokio::test]
 async fn test_monitor_alert_operator_mutations_require_support_or_platform_admin() {
     let (address, _workspace_id, user_id, factory, _db): (
         String,

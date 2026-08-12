@@ -1,7 +1,7 @@
 use crate::errors::AppError;
 use crate::models::diesel::monitor_alert::{MonitorAlert, MonitorAlertEvent};
 use crate::repositories::monitor_alert_repository::{
-    ListMonitorAlertsParams, MonitorAlertAction, MonitorAlertRepository,
+    ListMonitorAlertsParams, MonitorAlertAction, MonitorAlertPage, MonitorAlertRepository,
 };
 use std::sync::Arc;
 use uuid::Uuid;
@@ -19,7 +19,7 @@ impl MonitorAlertService {
     pub async fn list_alerts(
         &self,
         params: ListMonitorAlertsParams,
-    ) -> Result<Vec<MonitorAlert>, AppError> {
+    ) -> Result<MonitorAlertPage, AppError> {
         self.repository.list_alerts(params).await
     }
 

@@ -4,11 +4,25 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+#[derive(Debug, Clone)]
+pub struct MonitorAlertCursor {
+    pub last_seen_at: DateTime<Utc>,
+    pub id: Uuid,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct ListMonitorAlertsParams {
     pub status: Option<String>,
     pub severity: Option<String>,
+    pub cursor: Option<MonitorAlertCursor>,
     pub limit: i64,
+}
+
+#[derive(Debug, Clone)]
+pub struct MonitorAlertPage {
+    pub alerts: Vec<MonitorAlert>,
+    pub total: i64,
+    pub next_cursor: Option<MonitorAlertCursor>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -22,7 +36,7 @@ pub trait MonitorAlertRepository: Send + Sync {
     async fn list_alerts(
         &self,
         params: ListMonitorAlertsParams,
-    ) -> Result<Vec<MonitorAlert>, AppError>;
+    ) -> Result<MonitorAlertPage, AppError>;
 
     async fn get_alert(&self, alert_id: Uuid) -> Result<Option<MonitorAlert>, AppError>;
 

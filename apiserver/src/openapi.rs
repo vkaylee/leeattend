@@ -487,6 +487,8 @@ use utoipa::OpenApi;
             crate::handlers::document_templates::TemplatePreviewRequest,
             crate::handlers::document_templates::TemplatePreviewResponse,
             crate::handlers::monitor_alerts::MonitorAlertResponse,
+            crate::handlers::monitor_alerts::MonitorAlertsResponse,
+            crate::handlers::monitor_alerts::MonitorAlertQuery,
             crate::handlers::monitor_alerts::MonitorAlertDetailResponse,
             crate::handlers::monitor_alerts::MonitorAlertEventResponse,
             crate::handlers::monitor_alerts::MonitorAlertMutationRequest,
