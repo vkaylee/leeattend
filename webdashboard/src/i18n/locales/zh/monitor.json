@@ -77,6 +77,13 @@
     "alerts": "监控告警",
     "alerts_description": "查看正在活动的平台告警并记录操作员处理情况。",
     "alerts_error": "无法加载告警。",
+    "alert_detail_error": "无法加载告警详情。",
+    "alert_events": "告警事件",
+    "source_status": {
+      "available": "可用",
+      "degraded": "降级",
+      "unavailable": "不可用"
+    },
     "no_active_alerts": "没有正在活动的告警。",
     "alert_reason": "操作员原因",
     "alert_reason_placeholder": "描述已采取的操作…",

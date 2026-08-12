@@ -28,6 +28,18 @@ use crate::worker::handlers::{
 /// swept this often. Must be well under `DEFAULT_LEASE_SECS` so a stuck lease
 /// is recovered promptly rather than blocking a duplicate-claim window.
 const REAP_INTERVAL_SECS: u64 = 30;
+const LEASE_GRACE_SECS: u64 = 30;
+const RETRY_BACKOFF_BASE_SECS: i64 = 5;
+const RETRY_BACKOFF_MAX_SECS: i64 = 300;
+
+fn durable_retry_backoff(attempt_count: i32) -> chrono::Duration {
+    let exponent = attempt_count.saturating_sub(1).clamp(0, 6).cast_unsigned();
+    let multiplier = 1_i64 << exponent;
+    let seconds = RETRY_BACKOFF_BASE_SECS
+        .saturating_mul(multiplier)
+        .min(RETRY_BACKOFF_MAX_SECS);
+    chrono::Duration::seconds(seconds)
+}
 
 // Redis key patterns for monitoring
 const WORKER_HEARTBEAT_PREFIX: &str = "monitor:worker:";
@@ -507,7 +519,12 @@ impl JobWorker {
                     lease_owner: Some(self.worker_id.to_string()),
                     lease_expires_at: Some(
                         Utc::now()
-                            + chrono::Duration::seconds(self.config.job_timeout_secs.cast_signed()),
+                            + chrono::Duration::seconds(
+                                self.config
+                                    .job_timeout_secs
+                                    .saturating_add(LEASE_GRACE_SECS)
+                                    .cast_signed(),
+                            ),
                     ),
                     next_attempt_at: None,
                     worker_id: Some(self.worker_id.to_string()),
@@ -643,7 +660,7 @@ impl JobWorker {
                     lease_token: Some(lease_token),
                     lease_owner: None,
                     lease_expires_at: None,
-                    next_attempt_at: None,
+                    next_attempt_at: Some(Utc::now() + durable_retry_backoff(record.attempt_count)),
                     worker_id: Some(self.worker_id.to_string()),
                     request_id,
                     trace_id: job.trace_context.clone(),
@@ -775,6 +792,19 @@ impl JobWorker {
             let Some(lease_token) = record.lease_token else {
                 continue;
             };
+            let exhausted = record.attempt_count >= self.config.max_retries.cast_signed();
+            let to_state = if exhausted {
+                "dead_letter"
+            } else {
+                "retryable"
+            };
+            let event_type = if exhausted {
+                "worker_lease_expired_dead_letter"
+            } else {
+                "worker_lease_expired_retryable"
+            };
+            let next_attempt_at =
+                (!exhausted).then(|| Utc::now() + durable_retry_backoff(record.attempt_count));
             match self
                 .infra_job_service
                 .transition(
@@ -782,12 +812,12 @@ impl JobWorker {
                         job_id: record.id,
                         workspace_id: record.workspace_id,
                         expected_state: Some("processing".to_string()),
-                        to_state: "lost".to_string(),
-                        event_type: "worker_lease_expired".to_string(),
+                        to_state: to_state.to_string(),
+                        event_type: event_type.to_string(),
                         lease_token: Some(lease_token),
                         lease_owner: None,
                         lease_expires_at: None,
-                        next_attempt_at: None,
+                        next_attempt_at,
                         worker_id: record.lease_owner,
                         request_id: record.request_id,
                         trace_id: record.trace_id,
@@ -1051,6 +1081,22 @@ impl JobWorker {
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[test]
+    fn test_durable_retry_backoff_is_bounded_and_exponential() {
+        assert_eq!(durable_retry_backoff(0).num_seconds(), 5);
+        assert_eq!(durable_retry_backoff(1).num_seconds(), 5);
+        assert_eq!(durable_retry_backoff(2).num_seconds(), 10);
+        assert_eq!(durable_retry_backoff(3).num_seconds(), 20);
+        assert_eq!(durable_retry_backoff(99).num_seconds(), 300);
+    }
+
+    #[test]
+    fn test_durable_lease_grace_exceeds_execution_timeout() {
+        let config = WorkerConfig::default();
+        assert_eq!(config.job_timeout_secs + LEASE_GRACE_SECS, 330);
+        assert!(LEASE_GRACE_SECS > 0);
+    }
 
     #[test]
     fn test_worker_config_default() {

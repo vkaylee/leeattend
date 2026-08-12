@@ -41,13 +41,13 @@ function MonitorAlertsSection({ t }: { t: TFunction }) {
   const detailQuery = useMonitorAlert(selectedAlertId);
   const { acknowledge, resolve } = useMonitorAlertMutations();
   const selectedAlert = detailQuery.data;
-  const mutation = resolve.isPending ? resolve : acknowledge;
+  const isMutating = acknowledge.isPending || resolve.isPending;
+  const reasonIsValid = reason.trim().length > 0 && reason.trim().length <= 500;
   const submit = (action: "acknowledge" | "resolve") => {
-    if (!selectedAlertId || reason.trim().length === 0 || reason.trim().length > 500) return;
+    if (!selectedAlertId || !reasonIsValid || isMutating) return;
     const variables = { alertId: selectedAlertId, reason: reason.trim() };
-    if (action === "resolve") resolve.mutate(variables);
-    else acknowledge.mutate(variables);
-    setReason("");
+    if (action === "resolve") resolve.mutate(variables, { onSuccess: () => setReason("") });
+    else acknowledge.mutate(variables, { onSuccess: () => setReason("") });
   };
 
   return (
@@ -59,15 +59,15 @@ function MonitorAlertsSection({ t }: { t: TFunction }) {
         </div>
         <AlertTriangle aria-hidden="true" className="text-amber-500" size={22} />
       </div>
-      {alertsQuery.isLoading ? <div className="mt-5 flex items-center gap-2 text-sm text-slate-500"><Loader2 className="animate-spin" size={16} />{t("common.loading", { defaultValue: "Loading…" })}</div> : null}
-      {alertsQuery.isError ? <div className="mt-5 text-sm text-rose-600">{t("monitor.alerts_error", { defaultValue: "Unable to load alerts." })}</div> : null}
+      {alertsQuery.isLoading ? <div aria-busy="true" className="mt-5 grid gap-3 md:grid-cols-2"><div className="h-28 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" /><div className="h-28 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" /></div> : null}
+      {alertsQuery.isError ? <div className="mt-5 flex items-center justify-between gap-3 text-sm text-rose-600" role="alert"><span>{t("monitor.alerts_error", { defaultValue: "Unable to load alerts." })}</span><Button onClick={() => void alertsQuery.refetch()} size="sm" variant="outline">{t("common.retry", { defaultValue: "Retry" })}</Button></div> : null}
       {!alertsQuery.isLoading && !alertsQuery.isError && alertsQuery.data?.data.length === 0 ? <div className="mt-5 flex items-center gap-2 text-sm text-emerald-600"><CheckCircle2 size={16} />{t("monitor.no_active_alerts", { defaultValue: "No active alerts." })}</div> : null}
       <div className="mt-5 grid gap-3 md:grid-cols-2">
         {alertsQuery.data?.data.map((alert) => (
           <Button
             aria-pressed={selectedAlertId === alert.id}
             className={cn(
-              "h-auto min-h-28 w-full flex-col items-stretch justify-start rounded-xl border p-4 text-left normal-case tracking-normal transition-colors active:scale-100",
+              "h-auto min-h-28 w-full min-w-0 flex-col items-stretch justify-start rounded-xl border p-4 text-left normal-case tracking-normal transition-colors active:scale-100",
               selectedAlertId === alert.id
                 ? "border-primary-500 bg-primary-50/60 dark:bg-primary-950/30"
                 : "border-slate-200 bg-transparent text-inherit shadow-none hover:border-primary-300 hover:bg-transparent dark:border-slate-700",
@@ -76,20 +76,25 @@ function MonitorAlertsSection({ t }: { t: TFunction }) {
             onClick={() => setSelectedAlertId(alert.id)}
             variant="ghost"
           >
-            <div className="flex items-center justify-between gap-3"><span className="font-bold text-slate-800 dark:text-slate-100">{alert.title}</span><span className="text-[10px] font-bold uppercase tracking-widest text-amber-600">{alert.severity}</span></div>
+            <div className="flex min-w-0 items-center justify-between gap-3"><span className="min-w-0 break-words font-bold text-slate-800 dark:text-slate-100">{alert.title}</span><span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-amber-600">{alert.severity}</span></div>
             <div className="mt-2 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">{alert.summary}</div>
           </Button>
         ))}
       </div>
-      {selectedAlertId && selectedAlert ? (
+      {selectedAlertId ? (
         <div className="mt-5 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
-          <div className="text-sm text-slate-500 dark:text-slate-400">{selectedAlert.source} · {selectedAlert.status}</div>
-          <textarea aria-label={t("monitor.alert_reason", { defaultValue: "Operator reason" })} className="mt-3 min-h-20 w-full rounded-xl border border-slate-200 bg-transparent p-3 text-sm outline-none focus:border-primary-500 dark:border-slate-700" maxLength={500} onChange={(event) => setReason(event.target.value)} placeholder={t("monitor.alert_reason_placeholder", { defaultValue: "Describe the action taken…" })} value={reason} />
-          <div className="mt-3 flex flex-wrap justify-end gap-2">
-            <Button disabled={reason.trim().length === 0 || reason.trim().length > 500} loading={acknowledge.isPending} onClick={() => submit("acknowledge")} size="sm" variant="outline">{t("monitor.acknowledge", { defaultValue: "Acknowledge" })}</Button>
-            <Button disabled={reason.trim().length === 0 || reason.trim().length > 500} loading={resolve.isPending} onClick={() => submit("resolve")} size="sm" variant="destructive">{t("monitor.resolve", { defaultValue: "Resolve" })}</Button>
-          </div>
-          {mutation.isError ? <div className="mt-2 text-right text-xs text-rose-600">{t("monitor.alert_action_error", { defaultValue: "Action failed. Please retry." })}</div> : null}
+          {detailQuery.isLoading ? <div aria-busy="true" className="h-24 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" /> : null}
+          {detailQuery.isError ? <div className="flex items-center justify-between gap-3 text-sm text-rose-600" role="alert"><span>{t("monitor.alert_detail_error", { defaultValue: "Unable to load alert details." })}</span><Button onClick={() => void detailQuery.refetch()} size="sm" variant="outline">{t("common.retry", { defaultValue: "Retry" })}</Button></div> : null}
+          {selectedAlert ? <>
+            <div className="text-sm text-slate-500 dark:text-slate-400">{selectedAlert.source} · {selectedAlert.status}</div>
+            {selectedAlert.events.length > 0 ? <div className="mt-3 space-y-2" aria-label={t("monitor.alert_events", { defaultValue: "Alert events" })}>{selectedAlert.events.map((event) => <div className="rounded-lg bg-slate-50 p-2 text-xs dark:bg-slate-800" key={event.id}><div className="font-semibold">{event.event_type} · {event.severity}</div><div className="text-slate-500 dark:text-slate-400">{event.summary}</div></div>)}</div> : null}
+            <textarea aria-label={t("monitor.alert_reason", { defaultValue: "Operator reason" })} className="mt-3 min-h-20 w-full rounded-xl border border-slate-200 bg-transparent p-3 text-sm outline-none focus:border-primary-500 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:border-slate-700" maxLength={500} onChange={(event) => setReason(event.target.value)} placeholder={t("monitor.alert_reason_placeholder", { defaultValue: "Describe the action taken…" })} value={reason} />
+            <div className="mt-3 flex flex-wrap justify-end gap-2">
+              <Button disabled={!reasonIsValid || isMutating} loading={acknowledge.isPending} onClick={() => submit("acknowledge")} size="sm" variant="outline">{t("monitor.acknowledge", { defaultValue: "Acknowledge" })}</Button>
+              <Button disabled={!reasonIsValid || isMutating} loading={resolve.isPending} onClick={() => submit("resolve")} size="sm" variant="destructive">{t("monitor.resolve", { defaultValue: "Resolve" })}</Button>
+            </div>
+            {acknowledge.isError || resolve.isError ? <div className="mt-2 text-right text-xs text-rose-600" role="alert">{t("monitor.alert_action_error", { defaultValue: "Action failed. Please retry." })}</div> : null}
+          </> : null}
         </div>
       ) : null}
     </section>

@@ -77,6 +77,13 @@
     "alerts": "Monitor alerts",
     "alerts_description": "Review active platform alerts and record operator actions.",
     "alerts_error": "Unable to load alerts.",
+    "alert_detail_error": "Unable to load alert details.",
+    "alert_events": "Alert events",
+    "source_status": {
+      "available": "Available",
+      "degraded": "Degraded",
+      "unavailable": "Unavailable"
+    },
     "no_active_alerts": "No active alerts.",
     "alert_reason": "Operator reason",
     "alert_reason_placeholder": "Describe the action taken…",

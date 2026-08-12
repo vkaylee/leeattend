@@ -77,6 +77,13 @@
     "alerts": "Cảnh báo giám sát",
     "alerts_description": "Xem các cảnh báo nền tảng đang hoạt động và ghi lại thao tác của người vận hành.",
     "alerts_error": "Không thể tải cảnh báo.",
+    "alert_detail_error": "Không thể tải chi tiết cảnh báo.",
+    "alert_events": "Sự kiện cảnh báo",
+    "source_status": {
+      "available": "Khả dụng",
+      "degraded": "Suy giảm",
+      "unavailable": "Không khả dụng"
+    },
     "no_active_alerts": "Không có cảnh báo đang hoạt động.",
     "alert_reason": "Lý do thao tác",
     "alert_reason_placeholder": "Mô tả thao tác đã thực hiện…",
