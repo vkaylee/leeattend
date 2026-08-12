@@ -192,7 +192,11 @@ pub async fn list_monitor_alerts(
         })
         .await?;
     Ok(Json(MonitorAlertsResponse {
-        data: page.alerts.into_iter().map(MonitorAlertResponse::from).collect(),
+        data: page
+            .alerts
+            .into_iter()
+            .map(MonitorAlertResponse::from)
+            .collect(),
         total: usize::try_from(page.total).unwrap_or(0),
         page: 1,
         limit,
