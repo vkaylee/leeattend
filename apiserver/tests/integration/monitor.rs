@@ -524,6 +524,36 @@ fn platform_admin_context() -> SystemContext {
     }
 }
 
+async fn clear_monitor_worker_heartbeats(factory: &TestFactory) {
+    let Some(redis_pool) = factory.redis_pool.clone() else {
+        return;
+    };
+    let mut conn = redis_pool.conn();
+    let mut cursor = 0u64;
+    loop {
+        let (next_cursor, keys): (u64, Vec<String>) = redis::cmd("SCAN")
+            .arg(cursor)
+            .arg("MATCH")
+            .arg("monitor:worker:*")
+            .arg("COUNT")
+            .arg(100)
+            .query_async(&mut conn)
+            .await
+            .expect("worker heartbeat scan should succeed");
+        if !keys.is_empty() {
+            let _: usize = redis::cmd("DEL")
+                .arg(keys)
+                .query_async(&mut conn)
+                .await
+                .expect("worker heartbeat cleanup should succeed");
+        }
+        cursor = next_cursor;
+        if cursor == 0 {
+            break;
+        }
+    }
+}
+
 #[tokio::test]
 async fn test_monitor_overview_reports_redis_unavailable_without_fabricating_zeroes() {
     let (_test_db, _factory, state, _app) = setup_app_tower_without_redis().await;
@@ -767,7 +797,8 @@ async fn test_monitor_alert_operator_mutations_reject_unsanitized_or_unbounded_r
 
 #[tokio::test]
 async fn test_monitor_overview_reports_zero_workers_when_heartbeat_source_is_empty() {
-    let (_test_db, _factory, state, _app) = setup_app_tower().await;
+    let (_test_db, factory, state, _app) = setup_app_tower().await;
+    clear_monitor_worker_heartbeats(&factory).await;
 
     let response = get_monitor_overview(State(state), platform_admin_context())
         .await

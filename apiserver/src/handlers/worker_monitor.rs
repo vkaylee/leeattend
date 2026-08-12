@@ -1148,7 +1148,7 @@ fn unavailable_dependency(
 ) -> MonitorDependencyHealth {
     dependency_health(
         MonitorSourceStatus::Unavailable,
-        Some(false),
+        None,
         None,
         None,
         source,
@@ -1259,7 +1259,7 @@ async fn build_dependency_health(
         ),
         MonitorSourceStatus::Degraded => dependency_health(
             MonitorSourceStatus::Degraded,
-            Some(false),
+            Some(true),
             None,
             None,
             "redis.worker_heartbeats",
@@ -1268,7 +1268,7 @@ async fn build_dependency_health(
         ),
         MonitorSourceStatus::Available if workers.is_empty() => dependency_health(
             MonitorSourceStatus::Degraded,
-            Some(false),
+            Some(true),
             None,
             None,
             "redis.worker_heartbeats",
