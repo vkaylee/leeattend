@@ -75,6 +75,16 @@ const unknownMonitorMetric = (unit = "unknown"): MonitorMetric => ({
   value: null,
 });
 
+const unavailableDependency = (limitation: string) => ({
+  availability: null,
+  latency_ms: null,
+  limitation,
+  observed_at: new Date(0).toISOString(),
+  pool_utilization_percent: null,
+  source: "unavailable",
+  status: "unavailable" as const,
+});
+
 export async function fetchMonitorOverview(): Promise<WorkerMonitorStats> {
   const { data: resData } = await client.GET("/monitor/overview", {});
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- SafeClient types say non-null but API may return null
@@ -82,6 +92,16 @@ export async function fetchMonitorOverview(): Promise<WorkerMonitorStats> {
     active_workers: null,
     completed_today: null,
     durable_jobs: { error_code: "MONITOR_UNAVAILABLE", events_truncated: false, jobs: null, limit: 20, next_cursor_token: null, status: "unavailable" },
+    dependencies: {
+      cpu: unavailableDependency("No trustworthy CPU metric source is configured."),
+      database_pool: unavailableDependency("Database pool status is unavailable."),
+      disk: unavailableDependency("No trustworthy disk metric source is configured."),
+      memory: unavailableDependency("No trustworthy memory metric source is configured."),
+      outbox_sweeper: unavailableDependency("No persisted sweeper heartbeat or authoritative backlog source is available."),
+      postgres: unavailableDependency("PostgreSQL health source is unavailable."),
+      redis: unavailableDependency("Redis health source is unavailable."),
+      worker_process: unavailableDependency("Worker heartbeat source is unavailable."),
+    },
     failed_today: null,
     oldest_queued_job: null,
     oldest_running_job: null,
@@ -166,6 +186,8 @@ export interface FetchMonitorJobsParams {
   cursor?: number | null;
   durable_cursor?: string | null;
   durable_limit?: number;
+  include_durable?: boolean;
+  include_legacy?: boolean;
   limit?: number;
   search?: string;
   state?: string;
@@ -180,6 +202,8 @@ export async function fetchMonitorJobs(params: FetchMonitorJobsParams): Promise<
         cursor: params.cursor ?? undefined,
         durable_cursor: params.durable_cursor ?? undefined,
         durable_limit: params.durable_limit,
+        include_durable: params.include_durable,
+        include_legacy: params.include_legacy,
         limit: params.limit,
         search: params.search ?? undefined,
         state: params.state ?? undefined,

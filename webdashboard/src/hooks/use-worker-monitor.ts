@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, type InfiniteData } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { FetchMonitorJobsParams, fetchMonitorJobs, fetchMonitorOverview } from "@/lib/api/attendance";
@@ -9,6 +9,8 @@ export const MONITOR_REFETCH_INTERVAL_S = MONITOR_REFETCH_INTERVAL_MS / 1000;
 type MonitorJobsPageParam = {
   cursor: number | null;
   durable_cursor: string | null;
+  include_legacy: boolean;
+  include_durable: boolean;
 };
 
 export const monitorKeys = {
@@ -18,20 +20,34 @@ export const monitorKeys = {
 };
 
 export function useWorkerJobs(params: Omit<FetchMonitorJobsParams, "cursor" | "durable_cursor">) {
-  return useInfiniteQuery({
+  return useInfiniteQuery<Awaited<ReturnType<typeof fetchMonitorJobs>>, Error, InfiniteData<Awaited<ReturnType<typeof fetchMonitorJobs>>>, ReturnType<typeof monitorKeys.jobs>, MonitorJobsPageParam>({
     queryKey: monitorKeys.jobs(params),
     queryFn: ({ pageParam }) =>
       fetchMonitorJobs({
         ...params,
         cursor: pageParam.cursor,
         durable_cursor: pageParam.durable_cursor,
+        include_legacy: pageParam.include_legacy,
+        include_durable: pageParam.include_durable,
       }),
-    initialPageParam: { cursor: null, durable_cursor: null } satisfies MonitorJobsPageParam,
+    initialPageParam: {
+      cursor: null,
+      durable_cursor: null,
+      include_legacy: true,
+      include_durable: true,
+    } as MonitorJobsPageParam,
     getNextPageParam: (lastPage): MonitorJobsPageParam | undefined => {
-      const cursor = lastPage.next_cursor;
-      const durableCursor = lastPage.durable_jobs.next_cursor_token;
-      return cursor !== null || durableCursor !== null
-        ? { cursor, durable_cursor: durableCursor }
+      const cursor = lastPage.next_cursor ?? null;
+      const durableCursor = lastPage.durable_jobs.next_cursor_token ?? null;
+      const includeLegacy = cursor !== null;
+      const includeDurable = durableCursor !== null;
+      return includeLegacy || includeDurable
+        ? {
+          cursor: includeLegacy ? cursor : null,
+          durable_cursor: includeDurable ? durableCursor : null,
+          include_legacy: includeLegacy,
+          include_durable: includeDurable,
+        }
         : undefined;
     },
   });

@@ -20,6 +20,8 @@ export type MonitorMetric = components["schemas"]["MonitorMetric"];
 export type MonitorQueueHealth = components["schemas"]["MonitorQueueHealth"];
 export type MonitorReliability = components["schemas"]["MonitorReliability"];
 export type MonitorOperationalThresholds = components["schemas"]["MonitorOperationalThresholds"];
+export type MonitorDependencyHealth = components["schemas"]["MonitorDependencyHealth"];
+export type MonitorDependencyHealthSet = components["schemas"]["MonitorDependencyHealthSet"];
 
 
 export interface ReportExportJob {

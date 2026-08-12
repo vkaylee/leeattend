@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, Copy, Loader2, ShieldAlert, XCircle } from "lucide-react";
+import { Ban, CheckCircle2, Clock, Copy, Loader2, RefreshCw, ShieldAlert, XCircle } from "lucide-react";
 import React from "react";
 
 import Button from "@/components/ui/button";
@@ -34,6 +34,27 @@ export function getStatusStyle(status: string): StatusStyle {
       return {
         className: "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300",
         icon: <Loader2 className="animate-spin" size={12} />,
+      };
+    case "retryable":
+      return {
+        className: "bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-300",
+        icon: <RefreshCw size={12} />,
+      };
+    case "dead_letter":
+      return {
+        className: "bg-orange-50 dark:bg-orange-950 text-orange-600 dark:text-orange-300",
+        icon: <ShieldAlert size={12} />,
+      };
+    case "lost":
+      return {
+        className: "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300",
+        icon: <Ban size={12} />,
+      };
+    case "queued":
+    case "dispatching":
+      return {
+        className: "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300",
+        icon: <Clock size={12} />,
       };
     default:
       return {
@@ -238,7 +259,7 @@ export function JobDetailsDrawer({ durableJob, isOpen, onClose, job, t }: JobDet
               <Typography className="text-[10px] font-bold uppercase tracking-widest text-slate-400" variant="p">{t("monitor.status", { defaultValue: "Status" })}</Typography>
               <span className={cn("mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider", statusClassName)}>
                 {statusIcon}
-                {durableJob.state}
+                {t(`monitor.status_${durableJob.state}`, { defaultValue: durableJob.state.replace("_", " ") })}
               </span>
             </div>
             <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-6 dark:border-slate-800 dark:bg-slate-800/50">
@@ -247,10 +268,33 @@ export function JobDetailsDrawer({ durableJob, isOpen, onClose, job, t }: JobDet
             </div>
           </div>
           <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-6 text-sm dark:border-slate-800 dark:bg-slate-800/50">
-            <div className="flex justify-between gap-4"><span className="text-slate-400">{t("monitor.request_id", { defaultValue: "Request ID" })}</span><code className="max-w-[65%] truncate text-right text-xs text-slate-700 dark:text-slate-300">{durableJob.request_id ?? "—"}</code></div>
-            <div className="mt-3 flex justify-between gap-4"><span className="text-slate-400">{t("monitor.trace_id", { defaultValue: "Trace ID" })}</span><code className="max-w-[65%] truncate text-right text-xs text-slate-700 dark:text-slate-300">{durableJob.trace_id ?? "—"}</code></div>
-            <div className="mt-3 flex justify-between gap-4"><span className="text-slate-400">{t("monitor.created_at", { defaultValue: "Created At" })}</span><span className="text-right text-slate-700 dark:text-slate-300">{formatDateTimeLocale(durableJob.created_at)}</span></div>
-            {durableJob.error_code || durableJob.error_summary ? <div className="mt-3 flex justify-between gap-4"><span className="text-slate-400">{t("monitor.error_summary", { defaultValue: "Error Summary" })}</span><span className="max-w-[65%] text-right text-slate-700 dark:text-slate-300">{durableJob.error_code ? `${durableJob.error_code}: ` : ""}{durableJob.error_summary ?? "—"}</span></div> : null}
+            <Typography className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400" variant="p">{t("monitor.job_metadata", { defaultValue: "Job Metadata" })}</Typography>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div><span className="text-slate-400">{t("monitor.job_type", { defaultValue: "Type" })}</span><div className="font-medium text-slate-700 dark:text-slate-300">{durableJob.task_type}</div></div>
+              <div><span className="text-slate-400">{t("monitor.priority", { defaultValue: "Priority" })}</span><div className="font-medium text-slate-700 dark:text-slate-300">{durableJob.priority}</div></div>
+              <div><span className="text-slate-400">{t("monitor.parent_job", { defaultValue: "Parent job" })}</span><code className="block break-all text-xs text-slate-700 dark:text-slate-300">{durableJob.parent_job_id ?? "—"}</code></div>
+              <div><span className="text-slate-400">{t("monitor.worker", { defaultValue: "Worker" })}</span><div className="break-all font-medium text-slate-700 dark:text-slate-300">{durableJob.worker ?? "—"}</div></div>
+              <div><span className="text-slate-400">{t("monitor.request_id", { defaultValue: "Request ID" })}</span><code className="block break-all text-xs text-slate-700 dark:text-slate-300">{durableJob.request_id ?? "—"}</code></div>
+              <div><span className="text-slate-400">{t("monitor.trace_id", { defaultValue: "Trace ID" })}</span><code className="block break-all text-xs text-slate-700 dark:text-slate-300">{durableJob.trace_id ?? "—"}</code></div>
+            </div>
+          </div>
+          <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-6 text-sm dark:border-slate-800 dark:bg-slate-800/50">
+            <Typography className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400" variant="p">{t("monitor.lifecycle_timestamps", { defaultValue: "Lifecycle timestamps" })}</Typography>
+            <div className="mt-4 space-y-3">
+              {([
+                ["created_at", durableJob.created_at, "Created At"],
+                ["queued_at", durableJob.queued_at, "Queued At"],
+                ["started_at", durableJob.started_at, "Started At"],
+                ["finished_at", durableJob.finished_at, "Finished At"],
+                ["updated_at", durableJob.updated_at, "Updated At"],
+              ] as const).map(([key, value, fallbackLabel]) => (
+                <div className="flex justify-between gap-4" key={key}>
+                  <span className="text-slate-400">{t(`monitor.${key}`, { defaultValue: fallbackLabel })}</span>
+                  <span className="text-right text-slate-700 dark:text-slate-300">{value ? formatDateTimeLocale(value) : "—"}</span>
+                </div>
+              ))}
+            </div>
+            {durableJob.error_code || durableJob.error_summary ? <div className="mt-4 flex justify-between gap-4 border-t border-slate-200 pt-3 dark:border-slate-700"><span className="text-slate-400">{t("monitor.error_summary", { defaultValue: "Error Summary" })}</span><span className="max-w-[65%] text-right text-slate-700 dark:text-slate-300">{durableJob.error_code ? `${durableJob.error_code}: ` : ""}{durableJob.error_summary ?? "—"}</span></div> : null}
           </div>
           <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-6 dark:border-slate-800 dark:bg-slate-800/50">
             <Typography className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400" variant="p">{t("monitor.lifecycle_timeline", { defaultValue: "Lifecycle Timeline" })}</Typography>

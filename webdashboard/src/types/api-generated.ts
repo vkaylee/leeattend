@@ -6798,6 +6798,28 @@ export interface components {
         };
         /** @enum {string} */
         MonitorDataQuality: "complete" | "partial" | "degraded" | "unavailable";
+        MonitorDependencyHealth: {
+            availability?: boolean | null;
+            /** Format: double */
+            latency_ms?: number | null;
+            limitation?: string | null;
+            /** Format: date-time */
+            observed_at: string;
+            /** Format: double */
+            pool_utilization_percent?: number | null;
+            source: string;
+            status: components["schemas"]["MonitorSourceStatus"];
+        };
+        MonitorDependencyHealthSet: {
+            cpu: components["schemas"]["MonitorDependencyHealth"];
+            database_pool: components["schemas"]["MonitorDependencyHealth"];
+            disk: components["schemas"]["MonitorDependencyHealth"];
+            memory: components["schemas"]["MonitorDependencyHealth"];
+            outbox_sweeper: components["schemas"]["MonitorDependencyHealth"];
+            postgres: components["schemas"]["MonitorDependencyHealth"];
+            redis: components["schemas"]["MonitorDependencyHealth"];
+            worker_process: components["schemas"]["MonitorDependencyHealth"];
+        };
         MonitorDurableJobsSection: {
             error_code?: string | null;
             events_truncated: boolean;
@@ -6938,6 +6960,7 @@ export interface components {
             active_workers?: number | null;
             /** Format: int64 */
             completed_today?: number | null;
+            dependencies: components["schemas"]["MonitorDependencyHealthSet"];
             durable_jobs: components["schemas"]["MonitorDurableJobsSection"];
             /** Format: int64 */
             failed_today?: number | null;
@@ -10332,6 +10355,10 @@ export interface operations {
                 durable_cursor?: string | null;
                 /** @description Number of durable items to return (default: 20). */
                 durable_limit?: number | null;
+                /** @description Include legacy Redis jobs in this page (default: true). */
+                include_legacy?: boolean | null;
+                /** @description Include durable ledger jobs in this page (default: true). */
+                include_durable?: boolean | null;
             };
             header?: never;
             path?: never;

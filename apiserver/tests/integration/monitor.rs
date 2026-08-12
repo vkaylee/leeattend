@@ -471,6 +471,20 @@ async fn test_monitor_overview_reports_redis_unavailable_without_fabricating_zer
     assert!(snapshot.total_workers.is_none());
     assert!(snapshot.active_workers.is_none());
     assert!(snapshot.idle_workers.is_none());
+    assert_eq!(
+        snapshot.dependencies.redis.status,
+        MonitorSourceStatus::Unavailable
+    );
+    assert!(snapshot.dependencies.redis.availability.is_none());
+    assert_eq!(
+        snapshot.dependencies.worker_process.status,
+        MonitorSourceStatus::Unavailable
+    );
+    assert_eq!(
+        snapshot.dependencies.cpu.status,
+        MonitorSourceStatus::Unavailable
+    );
+    assert!(snapshot.dependencies.cpu.limitation.is_some());
 }
 
 #[tokio::test]
@@ -499,6 +513,11 @@ async fn test_monitor_overview_reports_durable_db_unavailable_independently() {
         .unknown_fields
         .iter()
         .any(|field| field == "durable_jobs"));
+    assert_eq!(
+        snapshot.dependencies.postgres.status,
+        MonitorSourceStatus::Unavailable
+    );
+    assert!(snapshot.dependencies.postgres.latency_ms.is_none());
 }
 
 #[tokio::test]
@@ -518,4 +537,12 @@ async fn test_monitor_overview_reports_zero_workers_when_heartbeat_source_is_emp
     assert_eq!(snapshot.total_workers, Some(0));
     assert_eq!(snapshot.active_workers, Some(0));
     assert_eq!(snapshot.idle_workers, Some(0));
+    assert_eq!(
+        snapshot.dependencies.worker_process.status,
+        MonitorSourceStatus::Degraded
+    );
+    assert_eq!(
+        snapshot.dependencies.worker_process.availability,
+        Some(true)
+    );
 }

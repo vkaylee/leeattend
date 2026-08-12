@@ -99,4 +99,12 @@ pub trait InfraJobRepository: Send + Sync {
         since: DateTime<Utc>,
         limit: i64,
     ) -> Result<InfraJobMonitorData, AppError>;
+
+    async fn list_expired_processing(
+        &self,
+        before: DateTime<Utc>,
+        limit: i64,
+    ) -> Result<Vec<InfraJobRecord>, AppError>;
+
+    async fn health_check(&self) -> Result<(), AppError>;
 }

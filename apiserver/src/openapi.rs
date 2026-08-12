@@ -833,6 +833,8 @@ use utoipa::OpenApi;
             crate::handlers::worker_monitor::MonitorSourceStatus,
             crate::handlers::worker_monitor::MonitorDataQuality,
             crate::handlers::worker_monitor::MonitorSourceHealth,
+            crate::handlers::worker_monitor::MonitorDependencyHealth,
+            crate::handlers::worker_monitor::MonitorDependencyHealthSet,
             crate::handlers::worker_monitor::MonitorQuality,
             crate::handlers::worker_monitor::MonitorInfraJobEvent,
             crate::handlers::worker_monitor::MonitorInfraJobRecord,

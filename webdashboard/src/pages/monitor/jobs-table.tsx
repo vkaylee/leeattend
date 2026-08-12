@@ -60,18 +60,18 @@ function JobMobileCard({ job, t, onClick }: {
 
       <div className="mt-3 grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
         <div>
-          <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Type</div>
+          <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{t("monitor.job_type", { defaultValue: "Type" })}</div>
           <div className="mt-0.5 text-xs font-medium text-slate-700 dark:text-slate-200">{displayType}</div>
         </div>
         <div>
-          <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Batches</div>
+          <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{t("monitor.batches", { defaultValue: "Batches" })}</div>
           <div className="mt-0.5 text-xs text-slate-700 dark:text-slate-200">
             {job.completed_batches}/{job.total_batches}
             {job.failed_batches > 0 ? <span className="text-rose-500 ml-1">({job.failed_batches})</span> : null}
           </div>
         </div>
         <div>
-          <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Created</div>
+          <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{t("monitor.created_at", { defaultValue: "Created" })}</div>
           <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
             {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
           </div>
@@ -131,9 +131,14 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
   }, [data]);
 
   const durableJobs = useMemo(() => {
-    return data?.pages.flatMap((page) => (
-      page.durable_jobs?.status === "available" ? (page.durable_jobs.jobs ?? []) : []
-    )) ?? [];
+    const jobsById = new Map<string, MonitorInfraJobRecord>();
+    for (const page of data?.pages ?? []) {
+      if (page.durable_jobs?.status !== "available") continue;
+      for (const job of page.durable_jobs.jobs ?? []) {
+        jobsById.set(job.job_id, job);
+      }
+    }
+    return [...jobsById.values()];
   }, [data]);
 
   const durableJobsUnavailable = data?.pages[0]?.durable_jobs?.status === "unavailable";
@@ -183,8 +188,12 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
                 options={[
                   { value: "all", label: t("monitor.filter_status_all", { defaultValue: "All Statuses" }) },
                   { value: "completed", label: t("monitor.status_completed", { defaultValue: "Completed" }) },
-                  { value: "failed", label: t("monitor.status_failed", { defaultValue: "Failed" }) },
+                  { value: "queued", label: t("monitor.status_queued", { defaultValue: "Queued" }) },
                   { value: "processing", label: t("monitor.status_processing", { defaultValue: "Processing" }) },
+                  { value: "retryable", label: t("monitor.status_retryable", { defaultValue: "Retryable" }) },
+                  { value: "failed", label: t("monitor.status_failed", { defaultValue: "Failed" }) },
+                  { value: "dead_letter", label: t("monitor.status_dead_letter", { defaultValue: "Dead letter" }) },
+                  { value: "lost", label: t("monitor.status_lost", { defaultValue: "Lost" }) },
                   { value: "pending", label: t("monitor.status_pending", { defaultValue: "Pending" }) },
                 ]}
                 selected={statusFilter !== "all" ? [statusFilter] : []}
@@ -194,7 +203,7 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
                     chevron
                     hasActive={statusFilter !== "all"}
                     label={statusFilter !== "all"
-                      ? statusFilter
+                      ? t(`monitor.status_${statusFilter}`, { defaultValue: statusFilter.replace("_", " ") })
                       : t("monitor.filter_status", { defaultValue: "Status" })}
                     variant="pill-button"
                   />
@@ -402,14 +411,24 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
                     <code className="font-mono text-xs text-slate-600 dark:text-slate-300">{job.job_id.slice(0, 8)}…</code>
                     <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider", statusClassName)}>
                       {statusIcon}
-                      {job.state}
+                      {t(`monitor.status_${job.state}`, { defaultValue: job.state.replace("_", " ") })}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-xs text-slate-500 dark:text-slate-400 sm:grid-cols-4">
                     <span>{t("monitor.job_type", { defaultValue: "Type" })}: <strong className="text-slate-700 dark:text-slate-200">{job.task_type}</strong></span>
                     <span>{t("monitor.priority", { defaultValue: "Priority" })}: <strong className="text-slate-700 dark:text-slate-200">{job.priority}</strong></span>
                     <span>{t("monitor.attempt", { defaultValue: "Attempt" })}: <strong className="text-slate-700 dark:text-slate-200">{job.attempt_count}</strong></span>
+                    <span>{t("monitor.worker", { defaultValue: "Worker" })}: <strong className="text-slate-700 dark:text-slate-200">{job.worker ?? "—"}</strong></span>
+                    <span>{t("monitor.parent_job", { defaultValue: "Parent job" })}: <strong className="font-mono text-slate-700 dark:text-slate-200">{job.parent_job_id ? `${job.parent_job_id.slice(0, 8)}…` : "—"}</strong></span>
                     <span>{t("monitor.events", { defaultValue: "Events" })}: <strong className="text-slate-700 dark:text-slate-200">{job.events.length}</strong></span>
+                    <span title={job.queued_at ?? undefined}>{t("monitor.queued_at", { defaultValue: "Queued" })}: <strong className="text-slate-700 dark:text-slate-200">{job.queued_at ? formatDistanceToNow(new Date(job.queued_at), { addSuffix: true }) : "—"}</strong></span>
+                    <span title={job.started_at ?? undefined}>{t("monitor.started_at", { defaultValue: "Started" })}: <strong className="text-slate-700 dark:text-slate-200">{job.started_at ? formatDistanceToNow(new Date(job.started_at), { addSuffix: true }) : "—"}</strong></span>
+                    <span title={job.finished_at ?? undefined}>{t("monitor.finished_at", { defaultValue: "Finished" })}: <strong className="text-slate-700 dark:text-slate-200">{job.finished_at ? formatDistanceToNow(new Date(job.finished_at), { addSuffix: true }) : "—"}</strong></span>
+                    <span title={job.updated_at}>{t("monitor.updated_at", { defaultValue: "Updated" })}: <strong className="text-slate-700 dark:text-slate-200">{formatDistanceToNow(new Date(job.updated_at), { addSuffix: true })}</strong></span>
+                  </div>
+                  <div className="grid gap-1 text-xs text-slate-500 dark:text-slate-400 sm:grid-cols-2">
+                    <span>{t("monitor.request_id", { defaultValue: "Request ID" })}: <code className="text-slate-700 dark:text-slate-200">{job.request_id ?? "—"}</code></span>
+                    <span>{t("monitor.trace_id", { defaultValue: "Trace ID" })}: <code className="text-slate-700 dark:text-slate-200">{job.trace_id ?? "—"}</code></span>
                   </div>
                   {job.error_summary ? <div className="truncate text-xs text-rose-600 dark:text-rose-400">{job.error_code ? `${job.error_code}: ` : ""}{job.error_summary}</div> : null}
                 </Button>

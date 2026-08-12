@@ -172,6 +172,18 @@ impl InfraJobService {
         self.repository.load_monitor_data(since, limit).await
     }
 
+    pub async fn list_expired_processing(
+        &self,
+        before: chrono::DateTime<chrono::Utc>,
+        limit: i64,
+    ) -> Result<Vec<InfraJobRecord>, AppError> {
+        self.repository.list_expired_processing(before, limit).await
+    }
+
+    pub async fn health_check(&self) -> Result<(), AppError> {
+        self.repository.health_check().await
+    }
+
     pub fn cursor_token(cursor: &InfraJobCursor) -> String {
         format!("{}:{}", cursor.created_at.timestamp_micros(), cursor.id)
     }

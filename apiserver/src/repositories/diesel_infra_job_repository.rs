@@ -10,6 +10,7 @@ use crate::repositories::infra_job_repository::{
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
+use diesel::PgTextExpressionMethods;
 use diesel_async::{AsyncConnection, RunQueryDsl};
 use uuid::Uuid;
 
@@ -265,6 +266,35 @@ impl InfraJobRepository for DieselInfraJobRepository {
             .map_err(|e| AppError::Internal(format!("Failed to read infra job {job_id}: {e}")))
     }
 
+    async fn list_expired_processing(
+        &self,
+        before: DateTime<Utc>,
+        limit: i64,
+    ) -> Result<Vec<InfraJobRecord>, AppError> {
+        let mut conn = self.api_conn().await?;
+        crate::schema::infra_job_records::table
+            .filter(crate::schema::infra_job_records::state.eq("processing"))
+            .filter(crate::schema::infra_job_records::lease_expires_at.lt(Some(before)))
+            .order(crate::schema::infra_job_records::lease_expires_at.asc())
+            .limit(limit.clamp(1, 100))
+            .load::<InfraJobRecord>(&mut *conn)
+            .await
+            .map_err(|error| {
+                AppError::Internal(format!("Failed to list expired infra job leases: {error}"))
+            })
+    }
+
+    async fn health_check(&self) -> Result<(), AppError> {
+        let mut conn = self.api_conn().await?;
+        diesel::sql_query("SELECT 1")
+            .execute(&mut *conn)
+            .await
+            .map_err(|error| {
+                AppError::Internal(format!("Failed to check durable database health: {error}"))
+            })?;
+        Ok(())
+    }
+
     async fn list_global(&self, params: ListInfraJobsParams) -> Result<InfraJobPage, AppError> {
         let mut conn = self.api_conn().await?;
         let bounded_limit = params.limit.clamp(1, 100);
@@ -293,11 +323,24 @@ impl InfraJobRepository for DieselInfraJobRepository {
             query = query.filter(crate::schema::infra_job_records::id.eq(job_id));
         }
         if let Some(search) = params.search {
-            query = query.filter(
-                crate::schema::infra_job_records::task_type
-                    .eq(search.clone())
-                    .or(crate::schema::infra_job_records::error_code.eq(search)),
-            );
+            let search = search.trim();
+            if !search.is_empty() {
+                let pattern = format!("%{}%", search.replace('%', "\\%").replace('_', "\\_"));
+                let text_matches = crate::schema::infra_job_records::task_type
+                    .ilike(pattern.clone())
+                    .or(crate::schema::infra_job_records::trace_id.ilike(pattern.clone()))
+                    .or(crate::schema::infra_job_records::error_code.ilike(pattern));
+                let identifier_matches = Uuid::parse_str(search).ok().map(|id| {
+                    crate::schema::infra_job_records::id
+                        .eq(id)
+                        .or(crate::schema::infra_job_records::request_id.eq(Some(id)))
+                });
+                query = if let Some(identifier_matches) = identifier_matches {
+                    query.filter(text_matches.or(identifier_matches))
+                } else {
+                    query.filter(text_matches)
+                };
+            }
         }
 
         let mut jobs = query

@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import { TFunction } from "i18next";
 
 import type { MonitorStreamStatus } from "@/hooks/use-monitor-stream";
-import type { WorkerMonitorStats } from "@/lib/api/types";
+import type { WorkerMonitorStats } from "@/lib/api/types-monitoring";
 
 import JobStatusDistributionChart from "@/components/features/monitor/job-status-distribution-chart";
 import QueuePressureChart from "@/components/features/monitor/queue-pressure-chart";
@@ -19,6 +19,7 @@ import { useMonitorStream } from "@/hooks/use-monitor-stream";
 import { useWorkerMonitor, MONITOR_REFETCH_INTERVAL_S } from "@/hooks/use-worker-monitor";
 import { cn } from "@/lib/utils";
 
+import { DependencyHealthSection } from "./monitor/dependency-health-section";
 import { MonitorHeader } from "./monitor/header";
 import { JobsTable } from "./monitor/jobs-table";
 import { MonitorStatCards } from "./monitor/stat-cards";
@@ -311,6 +312,8 @@ export default function WorkerMonitorPage() {
       <MonitorStatCards isLoading={isLoading} stats={stats} t={t} />
 
       {stats ? <OperationalMetricsSections stats={stats} t={t} /> : null}
+
+      {stats ? <DependencyHealthSection dependencies={stats.dependencies} t={t} /> : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <WorkerUtilizationGauge data={utilization} isLoading={isLoading} />

@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::Semaphore;
 use tokio::time::Duration;
 use tokio_util::sync::CancellationToken;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 use crate::cache::{CacheManager, RosterCache};
@@ -523,6 +523,7 @@ impl JobWorker {
         Ok(Some(lease_token))
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn record_durable_outcome(
         &self,
         job: &Job,
@@ -530,25 +531,106 @@ impl JobWorker {
         result: &Result<(), String>,
         timed_out: bool,
     ) {
-        let (to_state, event_type, reason_code, reason_summary) = match result {
-            Ok(()) => ("completed", "worker_completed", None, None),
-            Err(_) if timed_out => (
-                "failed",
-                "worker_timeout",
-                Some("worker_timeout"),
-                Some("Worker execution timed out".to_string()),
-            ),
-            Err(_) => (
-                "failed",
-                "worker_failed",
-                Some("worker_execution_failed"),
-                Some("Worker execution failed".to_string()),
-            ),
-        };
         let request_id = job
             .trace_context
             .as_deref()
             .and_then(|value| Uuid::parse_str(value).ok());
+        let record = match self
+            .infra_job_service
+            .get(job.workspace_id, job.job_id)
+            .await
+        {
+            Ok(Some(record)) if record.state == "processing" => record,
+            Ok(Some(record)) => {
+                warn!(
+                    job_id = %job.job_id,
+                    state = %record.state,
+                    "infra_job_outcome_skipped_non_processing"
+                );
+                return;
+            }
+            Ok(None) => return,
+            Err(error) => {
+                error!(
+                    job_id = %job.job_id,
+                    workspace_id = %job.workspace_id,
+                    error = %error,
+                    "infra_job_outcome_record_read_failed"
+                );
+                return;
+            }
+        };
+
+        if result.is_ok() {
+            if let Err(error) = self
+                .infra_job_service
+                .transition(
+                    crate::repositories::infra_job_repository::TransitionInfraJobParams {
+                        job_id: job.job_id,
+                        workspace_id: job.workspace_id,
+                        expected_state: Some("processing".to_string()),
+                        to_state: "completed".to_string(),
+                        event_type: "worker_completed".to_string(),
+                        lease_token: Some(lease_token),
+                        lease_owner: None,
+                        lease_expires_at: None,
+                        next_attempt_at: None,
+                        worker_id: Some(self.worker_id.to_string()),
+                        request_id,
+                        trace_id: job.trace_context.clone(),
+                        reason_code: None,
+                        reason_summary: None,
+                    },
+                )
+                .await
+            {
+                error!(job_id = %job.job_id, error = %error, "infra_job_outcome_persist_failed");
+            }
+            return;
+        }
+
+        let (reason_code, reason_summary, event_prefix) = if timed_out {
+            (
+                "worker_timeout",
+                "Worker execution timed out".to_string(),
+                "worker_timeout",
+            )
+        } else {
+            (
+                "worker_execution_failed",
+                "Worker execution failed".to_string(),
+                "worker_failed",
+            )
+        };
+
+        if record.attempt_count >= self.config.max_retries.cast_signed() {
+            if let Err(error) = self
+                .infra_job_service
+                .transition(
+                    crate::repositories::infra_job_repository::TransitionInfraJobParams {
+                        job_id: job.job_id,
+                        workspace_id: job.workspace_id,
+                        expected_state: Some("processing".to_string()),
+                        to_state: "dead_letter".to_string(),
+                        event_type: format!("{event_prefix}_dead_letter"),
+                        lease_token: Some(lease_token),
+                        lease_owner: None,
+                        lease_expires_at: None,
+                        next_attempt_at: None,
+                        worker_id: Some(self.worker_id.to_string()),
+                        request_id,
+                        trace_id: job.trace_context.clone(),
+                        reason_code: Some(reason_code.to_string()),
+                        reason_summary: Some(reason_summary),
+                    },
+                )
+                .await
+            {
+                error!(job_id = %job.job_id, error = %error, "infra_job_dead_letter_persist_failed");
+            }
+            return;
+        }
+
         if let Err(error) = self
             .infra_job_service
             .transition(
@@ -556,8 +638,8 @@ impl JobWorker {
                     job_id: job.job_id,
                     workspace_id: job.workspace_id,
                     expected_state: Some("processing".to_string()),
-                    to_state: to_state.to_string(),
-                    event_type: event_type.to_string(),
+                    to_state: "retryable".to_string(),
+                    event_type: format!("{event_prefix}_retryable"),
                     lease_token: Some(lease_token),
                     lease_owner: None,
                     lease_expires_at: None,
@@ -565,18 +647,68 @@ impl JobWorker {
                     worker_id: Some(self.worker_id.to_string()),
                     request_id,
                     trace_id: job.trace_context.clone(),
-                    reason_code: reason_code.map(str::to_string),
-                    reason_summary,
+                    reason_code: Some(reason_code.to_string()),
+                    reason_summary: Some(reason_summary.clone()),
                 },
             )
             .await
         {
-            error!(
-                job_id = %job.job_id,
-                workspace_id = %job.workspace_id,
-                error = %error,
-                "infra_job_outcome_persist_failed"
-            );
+            error!(job_id = %job.job_id, error = %error, "infra_job_retryable_persist_failed");
+            return;
+        }
+
+        if let Err(error) = self.queue.enqueue_single(job.clone()).await {
+            error!(job_id = %job.job_id, error = %error, "infra_job_retry_enqueue_failed");
+            if let Err(transition_error) = self
+                .infra_job_service
+                .transition(
+                    crate::repositories::infra_job_repository::TransitionInfraJobParams {
+                        job_id: job.job_id,
+                        workspace_id: job.workspace_id,
+                        expected_state: Some("retryable".to_string()),
+                        to_state: "lost".to_string(),
+                        event_type: "retry_enqueue_failed".to_string(),
+                        lease_token: None,
+                        lease_owner: None,
+                        lease_expires_at: None,
+                        next_attempt_at: None,
+                        worker_id: Some(self.worker_id.to_string()),
+                        request_id,
+                        trace_id: job.trace_context.clone(),
+                        reason_code: Some("retry_enqueue_failed".to_string()),
+                        reason_summary: Some("Redis retry dispatch failed".to_string()),
+                    },
+                )
+                .await
+            {
+                error!(job_id = %job.job_id, error = %transition_error, "infra_job_lost_persist_failed");
+            }
+            return;
+        }
+
+        if let Err(error) = self
+            .infra_job_service
+            .transition(
+                crate::repositories::infra_job_repository::TransitionInfraJobParams {
+                    job_id: job.job_id,
+                    workspace_id: job.workspace_id,
+                    expected_state: Some("retryable".to_string()),
+                    to_state: "queued".to_string(),
+                    event_type: "retry_queued".to_string(),
+                    lease_token: None,
+                    lease_owner: None,
+                    lease_expires_at: None,
+                    next_attempt_at: None,
+                    worker_id: Some(self.worker_id.to_string()),
+                    request_id,
+                    trace_id: job.trace_context.clone(),
+                    reason_code: Some(reason_code.to_string()),
+                    reason_summary: Some(reason_summary),
+                },
+            )
+            .await
+        {
+            error!(job_id = %job.job_id, error = %error, "infra_job_retry_queue_state_persist_failed");
         }
     }
 
@@ -624,9 +756,56 @@ impl JobWorker {
                         }
                         Err(e) => warn!(error = %e, "Ingestion delivery reaper sweep failed"),
                     }
+                    if let Err(error) = self.reap_expired_durable_leases().await {
+                        warn!(error = %error, "Durable infrastructure lease reaper sweep failed");
+                    }
                 }
             }
         }
+    }
+
+    async fn reap_expired_durable_leases(&self) -> Result<u64, String> {
+        let records = self
+            .infra_job_service
+            .list_expired_processing(Utc::now(), 100)
+            .await
+            .map_err(|error| error.to_string())?;
+        let mut reaped = 0;
+        for record in records {
+            let Some(lease_token) = record.lease_token else {
+                continue;
+            };
+            match self
+                .infra_job_service
+                .transition(
+                    crate::repositories::infra_job_repository::TransitionInfraJobParams {
+                        job_id: record.id,
+                        workspace_id: record.workspace_id,
+                        expected_state: Some("processing".to_string()),
+                        to_state: "lost".to_string(),
+                        event_type: "worker_lease_expired".to_string(),
+                        lease_token: Some(lease_token),
+                        lease_owner: None,
+                        lease_expires_at: None,
+                        next_attempt_at: None,
+                        worker_id: record.lease_owner,
+                        request_id: record.request_id,
+                        trace_id: record.trace_id,
+                        reason_code: Some("worker_lease_expired".to_string()),
+                        reason_summary: Some(
+                            "Worker lease expired before an outcome was recorded".to_string(),
+                        ),
+                    },
+                )
+                .await
+            {
+                Ok(_) => reaped += 1,
+                Err(error) => {
+                    debug!(job_id = %record.id, error = %error, "Durable lease reaper skipped stale claim");
+                }
+            }
+        }
+        Ok(reaped)
     }
 
     /// Send heartbeat to Redis with current status.

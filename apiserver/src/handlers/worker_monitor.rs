@@ -53,27 +53,6 @@ const MONITOR_DURABLE_STATES: [&str; 8] = [
     "dead_letter",
     "lost",
 ];
-const MONITOR_TASK_TYPES: [&str; 18] = [
-    "attendance_report",
-    "payroll_report",
-    "merge_results",
-    "leave_accrual",
-    "log_ingestion",
-    "reprocess_attendance",
-    "claim_staged_logs",
-    "leave_import",
-    "nightly_housekeeping",
-    "employee_import",
-    "employee_import_chunk",
-    "leave_import_chunk",
-    "finalize_import",
-    "expiring_contracts_check",
-    "sync_employee_hire_date",
-    "bulk_termination",
-    "summary",
-    "detail",
-];
-
 /// Heartbeats within three intervals are considered live.
 const LIVE_THRESHOLD_SECS: u64 = 15;
 /// Heartbeats older than this are no longer usable for operational decisions.
@@ -304,6 +283,29 @@ pub enum MonitorFreshness {
 pub struct MonitorSourceHealth {
     pub status: MonitorSourceStatus,
     pub error_code: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct MonitorDependencyHealth {
+    pub status: MonitorSourceStatus,
+    pub availability: Option<bool>,
+    pub latency_ms: Option<f64>,
+    pub pool_utilization_percent: Option<f64>,
+    pub source: String,
+    pub limitation: Option<String>,
+    pub observed_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct MonitorDependencyHealthSet {
+    pub redis: MonitorDependencyHealth,
+    pub postgres: MonitorDependencyHealth,
+    pub database_pool: MonitorDependencyHealth,
+    pub outbox_sweeper: MonitorDependencyHealth,
+    pub worker_process: MonitorDependencyHealth,
+    pub cpu: MonitorDependencyHealth,
+    pub memory: MonitorDependencyHealth,
+    pub disk: MonitorDependencyHealth,
 }
 
 #[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
@@ -576,6 +578,7 @@ pub struct MonitorOperationalSnapshot {
     pub oldest_running_job: Option<MonitorOldestJob>,
     pub task_type_reliability: Vec<MonitorTaskTypeReliability>,
     pub thresholds: MonitorOperationalThresholds,
+    pub dependencies: MonitorDependencyHealthSet,
     pub quality: MonitorQuality,
 }
 
@@ -662,6 +665,17 @@ fn compute_job_type_stats(all_recent_jobs: &[crate::queue::JobMetadata]) -> Vec<
     let mut job_type_stats: Vec<JobTypeStats> = type_map.into_values().collect();
     job_type_stats.sort_by(|a, b| b.total.cmp(&a.total));
     job_type_stats
+}
+
+fn empty_durable_jobs_section(limit: usize) -> MonitorDurableJobsSection {
+    MonitorDurableJobsSection {
+        status: MonitorSourceStatus::Available,
+        error_code: None,
+        jobs: Some(Vec::new()),
+        next_cursor_token: None,
+        limit,
+        events_truncated: false,
+    }
 }
 
 async fn load_durable_jobs_section(
@@ -1089,6 +1103,213 @@ async fn load_redis_monitor_snapshot_bounded(
             tracing::warn!(error = %error, "Redis monitor snapshot timed out");
             RedisMonitorSnapshot::unavailable("REDIS_MONITOR_TIMEOUT")
         }
+    }
+}
+
+fn dependency_health(
+    status: MonitorSourceStatus,
+    availability: Option<bool>,
+    latency_ms: Option<f64>,
+    pool_utilization_percent: Option<f64>,
+    source: &str,
+    limitation: Option<&str>,
+    observed_at: DateTime<Utc>,
+) -> MonitorDependencyHealth {
+    MonitorDependencyHealth {
+        status,
+        availability,
+        latency_ms,
+        pool_utilization_percent,
+        source: source.to_string(),
+        limitation: limitation.map(str::to_string),
+        observed_at,
+    }
+}
+
+fn unavailable_dependency(
+    source: &str,
+    limitation: &str,
+    observed_at: DateTime<Utc>,
+) -> MonitorDependencyHealth {
+    dependency_health(
+        MonitorSourceStatus::Unavailable,
+        Some(false),
+        None,
+        None,
+        source,
+        Some(limitation),
+        observed_at,
+    )
+}
+
+#[allow(clippy::cast_precision_loss, clippy::too_many_lines)]
+async fn build_dependency_health(
+    state: &Arc<AppState>,
+    observed_at: DateTime<Utc>,
+    redis_source: &MonitorSourceHealth,
+    worker_source: &MonitorSourceHealth,
+    workers: &[WorkerHeartbeat],
+) -> MonitorDependencyHealthSet {
+    let redis = match state.infra().redis() {
+        Some(redis_pool) => {
+            let started = std::time::Instant::now();
+            let result = tokio::time::timeout(
+                Duration::from_secs(MONITOR_SOURCE_TIMEOUT_SECS),
+                redis_pool.health_check(),
+            )
+            .await;
+            match result {
+                Ok(Ok(())) => dependency_health(
+                    if matches!(redis_source.status, MonitorSourceStatus::Available) {
+                        MonitorSourceStatus::Available
+                    } else {
+                        MonitorSourceStatus::Degraded
+                    },
+                    Some(true),
+                    Some(started.elapsed().as_secs_f64() * 1_000.0),
+                    None,
+                    "redis.ping",
+                    (redis_source.status != MonitorSourceStatus::Available).then_some(
+                        "Redis responds to PING, but one or more monitor reads were partial.",
+                    ),
+                    observed_at,
+                ),
+                Ok(Err(_)) | Err(_) => unavailable_dependency(
+                    "redis.ping",
+                    "Redis PING did not complete within the monitor health timeout.",
+                    observed_at,
+                ),
+            }
+        }
+        None => unavailable_dependency(
+            "redis.ping",
+            "Redis is not configured for this process.",
+            observed_at,
+        ),
+    };
+
+    let postgres = {
+        let started = std::time::Instant::now();
+        let result = tokio::time::timeout(
+            Duration::from_secs(MONITOR_SOURCE_TIMEOUT_SECS),
+            state.infra().infra_job_service().health_check(),
+        )
+        .await;
+        match result {
+            Ok(Ok(())) => dependency_health(
+                MonitorSourceStatus::Available,
+                Some(true),
+                Some(started.elapsed().as_secs_f64() * 1_000.0),
+                None,
+                "postgres.select_1",
+                None,
+                observed_at,
+            ),
+            Ok(Err(_)) | Err(_) => unavailable_dependency(
+                "postgres.select_1",
+                "PostgreSQL health query failed or timed out.",
+                observed_at,
+            ),
+        }
+    };
+
+    let database_pool = {
+        let status = state.infra().diesel().api.status();
+        if status.max_size == 0 {
+            unavailable_dependency(
+                "deadpool.api.status",
+                "The PostgreSQL pool reported no configured capacity.",
+                observed_at,
+            )
+        } else {
+            let in_use = status.size.saturating_sub(status.available);
+            let utilization = (in_use as f64 / status.max_size as f64) * 100.0;
+            dependency_health(
+                MonitorSourceStatus::Available,
+                Some(true),
+                None,
+                Some(utilization),
+                "deadpool.api.status",
+                None,
+                observed_at,
+            )
+        }
+    };
+
+    let worker_process = match worker_source.status {
+        MonitorSourceStatus::Unavailable => unavailable_dependency(
+            "redis.worker_heartbeats",
+            "Worker heartbeat reads are unavailable.",
+            observed_at,
+        ),
+        MonitorSourceStatus::Degraded => dependency_health(
+            MonitorSourceStatus::Degraded,
+            Some(false),
+            None,
+            None,
+            "redis.worker_heartbeats",
+            Some("One or more worker heartbeat records were malformed or stale."),
+            observed_at,
+        ),
+        MonitorSourceStatus::Available if workers.is_empty() => dependency_health(
+            MonitorSourceStatus::Degraded,
+            Some(false),
+            None,
+            None,
+            "redis.worker_heartbeats",
+            Some("No live worker heartbeat was observed."),
+            observed_at,
+        ),
+        MonitorSourceStatus::Available
+            if workers
+                .iter()
+                .any(|worker| worker.liveness() != WorkerLiveness::Live) =>
+        {
+            dependency_health(
+                MonitorSourceStatus::Degraded,
+                Some(false),
+                None,
+                None,
+                "redis.worker_heartbeats",
+                Some("At least one worker heartbeat is stale or offline."),
+                observed_at,
+            )
+        }
+        MonitorSourceStatus::Available => dependency_health(
+            MonitorSourceStatus::Available,
+            Some(true),
+            None,
+            None,
+            "redis.worker_heartbeats",
+            None,
+            observed_at,
+        ),
+    };
+
+    let unsupported =
+        |source: &str, limitation: &str| unavailable_dependency(source, limitation, observed_at);
+
+    MonitorDependencyHealthSet {
+        redis,
+        postgres,
+        database_pool,
+        outbox_sweeper: unsupported(
+            "outbox.sweeper",
+            "No persisted sweeper heartbeat or authoritative backlog source is available.",
+        ),
+        worker_process,
+        cpu: unsupported(
+            "system.cpu",
+            "No trustworthy process CPU metric source is configured.",
+        ),
+        memory: unsupported(
+            "system.memory",
+            "No trustworthy process memory metric source is configured.",
+        ),
+        disk: unsupported(
+            "system.disk",
+            "No trustworthy disk metric source is configured.",
+        ),
     }
 }
 
@@ -1848,6 +2069,24 @@ async fn fetch_overview_data_inner(state: &Arc<AppState>) -> AppResult<MonitorOp
             .count() as u64,
     );
     let snapshot_age_seconds = snapshot_age_seconds(observed_at);
+    let dependencies = build_dependency_health(
+        state,
+        observed_at,
+        &redis_snapshot.redis,
+        &redis_snapshot.worker_heartbeats,
+        &workers,
+    )
+    .await;
+    quality.unknown_fields.extend(
+        [
+            "dependencies.outbox_sweeper",
+            "dependencies.cpu",
+            "dependencies.memory",
+            "dependencies.disk",
+        ]
+        .into_iter()
+        .map(str::to_string),
+    );
     Ok(MonitorOperationalSnapshot {
         pending_tasks,
         pending_high: redis_snapshot.pending_high,
@@ -1870,6 +2109,7 @@ async fn fetch_overview_data_inner(state: &Arc<AppState>) -> AppResult<MonitorOp
         oldest_running_job,
         task_type_reliability,
         thresholds: build_monitor_thresholds(),
+        dependencies,
         quality,
     })
 }
@@ -1914,6 +2154,10 @@ pub struct MonitorJobsParams {
     pub durable_cursor: Option<String>,
     /// Number of durable items to return (default: 20).
     pub durable_limit: Option<usize>,
+    /// Include legacy Redis jobs in this page (default: true).
+    pub include_legacy: Option<bool>,
+    /// Include durable ledger jobs in this page (default: true).
+    pub include_durable: Option<bool>,
 }
 
 /// Get paginated and filtered background jobs.
@@ -1948,15 +2192,12 @@ pub async fn get_monitor_jobs(
 
     let task_type = params
         .task_type
-        .map(|value| value.trim().to_ascii_lowercase());
-    if task_type
-        .as_deref()
-        .is_some_and(|value| !MONITOR_TASK_TYPES.contains(&value))
-    {
-        return Err(AppError::validation(I18nKey::Validation));
-    }
-
-    let search = params.search.map(|value| value.trim().to_owned());
+        .map(|value| value.trim().to_ascii_lowercase())
+        .filter(|value| !value.is_empty());
+    let search = params
+        .search
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty());
     if search
         .as_deref()
         .is_some_and(|value| value.chars().count() > MAX_MONITOR_SEARCH_CHARS)
@@ -1987,7 +2228,11 @@ pub async fn get_monitor_jobs(
     let observed_at = Utc::now();
     let redis_snapshot =
         load_redis_monitor_snapshot_bounded(state.infra().redis(), observed_at).await;
-    let (jobs, next_cursor) = if let Some(redis) = state.infra().redis() {
+    let include_legacy = params.include_legacy.unwrap_or(true);
+    let include_durable = params.include_durable.unwrap_or(true);
+    let (jobs, next_cursor) = if !include_legacy {
+        (Vec::new(), None)
+    } else if let Some(redis) = state.infra().redis() {
         match crate::queue::JobQueue::new(redis.clone())
             .list_jobs_paginated(
                 params.cursor,
@@ -2008,19 +2253,23 @@ pub async fn get_monitor_jobs(
         (Vec::new(), None)
     };
 
-    let durable_jobs = load_durable_jobs_section(
-        &state,
-        ListInfraJobsParams {
-            cursor: durable_cursor,
-            limit: durable_limit_i64,
-            state: state_filter,
-            task_type,
-            job_id: params.job_id,
-            search,
-        },
-        durable_limit,
-    )
-    .await;
+    let durable_jobs = if include_durable {
+        load_durable_jobs_section(
+            &state,
+            ListInfraJobsParams {
+                cursor: durable_cursor,
+                limit: durable_limit_i64,
+                state: state_filter,
+                task_type,
+                job_id: params.job_id,
+                search,
+            },
+            durable_limit,
+        )
+        .await
+    } else {
+        empty_durable_jobs_section(durable_limit)
+    };
     let quality = monitor_quality(
         &redis_snapshot.redis,
         &durable_jobs,
@@ -2187,6 +2436,15 @@ mod tests {
 
     #[test]
     fn test_monitor_overview_response_serialization() {
+        let available_dependency = |source: &str| MonitorDependencyHealth {
+            status: MonitorSourceStatus::Available,
+            availability: Some(true),
+            latency_ms: Some(1.0),
+            pool_utilization_percent: None,
+            source: source.to_string(),
+            limitation: None,
+            observed_at: Utc::now(),
+        };
         let overview = MonitorOverviewResponse {
             pending_tasks: Some(150),
             pending_high: Some(100),
@@ -2209,6 +2467,19 @@ mod tests {
                 next_cursor_token: None,
                 limit: 10,
                 events_truncated: false,
+            },
+            dependencies: MonitorDependencyHealthSet {
+                redis: available_dependency("redis.ping"),
+                postgres: available_dependency("postgres.select_1"),
+                database_pool: MonitorDependencyHealth {
+                    pool_utilization_percent: Some(10.0),
+                    ..available_dependency("deadpool.api.status")
+                },
+                outbox_sweeper: available_dependency("test.fixture"),
+                worker_process: available_dependency("worker.heartbeat"),
+                cpu: available_dependency("test.fixture"),
+                memory: available_dependency("test.fixture"),
+                disk: available_dependency("test.fixture"),
             },
             queue_health: build_queue_health(
                 &RedisMonitorSnapshot {
