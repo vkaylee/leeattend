@@ -31,6 +31,7 @@ pub mod overtime_request_service;
 pub mod pairing;
 pub mod payroll_evaluator;
 pub mod payroll_rule_evaluator;
+pub mod monitor_threshold_evaluator;
 pub mod payroll_service;
 pub mod policy_resolver_service;
 pub mod recruitment_service;
