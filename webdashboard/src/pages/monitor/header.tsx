@@ -19,16 +19,16 @@ export function MonitorHeader({
   t,
 }: MonitorHeaderProps) {
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
+    <header className="flex flex-col gap-5 px-1 sm:px-2 md:flex-row md:items-center md:justify-between">
       <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50">
+        <div aria-hidden="true" className="flex h-12 w-12 items-center justify-center rounded-[1.25rem] border border-primary-100 bg-primary-50 text-primary-600 shadow-sm dark:border-primary-800/50 dark:bg-primary-950 dark:text-primary-400">
           <Activity
             size={24}
           />
         </div>
         <div>
           <Typography className="text-2xl font-bold tracking-tight text-slate-850 dark:text-slate-100 normal-case mb-0.5" variant="h3">
-            {t("monitor.title")}
+            <span id="monitor-page-title">{t("monitor.title")}</span>
           </Typography>
           <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal" variant="small">
             {t("monitor.subtitle")}
@@ -36,15 +36,15 @@ export function MonitorHeader({
         </div>
       </div>
 
-      <Button className="flex items-center gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-6 py-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all font-bold text-xs uppercase tracking-widest shadow-lg dark:shadow-black/20 active:scale-95 disabled:opacity-50"
+      <Button aria-label={t("monitor.refresh_label", { defaultValue: "Refresh monitoring snapshot" })} className="flex min-h-11 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-xs font-bold uppercase tracking-widest text-slate-700 shadow-sm motion-safe:transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:scale-95 disabled:opacity-50 motion-reduce:transition-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
         disabled={isFetching}
         onClick={onRefresh}
         type="button"
         variant="ghost"
       >
-        <RefreshCw className={cn(isFetching && "animate-spin")} size={16} />
-        {t("common.refresh")}
+        <RefreshCw aria-hidden="true" className={cn(isFetching && "motion-safe:animate-spin")} size={16} />
+        <span>{t("common.refresh")}</span>
       </Button>
-    </div>
+    </header>
   );
 }

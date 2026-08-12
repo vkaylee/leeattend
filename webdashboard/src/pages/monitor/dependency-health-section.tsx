@@ -20,6 +20,11 @@ function dependencyStatusClasses(status: MonitorDependencyHealth["status"]): str
 export function DependencyHealthSection({ dependencies, t }: { dependencies?: MonitorDependencyHealthSet; t: TFunction }) {
   if (!dependencies) return null;
 
+  const formatObservedAt = (value: string): string => {
+    if (!Number.isFinite(Date.parse(value))) return t("monitor.metric_unavailable", { defaultValue: "Unavailable" });
+    return new Intl.DateTimeFormat(undefined, { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
+  };
+
   const items: [keyof MonitorDependencyHealthSet, string][] = [
     ["redis", t("monitor.dependency_redis", { defaultValue: "Redis" })],
     ["postgres", t("monitor.dependency_postgres", { defaultValue: "PostgreSQL" })],
@@ -46,7 +51,10 @@ export function DependencyHealthSection({ dependencies, t }: { dependencies?: Mo
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {items.map(([key, label]) => {
           const dependency = dependencies[key];
-          const statusLabel = t(`monitor.source_status.${dependency.status}`, { defaultValue: dependency.status });
+          const statusLabel = t(`monitor.source_status.${dependency.status}`, { defaultValue: t("monitor.unknown_status", { defaultValue: "Status unavailable" }) });
+          const sourceLabel = dependency.source === "unavailable"
+            ? t("monitor.unknown_source", { defaultValue: "Source unavailable" })
+            : t(`monitor.sources.${dependency.source.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`, { defaultValue: dependency.source });
           const measurement = dependency.pool_utilization_percent !== null && dependency.pool_utilization_percent !== undefined
             ? `${dependency.pool_utilization_percent.toFixed(1)}%`
             : dependency.latency_ms !== null && dependency.latency_ms !== undefined
@@ -54,16 +62,20 @@ export function DependencyHealthSection({ dependencies, t }: { dependencies?: Mo
               : dependency.availability === true
                 ? t("monitor.available", { defaultValue: "Available" })
                 : t("monitor.metric_unavailable", { defaultValue: "Unavailable" });
+          const observedAt = formatObservedAt(dependency.observed_at);
           return (
-            <div className={cn("rounded-2xl border p-4", dependencyStatusClasses(dependency.status))} key={key}>
+            <article className={cn("rounded-2xl border p-4", dependencyStatusClasses(dependency.status))} key={key}>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
                 <span className="text-[10px] font-bold uppercase tracking-wider">{statusLabel}</span>
               </div>
               <div className="mt-3 text-xl font-black tabular-nums">{measurement}</div>
-              {dependency.limitation ? <div className="mt-2 text-xs opacity-80">{dependency.limitation}</div> : null}
-              <div className="mt-2 text-[10px] opacity-60">{dependency.source}</div>
-            </div>
+              {dependency.limitation ? <div className="mt-2 text-xs opacity-80">{dependency.source === "unavailable" ? t("monitor.limitation_unavailable", { defaultValue: "Measurement limitation details are unavailable." }) : t("monitor.limitation_details", { defaultValue: "Measurement limitation is provided by the monitoring source." })}</div> : null}
+              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] opacity-70">
+                <span>{sourceLabel}</span>
+                <span>{t("monitor.observed_at", { defaultValue: "Observed at" })}: {observedAt}</span>
+              </div>
+            </article>
           );
         })}
       </div>
