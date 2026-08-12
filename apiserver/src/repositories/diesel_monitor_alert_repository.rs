@@ -83,7 +83,9 @@ impl MonitorAlertRepository for DieselMonitorAlertRepository {
             .count()
             .get_result::<i64>(&mut *conn)
             .await
-            .map_err(|error| AppError::Internal(format!("Failed to count monitor alerts: {error}")))?;
+            .map_err(|error| {
+                AppError::Internal(format!("Failed to count monitor alerts: {error}"))
+            })?;
 
         Ok(MonitorAlertPage {
             alerts,

@@ -647,7 +647,9 @@ async fn test_monitor_alert_list_is_cursor_paginated_and_bounded() {
         .expect("first alert page should have a cursor");
 
     let second = client
-        .get(format!("{address}/api/v1/monitor/alerts?limit=2&cursor={cursor}"))
+        .get(format!(
+            "{address}/api/v1/monitor/alerts?limit=2&cursor={cursor}"
+        ))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -664,7 +666,8 @@ async fn test_monitor_alert_list_is_cursor_paginated_and_bounded() {
         .await
         .expect("bounded alert request should complete");
     assert_eq!(unbounded.status(), StatusCode::OK);
-    let unbounded_body: serde_json::Value = unbounded.json().await.expect("bounded page should be JSON");
+    let unbounded_body: serde_json::Value =
+        unbounded.json().await.expect("bounded page should be JSON");
     assert_eq!(unbounded_body["limit"], 100);
 }
 
