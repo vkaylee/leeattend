@@ -196,6 +196,16 @@ vi.mock("@/hooks/use-worker-monitor", () => ({
         isFetchingNextPage: false,
         isLoading: false,
     })),
+    useMonitorAlerts: vi.fn(() => ({
+        data: { data: [] },
+        isLoading: false,
+        isError: false,
+    })),
+    useMonitorAlert: vi.fn(() => ({ data: undefined })),
+    useMonitorAlertMutations: vi.fn(() => ({
+        acknowledge: { isPending: false, isError: false, mutate: vi.fn() },
+        resolve: { isPending: false, isError: false, mutate: vi.fn() },
+    })),
 }));
 
 import WorkerMonitorPage from "../worker-monitor-page";

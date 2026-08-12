@@ -28,9 +28,10 @@ impl MonitorAlertService {
         alert_id: Uuid,
         action: MonitorAlertAction,
         reason: String,
+        actor_id: Uuid,
     ) -> Result<MonitorAlert, AppError> {
         self.repository
-            .mutate_alert(alert_id, action, reason, chrono::Utc::now())
+            .mutate_alert(alert_id, action, reason, actor_id, chrono::Utc::now())
             .await
     }
 

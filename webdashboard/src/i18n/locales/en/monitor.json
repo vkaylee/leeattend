@@ -73,6 +73,15 @@
     "queued_at": "Queued at",
     "started_at": "Started at",
     "finished_at": "Finished at",
-    "updated_at": "Updated at"
+    "updated_at": "Updated at",
+    "alerts": "Monitor alerts",
+    "alerts_description": "Review active platform alerts and record operator actions.",
+    "alerts_error": "Unable to load alerts.",
+    "no_active_alerts": "No active alerts.",
+    "alert_reason": "Operator reason",
+    "alert_reason_placeholder": "Describe the action taken…",
+    "acknowledge": "Acknowledge",
+    "resolve": "Resolve",
+    "alert_action_error": "Action failed. Please retry."
   }
 }

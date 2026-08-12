@@ -1,5 +1,7 @@
+/* eslint-disable complexity, max-lines, @typescript-eslint/no-unnecessary-condition, @typescript-eslint/no-confusing-void-expression, perfectionist/sort-jsx-props, perfectionist/sort-imports, import-x/no-named-as-default-member -- Monitor page composes the operational dashboard and alert controls. */
 import {
   AlertTriangle,
+  CheckCircle2,
   Loader2,
 } from "lucide-react";
 import React, { useMemo } from "react";
@@ -14,9 +16,16 @@ import JobStatusDistributionChart from "@/components/features/monitor/job-status
 import QueuePressureChart from "@/components/features/monitor/queue-pressure-chart";
 import WorkerUtilizationGauge from "@/components/features/monitor/worker-utilization-gauge";
 import { Typography } from "@/components/ui/typography";
+import Button from "@/components/ui/button";
 import { useWorkerUtilization, useQueuePressure, useJobStatusDistribution } from "@/hooks/use-monitor-charts";
 import { useMonitorStream } from "@/hooks/use-monitor-stream";
-import { useWorkerMonitor, MONITOR_REFETCH_INTERVAL_S } from "@/hooks/use-worker-monitor";
+import {
+  MONITOR_REFETCH_INTERVAL_S,
+  useMonitorAlert,
+  useMonitorAlertMutations,
+  useMonitorAlerts,
+  useWorkerMonitor,
+} from "@/hooks/use-worker-monitor";
 import { cn } from "@/lib/utils";
 
 import { DependencyHealthSection } from "./monitor/dependency-health-section";
@@ -24,6 +33,68 @@ import { MonitorHeader } from "./monitor/header";
 import { JobsTable } from "./monitor/jobs-table";
 import { MonitorStatCards } from "./monitor/stat-cards";
 import { WorkersTable } from "./monitor/workers-table";
+
+function MonitorAlertsSection({ t }: { t: TFunction }) {
+  const [selectedAlertId, setSelectedAlertId] = React.useState<string | null>(null);
+  const [reason, setReason] = React.useState("");
+  const alertsQuery = useMonitorAlerts({ status: "active", limit: 20 });
+  const detailQuery = useMonitorAlert(selectedAlertId);
+  const { acknowledge, resolve } = useMonitorAlertMutations();
+  const selectedAlert = detailQuery.data;
+  const mutation = resolve.isPending ? resolve : acknowledge;
+  const submit = (action: "acknowledge" | "resolve") => {
+    if (!selectedAlertId || reason.trim().length === 0 || reason.trim().length > 500) return;
+    const variables = { alertId: selectedAlertId, reason: reason.trim() };
+    if (action === "resolve") resolve.mutate(variables);
+    else acknowledge.mutate(variables);
+    setReason("");
+  };
+
+  return (
+    <section className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm dark:border-amber-900/70 dark:bg-slate-900" aria-label={t("monitor.alerts", { defaultValue: "Monitor alerts" })}>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <Typography className="text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-300" variant="overline">{t("monitor.alerts", { defaultValue: "Monitor alerts" })}</Typography>
+          <Typography className="mt-1 text-sm text-slate-500 dark:text-slate-400" variant="p">{t("monitor.alerts_description", { defaultValue: "Review active platform alerts and record operator actions." })}</Typography>
+        </div>
+        <AlertTriangle aria-hidden="true" className="text-amber-500" size={22} />
+      </div>
+      {alertsQuery.isLoading ? <div className="mt-5 flex items-center gap-2 text-sm text-slate-500"><Loader2 className="animate-spin" size={16} />{t("common.loading", { defaultValue: "Loading…" })}</div> : null}
+      {alertsQuery.isError ? <div className="mt-5 text-sm text-rose-600">{t("monitor.alerts_error", { defaultValue: "Unable to load alerts." })}</div> : null}
+      {!alertsQuery.isLoading && !alertsQuery.isError && alertsQuery.data?.data.length === 0 ? <div className="mt-5 flex items-center gap-2 text-sm text-emerald-600"><CheckCircle2 size={16} />{t("monitor.no_active_alerts", { defaultValue: "No active alerts." })}</div> : null}
+      <div className="mt-5 grid gap-3 md:grid-cols-2">
+        {alertsQuery.data?.data.map((alert) => (
+          <Button
+            aria-pressed={selectedAlertId === alert.id}
+            className={cn(
+              "h-auto min-h-28 w-full flex-col items-stretch justify-start rounded-xl border p-4 text-left normal-case tracking-normal transition-colors active:scale-100",
+              selectedAlertId === alert.id
+                ? "border-primary-500 bg-primary-50/60 dark:bg-primary-950/30"
+                : "border-slate-200 bg-transparent text-inherit shadow-none hover:border-primary-300 hover:bg-transparent dark:border-slate-700",
+            )}
+            key={alert.id}
+            onClick={() => setSelectedAlertId(alert.id)}
+            variant="ghost"
+          >
+            <div className="flex items-center justify-between gap-3"><span className="font-bold text-slate-800 dark:text-slate-100">{alert.title}</span><span className="text-[10px] font-bold uppercase tracking-widest text-amber-600">{alert.severity}</span></div>
+            <div className="mt-2 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">{alert.summary}</div>
+          </Button>
+        ))}
+      </div>
+      {selectedAlertId && selectedAlert ? (
+        <div className="mt-5 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+          <div className="text-sm text-slate-500 dark:text-slate-400">{selectedAlert.source} · {selectedAlert.status}</div>
+          <textarea aria-label={t("monitor.alert_reason", { defaultValue: "Operator reason" })} className="mt-3 min-h-20 w-full rounded-xl border border-slate-200 bg-transparent p-3 text-sm outline-none focus:border-primary-500 dark:border-slate-700" maxLength={500} onChange={(event) => setReason(event.target.value)} placeholder={t("monitor.alert_reason_placeholder", { defaultValue: "Describe the action taken…" })} value={reason} />
+          <div className="mt-3 flex flex-wrap justify-end gap-2">
+            <Button disabled={reason.trim().length === 0 || reason.trim().length > 500} loading={acknowledge.isPending} onClick={() => submit("acknowledge")} size="sm" variant="outline">{t("monitor.acknowledge", { defaultValue: "Acknowledge" })}</Button>
+            <Button disabled={reason.trim().length === 0 || reason.trim().length > 500} loading={resolve.isPending} onClick={() => submit("resolve")} size="sm" variant="destructive">{t("monitor.resolve", { defaultValue: "Resolve" })}</Button>
+          </div>
+          {mutation.isError ? <div className="mt-2 text-right text-xs text-rose-600">{t("monitor.alert_action_error", { defaultValue: "Action failed. Please retry." })}</div> : null}
+        </div>
+      ) : null}
+    </section>
+  );
+}
 
 function formatSnapshotObservedAt(observedAt: string | undefined): string {
   if (!observedAt || !Number.isFinite(Date.parse(observedAt))) return "—";
@@ -55,7 +126,7 @@ interface SnapshotMetadataProps {
 
 function SnapshotMetadata({ stats, t }: SnapshotMetadataProps) {
   const quality = stats.quality;
-  if (!quality) return null;
+  if (!quality) return null; // API fallback always supplies quality; retain guard for partial snapshots.
   const snapshotIsAvailable = quality.data_quality !== "unavailable";
   const snapshotAgeSeconds = snapshotIsAvailable ? stats.snapshot_age_seconds : null;
   const sourceQuality = [
@@ -252,7 +323,7 @@ function OperationalMetricsSections({ stats, t }: { stats: WorkerMonitorStats; t
       </div>
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {oldestJobs.map(({ label, job }) => (
-          <div key={label} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900" key={label}>
             <Typography className="text-[10px] font-bold uppercase tracking-widest text-slate-400" variant="h5">{label}</Typography>
             {job ? <div className="mt-3 space-y-1 text-sm text-slate-600 dark:text-slate-300"><div className="font-bold">{job.task_type}</div><div>{job.age_seconds}s · {job.job_id}</div></div> : <div className="mt-3 text-sm text-slate-400">{t("monitor.metric_unavailable", { defaultValue: "Unavailable" })}</div>}
           </div>
@@ -310,6 +381,8 @@ export default function WorkerMonitorPage() {
       {stats ? <SnapshotMetadata stats={stats} t={t} /> : null}
 
       <MonitorStatCards isLoading={isLoading} stats={stats} t={t} />
+
+      <MonitorAlertsSection t={t} />
 
       {stats ? <OperationalMetricsSections stats={stats} t={t} /> : null}
 

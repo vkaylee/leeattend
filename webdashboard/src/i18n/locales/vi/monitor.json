@@ -73,6 +73,15 @@
     "queued_at": "Thời điểm xếp hàng",
     "started_at": "Thời điểm bắt đầu",
     "finished_at": "Thời điểm kết thúc",
-    "updated_at": "Thời điểm cập nhật"
+    "updated_at": "Thời điểm cập nhật",
+    "alerts": "Cảnh báo giám sát",
+    "alerts_description": "Xem các cảnh báo nền tảng đang hoạt động và ghi lại thao tác của người vận hành.",
+    "alerts_error": "Không thể tải cảnh báo.",
+    "no_active_alerts": "Không có cảnh báo đang hoạt động.",
+    "alert_reason": "Lý do thao tác",
+    "alert_reason_placeholder": "Mô tả thao tác đã thực hiện…",
+    "acknowledge": "Ghi nhận",
+    "resolve": "Xử lý",
+    "alert_action_error": "Thao tác thất bại. Vui lòng thử lại."
   }
 }

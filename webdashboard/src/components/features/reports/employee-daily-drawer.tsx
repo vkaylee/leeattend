@@ -1,7 +1,7 @@
 import type { TFunction } from "i18next";
 
 import { CalendarCheck, FileBarChart, Clock, Briefcase, ChevronDown } from "lucide-react";
-import React, { useEffect, useId, useMemo, useRef } from "react";
+import React, { useEffect, useId, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { DailyAttendanceReport, AttendanceAdjustmentRequest, Shift } from "@/lib/api";
@@ -49,7 +49,8 @@ interface EmployeeDailyDrawerHeaderProps {
     setViewMode: (mode: "daily" | "raw") => void;
     t: TFunction;
     tabIdPrefix: string;
-    tabRefs: DrawerTabRefs;
+    dailyTabRef: React.RefObject<HTMLButtonElement | null>;
+    rawTabRef: React.RefObject<HTMLButtonElement | null>;
     totalOtHours: string | number;
     totalStdHours: string | number;
     viewMode: "daily" | "raw";
@@ -109,7 +110,8 @@ function EmployeeDailyDrawerHeader({
     totalOtHours,
     t,
     tabIdPrefix,
-    tabRefs,
+    dailyTabRef,
+    rawTabRef,
     employers = [],
     selectedEmployerId = "",
     onEmployerChange,
@@ -173,7 +175,7 @@ function EmployeeDailyDrawerHeader({
                     )}
                     id={dailyTabId}
                     onClick={() => { setViewMode("daily"); }}
-                    ref={tabRefs.daily}
+                    ref={dailyTabRef}
                     role="tab"
                     tabIndex={viewMode === "daily" ? 0 : -1}
                     type="button"
@@ -193,7 +195,7 @@ function EmployeeDailyDrawerHeader({
                     )}
                     id={rawTabId}
                     onClick={() => { setViewMode("raw"); }}
-                    ref={tabRefs.raw}
+                    ref={rawTabRef}
                     role="tab"
                     tabIndex={viewMode === "raw" ? 0 : -1}
                     type="button"
@@ -357,15 +359,16 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
     const tabIdPrefix = useId();
     const dailyTabRef = useRef<HTMLButtonElement>(null);
     const rawTabRef = useRef<HTMLButtonElement>(null);
-    const tabRefs = useMemo<DrawerTabRefs>(() => ({
-        daily: dailyTabRef,
-        raw: rawTabRef,
-    }), [dailyTabRef, rawTabRef]);
-
     const data = useEmployeeDailyDrawer(props);
 
     // Keyboard navigation for tabs + scroll
-    useDrawerKeyboardNavigation(isOpen, data.viewMode, data.setViewMode, contentRef, tabRefs);
+    useDrawerKeyboardNavigation(
+        isOpen,
+        data.viewMode,
+        data.setViewMode,
+        contentRef,
+        { daily: dailyTabRef, raw: rawTabRef },
+    );
 
     return (
         <>
@@ -381,8 +384,9 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                         selectedEmployerId={data.selectedEmployerId}
                         setViewMode={data.setViewMode}
                         t={t}
+                        dailyTabRef={dailyTabRef}
+                        rawTabRef={rawTabRef}
                         tabIdPrefix={tabIdPrefix}
-                        tabRefs={tabRefs}
                         totalOtHours={data.totalOtHours}
                         totalStdHours={data.totalStdHours}
                         viewMode={data.viewMode}

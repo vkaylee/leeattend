@@ -69,6 +69,7 @@ pub struct MonitorAlertEventResponse {
 
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct MonitorAlertMutationRequest {
+    #[schema(min_length = 1, max_length = 500)]
     pub reason: String,
 }
 
@@ -114,19 +115,38 @@ impl From<MonitorAlertEvent> for MonitorAlertEventResponse {
 
 fn sanitize_summary(value: &str) -> String {
     let normalized = value.split_whitespace().collect::<Vec<_>>().join(" ");
-    let redacted = normalized
-        .split(' ')
-        .map(|part| {
-            let digits = part.chars().filter(char::is_ascii_digit).count();
-            if part.contains('@') || digits >= 8 {
-                "[REDACTED]"
-            } else {
-                part
-            }
-        })
-        .collect::<Vec<_>>()
-        .join(" ");
-    redacted.chars().take(500).collect()
+    let parts: Vec<&str> = normalized.split(' ').collect();
+    let mut output = Vec::with_capacity(parts.len());
+    let mut index = 0;
+
+    while index < parts.len() {
+        let part = parts[index];
+        if part.contains('@') || part.chars().filter(char::is_ascii_digit).count() >= 8 {
+            output.push("[REDACTED]");
+            index += 1;
+            continue;
+        }
+
+        let mut end = index;
+        let mut digit_count = 0usize;
+        while end < parts.len()
+            && parts[end]
+                .chars()
+                .all(|character| character.is_ascii_digit() || "+-().".contains(character))
+        {
+            digit_count += parts[end].chars().filter(char::is_ascii_digit).count();
+            end += 1;
+        }
+        if end > index && digit_count >= 8 {
+            output.push("[REDACTED]");
+            index = end;
+        } else {
+            output.push(part);
+            index += 1;
+        }
+    }
+
+    output.join(" ").chars().take(500).collect()
 }
 
 fn sanitize_code(value: &str) -> String {
@@ -169,7 +189,12 @@ fn validate_filter(value: Option<String>, allowed: &[&str]) -> AppResult<Option<
     get,
     path = "/monitor/alerts",
     params(MonitorAlertQuery),
-    responses((status = 200, description = "Paginated monitor alerts", body = MonitorAlertsResponse))
+    responses(
+        (status = 200, description = "Paginated monitor alerts", body = MonitorAlertsResponse),
+        (status = 400, description = "Invalid alert filters"),
+        (status = 403, description = "Forbidden"),
+        (status = 500, description = "Internal server error")
+    )
 )]
 pub async fn list_monitor_alerts(
     State(state): State<Arc<AppState>>,
@@ -215,21 +240,30 @@ async fn mutate_monitor_alert(
     request: MonitorAlertMutationRequest,
     action: MonitorAlertAction,
 ) -> AppResult<Json<MonitorAlertResponse>> {
-    ctx.require_any_role(&[SystemRoleType::PlatformAdmin, SystemRoleType::Support])?;
+    ctx.require_role(SystemRoleType::PlatformAdmin)?;
     let reason = sanitize_reason(&request.reason)?;
     let alert = state
         .infra()
         .monitor_alert_service()
-        .mutate_alert(alert_id, action, reason.clone())
+        .mutate_alert(alert_id, action, reason, ctx.user_id)
         .await?;
-
-    // The existing global audit helper persists tenant `audit_logs`, while these
-    // platform-scoped alerts belong to `system_audit_logs`; do not misroute this
-    // event into a tenant table with a nil workspace id.
     Ok(Json(alert.into()))
 }
 
-#[utoipa::path(post, path = "/monitor/alerts/{alert_id}/acknowledge", params(("alert_id" = Uuid, Path)), request_body = MonitorAlertMutationRequest, responses((status = 200, body = MonitorAlertResponse), (status = 403), (status = 409)))]
+#[utoipa::path(
+    post,
+    path = "/monitor/alerts/{alert_id}/acknowledge",
+    params(("alert_id" = Uuid, Path)),
+    request_body = MonitorAlertMutationRequest,
+    responses(
+        (status = 200, body = MonitorAlertResponse),
+        (status = 400),
+        (status = 403),
+        (status = 404),
+        (status = 409),
+        (status = 500)
+    )
+)]
 pub async fn acknowledge_monitor_alert(
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
@@ -246,7 +280,20 @@ pub async fn acknowledge_monitor_alert(
     .await
 }
 
-#[utoipa::path(post, path = "/monitor/alerts/{alert_id}/resolve", params(("alert_id" = Uuid, Path)), request_body = MonitorAlertMutationRequest, responses((status = 200, body = MonitorAlertResponse), (status = 403), (status = 409)))]
+#[utoipa::path(
+    post,
+    path = "/monitor/alerts/{alert_id}/resolve",
+    params(("alert_id" = Uuid, Path)),
+    request_body = MonitorAlertMutationRequest,
+    responses(
+        (status = 200, body = MonitorAlertResponse),
+        (status = 400),
+        (status = 403),
+        (status = 404),
+        (status = 409),
+        (status = 500)
+    )
+)]
 pub async fn resolve_monitor_alert(
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
@@ -256,7 +303,17 @@ pub async fn resolve_monitor_alert(
     mutate_monitor_alert(state, ctx, alert_id, request, MonitorAlertAction::Resolve).await
 }
 
-#[utoipa::path(get, path = "/monitor/alerts/{alert_id}", params(("alert_id" = Uuid, Path)), responses((status = 200, body = MonitorAlertDetailResponse), (status = 404)))]
+#[utoipa::path(
+    get,
+    path = "/monitor/alerts/{alert_id}",
+    params(("alert_id" = Uuid, Path)),
+    responses(
+        (status = 200, body = MonitorAlertDetailResponse),
+        (status = 403),
+        (status = 404),
+        (status = 500)
+    )
+)]
 pub async fn get_monitor_alert(
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
@@ -285,5 +342,22 @@ mod tests {
         assert!(!value.contains("user@example.com"));
         assert!(!value.contains("12345678"));
         assert!(value.contains("raw payload"));
+    }
+
+    #[test]
+    fn sanitizes_segmented_phone_like_values() {
+        for value in [
+            "call 098-765-4321 now",
+            "call 098 765 4321 now",
+            "+84 987 654 321",
+        ] {
+            let sanitized = sanitize_summary(value);
+            assert!(!sanitized
+                .chars()
+                .filter(char::is_ascii_digit)
+                .count()
+                .eq(&10));
+            assert!(sanitized.contains("[REDACTED]"));
+        }
     }
 }
