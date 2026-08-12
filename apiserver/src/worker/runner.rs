@@ -648,6 +648,7 @@ impl JobWorker {
             return;
         }
 
+        let retry_delay = durable_retry_backoff(record.attempt_count);
         if let Err(error) = self
             .infra_job_service
             .transition(
@@ -660,7 +661,7 @@ impl JobWorker {
                     lease_token: Some(lease_token),
                     lease_owner: None,
                     lease_expires_at: None,
-                    next_attempt_at: Some(Utc::now() + durable_retry_backoff(record.attempt_count)),
+                    next_attempt_at: Some(Utc::now() + retry_delay),
                     worker_id: Some(self.worker_id.to_string()),
                     request_id,
                     trace_id: job.trace_context.clone(),
@@ -673,6 +674,13 @@ impl JobWorker {
             error!(job_id = %job.job_id, error = %error, "infra_job_retryable_persist_failed");
             return;
         }
+
+        // Keep the ledger in `retryable` until the persisted due time. This
+        // prevents a failed job from being republished immediately and makes
+        // the in-memory retry path obey the same backoff recorded in Postgres.
+        // A future durable dispatcher can recover rows left here by a worker
+        // crash without requiring raw payloads in the ledger.
+        tokio::time::sleep(retry_delay.to_std().unwrap_or_default()).await;
 
         if let Err(error) = self.queue.enqueue_single(job.clone()).await {
             error!(job_id = %job.job_id, error = %error, "infra_job_retry_enqueue_failed");
