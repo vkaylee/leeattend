@@ -2066,6 +2066,45 @@ diesel::table! {
 }
 
 diesel::table! {
+    monitor_alerts (id) {
+        id -> Uuid,
+        #[max_length = 128]
+        fingerprint -> Varchar,
+        #[max_length = 100]
+        alert_type -> Varchar,
+        #[max_length = 20]
+        severity -> Varchar,
+        #[max_length = 20]
+        status -> Varchar,
+        #[max_length = 255]
+        title -> Varchar,
+        summary -> Text,
+        #[max_length = 100]
+        source -> Varchar,
+        first_seen_at -> Timestamptz,
+        last_seen_at -> Timestamptz,
+        occurrence_count -> Int4,
+        resolved_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    monitor_alert_events (id) {
+        id -> Uuid,
+        alert_id -> Uuid,
+        #[max_length = 40]
+        event_type -> Varchar,
+        #[max_length = 20]
+        severity -> Varchar,
+        summary -> Text,
+        occurred_at -> Timestamptz,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     system_settings (key) {
         #[max_length = 100]
         key -> Varchar,
@@ -2466,6 +2505,7 @@ diesel::joinable!(lifecycle_checklist_items -> lifecycle_checklists (checklist_i
 diesel::joinable!(lifecycle_checklist_template_items -> lifecycle_checklist_templates (template_id));
 diesel::joinable!(lifecycle_checklists -> lifecycle_checklist_templates (template_id));
 diesel::joinable!(member_extra_roles -> users (user_id));
+diesel::joinable!(monitor_alert_events -> monitor_alerts (alert_id));
 diesel::joinable!(member_extra_roles -> workspace_roles (role_id));
 diesel::joinable!(member_extra_roles -> workspaces (workspace_id));
 diesel::joinable!(notifications -> users (user_id));
@@ -2610,6 +2650,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     lifecycle_checklist_templates,
     lifecycle_checklists,
     member_extra_roles,
+    monitor_alert_events,
+    monitor_alerts,
     notifications,
     outbox_jobs,
     overtime_policy_assignments,

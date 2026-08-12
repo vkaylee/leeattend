@@ -30,6 +30,7 @@ pub mod system_db_clusters;
 pub mod system_tenants;
 pub mod work_segments;
 pub mod worker_monitor;
+pub mod monitor_alerts;
 pub mod working_patterns;
 pub mod workspaces;
 pub use agents::*;

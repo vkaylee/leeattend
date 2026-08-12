@@ -713,6 +713,7 @@ impl AgentState {
 pub struct InfraState {
     diesel: crate::diesel_pool::DieselPools,
     infra_job_service: Arc<crate::services::InfraJobService>,
+    monitor_alert_service: Arc<crate::services::MonitorAlertService>,
     redis: Option<RedisPool>,
     cache: Option<Arc<dyn crate::repositories::CacheRepository>>,
     roster_cache: Option<Arc<crate::cache::RosterCache>>,
@@ -741,10 +742,14 @@ impl InfraState {
         ));
         let infra_job_service =
             Arc::new(crate::services::InfraJobService::new(infra_job_repository));
+        let monitor_alert_service = Arc::new(crate::services::MonitorAlertService::new(
+            Arc::new(crate::repositories::DieselMonitorAlertRepository::new(diesel.clone())),
+        ));
 
         Self {
             diesel,
             infra_job_service,
+            monitor_alert_service,
             redis,
             cache,
             roster_cache,
@@ -762,6 +767,10 @@ impl InfraState {
 
     pub fn infra_job_service(&self) -> &Arc<crate::services::InfraJobService> {
         &self.infra_job_service
+    }
+
+    pub fn monitor_alert_service(&self) -> &Arc<crate::services::MonitorAlertService> {
+        &self.monitor_alert_service
     }
 
     pub fn redis(&self) -> Option<&RedisPool> {

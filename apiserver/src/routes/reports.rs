@@ -57,4 +57,12 @@ pub fn router(state: &Arc<AppState>) -> Router<Arc<AppState>> {
             "/monitor/stream",
             get(handlers::worker_monitor::monitor_stream_sse),
         )
+        .route(
+            "/monitor/alerts",
+            get(handlers::monitor_alerts::list_monitor_alerts),
+        )
+        .route(
+            "/monitor/alerts/:alert_id",
+            get(handlers::monitor_alerts::get_monitor_alert),
+        )
 }
