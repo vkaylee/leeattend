@@ -724,7 +724,7 @@ async fn test_monitor_alert_operator_mutations_require_support_or_platform_admin
 }
 
 #[tokio::test]
-async fn test_monitor_alert_operator_mutations_allow_support_and_are_idempotent() {
+async fn test_monitor_alert_operator_mutations_allow_platform_admin_and_are_idempotent() {
     let (address, _workspace_id, user_id, factory, _db): (
         String,
         Uuid,
@@ -732,7 +732,7 @@ async fn test_monitor_alert_operator_mutations_allow_support_and_are_idempotent(
         TestFactory,
         TestDatabase,
     ) = spawn_app_with_factory().await;
-    grant_system_role(&factory, user_id, "support").await;
+    grant_platform_admin(&factory, user_id).await;
     let alert_id = seed_monitor_alert(&factory, "active").await;
     let client = reqwest::Client::new();
     let acknowledge = client
@@ -770,6 +770,29 @@ async fn test_monitor_alert_operator_mutations_allow_support_and_are_idempotent(
         .await
         .expect("resolve response should be JSON");
     assert_eq!(body["status"], "resolved");
+
+    let audit_count = crate::test_query_scalar_i64!(
+        &factory.diesel_pools.api,
+        "SELECT COUNT(*) FROM system_audit_logs WHERE actor_id = $1 AND details->>'alert_id' = $2",
+        diesel::sql_types::Uuid,
+        user_id,
+        diesel::sql_types::Text,
+        alert_id.to_string()
+    );
+    assert_eq!(audit_count, 2);
+
+    let support_id = factory.user().create().await;
+    grant_system_role(&factory, support_id, "support").await;
+    let support_response = client
+        .post(format!(
+            "{address}/api/v1/monitor/alerts/{alert_id}/acknowledge"
+        ))
+        .header("X-User-Id", support_id.to_string())
+        .json(&serde_json::json!({"reason": "support review"}))
+        .send()
+        .await
+        .expect("support mutation request should complete");
+    assert_eq!(support_response.status(), StatusCode::FORBIDDEN);
 }
 
 #[tokio::test]

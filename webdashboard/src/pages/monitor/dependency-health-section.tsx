@@ -20,7 +20,7 @@ function dependencyStatusClasses(status: MonitorDependencyHealth["status"]): str
 export function DependencyHealthSection({ dependencies, t }: { dependencies?: MonitorDependencyHealthSet; t: TFunction }) {
   if (!dependencies) return null;
 
-  const items: Array<[keyof MonitorDependencyHealthSet, string]> = [
+  const items: [keyof MonitorDependencyHealthSet, string][] = [
     ["redis", t("monitor.dependency_redis", { defaultValue: "Redis" })],
     ["postgres", t("monitor.dependency_postgres", { defaultValue: "PostgreSQL" })],
     ["database_pool", t("monitor.dependency_database_pool", { defaultValue: "Database pool" })],

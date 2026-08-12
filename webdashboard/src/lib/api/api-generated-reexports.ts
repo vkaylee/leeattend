@@ -12,6 +12,12 @@
 
 import type { components } from "@/types/api-generated";
 
+export type MonitorAlert = components["schemas"]["MonitorAlertResponse"];
+export type MonitorAlertDetail = components["schemas"]["MonitorAlertDetailResponse"];
+export type MonitorAlertEvent = components["schemas"]["MonitorAlertEventResponse"];
+export type MonitorAlertMutationRequest = components["schemas"]["MonitorAlertMutationRequest"];
+export type MonitorAlertsResponse = components["schemas"]["MonitorAlertsResponse"];
+
 export type DeviceStatus = components["schemas"]["DeviceStatus"];
 export type AgentStatus = components["schemas"]["AgentStatus"];
 export type Device = components["schemas"]["Device"];

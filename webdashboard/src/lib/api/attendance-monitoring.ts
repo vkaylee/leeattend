@@ -6,6 +6,10 @@ import { ApiError } from "./errors";
 import { apiFetch, TIMEOUT } from "./helpers";
 import {
   DailyAttendanceReport,
+  MonitorAlert,
+  MonitorAlertDetail,
+  MonitorAlertMutationRequest,
+  MonitorAlertsResponse,
   WorkerMonitorStats,
   MonitorJobsResponse,
   MonitorMetric,
@@ -193,6 +197,58 @@ export interface FetchMonitorJobsParams {
   state?: string;
   status?: string;
   task_type?: string;
+}
+
+export interface FetchMonitorAlertsParams {
+  cursor?: string | null;
+  limit?: number;
+  severity?: string;
+  status?: string;
+}
+
+export async function fetchMonitorAlerts(
+  params: FetchMonitorAlertsParams = {},
+): Promise<MonitorAlertsResponse> {
+  const { data } = await client.GET("/monitor/alerts", {
+    params: {
+      query: {
+        cursor: params.cursor ?? undefined,
+        limit: params.limit,
+        severity: params.severity,
+        status: params.status,
+      },
+    },
+  });
+  return data;
+}
+
+export async function fetchMonitorAlert(alertId: string): Promise<MonitorAlertDetail> {
+  const { data } = await client.GET("/monitor/alerts/{alert_id}", {
+    params: { path: { alert_id: alertId } },
+  });
+  return data;
+}
+
+export async function acknowledgeMonitorAlert(
+  alertId: string,
+  request: MonitorAlertMutationRequest,
+): Promise<MonitorAlert> {
+  const { data } = await client.POST("/monitor/alerts/{alert_id}/acknowledge", {
+    params: { path: { alert_id: alertId } },
+    body: request,
+  });
+  return data;
+}
+
+export async function resolveMonitorAlert(
+  alertId: string,
+  request: MonitorAlertMutationRequest,
+): Promise<MonitorAlert> {
+  const { data } = await client.POST("/monitor/alerts/{alert_id}/resolve", {
+    params: { path: { alert_id: alertId } },
+    body: request,
+  });
+  return data;
 }
 
 export async function fetchMonitorJobs(params: FetchMonitorJobsParams): Promise<MonitorJobsResponse> {

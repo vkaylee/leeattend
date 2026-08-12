@@ -1,22 +1,33 @@
-import { useInfiniteQuery, useQuery, type InfiniteData } from "@tanstack/react-query";
-import { useState } from "react";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 
-import { FetchMonitorJobsParams, fetchMonitorJobs, fetchMonitorOverview } from "@/lib/api/attendance";
+import {
+  acknowledgeMonitorAlert,
+  FetchMonitorAlertsParams,
+  FetchMonitorJobsParams,
+  fetchMonitorAlert,
+  fetchMonitorAlerts,
+  fetchMonitorJobs,
+  fetchMonitorOverview,
+  resolveMonitorAlert,
+} from "@/lib/api/attendance";
 
 export const MONITOR_REFETCH_INTERVAL_MS = 10_000;
 export const MONITOR_REFETCH_INTERVAL_S = MONITOR_REFETCH_INTERVAL_MS / 1000;
 
-type MonitorJobsPageParam = {
+interface MonitorJobsPageParam {
   cursor: number | null;
   durable_cursor: string | null;
-  include_legacy: boolean;
   include_durable: boolean;
-};
+  include_legacy: boolean;
+}
 
 export const monitorKeys = {
   all: ["worker-monitor"] as const,
   jobs: (params: Omit<FetchMonitorJobsParams, "cursor" | "durable_cursor">) => [...monitorKeys.all, "jobs", params] as const,
   overview: () => [...monitorKeys.all, "overview"] as const,
+  alertsRoot: () => [...monitorKeys.all, "alerts"] as const,
+  alerts: (params: FetchMonitorAlertsParams) => [...monitorKeys.alertsRoot(), params] as const,
+  alert: (alertId: string) => [...monitorKeys.all, "alert", alertId] as const,
 };
 
 export function useWorkerJobs(params: Omit<FetchMonitorJobsParams, "cursor" | "durable_cursor">) {
@@ -35,7 +46,7 @@ export function useWorkerJobs(params: Omit<FetchMonitorJobsParams, "cursor" | "d
       durable_cursor: null,
       include_legacy: true,
       include_durable: true,
-    } as MonitorJobsPageParam,
+    },
     getNextPageParam: (lastPage): MonitorJobsPageParam | undefined => {
       const cursor = lastPage.next_cursor ?? null;
       const durableCursor = lastPage.durable_jobs.next_cursor_token ?? null;
@@ -51,6 +62,43 @@ export function useWorkerJobs(params: Omit<FetchMonitorJobsParams, "cursor" | "d
         : undefined;
     },
   });
+}
+
+export function useMonitorAlerts(params: FetchMonitorAlertsParams = {}) {
+  return useQuery({
+    queryKey: monitorKeys.alerts(params),
+    queryFn: () => fetchMonitorAlerts(params),
+    refetchInterval: MONITOR_REFETCH_INTERVAL_MS,
+  });
+}
+
+export function useMonitorAlert(alertId: string | null) {
+  return useQuery({
+    queryKey: monitorKeys.alert(alertId ?? ""),
+    queryFn: () => fetchMonitorAlert(alertId ?? ""),
+    enabled: Boolean(alertId),
+  });
+}
+
+export function useMonitorAlertMutations() {
+  const queryClient = useQueryClient();
+  const invalidate = async (alertId: string) => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: monitorKeys.alertsRoot() }),
+      queryClient.invalidateQueries({ queryKey: monitorKeys.alert(alertId) }),
+    ]);
+  };
+  const acknowledge = useMutation({
+    mutationFn: ({ alertId, reason }: { alertId: string; reason: string }) =>
+      acknowledgeMonitorAlert(alertId, { reason }),
+    onSuccess: (_data, variables) => invalidate(variables.alertId),
+  });
+  const resolve = useMutation({
+    mutationFn: ({ alertId, reason }: { alertId: string; reason: string }) =>
+      resolveMonitorAlert(alertId, { reason }),
+    onSuccess: (_data, variables) => invalidate(variables.alertId),
+  });
+  return { acknowledge, resolve };
 }
 
 export function useWorkerMonitor(streamFresh = false) {

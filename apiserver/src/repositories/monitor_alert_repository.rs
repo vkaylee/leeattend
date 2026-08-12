@@ -45,6 +45,7 @@ pub trait MonitorAlertRepository: Send + Sync {
         alert_id: Uuid,
         action: MonitorAlertAction,
         reason: String,
+        actor_id: Uuid,
         occurred_at: DateTime<Utc>,
     ) -> Result<MonitorAlert, AppError>;
 

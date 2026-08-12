@@ -35,6 +35,7 @@ impl DieselMonitorAlertRepository {
 }
 
 #[async_trait]
+#[allow(clippy::too_many_lines)]
 impl MonitorAlertRepository for DieselMonitorAlertRepository {
     async fn list_alerts(
         &self,
@@ -111,6 +112,7 @@ impl MonitorAlertRepository for DieselMonitorAlertRepository {
         alert_id: Uuid,
         action: MonitorAlertAction,
         reason: String,
+        actor_id: Uuid,
         occurred_at: DateTime<Utc>,
     ) -> Result<MonitorAlert, AppError> {
         let mut conn = self.api_conn().await?;
@@ -204,6 +206,29 @@ impl MonitorAlertRepository for DieselMonitorAlertRepository {
                 .map_err(|error| {
                     AppError::Internal(format!(
                         "Failed to append monitor alert operator event: {error}"
+                    ))
+                })?;
+
+                let details = serde_json::json!({
+                    "alert_id": alert.id,
+                    "reason": reason,
+                    "event_type": event_type,
+                });
+                diesel::sql_query(
+                    "INSERT INTO system_audit_logs
+                     (id, actor_id, action, details, created_at)
+                     VALUES ($1, $2, $3, $4, $5)",
+                )
+                .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
+                .bind::<diesel::sql_types::Uuid, _>(actor_id)
+                .bind::<diesel::sql_types::Varchar, _>(format!("monitor_alert.{event_type}"))
+                .bind::<diesel::sql_types::Jsonb, _>(details)
+                .bind::<diesel::sql_types::Timestamptz, _>(occurred_at)
+                .execute(&mut *conn)
+                .await
+                .map_err(|error| {
+                    AppError::Internal(format!(
+                        "Failed to persist monitor alert audit log: {error}"
                     ))
                 })?;
 
