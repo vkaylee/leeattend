@@ -308,7 +308,9 @@ async fn test_monitor_correlations_validates_and_sanitizes_lookup() {
     let client = reqwest::Client::new();
 
     let response = client
-        .get(format!("{address}/api/v1/monitor/correlations?request_id={request_id}"))
+        .get(format!(
+            "{address}/api/v1/monitor/correlations?request_id={request_id}"
+        ))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -324,7 +326,9 @@ async fn test_monitor_correlations_validates_and_sanitizes_lookup() {
     assert!(!body_text.contains("raw error"));
 
     let invalid = client
-        .get(format!("{address}/api/v1/monitor/correlations?trace_id=bad%20trace"))
+        .get(format!(
+            "{address}/api/v1/monitor/correlations?trace_id=bad%20trace"
+        ))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -332,7 +336,9 @@ async fn test_monitor_correlations_validates_and_sanitizes_lookup() {
     assert_eq!(invalid.status(), StatusCode::BAD_REQUEST);
 
     let both = client
-        .get(format!("{address}/api/v1/monitor/correlations?request_id={request_id}&trace_id={trace_id}"))
+        .get(format!(
+            "{address}/api/v1/monitor/correlations?request_id={request_id}&trace_id={trace_id}"
+        ))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -350,7 +356,10 @@ async fn test_monitor_correlations_requires_platform_admin_or_support() {
         TestDatabase,
     ) = spawn_app_with_factory().await;
     let response = reqwest::Client::new()
-        .get(format!("{address}/api/v1/monitor/correlations?request_id={}", Uuid::new_v4()))
+        .get(format!(
+            "{address}/api/v1/monitor/correlations?request_id={}",
+            Uuid::new_v4()
+        ))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -583,6 +592,123 @@ async fn test_monitor_overview_reports_durable_db_unavailable_independently() {
         MonitorSourceStatus::Unavailable
     );
     assert!(snapshot.dependencies.postgres.latency_ms.is_none());
+}
+
+async fn seed_monitor_alert(factory: &TestFactory, status: &str) -> Uuid {
+    let alert_id = Uuid::new_v4();
+    let now = Utc::now();
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "INSERT INTO monitor_alerts
+         (id, fingerprint, alert_type, severity, status, title, summary, source,
+          first_seen_at, last_seen_at, occurrence_count, resolved_at, created_at, updated_at)
+         VALUES ($1, $2, 'monitor_test', 'warning', $3, 'Monitor test alert',
+                 'Safe monitor test alert', 'integration_test', $4, $4, 1,
+                 CASE WHEN $3 = 'resolved' THEN $4 ELSE NULL END, $4, $4)",
+        diesel::sql_types::Uuid,
+        alert_id,
+        diesel::sql_types::Varchar,
+        format!("fingerprint-{alert_id}"),
+        diesel::sql_types::Varchar,
+        status.to_string(),
+        diesel::sql_types::Timestamptz,
+        now
+    );
+    alert_id
+}
+
+#[tokio::test]
+async fn test_monitor_alert_operator_mutations_require_support_or_platform_admin() {
+    let (address, _workspace_id, user_id, factory, _db): (
+        String,
+        Uuid,
+        Uuid,
+        TestFactory,
+        TestDatabase,
+    ) = spawn_app_with_factory().await;
+    let alert_id = seed_monitor_alert(&factory, "active").await;
+    let response = reqwest::Client::new()
+        .post(format!(
+            "{address}/api/v1/monitor/alerts/{alert_id}/acknowledge"
+        ))
+        .header("X-User-Id", user_id.to_string())
+        .json(&serde_json::json!({"reason": "not authorized"}))
+        .send()
+        .await
+        .expect("unauthorized mutation request should complete");
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+async fn test_monitor_alert_operator_mutations_allow_support_and_are_idempotent() {
+    let (address, _workspace_id, user_id, factory, _db): (
+        String,
+        Uuid,
+        Uuid,
+        TestFactory,
+        TestDatabase,
+    ) = spawn_app_with_factory().await;
+    grant_system_role(&factory, user_id, "support").await;
+    let alert_id = seed_monitor_alert(&factory, "active").await;
+    let client = reqwest::Client::new();
+    let acknowledge = client
+        .post(format!(
+            "{address}/api/v1/monitor/alerts/{alert_id}/acknowledge"
+        ))
+        .header("X-User-Id", user_id.to_string())
+        .json(&serde_json::json!({"reason": "operator reviewed"}))
+        .send()
+        .await
+        .expect("acknowledge request should complete");
+    assert_eq!(acknowledge.status(), StatusCode::OK);
+    let repeat = client
+        .post(format!(
+            "{address}/api/v1/monitor/alerts/{alert_id}/acknowledge"
+        ))
+        .header("X-User-Id", user_id.to_string())
+        .json(&serde_json::json!({"reason": "same action"}))
+        .send()
+        .await
+        .expect("repeat acknowledge request should complete");
+    assert_eq!(repeat.status(), StatusCode::OK);
+    let resolve = client
+        .post(format!(
+            "{address}/api/v1/monitor/alerts/{alert_id}/resolve"
+        ))
+        .header("X-User-Id", user_id.to_string())
+        .json(&serde_json::json!({"reason": "issue mitigated"}))
+        .send()
+        .await
+        .expect("resolve request should complete");
+    assert_eq!(resolve.status(), StatusCode::OK);
+    let body: serde_json::Value = resolve
+        .json()
+        .await
+        .expect("resolve response should be JSON");
+    assert_eq!(body["status"], "resolved");
+}
+
+#[tokio::test]
+async fn test_monitor_alert_operator_mutations_reject_unsanitized_or_unbounded_reason() {
+    let (address, _workspace_id, user_id, factory, _db): (
+        String,
+        Uuid,
+        Uuid,
+        TestFactory,
+        TestDatabase,
+    ) = spawn_app_with_factory().await;
+    grant_platform_admin(&factory, user_id).await;
+    let alert_id = seed_monitor_alert(&factory, "active").await;
+    let response = reqwest::Client::new()
+        .post(format!(
+            "{address}/api/v1/monitor/alerts/{alert_id}/resolve"
+        ))
+        .header("X-User-Id", user_id.to_string())
+        .json(&serde_json::json!({"reason": "   "}))
+        .send()
+        .await
+        .expect("invalid reason request should complete");
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
 #[tokio::test]

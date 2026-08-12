@@ -70,4 +70,12 @@ pub fn router(state: &Arc<AppState>) -> Router<Arc<AppState>> {
             "/monitor/alerts/:alert_id",
             get(handlers::monitor_alerts::get_monitor_alert),
         )
+        .route(
+            "/monitor/alerts/:alert_id/acknowledge",
+            post(handlers::monitor_alerts::acknowledge_monitor_alert),
+        )
+        .route(
+            "/monitor/alerts/:alert_id/resolve",
+            post(handlers::monitor_alerts::resolve_monitor_alert),
+        )
 }

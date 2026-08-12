@@ -15,6 +15,7 @@ pub mod ess;
 
 pub mod jobs;
 pub mod leaves;
+pub mod monitor_alerts;
 pub mod notifications;
 pub mod payroll;
 pub mod payroll_rules;
@@ -30,7 +31,6 @@ pub mod system_db_clusters;
 pub mod system_tenants;
 pub mod work_segments;
 pub mod worker_monitor;
-pub mod monitor_alerts;
 pub mod working_patterns;
 pub mod workspaces;
 pub use agents::*;

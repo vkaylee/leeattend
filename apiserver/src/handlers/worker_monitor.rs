@@ -596,7 +596,7 @@ pub struct MonitorJobsResponse {
     pub quality: MonitorQuality,
 }
 
-#[derive(Debug, Deserialize, utoipa::IntoParams)]
+#[derive(Debug, Deserialize, utoipa::IntoParams, utoipa::ToSchema)]
 pub struct MonitorCorrelationParams {
     pub request_id: Option<String>,
     pub trace_id: Option<String>,
@@ -2276,6 +2276,7 @@ pub async fn get_monitor_correlations(
         (status = 200, description = "Paginated background jobs list", body = MonitorJobsResponse)
     )
 )]
+#[allow(clippy::too_many_lines)]
 pub async fn get_monitor_jobs(
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
@@ -2364,6 +2365,8 @@ pub async fn get_monitor_jobs(
                 state: state_filter,
                 task_type,
                 job_id: params.job_id,
+                request_id: None,
+                trace_id: None,
                 search,
             },
             durable_limit,

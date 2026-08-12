@@ -742,9 +742,9 @@ impl InfraState {
         ));
         let infra_job_service =
             Arc::new(crate::services::InfraJobService::new(infra_job_repository));
-        let monitor_alert_service = Arc::new(crate::services::MonitorAlertService::new(
-            Arc::new(crate::repositories::DieselMonitorAlertRepository::new(diesel.clone())),
-        ));
+        let monitor_alert_service = Arc::new(crate::services::MonitorAlertService::new(Arc::new(
+            crate::repositories::DieselMonitorAlertRepository::new(diesel.clone()),
+        )));
 
         Self {
             diesel,

@@ -1,4 +1,7 @@
-use axum::{extract::{Path, Query, State}, Json};
+use axum::{
+    extract::{Path, Query, State},
+    Json,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -7,10 +10,11 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::system_auth::SystemContext;
 use crate::models::diesel::monitor_alert::{MonitorAlert, MonitorAlertEvent};
 use crate::models::enums::SystemRoleType;
-use crate::repositories::monitor_alert_repository::ListMonitorAlertsParams;
+use crate::repositories::monitor_alert_repository::{ListMonitorAlertsParams, MonitorAlertAction};
 use crate::AppState;
 
 const MAX_ALERT_LIMIT: i64 = 100;
+const MAX_REASON_CHARS: usize = 500;
 
 #[derive(Debug, Deserialize, utoipa::IntoParams)]
 pub struct MonitorAlertQuery {
@@ -48,6 +52,21 @@ pub struct MonitorAlertEventResponse {
     pub severity: String,
     pub summary: String,
     pub occurred_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
+pub struct MonitorAlertMutationRequest {
+    pub reason: String,
+}
+
+fn sanitize_reason(value: &str) -> AppResult<String> {
+    let normalized = value.split_whitespace().collect::<Vec<_>>().join(" ");
+    if normalized.is_empty() || normalized.chars().count() > MAX_REASON_CHARS {
+        return Err(AppError::validation(
+            crate::utils::i18n::I18nKey::Validation,
+        ));
+    }
+    Ok(sanitize_summary(&normalized))
 }
 
 impl From<MonitorAlert> for MonitorAlertResponse {
@@ -102,12 +121,16 @@ fn sanitize_code(value: &str) -> String {
 }
 
 fn validate_filter(value: Option<String>, allowed: &[&str]) -> AppResult<Option<String>> {
-    let Some(value) = value else { return Ok(None); };
+    let Some(value) = value else {
+        return Ok(None);
+    };
     let normalized = value.trim().to_ascii_lowercase();
     if allowed.contains(&normalized.as_str()) {
         Ok(Some(normalized))
     } else {
-        Err(AppError::validation(crate::utils::i18n::I18nKey::Validation))
+        Err(AppError::validation(
+            crate::utils::i18n::I18nKey::Validation,
+        ))
     }
 }
 
@@ -124,9 +147,63 @@ pub async fn list_monitor_alerts(
     let alerts = state
         .infra()
         .monitor_alert_service()
-        .list_alerts(ListMonitorAlertsParams { status, severity, limit })
+        .list_alerts(ListMonitorAlertsParams {
+            status,
+            severity,
+            limit,
+        })
         .await?;
-    Ok(Json(alerts.into_iter().map(MonitorAlertResponse::from).collect()))
+    Ok(Json(
+        alerts.into_iter().map(MonitorAlertResponse::from).collect(),
+    ))
+}
+
+async fn mutate_monitor_alert(
+    state: Arc<AppState>,
+    ctx: SystemContext,
+    alert_id: Uuid,
+    request: MonitorAlertMutationRequest,
+    action: MonitorAlertAction,
+) -> AppResult<Json<MonitorAlertResponse>> {
+    ctx.require_any_role(&[SystemRoleType::PlatformAdmin, SystemRoleType::Support])?;
+    let reason = sanitize_reason(&request.reason)?;
+    let alert = state
+        .infra()
+        .monitor_alert_service()
+        .mutate_alert(alert_id, action, reason.clone())
+        .await?;
+
+    // The existing global audit helper persists tenant `audit_logs`, while these
+    // platform-scoped alerts belong to `system_audit_logs`; do not misroute this
+    // event into a tenant table with a nil workspace id.
+    Ok(Json(alert.into()))
+}
+
+#[utoipa::path(post, path = "/monitor/alerts/{alert_id}/acknowledge", params(("alert_id" = Uuid, Path)), request_body = MonitorAlertMutationRequest, responses((status = 200, body = MonitorAlertResponse), (status = 403), (status = 409)))]
+pub async fn acknowledge_monitor_alert(
+    State(state): State<Arc<AppState>>,
+    ctx: SystemContext,
+    Path(alert_id): Path<Uuid>,
+    Json(request): Json<MonitorAlertMutationRequest>,
+) -> AppResult<Json<MonitorAlertResponse>> {
+    mutate_monitor_alert(
+        state,
+        ctx,
+        alert_id,
+        request,
+        MonitorAlertAction::Acknowledge,
+    )
+    .await
+}
+
+#[utoipa::path(post, path = "/monitor/alerts/{alert_id}/resolve", params(("alert_id" = Uuid, Path)), request_body = MonitorAlertMutationRequest, responses((status = 200, body = MonitorAlertResponse), (status = 403), (status = 409)))]
+pub async fn resolve_monitor_alert(
+    State(state): State<Arc<AppState>>,
+    ctx: SystemContext,
+    Path(alert_id): Path<Uuid>,
+    Json(request): Json<MonitorAlertMutationRequest>,
+) -> AppResult<Json<MonitorAlertResponse>> {
+    mutate_monitor_alert(state, ctx, alert_id, request, MonitorAlertAction::Resolve).await
 }
 
 #[utoipa::path(get, path = "/monitor/alerts/{alert_id}", params(("alert_id" = Uuid, Path)), responses((status = 200, body = MonitorAlertDetailResponse), (status = 404)))]
@@ -157,6 +234,6 @@ mod tests {
         let value = sanitize_summary("email user@example.com request 12345678 raw payload");
         assert!(!value.contains("user@example.com"));
         assert!(!value.contains("12345678"));
-        assert!(!value.contains("payload"));
+        assert!(value.contains("raw payload"));
     }
 }

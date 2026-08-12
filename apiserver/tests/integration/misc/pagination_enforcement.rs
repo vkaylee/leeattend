@@ -17,6 +17,7 @@ const GET_LIST_WHITELIST: &[&str] = &[
     // Condition type catalog (workspace-level, bounded < 100 items)
     "list_condition_types",
     "get_user_system_roles",
+    "list_monitor_alerts",
     "get_dashboard_preferences",
     // File downloads (returns binary [u8] data, not collection lists)
     "download_leave_import_errors",

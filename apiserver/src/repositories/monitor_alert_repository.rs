@@ -11,6 +11,12 @@ pub struct ListMonitorAlertsParams {
     pub limit: i64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MonitorAlertAction {
+    Acknowledge,
+    Resolve,
+}
+
 #[async_trait]
 pub trait MonitorAlertRepository: Send + Sync {
     async fn list_alerts(
@@ -20,13 +26,21 @@ pub trait MonitorAlertRepository: Send + Sync {
 
     async fn get_alert(&self, alert_id: Uuid) -> Result<Option<MonitorAlert>, AppError>;
 
+    async fn mutate_alert(
+        &self,
+        alert_id: Uuid,
+        action: MonitorAlertAction,
+        reason: String,
+        occurred_at: DateTime<Utc>,
+    ) -> Result<MonitorAlert, AppError>;
+
     async fn list_events(
         &self,
         alert_id: Uuid,
         limit: i64,
     ) -> Result<Vec<MonitorAlertEvent>, AppError>;
 
-    #[allow(dead_code)]
+    #[allow(dead_code, clippy::too_many_arguments)]
     async fn insert_or_refresh_active(
         &self,
         fingerprint: String,

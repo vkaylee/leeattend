@@ -27,6 +27,8 @@ use utoipa::OpenApi;
         crate::handlers::document_templates::generate_document_from_template_handler,
         crate::handlers::monitor_alerts::list_monitor_alerts,
         crate::handlers::monitor_alerts::get_monitor_alert,
+        crate::handlers::monitor_alerts::acknowledge_monitor_alert,
+        crate::handlers::monitor_alerts::resolve_monitor_alert,
         crate::handlers::get_devices,
         crate::handlers::get_agents,
         crate::handlers::attendance::time_tracking::punch_in,
@@ -487,6 +489,7 @@ use utoipa::OpenApi;
             crate::handlers::monitor_alerts::MonitorAlertResponse,
             crate::handlers::monitor_alerts::MonitorAlertDetailResponse,
             crate::handlers::monitor_alerts::MonitorAlertEventResponse,
+            crate::handlers::monitor_alerts::MonitorAlertMutationRequest,
 
             Device,
             CreateDeviceRequest,

@@ -53,11 +53,13 @@ impl MonitorSnapshot {
         self.observed_at
     }
 
+    #[must_use]
     pub fn with_number(mut self, metric: MonitorMetric, value: f64) -> Self {
         self.values.insert(metric, MetricValue::Number(value));
         self
     }
 
+    #[must_use]
     pub fn with_boolean(mut self, metric: MonitorMetric, value: bool) -> Self {
         self.values.insert(metric, MetricValue::Boolean(value));
         self
@@ -122,7 +124,11 @@ impl ThresholdRule {
         })
     }
 
-    pub fn with_policy(mut self, streak_required: u8, cooldown: Duration) -> Result<Self, RuleConfigError> {
+    pub fn with_policy(
+        mut self,
+        streak_required: u8,
+        cooldown: Duration,
+    ) -> Result<Self, RuleConfigError> {
         if streak_required == 0 {
             return Err(RuleConfigError::InvalidStreak);
         }
@@ -134,12 +140,24 @@ impl ThresholdRule {
         Ok(self)
     }
 
-    pub fn id(&self) -> &'static str { self.id }
-    pub fn metric(&self) -> MonitorMetric { self.metric }
-    pub fn threshold(&self) -> f64 { self.threshold }
-    pub fn recovery_threshold(&self) -> f64 { self.recovery_threshold }
-    pub fn streak_required(&self) -> u8 { self.streak_required }
-    pub fn cooldown(&self) -> Duration { self.cooldown }
+    pub fn id(&self) -> &'static str {
+        self.id
+    }
+    pub fn metric(&self) -> MonitorMetric {
+        self.metric
+    }
+    pub fn threshold(&self) -> f64 {
+        self.threshold
+    }
+    pub fn recovery_threshold(&self) -> f64 {
+        self.recovery_threshold
+    }
+    pub fn streak_required(&self) -> u8 {
+        self.streak_required
+    }
+    pub fn cooldown(&self) -> Duration {
+        self.cooldown
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -176,12 +194,37 @@ impl RuleCatalog {
 
     pub fn defaults() -> Vec<ThresholdRule> {
         [
-            (Self::QUEUE_DEPTH_HIGH, MonitorMetric::QueueDepth, 100.0, 80.0),
-            (Self::FAILURE_RATE_HIGH, MonitorMetric::FailureRate, 0.10, 0.05),
-            (Self::ACTIVE_WORKERS_LOW, MonitorMetric::ActiveWorkers, 1.0, 2.0),
-            (Self::STALE_WORKERS_HIGH, MonitorMetric::StaleWorkers, 1.0, 0.0),
+            (
+                Self::QUEUE_DEPTH_HIGH,
+                MonitorMetric::QueueDepth,
+                100.0,
+                80.0,
+            ),
+            (
+                Self::FAILURE_RATE_HIGH,
+                MonitorMetric::FailureRate,
+                0.10,
+                0.05,
+            ),
+            (
+                Self::ACTIVE_WORKERS_LOW,
+                MonitorMetric::ActiveWorkers,
+                1.0,
+                2.0,
+            ),
+            (
+                Self::STALE_WORKERS_HIGH,
+                MonitorMetric::StaleWorkers,
+                1.0,
+                0.0,
+            ),
             (Self::LOST_JOBS_HIGH, MonitorMetric::LostJobs, 1.0, 0.0),
-            (Self::DEAD_LETTER_JOBS_HIGH, MonitorMetric::DeadLetterJobs, 1.0, 0.0),
+            (
+                Self::DEAD_LETTER_JOBS_HIGH,
+                MonitorMetric::DeadLetterJobs,
+                1.0,
+                0.0,
+            ),
         ]
         .into_iter()
         .filter_map(|(id, metric, threshold, recovery)| {
@@ -222,11 +265,21 @@ impl RuleState {
         }
     }
 
-    pub fn rule_id(&self) -> &'static str { self.rule_id }
-    pub fn active(&self) -> bool { self.active }
-    pub fn breach_streak(&self) -> u8 { self.breach_streak }
-    pub fn recovery_streak(&self) -> u8 { self.recovery_streak }
-    pub fn cooldown_until(&self) -> Option<DateTime<Utc>> { self.cooldown_until }
+    pub fn rule_id(&self) -> &'static str {
+        self.rule_id
+    }
+    pub fn active(&self) -> bool {
+        self.active
+    }
+    pub fn breach_streak(&self) -> u8 {
+        self.breach_streak
+    }
+    pub fn recovery_streak(&self) -> u8 {
+        self.recovery_streak
+    }
+    pub fn cooldown_until(&self) -> Option<DateTime<Utc>> {
+        self.cooldown_until
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -248,9 +301,15 @@ pub struct Evaluation {
 }
 
 impl Evaluation {
-    pub fn rule_id(&self) -> &'static str { self.rule_id }
-    pub fn status(&self) -> EvaluationStatus { self.status }
-    pub fn state(&self) -> &RuleState { &self.state }
+    pub fn rule_id(&self) -> &'static str {
+        self.rule_id
+    }
+    pub fn status(&self) -> EvaluationStatus {
+        self.status
+    }
+    pub fn state(&self) -> &RuleState {
+        &self.state
+    }
 }
 
 /// Stateful evaluator. State is per rule and can be exported to a repository after a tick.
@@ -260,7 +319,9 @@ pub struct ThresholdEvaluator {
 }
 
 impl ThresholdEvaluator {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn state(&self, rule_id: &'static str) -> RuleState {
         self.states
@@ -272,7 +333,11 @@ impl ThresholdEvaluator {
     pub fn evaluate(&mut self, rule: &ThresholdRule, snapshot: &MonitorSnapshot) -> Evaluation {
         let mut state = self.state(rule.id());
         let Some(value) = snapshot.value(rule.metric()).and_then(MetricValue::number) else {
-            return Evaluation { rule_id: rule.id(), status: EvaluationStatus::Unknown, state };
+            return Evaluation {
+                rule_id: rule.id(),
+                status: EvaluationStatus::Unknown,
+                state,
+            };
         };
 
         let breached = rule.operator().matches(value, rule.threshold());
@@ -285,48 +350,87 @@ impl ThresholdEvaluator {
                     state.recovery_streak = 0;
                     state.cooldown_until = Some(snapshot.observed_at() + rule.cooldown());
                     self.states.insert(rule.id(), state.clone());
-                    return Evaluation { rule_id: rule.id(), status: EvaluationStatus::Resolved, state };
+                    return Evaluation {
+                        rule_id: rule.id(),
+                        status: EvaluationStatus::Resolved,
+                        state,
+                    };
                 }
                 self.states.insert(rule.id(), state.clone());
-                return Evaluation { rule_id: rule.id(), status: EvaluationStatus::Recovering, state };
+                return Evaluation {
+                    rule_id: rule.id(),
+                    status: EvaluationStatus::Recovering,
+                    state,
+                };
             }
             state.recovery_streak = 0;
             self.states.insert(rule.id(), state.clone());
-            return Evaluation { rule_id: rule.id(), status: EvaluationStatus::Active, state };
+            return Evaluation {
+                rule_id: rule.id(),
+                status: EvaluationStatus::Active,
+                state,
+            };
         }
 
         state.recovery_streak = 0;
         if !breached {
             state.breach_streak = 0;
             self.states.insert(rule.id(), state.clone());
-            return Evaluation { rule_id: rule.id(), status: EvaluationStatus::Pending, state };
+            return Evaluation {
+                rule_id: rule.id(),
+                status: EvaluationStatus::Pending,
+                state,
+            };
         }
 
         state.breach_streak = state.breach_streak.saturating_add(1);
         if state.breach_streak < rule.streak_required() {
             self.states.insert(rule.id(), state.clone());
-            return Evaluation { rule_id: rule.id(), status: EvaluationStatus::Pending, state };
+            return Evaluation {
+                rule_id: rule.id(),
+                status: EvaluationStatus::Pending,
+                state,
+            };
         }
 
-        if state.cooldown_until.is_some_and(|until| snapshot.observed_at() < until) {
+        if state
+            .cooldown_until
+            .is_some_and(|until| snapshot.observed_at() < until)
+        {
             self.states.insert(rule.id(), state.clone());
-            return Evaluation { rule_id: rule.id(), status: EvaluationStatus::Suppressed, state };
+            return Evaluation {
+                rule_id: rule.id(),
+                status: EvaluationStatus::Suppressed,
+                state,
+            };
         }
 
         state.active = true;
         state.breach_streak = 0;
         self.states.insert(rule.id(), state.clone());
-        Evaluation { rule_id: rule.id(), status: EvaluationStatus::Fired, state }
+        Evaluation {
+            rule_id: rule.id(),
+            status: EvaluationStatus::Fired,
+            state,
+        }
     }
 
-    pub fn evaluate_all(&mut self, rules: &[ThresholdRule], snapshot: &MonitorSnapshot) -> Vec<Evaluation> {
-        rules.iter().map(|rule| self.evaluate(rule, snapshot)).collect()
+    pub fn evaluate_all(
+        &mut self,
+        rules: &[ThresholdRule],
+        snapshot: &MonitorSnapshot,
+    ) -> Vec<Evaluation> {
+        rules
+            .iter()
+            .map(|rule| self.evaluate(rule, snapshot))
+            .collect()
     }
-
 }
 
 impl ThresholdRule {
-    fn operator(&self) -> ThresholdOperator { self.operator }
+    fn operator(&self) -> ThresholdOperator {
+        self.operator
+    }
 }
 
 fn recovery_matches(rule: &ThresholdRule, value: f64) -> bool {
@@ -387,8 +491,14 @@ mod tests {
     #[test]
     fn fires_only_after_three_consecutive_breaches() {
         let mut evaluator = ThresholdEvaluator::new();
-        assert_eq!(evaluator.evaluate(&rule(), &snapshot(1, 10.0)).status(), EvaluationStatus::Pending);
-        assert_eq!(evaluator.evaluate(&rule(), &snapshot(2, 11.0)).status(), EvaluationStatus::Pending);
+        assert_eq!(
+            evaluator.evaluate(&rule(), &snapshot(1, 10.0)).status(),
+            EvaluationStatus::Pending
+        );
+        assert_eq!(
+            evaluator.evaluate(&rule(), &snapshot(2, 11.0)).status(),
+            EvaluationStatus::Pending
+        );
         let fired = evaluator.evaluate(&rule(), &snapshot(3, 12.0));
         assert_eq!(fired.status(), EvaluationStatus::Fired);
         assert!(fired.state().active());
@@ -410,9 +520,18 @@ mod tests {
         for at in 1..=3 {
             evaluator.evaluate(&rule(), &snapshot(at, 10.0));
         }
-        assert_eq!(evaluator.evaluate(&rule(), &snapshot(4, 5.5)).status(), EvaluationStatus::Active);
-        assert_eq!(evaluator.evaluate(&rule(), &snapshot(5, 5.0)).status(), EvaluationStatus::Recovering);
-        assert_eq!(evaluator.evaluate(&rule(), &snapshot(6, 4.0)).status(), EvaluationStatus::Recovering);
+        assert_eq!(
+            evaluator.evaluate(&rule(), &snapshot(4, 5.5)).status(),
+            EvaluationStatus::Active
+        );
+        assert_eq!(
+            evaluator.evaluate(&rule(), &snapshot(5, 5.0)).status(),
+            EvaluationStatus::Recovering
+        );
+        assert_eq!(
+            evaluator.evaluate(&rule(), &snapshot(6, 4.0)).status(),
+            EvaluationStatus::Recovering
+        );
         let resolved = evaluator.evaluate(&rule(), &snapshot(7, 3.0));
         assert_eq!(resolved.status(), EvaluationStatus::Resolved);
         assert!(!resolved.state().active());
@@ -427,8 +546,14 @@ mod tests {
         for at in 4..=6 {
             evaluator.evaluate(&rule(), &snapshot(at, 0.0));
         }
-        assert_eq!(evaluator.evaluate(&rule(), &snapshot(7, 10.0)).status(), EvaluationStatus::Pending);
-        assert_eq!(evaluator.evaluate(&rule(), &snapshot(8, 10.0)).status(), EvaluationStatus::Pending);
+        assert_eq!(
+            evaluator.evaluate(&rule(), &snapshot(7, 10.0)).status(),
+            EvaluationStatus::Pending
+        );
+        assert_eq!(
+            evaluator.evaluate(&rule(), &snapshot(8, 10.0)).status(),
+            EvaluationStatus::Pending
+        );
         let suppressed = evaluator.evaluate(&rule(), &snapshot(9, 10.0));
         assert_eq!(suppressed.status(), EvaluationStatus::Suppressed);
         assert!(!suppressed.state().active());
@@ -449,9 +574,17 @@ mod tests {
         .expect("valid rule");
         let mut evaluator = ThresholdEvaluator::new();
         for at in 1..=3 {
-            evaluator.evaluate(&rule, &MonitorSnapshot::new(DateTime::from_timestamp(at, 0).expect("timestamp")).with_number(MonitorMetric::ActiveWorkers, 1.0));
+            evaluator.evaluate(
+                &rule,
+                &MonitorSnapshot::new(DateTime::from_timestamp(at, 0).expect("timestamp"))
+                    .with_number(MonitorMetric::ActiveWorkers, 1.0),
+            );
         }
-        let resolved = evaluator.evaluate(&rule, &MonitorSnapshot::new(DateTime::from_timestamp(4, 0).expect("timestamp")).with_number(MonitorMetric::ActiveWorkers, 3.0));
+        let resolved = evaluator.evaluate(
+            &rule,
+            &MonitorSnapshot::new(DateTime::from_timestamp(4, 0).expect("timestamp"))
+                .with_number(MonitorMetric::ActiveWorkers, 3.0),
+        );
         assert_eq!(resolved.status(), EvaluationStatus::Recovering);
     }
 }

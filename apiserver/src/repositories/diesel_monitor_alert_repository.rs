@@ -2,18 +2,23 @@ use crate::diesel_pool::{DieselPools, TransactionConn};
 use crate::errors::AppError;
 use crate::models::diesel::monitor_alert::{MonitorAlert, MonitorAlertEvent};
 use crate::repositories::monitor_alert_repository::{
-    ListMonitorAlertsParams, MonitorAlertRepository,
+    ListMonitorAlertsParams, MonitorAlertAction, MonitorAlertRepository,
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncConnection, RunQueryDsl};
-use diesel::sql_query;
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct DieselMonitorAlertRepository {
     pool: DieselPools,
+}
+
+#[derive(QueryableByName)]
+struct ExistsRow {
+    #[diesel(sql_type = diesel::sql_types::Bool)]
+    value: bool,
 }
 
 impl DieselMonitorAlertRepository {
@@ -22,9 +27,9 @@ impl DieselMonitorAlertRepository {
     }
 
     async fn api_conn(&self) -> Result<TransactionConn, AppError> {
-        Ok(TransactionConn(self.pool.api.get().await.map_err(|error| {
-            AppError::Internal(format!("Failed to get system DB connection: {error}"))
-        })?))
+        Ok(TransactionConn(self.pool.api.get().await.map_err(
+            |error| AppError::Internal(format!("Failed to get system DB connection: {error}")),
+        )?))
     }
 }
 
@@ -64,6 +69,113 @@ impl MonitorAlertRepository for DieselMonitorAlertRepository {
             .map_err(|error| AppError::Internal(format!("Failed to read monitor alert: {error}")))
     }
 
+    async fn mutate_alert(
+        &self,
+        alert_id: Uuid,
+        action: MonitorAlertAction,
+        reason: String,
+        occurred_at: DateTime<Utc>,
+    ) -> Result<MonitorAlert, AppError> {
+        let mut conn = self.api_conn().await?;
+        let event_id = Uuid::new_v4();
+        let (event_type, target_status): (&str, &str) = match action {
+            MonitorAlertAction::Acknowledge => ("acknowledged", "active"),
+            MonitorAlertAction::Resolve => ("resolved", "resolved"),
+        };
+
+        conn.transaction::<_, AppError, _>(|conn| {
+            Box::pin(async move {
+                let current = diesel::sql_query(
+                    "SELECT id, fingerprint, alert_type, severity, status, title, summary,
+                            source, first_seen_at, last_seen_at, occurrence_count, resolved_at,
+                            created_at, updated_at
+                       FROM monitor_alerts
+                      WHERE id = $1
+                      FOR UPDATE",
+                )
+                .bind::<diesel::sql_types::Uuid, _>(alert_id)
+                .get_result::<MonitorAlert>(&mut *conn)
+                .await
+                .map_err(|error| match error {
+                    diesel::result::Error::NotFound => {
+                        AppError::not_found(crate::utils::i18n::I18nKey::NotFound)
+                    }
+                    other => AppError::Internal(format!("Failed to lock monitor alert: {other}")),
+                })?;
+
+                let already_recorded = diesel::sql_query(
+                    "SELECT EXISTS(
+                        SELECT 1 FROM monitor_alert_events
+                         WHERE alert_id = $1 AND event_type = $2
+                    ) AS value",
+                )
+                .bind::<diesel::sql_types::Uuid, _>(alert_id)
+                .bind::<diesel::sql_types::Varchar, _>(event_type)
+                .get_result::<ExistsRow>(&mut *conn)
+                .await
+                .map_err(|error| {
+                    AppError::Internal(format!("Failed to inspect monitor alert state: {error}"))
+                })?
+                .value;
+
+                let idempotent = match action {
+                    MonitorAlertAction::Acknowledge => {
+                        current.status == "active" && already_recorded
+                    }
+                    MonitorAlertAction::Resolve => current.status == "resolved",
+                };
+                if idempotent {
+                    return Ok(current);
+                }
+
+                if current.status != "active" {
+                    return Err(AppError::conflict(crate::utils::i18n::I18nKey::Conflict));
+                }
+
+                let alert = diesel::sql_query(
+                    "UPDATE monitor_alerts
+                        SET status = $1,
+                            resolved_at = CASE WHEN $1 = 'resolved' THEN $2 ELSE NULL END,
+                            updated_at = $2
+                      WHERE id = $3
+                     RETURNING id, fingerprint, alert_type, severity, status, title, summary,
+                       source, first_seen_at, last_seen_at, occurrence_count, resolved_at,
+                       created_at, updated_at",
+                )
+                .bind::<diesel::sql_types::Varchar, _>(target_status)
+                .bind::<diesel::sql_types::Timestamptz, _>(occurred_at)
+                .bind::<diesel::sql_types::Uuid, _>(alert_id)
+                .get_result::<MonitorAlert>(&mut *conn)
+                .await
+                .map_err(|error| {
+                    AppError::Internal(format!("Failed to mutate monitor alert: {error}"))
+                })?;
+
+                diesel::sql_query(
+                    "INSERT INTO monitor_alert_events
+                     (id, alert_id, event_type, severity, summary, occurred_at, created_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, $6)",
+                )
+                .bind::<diesel::sql_types::Uuid, _>(event_id)
+                .bind::<diesel::sql_types::Uuid, _>(alert.id)
+                .bind::<diesel::sql_types::Varchar, _>(event_type)
+                .bind::<diesel::sql_types::Varchar, _>(&alert.severity)
+                .bind::<diesel::sql_types::Text, _>(&reason)
+                .bind::<diesel::sql_types::Timestamptz, _>(occurred_at)
+                .execute(&mut *conn)
+                .await
+                .map_err(|error| {
+                    AppError::Internal(format!(
+                        "Failed to append monitor alert operator event: {error}"
+                    ))
+                })?;
+
+                Ok(alert)
+            })
+        })
+        .await
+    }
+
     async fn list_events(
         &self,
         alert_id: Uuid,
@@ -79,7 +191,9 @@ impl MonitorAlertRepository for DieselMonitorAlertRepository {
             .limit(limit.clamp(1, 200))
             .load::<MonitorAlertEvent>(&mut *conn)
             .await
-            .map_err(|error| AppError::Internal(format!("Failed to list monitor alert events: {error}")))
+            .map_err(|error| {
+                AppError::Internal(format!("Failed to list monitor alert events: {error}"))
+            })
     }
 
     async fn insert_or_refresh_active(
@@ -123,7 +237,9 @@ impl MonitorAlertRepository for DieselMonitorAlertRepository {
                 .bind::<diesel::sql_types::Timestamptz, _>(occurred_at)
                 .get_result::<MonitorAlert>(&mut *conn)
                 .await
-                .map_err(|error| AppError::Internal(format!("Failed to upsert monitor alert: {error}")))?;
+                .map_err(|error| {
+                    AppError::Internal(format!("Failed to upsert monitor alert: {error}"))
+                })?;
 
                 diesel::sql_query(
                     "INSERT INTO monitor_alert_events
@@ -138,7 +254,9 @@ impl MonitorAlertRepository for DieselMonitorAlertRepository {
                 .bind::<diesel::sql_types::Timestamptz, _>(occurred_at)
                 .execute(&mut *conn)
                 .await
-                .map_err(|error| AppError::Internal(format!("Failed to append monitor alert event: {error}")))?;
+                .map_err(|error| {
+                    AppError::Internal(format!("Failed to append monitor alert event: {error}"))
+                })?;
 
                 Ok(alert)
             })
