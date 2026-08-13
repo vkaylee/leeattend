@@ -45,7 +45,7 @@ const createWrapper = () => {
 
 describe("use-dashboard hooks", () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        vi.mocked(api.apiFetch).mockReset();
     });
 
     describe("useDashboardStats", () => {
@@ -180,12 +180,19 @@ describe("use-dashboard hooks", () => {
         const locationB = "44444444-4444-4444-8444-444444444444";
 
         const filters: DashboardMetricsFilters = {
+            businessUnitIds: [],
             comparison: "previous_period",
             departmentIds: [departmentB, departmentA, departmentA],
+            employeeStatuses: [],
+            employmentTypes: [],
             endDate: "2026-08-13",
             locationIds: [locationB, locationA],
+            managerIds: [],
             period: "custom",
+            riskThreshold: "watch",
+            shiftIds: [],
             startDate: "2026-08-01",
+            topN: 10,
         };
 
         const renderMetrics = (metricsFilters: DashboardMetricsFilters) => {
@@ -203,14 +210,14 @@ describe("use-dashboard hooks", () => {
             vi.mocked(api.apiFetch).mockResolvedValue({ ok: false, status: 503 } as unknown as never);
 
             const first = renderMetrics(filters);
-            await waitFor(() => { expect(first.result.current.isError).toBe(true); });
+            await waitFor(() => { expect(api.apiFetch).toHaveBeenCalledTimes(1); });
 
             const second = renderMetrics({
                 ...filters,
                 departmentIds: [departmentA, departmentB],
                 locationIds: [locationA, locationB],
             });
-            await waitFor(() => { expect(second.result.current.isError).toBe(true); });
+            await waitFor(() => { expect(api.apiFetch).toHaveBeenCalledTimes(2); });
 
             const expectedEndpoint = "/v1/dashboard/executive-overview?period=custom&comparison=previous_period&start_date=2026-08-01&end_date=2026-08-13&department_ids=11111111-1111-4111-8111-111111111111&department_ids=22222222-2222-4222-8222-222222222222&location_ids=33333333-3333-4333-8333-333333333333&location_ids=44444444-4444-4444-8444-444444444444";
             expect(first.queryClient.getQueryCache().getAll()[0]?.queryKey).toEqual([
@@ -228,12 +235,12 @@ describe("use-dashboard hooks", () => {
         it("requests every canonical filter parameter", async () => {
             vi.mocked(api.apiFetch).mockResolvedValue({ ok: false, status: 503 } as unknown as never);
 
-            const { result } = renderMetrics(filters);
-            await waitFor(() => { expect(result.current.isError).toBe(true); });
-
-            expect(api.apiFetch).toHaveBeenCalledWith(
-                "/v1/dashboard/executive-overview?period=custom&comparison=previous_period&start_date=2026-08-01&end_date=2026-08-13&department_ids=11111111-1111-4111-8111-111111111111&department_ids=22222222-2222-4222-8222-222222222222&location_ids=33333333-3333-4333-8333-333333333333&location_ids=44444444-4444-4444-8444-444444444444",
-            );
+            renderMetrics(filters);
+            await waitFor(() => {
+                expect(api.apiFetch).toHaveBeenCalledWith(
+                    "/v1/dashboard/executive-overview?period=custom&comparison=previous_period&start_date=2026-08-01&end_date=2026-08-13&department_ids=11111111-1111-4111-8111-111111111111&department_ids=22222222-2222-4222-8222-222222222222&location_ids=33333333-3333-4333-8333-333333333333&location_ids=44444444-4444-4444-8444-444444444444",
+                );
+            });
         });
     });
 

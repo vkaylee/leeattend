@@ -1291,7 +1291,7 @@
     "welcome": "Chào mừng trở lại! Đây là tóm tắt hoạt động trong không gian làm việc của bạn.",
     "filters": {
       "label": "Bộ lọc dashboard điều hành",
-      "period": { "today": "Hôm nay", "this_week": "Tuần này", "this_month": "Tháng này", "this_quarter": "Quý này", "year_to_date": "Từ đầu năm", "custom": "Khoảng tùy chọn" },
+      "period": { "label": "Kỳ báo cáo", "today": "Hôm nay", "this_week": "Tuần này", "this_month": "Tháng này", "this_quarter": "Quý này", "year_to_date": "Từ đầu năm", "custom": "Khoảng tùy chọn" },
       "comparison": { "label": "So sánh", "none": "Không so sánh", "previous_period": "Kỳ trước", "same_period_last_year": "Cùng kỳ năm trước", "target": "Mục tiêu", "budget": "Ngân sách", "benchmark": "Đối chuẩn" },
       "department": { "label": "Phòng ban" },
       "start_date": "Ngày bắt đầu",
@@ -1307,7 +1307,7 @@
       "context_pending": "Chọn bộ lọc để tải chỉ số điều hành.",
       "loading": "Đang tải chỉ số điều hành",
       "error": "Không khả dụng",
-      "error_description": "Không thể tải chỉ số điều hành. Widget vận hành vẫn khả dụng.",
+      "error_description": "Không thể tải chỉ số điều hành do lỗi kết nối hoặc dữ liệu. Widget vận hành vẫn khả dụng.",
       "data_gap": "Một số nguồn điều hành đang thiếu dữ liệu. Không thay giá trị thiếu bằng số 0.",
       "metric_count": "{{count}} chỉ số",
       "ready": "Có {{count}} chỉ số điều hành."

@@ -1291,7 +1291,7 @@
     "welcome": "Welcome back! Here is a summary of your workspace activities.",
     "filters": {
       "label": "Executive dashboard filters",
-      "period": { "today": "Today", "this_week": "This week", "this_month": "This month", "this_quarter": "This quarter", "year_to_date": "Year to date", "custom": "Custom range" },
+      "period": { "label": "Reporting period", "today": "Today", "this_week": "This week", "this_month": "This month", "this_quarter": "This quarter", "year_to_date": "Year to date", "custom": "Custom range" },
       "comparison": { "label": "Comparison", "none": "No comparison", "previous_period": "Previous period", "same_period_last_year": "Same period last year", "target": "Target", "budget": "Budget", "benchmark": "Benchmark" },
       "department": { "label": "Department" },
       "start_date": "Start date",
@@ -1307,7 +1307,7 @@
       "context_pending": "Choose filters to load executive metrics.",
       "loading": "Loading executive metrics",
       "error": "Unavailable",
-      "error_description": "Executive metrics could not be loaded. Existing operational widgets remain available.",
+      "error_description": "Executive metrics could not be loaded because of a connection or data error. Existing operational widgets remain available.",
       "data_gap": "Some executive sources have data gaps. No missing values were replaced with zero.",
       "metric_count": "{{count}} metrics",
       "ready": "{{count}} executive metrics available."

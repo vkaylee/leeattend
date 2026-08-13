@@ -172,7 +172,7 @@ export default function DashboardPage() {
             <Skeleton className="h-24 rounded-2xl" />
           </div>
         ) : executiveError ? (
-          <p className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300" role="alert">{t("dashboard.executive.error_description")}</p>
+          <p aria-live="assertive" className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300" role="alert">{t("dashboard.executive.error_description")}</p>
         ) : executiveDataGap ? (
           <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200" role="status">{t("dashboard.executive.data_gap")}</p>
         ) : (

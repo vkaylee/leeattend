@@ -40,6 +40,7 @@ vi.mock("@/hooks/use-datetime", () => ({
  
 vi.mock("@/hooks/use-dashboard", () => ({
   useDashboardStats: vi.fn(),
+  useDashboardMetrics: vi.fn(),
 }));
 
 vi.mock("@/hooks/use-dashboard-layout", () => ({
@@ -70,7 +71,7 @@ vi.mock("@/components/features/dashboard/hr-quick-stats", () => ({
 }));
 
 import { useAgentsStatus } from "@/hooks/use-agents";
-import { useDashboardStats } from "@/hooks/use-dashboard";
+import { useDashboardMetrics, useDashboardStats } from "@/hooks/use-dashboard";
 import { useDashboardLayout } from "@/hooks/use-dashboard-layout";
 import { useDevices } from "@/hooks/use-devices";
 
@@ -100,9 +101,15 @@ describe("DashboardPage", () => {
       error: null,
     } as unknown as ReturnType<typeof useDevices>);
 
+    vi.mocked(useDashboardMetrics).mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useDashboardMetrics>);
+
     vi.mocked(useDashboardStats).mockReturnValue({
       data: {
- 
+
         total_employees: 100,
         present_today: 95,
         late_today: 5,

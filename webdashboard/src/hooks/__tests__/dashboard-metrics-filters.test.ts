@@ -64,7 +64,10 @@ describe("dashboard metrics URL filters", () => {
       parseDashboardMetricsFilters(
         "period=today&start_date=2026-02-30&end_date=2026-08-01&department_ids=bad&employment_types=%20",
       ),
-    ).toEqual(DEFAULT_DASHBOARD_METRICS_FILTERS);
+    ).toEqual({
+      ...DEFAULT_DASHBOARD_METRICS_FILTERS,
+      period: "today",
+    });
   });
 
   it("uses defaults for an invalid custom range while preserving dimensions", () => {

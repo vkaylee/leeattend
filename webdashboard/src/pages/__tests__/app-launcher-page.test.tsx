@@ -59,6 +59,7 @@ const mockStats = {
 };
 
 vi.mock("@/hooks/use-dashboard", () => ({
+  useDashboardMetrics: () => ({ data: null, isLoading: false, error: null }),
   useDashboardStats: () => ({
     data: mockStats,
     isLoading: false,
