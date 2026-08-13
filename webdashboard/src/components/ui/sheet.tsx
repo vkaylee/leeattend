@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 
 import { Typography } from "@/components/ui/typography";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { useTranslation } from "react-i18next";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { cn } from "@/lib/utils";
 
@@ -82,8 +83,10 @@ function SheetHeader({
   titleId,
   subtitle,
   headerExtra,
-  onClose
+  onClose,
+  closeLabel,
 }: {
+  closeLabel: string;
   headerExtra?: React.ReactNode;
   onClose: () => void;
   subtitle?: string;
@@ -115,7 +118,7 @@ function SheetHeader({
         </div>
       ) : null}
       <button
-        aria-label="Close"
+        aria-label={closeLabel}
         className={`col-start-2 row-start-1 flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-100 bg-white p-3 text-slate-500 shadow-md transition-all hover:bg-slate-50 hover:text-rose-600 active:scale-90 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-rose-400 ${headerExtra ? "sm:col-start-3" : ""}`}
         onClick={onClose}
         type="button"
@@ -141,6 +144,7 @@ export default function Sheet({
   hideHeader,
 }: SheetProps) {
   const generatedTitleId = useId();
+  const { t } = useTranslation();
   const resolvedAriaLabelledBy = ariaLabelledBy ?? (title ? generatedTitleId : undefined);
   const isVisible = useSheetState(isOpen, onClose);
   const containerRef = useFocusTrap(isOpen);
@@ -183,7 +187,7 @@ export default function Sheet({
           role="dialog"
         >
           {/* Header */}
-          {!hideHeader && <SheetHeader headerExtra={headerExtra} onClose={onClose} subtitle={subtitle} title={title} titleId={title ? generatedTitleId : undefined} />}
+          {!hideHeader && <SheetHeader closeLabel={t("common.close", { defaultValue: "Close" })} headerExtra={headerExtra} onClose={onClose} subtitle={subtitle} title={title} titleId={title ? generatedTitleId : undefined} />}
 
           {/* Content */}
           <div className={cn("flex-1 overflow-y-auto overscroll-contain p-4 sm:p-10 relative scroll-smooth", contentClassName)}>

@@ -301,6 +301,7 @@ use utoipa::OpenApi;
         crate::handlers::worker_monitor::get_monitor_overview,
         crate::handlers::worker_monitor::get_monitor_jobs,
         crate::handlers::worker_monitor::get_monitor_correlations,
+        crate::handlers::worker_monitor::monitor_stream_sse,
         crate::handlers::jobs::get_durable_monitor_job,
         crate::handlers::workspaces::audit::get_audit_logs,
 

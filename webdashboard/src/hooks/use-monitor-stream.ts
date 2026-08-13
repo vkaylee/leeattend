@@ -85,11 +85,11 @@ function hasValidOperationalContract(value: Record<string, unknown>): boolean {
     "consecutive_failures", "dead_letter_count", "execution_seconds_p50", "execution_seconds_p95",
     "execution_seconds_p99", "failure_rate", "lost_count", "retryable_count", "success_rate", "timeout_count",
   ];
-  const queueValid = value.queue_health === undefined || isMetricSection(value.queue_health, queueFields);
-  const reliabilityValid = value.reliability === undefined || isMetricSection(value.reliability, reliabilityFields);
+  const queueValid = isMetricSection(value.queue_health, queueFields);
+  const reliabilityValid = isMetricSection(value.reliability, reliabilityFields);
   const thresholds = value.thresholds;
-  const thresholdsValid = thresholds === undefined || (
-    isRecord(thresholds) && typeof thresholds.source === "string" &&
+  const thresholdsValid = isRecord(thresholds) && (
+    typeof thresholds.source === "string" &&
     isRecord(thresholds.queue_pressure) &&
     isNullableNonNegativeNumber(thresholds.queue_pressure.medium_at) &&
     isNullableNonNegativeNumber(thresholds.queue_pressure.high_at) &&
@@ -207,6 +207,7 @@ export function useMonitorStream() {
           const sequence = parsed.quality.snapshot_sequence;
           if (lastSequence.current && compareSnapshotSequence(sequence, lastSequence.current) <= 0) {
             setStatus("degraded");
+            setIsFresh(false);
             setErrorCode("MONITOR_OUT_OF_ORDER");
             return;
           }

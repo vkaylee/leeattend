@@ -2,6 +2,8 @@
   "monitor": {
     "filter_status": "按状态筛选",
     "filter_type": "按类型筛选",
+    "open_job_details": "打开任务详情",
+    "load_more_jobs": "加载更多任务",
     "filter_search_label": "搜索任务",
     "filter_search_placeholder": "搜索任务 ID 或错误代码...",
     "pending_normal": "普通优先级",

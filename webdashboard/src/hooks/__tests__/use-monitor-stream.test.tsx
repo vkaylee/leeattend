@@ -26,6 +26,34 @@ describe("useMonitorStream Hook", () => {
 
   let currentEventSource: MockEventSourceHandle | undefined;
 
+  const metric = {
+    unit: "jobs",
+    formula: "test",
+    source: "test",
+    value: 0,
+    observed_at: "2026-08-11T12:00:00.000Z",
+    time_window: {
+      start: "2026-08-11T11:45:00.000Z",
+      end: "2026-08-11T12:00:00.000Z",
+      duration_seconds: 900,
+    },
+    unknown: null,
+  };
+  const queueHealth = Object.fromEntries([
+    "dead_letter_depth", "depth_high", "depth_low", "depth_normal", "depth_total",
+    "enqueue_rate_per_second", "estimated_drain_seconds", "growth_rate_per_second",
+    "oldest_queued_age_seconds", "processing_rate_per_second", "queue_wait_seconds_p50", "queue_wait_seconds_p95",
+  ].map((field) => [field, metric]));
+  const reliability = Object.fromEntries([
+    "consecutive_failures", "dead_letter_count", "execution_seconds_p50", "execution_seconds_p95",
+    "execution_seconds_p99", "failure_rate", "lost_count", "retryable_count", "success_rate", "timeout_count",
+  ].map((field) => [field, metric]));
+  const thresholds = {
+    source: "backend_default",
+    queue_pressure: { medium_at: 1, high_at: 2, critical_at: 3 },
+    worker_utilization: { scale_down_below_percent: 20, warning_at_percent: 60, critical_at_percent: 80 },
+  };
+
   class MockEventSource {
     url: string;
     readyState = 0;
@@ -119,7 +147,11 @@ describe("useMonitorStream Hook", () => {
       active_workers: 0,
       completed_today: 0,
       durable_jobs: { status: "available", jobs: [] },
+      dependencies: {},
       failed_today: 0,
+      queue_health: queueHealth,
+      reliability,
+      thresholds,
       idle_workers: 0,
       job_type_stats: [],
       observed_at: "2026-08-11T12:00:00.000Z",
@@ -162,9 +194,13 @@ describe("useMonitorStream Hook", () => {
       active_workers: null,
       completed_today: null,
       durable_jobs: { status: "available", jobs: [] },
+      dependencies: {},
       failed_today: null,
       idle_workers: null,
       job_type_stats: [],
+      queue_health: queueHealth,
+      reliability,
+      thresholds,
       observed_at: "2026-08-11T12:00:00.000Z",
       pending_high: null,
       pending_low: null,

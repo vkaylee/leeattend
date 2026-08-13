@@ -2,6 +2,8 @@
   "monitor": {
     "filter_status": "Lọc theo trạng thái",
     "filter_type": "Lọc theo loại",
+    "open_job_details": "Mở chi tiết công việc",
+    "load_more_jobs": "Tải thêm công việc",
     "filter_search_label": "Tìm kiếm công việc",
     "filter_search_placeholder": "Tìm theo mã công việc hoặc mã lỗi...",
     "pending_normal": "Ưu tiên thường",

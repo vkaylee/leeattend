@@ -2,6 +2,8 @@
   "monitor": {
     "filter_status": "Filter by status",
     "filter_type": "Filter by type",
+    "open_job_details": "Open job details",
+    "load_more_jobs": "Load more jobs",
     "filter_search_label": "Search jobs",
     "filter_search_placeholder": "Search Job ID or error code...",
     "pending_normal": "Normal priority",

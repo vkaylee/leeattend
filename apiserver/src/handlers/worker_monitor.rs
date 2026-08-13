@@ -41,6 +41,9 @@ const MAX_CORRELATION_JOBS: usize = 25;
 const MAX_CORRELATION_EVENTS: i64 = 200;
 const MONITOR_QUERY_TIMEOUT_SECS: u64 = 5;
 const MONITOR_SOURCE_TIMEOUT_SECS: u64 = 1;
+const MAX_HEARTBEAT_SCAN_ITERATIONS: usize = 8;
+const MAX_HEARTBEAT_KEYS: usize = 512;
+const HEARTBEAT_MGET_CHUNK_SIZE: usize = 64;
 const MONITOR_WINDOW_SECS: i64 = 15 * 60;
 const MONITOR_AGGREGATION_LIMIT: i64 = 20_000;
 const DLQ_KEY: &str = "report:dlq";
@@ -193,15 +196,31 @@ fn enum_label<T: Serialize>(value: &T) -> Option<String> {
 
 fn summarize_error(error: &str) -> String {
     let normalized = error.split_whitespace().collect::<Vec<_>>().join(" ");
-    let mut summary = normalized;
-    if summary.chars().count() > MAX_MONITOR_ERROR_SUMMARY_CHARS {
-        summary = summary
-            .chars()
-            .take(MAX_MONITOR_ERROR_SUMMARY_CHARS)
-            .collect::<String>();
+    let redacted = normalized
+        .split(' ')
+        .map(|part| {
+            let digits = part.chars().filter(char::is_ascii_digit).count();
+            if part.contains('@') || digits >= 8 {
+                "[REDACTED]"
+            } else {
+                part
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+    let mut summary = redacted
+        .chars()
+        .take(MAX_MONITOR_ERROR_SUMMARY_CHARS)
+        .collect::<String>();
+    if redacted.chars().count() > MAX_MONITOR_ERROR_SUMMARY_CHARS {
         summary.push('…');
     }
     summary
+}
+
+#[cfg(test)]
+fn legacy_error_summary_for_test(error: &str) -> String {
+    summarize_error(error)
 }
 
 impl From<&crate::queue::JobMetadata> for MonitorJob {
@@ -1023,47 +1042,61 @@ async fn load_worker_heartbeat_snapshot(
     observed_at: DateTime<Utc>,
 ) -> (Vec<WorkerHeartbeat>, MonitorSourceHealth) {
     let pattern = format!("{WORKER_HEARTBEAT_PREFIX}*");
-    let heartbeat_read = match scan_keys(conn, &pattern).await {
-        Ok(worker_keys) if worker_keys.is_empty() => Ok(Vec::new()),
-        Ok(worker_keys) => conn
-            .mget::<_, Vec<Option<String>>>(&worker_keys)
-            .await
-            .map_err(|_error| {
-                redis::RedisError::from((redis::ErrorKind::IoError, "heartbeat read failed"))
-            }),
-        Err(error) => Err(error),
-    };
-    match heartbeat_read {
-        Ok(values) => {
-            let malformed = values
-                .iter()
-                .flatten()
-                .any(|value| serde_json::from_str::<WorkerHeartbeat>(value).is_err());
-            let stale_cutoff = observed_at - TimeDelta::seconds(STALE_THRESHOLD_SECS);
-            let (_, _, workers) = filter_stale_workers_at(values, stale_cutoff, observed_at);
-            (
-                workers,
-                MonitorSourceHealth {
-                    status: if malformed {
-                        MonitorSourceStatus::Degraded
-                    } else {
-                        MonitorSourceStatus::Available
-                    },
-                    error_code: malformed.then(|| "WORKER_HEARTBEAT_PAYLOAD_INVALID".to_string()),
-                },
-            )
-        }
+    let (worker_keys, truncated) = match scan_keys_bounded(conn, &pattern).await {
+        Ok(result) => result,
         Err(error) => {
             tracing::warn!(error = %error, "Monitor worker heartbeat read unavailable");
-            (
+            return (
                 Vec::new(),
                 MonitorSourceHealth {
                     status: MonitorSourceStatus::Unavailable,
                     error_code: Some("WORKER_HEARTBEATS_UNAVAILABLE".to_string()),
                 },
-            )
+            );
+        }
+    };
+
+    let mut values = Vec::with_capacity(worker_keys.len());
+    for chunk in worker_keys.chunks(HEARTBEAT_MGET_CHUNK_SIZE) {
+        match conn.mget::<_, Vec<Option<String>>>(chunk).await {
+            Ok(mut chunk_values) => values.append(&mut chunk_values),
+            Err(error) => {
+                tracing::warn!(error = %error, "Monitor worker heartbeat read unavailable");
+                return (
+                    Vec::new(),
+                    MonitorSourceHealth {
+                        status: MonitorSourceStatus::Unavailable,
+                        error_code: Some("WORKER_HEARTBEATS_UNAVAILABLE".to_string()),
+                    },
+                );
+            }
         }
     }
+
+    let malformed = values
+        .iter()
+        .flatten()
+        .any(|value| serde_json::from_str::<WorkerHeartbeat>(value).is_err());
+    let stale_cutoff = observed_at - TimeDelta::seconds(STALE_THRESHOLD_SECS);
+    let (_, _, workers) = filter_stale_workers_at(values, stale_cutoff, observed_at);
+    let degraded = malformed || truncated;
+    (
+        workers,
+        MonitorSourceHealth {
+            status: if degraded {
+                MonitorSourceStatus::Degraded
+            } else {
+                MonitorSourceStatus::Available
+            },
+            error_code: if truncated {
+                Some("WORKER_HEARTBEATS_TRUNCATED".to_string())
+            } else if malformed {
+                Some("WORKER_HEARTBEAT_PAYLOAD_INVALID".to_string())
+            } else {
+                None
+            },
+        },
+    )
 }
 
 async fn load_redis_monitor_snapshot(
@@ -2329,10 +2362,13 @@ pub async fn get_monitor_jobs(
         .map_err(|_conversion_error| AppError::validation(I18nKey::Validation))?;
 
     let observed_at = Utc::now();
-    let redis_snapshot =
-        load_redis_monitor_snapshot_bounded(state.infra().redis(), observed_at).await;
     let include_legacy = params.include_legacy.unwrap_or(true);
     let include_durable = params.include_durable.unwrap_or(true);
+    let redis_snapshot = if include_legacy {
+        load_redis_monitor_snapshot_bounded(state.infra().redis(), observed_at).await
+    } else {
+        RedisMonitorSnapshot::unavailable("REDIS_NOT_REQUESTED")
+    };
     let (jobs, next_cursor) = if !include_legacy {
         (Vec::new(), None)
     } else if let Some(redis) = state.infra().redis() {
@@ -2394,6 +2430,16 @@ pub async fn get_monitor_jobs(
 ///
 /// Route: GET /monitor/stream
 /// Requires: PlatformAdmin or Support
+#[utoipa::path(
+    get,
+    path = "/monitor/stream",
+    responses(
+        (status = 200, description = "Monitor Server-Sent Events stream", content_type = "text/event-stream"),
+        (status = 401, description = "Authentication required"),
+        (status = 403, description = "Infrastructure monitoring role required")
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn monitor_stream_sse(
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
@@ -2469,44 +2515,47 @@ fn filter_stale_workers_at(
 
 /// Scan Redis keys matching a pattern using SCAN iterator.
 /// Avoids KEYS command which can block Redis on large datasets.
-async fn scan_keys(
+async fn scan_keys_bounded(
     conn: &mut redis::aio::ConnectionManager,
     pattern: &str,
-) -> Result<Vec<String>, redis::RedisError> {
+) -> Result<(Vec<String>, bool), redis::RedisError> {
     let mut keys = Vec::new();
     let mut cursor = 0u64;
+    let mut iterations = 0usize;
 
     loop {
-        let result: Result<(u64, Vec<String>), _> = redis::cmd("SCAN")
+        if iterations >= MAX_HEARTBEAT_SCAN_ITERATIONS || keys.len() >= MAX_HEARTBEAT_KEYS {
+            return Ok((keys, true));
+        }
+        iterations += 1;
+        let (next_cursor, found_keys): (u64, Vec<String>) = redis::cmd("SCAN")
             .arg(cursor)
             .arg("MATCH")
             .arg(pattern)
             .arg("COUNT")
             .arg(100)
             .query_async(conn)
-            .await;
-
-        match result {
-            Ok((next_cursor, found_keys)) => {
-                keys.extend(found_keys);
-                cursor = next_cursor;
-                if cursor == 0 {
-                    break;
-                }
-            }
-            Err(err) => {
-                tracing::warn!(pattern, error = %err, "Redis SCAN failed during worker monitoring");
-                return Err(err);
-            }
+            .await?;
+        let remaining = MAX_HEARTBEAT_KEYS.saturating_sub(keys.len());
+        keys.extend(found_keys.into_iter().take(remaining));
+        cursor = next_cursor;
+        if cursor == 0 {
+            return Ok((keys, false));
         }
     }
-
-    Ok(keys)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_legacy_error_summary_redacts_sensitive_values() {
+        let summary = legacy_error_summary_for_test("failed for user@example.com phone 0123456789");
+        assert!(!summary.contains("user@example.com"));
+        assert!(!summary.contains("0123456789"));
+        assert!(summary.contains("[REDACTED]"));
+    }
 
     #[test]
     fn test_worker_status_serialization() {

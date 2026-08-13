@@ -308,6 +308,7 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
                         <tr
                           className="cursor-pointer border-t border-slate-50 transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 dark:border-slate-800 dark:hover:bg-slate-800/50"
                           key={job.job_id}
+                          aria-label={t("monitor.open_job_details", { defaultValue: "Open job details" })}
                           onClick={() => { setSelectedJob(job); }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
@@ -315,6 +316,7 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
                               setSelectedJob(job);
                             }
                           }}
+                          role="button"
                           tabIndex={0}
                         >
                           <td className="px-6 py-4">
@@ -362,13 +364,26 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
         />
 
         {!isLoading && jobs.length > 0 ? (
-          <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-6 py-4 text-xs text-slate-500 dark:border-slate-800/80 dark:bg-slate-800/20 dark:text-slate-400">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/50 px-6 py-4 text-xs text-slate-500 dark:border-slate-800/80 dark:bg-slate-800/20 dark:text-slate-400">
             <span>
               {t("monitor.pagination_loaded", {
                 defaultValue: "Loaded {{count}} jobs",
                 count: jobs.length,
               })}
             </span>
+            {hasNextPage ? (
+              <Button
+                aria-label={t("monitor.load_more_jobs", { defaultValue: "Load more jobs" })}
+                disabled={isFetchingNextPage}
+                loading={isFetchingNextPage}
+                onClick={() => { void fetchNextPage(); }}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                {t("monitor.load_more_jobs", { defaultValue: "Load more jobs" })}
+              </Button>
+            ) : null}
           </div>
         ) : null}
       </div>
