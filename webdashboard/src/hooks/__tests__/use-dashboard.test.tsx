@@ -11,8 +11,10 @@ import {
     useAttendanceTrend,
     useDepartmentAttendance,
     useUnexcusedAbsences,
-    useTurnoverAnalytics
+    useTurnoverAnalytics,
+    useDashboardMetrics,
 } from "../use-dashboard";
+import type { DashboardMetricsFilters } from "../dashboard-metrics-filters";
 
 vi.mock("@/lib/api", async () => {
     const actual = await vi.importActual("@/lib/api");
@@ -168,6 +170,70 @@ describe("use-dashboard hooks", () => {
             await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
             expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/unexcused-absences");
+        });
+    });
+
+    describe("useDashboardMetrics", () => {
+        const departmentA = "11111111-1111-4111-8111-111111111111";
+        const departmentB = "22222222-2222-4222-8222-222222222222";
+        const locationA = "33333333-3333-4333-8333-333333333333";
+        const locationB = "44444444-4444-4444-8444-444444444444";
+
+        const filters: DashboardMetricsFilters = {
+            comparison: "previous_period",
+            departmentIds: [departmentB, departmentA, departmentA],
+            endDate: "2026-08-13",
+            locationIds: [locationB, locationA],
+            period: "custom",
+            startDate: "2026-08-01",
+        };
+
+        const renderMetrics = (metricsFilters: DashboardMetricsFilters) => {
+            const queryClient = new QueryClient({
+                defaultOptions: { queries: { retry: false } },
+            });
+            const Wrapper = ({ children }: { children: React.ReactNode }) => (
+                <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+            );
+            Wrapper.displayName = "QueryClientWrapper";
+            return { queryClient, result: renderHook(() => useDashboardMetrics(metricsFilters), { wrapper: Wrapper }) };
+        };
+
+        it("uses canonical serialized query as stable cache key", async () => {
+            vi.mocked(api.apiFetch).mockResolvedValue({ ok: false, status: 503 } as unknown as never);
+
+            const first = renderMetrics(filters);
+            await waitFor(() => { expect(first.result.current.isError).toBe(true); });
+
+            const second = renderMetrics({
+                ...filters,
+                departmentIds: [departmentA, departmentB],
+                locationIds: [locationA, locationB],
+            });
+            await waitFor(() => { expect(second.result.current.isError).toBe(true); });
+
+            const expectedEndpoint = "/v1/dashboard/executive-overview?period=custom&comparison=previous_period&start_date=2026-08-01&end_date=2026-08-13&department_ids=11111111-1111-4111-8111-111111111111&department_ids=22222222-2222-4222-8222-222222222222&location_ids=33333333-3333-4333-8333-333333333333&location_ids=44444444-4444-4444-8444-444444444444";
+            expect(first.queryClient.getQueryCache().getAll()[0]?.queryKey).toEqual([
+                "executive-overview",
+                "ws-test-123",
+                expectedEndpoint,
+            ]);
+            expect(second.queryClient.getQueryCache().getAll()[0]?.queryKey).toEqual([
+                "executive-overview",
+                "ws-test-123",
+                expectedEndpoint,
+            ]);
+        });
+
+        it("requests every canonical filter parameter", async () => {
+            vi.mocked(api.apiFetch).mockResolvedValue({ ok: false, status: 503 } as unknown as never);
+
+            const { result } = renderMetrics(filters);
+            await waitFor(() => { expect(result.current.isError).toBe(true); });
+
+            expect(api.apiFetch).toHaveBeenCalledWith(
+                "/v1/dashboard/executive-overview?period=custom&comparison=previous_period&start_date=2026-08-01&end_date=2026-08-13&department_ids=11111111-1111-4111-8111-111111111111&department_ids=22222222-2222-4222-8222-222222222222&location_ids=33333333-3333-4333-8333-333333333333&location_ids=44444444-4444-4444-8444-444444444444",
+            );
         });
     });
 

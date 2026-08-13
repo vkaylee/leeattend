@@ -216,17 +216,12 @@ export function useTurnoverAnalytics(startDate: string, endDate: string) {
 }
 
 export function useDashboardMetrics(filters: DashboardMetricsFilters) {
+  const endpoint = `/v1/dashboard/executive-overview${dashboardMetricsQuery(filters)}`;
+
   return useDashboardQuery<DashboardMetricsResponse>({
     key: "executive-overview",
-    getPath: () => `/v1/dashboard/executive-overview${dashboardMetricsQuery(filters)}`,
-    extraQueryKeyParams: [
-      filters.period,
-      filters.comparison,
-      filters.startDate,
-      filters.endDate,
-      filters.departmentIds,
-      filters.locationIds,
-    ],
+    getPath: () => endpoint,
+    extraQueryKeyParams: [endpoint],
     parse: (payload) => dashboardMetricsResponseSchema.parse(payload),
   });
 }
