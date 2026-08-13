@@ -1,7 +1,186 @@
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{DateTime, Datelike, Duration, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use uuid::Uuid;
+
+const MAX_CUSTOM_PERIOD_DAYS: i64 = 366;
+const DEFAULT_TOP_N: u16 = 10;
+const MAX_TOP_N: u16 = 100;
+
+#[derive(Debug, Clone, Deserialize, ToSchema, utoipa::IntoParams)]
+pub struct DashboardMetricsQuery {
+    pub period: Option<String>,
+    pub comparison: Option<String>,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+    pub department_ids: Option<Vec<String>>,
+    pub location_ids: Option<Vec<String>>,
+    pub business_unit_ids: Option<Vec<String>>,
+    pub manager_ids: Option<Vec<String>>,
+    pub employment_types: Option<Vec<String>>,
+    pub employee_statuses: Option<Vec<String>>,
+    pub shift_ids: Option<Vec<String>>,
+    pub top_n: Option<u16>,
+    pub risk_threshold: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NormalizedDashboardMetricsQuery {
+    pub period: String,
+    pub comparison: String,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub department_ids: Vec<Uuid>,
+    pub location_ids: Vec<Uuid>,
+    pub business_unit_ids: Vec<Uuid>,
+    pub manager_ids: Vec<Uuid>,
+    pub employment_types: Vec<String>,
+    pub employee_statuses: Vec<String>,
+    pub shift_ids: Vec<Uuid>,
+    pub top_n: u16,
+    pub risk_threshold: String,
+}
+
+impl DashboardMetricsQuery {
+    pub fn normalize(
+        &self,
+        today: NaiveDate,
+    ) -> Result<NormalizedDashboardMetricsQuery, crate::errors::AppError> {
+        let period = self.period.as_deref().unwrap_or("today");
+        if ![
+            "today",
+            "this_week",
+            "this_month",
+            "this_quarter",
+            "year_to_date",
+            "custom",
+        ]
+        .contains(&period)
+        {
+            return Err(crate::errors::AppError::validation(
+                crate::utils::i18n::I18nKey::Validation,
+            ));
+        }
+        let (start_date, end_date) = if period == "custom" {
+            let start = parse_dashboard_date(self.start_date.as_deref())?;
+            let end = parse_dashboard_date(self.end_date.as_deref())?;
+            if end < start
+                || end > today
+                || end.signed_duration_since(start).num_days() + 1 > MAX_CUSTOM_PERIOD_DAYS
+            {
+                return Err(crate::errors::AppError::validation(
+                    crate::utils::i18n::I18nKey::InvalidDateRange,
+                ));
+            }
+            (start, end)
+        } else {
+            if self.start_date.is_some() || self.end_date.is_some() {
+                return Err(crate::errors::AppError::validation(
+                    crate::utils::i18n::I18nKey::InvalidDateRange,
+                ));
+            }
+            let start = match period {
+                "this_week" => {
+                    today - Duration::days(i64::from(today.weekday().num_days_from_monday()))
+                }
+                "this_month" => today.with_day(1).ok_or_else(|| {
+                    crate::errors::AppError::Internal("Invalid month boundary".to_string())
+                })?,
+                "this_quarter" => {
+                    NaiveDate::from_ymd_opt(today.year(), today.month0() / 3 * 3 + 1, 1)
+                        .ok_or_else(|| {
+                            crate::errors::AppError::Internal(
+                                "Invalid quarter boundary".to_string(),
+                            )
+                        })?
+                }
+                "year_to_date" => NaiveDate::from_ymd_opt(today.year(), 1, 1).ok_or_else(|| {
+                    crate::errors::AppError::Internal("Invalid year boundary".to_string())
+                })?,
+                _ => today,
+            };
+            (start, today)
+        };
+        let comparison = self.comparison.as_deref().unwrap_or("none");
+        if ![
+            "none",
+            "previous_period",
+            "same_period_last_year",
+            "target",
+            "budget",
+            "benchmark",
+        ]
+        .contains(&comparison)
+        {
+            return Err(crate::errors::AppError::validation(
+                crate::utils::i18n::I18nKey::Validation,
+            ));
+        }
+        let risk_threshold = self.risk_threshold.as_deref().unwrap_or("watch");
+        if !["info", "watch", "high", "critical"].contains(&risk_threshold) {
+            return Err(crate::errors::AppError::validation(
+                crate::utils::i18n::I18nKey::Validation,
+            ));
+        }
+        let top_n = self.top_n.unwrap_or(DEFAULT_TOP_N);
+        if !(1..=MAX_TOP_N).contains(&top_n) {
+            return Err(crate::errors::AppError::validation(
+                crate::utils::i18n::I18nKey::Validation,
+            ));
+        }
+        Ok(NormalizedDashboardMetricsQuery {
+            period: period.to_string(),
+            comparison: comparison.to_string(),
+            start_date,
+            end_date,
+            department_ids: parse_dashboard_uuid_list(self.department_ids.as_ref())?,
+            location_ids: parse_dashboard_uuid_list(self.location_ids.as_ref())?,
+            business_unit_ids: parse_dashboard_uuid_list(self.business_unit_ids.as_ref())?,
+            manager_ids: parse_dashboard_uuid_list(self.manager_ids.as_ref())?,
+            employment_types: flatten_dashboard_values(self.employment_types.as_deref()),
+            employee_statuses: flatten_dashboard_values(self.employee_statuses.as_deref()),
+            shift_ids: parse_dashboard_uuid_list(self.shift_ids.as_ref())?,
+            top_n,
+            risk_threshold: risk_threshold.to_string(),
+        })
+    }
+}
+
+fn parse_dashboard_date(value: Option<&str>) -> Result<NaiveDate, crate::errors::AppError> {
+    value
+        .ok_or_else(|| {
+            crate::errors::AppError::validation(crate::utils::i18n::I18nKey::InvalidDateFormat)
+        })
+        .and_then(|value| {
+            NaiveDate::parse_from_str(value, "%Y-%m-%d").map_err(|_parse_error| {
+                crate::errors::AppError::validation(crate::utils::i18n::I18nKey::InvalidDateFormat)
+            })
+        })
+}
+
+fn flatten_dashboard_values(values: Option<&[String]>) -> Vec<String> {
+    values
+        .unwrap_or_default()
+        .iter()
+        .flat_map(|value| value.split(','))
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+        .collect()
+}
+
+fn parse_dashboard_uuid_list(
+    values: Option<&Vec<String>>,
+) -> Result<Vec<Uuid>, crate::errors::AppError> {
+    flatten_dashboard_values(values.map(Vec::as_slice))
+        .into_iter()
+        .map(|value| {
+            Uuid::parse_str(&value).map_err(|_parse_error| {
+                crate::errors::AppError::validation(crate::utils::i18n::I18nKey::Validation)
+            })
+        })
+        .collect()
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
 #[serde(rename_all = "snake_case")]

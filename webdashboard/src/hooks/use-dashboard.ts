@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 
 import { dashboardSchemaByKey, type DashboardSchemaKey } from "./dashboard-schemas";
+import { dashboardMetricsResponseSchema } from "./dashboard-metric-contract";
 
 import {
   type AttendanceTrendPoint,
@@ -30,6 +31,11 @@ export type {
   UnexcusedAbsencesPoint,
   WorkspaceStats,
 } from "./use-dashboard-types";
+import {
+  dashboardMetricsQuery,
+  type DashboardMetricsFilters,
+} from "./dashboard-metrics-filters";
+import type { DashboardMetricsResponse } from "./dashboard-metric-contract";
 
 // ── Factory: reusable useQuery wrapper with workspace guard ────────────────
 
@@ -66,19 +72,21 @@ export class DashboardQueryError extends Error {
   }
 }
 
-interface DashboardQueryOptions {
+interface DashboardQueryOptions<T> {
   /** Additional enabled condition ANDed with the workspace guard. */
   extraEnabled?: boolean;
   /** Extra values appended to the query key (e.g. range, dates). */
-  extraQueryKeyParams?: unknown[];
+  extraQueryKeyParams?: readonly unknown[];
   /** Lazily builds the API path (captures hook args in closure). */
   getPath: () => string;
+  /** Parses untrusted API JSON into T. */
+  parse?: (payload: unknown) => T;
   /** Unique cache key segment (e.g. "workspace-stats"). */
   key: DashboardSchemaKey;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T determines return type through useQuery<T>
-function useDashboardQuery<T>(options: DashboardQueryOptions) {
+function useDashboardQuery<T>(options: DashboardQueryOptions<T>) {
   const { workspace } = useWorkspace();
 
   return useQuery<T>({
@@ -107,7 +115,9 @@ function useDashboardQuery<T>(options: DashboardQueryOptions) {
 
       try {
         const payload: unknown = await response.json();
-        return dashboardSchemaByKey[options.key].parse(payload) as T;
+        return options.parse
+        ? options.parse(payload)
+        : dashboardSchemaByKey[options.key].parse(payload) as T;
       } catch {
         throw new DashboardQueryError({
           code: "INVALID_PAYLOAD",
@@ -202,5 +212,21 @@ export function useTurnoverAnalytics(startDate: string, endDate: string) {
     },
     extraQueryKeyParams: [startDate, endDate],
     extraEnabled: !!startDate && !!endDate,
+  });
+}
+
+export function useDashboardMetrics(filters: DashboardMetricsFilters) {
+  return useDashboardQuery<DashboardMetricsResponse>({
+    key: "executive-overview",
+    getPath: () => `/v1/dashboard/executive-overview${dashboardMetricsQuery(filters)}`,
+    extraQueryKeyParams: [
+      filters.period,
+      filters.comparison,
+      filters.startDate,
+      filters.endDate,
+      filters.departmentIds,
+      filters.locationIds,
+    ],
+    parse: (payload) => dashboardMetricsResponseSchema.parse(payload),
   });
 }

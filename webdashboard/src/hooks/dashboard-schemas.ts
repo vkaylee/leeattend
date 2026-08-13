@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { dashboardMetricsResponseSchema } from "./dashboard-metric-contract";
+
 const dateString = z.string().min(1);
 const count = z.number().finite();
 
@@ -97,6 +99,7 @@ export const dashboardSchemaByKey = {
   "lateness-by-day": latenessByDaySchema,
   "recruitment-sources-breakdown": recruitmentSourceBreakdownSchema,
   "turnover-analytics": turnoverAnalyticsSchema,
+  "executive-overview": dashboardMetricsResponseSchema,
 } as const;
 
 export type DashboardSchemaKey = keyof typeof dashboardSchemaByKey;

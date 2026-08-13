@@ -12,6 +12,7 @@ pub mod auth_service;
 pub mod compliance_validation_service;
 pub mod condition_type_service;
 pub mod custom_field_service;
+pub mod dashboard_metrics_service;
 pub mod email_service;
 pub mod employee_service;
 pub mod employer_service;

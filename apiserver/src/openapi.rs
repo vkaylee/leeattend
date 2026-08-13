@@ -84,6 +84,7 @@ use utoipa::OpenApi;
         crate::handlers::get_unexcused_absences,
         crate::handlers::get_overtime_trend,
         crate::handlers::get_workspace_stats,
+        crate::handlers::get_dashboard_metrics,
         crate::handlers::get_peak_times,
         crate::handlers::get_leave_types_breakdown,
         crate::handlers::get_lateness_by_day,

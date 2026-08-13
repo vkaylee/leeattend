@@ -9,6 +9,7 @@ import { DashboardErrorBanner } from "@/components/features/dashboard/dashboard-
 import { DashboardHrTab } from "@/components/features/dashboard/dashboard-hr-tab";
 import { DashboardSystemTab } from "@/components/features/dashboard/dashboard-system-tab";
 import PendingTasksWidget from "@/components/features/dashboard/pending-tasks-widget";
+import { DashboardFilterBar, useDashboardFilterState } from "@/components/features/dashboard/dashboard-filter-bar";
 import Button from "@/components/ui/button";
 import { useAgentsStatus } from "@/hooks/use-agents";
 import { useCurrency } from "@/hooks/use-currency";
@@ -36,6 +37,7 @@ export default function DashboardPage() {
   const { agents, isLoading: agentsLoading, error: agentsError } = useAgentsStatus();
   const { devices, isLoading: devicesLoading, error: devicesError } = useDevices();
   const { data: hrStats, isLoading: hrLoading, error: hrError } = useDashboardStats();
+  const [dashboardFilters, setDashboardFilters] = useDashboardFilterState();
   const { setActions } = useHeaderActions();
 
   const {
@@ -135,6 +137,8 @@ export default function DashboardPage() {
       <ResilientWidget>
         <PendingTasksWidget />
       </ResilientWidget>
+
+      <DashboardFilterBar filters={dashboardFilters} onChange={setDashboardFilters} />
 
       {!showSystemTab ? (
         <div className="flex gap-6 items-start animate-in slide-in-from-bottom-4 duration-700">

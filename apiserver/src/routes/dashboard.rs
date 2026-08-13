@@ -7,6 +7,10 @@ use crate::AppState;
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route(
+            "/dashboard/executive-overview",
+            get(handlers::get_dashboard_metrics),
+        )
+        .route(
             "/dashboard/workspace-stats",
             get(handlers::get_workspace_stats),
         )
