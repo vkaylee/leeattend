@@ -164,6 +164,7 @@ fn flatten_dashboard_values(values: Option<&[String]>) -> Vec<String> {
         .unwrap_or_default()
         .iter()
         .flat_map(|value| value.split(','))
+        .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(ToOwned::to_owned)
         .collect()
@@ -172,14 +173,17 @@ fn flatten_dashboard_values(values: Option<&[String]>) -> Vec<String> {
 fn parse_dashboard_uuid_list(
     values: Option<&Vec<String>>,
 ) -> Result<Vec<Uuid>, crate::errors::AppError> {
-    flatten_dashboard_values(values.map(Vec::as_slice))
+    let mut parsed = flatten_dashboard_values(values.map(Vec::as_slice))
         .into_iter()
         .map(|value| {
             Uuid::parse_str(&value).map_err(|_parse_error| {
                 crate::errors::AppError::validation(crate::utils::i18n::I18nKey::Validation)
             })
         })
-        .collect()
+        .collect::<Result<Vec<_>, _>>()?;
+    parsed.sort_unstable();
+    parsed.dedup();
+    Ok(parsed)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
@@ -683,6 +687,56 @@ mod tests {
             None,
             None,
         )
+    }
+
+    #[test]
+    fn normalizes_uuid_filters_deterministically() {
+        let first = Uuid::from_u128(2);
+        let second = Uuid::from_u128(1);
+        let query = DashboardMetricsQuery {
+            period: None,
+            comparison: None,
+            start_date: None,
+            end_date: None,
+            department_ids: Some(vec![format!("{first},{second}"), first.to_string()]),
+            location_ids: None,
+            business_unit_ids: None,
+            manager_ids: None,
+            employment_types: None,
+            employee_statuses: None,
+            shift_ids: None,
+            top_n: None,
+            risk_threshold: None,
+        };
+
+        let normalized = query
+            .normalize(NaiveDate::from_ymd_opt(2026, 8, 13).unwrap())
+            .unwrap();
+        assert_eq!(normalized.department_ids, vec![second, first]);
+    }
+
+    #[test]
+    fn trims_csv_filter_values() {
+        let query = DashboardMetricsQuery {
+            period: None,
+            comparison: None,
+            start_date: None,
+            end_date: None,
+            department_ids: None,
+            location_ids: None,
+            business_unit_ids: None,
+            manager_ids: None,
+            employment_types: Some(vec![" full_time, part_time ".to_string()]),
+            employee_statuses: None,
+            shift_ids: None,
+            top_n: None,
+            risk_threshold: None,
+        };
+
+        let normalized = query
+            .normalize(NaiveDate::from_ymd_opt(2026, 8, 13).unwrap())
+            .unwrap();
+        assert_eq!(normalized.employment_types, vec!["full_time", "part_time"]);
     }
 
     #[test]

@@ -22,6 +22,7 @@ pub async fn build_dashboard_metrics(
         &std::collections::HashSet<Uuid>,
     >,
 ) -> AppResult<DashboardMetricsResponse> {
+    validate_department_scope_query(query, managed_department_ids)?;
     let workspace = workspace_repo
         .get_workspace_by_id(workspace_id)
         .await?
@@ -29,7 +30,7 @@ pub async fn build_dashboard_metrics(
             crate::errors::AppError::not_found(crate::utils::i18n::I18nKey::WorkspaceNotFound)
         })?;
     let workspace_tz = tz::validate_tz(workspace.timezone())?;
-    let normalized = query.normalize(tz::utc_now_date_in_tz(&workspace_tz))?;
+    let normalized = query.normalize(now.with_timezone(&workspace_tz).date_naive())?;
     validate_department_scope(&normalized, managed_department_ids)?;
 
     let period = DashboardReportingPeriod::new(
@@ -129,6 +130,28 @@ pub async fn build_dashboard_metrics(
         DashboardDataQuality::new("data_gap", Vec::new()),
         now,
     ))
+}
+
+fn validate_department_scope_query(
+    query: &DashboardMetricsQuery,
+    managed_department_ids: Option<&std::collections::HashSet<Uuid>>,
+) -> AppResult<()> {
+    let Some(allowed) = managed_department_ids else {
+        return Ok(());
+    };
+    let Some(department_ids) = query.department_ids.as_ref() else {
+        return Ok(());
+    };
+    let mut requested = department_ids
+        .iter()
+        .flat_map(|value| value.split(','))
+        .filter_map(|value| Uuid::parse_str(value.trim()).ok());
+    if requested.any(|id| !allowed.contains(&id)) {
+        return Err(crate::errors::AppError::forbidden(
+            crate::utils::i18n::I18nKey::Forbidden,
+        ));
+    }
+    Ok(())
 }
 
 fn validate_department_scope(
