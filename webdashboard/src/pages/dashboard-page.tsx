@@ -11,9 +11,10 @@ import { DashboardSystemTab } from "@/components/features/dashboard/dashboard-sy
 import PendingTasksWidget from "@/components/features/dashboard/pending-tasks-widget";
 import { DashboardFilterBar, useDashboardFilterState } from "@/components/features/dashboard/dashboard-filter-bar";
 import Button from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAgentsStatus } from "@/hooks/use-agents";
 import { useCurrency } from "@/hooks/use-currency";
-import { useDashboardStats } from "@/hooks/use-dashboard";
+import { useDashboardMetrics, useDashboardStats } from "@/hooks/use-dashboard";
 import { useDashboardCharts } from "@/hooks/use-dashboard-charts";
 import { useDashboardLayout } from "@/hooks/use-dashboard-layout";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
@@ -38,6 +39,11 @@ export default function DashboardPage() {
   const { devices, isLoading: devicesLoading, error: devicesError } = useDevices();
   const { data: hrStats, isLoading: hrLoading, error: hrError } = useDashboardStats();
   const [dashboardFilters, setDashboardFilters] = useDashboardFilterState();
+  const {
+    data: executiveMetrics,
+    isLoading: executiveLoading,
+    error: executiveError,
+  } = useDashboardMetrics(dashboardFilters);
   const { setActions } = useHeaderActions();
 
   const {
@@ -114,6 +120,9 @@ export default function DashboardPage() {
 
   const isLoading = agentsLoading || devicesLoading || hrLoading;
   const error = (agentsError ?? devicesError) ?? hrError;
+  const executiveDataGap = executiveMetrics?.data_quality.status === "data_gap";
+  const executiveContext = executiveMetrics?.context;
+  const executiveMetricCount = executiveMetrics?.metrics.length ?? 0;
 
   const onlineAgents = agents.filter((a) => a.is_online).length;
   const activeDevices = devices.filter((d) => d.is_enabled).length;
@@ -139,6 +148,37 @@ export default function DashboardPage() {
       </ResilientWidget>
 
       <DashboardFilterBar filters={dashboardFilters} onChange={setDashboardFilters} />
+
+      <section aria-labelledby="executive-dashboard-heading" className="space-y-4 rounded-3xl border border-slate-200 bg-white/70 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100" id="executive-dashboard-heading">
+              {t("dashboard.executive.title")}
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {executiveContext
+                ? t("dashboard.executive.context", { period: t(`dashboard.filters.period.${executiveContext.period.key}`), timezone: executiveContext.period.timezone })
+                : t("dashboard.executive.context_pending")}
+            </p>
+          </div>
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400" aria-live="polite">
+            {executiveLoading ? t("dashboard.executive.loading") : executiveError ? t("dashboard.executive.error") : t("dashboard.executive.metric_count", { count: executiveMetricCount })}
+          </span>
+        </div>
+        {executiveLoading ? (
+          <div aria-label={t("dashboard.executive.loading")} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Skeleton className="h-24 rounded-2xl" />
+            <Skeleton className="h-24 rounded-2xl" />
+            <Skeleton className="h-24 rounded-2xl" />
+          </div>
+        ) : executiveError ? (
+          <p className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300" role="alert">{t("dashboard.executive.error_description")}</p>
+        ) : executiveDataGap ? (
+          <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200" role="status">{t("dashboard.executive.data_gap")}</p>
+        ) : (
+          <p className="text-sm text-slate-600 dark:text-slate-300">{t("dashboard.executive.ready", { count: executiveMetricCount })}</p>
+        )}
+      </section>
 
       {!showSystemTab ? (
         <div className="flex gap-6 items-start animate-in slide-in-from-bottom-4 duration-700">
