@@ -587,6 +587,17 @@ use utoipa::OpenApi;
             crate::models::TurnoverBySource,
             crate::models::TurnoverByDepartment,
             crate::models::TurnoverAnalytics,
+            crate::models::TurnoverRate,
+            crate::models::TurnoverComparison,
+            crate::models::TurnoverWarning,
+            crate::models::TurnoverReasonRow,
+            crate::models::TurnoverClassification,
+            crate::models::TurnoverByEmploymentType,
+            crate::models::TurnoverByLocation,
+            crate::models::TurnoverByManager,
+            crate::models::TurnoverTrendPoint,
+            crate::models::CohortRetentionRow,
+            crate::models::TurnoverTarget,
 
             // Assignment Rules Schemas
             crate::models::AssignmentRule,

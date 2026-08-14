@@ -105,6 +105,72 @@ export interface TurnoverByDepartment {
   department_name: string;
 }
 
+export interface TurnoverRate {
+  denominator: number;
+  numerator: number;
+  unit: string;
+  value: string | null;
+}
+
+export interface TurnoverComparison {
+  basis: "none" | "previous_period" | "same_period_last_year" | "target" | "budget" | "benchmark";
+  period_start: string;
+  period_end: string;
+  rate: TurnoverRate | null;
+  delta_percentage_points: string | null;
+}
+
+export interface TurnoverWarning {
+  code: string;
+  message: string;
+}
+
+export interface TurnoverReasonRow {
+  count: number;
+  reason: string;
+}
+
+export interface TurnoverClassification {
+  classification: string;
+  count: number;
+}
+
+export interface TurnoverByEmploymentType {
+  count: number;
+  employment_type: string;
+}
+
+export interface TurnoverByLocation {
+  count: number;
+  location_name: string;
+}
+
+export interface TurnoverByManager {
+  count: number;
+  manager_name: string;
+}
+
+export interface TurnoverTrendPoint {
+  headcount: number;
+  leavers: number;
+  month: string;
+  turnover_rate: TurnoverRate;
+}
+
+export interface CohortRetentionRow {
+  active_count: number;
+  cohort_month: string;
+  cohort_size: number;
+  months_since_hire: number;
+  retention_rate: string | null;
+}
+
+export interface TurnoverTarget {
+  operator: string;
+  source: string;
+  value: string;
+}
+
 export interface TurnoverAnalytics {
   by_department: TurnoverByDepartment[];
   by_source: TurnoverBySource[];
@@ -112,6 +178,24 @@ export interface TurnoverAnalytics {
   period_start: string;
   tenure_distribution: TurnoverTenureBucket[];
   total_terminated: number;
+  turnover_rate: TurnoverRate;
+  average_headcount: number;
+  voluntary_count: number;
+  involuntary_count: number;
+  unknown_classification_count: number;
+  retention_rate: string | null;
+  early_attrition: TurnoverRate;
+  regrettable_attrition: string | null;
+  comparison: TurnoverComparison | null;
+  target: TurnoverTarget;
+  monthly_trend: TurnoverTrendPoint[];
+  cohort_retention: CohortRetentionRow[];
+  termination_reasons: TurnoverReasonRow[];
+  classification: TurnoverClassification[];
+  by_employment_type: TurnoverByEmploymentType[];
+  by_location: TurnoverByLocation[];
+  by_manager: TurnoverByManager[];
+  warnings: TurnoverWarning[];
 }
 
 /** One department row in the overtime-breakdown endpoint. */

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::models::custom_field::CustomFieldValueResponse;
+use crate::models::dashboard_metrics::DashboardComparisonBasis;
 use crate::models::enums::RecruitmentSourceType;
 
 // ── Filter Models ───────────────────────────────────────────────────
@@ -377,6 +378,189 @@ pub struct TurnoverAnalytics {
     pub total_terminated: i64,
     pub period_start: String,
     pub period_end: String,
+    /// Turnover rate with mandatory denominator. `value` is `None` when
+    /// `average_headcount == 0` — never a fabricated `0.0`.
+    pub turnover_rate: TurnoverRate,
+    /// Mean of month-start headcounts across the period (the turnover denominator).
+    pub average_headcount: i64,
+    pub voluntary_count: i64,
+    pub involuntary_count: i64,
+    pub unknown_classification_count: i64,
+    /// Retention rate = (headcount_start − leavers active at start) / headcount_start × 100.
+    /// `None` when headcount_start == 0.
+    pub retention_rate: Option<Decimal>,
+    /// Leavers with tenure < 90 days / average headcount.
+    pub early_attrition: TurnoverRate,
+    /// ALWAYS `None` in v1 — no performance-rating data source. See `NO_DATA_SOURCE` warning.
+    pub regrettable_attrition: Option<Decimal>,
+    pub comparison: Option<TurnoverComparison>,
+    pub target: TurnoverTarget,
+    /// Empty when the period spans fewer than two months.
+    pub monthly_trend: Vec<TurnoverTrendPoint>,
+    pub cohort_retention: Vec<CohortRetentionRow>,
+    pub termination_reasons: Vec<TurnoverReasonRow>,
+    pub classification: Vec<TurnoverClassification>,
+    pub by_employment_type: Vec<TurnoverByEmploymentType>,
+    pub by_location: Vec<TurnoverByLocation>,
+    pub by_manager: Vec<TurnoverByManager>,
+    pub warnings: Vec<TurnoverWarning>,
+}
+
+impl TurnoverAnalytics {
+    /// Empty analytics for a period — used by test mocks. Never fabricates a rate:
+    /// the rate keeps a zero denominator so `value` stays `None`.
+    pub fn empty(start_date: NaiveDate, end_date: NaiveDate) -> Self {
+        Self {
+            tenure_distribution: vec![],
+            by_source: vec![],
+            by_department: vec![],
+            total_terminated: 0,
+            period_start: start_date.to_string(),
+            period_end: end_date.to_string(),
+            turnover_rate: TurnoverRate::percent(0, 0),
+            average_headcount: 0,
+            voluntary_count: 0,
+            involuntary_count: 0,
+            unknown_classification_count: 0,
+            retention_rate: None,
+            early_attrition: TurnoverRate::percent(0, 0),
+            regrettable_attrition: None,
+            comparison: None,
+            target: TurnoverTarget {
+                value: Decimal::from(15),
+                operator: "lte".to_string(),
+                source: "default".to_string(),
+            },
+            monthly_trend: vec![],
+            cohort_retention: vec![],
+            termination_reasons: vec![],
+            classification: vec![],
+            by_employment_type: vec![],
+            by_location: vec![],
+            by_manager: vec![],
+            warnings: vec![],
+        }
+    }
+}
+
+/// Turnover rate: `leavers / average_headcount × 100`. Mirrors `RateQuantity`'s
+/// zero-denominator rule — `value` is `None` when the denominator is `0`.
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, utoipa::ToSchema)]
+pub struct TurnoverRate {
+    pub value: Option<Decimal>,
+    pub numerator: i64,
+    pub denominator: i64,
+    /// `"employees"` — the unit of the numerator/denominator.
+    pub unit: String,
+}
+
+impl TurnoverRate {
+    pub fn percent(numerator: i64, denominator: i64) -> Self {
+        let unit = "employees".to_string();
+        if denominator <= 0 {
+            return Self {
+                value: None,
+                numerator: numerator.max(0),
+                denominator,
+                unit,
+            };
+        }
+        let value =
+            Decimal::from(numerator.max(0)) / Decimal::from(denominator) * Decimal::from(100);
+        Self {
+            value: Some(value),
+            numerator: numerator.max(0),
+            denominator,
+            unit,
+        }
+    }
+}
+
+/// A percentage-point comparison against a previous period.
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct TurnoverComparison {
+    pub basis: DashboardComparisonBasis,
+    pub period_start: NaiveDate,
+    pub period_end: NaiveDate,
+    pub rate: Option<TurnoverRate>,
+    /// `current.rate − comparison.rate`, in percentage points.
+    pub delta_percentage_points: Option<Decimal>,
+}
+
+/// A structured warning surfaced to the UI. `code` is a stable machine key.
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct TurnoverWarning {
+    pub code: String,
+    pub message: String,
+}
+
+/// Termination-reason breakdown row.
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct TurnoverReasonRow {
+    pub reason: String,
+    pub count: i64,
+}
+
+/// Voluntary / involuntary / unknown classification row (derived from `termination_reason`).
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct TurnoverClassification {
+    pub classification: String,
+    pub count: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct TurnoverByEmploymentType {
+    pub employment_type: String,
+    pub count: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct TurnoverByLocation {
+    pub location_name: String,
+    pub count: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct TurnoverByManager {
+    pub manager_name: String,
+    pub count: i64,
+}
+
+/// One month bucket in the monthly turnover trend.
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct TurnoverTrendPoint {
+    pub month: String,
+    pub headcount: i64,
+    pub leavers: i64,
+    pub turnover_rate: Option<TurnoverRate>,
+}
+
+/// One (cohort, months-since-hire) cell in the cohort retention matrix.
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct CohortRetentionRow {
+    pub cohort_month: String,
+    pub months_since_hire: i64,
+    pub cohort_size: i64,
+    pub active_count: i64,
+    pub retention_rate: Option<Decimal>,
+}
+
+/// Turnover target/benchmark. `operator` is a comparison (`lte` for "at most").
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, utoipa::ToSchema)]
+pub struct TurnoverTarget {
+    pub value: Decimal,
+    pub operator: String,
+    /// `"workspace_config"` when resolved from `workspace_config_entries`, else `"default"`.
+    pub source: String,
+}
+
+/// Request struct for the turnover analytics query.
+#[derive(Debug, Clone)]
+pub struct TurnoverAnalyticsQuery {
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub comparison_basis: DashboardComparisonBasis,
+    pub target: TurnoverTarget,
 }
 
 // ── Employment / Employee Models ───────────────────────────────────

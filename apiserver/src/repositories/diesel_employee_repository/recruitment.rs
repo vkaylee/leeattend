@@ -1,21 +1,26 @@
 use crate::diesel_pool::DieselPoolsTenantTxExt;
 use crate::errors::AppError;
 use async_trait::async_trait;
-use chrono::NaiveDate;
+use chrono::Datelike;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
+use crate::models::dashboard_metrics::DashboardComparisonBasis;
 use crate::models::diesel::employee::{
-    CountRow, DeptRow, RecruitmentSourceBreakdownRow, RecruitmentSourceEntity, TenureRow,
+    AvgHeadcountRow, ClassificationRow, CohortRow, CountRow, DeptRow, EmploymentTypeRow,
+    LocationRow, ManagerRow, ReasonRow, RecruitmentSourceBreakdownRow, RecruitmentSourceEntity,
+    TenureRow, TrendRow,
 };
 use crate::models::{
-    RecruitmentSource, RecruitmentSourceBreakdown, TurnoverAnalytics, TurnoverByDepartment,
-    TurnoverBySource, TurnoverTenureBucket,
+    CohortRetentionRow, RecruitmentSource, RecruitmentSourceBreakdown, TurnoverAnalytics,
+    TurnoverAnalyticsQuery, TurnoverByDepartment, TurnoverByEmploymentType, TurnoverByLocation,
+    TurnoverByManager, TurnoverBySource, TurnoverClassification, TurnoverComparison, TurnoverRate,
+    TurnoverReasonRow, TurnoverTenureBucket, TurnoverTrendPoint, TurnoverWarning,
 };
 use crate::repositories::employee::*;
 use crate::schema::{employees, recruitment_sources};
-use diesel::sql_types::{Date, Uuid as UuidType};
+use diesel::sql_types::{Date, Integer, Uuid as UuidType};
 
 use super::DieselEmployeeRepository;
 
@@ -224,10 +229,11 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
     async fn get_turnover_analytics(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        start_date: NaiveDate,
-        end_date: NaiveDate,
+        query: &TurnoverAnalyticsQuery,
     ) -> Result<TurnoverAnalytics, AppError> {
         let workspace_id = auth_token.workspace_id();
+        let start_date = query.start_date;
+        let end_date = query.end_date;
         self.diesel_pools
             .with_tenant_tx(auth_token, |conn| {
                 Box::pin(async move {
@@ -273,6 +279,257 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
                     .await
                     .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
+                    // 5. Voluntary / involuntary / unknown classification
+                    let class_rows: Vec<ClassificationRow> = diesel::sql_query(include_str!(
+                        "../sql/recruitment/turnover_classification.sql"
+                    ))
+                    .bind::<UuidType, _>(workspace_id)
+                    .bind::<Date, _>(start_date)
+                    .bind::<Date, _>(end_date)
+                    .load(conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    let classification = class_rows
+                        .iter()
+                        .map(|r| TurnoverClassification {
+                            classification: r.classification.clone(),
+                            count: r.count,
+                        })
+                        .collect::<Vec<_>>();
+                    let voluntary_count = classification
+                        .iter()
+                        .find(|c| c.classification == "voluntary")
+                        .map_or(0, |c| c.count);
+                    let involuntary_count = classification
+                        .iter()
+                        .find(|c| c.classification == "involuntary")
+                        .map_or(0, |c| c.count);
+                    let unknown_classification_count = classification
+                        .iter()
+                        .find(|c| c.classification == "unknown")
+                        .map_or(0, |c| c.count);
+
+                    // 6. Termination reason breakdown
+                    let reason_rows: Vec<ReasonRow> =
+                        diesel::sql_query(include_str!("../sql/recruitment/turnover_reasons.sql"))
+                            .bind::<UuidType, _>(workspace_id)
+                            .bind::<Date, _>(start_date)
+                            .bind::<Date, _>(end_date)
+                            .load(conn)
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    // 7. By employment type / location / manager
+                    let emp_type_rows: Vec<EmploymentTypeRow> = diesel::sql_query(include_str!(
+                        "../sql/recruitment/turnover_employment_type.sql"
+                    ))
+                    .bind::<UuidType, _>(workspace_id)
+                    .bind::<Date, _>(start_date)
+                    .bind::<Date, _>(end_date)
+                    .load(conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    let location_rows: Vec<LocationRow> =
+                        diesel::sql_query(include_str!("../sql/recruitment/turnover_location.sql"))
+                            .bind::<UuidType, _>(workspace_id)
+                            .bind::<Date, _>(start_date)
+                            .bind::<Date, _>(end_date)
+                            .load(conn)
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    let manager_rows: Vec<ManagerRow> =
+                        diesel::sql_query(include_str!("../sql/recruitment/turnover_manager.sql"))
+                            .bind::<UuidType, _>(workspace_id)
+                            .bind::<Date, _>(start_date)
+                            .bind::<Date, _>(end_date)
+                            .load(conn)
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    // 8. Average headcount + headcount_start (retention denominator)
+                    let avg_row: AvgHeadcountRow = diesel::sql_query(include_str!(
+                        "../sql/recruitment/turnover_average_headcount.sql"
+                    ))
+                    .bind::<UuidType, _>(workspace_id)
+                    .bind::<Date, _>(start_date)
+                    .bind::<Date, _>(end_date)
+                    .get_result::<AvgHeadcountRow>(conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    let average_headcount = avg_row.average_headcount;
+
+                    // 9. Early attrition (tenure < 90 days)
+                    let early: i64 = diesel::sql_query(include_str!(
+                        "../sql/recruitment/turnover_early_attrition.sql"
+                    ))
+                    .bind::<UuidType, _>(workspace_id)
+                    .bind::<Date, _>(start_date)
+                    .bind::<Date, _>(end_date)
+                    .get_result::<CountRow>(conn)
+                    .await
+                    .map(|r| r.count)
+                    .map_err(AppError::from)?;
+
+                    // 10. Monthly trend (period must span >= 2 months)
+                    let period_days = end_date.signed_duration_since(start_date).num_days() + 1;
+                    let monthly_trend = if period_days >= 60 {
+                        let trend_rows: Vec<TrendRow> = diesel::sql_query(include_str!(
+                            "../sql/recruitment/turnover_monthly_trend.sql"
+                        ))
+                        .bind::<UuidType, _>(workspace_id)
+                        .bind::<Date, _>(start_date)
+                        .bind::<Date, _>(end_date)
+                        .load(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        trend_rows
+                            .into_iter()
+                            .map(|r| TurnoverTrendPoint {
+                                month: r.month,
+                                headcount: r.headcount,
+                                leavers: r.leavers,
+                                turnover_rate: Some(TurnoverRate::percent(r.leavers, r.headcount)),
+                            })
+                            .collect()
+                    } else {
+                        Vec::new()
+                    };
+
+                    // 11. Cohort retention matrix
+                    let period_months = {
+                        let start_first = chrono::NaiveDate::from_ymd_opt(
+                            start_date.year(),
+                            start_date.month(),
+                            1,
+                        )
+                        .unwrap_or(start_date);
+                        let end_first =
+                            chrono::NaiveDate::from_ymd_opt(end_date.year(), end_date.month(), 1)
+                                .unwrap_or(end_date);
+                        ((end_first.year() - start_first.year()) * 12
+                            + end_first.month().cast_signed()
+                            - start_first.month().cast_signed()
+                            + 1)
+                        .max(1)
+                    };
+                    let cohort_rows: Vec<CohortRow> = diesel::sql_query(include_str!(
+                        "../sql/recruitment/turnover_cohort_retention.sql"
+                    ))
+                    .bind::<UuidType, _>(workspace_id)
+                    .bind::<Date, _>(start_date)
+                    .bind::<Date, _>(end_date)
+                    .bind::<Integer, _>(3) // MIN_COHORT
+                    .bind::<Integer, _>(period_months)
+                    .load(conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    let cohort_retention = cohort_rows
+                        .into_iter()
+                        .map(|r| CohortRetentionRow {
+                            cohort_month: r.cohort_month,
+                            months_since_hire: r.months_since_hire,
+                            cohort_size: r.cohort_size,
+                            active_count: r.active_count,
+                            retention_rate: if r.cohort_size > 0 {
+                                Some(
+                                    rust_decimal::Decimal::from(r.active_count)
+                                        / rust_decimal::Decimal::from(r.cohort_size)
+                                        * rust_decimal::Decimal::from(100),
+                                )
+                            } else {
+                                None
+                            },
+                        })
+                        .collect();
+
+                    // 12. Build the rate + comparison + warnings
+                    let turnover_rate = TurnoverRate::percent(total, average_headcount);
+                    let early_attrition = TurnoverRate::percent(early, average_headcount);
+
+                    let retention_rate = if avg_row.headcount_start > 0 {
+                        // Leavers active at period start are excluded from the retained set.
+                        let retained = (avg_row.headcount_start - total).max(0);
+                        Some(
+                            rust_decimal::Decimal::from(retained)
+                                / rust_decimal::Decimal::from(avg_row.headcount_start)
+                                * rust_decimal::Decimal::from(100),
+                        )
+                    } else {
+                        None
+                    };
+
+                    let mut warnings = Vec::new();
+                    if average_headcount <= 0 {
+                        warnings.push(TurnoverWarning {
+                            code: "LOW_DENOMINATOR".to_string(),
+                            message: "dashboard.hr.turnover_warning_low_denominator".to_string(),
+                        });
+                    }
+                    warnings.push(TurnoverWarning {
+                        code: "NO_DATA_SOURCE".to_string(),
+                        message: "dashboard.hr.turnover_warning_regrettable".to_string(),
+                    });
+
+                    let comparison = match query.comparison_basis {
+                        DashboardComparisonBasis::PreviousPeriod => {
+                            let len = end_date.signed_duration_since(start_date).num_days();
+                            (
+                                start_date - chrono::Duration::days(len + 1),
+                                start_date - chrono::Duration::days(1),
+                            )
+                        }
+                        DashboardComparisonBasis::SamePeriodLastYear => (
+                            start_date - chrono::Duration::days(365),
+                            end_date - chrono::Duration::days(365),
+                        ),
+                        _ => (start_date, end_date),
+                    };
+                    let comparison = if query.comparison_basis
+                        == DashboardComparisonBasis::PreviousPeriod
+                        || query.comparison_basis == DashboardComparisonBasis::SamePeriodLastYear
+                    {
+                        let (c_start, c_end) = comparison;
+                        let comp_total: i64 = diesel::sql_query(include_str!(
+                            "../sql/recruitment/turnover_total.sql"
+                        ))
+                        .bind::<UuidType, _>(workspace_id)
+                        .bind::<Date, _>(c_start)
+                        .bind::<Date, _>(c_end)
+                        .get_result::<CountRow>(conn)
+                        .await
+                        .map(|r| r.count)
+                        .map_err(AppError::from)?;
+                        let comp_avg: AvgHeadcountRow = diesel::sql_query(include_str!(
+                            "../sql/recruitment/turnover_average_headcount.sql"
+                        ))
+                        .bind::<UuidType, _>(workspace_id)
+                        .bind::<Date, _>(c_start)
+                        .bind::<Date, _>(c_end)
+                        .get_result::<AvgHeadcountRow>(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        let comp_rate =
+                            TurnoverRate::percent(comp_total, comp_avg.average_headcount);
+                        let delta = match (turnover_rate.value, comp_rate.value) {
+                            (Some(cur), Some(prev)) => Some(cur - prev),
+                            _ => None,
+                        };
+                        Some(TurnoverComparison {
+                            basis: query.comparison_basis.clone(),
+                            period_start: c_start,
+                            period_end: c_end,
+                            rate: Some(comp_rate),
+                            delta_percentage_points: delta,
+                        })
+                    } else {
+                        None
+                    };
+
                     Ok(TurnoverAnalytics {
                         tenure_distribution: tenure_rows
                             .into_iter()
@@ -299,6 +556,48 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
                         total_terminated: total,
                         period_start: start_date.to_string(),
                         period_end: end_date.to_string(),
+                        turnover_rate,
+                        average_headcount,
+                        voluntary_count,
+                        involuntary_count,
+                        unknown_classification_count,
+                        retention_rate,
+                        early_attrition,
+                        regrettable_attrition: None,
+                        comparison,
+                        target: query.target.clone(),
+                        monthly_trend,
+                        cohort_retention,
+                        termination_reasons: reason_rows
+                            .into_iter()
+                            .map(|r| TurnoverReasonRow {
+                                reason: r.reason,
+                                count: r.count,
+                            })
+                            .collect(),
+                        classification,
+                        by_employment_type: emp_type_rows
+                            .into_iter()
+                            .map(|r| TurnoverByEmploymentType {
+                                employment_type: r.employment_type,
+                                count: r.count,
+                            })
+                            .collect(),
+                        by_location: location_rows
+                            .into_iter()
+                            .map(|r| TurnoverByLocation {
+                                location_name: r.location_name,
+                                count: r.count,
+                            })
+                            .collect(),
+                        by_manager: manager_rows
+                            .into_iter()
+                            .map(|r| TurnoverByManager {
+                                manager_name: r.manager_name,
+                                count: r.count,
+                            })
+                            .collect(),
+                        warnings,
                     })
                 })
             })

@@ -1263,8 +1263,7 @@ mod tests {
         async fn get_turnover_analytics(
             &self,
             _a: &TenantAuthToken,
-            _s: NaiveDate,
-            _en: NaiveDate,
+            _q: &crate::models::TurnoverAnalyticsQuery,
         ) -> Result<crate::models::TurnoverAnalytics, AppError> {
             unimplemented!()
         }

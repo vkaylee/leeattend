@@ -43,6 +43,41 @@ const createWrapper = () => {
     return Wrapper;
 };
 
+/** Minimal schema-complete turnover analytics payload (new required fields). */
+const turnoverRatePayload = (value: string | null, numerator: number, denominator: number) => ({
+    value,
+    numerator,
+    denominator,
+    unit: "employees",
+});
+
+const turnoverAnalyticsPayload = (total: number) => ({
+    tenure_distribution: [],
+    by_source: [],
+    by_department: [],
+    total_terminated: total,
+    period_start: "2023-01-01",
+    period_end: "2023-01-31",
+    turnover_rate: turnoverRatePayload(null, 0, 0),
+    average_headcount: 0,
+    voluntary_count: 0,
+    involuntary_count: 0,
+    unknown_classification_count: 0,
+    retention_rate: null,
+    early_attrition: turnoverRatePayload(null, 0, 0),
+    regrettable_attrition: null,
+    comparison: null,
+    target: { value: "15", operator: "lte", source: "default" },
+    monthly_trend: [],
+    cohort_retention: [],
+    termination_reasons: [],
+    classification: [],
+    by_employment_type: [],
+    by_location: [],
+    by_manager: [],
+    warnings: [],
+});
+
 describe("use-dashboard hooks", () => {
     beforeEach(() => {
         vi.mocked(api.apiFetch).mockReset();
@@ -273,7 +308,7 @@ describe("use-dashboard hooks", () => {
 
     describe("useTurnoverAnalytics", () => {
         it("does not fetch if startDate or endDate is missing", () => {
-            const { result } = renderHook(() => useTurnoverAnalytics("", "2023-01-31"), {
+            const { result } = renderHook(() => useTurnoverAnalytics({ startDate: "", endDate: "2023-01-31" }), {
                 wrapper: createWrapper(),
             });
 
@@ -282,21 +317,14 @@ describe("use-dashboard hooks", () => {
         });
 
         it("fetches turnover analytics correctly", async () => {
-            const mockData = {
-                tenure_distribution: [],
-                by_source: [],
-                by_department: [],
-                total_terminated: 5,
-                period_start: "2023-01-01",
-                period_end: "2023-01-31"
-            };
+            const mockData = turnoverAnalyticsPayload(5);
 
             vi.mocked(api.apiFetch).mockResolvedValueOnce({
                 ok: true,
                 json: () => Promise.resolve(mockData),
             } as unknown as never);
 
-            const { result } = renderHook(() => useTurnoverAnalytics("2023-01-01", "2023-01-31"), {
+            const { result } = renderHook(() => useTurnoverAnalytics({ startDate: "2023-01-01", endDate: "2023-01-31" }), {
                 wrapper: createWrapper(),
             });
 
@@ -304,6 +332,31 @@ describe("use-dashboard hooks", () => {
 
             expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/turnover-analytics?start=2023-01-01&end=2023-01-31");
             expect(result.current.data).toEqual(mockData);
+        });
+
+        it("appends comparison and target params when provided", async () => {
+            const mockData = turnoverAnalyticsPayload(0);
+
+            vi.mocked(api.apiFetch).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(mockData),
+            } as unknown as never);
+
+            const { result } = renderHook(() =>
+                useTurnoverAnalytics({
+                    startDate: "2023-01-01",
+                    endDate: "2023-01-31",
+                    comparison: "same_period_last_year",
+                    target: "10",
+                }), {
+                wrapper: createWrapper(),
+            });
+
+            await waitFor(() => { expect(result.current.isLoading).toBe(false); });
+
+            expect(api.apiFetch).toHaveBeenCalledWith(
+                "/v1/dashboard/turnover-analytics?start=2023-01-01&end=2023-01-31&comparison=same_period_last_year&target=10",
+            );
         });
     });
 });

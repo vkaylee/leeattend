@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::models::{
     Employee, EmployeePayrollConfig, RecruitmentSource, RecruitmentSourceBreakdown,
-    TurnoverAnalytics, WorkingCondition,
+    TurnoverAnalytics, TurnoverAnalyticsQuery, WorkingCondition,
 };
 
 /// Minimal employee info for paginated reports
@@ -317,8 +317,7 @@ pub trait EmployeeRecruitmentRepository: Send + Sync {
     async fn get_turnover_analytics(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        start_date: NaiveDate,
-        end_date: NaiveDate,
+        query: &TurnoverAnalyticsQuery,
     ) -> Result<TurnoverAnalytics, AppError>;
 }
 
@@ -654,8 +653,7 @@ mockall::mock! {
         async fn get_turnover_analytics(
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
-            start_date: NaiveDate,
-            end_date: NaiveDate,
+            query: &TurnoverAnalyticsQuery,
         ) -> Result<TurnoverAnalytics, AppError>;
     }
 

@@ -249,6 +249,78 @@ pub struct DeptRow {
     pub count: i64,
 }
 
+#[derive(Debug, diesel::QueryableByName)]
+pub struct ClassificationRow {
+    #[diesel(sql_type = Text)]
+    pub classification: String,
+    #[diesel(sql_type = BigInt)]
+    pub count: i64,
+}
+
+#[derive(Debug, diesel::QueryableByName)]
+pub struct ReasonRow {
+    #[diesel(sql_type = Text)]
+    pub reason: String,
+    #[diesel(sql_type = BigInt)]
+    pub count: i64,
+}
+
+#[derive(Debug, diesel::QueryableByName)]
+pub struct EmploymentTypeRow {
+    #[diesel(sql_type = Text)]
+    pub employment_type: String,
+    #[diesel(sql_type = BigInt)]
+    pub count: i64,
+}
+
+#[derive(Debug, diesel::QueryableByName)]
+pub struct LocationRow {
+    #[diesel(sql_type = Text)]
+    pub location_name: String,
+    #[diesel(sql_type = BigInt)]
+    pub count: i64,
+}
+
+#[derive(Debug, diesel::QueryableByName)]
+pub struct ManagerRow {
+    #[diesel(sql_type = Text)]
+    pub manager_name: String,
+    #[diesel(sql_type = BigInt)]
+    pub count: i64,
+}
+
+#[derive(Debug, diesel::QueryableByName)]
+pub struct AvgHeadcountRow {
+    #[diesel(sql_type = BigInt)]
+    pub n_months: i64,
+    #[diesel(sql_type = BigInt)]
+    pub average_headcount: i64,
+    #[diesel(sql_type = BigInt)]
+    pub headcount_start: i64,
+}
+
+#[derive(Debug, diesel::QueryableByName)]
+pub struct TrendRow {
+    #[diesel(sql_type = Text)]
+    pub month: String,
+    #[diesel(sql_type = BigInt)]
+    pub headcount: i64,
+    #[diesel(sql_type = BigInt)]
+    pub leavers: i64,
+}
+
+#[derive(Debug, diesel::QueryableByName)]
+pub struct CohortRow {
+    #[diesel(sql_type = Text)]
+    pub cohort_month: String,
+    #[diesel(sql_type = BigInt)]
+    pub months_since_hire: i64,
+    #[diesel(sql_type = BigInt)]
+    pub cohort_size: i64,
+    #[diesel(sql_type = BigInt)]
+    pub active_count: i64,
+}
+
 #[derive(Debug, Clone, Queryable, Selectable, Insertable, Identifiable, AsChangeset)]
 #[diesel(table_name = employee_profiles)]
 pub struct EmployeeProfileEntity {

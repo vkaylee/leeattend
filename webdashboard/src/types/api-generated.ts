@@ -374,6 +374,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/dashboard/overtime-breakdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_overtime_breakdown"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/dashboard/overtime-trend": {
         parameters: {
             query?: never;
@@ -5278,6 +5294,17 @@ export interface components {
             date: string;
             reason?: string | null;
         };
+        /** @description One (cohort, months-since-hire) cell in the cohort retention matrix. */
+        CohortRetentionRow: {
+            /** Format: int64 */
+            active_count: number;
+            cohort_month: string;
+            /** Format: int64 */
+            cohort_size: number;
+            /** Format: int64 */
+            months_since_hire: number;
+            retention_rate?: string | null;
+        };
         CompensationChangeDetails: {
             delta: string;
             previous_total?: string | null;
@@ -7461,6 +7488,37 @@ export interface components {
         OtRequestStatus: "draft" | "pending_approval" | "approved" | "partially_accepted" | "active" | "completed" | "cancelled" | "rejected";
         /** @enum {string} */
         OtStatus: "none" | "pending_employee" | "pending_manager" | "approved" | "rejected";
+        /** @description Envelope for the department-level overtime breakdown. */
+        OvertimeBreakdownResponse: {
+            contract_version: string;
+            /** Format: date-time */
+            generated_at: string;
+            rows: components["schemas"]["OvertimeBreakdownRow"][];
+            workspace: components["schemas"]["OvertimeBreakdownWorkspace"];
+        };
+        /**
+         * @description Department × overtime hours/cost breakdown for the executive dashboard.
+         *     Cost fields are `None` when the caller lacks `PayrollSensitiveRead` or when
+         *     no paid/finalized payslip exists in the period.
+         */
+        OvertimeBreakdownRow: {
+            /** Format: double */
+            approved_ot_hours: number;
+            cost_available: boolean;
+            /** Format: uuid */
+            department_id: string;
+            department_name: string;
+            overtime_cost?: string | null;
+            /** Format: double */
+            system_ot_hours: number;
+            /** Format: double */
+            unapproved_ot_hours: number;
+        };
+        /** @description Workspace + currency context attached to the breakdown response. */
+        OvertimeBreakdownWorkspace: {
+            currency: string;
+            timezone: string;
+        };
         OvertimePolicy: {
             /** Format: date-time */
             created_at?: string | null;
@@ -8546,19 +8604,70 @@ export interface components {
         };
         /** @description Combined turnover analytics response */
         TurnoverAnalytics: {
+            /**
+             * Format: int64
+             * @description Mean of month-start headcounts across the period (the turnover denominator).
+             */
+            average_headcount: number;
             by_department: components["schemas"]["TurnoverByDepartment"][];
+            by_employment_type: components["schemas"]["TurnoverByEmploymentType"][];
+            by_location: components["schemas"]["TurnoverByLocation"][];
+            by_manager: components["schemas"]["TurnoverByManager"][];
             by_source: components["schemas"]["TurnoverBySource"][];
+            classification: components["schemas"]["TurnoverClassification"][];
+            cohort_retention: components["schemas"]["CohortRetentionRow"][];
+            comparison?: null | components["schemas"]["TurnoverComparison"];
+            /** @description Leavers with tenure < 90 days / average headcount. */
+            early_attrition: components["schemas"]["TurnoverRate"];
+            /** Format: int64 */
+            involuntary_count: number;
+            /** @description Empty when the period spans fewer than two months. */
+            monthly_trend: components["schemas"]["TurnoverTrendPoint"][];
             period_end: string;
             period_start: string;
+            /** @description ALWAYS `None` in v1 — no performance-rating data source. See `NO_DATA_SOURCE` warning. */
+            regrettable_attrition?: string | null;
+            /**
+             * @description Retention rate = (headcount_start − leavers active at start) / headcount_start × 100.
+             *     `None` when headcount_start == 0.
+             */
+            retention_rate?: string | null;
+            target: components["schemas"]["TurnoverTarget"];
             tenure_distribution: components["schemas"]["TurnoverTenureBucket"][];
+            termination_reasons: components["schemas"]["TurnoverReasonRow"][];
             /** Format: int64 */
             total_terminated: number;
+            /**
+             * @description Turnover rate with mandatory denominator. `value` is `None` when
+             *     `average_headcount == 0` — never a fabricated `0.0`.
+             */
+            turnover_rate: components["schemas"]["TurnoverRate"];
+            /** Format: int64 */
+            unknown_classification_count: number;
+            /** Format: int64 */
+            voluntary_count: number;
+            warnings: components["schemas"]["TurnoverWarning"][];
         };
         /** @description Turnover breakdown by department */
         TurnoverByDepartment: {
             /** Format: int64 */
             count: number;
             department_name: string;
+        };
+        TurnoverByEmploymentType: {
+            /** Format: int64 */
+            count: number;
+            employment_type: string;
+        };
+        TurnoverByLocation: {
+            /** Format: int64 */
+            count: number;
+            location_name: string;
+        };
+        TurnoverByManager: {
+            /** Format: int64 */
+            count: number;
+            manager_name: string;
         };
         /** @description Turnover breakdown by recruitment source */
         TurnoverBySource: {
@@ -8567,11 +8676,68 @@ export interface components {
             source_name: string;
             source_type: string;
         };
+        /** @description Voluntary / involuntary / unknown classification row (derived from `termination_reason`). */
+        TurnoverClassification: {
+            classification: string;
+            /** Format: int64 */
+            count: number;
+        };
+        /** @description A percentage-point comparison against a previous period. */
+        TurnoverComparison: {
+            basis: components["schemas"]["DashboardComparisonBasis"];
+            /** @description `current.rate − comparison.rate`, in percentage points. */
+            delta_percentage_points?: string | null;
+            /** Format: date */
+            period_end: string;
+            /** Format: date */
+            period_start: string;
+            rate?: null | components["schemas"]["TurnoverRate"];
+        };
+        /**
+         * @description Turnover rate: `leavers / average_headcount × 100`. Mirrors `RateQuantity`'s
+         *     zero-denominator rule — `value` is `None` when the denominator is `0`.
+         */
+        TurnoverRate: {
+            /** Format: int64 */
+            denominator: number;
+            /** Format: int64 */
+            numerator: number;
+            /** @description `"employees"` — the unit of the numerator/denominator. */
+            unit: string;
+            value?: string | null;
+        };
+        /** @description Termination-reason breakdown row. */
+        TurnoverReasonRow: {
+            /** Format: int64 */
+            count: number;
+            reason: string;
+        };
+        /** @description Turnover target/benchmark. `operator` is a comparison (`lte` for "at most"). */
+        TurnoverTarget: {
+            operator: string;
+            /** @description `"workspace_config"` when resolved from `workspace_config_entries`, else `"default"`. */
+            source: string;
+            value: string;
+        };
         /** @description Tenure distribution bucket for terminated employees */
         TurnoverTenureBucket: {
             bucket: string;
             /** Format: int64 */
             count: number;
+        };
+        /** @description One month bucket in the monthly turnover trend. */
+        TurnoverTrendPoint: {
+            /** Format: int64 */
+            headcount: number;
+            /** Format: int64 */
+            leavers: number;
+            month: string;
+            turnover_rate?: null | components["schemas"]["TurnoverRate"];
+        };
+        /** @description A structured warning surfaced to the UI. `code` is a stable machine key. */
+        TurnoverWarning: {
+            code: string;
+            message: string;
         };
         UnexcusedAbsencesPoint: {
             /** Format: int64 */
@@ -10102,6 +10268,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LeaveTypeBreakdown"][];
+                };
+            };
+        };
+    };
+    get_overtime_breakdown: {
+        parameters: {
+            query?: {
+                /** @description Inclusive start date (YYYY-MM-DD) */
+                start_date?: string;
+                /** @description Inclusive end date (YYYY-MM-DD) */
+                end_date?: string;
+                /** @description IANA timezone for date bucketing */
+                timezone?: string;
+                /** @description Return at most N departments sorted by system OT hours */
+                top_n?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Department-level overtime hours & cost breakdown */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OvertimeBreakdownResponse"];
                 };
             };
         };

@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::errors::AppError;
 use crate::models::{
     CreateRecruitmentSourceRequest, RecruitmentSource, RecruitmentSourceBreakdown,
-    TurnoverAnalytics, UpdateRecruitmentSourceRequest,
+    TurnoverAnalytics, TurnoverAnalyticsQuery, UpdateRecruitmentSourceRequest,
 };
 use crate::repositories::employee::EmployeeRecruitmentRepository;
 use crate::utils::i18n::I18nKey;
@@ -110,13 +110,10 @@ impl RecruitmentService {
     pub async fn get_turnover_analytics(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        start_date: chrono::NaiveDate,
-        end_date: chrono::NaiveDate,
+        query: &TurnoverAnalyticsQuery,
     ) -> Result<TurnoverAnalytics, AppError> {
         let _workspace_id = auth_token.workspace_id();
-        self.repo
-            .get_turnover_analytics(auth_token, start_date, end_date)
-            .await
+        self.repo.get_turnover_analytics(auth_token, query).await
     }
 }
 
@@ -127,9 +124,10 @@ impl RecruitmentService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::dashboard_metrics::DashboardComparisonBasis;
     use crate::models::{
         RecruitmentSourceBreakdown, TurnoverAnalytics, TurnoverByDepartment, TurnoverBySource,
-        TurnoverTenureBucket,
+        TurnoverTarget, TurnoverTenureBucket,
     };
     use async_trait::async_trait;
     use chrono::{NaiveDate, Utc};
@@ -236,22 +234,14 @@ mod tests {
         async fn get_turnover_analytics(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            start_date: NaiveDate,
-            end_date: NaiveDate,
+            query: &TurnoverAnalyticsQuery,
         ) -> Result<TurnoverAnalytics, AppError> {
             Ok(self
                 .turnover
                 .lock()
                 .expect("lock")
                 .clone()
-                .unwrap_or(TurnoverAnalytics {
-                    tenure_distribution: vec![],
-                    by_source: vec![],
-                    by_department: vec![],
-                    total_terminated: 0,
-                    period_start: start_date.to_string(),
-                    period_end: end_date.to_string(),
-                }))
+                .unwrap_or_else(|| TurnoverAnalytics::empty(query.start_date, query.end_date)))
         }
     }
 
@@ -471,6 +461,10 @@ mod tests {
             total_terminated: 5,
             period_start: "2026-01-01".into(),
             period_end: "2026-06-30".into(),
+            ..TurnoverAnalytics::empty(
+                NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
+                NaiveDate::from_ymd_opt(2026, 6, 30).expect("valid date"),
+            )
         };
 
         let mock = MockRecruitmentRepo::empty();
@@ -479,12 +473,21 @@ mod tests {
         let svc = make_service(mock);
         let start = NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date");
         let end = NaiveDate::from_ymd_opt(2026, 6, 30).expect("valid date");
+        let query = TurnoverAnalyticsQuery {
+            start_date: start,
+            end_date: end,
+            comparison_basis: DashboardComparisonBasis::None,
+            target: TurnoverTarget {
+                value: rust_decimal::Decimal::from(15),
+                operator: "lte".to_string(),
+                source: "default".to_string(),
+            },
+        };
 
         let result = svc
             .get_turnover_analytics(
                 &crate::diesel_pool::TenantAuthToken::system_override(ws),
-                start,
-                end,
+                &query,
             )
             .await
             .expect("ok");

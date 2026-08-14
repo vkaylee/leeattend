@@ -98,6 +98,68 @@ const turnoverBucketSchema = z.object({
   count,
 });
 
+/** Same shape as rateQuantitySchema — reused for turnover rates. */
+export const turnoverRateSchema = rateQuantitySchema;
+
+const turnoverComparisonSchema = z.object({
+  basis: z.enum(["none", "previous_period", "same_period_last_year", "target", "budget", "benchmark"]),
+  period_start: dateString,
+  period_end: dateString,
+  rate: turnoverRateSchema.nullable(),
+  delta_percentage_points: z.string().nullable(),
+});
+
+const turnoverWarningSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+});
+
+const turnoverReasonRowSchema = z.object({
+  reason: z.string(),
+  count,
+});
+
+const turnoverClassificationSchema = z.object({
+  classification: z.string(),
+  count,
+});
+
+const turnoverByEmploymentTypeSchema = z.object({
+  employment_type: z.string(),
+  count,
+});
+
+const turnoverByLocationSchema = z.object({
+  location_name: z.string(),
+  count,
+});
+
+const turnoverByManagerSchema = z.object({
+  manager_name: z.string(),
+  count,
+});
+
+const turnoverTrendPointSchema = z.object({
+  month: dateString,
+  headcount: count,
+  leavers: count,
+  turnover_rate: turnoverRateSchema,
+});
+
+const cohortRetentionRowSchema = z.object({
+  cohort_month: dateString,
+  months_since_hire: count,
+  cohort_size: count,
+  active_count: count,
+  retention_rate: z.string().nullable(),
+});
+
+const turnoverTargetSchema = z.object({
+  value: z.string(),
+  operator: z.string(),
+  source: z.string(),
+});
+
 export const turnoverAnalyticsSchema = z.object({
   by_department: z.array(z.object({ department_name: z.string(), count })),
   by_source: z.array(z.object({ source_name: z.string(), source_type: z.string(), count })),
@@ -105,6 +167,25 @@ export const turnoverAnalyticsSchema = z.object({
   period_start: dateString,
   tenure_distribution: z.array(turnoverBucketSchema),
   total_terminated: count,
+  // New retention & workforce-movement fields (additive — old servers omit them).
+  turnover_rate: turnoverRateSchema,
+  average_headcount: count,
+  voluntary_count: count,
+  involuntary_count: count,
+  unknown_classification_count: count,
+  retention_rate: z.string().nullable(),
+  early_attrition: turnoverRateSchema,
+  regrettable_attrition: z.string().nullable(),
+  comparison: turnoverComparisonSchema.nullable(),
+  target: turnoverTargetSchema,
+  monthly_trend: z.array(turnoverTrendPointSchema),
+  cohort_retention: z.array(cohortRetentionRowSchema),
+  termination_reasons: z.array(turnoverReasonRowSchema),
+  classification: z.array(turnoverClassificationSchema),
+  by_employment_type: z.array(turnoverByEmploymentTypeSchema),
+  by_location: z.array(turnoverByLocationSchema),
+  by_manager: z.array(turnoverByManagerSchema),
+  warnings: z.array(turnoverWarningSchema),
 });
 
 export const overtimeBreakdownSchema = z.object({

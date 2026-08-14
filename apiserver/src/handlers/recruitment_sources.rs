@@ -1,9 +1,11 @@
 use crate::domain::permissions::Permission;
-use crate::errors::AppResult;
+use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
+use crate::models::dashboard_metrics::DashboardComparisonBasis;
 use crate::models::{
     CreateRecruitmentSourceRequest, PaginatedResponse, PaginationParams, RecruitmentSource,
-    RecruitmentSourceBreakdown, TurnoverAnalytics, UpdateRecruitmentSourceRequest,
+    RecruitmentSourceBreakdown, TurnoverAnalytics, TurnoverAnalyticsQuery, TurnoverTarget,
+    UpdateRecruitmentSourceRequest,
 };
 use crate::AppState;
 use axum::{
@@ -203,19 +205,63 @@ pub async fn get_turnover_analytics(
         .map(|ws| crate::utils::tz::parse_workspace_tz(ws.timezone()))
         .unwrap_or(chrono_tz::UTC);
     let today = crate::utils::tz::utc_now_date_in_tz(&workspace_tz);
-    let start = params
-        .start
-        .and_then(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok())
-        .unwrap_or_else(|| today - chrono::Duration::days(180));
-    let end = params
-        .end
-        .and_then(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok())
-        .unwrap_or(today);
 
+    // Parse dates strictly — malformed input is a validation error, never a silent fallback.
+    let start = match params.start {
+        Some(s) => chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d")
+            .map_err(|_e| AppError::validation(crate::utils::i18n::I18nKey::InvalidDateFormat))?,
+        None => today - chrono::Duration::days(180),
+    };
+    let end = match params.end {
+        Some(s) => chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d")
+            .map_err(|_e| AppError::validation(crate::utils::i18n::I18nKey::InvalidDateFormat))?,
+        None => today,
+    };
+    crate::models::validate_custom_range(start, end, today)?;
+
+    let comparison_basis = match params.comparison.as_deref() {
+        Some("previous_period") => DashboardComparisonBasis::PreviousPeriod,
+        Some("same_period_last_year") => DashboardComparisonBasis::SamePeriodLastYear,
+        Some("none") | None => DashboardComparisonBasis::None,
+        Some(_other) => {
+            return Err(AppError::validation(
+                crate::utils::i18n::I18nKey::InvalidStatus,
+            ))
+        }
+    };
+
+    // Resolve the turnover target from workspace config, defaulting to 15% (lte).
+    let configured_target = state
+        .core()
+        .workspace_config_service()
+        .get_effective_decimal(&ctx.auth_token, "dashboard.budget.turnover_rate", today)
+        .await?;
+    let target = match params.target {
+        Some(raw) => raw
+            .parse::<rust_decimal::Decimal>()
+            .map_err(|_e| AppError::validation(crate::utils::i18n::I18nKey::InvalidStatus))?,
+        None => configured_target.unwrap_or_else(|| rust_decimal::Decimal::from(15)),
+    };
+    let target = TurnoverTarget {
+        value: target,
+        operator: "lte".to_string(),
+        source: if configured_target.is_some() {
+            "workspace_config".to_string()
+        } else {
+            "default".to_string()
+        },
+    };
+
+    let query = TurnoverAnalyticsQuery {
+        start_date: start,
+        end_date: end,
+        comparison_basis,
+        target,
+    };
     let analytics = state
         .employees()
         .recruitment_service()
-        .get_turnover_analytics(&ctx.auth_token, start, end)
+        .get_turnover_analytics(&ctx.auth_token, &query)
         .await?;
     Ok(Json(analytics))
 }
@@ -224,4 +270,8 @@ pub async fn get_turnover_analytics(
 pub struct TurnoverQueryParams {
     pub start: Option<String>,
     pub end: Option<String>,
+    /// `previous_period` | `same_period_last_year` | `none` (default `none`).
+    pub comparison: Option<String>,
+    /// Optional Decimal override for the turnover target (e.g. `"10"`).
+    pub target: Option<String>,
 }

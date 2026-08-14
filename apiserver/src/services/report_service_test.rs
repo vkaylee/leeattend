@@ -7,7 +7,8 @@ mod tests {
         Holiday, LeaveRequest, LeaveStatus, NewEffectiveScheduleParams, NewEmploymentParams,
         NewTimeEntryParams, NewWorkspaceParams, OtStatus, RecruitmentSource,
         RecruitmentSourceBreakdown, RosterItem, ScheduleTrace, ShiftRoster, TimeEntry,
-        TimeEntryWithEmployee, TurnoverAnalytics, WorkingCondition, Workspace,
+        TimeEntryWithEmployee, TurnoverAnalytics, TurnoverAnalyticsQuery, WorkingCondition,
+        Workspace,
     };
     use crate::repositories::attendance_daily_summary_repository::{
         GetSummariesPaginatedArgs, UpsertCalculatedSummaryArgs, UpsertCalculatedSummaryTxArgs,
@@ -618,8 +619,7 @@ mod tests {
         async fn get_turnover_analytics(
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
-            _s: NaiveDate,
-            _e: NaiveDate,
+            _q: &TurnoverAnalyticsQuery,
         ) -> Result<TurnoverAnalytics, AppError> {
             unimplemented!()
         }
@@ -1996,8 +1996,7 @@ mod tests {
         async fn get_turnover_analytics(
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
-            _s: NaiveDate,
-            _e: NaiveDate,
+            _q: &TurnoverAnalyticsQuery,
         ) -> Result<TurnoverAnalytics, AppError> {
             unimplemented!()
         }

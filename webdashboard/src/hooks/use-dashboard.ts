@@ -39,6 +39,7 @@ export type {
   RateQuantity,
   RecruitmentSourceBreakdown,
   TurnoverAnalytics,
+  TurnoverRate,
   UnexcusedAbsencesPoint,
   WorkspaceStats,
 } from "./use-dashboard-types";
@@ -251,15 +252,28 @@ export const useRecruitmentSourceBreakdown = () =>
     getPath: () => "/v1/dashboard/recruitment-sources",
   });
 
-export function useTurnoverAnalytics(startDate: string, endDate: string) {
+export interface TurnoverAnalyticsParams extends ChartRangeParams {
+  /** Previous-period / same-period-last-year comparison. Defaults to `previous_period`. */
+  comparison?: "none" | "previous_period" | "same_period_last_year";
+  /** Optional Decimal override for the turnover target (e.g. `"10"`). */
+  target?: string;
+}
+
+export function useTurnoverAnalytics(params: TurnoverAnalyticsParams = {}) {
   return useDashboardQuery<TurnoverAnalytics>({
     key: "turnover-analytics",
     getPath: () => {
-      const params = new URLSearchParams({ start: startDate, end: endDate });
-      return `/v1/dashboard/turnover-analytics?${params.toString()}`;
+      const sp = new URLSearchParams({
+        ...(params.startDate ? { start: params.startDate } : {}),
+        ...(params.endDate ? { end: params.endDate } : {}),
+        ...(params.comparison ? { comparison: params.comparison } : {}),
+        ...(params.target ? { target: params.target } : {}),
+      });
+      const qs = sp.toString();
+      return `/v1/dashboard/turnover-analytics${qs ? `?${qs}` : ""}`;
     },
-    extraQueryKeyParams: [startDate, endDate],
-    extraEnabled: !!startDate && !!endDate,
+    extraQueryKeyParams: [params.startDate, params.endDate, params.comparison, params.target],
+    extraEnabled: !!params.startDate && !!params.endDate,
   });
 }
 

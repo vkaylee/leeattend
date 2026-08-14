@@ -3,7 +3,7 @@ use crate::errors::AppError;
 use crate::models::{
     CreateEmergencyContactRequest, EmployeeDocument, EmployeeEmergencyContact,
     EmployeePayrollConfig, EmployeeProfile, RecruitmentSource, RecruitmentSourceBreakdown,
-    TurnoverAnalytics, UpdateEmployeeProfileRequest, WorkingCondition,
+    TurnoverAnalytics, TurnoverAnalyticsQuery, UpdateEmployeeProfileRequest, WorkingCondition,
 };
 use crate::repositories::diesel_employee_repository::assignments::EmployeeAssignmentRepository;
 use crate::repositories::employee::{
@@ -181,22 +181,14 @@ impl EmployeeRecruitmentRepository for MockEmployeeRepo {
     async fn get_turnover_analytics(
         &self,
         _a: &crate::diesel_pool::TenantAuthToken,
-        start_date: NaiveDate,
-        end_date: NaiveDate,
+        query: &TurnoverAnalyticsQuery,
     ) -> Result<TurnoverAnalytics, AppError> {
         Ok(self
             .turnover
             .lock()
             .expect("lock")
             .clone()
-            .unwrap_or(TurnoverAnalytics {
-                tenure_distribution: vec![],
-                by_source: vec![],
-                by_department: vec![],
-                total_terminated: 0,
-                period_start: start_date.to_string(),
-                period_end: end_date.to_string(),
-            }))
+            .unwrap_or_else(|| TurnoverAnalytics::empty(query.start_date, query.end_date)))
     }
 }
 

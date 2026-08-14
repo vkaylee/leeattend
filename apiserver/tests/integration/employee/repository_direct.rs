@@ -493,12 +493,23 @@ async fn test_get_turnover_analytics_direct() {
     let start_date = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
     let end_date = NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
 
+    use apiserver::models::{DashboardComparisonBasis, TurnoverAnalyticsQuery, TurnoverTarget};
+    let query = TurnoverAnalyticsQuery {
+        start_date,
+        end_date,
+        comparison_basis: DashboardComparisonBasis::None,
+        target: TurnoverTarget {
+            value: Decimal::from(15),
+            operator: "lte".to_string(),
+            source: "default".to_string(),
+        },
+    };
+
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let analytics = repo
         .get_turnover_analytics(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            start_date,
-            end_date,
+            &query,
         )
         .await
         .unwrap();
