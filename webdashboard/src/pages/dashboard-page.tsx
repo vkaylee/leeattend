@@ -12,6 +12,7 @@ import PendingTasksWidget from "@/components/features/dashboard/pending-tasks-wi
 import { DashboardFilterBar, useDashboardFilterState } from "@/components/features/dashboard/dashboard-filter-bar";
 import Button from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ExecutiveKpiGrid } from "@/components/features/dashboard/executive-kpi-grid";
 import { useAgentsStatus } from "@/hooks/use-agents";
 import { useCurrency } from "@/hooks/use-currency";
 import { useDashboardMetrics, useDashboardStats } from "@/hooks/use-dashboard";
@@ -43,6 +44,7 @@ export default function DashboardPage() {
     data: executiveMetrics,
     isLoading: executiveLoading,
     error: executiveError,
+    refetch: refetchExecutiveMetrics,
   } = useDashboardMetrics(dashboardFilters);
   const { setActions } = useHeaderActions();
 
@@ -165,19 +167,12 @@ export default function DashboardPage() {
             {executiveLoading ? t("dashboard.executive.loading") : executiveError ? t("dashboard.executive.error") : t("dashboard.executive.metric_count", { count: executiveMetricCount })}
           </span>
         </div>
-        {executiveLoading ? (
-          <div aria-label={t("dashboard.executive.loading")} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <Skeleton className="h-24 rounded-2xl" />
-            <Skeleton className="h-24 rounded-2xl" />
-            <Skeleton className="h-24 rounded-2xl" />
-          </div>
-        ) : executiveError ? (
-          <p aria-live="assertive" className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300" role="alert">{t("dashboard.executive.error_description")}</p>
-        ) : executiveDataGap ? (
-          <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200" role="status">{t("dashboard.executive.data_gap")}</p>
-        ) : (
-          <p className="text-sm text-slate-600 dark:text-slate-300">{t("dashboard.executive.ready", { count: executiveMetricCount })}</p>
-        )}
+        <ExecutiveKpiGrid
+          data={executiveMetrics}
+          error={Boolean(executiveError)}
+          loading={executiveLoading}
+          onRetry={() => void refetchExecutiveMetrics()}
+        />
       </section>
 
       {!showSystemTab ? (

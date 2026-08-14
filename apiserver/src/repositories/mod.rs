@@ -63,7 +63,10 @@ pub use behalf_assignment_repository::BehalfAssignmentRepository;
 pub mod attendance_policy_repository;
 pub use attendance_policy_repository::AttendancePolicyRepository;
 pub mod workspace_stats_repository;
-pub use workspace_stats_repository::{DieselWorkspaceStatsRepository, WorkspaceStatsRepository};
+pub use workspace_stats_repository::{
+    DieselWorkspaceStatsRepository, ExecutiveDashboardRequest, ExecutiveDashboardSnapshot,
+    ExecutiveDashboardSnapshots, WorkspaceStatsRepository,
+};
 pub mod diesel_employee_contract_repository;
 pub mod diesel_employee_repository;
 pub mod diesel_employment_repository;

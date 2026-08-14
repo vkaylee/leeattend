@@ -24,12 +24,15 @@ pub async fn get_dashboard_metrics(
     Query(query): Query<DashboardMetricsQuery>,
 ) -> AppResult<Json<DashboardMetricsResponse>> {
     ctx.require_permission(Permission::DashboardRead)?;
+    let allow_overtime_cost = ctx.has_permission(Permission::PayrollSensitiveRead);
     let response = build_dashboard_metrics(
         state.core().workspace_repo(),
-        ctx.workspace_id,
+        state.reports().stats_repo(),
+        &ctx.auth_token,
         &query,
         chrono::Utc::now(),
         ctx.managed_department_ids.as_ref(),
+        allow_overtime_cost,
     )
     .await?;
     Ok(Json(response))

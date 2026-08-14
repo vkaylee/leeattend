@@ -22,6 +22,7 @@ pub mod attendance;
 pub mod audit;
 pub mod auth;
 pub mod condition_type;
+pub mod dashboard_metrics;
 pub mod department;
 pub mod employee;
 pub mod ess;

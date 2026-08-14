@@ -340,6 +340,14 @@ impl DashboardMetricTarget {
     pub fn new(value: Decimal, operator: DashboardTargetOperator) -> Self {
         Self { value, operator }
     }
+
+    pub fn value(&self) -> Decimal {
+        self.value
+    }
+
+    pub fn operator(&self) -> &DashboardTargetOperator {
+        &self.operator
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
@@ -394,6 +402,10 @@ impl DashboardMetric {
             comparison,
             target,
         }
+    }
+
+    pub fn status(&self) -> &DashboardMetricStatus {
+        &self.status
     }
 }
 

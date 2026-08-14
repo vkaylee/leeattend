@@ -7,12 +7,51 @@ use crate::models::{
 use async_trait::async_trait;
 use chrono::{Datelike, NaiveDate, Utc};
 use chrono_tz::Tz;
+use diesel::QueryableByName;
 use diesel_async::RunQueryDsl;
+use rust_decimal::Decimal;
 
 use crate::repositories::raw_models::workspace_stats::*;
 use crate::repositories::roster::RosterRepository;
 use crate::utils::tz;
 use uuid::Uuid;
+
+#[derive(Debug, Clone)]
+pub struct ExecutiveDashboardRequest {
+    pub current_start: NaiveDate,
+    pub current_end: NaiveDate,
+    pub comparison_start: NaiveDate,
+    pub comparison_end: NaiveDate,
+    pub department_ids: Option<Vec<Uuid>>,
+    pub location_ids: Option<Vec<Uuid>>,
+    pub timezone: String,
+    /// Whether overtime cost may be resolved (caller has `PayrollSensitiveRead`).
+    pub allow_overtime_cost: bool,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ExecutiveDashboardSnapshot {
+    pub headcount: i64,
+    pub eligible_employee_days: i64,
+    pub present_employee_days: i64,
+    pub absent_employee_days: i64,
+    pub leave_employee_days: i64,
+    pub termination_count: i64,
+    pub headcount_start: i64,
+    pub headcount_end: i64,
+    pub approved_overtime_minutes: i64,
+    pub pending_hr_actions: i64,
+    pub currency_code: Option<String>,
+    /// Sum of `overtime_pay_amount` for finalized payroll in the period.
+    /// `None` when cost is unauthorized or the payroll source is unavailable.
+    pub overtime_cost: Option<Decimal>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExecutiveDashboardSnapshots {
+    pub current: ExecutiveDashboardSnapshot,
+    pub comparison: ExecutiveDashboardSnapshot,
+}
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -46,6 +85,11 @@ pub trait WorkspaceStatsRepository: Send + Sync {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<LatenessByDay>, AppError>;
+    async fn fetch_executive_dashboard(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        request: &ExecutiveDashboardRequest,
+    ) -> Result<ExecutiveDashboardSnapshots, AppError>;
 }
 
 pub struct DieselWorkspaceStatsRepository {
@@ -924,5 +968,223 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         }
 
         Ok(result)
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn fetch_executive_dashboard(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        request: &ExecutiveDashboardRequest,
+    ) -> Result<ExecutiveDashboardSnapshots, AppError> {
+        let workspace_id = auth_token.workspace_id();
+        let department_ids = request.department_ids.as_deref();
+        let location_ids = request.location_ids.as_deref();
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        #[derive(Debug, QueryableByName)]
+        struct SnapshotRow {
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            headcount: i64,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            eligible_employee_days: i64,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            present_employee_days: i64,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            absent_employee_days: i64,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            leave_employee_days: i64,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            termination_count: i64,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            headcount_start: i64,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            headcount_end: i64,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            approved_overtime_minutes: i64,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            pending_hr_actions: i64,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+            currency_code: Option<String>,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Numeric>)]
+            overtime_cost: Option<Decimal>,
+        }
+
+        let sql = r"
+WITH periods AS (
+    SELECT $2::date AS start_date, $3::date AS end_date, 'current' AS period
+    UNION ALL
+    SELECT $4::date, $5::date, 'comparison'
+),
+active_days AS (
+    SELECT p.period, COUNT(*)::bigint AS eligible_employee_days
+    FROM periods p
+    JOIN employments emp
+      ON emp.workspace_id = $1
+     AND emp.deleted_at IS NULL
+     AND emp.status = 'active'
+     AND emp.start_date <= p.end_date
+     AND (emp.end_date IS NULL OR emp.end_date >= p.start_date)
+     AND ($6::uuid[] IS NULL OR emp.department_id = ANY($6))
+     AND ($7::uuid[] IS NULL OR emp.primary_location_id = ANY($7))
+    CROSS JOIN LATERAL generate_series(
+        GREATEST(emp.start_date, p.start_date),
+        LEAST(COALESCE(emp.end_date, p.end_date), p.end_date),
+        interval '1 day'
+    ) day_value
+    GROUP BY p.period
+),
+headcounts AS (
+    SELECT p.period,
+           COUNT(DISTINCT emp.employee_id) FILTER (WHERE emp.start_date <= p.end_date AND (emp.end_date IS NULL OR emp.end_date >= p.end_date))::bigint AS headcount_end,
+           COUNT(DISTINCT emp.employee_id) FILTER (WHERE emp.start_date <= p.start_date AND (emp.end_date IS NULL OR emp.end_date >= p.start_date))::bigint AS headcount_start
+    FROM periods p
+    LEFT JOIN employments emp
+      ON emp.workspace_id = $1
+     AND emp.deleted_at IS NULL
+     AND ($6::uuid[] IS NULL OR emp.department_id = ANY($6))
+     AND ($7::uuid[] IS NULL OR emp.primary_location_id = ANY($7))
+    GROUP BY p.period
+),
+attendance_days AS (
+    SELECT p.period,
+           COUNT(DISTINCT (ads.employment_id, ads.date)) FILTER (WHERE ads.actual_work_minutes > 0)::bigint AS present_employee_days,
+           COUNT(DISTINCT (ads.employment_id, ads.date)) FILTER (WHERE ads.actual_work_minutes = 0 AND NOT ads.is_holiday)::bigint AS absent_employee_days,
+           COUNT(DISTINCT (lr.employment_id, day_value::date))::bigint AS leave_employee_days
+    FROM periods p
+    LEFT JOIN attendance_daily_summaries ads
+      ON ads.workspace_id = $1 AND ads.date BETWEEN p.start_date AND p.end_date
+    LEFT JOIN employments emp ON emp.id = ads.employment_id
+      AND emp.workspace_id = $1 AND emp.deleted_at IS NULL
+      AND ($6::uuid[] IS NULL OR emp.department_id = ANY($6))
+      AND ($7::uuid[] IS NULL OR emp.primary_location_id = ANY($7))
+    LEFT JOIN leave_requests lr
+      ON lr.status IN ('approved', 'pre_approved')
+     AND lr.start_date <= p.end_date AND lr.end_date >= p.start_date
+     AND lr.employment_id = emp.id
+    LEFT JOIN LATERAL generate_series(
+      GREATEST(lr.start_date, p.start_date), LEAST(lr.end_date, p.end_date), interval '1 day'
+    ) day_value ON lr.id IS NOT NULL
+    GROUP BY p.period
+),
+overtime AS (
+    SELECT p.period, COALESCE(SUM(ads.approved_ot_minutes), 0)::bigint AS approved_overtime_minutes
+    FROM periods p
+    LEFT JOIN attendance_daily_summaries ads
+      ON ads.workspace_id = $1 AND ads.date BETWEEN p.start_date AND p.end_date
+    LEFT JOIN employments emp ON emp.id = ads.employment_id
+      AND emp.workspace_id = $1 AND emp.deleted_at IS NULL
+      AND ($6::uuid[] IS NULL OR emp.department_id = ANY($6))
+      AND ($7::uuid[] IS NULL OR emp.primary_location_id = ANY($7))
+    GROUP BY p.period
+),
+terminations AS (
+    SELECT p.period, COUNT(DISTINCT e.id)::bigint AS termination_count
+    FROM periods p
+    LEFT JOIN employees e ON e.workspace_id = $1 AND e.deleted_at IS NULL
+      AND e.termination_date BETWEEN p.start_date AND p.end_date
+    GROUP BY p.period
+),
+actions AS (
+    SELECT p.period,
+      (SELECT COUNT(*) FROM leave_requests lr JOIN employments emp ON emp.id = lr.employment_id
+       WHERE lr.status = 'pending' AND emp.workspace_id = $1 AND emp.deleted_at IS NULL
+         AND lr.created_at::date BETWEEN p.start_date AND p.end_date
+         AND ($6::uuid[] IS NULL OR emp.department_id = ANY($6)))
+      + (SELECT COUNT(*) FROM overtime_requests ot
+         WHERE ot.workspace_id = $1 AND ot.status = 'pending_approval'
+           AND ot.planned_date BETWEEN p.start_date AND p.end_date
+           AND ($6::uuid[] IS NULL OR ot.department_id = ANY($6))) AS pending_hr_actions
+    FROM periods p
+),
+currency AS (
+    SELECT COALESCE((SELECT currency_code FROM employers WHERE workspace_id = $1 AND deleted_at IS NULL AND currency_code IS NOT NULL ORDER BY created_at LIMIT 1), 'USD') AS currency_code
+),
+overtime_cost AS (
+    SELECT p.period,
+           CASE WHEN $9::boolean THEN COALESCE(SUM(ps.overtime_pay_amount), 0) END AS overtime_cost
+    FROM periods p
+    LEFT JOIN payslips ps
+      ON ps.workspace_id = $1
+     AND ps.status IN ('paid', 'finalized')
+     AND ps.period_start <= p.end_date AND ps.period_end >= p.start_date
+    LEFT JOIN employments emp
+      ON emp.id = ps.employment_id
+     AND emp.workspace_id = $1
+     AND emp.deleted_at IS NULL
+     AND ($6::uuid[] IS NULL OR emp.department_id = ANY($6))
+     AND ($7::uuid[] IS NULL OR emp.primary_location_id = ANY($7))
+    WHERE ps.id IS NOT NULL OR $9::boolean IS FALSE
+    GROUP BY p.period
+)
+SELECT h.headcount_end AS headcount,
+       COALESCE(a.eligible_employee_days, 0) AS eligible_employee_days,
+       COALESCE(ad.present_employee_days, 0) AS present_employee_days,
+       COALESCE(ad.absent_employee_days, 0) AS absent_employee_days,
+       COALESCE(ad.leave_employee_days, 0) AS leave_employee_days,
+       COALESCE(t.termination_count, 0) AS termination_count,
+       h.headcount_start,
+       h.headcount_end,
+       COALESCE(o.approved_overtime_minutes, 0) AS approved_overtime_minutes,
+       COALESCE(ac.pending_hr_actions, 0) AS pending_hr_actions,
+       c.currency_code,
+       oc.overtime_cost
+FROM headcounts h
+LEFT JOIN active_days a USING (period)
+LEFT JOIN attendance_days ad USING (period)
+LEFT JOIN overtime o USING (period)
+LEFT JOIN terminations t USING (period)
+LEFT JOIN actions ac USING (period)
+LEFT JOIN overtime_cost oc USING (period)
+CROSS JOIN currency c
+WHERE h.period = $8
+";
+
+        let current_row = diesel::sql_query(sql)
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+            .bind::<diesel::sql_types::Date, _>(request.current_start)
+            .bind::<diesel::sql_types::Date, _>(request.current_end)
+            .bind::<diesel::sql_types::Date, _>(request.comparison_start)
+            .bind::<diesel::sql_types::Date, _>(request.comparison_end)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Array<diesel::sql_types::Uuid>>, _>(department_ids)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Array<diesel::sql_types::Uuid>>, _>(location_ids)
+            .bind::<diesel::sql_types::Text, _>("current")
+            .bind::<diesel::sql_types::Bool, _>(request.allow_overtime_cost)
+            .get_result::<SnapshotRow>(&mut *conn)
+            .await
+            .map_err(AppError::from)?;
+        let comparison_row = diesel::sql_query(sql)
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+            .bind::<diesel::sql_types::Date, _>(request.current_start)
+            .bind::<diesel::sql_types::Date, _>(request.current_end)
+            .bind::<diesel::sql_types::Date, _>(request.comparison_start)
+            .bind::<diesel::sql_types::Date, _>(request.comparison_end)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Array<diesel::sql_types::Uuid>>, _>(department_ids)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Array<diesel::sql_types::Uuid>>, _>(location_ids)
+            .bind::<diesel::sql_types::Text, _>("comparison")
+            .bind::<diesel::sql_types::Bool, _>(request.allow_overtime_cost)
+            .get_result::<SnapshotRow>(&mut *conn)
+            .await
+            .map_err(AppError::from)?;
+        let to_snapshot = |row: SnapshotRow| ExecutiveDashboardSnapshot {
+            headcount: row.headcount,
+            eligible_employee_days: row.eligible_employee_days,
+            present_employee_days: row.present_employee_days,
+            absent_employee_days: row.absent_employee_days,
+            leave_employee_days: row.leave_employee_days,
+            termination_count: row.termination_count,
+            headcount_start: row.headcount_start,
+            headcount_end: row.headcount_end,
+            approved_overtime_minutes: row.approved_overtime_minutes,
+            pending_hr_actions: row.pending_hr_actions,
+            currency_code: row.currency_code,
+            overtime_cost: row.overtime_cost,
+        };
+        Ok(ExecutiveDashboardSnapshots {
+            current: to_snapshot(current_row),
+            comparison: to_snapshot(comparison_row),
+        })
     }
 }

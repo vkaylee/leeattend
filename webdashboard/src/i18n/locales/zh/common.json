@@ -1310,7 +1310,24 @@
       "error_description": "由于连接或数据错误，无法加载高管指标。现有运营组件仍可用。",
       "data_gap": "部分高管数据源存在数据缺口。缺失值未替换为零。",
       "metric_count": "{{count}} 项指标",
-      "ready": "有 {{count}} 项高管指标可用。"
+      "ready": "有 {{count}} 项高管指标可用。",
+      "retry": "重试",
+      "comparison_help": "与对比期间的变化",
+      "comparison_unavailable": "无对比数据",
+      "freshness_help": "最近数据刷新时间",
+      "units": { "hours": "小时" },
+      "status": { "available": "可用", "not_applicable": "不适用", "data_gap": "数据缺口", "restricted": "受限" },
+      "metrics": {
+        "headcount": { "label": "员工人数", "formula": "期末在职员工" },
+        "attendance_rate": { "label": "出勤率", "formula": "出勤员工日 / 符合条件员工日" },
+        "absence_rate": { "label": "缺勤率", "formula": "缺勤员工日 / 符合条件员工日" },
+        "late_rate": { "label": "迟到率", "formula": "排班迟到员工日 / 排班员工日" },
+        "turnover_rate": { "label": "流动率", "formula": "离职人数 / 平均员工人数" },
+        "overtime": { "label": "加班", "formula": "已批准加班小时（或授权后的费用）" },
+        "overtime_hours": { "label": "加班小时", "formula": "已批准加班分钟 / 60" },
+        "overtime_cost": { "label": "加班费用", "formula": "期间内已结算的加班工资" },
+        "pending_hr_actions": { "label": "待处理人事事项", "formula": "待处理人事工作流事项" }
+      }
     },
     "tabs": {
       "hr": "人事与薪资",

@@ -1310,7 +1310,24 @@
       "error_description": "Executive metrics could not be loaded because of a connection or data error. Existing operational widgets remain available.",
       "data_gap": "Some executive sources have data gaps. No missing values were replaced with zero.",
       "metric_count": "{{count}} metrics",
-      "ready": "{{count}} executive metrics available."
+      "ready": "{{count}} executive metrics available.",
+      "retry": "Retry",
+      "comparison_help": "Change from comparison period",
+      "comparison_unavailable": "No comparison",
+      "freshness_help": "Last data refresh",
+      "units": { "hours": "hours" },
+      "status": { "available": "Available", "not_applicable": "Not applicable", "data_gap": "Data gap", "restricted": "Restricted" },
+      "metrics": {
+        "headcount": { "label": "Headcount", "formula": "Active employees at period end" },
+        "attendance_rate": { "label": "Attendance rate", "formula": "Present employee-days / eligible employee-days" },
+        "absence_rate": { "label": "Absence rate", "formula": "Absent employee-days / eligible employee-days" },
+        "late_rate": { "label": "Late rate", "formula": "Scheduled late employee-days / scheduled employee-days" },
+        "turnover_rate": { "label": "Turnover rate", "formula": "Terminations / average headcount" },
+        "overtime": { "label": "Overtime", "formula": "Approved overtime hours (or cost when authorized)" },
+        "overtime_hours": { "label": "Overtime hours", "formula": "Approved overtime minutes / 60" },
+        "overtime_cost": { "label": "Overtime cost", "formula": "Finalized overtime pay in period" },
+        "pending_hr_actions": { "label": "Pending HR actions", "formula": "Pending HR workflow items" }
+      }
     },
     "tabs": {
       "hr": "Personnel & Payroll",

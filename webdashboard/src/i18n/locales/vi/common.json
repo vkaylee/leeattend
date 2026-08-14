@@ -1310,7 +1310,24 @@
       "error_description": "Không thể tải chỉ số điều hành do lỗi kết nối hoặc dữ liệu. Widget vận hành vẫn khả dụng.",
       "data_gap": "Một số nguồn điều hành đang thiếu dữ liệu. Không thay giá trị thiếu bằng số 0.",
       "metric_count": "{{count}} chỉ số",
-      "ready": "Có {{count}} chỉ số điều hành."
+      "ready": "Có {{count}} chỉ số điều hành.",
+      "retry": "Thử lại",
+      "comparison_help": "Thay đổi so với kỳ đối chiếu",
+      "comparison_unavailable": "Không có đối chiếu",
+      "freshness_help": "Thời điểm cập nhật dữ liệu gần nhất",
+      "units": { "hours": "giờ" },
+      "status": { "available": "Có dữ liệu", "not_applicable": "Không áp dụng", "data_gap": "Thiếu dữ liệu", "restricted": "Bị giới hạn" },
+      "metrics": {
+        "headcount": { "label": "Quy mô nhân sự", "formula": "Nhân viên đang hoạt động cuối kỳ" },
+        "attendance_rate": { "label": "Tỷ lệ đi làm", "formula": "Ngày-công có mặt / ngày-công đủ điều kiện" },
+        "absence_rate": { "label": "Tỷ lệ vắng mặt", "formula": "Ngày-công vắng / ngày-công đủ điều kiện" },
+        "late_rate": { "label": "Tỷ lệ đi trễ", "formula": "Ngày-công trễ theo lịch / ngày-công theo lịch" },
+        "turnover_rate": { "label": "Tỷ lệ biến động", "formula": "Số nghỉ việc / nhân sự bình quân" },
+        "overtime": { "label": "Làm thêm giờ", "formula": "Giờ làm thêm được duyệt (hoặc chi phí khi được cấp quyền)" },
+        "overtime_hours": { "label": "Giờ làm thêm", "formula": "Phút làm thêm được duyệt / 60" },
+        "overtime_cost": { "label": "Chi phí làm thêm", "formula": "Lương làm thêm đã chốt trong kỳ" },
+        "pending_hr_actions": { "label": "Tác vụ nhân sự chờ xử lý", "formula": "Các mục quy trình nhân sự đang chờ" }
+      }
     },
     "tabs": {
       "hr": "Nhân sự & Lương",
