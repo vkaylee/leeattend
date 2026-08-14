@@ -14,6 +14,7 @@ impl ReportService {
         start_date: NaiveDate,
         end_date: NaiveDate,
         group_by: &str,
+        department_ids: Option<Vec<Uuid>>,
     ) -> Result<Vec<UnexcusedAbsencesPoint>, AppError> {
         use crate::services::attendance_utils::{
             self, determine_daily_status, AttendanceStatus, DailyStatusInput, HolidayKind,
@@ -107,6 +108,11 @@ impl ReportService {
         let mut emp_stats: HashMap<Uuid, EmployeeStats> = HashMap::new();
         let unassigned_id = Uuid::nil();
 
+        // Scoped-manager department filter: when present, restrict rows to the
+        // listed departments (unassigned employees are always excluded).
+        let allowed_depts: Option<std::collections::HashSet<Uuid>> =
+            department_ids.map(|ids| ids.into_iter().collect());
+
         for emp_sched in &schedules {
             let Some(employee_id) = emp_id_to_employee_id
                 .get(&emp_sched.employment_id())
@@ -131,6 +137,15 @@ impl ReportService {
                 .get(&employee_id)
                 .cloned()
                 .unwrap_or_else(|| (None, "Unassigned".to_string()));
+
+            // Apply the scoped-manager filter: employees outside the managed set
+            // (or unassigned under a scoped caller) are dropped before aggregation.
+            if let Some(allowed) = &allowed_depts {
+                match dept_id {
+                    Some(id) if allowed.contains(&id) => {}
+                    _ => continue,
+                }
+            }
 
             let mut unexcused = 0i64;
             let mut total_absent = 0i64;

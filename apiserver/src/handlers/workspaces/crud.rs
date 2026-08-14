@@ -21,9 +21,62 @@ use crate::utils::i18n::I18nKey;
 
 use crate::{AppState, UserId};
 
+/// Shared query params for chart endpoints that accept an explicit custom range.
+#[derive(Debug, Deserialize)]
+pub struct ChartRangeQuery {
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+    pub timezone: Option<String>,
+}
+
+impl ChartRangeQuery {
+    /// Resolve the explicit custom range, validating strictly (no silent fallback).
+    ///
+    /// Returns `None` when the client omitted both bounds (caller supplies its own
+    /// default window). Returns a validation error for malformed dates, invalid
+    /// timezones, or an out-of-bounds window.
+    fn resolve(
+        &self,
+        default_tz: chrono_tz::Tz,
+    ) -> AppResult<Option<(NaiveDate, NaiveDate, Option<String>)>> {
+        let tz = match self.timezone.as_deref() {
+            Some(explicit) => crate::utils::tz::validate_tz(explicit)?,
+            None => default_tz,
+        };
+        let today = crate::utils::tz::utc_now_date_in_tz(&tz);
+
+        let parse = |raw: &Option<String>| -> AppResult<Option<NaiveDate>> {
+            match raw {
+                Some(value) => NaiveDate::parse_from_str(value, "%Y-%m-%d")
+                    .map(Some)
+                    .map_err(|_err| AppError::validation(I18nKey::InvalidDateRange)),
+                None => Ok(None),
+            }
+        };
+
+        match (parse(&self.start_date)?, parse(&self.end_date)?) {
+            (None, None) => Ok(None),
+            (Some(start), Some(end)) => {
+                crate::models::validate_custom_range(start, end, today)?;
+                Ok(Some((start, end, self.timezone.clone())))
+            }
+            // A half-specified range is ambiguous — never silently default the
+            // missing bound. Require both or neither.
+            (None, Some(_)) | (Some(_), None) => {
+                Err(AppError::validation(I18nKey::InvalidDateRange))
+            }
+        }
+    }
+}
+
 #[utoipa::path(
     get,
     path = "/dashboard/attendance-trend",
+    params(
+        ("start_date" = Option<String>, Query, description = "Inclusive start date (YYYY-MM-DD)"),
+        ("end_date" = Option<String>, Query, description = "Inclusive end date (YYYY-MM-DD)"),
+        ("timezone" = Option<String>, Query, description = "IANA timezone for date bucketing")
+    ),
     responses(
         (status = 200, description = "Get attendance trend analysis data", body = Vec<AttendanceTrendPoint>)
     )
@@ -31,14 +84,36 @@ use crate::{AppState, UserId};
 pub async fn get_attendance_trend(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
+    Query(params): Query<ChartRangeQuery>,
 ) -> AppResult<Json<Vec<AttendanceTrendPoint>>> {
     ctx.require_permission(Permission::DashboardRead)?;
-    let _workspace_id = ctx.workspace_id;
+
+    let default_tz = state
+        .core()
+        .workspace_repo()
+        .get_workspace_by_id(ctx.workspace_id)
+        .await?
+        .map(|ws| crate::utils::tz::parse_workspace_tz(ws.timezone()))
+        .unwrap_or(chrono_tz::UTC);
+    let resolved = params.resolve(default_tz)?;
+
+    let mut query = crate::repositories::workspace_stats_repository::ChartAnalyticsQuery {
+        department_ids: ctx
+            .managed_department_ids
+            .clone()
+            .map(|s| s.into_iter().collect()),
+        ..Default::default()
+    };
+    if let Some((start, end, tz)) = resolved {
+        query.start_date = Some(start);
+        query.end_date = Some(end);
+        query.timezone = tz;
+    }
 
     let result = state
         .reports()
         .stats_repo()
-        .fetch_attendance_trend(&ctx.auth_token)
+        .fetch_attendance_trend(&ctx.auth_token, &query)
         .await?;
     Ok(Json(result))
 }
@@ -46,6 +121,10 @@ pub async fn get_attendance_trend(
 #[derive(Debug, Deserialize)]
 pub struct DeptAttendanceQuery {
     pub range: Option<String>,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+    pub timezone: Option<String>,
+    pub top_n: Option<i64>,
 }
 
 #[utoipa::path(
@@ -55,7 +134,11 @@ pub struct DeptAttendanceQuery {
         (status = 200, description = "Get department-scoped attendance analytics", body = Vec<DepartmentAttendancePoint>)
     ),
     params(
-        ("range" = Option<String>, Query, description = "Analytics date range (e.g. today, week, month)")
+        ("range" = Option<String>, Query, description = "Deprecated: use start_date/end_date"),
+        ("start_date" = Option<String>, Query, description = "Inclusive start date (YYYY-MM-DD)"),
+        ("end_date" = Option<String>, Query, description = "Inclusive end date (YYYY-MM-DD)"),
+        ("timezone" = Option<String>, Query, description = "IANA timezone for date bucketing"),
+        ("top_n" = Option<i64>, Query, description = "Return at most N departments sorted by attendance rate")
     )
 )]
 pub async fn get_department_attendance(
@@ -64,13 +147,54 @@ pub async fn get_department_attendance(
     Query(params): Query<DeptAttendanceQuery>,
 ) -> AppResult<Json<Vec<DepartmentAttendancePoint>>> {
     ctx.require_permission(Permission::DashboardRead)?;
-    let _workspace_id = ctx.workspace_id;
 
-    let range = params.range.unwrap_or_else(|| "today".to_string());
+    let default_tz = state
+        .core()
+        .workspace_repo()
+        .get_workspace_by_id(ctx.workspace_id)
+        .await?
+        .map(|ws| crate::utils::tz::parse_workspace_tz(ws.timezone()))
+        .unwrap_or(chrono_tz::UTC);
+
+    let range = params.range.as_deref();
+    let (start_date, end_date, timezone) = if let Some(range) = range {
+        // Backward-compatible preset (today/week/month); explicit dates win if both given.
+        let today = crate::utils::tz::utc_now_date_in_tz(&default_tz);
+        let start = match range {
+            "today" => today,
+            "week" => today - chrono::Duration::days(6),
+            "month" => today - chrono::Duration::days(29),
+            _ => return Err(AppError::validation(I18nKey::Validation)),
+        };
+        (Some(start), Some(today), params.timezone.clone())
+    } else {
+        let resolved = ChartRangeQuery {
+            start_date: params.start_date,
+            end_date: params.end_date,
+            timezone: params.timezone,
+        }
+        .resolve(default_tz)?;
+        match resolved {
+            Some((start, end, tz)) => (Some(start), Some(end), tz),
+            None => (None, None, None),
+        }
+    };
+
+    let query = crate::repositories::workspace_stats_repository::ChartAnalyticsQuery {
+        department_ids: ctx
+            .managed_department_ids
+            .clone()
+            .map(|s| s.into_iter().collect()),
+        start_date,
+        end_date,
+        timezone,
+        top_n: params.top_n,
+    };
+
     let result = state
         .reports()
         .stats_repo()
-        .fetch_department_attendance(&ctx.auth_token, &range)
+        .fetch_department_attendance(&ctx.auth_token, &query)
         .await?;
     Ok(Json(result))
 }
@@ -79,6 +203,7 @@ pub async fn get_department_attendance(
 pub struct UnexcusedAbsencesQuery {
     pub start_date: Option<String>,
     pub end_date: Option<String>,
+    pub timezone: Option<String>,
     pub group_by: Option<String>,
 }
 
@@ -92,6 +217,7 @@ pub struct UnexcusedAbsencesQuery {
     params(
         ("start_date" = Option<String>, Query, description = "Start Date (YYYY-MM-DD)"),
         ("end_date" = Option<String>, Query, description = "End Date (YYYY-MM-DD)"),
+        ("timezone" = Option<String>, Query, description = "IANA timezone for date bucketing"),
         ("group_by" = Option<String>, Query, description = "Group results by employee or department")
     )
 )]
@@ -103,28 +229,42 @@ pub async fn get_unexcused_absences(
     ctx.require_permission(Permission::DashboardRead)?;
     let workspace_id = ctx.workspace_id;
 
+    let group_by = params.group_by.unwrap_or_else(|| "department".to_string());
+
+    // Employee mode surfaces per-employee PII — gate it behind the dedicated permission.
+    if group_by == "employee" {
+        ctx.require_permission(Permission::DashboardEmployeeAbsenceRead)?;
+    }
+
     // Resolve workspace tz for correct local "today"
-    let workspace_tz = state
+    let default_tz = state
         .core()
         .workspace_repo()
         .get_workspace_by_id(workspace_id)
         .await?
         .map(|ws| crate::utils::tz::parse_workspace_tz(ws.timezone()))
         .unwrap_or(chrono_tz::UTC);
-    let today = crate::utils::tz::utc_now_date_in_tz(&workspace_tz);
 
-    let end_date = params
-        .end_date
-        .and_then(|d| NaiveDate::parse_from_str(&d, "%Y-%m-%d").ok())
-        .unwrap_or(today)
-        .min(today); // Don't look into the future
+    let resolved = ChartRangeQuery {
+        start_date: params.start_date,
+        end_date: params.end_date,
+        timezone: params.timezone,
+    }
+    .resolve(default_tz)?;
 
-    let start_date = params
-        .start_date
-        .and_then(|d| NaiveDate::parse_from_str(&d, "%Y-%m-%d").ok())
-        .unwrap_or_else(|| end_date - chrono::Duration::days(29));
+    let (start_date, end_date) = if let Some((start, end, _tz)) = resolved {
+        (start, end)
+    } else {
+        // No custom range given: retain the previous default window rather than
+        // failing — the absence view is date-driven and defaults to last 30 days.
+        let today = crate::utils::tz::utc_now_date_in_tz(&default_tz);
+        (today - chrono::Duration::days(29), today)
+    };
 
-    let group_by = params.group_by.unwrap_or_else(|| "department".to_string());
+    let department_ids = ctx
+        .managed_department_ids
+        .clone()
+        .map(|s| s.into_iter().collect());
 
     let result = state
         .reports()
@@ -135,6 +275,7 @@ pub async fn get_unexcused_absences(
             start_date,
             end_date,
             &group_by,
+            department_ids,
         )
         .await?;
 
@@ -166,6 +307,9 @@ pub async fn get_overtime_trend(
 #[utoipa::path(
     get,
     path = "/dashboard/workspace-stats",
+    params(
+        ("timezone" = Option<String>, Query, description = "IANA timezone for date bucketing")
+    ),
     responses(
         (status = 200, description = "Get workspace key metrics and status summary", body = WorkspaceStats)
     )
@@ -173,14 +317,23 @@ pub async fn get_overtime_trend(
 pub async fn get_workspace_stats(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
+    Query(params): Query<ChartRangeQuery>,
 ) -> AppResult<Json<WorkspaceStats>> {
     ctx.require_permission(Permission::DashboardRead)?;
-    let _workspace_id = ctx.workspace_id;
+
+    let query = crate::repositories::workspace_stats_repository::ChartAnalyticsQuery {
+        department_ids: ctx
+            .managed_department_ids
+            .clone()
+            .map(|s| s.into_iter().collect()),
+        timezone: params.timezone,
+        ..Default::default()
+    };
 
     let result = state
         .reports()
         .stats_repo()
-        .fetch_workspace_stats(&ctx.auth_token)
+        .fetch_workspace_stats(&ctx.auth_token, &query)
         .await?;
     Ok(Json(result))
 }
@@ -238,6 +391,11 @@ pub async fn get_leave_types_breakdown(
 #[utoipa::path(
     get,
     path = "/dashboard/lateness-by-day",
+    params(
+        ("start_date" = Option<String>, Query, description = "Inclusive start date (YYYY-MM-DD)"),
+        ("end_date" = Option<String>, Query, description = "Inclusive end date (YYYY-MM-DD)"),
+        ("timezone" = Option<String>, Query, description = "IANA timezone for date bucketing")
+    ),
     responses(
         (status = 200, description = "Get lateness breakdown by day of week", body = Vec<LatenessByDay>)
     )
@@ -245,14 +403,36 @@ pub async fn get_leave_types_breakdown(
 pub async fn get_lateness_by_day(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
+    Query(params): Query<ChartRangeQuery>,
 ) -> AppResult<Json<Vec<LatenessByDay>>> {
     ctx.require_permission(Permission::DashboardRead)?;
-    let _workspace_id = ctx.workspace_id;
+
+    let default_tz = state
+        .core()
+        .workspace_repo()
+        .get_workspace_by_id(ctx.workspace_id)
+        .await?
+        .map(|ws| crate::utils::tz::parse_workspace_tz(ws.timezone()))
+        .unwrap_or(chrono_tz::UTC);
+    let resolved = params.resolve(default_tz)?;
+
+    let mut query = crate::repositories::workspace_stats_repository::ChartAnalyticsQuery {
+        department_ids: ctx
+            .managed_department_ids
+            .clone()
+            .map(|s| s.into_iter().collect()),
+        ..Default::default()
+    };
+    if let Some((start, end, tz)) = resolved {
+        query.start_date = Some(start);
+        query.end_date = Some(end);
+        query.timezone = tz;
+    }
 
     let result = state
         .reports()
         .stats_repo()
-        .fetch_lateness_by_day(&ctx.auth_token)
+        .fetch_lateness_by_day(&ctx.auth_token, &query)
         .await?;
     Ok(Json(result))
 }

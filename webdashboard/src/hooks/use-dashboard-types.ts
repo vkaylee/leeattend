@@ -1,6 +1,14 @@
 // Shared types for dashboard hooks.
 // Split out from use-dashboard.ts to keep the hook file under max-lines.
 
+/** A percentage rate plus its raw numerator/denominator. `value` is null when the denominator is zero. */
+export interface RateQuantity {
+  value: string | null;
+  numerator: number;
+  denominator: number;
+  unit: string;
+}
+
 export interface WorkspaceStats {
   absent_today: number;
   avg_work_hours_today: number;
@@ -11,6 +19,9 @@ export interface WorkspaceStats {
   pending_leave_requests: number;
   present_today: number;
   total_employees: number;
+  attendance_rate: RateQuantity;
+  absence_rate: RateQuantity;
+  late_rate: RateQuantity;
 }
 
 export interface AttendanceTrendPoint {
@@ -19,6 +30,10 @@ export interface AttendanceTrendPoint {
   late: number;
   on_leave: number;
   present: number;
+  eligible: number;
+  attendance_rate: RateQuantity;
+  absence_rate: RateQuantity;
+  late_rate: RateQuantity;
 }
 
 export interface DepartmentAttendancePoint {
@@ -28,6 +43,10 @@ export interface DepartmentAttendancePoint {
   late: number;
   on_leave: number;
   on_time: number;
+  total_employees: number;
+  attendance_rate: RateQuantity;
+  absence_rate: RateQuantity;
+  late_rate: RateQuantity;
 }
 
 export interface UnexcusedAbsencesPoint {

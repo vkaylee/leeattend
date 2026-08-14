@@ -17,6 +17,7 @@ WITH active_employments AS (
       AND emp.department_id IS NOT NULL
       AND emp.start_date <= $3
       AND (emp.end_date IS NULL OR emp.end_date >= $2)
+      AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
 )
 SELECT ae.department_id,
        COUNT(DISTINCT ae.employee_id)::bigint AS leave_count

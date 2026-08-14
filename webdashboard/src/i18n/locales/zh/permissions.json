@@ -29,6 +29,10 @@
     "overtime:request:create_on_behalf": {
       "name": "代他人创建加班申请",
       "desc": "为其他员工规划预先加班申请"
+    },
+    "dashboard:employee_absence:read": {
+      "name": "查看员工缺勤",
+      "desc": "在仪表板查看每位员工的无故缺勤详情"
     }
   }
 }

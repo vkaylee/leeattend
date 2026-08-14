@@ -1,139 +1,78 @@
 import { TrendingUp } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
-    AreaChart,
-    Area,
+    CartesianGrid,
+    Legend,
+    Line,
+    LineChart,
+    ResponsiveContainer,
+    Tooltip,
     XAxis,
     YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    Legend,
 } from "recharts";
 
 import { Typography } from "@/components/ui/typography";
 import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
-import { useAttendanceTrend } from "@/hooks/use-dashboard";
+import { ChartSummary } from "@/components/features/dashboard/chart-summary";
+import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
+import { MetricSelector } from "@/components/features/dashboard/metric-selector";
+import { useAttendanceTrend, type AttendanceTrendPoint } from "@/hooks/use-dashboard";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
-const COLORS = {
+type MetricKey = "present" | "late" | "absent" | "on_leave";
+
+const COLORS: Record<MetricKey, string> = {
     present: "#10b981",
     late: "#f59e0b",
     absent: "#ef4444",
     on_leave: "#6366f1",
 };
 
-interface AttendanceTrendChartAreaProps {
-    chartData: {
-        present: number;
-        late: number;
-        absent: number;
-        on_leave: number;
-        label: string;
-    }[];
-    t: (k: string) => string;
+interface Row extends AttendanceTrendPoint {
+    label: string;
 }
 
-function AttendanceTrendChartArea({ chartData, t }: AttendanceTrendChartAreaProps) {
-    return (
-        <ResponsiveContainer height={280} width="100%">
-            <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                <defs>
-                    <linearGradient id="gradPresent" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="5%" stopColor={COLORS.present} stopOpacity={0.3} />
-                        <stop offset="95%" stopColor={COLORS.present} stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="gradLate" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="5%" stopColor={COLORS.late} stopOpacity={0.3} />
-                        <stop offset="95%" stopColor={COLORS.late} stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="gradAbsent" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="5%" stopColor={COLORS.absent} stopOpacity={0.3} />
-                        <stop offset="95%" stopColor={COLORS.absent} stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="gradLeave" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="5%" stopColor={COLORS.on_leave} stopOpacity={0.3} />
-                        <stop offset="95%" stopColor={COLORS.on_leave} stopOpacity={0} />
-                    </linearGradient>
-                </defs>
-                <CartesianGrid className="text-slate-100 dark:text-slate-800" stroke="currentColor" strokeDasharray="3 3" />
-                <XAxis
-                    axisLine={false}
-                    className="text-slate-400 dark:text-slate-500"
-                    dataKey="label"
-                    interval="preserveStartEnd"
-                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                    tickLine={false}
-                />
-                <YAxis
-                    allowDecimals={false}
-                    axisLine={false}
-                    className="text-slate-400 dark:text-slate-500"
-                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                    tickLine={false}
-                />
-                <Tooltip
-                    contentStyle={{
-                        borderRadius: "1rem",
-                        border: "none",
-                        boxShadow: "0 8px 30px rgba(0,0,0,.1)",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                    }}
-                />
-                <Legend
-                    wrapperStyle={{ fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em" }}
-                />
-                <Area
-                    dataKey="present"
-                    fill="url(#gradPresent)"
-                    name={t("dashboard.hr.present_today")}
-                    stroke={COLORS.present}
-                    strokeWidth={2}
-                    type="monotone"
-                />
-                <Area
-                    dataKey="late"
-                    fill="url(#gradLate)"
-                    name={t("dashboard.hr.late_today")}
-                    stroke={COLORS.late}
-                    strokeWidth={2}
-                    type="monotone"
-                />
-                <Area
-                    dataKey="absent"
-                    fill="url(#gradAbsent)"
-                    name={t("dashboard.hr.absent_today")}
-                    stroke={COLORS.absent}
-                    strokeWidth={2}
-                    type="monotone"
-                />
-                <Area
-                    dataKey="on_leave"
-                    fill="url(#gradLeave)"
-                    name={t("dashboard.hr.on_leave_today")}
-                    stroke={COLORS.on_leave}
-                    strokeWidth={2}
-                    type="monotone"
-                />
-            </AreaChart>
-        </ResponsiveContainer>
-    );
+function rateValue(rate: { value: string | null }): string {
+    return rate.value == null ? "—" : `${rate.value}%`;
 }
 
 export default function AttendanceTrendChart() {
     const { t } = useTranslation();
     const { formatDate } = useDateTimeFormatter();
     const { data: trend, error, isLoading } = useAttendanceTrend();
+    const [metric, setMetric] = useState<MetricKey>("present");
 
-    const chartData = (trend ?? []).map((point) => ({
-        ...point,
-        // Short date label: "02/01" or "01 Feb"
-        label: formatDate(point.date),
-    }));
+    const chartData: Row[] = useMemo(
+        () => (trend ?? []).map((point) => ({ ...point, label: formatDate(point.date) })),
+        [trend, formatDate],
+    );
 
-    const hasData = chartData.length > 0 && chartData.some((d) => d.present > 0 || d.late > 0 || d.absent > 0 || d.on_leave > 0);
+    const hasData = chartData.length > 0 && chartData.some((d) => d.eligible > 0);
+
+    const options: { label: string; value: MetricKey }[] = [
+        { label: t("dashboard.hr.present_today"), value: "present" },
+        { label: t("dashboard.hr.late_today"), value: "late" },
+        { label: t("dashboard.hr.absent_today"), value: "absent" },
+        { label: t("dashboard.hr.on_leave_today"), value: "on_leave" },
+    ];
+
+    const columns: ChartTableColumn<Row>[] = [
+        { header: t("common.date"), key: "label" },
+        { header: t("dashboard.hr.present_today"), key: "present", numeric: true },
+        { header: t("dashboard.hr.late_today"), key: "late", numeric: true },
+        { header: t("dashboard.hr.absent_today"), key: "absent", numeric: true },
+        { header: t("dashboard.hr.on_leave_today"), key: "on_leave", numeric: true },
+        { header: t("dashboard.hr.eligible"), key: "eligible", numeric: true },
+        { header: t("dashboard.hr.attendance_rate"), key: "attendance_rate", numeric: true, render: (r) => rateValue(r.attendance_rate) },
+        { header: t("dashboard.hr.absence_rate"), key: "absence_rate", numeric: true, render: (r) => rateValue(r.absence_rate) },
+        { header: t("dashboard.hr.late_rate"), key: "late_rate", numeric: true, render: (r) => rateValue(r.late_rate) },
+    ];
+
+    const summary = t("dashboard.hr.attendance_trend_summary", {
+        metric: options.find((o) => o.value === metric)?.label ?? metric,
+    });
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
@@ -151,6 +90,12 @@ export default function AttendanceTrendChart() {
                         </Typography>
                     </div>
                 </div>
+                <MetricSelector
+                    aria-label={t("dashboard.hr.attendance_trend")}
+                    onChange={setMetric}
+                    options={options}
+                    value={metric}
+                />
             </div>
 
             {isLoading ? (
@@ -167,7 +112,57 @@ export default function AttendanceTrendChart() {
                     </Typography>
                 </div>
             ) : (
-                <AttendanceTrendChartArea chartData={chartData} t={t} />
+                <>
+                    <ChartSummary text={summary} />
+                    <div role="img" aria-label={summary}>
+                        <ResponsiveContainer height={280} width="100%">
+                            <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                                <CartesianGrid className="text-slate-100 dark:text-slate-800" stroke="currentColor" strokeDasharray="3 3" />
+                                <XAxis
+                                    axisLine={false}
+                                    className="text-slate-400 dark:text-slate-500"
+                                    dataKey="label"
+                                    interval="preserveStartEnd"
+                                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                                    tickLine={false}
+                                />
+                                <YAxis
+                                    allowDecimals={false}
+                                    axisLine={false}
+                                    className="text-slate-400 dark:text-slate-500"
+                                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                                    tickLine={false}
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        borderRadius: "1rem",
+                                        border: "none",
+                                        boxShadow: "0 8px 30px rgba(0,0,0,.1)",
+                                        fontSize: "11px",
+                                        fontWeight: 600,
+                                    }}
+                                />
+                                <Legend
+                                    wrapperStyle={{ fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em" }}
+                                />
+                                <Line
+                                    dataKey={metric}
+                                    dot={{ r: 3 }}
+                                    name={options.find((o) => o.value === metric)?.label}
+                                    stroke={COLORS[metric]}
+                                    strokeWidth={2.5}
+                                    type="monotone"
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <ChartTableTwin
+                        caption={t("dashboard.hr.attendance_trend")}
+                        columns={columns}
+                        rows={chartData}
+                        searchableKeys={["label"]}
+                    />
+                </>
             )}
         </div>
     );

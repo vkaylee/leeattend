@@ -3,7 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 
 import { dashboardSchemaByKey, type DashboardSchemaKey } from "./dashboard-schemas";
-import { dashboardMetricsResponseSchema } from "./dashboard-metric-contract";
+import {
+  dashboardMetricsResponseSchema,
+  type DashboardMetricsResponse,
+} from "./dashboard-metric-contract";
+import {
+  dashboardMetricsQuery,
+  type DashboardMetricsFilters,
+} from "./dashboard-metrics-filters";
 
 import {
   type AttendanceTrendPoint,
@@ -12,6 +19,7 @@ import {
   type LeaveTypeBreakdown,
   type OvertimeTrendPoint,
   type PeakTimeSlot,
+  type RateQuantity,
   type RecruitmentSourceBreakdown,
   type TurnoverAnalytics,
   type UnexcusedAbsencesPoint,
@@ -26,16 +34,26 @@ export type {
   LeaveTypeBreakdown,
   OvertimeTrendPoint,
   PeakTimeSlot,
+  RateQuantity,
   RecruitmentSourceBreakdown,
   TurnoverAnalytics,
   UnexcusedAbsencesPoint,
   WorkspaceStats,
 } from "./use-dashboard-types";
-import {
-  dashboardMetricsQuery,
-  type DashboardMetricsFilters,
-} from "./dashboard-metrics-filters";
-import type { DashboardMetricsResponse } from "./dashboard-metric-contract";
+
+/** Shared query params for chart endpoints that accept an explicit custom range. */
+export interface ChartRangeParams {
+  startDate?: string;
+  endDate?: string;
+  timezone?: string;
+}
+
+/** Appends non-empty range params to a URLSearchParams instance. */
+function setRangeParams(params: URLSearchParams, range: ChartRangeParams): void {
+  if (range.startDate) params.set("start_date", range.startDate);
+  if (range.endDate) params.set("end_date", range.endDate);
+  if (range.timezone) params.set("timezone", range.timezone);
+}
 
 // ── Factory: reusable useQuery wrapper with workspace guard ────────────────
 
@@ -140,17 +158,36 @@ export const useDashboardStats = () =>
     getPath: () => "/v1/dashboard/workspace-stats",
   });
 
-export const useAttendanceTrend = () =>
-  useDashboardQuery<AttendanceTrendPoint[]>({
+export function useAttendanceTrend(range: ChartRangeParams = {}) {
+  return useDashboardQuery<AttendanceTrendPoint[]>({
     key: "attendance-trend",
-    getPath: () => "/v1/dashboard/attendance-trend",
+    getPath: () => {
+      const params = new URLSearchParams();
+      setRangeParams(params, range);
+      const qs = params.toString();
+      return `/v1/dashboard/attendance-trend${qs ? `?${qs}` : ""}`;
+    },
+    extraQueryKeyParams: [range.startDate, range.endDate, range.timezone],
   });
+}
 
-export function useDepartmentAttendance(range: "today" | "week" = "today") {
+export function useDepartmentAttendance(options: {
+  range?: "today" | "week";
+  topN?: number;
+  rangeParams?: ChartRangeParams;
+} = {}) {
+  const { range, topN, rangeParams } = options;
   return useDashboardQuery<DepartmentAttendancePoint[]>({
     key: "department-attendance",
-    getPath: () => `/v1/dashboard/department-attendance?range=${range}`,
-    extraQueryKeyParams: [range],
+    getPath: () => {
+      const params = new URLSearchParams();
+      if (range) params.set("range", range);
+      if (topN) params.set("top_n", String(topN));
+      if (rangeParams) setRangeParams(params, rangeParams);
+      const qs = params.toString();
+      return `/v1/dashboard/department-attendance${qs ? `?${qs}` : ""}`;
+    },
+    extraQueryKeyParams: [range, topN, rangeParams?.startDate, rangeParams?.endDate, rangeParams?.timezone],
   });
 }
 
@@ -158,6 +195,7 @@ export function useUnexcusedAbsences(
   startDate?: string,
   endDate?: string,
   groupBy?: "department" | "employee",
+  timezone?: string,
 ) {
   return useDashboardQuery<UnexcusedAbsencesPoint[]>({
     key: "unexcused-absences",
@@ -166,10 +204,11 @@ export function useUnexcusedAbsences(
       if (startDate) params.set("start_date", startDate);
       if (endDate) params.set("end_date", endDate);
       if (groupBy) params.set("group_by", groupBy);
+      if (timezone) params.set("timezone", timezone);
       const qs = params.toString();
       return `/v1/dashboard/unexcused-absences${qs ? `?${qs}` : ""}`;
     },
-    extraQueryKeyParams: [startDate, endDate, groupBy],
+    extraQueryKeyParams: [startDate, endDate, groupBy, timezone],
   });
 }
 
@@ -191,11 +230,18 @@ export const useLeaveTypesBreakdown = () =>
     getPath: () => "/v1/dashboard/leave-types",
   });
 
-export const useLatenessByDay = () =>
-  useDashboardQuery<LatenessByDay[]>({
+export function useLatenessByDay(range: ChartRangeParams = {}) {
+  return useDashboardQuery<LatenessByDay[]>({
     key: "lateness-by-day",
-    getPath: () => "/v1/dashboard/lateness-by-day",
+    getPath: () => {
+      const params = new URLSearchParams();
+      setRangeParams(params, range);
+      const qs = params.toString();
+      return `/v1/dashboard/lateness-by-day${qs ? `?${qs}` : ""}`;
+    },
+    extraQueryKeyParams: [range.startDate, range.endDate, range.timezone],
   });
+}
 
 export const useRecruitmentSourceBreakdown = () =>
   useDashboardQuery<RecruitmentSourceBreakdown[]>({

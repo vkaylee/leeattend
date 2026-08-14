@@ -65,7 +65,7 @@ const PERMISSION_CATALOG = [
         group: id.startsWith("overtime") ? "overtime" : CATALOG_GROUPS[index],
         label_key: `permissions.items.${id}.name`,
     })),
-    ...Array.from({ length: 95 }, (_, index) => ({
+    ...Array.from({ length: 96 }, (_, index) => ({
         id: `fixture:permission:${index}`,
         group: CATALOG_GROUPS[index % CATALOG_GROUPS.length],
         label_key: `permissions.items.fixture:permission:${index}.name`,
@@ -165,8 +165,8 @@ describe("WorkspacePermissionsPage", () => {
         it("renders checkboxes for every permission × role combination", () => {
             renderPage();
             const checkboxes = within(screen.getByTestId("permissions-desktop")).getAllByRole("checkbox").filter(c => c.tagName === "INPUT");
-            // Total = 102 catalog permissions × 2 roles = 204
-            expect(checkboxes.length).toBe(102 * 2);
+            // Total = 103 catalog permissions × 2 roles = 206
+            expect(checkboxes.length).toBe(103 * 2);
         });
 
         it("marks system role with 'System' badge", () => {

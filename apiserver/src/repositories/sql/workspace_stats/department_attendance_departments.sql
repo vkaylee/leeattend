@@ -17,6 +17,7 @@ WITH active_employments AS (
       AND emp.department_id IS NOT NULL
       AND emp.start_date <= $2
       AND (emp.end_date IS NULL OR emp.end_date >= $2)
+      AND ($3::uuid[] IS NULL OR emp.department_id = ANY($3))
 )
 SELECT d.id AS department_id,
        d.name::text AS department_name,

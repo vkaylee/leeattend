@@ -6,6 +6,7 @@ import {
     Bar,
     BarChart,
     CartesianGrid,
+    Legend,
     ResponsiveContainer,
     Tooltip,
     XAxis,
@@ -13,16 +14,29 @@ import {
 } from "recharts";
 
 import Button from "@/components/ui/button";
+import PermissionGate from "@/components/common/permission-gate";
 import { Typography } from "@/components/ui/typography";
 import { DashboardChartError, useDashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
-import { useUnexcusedAbsences } from "@/hooks/use-dashboard";
+import { ChartSummary } from "@/components/features/dashboard/chart-summary";
+import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
+import { DashboardDateRange } from "@/components/features/dashboard/dashboard-date-range";
+import { useUnexcusedAbsences, type UnexcusedAbsencesPoint } from "@/hooks/use-dashboard";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { cn } from "@/lib/utils";
 
-type RangePreset = "7d" | "30d" | "custom";
+const CHART_HEIGHT = 320;
+const TOP_N = 10;
+const EMPLOYEE_ABSENCE_READ = "dashboard:employee_absence:read";
+
 type GroupBy = "department" | "employee";
 
-function toISODate(d: Date): string {
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+function defaultRange(): { startDate: string; endDate: string } {
+    const now = new Date();
+    const end = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    const s = new Date(now);
+    s.setDate(s.getDate() - 29);
+    const start = `${s.getFullYear()}-${String(s.getMonth() + 1).padStart(2, "0")}-${String(s.getDate()).padStart(2, "0")}`;
+    return { startDate: start, endDate: end };
 }
 
 const COLORS = {
@@ -30,17 +44,148 @@ const COLORS = {
     consecutive: "#f97316",
 };
 
- 
-interface ChartDataEntry {
-    consecutive_count?: number;
-    total_absent_count?: number;
-    unexcused_count?: number;
+interface Row extends UnexcusedAbsencesPoint {
+    name: string;
+    remaining_unexcused: number;
+}
+
+export default function UnexcusedAbsencesChart() {
+    const { t } = useTranslation();
+    const { workspace } = useWorkspace();
+    const [groupBy, setGroupBy] = useState<GroupBy>("department");
+    const [range, setRange] = useState(defaultRange);
+
+    const timezone = workspace?.timezone ?? undefined;
+    const { data, error, isLoading } = useUnexcusedAbsences(
+        range.startDate,
+        range.endDate,
+        groupBy,
+        timezone,
+    );
+    useDashboardChartError(Boolean(error));
+
+    const allRows: Row[] = useMemo(
+        () =>
+            (data ?? [])
+                .map((d) => ({
+                    ...d,
+                    name: groupBy === "employee" ? (d.employee_name ?? d.department_name) : d.department_name,
+                    remaining_unexcused: Math.max(0, d.unexcused_count - d.consecutive_count),
+                }))
+                .filter((d) => d.unexcused_count >= 1),
+        [data, groupBy],
+    );
+
+    // Top-N for the chart; full result remains available in the table twin.
+    const chartData = useMemo(() => allRows.slice(0, TOP_N), [allRows]);
+
+    const hasData = allRows.length > 0;
+
+    const columns: ChartTableColumn<Row>[] = [
+        { header: groupBy === "employee" ? t("dashboard.hr.group_by_employee") : t("dashboard.filters.department.label"), key: "name" },
+        { header: t("dashboard.hr.unexcused"), key: "unexcused_count", numeric: true },
+        { header: t("dashboard.hr.consecutive_days"), key: "consecutive_count", numeric: true },
+        { header: t("dashboard.hr.total_absent"), key: "total_absent_count", numeric: true },
+        { header: t("dashboard.hr.excused_leave"), key: "total_leave_count", numeric: true },
+    ];
+
+    const groupLabel = groupBy === "employee" ? t("dashboard.hr.group_by_employee") : t("dashboard.hr.group_by_department");
+    const summary = t("dashboard.hr.unexcused_absences_summary", { group: groupLabel });
+
+    const groupByOptions: { key: GroupBy; label: string; icon: typeof Building2 }[] = [
+        { key: "department", label: t("dashboard.hr.group_by_department"), icon: Building2 },
+        { key: "employee", label: t("dashboard.hr.group_by_employee"), icon: Users },
+    ];
+
+    return (
+        <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
+            <ChartHeader
+                groupBy={groupBy}
+                groupByOptions={groupByOptions}
+                range={range}
+                setGroupBy={setGroupBy}
+                setRange={setRange}
+                timezone={timezone}
+            />
+
+            {isLoading ? (
+                <ChartLoading />
+            ) : error ? (
+                <DashboardChartError icon={<ShieldAlert size={48} />} />
+            ) : !hasData ? (
+                <ChartEmpty />
+            ) : (
+                <>
+                    <ChartSummary text={summary} />
+                    <div role="img" aria-label={summary}>
+                        <ResponsiveContainer height={CHART_HEIGHT} width="100%">
+                            <BarChart
+                                data={chartData}
+                                layout="vertical"
+                                margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+                            >
+                                <CartesianGrid
+                                    className="text-slate-100 dark:text-slate-800"
+                                    horizontal={false}
+                                    stroke="currentColor"
+                                    strokeDasharray="3 3"
+                                />
+                                <XAxis
+                                    allowDecimals={false}
+                                    axisLine={false}
+                                    className="text-slate-400 dark:text-slate-500"
+                                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                                    tickLine={false}
+                                    type="number"
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    className="text-slate-400 dark:text-slate-500"
+                                    dataKey="name"
+                                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                                    tickLine={false}
+                                    type="category"
+                                    width={120}
+                                />
+                                <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
+                                <Legend
+                                    wrapperStyle={{ fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em" }}
+                                />
+                                <Bar
+                                    dataKey="consecutive_count"
+                                    fill={COLORS.consecutive}
+                                    label={false}
+                                    name={t("dashboard.hr.consecutive_days")}
+                                    radius={[0, 0, 0, 0]}
+                                    stackId="absences"
+                                />
+                                <Bar
+                                    dataKey="remaining_unexcused"
+                                    fill={COLORS.unexcused}
+                                    label={false}
+                                    name={t("dashboard.hr.unexcused")}
+                                    radius={[0, 4, 4, 0]}
+                                    stackId="absences"
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <ChartTableTwin
+                        caption={t("dashboard.hr.unexcused_absences")}
+                        columns={columns}
+                        rows={allRows}
+                        searchableKeys={["name"]}
+                    />
+                </>
+            )}
+        </div>
+    );
 }
 
 interface CustomTooltipProps {
     active?: boolean;
     label?: string;
-    payload?: { payload: ChartDataEntry | null }[];
+    payload?: { payload: Row }[];
 }
 
 function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
@@ -56,10 +201,10 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
                 {label}
             </Typography>
             <div className="space-y-1.5">
-                <TooltipRow color="text-red-500" label={t("dashboard.hr.unexcused")} value={data.unexcused_count ?? 0} />
-                <TooltipRow color="text-orange-500" label={t("dashboard.hr.consecutive_days")} value={data.consecutive_count ?? 0} />
+                <TooltipRow color="text-red-500" label={t("dashboard.hr.unexcused")} value={data.unexcused_count} />
+                <TooltipRow color="text-orange-500" label={t("dashboard.hr.consecutive_days")} value={data.consecutive_count} />
                 <div className="border-t border-slate-100 dark:border-slate-800 pt-1.5 mt-1.5">
-                    <TooltipRow color="text-slate-500" label={t("dashboard.hr.total_absent")} value={data.total_absent_count ?? 0} />
+                    <TooltipRow color="text-slate-500" label={t("dashboard.hr.total_absent")} value={data.total_absent_count} />
                 </div>
             </div>
         </div>
@@ -75,121 +220,22 @@ function TooltipRow({ label, value, color }: { color: string; label: string; val
     );
 }
 
-interface TotalLabelProps {
-    chartData: (ChartDataEntry & { name: string; remaining_unexcused: number; unexcused_count: number })[];
-    height?: number;
-    index?: number;
-    width?: number;
-    x?: number;
-    y?: number;
-}
-
-function TotalLabel({ x = 0, y = 0, width = 0, height = 0, index = 0, chartData }: TotalLabelProps) {
-    const row = chartData[index];
-    const total = row.unexcused_count;
-    if (!total || total === 0) return null;
-    return (
-        <text
-            dominantBaseline="middle"
-            fill="#64748b"
-            fontSize={9}
-            fontWeight={700}
-            x={x + width + 4}
-            y={y + height / 2}
-        >
-            {total}
-        </text>
-    );
-}
-
-export default function UnexcusedAbsencesChart() {
-    const { t } = useTranslation();
-    const [preset, setPreset] = useState<RangePreset>("7d");
-    const [groupBy, setGroupBy] = useState<GroupBy>("department");
-
-    const { startDate, endDate } = useMemo(() => {
-        const now = new Date();
-        if (preset === "7d") {
-            const s = new Date(now);
-            s.setDate(s.getDate() - 6);
-            return { startDate: toISODate(s), endDate: toISODate(now) };
-        }
-        if (preset === "30d") {
-            const s = new Date(now);
-            s.setDate(s.getDate() - 29);
-            return { startDate: toISODate(s), endDate: toISODate(now) };
-        }
-        // custom — default to 30 days
-        const s = new Date(now);
-        s.setDate(s.getDate() - 29);
-        return { startDate: toISODate(s), endDate: toISODate(now) };
-    }, [preset]);
-
-    const { data, error, isLoading } = useUnexcusedAbsences(startDate, endDate, groupBy);
-    useDashboardChartError(Boolean(error));
-
-    const chartData = (data ?? [])
-        .map((d) => ({
-            ...d,
-            name: groupBy === "employee" ? (d.employee_name ?? d.department_name) : d.department_name,
-            remaining_unexcused: Math.max(0, d.unexcused_count - d.consecutive_count),
-        }))
-        .filter((d) => d.unexcused_count >= 1);
-
-    const hasData = chartData.length > 0 && chartData.some((d) => d.unexcused_count > 0);
-
-    const chartHeight = Math.max(320, chartData.length * 40 + 80);
-
-    const presets: { key: RangePreset; label: string }[] = [
-        { key: "7d", label: t("dashboard.hr.last_7_days") },
-        { key: "30d", label: t("dashboard.hr.last_30_days_range") },
-    ];
-
-    const groupByOptions: { key: GroupBy; label: string; icon: typeof Building2 }[] = [
-        { key: "department", label: t("dashboard.hr.group_by_department"), icon: Building2 },
-        { key: "employee", label: t("dashboard.hr.group_by_employee"), icon: Users },
-    ];
-
-    return (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
-            <ChartHeader
-                groupBy={groupBy}
-                groupByOptions={groupByOptions}
-                preset={preset}
-                presets={presets}
-                setGroupBy={setGroupBy}
-                setPreset={setPreset}
-            />
-
-            {isLoading ? (
-                <ChartLoading />
-            ) : error ? (
-                <DashboardChartError icon={<ShieldAlert size={48} />} />
-            ) : !hasData ? (
-                <ChartEmpty />
-            ) : (
-                <ChartMain chartData={chartData} chartHeight={chartHeight} />
-            )}
-        </div>
-    );
-}
-
 interface ChartHeaderProps {
     groupBy: GroupBy;
     groupByOptions: { icon: typeof Building2; key: GroupBy; label: string }[];
-    preset: RangePreset;
-    presets: { key: RangePreset; label: string }[];
+    range: { startDate: string; endDate: string };
     setGroupBy: (g: GroupBy) => void;
-    setPreset: (p: RangePreset) => void;
+    setRange: (r: { startDate: string; endDate: string }) => void;
+    timezone?: string;
 }
 
 function ChartHeader({
-    presets,
-    preset,
-    setPreset,
     groupByOptions,
     groupBy,
     setGroupBy,
+    range,
+    setRange,
+    timezone,
 }: ChartHeaderProps) {
     const { t } = useTranslation();
     return (
@@ -212,7 +258,7 @@ function ChartHeader({
                 <div className="flex shrink-0 max-w-full overflow-x-auto scrollbar-hide bg-slate-100 dark:bg-slate-700/50 p-1 rounded-[14px] border border-slate-200 dark:border-slate-700/50 shadow-inner">
                     {groupByOptions.map((g) => {
                         const Icon = g.icon;
-                        return (
+                        const button = (
                             <Button
                                 className={cn(
                                     "px-3 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 h-auto shadow-none border border-transparent",
@@ -229,27 +275,27 @@ function ChartHeader({
                                 {g.label}
                             </Button>
                         );
+                        // Employee mode surfaces per-employee PII — gate the toggle.
+                        return g.key === "employee" ? (
+                            <PermissionGate
+                                fallback={null}
+                                key={g.key}
+                                permission={EMPLOYEE_ABSENCE_READ}
+                            >
+                                {button}
+                            </PermissionGate>
+                        ) : (
+                            button
+                        );
                     })}
                 </div>
 
-                <div className="flex shrink-0 max-w-full overflow-x-auto scrollbar-hide bg-slate-100 dark:bg-slate-700/50 p-1 rounded-[14px] border border-slate-200 dark:border-slate-700/50 shadow-inner">
-                    {presets.map((p) => (
-                        <Button
-                            className={cn(
-                                "px-5 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all h-auto shadow-none border border-transparent",
-                                preset === p.key
-                                    ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900"
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-transparent"
-                            )}
-                            key={p.key}
-                            onClick={() => { setPreset(p.key); }}
-                            type="button"
-                            variant="ghost"
-                        >
-                            {p.label}
-                        </Button>
-                    ))}
-                </div>
+                <DashboardDateRange
+                    endDate={range.endDate}
+                    onChange={setRange}
+                    startDate={range.startDate}
+                    timezone={timezone}
+                />
             </div>
         </div>
     );
@@ -272,59 +318,5 @@ function ChartEmpty() {
                 {t("common.no_data")}
             </Typography>
         </div>
-    );
-}
-
-function ChartMain({ chartData, chartHeight }: { chartData: (ChartDataEntry & { name: string; remaining_unexcused: number; unexcused_count: number })[]; chartHeight: number }) {
-    const { t } = useTranslation();
-    return (
-        <ResponsiveContainer height={chartHeight} width="100%">
-            <BarChart
-                data={chartData}
-                layout="vertical"
-                margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
-            >
-                <CartesianGrid
-                    className="text-slate-100 dark:text-slate-800"
-                    horizontal={false}
-                    stroke="currentColor"
-                    strokeDasharray="3 3"
-                />
-                <XAxis
-                    allowDecimals={false}
-                    axisLine={false}
-                    className="text-slate-400 dark:text-slate-500"
-                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                    tickLine={false}
-                    type="number"
-                />
-                <YAxis
-                    axisLine={false}
-                    className="text-slate-400 dark:text-slate-500"
-                    dataKey="name"
-                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                    tickLine={false}
-                    type="category"
-                    width={120}
-                />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
-                <Bar
-                    dataKey="consecutive_count"
-                    fill={COLORS.consecutive}
-                    label={false}
-                    name={t("dashboard.hr.consecutive_days")}
-                    radius={[0, 0, 0, 0]}
-                    stackId="absences"
-                />
-                <Bar
-                    dataKey="remaining_unexcused"
-                    fill={COLORS.unexcused}
-                    label={<TotalLabel chartData={chartData} />}
-                    name={t("dashboard.hr.unexcused")}
-                    radius={[0, 4, 4, 0]}
-                    stackId="absences"
-                />
-            </BarChart>
-        </ResponsiveContainer>
     );
 }

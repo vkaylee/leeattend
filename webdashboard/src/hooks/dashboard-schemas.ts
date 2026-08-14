@@ -5,6 +5,14 @@ import { dashboardMetricsResponseSchema } from "./dashboard-metric-contract";
 const dateString = z.string().min(1);
 const count = z.number().finite();
 
+/** A percentage rate plus its raw numerator/denominator. `value` is null when the denominator is zero. */
+export const rateQuantitySchema = z.object({
+  value: z.string().nullable(),
+  numerator: count,
+  denominator: count,
+  unit: z.string().min(1),
+}).strict();
+
 export const workspaceStatsSchema = z.object({
   absent_today: count,
   avg_work_hours_today: count,
@@ -15,6 +23,9 @@ export const workspaceStatsSchema = z.object({
   pending_leave_requests: count,
   present_today: count,
   total_employees: count,
+  attendance_rate: rateQuantitySchema,
+  absence_rate: rateQuantitySchema,
+  late_rate: rateQuantitySchema,
 });
 
 export const attendanceTrendSchema = z.array(z.object({
@@ -23,6 +34,10 @@ export const attendanceTrendSchema = z.array(z.object({
   late: count,
   on_leave: count,
   present: count,
+  eligible: count,
+  attendance_rate: rateQuantitySchema,
+  absence_rate: rateQuantitySchema,
+  late_rate: rateQuantitySchema,
 }));
 
 export const departmentAttendanceSchema = z.array(z.object({
@@ -32,6 +47,10 @@ export const departmentAttendanceSchema = z.array(z.object({
   late: count,
   on_leave: count,
   on_time: count,
+  total_employees: count,
+  attendance_rate: rateQuantitySchema,
+  absence_rate: rateQuantitySchema,
+  late_rate: rateQuantitySchema,
 }));
 
 export const unexcusedAbsencesSchema = z.array(z.object({

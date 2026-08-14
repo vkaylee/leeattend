@@ -50,6 +50,7 @@ describe("use-dashboard hooks", () => {
 
     describe("useDashboardStats", () => {
         it("fetches dashboard stats correctly", async () => {
+            const rate = (value: string | null) => ({ value, numerator: 1, denominator: 10, unit: "employees" });
             const mockStats = {
                 total_employees: 100,
                 present_today: 95,
@@ -59,7 +60,10 @@ describe("use-dashboard hooks", () => {
                 absent_today: 3,
                 on_leave_today: 2,
                 early_departure_today: 1,
-                avg_work_hours_today: 8.5
+                avg_work_hours_today: 8.5,
+                attendance_rate: rate("95"),
+                absence_rate: rate("3"),
+                late_rate: rate("5"),
             };
 
             vi.mocked(api.apiFetch).mockResolvedValueOnce({
@@ -100,7 +104,8 @@ describe("use-dashboard hooks", () => {
 
     describe("useAttendanceTrend", () => {
         it("fetches attendance trend correctly", async () => {
-            const mockData = [{ date: "2023-01-01", present: 10, late: 1, absent: 0, on_leave: 0 }];
+            const rate = (value: string | null) => ({ value, numerator: 1, denominator: 10, unit: "employee_days" });
+            const mockData = [{ date: "2023-01-01", present: 10, late: 1, absent: 0, on_leave: 0, eligible: 11, attendance_rate: rate("90.9"), absence_rate: rate("0"), late_rate: rate("9.1") }];
 
             vi.mocked(api.apiFetch).mockResolvedValueOnce({
                 ok: true,
@@ -120,14 +125,15 @@ describe("use-dashboard hooks", () => {
 
     describe("useDepartmentAttendance", () => {
         it("fetches department attendance correctly with range", async () => {
-            const mockData = [{ department_id: "dept-1", department_name: "Engineering", on_time: 10, late: 0, absent: 0, on_leave: 0 }];
+            const rate = (value: string | null) => ({ value, numerator: 1, denominator: 10, unit: "employees" });
+            const mockData = [{ department_id: "dept-1", department_name: "Engineering", on_time: 10, late: 0, absent: 0, on_leave: 0, total_employees: 10, attendance_rate: rate("100"), absence_rate: rate("0"), late_rate: rate("0") }];
 
             vi.mocked(api.apiFetch).mockResolvedValueOnce({
                 ok: true,
                 json: () => Promise.resolve(mockData),
             } as unknown as never);
 
-            const { result } = renderHook(() => useDepartmentAttendance("week"), {
+            const { result } = renderHook(() => useDepartmentAttendance({ range: "week" }), {
                 wrapper: createWrapper(),
             });
 
@@ -135,6 +141,27 @@ describe("use-dashboard hooks", () => {
 
             expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/department-attendance?range=week");
             expect(result.current.data).toEqual(mockData);
+        });
+
+        it("sends top_n and custom range params when provided", async () => {
+            vi.mocked(api.apiFetch).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve([]),
+            } as unknown as never);
+
+            const { result } = renderHook(
+                () => useDepartmentAttendance({
+                    topN: 8,
+                    rangeParams: { startDate: "2026-08-01", endDate: "2026-08-14", timezone: "Asia/Ho_Chi_Minh" },
+                }),
+                { wrapper: createWrapper() },
+            );
+
+            await waitFor(() => { expect(result.current.isLoading).toBe(false); });
+
+            expect(api.apiFetch).toHaveBeenCalledWith(
+                "/v1/dashboard/department-attendance?top_n=8&start_date=2026-08-01&end_date=2026-08-14&timezone=Asia%2FHo_Chi_Minh",
+            );
         });
     });
 

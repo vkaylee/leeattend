@@ -136,6 +136,7 @@ pub enum Permission {
     // ── Dashboard ──────────────────────────────────────
     DashboardRead,
     DashboardPreferences,
+    DashboardEmployeeAbsenceRead,
 
     // ── Agents & Devices ───────────────────────────────
     AgentsRead,
@@ -267,6 +268,7 @@ impl Permission {
             "reports:export" => Some(Self::ReportsExport),
             "dashboard:read" => Some(Self::DashboardRead),
             "dashboard:preferences" => Some(Self::DashboardPreferences),
+            "dashboard:employee_absence:read" => Some(Self::DashboardEmployeeAbsenceRead),
             "agents:read" => Some(Self::AgentsRead),
             "agents:manage" => Some(Self::AgentsManage),
             "devices:read" => Some(Self::DevicesRead),
@@ -377,6 +379,7 @@ impl Permission {
             Self::ReportsExport => "reports:export",
             Self::DashboardRead => "dashboard:read",
             Self::DashboardPreferences => "dashboard:preferences",
+            Self::DashboardEmployeeAbsenceRead => "dashboard:employee_absence:read",
             Self::AgentsRead => "agents:read",
             Self::AgentsManage => "agents:manage",
             Self::DevicesRead => "devices:read",
@@ -486,6 +489,7 @@ impl Permission {
             "reports:export",
             "dashboard:read",
             "dashboard:preferences",
+            "dashboard:employee_absence:read",
             "agents:read",
             "agents:manage",
             "devices:read",
@@ -559,15 +563,15 @@ mod tests {
     use super::*;
     use std::collections::HashSet;
 
-    /// Lock the total permission count at 102.
+    /// Lock the total permission count at 103.
     /// If you add a new Permission variant, update this number and the
     /// authoritative catalog metadata tests.
     #[test]
-    fn test_total_permission_count_is_102() {
+    fn test_total_permission_count_is_103() {
         let all = Permission::all_permission_strings();
         assert_eq!(
             all.len(),
-            102,
+            103,
             "Permission count changed! Update the authoritative catalog metadata tests. Current count: {}",
             all.len()
         );
@@ -686,6 +690,7 @@ mod tests {
             Permission::ReportsExport,
             Permission::DashboardRead,
             Permission::DashboardPreferences,
+            Permission::DashboardEmployeeAbsenceRead,
             Permission::AgentsRead,
             Permission::AgentsManage,
             Permission::DevicesRead,
@@ -719,8 +724,8 @@ mod tests {
 
         assert_eq!(
             all_variants.len(),
-            102,
-            "Variant list in test is stale — expected 102, got {}",
+            103,
+            "Variant list in test is stale — expected 103, got {}",
             all_variants.len()
         );
 
@@ -736,7 +741,7 @@ mod tests {
     #[test]
     fn test_permission_catalog_metadata_is_complete() {
         let catalog = Permission::catalog();
-        assert_eq!(catalog.len(), 102);
+        assert_eq!(catalog.len(), 103);
         assert_eq!(
             catalog
                 .iter()

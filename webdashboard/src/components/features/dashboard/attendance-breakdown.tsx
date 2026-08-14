@@ -4,6 +4,7 @@ import { type TFunction } from "i18next";
 import { Cell, PieChart, Pie, ResponsiveContainer, Tooltip } from "recharts";
 
 import { Typography } from "@/components/ui/typography";
+import { type WorkspaceStats } from "@/hooks/use-dashboard";
 
 interface DonutData {
   fill: string;
@@ -14,44 +15,68 @@ interface DonutData {
 interface AttendanceBreakdownProps {
   donutData: DonutData[];
   hasDonutData: boolean;
+  hrStats?: WorkspaceStats;
   t: TFunction;
 }
 
-export function AttendanceBreakdown({ donutData, hasDonutData, t }: AttendanceBreakdownProps) {
+function rateLabel(rate: WorkspaceStats["attendance_rate"] | undefined, fallback: string, t: TFunction): string {
+  if (!rate || rate.value == null) return "—";
+  return t("dashboard.hr.rate_value", { value: rate.value });
+}
+
+export function AttendanceBreakdown({ donutData, hasDonutData, hrStats, t }: AttendanceBreakdownProps) {
+  const summary = t("dashboard.hr.attendance_breakdown_summary", {
+    present: hrStats?.present_today ?? 0,
+    late: hrStats?.late_today ?? 0,
+    absent: hrStats?.absent_today ?? 0,
+    onLeave: hrStats?.on_leave_today ?? 0,
+  });
+
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
       <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-8" variant="h2">
         {t("dashboard.hr.attendance_breakdown")}
       </Typography>
+
+      {hrStats ? (
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mb-4" aria-label={t("dashboard.hr.rate_summary_label")}>
+          <RateBadge label={t("dashboard.hr.attendance_rate")} value={rateLabel(hrStats.attendance_rate, "—", t)} tone="emerald" />
+          <RateBadge label={t("dashboard.hr.absence_rate")} value={rateLabel(hrStats.absence_rate, "—", t)} tone="rose" />
+          <RateBadge label={t("dashboard.hr.late_rate")} value={rateLabel(hrStats.late_rate, "—", t)} tone="amber" />
+        </div>
+      ) : null}
+
       {hasDonutData ? (
         <div className="flex flex-col items-center">
-          <ResponsiveContainer height={260} width="100%">
-            <PieChart>
-              <Pie
-                cx="50%"
-                cy="50%"
-                data={donutData}
-                dataKey="value"
-                innerRadius={70}
-                outerRadius={110}
-                paddingAngle={3}
-                stroke="none"
-              >
-                {donutData.map((entry) => (
-                  <Cell key={entry.name} fill={entry.fill} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  borderRadius: "1rem",
-                  border: "none",
-                  boxShadow: "0 8px 30px rgba(0,0,0,.1)",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <div role="img" aria-label={summary}>
+            <ResponsiveContainer height={260} width="100%">
+              <PieChart>
+                <Pie
+                  cx="50%"
+                  cy="50%"
+                  data={donutData}
+                  dataKey="value"
+                  innerRadius={70}
+                  outerRadius={110}
+                  paddingAngle={3}
+                  stroke="none"
+                >
+                  {donutData.map((entry) => (
+                    <Cell key={entry.name} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "1rem",
+                    border: "none",
+                    boxShadow: "0 8px 30px rgba(0,0,0,.1)",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
           <div className="flex flex-wrap justify-center gap-4 mt-4">
             {donutData.map((entry, index) => (
               <div className="flex items-center gap-2" key={index}>
@@ -72,5 +97,18 @@ export function AttendanceBreakdown({ donutData, hasDonutData, t }: AttendanceBr
         </div>
       )}
     </div>
+  );
+}
+
+function RateBadge({ label, value, tone }: { label: string; value: string; tone: "emerald" | "rose" | "amber" }) {
+  const tones: Record<typeof tone, string> = {
+    emerald: "text-emerald-600 dark:text-emerald-400",
+    rose: "text-rose-500 dark:text-rose-400",
+    amber: "text-amber-600 dark:text-amber-400",
+  };
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+      {label}: <span className={tones[tone]}>{value}</span>
+    </span>
   );
 }

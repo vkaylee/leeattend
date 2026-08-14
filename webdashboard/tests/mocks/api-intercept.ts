@@ -187,13 +187,16 @@ export async function setupApiMocks(page: Page) {
         pending_leave_requests: 0,
         present_today: 20,
         total_employees: 22,
+        attendance_rate: { value: "90.9", numerator: 20, denominator: 22, unit: "employees" },
+        absence_rate: { value: "9.1", numerator: 2, denominator: 22, unit: "employees" },
+        late_rate: { value: "4.5", numerator: 1, denominator: 22, unit: "employees" },
       });
     }
 
     if (/\/api\/dashboard\/attendance-trend/.exec(pathname)) {
       return fulfill([
-        { date: "2026-01-10", present: 20, absent: 2, late: 1, on_leave: 0 },
-        { date: "2026-01-11", present: 22, absent: 0, late: 0, on_leave: 1 },
+        { date: "2026-01-10", present: 20, absent: 2, late: 1, on_leave: 0, eligible: 22, attendance_rate: { value: "90.9", numerator: 20, denominator: 22, unit: "employees" }, absence_rate: { value: "9.1", numerator: 2, denominator: 22, unit: "employees" }, late_rate: { value: "4.5", numerator: 1, denominator: 22, unit: "employees" } },
+        { date: "2026-01-11", present: 22, absent: 0, late: 0, on_leave: 1, eligible: 23, attendance_rate: { value: "95.7", numerator: 22, denominator: 23, unit: "employees" }, absence_rate: { value: "0", numerator: 0, denominator: 23, unit: "employees" }, late_rate: { value: "0", numerator: 0, denominator: 23, unit: "employees" } },
       ]);
     }
 
@@ -205,6 +208,10 @@ export async function setupApiMocks(page: Page) {
         late: 2,
         on_leave: 0,
         on_time: 19,
+        total_employees: 22,
+        attendance_rate: { value: "86.4", numerator: 19, denominator: 22, unit: "employees" },
+        absence_rate: { value: "4.5", numerator: 1, denominator: 22, unit: "employees" },
+        late_rate: { value: "9.1", numerator: 2, denominator: 22, unit: "employees" },
       }]);
     }
 

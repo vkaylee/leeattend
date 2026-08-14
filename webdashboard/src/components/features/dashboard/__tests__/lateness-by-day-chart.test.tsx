@@ -18,19 +18,14 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("recharts", () => ({
- 
-    ComposedChart: ({ children, ...props }: { children: React.ReactNode }) => (
-        <div data-testid="composed-chart" {...props}>{children}</div>
+    BarChart: ({ children, ...props }: { children: React.ReactNode }) => (
+        <div data-testid="bar-chart" {...props}>{children}</div>
     ),
- 
     Bar: (props: { dataKey: string }) => <div data-testid={`bar-${props.dataKey}`} />,
- 
-    Line: (props: { dataKey: string }) => <div data-testid={`line-${props.dataKey}`} />,
     XAxis: () => <div data-testid="x-axis" />,
     YAxis: () => <div data-testid="y-axis" />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
     Tooltip: () => <div data-testid="tooltip" />,
- 
     ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
         <div data-testid="responsive-container">{children}</div>
     ),
@@ -64,7 +59,6 @@ describe("LatenessByDayChart", () => {
     });
 
     it("renders loading spinner when data is loading", () => {
- 
         vi.mocked(dashboardHooks.useLatenessByDay).mockReturnValue({
             data: undefined,
             isLoading: true,
@@ -72,12 +66,11 @@ describe("LatenessByDayChart", () => {
 
         renderWithProviders(<LatenessByDayChart />);
 
-        expect(screen.queryByTestId("composed-chart")).not.toBeInTheDocument();
+        expect(screen.queryByTestId("bar-chart")).not.toBeInTheDocument();
         expect(screen.queryByText("common.no_data")).not.toBeInTheDocument();
     });
 
     it("renders empty state when no data available", () => {
- 
         vi.mocked(dashboardHooks.useLatenessByDay).mockReturnValue({
             data: [],
             isLoading: false,
@@ -86,11 +79,10 @@ describe("LatenessByDayChart", () => {
         renderWithProviders(<LatenessByDayChart />);
 
         expect(screen.getByText("common.no_data")).toBeInTheDocument();
-        expect(screen.queryByTestId("composed-chart")).not.toBeInTheDocument();
+        expect(screen.queryByTestId("bar-chart")).not.toBeInTheDocument();
     });
 
-    it("renders empty state when all late counts are zero", () => {
- 
+    it("renders empty state when all values are zero", () => {
         vi.mocked(dashboardHooks.useLatenessByDay).mockReturnValue({
             data: [{ day: "Mon", late_count: 0, avg_late_minutes: 0 }],
             isLoading: false,
@@ -101,8 +93,7 @@ describe("LatenessByDayChart", () => {
         expect(screen.getByText("common.no_data")).toBeInTheDocument();
     });
 
-    it("renders chart with data when lateness data is available", () => {
- 
+    it("renders a single-series bar chart (no dual-axis ComposedChart)", () => {
         vi.mocked(dashboardHooks.useLatenessByDay).mockReturnValue({
             data: mockData,
             isLoading: false,
@@ -111,24 +102,13 @@ describe("LatenessByDayChart", () => {
         renderWithProviders(<LatenessByDayChart />);
 
         expect(screen.getByTestId("responsive-container")).toBeInTheDocument();
-        expect(screen.getByTestId("composed-chart")).toBeInTheDocument();
-    });
-
-    it("renders bar and line series", () => {
- 
-        vi.mocked(dashboardHooks.useLatenessByDay).mockReturnValue({
-            data: mockData,
-            isLoading: false,
-        } as unknown as never);
-
-        renderWithProviders(<LatenessByDayChart />);
-
+        expect(screen.getByTestId("bar-chart")).toBeInTheDocument();
+        // Default metric is late_count only — no line series.
         expect(screen.getByTestId("bar-late_count")).toBeInTheDocument();
-        expect(screen.getByTestId("line-avg_late_minutes")).toBeInTheDocument();
+        expect(screen.queryByTestId("bar-avg_late_minutes")).not.toBeInTheDocument();
     });
 
     it("displays the correct chart title and subtitle", () => {
- 
         vi.mocked(dashboardHooks.useLatenessByDay).mockReturnValue({
             data: mockData,
             isLoading: false,

@@ -1102,3 +1102,348 @@ async fn test_overtime_trend_returns_correct_structure() {
         "Expected approved_ot_hours=0.5, got {approved_ot}"
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════
+//  9. Analytics upgrade — rates, custom range, permission gate
+// ═══════════════════════════════════════════════════════════════════
+
+/// Assert the shared `RateQuantity` shape (`value`/`numerator`/`denominator`/`unit`)
+/// is present on a JSON object.
+fn assert_rate_shape(json: &serde_json::Value, key: &str) {
+    let rate = &json[key];
+    assert!(
+        rate["value"].is_string() || rate["value"].is_null(),
+        "rate {key}.value must be a decimal string or null, got {:?}",
+        rate["value"]
+    );
+    assert!(
+        rate["numerator"].is_number(),
+        "rate {key}.numerator must be a number"
+    );
+    assert!(
+        rate["denominator"].is_number(),
+        "rate {key}.denominator must be a number"
+    );
+    assert!(rate["unit"].is_string(), "rate {key}.unit must be a string");
+}
+
+#[tokio::test]
+async fn test_workspace_stats_includes_rate_fields() {
+    let (address, ws_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+
+    let emp1 = factory.employee().with_workspace(ws_id).create().await;
+    let _emp2 = factory.employee().with_workspace(ws_id).create().await;
+    factory
+        .time_entry()
+        .with_employee(emp1)
+        .with_punch_in(Utc::now())
+        .create()
+        .await;
+
+    let res = client
+        .get(format!("{address}/api/v1/dashboard/workspace-stats"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: serde_json::Value = res.json().await.unwrap();
+
+    for key in ["attendance_rate", "absence_rate", "late_rate"] {
+        assert_rate_shape(&body, key);
+    }
+
+    // 2 employees, 1 present → attendance 50%, absence 50%.
+    assert_eq!(
+        body["attendance_rate"]["numerator"].as_i64().unwrap(),
+        1,
+        "attendance numerator = present today"
+    );
+    assert_eq!(
+        body["attendance_rate"]["denominator"].as_i64().unwrap(),
+        2,
+        "attendance denominator = total employees"
+    );
+    assert_eq!(
+        body["absence_rate"]["numerator"].as_i64().unwrap(),
+        1,
+        "absence numerator = absent today"
+    );
+    assert_eq!(
+        body["attendance_rate"]["unit"].as_str().unwrap(),
+        "employees"
+    );
+}
+
+#[tokio::test]
+async fn test_department_attendance_rates_sorted_desc_with_top_n() {
+    let (address, ws_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+    let today = Utc::now().date_naive();
+
+    let dept_a = factory
+        .department()
+        .with_workspace(ws_id)
+        .with_name("Engineering")
+        .create()
+        .await;
+    let dept_b = factory
+        .department()
+        .with_workspace(ws_id)
+        .with_name("Sales")
+        .create()
+        .await;
+
+    let emp_a1 = factory.employee().with_workspace(ws_id).create().await;
+    let _emp_a2 = factory.employee().with_workspace(ws_id).create().await;
+    let emp_b1 = factory.employee().with_workspace(ws_id).create().await;
+
+    for (emp_id, dept_id) in [(emp_a1, dept_a), (_emp_a2, dept_a), (emp_b1, dept_b)] {
+        crate::test_execute!(
+            &_db.diesel_pools.api,
+            "UPDATE employments SET department_id = $2, start_date = $3 WHERE employee_id = $1",
+            diesel::sql_types::Uuid,
+            emp_id,
+            diesel::sql_types::Uuid,
+            dept_id,
+            diesel::sql_types::Date,
+            today - Duration::days(30)
+        );
+    }
+
+    // 1 present in Engineering (of 2) → 50%; 1 present in Sales (of 1) → 100%.
+    let now = Utc::now();
+    factory
+        .time_entry()
+        .with_employee(emp_a1)
+        .with_punch_in(now)
+        .create()
+        .await;
+    factory
+        .time_entry()
+        .with_employee(emp_b1)
+        .with_punch_in(now)
+        .create()
+        .await;
+
+    let res = client
+        .get(format!("{address}/api/v1/dashboard/department-attendance"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: Vec<serde_json::Value> = res.json().await.unwrap();
+    assert_eq!(body.len(), 2, "expected 2 departments");
+
+    // Sorted descending by attendance rate: Sales (100%) before Engineering (50%).
+    assert_eq!(
+        body[0]["department_name"].as_str().unwrap(),
+        "Sales",
+        "highest rate first"
+    );
+    assert_eq!(body[1]["department_name"].as_str().unwrap(), "Engineering");
+
+    for item in &body {
+        assert!(item["total_employees"].is_number());
+        assert_rate_shape(item, "attendance_rate");
+        assert_rate_shape(item, "absence_rate");
+        assert_rate_shape(item, "late_rate");
+    }
+    let sales_rate = body[0]["attendance_rate"].clone();
+    assert_eq!(sales_rate["numerator"].as_i64().unwrap(), 1);
+    assert_eq!(sales_rate["denominator"].as_i64().unwrap(), 1);
+
+    // Top-N: top_n=1 returns only the highest-rate department.
+    let res2 = client
+        .get(format!(
+            "{address}/api/v1/dashboard/department-attendance?top_n=1"
+        ))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res2.status(), reqwest::StatusCode::OK);
+    let body2: Vec<serde_json::Value> = res2.json().await.unwrap();
+    assert_eq!(body2.len(), 1);
+    assert_eq!(body2[0]["department_name"].as_str().unwrap(), "Sales");
+}
+
+#[tokio::test]
+async fn test_attendance_trend_emits_rate_fields_with_zero_denominator() {
+    let (address, ws_id, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+
+    let res = client
+        .get(format!("{address}/api/v1/dashboard/attendance-trend"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: Vec<serde_json::Value> = res.json().await.unwrap();
+    assert_eq!(body.len(), 30);
+
+    let first = &body[0];
+    assert!(first["eligible"].is_number());
+
+    // No employees → denominator is 0, so rate value must be null (never a fake 0%).
+    for key in ["attendance_rate", "absence_rate", "late_rate"] {
+        let rate = &first[key];
+        assert!(
+            rate["value"].is_null(),
+            "{key}.value must be null when denominator is 0"
+        );
+        assert_eq!(rate["numerator"].as_i64().unwrap(), 0);
+        assert_eq!(rate["denominator"].as_i64().unwrap(), 0);
+        assert_eq!(rate["unit"].as_str().unwrap(), "employee_days");
+    }
+}
+
+#[tokio::test]
+async fn test_attendance_trend_custom_range_validation() {
+    let (address, ws_id, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+    let today = Utc::now().date_naive();
+
+    let get = |url: String| {
+        let client = &client;
+        let ws_id = ws_id;
+        let user_id = user_id;
+        async move {
+            client
+                .get(url)
+                .header("X-User-Id", user_id.to_string())
+                .header("X-Workspace-Id", ws_id.to_string())
+                .send()
+                .await
+                .unwrap()
+        }
+    };
+
+    // Valid window → 200 with exactly (end - start + 1) days.
+    let start = today - Duration::days(6);
+    let res = get(format!(
+        "{address}/api/v1/dashboard/attendance-trend?start_date={start}&end_date={today}"
+    ))
+    .await;
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: Vec<serde_json::Value> = res.json().await.unwrap();
+    assert_eq!(body.len(), 7, "a 7-day inclusive window returns 7 points");
+
+    // end < start → 400 (no silent fallback).
+    let res = get(format!(
+        "{address}/api/v1/dashboard/attendance-trend?start_date={today}&end_date={start}"
+    ))
+    .await;
+    assert_eq!(res.status(), reqwest::StatusCode::BAD_REQUEST);
+
+    // end > today → 400.
+    let future = today + Duration::days(1);
+    let res = get(format!(
+        "{address}/api/v1/dashboard/attendance-trend?start_date={start}&end_date={future}"
+    ))
+    .await;
+    assert_eq!(res.status(), reqwest::StatusCode::BAD_REQUEST);
+
+    // Half-specified range → 400 (missing bound must not be silently defaulted).
+    let res = get(format!(
+        "{address}/api/v1/dashboard/attendance-trend?start_date={start}"
+    ))
+    .await;
+    assert_eq!(res.status(), reqwest::StatusCode::BAD_REQUEST);
+
+    // Malformed date → 400.
+    let res = get(format!(
+        "{address}/api/v1/dashboard/attendance-trend?start_date=not-a-date&end_date={today}"
+    ))
+    .await;
+    assert_eq!(res.status(), reqwest::StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn test_attendance_trend_rejects_invalid_timezone() {
+    let (address, ws_id, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+
+    let res = client
+        .get(format!(
+            "{address}/api/v1/dashboard/attendance-trend?timezone=Not/AZone"
+        ))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        res.status(),
+        reqwest::StatusCode::BAD_REQUEST,
+        "invalid timezone must be rejected, not silently defaulted"
+    );
+}
+
+#[tokio::test]
+async fn test_unexcused_absences_employee_mode_requires_permission() {
+    let (address, ws_id, _owner_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+
+    // A member on the employee role who has `dashboard:read` but NOT the new
+    // `dashboard:employee_absence:read` PII gate.
+    let viewer = factory.user().create().await;
+    factory
+        .add_member(
+            ws_id,
+            viewer,
+            Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
+    crate::test_execute!(
+        &_db.diesel_pools.api,
+        "INSERT INTO workspace_member_extra_permissions (workspace_id, user_id, permission, expires_at) VALUES ($1, $2, 'dashboard:read', $3)",
+        diesel::sql_types::Uuid,
+        ws_id,
+        diesel::sql_types::Uuid,
+        viewer,
+        diesel::sql_types::Timestamptz,
+        Utc::now() + Duration::days(1)
+    );
+
+    // Employee mode surfaces per-employee PII → 403 without the dedicated permission.
+    let res = client
+        .get(format!(
+            "{address}/api/v1/dashboard/unexcused-absences?group_by=employee"
+        ))
+        .header("X-User-Id", viewer.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), reqwest::StatusCode::FORBIDDEN);
+
+    // Department mode only needs `dashboard:read` → 200.
+    let res = client
+        .get(format!(
+            "{address}/api/v1/dashboard/unexcused-absences?group_by=department"
+        ))
+        .header("X-User-Id", viewer.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+}

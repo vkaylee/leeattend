@@ -60,6 +60,7 @@ export function DashboardHrTab({
               <AttendanceBreakdown
                 donutData={donutData}
                 hasDonutData={hasDonutData}
+                hrStats={hrStats}
                 t={t}
               />
             </ErrorBoundary>

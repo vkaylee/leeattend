@@ -36,10 +36,12 @@ const createWrapper = () => {
     return Wrapper;
 };
 
+const rate = (value: string | null) => ({ value, numerator: 1, denominator: 10, unit: "employee_days" });
+
 const mockTrendData = [
-    { date: "2026-02-01", present: 40, late: 3, absent: 5, on_leave: 2 },
-    { date: "2026-02-02", present: 42, late: 1, absent: 4, on_leave: 3 },
-    { date: "2026-02-03", present: 38, late: 5, absent: 6, on_leave: 1 },
+    { date: "2026-02-01", present: 40, late: 3, absent: 5, on_leave: 2, eligible: 50, attendance_rate: rate("80"), absence_rate: rate("10"), late_rate: rate("6") },
+    { date: "2026-02-02", present: 42, late: 1, absent: 4, on_leave: 3, eligible: 50, attendance_rate: rate("84"), absence_rate: rate("8"), late_rate: rate("2") },
+    { date: "2026-02-03", present: 38, late: 5, absent: 6, on_leave: 1, eligible: 50, attendance_rate: rate("76"), absence_rate: rate("12"), late_rate: rate("10") },
 ];
 
 describe("useAttendanceTrend hook", () => {

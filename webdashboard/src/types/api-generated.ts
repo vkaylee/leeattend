@@ -326,6 +326,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/dashboard/executive-overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_dashboard_metrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/dashboard/lateness-by-day": {
         parameters: {
             query?: never;
@@ -867,6 +883,27 @@ export interface paths {
          *     Requires: PlatformAdmin or Support
          */
         get: operations["get_monitor_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitor/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * SSE stream: push monitor overview data every 2 seconds.
+         * @description Route: GET /monitor/stream
+         *     Requires: PlatformAdmin or Support
+         */
+        get: operations["monitor_stream_sse"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5057,12 +5094,20 @@ export interface components {
             work_unit_minutes: number;
         };
         AttendanceTrendPoint: {
+            absence_rate: components["schemas"]["RateQuantity"];
             /** Format: int64 */
             absent: number;
+            attendance_rate: components["schemas"]["RateQuantity"];
             /** Format: date */
             date: string;
+            /**
+             * Format: int64
+             * @description Number of employees eligible to attend that day (denominator for rates).
+             */
+            eligible: number;
             /** Format: int64 */
             late: number;
+            late_rate: components["schemas"]["RateQuantity"];
             /** Format: int64 */
             on_leave: number;
             /** Format: int64 */
@@ -5860,6 +5905,133 @@ export interface components {
             field_type: string;
             value?: unknown;
         };
+        DashboardActionTypeCount: {
+            /** Format: int64 */
+            count: number;
+            type: string;
+        };
+        DashboardActionsSummary: {
+            by_type: components["schemas"]["DashboardActionTypeCount"][];
+            /** Format: int64 */
+            overdue: number;
+            /** Format: int64 */
+            total: number;
+        };
+        /** @enum {string} */
+        DashboardComparisonBasis: "none" | "previous_period" | "same_period_last_year" | "target" | "budget" | "benchmark";
+        DashboardDataQuality: {
+            sources: components["schemas"]["DashboardQualitySource"][];
+            status: string;
+        };
+        DashboardInsight: {
+            dismissible: boolean;
+            id: string;
+            metric_key: string;
+            parameters: {
+                [key: string]: string;
+            };
+            requires_permission?: string | null;
+            scope: string;
+            severity: components["schemas"]["DashboardInsightSeverity"];
+            summary_key: string;
+            title_key: string;
+            type: components["schemas"]["DashboardInsightType"];
+        };
+        /** @enum {string} */
+        DashboardInsightSeverity: "info" | "watch" | "high" | "critical";
+        /** @enum {string} */
+        DashboardInsightType: "trend" | "threshold" | "concentration" | "data_quality" | "workflow";
+        DashboardMetric: {
+            comparison?: null | components["schemas"]["DashboardMetricComparison"];
+            definition_version: string;
+            denominator?: null | components["schemas"]["DashboardMetricQuantity"];
+            direction: components["schemas"]["DashboardMetricDirection"];
+            freshness: components["schemas"]["DashboardMetricFreshness"];
+            health: components["schemas"]["DashboardMetricHealth"];
+            key: string;
+            null_reason?: string | null;
+            numerator?: null | components["schemas"]["DashboardMetricQuantity"];
+            quality_flags: string[];
+            status: components["schemas"]["DashboardMetricStatus"];
+            target?: null | components["schemas"]["DashboardMetricTarget"];
+            unit: components["schemas"]["DashboardMetricUnit"];
+            value?: string | null;
+        };
+        DashboardMetricComparison: {
+            basis: components["schemas"]["DashboardComparisonBasis"];
+            delta?: string | null;
+            delta_percent?: string | null;
+            delta_percentage_points?: string | null;
+            /** Format: date */
+            period_end: string;
+            /** Format: date */
+            period_start: string;
+            status: components["schemas"]["DashboardMetricStatus"];
+            value?: string | null;
+        };
+        DashboardMetricContext: {
+            comparison: string;
+            filters: {
+                [key: string]: string;
+            };
+            period: components["schemas"]["DashboardReportingPeriod"];
+            scope: components["schemas"]["DashboardMetricScope"];
+        };
+        /** @enum {string} */
+        DashboardMetricDirection: "higher_is_better" | "lower_is_better" | "neutral";
+        DashboardMetricFreshness: {
+            /** Format: date-time */
+            as_of: string;
+            /** Format: int64 */
+            lag_seconds?: number | null;
+        };
+        /** @enum {string} */
+        DashboardMetricHealth: "ok" | "warning" | "critical" | "not_applicable" | "data_gap";
+        DashboardMetricQuantity: {
+            unit: string;
+            value: string;
+        };
+        DashboardMetricScope: {
+            department_ids: string[];
+            kind: string;
+            location_ids: string[];
+            omitted_dimensions: string[];
+        };
+        /** @enum {string} */
+        DashboardMetricStatus: "available" | "not_applicable" | "data_gap" | "restricted";
+        DashboardMetricTarget: {
+            operator: components["schemas"]["DashboardTargetOperator"];
+            value: string;
+        };
+        /** @enum {string} */
+        DashboardMetricUnit: "count" | "rate" | "hours" | "currency" | "duration" | "percent" | "percentage_point_delta";
+        DashboardMetricsQuery: {
+            business_unit_ids?: string[] | null;
+            comparison?: string | null;
+            department_ids?: string[] | null;
+            employee_statuses?: string[] | null;
+            employment_types?: string[] | null;
+            end_date?: string | null;
+            location_ids?: string[] | null;
+            manager_ids?: string[] | null;
+            period?: string | null;
+            risk_threshold?: string | null;
+            shift_ids?: string[] | null;
+            start_date?: string | null;
+            /** Format: int32 */
+            top_n?: number | null;
+        };
+        DashboardMetricsResponse: {
+            actions: components["schemas"]["DashboardActionsSummary"];
+            context: components["schemas"]["DashboardMetricContext"];
+            contract_version: string;
+            data_quality: components["schemas"]["DashboardDataQuality"];
+            /** Format: date-time */
+            generated_at: string;
+            insights: components["schemas"]["DashboardInsight"][];
+            metrics: components["schemas"]["DashboardMetric"][];
+            workspace: components["schemas"]["DashboardWorkspaceContext"];
+        };
         DashboardPreferences: {
             active_view: string;
             collapsed_sections: unknown;
@@ -5871,6 +6043,29 @@ export interface components {
             widget_order: unknown;
             /** Format: uuid */
             workspace_id: string;
+        };
+        DashboardQualitySource: {
+            coverage_ratio?: string | null;
+            freshness: components["schemas"]["DashboardMetricFreshness"];
+            key: string;
+            status: string;
+            warnings: string[];
+        };
+        DashboardReportingPeriod: {
+            /** Format: date-time */
+            as_of: string;
+            /** Format: date */
+            end_date: string;
+            key: string;
+            /** Format: date */
+            start_date: string;
+            timezone: string;
+        };
+        /** @enum {string} */
+        DashboardTargetOperator: "lt" | "lte" | "eq" | "gte" | "gt";
+        DashboardWorkspaceContext: {
+            currency: string;
+            timezone: string;
         };
         /** @description Date range for report generation. */
         DateRange: {
@@ -5897,17 +6092,22 @@ export interface components {
             workspace_id: string;
         };
         DepartmentAttendancePoint: {
+            absence_rate: components["schemas"]["RateQuantity"];
             /** Format: int64 */
             absent: number;
+            attendance_rate: components["schemas"]["RateQuantity"];
             /** Format: uuid */
             department_id: string;
             department_name: string;
             /** Format: int64 */
             late: number;
+            late_rate: components["schemas"]["RateQuantity"];
             /** Format: int64 */
             on_leave: number;
             /** Format: int64 */
             on_time: number;
+            /** Format: int64 */
+            total_employees: number;
         };
         DepartmentPayrollConfig: {
             /** Format: date-time */
@@ -7767,6 +7967,22 @@ export interface components {
         PunchOutRequest: {
             note?: string | null;
         };
+        /**
+         * @description A percentage rate together with the raw quantities it was derived from.
+         *
+         *     `value` is `None` (never a fabricated `0.0`) when `denominator <= 0`, mirroring the
+         *     executive dashboard contract's zero-denominator → not-applicable rule.
+         */
+        RateQuantity: {
+            /** Format: int64 */
+            denominator: number;
+            /** Format: int64 */
+            numerator: number;
+            /** @description The unit the numerator/denominator are expressed in (e.g. `"employee_days"`, `"employees"`). */
+            unit: string;
+            /** @description Percentage in `[0, 100]`, `None` when the denominator is zero. */
+            value?: string | null;
+        };
         RecruitmentSource: {
             agency_contact_email?: string | null;
             agency_contact_name?: string | null;
@@ -9076,13 +9292,16 @@ export interface components {
             workspace_id?: string | null;
         };
         WorkspaceStats: {
+            absence_rate: components["schemas"]["RateQuantity"];
             /** Format: int64 */
             absent_today: number;
+            attendance_rate: components["schemas"]["RateQuantity"];
             /** Format: double */
             avg_work_hours_today: number;
             /** Format: int64 */
             early_departure_today: number;
             estimated_monthly_payroll: string;
+            late_rate: components["schemas"]["RateQuantity"];
             /** Format: int64 */
             late_today: number;
             /** Format: int64 */
@@ -9750,7 +9969,14 @@ export interface operations {
     };
     get_attendance_trend: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Inclusive start date (YYYY-MM-DD) */
+                start_date?: string;
+                /** @description Inclusive end date (YYYY-MM-DD) */
+                end_date?: string;
+                /** @description IANA timezone for date bucketing */
+                timezone?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -9771,8 +9997,16 @@ export interface operations {
     get_department_attendance: {
         parameters: {
             query?: {
-                /** @description Analytics date range (e.g. today, week, month) */
+                /** @description Deprecated: use start_date/end_date */
                 range?: string;
+                /** @description Inclusive start date (YYYY-MM-DD) */
+                start_date?: string;
+                /** @description Inclusive end date (YYYY-MM-DD) */
+                end_date?: string;
+                /** @description IANA timezone for date bucketing */
+                timezone?: string;
+                /** @description Return at most N departments sorted by attendance rate */
+                top_n?: number;
             };
             header?: never;
             path?: never;
@@ -9791,9 +10025,50 @@ export interface operations {
             };
         };
     };
+    get_dashboard_metrics: {
+        parameters: {
+            query?: {
+                period?: string | null;
+                comparison?: string | null;
+                start_date?: string | null;
+                end_date?: string | null;
+                department_ids?: string[] | null;
+                location_ids?: string[] | null;
+                business_unit_ids?: string[] | null;
+                manager_ids?: string[] | null;
+                employment_types?: string[] | null;
+                employee_statuses?: string[] | null;
+                shift_ids?: string[] | null;
+                top_n?: number | null;
+                risk_threshold?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get workspace-scoped executive dashboard metrics */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardMetricsResponse"];
+                };
+            };
+        };
+    };
     get_lateness_by_day: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Inclusive start date (YYYY-MM-DD) */
+                start_date?: string;
+                /** @description Inclusive end date (YYYY-MM-DD) */
+                end_date?: string;
+                /** @description IANA timezone for date bucketing */
+                timezone?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -9878,6 +10153,8 @@ export interface operations {
                 start_date?: string;
                 /** @description End Date (YYYY-MM-DD) */
                 end_date?: string;
+                /** @description IANA timezone for date bucketing */
+                timezone?: string;
                 /** @description Group results by employee or department */
                 group_by?: string;
             };
@@ -9900,7 +10177,10 @@ export interface operations {
     };
     get_workspace_stats: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description IANA timezone for date bucketing */
+                timezone?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -10748,6 +11028,40 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MonitorOperationalSnapshot"];
                 };
+            };
+        };
+    };
+    monitor_stream_sse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Monitor Server-Sent Events stream */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": unknown;
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Infrastructure monitoring role required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

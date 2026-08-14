@@ -1,125 +1,86 @@
 import { Building2 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
     Bar,
     BarChart,
     CartesianGrid,
-    Legend,
     ResponsiveContainer,
     Tooltip,
     XAxis,
     YAxis,
 } from "recharts";
 
-import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { DashboardChartError, useDashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
-import { useDepartmentAttendance } from "@/hooks/use-dashboard";
-import { cn } from "@/lib/utils";
+import { ChartSummary } from "@/components/features/dashboard/chart-summary";
+import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
+import { DashboardDateRange } from "@/components/features/dashboard/dashboard-date-range";
+import { useDepartmentAttendance, type DepartmentAttendancePoint } from "@/hooks/use-dashboard";
+import { useWorkspace } from "@/hooks/use-workspace";
 
-const COLORS = {
-    on_time: "#10b981",
-    late: "#f59e0b",
-    absent: "#ef4444",
-    on_leave: "#6366f1",
-};
+const TOP_N = 8;
 
-interface DepartmentAttendanceChartBarProps {
-    chartData: {
-        name: string;
-        on_time: number;
-        late: number;
-        absent: number;
-        on_leave: number;
-    }[];
-    t: (k: string) => string;
+function rateValue(rate: { value: string | null }): string {
+    return rate.value == null ? "—" : `${rate.value}%`;
 }
 
-function DepartmentAttendanceChartBar({ chartData, t }: DepartmentAttendanceChartBarProps) {
-    return (
-        <ResponsiveContainer height={320} width="100%">
-            <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                <CartesianGrid
-                    className="text-slate-100 dark:text-slate-800"
-                    stroke="currentColor"
-                    strokeDasharray="3 3"
-                />
-                <XAxis
-                    axisLine={false}
-                    className="text-slate-400 dark:text-slate-500"
-                    dataKey="name"
-                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                    tickLine={false}
-                />
-                <YAxis
-                    allowDecimals={false}
-                    axisLine={false}
-                    className="text-slate-400 dark:text-slate-500"
-                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                    tickLine={false}
-                />
-                <Tooltip
-                    contentStyle={{
-                        borderRadius: "1rem",
-                        border: "none",
-                        boxShadow: "0 8px 30px rgba(0,0,0,.1)",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                    }}
-                />
-                <Legend
-                    wrapperStyle={{
-                        fontSize: "9px",
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.15em",
-                    }}
-                />
-                <Bar
-                    dataKey="on_time"
-                    fill={COLORS.on_time}
-                    name={t("dashboard.hr.on_time")}
-                    radius={[4, 4, 0, 0]}
-                />
-                <Bar
-                    dataKey="late"
-                    fill={COLORS.late}
-                    name={t("dashboard.hr.late_today")}
-                    radius={[4, 4, 0, 0]}
-                />
-                <Bar
-                    dataKey="absent"
-                    fill={COLORS.absent}
-                    name={t("dashboard.hr.absent_today")}
-                    radius={[4, 4, 0, 0]}
-                />
-                <Bar
-                    dataKey="on_leave"
-                    fill={COLORS.on_leave}
-                    name={t("dashboard.hr.on_leave_today")}
-                    radius={[4, 4, 0, 0]}
-                />
-            </BarChart>
-        </ResponsiveContainer>
-    );
+function defaultRange(): { startDate: string; endDate: string } {
+    const now = new Date();
+    const end = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    const s = new Date(now);
+    s.setDate(s.getDate() - 29);
+    const start = `${s.getFullYear()}-${String(s.getMonth() + 1).padStart(2, "0")}-${String(s.getDate()).padStart(2, "0")}`;
+    return { startDate: start, endDate: end };
+}
+
+interface Row extends DepartmentAttendancePoint {
+    attendance: number;
 }
 
 export default function DepartmentAttendanceChart() {
     const { t } = useTranslation();
-    const [range, setRange] = useState<"today" | "week">("today");
-    const { data, error, isLoading } = useDepartmentAttendance(range);
+    const { workspace } = useWorkspace();
+    const [range, setRange] = useState(defaultRange);
+
+    const timezone = workspace?.timezone ?? undefined;
+    const { data, error, isLoading } = useDepartmentAttendance({
+        topN: TOP_N,
+        rangeParams: { startDate: range.startDate, endDate: range.endDate, timezone },
+    });
     useDashboardChartError(Boolean(error));
 
-    const chartData = (data ?? []).map((d) => ({
-        ...d,
-        name: d.department_name,
-    }));
+    // Backend already sorts descending by attendance rate; slice client-side for Top-N.
+    const allRows: Row[] = useMemo(
+        () =>
+            (data ?? []).map((d) => ({
+                ...d,
+                attendance: d.attendance_rate.value == null ? 0 : Number(d.attendance_rate.value),
+            })),
+        [data],
+    );
 
-    const hasData =
-        chartData.length > 0 &&
-        chartData.some((d) => d.on_time > 0 || d.late > 0 || d.absent > 0 || d.on_leave > 0);
+    const chartData = useMemo(
+        () => allRows.slice(0, TOP_N).sort((a, b) => b.attendance - a.attendance),
+        [allRows],
+    );
+
+    const hasData = allRows.length > 0 && allRows.some((d) => d.total_employees > 0);
+
+    const columns: ChartTableColumn<Row>[] = [
+        { header: t("dashboard.filters.department.label"), key: "department_name" },
+        { header: t("dashboard.hr.attendance_rate"), key: "attendance_rate", numeric: true, render: (r) => rateValue(r.attendance_rate) },
+        { header: t("dashboard.hr.late_rate"), key: "late_rate", numeric: true, render: (r) => rateValue(r.late_rate) },
+        { header: t("dashboard.hr.absence_rate"), key: "absence_rate", numeric: true, render: (r) => rateValue(r.absence_rate) },
+        { header: t("dashboard.hr.on_time"), key: "on_time", numeric: true },
+        { header: t("dashboard.hr.late_today"), key: "late", numeric: true },
+        { header: t("dashboard.hr.absent_today"), key: "absent", numeric: true },
+        { header: t("dashboard.hr.on_leave_today"), key: "on_leave", numeric: true },
+        { header: t("dashboard.hr.total_employees"), key: "total_employees", numeric: true },
+    ];
+
+    const summary = t("dashboard.hr.dept_attendance_summary");
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
@@ -137,34 +98,16 @@ export default function DepartmentAttendanceChart() {
                         </Typography>
                     </div>
                 </div>
-
-                <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-[14px] border border-slate-200 dark:border-slate-700/50 shadow-inner">
-                    <Button
-                        className={cn(
-                            "px-5 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all h-auto shadow-none border border-transparent",
-                            range === "today"
-                                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900"
-                                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-transparent"
-                        )}
-                        onClick={() => { setRange("today"); }}
-                        type="button"
-                        variant="ghost"
-                    >
-                        {t("dashboard.hr.today")}
-                    </Button>
-                    <Button
-                        className={cn(
-                            "px-5 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all h-auto shadow-none border border-transparent",
-                            range === "week"
-                                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900"
-                                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-transparent"
-                        )}
-                        onClick={() => { setRange("week"); }}
-                        type="button"
-                        variant="ghost"
-                    >
-                        {t("dashboard.hr.this_week")}
-                    </Button>
+                <div className="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-3">
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                        {t("dashboard.hr.top_n", { count: TOP_N })}
+                    </span>
+                    <DashboardDateRange
+                        endDate={range.endDate}
+                        onChange={setRange}
+                        startDate={range.startDate}
+                        timezone={timezone}
+                    />
                 </div>
             </div>
 
@@ -182,7 +125,60 @@ export default function DepartmentAttendanceChart() {
                     </Typography>
                 </div>
             ) : (
-                <DepartmentAttendanceChartBar chartData={chartData} t={t} />
+                <>
+                    <ChartSummary text={summary} />
+                    <div role="img" aria-label={summary}>
+                        <ResponsiveContainer height={320} width="100%">
+                            <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                                <CartesianGrid
+                                    className="text-slate-100 dark:text-slate-800"
+                                    horizontal={false}
+                                    stroke="currentColor"
+                                    strokeDasharray="3 3"
+                                />
+                                <XAxis
+                                    axisLine={false}
+                                    className="text-slate-400 dark:text-slate-500"
+                                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                                    tickLine={false}
+                                    type="number"
+                                    unit="%"
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    className="text-slate-400 dark:text-slate-500"
+                                    dataKey="department_name"
+                                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                                    tickLine={false}
+                                    type="category"
+                                    width={120}
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        borderRadius: "1rem",
+                                        border: "none",
+                                        boxShadow: "0 8px 30px rgba(0,0,0,.1)",
+                                        fontSize: "11px",
+                                        fontWeight: 600,
+                                    }}
+                                    formatter={(value: unknown) => [`${Number(value ?? 0)}%`, t("dashboard.hr.attendance_rate")]}
+                                />
+                                <Bar
+                                    dataKey="attendance"
+                                    fill="#10b981"
+                                    name={t("dashboard.hr.attendance_rate")}
+                                    radius={[0, 4, 4, 0]}
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <ChartTableTwin
+                        caption={t("dashboard.hr.dept_attendance")}
+                        columns={columns}
+                        rows={allRows}
+                        searchableKeys={["department_name"]}
+                    />
+                </>
             )}
         </div>
     );

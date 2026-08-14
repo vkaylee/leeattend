@@ -29,6 +29,10 @@
     "overtime:request:create_on_behalf": {
       "name": "Tạo yêu cầu tăng ca thay mặt",
       "desc": "Lập yêu cầu tăng ca trước cho nhân viên khác"
+    },
+    "dashboard:employee_absence:read": {
+      "name": "Xem vắng mặt theo nhân viên",
+      "desc": "Xem chi tiết vắng không phép theo từng nhân viên trên bảng điều khiển"
     }
   }
 }

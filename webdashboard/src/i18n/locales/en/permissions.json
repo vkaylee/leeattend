@@ -29,6 +29,10 @@
     "overtime:request:create_on_behalf": {
       "name": "Create OT Request on Behalf",
       "desc": "Plan pre-overtime requests for other employees"
+    },
+    "dashboard:employee_absence:read": {
+      "name": "View Employee Absences",
+      "desc": "See per-employee unexcused absence details on the dashboard"
     }
   }
 }

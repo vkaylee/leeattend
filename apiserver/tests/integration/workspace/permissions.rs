@@ -211,7 +211,7 @@ async fn test_permission_catalog_matches_legacy_available_permissions() {
         .unwrap();
     assert_eq!(catalog_response.status(), reqwest::StatusCode::OK);
     let catalog: Vec<serde_json::Value> = catalog_response.json().await.unwrap();
-    assert_eq!(catalog.len(), 102);
+    assert_eq!(catalog.len(), 103);
     assert!(catalog.iter().all(|item| {
         item["id"].is_string() && item["group"].is_string() && item["label_key"].is_string()
     }));

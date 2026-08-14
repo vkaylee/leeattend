@@ -9,6 +9,7 @@ JOIN employments emp
  AND emp.deleted_at IS NULL
  AND (te.punch_in_time AT TIME ZONE $3)::date >= emp.start_date
  AND (emp.end_date IS NULL OR (te.punch_in_time AT TIME ZONE $3)::date <= emp.end_date)
+ AND ($5::uuid[] IS NULL OR emp.department_id = ANY($5))
 JOIN employees e
   ON e.id = emp.employee_id
  AND e.workspace_id = $4
