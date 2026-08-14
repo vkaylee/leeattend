@@ -407,6 +407,14 @@ impl DashboardMetric {
     pub fn status(&self) -> &DashboardMetricStatus {
         &self.status
     }
+
+    pub fn key(&self) -> &str {
+        &self.key
+    }
+
+    pub fn value(&self) -> Option<Decimal> {
+        self.value
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
@@ -433,6 +441,18 @@ impl DashboardReportingPeriod {
             timezone: timezone.into(),
             as_of,
         }
+    }
+
+    pub fn key(&self) -> &str {
+        &self.key
+    }
+
+    pub fn start_date(&self) -> NaiveDate {
+        self.start_date
+    }
+
+    pub fn end_date(&self) -> NaiveDate {
+        self.end_date
     }
 }
 
@@ -482,6 +502,10 @@ impl DashboardMetricContext {
             scope,
         }
     }
+
+    pub fn period(&self) -> &DashboardReportingPeriod {
+        &self.period
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
@@ -496,6 +520,10 @@ impl DashboardWorkspaceContext {
             timezone: timezone.into(),
             currency: currency.into(),
         }
+    }
+
+    pub fn currency(&self) -> &str {
+        &self.currency
     }
 }
 
@@ -608,6 +636,18 @@ impl DashboardMetricsResponse {
             data_quality,
             generated_at,
         }
+    }
+
+    pub fn metrics(&self) -> &[DashboardMetric] {
+        &self.metrics
+    }
+
+    pub fn context(&self) -> &DashboardMetricContext {
+        &self.context
+    }
+
+    pub fn workspace(&self) -> &DashboardWorkspaceContext {
+        &self.workspace
     }
 }
 

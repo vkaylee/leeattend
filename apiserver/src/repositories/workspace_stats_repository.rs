@@ -2,7 +2,7 @@ use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
 use crate::models::{
     AttendanceTrendPoint, DepartmentAttendancePoint, LatenessByDay, LeaveTypeBreakdown,
-    OvertimeTrendPoint, PeakTimeSlot, RateQuantity, WorkspaceStats,
+    OvertimeBreakdownRow, OvertimeTrendPoint, PeakTimeSlot, RateQuantity, WorkspaceStats,
 };
 use async_trait::async_trait;
 use chrono::{Datelike, NaiveDate, Utc};
@@ -55,17 +55,40 @@ pub struct ExecutiveDashboardSnapshot {
     pub headcount_start: i64,
     pub headcount_end: i64,
     pub approved_overtime_minutes: i64,
+    /// Sum of `system_detected_ot_minutes` across attendance summaries in the period.
+    pub system_detected_ot_minutes: i64,
+    /// `system_detected - approved`, clamped at 0.
+    pub unapproved_ot_minutes: i64,
+    /// `approved / system_detected`. `None` when the denominator is zero.
+    pub overtime_approval_rate: Option<Decimal>,
     pub pending_hr_actions: i64,
     pub currency_code: Option<String>,
     /// Sum of `overtime_pay_amount` for finalized payroll in the period.
     /// `None` when cost is unauthorized or the payroll source is unavailable.
     pub overtime_cost: Option<Decimal>,
+    /// Sum of `base_pay_amount + overtime_pay_amount + holiday_work_premium_amount`
+    /// for paid/finalized payslips overlapping the period. `None` when unauthorized.
+    pub labor_cost: Option<Decimal>,
+    /// Sum of `net_pay_amount` for paid/finalized payslips overlapping the period.
+    /// `None` when unauthorized.
+    pub payroll_actual: Option<Decimal>,
+    /// Whether any paid/finalized payslip exists in the period. `false` also when
+    /// the caller lacks permission (so cost metrics read as `restricted`).
+    pub cost_source_available: bool,
 }
 
 #[derive(Debug, Clone)]
 pub struct ExecutiveDashboardSnapshots {
     pub current: ExecutiveDashboardSnapshot,
     pub comparison: ExecutiveDashboardSnapshot,
+}
+
+/// Department-level overtime breakdown plus the workspace currency resolved in
+/// the same batch query (no separate round-trip).
+#[derive(Debug, Clone)]
+pub struct OvertimeBreakdown {
+    pub currency_code: Option<String>,
+    pub rows: Vec<crate::models::OvertimeBreakdownRow>,
 }
 
 #[cfg_attr(test, mockall::automock)]
@@ -108,6 +131,12 @@ pub trait WorkspaceStatsRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         request: &ExecutiveDashboardRequest,
     ) -> Result<ExecutiveDashboardSnapshots, AppError>;
+    async fn fetch_overtime_breakdown(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        query: &ChartAnalyticsQuery,
+        allow_overtime_cost: bool,
+    ) -> Result<OvertimeBreakdown, AppError>;
 }
 
 pub struct DieselWorkspaceStatsRepository {
@@ -1107,11 +1136,21 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             #[diesel(sql_type = diesel::sql_types::BigInt)]
             approved_overtime_minutes: i64,
             #[diesel(sql_type = diesel::sql_types::BigInt)]
+            system_detected_ot_minutes: i64,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            unapproved_ot_minutes: i64,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
             pending_hr_actions: i64,
             #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
             currency_code: Option<String>,
             #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Numeric>)]
             overtime_cost: Option<Decimal>,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Numeric>)]
+            labor_cost: Option<Decimal>,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Numeric>)]
+            payroll_actual: Option<Decimal>,
+            #[diesel(sql_type = diesel::sql_types::Bool)]
+            cost_source_available: bool,
         }
 
         let sql = r"
@@ -1172,7 +1211,9 @@ attendance_days AS (
     GROUP BY p.period
 ),
 overtime AS (
-    SELECT p.period, COALESCE(SUM(ads.approved_ot_minutes), 0)::bigint AS approved_overtime_minutes
+    SELECT p.period,
+           COALESCE(SUM(ads.approved_ot_minutes), 0)::bigint AS approved_overtime_minutes,
+           COALESCE(SUM(ads.system_detected_ot_minutes), 0)::bigint AS system_detected_ot_minutes
     FROM periods p
     LEFT JOIN attendance_daily_summaries ads
       ON ads.workspace_id = $1 AND ads.date BETWEEN p.start_date AND p.end_date
@@ -1204,9 +1245,12 @@ actions AS (
 currency AS (
     SELECT COALESCE((SELECT currency_code FROM employers WHERE workspace_id = $1 AND deleted_at IS NULL AND currency_code IS NOT NULL ORDER BY created_at LIMIT 1), 'USD') AS currency_code
 ),
-overtime_cost AS (
+payroll_cost AS (
     SELECT p.period,
-           CASE WHEN $9::boolean THEN COALESCE(SUM(ps.overtime_pay_amount), 0) END AS overtime_cost
+           CASE WHEN $9::boolean THEN COALESCE(SUM(ps.overtime_pay_amount), 0) END AS overtime_cost,
+           CASE WHEN $9::boolean THEN COALESCE(SUM(ps.base_pay_amount + ps.overtime_pay_amount + COALESCE(ps.holiday_work_premium_amount, 0)), 0) END AS labor_cost,
+           CASE WHEN $9::boolean THEN COALESCE(SUM(ps.net_pay_amount), 0) END AS payroll_actual,
+           CASE WHEN $9::boolean THEN COUNT(ps.id) END AS payslip_count
     FROM periods p
     LEFT JOIN payslips ps
       ON ps.workspace_id = $1
@@ -1230,16 +1274,21 @@ SELECT h.headcount_end AS headcount,
        h.headcount_start,
        h.headcount_end,
        COALESCE(o.approved_overtime_minutes, 0) AS approved_overtime_minutes,
+       COALESCE(o.system_detected_ot_minutes, 0) AS system_detected_ot_minutes,
+       GREATEST(COALESCE(o.system_detected_ot_minutes, 0) - COALESCE(o.approved_overtime_minutes, 0), 0) AS unapproved_ot_minutes,
        COALESCE(ac.pending_hr_actions, 0) AS pending_hr_actions,
        c.currency_code,
-       oc.overtime_cost
+       oc.overtime_cost,
+       oc.labor_cost,
+       oc.payroll_actual,
+       CASE WHEN $9::boolean AND oc.payslip_count IS NOT NULL AND oc.payslip_count > 0 THEN TRUE ELSE FALSE END AS cost_source_available
 FROM headcounts h
 LEFT JOIN active_days a USING (period)
 LEFT JOIN attendance_days ad USING (period)
 LEFT JOIN overtime o USING (period)
 LEFT JOIN terminations t USING (period)
 LEFT JOIN actions ac USING (period)
-LEFT JOIN overtime_cost oc USING (period)
+LEFT JOIN payroll_cost oc USING (period)
 CROSS JOIN currency c
 WHERE h.period = $8
 ";
@@ -1280,13 +1329,156 @@ WHERE h.period = $8
             headcount_start: row.headcount_start,
             headcount_end: row.headcount_end,
             approved_overtime_minutes: row.approved_overtime_minutes,
+            system_detected_ot_minutes: row.system_detected_ot_minutes,
+            unapproved_ot_minutes: row.unapproved_ot_minutes,
+            overtime_approval_rate: if row.system_detected_ot_minutes > 0 {
+                Some(
+                    Decimal::from(row.approved_overtime_minutes.max(0))
+                        / Decimal::from(row.system_detected_ot_minutes),
+                )
+            } else {
+                None
+            },
             pending_hr_actions: row.pending_hr_actions,
             currency_code: row.currency_code,
             overtime_cost: row.overtime_cost,
+            labor_cost: row.labor_cost,
+            payroll_actual: row.payroll_actual,
+            cost_source_available: row.cost_source_available,
         };
         Ok(ExecutiveDashboardSnapshots {
             current: to_snapshot(current_row),
             comparison: to_snapshot(comparison_row),
+        })
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn fetch_overtime_breakdown(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        query: &ChartAnalyticsQuery,
+        allow_overtime_cost: bool,
+    ) -> Result<OvertimeBreakdown, AppError> {
+        let workspace_id = auth_token.workspace_id();
+        let tz = self.resolve_timezone(auth_token, query).await?;
+        let today = Self::workspace_local_date(tz);
+        let (start_date, end_date) = Self::resolve_range(query, today, 29);
+        let department_ids = query.department_ids.as_deref();
+
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        #[derive(Debug, QueryableByName)]
+        struct BreakdownRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            department_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            department_name: String,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            system_ot_minutes: i64,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            approved_ot_minutes: i64,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Numeric>)]
+            overtime_cost: Option<Decimal>,
+            #[diesel(sql_type = diesel::sql_types::Bool)]
+            cost_available: bool,
+        }
+
+        #[derive(Debug, QueryableByName)]
+        struct CurrencyRow {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            currency_code: String,
+        }
+
+        let rows: Vec<BreakdownRow> = diesel::sql_query(
+            r"
+WITH depts AS (
+    SELECT d.id AS department_id, d.name AS department_name
+    FROM departments d
+    WHERE d.workspace_id = $1 AND d.deleted_at IS NULL
+),
+hours AS (
+    SELECT emp.department_id,
+           COALESCE(SUM(ads.system_detected_ot_minutes), 0)::bigint AS system_ot_minutes,
+           COALESCE(SUM(ads.approved_ot_minutes), 0)::bigint         AS approved_ot_minutes
+    FROM attendance_daily_summaries ads
+    JOIN employments emp ON emp.id = ads.employment_id
+      AND emp.workspace_id = $1
+      AND emp.deleted_at IS NULL
+      AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
+    WHERE ads.workspace_id = $1
+      AND ads.date BETWEEN $2::date AND $3::date
+    GROUP BY emp.department_id
+),
+cost AS (
+    SELECT emp.department_id,
+           CASE WHEN $5::boolean THEN COALESCE(SUM(ps.overtime_pay_amount), 0) END AS overtime_cost,
+           CASE WHEN $5::boolean THEN COUNT(ps.id) END                              AS payslip_count
+    FROM payslips ps
+    JOIN employments emp ON emp.id = ps.employment_id
+      AND emp.workspace_id = $1
+      AND emp.deleted_at IS NULL
+      AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
+    WHERE ps.workspace_id = $1
+      AND ps.status IN ('paid', 'finalized')
+      AND ps.period_start <= $3::date
+      AND ps.period_end >= $2::date
+    GROUP BY emp.department_id
+)
+SELECT d.department_id,
+       d.department_name,
+       COALESCE(h.system_ot_minutes, 0)  AS system_ot_minutes,
+       COALESCE(h.approved_ot_minutes, 0) AS approved_ot_minutes,
+       c.overtime_cost,
+       CASE WHEN $5::boolean AND c.payslip_count IS NOT NULL AND c.payslip_count > 0
+            THEN TRUE ELSE FALSE END AS cost_available
+FROM depts d
+LEFT JOIN hours h ON h.department_id = d.department_id
+LEFT JOIN cost c  ON c.department_id = d.department_id
+WHERE h.department_id IS NOT NULL
+   OR (c.department_id IS NOT NULL AND $5::boolean)
+ORDER BY COALESCE(h.system_ot_minutes, 0) DESC
+",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .bind::<diesel::sql_types::Date, _>(start_date)
+        .bind::<diesel::sql_types::Date, _>(end_date)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Array<diesel::sql_types::Uuid>>, _>(
+            department_ids,
+        )
+        .bind::<diesel::sql_types::Bool, _>(allow_overtime_cost)
+        .load(&mut *conn)
+        .await
+        .map_err(AppError::from)?;
+
+        let currency_row: CurrencyRow = diesel::sql_query(
+            "SELECT COALESCE((SELECT currency_code FROM employers WHERE workspace_id = $1 AND deleted_at IS NULL AND currency_code IS NOT NULL ORDER BY created_at LIMIT 1), 'USD') AS currency_code",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .get_result(&mut *conn)
+        .await
+        .map_err(AppError::from)?;
+
+        #[allow(clippy::cast_precision_loss)]
+        let breakdown_rows = rows
+            .into_iter()
+            .map(|r| OvertimeBreakdownRow {
+                department_id: r.department_id,
+                department_name: r.department_name,
+                system_ot_hours: r.system_ot_minutes as f64 / 60.0,
+                approved_ot_hours: r.approved_ot_minutes as f64 / 60.0,
+                unapproved_ot_hours: (r.system_ot_minutes - r.approved_ot_minutes).max(0) as f64
+                    / 60.0,
+                overtime_cost: r.overtime_cost,
+                cost_available: r.cost_available,
+            })
+            .collect();
+
+        Ok(OvertimeBreakdown {
+            currency_code: Some(currency_row.currency_code),
+            rows: breakdown_rows,
         })
     }
 }

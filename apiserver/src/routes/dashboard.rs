@@ -11,6 +11,10 @@ pub fn router() -> Router<Arc<AppState>> {
             get(handlers::get_dashboard_metrics),
         )
         .route(
+            "/dashboard/overtime-breakdown",
+            get(handlers::dashboard_overtime_breakdown::get_overtime_breakdown),
+        )
+        .route(
             "/dashboard/workspace-stats",
             get(handlers::get_workspace_stats),
         )

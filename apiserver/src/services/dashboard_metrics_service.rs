@@ -18,6 +18,17 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
+/// Workspace-scoped budget targets for cost metrics.
+///
+/// Resolved from `workspace_config_entries` under the keys
+/// `dashboard.budget.overtime_cost` / `dashboard.budget.labor_cost`.
+/// `None` means the budget is not configured.
+#[derive(Debug, Clone, Default)]
+pub struct BudgetConfig {
+    pub overtime_cost: Option<Decimal>,
+    pub labor_cost: Option<Decimal>,
+}
+
 #[allow(
     clippy::implicit_hasher,
     clippy::too_many_lines,
@@ -33,6 +44,7 @@ pub async fn build_dashboard_metrics(
         &std::collections::HashSet<Uuid>,
     >,
     allow_overtime_cost: bool,
+    budgets: &BudgetConfig,
 ) -> AppResult<DashboardMetricsResponse> {
     validate_department_scope_query(query, managed_department_ids)?;
     let workspace_id = auth_token.workspace_id();
@@ -141,6 +153,7 @@ pub async fn build_dashboard_metrics(
         comparison_end,
         basis,
         freshness.clone(),
+        budgets,
     );
     let data_quality_status = if metrics
         .iter()
@@ -181,14 +194,18 @@ pub async fn build_dashboard_metrics(
         ),
         DashboardQualitySource::new(
             "payroll",
-            if allow_overtime_cost && snapshots.current.overtime_cost.is_some() {
+            if allow_overtime_cost && snapshots.current.cost_source_available {
                 "complete"
             } else {
                 "data_gap"
             },
             None,
             freshness,
-            Vec::new(),
+            if allow_overtime_cost && !snapshots.current.cost_source_available {
+                vec!["no_paid_payslips_in_period".to_string()]
+            } else {
+                Vec::new()
+            },
         ),
     ];
 
@@ -216,7 +233,7 @@ fn source_status(has_data: bool) -> &'static str {
     }
 }
 
-#[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 fn build_metrics(
     current: &ExecutiveDashboardSnapshot,
     comparison: &ExecutiveDashboardSnapshot,
@@ -225,6 +242,7 @@ fn build_metrics(
     comparison_end: NaiveDate,
     basis: DashboardComparisonBasis,
     freshness: DashboardMetricFreshness,
+    budgets: &BudgetConfig,
 ) -> Vec<DashboardMetric> {
     let attendance_target = DashboardMetricTarget::new(
         Decimal::from(95),
@@ -238,6 +256,13 @@ fn build_metrics(
         Decimal::from(15),
         crate::models::DashboardTargetOperator::Lte,
     );
+    let overtime_cost_target = budgets.overtime_cost.map(|value| {
+        DashboardMetricTarget::new(value, crate::models::DashboardTargetOperator::Lte)
+    });
+    let labor_cost_target = budgets.labor_cost.map(|value| {
+        DashboardMetricTarget::new(value, crate::models::DashboardTargetOperator::Lte)
+    });
+
     let metrics = vec![
         count_metric(
             "headcount",
@@ -319,6 +344,52 @@ fn build_metrics(
             comparison_end,
             basis.clone(),
         ),
+        // ── Overtime hours ─────────────────────────────────────────────
+        hours_metric(
+            "system_ot_hours",
+            current.system_detected_ot_minutes / 60,
+            Some(comparison.system_detected_ot_minutes / 60),
+            DashboardMetricDirection::LowerIsBetter,
+            "system-ot-hours.v1",
+            freshness.clone(),
+            query,
+            comparison_start,
+            comparison_end,
+            basis.clone(),
+        ),
+        hours_metric(
+            "approved_ot_hours",
+            current.approved_overtime_minutes / 60,
+            Some(comparison.approved_overtime_minutes / 60),
+            DashboardMetricDirection::LowerIsBetter,
+            "approved-ot-hours.v1",
+            freshness.clone(),
+            query,
+            comparison_start,
+            comparison_end,
+            basis.clone(),
+        ),
+        hours_metric(
+            "unapproved_ot_hours",
+            current.unapproved_ot_minutes / 60,
+            Some(comparison.unapproved_ot_minutes / 60),
+            DashboardMetricDirection::LowerIsBetter,
+            "unapproved-ot-hours.v1",
+            freshness.clone(),
+            query,
+            comparison_start,
+            comparison_end,
+            basis.clone(),
+        ),
+        ot_approval_rate_metric(
+            current,
+            comparison,
+            freshness.clone(),
+            query,
+            comparison_start,
+            comparison_end,
+            basis.clone(),
+        ),
         overtime_metric(
             current,
             comparison,
@@ -327,6 +398,62 @@ fn build_metrics(
             comparison_end,
             basis.clone(),
             freshness.clone(),
+            overtime_cost_target,
+        ),
+        // ── Labor cost (permission-gated, data_gap when no paid payslips) ──
+        ot_cost_per_employee_metric(
+            current,
+            comparison,
+            freshness.clone(),
+            query,
+            comparison_start,
+            comparison_end,
+            basis.clone(),
+        ),
+        currency_metric(
+            "labor_cost",
+            current.labor_cost,
+            comparison.labor_cost,
+            DashboardMetricDirection::LowerIsBetter,
+            "labor-cost.v1",
+            freshness.clone(),
+            query,
+            comparison_start,
+            comparison_end,
+            basis.clone(),
+            labor_cost_target,
+            "no_paid_payslips",
+        ),
+        currency_metric(
+            "payroll_actual",
+            current.payroll_actual,
+            comparison.payroll_actual,
+            DashboardMetricDirection::Neutral,
+            "payroll-actual.v1",
+            freshness.clone(),
+            query,
+            comparison_start,
+            comparison_end,
+            basis.clone(),
+            None,
+            "no_paid_payslips",
+        ),
+        data_gap_metric(
+            "payroll_forecast",
+            DashboardMetricDirection::Neutral,
+            "payroll-forecast.v1",
+            freshness.clone(),
+            "forecast_source_unavailable",
+        ),
+        budget_variance_metric(
+            current,
+            comparison,
+            budgets,
+            freshness.clone(),
+            query,
+            comparison_start,
+            comparison_end,
+            basis.clone(),
         ),
         count_metric(
             "pending_hr_actions",
@@ -565,38 +692,15 @@ fn overtime_metric(
     comparison_end: NaiveDate,
     basis: DashboardComparisonBasis,
     freshness: DashboardMetricFreshness,
+    target: Option<DashboardMetricTarget>,
 ) -> DashboardMetric {
-    let current_hours = Decimal::from(current.approved_overtime_minutes.max(0) / 60);
-    match current.overtime_cost {
-        Some(cost) => {
-            let comparison_value = comparison.overtime_cost;
-            DashboardMetric::new(
-                "overtime_cost",
-                Some(cost),
-                DashboardMetricUnit::Currency,
-                None,
-                None,
-                DashboardMetricStatus::Available,
-                evaluate_health(current_hours, None),
-                None,
-                "overtime-cost.v1",
-                DashboardMetricDirection::LowerIsBetter,
-                freshness,
-                Vec::new(),
-                comparison_value.map(|previous| {
-                    comparison_for(
-                        basis.clone(),
-                        comparison_start,
-                        comparison_end,
-                        Some(previous),
-                        Some(cost - previous),
-                        query,
-                    )
-                }),
-                None,
-            )
-        }
-        None => hours_metric(
+    // Grid compatibility: the slot resolves `overtime_cost` first, else falls
+    // back to `overtime_hours`. Emit `overtime_cost` only when the caller may
+    // see it AND a paid/finalized payslip exists in the period; when the caller
+    // lacks `PayrollSensitiveRead` the repo leaves the cost as `None` and we
+    // fall back to `overtime_hours`.
+    let Some(cost) = current.overtime_cost else {
+        return hours_metric(
             "overtime_hours",
             current.approved_overtime_minutes / 60,
             Some(comparison.approved_overtime_minutes / 60),
@@ -607,8 +711,361 @@ fn overtime_metric(
             comparison_start,
             comparison_end,
             basis,
-        ),
+        );
+    };
+    // Permission granted but no paid/finalized payslips: honest data_gap,
+    // not a fabricated zero.
+    if !current.cost_source_available {
+        return currency_metric(
+            "overtime_cost",
+            None,
+            None,
+            DashboardMetricDirection::LowerIsBetter,
+            "overtime-cost.v1",
+            freshness,
+            query,
+            comparison_start,
+            comparison_end,
+            basis,
+            target,
+            "no_paid_payslips",
+        );
     }
+    let comparison_value = comparison.overtime_cost;
+    let health = evaluate_health(cost, target.as_ref());
+    DashboardMetric::new(
+        "overtime_cost",
+        Some(cost),
+        DashboardMetricUnit::Currency,
+        None,
+        None,
+        DashboardMetricStatus::Available,
+        health,
+        None,
+        "overtime-cost.v1",
+        DashboardMetricDirection::LowerIsBetter,
+        freshness,
+        Vec::new(),
+        comparison_value.map(|previous| {
+            comparison_for(
+                basis.clone(),
+                comparison_start,
+                comparison_end,
+                Some(previous),
+                Some(cost - previous),
+                query,
+            )
+        }),
+        target,
+    )
+}
+
+/// Approval rate = approved / system-detected, percent. Zero denominator →
+/// `not_applicable` with `zero_denominator`.
+#[allow(clippy::too_many_arguments)]
+fn ot_approval_rate_metric(
+    current: &ExecutiveDashboardSnapshot,
+    comparison: &ExecutiveDashboardSnapshot,
+    freshness: DashboardMetricFreshness,
+    query: &NormalizedDashboardMetricsQuery,
+    comparison_start: NaiveDate,
+    comparison_end: NaiveDate,
+    basis: DashboardComparisonBasis,
+) -> DashboardMetric {
+    if current.system_detected_ot_minutes <= 0 {
+        return DashboardMetric::new(
+            "ot_approval_rate",
+            None,
+            DashboardMetricUnit::Percent,
+            None,
+            None,
+            DashboardMetricStatus::NotApplicable,
+            DashboardMetricHealth::NotApplicable,
+            Some("zero_denominator".to_string()),
+            "ot-approval-rate.v1",
+            DashboardMetricDirection::HigherIsBetter,
+            freshness,
+            vec!["zero_denominator".to_string()],
+            None,
+            None,
+        );
+    }
+    let value = percent(
+        current.approved_overtime_minutes,
+        current.system_detected_ot_minutes,
+    );
+    let comparison_value = if comparison.system_detected_ot_minutes > 0 {
+        Some(percent(
+            comparison.approved_overtime_minutes,
+            comparison.system_detected_ot_minutes,
+        ))
+    } else {
+        None
+    };
+    DashboardMetric::new(
+        "ot_approval_rate",
+        Some(value),
+        DashboardMetricUnit::Percent,
+        Some(DashboardMetricQuantity::new(
+            Decimal::from(current.approved_overtime_minutes.max(0)),
+            "minutes",
+        )),
+        Some(DashboardMetricQuantity::new(
+            Decimal::from(current.system_detected_ot_minutes),
+            "minutes",
+        )),
+        DashboardMetricStatus::Available,
+        DashboardMetricHealth::Ok,
+        None,
+        "ot-approval-rate.v1",
+        DashboardMetricDirection::HigherIsBetter,
+        freshness,
+        Vec::new(),
+        comparison_value.map(|previous| {
+            comparison_for(
+                basis,
+                comparison_start,
+                comparison_end,
+                Some(previous),
+                Some(value - previous),
+                query,
+            )
+        }),
+        None,
+    )
+}
+
+/// OT cost / headcount. No cost source → data_gap; headcount 0 → not_applicable.
+#[allow(clippy::too_many_arguments)]
+fn ot_cost_per_employee_metric(
+    current: &ExecutiveDashboardSnapshot,
+    comparison: &ExecutiveDashboardSnapshot,
+    freshness: DashboardMetricFreshness,
+    query: &NormalizedDashboardMetricsQuery,
+    comparison_start: NaiveDate,
+    comparison_end: NaiveDate,
+    basis: DashboardComparisonBasis,
+) -> DashboardMetric {
+    if !current.cost_source_available {
+        return currency_metric(
+            "ot_cost_per_employee",
+            None,
+            None,
+            DashboardMetricDirection::LowerIsBetter,
+            "ot-cost-per-employee.v1",
+            freshness,
+            query,
+            comparison_start,
+            comparison_end,
+            basis,
+            None,
+            "no_paid_payslips",
+        );
+    }
+    if current.headcount <= 0 {
+        return DashboardMetric::new(
+            "ot_cost_per_employee",
+            None,
+            DashboardMetricUnit::Currency,
+            None,
+            None,
+            DashboardMetricStatus::NotApplicable,
+            DashboardMetricHealth::NotApplicable,
+            Some("zero_denominator".to_string()),
+            "ot-cost-per-employee.v1",
+            DashboardMetricDirection::LowerIsBetter,
+            freshness,
+            vec!["zero_denominator".to_string()],
+            None,
+            None,
+        );
+    }
+    let value = current
+        .overtime_cost
+        .map(|cost| cost / Decimal::from(current.headcount));
+    let comparison_value = if comparison.headcount > 0 {
+        comparison
+            .overtime_cost
+            .map(|cost| cost / Decimal::from(comparison.headcount))
+    } else {
+        None
+    };
+    currency_metric(
+        "ot_cost_per_employee",
+        value,
+        comparison_value,
+        DashboardMetricDirection::LowerIsBetter,
+        "ot-cost-per-employee.v1",
+        freshness,
+        query,
+        comparison_start,
+        comparison_end,
+        basis,
+        None,
+        "no_paid_payslips",
+    )
+}
+
+/// Budget variance = labor_cost − budget (currency). Missing budget →
+/// data_gap; over-budget (variance > 0) → critical via a `0 Gte` target.
+#[allow(clippy::too_many_arguments)]
+fn budget_variance_metric(
+    current: &ExecutiveDashboardSnapshot,
+    comparison: &ExecutiveDashboardSnapshot,
+    budgets: &BudgetConfig,
+    freshness: DashboardMetricFreshness,
+    query: &NormalizedDashboardMetricsQuery,
+    comparison_start: NaiveDate,
+    comparison_end: NaiveDate,
+    basis: DashboardComparisonBasis,
+) -> DashboardMetric {
+    let Some(budget) = budgets.labor_cost else {
+        return currency_metric(
+            "budget_variance",
+            None,
+            None,
+            DashboardMetricDirection::LowerIsBetter,
+            "budget-variance.v1",
+            freshness,
+            query,
+            comparison_start,
+            comparison_end,
+            basis,
+            None,
+            "budget_config_missing",
+        );
+    };
+    if !current.cost_source_available {
+        return currency_metric(
+            "budget_variance",
+            None,
+            None,
+            DashboardMetricDirection::LowerIsBetter,
+            "budget-variance.v1",
+            freshness,
+            query,
+            comparison_start,
+            comparison_end,
+            basis,
+            None,
+            "no_paid_payslips",
+        );
+    }
+    let Some(labor_cost) = current.labor_cost else {
+        return currency_metric(
+            "budget_variance",
+            None,
+            None,
+            DashboardMetricDirection::LowerIsBetter,
+            "budget-variance.v1",
+            freshness,
+            query,
+            comparison_start,
+            comparison_end,
+            basis,
+            None,
+            "no_paid_payslips",
+        );
+    };
+    let value = labor_cost - budget;
+    let comparison_value = comparison.labor_cost.map(|previous| previous - budget);
+    let health = evaluate_health(
+        value,
+        Some(&DashboardMetricTarget::new(
+            Decimal::ZERO,
+            crate::models::DashboardTargetOperator::Lte,
+        )),
+    );
+    DashboardMetric::new(
+        "budget_variance",
+        Some(value),
+        DashboardMetricUnit::Currency,
+        None,
+        None,
+        DashboardMetricStatus::Available,
+        health,
+        None,
+        "budget-variance.v1",
+        DashboardMetricDirection::LowerIsBetter,
+        freshness,
+        Vec::new(),
+        comparison_value.map(|previous| {
+            comparison_for(
+                basis,
+                comparison_start,
+                comparison_end,
+                Some(previous),
+                Some(value - previous),
+                query,
+            )
+        }),
+        Some(DashboardMetricTarget::new(
+            Decimal::ZERO,
+            crate::models::DashboardTargetOperator::Lte,
+        )),
+    )
+}
+
+/// Currency metric that degrades to `data_gap` (with `reason`) when the source
+/// is unavailable (no paid/finalized payslips) and to `restricted` when the
+/// caller lacks `PayrollSensitiveRead`.
+#[allow(clippy::too_many_arguments)]
+fn currency_metric(
+    key: &'static str,
+    value: Option<Decimal>,
+    comparison_value: Option<Decimal>,
+    direction: DashboardMetricDirection,
+    definition: &'static str,
+    freshness: DashboardMetricFreshness,
+    query: &NormalizedDashboardMetricsQuery,
+    comparison_start: NaiveDate,
+    comparison_end: NaiveDate,
+    basis: DashboardComparisonBasis,
+    target: Option<DashboardMetricTarget>,
+    reason: &str,
+) -> DashboardMetric {
+    let (status, health, null_reason) = match value {
+        Some(_) => (
+            DashboardMetricStatus::Available,
+            evaluate_health(value.unwrap_or_default(), target.as_ref()),
+            None,
+        ),
+        None => (
+            DashboardMetricStatus::DataGap,
+            DashboardMetricHealth::DataGap,
+            Some(reason.to_string()),
+        ),
+    };
+    MetricBuilder {
+        key,
+        value,
+        unit: DashboardMetricUnit::Currency,
+        numerator: None,
+        denominator: None,
+        status,
+        health,
+        null_reason: null_reason.clone(),
+        definition,
+        direction,
+        freshness,
+        quality_flags: if null_reason.is_some() {
+            vec![reason.to_string()]
+        } else {
+            Vec::new()
+        },
+        comparison: comparison_value.map(|previous| {
+            comparison_for(
+                basis,
+                comparison_start,
+                comparison_end,
+                Some(previous),
+                value.map(|current| current - previous),
+                query,
+            )
+        }),
+        target,
+    }
+    .build()
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -797,9 +1254,15 @@ mod tests {
             headcount_start: 96,
             headcount_end: 100,
             approved_overtime_minutes: 480,
+            system_detected_ot_minutes: 600,
+            unapproved_ot_minutes: 120,
+            overtime_approval_rate: Some(Decimal::new(80, 2)),
             pending_hr_actions: 7,
             currency_code: Some("USD".to_string()),
             overtime_cost: None,
+            labor_cost: None,
+            payroll_actual: None,
+            cost_source_available: false,
         }
     }
 
@@ -825,6 +1288,14 @@ mod tests {
         current: &ExecutiveDashboardSnapshot,
         comparison: &ExecutiveDashboardSnapshot,
     ) -> Vec<serde_json::Value> {
+        build_with_budget(current, comparison, &BudgetConfig::default())
+    }
+
+    fn build_with_budget(
+        current: &ExecutiveDashboardSnapshot,
+        comparison: &ExecutiveDashboardSnapshot,
+        budgets: &BudgetConfig,
+    ) -> Vec<serde_json::Value> {
         let q = query();
         build_metrics(
             current,
@@ -834,6 +1305,7 @@ mod tests {
             q.end_date,
             DashboardComparisonBasis::PreviousPeriod,
             freshness(),
+            budgets,
         )
         .into_iter()
         .map(|metric| serde_json::to_value(metric).unwrap())
@@ -848,7 +1320,7 @@ mod tests {
     }
 
     #[test]
-    fn emits_seven_metrics_in_fixed_order() {
+    fn emits_metrics_in_fixed_order() {
         let current = snapshot();
         let metrics = build(&current, &current);
         let keys = metrics
@@ -863,7 +1335,16 @@ mod tests {
                 "absence_rate",
                 "late_rate",
                 "turnover_rate",
+                "system_ot_hours",
+                "approved_ot_hours",
+                "unapproved_ot_hours",
+                "ot_approval_rate",
                 "overtime_hours",
+                "ot_cost_per_employee",
+                "labor_cost",
+                "payroll_actual",
+                "payroll_forecast",
+                "budget_variance",
                 "pending_hr_actions"
             ]
         );
@@ -914,17 +1395,124 @@ mod tests {
     }
 
     #[test]
+    fn overtime_cost_data_gap_when_no_paid_payslips() {
+        let mut current = snapshot();
+        // Permission present (cost is Some) but no paid/finalized payslip.
+        current.overtime_cost = Some(Decimal::ZERO);
+        current.cost_source_available = false;
+        let metrics = build(&current, &current);
+        let overtime = metric(&metrics, "overtime_cost");
+        assert_eq!(overtime["status"], "data_gap");
+        assert_eq!(overtime["null_reason"], "no_paid_payslips");
+        assert!(overtime["value"].is_null());
+    }
+
+    #[test]
     fn overtime_cost_emitted_when_authorized() {
         let mut current = snapshot();
         current.overtime_cost = Some(Decimal::new(1_250, 2));
+        current.cost_source_available = true;
+        current.labor_cost = Some(Decimal::new(5_000, 2));
+        current.payroll_actual = Some(Decimal::new(4_000, 2));
         let mut comparison = snapshot();
         comparison.overtime_cost = Some(Decimal::new(1_000, 2));
+        comparison.cost_source_available = true;
+        comparison.labor_cost = Some(Decimal::new(4_000, 2));
+        comparison.payroll_actual = Some(Decimal::new(3_000, 2));
         let metrics = build(&current, &comparison);
         let overtime = metric(&metrics, "overtime_cost");
         assert_eq!(overtime["unit"], "currency");
         assert_eq!(overtime["value"], "12.50");
         assert!(overtime["comparison"].is_object());
         assert!(metrics.iter().all(|json| json["key"] != "overtime_hours"));
+        // Cost metrics surfaced.
+        let labor = metric(&metrics, "labor_cost");
+        assert_eq!(labor["status"], "available");
+        assert_eq!(labor["value"], "50.00");
+        let payroll = metric(&metrics, "payroll_actual");
+        assert_eq!(payroll["value"], "40.00");
+        let per_employee = metric(&metrics, "ot_cost_per_employee");
+        assert_eq!(per_employee["value"], "0.1250");
+    }
+
+    #[test]
+    fn cost_metrics_restricted_when_unauthorized() {
+        let mut current = snapshot();
+        // Unauthorized: repo leaves cost None and cost_source_available false.
+        current.cost_source_available = false;
+        let metrics = build(&current, &current);
+        let labor = metric(&metrics, "labor_cost");
+        assert_eq!(labor["status"], "data_gap");
+        assert_eq!(labor["null_reason"], "no_paid_payslips");
+    }
+
+    #[test]
+    fn approval_rate_uses_system_detected_denominator() {
+        let current = snapshot(); // 480 approved / 600 detected = 80%
+        let metrics = build(&current, &current);
+        let rate = metric(&metrics, "ot_approval_rate");
+        assert_eq!(rate["unit"], "percent");
+        assert_eq!(rate["value"], "80.00");
+        assert_eq!(rate["status"], "available");
+    }
+
+    #[test]
+    fn approval_rate_zero_denominator_is_not_applicable() {
+        let mut current = snapshot();
+        current.system_detected_ot_minutes = 0;
+        current.approved_overtime_minutes = 0;
+        let metrics = build(&current, &current);
+        let rate = metric(&metrics, "ot_approval_rate");
+        assert_eq!(rate["status"], "not_applicable");
+        assert_eq!(rate["null_reason"], "zero_denominator");
+        assert!(rate["value"].is_null());
+    }
+
+    #[test]
+    fn budget_variance_uses_budget_config_and_flags_over_budget() {
+        let mut current = snapshot();
+        current.cost_source_available = true;
+        current.labor_cost = Some(Decimal::new(12_000, 2)); // 120.00
+        let comparison = snapshot();
+        let budgets = BudgetConfig {
+            labor_cost: Some(Decimal::new(10_000, 2)), // 100.00 budget
+            ..BudgetConfig::default()
+        };
+        let metrics = build_with_budget(&current, &comparison, &budgets);
+        let variance = metric(&metrics, "budget_variance");
+        assert_eq!(variance["status"], "available");
+        assert_eq!(variance["value"], "20.00"); // over budget
+        assert_eq!(variance["health"], "critical");
+        assert!(variance["target"].is_object());
+    }
+
+    #[test]
+    fn budget_variance_missing_budget_is_data_gap() {
+        let current = snapshot();
+        let metrics = build(&current, &current);
+        let variance = metric(&metrics, "budget_variance");
+        assert_eq!(variance["status"], "data_gap");
+        assert_eq!(variance["null_reason"], "budget_config_missing");
+        assert!(variance["value"].is_null());
+    }
+
+    #[test]
+    fn payroll_forecast_is_always_data_gap() {
+        let current = snapshot();
+        let metrics = build(&current, &current);
+        let forecast = metric(&metrics, "payroll_forecast");
+        assert_eq!(forecast["status"], "data_gap");
+        assert_eq!(forecast["null_reason"], "forecast_source_unavailable");
+    }
+
+    #[test]
+    fn hours_metrics_emit_system_approved_unapproved() {
+        let current = snapshot();
+        let metrics = build(&current, &current);
+        // 600 min / 60 = 10h system, 480/60 = 8h approved, 120/60 = 2h unapproved.
+        assert_eq!(metric(&metrics, "system_ot_hours")["value"], "10");
+        assert_eq!(metric(&metrics, "approved_ot_hours")["value"], "8");
+        assert_eq!(metric(&metrics, "unapproved_ot_hours")["value"], "2");
     }
 
     #[test]

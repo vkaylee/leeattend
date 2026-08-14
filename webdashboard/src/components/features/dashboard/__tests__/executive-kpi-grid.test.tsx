@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 
 import type { DashboardMetric, DashboardMetricsResponse } from "@/hooks/dashboard-metric-contract";
@@ -64,18 +64,17 @@ function response(metrics: DashboardMetric[], currency = "USD"): DashboardMetric
 }
 
 describe("ExecutiveKpiGrid", () => {
-  it("renders seven skeleton cards while loading", () => {
+  it("renders fifteen skeleton cards while loading", () => {
     render(<ExecutiveKpiGrid loading error={false} onRetry={vi.fn()} />);
     const grid = screen.getByLabelText("dashboard.executive.loading");
-    expect(grid.children).toHaveLength(7);
+    expect(grid.children).toHaveLength(15);
   });
 
   it("renders an error state with a retry button", () => {
     const onRetry = vi.fn();
     render(<ExecutiveKpiGrid loading={false} error onRetry={onRetry} />);
     expect(screen.getByRole("alert")).toBeInTheDocument();
-    const retry = screen.getByRole("button", { name: /dashboard.executive.retry/i });
-    retry.click();
+    fireEvent.click(screen.getByRole("button", { name: /dashboard.executive.retry/i }));
     expect(onRetry).toHaveBeenCalled();
   });
 
@@ -86,20 +85,31 @@ describe("ExecutiveKpiGrid", () => {
       metric({ key: "absence_rate", unit: "percent", value: 5 }),
       metric({ key: "late_rate", unit: "percent", value: null, status: "data_gap", health: "data_gap", null_reason: "scheduled_attendance_source_unavailable" }),
       metric({ key: "turnover_rate", unit: "percent", value: 2 }),
+      metric({ key: "system_ot_hours", unit: "hours", value: 12 }),
+      metric({ key: "approved_ot_hours", unit: "hours", value: 8 }),
+      metric({ key: "unapproved_ot_hours", unit: "hours", value: 4 }),
+      metric({ key: "ot_approval_rate", unit: "percent", value: 66.7 }),
       metric({ key: "overtime_hours", unit: "hours", value: 8 }),
+      metric({ key: "ot_cost_per_employee", unit: "currency", value: 1250 }),
+      metric({ key: "labor_cost", unit: "currency", value: 1_000_000 }),
+      metric({ key: "payroll_actual", unit: "currency", value: 950_000 }),
+      metric({ key: "payroll_forecast", unit: "currency", value: null, status: "data_gap", health: "data_gap", null_reason: "forecast_source_unavailable" }),
+      metric({ key: "budget_variance", unit: "currency", value: 100_000 }),
       metric({ key: "pending_hr_actions", unit: "count", value: 7 }),
     ];
     render(<ExecutiveKpiGrid loading={false} error={false} data={response(metrics)} onRetry={vi.fn()} />);
-    // All seven labels render.
-    for (const key of ["headcount", "attendance_rate", "absence_rate", "late_rate", "turnover_rate", "overtime", "pending_hr_actions"]) {
+    // All fifteen grid slots render (late_rate is still in the payload but no
+    // longer a grid slot — replaced by the overtime/labor metric set).
+    for (const key of ["headcount", "attendance_rate", "absence_rate", "turnover_rate", "system_ot_hours", "approved_ot_hours", "unapproved_ot_hours", "ot_approval_rate", "overtime", "ot_cost_per_employee", "labor_cost", "payroll_actual", "payroll_forecast", "budget_variance", "pending_hr_actions"]) {
       expect(screen.getByText(`dashboard.executive.metrics.${key}.label`)).toBeInTheDocument();
     }
+    expect(screen.queryByText("dashboard.executive.metrics.late_rate.label")).not.toBeInTheDocument();
   });
 
   it("renders a data-gap fallback for missing metric keys", () => {
     render(<ExecutiveKpiGrid loading={false} error={false} data={response([metric({ key: "headcount" })])} onRetry={vi.fn()} />);
-    // Six missing slots fall back to the data-gap placeholder text.
-    expect(screen.getAllByText("dashboard.executive.status.data_gap").length).toBeGreaterThanOrEqual(6);
+    // Fourteen missing slots fall back to the data-gap placeholder text.
+    expect(screen.getAllByText("dashboard.executive.status.data_gap").length).toBeGreaterThanOrEqual(14);
   });
 
   it("prefers overtime_cost over overtime_hours when both present", () => {

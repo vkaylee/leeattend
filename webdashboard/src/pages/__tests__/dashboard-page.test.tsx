@@ -41,6 +41,7 @@ vi.mock("@/hooks/use-datetime", () => ({
 vi.mock("@/hooks/use-dashboard", () => ({
   useDashboardStats: vi.fn(),
   useDashboardMetrics: vi.fn(),
+  useOvertimeBreakdown: vi.fn(() => ({ data: undefined, isLoading: false, error: null })),
 }));
 
 vi.mock("@/hooks/use-dashboard-layout", () => ({

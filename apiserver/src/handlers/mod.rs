@@ -51,6 +51,7 @@ pub mod overtime;
 pub use overtime::*;
 pub mod approval_workflow;
 pub mod dashboard_metrics;
+pub mod dashboard_overtime_breakdown;
 pub mod dashboard_preferences;
 pub use dashboard_metrics::*;
 pub mod employee_assignments;

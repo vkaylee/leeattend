@@ -77,6 +77,7 @@ vi.mock("@/hooks/use-dashboard", () => ({
     useUnexcusedAbsences: () => ({ data: [], isLoading: false, error: null }),
     useRecruitmentSourceBreakdown: () => ({ data: [], isLoading: false, error: null }),
     useTurnoverAnalytics: () => ({ data: null, isLoading: false, error: null }),
+    useOvertimeBreakdown: () => ({ data: undefined, isLoading: false, error: null }),
 }));
 
 vi.mock("@/hooks/use-header-actions", () => ({

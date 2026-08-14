@@ -129,6 +129,21 @@ pub struct OvertimeTrendPoint {
     pub approved_ot_hours: f64,
 }
 
+/// Department × overtime hours/cost breakdown for the executive dashboard.
+/// Cost fields are `None` when the caller lacks `PayrollSensitiveRead` or when
+/// no paid/finalized payslip exists in the period.
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct OvertimeBreakdownRow {
+    pub department_id: uuid::Uuid,
+    pub department_name: String,
+    pub system_ot_hours: f64,
+    pub approved_ot_hours: f64,
+    pub unapproved_ot_hours: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub overtime_cost: Option<rust_decimal::Decimal>,
+    pub cost_available: bool,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct PeakTimeSlot {
     pub time_slot: String,

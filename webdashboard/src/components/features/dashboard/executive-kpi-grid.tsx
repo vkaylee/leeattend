@@ -6,13 +6,33 @@ import Button from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-const METRIC_KEYS = ["headcount", "attendance_rate", "absence_rate", "late_rate", "turnover_rate", "overtime", "pending_hr_actions"] as const;
+const METRIC_KEYS = [
+  "headcount",
+  "attendance_rate",
+  "absence_rate",
+  "turnover_rate",
+  "system_ot_hours",
+  "approved_ot_hours",
+  "unapproved_ot_hours",
+  "ot_approval_rate",
+  "overtime",
+  "ot_cost_per_employee",
+  "labor_cost",
+  "payroll_actual",
+  "payroll_forecast",
+  "budget_variance",
+  "pending_hr_actions",
+] as const;
 type MetricKey = typeof METRIC_KEYS[number];
 
-// The overtime slot renders either `overtime_cost` (authorized + data-backed)
-// or `overtime_hours` (fallback). Resolve whichever the backend returned.
+// The overtime slot renders `overtime_cost` only when it carries a real value
+// (authorized + paid/finalized payroll backing it). When cost is data_gap or
+// restricted (value null) we fall back to `overtime_hours` so the slot stays
+// honest instead of showing a shield/triangle next to nothing.
 function resolveOvertime(metrics: Map<string, DashboardMetric>): DashboardMetric | undefined {
-  return metrics.get("overtime_cost") ?? metrics.get("overtime_hours");
+  const cost = metrics.get("overtime_cost");
+  if (cost && cost.value !== null) return cost;
+  return metrics.get("overtime_hours");
 }
 
 function number(value: string | number | null) {
@@ -46,12 +66,13 @@ function valueText(metric: DashboardMetric, t: (key: string) => string, currency
   return value.toLocaleString();
 }
 
-function deltaText(metric: DashboardMetric, t: (key: string) => string) {
+function deltaText(metric: DashboardMetric, t: (key: string) => string, currency?: string) {
   const delta = number(metric.comparison?.delta ?? null);
   if (delta === null) return t("dashboard.executive.comparison_unavailable");
   const sign = delta > 0 ? "+" : "";
   if (metric.unit === "percent" || metric.unit === "rate") return `${sign}${delta.toFixed(1)} pp`;
   if (metric.unit === "hours") return `${sign}${delta.toFixed(1)} ${t("dashboard.executive.units.hours")}`;
+  if (metric.unit === "currency") return `${sign}${currency ?? ""} ${delta.toLocaleString()}`.trim();
   return `${sign}${delta.toLocaleString()}`;
 }
 
@@ -76,7 +97,7 @@ function MetricCard({ metric, currency }: { metric: DashboardMetric; currency?: 
         <p className="mt-5 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">{valueText(metric, t, currency)}</p>
         {numerator !== null && denominator !== null ? <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{numerator.toLocaleString()} / {denominator.toLocaleString()} {metric.numerator?.unit}</p> : null}
         <div className="mt-3 flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
-          <span className="inline-flex items-center gap-1" title={t("dashboard.executive.comparison_help")}>{deltaIcon(metric)} {deltaText(metric, t)}</span>
+          <span className="inline-flex items-center gap-1" title={t("dashboard.executive.comparison_help")}>{deltaIcon(metric)} {deltaText(metric, t, currency)}</span>
           <span className="inline-flex items-center gap-1" title={t("dashboard.executive.freshness_help")}><CircleHelp aria-hidden="true" className="h-3.5 w-3.5" /> {new Date(metric.freshness.as_of).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
         </div>
       </div>

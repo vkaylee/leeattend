@@ -113,3 +113,25 @@ export interface TurnoverAnalytics {
   tenure_distribution: TurnoverTenureBucket[];
   total_terminated: number;
 }
+
+/** One department row in the overtime-breakdown endpoint. */
+export interface OvertimeBreakdownRow {
+  department_id: string;
+  department_name: string;
+  system_ot_hours: number;
+  approved_ot_hours: number;
+  unapproved_ot_hours: number;
+  overtime_cost: string | null;
+  cost_available: boolean;
+}
+
+/** Envelope returned by `GET /v1/dashboard/overtime-breakdown`. */
+export interface OvertimeBreakdownResponse {
+  contract_version: string;
+  workspace: {
+    timezone: string;
+    currency: string;
+  };
+  rows: OvertimeBreakdownRow[];
+  generated_at: string;
+}

@@ -68,6 +68,29 @@ impl WorkspaceConfigService {
             .await
     }
 
+    /// Reads a workspace-scoped decimal config value (e.g. `dashboard.budget.labor_cost`).
+    /// Returns `None` when the key is not configured or carries no decimal value.
+    /// Budget values are non-PII and resolved at workspace scope only.
+    pub async fn get_effective_decimal(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        config_key: &str,
+        target_date: NaiveDate,
+    ) -> AppResult<Option<rust_decimal::Decimal>> {
+        let entry = self
+            .workspace_config_repo
+            .get_effective_config(
+                auth_token,
+                auth_token.workspace_id(),
+                config_key,
+                "workspace",
+                None,
+                target_date,
+            )
+            .await?;
+        Ok(entry.and_then(|entry| entry.value_decimal()))
+    }
+
     pub async fn delete_entry(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

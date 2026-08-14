@@ -35,7 +35,7 @@ impl ChartRangeQuery {
     /// Returns `None` when the client omitted both bounds (caller supplies its own
     /// default window). Returns a validation error for malformed dates, invalid
     /// timezones, or an out-of-bounds window.
-    fn resolve(
+    pub(crate) fn resolve(
         &self,
         default_tz: chrono_tz::Tz,
     ) -> AppResult<Option<(NaiveDate, NaiveDate, Option<String>)>> {

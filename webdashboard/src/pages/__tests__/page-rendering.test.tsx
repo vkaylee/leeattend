@@ -88,6 +88,7 @@ vi.mock("@/hooks/use-dashboard", () => ({
   usePeakTimes: () => ({ data: [], isLoading: false, error: null }),
   useLeaveTypesBreakdown: () => ({ data: [], isLoading: false, error: null }),
   useLatenessByDay: () => ({ data: [], isLoading: false, error: null }),
+  useOvertimeBreakdown: () => ({ data: undefined, isLoading: false, error: null }),
 }));
 
 vi.mock("@/lib/api", async (importOriginal) => {

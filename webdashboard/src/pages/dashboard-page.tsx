@@ -12,7 +12,9 @@ import PendingTasksWidget from "@/components/features/dashboard/pending-tasks-wi
 import { DashboardFilterBar, useDashboardFilterState } from "@/components/features/dashboard/dashboard-filter-bar";
 import Button from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ExecutiveCostPanel } from "@/components/features/dashboard/executive-cost-panel";
 import { ExecutiveKpiGrid } from "@/components/features/dashboard/executive-kpi-grid";
+import { ExecutiveOvertimeBreakdown } from "@/components/features/dashboard/executive-overtime-breakdown";
 import { useAgentsStatus } from "@/hooks/use-agents";
 import { useCurrency } from "@/hooks/use-currency";
 import { useDashboardMetrics, useDashboardStats } from "@/hooks/use-dashboard";
@@ -126,6 +128,26 @@ export default function DashboardPage() {
   const executiveContext = executiveMetrics?.context;
   const executiveMetricCount = executiveMetrics?.metrics.length ?? 0;
 
+  // The breakdown endpoint resolves dates itself from the workspace timezone; it
+  // needs the *resolved* reporting window (not the raw filters) so the department
+  // table matches the KPI grid exactly. Non-custom periods like `this_month` only
+  // carry dates after the backend resolves them into context.period.
+  const executiveRange = useMemo(() => {
+    const period = executiveContext?.period;
+    return period
+      ? { startDate: period.start_date, endDate: period.end_date, timezone: period.timezone }
+      : {};
+  }, [executiveContext]);
+
+  // The grid's overtime_cost metric status tells the drilldown table whether a
+  // missing cost value means "no permission" (restricted) or "no paid payroll"
+  // (data_gap) — the breakdown response itself cannot distinguish these.
+  const overtimeCostStatus = useMemo(() => {
+    const metric = (executiveMetrics?.metrics ?? []).find((m) => m.key === "overtime_cost");
+    if (!metric || metric.status === "available" || metric.status === "not_applicable") return "available" as const;
+    return metric.status === "restricted" ? ("restricted" as const) : ("data_gap" as const);
+  }, [executiveMetrics]);
+
   const onlineAgents = agents.filter((a) => a.is_online).length;
   const activeDevices = devices.filter((d) => d.is_enabled).length;
 
@@ -173,6 +195,19 @@ export default function DashboardPage() {
           loading={executiveLoading}
           onRetry={() => void refetchExecutiveMetrics()}
         />
+        {!executiveLoading && !executiveError ? (
+          <>
+            <ExecutiveCostPanel
+              currency={executiveMetrics?.workspace.currency ?? "USD"}
+              data={executiveMetrics}
+            />
+            <ExecutiveOvertimeBreakdown
+              costStatus={overtimeCostStatus}
+              range={executiveRange}
+              topN={dashboardFilters.topN}
+            />
+          </>
+        ) : null}
       </section>
 
       {!showSystemTab ? (

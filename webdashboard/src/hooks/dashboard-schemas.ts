@@ -107,6 +107,24 @@ export const turnoverAnalyticsSchema = z.object({
   total_terminated: count,
 });
 
+export const overtimeBreakdownSchema = z.object({
+  contract_version: z.string().min(1),
+  workspace: z.object({
+    timezone: z.string().min(1),
+    currency: z.string().min(1),
+  }),
+  rows: z.array(z.object({
+    department_id: z.string().min(1),
+    department_name: z.string().min(1),
+    system_ot_hours: z.number().finite(),
+    approved_ot_hours: z.number().finite(),
+    unapproved_ot_hours: z.number().finite(),
+    overtime_cost: z.string().nullable(),
+    cost_available: z.boolean(),
+  })),
+  generated_at: z.string().min(1),
+});
+
 export const dashboardSchemaByKey = {
   "workspace-stats": workspaceStatsSchema,
   "attendance-trend": attendanceTrendSchema,
@@ -119,6 +137,7 @@ export const dashboardSchemaByKey = {
   "recruitment-sources-breakdown": recruitmentSourceBreakdownSchema,
   "turnover-analytics": turnoverAnalyticsSchema,
   "executive-overview": dashboardMetricsResponseSchema,
+  "overtime-breakdown": overtimeBreakdownSchema,
 } as const;
 
 export type DashboardSchemaKey = keyof typeof dashboardSchemaByKey;

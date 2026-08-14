@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
 
-import { dashboardSchemaByKey, type DashboardSchemaKey } from "./dashboard-schemas";
+import { dashboardSchemaByKey, overtimeBreakdownSchema, type DashboardSchemaKey } from "./dashboard-schemas";
 import {
   dashboardMetricsResponseSchema,
   type DashboardMetricsResponse,
@@ -17,6 +17,7 @@ import {
   type DepartmentAttendancePoint,
   type LatenessByDay,
   type LeaveTypeBreakdown,
+  type OvertimeBreakdownResponse,
   type OvertimeTrendPoint,
   type PeakTimeSlot,
   type RateQuantity,
@@ -32,6 +33,7 @@ export type {
   DepartmentAttendancePoint,
   LatenessByDay,
   LeaveTypeBreakdown,
+  OvertimeBreakdownResponse,
   OvertimeTrendPoint,
   PeakTimeSlot,
   RateQuantity,
@@ -269,5 +271,28 @@ export function useDashboardMetrics(filters: DashboardMetricsFilters) {
     getPath: () => endpoint,
     extraQueryKeyParams: [endpoint],
     parse: (payload) => dashboardMetricsResponseSchema.parse(payload),
+  });
+}
+
+/**
+ * Department-level overtime hours + cost drilldown for the executive area.
+ * The endpoint resolves dates itself; pass the *resolved* reporting window from
+ * the executive-overview response (`context.period`) so the breakdown matches
+ * the KPI grid exactly. Non-custom periods like `this_month` carry no dates in
+ * the raw filters — only the backend-resolved period has them.
+ */
+export function useOvertimeBreakdown(range: ChartRangeParams = {}, topN = 10) {
+  const endpoint = `/v1/dashboard/overtime-breakdown?${new URLSearchParams({
+    ...(range.startDate ? { start_date: range.startDate } : {}),
+    ...(range.endDate ? { end_date: range.endDate } : {}),
+    ...(range.timezone ? { timezone: range.timezone } : {}),
+    top_n: String(topN),
+  }).toString()}`;
+
+  return useDashboardQuery<OvertimeBreakdownResponse>({
+    key: "overtime-breakdown",
+    getPath: () => endpoint,
+    extraQueryKeyParams: [endpoint],
+    parse: (payload) => overtimeBreakdownSchema.parse(payload),
   });
 }
