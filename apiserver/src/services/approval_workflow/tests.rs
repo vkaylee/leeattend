@@ -1267,6 +1267,13 @@ mod tests {
         ) -> Result<crate::models::TurnoverAnalytics, AppError> {
             unimplemented!()
         }
+        async fn get_recruitment_effectiveness(
+            &self,
+            _a: &TenantAuthToken,
+            _q: &crate::models::RecruitmentEffectivenessQuery,
+        ) -> Result<crate::models::RecruitmentEffectivenessAnalytics, AppError> {
+            unimplemented!()
+        }
     }
 
     #[async_trait]

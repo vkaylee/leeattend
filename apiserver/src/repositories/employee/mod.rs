@@ -7,7 +7,8 @@ use rust_decimal::Decimal;
 use uuid::Uuid;
 
 use crate::models::{
-    Employee, EmployeePayrollConfig, RecruitmentSource, RecruitmentSourceBreakdown,
+    Employee, EmployeePayrollConfig, RecruitmentEffectivenessAnalytics,
+    RecruitmentEffectivenessQuery, RecruitmentSource, RecruitmentSourceBreakdown,
     TurnoverAnalytics, TurnoverAnalyticsQuery, WorkingCondition,
 };
 
@@ -319,6 +320,12 @@ pub trait EmployeeRecruitmentRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         query: &TurnoverAnalyticsQuery,
     ) -> Result<TurnoverAnalytics, AppError>;
+
+    async fn get_recruitment_effectiveness(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        query: &RecruitmentEffectivenessQuery,
+    ) -> Result<RecruitmentEffectivenessAnalytics, AppError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -655,6 +662,11 @@ mockall::mock! {
             auth_token: &crate::diesel_pool::TenantAuthToken,
             query: &TurnoverAnalyticsQuery,
         ) -> Result<TurnoverAnalytics, AppError>;
+        async fn get_recruitment_effectiveness(
+            &self,
+            auth_token: &crate::diesel_pool::TenantAuthToken,
+            query: &RecruitmentEffectivenessQuery,
+        ) -> Result<RecruitmentEffectivenessAnalytics, AppError>;
     }
 
     #[async_trait]

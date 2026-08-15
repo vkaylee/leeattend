@@ -1,4 +1,5 @@
 #![allow(clippy::needless_for_each)]
+#![allow(clippy::large_stack_frames)]
 use crate::models::*;
 use utoipa::OpenApi;
 
@@ -392,6 +393,7 @@ use utoipa::OpenApi;
         crate::handlers::recruitment_sources::delete_recruitment_source,
         crate::handlers::recruitment_sources::get_recruitment_source_breakdown,
         crate::handlers::recruitment_sources::get_turnover_analytics,
+        crate::handlers::recruitment_sources::get_recruitment_effectiveness,
 
         // Assignment Rules Paths
         crate::handlers::assignment_rules::get_assignment_rules,
@@ -598,6 +600,12 @@ use utoipa::OpenApi;
             crate::models::TurnoverTrendPoint,
             crate::models::CohortRetentionRow,
             crate::models::TurnoverTarget,
+            crate::models::RecruitmentEffectivenessSource,
+            crate::models::RecruitmentFunnelStage,
+            crate::models::RecruitmentEffectivenessOverview,
+            crate::models::RecruitmentTrendPoint,
+            crate::models::RecruitmentDataGap,
+            crate::models::RecruitmentEffectivenessAnalytics,
 
             // Assignment Rules Schemas
             crate::models::AssignmentRule,

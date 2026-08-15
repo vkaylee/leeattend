@@ -563,6 +563,226 @@ pub struct TurnoverAnalyticsQuery {
     pub target: TurnoverTarget,
 }
 
+// ── Recruitment Effectiveness Models ───────────────────────────────
+
+/// One source row in the recruitment effectiveness ranking.
+///
+/// Never interpret `hires` as a quality signal on its own — retention and cost
+/// are the quality dimensions, and every row carries its sample size.
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct RecruitmentEffectivenessSource {
+    /// `None` when the hire has no linked source (null semantics).
+    pub source_id: Option<Uuid>,
+    /// `"direct"` | `"referral"` | `"agency"` | `"unknown"`.
+    pub source_type: String,
+    /// `COALESCE(rs.name, 'Unknown source')`.
+    pub source_name: String,
+    pub hires: i64,
+    /// hires / total_hires × 100. `None` when total_hires == 0.
+    pub hires_ratio: Option<Decimal>,
+    /// Hires still active 90 days post-hire (or not terminated within 90 days).
+    pub retained_90d: i64,
+    /// retained_90d / hires × 100. `None` when hires == 0.
+    pub retention_90d: Option<Decimal>,
+    /// Agency fee or referral bonus ÷ hires. `None` for direct sources or hires == 0.
+    pub cost_per_hire: Option<Decimal>,
+    /// `false` for direct sources (no cost data exists) or when no fee is configured.
+    pub cost_per_hire_available: bool,
+    /// Terminations of hires-by-this-source within the period.
+    pub turnover_in_range: i64,
+}
+
+/// One stage of the honest conversion funnel.
+///
+/// `count: None` + `data_source: None` means the stage has no data source in the
+/// system yet (e.g. applicants) — the UI must render this as "data unavailable",
+/// never as a fabricated zero.
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct RecruitmentFunnelStage {
+    /// `"applicants"` | `"screening"` | `"interview"` | `"offer"` | `"hired"` | `"retained_90d"`.
+    pub stage: String,
+    pub count: Option<i64>,
+    /// e.g. `Some("hires")`; `None` when no data source exists.
+    pub data_source: Option<String>,
+    /// stage count / previous stage count × 100. `None` when previous is None or 0.
+    pub conversion_rate: Option<Decimal>,
+}
+
+/// Overview KPIs for the recruitment effectiveness dashboard.
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct RecruitmentEffectivenessOverview {
+    pub hires: i64,
+    /// Weighted average cost per hire across all sources. `None` when no cost data.
+    pub average_cost_per_hire: Option<Decimal>,
+    pub cost_available: bool,
+    pub retained_90d: i64,
+    /// retained_90d / hires × 100. `None` when hires == 0.
+    pub retention_90d: Option<Decimal>,
+    /// Terminations of sourced hires within the period.
+    pub turnover_in_range: i64,
+    /// Hires in the comparison window. `None` when no comparison requested.
+    pub comparison_hires: Option<i64>,
+    /// `current.comparison_hires − previous.comparison_hires`. `None` when no comparison.
+    pub comparison_hires_delta: Option<i64>,
+}
+
+/// One month bucket in the monthly hires trend.
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct RecruitmentTrendPoint {
+    /// `"YYYY-MM"`.
+    pub month: String,
+    pub hires: i64,
+}
+
+/// One unavailable metric — a self-describing data-availability gap.
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct RecruitmentDataGap {
+    /// `"applicants"` | `"time_to_hire"` | `"quality_of_hire"` | ...
+    pub metric: String,
+    /// i18n key, e.g. `"dashboard.hr.effective_gap_no_applicant_data"`.
+    pub reason: String,
+}
+
+/// Combined recruitment effectiveness analytics response.
+///
+/// The period-over-period comparison lives on `overview` (`comparison_hires` /
+/// `comparison_hires_delta`) rather than a reused `TurnoverComparison`, which is
+/// percentage-point oriented and would overload the hires semantics.
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct RecruitmentEffectivenessAnalytics {
+    pub period_start: String,
+    pub period_end: String,
+    pub total_hires: i64,
+    pub overview: RecruitmentEffectivenessOverview,
+    pub funnel: Vec<RecruitmentFunnelStage>,
+    pub by_source: Vec<RecruitmentEffectivenessSource>,
+    /// Empty when the period spans fewer than two months.
+    pub hires_trend: Vec<RecruitmentTrendPoint>,
+    /// Structured availability report — every unavailable metric is listed here.
+    pub data_gaps: Vec<RecruitmentDataGap>,
+    pub warnings: Vec<TurnoverWarning>,
+}
+
+impl RecruitmentEffectivenessAnalytics {
+    /// Empty analytics for a period — used by test mocks. Never fabricates a rate:
+    /// funnel pre-hire stages stay `count: None`, retention stays `None`.
+    pub fn empty(start_date: NaiveDate, end_date: NaiveDate) -> Self {
+        Self {
+            period_start: start_date.to_string(),
+            period_end: end_date.to_string(),
+            total_hires: 0,
+            overview: RecruitmentEffectivenessOverview {
+                hires: 0,
+                average_cost_per_hire: None,
+                cost_available: false,
+                retained_90d: 0,
+                retention_90d: None,
+                turnover_in_range: 0,
+                comparison_hires: None,
+                comparison_hires_delta: None,
+            },
+            funnel: vec![
+                RecruitmentFunnelStage {
+                    stage: "applicants".into(),
+                    count: None,
+                    data_source: None,
+                    conversion_rate: None,
+                },
+                RecruitmentFunnelStage {
+                    stage: "screening".into(),
+                    count: None,
+                    data_source: None,
+                    conversion_rate: None,
+                },
+                RecruitmentFunnelStage {
+                    stage: "interview".into(),
+                    count: None,
+                    data_source: None,
+                    conversion_rate: None,
+                },
+                RecruitmentFunnelStage {
+                    stage: "offer".into(),
+                    count: None,
+                    data_source: None,
+                    conversion_rate: None,
+                },
+                RecruitmentFunnelStage {
+                    stage: "hired".into(),
+                    count: Some(0),
+                    data_source: Some("hires".into()),
+                    conversion_rate: None,
+                },
+                RecruitmentFunnelStage {
+                    stage: "retained_90d".into(),
+                    count: Some(0),
+                    data_source: Some("hires".into()),
+                    conversion_rate: None,
+                },
+            ],
+            by_source: vec![],
+            hires_trend: vec![],
+            data_gaps: Self::data_gaps(),
+            warnings: vec![],
+        }
+    }
+
+    /// The fixed list of unavailable metrics with their i18n reason keys.
+    pub fn data_gaps() -> Vec<RecruitmentDataGap> {
+        vec![
+            RecruitmentDataGap {
+                metric: "applicants".into(),
+                reason: "dashboard.hr.effective_gap_no_applicant_data".into(),
+            },
+            RecruitmentDataGap {
+                metric: "screening".into(),
+                reason: "dashboard.hr.effective_gap_no_screening_data".into(),
+            },
+            RecruitmentDataGap {
+                metric: "interview".into(),
+                reason: "dashboard.hr.effective_gap_no_interview_data".into(),
+            },
+            RecruitmentDataGap {
+                metric: "offer".into(),
+                reason: "dashboard.hr.effective_gap_no_offer_data".into(),
+            },
+            RecruitmentDataGap {
+                metric: "offer_acceptance".into(),
+                reason: "dashboard.hr.effective_gap_no_offer_acceptance".into(),
+            },
+            RecruitmentDataGap {
+                metric: "time_to_hire".into(),
+                reason: "dashboard.hr.effective_gap_no_time_to_hire".into(),
+            },
+            RecruitmentDataGap {
+                metric: "time_to_fill".into(),
+                reason: "dashboard.hr.effective_gap_no_time_to_fill".into(),
+            },
+            RecruitmentDataGap {
+                metric: "quality_of_hire".into(),
+                reason: "dashboard.hr.effective_gap_no_performance_data".into(),
+            },
+        ]
+    }
+}
+
+/// Request struct for the recruitment effectiveness query.
+#[derive(Debug, Clone)]
+pub struct RecruitmentEffectivenessQuery {
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub comparison_basis: DashboardComparisonBasis,
+    /// Empty = no department filter.
+    pub department_ids: Vec<Uuid>,
+    /// Empty = no location filter.
+    pub location_ids: Vec<Uuid>,
+    /// Empty = no job-role filter (matches `employments.job_title`).
+    pub job_roles: Vec<String>,
+    /// Empty = no source-type filter (`direct` | `referral` | `agency`).
+    pub source_types: Vec<String>,
+    /// Empty = no source filter.
+    pub source_ids: Vec<Uuid>,
+}
+
 // ── Employment / Employee Models ───────────────────────────────────
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]

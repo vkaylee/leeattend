@@ -21,6 +21,7 @@ import {
   type OvertimeTrendPoint,
   type PeakTimeSlot,
   type RateQuantity,
+  type RecruitmentEffectivenessAnalytics,
   type RecruitmentSourceBreakdown,
   type TurnoverAnalytics,
   type UnexcusedAbsencesPoint,
@@ -37,7 +38,13 @@ export type {
   OvertimeTrendPoint,
   PeakTimeSlot,
   RateQuantity,
+  RecruitmentEffectivenessAnalytics,
+  RecruitmentEffectivenessOverview,
+  RecruitmentEffectivenessSource,
+  RecruitmentFunnelStage,
   RecruitmentSourceBreakdown,
+  RecruitmentTrendPoint,
+  RecruitmentDataGap,
   TurnoverAnalytics,
   TurnoverRate,
   UnexcusedAbsencesPoint,
@@ -273,6 +280,52 @@ export function useTurnoverAnalytics(params: TurnoverAnalyticsParams = {}) {
       return `/v1/dashboard/turnover-analytics${qs ? `?${qs}` : ""}`;
     },
     extraQueryKeyParams: [params.startDate, params.endDate, params.comparison, params.target],
+    extraEnabled: !!params.startDate && !!params.endDate,
+  });
+}
+
+export interface RecruitmentEffectivenessParams extends ChartRangeParams {
+  /** Previous-period / same-period-last-year comparison. Defaults to `previous_period`. */
+  comparison?: "none" | "previous_period" | "same_period_last_year";
+  /** Comma-separated department UUIDs. Empty = no filter. */
+  departmentIds?: string;
+  /** Comma-separated location UUIDs. Empty = no filter. */
+  locationIds?: string;
+  /** Comma-separated job-role strings. Empty = no filter. */
+  jobRoles?: string;
+  /** Comma-separated source types (`direct`|`referral`|`agency`). Empty = no filter. */
+  sourceTypes?: string;
+  /** Comma-separated recruitment-source UUIDs. Empty = no filter. */
+  sourceIds?: string;
+}
+
+export function useRecruitmentEffectiveness(params: RecruitmentEffectivenessParams = {}) {
+  return useDashboardQuery<RecruitmentEffectivenessAnalytics>({
+    key: "recruitment-effectiveness",
+    getPath: () => {
+      const sp = new URLSearchParams({
+        ...(params.startDate ? { start: params.startDate } : {}),
+        ...(params.endDate ? { end: params.endDate } : {}),
+        ...(params.comparison ? { comparison: params.comparison } : {}),
+        ...(params.departmentIds ? { department_ids: params.departmentIds } : {}),
+        ...(params.locationIds ? { location_ids: params.locationIds } : {}),
+        ...(params.jobRoles ? { job_roles: params.jobRoles } : {}),
+        ...(params.sourceTypes ? { source_types: params.sourceTypes } : {}),
+        ...(params.sourceIds ? { source_ids: params.sourceIds } : {}),
+      });
+      const qs = sp.toString();
+      return `/v1/dashboard/recruitment-effectiveness${qs ? `?${qs}` : ""}`;
+    },
+    extraQueryKeyParams: [
+      params.startDate,
+      params.endDate,
+      params.comparison,
+      params.departmentIds,
+      params.locationIds,
+      params.jobRoles,
+      params.sourceTypes,
+      params.sourceIds,
+    ],
     extraEnabled: !!params.startDate && !!params.endDate,
   });
 }

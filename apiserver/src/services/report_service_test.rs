@@ -5,10 +5,10 @@ mod tests {
         AssignmentHistory, AttendanceDailySummary, AttendancePolicyVersion, EmployeeDocument,
         EmployeeEmergencyContact, EmployeePayrollConfig, EmployeeProfile, EmployeeSchedule,
         Holiday, LeaveRequest, LeaveStatus, NewEffectiveScheduleParams, NewEmploymentParams,
-        NewTimeEntryParams, NewWorkspaceParams, OtStatus, RecruitmentSource,
-        RecruitmentSourceBreakdown, RosterItem, ScheduleTrace, ShiftRoster, TimeEntry,
-        TimeEntryWithEmployee, TurnoverAnalytics, TurnoverAnalyticsQuery, WorkingCondition,
-        Workspace,
+        NewTimeEntryParams, NewWorkspaceParams, OtStatus, RecruitmentEffectivenessAnalytics,
+        RecruitmentEffectivenessQuery, RecruitmentSource, RecruitmentSourceBreakdown, RosterItem,
+        ScheduleTrace, ShiftRoster, TimeEntry, TimeEntryWithEmployee, TurnoverAnalytics,
+        TurnoverAnalyticsQuery, WorkingCondition, Workspace,
     };
     use crate::repositories::attendance_daily_summary_repository::{
         GetSummariesPaginatedArgs, UpsertCalculatedSummaryArgs, UpsertCalculatedSummaryTxArgs,
@@ -621,6 +621,13 @@ mod tests {
             _a: &crate::diesel_pool::TenantAuthToken,
             _q: &TurnoverAnalyticsQuery,
         ) -> Result<TurnoverAnalytics, AppError> {
+            unimplemented!()
+        }
+        async fn get_recruitment_effectiveness(
+            &self,
+            _a: &crate::diesel_pool::TenantAuthToken,
+            _q: &RecruitmentEffectivenessQuery,
+        ) -> Result<RecruitmentEffectivenessAnalytics, AppError> {
             unimplemented!()
         }
     }
@@ -1998,6 +2005,13 @@ mod tests {
             _a: &crate::diesel_pool::TenantAuthToken,
             _q: &TurnoverAnalyticsQuery,
         ) -> Result<TurnoverAnalytics, AppError> {
+            unimplemented!()
+        }
+        async fn get_recruitment_effectiveness(
+            &self,
+            _a: &crate::diesel_pool::TenantAuthToken,
+            _q: &RecruitmentEffectivenessQuery,
+        ) -> Result<RecruitmentEffectivenessAnalytics, AppError> {
             unimplemented!()
         }
     }

@@ -8041,6 +8041,115 @@ export interface components {
             /** @description Percentage in `[0, 100]`, `None` when the denominator is zero. */
             value?: string | null;
         };
+        /** @description One unavailable metric — a self-describing data-availability gap. */
+        RecruitmentDataGap: {
+            /** @description `"applicants"` | `"time_to_hire"` | `"quality_of_hire"` | ... */
+            metric: string;
+            /** @description i18n key, e.g. `"dashboard.hr.effective_gap_no_applicant_data"`. */
+            reason: string;
+        };
+        /**
+         * @description Combined recruitment effectiveness analytics response.
+         *
+         *     The period-over-period comparison lives on `overview` (`comparison_hires` /
+         *     `comparison_hires_delta`) rather than a reused `TurnoverComparison`, which is
+         *     percentage-point oriented and would overload the hires semantics.
+         */
+        RecruitmentEffectivenessAnalytics: {
+            by_source: components["schemas"]["RecruitmentEffectivenessSource"][];
+            /** @description Structured availability report — every unavailable metric is listed here. */
+            data_gaps: components["schemas"]["RecruitmentDataGap"][];
+            funnel: components["schemas"]["RecruitmentFunnelStage"][];
+            /** @description Empty when the period spans fewer than two months. */
+            hires_trend: components["schemas"]["RecruitmentTrendPoint"][];
+            overview: components["schemas"]["RecruitmentEffectivenessOverview"];
+            period_end: string;
+            period_start: string;
+            /** Format: int64 */
+            total_hires: number;
+            warnings: components["schemas"]["TurnoverWarning"][];
+        };
+        /** @description Overview KPIs for the recruitment effectiveness dashboard. */
+        RecruitmentEffectivenessOverview: {
+            /** @description Weighted average cost per hire across all sources. `None` when no cost data. */
+            average_cost_per_hire?: string | null;
+            /**
+             * Format: int64
+             * @description Hires in the comparison window. `None` when no comparison requested.
+             */
+            comparison_hires?: number | null;
+            /**
+             * Format: int64
+             * @description `current.comparison_hires − previous.comparison_hires`. `None` when no comparison.
+             */
+            comparison_hires_delta?: number | null;
+            cost_available: boolean;
+            /** Format: int64 */
+            hires: number;
+            /** Format: int64 */
+            retained_90d: number;
+            /** @description retained_90d / hires × 100. `None` when hires == 0. */
+            retention_90d?: string | null;
+            /**
+             * Format: int64
+             * @description Terminations of sourced hires within the period.
+             */
+            turnover_in_range: number;
+        };
+        /**
+         * @description One source row in the recruitment effectiveness ranking.
+         *
+         *     Never interpret `hires` as a quality signal on its own — retention and cost
+         *     are the quality dimensions, and every row carries its sample size.
+         */
+        RecruitmentEffectivenessSource: {
+            /** @description Agency fee or referral bonus ÷ hires. `None` for direct sources or hires == 0. */
+            cost_per_hire?: string | null;
+            /** @description `false` for direct sources (no cost data exists) or when no fee is configured. */
+            cost_per_hire_available: boolean;
+            /** Format: int64 */
+            hires: number;
+            /** @description hires / total_hires × 100. `None` when total_hires == 0. */
+            hires_ratio?: string | null;
+            /**
+             * Format: int64
+             * @description Hires still active 90 days post-hire (or not terminated within 90 days).
+             */
+            retained_90d: number;
+            /** @description retained_90d / hires × 100. `None` when hires == 0. */
+            retention_90d?: string | null;
+            /**
+             * Format: uuid
+             * @description `None` when the hire has no linked source (null semantics).
+             */
+            source_id?: string | null;
+            /** @description `COALESCE(rs.name, 'Unknown source')`. */
+            source_name: string;
+            /** @description `"direct"` | `"referral"` | `"agency"` | `"unknown"`. */
+            source_type: string;
+            /**
+             * Format: int64
+             * @description Terminations of hires-by-this-source within the period.
+             */
+            turnover_in_range: number;
+        };
+        /**
+         * @description One stage of the honest conversion funnel.
+         *
+         *     `count: None` + `data_source: None` means the stage has no data source in the
+         *     system yet (e.g. applicants) — the UI must render this as "data unavailable",
+         *     never as a fabricated zero.
+         */
+        RecruitmentFunnelStage: {
+            /** @description stage count / previous stage count × 100. `None` when previous is None or 0. */
+            conversion_rate?: string | null;
+            /** Format: int64 */
+            count?: number | null;
+            /** @description e.g. `Some("hires")`; `None` when no data source exists. */
+            data_source?: string | null;
+            /** @description `"applicants"` | `"screening"` | `"interview"` | `"offer"` | `"hired"` | `"retained_90d"`. */
+            stage: string;
+        };
         RecruitmentSource: {
             agency_contact_email?: string | null;
             agency_contact_name?: string | null;
@@ -8071,6 +8180,13 @@ export interface components {
         };
         /** @enum {string} */
         RecruitmentSourceType: "direct" | "referral" | "agency";
+        /** @description One month bucket in the monthly hires trend. */
+        RecruitmentTrendPoint: {
+            /** Format: int64 */
+            hires: number;
+            /** @description `"YYYY-MM"`. */
+            month: string;
+        };
         RefreshRequest: {
             refresh_token: string;
         };

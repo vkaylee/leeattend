@@ -198,6 +198,65 @@ export interface TurnoverAnalytics {
   warnings: TurnoverWarning[];
 }
 
+/** One source row in the recruitment effectiveness ranking. */
+export interface RecruitmentEffectivenessSource {
+  source_id: string | null;
+  source_type: string;
+  source_name: string;
+  hires: number;
+  hires_ratio: string | null;
+  retained_90d: number;
+  retention_90d: string | null;
+  cost_per_hire: string | null;
+  cost_per_hire_available: boolean;
+  turnover_in_range: number;
+}
+
+/** One stage of the honest conversion funnel. `count` null = no data source. */
+export interface RecruitmentFunnelStage {
+  stage: string;
+  count: number | null;
+  data_source: string | null;
+  conversion_rate: string | null;
+}
+
+/** Overview KPIs for the recruitment effectiveness dashboard. */
+export interface RecruitmentEffectivenessOverview {
+  hires: number;
+  average_cost_per_hire: string | null;
+  cost_available: boolean;
+  retained_90d: number;
+  retention_90d: string | null;
+  turnover_in_range: number;
+  comparison_hires: number | null;
+  comparison_hires_delta: number | null;
+}
+
+/** One month bucket in the monthly hires trend. */
+export interface RecruitmentTrendPoint {
+  month: string;
+  hires: number;
+}
+
+/** One unavailable metric — a self-describing data-availability gap. */
+export interface RecruitmentDataGap {
+  metric: string;
+  reason: string;
+}
+
+/** Combined recruitment effectiveness analytics response. */
+export interface RecruitmentEffectivenessAnalytics {
+  period_start: string;
+  period_end: string;
+  total_hires: number;
+  overview: RecruitmentEffectivenessOverview;
+  funnel: RecruitmentFunnelStage[];
+  by_source: RecruitmentEffectivenessSource[];
+  hires_trend: RecruitmentTrendPoint[];
+  data_gaps: RecruitmentDataGap[];
+  warnings: TurnoverWarning[];
+}
+
 /** One department row in the overtime-breakdown endpoint. */
 export interface OvertimeBreakdownRow {
   department_id: string;

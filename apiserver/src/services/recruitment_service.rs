@@ -5,7 +5,8 @@ use uuid::Uuid;
 
 use crate::errors::AppError;
 use crate::models::{
-    CreateRecruitmentSourceRequest, RecruitmentSource, RecruitmentSourceBreakdown,
+    CreateRecruitmentSourceRequest, RecruitmentEffectivenessAnalytics,
+    RecruitmentEffectivenessQuery, RecruitmentSource, RecruitmentSourceBreakdown,
     TurnoverAnalytics, TurnoverAnalyticsQuery, UpdateRecruitmentSourceRequest,
 };
 use crate::repositories::employee::EmployeeRecruitmentRepository;
@@ -115,6 +116,18 @@ impl RecruitmentService {
         let _workspace_id = auth_token.workspace_id();
         self.repo.get_turnover_analytics(auth_token, query).await
     }
+
+    #[tracing::instrument(skip_all, err)]
+    pub async fn get_recruitment_effectiveness(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        query: &RecruitmentEffectivenessQuery,
+    ) -> Result<RecruitmentEffectivenessAnalytics, AppError> {
+        let _workspace_id = auth_token.workspace_id();
+        self.repo
+            .get_recruitment_effectiveness(auth_token, query)
+            .await
+    }
 }
 
 // =====================================================================
@@ -141,6 +154,7 @@ mod tests {
         turnover: Mutex<Option<TurnoverAnalytics>>,
         updated_recruitment_source: Mutex<Option<RecruitmentSource>>,
         recruitment_source_breakdown: Mutex<Vec<RecruitmentSourceBreakdown>>,
+        effectiveness: Mutex<Option<RecruitmentEffectivenessAnalytics>>,
     }
 
     impl MockRecruitmentRepo {
@@ -151,6 +165,7 @@ mod tests {
                 turnover: Mutex::new(None),
                 updated_recruitment_source: Mutex::new(None),
                 recruitment_source_breakdown: Mutex::new(vec![]),
+                effectiveness: Mutex::new(None),
             }
         }
     }
@@ -242,6 +257,21 @@ mod tests {
                 .expect("lock")
                 .clone()
                 .unwrap_or_else(|| TurnoverAnalytics::empty(query.start_date, query.end_date)))
+        }
+
+        async fn get_recruitment_effectiveness(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            query: &RecruitmentEffectivenessQuery,
+        ) -> Result<RecruitmentEffectivenessAnalytics, AppError> {
+            Ok(self
+                .effectiveness
+                .lock()
+                .expect("lock")
+                .clone()
+                .unwrap_or_else(|| {
+                    RecruitmentEffectivenessAnalytics::empty(query.start_date, query.end_date)
+                }))
         }
     }
 
@@ -495,5 +525,95 @@ mod tests {
         assert_eq!(result.tenure_distribution.len(), 1);
         assert_eq!(result.by_source.len(), 1);
         assert_eq!(result.by_department[0].department_name, "Engineering");
+    }
+
+    // ── Tests: get_recruitment_effectiveness ─────────────────────────
+
+    fn effectiveness_query(start: NaiveDate, end: NaiveDate) -> RecruitmentEffectivenessQuery {
+        RecruitmentEffectivenessQuery {
+            start_date: start,
+            end_date: end,
+            comparison_basis: DashboardComparisonBasis::None,
+            department_ids: vec![],
+            location_ids: vec![],
+            job_roles: vec![],
+            source_types: vec![],
+            source_ids: vec![],
+        }
+    }
+
+    #[tokio::test]
+    async fn get_recruitment_effectiveness_returns_data() {
+        let ws = Uuid::new_v4();
+        let start = NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date");
+        let end = NaiveDate::from_ymd_opt(2026, 6, 30).expect("valid date");
+        let mut analytics = RecruitmentEffectivenessAnalytics::empty(start, end);
+        analytics.total_hires = 10;
+        analytics.overview.hires = 10;
+        analytics.overview.retained_90d = 8;
+        analytics.overview.retention_90d = Some(rust_decimal::Decimal::from(80));
+        analytics.by_source = vec![crate::models::RecruitmentEffectivenessSource {
+            source_id: Some(Uuid::new_v4()),
+            source_type: "agency".into(),
+            source_name: "HireAgency".into(),
+            hires: 10,
+            hires_ratio: Some(rust_decimal::Decimal::from(100)),
+            retained_90d: 8,
+            retention_90d: Some(rust_decimal::Decimal::from(80)),
+            cost_per_hire: Some(rust_decimal::Decimal::from(50)),
+            cost_per_hire_available: true,
+            turnover_in_range: 2,
+        }];
+
+        let mock = MockRecruitmentRepo::empty();
+        *mock.effectiveness.lock().expect("lock") = Some(analytics.clone());
+
+        let svc = make_service(mock);
+        let result = svc
+            .get_recruitment_effectiveness(
+                &crate::diesel_pool::TenantAuthToken::system_override(ws),
+                &effectiveness_query(start, end),
+            )
+            .await
+            .expect("ok");
+        assert_eq!(result.total_hires, 10);
+        assert_eq!(result.by_source.len(), 1);
+        assert_eq!(result.by_source[0].cost_per_hire_available, true);
+        assert_eq!(result.by_source[0].source_name, "HireAgency");
+    }
+
+    #[tokio::test]
+    async fn get_recruitment_effectiveness_empty_never_fabricates() {
+        let ws = Uuid::new_v4();
+        let start = NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date");
+        let end = NaiveDate::from_ymd_opt(2026, 6, 30).expect("valid date");
+
+        let svc = make_service(MockRecruitmentRepo::empty());
+        let result = svc
+            .get_recruitment_effectiveness(
+                &crate::diesel_pool::TenantAuthToken::system_override(ws),
+                &effectiveness_query(start, end),
+            )
+            .await
+            .expect("ok");
+        // Never fabricate: empty analytics keeps pre-hire funnel stages null and
+        // retention null, lists the data gaps, and reports zero hires.
+        assert_eq!(result.total_hires, 0);
+        assert_eq!(result.by_source.len(), 0);
+        assert_eq!(
+            result
+                .funnel
+                .iter()
+                .find(|s| s.stage == "applicants")
+                .expect("applicants stage")
+                .count,
+            None
+        );
+        assert_eq!(result.overview.retention_90d, None);
+        assert!(!result.data_gaps.is_empty());
+        assert!(result
+            .data_gaps
+            .iter()
+            .any(|g| g.metric == "quality_of_hire"));
     }
 }

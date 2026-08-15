@@ -5,7 +5,9 @@ use uuid::Uuid;
 use crate::models::Employee;
 use crate::models::{NewEmployeeDocumentParams, NewEmployeeProfileParams};
 use crate::schema::employees;
-use diesel::sql_types::{Array, BigInt, Nullable, Text, Timestamptz, Uuid as UuidType};
+use diesel::sql_types::{
+    Array, BigInt, Bool, Nullable, Numeric, Text, Timestamptz, Uuid as UuidType,
+};
 
 #[derive(QueryableByName)]
 pub struct CountRow {
@@ -319,6 +321,58 @@ pub struct CohortRow {
     pub cohort_size: i64,
     #[diesel(sql_type = BigInt)]
     pub active_count: i64,
+}
+
+/// Row for `recruitment_effectiveness_hires.sql` — per-source hires + cost.
+#[derive(Debug, diesel::QueryableByName)]
+pub struct EffectivenessHiresRow {
+    #[diesel(sql_type = Nullable<UuidType>)]
+    pub source_id: Option<Uuid>,
+    #[diesel(sql_type = Text)]
+    pub source_type: String,
+    #[diesel(sql_type = Text)]
+    pub source_name: String,
+    #[diesel(sql_type = BigInt)]
+    pub hires: i64,
+    #[diesel(sql_type = Nullable<Numeric>)]
+    pub total_cost: Option<rust_decimal::Decimal>,
+    #[diesel(sql_type = Bool)]
+    pub cost_available: bool,
+}
+
+/// Row for `recruitment_effectiveness_retention.sql` — per-source retained-at-90d.
+#[derive(Debug, diesel::QueryableByName)]
+pub struct EffectivenessRetentionRow {
+    #[diesel(sql_type = Nullable<UuidType>)]
+    pub source_id: Option<Uuid>,
+    #[diesel(sql_type = Text)]
+    pub source_type: String,
+    #[diesel(sql_type = Text)]
+    pub source_name: String,
+    #[diesel(sql_type = BigInt)]
+    pub retained_90d: i64,
+}
+
+/// Row for `recruitment_effectiveness_trend.sql` — monthly hires bucket.
+#[derive(Debug, diesel::QueryableByName)]
+pub struct EffectivenessTrendRow {
+    #[diesel(sql_type = Text)]
+    pub month: String,
+    #[diesel(sql_type = BigInt)]
+    pub hires: i64,
+}
+
+/// Row for `recruitment_effectiveness_turnover.sql` — per-source terminations in range.
+#[derive(Debug, diesel::QueryableByName)]
+pub struct EffectivenessTurnoverRow {
+    #[diesel(sql_type = Nullable<UuidType>)]
+    pub source_id: Option<Uuid>,
+    #[diesel(sql_type = Text)]
+    pub source_type: String,
+    #[diesel(sql_type = Text)]
+    pub source_name: String,
+    #[diesel(sql_type = BigInt)]
+    pub count: i64,
 }
 
 #[derive(Debug, Clone, Queryable, Selectable, Insertable, Identifiable, AsChangeset)]

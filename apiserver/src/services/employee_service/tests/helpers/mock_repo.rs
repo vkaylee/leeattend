@@ -1,5 +1,6 @@
 use crate::models::{
-    Employee, RecruitmentSource, RecruitmentSourceBreakdown, TurnoverAnalytics, WorkingCondition,
+    Employee, RecruitmentEffectivenessAnalytics, RecruitmentSource, RecruitmentSourceBreakdown,
+    TurnoverAnalytics, WorkingCondition,
 };
 use std::sync::Mutex;
 use uuid::Uuid;
@@ -17,6 +18,7 @@ pub struct MockEmployeeRepo {
     pub turnover: Mutex<Option<TurnoverAnalytics>>,
     pub updated_recruitment_source: Mutex<Option<RecruitmentSource>>,
     pub recruitment_source_breakdown: Mutex<Vec<RecruitmentSourceBreakdown>>,
+    pub effectiveness: Mutex<Option<RecruitmentEffectivenessAnalytics>>,
     pub employee_id_by_user_id: Mutex<Option<Uuid>>,
 }
 
@@ -35,6 +37,7 @@ impl MockEmployeeRepo {
             turnover: Mutex::new(None),
             updated_recruitment_source: Mutex::new(None),
             recruitment_source_breakdown: Mutex::new(vec![]),
+            effectiveness: Mutex::new(None),
             employee_id_by_user_id: Mutex::new(None),
         }
     }

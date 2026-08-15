@@ -8,19 +8,22 @@ use uuid::Uuid;
 
 use crate::models::dashboard_metrics::DashboardComparisonBasis;
 use crate::models::diesel::employee::{
-    AvgHeadcountRow, ClassificationRow, CohortRow, CountRow, DeptRow, EmploymentTypeRow,
+    AvgHeadcountRow, ClassificationRow, CohortRow, CountRow, DeptRow, EffectivenessHiresRow,
+    EffectivenessRetentionRow, EffectivenessTrendRow, EffectivenessTurnoverRow, EmploymentTypeRow,
     LocationRow, ManagerRow, ReasonRow, RecruitmentSourceBreakdownRow, RecruitmentSourceEntity,
     TenureRow, TrendRow,
 };
 use crate::models::{
-    CohortRetentionRow, RecruitmentSource, RecruitmentSourceBreakdown, TurnoverAnalytics,
+    CohortRetentionRow, RecruitmentEffectivenessAnalytics, RecruitmentEffectivenessOverview,
+    RecruitmentEffectivenessQuery, RecruitmentEffectivenessSource, RecruitmentFunnelStage,
+    RecruitmentSource, RecruitmentSourceBreakdown, RecruitmentTrendPoint, TurnoverAnalytics,
     TurnoverAnalyticsQuery, TurnoverByDepartment, TurnoverByEmploymentType, TurnoverByLocation,
     TurnoverByManager, TurnoverBySource, TurnoverClassification, TurnoverComparison, TurnoverRate,
     TurnoverReasonRow, TurnoverTenureBucket, TurnoverTrendPoint, TurnoverWarning,
 };
 use crate::repositories::employee::*;
 use crate::schema::{employees, recruitment_sources};
-use diesel::sql_types::{Date, Integer, Uuid as UuidType};
+use diesel::sql_types::{Array, Date, Integer, Text, Uuid as UuidType};
 
 use super::DieselEmployeeRepository;
 
@@ -603,4 +606,305 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
             })
             .await
     }
+
+    async fn get_recruitment_effectiveness(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        query: &RecruitmentEffectivenessQuery,
+    ) -> Result<RecruitmentEffectivenessAnalytics, AppError> {
+        let workspace_id = auth_token.workspace_id();
+        let start_date = query.start_date;
+        let end_date = query.end_date;
+
+        // Empty filter vecs bind as NULL → guarded by `($x::... IS NULL OR ...)`.
+        let department_ids = if query.department_ids.is_empty() {
+            None
+        } else {
+            Some(query.department_ids.as_slice())
+        };
+        let location_ids = if query.location_ids.is_empty() {
+            None
+        } else {
+            Some(query.location_ids.as_slice())
+        };
+        let job_roles = if query.job_roles.is_empty() {
+            None
+        } else {
+            Some(query.job_roles.as_slice())
+        };
+        let source_types = if query.source_types.is_empty() {
+            None
+        } else {
+            Some(query.source_types.as_slice())
+        };
+        let source_ids = if query.source_ids.is_empty() {
+            None
+        } else {
+            Some(query.source_ids.as_slice())
+        };
+
+        self.diesel_pools
+            .with_tenant_tx(auth_token, |conn| {
+                Box::pin(async move {
+                    // 1. Per-source hires + cost.
+                    let hire_rows: Vec<EffectivenessHiresRow> = diesel::sql_query(include_str!(
+                        "../sql/recruitment/recruitment_effectiveness_hires.sql"
+                    ))
+                    .bind::<UuidType, _>(workspace_id)
+                    .bind::<Date, _>(start_date)
+                    .bind::<Date, _>(end_date)
+                    .bind::<NullableArrayUuid, _>(department_ids)
+                    .bind::<NullableArrayUuid, _>(location_ids)
+                    .bind::<NullableArrayText, _>(job_roles)
+                    .bind::<NullableArrayText, _>(source_types)
+                    .bind::<NullableArrayUuid, _>(source_ids)
+                    .load(conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    let total_hires: i64 = hire_rows.iter().map(|r| r.hires).sum();
+
+                    // 2. Per-source 90-day retention.
+                    let retention_rows: Vec<EffectivenessRetentionRow> = diesel::sql_query(
+                        include_str!("../sql/recruitment/recruitment_effectiveness_retention.sql"),
+                    )
+                    .bind::<UuidType, _>(workspace_id)
+                    .bind::<Date, _>(start_date)
+                    .bind::<Date, _>(end_date)
+                    .bind::<NullableArrayUuid, _>(department_ids)
+                    .bind::<NullableArrayUuid, _>(location_ids)
+                    .bind::<NullableArrayText, _>(job_roles)
+                    .bind::<NullableArrayText, _>(source_types)
+                    .bind::<NullableArrayUuid, _>(source_ids)
+                    .load(conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    // 3. Per-source terminations in range.
+                    let turnover_rows: Vec<EffectivenessTurnoverRow> = diesel::sql_query(
+                        include_str!("../sql/recruitment/recruitment_effectiveness_turnover.sql"),
+                    )
+                    .bind::<UuidType, _>(workspace_id)
+                    .bind::<Date, _>(start_date)
+                    .bind::<Date, _>(end_date)
+                    .bind::<NullableArrayUuid, _>(department_ids)
+                    .bind::<NullableArrayUuid, _>(location_ids)
+                    .bind::<NullableArrayText, _>(job_roles)
+                    .bind::<NullableArrayText, _>(source_types)
+                    .bind::<NullableArrayUuid, _>(source_ids)
+                    .load(conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    // 4. Monthly hires trend (period must span >= 2 months).
+                    let period_days = end_date.signed_duration_since(start_date).num_days() + 1;
+                    let hires_trend = if period_days >= 60 {
+                        let trend_rows: Vec<EffectivenessTrendRow> = diesel::sql_query(
+                            include_str!("../sql/recruitment/recruitment_effectiveness_trend.sql"),
+                        )
+                        .bind::<UuidType, _>(workspace_id)
+                        .bind::<Date, _>(start_date)
+                        .bind::<Date, _>(end_date)
+                        .bind::<NullableArrayUuid, _>(department_ids)
+                        .bind::<NullableArrayUuid, _>(location_ids)
+                        .bind::<NullableArrayText, _>(job_roles)
+                        .bind::<NullableArrayText, _>(source_types)
+                        .bind::<NullableArrayUuid, _>(source_ids)
+                        .load(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        trend_rows
+                            .into_iter()
+                            .map(|r| RecruitmentTrendPoint {
+                                month: r.month,
+                                hires: r.hires,
+                            })
+                            .collect()
+                    } else {
+                        Vec::new()
+                    };
+
+                    // 5. Aggregate per-source rows.
+                    let retained_total: i64 = retention_rows.iter().map(|r| r.retained_90d).sum();
+                    let turnover_in_range: i64 = turnover_rows.iter().map(|r| r.count).sum();
+                    let cost_total: rust_decimal::Decimal = hire_rows
+                        .iter()
+                        .filter(|r| r.cost_available)
+                        .filter_map(|r| r.total_cost)
+                        .sum();
+                    let cost_available =
+                        hire_rows.iter().any(|r| r.cost_available) && total_hires > 0;
+
+                    let by_source = hire_rows
+                        .into_iter()
+                        .map(|r| {
+                            let retention = retention_rows
+                                .iter()
+                                .find(|ret| ret.source_id == r.source_id)
+                                .map_or(0, |ret| ret.retained_90d);
+                            let turnover = turnover_rows
+                                .iter()
+                                .find(|tr| tr.source_id == r.source_id)
+                                .map_or(0, |tr| tr.count);
+                            let cost_per_hire = if r.cost_available && r.hires > 0 {
+                                r.total_cost
+                                    .map(|c| c / rust_decimal::Decimal::from(r.hires))
+                            } else {
+                                None
+                            };
+                            RecruitmentEffectivenessSource {
+                                source_id: r.source_id,
+                                source_type: r.source_type,
+                                source_name: r.source_name,
+                                hires: r.hires,
+                                hires_ratio: if total_hires > 0 {
+                                    Some(
+                                        rust_decimal::Decimal::from(r.hires)
+                                            / rust_decimal::Decimal::from(total_hires)
+                                            * rust_decimal::Decimal::from(100),
+                                    )
+                                } else {
+                                    None
+                                },
+                                retained_90d: retention,
+                                retention_90d: TurnoverRate::percent(retention, r.hires).value,
+                                cost_per_hire,
+                                cost_per_hire_available: r.cost_available,
+                                turnover_in_range: turnover,
+                            }
+                        })
+                        .collect::<Vec<_>>();
+
+                    // 6. Comparison window — hires in the previous period.
+                    let comparison_hires = match query.comparison_basis {
+                        DashboardComparisonBasis::PreviousPeriod => {
+                            let len = end_date.signed_duration_since(start_date).num_days();
+                            Some((
+                                start_date - chrono::Duration::days(len + 1),
+                                start_date - chrono::Duration::days(1),
+                            ))
+                        }
+                        DashboardComparisonBasis::SamePeriodLastYear => Some((
+                            start_date - chrono::Duration::days(365),
+                            end_date - chrono::Duration::days(365),
+                        )),
+                        _ => None,
+                    };
+                    let comparison_hires = if let Some((c_start, c_end)) = comparison_hires {
+                        let comp_rows: Vec<EffectivenessHiresRow> = diesel::sql_query(
+                            include_str!("../sql/recruitment/recruitment_effectiveness_hires.sql"),
+                        )
+                        .bind::<UuidType, _>(workspace_id)
+                        .bind::<Date, _>(c_start)
+                        .bind::<Date, _>(c_end)
+                        .bind::<NullableArrayUuid, _>(department_ids)
+                        .bind::<NullableArrayUuid, _>(location_ids)
+                        .bind::<NullableArrayText, _>(job_roles)
+                        .bind::<NullableArrayText, _>(source_types)
+                        .bind::<NullableArrayUuid, _>(source_ids)
+                        .load(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        Some(comp_rows.iter().map(|r| r.hires).sum())
+                    } else {
+                        None
+                    };
+
+                    // 7. Honest funnel.
+                    let funnel = vec![
+                        RecruitmentFunnelStage {
+                            stage: "applicants".into(),
+                            count: None,
+                            data_source: None,
+                            conversion_rate: None,
+                        },
+                        RecruitmentFunnelStage {
+                            stage: "screening".into(),
+                            count: None,
+                            data_source: None,
+                            conversion_rate: None,
+                        },
+                        RecruitmentFunnelStage {
+                            stage: "interview".into(),
+                            count: None,
+                            data_source: None,
+                            conversion_rate: None,
+                        },
+                        RecruitmentFunnelStage {
+                            stage: "offer".into(),
+                            count: None,
+                            data_source: None,
+                            conversion_rate: None,
+                        },
+                        RecruitmentFunnelStage {
+                            stage: "hired".into(),
+                            count: Some(total_hires),
+                            data_source: Some("hires".into()),
+                            conversion_rate: None,
+                        },
+                        RecruitmentFunnelStage {
+                            stage: "retained_90d".into(),
+                            count: Some(retained_total),
+                            data_source: Some("hires".into()),
+                            conversion_rate: if total_hires > 0 {
+                                Some(
+                                    rust_decimal::Decimal::from(retained_total)
+                                        / rust_decimal::Decimal::from(total_hires)
+                                        * rust_decimal::Decimal::from(100),
+                                )
+                            } else {
+                                None
+                            },
+                        },
+                    ];
+
+                    // 8. Data gaps + warnings.
+                    let data_gaps = RecruitmentEffectivenessAnalytics::data_gaps();
+                    let mut warnings = Vec::new();
+                    if total_hires <= 0 {
+                        warnings.push(TurnoverWarning {
+                            code: "LOW_DENOMINATOR".to_string(),
+                            message: "dashboard.hr.effective_warning_low_sample".to_string(),
+                        });
+                    }
+                    warnings.push(TurnoverWarning {
+                        code: "NO_DATA_SOURCE".to_string(),
+                        message: "dashboard.hr.effective_warning_no_data_source".to_string(),
+                    });
+
+                    Ok(RecruitmentEffectivenessAnalytics {
+                        period_start: start_date.to_string(),
+                        period_end: end_date.to_string(),
+                        total_hires,
+                        overview: RecruitmentEffectivenessOverview {
+                            hires: total_hires,
+                            average_cost_per_hire: if cost_available && total_hires > 0 {
+                                Some(cost_total / rust_decimal::Decimal::from(total_hires))
+                            } else {
+                                None
+                            },
+                            cost_available,
+                            retained_90d: retained_total,
+                            retention_90d: TurnoverRate::percent(retained_total, total_hires).value,
+                            turnover_in_range,
+                            comparison_hires,
+                            comparison_hires_delta: comparison_hires.map(|prev| total_hires - prev),
+                        },
+                        funnel,
+                        by_source,
+                        hires_trend,
+                        data_gaps,
+                        warnings,
+                    })
+                })
+            })
+            .await
+    }
 }
+
+/// `diesel::sql_types::Nullable<diesel::sql_types::Array<diesel::sql_types::Uuid>>` — the
+/// binding type for the `$N::uuid[] IS NULL OR ... = ANY($N)` filter guards.
+type NullableArrayUuid = diesel::sql_types::Nullable<Array<UuidType>>;
+/// `diesel::sql_types::Nullable<diesel::sql_types::Array<diesel::sql_types::Text>>` — binding
+/// type for the job-role / source-type string filters.
+type NullableArrayText = diesel::sql_types::Nullable<Array<Text>>;

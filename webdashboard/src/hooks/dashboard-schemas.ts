@@ -188,6 +188,62 @@ export const turnoverAnalyticsSchema = z.object({
   warnings: z.array(turnoverWarningSchema),
 });
 
+const nullableCount = z.number().finite().nullable();
+const nullableDecimal = z.string().nullable();
+
+const recruitmentFunnelStageSchema = z.object({
+  stage: z.string(),
+  count: nullableCount,
+  data_source: z.string().nullable(),
+  conversion_rate: nullableDecimal,
+});
+
+const recruitmentEffectivenessSourceSchema = z.object({
+  source_id: z.string().nullable(),
+  source_type: z.string(),
+  source_name: z.string(),
+  hires: count,
+  hires_ratio: nullableDecimal,
+  retained_90d: count,
+  retention_90d: nullableDecimal,
+  cost_per_hire: nullableDecimal,
+  cost_per_hire_available: z.boolean(),
+  turnover_in_range: count,
+});
+
+const recruitmentEffectivenessOverviewSchema = z.object({
+  hires: count,
+  average_cost_per_hire: nullableDecimal,
+  cost_available: z.boolean(),
+  retained_90d: count,
+  retention_90d: nullableDecimal,
+  turnover_in_range: count,
+  comparison_hires: count.nullable(),
+  comparison_hires_delta: count.nullable(),
+});
+
+const recruitmentTrendPointSchema = z.object({
+  month: dateString,
+  hires: count,
+});
+
+const recruitmentDataGapSchema = z.object({
+  metric: z.string(),
+  reason: z.string(),
+});
+
+export const recruitmentEffectivenessSchema = z.object({
+  period_start: dateString,
+  period_end: dateString,
+  total_hires: count,
+  overview: recruitmentEffectivenessOverviewSchema,
+  funnel: z.array(recruitmentFunnelStageSchema),
+  by_source: z.array(recruitmentEffectivenessSourceSchema),
+  hires_trend: z.array(recruitmentTrendPointSchema),
+  data_gaps: z.array(recruitmentDataGapSchema),
+  warnings: z.array(turnoverWarningSchema),
+});
+
 export const overtimeBreakdownSchema = z.object({
   contract_version: z.string().min(1),
   workspace: z.object({
@@ -217,6 +273,7 @@ export const dashboardSchemaByKey = {
   "lateness-by-day": latenessByDaySchema,
   "recruitment-sources-breakdown": recruitmentSourceBreakdownSchema,
   "turnover-analytics": turnoverAnalyticsSchema,
+  "recruitment-effectiveness": recruitmentEffectivenessSchema,
   "executive-overview": dashboardMetricsResponseSchema,
   "overtime-breakdown": overtimeBreakdownSchema,
 } as const;

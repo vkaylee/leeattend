@@ -2,7 +2,8 @@ use super::mock_repo::MockEmployeeRepo;
 use crate::errors::AppError;
 use crate::models::{
     CreateEmergencyContactRequest, EmployeeDocument, EmployeeEmergencyContact,
-    EmployeePayrollConfig, EmployeeProfile, RecruitmentSource, RecruitmentSourceBreakdown,
+    EmployeePayrollConfig, EmployeeProfile, RecruitmentEffectivenessAnalytics,
+    RecruitmentEffectivenessQuery, RecruitmentSource, RecruitmentSourceBreakdown,
     TurnoverAnalytics, TurnoverAnalyticsQuery, UpdateEmployeeProfileRequest, WorkingCondition,
 };
 use crate::repositories::diesel_employee_repository::assignments::EmployeeAssignmentRepository;
@@ -189,6 +190,20 @@ impl EmployeeRecruitmentRepository for MockEmployeeRepo {
             .expect("lock")
             .clone()
             .unwrap_or_else(|| TurnoverAnalytics::empty(query.start_date, query.end_date)))
+    }
+    async fn get_recruitment_effectiveness(
+        &self,
+        _a: &crate::diesel_pool::TenantAuthToken,
+        query: &RecruitmentEffectivenessQuery,
+    ) -> Result<RecruitmentEffectivenessAnalytics, AppError> {
+        Ok(self
+            .effectiveness
+            .lock()
+            .expect("lock")
+            .clone()
+            .unwrap_or_else(|| {
+                RecruitmentEffectivenessAnalytics::empty(query.start_date, query.end_date)
+            }))
     }
 }
 
