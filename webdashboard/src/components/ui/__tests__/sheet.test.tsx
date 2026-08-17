@@ -91,6 +91,7 @@ describe("Sheet", () => {
         );
         expect(contentArea).not.toBeNull();
         expect(contentArea!.className).toContain("overflow-y-auto");
+        expect(contentArea!.className).toContain("min-h-0");
         expect(contentArea!.className).not.toContain("!overflow-hidden");
     });
 

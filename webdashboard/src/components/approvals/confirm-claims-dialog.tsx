@@ -73,7 +73,7 @@ export function ConfirmClaimsDialog({
     <Dialog.Root onOpenChange={onOpenChange} open={open}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl rounded-[2rem] overflow-hidden">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[90dvh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden border border-slate-100 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900 rounded-[2rem]">
           <Dialog.Title className="text-xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight flex items-center gap-2">
             <FileText className="w-5 h-5" />
             {showConfirmDiscrepancies
@@ -95,6 +95,7 @@ export function ConfirmClaimsDialog({
             variant="ghost"
           />
 
+          <div className="min-h-0 flex-1 overflow-y-auto">
           {!showConfirmDiscrepancies ? (
             <ClaimsFormView
               claims={claims}
@@ -121,6 +122,7 @@ export function ConfirmClaimsDialog({
               t={t}
             />
           )}
+          </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

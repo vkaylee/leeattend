@@ -67,6 +67,13 @@ describe("PayrollDetailDrawer", () => {
     expect(screen.getByText("John Doe")).toBeDefined();
     expect(screen.getByText("IT")).toBeDefined();
     expect(screen.getByText("payroll.history_title")).toBeDefined();
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.className).toContain("min-h-0");
+    const content = dialog.querySelector("main");
+    expect(content).not.toBeNull();
+    expect(content!.className).toContain("min-h-0");
+    expect(content!.className).toContain("overflow-y-auto");
   });
 
   it("switches tabs correctly", () => {

@@ -37,7 +37,7 @@ export default function AgentEditModal({ agent, isOpen, onClose, onSave }: Agent
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-premium-2xl border border-white overflow-hidden animate-in zoom-in-95 duration-300">
+      <div className="flex max-h-[90dvh] w-full max-w-xl flex-col overflow-hidden rounded-[2.5rem] border border-white bg-white shadow-premium-2xl dark:bg-slate-900 animate-in zoom-in-95 duration-300">
         <AgentEditModalHeader onClose={onClose} t={t} />
 
         <AgentEditModalForm
@@ -232,7 +232,7 @@ function AgentEditModalForm({ agent, isUpdating, updateAgent, onSave, onClose, t
   }
 
   return (
-    <form className="p-10 space-y-10 animate-in fade-in duration-500" onSubmit={handleSubmit}>
+    <form className="min-h-0 flex-1 overflow-y-auto p-10 space-y-10 animate-in fade-in duration-500" onSubmit={handleSubmit}>
       <AgentEditModalSections
         agent={agent}
         isActive={isActive}

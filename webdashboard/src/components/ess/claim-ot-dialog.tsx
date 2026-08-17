@@ -161,7 +161,7 @@ export function ClaimOtDialog({ open, onOpenChange, summary }: ClaimOtDialogProp
     <Dialog.Root onOpenChange={onOpenChange} open={open}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm animate-in fade-in duration-200" />
-        <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] gap-4 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-premium-2xl duration-200 animate-in fade-in-0 zoom-in-95 slide-in-from-left-1/2 slide-in-from-top-48 rounded-[2rem]">
+        <Dialog.Content className="fixed left-[50%] top-[50%] z-50 flex max-h-[90dvh] w-full max-w-md translate-x-[-50%] translate-y-[-50%] flex-col gap-4 overflow-hidden border border-slate-100 bg-white p-6 shadow-premium-2xl dark:border-slate-800 dark:bg-slate-900 duration-200 animate-in fade-in-0 zoom-in-95 slide-in-from-left-1/2 slide-in-from-top-48 rounded-[2rem]">
           <div className="flex flex-col gap-2 text-center sm:text-left">
             <Dialog.Title className="text-xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight">
               {t("ess.ot.claim_title") || "Claim Overtime"}
@@ -181,7 +181,8 @@ export function ClaimOtDialog({ open, onOpenChange, summary }: ClaimOtDialogProp
             <span className="sr-only">{t("ess.ot.close")}</span>
           </Button>
 
-          <OtClaimForm
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <OtClaimForm
             error={error}
             handleSubmit={handleSubmit}
             isSubmitting={isSubmitting}
@@ -193,6 +194,7 @@ export function ClaimOtDialog({ open, onOpenChange, summary }: ClaimOtDialogProp
             systemOt={summary.system_detected_ot_minutes}
             t={t}
           />
+          </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

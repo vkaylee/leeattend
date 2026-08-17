@@ -131,7 +131,7 @@ export default function PayrollDetailDrawer({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-slate-900/20 backdrop-blur-lg z-50 animate-in fade-in duration-500" />
         <Dialog.Content
-          className="fixed top-0 right-0 h-full w-full max-w-3xl bg-white dark:bg-slate-900 shadow-premium-2xl z-50 animate-in slide-in-from-right duration-500 flex flex-col outline-none"
+          className="fixed top-0 right-0 h-full w-full max-w-3xl bg-white dark:bg-slate-900 shadow-premium-2xl z-50 animate-in slide-in-from-right duration-500 flex min-h-0 flex-col outline-none"
         >
           {/* Header */}
           <PayrollDetailHeader employee={employee} />
@@ -161,7 +161,7 @@ export default function PayrollDetailDrawer({
           </nav>
 
           {/* Content */}
-          <main className="flex-1 overflow-y-auto p-10 bg-white dark:bg-slate-900 custom-scrollbar scroll-smooth">
+          <main className="min-h-0 flex-1 overflow-y-auto p-10 bg-white dark:bg-slate-900 custom-scrollbar scroll-smooth">
             {activeTab === "history" ? (
               <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <PayrollDetailSummary 

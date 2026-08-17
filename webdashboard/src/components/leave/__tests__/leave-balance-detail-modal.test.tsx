@@ -93,6 +93,15 @@ describe('LeaveBalanceDetailModal', () => {
     expect(screen.getByText('Monthly Accrual')).toBeDefined();
     expect(screen.getByText('-2')).toBeDefined();
     expect(screen.getByText('+1')).toBeDefined();
+
+    const modal = screen.getByText('John Doe').closest('.relative');
+    expect(modal).not.toBeNull();
+    expect(modal!.className).toContain('overflow-hidden');
+    expect(modal!.className).not.toContain('overflow-y-auto');
+    const body = modal!.querySelector('.overflow-y-auto');
+    expect(body).not.toBeNull();
+    expect(body!.className).toContain('min-h-0');
+    expect(body!.className).toContain('flex-1');
   });
 
   it('filters history by tabs', async () => {

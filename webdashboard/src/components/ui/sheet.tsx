@@ -177,7 +177,7 @@ export default function Sheet({
             aria-labelledby={resolvedAriaLabelledBy}
             aria-modal="true"
           className={cn(
-              "pointer-events-auto w-screen max-w-md transform transition duration-500 ease-in-out bg-white dark:bg-slate-900 shadow-premium-2xl flex flex-col h-full",
+              "pointer-events-auto w-screen max-w-md transform transition duration-500 ease-in-out bg-white dark:bg-slate-900 shadow-premium-2xl flex min-h-0 flex-col h-full",
               getPanelTransform(side, isOpen),
               className
             )}
@@ -190,8 +190,8 @@ export default function Sheet({
           {!hideHeader && <SheetHeader closeLabel={t("common.close", { defaultValue: "Close" })} headerExtra={headerExtra} onClose={onClose} subtitle={subtitle} title={title} titleId={title ? generatedTitleId : undefined} />}
 
           {/* Content */}
-          <div className={cn("flex-1 overflow-y-auto overscroll-contain p-4 sm:p-10 relative scroll-smooth", contentClassName)}>
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 h-full">
+          <div className={cn("flex min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-10 relative scroll-smooth", contentClassName)}>
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 h-full min-h-0">
               {children}
             </div>
           </div>

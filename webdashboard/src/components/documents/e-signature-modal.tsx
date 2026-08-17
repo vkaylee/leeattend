@@ -158,7 +158,7 @@ export function ESignatureModal({ isOpen, onClose, onSign, documentTitle }: ESig
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="flex max-h-[90dvh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-900 animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
@@ -181,7 +181,7 @@ export function ESignatureModal({ isOpen, onClose, onSign, documentTitle }: ESig
         </div>
 
         {/* Body */}
-        <div className="p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto p-6">
           {/* Tabs */}
           <div className="flex space-x-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl mb-6">
             <Button

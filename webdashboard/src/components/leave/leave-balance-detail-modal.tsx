@@ -51,10 +51,10 @@ export function LeaveBalanceDetailModal({ balance, isOpen, onClose }: LeaveBalan
         role="presentation"
       />
 
-      <div className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90dvh] overflow-y-auto animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 flex flex-col">
+      <div className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90dvh] overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 flex flex-col">
         <LeaveBalanceHeader balance={balance} onClose={onClose} />
 
-        <div className="p-6 md:p-8 space-y-8 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto p-6 md:p-8 space-y-8">
           <LeaveBalanceHero balance={balance} usagePercent={usagePercent} />
           
           <LeaveBalanceBreakdown balance={balance} />

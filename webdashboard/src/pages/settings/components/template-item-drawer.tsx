@@ -132,7 +132,7 @@ export function TemplateItemDrawer({ isOpen, onClose, editingItem, templateId }:
       onClose={onClose}
       title={editingItem ? "Edit Checklist Item" : "Add Checklist Item"}
     >
-      <div className="space-y-6 pt-4 max-h-[80dvh] overflow-y-auto pr-2 custom-scrollbar">
+      <div className="space-y-6 pt-4 pr-2">
         <FormField
           label="Item Title"
           onChange={(e) => { setForm(prev => ({ ...prev, title: e.target.value })); }}
