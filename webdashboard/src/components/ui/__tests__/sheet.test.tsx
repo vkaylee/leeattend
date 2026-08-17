@@ -75,9 +75,7 @@ describe("Sheet", () => {
 
     it("applies contentClassName to content area, overriding defaults", () => {
         render(<Sheet {...defaultProps} contentClassName="!overflow-hidden" />);
-        const contentArea = screen.getByText("Sheet content").closest(
-            ".flex-1"
-        );
+        const contentArea = screen.getByText("Sheet content").parentElement?.parentElement;
         expect(contentArea).not.toBeNull();
         expect(contentArea!.className).toContain("!overflow-hidden");
         // Default overflow-y-auto still present in class list, but !overflow-hidden takes precedence
@@ -86,9 +84,7 @@ describe("Sheet", () => {
 
     it("content area has default overflow-y-auto when no contentClassName is provided", () => {
         render(<Sheet {...defaultProps} />);
-        const contentArea = screen.getByText("Sheet content").closest(
-            ".flex-1"
-        );
+        const contentArea = screen.getByText("Sheet content").parentElement?.parentElement;
         expect(contentArea).not.toBeNull();
         expect(contentArea!.className).toContain("overflow-y-auto");
         expect(contentArea!.className).toContain("min-h-0");
@@ -97,10 +93,12 @@ describe("Sheet", () => {
 
     it("inner content wrapper has h-full for flex children", () => {
         render(<Sheet {...defaultProps} />);
-        // The inner animation wrapper should have h-full
+        // Inner wrapper must participate in flex sizing for nested scroll owners.
         const innerWrapper = screen.getByText("Sheet content").parentElement;
         expect(innerWrapper).not.toBeNull();
-        expect(innerWrapper!.className).toContain("h-full");
+        expect(innerWrapper!.className).toContain("flex-1");
+        expect(innerWrapper!.className).toContain("min-h-0");
+        expect(innerWrapper!.className).toContain("flex-col");
     });
 
     it("panel has flex-col layout for header/content stacking", () => {

@@ -191,7 +191,7 @@ export default function Sheet({
 
           {/* Content */}
           <div className={cn("flex min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-10 relative scroll-smooth", contentClassName)}>
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 h-full min-h-0">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 flex min-h-0 flex-1 flex-col">
               {children}
             </div>
           </div>
