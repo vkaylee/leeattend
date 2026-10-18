@@ -43,6 +43,7 @@ Rejected defaults (with explicit rationale):
 - **Separate compute microservice:** Rejected per user instruction. In-process pure domain packages reduce operational complexity, eliminate network serialization latency, avoid distributed failure modes, and keep transaction boundaries simple.
 
 Required devkit target: `api-go` running `gofmt`, `go vet`, `staticcheck`, `govulncheck`, unit tests with `-race`, and integration tests.
+
 ## Enterprise stack rationale
 
 The requirements are: compile-time type safety, deterministic behavior parity, verifiable build/test gates, and low operational complexity. Each choice is driven by that, not by popularity.
