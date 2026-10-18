@@ -30,10 +30,11 @@ This ledger is the restartable execution source. After context compaction, conti
 ## Phase 0 — Governance and restart checkpoint
 
 - [ ] P0-01 Approve scope: `apiserver/` only; preserve existing `attendance-compute/`; preserve schema and consumers. Depends: none. Evidence: approved plan status. Verify: scope matches this ledger.
-- [ ] P0-02 Choose Go HTTP/DB stack and record ADR. Default: standard `net/http` or existing approved lightweight router plus `pgx`/`sqlc`; avoid ORM behavior drift. Depends: P0-01. Evidence: ADR with rejected alternatives. Verify: package boundary and transaction strategy are explicit.
+- [ ] P0-02 Approve concrete Go technology contract and record ADR: `chi/v5` router, `oapi-codegen` v2 strict server interface, `pgx/v5` + `sqlc` query layer (no ORM), `shopspring/decimal` for money/payroll, `log/slog` structured JSON, `golang-jwt/jwt/v5`, and mandatory `CGO_ENABLED=0` static gates (`gofmt`, `go vet`, `staticcheck`, `govulncheck`, `go test -race`). Depends: P0-01. Evidence: ADR in `.ai/ADRs/` with rejected alternatives (GORM, float64, map[string]any). Verify: compile gates, strict OpenAPI interface check, and transaction strategy are explicit and enforceable.
 - [ ] P0-03 Create migration ownership map: task ID, owner, status, files, dependency, evidence, rollback note. Depends: P0-01. Evidence: `docs/migration/rust-go/task-status.csv`. Verify: every task ID in this ledger appears once.
 - [ ] P0-04 Define status vocabulary: `not-started`, `in-progress`, `blocked`, `implemented`, `verified`, `cutover`, `retired`. Depends: P0-03. Verify: no ambiguous statuses such as `probably-done`.
 - [ ] P0-05 Define decision log and escalation rule for contract mismatches. Depends: P0-01. Evidence: `docs/migration/rust-go/decisions.md`. Verify: every mismatch has owner, impact, decision, and test consequence.
+- [ ] P0-06 Wire verifiable build gates before any Go business code: register Go service and `api-go` target in `leedevkit.toml` (`languages` includes `go`, service `lang = "go"`, `workdir`), install pinned `staticcheck`/`govulncheck`/`sqlc`/`buf`/`oapi-codegen` versions in the Go container image, and add a CI job that fails on generated-code diff. Depends: P0-02, R-02. Evidence: `logs/` output of `./leedevkit test api-go --lint-only`, `--go` unit run, and a deliberate failing-gate demonstration. Verify: each gate fails independently on a seeded violation and passes on clean code, proving the checks are real and not false-green.
 
 ## Phase 1 — Repository and runtime inventory
 

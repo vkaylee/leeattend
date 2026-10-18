@@ -16,6 +16,29 @@ Migrate `apiserver/` from Rust/Axum to Go without changing consumer-visible beha
 - Default cutover: Go runs beside Rust, then domain-by-domain route cutover with rollback to Rust.
 - Compatibility target: same HTTP method/path/status/headers/body/error codes, auth/RBAC behavior, pagination, side effects, audit records, and transaction boundaries.
 
+## Proposed technology contract — awaiting approval
+
+| Concern | Choice | Verification gate |
+|---|---|---|
+| Language/runtime | Go 1.24.x; `go.mod` and container toolchain pinned to one patch line | `go version`, reproducible container build, `go mod verify` |
+| HTTP | Standard `net/http` plus `chi/v5` only for routing/middleware composition | `oapi-codegen` strict server interface compile-checks every route implementation |
+| API types | Frozen existing OpenAPI as canonical; `oapi-codegen` v2 generates models, request/response types, and strict server interfaces | regenerate in CI and require zero `git diff`; OpenAPI compatibility diff must be empty |
+| PostgreSQL | `pgx/v5` + `pgxpool`; `sqlc` generated query layer; no ORM | `sqlc generate` zero diff, `go vet`, integration tests against PostgreSQL, explicit transaction tests |
+| Redis | `go-redis/v9` behind a narrow internal adapter | key/TTL/serialization golden tests and Redis integration tests |
+| Protobuf/gRPC | Canonical existing `attendance-compute` protobuf; Buf plus generated Go gRPC client | `buf lint`, `buf breaking`, generated-code zero diff, mTLS/JWT/deadline/retry contract tests |
+| Validation/types | Generated OpenAPI types, strict JSON decoding, explicit constructors/validators; `uuid` type; `time.Time`/IANA locations; `shopspring/decimal` for exact payroll values; no `float64` for money | boundary tests for missing/null/empty, UUID, enum, decimal, UTC/DST, pagination |
+| Errors | Internal typed error code/status/retryability; one HTTP response mapper; wrapped causes never exposed | golden error JSON/status/header tests and internal-error redaction tests |
+| Auth/security | `golang-jwt/jwt/v5`, `golang.org/x/crypto/argon2`; Redis revocation; handler-layer permission checks | auth matrix, 401/403/429 tests, rotation/revocation, tenant-isolation, PII log scan |
+| Observability | `log/slog` JSON plus OpenTelemetry Go for traces/metrics; request-ID middleware | required fields, propagation, masking, `/health`, `/health/ready`, and alert smoke tests |
+| External systems | Interfaces in service layer; adapters for S3, SMTP, ClamAV, HTTP, queues; no infrastructure calls from domain logic | deterministic fakes plus timeout/retry/failure-injection integration tests |
+| Testing | `testing`, `httptest`, compose-managed PostgreSQL/Redis; no production mocks; generated fakes only where interface size requires it | `go test ./...`, `go test -race ./...`, `go vet ./...`, coverage, differential Rust/Go fixtures |
+| Static/security gates | `gofmt`, `go vet`, `staticcheck`, `govulncheck`, `go mod verify`; pinned tool versions in build image | every Go CI run fails on any gate; generated-file diff is mandatory |
+| Packaging | multi-stage Go container, `CGO_ENABLED=0` release binary, non-root distroless runtime; race tests use builder image | image smoke test, liveness/readiness, SBOM/vulnerability scan, rollback drill |
+
+Rejected defaults: GORM (implicit query/transaction behavior), `float64` payroll math, runtime `map[string]any` API DTOs, untyped `error` responses, direct handler-to-DB calls, and a second API contract. These make parity and review harder.
+
+Required devkit targets: `api-go` for format/vet/staticcheck/unit/integration/coverage and `all` only after Go service is independently green. The existing `api` target remains Rust/agent until cutover.
+
 ## Constraints and interfaces
 - Canonical API: existing OpenAPI plus generated frontend types; no contract drift without explicit versioning.
 - Layering: middleware → handler → service → repository → storage. Handlers do authorization before business logic.
