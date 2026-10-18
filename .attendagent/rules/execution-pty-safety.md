@@ -19,9 +19,9 @@ All standard development tools run inside isolated Podman containers. You MUST e
   - Examples: `./leedevkit test api`, `./leedevkit test web`, `./leedevkit test all`
 - **Checking Coverage:** When asked to check test coverage, use the `--coverage` flag (e.g., `./leedevkit test api --coverage`).
 
-## 3. Git Protocol
-- **Git Protocol:** NEVER run `git` directly. ALWAYS use the `./scripts/git.sh` wrapper.
-- **Multiline Strings:** NEVER use multi-line strings in commit messages. Create `/tmp/msg.txt` using file-write tools, then run `./scripts/git.sh commit -F /tmp/msg.txt`.
+## 3. Git Commands
+- Use direct non-interactive `git` commands with explicit arguments.
+- For multiline commit messages, write the message with a file-editing tool, then run `git commit -F <file>`.
 
 ## 4. Background Execution & Services
 - **BANNED:** Never use the bash background operator (`&`) for ANY command (tests, servers, builds). 
