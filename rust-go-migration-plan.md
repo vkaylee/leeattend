@@ -4,6 +4,7 @@ Status: Awaiting approval
 Execution ledger: `rust-go-migration-task-ledger.md` contains restartable task IDs, dependencies, evidence, and verification for context compaction recovery.
 
 Approval required before implementation. Ledger task `P0-01` is the first execution task.
+Current checkout prerequisite: the previously untracked `attendance-compute/`, `proto/`, `buf.yaml`, `buf.gen.yaml`, and ADR `0002-attendance-compute-grpc-cutover.md` are absent after untracked-file cleanup. The execution ledger therefore starts with a source/contract recovery checkpoint; AI MUST NOT infer or recreate that service contract from prose alone.
 
 ## Goal
 Migrate `apiserver/` from Rust/Axum to Go without changing consumer-visible behavior, database semantics, security boundaries, or operational contracts.

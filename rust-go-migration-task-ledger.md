@@ -20,6 +20,13 @@ This ledger is the restartable execution source. After context compaction, conti
 - No database migration is required for the initial port. Any schema change requires a separate approved decision and reversible migration.
 - Use project wrappers and redirect output to `logs/`; use `./leedevkit test` for repository tests.
 
+## Phase -1 — Context-loss and prerequisite recovery
+
+- [ ] R-01 Verify required migration sources exist: `apiserver/`, current OpenAPI/protobuf contracts, `attendance-compute/` source or approved service artifact, deployment definitions, and existing integration-test fixtures. Depends: none. Evidence: `docs/migration/rust-go/recovery-check.md`. Verify: paths and commit SHAs are recorded.
+- [ ] R-02 Recover missing `attendance-compute/`, `proto/`, and ADR sources from an approved remote/tag/artifact, or obtain an explicit scope decision to treat the gRPC contract as an external immutable dependency. Depends: R-01. Evidence: source commit/tag or approved external-contract record. Verify: protobuf descriptors, mTLS/JWT metadata, timeout/retry, digest/rules, and error mapping are testable.
+- [ ] R-03 Recover or regenerate the migration ledger and plan if context compaction occurs. Depends: R-01. Evidence: current ledger SHA plus task-status row. Verify: resume from the first unchecked task; never infer completed work from prose or filesystem timestamps.
+- [ ] R-04 Block implementation if any required source, contract, fixture, or rollback artifact is unavailable. Depends: R-01 through R-03. Evidence: blocker entry in `decisions.md`. Verify: no Go implementation begins while status is `blocked`.
+
 ## Phase 0 — Governance and restart checkpoint
 
 - [ ] P0-01 Approve scope: `apiserver/` only; preserve existing `attendance-compute/`; preserve schema and consumers. Depends: none. Evidence: approved plan status. Verify: scope matches this ledger.
