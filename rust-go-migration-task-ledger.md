@@ -8,8 +8,8 @@ This ledger is the restartable execution source. After context compaction, conti
 ## Fixed scope
 
 - Replace Rust/Axum `apiserver/` with Go.
-- Preserve `attendance-compute/`; it is already a Go gRPC dependency and is not a migration target.
-- Preserve `agent-main/`, `webdashboard/`, PostgreSQL schema/migrations, Redis contracts, protobuf, OpenAPI behavior, and deployment contracts unless an approved decision changes scope.
+- Attendance pairing, matching, timezone, and payroll rules are in-process pure Go domain packages, not an external service; no protobuf or RPC boundary is used for them.
+- Preserve `agent-main/`, `webdashboard/`, PostgreSQL schema/migrations, Redis contracts, OpenAPI behavior, and deployment contracts unless an approved decision changes scope.
 - Keep Rust and Go deployable in parallel until cutover is proven.
 
 ## Global completion rules
@@ -22,19 +22,20 @@ This ledger is the restartable execution source. After context compaction, conti
 
 ## Phase -1 — Context-loss and prerequisite recovery
 
-- [ ] R-01 Verify required migration sources exist: `apiserver/`, current OpenAPI/protobuf contracts, `attendance-compute/` source or approved service artifact, deployment definitions, and existing integration-test fixtures. Depends: none. Evidence: `docs/migration/rust-go/recovery-check.md`. Verify: paths and commit SHAs are recorded.
-- [ ] R-02 Recover missing `attendance-compute/`, `proto/`, and ADR sources from an approved remote/tag/artifact, or obtain an explicit scope decision to treat the gRPC contract as an external immutable dependency. Depends: R-01. Evidence: source commit/tag or approved external-contract record. Verify: protobuf descriptors, mTLS/JWT metadata, timeout/retry, digest/rules, and error mapping are testable.
+- [ ] R-01 Verify required migration sources exist: `apiserver/` (Rust reference behavior and tests), current OpenAPI contract, deployment definitions, and integration-test fixtures. Depends: none. Evidence: `docs/migration/rust-go/recovery-check.md`. Verify: paths and commit SHAs are recorded.
+- [ ] R-02 Confirm no external compute/RPC dependency is required: pairing and matcher logic exists in tracked `apiserver/src/services/pairing/` and `apiserver/src/services/attendance_matcher/`, and the API has no compute RPC contract. Depends: R-01. Evidence: file list plus grep proving zero `tonic`/`prost`/RPC dependencies. Verify: migration needs only in-process Go packages.
 - [ ] R-03 Recover or regenerate the migration ledger and plan if context compaction occurs. Depends: R-01. Evidence: current ledger SHA plus task-status row. Verify: resume from the first unchecked task; never infer completed work from prose or filesystem timestamps.
 - [ ] R-04 Block implementation if any required source, contract, fixture, or rollback artifact is unavailable. Depends: R-01 through R-03. Evidence: blocker entry in `decisions.md`. Verify: no Go implementation begins while status is `blocked`.
+Evidence index names remain stable across context compaction; missing evidence blocks the dependent task.
 
 ## Phase 0 — Governance and restart checkpoint
 
-- [ ] P0-01 Approve scope: `apiserver/` only; preserve existing `attendance-compute/`; preserve schema and consumers. Depends: none. Evidence: approved plan status. Verify: scope matches this ledger.
-- [ ] P0-02 Approve concrete Go technology contract and record ADR: `chi/v5` router, `oapi-codegen` v2 strict server interface, `pgx/v5` + `sqlc` query layer (no ORM), `shopspring/decimal` for money/payroll, `log/slog` structured JSON, `golang-jwt/jwt/v5`, and mandatory `CGO_ENABLED=0` static gates (`gofmt`, `go vet`, `staticcheck`, `govulncheck`, `go test -race`). Depends: P0-01. Evidence: ADR in `.ai/ADRs/` with rejected alternatives (GORM, float64, map[string]any). Verify: compile gates, strict OpenAPI interface check, and transaction strategy are explicit and enforceable.
+- [ ] P0-01 Approve scope: `apiserver/` only; no external compute service; preserve schema, Redis contracts, and consumers. Depends: none. Evidence: approved plan status. Verify: scope matches this ledger.
+- [ ] P0-02 Approve concrete Go technology contract and record ADR: Go standard `net/http.ServeMux` (no router framework), `oapi-codegen` v2 strict server interface, `pgx/v5` + `sqlc` query layer (no ORM), `shopspring/decimal` for money/payroll, `google/uuid`, `log/slog` JSON with OpenTelemetry Go, `golang-jwt/jwt/v5`, pure in-process computation packages, and mandatory `CGO_ENABLED=0` static gates (`gofmt`, `go vet`, `staticcheck`, `govulncheck`, `go test -race`). Depends: P0-01. Evidence: ADR in `.ai/ADRs/` with rejected alternatives (ORM, `chi`/Gin/Echo, float64 money, `map[string]any` DTOs, external compute service). Verify: compile gates, strict OpenAPI interface check, and transaction strategy are explicit and enforceable.
 - [ ] P0-03 Create migration ownership map: task ID, owner, status, files, dependency, evidence, rollback note. Depends: P0-01. Evidence: `docs/migration/rust-go/task-status.csv`. Verify: every task ID in this ledger appears once.
 - [ ] P0-04 Define status vocabulary: `not-started`, `in-progress`, `blocked`, `implemented`, `verified`, `cutover`, `retired`. Depends: P0-03. Verify: no ambiguous statuses such as `probably-done`.
 - [ ] P0-05 Define decision log and escalation rule for contract mismatches. Depends: P0-01. Evidence: `docs/migration/rust-go/decisions.md`. Verify: every mismatch has owner, impact, decision, and test consequence.
-- [ ] P0-06 Wire verifiable build gates before any Go business code: register Go service and `api-go` target in `leedevkit.toml` (`languages` includes `go`, service `lang = "go"`, `workdir`), install pinned `staticcheck`/`govulncheck`/`sqlc`/`buf`/`oapi-codegen` versions in the Go container image, and add a CI job that fails on generated-code diff. Depends: P0-02, R-02. Evidence: `logs/` output of `./leedevkit test api-go --lint-only`, `--go` unit run, and a deliberate failing-gate demonstration. Verify: each gate fails independently on a seeded violation and passes on clean code, proving the checks are real and not false-green.
+- [ ] P0-06 Wire verifiable build gates before any Go business code: register Go service and `api-go` target in `leedevkit.toml` (`languages` includes `go`, service `lang = "go"`, `workdir`), install pinned `staticcheck`/`govulncheck`/`sqlc`/`oapi-codegen` versions in the Go container image, and add a CI job that fails on generated-code diff. Depends: P0-02. Evidence: `logs/` output of `./leedevkit test api-go --lint-only`, `--go` unit run, and a deliberate failing-gate demonstration. Verify: each gate fails independently on a seeded violation and passes on clean code, proving the checks are real and not false-green.
 
 ## Phase 1 — Repository and runtime inventory
 
@@ -45,7 +46,7 @@ This ledger is the restartable execution source. After context compaction, conti
 - [ ] P1-05 Inventory PostgreSQL tables, views, functions, indexes, migrations, soft-delete filters, workspace filters, and transaction boundaries. Depends: P1-03. Evidence: `database-contract.md`. Verify: every repository query family is assigned a Go implementation strategy.
 - [ ] P1-06 Inventory Redis keys, value formats, TTLs, namespaces, locks, cache invalidation, rate-limit buckets, blocklists, and pub/sub. Depends: P1-03. Evidence: `redis-contract.md`. Verify: no key is regenerated from guessed naming.
 - [ ] P1-07 Inventory background jobs, queues, outbox records, scheduled tasks, retry policies, dead-letter behavior, and shutdown behavior. Depends: P1-03. Evidence: `job-contract.md`. Verify: each producer has a consumer and payload schema.
-- [ ] P1-08 Inventory external integrations: S3, SMTP, ClamAV, HTTP services, gRPC, WebSocket, and filesystem paths. Depends: P1-03. Evidence: `dependency-inventory.md`. Verify: timeout, retry, auth, and failure mapping are recorded.
+- [ ] P1-08 Inventory external integrations: S3, SMTP, ClamAV, HTTP services, WebSocket, and filesystem paths. Depends: P1-03. Evidence: `dependency-inventory.md`. Verify: timeout, retry, auth, and failure mapping are recorded.
 - [ ] P1-09 Inventory configuration and secrets: env names, required/optional status, defaults, validation, rotation, and startup fail-closed behavior. Depends: P1-08. Evidence: `configuration-contract.md`. Verify: no secret value is committed or copied into logs.
 - [ ] P1-10 Inventory deployment, health checks, readiness, resource limits, ports, certificates, service identities, and compose/test profiles. Depends: P1-08. Evidence: `deployment-contract.md`. Verify: Rust and Go can coexist without port or service-name collision.
 - [ ] P1-11 Inventory data classification, PII fields, masking rules, retention, audit events, export events, and erasure behavior. Depends: P1-04, P1-07. Evidence: `privacy-contract.md`. Verify: T1/T2 fields have explicit log/API restrictions.
@@ -58,7 +59,7 @@ This ledger is the restartable execution source. After context compaction, conti
 - [ ] P2-04 Define type compatibility rules: UUID, nullable/missing/empty, enums, JSON, decimal, timestamp, timezone, DST, binary, arrays, and pagination. Depends: P1-04. Verify: fixtures cover each ambiguous representation.
 - [ ] P2-05 Define authentication and authorization matrix: JWT claims, expiry, refresh rotation, revocation, workspace context, resource:action permissions, default deny, service identity, and audit. Depends: P1-02, P1-11. Evidence: `auth-permission-matrix.csv`. Verify: every protected endpoint has a permission row.
 - [ ] P2-06 Define observability contract: request ID, trace propagation, structured JSON fields, log levels, PII masking, metrics, health response, and audit events. Depends: P1-10, P1-11. Evidence: `observability-contract.md`. Verify: required fields and redaction rules are testable.
-- [ ] P2-07 Define `attendance-compute` integration contract: protobuf version, gRPC metadata, mTLS, scoped JWT, 2-second deadline, 1 retry only for `UNAVAILABLE`, digest/rules validation, response validation, and no DB transaction held over RPC. Depends: P1-08. Evidence: `attendance-compute-contract.md`. Verify: contract matches `.ai/ADRs/0002-attendance-compute-grpc-cutover.md` and proto.
+- [ ] P2-07 Define internal computation contract for attendance/pairing/matcher/payroll: input snapshot types, deterministic ordering, timezone/DST rules, rounding and decimal scale, error classification, and prohibition of DB/network/wall-clock access inside domain packages. Depends: P1-03, P1-05. Evidence: `computation-contract.md`. Verify: Rust `pairing`/`attendance_matcher` behavior is mapped function-by-function with parity fixtures.
 - [ ] P2-08 Define permitted nondeterminism for comparisons: request IDs, trace IDs, generated IDs, timestamps, presigned URL expiry, ordering where contract permits it. Depends: P2-02, P2-04. Evidence: `comparison-normalization.md`. Verify: every ignored field has an explicit reason.
 - [ ] P2-09 Freeze baseline runtime behavior and test result. Depends: P2-01 through P2-08. Evidence: baseline logs and artifact hashes. Verify: run `./leedevkit test api`; record result without modifying source.
 
@@ -68,7 +69,7 @@ This ledger is the restartable execution source. After context compaction, conti
 - [ ] P3-02 Add/gather auth and authorization fixtures: missing token, invalid token, expired token, revoked token, wrong workspace, missing permission, service token, and rate limit. Depends: P2-05. Verify: expected 401/403/429 and no unauthorized side effect.
 - [ ] P3-03 Add/gather workspace/settings/feature-flag fixtures. Depends: P3-01. Verify: tenant isolation, validation, optimistic/conflict behavior, and audit output.
 - [ ] P3-04 Add/gather employee/employment/assignment/custom-field fixtures. Depends: P3-01. Verify: uniqueness, soft delete, workspace scope, bulk operations, and PII response restrictions.
-- [ ] P3-05 Add/gather attendance/time-tracking fixtures. Depends: P3-01, P2-07. Verify: duplicate punches, reprocess, overnight, idempotency, gRPC failure, and no-write-on-compute-failure.
+- [ ] P3-05 Add/gather attendance/time-tracking fixtures. Depends: P3-01, P2-07. Verify: duplicate punches, reprocess, overnight, idempotency, computation-error mapping, and no-write-on-computation-failure.
 - [ ] P3-06 Add/gather shift/roster fixtures. Depends: P3-01. Verify: timezone, DST gap/ambiguity, overnight offsets, break windows, and stable pagination.
 - [ ] P3-07 Add/gather leave/ESS/approval/notification fixtures. Depends: P3-01. Verify: state transitions, authorization, balance updates, notification/outbox behavior, and transaction rollback.
 - [ ] P3-08 Add/gather payroll/report/dashboard fixtures. Depends: P3-01. Verify: decimal precision, rounding, aggregation, exports, audit, and no N+1 behavior.
@@ -101,7 +102,7 @@ This ledger is the restartable execution source. After context compaction, conti
 - [ ] P5-05 Implement audit event writer and PII-safe application event logging. Depends: P1-11, P2-06. Verify: required events appear once with no restricted data.
 - [ ] P5-06 Implement S3, SMTP, ClamAV, HTTP, and filesystem adapters with timeouts and failure mappings. Depends: P1-08. Verify: stubbed success, timeout, auth failure, retry, and cleanup behavior.
 - [ ] P5-07 Implement queue/outbox and background worker adapters. Depends: P1-07. Verify: payload parity, retry/visibility timeout, idempotency, shutdown, and audit behavior.
-- [ ] P5-08 Implement Go `attendance-compute` client and mapping layer. Depends: P2-07, P5-01. Verify: mTLS/JWT, metadata, deadline, one retry, digest/rules validation, response validation, and no RPC while holding DB transaction.
+- [ ] P5-08 Implement in-process computation packages (`internal/domain/pairing`, `internal/domain/matcher`, payroll rules) as pure functions with no DB/network/global state. Depends: P2-07, P5-01. Verify: table-driven parity fixtures reproduce Rust output exactly, including overnight/DST/decimal edge cases.
 - [ ] P5-09 Implement shared export/import and file response behavior. Depends: P5-04, P5-06. Verify: row counts, audit records, content headers, and masking.
 
 ## Phase 6 — Domain migration slices
@@ -111,7 +112,7 @@ Each slice requires: handler, service, repository, DTOs, permissions, audit even
 - [ ] P6-01 Auth/session/token domain. Depends: P4-10, P5-05. Verify: all auth fixtures, token rotation/revocation, login rate limit, session invalidation, and audit.
 - [ ] P6-02 Workspaces/settings/feature flags/permissions domain. Depends: P6-01, P5-02. Verify: workspace isolation, RBAC, settings transaction, flag behavior, and P3-03.
 - [ ] P6-03 Employees/employments/assignments/custom fields domain. Depends: P6-02, P5-02. Verify: PII access rules, soft delete, uniqueness, bulk operations, and P3-04.
-- [ ] P6-04 Attendance/time tracking domain orchestration. Depends: P6-03, P5-08. Verify: Rust-equivalent prefetch, gRPC request, result validation, transaction writes, reprocess, and P3-05.
+- [ ] P6-04 Attendance/time tracking domain orchestration. Depends: P6-03, P5-08. Verify: batch prefetch, in-process calculation, result validation, transactional writes, reprocess, and P3-05.
 - [ ] P6-05 Shifts/roster/pattern/compliance domain. Depends: P6-03, P6-04. Verify: overnight/DST/timezone/break semantics, cache behavior, and P3-06.
 - [ ] P6-06 Leave/ESS/approvals domain. Depends: P6-03, P5-07. Verify: transition rules, balances, permissions, notifications, rollback, and P3-07.
 - [ ] P6-07 Notifications/domain delivery domain. Depends: P5-06, P5-07. Verify: templates, localization, deduplication, retry, delivery failure, and P3-07.
@@ -137,11 +138,11 @@ Each slice requires: handler, service, repository, DTOs, permissions, audit even
 
 - [ ] P8-01 Add Go image/build/test target and compose/deployment service without replacing Rust. Depends: P4-12. Verify: reproducible container build and isolated health check.
 - [ ] P8-02 Add routing switch and per-domain/workspace feature flags. Depends: P6-12. Verify: default route remains Rust; flag-off rollback is immediate.
-- [ ] P8-03 Deploy staging with mTLS/JWT, certificates, service identity, logs, metrics, alerts, and readiness. Depends: P8-01. Verify: startup fail-closed and gRPC connectivity.
+- [ ] P8-03 Deploy staging with TLS, secrets, service identity, logs, metrics, alerts, and readiness. Depends: P8-01. Verify: startup fail-closed and readiness reflects real dependencies.
 - [ ] P8-04 Run non-production shadow comparisons using identical immutable snapshots. Depends: P8-02, P8-03. Verify: zero mismatch across approved fixture/canary set.
 - [ ] P8-05 Run staging canary for read-only endpoints. Depends: P8-04. Verify: status/body/latency/log/metric parity and no unexpected writes.
 - [ ] P8-06 Run staging canary for mutating endpoints with isolated tenants. Depends: P8-05. Verify: DB/Redis/audit/outbox parity and rollback.
-- [ ] P8-07 Exercise failure drills: Go down, gRPC unavailable, DB unavailable, Redis unavailable, timeout, invalid certificate/JWT, queue failure, and partial dependency failure. Depends: P8-06. Verify: fail-closed/no-write behavior and alert delivery.
+- [ ] P8-07 Exercise failure drills: Go down, DB unavailable, Redis unavailable, timeout, invalid token/secret, queue failure, and partial dependency failure. Depends: P8-06. Verify: fail-closed/no-write behavior and alert delivery.
 - [ ] P8-08 Exercise deployment rollback to last approved Rust/Go images. Depends: P8-07. Verify: no schema rollback required and traffic returns to Rust.
 - [ ] P8-09 Roll out domains progressively with explicit go/no-go evidence. Depends: P8-08. Verify: thresholds for 5xx, p99, auth failures, pool utilization, queue failures, and audit lag remain satisfied.
 
@@ -170,7 +171,10 @@ Each slice requires: handler, service, repository, DTOs, permissions, audit even
 - `docs/migration/rust-go/job-contract.md`
 - `docs/migration/rust-go/auth-permission-matrix.csv`
 - `docs/migration/rust-go/observability-contract.md`
-- `docs/migration/rust-go/attendance-compute-contract.md`
+- `docs/migration/rust-go/computation-contract.md`
+- `docs/migration/rust-go/recovery-check.md`
+- `docs/migration/rust-go/decisions.md`
+- `docs/migration/rust-go/tech-stack-adr.md`
 - `docs/migration/rust-go/fixtures/`
 - `docs/migration/rust-go/parity-reports/`
 - `docs/migration/rust-go/rollback-drills/`
