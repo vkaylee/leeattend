@@ -17,6 +17,20 @@ import { cn } from "@/lib/utils";
 
 import { getStatusStyle, JobDetailsDrawer } from "./job-details-drawer";
 
+function jobStatusLabel(t: TFunction, status: string): string {
+  const defaults: Record<string, string> = {
+    completed: "Completed",
+    failed: "Failed",
+    processing: "Processing",
+    retryable: "Retryable",
+    dead_letter: "Dead letter",
+    lost: "Lost",
+    queued: "Queued",
+    dispatching: "Dispatching",
+  };
+  return t(`monitor.status_${status}`, { defaultValue: defaults[status] ?? t("monitor.unknown_status", { defaultValue: "Status unavailable" }) });
+}
+
 interface JobsTableProps {
   t: TFunction;
   uniqueTypes: string[];
@@ -37,7 +51,7 @@ function JobMobileCard({ job, t, onClick }: {
 
   return (
     <div
-      className="cursor-pointer rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-all active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900"
+      className="cursor-pointer rounded-2xl border border-slate-100 bg-white p-5 shadow-sm motion-safe:transition-all active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900"
       onClick={onClick}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -54,7 +68,7 @@ function JobMobileCard({ job, t, onClick }: {
         </code>
         <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider", statusClassName)}>
           {statusIcon}
-          {job.status}
+          {jobStatusLabel(t, job.status)}
         </span>
       </div>
 
@@ -90,12 +104,12 @@ function JobMobileCard({ job, t, onClick }: {
 function SkeletonRow() {
   return (
     <tr className="border-t border-slate-50 dark:border-slate-800">
-      <td className="px-6 py-4"><div className="h-4 w-32 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" /></td>
-      <td className="px-6 py-4"><div className="h-6 w-20 bg-slate-100 dark:bg-slate-800 rounded-full animate-pulse" /></td>
-      <td className="px-6 py-4"><div className="h-4 w-24 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" /></td>
-      <td className="px-6 py-4"><div className="h-4 w-16 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" /></td>
-      <td className="px-6 py-4"><div className="h-4 w-28 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" /></td>
-      <td className="px-6 py-4"><div className="h-4 w-40 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" /></td>
+      <td className="px-6 py-4"><div className="h-4 w-32 bg-slate-100 dark:bg-slate-800 rounded motion-safe:animate-pulse" /></td>
+      <td className="px-6 py-4"><div className="h-6 w-20 bg-slate-100 dark:bg-slate-800 rounded-full motion-safe:animate-pulse" /></td>
+      <td className="px-6 py-4"><div className="h-4 w-24 bg-slate-100 dark:bg-slate-800 rounded motion-safe:animate-pulse" /></td>
+      <td className="px-6 py-4"><div className="h-4 w-16 bg-slate-100 dark:bg-slate-800 rounded motion-safe:animate-pulse" /></td>
+      <td className="px-6 py-4"><div className="h-4 w-28 bg-slate-100 dark:bg-slate-800 rounded motion-safe:animate-pulse" /></td>
+      <td className="px-6 py-4"><div className="h-4 w-40 bg-slate-100 dark:bg-slate-800 rounded motion-safe:animate-pulse" /></td>
     </tr>
   );
 }
@@ -171,7 +185,7 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
               </label>
               <input
                 aria-label={t("monitor.filter_search_label", { defaultValue: "Search jobs" })}
-                className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-slate-800/80 dark:bg-slate-800/40 dark:text-slate-200 dark:placeholder:text-slate-500"
+                className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 motion-safe:transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-slate-800/80 dark:bg-slate-800/40 dark:text-slate-200 dark:placeholder:text-slate-500"
                 id="monitor-job-search"
                 onChange={(e) => { setSearchTerm(e.target.value); }}
                 placeholder={t("monitor.filter_search_placeholder", { defaultValue: "Search Job ID or error code..." })}
@@ -306,7 +320,7 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
 
                       return (
                         <tr
-                          className="cursor-pointer border-t border-slate-50 transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                          className="cursor-pointer border-t border-slate-50 motion-safe:transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 dark:border-slate-800 dark:hover:bg-slate-800/50"
                           key={job.job_id}
                           aria-label={t("monitor.open_job_details", { defaultValue: "Open job details" })}
                           onClick={() => { setSelectedJob(job); }}
@@ -327,7 +341,7 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
                           <td className="px-6 py-4">
                             <span className={cn("inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider", statusClassName)}>
                               {statusIcon}
-                              {job.status}
+                              {jobStatusLabel(t, job.status)}
                             </span>
                           </td>
                           <td className="px-6 py-4">
@@ -414,7 +428,7 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
               const { className: statusClassName, icon: statusIcon } = getStatusStyle(job.state);
               return (
                 <Button
-                  className="flex w-full flex-col gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left transition-colors hover:border-blue-200 hover:bg-blue-50/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-800 dark:bg-slate-800/40 dark:hover:border-blue-800 dark:hover:bg-blue-950/20"
+                  className="flex w-full flex-col gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left motion-safe:transition-colors hover:border-blue-200 hover:bg-blue-50/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-800 dark:bg-slate-800/40 dark:hover:border-blue-800 dark:hover:bg-blue-950/20"
                   key={job.job_id}
                   onClick={() => {
                     setSelectedJob(null);
@@ -426,7 +440,7 @@ export function JobsTable({ uniqueTypes, t }: JobsTableProps) {
                     <code className="font-mono text-xs text-slate-600 dark:text-slate-300">{job.job_id.slice(0, 8)}…</code>
                     <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider", statusClassName)}>
                       {statusIcon}
-                      {t(`monitor.status_${job.state}`, { defaultValue: job.state.replace("_", " ") })}
+                      {jobStatusLabel(t, job.state)}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-xs text-slate-500 dark:text-slate-400 sm:grid-cols-4">

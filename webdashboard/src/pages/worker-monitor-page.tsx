@@ -2,6 +2,7 @@
 import {
   AlertTriangle,
   CheckCircle2,
+  CircleHelp,
   Loader2,
 } from "lucide-react";
 import React, { useMemo } from "react";
@@ -34,6 +35,29 @@ import { JobsTable } from "./monitor/jobs-table";
 import { MonitorStatCards } from "./monitor/stat-cards";
 import { WorkersTable } from "./monitor/workers-table";
 
+function localizeMonitorValue(t: TFunction, namespace: string, value: string): string {
+  const normalized = value.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+  const knownDefaults: Record<string, string> = {
+    "alert_event.alert_created": "Alert created",
+    "alert_event.alert_updated": "Alert updated",
+    "alert_event.alert_acknowledged": "Alert acknowledged",
+    "alert_event.alert_resolved": "Alert resolved",
+    "alert_severity.critical": "Critical",
+    "alert_severity.high": "High",
+    "alert_severity.medium": "Medium",
+    "alert_severity.low": "Low",
+    "alert_source.redis": "Redis",
+    "alert_source.postgres": "PostgreSQL",
+    "alert_status.active": "Active",
+    "alert_status.acknowledged": "Acknowledged",
+    "alert_status.resolved": "Resolved",
+  };
+  const key = `${namespace}.${normalized}`;
+  return t(`monitor.${key}`, {
+    defaultValue: knownDefaults[key] ?? t("monitor.unknown_status", { defaultValue: "Status unavailable" }),
+  });
+}
+
 function MonitorAlertsSection({ t }: { t: TFunction }) {
   const [selectedAlertId, setSelectedAlertId] = React.useState<string | null>(null);
   const [reason, setReason] = React.useState("");
@@ -59,7 +83,7 @@ function MonitorAlertsSection({ t }: { t: TFunction }) {
         </div>
         <AlertTriangle aria-hidden="true" className="text-amber-500" size={22} />
       </div>
-      {alertsQuery.isLoading ? <div aria-busy="true" className="mt-5 grid gap-3 md:grid-cols-2"><div className="h-28 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" /><div className="h-28 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" /></div> : null}
+      {alertsQuery.isLoading ? <div aria-busy="true" className="mt-5 grid gap-3 md:grid-cols-2"><div className="h-28 motion-safe:animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" /><div className="h-28 motion-safe:animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" /></div> : null}
       {alertsQuery.isError ? <div className="mt-5 flex items-center justify-between gap-3 text-sm text-rose-600" role="alert"><span>{t("monitor.alerts_error", { defaultValue: "Unable to load alerts." })}</span><Button onClick={() => void alertsQuery.refetch()} size="sm" variant="outline">{t("common.retry", { defaultValue: "Retry" })}</Button></div> : null}
       {!alertsQuery.isLoading && !alertsQuery.isError && alertsQuery.data?.data.length === 0 ? <div className="mt-5 flex items-center gap-2 text-sm text-emerald-600"><CheckCircle2 size={16} />{t("monitor.no_active_alerts", { defaultValue: "No active alerts." })}</div> : null}
       <div className="mt-5 grid gap-3 md:grid-cols-2">
@@ -67,7 +91,7 @@ function MonitorAlertsSection({ t }: { t: TFunction }) {
           <Button
             aria-pressed={selectedAlertId === alert.id}
             className={cn(
-              "h-auto min-h-28 w-full min-w-0 flex-col items-stretch justify-start rounded-xl border p-4 text-left normal-case tracking-normal transition-colors active:scale-100",
+              "h-auto min-h-28 w-full min-w-0 flex-col items-stretch justify-start rounded-xl border p-4 text-left normal-case tracking-normal motion-safe:transition-colors active:scale-100",
               selectedAlertId === alert.id
                 ? "border-primary-500 bg-primary-50/60 dark:bg-primary-950/30"
                 : "border-slate-200 bg-transparent text-inherit shadow-none hover:border-primary-300 hover:bg-transparent dark:border-slate-700",
@@ -76,18 +100,18 @@ function MonitorAlertsSection({ t }: { t: TFunction }) {
             onClick={() => setSelectedAlertId(alert.id)}
             variant="ghost"
           >
-            <div className="flex min-w-0 items-center justify-between gap-3"><span className="min-w-0 break-words font-bold text-slate-800 dark:text-slate-100">{alert.title}</span><span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-amber-600">{alert.severity}</span></div>
+            <div className="flex min-w-0 items-center justify-between gap-3"><span className="min-w-0 break-words font-bold text-slate-800 dark:text-slate-100">{alert.title}</span><span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-amber-600">{localizeMonitorValue(t, "alert_severity", alert.severity)}</span></div>
             <div className="mt-2 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">{alert.summary}</div>
           </Button>
         ))}
       </div>
       {selectedAlertId ? (
         <div className="mt-5 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
-          {detailQuery.isLoading ? <div aria-busy="true" className="h-24 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" /> : null}
+          {detailQuery.isLoading ? <div aria-busy="true" className="h-24 motion-safe:animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" /> : null}
           {detailQuery.isError ? <div className="flex items-center justify-between gap-3 text-sm text-rose-600" role="alert"><span>{t("monitor.alert_detail_error", { defaultValue: "Unable to load alert details." })}</span><Button onClick={() => void detailQuery.refetch()} size="sm" variant="outline">{t("common.retry", { defaultValue: "Retry" })}</Button></div> : null}
           {selectedAlert ? <>
-            <div className="text-sm text-slate-500 dark:text-slate-400">{selectedAlert.source} · {selectedAlert.status}</div>
-            {selectedAlert.events.length > 0 ? <div className="mt-3 space-y-2" aria-label={t("monitor.alert_events", { defaultValue: "Alert events" })}>{selectedAlert.events.map((event) => <div className="rounded-lg bg-slate-50 p-2 text-xs dark:bg-slate-800" key={event.id}><div className="font-semibold">{event.event_type} · {event.severity}</div><div className="text-slate-500 dark:text-slate-400">{event.summary}</div></div>)}</div> : null}
+            <div className="text-sm text-slate-500 dark:text-slate-400">{localizeMonitorValue(t, "alert_source", selectedAlert.source)} · {localizeMonitorValue(t, "alert_status", selectedAlert.status)}</div>
+            {selectedAlert.events.length > 0 ? <div className="mt-3 space-y-2" aria-label={t("monitor.alert_events", { defaultValue: "Alert events" })}>{selectedAlert.events.map((event) => <div className="rounded-lg bg-slate-50 p-2 text-xs dark:bg-slate-800" key={event.id}><div className="font-semibold">{localizeMonitorValue(t, "alert_event", event.event_type)} · {localizeMonitorValue(t, "alert_severity", event.severity)}</div><div className="text-slate-500 dark:text-slate-400">{event.summary}</div></div>)}</div> : null}
             <textarea aria-label={t("monitor.alert_reason", { defaultValue: "Operator reason" })} className="mt-3 min-h-20 w-full rounded-xl border border-slate-200 bg-transparent p-3 text-sm outline-none focus:border-primary-500 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:border-slate-700" maxLength={500} onChange={(event) => setReason(event.target.value)} placeholder={t("monitor.alert_reason_placeholder", { defaultValue: "Describe the action taken…" })} value={reason} />
             <div className="mt-3 flex flex-wrap justify-end gap-2">
               <Button disabled={!reasonIsValid || isMutating} loading={acknowledge.isPending} onClick={() => submit("acknowledge")} size="sm" variant="outline">{t("monitor.acknowledge", { defaultValue: "Acknowledge" })}</Button>
@@ -190,13 +214,13 @@ function StreamStatusIndicator({ isFetching, status, t }: StreamStatusIndicatorP
   return (
     <div aria-live="polite" className="flex items-center gap-3 px-2" role="status">
       <div aria-hidden="true" className="relative flex h-3 w-3">
-        <span aria-hidden="true" className={cn("absolute inline-flex h-full w-full rounded-full opacity-75", isLive ? "animate-ping bg-emerald-400" : "bg-amber-400")} />
+        <span aria-hidden="true" className={cn("absolute inline-flex h-full w-full rounded-full opacity-75", isLive ? "motion-safe:animate-ping bg-emerald-400" : "bg-amber-400")} />
         <span aria-hidden="true" className={cn("relative inline-flex rounded-full h-3 w-3", isLive ? "bg-emerald-500" : "bg-amber-500")} />
       </div>
       <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
         {streamStatusLabel(status, t)}
       </span>
-      {isFetching ? <Loader2 aria-hidden="true" className="text-slate-400 dark:text-slate-500 animate-spin" size={14} /> : null}
+      {isFetching ? <Loader2 aria-hidden="true" className="text-slate-400 dark:text-slate-500 motion-safe:animate-spin" size={14} /> : null}
     </div>
   );
 }
@@ -218,7 +242,7 @@ function JobTypeStatsSection({ jobTypeStats, t }: JobTypeStatsSectionProps) {
           const displayType = t(`monitor.task_types.${item.task_type}`, { defaultValue: item.task_type });
           return (
             <div
-              className="bg-slate-50 dark:bg-slate-800/40 border border-slate-100/50 dark:border-slate-800/50 rounded-3xl p-5 flex flex-col justify-between hover:shadow-md transition-all duration-300"
+              className="bg-slate-50 dark:bg-slate-800/40 border border-slate-100/50 dark:border-slate-800/50 rounded-3xl p-5 flex flex-col justify-between hover:shadow-md motion-safe:transition-all duration-300"
               key={item.task_type}
             >
               <div>
@@ -236,8 +260,8 @@ function JobTypeStatsSection({ jobTypeStats, t }: JobTypeStatsSectionProps) {
               </div>
               <div className="flex gap-3 mt-4 text-[11px] font-bold uppercase tracking-wider">
                 {item.completed > 0 ? <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{item.completed}</span> : null}
-                {item.failed > 0 ? <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />{item.failed}</span> : null}
-                {item.processing > 0 ? <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />{item.processing}</span> : null}
+                {item.failed > 0 ? <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-rose-500 motion-safe:animate-pulse" />{item.failed}</span> : null}
+                {item.processing > 0 ? <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-amber-500 motion-safe:animate-ping" />{item.processing}</span> : null}
               </div>
             </div>
           );
@@ -360,57 +384,75 @@ export default function WorkerMonitorPage() {
     return jobTypeStats.map((s) => s.task_type).sort();
   }, [jobTypeStats]);
 
-  return (
-    <div className="space-y-10 animate-in fade-in duration-700">
-      <MonitorHeader isFetching={isFetching} onRefresh={() => refetch()} t={t} />
+  const healthState = error
+    ? "error"
+    : isLoading && !stats
+      ? "loading"
+      : !quality
+        ? "unknown"
+        : quality.data_quality === "complete"
+          ? "healthy"
+          : "degraded";
+  const healthCopy = {
+    degraded: ["health_degraded", "health_description"],
+    error: ["health_error", "error_loading"],
+    healthy: ["health_healthy", "health_description"],
+    loading: ["health_loading", "health_loading_description"],
+    unknown: ["health_unknown", "health_unknown_description"],
+  } as const;
+  const [healthLabelKey, healthDescriptionKey] = healthCopy[healthState];
+  const healthTone = {
+    degraded: "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30",
+    error: "border-rose-200 bg-rose-50 dark:border-rose-900 dark:bg-rose-950/40",
+    healthy: "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30",
+    loading: "border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/60",
+    unknown: "border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/60",
+  } as const;
+  const HealthIcon = healthState === "error" ? AlertTriangle : healthState === "healthy" ? CheckCircle2 : healthState === "loading" ? Loader2 : CircleHelp;
 
-      {error ? (
-        <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-rose-50 dark:bg-rose-950 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-sm font-medium">
-          <AlertTriangle className="shrink-0" size={18} />
-          {t("monitor.error_loading", { defaultValue: "Failed to load monitoring data. Retrying..." })}
+  return (
+    <main className="space-y-8 motion-reduce:animate-none" aria-labelledby="monitor-page-title">
+      <MonitorHeader isFetching={isFetching} onRefresh={() => void refetch()} t={t} />
+
+      <section className={cn("rounded-2xl border p-5 shadow-sm sm:p-6", healthTone[healthState])} aria-live="polite">
+        <div className="flex items-start gap-3">
+          <HealthIcon aria-hidden="true" className={cn("mt-0.5 shrink-0", healthState === "loading" && "motion-safe:animate-spin", healthState === "error" ? "text-rose-600" : healthState === "healthy" ? "text-emerald-600" : healthState === "degraded" ? "text-amber-600" : "text-slate-500")} size={20} />
+          <div>
+            <Typography className="text-xl font-black tracking-tight text-slate-900 dark:text-slate-100" variant="h2">{t(`monitor.${healthLabelKey}`, { defaultValue: healthLabelKey })}</Typography>
+            <Typography className="mt-1 text-sm text-slate-700 dark:text-slate-300" variant="p">{t(`monitor.${healthDescriptionKey}`, { defaultValue: healthDescriptionKey === "error_loading" ? "Failed to load monitoring data. Retrying..." : "Monitoring state is not yet available." })}</Typography>
+          </div>
         </div>
-      ) : null}
+      </section>
 
       {quality && quality.data_quality !== "complete" ? (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200" role="status">
           <AlertTriangle aria-hidden="true" className="mt-0.5 shrink-0" size={18} />
           <div>
-            <div>{t("monitor.partial_data", { defaultValue: "Some monitoring sources are unavailable. Values marked unknown are not zero." })}</div>
-            <div className="mt-1 text-xs font-normal opacity-80">
-              {quality.unknown_fields.length > 0 ? quality.unknown_fields.join(", ") : quality.data_quality}
-            </div>
+            <div>{t("monitor.partial_data", { defaultValue: "Some monitoring sources are unavailable. Unknown values are not zero." })}</div>
+            <div className="mt-1 text-xs font-normal opacity-80">{t(`monitor.data_quality.${quality.data_quality}`, { defaultValue: "Some sources are degraded." })}</div>
           </div>
         </div>
       ) : null}
 
       {stats ? <SnapshotMetadata stats={stats} t={t} /> : null}
-
-      <MonitorStatCards isLoading={isLoading} stats={stats} t={t} />
-
       <MonitorAlertsSection t={t} />
-
+      <MonitorStatCards isLoading={isLoading} stats={stats} t={t} />
       {stats ? <OperationalMetricsSections stats={stats} t={t} /> : null}
-
       {stats ? <DependencyHealthSection dependencies={stats.dependencies} t={t} /> : null}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <WorkerUtilizationGauge data={utilization} isLoading={isLoading} />
-        <QueuePressureChart data={queuePressure} isLoading={isLoading} />
-        <JobStatusDistributionChart
-          data={jobDistribution}
-          isLoading={isLoading}
-          unavailable={recentJobsUnavailable}
-        />
-      </div>
+      <section aria-labelledby="monitor-charts-heading">
+        <div className="mb-4"><Typography className="text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100" id="monitor-charts-heading" variant="h4">{t("monitor.decision_charts", { defaultValue: "Decision charts" })}</Typography><Typography className="mt-1 text-xs text-slate-500 dark:text-slate-400" variant="p">{t("monitor.decision_charts_description", { defaultValue: "Capacity, pressure, and outcome views for the next operator decision." })}</Typography></div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <WorkerUtilizationGauge data={utilization} isLoading={isLoading} />
+          <QueuePressureChart data={queuePressure} isLoading={isLoading} />
+          <JobStatusDistributionChart data={jobDistribution} isLoading={isLoading} unavailable={recentJobsUnavailable} />
+        </div>
+      </section>
 
       <StreamStatusIndicator isFetching={isFetching} status={stream.status} t={t} />
-
-
       <WorkersTable isUnavailable={workerHeartbeatsUnavailable} t={t} workers={workers} />
-
       <JobTypeStatsSection jobTypeStats={jobTypeStats} t={t} />
-
       <JobsTable t={t} uniqueTypes={uniqueTypes} />
-    </div>
+    </main>
   );
 }

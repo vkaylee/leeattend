@@ -29,7 +29,7 @@ export default function WorkerUtilizationGauge({ data, isLoading }: Props) {
   return (
     <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 rounded-[2rem] p-6 shadow-lg dark:shadow-black/20 flex flex-col items-center gap-4 relative overflow-hidden group">
       {/* Decorative ring glow */}
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 motion-safe:transition-opacity duration-700 motion-reduce:transition-none pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full bg-gradient-to-br from-emerald-400/20 to-teal-400/10 blur-2xl" />
       </div>
 
@@ -39,7 +39,7 @@ export default function WorkerUtilizationGauge({ data, isLoading }: Props) {
 
       {isLoading ? (
         <div className="w-[160px] h-[160px] flex items-center justify-center">
-          <div className="w-20 h-20 rounded-full border-4 border-slate-100 dark:border-slate-700 border-t-emerald-400 animate-spin" />
+          <div className="w-20 h-20 rounded-full border-4 border-slate-100 dark:border-slate-700 border-t-emerald-400 motion-safe:animate-spin" />
         </div>
       ) : data.unavailable ? (
         <div className="w-[160px] h-[160px] flex flex-col items-center justify-center gap-2 text-center" role="status">
@@ -83,7 +83,7 @@ export default function WorkerUtilizationGauge({ data, isLoading }: Props) {
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span
               className={cn(
-                "text-3xl font-black tracking-tighter tabular-nums transition-colors duration-500",
+                "text-3xl font-black tracking-tighter tabular-nums motion-safe:transition-colors duration-500",
                 percentColor
               )}
             >
@@ -95,6 +95,15 @@ export default function WorkerUtilizationGauge({ data, isLoading }: Props) {
           </div>
         </div>
       )}
+
+      <table className="sr-only">
+        <caption>{t("monitor.utilization_table", { defaultValue: "Worker utilization summary" })}</caption>
+        <tbody>
+          <tr><th scope="row">{t("monitor.active_short", { defaultValue: "Active" })}</th><td>{isLoading || data.active === null ? t("monitor.metric_unavailable", { defaultValue: "Metric unavailable" }) : data.active}</td></tr>
+          <tr><th scope="row">{t("monitor.idle_short", { defaultValue: "Idle" })}</th><td>{isLoading || data.idle === null ? t("monitor.metric_unavailable", { defaultValue: "Metric unavailable" }) : data.idle}</td></tr>
+          <tr><th scope="row">{t("monitor.utilization", { defaultValue: "Worker utilization" })}</th><td>{isLoading || data.percent === null ? t("monitor.metric_unavailable", { defaultValue: "Metric unavailable" }) : `${data.percent}%`}</td></tr>
+        </tbody>
+      </table>
 
       {/* Active / Idle pills */}
       <div className="flex items-center gap-3">
