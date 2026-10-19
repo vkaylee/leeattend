@@ -397,7 +397,7 @@ func main() {
 	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/holidays/{id}", holidayHandler.Update)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/holidays/{id}", holidayHandler.Delete)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/holidays/{id}/process-leave", holidayHandler.ProcessLeave)
-	payrollRepo := repository.PayrollRepository{TenantDB: workspaceRepo.TenantDB}
+	payrollRepo := repository.PayrollRepository{TenantDB: workspaceRepo.TenantDB, SystemDB: workspaceRepo.SystemDB}
 	essRepo := repository.ESSRepository{TenantDB: workspaceRepo.TenantDB}
 	essHandler := api.ESSHandler{
 		Repository: essRepo,
@@ -446,6 +446,14 @@ func main() {
 	payrollHandler := api.PayrollHandler{Repository: payrollRepo, Authorizer: workspaceAuthorizer}
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/payroll/payslips", payrollHandler.ListWorkspace)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{employee_id}/payslips", payrollHandler.ListEmployee)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/salary-components", payrollHandler.ListSalaryComponents)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/salary-components", payrollHandler.CreateSalaryComponent)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employments/{id}/salary-components", payrollHandler.ListEmploymentSalaryComponents)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employments/{id}/salary-components", payrollHandler.AssignEmploymentSalaryComponent)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/salary-bases", payrollHandler.ListSalaryBases)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/salary-bases", payrollHandler.CreateSalaryBase)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/salary-bases/{base_id}/members", payrollHandler.AssignBaseMember)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/salary-bases/{base_id}/members/{component_id}", payrollHandler.UnassignBaseMember)
 	reportRepo := repository.ReportRepository{TenantDB: workspaceRepo.TenantDB}
 	reportQueue := &repository.RedisReportQueue{Client: redisClient, TenantDB: workspaceRepo.TenantDB}
 	reportHandler := api.ReportHandler{Repository: reportRepo, Queue: reportQueue, Authorizer: workspaceAuthorizer}
