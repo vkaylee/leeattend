@@ -98,12 +98,48 @@ func main() {
 	}
 	workspaceAuthorizer := repository.WorkspaceAuthorizer{DB: workspaceRepo.SystemDB}
 	workspaceHandler := api.WorkspaceHandler{Repository: workspaceRepo, Authorizer: workspaceAuthorizer}
+	var cryptoService *crypto.Service
+	if encJSON := cfg.EncryptionKeysJSON.Expose(); encJSON != "" {
+		if cs, err := crypto.FromJSON(encJSON); err == nil {
+			cryptoService = cs
+		} else {
+			logger.Warn("crypto service initialization failed", "error", err)
+		}
+	}
+	rbacRepo := repository.WorkspaceRBACRepository{SystemDB: workspaceRepo.SystemDB}
+	rbacHandler := api.WorkspaceRBACHandler{
+		Repository:    rbacRepo,
+		Authorizer:    workspaceAuthorizer,
+		Crypto:        cryptoService,
+		StorageTester: api.NewS3StorageTester(cfg.S3EndpointURL),
+	}
 	authHandler.Authorizer = workspaceAuthorizer
 
 	mux.HandleFunc("POST /api/v1/workspaces", workspaceHandler.Create)
 	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}", workspaceHandler.Patch)
-	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/roles", workspaceHandler.CreateRole)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/feature-flags", workspaceHandler.ListFeatureFlags)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/members", rbacHandler.ListMembers)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/members", rbacHandler.AddMember)
+	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/members/{user_id}", rbacHandler.UpdateMemberRole)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/members/{user_id}", rbacHandler.RemoveMember)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/members/{user_id}/roles", rbacHandler.GetMemberRoles)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/members/{user_id}/roles", rbacHandler.AssignExtraRole)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/members/{user_id}/roles/{role_id}", rbacHandler.RevokeExtraRole)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/members/{user_id}/permissions", rbacHandler.GetMemberPermissions)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/members/{user_id}/permissions", rbacHandler.AssignExtraPermission)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/members/{user_id}/permissions/{perm_id}", rbacHandler.RevokeExtraPermission)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/roles", rbacHandler.ListRoles)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/roles", rbacHandler.CreateRole)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/roles/{role_id}", rbacHandler.UpdateRole)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/roles/{role_id}", rbacHandler.DeleteRole)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/roles/{role_id}/permissions", rbacHandler.GetRolePermissions)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/roles/{role_id}/permissions", rbacHandler.SetRolePermissions)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/permissions/catalog", rbacHandler.PermissionCatalog)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/permissions/available", rbacHandler.AvailablePermissions)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/settings/storage", rbacHandler.GetStorage)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/settings/storage", rbacHandler.PutStorage)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/settings/storage", rbacHandler.DeleteStorage)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/settings/storage/test", rbacHandler.TestStorage)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/feature-flags", workspaceHandler.CreateFeatureFlag)
 	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/feature-flags", workspaceHandler.UpsertFeatureFlag)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/feature-flags/{id}", workspaceHandler.GetFeatureFlagByID)
@@ -293,14 +329,6 @@ func main() {
 	systemHealthHandler := api.SystemHealthHandler{Roles: authRepo}
 	mux.HandleFunc("GET /api/v1/system/health", systemHealthHandler.Get)
 
-	var cryptoService *crypto.Service
-	if encJSON := cfg.EncryptionKeysJSON.Expose(); encJSON != "" {
-		if cs, err := crypto.FromJSON(encJSON); err == nil {
-			cryptoService = cs
-		} else {
-			logger.Warn("crypto service initialization failed", "error", err)
-		}
-	}
 	systemAdminRepo := repository.SystemAdminRepository{DB: workspaceRepo.SystemDB}
 	systemAdminHandler := api.SystemAdminHandler{
 		RolesRepo:     systemAdminRepo,

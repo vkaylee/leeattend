@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **183**
-- Contract routes covered: **160**
-- Contract routes missing: **243**
+- Go route registrations: **204**
+- Contract routes covered: **181**
+- Contract routes missing: **222**
 
 ## Missing routes
 
@@ -191,16 +191,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | GET | `/api/v1/workspaces/{ws_id}/lifecycle/my-tasks` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/lifecycle/{id}` | Permission::EmployeesRead |
 | PATCH | `/api/v1/workspaces/{ws_id}/lifecycle/{id}/items/{iid}` | Permission::EmployeesUpdate |
-| GET | `/api/v1/workspaces/{ws_id}/members` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/members` | Permission::MembersInvite |
-| DELETE | `/api/v1/workspaces/{ws_id}/members/{user_id}` | Permission::MembersRemove |
-| PATCH | `/api/v1/workspaces/{ws_id}/members/{user_id}` | Permission::MembersRolesManage |
-| GET | `/api/v1/workspaces/{ws_id}/members/{user_id}/permissions` | Permission::MembersRead |
-| POST | `/api/v1/workspaces/{ws_id}/members/{user_id}/permissions` | Permission::MembersRolesManage |
-| DELETE | `/api/v1/workspaces/{ws_id}/members/{user_id}/permissions/{perm_id}` | Permission::MembersRolesManage |
-| GET | `/api/v1/workspaces/{ws_id}/members/{user_id}/roles` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/members/{user_id}/roles` | Permission::MembersRolesManage |
-| DELETE | `/api/v1/workspaces/{ws_id}/members/{user_id}/roles/{role_id}` | Permission::MembersRolesManage |
 | GET | `/api/v1/workspaces/{ws_id}/monitor/jobs/{job_id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/overtime/policies` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/overtime/policies` | Permission::OvertimePoliciesManage |
@@ -232,13 +222,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | POST | `/api/v1/workspaces/{ws_id}/payroll/incentive-policies` | NONE EVIDENCED — context extractor only; no permission guard |
 | DELETE | `/api/v1/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}/clone` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/permissions/available` | Permission::MembersRolesManage |
-| GET | `/api/v1/workspaces/{ws_id}/permissions/catalog` | Permission::MembersRolesManage |
-| GET | `/api/v1/workspaces/{ws_id}/roles` | NONE EVIDENCED — context extractor only; no permission guard |
-| DELETE | `/api/v1/workspaces/{ws_id}/roles/{role_id}` | Permission::MembersRolesManage |
-| PUT | `/api/v1/workspaces/{ws_id}/roles/{role_id}` | Permission::MembersRolesManage |
-| GET | `/api/v1/workspaces/{ws_id}/roles/{role_id}/permissions` | Permission::MembersRolesManage |
-| PUT | `/api/v1/workspaces/{ws_id}/roles/{role_id}/permissions` | Permission::MembersRolesManage |
 | GET | `/api/v1/workspaces/{ws_id}/salary-bases` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/salary-bases` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/salary-bases/{base_id}/members` | NONE EVIDENCED — context extractor only; no permission guard |
@@ -246,10 +229,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | GET | `/api/v1/workspaces/{ws_id}/salary-components` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/salary-components` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/schedules` | NONE EVIDENCED — context extractor only; no permission guard |
-| DELETE | `/api/v1/workspaces/{ws_id}/settings/storage` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/settings/storage` | NONE EVIDENCED — context extractor only; no permission guard |
-| PUT | `/api/v1/workspaces/{ws_id}/settings/storage` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/settings/storage/test` | NONE EVIDENCED — context extractor only; no permission guard |
 | DELETE | `/api/v1/workspaces/{ws_id}/time/entries/{id}` | Permission::AttendanceLogsImport |
 | PUT | `/api/v1/workspaces/{ws_id}/time/entries/{id}` | Permission::AttendanceLogsImport |
 | GET | `/api/v1/ws` | NONE EVIDENCED — agent token/trusted-agent check; no resource:action permission |
