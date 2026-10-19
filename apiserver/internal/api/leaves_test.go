@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -13,13 +14,18 @@ import (
 )
 
 type mockLeaveRepository struct {
-	submitErr    error
-	approveErr   error
-	typeList     []LeaveTypeRecord
-	submit       LeaveRequestRecord
-	balances     []EmployeeLeaveBalanceRecord
-	submitCalls  int
-	approveCalls int
+	submitErr          error
+	approveErr         error
+	typeList           []LeaveTypeRecord
+	submit             LeaveRequestRecord
+	balances           []EmployeeLeaveBalanceRecord
+	submitCalls        int
+	approveCalls       int
+	updateConfigRecord LeaveTypeRecord
+	updateConfigErr    error
+	deleteTypeErr      error
+	restoreTypeRecord  LeaveTypeRecord
+	restoreTypeErr     error
 }
 
 func (m *mockLeaveRepository) CreateLeaveType(context.Context, uuid.UUID, CreateLeaveTypeRequest) (LeaveTypeRecord, error) {
@@ -27,6 +33,15 @@ func (m *mockLeaveRepository) CreateLeaveType(context.Context, uuid.UUID, Create
 }
 func (m *mockLeaveRepository) ListLeaveTypes(context.Context, uuid.UUID) ([]LeaveTypeRecord, error) {
 	return m.typeList, nil
+}
+func (m *mockLeaveRepository) UpdateLeaveTypeConfig(context.Context, uuid.UUID, uuid.UUID, json.RawMessage) (LeaveTypeRecord, error) {
+	return m.updateConfigRecord, m.updateConfigErr
+}
+func (m *mockLeaveRepository) DeleteLeaveType(context.Context, uuid.UUID, uuid.UUID) error {
+	return m.deleteTypeErr
+}
+func (m *mockLeaveRepository) RestoreLeaveType(context.Context, uuid.UUID, uuid.UUID) (LeaveTypeRecord, error) {
+	return m.restoreTypeRecord, m.restoreTypeErr
 }
 func (m *mockLeaveRepository) SubmitLeaveRequest(_ context.Context, _, _ uuid.UUID, _ SubmitLeaveRequest, autoApprove bool) (LeaveRequestRecord, error) {
 	m.submitCalls++
@@ -131,5 +146,60 @@ func TestLeaveHandlerBalancesPreserveDecimal(t *testing.T) {
 	handler.Balances(rec, req)
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "1.25") {
 		t.Fatalf("expected decimal balance response, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestLeaveHandlerUpdateTypeConfig(t *testing.T) {
+	wsID, typeID := uuid.New(), uuid.New()
+	repo := &mockLeaveRepository{
+		updateConfigRecord: LeaveTypeRecord{ID: typeID, Code: "annual", Name: "Annual", IsPaid: true},
+	}
+	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:types:manage": true}}}
+	req := leaveRequest(t, http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/leave/types/"+typeID.String()+"/config", `{"policy_config":{"requires_document":true,"allow_negative_balance":false,"approval_required":true}}`, wsID)
+	req.SetPathValue("id", typeID.String())
+	rec := httptest.NewRecorder()
+	handler.UpdateTypeConfig(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestLeaveHandlerDeleteType(t *testing.T) {
+	wsID, typeID := uuid.New(), uuid.New()
+	repo := &mockLeaveRepository{}
+	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:types:manage": true}}}
+	req := leaveRequest(t, http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/leave/types/"+typeID.String(), "", wsID)
+	req.SetPathValue("id", typeID.String())
+	rec := httptest.NewRecorder()
+	handler.DeleteType(rec, req)
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d", rec.Code)
+	}
+}
+
+func TestLeaveHandlerRestoreType(t *testing.T) {
+	wsID, typeID := uuid.New(), uuid.New()
+	repo := &mockLeaveRepository{
+		restoreTypeRecord: LeaveTypeRecord{ID: typeID, Code: "annual", Name: "Annual", IsPaid: true},
+	}
+	handler := LeaveHandler{Repository: repo, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{"leave:types:manage": true}}}
+	req := leaveRequest(t, http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/leave/types/"+typeID.String()+"/restore", "", wsID)
+	req.SetPathValue("id", typeID.String())
+	rec := httptest.NewRecorder()
+	handler.RestoreType(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestLeaveHandlerLifecycleForbidden(t *testing.T) {
+	wsID, typeID := uuid.New(), uuid.New()
+	handler := LeaveHandler{Repository: &mockLeaveRepository{}, Authorizer: mockLeaveAuthorizer{allowed: map[string]bool{}}}
+	req := leaveRequest(t, http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/leave/types/"+typeID.String(), "", wsID)
+	req.SetPathValue("id", typeID.String())
+	rec := httptest.NewRecorder()
+	handler.DeleteType(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", rec.Code)
 	}
 }

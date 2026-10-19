@@ -96,6 +96,71 @@ func (r LeaveRepository) ListLeaveTypes(ctx context.Context, workspaceID uuid.UU
 	return types, rows.Err()
 }
 
+func (r LeaveRepository) UpdateLeaveTypeConfig(ctx context.Context, workspaceID, leaveTypeID uuid.UUID, policyConfig json.RawMessage) (api.LeaveTypeRecord, error) {
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return api.LeaveTypeRecord{}, err
+	}
+	var record api.LeaveTypeRecord
+	var rawConfig []byte
+	var createdAt time.Time
+	err = db.QueryRow(ctx, `UPDATE leave_types SET policy_config = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND workspace_id = $3 RETURNING id, workspace_id, code, name, is_paid, policy_config, created_at`, policyConfig, leaveTypeID, workspaceID).
+		Scan(&record.ID, &record.WorkspaceID, &record.Code, &record.Name, &record.IsPaid, &rawConfig, &createdAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return api.LeaveTypeRecord{}, api.ErrLeaveTypeNotFound
+		}
+		return api.LeaveTypeRecord{}, err
+	}
+	record.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+	record.PolicyConfig = json.RawMessage(rawConfig)
+	return record, nil
+}
+
+func (r LeaveRepository) DeleteLeaveType(ctx context.Context, workspaceID, leaveTypeID uuid.UUID) error {
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	var inUse bool
+	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM leave_balances lb JOIN employments e ON e.id = lb.employment_id WHERE lb.leave_type_id = $1 AND e.workspace_id = $2)`, leaveTypeID, workspaceID).Scan(&inUse)
+	if err != nil {
+		return err
+	}
+	if inUse {
+		return api.ErrLeaveConflict
+	}
+	tag, err := db.Exec(ctx, `UPDATE leave_types SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 AND workspace_id = $2`, leaveTypeID, workspaceID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return api.ErrLeaveTypeNotFound
+	}
+	return nil
+}
+
+func (r LeaveRepository) RestoreLeaveType(ctx context.Context, workspaceID, leaveTypeID uuid.UUID) (api.LeaveTypeRecord, error) {
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return api.LeaveTypeRecord{}, err
+	}
+	var record api.LeaveTypeRecord
+	var rawConfig []byte
+	var createdAt time.Time
+	err = db.QueryRow(ctx, `UPDATE leave_types SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NOT NULL RETURNING id, workspace_id, code, name, is_paid, policy_config, created_at`, leaveTypeID, workspaceID).
+		Scan(&record.ID, &record.WorkspaceID, &record.Code, &record.Name, &record.IsPaid, &rawConfig, &createdAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return api.LeaveTypeRecord{}, api.ErrLeaveTypeNotFound
+		}
+		return api.LeaveTypeRecord{}, err
+	}
+	record.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+	record.PolicyConfig = json.RawMessage(rawConfig)
+	return record, nil
+}
+
 func (r LeaveRepository) SubmitLeaveRequest(ctx context.Context, workspaceID, requesterID uuid.UUID, req api.SubmitLeaveRequest, autoApprove bool) (api.LeaveRequestRecord, error) {
 	tx, err := r.begin(ctx, workspaceID)
 	if err != nil {

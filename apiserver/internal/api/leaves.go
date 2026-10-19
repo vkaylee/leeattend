@@ -87,9 +87,16 @@ type CreateLeaveTypeRequest struct {
 	PolicyConfig json.RawMessage `json:"policy_config"`
 }
 
+type UpdateLeaveTypeConfigRequest struct {
+	PolicyConfig json.RawMessage `json:"policy_config"`
+}
+
 type LeaveRepository interface {
 	CreateLeaveType(context.Context, uuid.UUID, CreateLeaveTypeRequest) (LeaveTypeRecord, error)
 	ListLeaveTypes(context.Context, uuid.UUID) ([]LeaveTypeRecord, error)
+	UpdateLeaveTypeConfig(context.Context, uuid.UUID, uuid.UUID, json.RawMessage) (LeaveTypeRecord, error)
+	DeleteLeaveType(context.Context, uuid.UUID, uuid.UUID) error
+	RestoreLeaveType(context.Context, uuid.UUID, uuid.UUID) (LeaveTypeRecord, error)
 	SubmitLeaveRequest(context.Context, uuid.UUID, uuid.UUID, SubmitLeaveRequest, bool) (LeaveRequestRecord, error)
 	ListWorkspaceLeaveRequests(context.Context, uuid.UUID, *string) ([]LeaveRequestRecord, error)
 	ApproveLeaveRequest(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string) error
@@ -137,6 +144,77 @@ func (h LeaveHandler) ListTypes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, types)
+}
+
+func (h LeaveHandler) UpdateTypeConfig(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	leaveTypeID, idOK := pathUUID(r, "id")
+	if !ok || !idOK || !h.allowed(r, workspaceID, "leave:types:manage") {
+		h.forbidden(w, r)
+		return
+	}
+	req, err := DecodeJSON[UpdateLeaveTypeConfigRequest](r, 1<<20)
+	if err != nil || !validLeaveTypeConfig(req.PolicyConfig) {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	record, err := h.Repository.UpdateLeaveTypeConfig(r.Context(), workspaceID, leaveTypeID, req.PolicyConfig)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, record)
+}
+
+func (h LeaveHandler) DeleteType(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	leaveTypeID, idOK := pathUUID(r, "id")
+	if !ok || !idOK || !h.allowed(r, workspaceID, "leave:types:manage") {
+		h.forbidden(w, r)
+		return
+	}
+	if err := h.Repository.DeleteLeaveType(r.Context(), workspaceID, leaveTypeID); err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h LeaveHandler) RestoreType(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	leaveTypeID, idOK := pathUUID(r, "id")
+	if !ok || !idOK || !h.allowed(r, workspaceID, "leave:types:manage") {
+		h.forbidden(w, r)
+		return
+	}
+	record, err := h.Repository.RestoreLeaveType(r.Context(), workspaceID, leaveTypeID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, record)
+}
+
+func validLeaveTypeConfig(value json.RawMessage) bool {
+	var raw map[string]json.RawMessage
+	if len(value) == 0 || json.Unmarshal(value, &raw) != nil || raw == nil {
+		return false
+	}
+	for _, key := range []string{"requires_document", "allow_negative_balance", "approval_required"} {
+		if item, ok := raw[key]; ok {
+			var v bool
+			if json.Unmarshal(item, &v) != nil {
+				return false
+			}
+		}
+	}
+	if item, ok := raw["negative_balance_limit"]; ok && string(item) != "null" {
+		var v float64
+		if json.Unmarshal(item, &v) != nil {
+			return false
+		}
+	}
+	return true
 }
 
 func (h LeaveHandler) Submit(w http.ResponseWriter, r *http.Request) {

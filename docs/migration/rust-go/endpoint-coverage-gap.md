@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **143**
-- Contract routes covered: **120**
-- Contract routes missing: **283**
+- Go route registrations: **146**
+- Contract routes covered: **123**
+- Contract routes missing: **280**
 
 ## Missing routes
 
@@ -204,9 +204,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | DELETE | `/api/v1/workspaces/{ws_id}/leave/policies/assignments/{assignment_id}` | Permission::LeavePoliciesManage |
 | DELETE | `/api/v1/workspaces/{ws_id}/leave/policies/{policy_id}` | Permission::LeavePoliciesManage |
 | PATCH | `/api/v1/workspaces/{ws_id}/leave/policies/{policy_id}` | Permission::LeavePoliciesManage |
-| DELETE | `/api/v1/workspaces/{ws_id}/leave/types/{id}` | Permission::LeaveTypesManage |
-| PUT | `/api/v1/workspaces/{ws_id}/leave/types/{id}/config` | Permission::LeaveTypesManage |
-| POST | `/api/v1/workspaces/{ws_id}/leave/types/{id}/restore` | Permission::LeaveTypesManage |
 | POST | `/api/v1/workspaces/{ws_id}/leave/upload-excel` | Permission::LeaveRequestsSubmit |
 | GET | `/api/v1/workspaces/{ws_id}/leave/upload-template` | Permission::LeaveRequestsSubmit |
 | GET | `/api/v1/workspaces/{ws_id}/lifecycle-templates` | Permission::WorkspaceSettingsRead |

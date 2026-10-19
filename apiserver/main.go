@@ -190,6 +190,9 @@ func main() {
 	leaveHandler := api.LeaveHandler{Repository: leaveRepo, Authorizer: workspaceAuthorizer}
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/leave/types", leaveHandler.ListTypes)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/leave/types", leaveHandler.CreateType)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/leave/types/{id}/config", leaveHandler.UpdateTypeConfig)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/leave/types/{id}", leaveHandler.DeleteType)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/leave/types/{id}/restore", leaveHandler.RestoreType)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/leave/submit", leaveHandler.Submit)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/leave/requests", leaveHandler.ListRequests)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/leave/requests/{id}/approve", leaveHandler.Approve)
