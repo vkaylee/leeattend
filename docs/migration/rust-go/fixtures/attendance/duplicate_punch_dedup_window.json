@@ -1,0 +1,46 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "ATT-PUNCH-002",
+    "domain": "attendance",
+    "name": "duplicate_punch_dedup_window",
+    "description": "Repeated punch with same employment, timestamp, punch and status is deduplicated; sub-five-second events collapse to one log event and do not create duplicate sessions",
+    "source_ref": "apiserver/tests/integration/attendance/service.rs:159-340 (test_same_second_punch_with_different_status_allowed); apiserver/src/services/pairing/context.rs:127-133; apiserver/src/repositories/diesel_raw_attendance_log_repository.rs:60-70,292-315",
+    "tags": ["attendance", "punch", "deduplication", "idempotency", "p3-05"]
+  },
+  "request": {
+    "method": "POST",
+    "path": "/api/v1/workspaces/{ws_id}/time/punch-in",
+    "path_params": {"ws_id": "018d0000-0000-7000-8000-000000000001"},
+    "query": {},
+    "headers": {"content-type": "application/json", "x-request-id": "018d0000-0000-0000-0000-000000000202"},
+    "body": {"employment_id": "018d0000-0000-7000-8000-000000000065", "entry_type": "work", "note": "Retransmitted device punch"}
+  },
+  "identity": {
+    "auth_type": "bearer",
+    "auth_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.dummy",
+    "user_id": "018d0000-0000-0000-0000-000000000010",
+    "workspace_id": "018d0000-0000-0000-0000-000000000001",
+    "role": "employee",
+    "permissions": ["ess:clock"],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {"database": "tenant", "table": "employments", "rows": [{"id": "018d0000-0000-0000-0000-000000000065", "workspace_id": "018d0000-0000-0000-0000-000000000001", "employee_id": "018d0000-0000-0000-0000-000000000060", "status": "active"}]},
+      {"database": "tenant", "table": "raw_attendance_logs", "rows": [{"id": "018d0000-0000-0000-0000-000000000210", "workspace_id": "018d0000-0000-0000-0000-000000000001", "employment_id": "018d0000-0000-0000-0000-000000000065", "punch_time": "2026-10-19T08:00:00Z", "punch": 0, "status": 1, "device_id": "ESS_WEB"}]},
+      {"database": "tenant", "table": "time_entries", "rows": [{"id": "018d0000-0000-0000-0000-000000000220", "workspace_id": "018d0000-0000-0000-0000-000000000001", "employment_id": "018d0000-0000-0000-0000-000000000065", "punch_in_time": "2026-10-19T08:00:00Z", "punch_out_time": null, "entry_type": "work"}]}
+    ],
+    "redis_seeds": [],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 201,
+    "headers": {"content-type": "application/json", "x-request-id": "018d0000-0000-0000-0000-000000000202"},
+    "body": {"id": "018d0000-0000-0000-0000-000000000220", "employment_id": "018d0000-0000-0000-0000-000000000065", "workspace_id": "018d0000-0000-0000-0000-000000000001", "punch_in_time": "2026-10-19T08:00:00Z", "punch_out_time": null, "entry_type": "work"},
+    "body_normalizations": []
+  },
+  "expected_side_effects": {"db_mutations": [], "redis_mutations": [], "outbox_events": [], "audit_events": []},
+  "normalization_rules": {"tolerances": {"timestamp_ms": 2000, "redis_ttl_seconds": 5}, "ignored_fields": [{"path": "response.headers.x-request-id", "reason": "Axum request_id_middleware propagates or generates UUIDv7", "source_citation": "apiserver/src/mw/request_id.rs:17-25", "verification": "uuid_v7"}]}
+}

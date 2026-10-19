@@ -1,0 +1,184 @@
+package api
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"strings"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
+	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
+)
+
+type EmployeeRecord struct {
+	ID                 uuid.UUID  `json:"id"`
+	WorkspaceID        uuid.UUID  `json:"workspace_id"`
+	UserID             *uuid.UUID `json:"user_id"`
+	FullName           string     `json:"full_name"`
+	EmployeeIDNumber   string     `json:"employee_id_number"`
+	Tags               []string   `json:"tags"`
+	CreatedAt          string     `json:"created_at"`
+	UpdatedAt          string     `json:"updated_at"`
+	DepartmentName     *string    `json:"department_name"`
+	ActiveEmploymentID *uuid.UUID `json:"active_employment_id"`
+	EmployerID         *uuid.UUID `json:"employer_id"`
+	PrimaryLocationID  *uuid.UUID `json:"primary_location_id"`
+}
+
+type CreateEmployeeRequest struct {
+	FullName          string     `json:"full_name"`
+	EmployeeIDNumber  string     `json:"employee_id_number"`
+	HireDate          string     `json:"hire_date"`
+	PrimaryLocationID *uuid.UUID `json:"primary_location_id"`
+	EmployerID        *uuid.UUID `json:"employer_id"`
+	DepartmentID      *uuid.UUID `json:"department_id"`
+	Tags              []string   `json:"tags"`
+}
+type RehireEmployeeRequest struct {
+	HireDate          string     `json:"hire_date"`
+	EmployerID        *uuid.UUID `json:"employer_id"`
+	PrimaryLocationID *uuid.UUID `json:"primary_location_id"`
+}
+type EmployeeListResponse struct {
+	Data      []EmployeeRecord `json:"data"`
+	Total     int64            `json:"total"`
+	Page      int              `json:"page"`
+	Limit     int              `json:"limit"`
+	Truncated *bool            `json:"truncated"`
+}
+type CustomFieldValuesRequest struct {
+	Values []CustomFieldValue `json:"values"`
+}
+type CustomFieldValue struct {
+	FieldID uuid.UUID `json:"field_id"`
+	Value   string    `json:"value"`
+}
+
+type EmployeeRepository interface {
+	CreateEmployee(context.Context, uuid.UUID, CreateEmployeeRequest) (EmployeeRecord, error)
+	ListEmployees(context.Context, uuid.UUID, int, int, string) (EmployeeListResponse, error)
+	SoftDeleteEmployee(context.Context, uuid.UUID, uuid.UUID) error
+	RehireEmployee(context.Context, uuid.UUID, uuid.UUID, RehireEmployeeRequest) (EmployeeRecord, error)
+	PutCustomFields(context.Context, uuid.UUID, uuid.UUID, CustomFieldValuesRequest) error
+}
+
+type EmployeeAuthorizer interface {
+	HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool
+}
+type EmployeeHandler struct {
+	Repository EmployeeRepository
+	Authorizer EmployeeAuthorizer
+}
+
+func (h EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	if !ok || !h.allowed(r, workspaceID, "employees:create") {
+		h.forbidden(w, r)
+		return
+	}
+	request, err := DecodeJSON[CreateEmployeeRequest](r, 1<<20)
+	if err != nil || strings.TrimSpace(request.FullName) == "" || strings.TrimSpace(request.EmployeeIDNumber) == "" || request.HireDate == "" {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	employee, err := h.Repository.CreateEmployee(r.Context(), workspaceID, request)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusCreated, employee)
+}
+
+func (h EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	if !ok || !h.allowed(r, workspaceID, "employees:read") {
+		h.forbidden(w, r)
+		return
+	}
+	pagination, err := ParsePagination(r.URL.Query())
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	result, err := h.Repository.ListEmployees(r.Context(), workspaceID, pagination.Page, pagination.Limit, r.URL.Query().Get("search"))
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, result)
+}
+
+func (h EmployeeHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	employeeID, employeeOK := pathUUID(r, "id")
+	if !ok || !employeeOK || !h.allowed(r, workspaceID, "employees:delete") {
+		h.forbidden(w, r)
+		return
+	}
+	if err := h.Repository.SoftDeleteEmployee(r.Context(), workspaceID, employeeID); err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h EmployeeHandler) Rehire(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	employeeID, employeeOK := pathUUID(r, "id")
+	if !ok || !employeeOK || !h.allowed(r, workspaceID, "employees:rehire") {
+		h.forbidden(w, r)
+		return
+	}
+	request, err := DecodeJSON[RehireEmployeeRequest](r, 1<<20)
+	if err != nil || request.HireDate == "" {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	employee, err := h.Repository.RehireEmployee(r.Context(), workspaceID, employeeID, request)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, employee)
+}
+
+func (h EmployeeHandler) CustomFields(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	employeeID, employeeOK := pathUUID(r, "entity_id")
+	userID, userOK := httpinfra.UserIDFromContext(r.Context())
+	if !ok || !employeeOK || !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, "employees:update") {
+		h.forbidden(w, r)
+		return
+	}
+	request, err := DecodeJSON[CustomFieldValuesRequest](r, 1<<20)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if err := h.Repository.PutCustomFields(r.Context(), workspaceID, employeeID, request); err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h EmployeeHandler) allowed(r *http.Request, workspaceID uuid.UUID, permission string) bool {
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, workspaceID, permission)
+}
+func (h EmployeeHandler) forbidden(w http.ResponseWriter, r *http.Request) {
+	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+}
+func (h EmployeeHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+	if errors.Is(err, ErrConflict) {
+		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
+		return
+	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
+		return
+	}
+	apperror.WriteError(w, r, apperror.Internal(err))
+}

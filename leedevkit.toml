@@ -1,12 +1,12 @@
 [devkit]
-version = "0.3.17"
+version = "0.7.27"
 install = "per-project"
 source = "release"
 
 [project]
 name = "LeeAttend"
 namespace = "leeattend"
-languages = ["rust", "typescript"]
+languages = ["rust", "typescript", "go"]
 
 [services.apiserver]
 dockerfile = "./apiserver"
@@ -26,10 +26,24 @@ lang = "typescript"
 ports = [5173]
 bun = true
 
+[services.api-go]
+dockerfile = "./apiserver"
+lang = "go"
+workdir = "apiserver"
+ports = [3001]
+health_check = "/health"
+go = true
+
 [targets]
 api = ["apiserver", "agent-main"]
 web = ["webdashboard"]
-all = ["apiserver", "agent-main", "webdashboard"]
+api-go = ["api-go"]
+all = ["apiserver", "agent-main", "webdashboard", "api-go"]
+
+[test.dependencies]
+lint-go = ["api-go"]
+unit-go = ["api-go"]
+int-go = ["api-go"]
 
 [ai]
 rules_dir = ".attendagent/rules"

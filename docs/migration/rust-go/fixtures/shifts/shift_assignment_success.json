@@ -1,0 +1,71 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "ROSTER-SHIFT-002",
+    "domain": "roster",
+    "name": "shift_assignment_success",
+    "description": "Assign existing shift to employment from a fixed start date",
+    "source_ref": "apiserver/tests/integration/shift/api.rs:71-100; apiserver/src/handlers/shifts.rs:344-413",
+    "tags": ["shifts", "assignment", "p3-06"]
+  },
+  "request": {
+    "method": "POST",
+    "path": "/api/v1/workspaces/{ws_id}/shifts/assign",
+    "path_params": {"ws_id": "018d0000-0000-7000-8000-000000000001"},
+    "query": {},
+    "headers": {
+      "content-type": "application/json",
+      "x-workspace-id": "018d0000-0000-7000-8000-000000000001",
+      "x-user-id": "018d0000-0000-0000-0000-000000000010"
+    },
+    "body": {
+      "employment_id": "018d0000-0000-7000-8000-000000000020",
+      "shift_id": "018d0000-0000-7000-8000-000000000050",
+      "start_date": "2026-10-19",
+      "end_date": null,
+      "allow_warnings": false,
+      "override_reason": null
+    }
+  },
+  "identity": {
+    "auth_type": "header_impersonation",
+    "auth_token": null,
+    "user_id": "018d0000-0000-0000-0000-000000000010",
+    "workspace_id": "018d0000-0000-7000-8000-000000000001",
+    "role": "admin",
+    "permissions": ["RostersManage", "ShiftsCreate"],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {"database": "tenant", "table": "shifts", "rows": [{"id": "018d0000-0000-7000-8000-000000000050", "workspace_id": "018d0000-0000-7000-8000-000000000001", "name": "Night Shift", "is_active": true}]},
+      {"database": "tenant", "table": "employments", "rows": [{"id": "018d0000-0000-7000-8000-000000000020", "employee_id": "018d0000-0000-7000-8000-000000000030", "workspace_id": "018d0000-0000-7000-8000-000000000001"}]},
+      {"database": "tenant", "table": "employee_shifts", "rows": []}
+    ],
+    "redis_seeds": [],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 200,
+    "headers": {},
+    "body": null,
+    "body_normalizations": []
+  },
+  "expected_side_effects": {
+    "db_mutations": [{
+      "database": "tenant",
+      "table": "employee_shifts",
+      "operation": "INSERT",
+      "pk_filter": {"employment_id": "018d0000-0000-7000-8000-000000000020", "shift_id": "018d0000-0000-7000-8000-000000000050", "start_date": "2026-10-19"},
+      "columns": {"employment_id": "018d0000-0000-7000-8000-000000000020", "shift_id": "018d0000-0000-7000-8000-000000000050", "start_date": "2026-10-19", "end_date": null}
+    }],
+    "redis_mutations": [{"command": "SET", "key": "roster:version:018d0000-0000-0000-0000-000000000001", "value": "<new_generation_uuid>", "ttl_seconds": 0}],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {
+    "tolerances": {},
+    "ignored_fields": [{"path": "response.headers.x-request-id", "reason": "Generated request ID", "source_citation": "apiserver/src/mw/request_id.rs:17-25", "verification": "uuid_v7"}]
+  }
+}

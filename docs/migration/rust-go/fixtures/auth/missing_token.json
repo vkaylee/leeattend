@@ -1,0 +1,81 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "AUTH-001",
+    "domain": "auth",
+    "name": "missing_token_unauthorized",
+    "description": "Request to protected workspace endpoint without Authorization header or session cookie yields 401 Unauthorized",
+    "source_ref": "apiserver/src/lib.rs:252-255; apiserver/tests/integration/misc/forbidden.rs:10-22",
+    "tags": ["auth", "security", "unauthorized", "p3-02"]
+  },
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/workspaces/{ws_id}/roles",
+    "path_params": {
+      "ws_id": "018d0000-0000-7000-8000-000000000001"
+    },
+    "query": {},
+    "headers": {
+      "accept": "application/json"
+    },
+    "body": null
+  },
+  "identity": {
+    "auth_type": "anonymous",
+    "auth_token": null,
+    "user_id": null,
+    "workspace_id": null,
+    "role": null,
+    "permissions": [],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {
+        "database": "system",
+        "table": "workspaces",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000001",
+            "name": "Acme Corp",
+            "date_format": "DD/MM/YYYY",
+            "time_format": "24h",
+            "timezone": "Asia/Ho_Chi_Minh",
+            "theme_primary_color": "#7c3aed",
+            "default_language": "vi"
+          }
+        ]
+      }
+    ],
+    "redis_seeds": [],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 401,
+    "headers": {
+      "content-type": "text/plain; charset=utf-8"
+    },
+    "body": "Authentication required",
+    "body_normalizations": []
+  },
+  "expected_side_effects": {
+    "db_mutations": [],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {
+    "tolerances": {
+      "timestamp_ms": 1000
+    },
+    "ignored_fields": [
+      {
+        "path": "response.headers.x-request-id",
+        "reason": "Axum request_id_middleware generates new UUIDv7 if incoming header absent",
+        "source_citation": "apiserver/src/mw/request_id.rs:17-25",
+        "verification": "uuid_v7"
+      }
+    ]
+  }
+}

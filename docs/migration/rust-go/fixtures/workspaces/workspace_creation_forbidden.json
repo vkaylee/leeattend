@@ -1,0 +1,83 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "WS-002",
+    "domain": "workspaces",
+    "name": "create_workspace_regular_user_forbidden",
+    "description": "Regular user without platform_admin cannot create workspace; creation is denied before provisioning",
+    "source_ref": "apiserver/tests/integration/workspace/management.rs:17-44; apiserver/src/handlers/workspaces/crud.rs:496-502; apiserver/src/handlers/system_auth.rs:100-130",
+    "tags": ["workspaces", "authorization", "forbidden", "p3-03"]
+  },
+  "request": {
+    "method": "POST",
+    "path": "/api/v1/workspaces",
+    "query": {},
+    "headers": {
+      "authorization": "Bearer <valid-jwt-token-regular-user>",
+      "content-type": "application/json"
+    },
+    "body": {
+      "name": "Unauthorized Workspace",
+      "database_url": "postgres://user:pass@host:5432/db"
+    }
+  },
+  "identity": {
+    "auth_type": "bearer",
+    "auth_token": "<valid-jwt-token-regular-user>",
+    "user_id": "018d0000-0000-7000-8000-000000000010",
+    "workspace_id": null,
+    "role": null,
+    "permissions": [],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {
+        "database": "system",
+        "table": "users",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000010",
+            "email": "regular@example.com",
+            "full_name": "Regular User"
+          }
+        ]
+      }
+    ],
+    "redis_seeds": [],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 403,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "error": {
+        "code": "FORBIDDEN",
+        "message": "Permission denied"
+      }
+    },
+    "body_normalizations": []
+  },
+  "expected_side_effects": {
+    "db_mutations": [],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {
+    "tolerances": {
+      "timestamp_ms": 1000
+    },
+    "ignored_fields": [
+      {
+        "path": "response.headers.x-request-id",
+        "reason": "Axum request_id_middleware generates new UUIDv7 if incoming header absent",
+        "source_citation": "apiserver/src/mw/request_id.rs:17-25",
+        "verification": "uuid_v7"
+      }
+    ]
+  }
+}

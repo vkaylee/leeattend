@@ -13,8 +13,10 @@
     clippy::struct_field_names,
     clippy::option_if_let_else,
     clippy::items_after_statements,
-    // TECH_DEBT: Defer similar_names to build cleanly
     clippy::similar_names,
+    clippy::double_must_use,
+    clippy::unused_async,
+    clippy::unused_async_trait_impl,
     clippy::multiple_crate_versions
 )]
 #![warn(clippy::too_many_lines)]

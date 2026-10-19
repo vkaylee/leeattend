@@ -1,0 +1,122 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "LEAVE-APPR-002",
+    "domain": "leaves",
+    "name": "leave_approval_transition_rejected",
+    "description": "Transition pending leave request to rejected status via manager approval endpoint",
+    "source_ref": "apiserver/tests/integration/approval_workflow_tests.rs:106-141; apiserver/src/handlers/leaves.rs:122-152; apiserver/src/services/leave_service/approval.rs:27-100",
+    "tags": ["leaves", "approval", "workflow", "state-transition", "rejection", "p3-07"]
+  },
+  "request": {
+    "method": "POST",
+    "path": "/api/v1/workspaces/{ws_id}/leave/requests/{id}/approve",
+    "path_params": {
+      "ws_id": "018d0000-0000-0000-0000-000000000001",
+      "id": "018d0000-0000-0000-0000-000000000071"
+    },
+    "query": {},
+    "headers": {
+      "content-type": "application/json",
+      "x-workspace-id": "018d0000-0000-0000-0000-000000000001",
+      "x-user-id": "018d0000-0000-0000-0000-000000000010"
+    },
+    "body": {
+      "status": "rejected"
+    }
+  },
+  "identity": {
+    "auth_type": "header_impersonation",
+    "auth_token": null,
+    "user_id": "018d0000-0000-0000-0000-000000000010",
+    "workspace_id": "018d0000-0000-0000-0000-000000000001",
+    "role": "admin",
+    "permissions": ["leave_requests.approve"],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {
+        "database": "tenant",
+        "table": "employments",
+        "rows": [
+          {
+            "id": "018d0000-0000-0000-0000-000000000020",
+            "workspace_id": "018d0000-0000-0000-0000-000000000001",
+            "employee_id": "018d0000-0000-0000-0000-000000000030",
+            "status": "active"
+          }
+        ]
+      },
+      {
+        "database": "tenant",
+        "table": "leave_types",
+        "rows": [
+          {
+            "id": "018d0000-0000-0000-0000-000000000060",
+            "workspace_id": "018d0000-0000-0000-0000-000000000001",
+            "code": "vacation",
+            "name": "Vacation",
+            "is_paid": true,
+            "policy_config": {}
+          }
+        ]
+      },
+      {
+        "database": "tenant",
+        "table": "leave_requests",
+        "rows": [
+          {
+            "id": "018d0000-0000-0000-0000-000000000071",
+            "employment_id": "018d0000-0000-0000-0000-000000000020",
+            "leave_type_id": "018d0000-0000-0000-0000-000000000060",
+            "start_date": "2026-07-01",
+            "end_date": "2026-07-02",
+            "status": "pending",
+            "duration_type": "full_day",
+            "requested_by_user_id": "018d0000-0000-0000-0000-000000000012"
+          }
+        ]
+      }
+    ],
+    "redis_seeds": [],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 200,
+    "headers": {},
+    "body": null,
+    "body_normalizations": []
+  },
+  "expected_side_effects": {
+    "db_mutations": [
+      {
+        "database": "tenant",
+        "table": "leave_requests",
+        "operation": "UPDATE",
+        "pk_filter": {
+          "id": "018d0000-0000-0000-0000-000000000071"
+        },
+        "columns": {
+          "status": "rejected",
+          "approved_by_user_id": "018d0000-0000-0000-0000-000000000010"
+        }
+      }
+    ],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {
+    "tolerances": {},
+    "ignored_fields": [
+      {
+        "path": "response.headers.x-request-id",
+        "reason": "Request ID middleware generates a UUID when header is absent",
+        "source_citation": "apiserver/src/mw/request_id.rs:17-25",
+        "verification": "uuid_v7"
+      }
+    ]
+  }
+}

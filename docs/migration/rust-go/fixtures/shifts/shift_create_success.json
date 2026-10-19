@@ -1,0 +1,196 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "ROSTER-SHIFT-001",
+    "domain": "roster",
+    "name": "shift_create_success",
+    "description": "Create standard night shift with break duration and early punch-in grace period",
+    "source_ref": "apiserver/tests/integration/shift/api.rs:16-54; apiserver/src/handlers/shifts.rs:253-272",
+    "tags": ["shifts", "roster", "crud", "p3-06"]
+  },
+  "request": {
+    "method": "POST",
+    "path": "/api/v1/workspaces/{ws_id}/shifts",
+    "path_params": {
+      "ws_id": "018d0000-0000-7000-8000-000000000001"
+    },
+    "query": {},
+    "headers": {
+      "content-type": "application/json",
+      "x-workspace-id": "018d0000-0000-7000-8000-000000000001",
+      "x-user-id": "018d0000-0000-7000-8000-000000000010"
+    },
+    "body": {
+      "name": "Night Shift",
+      "report_symbol": "N",
+      "location_id": null,
+      "employer_id": null,
+      "intervals": [
+        {
+          "start_time": "22:00:00",
+          "end_time": "06:00:00",
+          "break_duration_minutes": 30,
+          "is_break_auto_deduct": true,
+          "break_is_overtime": false,
+          "early_punch_in_grace_period_minutes": 15
+        }
+      ]
+    }
+  },
+  "identity": {
+    "auth_type": "header_impersonation",
+    "auth_token": null,
+    "user_id": "018d0000-0000-7000-8000-000000000010",
+    "workspace_id": "018d0000-0000-7000-8000-000000000001",
+    "role": "admin",
+    "permissions": [
+      "shifts:create",
+      "shifts:read"
+    ],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {
+        "database": "system",
+        "table": "users",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000010",
+            "email": "admin@example.com",
+            "password_hash": "$argon2id$v=19$m=19456,t=2,p=1$...",
+            "full_name": "Admin User",
+            "created_at": "2026-01-01T00:00:00Z"
+          }
+        ]
+      },
+      {
+        "database": "tenant",
+        "table": "shifts",
+        "rows": []
+      }
+    ],
+    "redis_seeds": [],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 201,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "id": "018d0000-0000-7000-8000-000000000050",
+      "workspace_id": "018d0000-0000-7000-8000-000000000001",
+      "name": "Night Shift",
+      "report_symbol": "N",
+      "is_active": true,
+      "parent_shift_id": null,
+      "location_id": null,
+      "employer_id": null,
+      "created_at": "2026-10-19T10:00:00Z",
+      "updated_at": "2026-10-19T10:00:00Z"
+    },
+    "body_normalizations": [
+      {
+        "path": "$.id",
+        "kind": "generated_uuid",
+        "reason": "Shift ID generated via UUIDv7 in Rust repository",
+        "source_citation": "apiserver/src/utils/id.rs:1-21; apiserver/src/repositories/diesel_shift_repository.rs:35"
+      },
+      {
+        "path": "$.created_at",
+        "kind": "generated_time",
+        "tolerance_ms": 1000,
+        "reason": "Timestamp generated via Utc::now() at row creation",
+        "source_citation": "apiserver/src/repositories/diesel_shift_repository.rs:40"
+      },
+      {
+        "path": "$.updated_at",
+        "kind": "generated_time",
+        "tolerance_ms": 1000,
+        "reason": "Timestamp generated via Utc::now() at row creation",
+        "source_citation": "apiserver/src/repositories/diesel_shift_repository.rs:41"
+      }
+    ]
+  },
+  "expected_side_effects": {
+    "db_mutations": [
+      {
+        "database": "tenant",
+        "table": "shift_templates",
+        "operation": "INSERT",
+        "pk_filter": {
+          "workspace_id": "018d0000-0000-7000-0000-000000000001",
+          "name": "Night Shift"
+        },
+        "columns": {
+          "workspace_id": "018d0000-0000-7000-0000-000000000001",
+          "name": "Night Shift",
+          "current_version_id": "<generated_uuid>"
+        }
+      },
+      {
+        "database": "tenant",
+        "table": "shift_versions",
+        "operation": "INSERT",
+        "pk_filter": {
+          "template_id": "<generated_uuid>",
+          "version_number": 1
+        },
+        "columns": {
+          "workspace_id": "018d0000-0000-0000-0000-000000000001",
+          "name": "Night Shift",
+          "change_type": "create",
+          "created_by": "018d0000-0000-0000-0000-000000000010"
+        }
+      },
+      {
+        "database": "tenant",
+        "table": "shift_default_intervals",
+        "operation": "INSERT",
+        "pk_filter": {
+          "version_id": "<generated_uuid>",
+          "sort_order": 0
+        },
+        "columns": {
+          "start_time": "22:00:00",
+          "end_time": "06:00:00",
+          "break_duration_minutes": 30,
+          "is_break_auto_deduct": true,
+          "break_is_overtime": false,
+          "early_punch_in_grace_period_minutes": 15
+        }
+      },
+      {
+        "database": "tenant",
+        "table": "shift_audit_log",
+        "operation": "INSERT",
+        "pk_filter": {
+          "template_id": "<generated_uuid>",
+          "action": "create"
+        },
+        "columns": {
+          "change_type": "create",
+          "changed_by": "018d0000-0000-0000-0000-000000000010"
+        }
+      }
+    ],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {
+    "tolerances": {
+      "timestamp_ms": 1000
+    },
+    "ignored_fields": [
+      {
+        "path": "response.headers.x-request-id",
+        "reason": "Generated UUIDv7 request ID",
+        "source_citation": "apiserver/src/mw/request_id.rs:17-25",
+        "verification": "uuid_v7"
+      }
+    ]
+  }
+}

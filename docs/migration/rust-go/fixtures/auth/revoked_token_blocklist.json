@@ -1,0 +1,82 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "AUTH-004",
+    "domain": "auth",
+    "name": "revoked_token_redis_blocklist_unauthorized",
+    "description": "Otherwise-valid bearer JWT is rejected when its signature exists in Redis jwt:revoked blocklist",
+    "source_ref": "apiserver/src/lib.rs:122-156,180-197; apiserver/src/handlers/auth.rs:431-469",
+    "tags": ["auth", "jwt", "redis", "revocation", "unauthorized", "p3-02"]
+  },
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "query": {},
+    "headers": {
+      "authorization": "Bearer <valid-jwt-signature-revoked-sig-001>"
+    },
+    "body": null
+  },
+  "identity": {
+    "auth_type": "bearer",
+    "auth_token": "<valid-jwt-signature-revoked-sig-001>",
+    "user_id": "018d0000-0000-7000-8000-000000000010",
+    "workspace_id": null,
+    "role": null,
+    "permissions": [],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {
+        "database": "system",
+        "table": "users",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000010",
+            "email": "member@example.com",
+            "full_name": "Workspace Member"
+          }
+        ]
+      }
+    ],
+    "redis_seeds": [
+      {
+        "key": "jwt:revoked:revoked-sig-001",
+        "type": "string",
+        "value": "1",
+        "ttl_seconds": 900
+      }
+    ],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 401,
+    "headers": {
+      "content-type": "text/plain; charset=utf-8"
+    },
+    "body": "Authentication required",
+    "body_normalizations": []
+  },
+  "expected_side_effects": {
+    "db_mutations": [],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {
+    "tolerances": {
+      "timestamp_ms": 1000,
+      "redis_ttl_seconds": 5
+    },
+    "ignored_fields": [
+      {
+        "path": "response.headers.x-request-id",
+        "reason": "Axum request_id_middleware generates new UUIDv7 if incoming header absent",
+        "source_citation": "apiserver/src/mw/request_id.rs:17-25",
+        "verification": "uuid_v7"
+      }
+    ]
+  }
+}

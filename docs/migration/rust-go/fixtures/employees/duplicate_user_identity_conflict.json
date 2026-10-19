@@ -1,0 +1,99 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "EMP-UNIQUE-002",
+    "domain": "employees",
+    "name": "duplicate_user_identity_conflict",
+    "description": "Rejects linking a user identity/national ID profile already bound to another employee record in the workspace",
+    "source_ref": "apiserver/tests/integration/employee/management.rs:145-210 (test_employee_user_id_uniqueness); apiserver/src/services/employee_service/create.rs:23-31; apiserver/src/services/employee_service/tests/core_tests.rs:145-179",
+    "tags": ["employees", "identity", "uniqueness", "validation", "p3-04"]
+  },
+  "request": {
+    "method": "POST",
+    "path": "/api/v1/workspaces/{ws_id}/employees",
+    "path_params": {"ws_id": "018d0000-0000-7000-8000-000000000001"},
+    "query": {},
+    "headers": {"content-type": "application/json", "x-request-id": "018d0000-0000-7000-8000-000000000102"},
+    "body": {
+      "full_name": "Second Employee Linked To Same User",
+      "employee_id_number": "EMP002",
+      "hire_date": "2026-01-01",
+      "user_id": "018d0000-0000-7000-8000-000000000088",
+      "primary_location_id": "018d0000-0000-7000-8000-000000000020",
+      "employer_id": "018d0000-0000-7000-8000-000000000030"
+    }
+  },
+  "identity": {
+    "auth_type": "bearer",
+    "auth_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.dummy",
+    "user_id": "018d0000-0000-7000-8000-000000000010",
+    "workspace_id": "018d0000-0000-7000-8000-000000000001",
+    "role": "owner",
+    "permissions": ["employees:create"],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {
+        "database": "system",
+        "table": "users",
+        "rows": [{"id": "018d0000-0000-7000-8000-000000000088", "email": "target.identity@example.com", "full_name": "Target Person"}]
+      },
+      {
+        "database": "tenant",
+        "table": "employees",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000061",
+            "workspace_id": "018d0000-0000-7000-8000-000000000001",
+            "user_id": "018d0000-0000-7000-8000-000000000088",
+            "full_name": "First Existing Employee",
+            "employee_id_number": "EMP001",
+            "deleted_at": null
+          }
+        ]
+      },
+      {
+        "database": "tenant",
+        "table": "work_locations",
+        "rows": [{"id": "018d0000-0000-7000-8000-000000000020", "workspace_id": "018d0000-0000-7000-8000-000000000001", "is_headquarters": true}]
+      },
+      {
+        "database": "tenant",
+        "table": "employers",
+        "rows": [{"id": "018d0000-0000-7000-8000-000000000030", "workspace_id": "018d0000-0000-7000-8000-000000000001", "name": "Acme Corp"}]
+      }
+    ],
+    "redis_seeds": [],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 400,
+    "headers": {"content-type": "application/json", "x-request-id": "018d0000-0000-7000-8000-000000000102"},
+    "body": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Validation error: error.user_already_linked"
+      }
+    },
+    "body_normalizations": []
+  },
+  "expected_side_effects": {
+    "db_mutations": [],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {
+    "tolerances": {"timestamp_ms": 1000, "redis_ttl_seconds": 5},
+    "ignored_fields": [
+      {
+        "path": "response.headers.x-request-id",
+        "reason": "Axum request_id_middleware propagates or generates UUIDv7",
+        "source_citation": "apiserver/src/mw/request_id.rs:17-25",
+        "verification": "uuid_v7"
+      }
+    ]
+  }
+}

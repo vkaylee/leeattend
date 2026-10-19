@@ -1,0 +1,255 @@
+package api
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"strings"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
+	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
+)
+
+var ErrConflict = errors.New("api: conflict")
+
+type WorkspaceRecord struct {
+	ID                uuid.UUID `json:"id"`
+	Name              string    `json:"name"`
+	DateFormat        string    `json:"date_format"`
+	TimeFormat        string    `json:"time_format"`
+	Timezone          string    `json:"timezone"`
+	ThemePrimaryColor string    `json:"theme_primary_color"`
+	DefaultLanguage   string    `json:"default_language"`
+	LogoURL           *string   `json:"logo_url"`
+	Tagline           *string   `json:"tagline"`
+	HolidayOvernight  string    `json:"holiday_overnight_strategy"`
+	DefaultHolidayOT  string    `json:"default_holiday_ot_multiplier"`
+	CreatedAt         string    `json:"created_at"`
+}
+
+type WorkspacePatch struct {
+	Name              *string `json:"name"`
+	DateFormat        *string `json:"date_format"`
+	TimeFormat        *string `json:"time_format"`
+	Timezone          *string `json:"timezone"`
+	ThemePrimaryColor *string `json:"theme_primary_color"`
+	DefaultLanguage   *string `json:"default_language"`
+	LogoURL           *string `json:"logo_url"`
+	Tagline           *string `json:"tagline"`
+}
+
+func (p WorkspacePatch) Empty() bool {
+	return p.Name == nil && p.DateFormat == nil && p.TimeFormat == nil && p.Timezone == nil && p.ThemePrimaryColor == nil && p.DefaultLanguage == nil && p.LogoURL == nil && p.Tagline == nil
+}
+
+type CreateWorkspaceRequest struct {
+	Name        string `json:"name"`
+	DatabaseURL string `json:"database_url"`
+}
+type CreateRoleRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Color       string `json:"color"`
+	ScopeType   string `json:"scope_type"`
+}
+type FeatureFlagRecord struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspace_id"`
+	Key         string    `json:"key"`
+	Enabled     bool      `json:"enabled"`
+	Description *string   `json:"description"`
+}
+type FeatureFlagPatch struct {
+	Enabled *bool `json:"enabled"`
+}
+type ConfigEntryRequest struct {
+	ScopeType     string      `json:"scope_type"`
+	ScopeID       *uuid.UUID  `json:"scope_id"`
+	ConfigKey     string      `json:"config_key"`
+	Value         ConfigValue `json:"value"`
+	EffectiveFrom string      `json:"effective_from"`
+	EffectiveTo   *string     `json:"effective_to"`
+}
+type ConfigValue struct {
+	Int  *int64  `json:"Int"`
+	Text *string `json:"Text"`
+	Bool *bool   `json:"Bool"`
+}
+
+type WorkspaceRepository interface {
+	CreateWorkspace(context.Context, CreateWorkspaceRequest, uuid.UUID) (WorkspaceRecord, error)
+	UpdateWorkspace(context.Context, uuid.UUID, WorkspacePatch) (WorkspaceRecord, error)
+	CreateRole(context.Context, uuid.UUID, CreateRoleRequest) error
+	UpdateFeatureFlag(context.Context, uuid.UUID, uuid.UUID, FeatureFlagPatch) (FeatureFlagRecord, error)
+	GetFeatureFlag(context.Context, uuid.UUID, string) (FeatureFlagRecord, error)
+	PutConfig(context.Context, uuid.UUID, ConfigEntryRequest, uuid.UUID) error
+}
+
+type WorkspaceAuthorizer interface {
+	IsSystemAdmin(context.Context, uuid.UUID) bool
+	HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool
+}
+
+type WorkspaceHandler struct {
+	Repository WorkspaceRepository
+	Authorizer WorkspaceAuthorizer
+}
+
+func (h WorkspaceHandler) Create(w http.ResponseWriter, r *http.Request) {
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok || h.Authorizer == nil || !h.Authorizer.IsSystemAdmin(r.Context(), userID) {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	request, err := DecodeJSON[CreateWorkspaceRequest](r, 1<<20)
+	if err != nil || strings.TrimSpace(request.Name) == "" || strings.TrimSpace(request.DatabaseURL) == "" {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	workspace, err := h.Repository.CreateWorkspace(r.Context(), request, userID)
+	if err != nil {
+		h.writeRepositoryError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, workspace)
+}
+
+func (h WorkspaceHandler) Patch(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, "workspace:settings:write") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	patch, err := DecodeJSON[WorkspacePatch](r, 1<<20)
+	if err != nil || patch.Empty() {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	workspace, err := h.Repository.UpdateWorkspace(r.Context(), workspaceID, patch)
+	if err != nil {
+		h.writeRepositoryError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, workspace)
+}
+
+func (h WorkspaceHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, "members:roles:manage") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	request, err := DecodeJSON[CreateRoleRequest](r, 1<<20)
+	if err != nil || strings.TrimSpace(request.Name) == "" {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if err := h.Repository.CreateRole(r.Context(), workspaceID, request); err != nil {
+		h.writeRepositoryError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h WorkspaceHandler) UpdateFeatureFlag(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	flagID, flagOK := pathUUID(r, "id")
+	if !ok || !flagOK {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	userID, userOK := httpinfra.UserIDFromContext(r.Context())
+	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, "feature_flags:manage") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	patch, err := DecodeJSON[FeatureFlagPatch](r, 1<<20)
+	if err != nil || patch.Enabled == nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	flag, err := h.Repository.UpdateFeatureFlag(r.Context(), workspaceID, flagID, patch)
+	if err != nil {
+		h.writeRepositoryError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, flag)
+}
+
+func (h WorkspaceHandler) CheckFeatureFlag(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	userID, userOK := httpinfra.UserIDFromContext(r.Context())
+	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, "feature_flags:read") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	key := r.PathValue("key")
+	if key == "" {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	flag, err := h.Repository.GetFeatureFlag(r.Context(), workspaceID, key)
+	if errors.Is(err, pgx.ErrNoRows) {
+		apperror.WriteJSON(w, http.StatusOK, struct {
+			Enabled bool `json:"enabled"`
+		}{Enabled: false})
+		return
+	}
+	if err != nil {
+		h.writeRepositoryError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, flag)
+}
+
+func (h WorkspaceHandler) PutConfig(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	userID, userOK := httpinfra.UserIDFromContext(r.Context())
+	if !ok || !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, "workspace:settings:write") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	request, err := DecodeJSON[ConfigEntryRequest](r, 1<<20)
+	if err != nil || request.ConfigKey == "" || request.EffectiveFrom == "" {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if err := h.Repository.PutConfig(r.Context(), workspaceID, request, userID); err != nil {
+		h.writeRepositoryError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h WorkspaceHandler) writeRepositoryError(w http.ResponseWriter, r *http.Request, err error) {
+	if errors.Is(err, ErrConflict) {
+		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
+		return
+	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
+		return
+	}
+	apperror.WriteError(w, r, apperror.Internal(err))
+}
+
+func pathUUID(r *http.Request, key string) (uuid.UUID, bool) {
+	id, err := uuid.Parse(r.PathValue(key))
+	return id, err == nil
+}
