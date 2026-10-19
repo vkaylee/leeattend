@@ -1,0 +1,388 @@
+package repository
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/compliance"
+	"github.com/vkaylee/leeattend/apiserver/internal/service"
+)
+
+type ShiftRepository struct {
+	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	BeginTx  func(context.Context, uuid.UUID) (TxBeginner, error)
+}
+
+func (r ShiftRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+	if r.TenantDB == nil {
+		return nil, errors.New("shift repository: tenant database is not configured")
+	}
+	return r.TenantDB(ctx, workspaceID)
+}
+
+func (r ShiftRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxBeginner, error) {
+	if r.BeginTx != nil {
+		return r.BeginTx(ctx, workspaceID)
+	}
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	beginner, ok := db.(TxBeginner)
+	if !ok {
+		return nil, errors.New("shift repository: tenant database does not support transactions")
+	}
+	return beginner, nil
+}
+
+func (r ShiftRepository) CreateShift(ctx context.Context, workspaceID, actorID uuid.UUID, req api.CreateShiftRequest) (api.ShiftRecord, error) {
+	tx, err := r.begin(ctx, workspaceID)
+	if err != nil {
+		return api.ShiftRecord{}, err
+	}
+	templateID := uuid.New()
+	versionID := uuid.New()
+	now := time.Now().UTC()
+	var record api.ShiftRecord
+	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+		if _, err := db.Exec(ctx, `INSERT INTO shift_templates (id, workspace_id, name, current_version_id, created_at) VALUES ($1, $2, $3, NULL, $4)`, templateID, workspaceID, req.Name, now); err != nil {
+			return err
+		}
+		if _, err := db.Exec(ctx, `INSERT INTO shift_versions (id, template_id, workspace_id, version_number, name, report_symbol, location_id, employer_id, effective_from, effective_to, change_type, change_reason, superseded_by, created_by, created_at) VALUES ($1, $2, $3, 1, $4, $5, $6, $7, CURRENT_DATE, NULL, 'create', NULL, NULL, $8, $9)`, versionID, templateID, workspaceID, req.Name, req.ReportSymbol, req.LocationID, req.EmployerID, actorID, now); err != nil {
+			return err
+		}
+		if _, err := db.Exec(ctx, `UPDATE shift_templates SET current_version_id = $1 WHERE id = $2 AND workspace_id = $3`, versionID, templateID, workspaceID); err != nil {
+			return err
+		}
+		for index, interval := range req.Intervals {
+			if _, err := db.Exec(ctx, `INSERT INTO shift_default_intervals (id, version_id, sort_order, interval_name, start_time, end_time, break_duration_minutes, break_start, break_end, is_break_auto_deduct, break_is_overtime, early_punch_in_grace_period_minutes, allow_early_ot, max_early_ot_minutes, ot_aggregation_mode, is_night_shift, created_at, updated_at) VALUES ($1, $2, $3, $4, $5::time, $6::time, $7, $8::time, $9::time, $10, $11, $12, $13, $14, $15, $16, $17, $17)`, uuid.New(), versionID, index, interval.IntervalName, interval.StartTime, interval.EndTime, interval.BreakDurationMinutes, nullableClock(interval.BreakStart), nullableClock(interval.BreakEnd), interval.IsBreakAutoDeduct, interval.BreakIsOvertime, interval.EarlyPunchInGracePeriodMinutes, interval.AllowEarlyOT, interval.MaxEarlyOTMinutes, interval.OTAggregationMode, interval.IsNightShift, now); err != nil {
+				return err
+			}
+		}
+		if _, err := db.Exec(ctx, `INSERT INTO shift_audit_log (id, template_id, version_id, action, change_type, changed_by, change_reason, old_values, new_values, created_at) VALUES ($1, $2, $3, 'version_created', 'create', $4, NULL, NULL, NULL, $5)`, uuid.New(), templateID, versionID, actorID, now); err != nil {
+			return err
+		}
+		return scanShift(ctx, db, workspaceID, templateID, &record)
+	})
+	if err != nil {
+		return api.ShiftRecord{}, err
+	}
+	return record, nil
+}
+
+func (r ShiftRepository) ListShifts(ctx context.Context, workspaceID uuid.UUID, locationID, employerID *uuid.UUID, page, limit int) (api.PaginatedShifts, error) {
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return api.PaginatedShifts{}, err
+	}
+	var total int64
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id WHERE t.workspace_id = $1 AND v.effective_to IS NULL AND ($2::uuid IS NULL OR v.location_id IS NULL OR v.location_id = $2) AND ($3::uuid IS NULL OR v.employer_id IS NULL OR v.employer_id = $3)`, workspaceID, locationID, employerID).Scan(&total); err != nil {
+		return api.PaginatedShifts{}, err
+	}
+	rows, err := db.Query(ctx, `SELECT t.id, t.workspace_id, v.name, v.report_symbol, v.location_id, v.employer_id, t.created_at, t.created_at, v.id FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id WHERE t.workspace_id = $1 AND v.effective_to IS NULL AND ($2::uuid IS NULL OR v.location_id IS NULL OR v.location_id = $2) AND ($3::uuid IS NULL OR v.employer_id IS NULL OR v.employer_id = $3) ORDER BY v.name ASC LIMIT $4 OFFSET $5`, workspaceID, locationID, employerID, limit, (page-1)*limit)
+	if err != nil {
+		return api.PaginatedShifts{}, err
+	}
+	defer rows.Close()
+	data := make([]api.ShiftRecord, 0)
+	for rows.Next() {
+		var record api.ShiftRecord
+		var versionID uuid.UUID
+		var createdAt, updatedAt time.Time
+		if err := rows.Scan(&record.ID, &record.WorkspaceID, &record.Name, &record.ReportSymbol, &record.LocationID, &record.EmployerID, &createdAt, &updatedAt, &versionID); err != nil {
+			return api.PaginatedShifts{}, err
+		}
+		record.IsActive = true
+		record.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+		record.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
+		if err := loadIntervals(ctx, db, versionID, &record.Intervals); err != nil {
+			return api.PaginatedShifts{}, err
+		}
+		data = append(data, record)
+	}
+	return api.PaginatedShifts{Data: data, Total: total, Page: page, Limit: limit}, rows.Err()
+}
+
+func scanShift(ctx context.Context, db DBTX, workspaceID, templateID uuid.UUID, record *api.ShiftRecord) error {
+	var versionID uuid.UUID
+	var createdAt, updatedAt time.Time
+	err := db.QueryRow(ctx, `SELECT t.id, t.workspace_id, v.name, v.report_symbol, v.location_id, v.employer_id, t.created_at, t.created_at, v.id FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id WHERE t.id = $1 AND t.workspace_id = $2`, templateID, workspaceID).Scan(&record.ID, &record.WorkspaceID, &record.Name, &record.ReportSymbol, &record.LocationID, &record.EmployerID, &createdAt, &updatedAt, &versionID)
+	if err != nil {
+		return err
+	}
+	record.IsActive = true
+	record.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+	record.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
+	return loadIntervals(ctx, db, versionID, &record.Intervals)
+}
+
+func loadIntervals(ctx context.Context, db DBTX, versionID uuid.UUID, intervals *[]api.ShiftIntervalRecord) error {
+	rows, err := db.Query(ctx, `SELECT id, version_id, sort_order, interval_name, start_time::text, end_time::text, break_duration_minutes, break_start::text, break_end::text, is_break_auto_deduct, break_is_overtime, early_punch_in_grace_period_minutes, allow_early_ot, max_early_ot_minutes, ot_aggregation_mode, is_night_shift FROM shift_default_intervals WHERE version_id = $1 ORDER BY sort_order ASC`, versionID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	*intervals = make([]api.ShiftIntervalRecord, 0)
+	for rows.Next() {
+		var interval api.ShiftIntervalRecord
+		if err := rows.Scan(&interval.ID, &interval.VersionID, &interval.SortOrder, &interval.IntervalName, &interval.StartTime, &interval.EndTime, &interval.BreakDurationMinutes, &interval.BreakStart, &interval.BreakEnd, &interval.IsBreakAutoDeduct, &interval.BreakIsOvertime, &interval.EarlyPunchInGracePeriodMinutes, &interval.AllowEarlyOT, &interval.MaxEarlyOTMinutes, &interval.OTAggregationMode, &interval.IsNightShift); err != nil {
+			return err
+		}
+		*intervals = append(*intervals, interval)
+	}
+	return rows.Err()
+}
+
+func nullableClock(value *string) any {
+	if value == nil || *value == "" {
+		return nil
+	}
+	return *value
+}
+
+func (r ShiftRepository) UpdateShift(ctx context.Context, workspaceID, templateID, actorID uuid.UUID, req api.UpdateShiftRequest) (api.ShiftRecord, error) {
+	tx, err := r.begin(ctx, workspaceID)
+	if err != nil {
+		return api.ShiftRecord{}, err
+	}
+	now := time.Now().UTC()
+	newVersionID := uuid.New()
+	var record api.ShiftRecord
+	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+		var currentVersionID uuid.UUID
+		var versionNumber int
+		var currentEffectiveFrom time.Time
+		if err := db.QueryRow(ctx, `SELECT v.id, v.version_number, v.effective_from FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id WHERE t.id = $1 AND t.workspace_id = $2 FOR UPDATE`, templateID, workspaceID).Scan(&currentVersionID, &versionNumber, &currentEffectiveFrom); err != nil {
+			return pgx.ErrNoRows
+		}
+		correction := req.IsCorrection || req.EffectiveDate == nil || *req.EffectiveDate == ""
+		effectiveDate := currentEffectiveFrom.Format("2006-01-02")
+		changeType := "correct"
+		if !correction {
+			parsed, parseErr := time.Parse("2006-01-02", *req.EffectiveDate)
+			if parseErr != nil {
+				return api.ErrShiftValidation
+			}
+			effectiveDate = *req.EffectiveDate
+			changeType = "revise"
+			closeDate := parsed.AddDate(0, 0, -1).Format("2006-01-02")
+			if _, err := db.Exec(ctx, `UPDATE shift_versions SET effective_to = $1::date, superseded_by = $2 WHERE id = $3`, closeDate, newVersionID, currentVersionID); err != nil {
+				return err
+			}
+		} else if _, err := db.Exec(ctx, `UPDATE shift_versions SET superseded_by = $1 WHERE id = $2`, newVersionID, currentVersionID); err != nil {
+			return err
+		}
+		if _, err := db.Exec(ctx, `INSERT INTO shift_versions (id, template_id, workspace_id, version_number, name, report_symbol, location_id, employer_id, effective_from, effective_to, change_type, change_reason, superseded_by, created_by, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::date, NULL, $10, $11, NULL, $12, $13)`, newVersionID, templateID, workspaceID, versionNumber+1, req.Name, req.ReportSymbol, req.LocationID, req.EmployerID, effectiveDate, changeType, req.ChangeReason, actorID, now); err != nil {
+			return err
+		}
+		if _, err := db.Exec(ctx, `UPDATE shift_templates SET current_version_id = $1, name = $2 WHERE id = $3 AND workspace_id = $4`, newVersionID, req.Name, templateID, workspaceID); err != nil {
+			return err
+		}
+		for index, interval := range req.Intervals {
+			if _, err := db.Exec(ctx, `INSERT INTO shift_default_intervals (id, version_id, sort_order, interval_name, start_time, end_time, break_duration_minutes, break_start, break_end, is_break_auto_deduct, break_is_overtime, early_punch_in_grace_period_minutes, allow_early_ot, max_early_ot_minutes, ot_aggregation_mode, is_night_shift, created_at, updated_at) VALUES ($1, $2, $3, $4, $5::time, $6::time, $7, $8::time, $9::time, $10, $11, $12, $13, $14, $15, $16, $17, $17)`, uuid.New(), newVersionID, index, interval.IntervalName, interval.StartTime, interval.EndTime, interval.BreakDurationMinutes, nullableClock(interval.BreakStart), nullableClock(interval.BreakEnd), interval.IsBreakAutoDeduct, interval.BreakIsOvertime, interval.EarlyPunchInGracePeriodMinutes, interval.AllowEarlyOT, interval.MaxEarlyOTMinutes, interval.OTAggregationMode, interval.IsNightShift, now); err != nil {
+				return err
+			}
+		}
+		if _, err := db.Exec(ctx, `INSERT INTO shift_audit_log (id, template_id, version_id, action, change_type, changed_by, change_reason, old_values, new_values, created_at) VALUES ($1, $2, $3, 'version_created', $4, $5, $6, NULL, NULL, $7)`, uuid.New(), templateID, newVersionID, changeType, actorID, req.ChangeReason, now); err != nil {
+			return err
+		}
+		return scanShift(ctx, db, workspaceID, templateID, &record)
+	})
+	if err != nil {
+		return api.ShiftRecord{}, err
+	}
+	return record, nil
+}
+
+func (r ShiftRepository) ListShiftVersions(ctx context.Context, workspaceID, templateID uuid.UUID) ([]api.ShiftVersionRecord, error) {
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	var exists bool
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM shift_templates WHERE id = $1 AND workspace_id = $2)`, templateID, workspaceID).Scan(&exists); err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, pgx.ErrNoRows
+	}
+	rows, err := db.Query(ctx, `SELECT id, template_id, version_number, name, report_symbol, location_id, employer_id, effective_from, effective_to, change_type, change_reason, superseded_by, created_by, created_at FROM shift_versions WHERE template_id = $1 AND workspace_id = $2 ORDER BY version_number DESC`, templateID, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	versions := make([]api.ShiftVersionRecord, 0)
+	versionIDs := make([]uuid.UUID, 0)
+	for rows.Next() {
+		var version api.ShiftVersionRecord
+		var effectiveFrom, createdAt time.Time
+		var effectiveTo *time.Time
+		if err := rows.Scan(&version.ID, &version.TemplateID, &version.VersionNumber, &version.Name, &version.ReportSymbol, &version.LocationID, &version.EmployerID, &effectiveFrom, &effectiveTo, &version.ChangeType, &version.ChangeReason, &version.SupersededBy, &version.CreatedBy, &createdAt); err != nil {
+			return nil, err
+		}
+		version.EffectiveFrom = effectiveFrom.Format("2006-01-02")
+		if effectiveTo != nil {
+			formatted := effectiveTo.Format("2006-01-02")
+			version.EffectiveTo = &formatted
+		}
+		version.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+		version.Intervals = make([]api.ShiftIntervalRecord, 0)
+		versions = append(versions, version)
+		versionIDs = append(versionIDs, version.ID)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(versionIDs) == 0 {
+		return versions, nil
+	}
+	intervalRows, err := db.Query(ctx, `SELECT id, version_id, sort_order, interval_name, start_time::text, end_time::text, break_duration_minutes, break_start::text, break_end::text, is_break_auto_deduct, break_is_overtime, early_punch_in_grace_period_minutes, allow_early_ot, max_early_ot_minutes, ot_aggregation_mode, is_night_shift FROM shift_default_intervals WHERE version_id = ANY($1) ORDER BY sort_order ASC`, versionIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer intervalRows.Close()
+	byVersion := make(map[uuid.UUID][]api.ShiftIntervalRecord, len(versionIDs))
+	for intervalRows.Next() {
+		var interval api.ShiftIntervalRecord
+		if err := intervalRows.Scan(&interval.ID, &interval.VersionID, &interval.SortOrder, &interval.IntervalName, &interval.StartTime, &interval.EndTime, &interval.BreakDurationMinutes, &interval.BreakStart, &interval.BreakEnd, &interval.IsBreakAutoDeduct, &interval.BreakIsOvertime, &interval.EarlyPunchInGracePeriodMinutes, &interval.AllowEarlyOT, &interval.MaxEarlyOTMinutes, &interval.OTAggregationMode, &interval.IsNightShift); err != nil {
+			return nil, err
+		}
+		byVersion[interval.VersionID] = append(byVersion[interval.VersionID], interval)
+	}
+	if err := intervalRows.Err(); err != nil {
+		return nil, err
+	}
+	for index := range versions {
+		if intervals, ok := byVersion[versions[index].ID]; ok {
+			versions[index].Intervals = intervals
+		}
+	}
+	return versions, nil
+}
+
+func (r ShiftRepository) AssignShift(ctx context.Context, workspaceID, actorID uuid.UUID, req api.AssignShiftRequest) error {
+	startDate, err := time.Parse("2006-01-02", req.StartDate)
+	if err != nil {
+		return api.ErrShiftValidation
+	}
+	var endDate *time.Time
+	end := startDate
+	if req.EndDate != nil && *req.EndDate != "" {
+		parsed, parseErr := time.Parse("2006-01-02", *req.EndDate)
+		if parseErr != nil || parsed.Before(startDate) {
+			return api.ErrShiftValidation
+		}
+		endDate = &parsed
+		end = parsed
+	}
+	if end.Sub(startDate).Hours()/24 >= 366 {
+		return api.ErrShiftValidation
+	}
+	tx, err := r.begin(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	now := time.Now().UTC()
+	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+		var exists bool
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL)`, req.EmploymentID, workspaceID).Scan(&exists); err != nil {
+			return err
+		}
+		if !exists {
+			return api.ErrEmploymentNotFound
+		}
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM shift_templates WHERE id = $1 AND workspace_id = $2)`, req.ShiftID, workspaceID).Scan(&exists); err != nil {
+			return err
+		}
+		if !exists {
+			return api.ErrShiftNotFound
+		}
+		rules := compliance.Rules{IsEnabled: true, MinRestPeriodHours: 12, MaxWeeklyHours: 48, MaxMonthlyOTHours: 40, AllowManagerOverride: true}
+		var storedRules compliance.Rules
+		err := db.QueryRow(ctx, `SELECT is_enabled, min_rest_period_hours, max_weekly_hours, max_monthly_ot_hours, allow_manager_override FROM workspace_compliance_rules WHERE workspace_id = $1`, workspaceID).Scan(&storedRules.IsEnabled, &storedRules.MinRestPeriodHours, &storedRules.MaxWeeklyHours, &storedRules.MaxMonthlyOTHours, &storedRules.AllowManagerOverride)
+		if err == nil {
+			rules = storedRules
+		} else if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		if rules.IsEnabled {
+			shifts, err := loadComplianceShiftIntervals(ctx, db, workspaceID, req.ShiftID)
+			if err != nil {
+				return err
+			}
+			rows, err := db.Query(ctx, `SELECT date::text, template_id FROM shift_rosters WHERE employment_id = $1 AND date >= $2::date - 1 AND date <= $3::date + 1 ORDER BY date`, req.EmploymentID, startDate, end)
+			if err != nil {
+				return err
+			}
+			rosters := make([]compliance.Roster, 0)
+			for rows.Next() {
+				var date string
+				var templateID *uuid.UUID
+				if err := rows.Scan(&date, &templateID); err != nil {
+					rows.Close()
+					return err
+				}
+				rosters = append(rosters, compliance.Roster{EmploymentID: req.EmploymentID, ShiftID: templateID, Date: date})
+				if templateID != nil {
+					if _, ok := shifts[*templateID]; !ok {
+						loaded, loadErr := loadComplianceShiftIntervals(ctx, db, workspaceID, *templateID)
+						if loadErr != nil {
+							rows.Close()
+							return loadErr
+						}
+						shifts[*templateID] = loaded[*templateID]
+					}
+				}
+			}
+			if err := rows.Err(); err != nil {
+				rows.Close()
+				return err
+			}
+			rows.Close()
+			dates := make([]string, 0, int(end.Sub(startDate).Hours()/24)+1)
+			for current := startDate; !current.After(end); current = current.AddDate(0, 0, 1) {
+				dates = append(dates, current.Format("2006-01-02"))
+			}
+			result, validationErr := compliance.Validate(rules, compliance.Request{EmploymentID: req.EmploymentID, ShiftID: req.ShiftID, Dates: dates, AllowWarnings: req.AllowWarnings, OverrideReason: req.OverrideReason}, rosters, shifts)
+			if validationErr != nil {
+				return &api.ShiftComplianceError{Hard: errors.Is(validationErr, compliance.ErrHardViolation), Violations: result.Violations}
+			}
+		}
+		_, err = db.Exec(ctx, `INSERT INTO employee_shifts (id, employment_id, template_id, start_date, end_date, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $6)`, uuid.New(), req.EmploymentID, req.ShiftID, startDate, endDate, now)
+		if err != nil {
+			if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
+				return api.ErrShiftAssignmentConflict
+			}
+			return err
+		}
+		_ = actorID
+		return nil
+	})
+	return err
+}
+
+func loadComplianceShiftIntervals(ctx context.Context, db pgx.Tx, workspaceID, templateID uuid.UUID) (map[uuid.UUID][]compliance.Interval, error) {
+	rows, err := db.Query(ctx, `SELECT t.id, i.start_time::text, i.end_time::text, i.break_duration_minutes, i.is_break_auto_deduct FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id JOIN shift_default_intervals i ON i.version_id = v.id WHERE t.id = $1 AND t.workspace_id = $2 ORDER BY i.sort_order`, templateID, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	intervals := make([]compliance.Interval, 0)
+	for rows.Next() {
+		var id uuid.UUID
+		var interval compliance.Interval
+		if err := rows.Scan(&id, &interval.StartTime, &interval.EndTime, &interval.BreakDurationMinutes, &interval.IsBreakAutoDeduct); err != nil {
+			return nil, err
+		}
+		intervals = append(intervals, interval)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return map[uuid.UUID][]compliance.Interval{templateID: intervals}, nil
+}

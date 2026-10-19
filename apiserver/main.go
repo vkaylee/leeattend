@@ -106,6 +106,32 @@ func main() {
 	healthHandler.SetLive(true)
 	employeeRepo := repository.EmployeeRepository{TenantDB: workspaceRepo.TenantDB}
 	employeeHandler := api.EmployeeHandler{Repository: employeeRepo, Authorizer: workspaceAuthorizer}
+	attendanceRepo := repository.AttendanceRepository{TenantDB: workspaceRepo.TenantDB}
+	attendanceHandler := api.AttendanceHandler{Repository: attendanceRepo, Authorizer: workspaceAuthorizer}
+	shiftRepo := repository.ShiftRepository{TenantDB: workspaceRepo.TenantDB}
+	shiftHandler := api.ShiftHandler{Repository: shiftRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/time/punch-in", attendanceHandler.PunchIn)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/time/punch-out/{employee_id}", attendanceHandler.PunchOut)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/time/history/{employee_id}", attendanceHandler.TimeHistory)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/adjustments", attendanceHandler.CreateAdjustment)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/attendance/adjustments", attendanceHandler.ListAdjustments)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/attendance/adjustments/{id}/approve", attendanceHandler.ApproveAdjustment)
+	mux.HandleFunc("GET /api/v1/employees/{id}/attendance/adjustments", attendanceHandler.ListEmployeeAdjustments)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/shifts", shiftHandler.Create)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/shifts", shiftHandler.List)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/shifts/{shift_id}", shiftHandler.Update)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/shifts/{shift_id}/versions", shiftHandler.Versions)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/shifts/assign", shiftHandler.Assign)
+	patternRepo := repository.WorkingPatternRepository{TenantDB: workspaceRepo.TenantDB}
+	patternHandler := api.WorkingPatternHandler{Repository: patternRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/working-patterns", patternHandler.Create)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/working-patterns", patternHandler.List)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/working-patterns/{pattern_id}", patternHandler.Details)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/working-patterns/{pattern_id}", patternHandler.Update)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/working-patterns/{pattern_id}", patternHandler.Delete)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employments/{employment_id}/working-patterns", patternHandler.Assign)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/working-patterns/bulk-assign", patternHandler.BulkAssign)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employments/{employment_id}/working-patterns", patternHandler.History)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees", employeeHandler.Create)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees", employeeHandler.List)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/employees/{id}", employeeHandler.Delete)
@@ -133,11 +159,19 @@ func main() {
 	}
 
 	var revocationChecker httpinfra.TokenRevocationChecker
+	var rateLimiter httpinfra.RateLimiterBackend
 	if redisClient != nil {
 		revocationChecker = redisClient
+		rateLimiter = redisClient
+	}
+	rateLimitConfig := httpinfra.RateLimitConfig{
+		MaxReadRequests:  uint64(cfg.RateLimitMaxRead),
+		MaxWriteRequests: uint64(cfg.RateLimitMaxWrite),
+		WindowSecs:       uint64(cfg.RateLimitWindowSecs),
 	}
 	handler := httpinfra.Chain(
 		httpinfra.RequestIDMiddleware(),
+		httpinfra.RateLimitMiddleware(rateLimitConfig, cfg.JWTSecret.Expose(), rateLimiter),
 		httpinfra.LocaleMiddleware(),
 		httpinfra.CORSMiddleware(cfg.AllowedOrigins),
 		httpinfra.BodyLimitMiddleware(cfg.MaxRequestBodyBytes),

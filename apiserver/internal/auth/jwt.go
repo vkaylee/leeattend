@@ -50,11 +50,16 @@ func GenerateTokenWithWorkspace(userID uuid.UUID, workspaceID *uuid.UUID, secret
 		duration = AccessTokenDuration
 	}
 	now := time.Now().UTC()
+	return GenerateTokenWithTimes(userID, workspaceID, secret, now, now.Add(duration))
+}
+
+// GenerateTokenWithTimes creates an HMAC-SHA256 access token with explicit issued-at and expiration timestamps.
+func GenerateTokenWithTimes(userID uuid.UUID, workspaceID *uuid.UUID, secret string, issuedAt, expiresAt time.Time) (string, error) {
 	claims := Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID.String(),
-			ExpiresAt: jwt.NewNumericDate(now.Add(duration)),
-			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+			IssuedAt:  jwt.NewNumericDate(issuedAt),
 		},
 		WorkspaceID: workspaceID,
 	}
