@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **309**
-- Contract routes covered: **284**
-- Contract routes missing: **119**
+- Go route registrations: **330**
+- Contract routes covered: **305**
+- Contract routes missing: **98**
 
 ## Missing routes
 
@@ -36,7 +36,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | DELETE | `/api/v1/devices/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | PUT | `/api/v1/devices/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/devices/{id}/info` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/employees/{id}/leave/requests` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/ess/attendance` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/ess/documents` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/ess/documents/pending` | NONE EVIDENCED — context extractor only; no permission guard |
@@ -73,8 +72,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | POST | `/api/v1/workspaces/{ws_id}/documents/templates/preview` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/documents/templates/{id}/generate` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/employees/{id}/calculate-payroll` | Permission::PayrollCalculate |
-| POST | `/api/v1/workspaces/{ws_id}/employees/{id}/leave/adjust` | Permission::LeaveBalancesAdjust |
-| GET | `/api/v1/workspaces/{ws_id}/employees/{id}/leave/history` | Permission::LeaveBalancesRead |
 | GET | `/api/v1/workspaces/{ws_id}/employees/{id}/payroll-config` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/employees/{id}/payroll-config` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/employments/{id}/salary-components` | NONE EVIDENCED — context extractor only; no permission guard |
@@ -84,24 +81,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | PUT | `/api/v1/workspaces/{ws_id}/files/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/files/{id}/download` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/jobs/{job_id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/jobs/{job_id}/status` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/leave/accrual/run` | Permission::LeaveAccrualRun |
-| GET | `/api/v1/workspaces/{ws_id}/leave/balances` | Permission::LeaveBalancesRead |
-| GET | `/api/v1/workspaces/{ws_id}/leave/behalf-assignments` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/leave/behalf-assignments` | Permission::LeavePoliciesManage |
-| GET | `/api/v1/workspaces/{ws_id}/leave/behalf-assignments/my-targets` | NONE EVIDENCED — context extractor only; no permission guard |
-| DELETE | `/api/v1/workspaces/{ws_id}/leave/behalf-assignments/{id}` | Permission::LeavePoliciesManage |
-| GET | `/api/v1/workspaces/{ws_id}/leave/import/latest` | Permission::LeaveRequestsSubmit |
-| GET | `/api/v1/workspaces/{ws_id}/leave/import/{job_id}/errors` | Permission::LeaveRequestsSubmit |
-| GET | `/api/v1/workspaces/{ws_id}/leave/policies` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/leave/policies` | Permission::LeavePoliciesManage |
-| POST | `/api/v1/workspaces/{ws_id}/leave/policies/assign` | Permission::LeavePoliciesManage |
-| GET | `/api/v1/workspaces/{ws_id}/leave/policies/assignments` | Permission::LeavePoliciesManage |
-| DELETE | `/api/v1/workspaces/{ws_id}/leave/policies/assignments/{assignment_id}` | Permission::LeavePoliciesManage |
-| DELETE | `/api/v1/workspaces/{ws_id}/leave/policies/{policy_id}` | Permission::LeavePoliciesManage |
-| PATCH | `/api/v1/workspaces/{ws_id}/leave/policies/{policy_id}` | Permission::LeavePoliciesManage |
-| POST | `/api/v1/workspaces/{ws_id}/leave/upload-excel` | Permission::LeaveRequestsSubmit |
-| GET | `/api/v1/workspaces/{ws_id}/leave/upload-template` | Permission::LeaveRequestsSubmit |
 | GET | `/api/v1/workspaces/{ws_id}/monitor/jobs/{job_id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/payroll-rules` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/payroll-rules` | NONE EVIDENCED — context extractor only; no permission guard |

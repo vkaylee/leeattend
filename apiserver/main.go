@@ -352,7 +352,12 @@ func main() {
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/custom-fields/values/{entity_type}/{entity_id}", customFieldHandler.GetValues)
 	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/custom-fields/values/{entity_type}/{entity_id}", customFieldHandler.SetValues)
 	leaveRepo := repository.LeaveRepository{TenantDB: workspaceRepo.TenantDB}
-	leaveHandler := api.LeaveHandler{Repository: leaveRepo, Authorizer: workspaceAuthorizer}
+	leaveHandler := api.LeaveHandler{
+		Repository:       leaveRepo,
+		BehalfRepository: attendancePolicyRepo,
+		Authorizer:       workspaceAuthorizer,
+		StorageDir:       cfg.StorageDir,
+	}
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/leave/types", leaveHandler.ListTypes)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/leave/types", leaveHandler.CreateType)
 	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/leave/types/{id}/config", leaveHandler.UpdateTypeConfig)
@@ -362,6 +367,27 @@ func main() {
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/leave/requests", leaveHandler.ListRequests)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/leave/requests/{id}/approve", leaveHandler.Approve)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{id}/leave/balances", leaveHandler.Balances)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/leave/balances", leaveHandler.WorkspaceBalances)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{id}/leave/history", leaveHandler.EmployeeHistory)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{id}/leave/adjust", leaveHandler.AdjustBalance)
+	mux.HandleFunc("GET /api/v1/employees/{id}/leave/requests", leaveHandler.MyRequests)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/leave/policies", leaveHandler.ListPolicies)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/leave/policies", leaveHandler.CreatePolicy)
+	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/leave/policies/{policy_id}", leaveHandler.UpdatePolicy)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/leave/policies/{policy_id}", leaveHandler.DeletePolicy)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/leave/policies/assign", leaveHandler.AssignPolicy)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/leave/policies/assignments", leaveHandler.ListPolicyAssignments)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/leave/policies/assignments/{assignment_id}", leaveHandler.DeletePolicyAssignment)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/leave/accrual/run", leaveHandler.TriggerAccrual)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/jobs/{job_id}/status", leaveHandler.JobStatus)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/leave/upload-excel", leaveHandler.UploadExcel)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/leave/import/latest", leaveHandler.LatestImport)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/leave/import/{job_id}/errors", leaveHandler.ImportErrors)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/leave/upload-template", leaveHandler.UploadTemplate)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/leave/behalf-assignments", leaveHandler.ListBehalfAssignments)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/leave/behalf-assignments", leaveHandler.CreateBehalfAssignment)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/leave/behalf-assignments/my-targets", leaveHandler.GetMyBehalfTargets)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/leave/behalf-assignments/{id}", leaveHandler.DeleteBehalfAssignment)
 	holidayRepo := repository.HolidayRepository{TenantDB: workspaceRepo.TenantDB}
 	holidayHandler := api.HolidayHandler{Repository: holidayRepo, Authorizer: workspaceAuthorizer}
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/holidays", holidayHandler.List)
