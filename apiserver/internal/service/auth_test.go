@@ -100,6 +100,36 @@ func (m *memoryTokenStore) SetUserRevocation(_ context.Context, uid uuid.UUID, t
 	return nil
 }
 
+func (m *memoryAuthRepo) GetSystemRolesForUser(_ context.Context, uid uuid.UUID) ([]string, error) {
+	if m.user.ID == uid {
+		return []string{}, nil
+	}
+	return nil, ErrSessionNotFound
+}
+
+func (m *memoryAuthRepo) UpdateUserProfile(_ context.Context, uid uuid.UUID, req UpdateUserProfileRequest) (UserRecord, error) {
+	if m.user.ID != uid {
+		return UserRecord{}, ErrSessionNotFound
+	}
+	if req.FullName != nil {
+		m.user.FullName = req.FullName
+	}
+	if req.AvatarURL != nil {
+		m.user.AvatarURL = req.AvatarURL
+	}
+	if req.Bio != nil {
+		m.user.Bio = req.Bio
+	}
+	if req.PreferredLanguage != nil {
+		m.user.PreferredLanguage = req.PreferredLanguage
+	}
+	return m.user, nil
+}
+
+func (m *memoryAuthRepo) ListWorkspaceUsers(_ context.Context, _ uuid.UUID) ([]UserRecord, error) {
+	return []UserRecord{m.user}, nil
+}
+
 func TestAuthService_LoginAndRotateSession(t *testing.T) {
 	pass := "my-secret-password-123!"
 	h, err := auth.HashPassword(pass)

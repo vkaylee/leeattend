@@ -58,7 +58,13 @@ func TestAuthRepository_FindUserByEmail(t *testing.T) {
 					*(dest[0].(*uuid.UUID)) = expectedID
 					*(dest[1].(*string)) = "user@example.com"
 					*(dest[2].(*string)) = "hash"
-					*(dest[3].(*string)) = "Full Name"
+					fullName := "Full Name"
+					*(dest[3].(**string)) = &fullName
+					*(dest[4].(**string)) = nil
+					*(dest[5].(**string)) = nil
+					*(dest[6].(**string)) = nil
+					*(dest[7].(**time.Time)) = nil
+					*(dest[8].(**uuid.UUID)) = nil
 					return nil
 				},
 			}

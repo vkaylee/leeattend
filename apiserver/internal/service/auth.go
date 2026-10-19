@@ -30,10 +30,23 @@ var (
 )
 
 type UserRecord struct {
-	ID           uuid.UUID
-	Email        string
-	PasswordHash string
-	FullName     string
+	ID                uuid.UUID
+	Email             string
+	PasswordHash      string
+	FullName          *string
+	AvatarURL         *string
+	Bio               *string
+	PreferredLanguage *string
+	CreatedAt         time.Time
+	SystemRoles       []string
+	AvatarFileID      *uuid.UUID
+}
+
+type UpdateUserProfileRequest struct {
+	FullName          *string `json:"full_name"`
+	AvatarURL         *string `json:"avatar_url"`
+	Bio               *string `json:"bio"`
+	PreferredLanguage *string `json:"preferred_language"`
 }
 
 type SessionRecord struct {
@@ -47,6 +60,9 @@ type SessionRecord struct {
 type AuthRepository interface {
 	FindUserByEmail(context.Context, string) (UserRecord, error)
 	FindUserByID(context.Context, uuid.UUID) (UserRecord, error)
+	GetSystemRolesForUser(context.Context, uuid.UUID) ([]string, error)
+	UpdateUserProfile(context.Context, uuid.UUID, UpdateUserProfileRequest) (UserRecord, error)
+	ListWorkspaceUsers(context.Context, uuid.UUID) ([]UserRecord, error)
 	CreateUserWithAdminCheck(context.Context, UserRecord) (bool, error)
 	UpdatePasswordHash(context.Context, uuid.UUID, string) error
 	CreateSession(context.Context, SessionRecord) error
@@ -193,11 +209,13 @@ func (s AuthService) Register(ctx context.Context, email, password, fullName str
 	if err != nil {
 		return AuthResponse{}, fmt.Errorf("hash password: %w", err)
 	}
+	fn := strings.TrimSpace(fullName)
 	user := UserRecord{
 		ID:           uuid.New(),
 		Email:        strings.ToLower(strings.TrimSpace(email)),
 		PasswordHash: hash,
-		FullName:     strings.TrimSpace(fullName),
+		FullName:     &fn,
+		CreatedAt:    time.Now().UTC(),
 	}
 	if _, err := s.Repository.CreateUserWithAdminCheck(ctx, user); err != nil {
 		if errors.Is(err, ErrEmailExists) {
@@ -313,4 +331,39 @@ func ValidateEmail(email string) error {
 		return ErrInvalidEmail
 	}
 	return nil
+}
+func (s AuthService) Profile(ctx context.Context, userID uuid.UUID) (UserRecord, error) {
+	if s.Repository == nil {
+		return UserRecord{}, errors.New("auth service: nil repository")
+	}
+	user, err := s.Repository.FindUserByID(ctx, userID)
+	if err != nil {
+		return UserRecord{}, err
+	}
+	if user.ID != userID {
+		return UserRecord{}, ErrSessionNotFound
+	}
+	roles, err := s.Repository.GetSystemRolesForUser(ctx, userID)
+	if err != nil {
+		return UserRecord{}, err
+	}
+	if roles == nil {
+		roles = []string{}
+	}
+	user.SystemRoles = roles
+	return user, nil
+}
+
+func (s AuthService) UpdateProfile(ctx context.Context, userID uuid.UUID, req UpdateUserProfileRequest) (UserRecord, error) {
+	if s.Repository == nil {
+		return UserRecord{}, errors.New("auth service: nil repository")
+	}
+	return s.Repository.UpdateUserProfile(ctx, userID, req)
+}
+
+func (s AuthService) WorkspaceUsers(ctx context.Context, workspaceID uuid.UUID) ([]UserRecord, error) {
+	if s.Repository == nil {
+		return nil, errors.New("auth service: nil repository")
+	}
+	return s.Repository.ListWorkspaceUsers(ctx, workspaceID)
 }

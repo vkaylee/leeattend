@@ -97,6 +97,7 @@ func main() {
 	}
 	workspaceAuthorizer := repository.WorkspaceAuthorizer{DB: workspaceRepo.SystemDB}
 	workspaceHandler := api.WorkspaceHandler{Repository: workspaceRepo, Authorizer: workspaceAuthorizer}
+	authHandler.Authorizer = workspaceAuthorizer
 
 	mux.HandleFunc("POST /api/v1/workspaces", workspaceHandler.Create)
 	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}", workspaceHandler.Patch)
@@ -268,6 +269,9 @@ func main() {
 	mux.HandleFunc("POST /api/v1/auth/reset-password", authHandler.ResetPassword)
 	mux.HandleFunc("POST /api/v1/auth/change-password", authHandler.ChangePassword)
 	mux.HandleFunc("GET /api/v1/me", authHandler.Me)
+	mux.HandleFunc("PATCH /api/v1/me", authHandler.UpdateMe)
+	mux.HandleFunc("GET /api/v1/me/permissions", authHandler.MyPermissions)
+	mux.HandleFunc("GET /api/v1/users", authHandler.WorkspaceUsers)
 	mux.HandleFunc("POST /auth/login", authHandler.Login)
 	mux.HandleFunc("POST /auth/refresh", authHandler.Refresh)
 	mux.HandleFunc("POST /auth/logout", authHandler.Logout)
@@ -276,6 +280,9 @@ func main() {
 	mux.HandleFunc("POST /auth/reset-password", authHandler.ResetPassword)
 	mux.HandleFunc("POST /auth/change-password", authHandler.ChangePassword)
 	mux.HandleFunc("GET /me", authHandler.Me)
+	mux.HandleFunc("PATCH /me", authHandler.UpdateMe)
+	mux.HandleFunc("GET /me/permissions", authHandler.MyPermissions)
+	mux.HandleFunc("GET /users", authHandler.WorkspaceUsers)
 
 	publicPrefixes := []string{
 		"/health",

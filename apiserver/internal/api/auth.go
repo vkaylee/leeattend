@@ -1,19 +1,27 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
+type WorkspaceMemberAuthorizer interface {
+	IsMember(context.Context, uuid.UUID, uuid.UUID) (bool, error)
+	EffectivePermissions(context.Context, uuid.UUID, uuid.UUID) ([]string, []string, error)
+}
+
 type AuthHandler struct {
 	Service      service.AuthService
+	Authorizer   WorkspaceMemberAuthorizer
 	CookieDomain string
 }
 
@@ -25,14 +33,31 @@ type refreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 type userResponse struct {
-	ID       string `json:"id"`
-	Email    string `json:"email"`
-	FullName string `json:"full_name,omitempty"`
+	ID                string    `json:"id"`
+	Email             string    `json:"email"`
+	FullName          *string   `json:"full_name"`
+	AvatarURL         *string   `json:"avatar_url"`
+	Bio               *string   `json:"bio"`
+	PreferredLanguage *string   `json:"preferred_language"`
+	CreatedAt         time.Time `json:"created_at"`
+	SystemRoles       []string  `json:"system_roles"`
+	AvatarFileID      *string   `json:"avatar_file_id"`
+}
+type updateMeRequest struct {
+	FullName          *string `json:"full_name"`
+	AvatarURL         *string `json:"avatar_url"`
+	Bio               *string `json:"bio"`
+	PreferredLanguage *string `json:"preferred_language"`
 }
 type authResponse struct {
 	AccessToken  string       `json:"access_token"`
 	RefreshToken string       `json:"refresh_token"`
 	User         userResponse `json:"user"`
+}
+type permissionsResponse struct {
+	Permissions          []string `json:"permissions"`
+	Roles                []string `json:"roles"`
+	ManagedDepartmentIDs []string `json:"managed_department_ids"`
 }
 
 func (h AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -89,16 +114,129 @@ func (h AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		apperror.WritePrimitiveAuthRequired(w)
 		return
 	}
-	user, err := h.Service.Repository.FindUserByID(r.Context(), userID)
+	user, err := h.Service.Profile(r.Context(), userID)
 	if err != nil {
-		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyUserNotFound))
+		if errors.Is(err, service.ErrInvalidCredentials) || errors.Is(err, service.ErrSessionNotFound) {
+			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyUserNotFound))
+			return
+		}
+		apperror.WriteError(w, r, apperror.Internal(err))
 		return
 	}
-	apperror.WriteJSON(w, http.StatusOK, userResponse{
-		ID:       user.ID.String(),
-		Email:    user.Email,
-		FullName: user.FullName,
+	apperror.WriteJSON(w, http.StatusOK, toUserResponse(user))
+}
+
+func (h AuthHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok {
+		apperror.WritePrimitiveAuthRequired(w)
+		return
+	}
+	request, err := DecodeJSON[updateMeRequest](r, 1<<20)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	user, err := h.Service.UpdateProfile(r.Context(), userID, service.UpdateUserProfileRequest{
+		FullName: request.FullName, AvatarURL: request.AvatarURL, Bio: request.Bio, PreferredLanguage: request.PreferredLanguage,
 	})
+	if err != nil {
+		if errors.Is(err, service.ErrInvalidCredentials) || errors.Is(err, service.ErrSessionNotFound) {
+			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyUserNotFound))
+			return
+		}
+		apperror.WriteError(w, r, apperror.Internal(err))
+		return
+	}
+	user.SystemRoles = []string{}
+	apperror.WriteJSON(w, http.StatusOK, toUserResponse(user))
+}
+
+func toUserResponse(user service.UserRecord) userResponse {
+	var avatarFileID *string
+	if user.AvatarFileID != nil {
+		value := user.AvatarFileID.String()
+		avatarFileID = &value
+	}
+	roles := user.SystemRoles
+	if roles == nil {
+		roles = []string{}
+	}
+	return userResponse{
+		ID: user.ID.String(), Email: user.Email, FullName: user.FullName, AvatarURL: user.AvatarURL,
+		Bio: user.Bio, PreferredLanguage: user.PreferredLanguage, CreatedAt: user.CreatedAt,
+		SystemRoles: roles, AvatarFileID: avatarFileID,
+	}
+}
+
+func (h AuthHandler) MyPermissions(w http.ResponseWriter, r *http.Request) {
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok {
+		apperror.WritePrimitiveAuthRequired(w)
+		return
+	}
+	workspaceID, ok := httpinfra.WorkspaceIDFromContext(r.Context())
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyMissingWorkspace))
+		return
+	}
+	if h.Authorizer == nil {
+		apperror.WriteError(w, r, apperror.Internal(errors.New("auth handler: nil authorizer")))
+		return
+	}
+	member, err := h.Authorizer.IsMember(r.Context(), userID, workspaceID)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Internal(err))
+		return
+	}
+	if !member {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotWorkspaceMember))
+		return
+	}
+	permissions, roles, err := h.Authorizer.EffectivePermissions(r.Context(), userID, workspaceID)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Internal(err))
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, permissionsResponse{
+		Permissions:          permissions,
+		Roles:                roles,
+		ManagedDepartmentIDs: nil,
+	})
+}
+
+func (h AuthHandler) WorkspaceUsers(w http.ResponseWriter, r *http.Request) {
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok {
+		apperror.WritePrimitiveAuthRequired(w)
+		return
+	}
+	workspaceID, ok := httpinfra.WorkspaceIDFromContext(r.Context())
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyMissingWorkspace))
+		return
+	}
+	if h.Authorizer != nil {
+		member, err := h.Authorizer.IsMember(r.Context(), userID, workspaceID)
+		if err != nil {
+			apperror.WriteError(w, r, apperror.Internal(err))
+			return
+		}
+		if !member {
+			apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotWorkspaceMember))
+			return
+		}
+	}
+	users, err := h.Service.WorkspaceUsers(r.Context(), workspaceID)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Internal(err))
+		return
+	}
+	response := make([]userResponse, 0, len(users))
+	for _, user := range users {
+		response = append(response, toUserResponse(user))
+	}
+	apperror.WriteJSON(w, http.StatusOK, response)
 }
 
 func clearAuthCookies(w http.ResponseWriter, domain string) {
@@ -107,7 +245,7 @@ func clearAuthCookies(w http.ResponseWriter, domain string) {
 }
 func (h AuthHandler) writeResponse(w http.ResponseWriter, result service.AuthResponse) {
 	setAuthCookies(w, result.AccessToken, result.RefreshToken, h.CookieDomain)
-	apperror.WriteJSON(w, http.StatusOK, authResponse{AccessToken: result.AccessToken, RefreshToken: result.RefreshToken, User: userResponse{ID: result.User.ID.String(), Email: result.User.Email, FullName: result.User.FullName}})
+	apperror.WriteJSON(w, http.StatusOK, authResponse{AccessToken: result.AccessToken, RefreshToken: result.RefreshToken, User: toUserResponse(result.User)})
 }
 
 func (h AuthHandler) writeAuthError(w http.ResponseWriter, r *http.Request, err error) {

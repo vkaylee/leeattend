@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **135**
-- Contract routes covered: **115**
-- Contract routes missing: **288**
+- Go route registrations: **141**
+- Contract routes covered: **118**
+- Contract routes missing: **285**
 
 ## Missing routes
 
@@ -53,8 +53,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | DELETE | `/api/v1/ess/shift-swaps/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | PUT | `/api/v1/ess/shift-swaps/{id}/respond` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/ess/time-entries` | NONE EVIDENCED — context extractor only; no permission guard |
-| PATCH | `/api/v1/me` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/me/permissions` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/monitor/alerts` | SystemRoleType::PlatformAdmin OR SystemRoleType::Support |
 | GET | `/api/v1/monitor/alerts/{alert_id}` | SystemRoleType::PlatformAdmin OR SystemRoleType::Support |
 | POST | `/api/v1/monitor/alerts/{alert_id}/acknowledge` | SystemRoleType::PlatformAdmin |
@@ -80,7 +78,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | GET | `/api/v1/system/users/{user_id}/roles` | SystemRoleType::PlatformAdmin |
 | POST | `/api/v1/system/users/{user_id}/roles` | SystemRoleType::PlatformAdmin |
 | DELETE | `/api/v1/system/users/{user_id}/roles/{role_name}` | SystemRoleType::PlatformAdmin |
-| GET | `/api/v1/users` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/approval-workflows/pending-tasks` | Permission::ApprovalWorkflowsRead |
 | DELETE | `/api/v1/workspaces/{ws_id}/approval-workflows/{id}` | Permission::ApprovalWorkflowsManage |
 | GET | `/api/v1/workspaces/{ws_id}/approval-workflows/{id}` | Permission::ApprovalWorkflowsRead |

@@ -27,6 +27,7 @@ func (c *fixtureRevocationChecker) IsSignatureRevoked(_ context.Context, sig str
 func (c *fixtureRevocationChecker) UserRevokedAt(_ context.Context, uid uuid.UUID) (time.Time, error) {
 	return c.userCutoffs[uid], nil
 }
+func stringPointer(value string) *string { return &value }
 
 type fixtureRateLimiter struct {
 	counts map[string]uint64
@@ -48,7 +49,7 @@ func setupFixtureServer(t *testing.T, jwtSecret string, revocation *fixtureRevoc
 			ID:           uuid.MustParse("018d0000-0000-7000-8000-000000000010"),
 			Email:        "member@example.com",
 			PasswordHash: "$argon2id$v=19$m=65536,t=1,p=4$fake$fake",
-			FullName:     "Member",
+			FullName:     stringPointer("Member"),
 		},
 		sessions: make(map[string]service.SessionRecord),
 	}

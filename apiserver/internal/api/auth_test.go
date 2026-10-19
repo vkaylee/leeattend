@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
+	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
@@ -70,6 +71,33 @@ func (r *authTestRepository) UpdatePasswordHash(_ context.Context, userID uuid.U
 	}
 	return nil
 }
+func (r *authTestRepository) GetSystemRolesForUser(_ context.Context, uid uuid.UUID) ([]string, error) {
+	if r.user.ID == uid {
+		return []string{}, nil
+	}
+	return nil, service.ErrSessionNotFound
+}
+func (r *authTestRepository) UpdateUserProfile(_ context.Context, uid uuid.UUID, req service.UpdateUserProfileRequest) (service.UserRecord, error) {
+	if r.user.ID != uid {
+		return service.UserRecord{}, service.ErrSessionNotFound
+	}
+	if req.FullName != nil {
+		r.user.FullName = req.FullName
+	}
+	if req.AvatarURL != nil {
+		r.user.AvatarURL = req.AvatarURL
+	}
+	if req.Bio != nil {
+		r.user.Bio = req.Bio
+	}
+	if req.PreferredLanguage != nil {
+		r.user.PreferredLanguage = req.PreferredLanguage
+	}
+	return r.user, nil
+}
+func (r *authTestRepository) ListWorkspaceUsers(_ context.Context, _ uuid.UUID) ([]service.UserRecord, error) {
+	return []service.UserRecord{r.user}, nil
+}
 
 func newAuthTestHandler(t *testing.T) (AuthHandler, *authTestRepository) {
 	t.Helper()
@@ -77,8 +105,9 @@ func newAuthTestHandler(t *testing.T) (AuthHandler, *authTestRepository) {
 	if err != nil {
 		t.Fatalf("hash password: %v", err)
 	}
+	member := "Member"
 	repo := &authTestRepository{
-		user:     service.UserRecord{ID: uuid.New(), Email: "member@example.com", PasswordHash: hash, FullName: "Member"},
+		user:     service.UserRecord{ID: uuid.New(), Email: "member@example.com", PasswordHash: hash, FullName: &member},
 		sessions: make(map[string]service.SessionRecord),
 	}
 	return AuthHandler{Service: service.AuthService{Repository: repo, JWTSecret: "test-secret-at-least-32-chars-long-for-jwt!!"}}, repo
@@ -204,5 +233,70 @@ func TestAuthHandler_SelfService(t *testing.T) {
 	h.ChangePassword(rec, req)
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401 without user context, got %d", rec.Code)
+	}
+}
+
+type profileAuthorizer struct {
+	member bool
+}
+
+func (a profileAuthorizer) IsMember(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
+	return a.member, nil
+}
+func (profileAuthorizer) EffectivePermissions(context.Context, uuid.UUID, uuid.UUID) ([]string, []string, error) {
+	return []string{"employees:read"}, []string{uuid.New().String()}, nil
+}
+
+func TestAuthHandler_ProfileUsersAndPermissions(t *testing.T) {
+	h, repo := newAuthTestHandler(t)
+	h.Authorizer = profileAuthorizer{member: true}
+	userID := repo.user.ID
+	workspaceID := uuid.New()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec := httptest.NewRecorder()
+	h.Me(rec, req)
+	if rec.Code != http.StatusOK || !bytes.Contains(rec.Body.Bytes(), []byte(`"system_roles":[]`)) {
+		t.Fatalf("expected full profile response, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	req = httptest.NewRequest(http.MethodPatch, "/api/v1/me", bytes.NewBufferString(`{"preferred_language":"vi"}`))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec = httptest.NewRecorder()
+	h.UpdateMe(rec, req)
+	if rec.Code != http.StatusOK || !bytes.Contains(rec.Body.Bytes(), []byte(`"preferred_language":"vi"`)) {
+		t.Fatalf("expected updated profile response, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/users", nil)
+	ctx := httpinfra.WithUserIDForTest(req.Context(), userID)
+	ctx = httpinfra.WithWorkspaceIDForTest(ctx, workspaceID)
+	req = req.WithContext(ctx)
+	rec = httptest.NewRecorder()
+	h.WorkspaceUsers(rec, req)
+	if rec.Code != http.StatusOK || !bytes.HasPrefix(rec.Body.Bytes(), []byte("[")) {
+		t.Fatalf("expected workspace user array, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/me/permissions", nil)
+	req = req.WithContext(ctx)
+	rec = httptest.NewRecorder()
+	h.MyPermissions(rec, req)
+	if rec.Code != http.StatusOK || !bytes.Contains(rec.Body.Bytes(), []byte(`"employees:read"`)) {
+		t.Fatalf("expected permissions response, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestAuthHandler_WorkspaceRoutesRequireMembershipContext(t *testing.T) {
+	h, repo := newAuthTestHandler(t)
+	h.Authorizer = profileAuthorizer{member: false}
+	ctx := httpinfra.WithUserIDForTest(context.Background(), repo.user.ID)
+	ctx = httpinfra.WithWorkspaceIDForTest(ctx, uuid.New())
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users", nil).WithContext(ctx)
+	rec := httptest.NewRecorder()
+	h.WorkspaceUsers(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for non-member, got %d", rec.Code)
 	}
 }
