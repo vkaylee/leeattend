@@ -92,6 +92,21 @@ Status: in progress; Shift Template Core Slice and initial shift assignment/comp
 - `internal/api/shift_swaps_test.go`:
   - Permission denial, self-swap validation, successful create, invalid approval status, and stats response coverage.
 
-## Remaining P6-05 scope
+## Pattern compliance pre-check slice
 
-- Pattern compliance pre-check for date-expanded pattern assignments.
+- `internal/repository/pattern_compliance.go`:
+  - Expansion of pattern date ranges (up to 90 days default / 366 max safety cap).
+  - Schedule-day calculation with cycle length for rotation/weekly patterns.
+  - Shift-id grouping and batch interval pre-loading.
+  - Pre-validation against workspace compliance rules with hard/soft violation classification.
+  - `CheckPatternCompliance` and `CheckBulkPatternCompliance` integrated into `WorkingPatternRepository`.
+- `internal/api/working_patterns.go`:
+  - `PatternComplianceChecker` interface hooked into single and bulk pattern assignment workflows.
+  - Hard violation maps to `400 Bad Request`; soft violation maps to `409 Conflict` (or passes if override permitted).
+- `internal/api/working_patterns_compliance_test.go`:
+  - Test coverage for hard compliance rejection (400), soft compliance rejection (409), bulk assignment violation, and clean pass through.
+
+## Verification Status
+
+- `scripts/_go-gates.sh`: ALL GATES PASSED (gofmt, go vet, staticcheck, govulncheck, go mod verify, go test -race).
+- `./leedevkit test api-go`: ALL GATES PASSED.

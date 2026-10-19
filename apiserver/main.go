@@ -123,7 +123,7 @@ func main() {
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/shifts/{shift_id}/versions", shiftHandler.Versions)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/shifts/assign", shiftHandler.Assign)
 	patternRepo := repository.WorkingPatternRepository{TenantDB: workspaceRepo.TenantDB}
-	patternHandler := api.WorkingPatternHandler{Repository: patternRepo, Authorizer: workspaceAuthorizer}
+	patternHandler := api.WorkingPatternHandler{Repository: patternRepo, Authorizer: workspaceAuthorizer, Compliance: patternRepo}
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/working-patterns", patternHandler.Create)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/working-patterns", patternHandler.List)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/working-patterns/{pattern_id}", patternHandler.Details)

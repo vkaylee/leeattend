@@ -86,6 +86,11 @@ var (
 	ErrPatternConflict   = errors.New("working pattern: assignment conflict")
 )
 
+type PatternComplianceChecker interface {
+	CheckPatternCompliance(context.Context, uuid.UUID, uuid.UUID, AssignPatternRequest) error
+	CheckBulkPatternCompliance(context.Context, uuid.UUID, BulkAssignPatternRequest) error
+}
+
 type WorkingPatternRepository interface {
 	CreatePattern(ctx context.Context, workspaceID uuid.UUID, req CreateWorkingPatternRequest) (WorkingPattern, error)
 	ListPatterns(ctx context.Context, workspaceID uuid.UUID) ([]WorkingPattern, error)
@@ -100,6 +105,7 @@ type WorkingPatternRepository interface {
 type WorkingPatternHandler struct {
 	Repository WorkingPatternRepository
 	Authorizer AttendanceAuthorizer
+	Compliance PatternComplianceChecker
 }
 
 func (h WorkingPatternHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -196,6 +202,12 @@ func (h WorkingPatternHandler) Assign(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
+	if h.Compliance != nil {
+		if err := h.Compliance.CheckPatternCompliance(r.Context(), workspaceID, employmentID, req); err != nil {
+			h.writeError(w, r, err)
+			return
+		}
+	}
 	assignment, err := h.Repository.AssignPattern(r.Context(), workspaceID, employmentID, req)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -214,6 +226,12 @@ func (h WorkingPatternHandler) BulkAssign(w http.ResponseWriter, r *http.Request
 	if err != nil || len(req.EmploymentIDs) == 0 || len(req.EmploymentIDs) > 366 || validateAssignmentDates(req.StartDate, req.EndDate) != nil || req.PatternID == uuid.Nil {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
+	}
+	if h.Compliance != nil {
+		if err := h.Compliance.CheckBulkPatternCompliance(r.Context(), workspaceID, req); err != nil {
+			h.writeError(w, r, err)
+			return
+		}
 	}
 	result, err := h.Repository.BulkAssignPattern(r.Context(), workspaceID, req)
 	if err != nil {
@@ -291,6 +309,15 @@ func (h WorkingPatternHandler) forbidden(w http.ResponseWriter, r *http.Request)
 }
 
 func (h WorkingPatternHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+	var compErr *ShiftComplianceError
+	if errors.As(err, &compErr) {
+		if compErr.Hard {
+			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+			return
+		}
+		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
+		return
+	}
 	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrPatternNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
