@@ -124,15 +124,15 @@ Each slice requires: handler, service, repository, DTOs, permissions, audit even
 
 ## Phase 7 — Differential, security, and performance proof
 
-- [ ] P7-01 Run all fixture requests against Rust and Go with response normalization. Depends: P6-12. Verify: zero unexplained mismatches.
-- [ ] P7-02 Compare database mutations and rollback state after every mutating fixture. Depends: P7-01. Verify: row, column, soft-delete, audit, and outbox parity.
-- [ ] P7-03 Compare Redis keys, values, TTLs, locks, invalidation, and rate-limit state. Depends: P7-01. Verify: zero unexplained cache/session differences.
-- [ ] P7-04 Run authorization and tenant-isolation security suite. Depends: P7-01. Verify: unauthorized access always denied before business logic and no cross-tenant data leak.
-- [ ] P7-05 Run PII/log/export audit review. Depends: P7-01. Verify: no T1 logs/responses and required T2 access/export audit exists.
-- [ ] P7-06 Run concurrency/idempotency/retry/deadline/failure-injection suite. Depends: P7-02, P7-03. Verify: no duplicate mutation, deadlock, leaked connection, or partial transaction.
-- [ ] P7-07 Run N+1 and query-count review for list/report/dashboard paths. Depends: P6-12. Verify: query count remains bounded and bulk paths use joins/IN/batch operations.
-- [ ] P7-08 Run load/latency/resource comparison against Rust baseline. Depends: P7-01, P7-07. Verify: agreed p95/p99, memory, CPU, pool, and error budgets are met or approved.
-- [ ] P7-09 Run OpenAPI/frontend compatibility checks. Depends: P7-01. Verify: generated types and webdashboard behavior require no unapproved changes.
+- [x] P7-01 Run all fixture requests against Rust and Go with response normalization. Depends: P6-12. Evidence: `scripts/run_differential_tests.py`, `apiserver/internal/testutil/differential_test.go`, `docs/migration/rust-go/evidence-p7-verification.md`. Verify: zero unexplained mismatches across 59 canonical fixtures.
+- [x] P7-02 Compare database mutations and rollback state after every mutating fixture. Depends: P7-01. Evidence: `apiserver/internal/api/resilience_test.go`, `docs/migration/rust-go/evidence-p7-verification.md`. Verify: row, column, soft-delete, audit, and outbox parity.
+- [x] P7-03 Compare Redis keys, values, TTLs, locks, invalidation, and rate-limit state. Depends: P7-01. Evidence: `scripts/security_audit.sh`, `apiserver/internal/infra/redis/revocation.go`, `docs/migration/rust-go/evidence-p7-verification.md`. Verify: zero unexplained cache/session differences.
+- [x] P7-04 Run authorization and tenant-isolation security suite. Depends: P7-01. Evidence: `scripts/security_audit.sh`, `apiserver/internal/api/security_verification_test.go`, `docs/migration/rust-go/evidence-p7-verification.md`. Verify: unauthorized access always denied before business logic and no cross-tenant data leak.
+- [x] P7-05 Run PII/log/export audit review. Depends: P7-01. Evidence: `scripts/security_audit.sh`, `apiserver/internal/api/security_verification_test.go`, `docs/migration/rust-go/evidence-p7-verification.md`. Verify: no T1 logs/responses and required T2 access/export audit exists.
+- [x] P7-06 Run concurrency/idempotency/retry/deadline/failure-injection suite. Depends: P7-02, P7-03. Evidence: `apiserver/internal/api/concurrency_race_test.go`, `apiserver/internal/api/resilience_test.go`, `docs/migration/rust-go/evidence-p7-verification.md`. Verify: no duplicate mutation, deadlock, leaked connection, or partial transaction.
+- [x] P7-07 Run N+1 and query-count review for list/report/dashboard paths. Depends: P6-12. Evidence: `apiserver/internal/repository/`, `docs/migration/rust-go/evidence-p7-verification.md`. Verify: query count remains bounded and bulk paths use joins/IN/batch operations.
+- [x] P7-08 Run load/latency/resource comparison against Rust baseline. Depends: P7-01, P7-07. Evidence: `scripts/run_performance_benchmarks.py`, `apiserver/internal/api/performance_benchmark_test.go`, `docs/migration/rust-go/evidence-p7-verification.md`. Verify: agreed p95/p99, memory, CPU, pool, and error budgets are met or approved.
+- [x] P7-09 Run OpenAPI/frontend compatibility checks. Depends: P7-01. Evidence: `scripts/verify_openapi_diff.py`, `docs/migration/rust-go/evidence-p7-verification.md`. Verify: generated types and webdashboard behavior require no unapproved changes.
 
 ## Phase 8 — Deployment, shadow, canary, and rollback
 
