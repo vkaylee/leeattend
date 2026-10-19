@@ -8,6 +8,7 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/app"
 	"github.com/vkaylee/leeattend/apiserver/internal/config"
 	dbpool "github.com/vkaylee/leeattend/apiserver/internal/db/pool"
+	"github.com/vkaylee/leeattend/apiserver/internal/infra/crypto"
 	"github.com/vkaylee/leeattend/apiserver/internal/infra/external"
 	"github.com/vkaylee/leeattend/apiserver/internal/infra/health"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
@@ -291,6 +292,44 @@ func main() {
 	mux.HandleFunc("GET /api/v1/health/ready", healthHandler.Readiness)
 	systemHealthHandler := api.SystemHealthHandler{Roles: authRepo}
 	mux.HandleFunc("GET /api/v1/system/health", systemHealthHandler.Get)
+
+	var cryptoService *crypto.Service
+	if encJSON := cfg.EncryptionKeysJSON.Expose(); encJSON != "" {
+		if cs, err := crypto.FromJSON(encJSON); err == nil {
+			cryptoService = cs
+		} else {
+			logger.Warn("crypto service initialization failed", "error", err)
+		}
+	}
+	systemAdminRepo := repository.SystemAdminRepository{DB: workspaceRepo.SystemDB}
+	systemAdminHandler := api.SystemAdminHandler{
+		RolesRepo:     systemAdminRepo,
+		Clusters:      systemAdminRepo,
+		Settings:      systemAdminRepo,
+		Tenants:       systemAdminRepo,
+		Roles:         authRepo,
+		Crypto:        cryptoService,
+		EmailSender:   service.EmailService{Settings: systemAdminRepo},
+		Redis:         redisClient,
+		PgBouncerHost: cfg.PgBouncerHost,
+		PgBouncerPort: cfg.PgBouncerPort,
+	}
+	mux.HandleFunc("GET /api/v1/system/smtp/config", systemAdminHandler.GetSMTPConfig)
+	mux.HandleFunc("PUT /api/v1/system/smtp/config", systemAdminHandler.SetSMTPConfig)
+	mux.HandleFunc("POST /api/v1/system/smtp/test", systemAdminHandler.TestSMTP)
+	mux.HandleFunc("GET /api/v1/system/roles", systemAdminHandler.ListRoles)
+	mux.HandleFunc("GET /api/v1/system/users/{user_id}/roles", systemAdminHandler.GetUserRoles)
+	mux.HandleFunc("POST /api/v1/system/users/{user_id}/roles", systemAdminHandler.AssignRole)
+	mux.HandleFunc("DELETE /api/v1/system/users/{user_id}/roles/{role_name}", systemAdminHandler.RevokeRole)
+	mux.HandleFunc("GET /api/v1/system/db-clusters", systemAdminHandler.ListDbClusters)
+	mux.HandleFunc("POST /api/v1/system/db-clusters", systemAdminHandler.CreateDbCluster)
+	mux.HandleFunc("DELETE /api/v1/system/db-clusters/{id}", systemAdminHandler.DeleteDbCluster)
+	mux.HandleFunc("PATCH /api/v1/system/db-clusters/{id}/status", systemAdminHandler.UpdateDbClusterStatus)
+	mux.HandleFunc("GET /api/v1/system/tenants", systemAdminHandler.ListTenants)
+	mux.HandleFunc("POST /api/v1/system/tenants", systemAdminHandler.CreateTenant)
+	mux.HandleFunc("DELETE /api/v1/system/tenants/{tenant_id}", systemAdminHandler.DeleteTenant)
+	mux.HandleFunc("GET /api/v1/system/tenants/{tenant_id}/stats", systemAdminHandler.GetTenantStats)
+	mux.HandleFunc("PUT /api/v1/system/tenants/{tenant_id}/database", systemAdminHandler.UpdateTenantDatabase)
 
 	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
 	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)

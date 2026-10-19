@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **167**
-- Contract routes covered: **144**
-- Contract routes missing: **259**
+- Go route registrations: **183**
+- Contract routes covered: **160**
+- Contract routes missing: **243**
 
 ## Missing routes
 
@@ -58,22 +58,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | GET | `/api/v1/monitor/jobs` | SystemRoleType::PlatformAdmin OR SystemRoleType::Support |
 | GET | `/api/v1/monitor/overview` | SystemRoleType::PlatformAdmin OR SystemRoleType::Support |
 | GET | `/api/v1/monitor/stream` | SystemRoleType::PlatformAdmin OR SystemRoleType::Support |
-| GET | `/api/v1/system/db-clusters` | SystemRoleType::PlatformAdmin |
-| POST | `/api/v1/system/db-clusters` | SystemRoleType::PlatformAdmin |
-| DELETE | `/api/v1/system/db-clusters/{id}` | SystemRoleType::PlatformAdmin |
-| PATCH | `/api/v1/system/db-clusters/{id}/status` | SystemRoleType::PlatformAdmin |
-| GET | `/api/v1/system/roles` | SystemRoleType::PlatformAdmin |
-| GET | `/api/v1/system/smtp/config` | SystemRoleType::PlatformAdmin |
-| PUT | `/api/v1/system/smtp/config` | SystemRoleType::PlatformAdmin |
-| POST | `/api/v1/system/smtp/test` | SystemRoleType::PlatformAdmin |
-| GET | `/api/v1/system/tenants` | SystemRoleType::PlatformAdmin |
-| POST | `/api/v1/system/tenants` | SystemRoleType::PlatformAdmin |
-| DELETE | `/api/v1/system/tenants/{tenant_id}` | SystemRoleType::PlatformAdmin |
-| PUT | `/api/v1/system/tenants/{tenant_id}/database` | SystemRoleType::PlatformAdmin |
-| GET | `/api/v1/system/tenants/{tenant_id}/stats` | SystemRoleType::PlatformAdmin |
-| GET | `/api/v1/system/users/{user_id}/roles` | SystemRoleType::PlatformAdmin |
-| POST | `/api/v1/system/users/{user_id}/roles` | SystemRoleType::PlatformAdmin |
-| DELETE | `/api/v1/system/users/{user_id}/roles/{role_name}` | SystemRoleType::PlatformAdmin |
 | GET | `/api/v1/workspaces/{ws_id}/approval-workflows/pending-tasks` | Permission::ApprovalWorkflowsRead |
 | GET | `/api/v1/workspaces/{ws_id}/assignment-history` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/assignment-rules` | Permission::AssignmentRulesManage |
