@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
@@ -38,6 +39,30 @@ func (m *mockReportQueue) GetReport(ctx context.Context, jobID uuid.UUID) (Repor
 		return job, nil
 	}
 	return ReportJob{}, ErrReportNotFound
+}
+
+func (m *mockReportQueue) CancelReport(ctx context.Context, jobID uuid.UUID) error {
+	job, ok := m.Jobs[jobID]
+	if !ok {
+		return ErrReportNotFound
+	}
+	if job.Status == "completed" || job.Status == "failed" {
+		return ErrReportCannotCancel
+	}
+	now := time.Now().UTC()
+	message := "Cancelled by user"
+	job.Status = "failed"
+	job.Error = &message
+	job.CompletedAt = &now
+	m.Jobs[jobID] = job
+	return nil
+}
+
+func (m *mockReportQueue) GetResultData(ctx context.Context, jobID uuid.UUID) ([]byte, string, error) {
+	if job, ok := m.Jobs[jobID]; ok && job.Status == "completed" {
+		return []byte("report-bytes"), "attendance.xlsx", nil
+	}
+	return nil, "", ErrReportResultNotFound
 }
 
 type mockReportAuthorizer struct{}
@@ -141,5 +166,115 @@ func TestReportJobNotFound(t *testing.T) {
 	handler.Status(rec, req)
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 Not Found, got %d", rec.Code)
+	}
+}
+
+func TestReportCancel(t *testing.T) {
+	wsID := uuid.New()
+	jobID := uuid.New()
+	queue := &mockReportQueue{Jobs: map[uuid.UUID]ReportJob{
+		jobID: {JobID: jobID, WorkspaceID: wsID, Status: "pending"},
+	}}
+	handler := ReportHandler{Queue: queue, Authorizer: mockReportAuthorizer{}}
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+jobID.String(), nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req.SetPathValue("job_id", jobID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.Cancel(rec, req)
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204 No Content, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if job := queue.Jobs[jobID]; job.Status != "failed" || job.Error == nil || *job.Error != "Cancelled by user" {
+		t.Fatalf("cancel did not mark job failed: %+v", job)
+	}
+}
+
+func TestReportCancelRejectsCompletedJob(t *testing.T) {
+	wsID := uuid.New()
+	jobID := uuid.New()
+	queue := &mockReportQueue{Jobs: map[uuid.UUID]ReportJob{
+		jobID: {JobID: jobID, WorkspaceID: wsID, Status: "completed"},
+	}}
+	handler := ReportHandler{Queue: queue, Authorizer: mockReportAuthorizer{}}
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+jobID.String(), nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req.SetPathValue("job_id", jobID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.Cancel(rec, req)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("expected 409 Conflict, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestReportCancelOtherWorkspaceForbidden(t *testing.T) {
+	queue := &mockReportQueue{Jobs: map[uuid.UUID]ReportJob{
+		uuid.New(): {WorkspaceID: uuid.New()},
+	}}
+	var jobID uuid.UUID
+	for id := range queue.Jobs {
+		jobID = id
+	}
+	wsID := uuid.New()
+	handler := ReportHandler{Queue: queue, Authorizer: mockReportAuthorizer{}}
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+jobID.String(), nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req.SetPathValue("job_id", jobID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.Cancel(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestReportDownloadCompleted(t *testing.T) {
+	wsID := uuid.New()
+	jobID := uuid.New()
+	queue := &mockReportQueue{Jobs: map[uuid.UUID]ReportJob{
+		jobID: {JobID: jobID, WorkspaceID: wsID, Status: "completed"},
+	}}
+	handler := ReportHandler{Queue: queue, Authorizer: mockReportAuthorizer{}}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+jobID.String()+"/download", nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req.SetPathValue("job_id", jobID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.Download(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if got := rec.Header().Get("Content-Type"); got != "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" {
+		t.Fatalf("unexpected content type: %s", got)
+	}
+	if got := rec.Header().Get("Content-Disposition"); got != `attachment; filename="attendance.xlsx"` {
+		t.Fatalf("unexpected content disposition: %s", got)
+	}
+	if rec.Body.String() != "report-bytes" {
+		t.Fatalf("unexpected body: %s", rec.Body.String())
+	}
+}
+
+func TestReportDownloadPendingReturnsAccepted(t *testing.T) {
+	wsID := uuid.New()
+	jobID := uuid.New()
+	queue := &mockReportQueue{Jobs: map[uuid.UUID]ReportJob{
+		jobID: {JobID: jobID, WorkspaceID: wsID, Status: "processing"},
+	}}
+	handler := ReportHandler{Queue: queue, Authorizer: mockReportAuthorizer{}}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/jobs/"+jobID.String()+"/download", nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req.SetPathValue("job_id", jobID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.Download(rec, req)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("expected 202 Accepted, got %d: %s", rec.Code, rec.Body.String())
 	}
 }

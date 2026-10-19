@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
-
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,8 +15,10 @@ import (
 )
 
 var (
-	ErrReportValidation = errors.New("report: validation failed")
-	ErrReportNotFound   = errors.New("report: job not found")
+	ErrReportValidation     = errors.New("report: validation failed")
+	ErrReportNotFound       = errors.New("report: job not found")
+	ErrReportCannotCancel   = errors.New("report: cannot cancel completed or failed job")
+	ErrReportResultNotFound = errors.New("report: result file not found")
 )
 
 type ExportReportRequest struct {
@@ -64,6 +67,8 @@ type ReportRepository interface {
 type ReportQueue interface {
 	EnqueueReport(context.Context, ReportJob, ExportReportRequest) error
 	GetReport(context.Context, uuid.UUID) (ReportJob, error)
+	CancelReport(context.Context, uuid.UUID) error
+	GetResultData(context.Context, uuid.UUID) ([]byte, string, error)
 }
 type ReportHandler struct {
 	Repository ReportRepository
@@ -102,7 +107,7 @@ func (h ReportHandler) Status(w http.ResponseWriter, r *http.Request) {
 	wsID, ok := pathUUID(r, "ws_id")
 	jobID, jobOK := pathUUID(r, "job_id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !jobOK || !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, wsID, "reports:export") {
+	if !ok || !jobOK || !userOK || !h.allowed(r, wsID, userID) {
 		h.forbidden(w, r)
 		return
 	}
@@ -111,12 +116,12 @@ func (h ReportHandler) Status(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	job, err := h.Queue.GetReport(r.Context(), jobID)
-	if err != nil || job.WorkspaceID != wsID {
-		if errors.Is(err, ErrReportNotFound) {
-			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
-			return
-		}
-		apperror.WriteError(w, r, apperror.Internal(err))
+	if err != nil {
+		h.writeReportError(w, r, err)
+		return
+	}
+	if job.WorkspaceID != wsID {
+		h.forbidden(w, r)
 		return
 	}
 	percentage := 0.0
@@ -125,6 +130,80 @@ func (h ReportHandler) Status(w http.ResponseWriter, r *http.Request) {
 	}
 	response := JobStatusResponse{JobID: job.JobID, Status: job.Status, Progress: JobProgress{TotalBatches: job.TotalBatches, CompletedBatches: job.CompletedBatches, FailedBatches: job.FailedBatches, Percentage: percentage}, Error: job.Error, CreatedAt: job.CreatedAt.UTC().Format(time.RFC3339), CompletedAt: formatTime(job.CompletedAt)}
 	apperror.WriteJSON(w, http.StatusOK, response)
+}
+
+func (h ReportHandler) Cancel(w http.ResponseWriter, r *http.Request) {
+	wsID, ok := pathUUID(r, "ws_id")
+	jobID, jobOK := pathUUID(r, "job_id")
+	userID, userOK := httpinfra.UserIDFromContext(r.Context())
+	if !ok || !jobOK || !userOK || !h.allowed(r, wsID, userID) {
+		h.forbidden(w, r)
+		return
+	}
+	if h.Queue == nil {
+		apperror.WriteError(w, r, apperror.Internal(errors.New("report queue unavailable")))
+		return
+	}
+	job, err := h.Queue.GetReport(r.Context(), jobID)
+	if err != nil {
+		h.writeReportError(w, r, err)
+		return
+	}
+	if job.WorkspaceID != wsID {
+		h.forbidden(w, r)
+		return
+	}
+	if err := h.Queue.CancelReport(r.Context(), jobID); err != nil {
+		h.writeReportError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h ReportHandler) Download(w http.ResponseWriter, r *http.Request) {
+	wsID, ok := pathUUID(r, "ws_id")
+	jobID, jobOK := pathUUID(r, "job_id")
+	userID, userOK := httpinfra.UserIDFromContext(r.Context())
+	if !ok || !jobOK || !userOK || !h.allowed(r, wsID, userID) {
+		h.forbidden(w, r)
+		return
+	}
+	if h.Queue == nil {
+		apperror.WriteError(w, r, apperror.Internal(errors.New("report queue unavailable")))
+		return
+	}
+	job, err := h.Queue.GetReport(r.Context(), jobID)
+	if err != nil {
+		h.writeReportError(w, r, err)
+		return
+	}
+	if job.WorkspaceID != wsID {
+		h.forbidden(w, r)
+		return
+	}
+	switch job.Status {
+	case "pending", "processing":
+		w.WriteHeader(http.StatusAccepted)
+		_, _ = w.Write([]byte("Job not yet complete. Continue polling status endpoint."))
+	case "failed":
+		apperror.WriteError(w, r, apperror.Internal(errors.New("report job failed")))
+	case "completed":
+		data, filename, err := h.Queue.GetResultData(r.Context(), jobID)
+		if err != nil {
+			h.writeReportError(w, r, err)
+			return
+		}
+		contentType := "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+		if strings.HasSuffix(strings.ToLower(filename), ".csv") {
+			contentType = "text/csv"
+		}
+		w.Header().Set("Content-Type", contentType)
+		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(data)
+	default:
+		apperror.WriteError(w, r, apperror.Internal(fmt.Errorf("unknown report job status: %s", job.Status)))
+	}
 }
 
 func validateExportRequest(request *ExportReportRequest) error {
@@ -153,4 +232,21 @@ func (h ReportHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 }
 func (h ReportHandler) validation(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+}
+
+func (h ReportHandler) allowed(r *http.Request, wsID, userID uuid.UUID) bool {
+	return h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, wsID, "reports:export")
+}
+
+func (h ReportHandler) writeReportError(w http.ResponseWriter, r *http.Request, err error) {
+	switch {
+	case errors.Is(err, ErrReportNotFound):
+		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyJobNotFound))
+	case errors.Is(err, ErrReportCannotCancel):
+		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyCannotCancelJob))
+	case errors.Is(err, ErrReportResultNotFound):
+		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNoReportFileGenerated))
+	default:
+		apperror.WriteError(w, r, apperror.Internal(err))
+	}
 }

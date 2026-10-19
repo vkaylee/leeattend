@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **106**
-- Contract routes covered: **90**
-- Contract routes missing: **313**
+- Go route registrations: **108**
+- Contract routes covered: **92**
+- Contract routes missing: **311**
 
 ## Missing routes
 
@@ -301,8 +301,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | DELETE | `/api/v1/workspaces/{ws_id}/recruitment-sources/{id}` | Permission::RecruitmentManage |
 | PUT | `/api/v1/workspaces/{ws_id}/recruitment-sources/{id}` | Permission::RecruitmentManage |
 | GET | `/api/v1/workspaces/{ws_id}/reports/attendance` | Permission::OvertimeClaimOnBehalf |
-| DELETE | `/api/v1/workspaces/{ws_id}/reports/jobs/{job_id}` | Permission::ReportsExport |
-| GET | `/api/v1/workspaces/{ws_id}/reports/jobs/{job_id}/download` | Permission::ReportsExport |
 | GET | `/api/v1/workspaces/{ws_id}/reports/no-show` | Permission::ReportsRead |
 | GET | `/api/v1/workspaces/{ws_id}/roles` | NONE EVIDENCED — context extractor only; no permission guard |
 | DELETE | `/api/v1/workspaces/{ws_id}/roles/{role_id}` | Permission::MembersRolesManage |

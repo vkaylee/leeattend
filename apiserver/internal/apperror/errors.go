@@ -79,6 +79,8 @@ const (
 	KeyHolidayNotFound            = "error.holiday_not_found"
 	KeyHolidayAlreadyExists       = "error.holiday_already_exists"
 	KeyJobNotFound                = "error.job_not_found"
+	KeyCannotCancelJob            = "error.cannot_cancel_job"
+	KeyNoReportFileGenerated      = "error.no_report_file_generated"
 	KeyErrorFileNotFound          = "error.error_file_not_found"
 	KeyWorkspaceNotFound          = "error.workspace_not_found"
 	KeyRoleNotFound               = "error.role_not_found"

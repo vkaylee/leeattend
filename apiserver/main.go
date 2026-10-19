@@ -206,6 +206,8 @@ func main() {
 	reportHandler := api.ReportHandler{Repository: reportRepo, Queue: reportQueue, Authorizer: workspaceAuthorizer}
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/reports/export", reportHandler.CreateExport)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/reports/jobs/{job_id}", reportHandler.Status)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/reports/jobs/{job_id}", reportHandler.Cancel)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/reports/jobs/{job_id}/download", reportHandler.Download)
 	fileRepo := repository.FileRepository{TenantDB: workspaceRepo.TenantDB}
 	var fileStorage api.FileStorage
 	if s3Client, err := external.NewS3Client(cfg.S3EndpointURL, cfg.S3BucketName, cfg.S3AccessKey.Expose(), cfg.S3SecretKey.Expose(), cfg.S3Region, cfg.S3UsePathStyle, nil); err == nil {

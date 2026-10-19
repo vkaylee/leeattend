@@ -4,14 +4,14 @@ Status: in-progress. Measured coverage contradicts a completion claim; this file
 
 ## Measured Coverage (machine-derived)
 
-Source of truth: `endpoint-matrix.csv` (403 contract routes) compared against the Go route table in `apiserver/main.go`, normalized per path shape. Script: `scratch/endpoint_coverage.py`. Full gap list: `endpoint-coverage-gap.md`.
+Source of truth: `endpoint-matrix.csv` (403 contract routes) compared against the Go route table in `apiserver/main.go`, normalized per path shape. Full gap list: `endpoint-coverage-gap.md`.
 
 - Contract routes: **403**
-- Go route registrations: **106**
-- Contract routes covered: **90**
-- Contract routes missing: **313**
+- Go route registrations: **108**
+- Contract routes covered: **92**
+- Contract routes missing: **311**
 
-Missing by method: GET 146, POST 87, DELETE 42, PUT 23, PATCH 15.
+Missing by method: GET 145, POST 87, DELETE 41, PUT 23, PATCH 15.
 
 ## Domain Slices Implemented So Far
 
@@ -25,7 +25,7 @@ Missing by method: GET 146, POST 87, DELETE 42, PUT 23, PATCH 15.
 | P6-06 | Leave & ESS | leave types, submit, approve, balances, ESS profile/contacts, workflows | `evidence-p6-06-leaves.md` |
 | P6-07 | Notifications | list, unread count, mark read, mark all read | `evidence-p6-07-notifications.md` |
 | P6-08 | Payroll & Payslips | workspace and employee payslips with decimal amounts | `evidence-p6-08-payroll.md` |
-| P6-09 | Reports & Exports | async export enqueue (`outbox_jobs` + Redis) and status polling | `evidence-p6-09-reports.md` |
+| P6-09 | Reports & Exports | async export enqueue (`outbox_jobs` + Redis), status polling, cancel, download | `evidence-p6-09-reports.md`, `evidence-p6-07-report-export.md` |
 | P6-10 | Files & Signatures | presigned upload, metadata, download URL, soft delete, signature requests | `evidence-p6-10-files.md` |
 | P6-11 | Condition Types | workspace condition-type catalog CRUD | `evidence-p6-11-condition-types.md` |
 
