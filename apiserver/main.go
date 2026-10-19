@@ -263,6 +263,8 @@ func main() {
 
 	mux.HandleFunc("GET /api/v1/health", healthHandler.Liveness)
 	mux.HandleFunc("GET /api/v1/health/ready", healthHandler.Readiness)
+	systemHealthHandler := api.SystemHealthHandler{Roles: authRepo}
+	mux.HandleFunc("GET /api/v1/system/health", systemHealthHandler.Get)
 
 	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
 	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)

@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **146**
-- Contract routes covered: **123**
-- Contract routes missing: **280**
+- Go route registrations: **147**
+- Contract routes covered: **124**
+- Contract routes missing: **279**
 
 ## Missing routes
 
@@ -63,7 +63,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | POST | `/api/v1/system/db-clusters` | SystemRoleType::PlatformAdmin |
 | DELETE | `/api/v1/system/db-clusters/{id}` | SystemRoleType::PlatformAdmin |
 | PATCH | `/api/v1/system/db-clusters/{id}/status` | SystemRoleType::PlatformAdmin |
-| GET | `/api/v1/system/health` | SystemRoleType::PlatformAdmin OR SystemRoleType::Support |
 | GET | `/api/v1/system/roles` | SystemRoleType::PlatformAdmin |
 | GET | `/api/v1/system/smtp/config` | SystemRoleType::PlatformAdmin |
 | PUT | `/api/v1/system/smtp/config` | SystemRoleType::PlatformAdmin |
