@@ -204,6 +204,8 @@ func main() {
 	attendanceRepo := repository.AttendanceRepository{TenantDB: workspaceRepo.TenantDB}
 	attendanceHandler := api.AttendanceHandler{Repository: attendanceRepo, Authorizer: workspaceAuthorizer}
 	attendanceLogsHandler := api.AttendanceLogsHandler{Repository: attendanceRepo, Authorizer: workspaceAuthorizer, StorageDir: cfg.StorageDir}
+	attendancePolicyRepo := repository.AttendancePolicyRepository{TenantDB: workspaceRepo.TenantDB}
+	attendancePolicyHandler := api.AttendancePolicyHandler{PolicyRepository: attendancePolicyRepo, BehalfRepository: attendancePolicyRepo, Authorizer: workspaceAuthorizer}
 	shiftRepo := repository.ShiftRepository{TenantDB: workspaceRepo.TenantDB}
 	shiftHandler := api.ShiftHandler{Repository: shiftRepo, Authorizer: workspaceAuthorizer}
 	employeeAssignmentRepo := repository.EmployeeAssignmentRepository{TenantDB: workspaceRepo.TenantDB}
@@ -236,6 +238,16 @@ func main() {
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/attendance/staging-logs", attendanceLogsHandler.Staging)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/staging-logs/{id}/resolve", attendanceLogsHandler.Resolve)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/attendance/staging-logs/{id}", attendanceLogsHandler.Dismiss)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/attendance/rules", attendancePolicyHandler.GetRules)
+	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/attendance/rules", attendancePolicyHandler.UpdateRules)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/attendance/rules/versions", attendancePolicyHandler.ListRuleVersions)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/attendance/policies/assignments", attendancePolicyHandler.ListAssignments)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/policies/assignments", attendancePolicyHandler.UpsertAssignment)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/attendance/policies/assignments/{assignment_id}", attendancePolicyHandler.DeleteAssignment)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/attendance/adjustments/behalf-assignments", attendancePolicyHandler.ListBehalfAssignments)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/adjustments/behalf-assignments", attendancePolicyHandler.CreateBehalfAssignment)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/attendance/adjustments/behalf-assignments/{id}", attendancePolicyHandler.DeleteBehalfAssignment)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/attendance/adjustments/behalf-assignments/my-targets", attendancePolicyHandler.MyBehalfTargets)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/shifts", shiftHandler.Create)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/shifts", shiftHandler.List)
 	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/shifts/{shift_id}", shiftHandler.Update)

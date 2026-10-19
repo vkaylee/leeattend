@@ -35,6 +35,8 @@ func (r *rowsStub) Scan(dest ...any) error {
 		case **uuid.UUID:
 			if v == nil {
 				*target = nil
+			} else if ptr, ok := v.(*uuid.UUID); ok {
+				*target = ptr
 			} else {
 				val := v.(uuid.UUID)
 				*target = &val
@@ -44,6 +46,8 @@ func (r *rowsStub) Scan(dest ...any) error {
 		case **string:
 			if v == nil {
 				*target = nil
+			} else if ptr, ok := v.(*string); ok {
+				*target = ptr
 			} else {
 				val := v.(string)
 				*target = &val
