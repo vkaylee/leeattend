@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
-	"time"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"strings"
+	"time"
 )
 
 var ErrUniqueViolation = errors.New("repository: unique constraint violation")
@@ -46,15 +45,54 @@ func (r WorkspaceRepository) CreateWorkspace(ctx context.Context, req api.Create
 	return r.getWorkspace(ctx, workspaceID)
 }
 
+func (r WorkspaceRepository) ListWorkspaces(ctx context.Context, userID uuid.UUID) ([]api.WorkspaceRecord, error) {
+	if r.SystemDB == nil {
+		return nil, errors.New("workspace repository: nil system database")
+	}
+	rows, err := r.SystemDB.Query(ctx, `SELECT w.id, w.name, w.date_format, w.time_format, w.timezone, COALESCE(w.theme_primary_color, '#7c3aed'), w.default_language, w.logo_url, w.tagline, w.created_at
+FROM workspaces w
+INNER JOIN workspace_members wm ON w.id = wm.workspace_id
+WHERE wm.user_id = $1`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var records []api.WorkspaceRecord
+	for rows.Next() {
+		var record api.WorkspaceRecord
+		var createdAt time.Time
+		if err := rows.Scan(&record.ID, &record.Name, &record.DateFormat, &record.TimeFormat, &record.Timezone, &record.ThemePrimaryColor, &record.DefaultLanguage, &record.LogoURL, &record.Tagline, &createdAt); err != nil {
+			return nil, err
+		}
+		record.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+		record.HolidayOvernight = "split_at_midnight"
+		record.DefaultHolidayOT = "3.0"
+		records = append(records, record)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if records == nil {
+		records = []api.WorkspaceRecord{}
+	}
+	return records, nil
+}
+
+func (r WorkspaceRepository) GetWorkspace(ctx context.Context, id uuid.UUID) (api.WorkspaceRecord, error) {
+	return r.getWorkspace(ctx, id)
+}
+
 func (r WorkspaceRepository) getWorkspace(ctx context.Context, id uuid.UUID) (api.WorkspaceRecord, error) {
 	if r.SystemDB == nil {
 		return api.WorkspaceRecord{}, errors.New("workspace repository: nil system database")
 	}
 	var record api.WorkspaceRecord
-	err := r.SystemDB.QueryRow(ctx, `SELECT id, name, date_format, time_format, timezone, COALESCE(theme_primary_color, '#7c3aed'), default_language, logo_url, tagline, created_at FROM workspaces WHERE id = $1`, id).Scan(&record.ID, &record.Name, &record.DateFormat, &record.TimeFormat, &record.Timezone, &record.ThemePrimaryColor, &record.DefaultLanguage, &record.LogoURL, &record.Tagline, &record.CreatedAt)
+	var createdAt time.Time
+	err := r.SystemDB.QueryRow(ctx, `SELECT id, name, date_format, time_format, timezone, COALESCE(theme_primary_color, '#7c3aed'), default_language, logo_url, tagline, created_at FROM workspaces WHERE id = $1`, id).Scan(&record.ID, &record.Name, &record.DateFormat, &record.TimeFormat, &record.Timezone, &record.ThemePrimaryColor, &record.DefaultLanguage, &record.LogoURL, &record.Tagline, &createdAt)
 	if err != nil {
 		return api.WorkspaceRecord{}, err
 	}
+	record.CreatedAt = createdAt.UTC().Format(time.RFC3339)
 	record.HolidayOvernight = "split_at_midnight"
 	record.DefaultHolidayOT = "3.0"
 	return record, nil
@@ -117,7 +155,156 @@ func (r WorkspaceRepository) PutConfig(ctx context.Context, workspaceID uuid.UUI
 	if db == nil {
 		return errors.New("workspace repository: nil tenant database")
 	}
-	_, err = db.Exec(ctx, `INSERT INTO workspace_config_entries (workspace_id, scope_type, scope_id, config_key, effective_from, effective_to, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7)`, workspaceID, req.ScopeType, req.ScopeID, req.ConfigKey, req.EffectiveFrom, req.EffectiveTo, actorID)
+	scopeType := req.ScopeType
+	if scopeType == "" {
+		scopeType = "workspace"
+	}
+	var valJSON any
+	if len(req.Value.JSON) > 0 {
+		valJSON = []byte(req.Value.JSON)
+	}
+	var valInt *int32
+	if req.Value.Int != nil {
+		v := int32(*req.Value.Int)
+		valInt = &v
+	}
+	_, err = db.Exec(ctx, `INSERT INTO workspace_config_entries (
+		id, workspace_id, scope_type, scope_id, config_key,
+		value_int, value_decimal, value_text, value_bool, value_json,
+		effective_from, effective_to, created_by, created_at, updated_at
+	) VALUES (
+		gen_random_uuid(), $1, $2, $3, $4,
+		$5, $6, $7, $8, $9,
+		$10::date, $11::date, $12, NOW(), NOW()
+	) ON CONFLICT (workspace_id, scope_type, scope_id, config_key, effective_from)
+	DO UPDATE SET
+		value_int = EXCLUDED.value_int,
+		value_decimal = EXCLUDED.value_decimal,
+		value_text = EXCLUDED.value_text,
+		value_bool = EXCLUDED.value_bool,
+		value_json = EXCLUDED.value_json,
+		effective_to = EXCLUDED.effective_to,
+		updated_at = NOW()`,
+		workspaceID, scopeType, req.ScopeID, req.ConfigKey,
+		valInt, req.Value.Decimal, req.Value.Text, req.Value.Bool, valJSON,
+		req.EffectiveFrom, req.EffectiveTo, actorID,
+	)
+	return mapConstraintError(err)
+}
+
+func (r WorkspaceRepository) ListConfigs(ctx context.Context, workspaceID uuid.UUID) ([]api.WorkspaceConfigEntry, error) {
+	db, err := r.tenant(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	if db == nil {
+		return nil, errors.New("workspace repository: nil tenant database")
+	}
+	rows, err := db.Query(ctx, `SELECT id, workspace_id, scope_type, scope_id, config_key,
+		value_int, value_decimal, value_text, value_bool, value_json,
+		effective_from, effective_to, created_by, created_at, updated_at
+FROM workspace_config_entries
+WHERE workspace_id = $1
+ORDER BY created_at DESC`, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var entries []api.WorkspaceConfigEntry
+	for rows.Next() {
+		var entry api.WorkspaceConfigEntry
+		var effectiveFrom time.Time
+		var effectiveTo *time.Time
+		var createdAt, updatedAt time.Time
+		var valJSON []byte
+		if err := rows.Scan(
+			&entry.ID, &entry.WorkspaceID, &entry.ScopeType, &entry.ScopeID, &entry.ConfigKey,
+			&entry.ValueInt, &entry.ValueDecimal, &entry.ValueText, &entry.ValueBool, &valJSON,
+			&effectiveFrom, &effectiveTo, &entry.CreatedBy, &createdAt, &updatedAt,
+		); err != nil {
+			return nil, err
+		}
+		entry.EffectiveFrom = effectiveFrom.Format("2006-01-02")
+		if effectiveTo != nil {
+			s := effectiveTo.Format("2006-01-02")
+			entry.EffectiveTo = &s
+		}
+		if len(valJSON) > 0 {
+			entry.ValueJSON = json.RawMessage(valJSON)
+		}
+		entry.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+		entry.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
+		entries = append(entries, entry)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if entries == nil {
+		entries = []api.WorkspaceConfigEntry{}
+	}
+	return entries, nil
+}
+
+func (r WorkspaceRepository) GetConfig(ctx context.Context, workspaceID uuid.UUID, key string) (api.ResolvedConfig, error) {
+	db, err := r.tenant(ctx, workspaceID)
+	if err != nil {
+		return api.ResolvedConfig{}, err
+	}
+	if db == nil {
+		return api.ResolvedConfig{}, errors.New("workspace repository: nil tenant database")
+	}
+	var entry api.WorkspaceConfigEntry
+	var effectiveTo *time.Time
+	var valJSON []byte
+	row := db.QueryRow(ctx, `SELECT id, workspace_id, scope_type, scope_id, config_key,
+		value_int, value_decimal, value_text, value_bool, value_json, effective_to
+FROM workspace_config_entries
+WHERE workspace_id = $1 AND config_key = $2 AND scope_type = 'workspace'
+  AND effective_from <= CURRENT_DATE
+ORDER BY effective_from DESC LIMIT 1`, workspaceID, key)
+	err = row.Scan(&entry.ID, &entry.WorkspaceID, &entry.ScopeType, &entry.ScopeID, &entry.ConfigKey,
+		&entry.ValueInt, &entry.ValueDecimal, &entry.ValueText, &entry.ValueBool, &valJSON, &effectiveTo)
+	if err == nil {
+		now := time.Now().UTC().Truncate(24 * time.Hour)
+		if effectiveTo == nil || !now.After(*effectiveTo) {
+			res := api.ResolvedConfig{
+				Key:       key,
+				ScopeType: entry.ScopeType,
+				ScopeID:   entry.ScopeID,
+			}
+			if entry.ValueInt != nil {
+				v := int64(*entry.ValueInt)
+				res.Value.Int = &v
+			} else if entry.ValueDecimal != nil {
+				res.Value.Decimal = entry.ValueDecimal
+			} else if entry.ValueText != nil {
+				res.Value.Text = entry.ValueText
+			} else if entry.ValueBool != nil {
+				res.Value.Bool = entry.ValueBool
+			} else if len(valJSON) > 0 {
+				res.Value.JSON = json.RawMessage(valJSON)
+			}
+			return res, nil
+		}
+	}
+	mockText := "mock"
+	return api.ResolvedConfig{
+		Key:       key,
+		Value:     api.ConfigValue{Text: &mockText},
+		ScopeType: "workspace",
+		ScopeID:   nil,
+	}, nil
+}
+
+func (r WorkspaceRepository) DeleteConfig(ctx context.Context, workspaceID, entryID uuid.UUID) error {
+	db, err := r.tenant(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	if db == nil {
+		return errors.New("workspace repository: nil tenant database")
+	}
+	_, err = db.Exec(ctx, `DELETE FROM workspace_config_entries WHERE id = $1 AND workspace_id = $2`, entryID, workspaceID)
 	return mapConstraintError(err)
 }
 

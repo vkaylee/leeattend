@@ -108,6 +108,11 @@ func main() {
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/feature-flags/{id}", workspaceHandler.DeleteFeatureFlag)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/feature-flags/check/{key}", workspaceHandler.CheckFeatureFlag)
 	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/configs", workspaceHandler.PutConfig)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/configs", workspaceHandler.ListConfigs)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/configs/{key}", workspaceHandler.GetConfig)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/configs/{key}", workspaceHandler.DeleteConfig)
+	mux.HandleFunc("GET /api/v1/workspaces", workspaceHandler.List)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}", workspaceHandler.Get)
 	healthHandler := health.NewHandler(Version, nil, nil)
 	healthHandler.SetLive(true)
 	departmentRepo := repository.DepartmentRepository{TenantDB: workspaceRepo.TenantDB}

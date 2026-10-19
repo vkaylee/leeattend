@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -23,6 +24,12 @@ func (m mockAuthorizer) HasPermission(_ context.Context, _, _ uuid.UUID, perm st
 
 type mockWorkspaceRepo struct{}
 
+func (m mockWorkspaceRepo) ListWorkspaces(_ context.Context, _ uuid.UUID) ([]WorkspaceRecord, error) {
+	return []WorkspaceRecord{{Name: "Mock WS"}}, nil
+}
+func (m mockWorkspaceRepo) GetWorkspace(_ context.Context, id uuid.UUID) (WorkspaceRecord, error) {
+	return WorkspaceRecord{ID: id, Name: "Mock WS"}, nil
+}
 func (m mockWorkspaceRepo) CreateWorkspace(_ context.Context, req CreateWorkspaceRequest, _ uuid.UUID) (WorkspaceRecord, error) {
 	return WorkspaceRecord{Name: req.Name}, nil
 }
@@ -58,6 +65,16 @@ func (m mockWorkspaceRepo) UpsertFeatureFlag(_ context.Context, wsID uuid.UUID, 
 	return FeatureFlagRecord{WorkspaceID: wsID, FlagKey: req.FlagKey, Enabled: req.Enabled}, nil
 }
 func (m mockWorkspaceRepo) PutConfig(_ context.Context, _ uuid.UUID, _ ConfigEntryRequest, _ uuid.UUID) error {
+	return nil
+}
+func (m mockWorkspaceRepo) ListConfigs(_ context.Context, wsID uuid.UUID) ([]WorkspaceConfigEntry, error) {
+	return []WorkspaceConfigEntry{{ID: uuid.New(), WorkspaceID: wsID, ConfigKey: "max_overtime_hours"}}, nil
+}
+func (m mockWorkspaceRepo) GetConfig(_ context.Context, _ uuid.UUID, key string) (ResolvedConfig, error) {
+	text := "stored"
+	return ResolvedConfig{Key: key, Value: ConfigValue{Text: &text}, ScopeType: "workspace"}, nil
+}
+func (m mockWorkspaceRepo) DeleteConfig(_ context.Context, _ uuid.UUID, _ uuid.UUID) error {
 	return nil
 }
 
@@ -179,5 +196,96 @@ func TestWorkspaceHandler_FeatureFlagsCRUD(t *testing.T) {
 	h.CheckFeatureFlag(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 for check, got %d", rec.Code)
+	}
+}
+
+func TestWorkspaceHandler_ListAndGet(t *testing.T) {
+	wsID, userID := uuid.New(), uuid.New()
+	h := WorkspaceHandler{Repository: mockWorkspaceRepo{}, Authorizer: mockAuthorizer{}}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces", nil)
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec := httptest.NewRecorder()
+	h.List(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for list, got %d", rec.Code)
+	}
+	var listed []WorkspaceRecord
+	if err := json.Unmarshal(rec.Body.Bytes(), &listed); err != nil || len(listed) != 1 {
+		t.Fatalf("expected one workspace, got %s (err=%v)", rec.Body.String(), err)
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String(), nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec = httptest.NewRecorder()
+	h.Get(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for get, got %d", rec.Code)
+	}
+	var got WorkspaceRecord
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil || got.ID != wsID {
+		t.Fatalf("expected workspace %s, got %s (err=%v)", wsID, rec.Body.String(), err)
+	}
+}
+
+func TestWorkspaceHandler_ConfigEndpoints(t *testing.T) {
+	wsID, userID, entryID := uuid.New(), uuid.New(), uuid.New()
+	h := WorkspaceHandler{
+		Repository: mockWorkspaceRepo{},
+		Authorizer: mockAuthorizer{perms: map[string]bool{
+			"workspace:settings:read":  true,
+			"workspace:settings:write": true,
+		}},
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/configs", nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec := httptest.NewRecorder()
+	h.ListConfigs(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for list configs, got %d", rec.Code)
+	}
+	var entries []WorkspaceConfigEntry
+	if err := json.Unmarshal(rec.Body.Bytes(), &entries); err != nil || len(entries) != 1 {
+		t.Fatalf("expected one config entry, got %s (err=%v)", rec.Body.String(), err)
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/configs/max_overtime_hours", nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req.SetPathValue("key", "max_overtime_hours")
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec = httptest.NewRecorder()
+	h.GetConfig(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for get config, got %d", rec.Code)
+	}
+	var resolved ResolvedConfig
+	if err := json.Unmarshal(rec.Body.Bytes(), &resolved); err != nil || resolved.Key != "max_overtime_hours" || resolved.Value.Text == nil || *resolved.Value.Text != "mock" {
+		t.Fatalf("expected Rust mock config response, got %s (err=%v)", rec.Body.String(), err)
+	}
+
+	req = httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/configs/"+entryID.String(), nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req.SetPathValue("key", entryID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec = httptest.NewRecorder()
+	h.DeleteConfig(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for delete config, got %d", rec.Code)
+	}
+}
+
+func TestWorkspaceHandler_ConfigRequiresPermission(t *testing.T) {
+	wsID, userID := uuid.New(), uuid.New()
+	h := WorkspaceHandler{Repository: mockWorkspaceRepo{}, Authorizer: mockAuthorizer{}}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/configs", nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+	rec := httptest.NewRecorder()
+	h.ListConfigs(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", rec.Code)
 	}
 }

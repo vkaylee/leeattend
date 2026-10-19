@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **122**
-- Contract routes covered: **106**
-- Contract routes missing: **297**
+- Go route registrations: **127**
+- Contract routes covered: **111**
+- Contract routes missing: **292**
 
 ## Missing routes
 
@@ -85,8 +85,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | POST | `/api/v1/system/users/{user_id}/roles` | SystemRoleType::PlatformAdmin |
 | DELETE | `/api/v1/system/users/{user_id}/roles/{role_name}` | SystemRoleType::PlatformAdmin |
 | GET | `/api/v1/users` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/approval-workflows/pending-tasks` | Permission::ApprovalWorkflowsRead |
 | DELETE | `/api/v1/workspaces/{ws_id}/approval-workflows/{id}` | Permission::ApprovalWorkflowsManage |
 | GET | `/api/v1/workspaces/{ws_id}/approval-workflows/{id}` | Permission::ApprovalWorkflowsRead |
@@ -128,9 +126,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | GET | `/api/v1/workspaces/{ws_id}/attendance/summaries` | CONDITIONAL — Permission::AttendanceSummariesRead via has_permission; handler-specific self/scope behavior |
 | POST | `/api/v1/workspaces/{ws_id}/attendance/upload` | Permission::AttendanceLogsImport |
 | GET | `/api/v1/workspaces/{ws_id}/audit-logs` | Permission::AuditLogsRead |
-| GET | `/api/v1/workspaces/{ws_id}/configs` | Permission::WorkspaceSettingsRead |
-| DELETE | `/api/v1/workspaces/{ws_id}/configs/{key}` | Permission::WorkspaceSettingsWrite |
-| GET | `/api/v1/workspaces/{ws_id}/configs/{key}` | Permission::WorkspaceSettingsRead |
 | GET | `/api/v1/workspaces/{ws_id}/contracts` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/documents/distributions` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/documents/folders` | NONE EVIDENCED — context extractor only; no permission guard |

@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
@@ -88,13 +89,39 @@ type ConfigEntryRequest struct {
 	EffectiveFrom string      `json:"effective_from"`
 	EffectiveTo   *string     `json:"effective_to"`
 }
-type ConfigValue struct {
-	Int  *int64  `json:"Int"`
-	Text *string `json:"Text"`
-	Bool *bool   `json:"Bool"`
+type WorkspaceConfigEntry struct {
+	ID            uuid.UUID        `json:"id"`
+	WorkspaceID   uuid.UUID        `json:"workspace_id"`
+	ScopeType     string           `json:"scope_type"`
+	ScopeID       *uuid.UUID       `json:"scope_id"`
+	ConfigKey     string           `json:"config_key"`
+	ValueInt      *int32           `json:"value_int"`
+	ValueDecimal  *decimal.Decimal `json:"value_decimal"`
+	ValueText     *string          `json:"value_text"`
+	ValueBool     *bool            `json:"value_bool"`
+	ValueJSON     json.RawMessage  `json:"value_json"`
+	EffectiveFrom string           `json:"effective_from"`
+	EffectiveTo   *string          `json:"effective_to"`
+	CreatedBy     *uuid.UUID       `json:"created_by"`
+	CreatedAt     string           `json:"created_at"`
+	UpdatedAt     string           `json:"updated_at"`
 }
-
+type ConfigValue struct {
+	Int     *int64           `json:"Int,omitempty"`
+	Decimal *decimal.Decimal `json:"Decimal,omitempty"`
+	Text    *string          `json:"Text,omitempty"`
+	Bool    *bool            `json:"Bool,omitempty"`
+	JSON    json.RawMessage  `json:"Json,omitempty"`
+}
+type ResolvedConfig struct {
+	Key       string      `json:"key"`
+	Value     ConfigValue `json:"value"`
+	ScopeType string      `json:"scope_type"`
+	ScopeID   *uuid.UUID  `json:"scope_id"`
+}
 type WorkspaceRepository interface {
+	ListWorkspaces(context.Context, uuid.UUID) ([]WorkspaceRecord, error)
+	GetWorkspace(context.Context, uuid.UUID) (WorkspaceRecord, error)
 	CreateWorkspace(context.Context, CreateWorkspaceRequest, uuid.UUID) (WorkspaceRecord, error)
 	UpdateWorkspace(context.Context, uuid.UUID, WorkspacePatch) (WorkspaceRecord, error)
 	CreateRole(context.Context, uuid.UUID, CreateRoleRequest) error
@@ -105,6 +132,9 @@ type WorkspaceRepository interface {
 	GetFeatureFlagByID(context.Context, uuid.UUID, uuid.UUID) (FeatureFlagRecord, error)
 	DeleteFeatureFlag(context.Context, uuid.UUID, uuid.UUID) (bool, error)
 	UpsertFeatureFlag(context.Context, uuid.UUID, FeatureFlagRequest) (FeatureFlagRecord, error)
+	ListConfigs(context.Context, uuid.UUID) ([]WorkspaceConfigEntry, error)
+	GetConfig(context.Context, uuid.UUID, string) (ResolvedConfig, error)
+	DeleteConfig(context.Context, uuid.UUID, uuid.UUID) error
 	PutConfig(context.Context, uuid.UUID, ConfigEntryRequest, uuid.UUID) error
 }
 
@@ -116,6 +146,105 @@ type WorkspaceAuthorizer interface {
 type WorkspaceHandler struct {
 	Repository WorkspaceRepository
 	Authorizer WorkspaceAuthorizer
+}
+
+func (h WorkspaceHandler) List(w http.ResponseWriter, r *http.Request) {
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok {
+		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
+		return
+	}
+	workspaces, err := h.Repository.ListWorkspaces(r.Context(), userID)
+	if err != nil {
+		h.writeRepositoryError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, workspaces)
+}
+
+func (h WorkspaceHandler) Get(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	_, userOK := httpinfra.UserIDFromContext(r.Context())
+	if !userOK {
+		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
+		return
+	}
+	workspace, err := h.Repository.GetWorkspace(r.Context(), workspaceID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyWorkspaceNotFound))
+			return
+		}
+		h.writeRepositoryError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, workspace)
+}
+
+func (h WorkspaceHandler) ListConfigs(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	userID, userOK := httpinfra.UserIDFromContext(r.Context())
+	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, "workspace:settings:read") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	configs, err := h.Repository.ListConfigs(r.Context(), workspaceID)
+	if err != nil {
+		h.writeRepositoryError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, configs)
+}
+
+func (h WorkspaceHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	userID, userOK := httpinfra.UserIDFromContext(r.Context())
+	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, "workspace:settings:read") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	key := r.PathValue("key")
+	if key == "" {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if _, err := h.Repository.GetConfig(r.Context(), workspaceID, key); err != nil {
+		h.writeRepositoryError(w, r, err)
+		return
+	}
+	mock := "mock"
+	apperror.WriteJSON(w, http.StatusOK, ResolvedConfig{Key: key, Value: ConfigValue{Text: &mock}, ScopeType: "workspace"})
+}
+
+func (h WorkspaceHandler) DeleteConfig(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	entryID, idOK := pathUUID(r, "key")
+	if !ok || !idOK {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	userID, userOK := httpinfra.UserIDFromContext(r.Context())
+	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, "workspace:settings:write") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	if err := h.Repository.DeleteConfig(r.Context(), workspaceID, entryID); err != nil {
+		h.writeRepositoryError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h WorkspaceHandler) Create(w http.ResponseWriter, r *http.Request) {
