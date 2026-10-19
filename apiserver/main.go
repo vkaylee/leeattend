@@ -132,6 +132,20 @@ func main() {
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employments/{employment_id}/working-patterns", patternHandler.Assign)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/working-patterns/bulk-assign", patternHandler.BulkAssign)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employments/{employment_id}/working-patterns", patternHandler.History)
+	rosterRepo := repository.RosterRepository{TenantDB: workspaceRepo.TenantDB}
+	rosterHandler := api.RosterHandler{Repository: rosterRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{id}/rosters", rosterHandler.ListEmployee)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{id}/rosters", rosterHandler.Upsert)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{id}/rosters/bulk", rosterHandler.BulkUpsert)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/employees/{id}/rosters/{date}", rosterHandler.Delete)
+	segmentRepo := repository.WorkSegmentRepository{TenantDB: workspaceRepo.TenantDB}
+	segmentHandler := api.WorkSegmentHandler{Repository: segmentRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/work-segments", segmentHandler.List)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/work-segments/{segment_id}", segmentHandler.Get)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/work-segments", segmentHandler.Create)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/work-segments/{segment_id}", segmentHandler.Update)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/work-segments/{segment_id}", segmentHandler.Delete)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/work-segments/bulk", segmentHandler.BulkCreate)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees", employeeHandler.Create)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees", employeeHandler.List)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/employees/{id}", employeeHandler.Delete)
