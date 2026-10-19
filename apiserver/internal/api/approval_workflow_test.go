@@ -57,6 +57,9 @@ func (m *mockApprovalWorkflowRepository) ProcessApproval(context.Context, uuid.U
 func (m *mockApprovalWorkflowRepository) ListHistory(context.Context, uuid.UUID, string, uuid.UUID) ([]ApprovalActionLogRecord, error) {
 	return m.history, m.historyErr
 }
+func (m *mockApprovalWorkflowRepository) GetPendingTasksForUser(context.Context, uuid.UUID, uuid.UUID, int, int) (PaginatedTasksResponse, error) {
+	return PaginatedTasksResponse{Data: []ApprovalWorkflowTaskRecord{}, Total: 0, Page: 1, Limit: 50}, nil
+}
 
 func approvalRequest(t *testing.T, method, path, body string, wsID uuid.UUID) *http.Request {
 	t.Helper()
@@ -158,6 +161,20 @@ func TestApprovalWorkflowDeleteSuccess(t *testing.T) {
 	req.SetPathValue("id", workflowID.String())
 	rec := httptest.NewRecorder()
 	handler.Delete(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+}
+
+func TestApprovalWorkflowPendingTasksSuccess(t *testing.T) {
+	wsID := uuid.New()
+	handler := ApprovalWorkflowHandler{
+		Repository: &mockApprovalWorkflowRepository{},
+		Authorizer: mockAuthorizer{perms: map[string]bool{"approval_workflows:read": true}},
+	}
+	req := approvalRequest(t, http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/approval-workflows/pending-tasks", "", wsID)
+	rec := httptest.NewRecorder()
+	handler.PendingTasks(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}

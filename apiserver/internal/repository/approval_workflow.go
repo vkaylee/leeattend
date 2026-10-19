@@ -275,3 +275,61 @@ func (r ApprovalWorkflowRepository) ListHistory(ctx context.Context, workspaceID
 	}
 	return logs, rows.Err()
 }
+
+// GetPendingTasksForUser returns pending approval workflow tasks matching the caller.
+func (r ApprovalWorkflowRepository) GetPendingTasksForUser(ctx context.Context, workspaceID, userID uuid.UUID, page, limit int) (api.PaginatedTasksResponse, error) {
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return api.PaginatedTasksResponse{}, err
+	}
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 3000 {
+		limit = 50
+	}
+	offset := (page - 1) * limit
+
+	var roleIDs []uuid.UUID
+	roleRows, _ := db.Query(ctx, `SELECT role_id FROM workspace_member_roles WHERE member_id IN (SELECT id FROM workspace_members WHERE user_id = $1 AND workspace_id = $2)`, userID, workspaceID)
+	if roleRows != nil {
+		for roleRows.Next() {
+			var rid uuid.UUID
+			if err := roleRows.Scan(&rid); err == nil {
+				roleIDs = append(roleIDs, rid)
+			}
+		}
+		roleRows.Close()
+	}
+
+	countQuery := `SELECT COUNT(*) FROM approval_workflow_tasks t JOIN approval_workflow_instances i ON t.instance_id = i.id WHERE i.workspace_id = $1 AND t.status = 'pending' AND ( (t.assignee_type = 'specific_user' AND t.assignee_target_id = $2) OR (t.assignee_type = 'role' AND t.assignee_target_id = ANY($3)) OR (t.assignee_type = 'department_manager') OR (t.assignee_type = 'permission') )`
+	var total int64
+	if err := db.QueryRow(ctx, countQuery, workspaceID, userID, roleIDs).Scan(&total); err != nil {
+		return api.PaginatedTasksResponse{}, err
+	}
+
+	dataQuery := `SELECT t.id, t.instance_id, t.step_order, t.status, t.assignee_type, t.assignee_target_id, t.assignee_target_name, t.created_at, t.completed_at, t.completed_by FROM approval_workflow_tasks t JOIN approval_workflow_instances i ON t.instance_id = i.id WHERE i.workspace_id = $1 AND t.status = 'pending' AND ( (t.assignee_type = 'specific_user' AND t.assignee_target_id = $2) OR (t.assignee_type = 'role' AND t.assignee_target_id = ANY($3)) OR (t.assignee_type = 'department_manager') OR (t.assignee_type = 'permission') ) ORDER BY t.created_at DESC LIMIT $4 OFFSET $5`
+	rows, err := db.Query(ctx, dataQuery, workspaceID, userID, roleIDs, limit, offset)
+	if err != nil {
+		return api.PaginatedTasksResponse{}, err
+	}
+	defer rows.Close()
+
+	var data []api.ApprovalWorkflowTaskRecord
+	for rows.Next() {
+		var rec api.ApprovalWorkflowTaskRecord
+		if err := rows.Scan(&rec.ID, &rec.InstanceID, &rec.StepOrder, &rec.Status, &rec.AssigneeType, &rec.AssigneeTargetID, &rec.AssigneeTargetName, &rec.CreatedAt, &rec.CompletedAt, &rec.CompletedBy); err != nil {
+			return api.PaginatedTasksResponse{}, err
+		}
+		data = append(data, rec)
+	}
+	if data == nil {
+		data = []api.ApprovalWorkflowTaskRecord{}
+	}
+	return api.PaginatedTasksResponse{
+		Data:  data,
+		Total: total,
+		Page:  page,
+		Limit: limit,
+	}, nil
+}

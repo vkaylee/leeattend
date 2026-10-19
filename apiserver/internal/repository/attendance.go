@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -386,6 +388,158 @@ func scanTimeEntry(row pgx.Row, record *api.TimeEntryRecord) error {
 	}
 	if len(metadata) > 0 {
 		record.GenerationMetadata = json.RawMessage(metadata)
+	}
+	return nil
+}
+
+// GetAttendanceSummaries queries paginated daily summaries from tenant DB.
+func (r AttendanceRepository) GetAttendanceSummaries(ctx context.Context, workspaceID uuid.UUID, startDate, endDate string, employeeID *uuid.UUID, otStatus *string, page, limit int) (api.PaginatedSummaries, error) {
+	db, err := r.tenantDB(ctx, workspaceID)
+	if err != nil {
+		return api.PaginatedSummaries{}, err
+	}
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 3000 {
+		limit = 50
+	}
+	offset := (page - 1) * limit
+
+	whereClauses := []string{"s.workspace_id = $1", "s.date >= $2", "s.date <= $3"}
+	args := []interface{}{workspaceID, startDate, endDate}
+	idx := 4
+
+	if employeeID != nil {
+		whereClauses = append(whereClauses, fmt.Sprintf("s.employment_id IN (SELECT id FROM employments WHERE employee_id = $%d AND workspace_id = $1)", idx))
+		args = append(args, *employeeID)
+		idx++
+	}
+	if otStatus != nil && *otStatus != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("s.ot_status = $%d", idx))
+		args = append(args, *otStatus)
+		idx++
+	}
+
+	whereSQL := strings.Join(whereClauses, " AND ")
+
+	countQuery := fmt.Sprintf(`SELECT COUNT(*) FROM attendance_daily_summaries s WHERE %s`, whereSQL)
+	var total int64
+	if err := db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return api.PaginatedSummaries{}, err
+	}
+
+	dataQuery := fmt.Sprintf(`SELECT s.id, s.workspace_id, s.employment_id, s.date::text, s.actual_work_minutes, s.standard_minutes, s.system_detected_ot_minutes, s.claimed_ot_minutes, s.approved_ot_minutes, s.early_ot_minutes, s.late_ot_minutes, s.break_ot_minutes, s.ot_status::text, s.ot_reason, s.manager_note, s.is_weekend, s.is_holiday, s.holiday_name, s.created_at, s.updated_at FROM attendance_daily_summaries s WHERE %s ORDER BY s.date DESC LIMIT $%d OFFSET $%d`, whereSQL, idx, idx+1)
+	args = append(args, limit, offset)
+
+	rows, err := db.Query(ctx, dataQuery, args...)
+	if err != nil {
+		return api.PaginatedSummaries{}, err
+	}
+	defer rows.Close()
+
+	var data []api.AttendanceDailySummaryRecord
+	for rows.Next() {
+		var rec api.AttendanceDailySummaryRecord
+		if err := rows.Scan(&rec.ID, &rec.WorkspaceID, &rec.EmploymentID, &rec.Date, &rec.ActualWorkMinutes, &rec.StandardMinutes, &rec.SystemDetectedOTMinutes, &rec.ClaimedOTMinutes, &rec.ApprovedOTMinutes, &rec.EarlyOTMinutes, &rec.LateOTMinutes, &rec.BreakOTMinutes, &rec.OTStatus, &rec.OTReason, &rec.ManagerNote, &rec.IsWeekend, &rec.IsHoliday, &rec.HolidayName, &rec.CreatedAt, &rec.UpdatedAt); err != nil {
+			return api.PaginatedSummaries{}, err
+		}
+		data = append(data, rec)
+	}
+	if data == nil {
+		data = []api.AttendanceDailySummaryRecord{}
+	}
+	return api.PaginatedSummaries{
+		Data:  data,
+		Total: total,
+		Page:  page,
+		Limit: limit,
+	}, nil
+}
+
+// GetEmployeeIDByUserID returns the employee ID for a given user ID in workspace.
+func (r AttendanceRepository) GetEmployeeIDByUserID(ctx context.Context, workspaceID, userID uuid.UUID) (uuid.UUID, error) {
+	db, err := r.tenantDB(ctx, workspaceID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	var empID uuid.UUID
+	err = db.QueryRow(ctx, `SELECT id FROM employees WHERE user_id = $1 AND workspace_id = $2 AND deleted_at IS NULL LIMIT 1`, userID, workspaceID).Scan(&empID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return empID, nil
+}
+
+// UpdateTimeEntry updates time entry fields in tenant DB.
+func (r AttendanceRepository) UpdateTimeEntry(ctx context.Context, workspaceID, entryID uuid.UUID, req api.UpdateTimeEntryRequest) (api.TimeEntryRecord, error) {
+	db, err := r.tenantDB(ctx, workspaceID)
+	if err != nil {
+		return api.TimeEntryRecord{}, err
+	}
+	var record api.TimeEntryRecord
+	row := db.QueryRow(ctx, `SELECT id, workspace_id, employment_id, shift_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at FROM time_entries WHERE id = $1 AND workspace_id = $2`, entryID, workspaceID)
+	if err := scanTimeEntry(row, &record); err != nil {
+		return api.TimeEntryRecord{}, err
+	}
+
+	punchInTime := record.PunchInTime
+	if req.PunchInTime != nil {
+		punchInTime = *req.PunchInTime
+	}
+	var punchOutTime *string = record.PunchOutTime
+	if req.PunchOutTime != nil {
+		punchOutTime = req.PunchOutTime
+	}
+	entryType := record.EntryType
+	if req.EntryType != nil {
+		entryType = *req.EntryType
+	}
+	note := record.Note
+	if req.Note != nil {
+		note = req.Note
+	}
+	segmentID := record.SegmentID
+	if req.SegmentID != nil {
+		segmentID = req.SegmentID
+	}
+
+	var pIn time.Time
+	if t, err := time.Parse(time.RFC3339, punchInTime); err == nil {
+		pIn = t
+	}
+	var pOut *time.Time
+	var durationMinutes *int
+	if punchOutTime != nil && *punchOutTime != "" {
+		if t, err := time.Parse(time.RFC3339, *punchOutTime); err == nil {
+			pOut = &t
+			mins := int(t.Sub(pIn).Minutes())
+			if mins >= 0 {
+				durationMinutes = &mins
+			}
+		}
+	}
+
+	updateRow := db.QueryRow(ctx, `UPDATE time_entries SET punch_in_time = $1, punch_out_time = $2, duration_minutes = $3, entry_type = $4, note = $5, segment_id = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7 AND workspace_id = $8 RETURNING id, workspace_id, employment_id, shift_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, pIn, pOut, durationMinutes, entryType, note, segmentID, entryID, workspaceID)
+	var updatedRecord api.TimeEntryRecord
+	if err := scanTimeEntry(updateRow, &updatedRecord); err != nil {
+		return api.TimeEntryRecord{}, err
+	}
+	return updatedRecord, nil
+}
+
+// DeleteTimeEntry deletes a time entry from tenant DB.
+func (r AttendanceRepository) DeleteTimeEntry(ctx context.Context, workspaceID, entryID uuid.UUID) error {
+	db, err := r.tenantDB(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	cmd, err := db.Exec(ctx, `DELETE FROM time_entries WHERE id = $1 AND workspace_id = $2`, entryID, workspaceID)
+	if err != nil {
+		return err
+	}
+	if cmd.RowsAffected() == 0 {
+		return pgx.ErrNoRows
 	}
 	return nil
 }

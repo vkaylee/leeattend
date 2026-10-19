@@ -97,6 +97,47 @@ func (m *mockAttendanceRepo) ApproveAdjustment(_ context.Context, _, _, _ uuid.U
 	return m.err
 }
 
+func (m *mockAttendanceRepo) ESSPunch(_ context.Context, wsID, empID uuid.UUID, entryType string, note *string, punchTime time.Time) (TimeEntryRecord, error) {
+	if m.err != nil {
+		return TimeEntryRecord{}, m.err
+	}
+	return m.PunchIn(context.Background(), wsID, empID, entryType, note, false, punchTime)
+}
+
+func (m *mockAttendanceRepo) GetAttendanceSummaries(_ context.Context, _ uuid.UUID, _, _ string, _ *uuid.UUID, _ *string, page, limit int) (PaginatedSummaries, error) {
+	if m.err != nil {
+		return PaginatedSummaries{}, m.err
+	}
+	return PaginatedSummaries{Data: []AttendanceDailySummaryRecord{}, Total: 0, Page: page, Limit: limit}, nil
+}
+
+func (m *mockAttendanceRepo) GetEmployeeIDByUserID(_ context.Context, _, userID uuid.UUID) (uuid.UUID, error) {
+	if m.err != nil {
+		return uuid.Nil, m.err
+	}
+	return userID, nil
+}
+
+func (m *mockAttendanceRepo) UpdateTimeEntry(_ context.Context, wsID, entryID uuid.UUID, req UpdateTimeEntryRequest) (TimeEntryRecord, error) {
+	if m.err != nil {
+		return TimeEntryRecord{}, m.err
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	return TimeEntryRecord{
+		ID:           entryID,
+		WorkspaceID:  wsID,
+		EmploymentID: uuid.New(),
+		PunchInTime:  now,
+		EntryType:    "work",
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}, nil
+}
+
+func (m *mockAttendanceRepo) DeleteTimeEntry(_ context.Context, _, _ uuid.UUID) error {
+	return m.err
+}
+
 func TestPunchIn_PermissionDenied(t *testing.T) {
 	wsID := uuid.New()
 	userID := uuid.New()
@@ -373,5 +414,93 @@ func TestApproveAdjustment_Success(t *testing.T) {
 	handler.ApproveAdjustment(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestAttendanceSummaries_Success(t *testing.T) {
+	wsID := uuid.New()
+	userID := uuid.New()
+	handler := AttendanceHandler{
+		Repository: &mockAttendanceRepo{},
+		Authorizer: mockAttendanceAuthorizer{allowed: true},
+	}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/attendance/summaries?start_date=2026-10-01&end_date=2026-10-20", nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+
+	rec := httptest.NewRecorder()
+	handler.Summaries(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+}
+
+func TestAttendanceReprocessAll_Success(t *testing.T) {
+	wsID := uuid.New()
+	userID := uuid.New()
+	handler := AttendanceHandler{
+		Repository: &mockAttendanceRepo{},
+		Authorizer: mockAttendanceAuthorizer{allowed: true},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/attendance/reprocess-all?start_date=2026-10-01&end_date=2026-10-20", nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+
+	rec := httptest.NewRecorder()
+	handler.ReprocessAll(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+}
+
+func TestAttendanceReprocessEmployee_Success(t *testing.T) {
+	wsID := uuid.New()
+	empID := uuid.New()
+	userID := uuid.New()
+	handler := AttendanceHandler{
+		Repository: &mockAttendanceRepo{},
+		Authorizer: mockAttendanceAuthorizer{allowed: true},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/attendance/reprocess/"+empID.String()+"?start_date=2026-10-01&end_date=2026-10-20", nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req.SetPathValue("employee_id", empID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
+
+	rec := httptest.NewRecorder()
+	handler.ReprocessEmployee(rec, req)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("expected 202, got %d", rec.Code)
+	}
+}
+
+func TestTimeEntry_UpdateAndDelete(t *testing.T) {
+	wsID := uuid.New()
+	entryID := uuid.New()
+	userID := uuid.New()
+	handler := AttendanceHandler{
+		Repository: &mockAttendanceRepo{},
+		Authorizer: mockAttendanceAuthorizer{allowed: true},
+	}
+	body := []byte(`{"note":"Updated note"}`)
+	reqUpdate := httptest.NewRequest(http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/time/entries/"+entryID.String(), bytes.NewReader(body))
+	reqUpdate.SetPathValue("ws_id", wsID.String())
+	reqUpdate.SetPathValue("id", entryID.String())
+	reqUpdate = reqUpdate.WithContext(httpinfra.WithUserIDForTest(reqUpdate.Context(), userID))
+
+	recUpdate := httptest.NewRecorder()
+	handler.UpdateTimeEntry(recUpdate, reqUpdate)
+	if recUpdate.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", recUpdate.Code)
+	}
+
+	reqDelete := httptest.NewRequest(http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/time/entries/"+entryID.String(), nil)
+	reqDelete.SetPathValue("ws_id", wsID.String())
+	reqDelete.SetPathValue("id", entryID.String())
+	reqDelete = reqDelete.WithContext(httpinfra.WithUserIDForTest(reqDelete.Context(), userID))
+
+	recDelete := httptest.NewRecorder()
+	handler.DeleteTimeEntry(recDelete, reqDelete)
+	if recDelete.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d", recDelete.Code)
 	}
 }

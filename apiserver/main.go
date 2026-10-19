@@ -245,6 +245,12 @@ func main() {
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/attendance/adjustments", attendanceHandler.ListAdjustments)
 	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/attendance/adjustments/{id}/approve", attendanceHandler.ApproveAdjustment)
 	mux.HandleFunc("GET /api/v1/employees/{id}/attendance/adjustments", attendanceHandler.ListEmployeeAdjustments)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/attendance/summaries", attendanceHandler.Summaries)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/reprocess-all", attendanceHandler.ReprocessAll)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/reprocess/{employee_id}", attendanceHandler.ReprocessEmployee)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/adjustments/{id}/approve", attendanceHandler.ApproveAdjustment)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/time/entries/{id}", attendanceHandler.UpdateTimeEntry)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/time/entries/{id}", attendanceHandler.DeleteTimeEntry)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/upload", attendanceLogsHandler.Upload)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/logs/upload", attendanceLogsHandler.UploadLogs)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/bulk-upload-paper-ot", attendanceLogsHandler.BulkPaperOT)
@@ -433,6 +439,7 @@ func main() {
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/approval-workflows/{id}", workflowHandler.Get)
 	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/approval-workflows/{id}", workflowHandler.Update)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/approval-workflows/{id}", workflowHandler.Delete)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/approval-workflows/pending-tasks", workflowHandler.PendingTasks)
 	notifRepo := repository.NotificationRepository{SystemDB: workspaceRepo.SystemDB}
 	notifHandler := api.NotificationHandler{Repository: notifRepo}
 	mux.HandleFunc("GET /v1/notifications", notifHandler.List)
@@ -693,6 +700,29 @@ func main() {
 	mux.HandleFunc("PATCH /me", authHandler.UpdateMe)
 	mux.HandleFunc("GET /me/permissions", authHandler.MyPermissions)
 	mux.HandleFunc("GET /users", authHandler.WorkspaceUsers)
+	agentDeviceRepo := repository.AgentDeviceRepository(workspaceRepo)
+	agentHub := api.NewAgentHub(agentDeviceRepo, redisClient)
+	agentDeviceHandler := api.AgentDeviceHandler{
+		Repository: agentDeviceRepo,
+		Hub:        agentHub,
+		Authorizer: workspaceAuthorizer,
+		Redis:      redisClient,
+	}
+	mux.HandleFunc("GET /api/v1/devices", agentDeviceHandler.ListDevices)
+	mux.HandleFunc("POST /api/v1/devices", agentDeviceHandler.CreateDevice)
+	mux.HandleFunc("PUT /api/v1/devices/{id}", agentDeviceHandler.UpdateDevice)
+	mux.HandleFunc("DELETE /api/v1/devices/{id}", agentDeviceHandler.DeleteDevice)
+	mux.HandleFunc("GET /api/v1/devices/{id}/info", agentDeviceHandler.GetDeviceInfo)
+	mux.HandleFunc("GET /api/v1/authorized-agents", agentDeviceHandler.ListAuthorizedAgents)
+	mux.HandleFunc("POST /api/v1/authorized-agents", agentDeviceHandler.CreateAuthorizedAgent)
+	mux.HandleFunc("GET /api/v1/authorized-agents/{id}", agentDeviceHandler.GetAuthorizedAgent)
+	mux.HandleFunc("PATCH /api/v1/authorized-agents/{id}", agentDeviceHandler.UpdateAuthorizedAgent)
+	mux.HandleFunc("DELETE /api/v1/authorized-agents/{id}", agentDeviceHandler.DeleteAuthorizedAgent)
+	mux.HandleFunc("PUT /api/v1/authorized-agents/{id}/trust", agentDeviceHandler.UpdateAgentTrust)
+	mux.HandleFunc("GET /api/v1/agents", agentDeviceHandler.ListAgents)
+	mux.HandleFunc("POST /api/v1/agent/{agent_id}/command", agentDeviceHandler.SendCommand)
+	mux.HandleFunc("GET /api/v1/ws", agentDeviceHandler.WebSocket)
+	mux.HandleFunc("GET /ws", agentDeviceHandler.WebSocket)
 
 	publicPrefixes := []string{
 		"/health",
@@ -712,6 +742,8 @@ func main() {
 		"/api/v1/ws/reports/",
 		"/v1/ws/reports/",
 		"/ws/reports/",
+		"/api/v1/ws",
+		"/ws",
 	}
 	var revocationChecker httpinfra.TokenRevocationChecker
 	var rateLimiter httpinfra.RateLimiterBackend

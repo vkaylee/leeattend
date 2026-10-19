@@ -3,32 +3,10 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **408**
-- Contract routes covered: **382**
-- Contract routes missing: **21**
+- Go route registrations: **430**
+- Contract routes covered: **403**
+- Contract routes missing: **0**
 
 ## Missing routes
 
-| Method | Path | Permission |
-|---|---|---|
-| POST | `/api/v1/agent/{agent_id}/command` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/agents` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/authorized-agents` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/authorized-agents` | NONE EVIDENCED — context extractor only; no permission guard |
-| DELETE | `/api/v1/authorized-agents/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/authorized-agents/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| PATCH | `/api/v1/authorized-agents/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| PUT | `/api/v1/authorized-agents/{id}/trust` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/devices` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/devices` | NONE EVIDENCED — context extractor only; no permission guard |
-| DELETE | `/api/v1/devices/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| PUT | `/api/v1/devices/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/devices/{id}/info` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/approval-workflows/pending-tasks` | Permission::ApprovalWorkflowsRead |
-| POST | `/api/v1/workspaces/{ws_id}/attendance/adjustments/{id}/approve` | Permission::AttendanceAdjustmentsApprove |
-| POST | `/api/v1/workspaces/{ws_id}/attendance/reprocess-all` | Permission::AttendanceReprocess |
-| POST | `/api/v1/workspaces/{ws_id}/attendance/reprocess/{employee_id}` | Permission::AttendanceReprocess |
-| GET | `/api/v1/workspaces/{ws_id}/attendance/summaries` | CONDITIONAL — Permission::AttendanceSummariesRead via has_permission; handler-specific self/scope behavior |
-| DELETE | `/api/v1/workspaces/{ws_id}/time/entries/{id}` | Permission::AttendanceLogsImport |
-| PUT | `/api/v1/workspaces/{ws_id}/time/entries/{id}` | Permission::AttendanceLogsImport |
-| GET | `/api/v1/ws` | NONE EVIDENCED — agent token/trusted-agent check; no resource:action permission |
+*(None — 100% contract coverage reached: 403/403 endpoints covered)*

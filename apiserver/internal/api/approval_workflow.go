@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -95,6 +96,28 @@ type ApprovalActionLogRecord struct {
 	ActedAt       string    `json:"acted_at"`
 }
 
+// ApprovalWorkflowTaskRecord models a pending or completed workflow task.
+type ApprovalWorkflowTaskRecord struct {
+	ID                 uuid.UUID  `json:"id"`
+	InstanceID         uuid.UUID  `json:"instance_id"`
+	StepOrder          int        `json:"step_order"`
+	Status             string     `json:"status"`
+	AssigneeType       string     `json:"assignee_type"`
+	AssigneeTargetID   *uuid.UUID `json:"assignee_target_id"`
+	AssigneeTargetName *string    `json:"assignee_target_name"`
+	CreatedAt          time.Time  `json:"created_at"`
+	CompletedAt        *time.Time `json:"completed_at"`
+	CompletedBy        *uuid.UUID `json:"completed_by"`
+}
+
+// PaginatedTasksResponse wraps paginated workflow tasks.
+type PaginatedTasksResponse struct {
+	Data  []ApprovalWorkflowTaskRecord `json:"data"`
+	Total int64                        `json:"total"`
+	Page  int                          `json:"page"`
+	Limit int                          `json:"limit"`
+}
+
 type ApprovalWorkflowRepository interface {
 	ListWorkflows(context.Context, uuid.UUID, *string, int, int) (ApprovalWorkflowListResponse, error)
 	CreateWorkflow(context.Context, uuid.UUID, uuid.UUID, CreateWorkflowRequest) (ApprovalWorkflowRecord, error)
@@ -103,6 +126,7 @@ type ApprovalWorkflowRepository interface {
 	DeleteWorkflow(context.Context, uuid.UUID, uuid.UUID) error
 	ProcessApproval(context.Context, uuid.UUID, uuid.UUID, ProcessApprovalRequest) error
 	ListHistory(context.Context, uuid.UUID, string, uuid.UUID) ([]ApprovalActionLogRecord, error)
+	GetPendingTasksForUser(context.Context, uuid.UUID, uuid.UUID, int, int) (PaginatedTasksResponse, error)
 }
 
 type ApprovalWorkflowHandler struct {
@@ -131,6 +155,31 @@ func (h ApprovalWorkflowHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, items)
+}
+
+// PendingTasks handles GET /api/v1/workspaces/{ws_id}/approval-workflows/pending-tasks.
+func (h ApprovalWorkflowHandler) PendingTasks(w http.ResponseWriter, r *http.Request) {
+	wsID, ok := pathUUID(r, "ws_id")
+	if !ok || !h.allowed(r, wsID, "approval_workflows:read") {
+		h.forbidden(w, r)
+		return
+	}
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok {
+		h.forbidden(w, r)
+		return
+	}
+	pagination, err := ParsePagination(r.URL.Query())
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	tasks, err := h.Repository.GetPendingTasksForUser(r.Context(), wsID, userID, pagination.Page, pagination.Limit)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, tasks)
 }
 
 func (h ApprovalWorkflowHandler) Create(w http.ResponseWriter, r *http.Request) {
