@@ -175,6 +175,8 @@ func main() {
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/work-segments/bulk", segmentHandler.BulkCreate)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees", employeeHandler.Create)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees", employeeHandler.List)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{id}", employeeHandler.Get)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/employees/{id}", employeeHandler.Update)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/employees/{id}", employeeHandler.Delete)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{id}/rehire", employeeHandler.Rehire)
 	customFieldRepo := repository.CustomFieldRepository{TenantDB: workspaceRepo.TenantDB}

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -61,6 +62,65 @@ func (r EmployeeRepository) ListEmployees(ctx context.Context, workspaceID uuid.
 		return api.EmployeeListResponse{}, err
 	}
 	return result, nil
+}
+
+func (r EmployeeRepository) GetEmployee(ctx context.Context, workspaceID, employeeID uuid.UUID) (api.EmployeeRecord, error) {
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return api.EmployeeRecord{}, err
+	}
+	var record api.EmployeeRecord
+	err = db.QueryRow(ctx, `SELECT id, workspace_id, user_id, full_name, employee_id_number, tags, created_at, updated_at, NULL::text, NULL::uuid, NULL::uuid, NULL::uuid FROM employees WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, employeeID, workspaceID).
+		Scan(&record.ID, &record.WorkspaceID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &record.CreatedAt, &record.UpdatedAt, &record.DepartmentName, &record.ActiveEmploymentID, &record.EmployerID, &record.PrimaryLocationID)
+	if err != nil {
+		return api.EmployeeRecord{}, err
+	}
+	return record, nil
+}
+
+func (r EmployeeRepository) UpdateEmployee(ctx context.Context, workspaceID, employeeID uuid.UUID, req api.UpdateEmployeeRequest) (api.EmployeeRecord, error) {
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return api.EmployeeRecord{}, err
+	}
+	if req.UserID != nil && *req.UserID != nil && req.ForceTransfer != nil && *req.ForceTransfer {
+		_, _ = db.Exec(ctx, `UPDATE employees SET user_id = NULL WHERE user_id = $1 AND workspace_id = $2 AND id != $3`, **req.UserID, workspaceID, employeeID)
+	}
+	sets := []string{"updated_at = CURRENT_TIMESTAMP"}
+	args := []any{}
+	add := func(col string, val any) {
+		args = append(args, val)
+		sets = append(sets, fmt.Sprintf("%s = $%d", col, len(args)))
+	}
+	if req.UserID != nil {
+		if *req.UserID == nil {
+			sets = append(sets, "user_id = NULL")
+		} else {
+			add("user_id", **req.UserID)
+		}
+	}
+	if req.FullName != nil {
+		add("full_name", strings.TrimSpace(*req.FullName))
+	}
+	if req.EmployeeIDNumber != nil {
+		add("employee_id_number", strings.TrimSpace(*req.EmployeeIDNumber))
+	}
+	if req.Tags != nil {
+		add("tags", *req.Tags)
+	}
+	if req.RecruitmentSourceID != nil {
+		add("recruitment_source_id", *req.RecruitmentSourceID)
+	}
+	args = append(args, employeeID, workspaceID)
+	idIdx := len(args) - 1
+	wsIdx := len(args)
+	query := fmt.Sprintf(`UPDATE employees SET %s WHERE id = $%d AND workspace_id = $%d AND deleted_at IS NULL RETURNING id, workspace_id, user_id, full_name, employee_id_number, tags, created_at, updated_at`, strings.Join(sets, ", "), idIdx, wsIdx)
+	var record api.EmployeeRecord
+	err = db.QueryRow(ctx, query, args...).Scan(&record.ID, &record.WorkspaceID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &record.CreatedAt, &record.UpdatedAt)
+	if err != nil {
+		return api.EmployeeRecord{}, mapConstraintError(err)
+	}
+	return record, nil
 }
 
 func (r EmployeeRepository) SoftDeleteEmployee(ctx context.Context, workspaceID, employeeID uuid.UUID) error {

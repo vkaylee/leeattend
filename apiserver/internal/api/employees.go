@@ -27,6 +27,16 @@ type EmployeeRecord struct {
 	PrimaryLocationID  *uuid.UUID `json:"primary_location_id"`
 }
 
+type UpdateEmployeeRequest struct {
+	UserID               **uuid.UUID `json:"user_id"`
+	FullName             *string     `json:"full_name"`
+	EmployeeIDNumber     *string     `json:"employee_id_number"`
+	Tags                 *[]string   `json:"tags"`
+	MaxConcurrentWorkers *int        `json:"max_concurrent_workers"`
+	RecruitmentSourceID  *uuid.UUID  `json:"recruitment_source_id"`
+	ForceTransfer        *bool       `json:"force_transfer"`
+}
+
 type CreateEmployeeRequest struct {
 	FullName          string     `json:"full_name"`
 	EmployeeIDNumber  string     `json:"employee_id_number"`
@@ -52,6 +62,8 @@ type EmployeeListResponse struct {
 type EmployeeRepository interface {
 	CreateEmployee(context.Context, uuid.UUID, CreateEmployeeRequest) (EmployeeRecord, error)
 	ListEmployees(context.Context, uuid.UUID, int, int, string) (EmployeeListResponse, error)
+	GetEmployee(context.Context, uuid.UUID, uuid.UUID) (EmployeeRecord, error)
+	UpdateEmployee(context.Context, uuid.UUID, uuid.UUID, UpdateEmployeeRequest) (EmployeeRecord, error)
 	SoftDeleteEmployee(context.Context, uuid.UUID, uuid.UUID) error
 	RehireEmployee(context.Context, uuid.UUID, uuid.UUID, RehireEmployeeRequest) (EmployeeRecord, error)
 }
@@ -100,6 +112,41 @@ func (h EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, result)
+}
+
+func (h EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	employeeID, employeeOK := pathUUID(r, "id")
+	if !ok || !employeeOK || !h.allowed(r, workspaceID, "employees:read") {
+		h.forbidden(w, r)
+		return
+	}
+	employee, err := h.Repository.GetEmployee(r.Context(), workspaceID, employeeID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, employee)
+}
+
+func (h EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	employeeID, employeeOK := pathUUID(r, "id")
+	if !ok || !employeeOK || !h.allowed(r, workspaceID, "employees:update") {
+		h.forbidden(w, r)
+		return
+	}
+	request, err := DecodeJSON[UpdateEmployeeRequest](r, 1<<20)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	employee, err := h.Repository.UpdateEmployee(r.Context(), workspaceID, employeeID, request)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, employee)
 }
 
 func (h EmployeeHandler) Delete(w http.ResponseWriter, r *http.Request) {

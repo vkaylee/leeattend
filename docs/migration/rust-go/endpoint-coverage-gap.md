@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **147**
-- Contract routes covered: **124**
-- Contract routes missing: **279**
+- Go route registrations: **149**
+- Contract routes covered: **126**
+- Contract routes missing: **277**
 
 ## Missing routes
 
@@ -144,8 +144,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | DELETE | `/api/v1/workspaces/{ws_id}/employees/{employee_id}/employments/{employment_id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/employees/{employee_id}/employments/{employment_id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | PATCH | `/api/v1/workspaces/{ws_id}/employees/{employee_id}/employments/{employment_id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/employees/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| PUT | `/api/v1/workspaces/{ws_id}/employees/{id}` | Permission::EmployeesUpdate (scoped) |
 | POST | `/api/v1/workspaces/{ws_id}/employees/{id}/calculate-payroll` | Permission::PayrollCalculate |
 | GET | `/api/v1/workspaces/{ws_id}/employees/{id}/compensation-history` | Permission::EmployeesRead |
 | GET | `/api/v1/workspaces/{ws_id}/employees/{id}/conditions` | NONE EVIDENCED — context extractor only; no permission guard |
