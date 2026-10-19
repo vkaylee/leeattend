@@ -60,6 +60,8 @@ func (r *rowsStub) Scan(dest ...any) error {
 			*target = v.(bool)
 		case *time.Time:
 			*target = v.(time.Time)
+		case *decimal.Decimal:
+			*target = v.(decimal.Decimal)
 		}
 	}
 	return nil

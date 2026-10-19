@@ -362,6 +362,15 @@ func main() {
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/leave/requests", leaveHandler.ListRequests)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/leave/requests/{id}/approve", leaveHandler.Approve)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{id}/leave/balances", leaveHandler.Balances)
+	holidayRepo := repository.HolidayRepository{TenantDB: workspaceRepo.TenantDB}
+	holidayHandler := api.HolidayHandler{Repository: holidayRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/holidays", holidayHandler.List)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/holidays", holidayHandler.Create)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/holidays/{id}", holidayHandler.Get)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/holidays/{id}", holidayHandler.Update)
+	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/holidays/{id}", holidayHandler.Update)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/holidays/{id}", holidayHandler.Delete)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/holidays/{id}/process-leave", holidayHandler.ProcessLeave)
 	essRepo := repository.ESSRepository{TenantDB: workspaceRepo.TenantDB}
 	essHandler := api.ESSHandler{Repository: essRepo}
 	mux.HandleFunc("GET /api/v1/ess/profile", essHandler.GetProfile)

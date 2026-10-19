@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **302**
-- Contract routes covered: **277**
-- Contract routes missing: **126**
+- Go route registrations: **309**
+- Contract routes covered: **284**
+- Contract routes missing: **119**
 
 ## Missing routes
 
@@ -83,14 +83,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | POST | `/api/v1/workspaces/{ws_id}/files/upload` | NONE EVIDENCED — context extractor only; no permission guard |
 | PUT | `/api/v1/workspaces/{ws_id}/files/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/files/{id}/download` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/files/{id}/versions` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/holidays` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/holidays` | Permission::HolidaysManage |
-| DELETE | `/api/v1/workspaces/{ws_id}/holidays/{id}` | Permission::HolidaysManage |
-| GET | `/api/v1/workspaces/{ws_id}/holidays/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| PATCH | `/api/v1/workspaces/{ws_id}/holidays/{id}` | Permission::HolidaysManage |
-| PUT | `/api/v1/workspaces/{ws_id}/holidays/{id}` | Permission::HolidaysManage |
-| POST | `/api/v1/workspaces/{ws_id}/holidays/{id}/process-leave` | Permission::HolidaysManage |
 | GET | `/api/v1/workspaces/{ws_id}/jobs/{job_id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/jobs/{job_id}/status` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/leave/accrual/run` | Permission::LeaveAccrualRun |
