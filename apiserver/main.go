@@ -195,6 +195,15 @@ func main() {
 	attendanceHandler := api.AttendanceHandler{Repository: attendanceRepo, Authorizer: workspaceAuthorizer}
 	shiftRepo := repository.ShiftRepository{TenantDB: workspaceRepo.TenantDB}
 	shiftHandler := api.ShiftHandler{Repository: shiftRepo, Authorizer: workspaceAuthorizer}
+	employeeAssignmentRepo := repository.EmployeeAssignmentRepository{TenantDB: workspaceRepo.TenantDB}
+	assignmentRuleRepo := repository.AssignmentRuleRepository{TenantDB: workspaceRepo.TenantDB}
+	assignmentHistoryRepo := repository.AssignmentHistoryRepository{TenantDB: workspaceRepo.TenantDB}
+	assignmentHandler := api.AssignmentHandler{Assignments: employeeAssignmentRepo, Rules: assignmentRuleRepo, History: assignmentHistoryRepo, Employees: employeeRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/assignment-history", assignmentHandler.AssignmentHistory)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/assignment-rules", assignmentHandler.ListAssignmentRules)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/assignment-rules", assignmentHandler.CreateAssignmentRule)
+	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/assignment-rules/{rule_id}", assignmentHandler.UpdateAssignmentRule)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/assignment-rules/{rule_id}", assignmentHandler.DeleteAssignmentRule)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/time/punch-in", attendanceHandler.PunchIn)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/time/punch-out/{employee_id}", attendanceHandler.PunchOut)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/time/history/{employee_id}", attendanceHandler.TimeHistory)
@@ -265,6 +274,11 @@ func main() {
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{employee_id}/employments/{employment_id}", contractEmploymentHandler.GetEmployment)
 	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/employees/{employee_id}/employments/{employment_id}", contractEmploymentHandler.UpdateEmployment)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/employees/{employee_id}/employments/{employment_id}", contractEmploymentHandler.DeleteEmployment)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{employee_id}/assignments", assignmentHandler.ListEmployeeAssignments)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{employee_id}/assignments", assignmentHandler.CreateEmployeeAssignment)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{employee_id}/assignments/{assignment_id}", assignmentHandler.GetEmployeeAssignment)
+	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/employees/{employee_id}/assignments/{assignment_id}", assignmentHandler.UpdateEmployeeAssignment)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/employees/{employee_id}/assignments/{assignment_id}", assignmentHandler.DeleteEmployeeAssignment)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/custom-fields/definitions", customFieldHandler.ListDefinitions)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/custom-fields/definitions", customFieldHandler.CreateDefinition)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/custom-fields/definitions/{id}", customFieldHandler.GetDefinition)
