@@ -98,6 +98,70 @@ func (r AttendanceRepository) PunchOut(ctx context.Context, workspaceID, employe
 	return record, nil
 }
 
+// ESSPunch toggles punch in / punch out for an employee based on whether an active session exists.
+func (r AttendanceRepository) ESSPunch(ctx context.Context, workspaceID, employeeID uuid.UUID, entryType string, note *string, punchTime time.Time) (api.TimeEntryRecord, error) {
+	tx, err := r.begin(ctx, workspaceID)
+	if err != nil {
+		return api.TimeEntryRecord{}, err
+	}
+	var record api.TimeEntryRecord
+	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+		employmentID, err := resolveActiveEmployment(ctx, db, workspaceID, employeeID)
+		if err != nil {
+			return err
+		}
+		var openEntryID *uuid.UUID
+		err = db.QueryRow(ctx, `SELECT id FROM time_entries WHERE workspace_id = $1 AND employment_id = $2 AND punch_out_time IS NULL ORDER BY punch_in_time DESC LIMIT 1`, workspaceID, employmentID).Scan(&openEntryID)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		if openEntryID != nil {
+			rawData, err := json.Marshal(struct {
+				Punch  int     `json:"punch"`
+				Status int     `json:"status"`
+				Note   *string `json:"note"`
+				Source string  `json:"source"`
+			}{Punch: 1, Status: 1, Note: note, Source: "direct_punch"})
+			if err != nil {
+				return err
+			}
+			if _, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, device_id, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'device', 'ESS_WEB', $5, 1, 1, CURRENT_TIMESTAMP) ON CONFLICT (workspace_id, employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), workspaceID, employmentID, punchTime, rawData); err != nil {
+				return err
+			}
+			if _, err := db.Exec(ctx, `UPDATE time_entries SET punch_out_time = $1, duration_minutes = GREATEST(0, FLOOR(EXTRACT(EPOCH FROM ($1 - punch_in_time)) / 60)::integer), note = COALESCE($2, note), updated_at = CURRENT_TIMESTAMP WHERE id = $3`, punchTime, note, *openEntryID); err != nil {
+				return err
+			}
+			return scanLatestTimeEntry(ctx, db, workspaceID, employmentID, &record)
+		}
+
+		if entryType == "" {
+			entryType = "work"
+		}
+		rawData, err := json.Marshal(struct {
+			Punch  int     `json:"punch"`
+			Status int     `json:"status"`
+			Note   *string `json:"note"`
+			Source string  `json:"source"`
+		}{Punch: 0, Status: 1, Note: note, Source: "direct_punch"})
+		if err != nil {
+			return err
+		}
+		cmd, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, device_id, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'device', 'ESS_WEB', $5, 0, 1, CURRENT_TIMESTAMP) ON CONFLICT (workspace_id, employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), workspaceID, employmentID, punchTime, rawData)
+		if err != nil {
+			return err
+		}
+		if cmd.RowsAffected() == 0 {
+			return scanLatestTimeEntry(ctx, db, workspaceID, employmentID, &record)
+		}
+		row := db.QueryRow(ctx, `INSERT INTO time_entries (id, workspace_id, employment_id, punch_in_time, entry_type, note, is_break_overtime, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, workspace_id, employment_id, template_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, uuid.New(), workspaceID, employmentID, punchTime, entryType, note)
+		return scanTimeEntry(row, &record)
+	})
+	if err != nil {
+		return api.TimeEntryRecord{}, err
+	}
+	return record, nil
+}
+
 func (r AttendanceRepository) tenantDB(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
 	if r.TenantDB == nil {
 		return nil, errors.New("attendance repository: tenant database is not configured")

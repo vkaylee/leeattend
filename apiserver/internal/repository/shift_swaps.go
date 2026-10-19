@@ -235,6 +235,196 @@ func (r ShiftSwapRepository) Stats(ctx context.Context, workspaceID uuid.UUID) (
 	return stats, err
 }
 
+func (r ShiftSwapRepository) ListEmployeeSwaps(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]api.ShiftSwapRequestWithNames, error) {
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := db.Query(ctx, `SELECT id, workspace_id, requester_id, target_id, swap_date::text, requester_template_id, target_template_id, status, reason, requested_by_user_id, approved_by_user_id, created_at, updated_at FROM shift_swap_requests WHERE workspace_id = $1 AND (requester_id = $2 OR target_id = $2) ORDER BY created_at DESC LIMIT 50`, workspaceID, employeeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	swaps := make([]api.ShiftSwapRequestWithNames, 0)
+	empIDs := make([]uuid.UUID, 0)
+	shiftIDs := make([]uuid.UUID, 0)
+	for rows.Next() {
+		var s api.ShiftSwapRequestWithNames
+		var statusStr string
+		var createdAt, updatedAt time.Time
+		if err := rows.Scan(&s.ID, &s.WorkspaceID, &s.RequesterID, &s.TargetID, &s.SwapDate, &s.RequesterShiftID, &s.TargetShiftID, &statusStr, &s.Reason, &s.RequestedByUserID, &s.ApprovedByUserID, &createdAt, &updatedAt); err != nil {
+			return nil, err
+		}
+		s.Status = api.ShiftSwapStatus(statusStr)
+		s.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+		s.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
+		empIDs = append(empIDs, s.RequesterID, s.TargetID)
+		if s.RequesterShiftID != nil {
+			shiftIDs = append(shiftIDs, *s.RequesterShiftID)
+		}
+		if s.TargetShiftID != nil {
+			shiftIDs = append(shiftIDs, *s.TargetShiftID)
+		}
+		swaps = append(swaps, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	empNames, err := batchLoadEmployeeNames(ctx, db, workspaceID, empIDs)
+	if err != nil {
+		return nil, err
+	}
+	shiftNames, err := batchLoadShiftNames(ctx, db, workspaceID, shiftIDs)
+	if err != nil {
+		return nil, err
+	}
+	for index := range swaps {
+		if name, ok := empNames[swaps[index].RequesterID]; ok {
+			swaps[index].RequesterName = &name
+		}
+		if name, ok := empNames[swaps[index].TargetID]; ok {
+			swaps[index].TargetName = &name
+		}
+		if swaps[index].RequesterShiftID != nil {
+			if name, ok := shiftNames[*swaps[index].RequesterShiftID]; ok {
+				swaps[index].RequesterShiftName = &name
+			}
+		}
+		if swaps[index].TargetShiftID != nil {
+			if name, ok := shiftNames[*swaps[index].TargetShiftID]; ok {
+				swaps[index].TargetShiftName = &name
+			}
+		}
+	}
+	return swaps, nil
+}
+
+func (r ShiftSwapRepository) CreateESSSwap(ctx context.Context, workspaceID, requesterID, userID uuid.UUID, req api.EssCreateShiftSwapRequest) (api.ShiftSwapRequest, error) {
+	tx, err := r.begin(ctx, workspaceID)
+	if err != nil {
+		return api.ShiftSwapRequest{}, err
+	}
+	id := uuid.New()
+	now := time.Now().UTC()
+	var result api.ShiftSwapRequest
+	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+		reqEmployment, err := resolveActiveEmployment(ctx, db, workspaceID, requesterID)
+		if err != nil {
+			return api.ErrShiftSwapValidation
+		}
+		tgtEmployment, err := resolveActiveEmployment(ctx, db, workspaceID, req.TargetID)
+		if err != nil {
+			return api.ErrShiftSwapValidation
+		}
+		var activeSwapExists bool
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM shift_swap_requests WHERE workspace_id = $1 AND requester_id = $2 AND target_id = $3 AND swap_date = $4::date AND status NOT IN ('cancelled', 'rejected'))`, workspaceID, requesterID, req.TargetID, req.SwapDate).Scan(&activeSwapExists); err != nil {
+			return err
+		}
+		if activeSwapExists {
+			return api.ErrShiftSwapConflict
+		}
+		var conflictExists bool
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM shift_swap_requests WHERE workspace_id = $1 AND (requester_id IN ($2, $3) OR target_id IN ($2, $3)) AND swap_date = $4::date AND status = 'approved')`, workspaceID, requesterID, req.TargetID, req.SwapDate).Scan(&conflictExists); err != nil {
+			return err
+		}
+		if conflictExists {
+			return api.ErrShiftSwapConflict
+		}
+		reqShift, err := lookupShiftOnDate(ctx, db, reqEmployment, req.SwapDate)
+		if err != nil {
+			return err
+		}
+		tgtShift, err := lookupShiftOnDate(ctx, db, tgtEmployment, req.SwapDate)
+		if err != nil {
+			return err
+		}
+		if sameShift(reqShift, tgtShift) {
+			return api.ErrShiftSwapValidation
+		}
+		_, err = db.Exec(ctx, `INSERT INTO shift_swap_requests (id, workspace_id, requester_id, target_id, swap_date, requester_template_id, target_template_id, status, reason, requested_by_user_id, approved_by_user_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5::date, $6, $7, 'pending_target', $8, $9, NULL, $10, $10)`, id, workspaceID, requesterID, req.TargetID, req.SwapDate, reqShift, tgtShift, req.Reason, userID, now)
+		if err != nil {
+			return err
+		}
+		result = api.ShiftSwapRequest{
+			ID:                id,
+			WorkspaceID:       workspaceID,
+			RequesterID:       requesterID,
+			TargetID:          req.TargetID,
+			SwapDate:          req.SwapDate,
+			RequesterShiftID:  reqShift,
+			TargetShiftID:     tgtShift,
+			Status:            api.ShiftSwapPendingTarget,
+			Reason:            req.Reason,
+			RequestedByUserID: &userID,
+			CreatedAt:         now.Format(time.RFC3339),
+			UpdatedAt:         now.Format(time.RFC3339),
+		}
+		return nil
+	})
+	if err != nil {
+		return api.ShiftSwapRequest{}, err
+	}
+	return result, nil
+}
+
+func (r ShiftSwapRepository) RespondSwap(ctx context.Context, workspaceID, targetID, requestID uuid.UUID, accept bool) error {
+	tx, err := r.begin(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	now := time.Now().UTC()
+	return service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+		var currentStatus string
+		var swapTargetID uuid.UUID
+		err := db.QueryRow(ctx, `SELECT status, target_id FROM shift_swap_requests WHERE id = $1 AND workspace_id = $2`, requestID, workspaceID).Scan(&currentStatus, &swapTargetID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return api.ErrShiftSwapNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if swapTargetID != targetID {
+			return api.ErrShiftSwapForbidden
+		}
+		if currentStatus != string(api.ShiftSwapPendingTarget) {
+			return api.ErrShiftSwapConflict
+		}
+		newStatus := api.ShiftSwapPendingAdmin
+		if !accept {
+			newStatus = api.ShiftSwapRejected
+		}
+		_, err = db.Exec(ctx, `UPDATE shift_swap_requests SET status = $1, updated_at = $2 WHERE id = $3 AND workspace_id = $4`, string(newStatus), now, requestID, workspaceID)
+		return err
+	})
+}
+
+func (r ShiftSwapRepository) CancelSwap(ctx context.Context, workspaceID, requesterID, requestID uuid.UUID) error {
+	tx, err := r.begin(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	now := time.Now().UTC()
+	return service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+		var currentStatus string
+		var swapRequesterID uuid.UUID
+		err := db.QueryRow(ctx, `SELECT status, requester_id FROM shift_swap_requests WHERE id = $1 AND workspace_id = $2`, requestID, workspaceID).Scan(&currentStatus, &swapRequesterID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return api.ErrShiftSwapNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if swapRequesterID != requesterID {
+			return api.ErrShiftSwapForbidden
+		}
+		if currentStatus != string(api.ShiftSwapPendingTarget) && currentStatus != string(api.ShiftSwapPendingAdmin) {
+			return api.ErrShiftSwapConflict
+		}
+		_, err = db.Exec(ctx, `UPDATE shift_swap_requests SET status = 'cancelled', updated_at = $1 WHERE id = $2 AND workspace_id = $3`, now, requestID, workspaceID)
+		return err
+	})
+}
+
 func lookupShiftOnDate(ctx context.Context, db DBTX, employmentID uuid.UUID, date string) (*uuid.UUID, error) {
 	var shiftID *uuid.UUID
 	err := db.QueryRow(ctx, `SELECT template_id FROM shift_rosters WHERE employment_id = $1 AND date = $2::date`, employmentID, date).Scan(&shiftID)

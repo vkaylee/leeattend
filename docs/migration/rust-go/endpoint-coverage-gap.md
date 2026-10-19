@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **330**
-- Contract routes covered: **305**
-- Contract routes missing: **98**
+- Go route registrations: **343**
+- Contract routes covered: **318**
+- Contract routes missing: **85**
 
 ## Missing routes
 
@@ -36,19 +36,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | DELETE | `/api/v1/devices/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | PUT | `/api/v1/devices/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/devices/{id}/info` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/ess/attendance` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/ess/documents` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/ess/documents/pending` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/ess/documents/{id}/acknowledge` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/ess/leave/balances` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/ess/leave/requests` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/ess/payslips` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/ess/punch` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/ess/shift-swaps` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/ess/shift-swaps` | NONE EVIDENCED — context extractor only; no permission guard |
-| DELETE | `/api/v1/ess/shift-swaps/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| PUT | `/api/v1/ess/shift-swaps/{id}/respond` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/ess/time-entries` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/monitor/alerts` | SystemRoleType::PlatformAdmin OR SystemRoleType::Support |
 | GET | `/api/v1/monitor/alerts/{alert_id}` | SystemRoleType::PlatformAdmin OR SystemRoleType::Support |
 | POST | `/api/v1/monitor/alerts/{alert_id}/acknowledge` | SystemRoleType::PlatformAdmin |

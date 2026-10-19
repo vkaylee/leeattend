@@ -56,6 +56,16 @@ type ApproveShiftSwapRequest struct {
 	Status ShiftSwapStatus `json:"status"`
 }
 
+type EssCreateShiftSwapRequest struct {
+	TargetID uuid.UUID `json:"target_id"`
+	SwapDate string    `json:"swap_date"`
+	Reason   *string   `json:"reason,omitempty"`
+}
+
+type RespondShiftSwapRequest struct {
+	Accept bool `json:"accept"`
+}
+
 type SwapStats struct {
 	PendingTarget     int64 `json:"pending_target"`
 	PendingAdmin      int64 `json:"pending_admin"`
@@ -71,6 +81,10 @@ type ShiftSwapRepository interface {
 	ListSwaps(context.Context, uuid.UUID, *ShiftSwapStatus) ([]ShiftSwapRequestWithNames, error)
 	ApproveSwap(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, ShiftSwapStatus) error
 	Stats(context.Context, uuid.UUID) (SwapStats, error)
+	ListEmployeeSwaps(context.Context, uuid.UUID, uuid.UUID) ([]ShiftSwapRequestWithNames, error)
+	CreateESSSwap(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, EssCreateShiftSwapRequest) (ShiftSwapRequest, error)
+	RespondSwap(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, bool) error
+	CancelSwap(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
 }
 
 type ShiftSwapHandler struct {
@@ -193,4 +207,5 @@ var (
 	ErrShiftSwapNotFound   = errors.New("shift swap: not found")
 	ErrShiftSwapConflict   = errors.New("shift swap: conflict")
 	ErrShiftSwapValidation = errors.New("shift swap: validation failed")
+	ErrShiftSwapForbidden  = errors.New("shift swap: forbidden")
 )

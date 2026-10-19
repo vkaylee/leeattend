@@ -397,13 +397,33 @@ func main() {
 	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/holidays/{id}", holidayHandler.Update)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/holidays/{id}", holidayHandler.Delete)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/holidays/{id}/process-leave", holidayHandler.ProcessLeave)
+	payrollRepo := repository.PayrollRepository{TenantDB: workspaceRepo.TenantDB}
 	essRepo := repository.ESSRepository{TenantDB: workspaceRepo.TenantDB}
-	essHandler := api.ESSHandler{Repository: essRepo}
+	essHandler := api.ESSHandler{
+		Repository: essRepo,
+		Attendance: attendanceRepo,
+		Payroll:    payrollRepo,
+		Leaves:     leaveRepo,
+		ShiftSwaps: swapRepo,
+	}
 	mux.HandleFunc("GET /api/v1/ess/profile", essHandler.GetProfile)
 	mux.HandleFunc("PUT /api/v1/ess/profile", essHandler.UpdateProfile)
 	mux.HandleFunc("GET /api/v1/ess/emergency-contacts", essHandler.GetContacts)
 	mux.HandleFunc("POST /api/v1/ess/emergency-contacts", essHandler.AddContact)
 	mux.HandleFunc("DELETE /api/v1/ess/emergency-contacts/{contact_id}", essHandler.DeleteContact)
+	mux.HandleFunc("GET /api/v1/ess/documents/pending", essHandler.GetPendingDocuments)
+	mux.HandleFunc("POST /api/v1/ess/documents/{id}/acknowledge", essHandler.AcknowledgeDocument)
+	mux.HandleFunc("GET /api/v1/ess/documents", essHandler.GetDocuments)
+	mux.HandleFunc("GET /api/v1/ess/payslips", essHandler.GetPayslips)
+	mux.HandleFunc("GET /api/v1/ess/attendance", essHandler.GetAttendance)
+	mux.HandleFunc("POST /api/v1/ess/punch", essHandler.Punch)
+	mux.HandleFunc("GET /api/v1/ess/time-entries", essHandler.GetTimeEntries)
+	mux.HandleFunc("GET /api/v1/ess/leave/balances", essHandler.GetLeaveBalances)
+	mux.HandleFunc("GET /api/v1/ess/leave/requests", essHandler.GetLeaveRequests)
+	mux.HandleFunc("GET /api/v1/ess/shift-swaps", essHandler.GetShiftSwaps)
+	mux.HandleFunc("POST /api/v1/ess/shift-swaps", essHandler.CreateShiftSwap)
+	mux.HandleFunc("PUT /api/v1/ess/shift-swaps/{id}/respond", essHandler.RespondShiftSwap)
+	mux.HandleFunc("DELETE /api/v1/ess/shift-swaps/{id}", essHandler.CancelShiftSwap)
 	workflowRepo := repository.ApprovalWorkflowRepository{TenantDB: workspaceRepo.TenantDB}
 	workflowHandler := api.ApprovalWorkflowHandler{Repository: workflowRepo, Authorizer: workspaceAuthorizer}
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/approval-workflows", workflowHandler.List)
@@ -423,7 +443,6 @@ func main() {
 	mux.HandleFunc("GET /api/v1/notifications/unread-count", notifHandler.UnreadCount)
 	mux.HandleFunc("PATCH /api/v1/notifications/{id}/read", notifHandler.MarkRead)
 	mux.HandleFunc("POST /api/v1/notifications/read-all", notifHandler.MarkAllRead)
-	payrollRepo := repository.PayrollRepository{TenantDB: workspaceRepo.TenantDB}
 	payrollHandler := api.PayrollHandler{Repository: payrollRepo, Authorizer: workspaceAuthorizer}
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/payroll/payslips", payrollHandler.ListWorkspace)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{employee_id}/payslips", payrollHandler.ListEmployee)

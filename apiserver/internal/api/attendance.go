@@ -101,6 +101,7 @@ type AttendanceRepository interface {
 	ListEmployeeAdjustments(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]AdjustmentRecord, error)
 	ApproveAdjustment(ctx context.Context, workspaceID, adjustmentID, approverID uuid.UUID, status string) error
 	IsEmployeeOwnedByUser(ctx context.Context, workspaceID, employeeID, userID uuid.UUID) (bool, error)
+	ESSPunch(ctx context.Context, workspaceID, employeeID uuid.UUID, entryType string, note *string, punchTime time.Time) (TimeEntryRecord, error)
 }
 
 // AttendanceAuthorizer checks workspace attendance permissions.

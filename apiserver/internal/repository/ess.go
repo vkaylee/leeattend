@@ -178,3 +178,56 @@ func (r ESSRepository) DeleteEmergencyContact(ctx context.Context, workspaceID, 
 	}
 	return nil
 }
+
+func (r ESSRepository) GetPendingDocuments(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]api.AcknowledgementRecord, error) {
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := db.Query(ctx, `SELECT id, document_id, employee_id, status FROM file_acknowledgements WHERE workspace_id = $1 AND employee_id = $2 AND status = 'pending' ORDER BY created_at DESC`, workspaceID, employeeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]api.AcknowledgementRecord, 0)
+	for rows.Next() {
+		var rec api.AcknowledgementRecord
+		if err := rows.Scan(&rec.ID, &rec.DocumentID, &rec.EmployeeID, &rec.Status); err != nil {
+			return nil, err
+		}
+		items = append(items, rec)
+	}
+	return items, rows.Err()
+}
+
+func (r ESSRepository) AcknowledgeDocument(ctx context.Context, workspaceID, employeeID, docID uuid.UUID) error {
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(ctx, `UPDATE file_acknowledgements SET status = 'acknowledged', acknowledged_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND workspace_id = $2`, docID, workspaceID)
+	return err
+}
+
+func (r ESSRepository) GetEmployeeDocuments(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]api.EmployeeDocumentRecord, error) {
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := db.Query(ctx, `SELECT id, employee_id, workspace_id, document_type, file_name, file_path, file_size, mime_type, expires_at::text, is_active, uploaded_by, created_at FROM employee_documents WHERE employee_id = $1 AND workspace_id = $2 ORDER BY created_at DESC`, employeeID, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]api.EmployeeDocumentRecord, 0)
+	for rows.Next() {
+		var rec api.EmployeeDocumentRecord
+		var createdAt time.Time
+		if err := rows.Scan(&rec.ID, &rec.EmployeeID, &rec.WorkspaceID, &rec.DocumentType, &rec.FileName, &rec.FilePath, &rec.FileSize, &rec.MimeType, &rec.ExpiresAt, &rec.IsActive, &rec.UploadedBy, &createdAt); err != nil {
+			return nil, err
+		}
+		rec.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+		items = append(items, rec)
+	}
+	return items, rows.Err()
+}
