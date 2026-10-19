@@ -69,7 +69,7 @@ P6-04,Backend Lead,in-progress,Attendance/time tracking domain orchestration,"P6
 P6-05,Backend Lead,implemented,Shifts/roster/pattern/compliance domain,"P6-03, P6-04",`docs/migration/rust-go/evidence-p6-05-shifts.md`,Parallel Go implementation; Rust API remains untouched and operational.
 P6-06,Backend Lead,in-progress,Leave/ESS/approvals domain,"P6-03, P5-07",`docs/migration/rust-go/evidence-p6-06-leaves.md`,Parallel Go implementation; Rust API remains untouched and operational.
 P6-07,Backend Lead,in-progress,Notifications/domain delivery domain,"P5-06, P5-07",`docs/migration/rust-go/evidence-p6-07-notifications.md`,Parallel Go implementation; Rust API remains untouched and operational.
-P6-08,Backend Lead,not-started,Payroll/work buckets/domain calculations,"P6-04, P6-05, P6-06",pending,Parallel Go implementation; Rust API remains untouched and operational.
+P6-08,Backend Lead,in-progress,Payroll/work buckets/domain calculations,"P6-04, P6-05, P6-06",`docs/migration/rust-go/evidence-p6-08-payroll.md`,Parallel Go implementation; Rust API remains untouched and operational.
 P6-09,Backend Lead,not-started,Reports/dashboard/analytics domain,P6-03 through P6-08,pending,Parallel Go implementation; Rust API remains untouched and operational.
 P6-10,Backend Lead,not-started,Files/documents/e-signature domain,"P5-06, P5-09",pending,Parallel Go implementation; Rust API remains untouched and operational.
 P6-11,Backend Lead,not-started,Lifecycle/condition types/system/admin domain,"P6-02, P5-05",pending,Parallel Go implementation; Rust API remains untouched and operational.

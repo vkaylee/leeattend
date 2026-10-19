@@ -188,6 +188,10 @@ func main() {
 	mux.HandleFunc("GET /api/v1/notifications/unread-count", notifHandler.UnreadCount)
 	mux.HandleFunc("PATCH /api/v1/notifications/{id}/read", notifHandler.MarkRead)
 	mux.HandleFunc("POST /api/v1/notifications/read-all", notifHandler.MarkAllRead)
+	payrollRepo := repository.PayrollRepository{TenantDB: workspaceRepo.TenantDB}
+	payrollHandler := api.PayrollHandler{Repository: payrollRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/payroll/payslips", payrollHandler.ListWorkspace)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{employee_id}/payslips", payrollHandler.ListEmployee)
 
 	mux.HandleFunc("GET /api/v1/health", healthHandler.Liveness)
 
