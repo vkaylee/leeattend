@@ -206,6 +206,27 @@ func main() {
 	attendanceLogsHandler := api.AttendanceLogsHandler{Repository: attendanceRepo, Authorizer: workspaceAuthorizer, StorageDir: cfg.StorageDir}
 	attendancePolicyRepo := repository.AttendancePolicyRepository{TenantDB: workspaceRepo.TenantDB}
 	attendancePolicyHandler := api.AttendancePolicyHandler{PolicyRepository: attendancePolicyRepo, BehalfRepository: attendancePolicyRepo, Authorizer: workspaceAuthorizer}
+	overtimeRepo := repository.OvertimeRepository{TenantDB: workspaceRepo.TenantDB}
+	overtimeHandler := api.OvertimeHandler{Repository: overtimeRepo, BehalfRepository: attendancePolicyRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/overtime/policies", overtimeHandler.ListPolicies)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/overtime/policies", overtimeHandler.CreatePolicy)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/overtime/policies/{policy_id}", overtimeHandler.GetPolicy)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/overtime/policies/{policy_id}/rules", overtimeHandler.AddRule)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/overtime/policies/assign", overtimeHandler.AssignPolicy)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/overtime/requests", overtimeHandler.ListRequests)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/overtime/requests", overtimeHandler.CreateRequest)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/overtime/requests/{id}", overtimeHandler.GetRequest)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/overtime/requests/{id}/submit", overtimeHandler.SubmitRequest)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/overtime/requests/{id}/consent/{emp_id}", overtimeHandler.ConsentRequest)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments", overtimeHandler.ListRequestBehalf)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments", overtimeHandler.CreateRequestBehalf)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments/my-targets", overtimeHandler.RequestBehalfTargets)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments/{id}", overtimeHandler.DeleteRequestBehalf)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments", overtimeHandler.ListClaimBehalf)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments", overtimeHandler.CreateClaimBehalf)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments/{id}", overtimeHandler.DeleteClaimBehalf)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/claim-ot/{employee_id}", overtimeHandler.ClaimOT)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/approve-ot/{employee_id}", overtimeHandler.ApproveOT)
 	shiftRepo := repository.ShiftRepository{TenantDB: workspaceRepo.TenantDB}
 	shiftHandler := api.ShiftHandler{Repository: shiftRepo, Authorizer: workspaceAuthorizer}
 	employeeAssignmentRepo := repository.EmployeeAssignmentRepository{TenantDB: workspaceRepo.TenantDB}

@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **282**
-- Contract routes covered: **257**
-- Contract routes missing: **146**
+- Go route registrations: **301**
+- Contract routes covered: **276**
+- Contract routes missing: **127**
 
 ## Missing routes
 
@@ -60,11 +60,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | GET | `/api/v1/monitor/stream` | SystemRoleType::PlatformAdmin OR SystemRoleType::Support |
 | GET | `/api/v1/workspaces/{ws_id}/approval-workflows/pending-tasks` | Permission::ApprovalWorkflowsRead |
 | POST | `/api/v1/workspaces/{ws_id}/attendance/adjustments/{id}/approve` | Permission::AttendanceAdjustmentsApprove |
-| POST | `/api/v1/workspaces/{ws_id}/attendance/approve-ot/{employee_id}` | Permission::OvertimeApprove (scoped) |
-| GET | `/api/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments` | Permission::OvertimePoliciesManage |
-| DELETE | `/api/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments/{id}` | Permission::OvertimePoliciesManage |
-| POST | `/api/v1/workspaces/{ws_id}/attendance/claim-ot/{employee_id}` | CONDITIONAL — self target: no permission check; delegated target: Permission::OvertimeApprove OR Permission::OvertimeClaimOnBehalf |
 | POST | `/api/v1/workspaces/{ws_id}/attendance/reprocess-all` | Permission::AttendanceReprocess |
 | POST | `/api/v1/workspaces/{ws_id}/attendance/reprocess/{employee_id}` | Permission::AttendanceReprocess |
 | GET | `/api/v1/workspaces/{ws_id}/attendance/summaries` | CONDITIONAL — Permission::AttendanceSummariesRead via has_permission; handler-specific self/scope behavior |
@@ -116,20 +111,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | POST | `/api/v1/workspaces/{ws_id}/leave/upload-excel` | Permission::LeaveRequestsSubmit |
 | GET | `/api/v1/workspaces/{ws_id}/leave/upload-template` | Permission::LeaveRequestsSubmit |
 | GET | `/api/v1/workspaces/{ws_id}/monitor/jobs/{job_id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/overtime/policies` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/overtime/policies` | Permission::OvertimePoliciesManage |
-| POST | `/api/v1/workspaces/{ws_id}/overtime/policies/assign` | Permission::OvertimePoliciesManage |
-| GET | `/api/v1/workspaces/{ws_id}/overtime/policies/{policy_id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/overtime/policies/{policy_id}/rules` | Permission::OvertimePoliciesManage |
-| GET | `/api/v1/workspaces/{ws_id}/overtime/requests` | Permission::OvertimeRequestRead |
-| POST | `/api/v1/workspaces/{ws_id}/overtime/requests` | Permission::OvertimeRequestCreate |
-| GET | `/api/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments` | Permission::OvertimePoliciesManage |
-| GET | `/api/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments/my-targets` | NONE EVIDENCED — context extractor only; no permission guard |
-| DELETE | `/api/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments/{id}` | Permission::OvertimePoliciesManage |
-| GET | `/api/v1/workspaces/{ws_id}/overtime/requests/{id}` | Permission::OvertimeRequestRead |
-| POST | `/api/v1/workspaces/{ws_id}/overtime/requests/{id}/consent/{emp_id}` | CONDITIONAL — self target: no permission check; delegated target: Permission::OvertimeRequestCreateOnBehalf |
-| POST | `/api/v1/workspaces/{ws_id}/overtime/requests/{id}/submit` | Permission::OvertimeRequestCreate |
 | GET | `/api/v1/workspaces/{ws_id}/payroll-rules` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/payroll-rules` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments` | NONE EVIDENCED — context extractor only; no permission guard |
