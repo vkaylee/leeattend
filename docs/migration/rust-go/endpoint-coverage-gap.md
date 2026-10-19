@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **370**
-- Contract routes covered: **345**
-- Contract routes missing: **58**
+- Go route registrations: **382**
+- Contract routes covered: **357**
+- Contract routes missing: **46**
 
 ## Missing routes
 
@@ -19,18 +19,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | GET | `/api/v1/authorized-agents/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | PATCH | `/api/v1/authorized-agents/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | PUT | `/api/v1/authorized-agents/{id}/trust` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/dashboard/attendance-trend` | Permission::DashboardRead |
-| GET | `/api/v1/dashboard/department-attendance` | Permission::DashboardRead |
-| GET | `/api/v1/dashboard/executive-overview` | Permission::DashboardRead; conditional: Permission::PayrollSensitiveRead (controls overtime cost inclusion & dashboard.sensitive.read audit log) |
-| GET | `/api/v1/dashboard/lateness-by-day` | Permission::DashboardRead |
-| GET | `/api/v1/dashboard/leave-types` | Permission::DashboardRead |
-| GET | `/api/v1/dashboard/overtime-breakdown` | Permission::DashboardRead; conditional: Permission::PayrollSensitiveRead (controls overtime cost inclusion & dashboard.sensitive.read audit log) |
-| GET | `/api/v1/dashboard/overtime-trend` | Permission::DashboardRead |
-| GET | `/api/v1/dashboard/peak-times` | Permission::DashboardRead |
-| GET | `/api/v1/dashboard/recruitment-effectiveness` | Permission::DashboardRead |
-| GET | `/api/v1/dashboard/turnover-analytics` | Permission::DashboardRead |
-| GET | `/api/v1/dashboard/unexcused-absences` | Permission::DashboardEmployeeAbsenceRead OR Permission::DashboardRead |
-| GET | `/api/v1/dashboard/workspace-stats` | Permission::DashboardRead |
 | GET | `/api/v1/devices` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/devices` | NONE EVIDENCED — context extractor only; no permission guard |
 | DELETE | `/api/v1/devices/{id}` | NONE EVIDENCED — context extractor only; no permission guard |

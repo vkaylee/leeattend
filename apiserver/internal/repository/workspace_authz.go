@@ -83,6 +83,41 @@ func (a WorkspaceAuthorizer) isGlobalManager(ctx context.Context, userID, worksp
 	return err == nil && global
 }
 
+// GetManagedDepartmentIDs returns managed department IDs for a user.
+// Returns (nil, true, nil) if the user is a global manager (unconstrained).
+// Returns (deptIDs, false, nil) if the user is scoped to specific departments.
+func (a WorkspaceAuthorizer) GetManagedDepartmentIDs(ctx context.Context, userID, workspaceID uuid.UUID) ([]uuid.UUID, bool, error) {
+	if a.isGlobalManager(ctx, userID, workspaceID) {
+		return nil, true, nil
+	}
+	if a.TenantDB == nil {
+		return []uuid.UUID{}, false, nil
+	}
+	db, err := a.TenantDB(ctx, workspaceID)
+	if err != nil || db == nil {
+		return nil, false, err
+	}
+	rows, err := db.Query(ctx, `SELECT DISTINCT em.department_id
+		FROM employees e
+		JOIN employments em ON em.employee_id = e.id
+		WHERE e.workspace_id = $1 AND e.user_id = $2
+		  AND e.deleted_at IS NULL AND em.deleted_at IS NULL
+		  AND em.department_id IS NOT NULL`, workspaceID, userID)
+	if err != nil {
+		return nil, false, err
+	}
+	defer rows.Close()
+	var depts []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, false, err
+		}
+		depts = append(depts, id)
+	}
+	return depts, false, rows.Err()
+}
+
 // IsMember reports whether the user has any workspace membership row.
 func (a WorkspaceAuthorizer) IsMember(ctx context.Context, userID, workspaceID uuid.UUID) (bool, error) {
 	if a.DB == nil {

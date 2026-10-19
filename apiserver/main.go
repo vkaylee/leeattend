@@ -595,6 +595,23 @@ func main() {
 	preferencesHandler := api.DashboardPreferencesHandler{Repository: preferencesRepo, Authorizer: workspaceAuthorizer}
 	mux.HandleFunc("GET /api/v1/dashboard/preferences", preferencesHandler.Get)
 	mux.HandleFunc("PUT /api/v1/dashboard/preferences", preferencesHandler.Put)
+	dashboardAnalyticsRepo := repository.DashboardAnalyticsRepository{TenantDB: workspaceRepo.TenantDB}
+	dashboardAnalyticsHandler := api.DashboardAnalyticsHandler{
+		Repository: dashboardAnalyticsRepo,
+		Authorizer: workspaceAuthorizer,
+	}
+	mux.HandleFunc("GET /api/v1/dashboard/executive-overview", dashboardAnalyticsHandler.ExecutiveOverview)
+	mux.HandleFunc("GET /api/v1/dashboard/overtime-breakdown", dashboardAnalyticsHandler.OvertimeBreakdown)
+	mux.HandleFunc("GET /api/v1/dashboard/workspace-stats", dashboardAnalyticsHandler.WorkspaceStats)
+	mux.HandleFunc("GET /api/v1/dashboard/attendance-trend", dashboardAnalyticsHandler.AttendanceTrend)
+	mux.HandleFunc("GET /api/v1/dashboard/department-attendance", dashboardAnalyticsHandler.DepartmentAttendance)
+	mux.HandleFunc("GET /api/v1/dashboard/unexcused-absences", dashboardAnalyticsHandler.UnexcusedAbsences)
+	mux.HandleFunc("GET /api/v1/dashboard/overtime-trend", dashboardAnalyticsHandler.OvertimeTrend)
+	mux.HandleFunc("GET /api/v1/dashboard/peak-times", dashboardAnalyticsHandler.PeakTimes)
+	mux.HandleFunc("GET /api/v1/dashboard/leave-types", dashboardAnalyticsHandler.LeaveTypes)
+	mux.HandleFunc("GET /api/v1/dashboard/lateness-by-day", dashboardAnalyticsHandler.LatenessByDay)
+	mux.HandleFunc("GET /api/v1/dashboard/turnover-analytics", dashboardAnalyticsHandler.TurnoverAnalytics)
+	mux.HandleFunc("GET /api/v1/dashboard/recruitment-effectiveness", dashboardAnalyticsHandler.RecruitmentEffectiveness)
 	mux.HandleFunc("POST /auth/login", authHandler.Login)
 	mux.HandleFunc("POST /auth/refresh", authHandler.Refresh)
 	mux.HandleFunc("POST /auth/logout", authHandler.Logout)
