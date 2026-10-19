@@ -52,9 +52,9 @@ The reference Rust `apiserver` (Axum/Tokio/Diesel) has reached end-of-life and i
 
 ---
 
-## 5. Source Tree Retention & Archive Boundary
+## 5. Source Tree Cleanup & Retention Boundary
 
-- **`apiserver/src/` & `apiserver/Cargo.toml`:** Retained in repository history for reference and behavioral audit. No active CI or deployment targets execute them.
-- **`apiserver/Dockerfile.rust.archive`:** Preserves the multi-stage cargo-chef Rust container definition for reproducibility.
+- **`apiserver/src/`, `apiserver/tests/`, `apiserver/Cargo.*`:** Completely removed from active tree after 100% 1-1 verification (403/403 endpoints covered, all domain packages in-process). Historical code preserved in git commits.
+- **Root `Cargo.toml`:** `members` updated to retain exclusively `agent-main`.
 - **`apiserver/migrations/`:** Active and shared across all services; PostgreSQL migrations remain authoritative.
 - **`agent-main/`:** Active; native Rust hardware orchestrator communicating with biometric devices via `rustzk` remains in Rust.
