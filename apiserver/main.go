@@ -125,6 +125,13 @@ func main() {
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/departments/{id}", departmentHandler.Delete)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/departments/{id}/payroll-config", departmentHandler.GetPayrollConfig)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/departments/{id}/payroll-config", departmentHandler.SetPayrollConfig)
+	locationRepo := repository.LocationRepository{TenantDB: workspaceRepo.TenantDB}
+	locationHandler := api.LocationHandler{Repository: locationRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/locations", locationHandler.List)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/locations", locationHandler.Create)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/locations/{id}", locationHandler.Get)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/locations/{id}", locationHandler.Update)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/locations/{id}", locationHandler.Delete)
 	employeeRepo := repository.EmployeeRepository{TenantDB: workspaceRepo.TenantDB}
 	employeeHandler := api.EmployeeHandler{Repository: employeeRepo, Authorizer: workspaceAuthorizer}
 	attendanceRepo := repository.AttendanceRepository{TenantDB: workspaceRepo.TenantDB}

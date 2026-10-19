@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **152**
-- Contract routes covered: **129**
-- Contract routes missing: **274**
+- Go route registrations: **157**
+- Contract routes covered: **134**
+- Contract routes missing: **269**
 
 ## Missing routes
 
@@ -213,11 +213,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | GET | `/api/v1/workspaces/{ws_id}/lifecycle/my-tasks` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/lifecycle/{id}` | Permission::EmployeesRead |
 | PATCH | `/api/v1/workspaces/{ws_id}/lifecycle/{id}/items/{iid}` | Permission::EmployeesUpdate |
-| GET | `/api/v1/workspaces/{ws_id}/locations` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/locations` | NONE EVIDENCED — context extractor only; no permission guard |
-| DELETE | `/api/v1/workspaces/{ws_id}/locations/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/locations/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| PUT | `/api/v1/workspaces/{ws_id}/locations/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/members` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/members` | Permission::MembersInvite |
 | DELETE | `/api/v1/workspaces/{ws_id}/members/{user_id}` | Permission::MembersRemove |
