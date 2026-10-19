@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **127**
-- Contract routes covered: **111**
-- Contract routes missing: **292**
+- Go route registrations: **135**
+- Contract routes covered: **115**
+- Contract routes missing: **288**
 
 ## Missing routes
 
@@ -13,10 +13,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 |---|---|---|
 | POST | `/api/v1/agent/{agent_id}/command` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/agents` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/auth/change-password` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/auth/forgot-password` | - |
-| POST | `/api/v1/auth/register` | None (Public) |
-| POST | `/api/v1/auth/reset-password` | - |
 | GET | `/api/v1/authorized-agents` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/authorized-agents` | NONE EVIDENCED — context extractor only; no permission guard |
 | DELETE | `/api/v1/authorized-agents/{id}` | NONE EVIDENCED — context extractor only; no permission guard |

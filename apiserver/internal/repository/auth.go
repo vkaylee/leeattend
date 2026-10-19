@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
@@ -73,6 +74,60 @@ func (r AuthRepository) RevokeAllSessions(ctx context.Context, userID uuid.UUID,
 	_, err := r.DB.Exec(ctx, `UPDATE sessions SET revoked_at = $2 WHERE user_id = $1 AND revoked_at IS NULL`, userID, revokedAt)
 	if err != nil {
 		return fmt.Errorf("revoke all auth sessions: %w", err)
+	}
+	return nil
+}
+
+type txBeginner interface {
+	Begin(context.Context) (pgx.Tx, error)
+}
+
+func (r AuthRepository) CreateUserWithAdminCheck(ctx context.Context, user service.UserRecord) (bool, error) {
+	if r.DB == nil {
+		return false, errors.New("auth repository: nil database")
+	}
+	beginner, ok := r.DB.(txBeginner)
+	if !ok {
+		return false, errors.New("auth repository: database does not support transactions")
+	}
+	tx, err := beginner.Begin(ctx)
+	if err != nil {
+		return false, fmt.Errorf("begin register transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(1337)`); err != nil {
+		return false, fmt.Errorf("acquire registration lock: %w", err)
+	}
+	var count int64
+	if err := tx.QueryRow(ctx, `SELECT count(*) FROM users`).Scan(&count); err != nil {
+		return false, fmt.Errorf("count users: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO users (id, email, password_hash, created_at, full_name) VALUES ($1, $2, $3, NOW(), $4)`, user.ID, user.Email, user.PasswordHash, user.FullName); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return false, service.ErrEmailExists
+		}
+		return false, fmt.Errorf("insert user: %w", err)
+	}
+	isFirst := count == 0
+	if isFirst {
+		if _, err := tx.Exec(ctx, `INSERT INTO user_system_roles (user_id, role_id) SELECT $1, id FROM system_roles WHERE name = 'platform_admin'`, user.ID); err != nil {
+			return false, fmt.Errorf("assign platform admin: %w", err)
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return false, fmt.Errorf("commit register transaction: %w", err)
+	}
+	return isFirst, nil
+}
+
+func (r AuthRepository) UpdatePasswordHash(ctx context.Context, userID uuid.UUID, hash string) error {
+	if r.DB == nil {
+		return errors.New("auth repository: nil database")
+	}
+	if _, err := r.DB.Exec(ctx, `UPDATE users SET password_hash = $2 WHERE id = $1`, userID, hash); err != nil {
+		return fmt.Errorf("update password hash: %w", err)
 	}
 	return nil
 }

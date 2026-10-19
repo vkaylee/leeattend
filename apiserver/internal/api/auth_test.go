@@ -60,6 +60,17 @@ func (r *authTestRepository) RevokeAllSessions(_ context.Context, userID uuid.UU
 	return nil
 }
 
+func (r *authTestRepository) CreateUserWithAdminCheck(_ context.Context, u service.UserRecord) (bool, error) {
+	r.user = u
+	return true, nil
+}
+func (r *authTestRepository) UpdatePasswordHash(_ context.Context, userID uuid.UUID, hash string) error {
+	if r.user.ID == userID {
+		r.user.PasswordHash = hash
+	}
+	return nil
+}
+
 func newAuthTestHandler(t *testing.T) (AuthHandler, *authTestRepository) {
 	t.Helper()
 	hash, err := auth.HashPassword("correct-password")
@@ -117,5 +128,81 @@ func TestAuthHandler_LogoutRevokesSessionAndClearsCookies(t *testing.T) {
 	}
 	if len(logoutRec.Result().Cookies()) != 2 || logoutRec.Result().Cookies()[0].MaxAge != -1 {
 		t.Fatal("expected both auth cookies to be cleared")
+	}
+}
+
+type recordingTokenStore struct {
+	tokens map[string]uuid.UUID
+}
+
+func (s *recordingTokenStore) CreateResetToken(_ context.Context, token string, uid uuid.UUID, _ time.Duration) error {
+	s.tokens[token] = uid
+	return nil
+}
+func (s *recordingTokenStore) ConsumeResetToken(_ context.Context, token string) (uuid.UUID, error) {
+	uid, ok := s.tokens[token]
+	if !ok {
+		return uuid.Nil, service.ErrResetTokenInvalid
+	}
+	delete(s.tokens, token)
+	return uid, nil
+}
+func (s *recordingTokenStore) SetUserRevocation(_ context.Context, _ uuid.UUID, _ time.Duration) error {
+	return nil
+}
+
+func TestAuthHandler_SelfService(t *testing.T) {
+	store := &recordingTokenStore{tokens: make(map[string]uuid.UUID)}
+	repo := &authTestRepository{sessions: make(map[string]service.SessionRecord)}
+	h := AuthHandler{Service: service.AuthService{Repository: repo, TokenStore: store, JWTSecret: "test-secret-at-least-32-chars-long-for-jwt!!"}}
+
+	// 1. Register validates weakly
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewBufferString(`{"email":"bad","password":"short","full_name":"X"}`))
+	rec := httptest.NewRecorder()
+	h.Register(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid register, got %d", rec.Code)
+	}
+
+	// 2. Register succeeds
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewBufferString(`{"email":"new@example.com","password":"validPass1!","full_name":"New User"}`))
+	rec = httptest.NewRecorder()
+	h.Register(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for register, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// 3. Forgot password always 200
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/auth/forgot-password", bytes.NewBufferString(`{"email":"unknown@example.com"}`))
+	rec = httptest.NewRecorder()
+	h.ForgotPassword(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for forgot password, got %d", rec.Code)
+	}
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/auth/forgot-password", bytes.NewBufferString(`{"email":"new@example.com"}`))
+	rec = httptest.NewRecorder()
+	h.ForgotPassword(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for known email forgot password, got %d", rec.Code)
+	}
+
+	// 4. Reset password
+	var token string
+	for k := range store.tokens {
+		token = k
+	}
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/auth/reset-password", bytes.NewBufferString(`{"token":"`+token+`","new_password":"newSecret2!"}`))
+	rec = httptest.NewRecorder()
+	h.ResetPassword(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for reset password, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// 5. Change password requires user context
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/auth/change-password", bytes.NewBufferString(`{"old_password":"newSecret2!","new_password":"otherSecret3!"}`))
+	rec = httptest.NewRecorder()
+	h.ChangePassword(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 without user context, got %d", rec.Code)
 	}
 }

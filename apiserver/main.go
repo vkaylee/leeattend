@@ -73,6 +73,7 @@ func main() {
 	authService := service.AuthService{
 		Repository: authRepo,
 		Limiter:    loginLimiter,
+		TokenStore: redisClient,
 		JWTSecret:  cfg.JWTSecret.Expose(),
 	}
 	authHandler := api.AuthHandler{
@@ -262,10 +263,18 @@ func main() {
 	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
 	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
 	mux.HandleFunc("POST /api/v1/auth/logout", authHandler.Logout)
+	mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
+	mux.HandleFunc("POST /api/v1/auth/forgot-password", authHandler.ForgotPassword)
+	mux.HandleFunc("POST /api/v1/auth/reset-password", authHandler.ResetPassword)
+	mux.HandleFunc("POST /api/v1/auth/change-password", authHandler.ChangePassword)
 	mux.HandleFunc("GET /api/v1/me", authHandler.Me)
 	mux.HandleFunc("POST /auth/login", authHandler.Login)
 	mux.HandleFunc("POST /auth/refresh", authHandler.Refresh)
 	mux.HandleFunc("POST /auth/logout", authHandler.Logout)
+	mux.HandleFunc("POST /auth/register", authHandler.Register)
+	mux.HandleFunc("POST /auth/forgot-password", authHandler.ForgotPassword)
+	mux.HandleFunc("POST /auth/reset-password", authHandler.ResetPassword)
+	mux.HandleFunc("POST /auth/change-password", authHandler.ChangePassword)
 	mux.HandleFunc("GET /me", authHandler.Me)
 
 	publicPrefixes := []string{
@@ -277,6 +286,12 @@ func main() {
 		"/api/v1/auth/refresh",
 		"/auth/login",
 		"/auth/refresh",
+		"/api/v1/auth/register",
+		"/api/v1/auth/forgot-password",
+		"/api/v1/auth/reset-password",
+		"/auth/register",
+		"/auth/forgot-password",
+		"/auth/reset-password",
 	}
 
 	var revocationChecker httpinfra.TokenRevocationChecker

@@ -19,6 +19,14 @@ var (
 	ErrSessionNotFound    = errors.New("session not found")
 	ErrSessionRevoked     = errors.New("session is revoked")
 	ErrRefreshReuse       = errors.New("refresh token reuse detected")
+	ErrEmailExists        = errors.New("email already exists")
+	ErrFullNameRequired   = errors.New("full name is required")
+	ErrInvalidEmail       = errors.New("invalid email format")
+	ErrPasswordTooShort   = errors.New("password too short")
+	ErrPasswordTooLong    = errors.New("password too long")
+	ErrPasswordComplexity = errors.New("password complexity")
+	ErrResetTokenInvalid  = errors.New("reset token invalid")
+	ErrCurrentPassword    = errors.New("current password is incorrect")
 )
 
 type UserRecord struct {
@@ -39,10 +47,18 @@ type SessionRecord struct {
 type AuthRepository interface {
 	FindUserByEmail(context.Context, string) (UserRecord, error)
 	FindUserByID(context.Context, uuid.UUID) (UserRecord, error)
+	CreateUserWithAdminCheck(context.Context, UserRecord) (bool, error)
+	UpdatePasswordHash(context.Context, uuid.UUID, string) error
 	CreateSession(context.Context, SessionRecord) error
 	FindSessionByTokenHash(context.Context, string) (SessionRecord, error)
 	RevokeSession(context.Context, uuid.UUID, time.Time) error
 	RevokeAllSessions(context.Context, uuid.UUID, time.Time) error
+}
+
+type ResetTokenStore interface {
+	CreateResetToken(context.Context, string, uuid.UUID, time.Duration) error
+	ConsumeResetToken(context.Context, string) (uuid.UUID, error)
+	SetUserRevocation(context.Context, uuid.UUID, time.Duration) error
 }
 
 type LoginLimiter interface {
@@ -54,6 +70,7 @@ type LoginLimiter interface {
 type AuthService struct {
 	Repository AuthRepository
 	Limiter    LoginLimiter
+	TokenStore ResetTokenStore
 	JWTSecret  string
 	AccessTTL  time.Duration
 	RefreshTTL time.Duration
@@ -154,3 +171,146 @@ func randomRefreshToken() (string, error) {
 	return hex.EncodeToString(buffer), nil
 }
 func hashRefreshToken(value string) string { return auth.HashRefreshToken(value) }
+
+func (s AuthService) Register(ctx context.Context, email, password, fullName string) (AuthResponse, error) {
+	if strings.TrimSpace(fullName) == "" {
+		return AuthResponse{}, ErrFullNameRequired
+	}
+	if err := ValidateEmail(email); err != nil {
+		return AuthResponse{}, err
+	}
+	if err := ValidatePassword(password); err != nil {
+		return AuthResponse{}, err
+	}
+	if s.Repository == nil {
+		return AuthResponse{}, errors.New("auth service: nil repository")
+	}
+	existing, err := s.Repository.FindUserByEmail(ctx, strings.ToLower(strings.TrimSpace(email)))
+	if err == nil && existing.ID != uuid.Nil {
+		return AuthResponse{}, ErrEmailExists
+	}
+	hash, err := auth.HashPassword(password)
+	if err != nil {
+		return AuthResponse{}, fmt.Errorf("hash password: %w", err)
+	}
+	user := UserRecord{
+		ID:           uuid.New(),
+		Email:        strings.ToLower(strings.TrimSpace(email)),
+		PasswordHash: hash,
+		FullName:     strings.TrimSpace(fullName),
+	}
+	if _, err := s.Repository.CreateUserWithAdminCheck(ctx, user); err != nil {
+		if errors.Is(err, ErrEmailExists) {
+			return AuthResponse{}, ErrEmailExists
+		}
+		return AuthResponse{}, fmt.Errorf("create user: %w", err)
+	}
+	return s.issueSession(ctx, user)
+}
+
+func (s AuthService) ForgotPassword(ctx context.Context, email string) error {
+	trimmed := strings.ToLower(strings.TrimSpace(email))
+	if !strings.Contains(trimmed, "@") || trimmed == "" || s.Repository == nil {
+		return nil
+	}
+	user, err := s.Repository.FindUserByEmail(ctx, trimmed)
+	if err != nil || user.ID == uuid.Nil {
+		return nil
+	}
+	if s.TokenStore != nil {
+		token := uuid.New().String()
+		_ = s.TokenStore.CreateResetToken(ctx, token, user.ID, 15*time.Minute)
+	}
+	return nil
+}
+
+func (s AuthService) ResetPassword(ctx context.Context, token, newPassword string) error {
+	if strings.TrimSpace(token) == "" || s.TokenStore == nil || s.Repository == nil {
+		return ErrResetTokenInvalid
+	}
+	if err := ValidatePassword(newPassword); err != nil {
+		return err
+	}
+	userID, err := s.TokenStore.ConsumeResetToken(ctx, strings.TrimSpace(token))
+	if err != nil || userID == uuid.Nil {
+		return ErrResetTokenInvalid
+	}
+	newHash, err := auth.HashPassword(newPassword)
+	if err != nil {
+		return fmt.Errorf("hash new password: %w", err)
+	}
+	if err := s.Repository.UpdatePasswordHash(ctx, userID, newHash); err != nil {
+		return fmt.Errorf("update password hash: %w", err)
+	}
+	_ = s.Repository.RevokeAllSessions(ctx, userID, time.Now().UTC())
+	_ = s.TokenStore.SetUserRevocation(ctx, userID, 15*time.Minute)
+	return nil
+}
+
+func (s AuthService) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error {
+	if s.Repository == nil {
+		return errors.New("auth service: nil repository")
+	}
+	user, err := s.Repository.FindUserByID(ctx, userID)
+	if err != nil || user.ID != userID {
+		return ErrSessionNotFound
+	}
+	valid, _ := auth.VerifyPassword(oldPassword, user.PasswordHash)
+	if !valid {
+		return ErrCurrentPassword
+	}
+	if err := ValidatePassword(newPassword); err != nil {
+		return err
+	}
+	newHash, err := auth.HashPassword(newPassword)
+	if err != nil {
+		return fmt.Errorf("hash new password: %w", err)
+	}
+	if err := s.Repository.UpdatePasswordHash(ctx, userID, newHash); err != nil {
+		return fmt.Errorf("update password hash: %w", err)
+	}
+	_ = s.Repository.RevokeAllSessions(ctx, userID, time.Now().UTC())
+	if s.TokenStore != nil {
+		_ = s.TokenStore.SetUserRevocation(ctx, userID, 15*time.Minute)
+	}
+	return nil
+}
+
+func ValidatePassword(password string) error {
+	if len(password) < 8 {
+		return ErrPasswordTooShort
+	}
+	if len(password) > 128 {
+		return ErrPasswordTooLong
+	}
+	hasDigitOrPunct := false
+	for _, r := range password {
+		if (r >= '0' && r <= '9') || (r >= 33 && r <= 47) || (r >= 58 && r <= 64) || (r >= 91 && r <= 96) || (r >= 123 && r <= 126) {
+			hasDigitOrPunct = true
+			break
+		}
+	}
+	if !hasDigitOrPunct {
+		return ErrPasswordComplexity
+	}
+	return nil
+}
+
+func ValidateEmail(email string) error {
+	trimmed := strings.TrimSpace(email)
+	if len(trimmed) == 0 || len(trimmed) > 254 {
+		return ErrInvalidEmail
+	}
+	parts := strings.Split(trimmed, "@")
+	if len(parts) != 2 {
+		return ErrInvalidEmail
+	}
+	local, domain := parts[0], parts[1]
+	if len(local) == 0 || len(local) > 64 {
+		return ErrInvalidEmail
+	}
+	if len(domain) == 0 || !strings.Contains(domain, ".") || strings.HasPrefix(domain, ".") || strings.HasSuffix(domain, ".") || strings.Contains(domain, "..") {
+		return ErrInvalidEmail
+	}
+	return nil
+}

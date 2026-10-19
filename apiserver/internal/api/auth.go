@@ -118,6 +118,24 @@ func (h AuthHandler) writeAuthError(w http.ResponseWriter, r *http.Request, err 
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyInvalidEmailOrPassword))
 	case errors.Is(err, service.ErrRefreshReuse):
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyInvalidToken))
+	case errors.Is(err, service.ErrEmailExists):
+		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyEmailAlreadyExists))
+	case errors.Is(err, service.ErrFullNameRequired):
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyFullNameRequired))
+	case errors.Is(err, service.ErrInvalidEmail):
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyInvalidEmailFormat))
+	case errors.Is(err, service.ErrPasswordTooShort):
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyPasswordTooShort))
+	case errors.Is(err, service.ErrPasswordTooLong):
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyPasswordTooLong))
+	case errors.Is(err, service.ErrPasswordComplexity):
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyPasswordComplexity))
+	case errors.Is(err, service.ErrResetTokenInvalid):
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyResetTokenInvalid))
+	case errors.Is(err, service.ErrCurrentPassword):
+		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyCurrentPasswordIncorrect))
+	case errors.Is(err, service.ErrSessionNotFound):
+		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyUserNotFound))
 	default:
 		apperror.WriteError(w, r, apperror.Internal(err))
 	}
@@ -129,6 +147,79 @@ func refreshCookie(r *http.Request) string {
 		return ""
 	}
 	return cookie.Value
+}
+
+type registerRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	FullName string `json:"full_name"`
+}
+type forgotPasswordRequest struct {
+	Email string `json:"email"`
+}
+type resetPasswordRequest struct {
+	Token       string `json:"token"`
+	NewPassword string `json:"new_password"`
+}
+type changePasswordRequest struct {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
+}
+type messageResponse struct {
+	Message string `json:"message"`
+}
+
+func (h AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+	request, err := DecodeJSON[registerRequest](r, 1<<20)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	result, err := h.Service.Register(r.Context(), request.Email, request.Password, request.FullName)
+	if err != nil {
+		h.writeAuthError(w, r, err)
+		return
+	}
+	h.writeResponse(w, result)
+}
+
+func (h AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	request, err := DecodeJSON[forgotPasswordRequest](r, 1<<20)
+	if err == nil {
+		_ = h.Service.ForgotPassword(r.Context(), request.Email)
+	}
+	apperror.WriteJSON(w, http.StatusOK, messageResponse{Message: "If this email is registered, a reset link will be sent."})
+}
+
+func (h AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	request, err := DecodeJSON[resetPasswordRequest](r, 1<<20)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if err := h.Service.ResetPassword(r.Context(), request.Token, request.NewPassword); err != nil {
+		h.writeAuthError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok {
+		apperror.WritePrimitiveAuthRequired(w)
+		return
+	}
+	request, err := DecodeJSON[changePasswordRequest](r, 1<<20)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if err := h.Service.ChangePassword(r.Context(), userID, request.OldPassword, request.NewPassword); err != nil {
+		h.writeAuthError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 func setAuthCookies(w http.ResponseWriter, accessToken, refreshToken, domain string) {
 	http.SetCookie(w, &http.Cookie{Name: "access_token", Value: accessToken, Path: "/", Domain: domain, HttpOnly: true, Secure: true, SameSite: http.SameSiteNoneMode, MaxAge: 900})

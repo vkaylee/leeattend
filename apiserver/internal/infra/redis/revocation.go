@@ -43,3 +43,48 @@ func (c *Client) UserRevokedAt(ctx context.Context, userID uuid.UUID) (time.Time
 func RevocationKeys(token string, userID uuid.UUID) (string, string) {
 	return auth.RevokedSignatureKey(token), KeyUserRevokedAt(userID)
 }
+
+// CreateResetToken stores a single-use password reset token mapped to the user ID.
+func (c *Client) CreateResetToken(ctx context.Context, token string, userID uuid.UUID, ttl time.Duration) error {
+	client, err := c.Shared()
+	if err != nil {
+		return err
+	}
+	if client == nil {
+		return ErrNilRedisClient
+	}
+	return client.Set(ctx, KeyPasswordReset(token), userID.String(), ttl).Err()
+}
+
+// ConsumeResetToken atomically reads and deletes a reset token.
+func (c *Client) ConsumeResetToken(ctx context.Context, token string) (uuid.UUID, error) {
+	client, err := c.Shared()
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if client == nil {
+		return uuid.Nil, ErrNilRedisClient
+	}
+	script := `local v = redis.call('GET', KEYS[1])
+if not v then return nil end
+redis.call('DEL', KEYS[1])
+return v`
+	value, err := client.Eval(ctx, script, []string{KeyPasswordReset(token)}).Text()
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return uuid.Parse(value)
+}
+
+// SetUserRevocation records a user-wide JWT cutoff timestamp for revocation checks.
+func (c *Client) SetUserRevocation(ctx context.Context, userID uuid.UUID, ttl time.Duration) error {
+	client, err := c.Shared()
+	if err != nil {
+		return err
+	}
+	if client == nil {
+		return ErrNilRedisClient
+	}
+	now := strconv.FormatInt(time.Now().UTC().Unix(), 10)
+	return client.Set(ctx, KeyUserRevokedAt(userID), now, ttl).Err()
+}
