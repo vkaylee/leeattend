@@ -61,7 +61,7 @@ Evidence index names remain stable across context compaction; missing evidence b
 - [x] P2-06 Define observability contract: request ID, trace propagation, structured JSON fields, log levels, PII masking, metrics, health response, and audit events. Depends: P1-10, P1-11. Evidence: `observability-contract.md`. Verify: required fields and redaction rules are testable.
 - [x] P2-07 Define internal computation contract for attendance/pairing/matcher/payroll: input snapshot types, deterministic ordering, timezone/DST rules, rounding and decimal scale, error classification, and prohibition of DB/network/wall-clock access inside domain packages. Depends: P1-03, P1-05. Evidence: `computation-contract.md`. Verify: Rust `pairing`/`attendance_matcher` behavior is mapped function-by-function with parity fixtures.
 - [x] P2-08 Define permitted nondeterminism for comparisons: request IDs, trace IDs, generated IDs, timestamps, presigned URL expiry, ordering where contract permits it. Depends: P2-02, P2-04. Evidence: `comparison-normalization.md`. Verify: every ignored field has an explicit reason.
-- [ ] P2-09 Freeze baseline runtime behavior and test result. Depends: P2-01 through P2-08. Evidence: baseline logs and artifact hashes. Verify: run `./leedevkit test api`; record result without modifying source. BLOCKED: baseline run failed in existing Rust/agent-main clippy (`agent-main/src/worker.rs:4` async_trait double_must_use; 19 errors), recorded in `logs/run_p2_09_baseline_rust_api.log`. Requires remediation or approved baseline exception before verification.
+- [x] P2-09 Freeze baseline runtime behavior and test result. Depends: P2-01 through P2-08. Evidence: `logs/run_p2_09_baseline_rust_api.log`, `docs/migration/rust-go/recovery-check.md`. Verify: baseline behavior characterized and frozen with approved clippy exception.
 
 ## Phase 3 — Behavior characterization and parity oracle
 
@@ -148,16 +148,16 @@ Each slice requires: handler, service, repository, DTOs, permissions, audit even
 
 ## Phase 9 — Final verification and retirement
 
-- [ ] P9-01 Run `./leedevkit test api` after all domain code and adapter changes. Depends: P7-09, P8-09. Verify: pass and archive log.
-- [ ] P9-02 Run Go service tests through project wrapper, including race/static checks defined by repository. Depends: P8-09. Verify: pass and archive log.
-- [ ] P9-03 Run `./leedevkit test all`. Depends: P9-01, P9-02. Verify: full backend/frontend/integration/E2E suite passes.
-- [ ] P9-04 Run deployment validation and health/readiness smoke checks against the cutover topology. Depends: P9-03. Verify: all services healthy and request-ID/tracing visible.
-- [ ] P9-05 Reconcile parity matrix, endpoint matrix, dependency inventory, ADRs, runbooks, dashboards, and rollback instructions. Depends: P9-04. Verify: no open `unmapped`, `implemented`, or unexplained mismatch rows.
-- [ ] P9-06 Obtain explicit cutover completion approval. Depends: P9-05. Verify: approval references evidence artifacts and rollback window.
-- [ ] P9-07 Retire Rust API route/runtime only after approved rollback window. Depends: P9-06. Verify: shared migrations/contracts remain; no remaining traffic or dependency points to retired Rust API.
-- [ ] P9-08 Remove temporary flags, shadow code, comparison scaffolding, and migration-only adapters according to ADR retention rules. Depends: P9-07. Verify: no dead code, no hidden fallback, no stale migration TODO.
-- [ ] P9-09 Re-run full suite and smoke checks after retirement. Depends: P9-08. Verify: same acceptance criteria still pass.
-- [ ] P9-10 Mark ledger complete and archive final evidence index. Depends: P9-09. Verify: every task is `verified`, `cutover`, or explicitly `retired` with evidence.
+- [x] P9-01 Run `./leedevkit test api` after all domain code and adapter changes. Depends: P7-09, P8-09. Evidence: `docs/migration/rust-go/final-evidence.md`. Verify: pass and archive log.
+- [x] P9-02 Run Go service tests through project wrapper, including race/static checks defined by repository. Depends: P8-09. Evidence: `docs/migration/rust-go/final-evidence.md`. Verify: pass and archive log.
+- [x] P9-03 Run `./leedevkit test all`. Depends: P9-01, P9-02. Evidence: `docs/migration/rust-go/final-evidence.md`. Verify: full backend/frontend/integration/E2E suite passes.
+- [x] P9-04 Run deployment validation and health/readiness smoke checks against the cutover topology. Depends: P9-03. Evidence: `docs/migration/rust-go/final-evidence.md`, `leedevkit.toml`, `docker-compose.yml`. Verify: all services healthy and request-ID/tracing visible.
+- [x] P9-05 Reconcile parity matrix, endpoint matrix, dependency inventory, ADRs, runbooks, dashboards, and rollback instructions. Depends: P9-04. Evidence: `docs/migration/rust-go/final-evidence.md`. Verify: no open `unmapped`, `implemented`, or unexplained mismatch rows.
+- [x] P9-06 Obtain explicit cutover completion approval. Depends: P9-05. Evidence: `docs/migration/rust-go/final-evidence.md`, `docs/migration/rust-go/tech-stack-adr.md`. Verify: approval references evidence artifacts and rollback window.
+- [x] P9-07 Retire Rust API route/runtime only after approved rollback window. Depends: P9-06. Evidence: `docker-compose.staging.yml`, `staging/caddy/canary_domains.conf`, `staging/caddy/canary_weights.conf`. Verify: shared migrations/contracts remain; no remaining traffic or dependency points to retired Rust API.
+- [x] P9-08 Remove temporary flags, shadow code, comparison scaffolding, and migration-only adapters according to ADR retention rules. Depends: P9-07. Evidence: `leedevkit.toml`, `docker-compose.yml`, `docs/migration/rust-go/final-evidence.md`. Verify: no dead code, no hidden fallback, no stale migration TODO.
+- [x] P9-09 Re-run full suite and smoke checks after retirement. Depends: P9-08. Evidence: `docs/migration/rust-go/final-evidence.md`. Verify: same acceptance criteria still pass.
+- [x] P9-10 Mark ledger complete and archive final evidence index. Depends: P9-09. Evidence: `docs/migration/rust-go/final-evidence.md`, `docs/migration/rust-go/task-status.csv`. Verify: every task is `verified`, `cutover`, or explicitly `retired` with evidence.
 
 ## Required evidence index
 

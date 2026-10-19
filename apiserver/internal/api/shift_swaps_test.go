@@ -45,6 +45,25 @@ func (mockShiftSwapRepository) Stats(context.Context, uuid.UUID) (SwapStats, err
 	return SwapStats{PendingAdmin: 2, Approved: 5}, nil
 }
 
+func (mockShiftSwapRepository) ListEmployeeSwaps(_ context.Context, _, _ uuid.UUID) ([]ShiftSwapRequestWithNames, error) {
+	return []ShiftSwapRequestWithNames{}, nil
+}
+
+func (m mockShiftSwapRepository) CreateESSSwap(_ context.Context, wsID, reqID, userID uuid.UUID, req EssCreateShiftSwapRequest) (ShiftSwapRequest, error) {
+	if m.createErr != nil {
+		return ShiftSwapRequest{}, m.createErr
+	}
+	return ShiftSwapRequest{ID: uuid.New(), WorkspaceID: wsID, RequesterID: reqID, TargetID: req.TargetID, SwapDate: req.SwapDate, Status: ShiftSwapPendingTarget}, nil
+}
+
+func (m *mockShiftSwapRepository) RespondSwap(_ context.Context, _, _, _ uuid.UUID, _ bool) error {
+	return m.approveErr
+}
+
+func (m *mockShiftSwapRepository) CancelSwap(_ context.Context, _, _, _ uuid.UUID) error {
+	return m.approveErr
+}
+
 func TestShiftSwapHandler_Create_RequiresPermission(t *testing.T) {
 	wsID := uuid.New()
 	handler := ShiftSwapHandler{Repository: &mockShiftSwapRepository{}, Authorizer: mockAttendanceAuthorizer{allowed: false}}

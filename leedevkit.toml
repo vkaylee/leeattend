@@ -10,11 +10,11 @@ languages = ["rust", "typescript", "go"]
 
 [services.apiserver]
 dockerfile = "./apiserver"
-lang = "rust"
+lang = "go"
+workdir = "apiserver"
 ports = [3000]
 health_check = "/api/v1/health"
-cargo = true
-
+go = true
 [services.agent-main]
 dockerfile = "./agent-main"
 lang = "rust"
@@ -26,24 +26,20 @@ lang = "typescript"
 ports = [5173]
 bun = true
 
-[services.api-go]
-dockerfile = "./apiserver"
-lang = "go"
-workdir = "apiserver"
-ports = [3001]
-health_check = "/health"
-go = true
 
 [targets]
 api = ["apiserver", "agent-main"]
 web = ["webdashboard"]
-api-go = ["api-go"]
-all = ["apiserver", "agent-main", "webdashboard", "api-go"]
+api-go = ["apiserver"]
+all = ["apiserver", "agent-main", "webdashboard"]
 
 [test.dependencies]
-lint-go = ["api-go"]
-unit-go = ["api-go"]
-int-go = ["api-go"]
+lint-api = ["apiserver"]
+unit-api = ["apiserver"]
+int-api = ["apiserver"]
+lint-go = ["apiserver"]
+unit-go = ["apiserver"]
+int-go = ["apiserver"]
 
 [ai]
 rules_dir = ".attendagent/rules"

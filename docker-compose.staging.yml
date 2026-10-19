@@ -194,10 +194,11 @@ services:
       <<: *healthcheck-base
       test: ["CMD", "mc", "ready", "local"]
 
-  # ── Baseline Service: Reference Rust API Server (Port 3000) ──
+  # ── Baseline Service: Reference Rust API Server (Retired in Phase 9) ──
   apiserver:
     image: localhost/leeattend_apiserver:staging
     container_name: leeattend-staging-apiserver-rust
+    profiles: ["legacy-retired"]
     build:
       context: .
       dockerfile: apiserver/Dockerfile
@@ -280,8 +281,8 @@ services:
       - S3_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minio_staging_secret_key}
       - S3_REGION=us-east-1
       - S3_USE_PATH_STYLE=true
-      # Decision D-09: Prevent split-brain queue claims during parallel canary phases
-      - WORKER_MAX_CONCURRENT_JOBS=0
+      # Phase 9 Cutover (P9-04): Background worker queue active on Go apiserver
+      - WORKER_MAX_CONCURRENT_JOBS=${WORKER_MAX_CONCURRENT_JOBS:-5}
       # Go runtime memory bounds
       - GOMEMLIMIT=768MiB
     deploy:

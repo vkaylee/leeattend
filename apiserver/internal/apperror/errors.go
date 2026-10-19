@@ -119,6 +119,7 @@ const (
 	KeyWeeklyHoursExceeded        = "error.weekly_hours_exceeded"
 	KeyMonthlyOTExceeded          = "error.monthly_ot_exceeded"
 	KeyComplianceOverrideRequired = "error.compliance_override_required"
+	KeyInvalidBaseGroup           = "error.invalid_base_group"
 )
 
 // AppError is the canonical application error type matching Rust AppError.
