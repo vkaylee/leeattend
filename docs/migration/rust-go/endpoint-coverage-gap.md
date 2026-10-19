@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **258**
-- Contract routes covered: **235**
-- Contract routes missing: **168**
+- Go route registrations: **272**
+- Contract routes covered: **247**
+- Contract routes missing: **156**
 
 ## Missing routes
 
@@ -65,31 +65,19 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | DELETE | `/api/v1/workspaces/{ws_id}/attendance/adjustments/behalf-assignments/{id}` | Permission::AttendanceAdjustmentsManageBehalf |
 | POST | `/api/v1/workspaces/{ws_id}/attendance/adjustments/{id}/approve` | Permission::AttendanceAdjustmentsApprove |
 | POST | `/api/v1/workspaces/{ws_id}/attendance/approve-ot/{employee_id}` | Permission::OvertimeApprove (scoped) |
-| POST | `/api/v1/workspaces/{ws_id}/attendance/bulk-upload-paper-ot` | Permission::OvertimePaperUpload |
 | GET | `/api/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments` | Permission::OvertimePoliciesManage |
 | DELETE | `/api/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments/{id}` | Permission::OvertimePoliciesManage |
 | POST | `/api/v1/workspaces/{ws_id}/attendance/claim-ot/{employee_id}` | CONDITIONAL — self target: no permission check; delegated target: Permission::OvertimeApprove OR Permission::OvertimeClaimOnBehalf |
-| POST | `/api/v1/workspaces/{ws_id}/attendance/enter-paper-ot/{employee_id}` | Permission::OvertimePaperUpload |
-| GET | `/api/v1/workspaces/{ws_id}/attendance/import-jobs/latest` | Permission::AttendanceLogsImport |
-| GET | `/api/v1/workspaces/{ws_id}/attendance/import-jobs/{id}` | Permission::AttendanceLogsImport |
-| GET | `/api/v1/workspaces/{ws_id}/attendance/import-jobs/{id}/error-file` | Permission::AttendanceLogsImport |
-| GET | `/api/v1/workspaces/{ws_id}/attendance/logs` | Permission::AttendanceLogsRead |
-| POST | `/api/v1/workspaces/{ws_id}/attendance/logs/upload` | Permission::AttendanceLogsImport |
 | GET | `/api/v1/workspaces/{ws_id}/attendance/policies/assignments` | Permission::WorkspaceSettingsRead |
 | POST | `/api/v1/workspaces/{ws_id}/attendance/policies/assignments` | Permission::WorkspaceSettingsWrite |
 | DELETE | `/api/v1/workspaces/{ws_id}/attendance/policies/assignments/{assignment_id}` | Permission::WorkspaceSettingsWrite |
-| GET | `/api/v1/workspaces/{ws_id}/attendance/raw-logs` | Permission::AttendanceLogsRead |
 | POST | `/api/v1/workspaces/{ws_id}/attendance/reprocess-all` | Permission::AttendanceReprocess |
 | POST | `/api/v1/workspaces/{ws_id}/attendance/reprocess/{employee_id}` | Permission::AttendanceReprocess |
 | GET | `/api/v1/workspaces/{ws_id}/attendance/rules` | Permission::WorkspaceSettingsRead |
 | PATCH | `/api/v1/workspaces/{ws_id}/attendance/rules` | Permission::WorkspaceSettingsWrite |
 | GET | `/api/v1/workspaces/{ws_id}/attendance/rules/versions` | Permission::WorkspaceSettingsRead |
-| GET | `/api/v1/workspaces/{ws_id}/attendance/staging-logs` | Permission::AttendanceStagingManage |
-| DELETE | `/api/v1/workspaces/{ws_id}/attendance/staging-logs/{id}` | Permission::AttendanceStagingManage |
-| POST | `/api/v1/workspaces/{ws_id}/attendance/staging-logs/{id}/resolve` | Permission::AttendanceStagingManage |
 | GET | `/api/v1/workspaces/{ws_id}/attendance/summaries` | CONDITIONAL — Permission::AttendanceSummariesRead via has_permission; handler-specific self/scope behavior |
-| POST | `/api/v1/workspaces/{ws_id}/attendance/upload` | Permission::AttendanceLogsImport |
 | GET | `/api/v1/workspaces/{ws_id}/audit-logs` | Permission::AuditLogsRead |
 | POST | `/api/v1/workspaces/{ws_id}/documents/distributions` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/documents/folders` | NONE EVIDENCED — context extractor only; no permission guard |

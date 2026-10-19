@@ -280,7 +280,11 @@ func mapExcelRows(workbook excelWorkbook, expected []string) ([]map[string]strin
 			}
 		}
 	}
-	for _, wanted := range expected[:3] {
+	mandatory := expected
+	if len(mandatory) > 3 {
+		mandatory = mandatory[:3]
+	}
+	for _, wanted := range mandatory {
 		if _, ok := indexes[wanted]; !ok {
 			return nil, fmt.Errorf("missing mandatory header %s", wanted)
 		}

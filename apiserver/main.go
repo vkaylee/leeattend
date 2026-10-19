@@ -203,6 +203,7 @@ func main() {
 	compensationHistoryHandler := api.CompensationHistoryHandler{Repository: compensationHistoryRepo, Authorizer: workspaceAuthorizer}
 	attendanceRepo := repository.AttendanceRepository{TenantDB: workspaceRepo.TenantDB}
 	attendanceHandler := api.AttendanceHandler{Repository: attendanceRepo, Authorizer: workspaceAuthorizer}
+	attendanceLogsHandler := api.AttendanceLogsHandler{Repository: attendanceRepo, Authorizer: workspaceAuthorizer, StorageDir: cfg.StorageDir}
 	shiftRepo := repository.ShiftRepository{TenantDB: workspaceRepo.TenantDB}
 	shiftHandler := api.ShiftHandler{Repository: shiftRepo, Authorizer: workspaceAuthorizer}
 	employeeAssignmentRepo := repository.EmployeeAssignmentRepository{TenantDB: workspaceRepo.TenantDB}
@@ -221,6 +222,20 @@ func main() {
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/attendance/adjustments", attendanceHandler.ListAdjustments)
 	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/attendance/adjustments/{id}/approve", attendanceHandler.ApproveAdjustment)
 	mux.HandleFunc("GET /api/v1/employees/{id}/attendance/adjustments", attendanceHandler.ListEmployeeAdjustments)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/upload", attendanceLogsHandler.Upload)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/logs/upload", attendanceLogsHandler.UploadLogs)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/bulk-upload-paper-ot", attendanceLogsHandler.BulkPaperOT)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/paper-forms/overtime/bulk", attendanceLogsHandler.BulkPaperOT)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/enter-paper-ot/{employee_id}", attendanceLogsHandler.EnterPaperOT)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/paper-forms/overtime/{employee_id}", attendanceLogsHandler.EnterPaperOT)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/attendance/import-jobs/latest", attendanceLogsHandler.Latest)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/attendance/import-jobs/{id}", attendanceLogsHandler.Job)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/attendance/import-jobs/{id}/error-file", attendanceLogsHandler.ErrorFile)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/attendance/logs", attendanceLogsHandler.Logs)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/attendance/raw-logs", attendanceLogsHandler.RawLogs)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/attendance/staging-logs", attendanceLogsHandler.Staging)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/attendance/staging-logs/{id}/resolve", attendanceLogsHandler.Resolve)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/attendance/staging-logs/{id}", attendanceLogsHandler.Dismiss)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/shifts", shiftHandler.Create)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/shifts", shiftHandler.List)
 	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/shifts/{shift_id}", shiftHandler.Update)
