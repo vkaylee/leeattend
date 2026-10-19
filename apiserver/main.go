@@ -185,6 +185,16 @@ func main() {
 	mux.HandleFunc("GET /api/v1/dashboard/recruitment-sources", recruitmentHandler.Dashboard)
 	employeeRepo := repository.EmployeeRepository{TenantDB: workspaceRepo.TenantDB}
 	employeeHandler := api.EmployeeHandler{Repository: employeeRepo, Authorizer: workspaceAuthorizer}
+	employeeImportRepo := repository.EmployeeImportRepository{TenantDB: workspaceRepo.TenantDB}
+	employeeImportHandler := api.EmployeeImportHandler{
+		Repository: employeeImportRepo,
+		Queue: repository.EmployeeImportQueue{
+			RedisClient: redisClient,
+			Repo:        employeeImportRepo,
+		},
+		Authorizer: workspaceAuthorizer,
+		StorageDir: cfg.StorageDir,
+	}
 	employeeConditionRepo := repository.EmployeeConditionRepository{TenantDB: workspaceRepo.TenantDB}
 	employeeConditionHandler := api.EmployeeConditionHandler{Repository: employeeConditionRepo, Authorizer: workspaceAuthorizer}
 	employeeDepartmentRepo := repository.EmployeeDepartmentRepository{TenantDB: workspaceRepo.TenantDB}
@@ -252,6 +262,10 @@ func main() {
 	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/employees/{id}", employeeHandler.Update)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/employees/{id}", employeeHandler.Delete)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{id}/rehire", employeeHandler.Rehire)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/upload", employeeImportHandler.Upload)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/import-termination/preview", employeeImportHandler.PreviewTermination)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/import-termination/confirm", employeeImportHandler.ConfirmTermination)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/import-termination/template", employeeImportHandler.TerminationTemplate)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{id}/conditions", employeeConditionHandler.List)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{id}/conditions", employeeConditionHandler.Create)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/employees/{id}/conditions/{cond_id}", employeeConditionHandler.Delete)

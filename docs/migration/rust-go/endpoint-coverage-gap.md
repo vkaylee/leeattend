@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **254**
-- Contract routes covered: **231**
-- Contract routes missing: **172**
+- Go route registrations: **258**
+- Contract routes covered: **235**
+- Contract routes missing: **168**
 
 ## Missing routes
 
@@ -99,10 +99,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | PUT | `/api/v1/workspaces/{ws_id}/documents/folders/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/documents/templates/preview` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/documents/templates/{id}/generate` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/employees/import-termination/confirm` | Permission::EmployeesUpdate |
-| POST | `/api/v1/workspaces/{ws_id}/employees/import-termination/preview` | Permission::EmployeesUpdate |
-| GET | `/api/v1/workspaces/{ws_id}/employees/import-termination/template` | Permission::EmployeesUpdate |
-| POST | `/api/v1/workspaces/{ws_id}/employees/upload` | Permission::EmployeesUpload |
 | POST | `/api/v1/workspaces/{ws_id}/employees/{id}/calculate-payroll` | Permission::PayrollCalculate |
 | POST | `/api/v1/workspaces/{ws_id}/employees/{id}/leave/adjust` | Permission::LeaveBalancesAdjust |
 | GET | `/api/v1/workspaces/{ws_id}/employees/{id}/leave/history` | Permission::LeaveBalancesRead |
