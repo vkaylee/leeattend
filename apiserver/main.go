@@ -132,6 +132,20 @@ func main() {
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/locations/{id}", locationHandler.Get)
 	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/locations/{id}", locationHandler.Update)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/locations/{id}", locationHandler.Delete)
+	employerRepo := repository.EmployerRepository{TenantDB: workspaceRepo.TenantDB}
+	employerHandler := api.EmployerHandler{Repository: employerRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employers", employerHandler.List)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employers", employerHandler.Create)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employers/{id}", employerHandler.Get)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/employers/{id}", employerHandler.Update)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/employers/{id}", employerHandler.Delete)
+	recruitmentRepo := repository.RecruitmentSourceRepository{TenantDB: workspaceRepo.TenantDB}
+	recruitmentHandler := api.RecruitmentSourceHandler{Repository: recruitmentRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/recruitment-sources", recruitmentHandler.List)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/recruitment-sources", recruitmentHandler.Create)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/recruitment-sources/{id}", recruitmentHandler.Update)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/recruitment-sources/{id}", recruitmentHandler.Delete)
+	mux.HandleFunc("GET /api/v1/dashboard/recruitment-sources", recruitmentHandler.Dashboard)
 	employeeRepo := repository.EmployeeRepository{TenantDB: workspaceRepo.TenantDB}
 	employeeHandler := api.EmployeeHandler{Repository: employeeRepo, Authorizer: workspaceAuthorizer}
 	attendanceRepo := repository.AttendanceRepository{TenantDB: workspaceRepo.TenantDB}

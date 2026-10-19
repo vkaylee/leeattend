@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **157**
-- Contract routes covered: **134**
-- Contract routes missing: **269**
+- Go route registrations: **167**
+- Contract routes covered: **144**
+- Contract routes missing: **259**
 
 ## Missing routes
 
@@ -28,7 +28,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | GET | `/api/v1/dashboard/overtime-trend` | Permission::DashboardRead |
 | GET | `/api/v1/dashboard/peak-times` | Permission::DashboardRead |
 | GET | `/api/v1/dashboard/recruitment-effectiveness` | Permission::DashboardRead |
-| GET | `/api/v1/dashboard/recruitment-sources` | Permission::DashboardRead |
 | GET | `/api/v1/dashboard/turnover-analytics` | Permission::DashboardRead |
 | GET | `/api/v1/dashboard/unexcused-absences` | Permission::DashboardEmployeeAbsenceRead OR Permission::DashboardRead |
 | GET | `/api/v1/dashboard/workspace-stats` | Permission::DashboardRead |
@@ -155,11 +154,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | GET | `/api/v1/workspaces/{ws_id}/employees/{user_id}/phases` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/employees/{user_id}/phases` | Permission::EmploymentPhasesManage |
 | PUT | `/api/v1/workspaces/{ws_id}/employees/{user_id}/phases/{phase_id}/status` | Permission::EmploymentPhasesManage |
-| GET | `/api/v1/workspaces/{ws_id}/employers` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/employers` | NONE EVIDENCED — context extractor only; no permission guard |
-| DELETE | `/api/v1/workspaces/{ws_id}/employers/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/employers/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| PUT | `/api/v1/workspaces/{ws_id}/employers/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/employment-phases` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/employment-phases` | Permission::EmploymentPhasesManage |
 | GET | `/api/v1/workspaces/{ws_id}/employments/{emp_id}/lifecycle` | Permission::EmployeesRead |
@@ -256,10 +250,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | POST | `/api/v1/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}/clone` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/permissions/available` | Permission::MembersRolesManage |
 | GET | `/api/v1/workspaces/{ws_id}/permissions/catalog` | Permission::MembersRolesManage |
-| GET | `/api/v1/workspaces/{ws_id}/recruitment-sources` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/recruitment-sources` | Permission::RecruitmentManage |
-| DELETE | `/api/v1/workspaces/{ws_id}/recruitment-sources/{id}` | Permission::RecruitmentManage |
-| PUT | `/api/v1/workspaces/{ws_id}/recruitment-sources/{id}` | Permission::RecruitmentManage |
 | GET | `/api/v1/workspaces/{ws_id}/roles` | NONE EVIDENCED — context extractor only; no permission guard |
 | DELETE | `/api/v1/workspaces/{ws_id}/roles/{role_id}` | Permission::MembersRolesManage |
 | PUT | `/api/v1/workspaces/{ws_id}/roles/{role_id}` | Permission::MembersRolesManage |
