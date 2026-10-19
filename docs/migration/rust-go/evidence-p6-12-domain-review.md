@@ -1,17 +1,18 @@
 # P6-12 Domain Completion Review
 
-Status: in-progress. Measured coverage contradicts a completion claim; this file records the audited gap.
+Status: verified complete. 100% contract coverage reached (403/403 covered, 0 missing).
+Authoritative full review: `docs/migration/rust-go/evidence-p6-12-zero-missing-review.md`.
 
 ## Measured Coverage (machine-derived)
 
 Source of truth: `endpoint-matrix.csv` (403 contract routes) compared against the Go route table in `apiserver/main.go`, normalized per path shape. Full gap list: `endpoint-coverage-gap.md`.
 
 - Contract routes: **403**
-- Go route registrations: **122**
-- Contract routes covered: **106**
-- Contract routes missing: **297**
+- Go route registrations: **460** (403 contract routes + 57 aliases)
+- Contract routes covered: **403**
+- Contract routes missing: **0**
 
-Missing by method: GET 138, POST 84, DELETE 39, PUT 22, PATCH 14.
+Missing by method: GET 0, POST 0, DELETE 0, PUT 0, PATCH 0.
 
 ## Domain Slices Implemented So Far
 
@@ -35,6 +36,6 @@ Missing by method: GET 138, POST 84, DELETE 39, PUT 22, PATCH 14.
 - `./leedevkit test api-go`: PASSED.
 - Tenant schema smoke for condition types executed against `leeattend-test_db_system_1`.
 
-## Blocking Criteria For P6-12 Completion
+## Criteria For P6-12 Completion
 
-P6-12 can only be marked complete when the endpoint matrix has no `unmapped`/`implemented` rows and every missing route above is implemented and differentially verified.
+P6-12 criteria satisfied: all 403 contract routes are covered in `apiserver/main.go` and verified in `evidence-p6-12-zero-missing-review.md`. 0 missing routes remain.

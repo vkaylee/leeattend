@@ -109,18 +109,18 @@ Evidence index names remain stable across context compaction; missing evidence b
 
 Each slice requires: handler, service, repository, DTOs, permissions, audit events, metrics, OpenAPI check, unit tests, integration fixtures, differential comparison, performance/N+1 review, and rollback note.
 
-- [ ] P6-01 Auth/session/token domain. Depends: P4-10, P5-05. Verify: all auth fixtures, token rotation/revocation, login rate limit, session invalidation, and audit.
-- [ ] P6-02 Workspaces/settings/feature flags/permissions domain. Depends: P6-01, P5-02. Verify: workspace isolation, RBAC, settings transaction, flag behavior, and P3-03.
-- [ ] P6-03 Employees/employments/assignments/custom fields domain. Depends: P6-02, P5-02. Verify: PII access rules, soft delete, uniqueness, bulk operations, and P3-04.
-- [ ] P6-04 Attendance/time tracking domain orchestration. Depends: P6-03, P5-08. Verify: batch prefetch, in-process calculation, result validation, transactional writes, reprocess, and P3-05.
-- [ ] P6-05 Shifts/roster/pattern/compliance domain. Depends: P6-03, P6-04. Verify: overnight/DST/timezone/break semantics, cache behavior, and P3-06.
-- [ ] P6-06 Leave/ESS/approvals domain. Depends: P6-03, P5-07. Verify: transition rules, balances, permissions, notifications, rollback, and P3-07.
-- [ ] P6-07 Notifications/domain delivery domain. Depends: P5-06, P5-07. Verify: templates, localization, deduplication, retry, delivery failure, and P3-07.
-- [ ] P6-08 Payroll/work buckets/domain calculations. Depends: P6-04, P6-05, P6-06. Verify: decimal/rounding invariants, persistence, authorization, export, and P3-08.
-- [ ] P6-09 Reports/dashboard/analytics domain. Depends: P6-03 through P6-08. Verify: aggregation parity, pagination, query count, export audit, and P3-08.
-- [ ] P6-10 Files/documents/e-signature domain. Depends: P5-06, P5-09. Verify: upload/download, malware rejection, S3 failure, signed URL, authorization, and P3-09.
-- [ ] P6-11 Lifecycle/condition types/system/admin domain. Depends: P6-02, P5-05. Verify: remaining route fixtures and P3-10.
-- [ ] P6-12 Domain completion review. Depends: P6-01 through P6-11. Verify: endpoint matrix has no `unmapped` or `implemented` rows; all are `verified`.
+- [x] P6-01 Auth/session/token domain. Depends: P4-10, P5-05. Evidence: `internal/api/auth.go`, `internal/service/auth.go`, `docs/migration/rust-go/evidence-p6-01-auth.md`. Verify: all auth fixtures, token rotation/revocation, login rate limit, session invalidation, and audit.
+- [x] P6-02 Workspaces/settings/feature flags/permissions domain. Depends: P6-01, P5-02. Evidence: `internal/api/workspaces.go`, `internal/repository/workspaces.go`, `docs/migration/rust-go/evidence-p6-02-p6-03.md`. Verify: workspace isolation, RBAC, settings transaction, flag behavior, and P3-03.
+- [x] P6-03 Employees/employments/assignments/custom fields domain. Depends: P6-02, P5-02. Evidence: `internal/api/employees.go`, `internal/repository/employees.go`, `docs/migration/rust-go/evidence-p6-02-p6-03.md`. Verify: PII access rules, soft delete, uniqueness, bulk operations, and P3-04.
+- [x] P6-04 Attendance/time tracking domain orchestration. Depends: P6-03, P5-08. Evidence: `internal/api/attendance.go`, `internal/repository/attendance.go`, `docs/migration/rust-go/evidence-p6-04-attendance.md`. Verify: batch prefetch, in-process calculation, result validation, transactional writes, reprocess, and P3-05.
+- [x] P6-05 Shifts/roster/pattern/compliance domain. Depends: P6-03, P6-04. Evidence: `internal/api/shifts.go`, `internal/repository/shifts.go`, `docs/migration/rust-go/evidence-p6-05-shifts.md`. Verify: overnight/DST/timezone/break semantics, cache behavior, and P3-06.
+- [x] P6-06 Leave/ESS/approvals domain. Depends: P6-03, P5-07. Evidence: `internal/api/leaves.go`, `internal/repository/leaves.go`, `docs/migration/rust-go/evidence-p6-06-leaves.md`. Verify: transition rules, balances, permissions, notifications, rollback, and P3-07.
+- [x] P6-07 Notifications/domain delivery domain. Depends: P5-06, P5-07. Evidence: `internal/api/notifications.go`, `internal/repository/notifications.go`, `docs/migration/rust-go/evidence-p6-07-notifications.md`. Verify: templates, localization, deduplication, retry, delivery failure, and P3-07.
+- [x] P6-08 Payroll/work buckets/domain calculations. Depends: P6-04, P6-05, P6-06. Evidence: `internal/api/payroll.go`, `internal/repository/payroll.go`, `docs/migration/rust-go/evidence-p6-08-payroll.md`. Verify: decimal/rounding invariants, persistence, authorization, export, and P3-08.
+- [x] P6-09 Reports/dashboard/analytics domain. Depends: P6-03 through P6-08. Evidence: `internal/api/reports.go`, `internal/repository/reports.go`, `docs/migration/rust-go/evidence-p6-09-reports.md`. Verify: aggregation parity, pagination, query count, export audit, and P3-08.
+- [x] P6-10 Files/documents/e-signature domain. Depends: P5-06, P5-09. Evidence: `internal/api/files.go`, `internal/repository/files.go`, `docs/migration/rust-go/evidence-p6-18-documents-folders.md`. Verify: upload/download, malware rejection, S3 failure, signed URL, authorization, and P3-09.
+- [x] P6-11 Lifecycle/condition types/system/admin domain. Depends: P6-02, P5-05. Evidence: `internal/api/system.go`, `internal/repository/system.go`, `docs/migration/rust-go/evidence-p6-11-condition-types.md`. Verify: remaining route fixtures and P3-10.
+- [x] P6-12 Domain completion review. Depends: P6-01 through P6-11. Evidence: `docs/migration/rust-go/evidence-p6-12-zero-missing-review.md`, `docs/migration/rust-go/endpoint-coverage-gap.md`. Verify: endpoint matrix has no `unmapped` or `implemented` rows; all are `verified`.
 
 ## Phase 7 — Differential, security, and performance proof
 
