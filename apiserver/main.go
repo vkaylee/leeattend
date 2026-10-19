@@ -488,20 +488,51 @@ func main() {
 		fileStorage = s3Client
 	}
 	fileHandler := api.FileHandler{Repository: fileRepo, Storage: fileStorage, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("POST /v1/workspaces/{ws_id}/files/upload", fileHandler.UploadFile)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/files/upload", fileHandler.UploadFile)
 	mux.HandleFunc("POST /v1/workspaces/{ws_id}/files/presigned", fileHandler.CreateUploadURL)
-	mux.HandleFunc("GET /v1/workspaces/{ws_id}/files/{id}", fileHandler.GetMetadata)
-	mux.HandleFunc("GET /v1/workspaces/{ws_id}/files/{id}/url", fileHandler.GetURL)
-	mux.HandleFunc("DELETE /v1/workspaces/{ws_id}/files/{id}", fileHandler.DeleteFile)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/files/presigned", fileHandler.CreateUploadURL)
+	mux.HandleFunc("GET /v1/workspaces/{ws_id}/files/{id}", fileHandler.GetMetadata)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/files/{id}", fileHandler.GetMetadata)
-	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/files/{id}/url", fileHandler.GetURL)
+	mux.HandleFunc("PUT /v1/workspaces/{ws_id}/files/{id}", fileHandler.UpdateFile)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/files/{id}", fileHandler.UpdateFile)
+	mux.HandleFunc("DELETE /v1/workspaces/{ws_id}/files/{id}", fileHandler.DeleteFile)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/files/{id}", fileHandler.DeleteFile)
+	mux.HandleFunc("GET /v1/workspaces/{ws_id}/files/{id}/download", fileHandler.DownloadFile)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/files/{id}/download", fileHandler.DownloadFile)
+	mux.HandleFunc("GET /v1/workspaces/{ws_id}/files/{id}/url", fileHandler.GetURL)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/files/{id}/url", fileHandler.GetURL)
+	mux.HandleFunc("GET /v1/workspaces/{ws_id}/files/{id}/versions", fileHandler.ListVersions)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/files/{id}/versions", fileHandler.ListVersions)
+	mux.HandleFunc("GET /v1/workspaces/{ws_id}/files/by-owner/{owner_type}/{owner_id}", fileHandler.ListByOwner)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/files/by-owner/{owner_type}/{owner_id}", fileHandler.ListByOwner)
+
 	mux.HandleFunc("POST /v1/workspaces/{ws_id}/documents/{document_id}/signature-requests", fileHandler.CreateSignatureRequest)
-	mux.HandleFunc("GET /v1/ess/workspaces/{ws_id}/signatures/pending", fileHandler.ListPendingSignatures)
-	mux.HandleFunc("POST /v1/ess/workspaces/{ws_id}/signatures/{request_id}/sign", fileHandler.SignDocument)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/documents/{document_id}/signature-requests", fileHandler.CreateSignatureRequest)
+	mux.HandleFunc("GET /v1/ess/workspaces/{ws_id}/signatures/pending", fileHandler.ListPendingSignatures)
 	mux.HandleFunc("GET /api/v1/ess/workspaces/{ws_id}/signatures/pending", fileHandler.ListPendingSignatures)
+	mux.HandleFunc("POST /v1/ess/workspaces/{ws_id}/signatures/{request_id}/sign", fileHandler.SignDocument)
 	mux.HandleFunc("POST /api/v1/ess/workspaces/{ws_id}/signatures/{request_id}/sign", fileHandler.SignDocument)
+
+	documentRepo := repository.DocumentRepository{TenantDB: workspaceRepo.TenantDB, SystemDB: workspaceRepo.SystemDB}
+	documentHandler := api.DocumentHandler{Repository: documentRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /v1/workspaces/{ws_id}/documents/folders", documentHandler.ListFolders)
+	mux.HandleFunc("POST /v1/workspaces/{ws_id}/documents/folders", documentHandler.CreateFolder)
+	mux.HandleFunc("GET /v1/workspaces/{ws_id}/documents/folders/{id}", documentHandler.GetFolder)
+	mux.HandleFunc("PUT /v1/workspaces/{ws_id}/documents/folders/{id}", documentHandler.RenameFolder)
+	mux.HandleFunc("DELETE /v1/workspaces/{ws_id}/documents/folders/{id}", documentHandler.DeleteFolder)
+	mux.HandleFunc("POST /v1/workspaces/{ws_id}/documents/distributions", documentHandler.Distribute)
+	mux.HandleFunc("POST /v1/workspaces/{ws_id}/documents/templates/preview", documentHandler.PreviewTemplate)
+	mux.HandleFunc("POST /v1/workspaces/{ws_id}/documents/templates/{id}/generate", documentHandler.GenerateTemplate)
+
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/documents/folders", documentHandler.ListFolders)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/documents/folders", documentHandler.CreateFolder)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/documents/folders/{id}", documentHandler.GetFolder)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/documents/folders/{id}", documentHandler.RenameFolder)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/documents/folders/{id}", documentHandler.DeleteFolder)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/documents/distributions", documentHandler.Distribute)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/documents/templates/preview", documentHandler.PreviewTemplate)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/documents/templates/{id}/generate", documentHandler.GenerateTemplate)
 	conditionRepo := repository.ConditionTypeRepository{TenantDB: workspaceRepo.TenantDB}
 	conditionHandler := api.ConditionTypeHandler{Repository: conditionRepo, Authorizer: workspaceAuthorizer}
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/condition-types", conditionHandler.List)
