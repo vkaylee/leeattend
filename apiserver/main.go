@@ -96,7 +96,7 @@ func main() {
 			return poolMgr.GetTenantTxPool(ctx, workspaceID)
 		},
 	}
-	workspaceAuthorizer := repository.WorkspaceAuthorizer{DB: workspaceRepo.SystemDB}
+	workspaceAuthorizer := repository.WorkspaceAuthorizer{DB: workspaceRepo.SystemDB, TenantDB: workspaceRepo.TenantDB}
 	workspaceHandler := api.WorkspaceHandler{Repository: workspaceRepo, Authorizer: workspaceAuthorizer}
 	var cryptoService *crypto.Service
 	if encJSON := cfg.EncryptionKeysJSON.Expose(); encJSON != "" {
@@ -185,6 +185,12 @@ func main() {
 	mux.HandleFunc("GET /api/v1/dashboard/recruitment-sources", recruitmentHandler.Dashboard)
 	employeeRepo := repository.EmployeeRepository{TenantDB: workspaceRepo.TenantDB}
 	employeeHandler := api.EmployeeHandler{Repository: employeeRepo, Authorizer: workspaceAuthorizer}
+	employeeConditionRepo := repository.EmployeeConditionRepository{TenantDB: workspaceRepo.TenantDB}
+	employeeConditionHandler := api.EmployeeConditionHandler{Repository: employeeConditionRepo, Authorizer: workspaceAuthorizer}
+	employeeDepartmentRepo := repository.EmployeeDepartmentRepository{TenantDB: workspaceRepo.TenantDB}
+	employeeDepartmentHandler := api.EmployeeDepartmentHandler{Repository: employeeDepartmentRepo, Authorizer: workspaceAuthorizer}
+	compensationHistoryRepo := repository.CompensationHistoryRepository{TenantDB: workspaceRepo.TenantDB}
+	compensationHistoryHandler := api.CompensationHistoryHandler{Repository: compensationHistoryRepo, Authorizer: workspaceAuthorizer}
 	attendanceRepo := repository.AttendanceRepository{TenantDB: workspaceRepo.TenantDB}
 	attendanceHandler := api.AttendanceHandler{Repository: attendanceRepo, Authorizer: workspaceAuthorizer}
 	shiftRepo := repository.ShiftRepository{TenantDB: workspaceRepo.TenantDB}
@@ -237,6 +243,12 @@ func main() {
 	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/employees/{id}", employeeHandler.Update)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/employees/{id}", employeeHandler.Delete)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{id}/rehire", employeeHandler.Rehire)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{id}/conditions", employeeConditionHandler.List)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{id}/conditions", employeeConditionHandler.Create)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/employees/{id}/conditions/{cond_id}", employeeConditionHandler.Delete)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{id}/departments", employeeDepartmentHandler.List)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{id}/departments", employeeDepartmentHandler.Transfer)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{id}/compensation-history", compensationHistoryHandler.Get)
 	customFieldRepo := repository.CustomFieldRepository{TenantDB: workspaceRepo.TenantDB}
 	customFieldHandler := api.CustomFieldHandler{Repository: customFieldRepo, Authorizer: workspaceAuthorizer}
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/custom-fields/definitions", customFieldHandler.ListDefinitions)

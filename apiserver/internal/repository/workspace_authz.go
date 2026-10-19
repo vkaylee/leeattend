@@ -7,7 +7,11 @@ import (
 )
 
 // WorkspaceAuthorizer evaluates system roles and workspace permissions from current DB state.
-type WorkspaceAuthorizer struct{ DB DBTX }
+// TenantDB resolves the workspace tenant database for department-scope checks.
+type WorkspaceAuthorizer struct {
+	DB       DBTX
+	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+}
 
 func (a WorkspaceAuthorizer) IsSystemAdmin(ctx context.Context, userID uuid.UUID) bool {
 	if a.DB == nil {
@@ -30,6 +34,53 @@ func (a WorkspaceAuthorizer) HasPermission(ctx context.Context, userID, workspac
 		WHERE wm.user_id = $1 AND wm.workspace_id = $2 AND wrp.permission_name = $3
 	)`, userID, workspaceID, permission).Scan(&allowed)
 	return err == nil && allowed
+}
+
+// HasScopedPermission enforces the Rust require_scoped_permission rule: the
+// permission must be held, global-scope roles bypass department scoping, and
+// department-scoped callers must match the employee's current department.
+func (a WorkspaceAuthorizer) HasScopedPermission(ctx context.Context, userID, workspaceID uuid.UUID, permission string, targetDepartmentID *uuid.UUID) bool {
+	if !a.HasPermission(ctx, userID, workspaceID, permission) {
+		return false
+	}
+	if a.isGlobalManager(ctx, userID, workspaceID) {
+		return true
+	}
+	if targetDepartmentID == nil || a.TenantDB == nil {
+		return false
+	}
+	db, err := a.TenantDB(ctx, workspaceID)
+	if err != nil || db == nil {
+		return false
+	}
+	var managed bool
+	err = db.QueryRow(ctx, `SELECT EXISTS (
+		SELECT 1
+		FROM employees e
+		JOIN employments em ON em.employee_id = e.id
+		WHERE e.workspace_id = $1 AND e.user_id = $2
+		  AND e.deleted_at IS NULL AND em.deleted_at IS NULL
+		  AND em.department_id = $3
+	)`, workspaceID, userID, *targetDepartmentID).Scan(&managed)
+	return err == nil && managed
+}
+
+func (a WorkspaceAuthorizer) isGlobalManager(ctx context.Context, userID, workspaceID uuid.UUID) bool {
+	if a.DB == nil {
+		return false
+	}
+	var global bool
+	err := a.DB.QueryRow(ctx, `SELECT EXISTS (
+		SELECT 1 FROM workspace_members wm
+		JOIN workspace_roles wr ON wr.id = wm.role_id
+		WHERE wm.user_id = $1 AND wm.workspace_id = $2 AND wr.scope_type = 'global'
+		UNION ALL
+		SELECT 1 FROM member_extra_roles mer
+		JOIN workspace_roles wr ON wr.id = mer.role_id
+		WHERE mer.user_id = $1 AND mer.workspace_id = $2 AND mer.expires_at > now()
+		  AND wr.scope_type = 'global'
+	)`, userID, workspaceID).Scan(&global)
+	return err == nil && global
 }
 
 // IsMember reports whether the user has any workspace membership row.
