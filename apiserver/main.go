@@ -463,6 +463,16 @@ func main() {
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/payroll/incentive-policies", payrollHandler.CreateIncentivePolicy)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}", payrollHandler.DeleteIncentivePolicy)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}/clone", payrollHandler.CloneIncentivePolicy)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/payroll-rules", payrollHandler.ListPayrollRules)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/payroll-rules", payrollHandler.CreatePayrollRule)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers", payrollHandler.ListPayrollRuleTiers)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers", payrollHandler.CreatePayrollRuleTier)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers/{tier_id}", payrollHandler.DeletePayrollRuleTier)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments", payrollHandler.ListPayrollRuleAssignments)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments", payrollHandler.AssignPayrollRule)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments/{assignment_id}", payrollHandler.DeletePayrollRuleAssignment)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{id}/calculate-payroll", payrollHandler.CalculatePayroll)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/payroll/calculate-batch", payrollHandler.CalculateBatchPayroll)
 	reportRepo := repository.ReportRepository{TenantDB: workspaceRepo.TenantDB}
 	reportQueue := &repository.RedisReportQueue{Client: redisClient, TenantDB: workspaceRepo.TenantDB}
 	reportHandler := api.ReportHandler{Repository: reportRepo, Queue: reportQueue, Authorizer: workspaceAuthorizer}
