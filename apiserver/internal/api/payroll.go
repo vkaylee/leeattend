@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -16,10 +17,12 @@ import (
 )
 
 var (
-	ErrPayrollValidation = errors.New("payroll: validation failed")
-	ErrInvalidBaseGroup  = errors.New("payroll: invalid base group")
-	ErrComponentNotFound = errors.New("payroll: component not found")
-	ErrComponentConflict = errors.New("payroll: component already exists")
+	ErrPayrollValidation       = errors.New("payroll: validation failed")
+	ErrInvalidBaseGroup        = errors.New("payroll: invalid base group")
+	ErrComponentNotFound       = errors.New("payroll: component not found")
+	ErrComponentConflict       = errors.New("payroll: component already exists")
+	ErrPayrollSettingsNotFound = errors.New("payroll: settings not found")
+	ErrIncentivePolicyNotFound = errors.New("payroll: incentive policy not found")
 )
 
 type CreateSalaryComponentRequest struct {
@@ -97,6 +100,82 @@ type PayslipRecord struct {
 	CreatedAt                string          `json:"created_at"`
 	UpdatedAt                string          `json:"updated_at"`
 }
+type PayrollSettings struct {
+	WorkspaceID        uuid.UUID        `json:"workspace_id"`
+	StdWorkingDayMode  string           `json:"std_working_day_mode"`
+	FixedStdDays       decimal.Decimal  `json:"fixed_std_days"`
+	WorkingDaysPerWeek int              `json:"working_days_per_week"`
+	HoursPerDay        decimal.Decimal  `json:"hours_per_day"`
+	MaxOtHoursPerDay   *decimal.Decimal `json:"max_ot_hours_per_day"`
+	MaxOtHoursPerMonth *decimal.Decimal `json:"max_ot_hours_per_month"`
+	EffectiveDate      string           `json:"effective_date"`
+	CreatedAt          string           `json:"created_at"`
+	UpdatedAt          string           `json:"updated_at"`
+}
+
+type UpdatePayrollSettingsRequest struct {
+	StdWorkingDayMode  *string           `json:"std_working_day_mode,omitempty"`
+	FixedStdDays       *decimal.Decimal  `json:"fixed_std_days,omitempty"`
+	WorkingDaysPerWeek *int              `json:"working_days_per_week,omitempty"`
+	HoursPerDay        *decimal.Decimal  `json:"hours_per_day,omitempty"`
+	MaxOtHoursPerDay   **decimal.Decimal `json:"max_ot_hours_per_day,omitempty"`
+	MaxOtHoursPerMonth **decimal.Decimal `json:"max_ot_hours_per_month,omitempty"`
+	EffectiveDate      *string           `json:"effective_date,omitempty"`
+}
+
+type EmployeePayrollConfig struct {
+	ID             uuid.UUID       `json:"id"`
+	EmploymentID   uuid.UUID       `json:"employment_id"`
+	StdWorkingDays decimal.Decimal `json:"std_working_days"`
+	HoursPerDay    decimal.Decimal `json:"hours_per_day"`
+	EffectiveDate  string          `json:"effective_date"`
+	CreatedAt      string          `json:"created_at"`
+}
+
+type SetEmployeePayrollConfigRequest struct {
+	StdWorkingDays decimal.Decimal `json:"std_working_days"`
+	HoursPerDay    decimal.Decimal `json:"hours_per_day"`
+	EffectiveDate  string          `json:"effective_date"`
+}
+
+type IncentiveTier struct {
+	ID           uuid.UUID       `json:"id"`
+	PolicyID     uuid.UUID       `json:"policy_id"`
+	Priority     int             `json:"priority"`
+	PayoutAmount decimal.Decimal `json:"payout_amount"`
+	RuleConfig   json.RawMessage `json:"rule_config"`
+}
+
+type CreateIncentiveTierRequest struct {
+	Priority     int             `json:"priority"`
+	PayoutAmount decimal.Decimal `json:"payout_amount"`
+	RuleConfig   json.RawMessage `json:"rule_config"`
+}
+
+type PayrollIncentivePolicy struct {
+	ID            uuid.UUID       `json:"id"`
+	WorkspaceID   uuid.UUID       `json:"workspace_id"`
+	Name          string          `json:"name"`
+	BaseAmount    decimal.Decimal `json:"base_amount"`
+	PayoutType    string          `json:"payout_type"`
+	IsActive      bool            `json:"is_active"`
+	CreatedAt     string          `json:"created_at"`
+	EffectiveFrom string          `json:"effective_from"`
+	EffectiveTo   *string         `json:"effective_to"`
+}
+
+type PayrollIncentivePolicyResponse struct {
+	PayrollIncentivePolicy
+	Tiers []IncentiveTier `json:"tiers"`
+}
+
+type CreatePayrollIncentivePolicyRequest struct {
+	Name          string                       `json:"name"`
+	BaseAmount    decimal.Decimal              `json:"base_amount"`
+	PayoutType    string                       `json:"payout_type"`
+	EffectiveFrom string                       `json:"effective_from"`
+	Tiers         []CreateIncentiveTierRequest `json:"tiers"`
+}
 type PayrollRepository interface {
 	ListWorkspacePayslips(context.Context, uuid.UUID, time.Time, time.Time) ([]PayslipRecord, error)
 	ListEmployeePayslips(context.Context, uuid.UUID, uuid.UUID) ([]PayslipRecord, error)
@@ -108,6 +187,15 @@ type PayrollRepository interface {
 	CreateSalaryBase(context.Context, uuid.UUID, CreateSalaryBaseRequest) (SalaryBaseGroup, error)
 	AssignBaseMember(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
 	UnassignBaseMember(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
+	GetPayrollSettings(context.Context, uuid.UUID) (*PayrollSettings, error)
+	GetPayrollSettingsHistory(context.Context, uuid.UUID) ([]PayrollSettings, error)
+	UpdatePayrollSettings(context.Context, uuid.UUID, UpdatePayrollSettingsRequest) (PayrollSettings, error)
+	GetEmployeePayrollConfigs(context.Context, uuid.UUID, uuid.UUID) ([]EmployeePayrollConfig, error)
+	SetEmployeePayrollConfig(context.Context, uuid.UUID, uuid.UUID, SetEmployeePayrollConfigRequest, uuid.UUID) (EmployeePayrollConfig, error)
+	GetIncentivePolicies(context.Context, uuid.UUID) ([]PayrollIncentivePolicyResponse, error)
+	CreateIncentivePolicy(context.Context, uuid.UUID, CreatePayrollIncentivePolicyRequest) (PayrollIncentivePolicy, error)
+	DeleteIncentivePolicy(context.Context, uuid.UUID, uuid.UUID) error
+	CloneIncentivePolicy(context.Context, uuid.UUID, uuid.UUID) (PayrollIncentivePolicy, error)
 }
 type PayrollHandler struct {
 	Repository PayrollRepository
@@ -296,6 +384,180 @@ func (h PayrollHandler) UnassignBaseMember(w http.ResponseWriter, r *http.Reques
 	}
 	apperror.WriteJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
+func (h PayrollHandler) GetPayrollSettings(w http.ResponseWriter, r *http.Request) {
+	wsID, ok := pathUUID(r, "ws_id")
+	if !ok || !h.allowedMember(r, wsID) {
+		h.forbidden(w, r)
+		return
+	}
+	settings, err := h.Repository.GetPayrollSettings(r.Context(), wsID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, settings)
+}
+
+func (h PayrollHandler) UpdatePayrollSettings(w http.ResponseWriter, r *http.Request) {
+	wsID, ok := pathUUID(r, "ws_id")
+	if !ok || !h.allowedMember(r, wsID) {
+		h.forbidden(w, r)
+		return
+	}
+	req, err := DecodeJSON[UpdatePayrollSettingsRequest](r, 1<<20)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if req.EffectiveDate != nil && *req.EffectiveDate != "" {
+		if _, err := time.Parse("2006-01-02", *req.EffectiveDate); err != nil {
+			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+			return
+		}
+	}
+	settings, err := h.Repository.UpdatePayrollSettings(r.Context(), wsID, req)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, settings)
+}
+
+func (h PayrollHandler) GetPayrollSettingsHistory(w http.ResponseWriter, r *http.Request) {
+	wsID, ok := pathUUID(r, "ws_id")
+	if !ok || !h.allowedMember(r, wsID) {
+		h.forbidden(w, r)
+		return
+	}
+	history, err := h.Repository.GetPayrollSettingsHistory(r.Context(), wsID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	if history == nil {
+		history = []PayrollSettings{}
+	}
+	apperror.WriteJSON(w, http.StatusOK, history)
+}
+
+func (h PayrollHandler) GetEmployeePayrollConfig(w http.ResponseWriter, r *http.Request) {
+	wsID, ok := pathUUID(r, "ws_id")
+	empID, empOK := pathUUID(r, "id")
+	if !ok || !empOK || !h.allowedMember(r, wsID) {
+		h.forbidden(w, r)
+		return
+	}
+	configs, err := h.Repository.GetEmployeePayrollConfigs(r.Context(), wsID, empID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	if configs == nil {
+		configs = []EmployeePayrollConfig{}
+	}
+	apperror.WriteJSON(w, http.StatusOK, configs)
+}
+
+func (h PayrollHandler) SetEmployeePayrollConfig(w http.ResponseWriter, r *http.Request) {
+	wsID, ok := pathUUID(r, "ws_id")
+	empID, empOK := pathUUID(r, "id")
+	if !ok || !empOK || !h.allowedMember(r, wsID) {
+		h.forbidden(w, r)
+		return
+	}
+	req, err := DecodeJSON[SetEmployeePayrollConfigRequest](r, 1<<20)
+	if err != nil || req.EffectiveDate == "" {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if _, err := time.Parse("2006-01-02", req.EffectiveDate); err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if req.StdWorkingDays.IsNegative() || req.HoursPerDay.IsNegative() {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	userID, _ := httpinfra.UserIDFromContext(r.Context())
+	config, err := h.Repository.SetEmployeePayrollConfig(r.Context(), wsID, empID, req, userID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusCreated, config)
+}
+
+func (h PayrollHandler) GetIncentivePolicies(w http.ResponseWriter, r *http.Request) {
+	wsID, ok := pathUUID(r, "ws_id")
+	if !ok || !h.allowedMember(r, wsID) {
+		h.forbidden(w, r)
+		return
+	}
+	policies, err := h.Repository.GetIncentivePolicies(r.Context(), wsID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	if policies == nil {
+		policies = []PayrollIncentivePolicyResponse{}
+	}
+	apperror.WriteJSON(w, http.StatusOK, policies)
+}
+
+func (h PayrollHandler) CreateIncentivePolicy(w http.ResponseWriter, r *http.Request) {
+	wsID, ok := pathUUID(r, "ws_id")
+	if !ok || !h.allowedMember(r, wsID) {
+		h.forbidden(w, r)
+		return
+	}
+	req, err := DecodeJSON[CreatePayrollIncentivePolicyRequest](r, 1<<20)
+	if err != nil || strings.TrimSpace(req.Name) == "" || req.EffectiveFrom == "" {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if _, err := time.Parse("2006-01-02", req.EffectiveFrom); err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if req.PayoutType == "" {
+		req.PayoutType = "fixed"
+	}
+	policy, err := h.Repository.CreateIncentivePolicy(r.Context(), wsID, req)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusCreated, policy)
+}
+
+func (h PayrollHandler) DeleteIncentivePolicy(w http.ResponseWriter, r *http.Request) {
+	wsID, ok := pathUUID(r, "ws_id")
+	policyID, pOK := pathUUID(r, "policy_id")
+	if !ok || !pOK || !h.allowedMember(r, wsID) {
+		h.forbidden(w, r)
+		return
+	}
+	if err := h.Repository.DeleteIncentivePolicy(r.Context(), wsID, policyID); err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h PayrollHandler) CloneIncentivePolicy(w http.ResponseWriter, r *http.Request) {
+	wsID, ok := pathUUID(r, "ws_id")
+	policyID, pOK := pathUUID(r, "policy_id")
+	if !ok || !pOK || !h.allowedMember(r, wsID) {
+		h.forbidden(w, r)
+		return
+	}
+	policy, err := h.Repository.CloneIncentivePolicy(r.Context(), wsID, policyID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusCreated, policy)
+}
 
 func employmentIDFromRequest(r *http.Request) (uuid.UUID, bool) {
 	if id, ok := pathUUID(r, "id"); ok {
@@ -319,6 +581,24 @@ func (h PayrollHandler) allowedRead(r *http.Request, wsID uuid.UUID) bool {
 		return err == nil && m
 	}
 	return false
+}
+func (h PayrollHandler) allowedMember(r *http.Request, wsID uuid.UUID) bool {
+	u, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok || h.Authorizer == nil {
+		return false
+	}
+	if h.Authorizer.IsSystemAdmin(r.Context(), u) {
+		return true
+	}
+	if memAuth, ok := h.Authorizer.(interface {
+		IsMember(context.Context, uuid.UUID, uuid.UUID) (bool, error)
+	}); ok {
+		m, err := memAuth.IsMember(r.Context(), u, wsID)
+		if err == nil && m {
+			return true
+		}
+	}
+	return h.Authorizer.HasPermission(r.Context(), u, wsID, "payroll:read")
 }
 
 func (h PayrollHandler) allowedManage(r *http.Request, wsID uuid.UUID) bool {
@@ -351,8 +631,16 @@ func (h PayrollHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 func (h PayrollHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrComponentNotFound) || errors.Is(err, ErrEmploymentNotFound) {
+	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrComponentNotFound) || errors.Is(err, ErrEmploymentNotFound) || errors.Is(err, ErrPayrollSettingsNotFound) || errors.Is(err, ErrIncentivePolicyNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
+		return
+	}
+	if errors.Is(err, ErrEmployeeNotFound) {
+		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyEmployeeNotFound))
+		return
+	}
+	if errors.Is(err, ErrNoActiveEmployment) {
+		apperror.WriteError(w, r, apperror.Validation("error.no_active_employment"))
 		return
 	}
 	if errors.Is(err, ErrPayrollValidation) {
@@ -367,5 +655,4 @@ func (h PayrollHandler) writeError(w http.ResponseWriter, r *http.Request, err e
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 		return
 	}
-	apperror.WriteError(w, r, apperror.Internal(err))
 }

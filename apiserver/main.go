@@ -454,6 +454,15 @@ func main() {
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/salary-bases", payrollHandler.CreateSalaryBase)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/salary-bases/{base_id}/members", payrollHandler.AssignBaseMember)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/salary-bases/{base_id}/members/{component_id}", payrollHandler.UnassignBaseMember)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/payroll-settings", payrollHandler.GetPayrollSettings)
+	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/payroll-settings", payrollHandler.UpdatePayrollSettings)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/payroll-settings/history", payrollHandler.GetPayrollSettingsHistory)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{id}/payroll-config", payrollHandler.GetEmployeePayrollConfig)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{id}/payroll-config", payrollHandler.SetEmployeePayrollConfig)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/payroll/incentive-policies", payrollHandler.GetIncentivePolicies)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/payroll/incentive-policies", payrollHandler.CreateIncentivePolicy)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}", payrollHandler.DeleteIncentivePolicy)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}/clone", payrollHandler.CloneIncentivePolicy)
 	reportRepo := repository.ReportRepository{TenantDB: workspaceRepo.TenantDB}
 	reportQueue := &repository.RedisReportQueue{Client: redisClient, TenantDB: workspaceRepo.TenantDB}
 	reportHandler := api.ReportHandler{Repository: reportRepo, Queue: reportQueue, Authorizer: workspaceAuthorizer}

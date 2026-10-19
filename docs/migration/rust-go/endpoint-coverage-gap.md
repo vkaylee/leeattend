@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **351**
-- Contract routes covered: **326**
-- Contract routes missing: **77**
+- Go route registrations: **360**
+- Contract routes covered: **335**
+- Contract routes missing: **68**
 
 ## Missing routes
 
@@ -59,8 +59,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | POST | `/api/v1/workspaces/{ws_id}/documents/templates/preview` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/documents/templates/{id}/generate` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/employees/{id}/calculate-payroll` | Permission::PayrollCalculate |
-| GET | `/api/v1/workspaces/{ws_id}/employees/{id}/payroll-config` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/employees/{id}/payroll-config` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/files/by-owner/{owner_type}/{owner_id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/files/upload` | NONE EVIDENCED — context extractor only; no permission guard |
 | PUT | `/api/v1/workspaces/{ws_id}/files/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
@@ -75,14 +73,7 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | GET | `/api/v1/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers` | NONE EVIDENCED — context extractor only; no permission guard |
 | DELETE | `/api/v1/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers/{tier_id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/payroll-settings` | NONE EVIDENCED — context extractor only; no permission guard |
-| PATCH | `/api/v1/workspaces/{ws_id}/payroll-settings` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/payroll-settings/history` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/payroll/calculate-batch` | Permission::PayrollCalculate |
-| GET | `/api/v1/workspaces/{ws_id}/payroll/incentive-policies` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/payroll/incentive-policies` | NONE EVIDENCED — context extractor only; no permission guard |
-| DELETE | `/api/v1/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}/clone` | NONE EVIDENCED — context extractor only; no permission guard |
 | DELETE | `/api/v1/workspaces/{ws_id}/time/entries/{id}` | Permission::AttendanceLogsImport |
 | PUT | `/api/v1/workspaces/{ws_id}/time/entries/{id}` | Permission::AttendanceLogsImport |
 | GET | `/api/v1/ws` | NONE EVIDENCED — agent token/trusted-agent check; no resource:action permission |
