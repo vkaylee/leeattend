@@ -1,0 +1,225 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Canary Traffic Split (Go %)",
+      "type": "gauge",
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null },
+              { "color": "green", "value": 1 },
+              { "color": "orange", "value": 50 },
+              { "color": "purple", "value": 100 }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "targets": [
+        {
+          "expr": "(sum(rate(http_requests_total{service=\"api-go\"}[1m])) / sum(rate(http_requests_total[1m]))) * 100",
+          "legendFormat": "Go Canary Share"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "title": "5xx Error Rate (SLO Threshold: 0.5%)",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.2 },
+              { "color": "red", "value": 0.5 }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "targets": [
+        {
+          "expr": "(sum(rate(http_requests_total{service=\"api-go\", status=~\"5..\"}[1m])) / sum(rate(http_requests_total{service=\"api-go\"}[1m]))) * 100",
+          "legendFormat": "Go 5xx Rate"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "title": "Latency p99 (SLA Threshold: 100ms)",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.050 },
+              { "color": "red", "value": 0.100 }
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{service=\"api-go\"}[2m])) by (le))",
+          "legendFormat": "Go p99 Latency"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "title": "Memory RSS vs 1GB Cap",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 750000000 },
+              { "color": "red", "value": 900000000 }
+            ]
+          },
+          "unit": "bytes"
+        }
+      },
+      "targets": [
+        {
+          "expr": "container_memory_working_set_bytes{container=\"leeattend-staging-apiserver-go\"}",
+          "legendFormat": "Go Memory RSS"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "id": 5,
+      "title": "Request Throughput (RPS): Rust vs Go",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{service=\"apiserver-rust\"}[1m]))",
+          "legendFormat": "Rust Baseline RPS"
+        },
+        {
+          "expr": "sum(rate(http_requests_total{service=\"api-go\"}[1m]))",
+          "legendFormat": "Go Candidate RPS"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "id": 6,
+      "title": "Latency Comparison (p50, p95, p99)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{service=\"apiserver-rust\"}[1m])) by (le))",
+          "legendFormat": "Rust p95"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{service=\"api-go\"}[1m])) by (le))",
+          "legendFormat": "Go p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{service=\"api-go\"}[1m])) by (le))",
+          "legendFormat": "Go p99"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "id": 7,
+      "title": "PostgreSQL PgBouncer Pool Utilization",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "db_pool_active_connections{service=\"api-go\"}",
+          "legendFormat": "Go Active Conns"
+        },
+        {
+          "expr": "db_pool_idle_connections{service=\"api-go\"}",
+          "legendFormat": "Go Idle Conns"
+        },
+        {
+          "expr": "db_pool_max_connections{service=\"api-go\"}",
+          "legendFormat": "Max Conns Limit (20)"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "id": 8,
+      "title": "Redis Cache Hit & Rate Limit Throughput",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(redis_commands_total{service=\"api-go\"}[1m])",
+          "legendFormat": "Redis Op Rate"
+        },
+        {
+          "expr": "rate(redis_command_errors_total{service=\"api-go\"}[1m])",
+          "legendFormat": "Redis Errors"
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["staging", "canary", "go-migration"],
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "utc",
+  "title": "LeeAttend Staging & Canary Migration Overview",
+  "version": 1
+}

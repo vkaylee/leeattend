@@ -1,0 +1,75 @@
+# Caddy Staging Reverse Proxy & Traffic Routing Engine (P8-01, P8-02, P8-04)
+# Default Route: Rust API Server (apiserver:3000)
+# Target Route: Go API Server (api-go:3001)
+
+{
+    admin 0.0.0.0:2019
+    auto_https off
+}
+
+:80 {
+    # ── Security Headers ──
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "0"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+    }
+
+    # ── Dynamic Canary Feature Flag Matching ──
+    # 1. Header-based canary override: X-Canary-Target: go
+    @canary_header {
+        header X-Canary-Target go
+    }
+    handle @canary_header {
+        reverse_proxy api-go:3001 {
+            header_up X-Forwarded-Host {host}
+            header_up X-Canary-Routed "true"
+        }
+    }
+
+    # 2. Workspace-isolated canary override: X-Canary-Workspace: <tenant_id>
+    @canary_workspace {
+        header X-Canary-Workspace *
+    }
+    handle @canary_workspace {
+        reverse_proxy api-go:3001 {
+            header_up X-Forwarded-Host {host}
+            header_up X-Canary-Workspace-Routed {http.request.header.X-Canary-Workspace}
+        }
+    }
+
+    # 3. Domain-specific cutover routes (can be toggled in real time)
+    # When enabled, designated domain routes cut over directly to Go
+    import /etc/caddy/canary_domains.conf*
+
+    # ── Weighted Traffic Split (Active Canary Step) ──
+    # Imports dynamic weight definition (0%, 1%, 5%, 25%, 50%, 100%)
+    import /etc/caddy/canary_weights.conf*
+
+    # ── Default API Fallback: 100% Rust Baseline ──
+    handle /api/* {
+        reverse_proxy apiserver:3000 {
+            header_up X-Forwarded-Host {host}
+            header_up X-Canary-Routed "false"
+        }
+    }
+
+    # ── Frontend Web Dashboard & SPA Fallback ──
+    handle /* {
+        reverse_proxy webdashboard:80
+    }
+
+    # ── Health & Readiness Probes ──
+    handle /health {
+        respond "OK" 200
+    }
+
+    # ── Error Handlers ──
+    handle_errors {
+        @50x expression {err.status_code} >= 500
+        respond @50x "Staging Gateway Error: Backend unavailable or request failed" 502
+    }
+}

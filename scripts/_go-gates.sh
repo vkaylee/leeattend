@@ -53,7 +53,7 @@ fail() { echo "GATE FAIL: $1" >&2; exit 1; }
 
 if [ "${MODE}" != "unit" ]; then
     echo "== gofmt =="
-    UNFORMATTED="$(gofmt -l .)" || fail "gofmt"
+    UNFORMATTED="$(find . -name "\*.go" ! -name "Dockerfile\*" -exec gofmt -l {} +)" || fail "gofmt"
     [ -z "$UNFORMATTED" ] || { echo "$UNFORMATTED"; fail "gofmt listed unformatted files"; }
 
     echo "== go vet =="

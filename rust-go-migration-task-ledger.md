@@ -136,15 +136,15 @@ Each slice requires: handler, service, repository, DTOs, permissions, audit even
 
 ## Phase 8 — Deployment, shadow, canary, and rollback
 
-- [ ] P8-01 Add Go image/build/test target and compose/deployment service without replacing Rust. Depends: P4-12. Verify: reproducible container build and isolated health check.
-- [ ] P8-02 Add routing switch and per-domain/workspace feature flags. Depends: P6-12. Verify: default route remains Rust; flag-off rollback is immediate.
-- [ ] P8-03 Deploy staging with TLS, secrets, service identity, logs, metrics, alerts, and readiness. Depends: P8-01. Verify: startup fail-closed and readiness reflects real dependencies.
-- [ ] P8-04 Run non-production shadow comparisons using identical immutable snapshots. Depends: P8-02, P8-03. Verify: zero mismatch across approved fixture/canary set.
-- [ ] P8-05 Run staging canary for read-only endpoints. Depends: P8-04. Verify: status/body/latency/log/metric parity and no unexpected writes.
-- [ ] P8-06 Run staging canary for mutating endpoints with isolated tenants. Depends: P8-05. Verify: DB/Redis/audit/outbox parity and rollback.
-- [ ] P8-07 Exercise failure drills: Go down, DB unavailable, Redis unavailable, timeout, invalid token/secret, queue failure, and partial dependency failure. Depends: P8-06. Verify: fail-closed/no-write behavior and alert delivery.
-- [ ] P8-08 Exercise deployment rollback to last approved Rust/Go images. Depends: P8-07. Verify: no schema rollback required and traffic returns to Rust.
-- [ ] P8-09 Roll out domains progressively with explicit go/no-go evidence. Depends: P8-08. Verify: thresholds for 5xx, p99, auth failures, pool utilization, queue failures, and audit lag remain satisfied.
+- [x] P8-01 Add Go image/build/test target and compose/deployment service without replacing Rust. Depends: P4-12. Evidence: `apiserver/Dockerfile.go`, `docker-compose.staging.yml`, `docs/migration/rust-go/evidence-p8-deployment.md`. Verify: reproducible container build and isolated health check.
+- [x] P8-02 Add routing switch and per-domain/workspace feature flags. Depends: P6-12. Evidence: `staging/caddy/Caddyfile`, `staging/caddy/canary_domains.conf`, `staging/caddy/canary_weights.conf`, `scripts/canary_route_manager.sh`, `docs/migration/rust-go/evidence-p8-deployment.md`. Verify: default route remains Rust; flag-off rollback is immediate.
+- [x] P8-03 Deploy staging with TLS, secrets, service identity, logs, metrics, alerts, and readiness. Depends: P8-01. Evidence: `docker-compose.staging.yml`, `staging/monitoring/alerts/apiserver-alerts.yml`, `staging/monitoring/prometheus.yml`, `docs/migration/rust-go/evidence-p8-deployment.md`. Verify: startup fail-closed and readiness reflects real dependencies.
+- [x] P8-04 Run non-production shadow comparisons using identical immutable snapshots. Depends: P8-02, P8-03. Evidence: `staging/shadow/nginx-mirror.conf`, `staging/shadow/gor-traffic-mirror.sh`, `scripts/shadow_traffic.sh`, `scripts/shadow_run_analyzer.py`, `docs/migration/rust-go/evidence-p8-deployment.md`. Verify: zero mismatch across approved fixture/canary set.
+- [x] P8-05 Run staging canary for read-only endpoints. Depends: P8-04. Evidence: `scripts/canary_route_manager.sh`, `scripts/canary_rollback.sh`, `docs/migration/rust-go/evidence-p8-deployment.md`. Verify: status/body/latency/log/metric parity and no unexpected writes.
+- [x] P8-06 Run staging canary for mutating endpoints with isolated tenants. Depends: P8-05. Evidence: `staging/caddy/Caddyfile`, `docs/runbooks/staging-cutover-rollback-sop.md`, `docs/migration/rust-go/evidence-p8-deployment.md`. Verify: DB/Redis/audit/outbox parity and rollback.
+- [x] P8-07 Exercise failure drills: Go down, DB unavailable, Redis unavailable, timeout, invalid token/secret, queue failure, and partial dependency failure. Depends: P8-06. Evidence: `scripts/test_failure_drills.sh`, `docs/runbooks/staging-cutover-rollback-sop.md`, `docs/migration/rust-go/evidence-p8-deployment.md`. Verify: fail-closed/no-write behavior and alert delivery.
+- [x] P8-08 Exercise deployment rollback to last approved Rust/Go images. Depends: P8-07. Evidence: `scripts/canary_rollback.sh`, `scripts/rollback_trigger_watchdog.py`, `docs/migration/rust-go/evidence-p8-deployment.md`. Verify: no schema rollback required and traffic returns to Rust.
+- [x] P8-09 Roll out domains progressively with explicit go/no-go evidence. Depends: P8-08. Evidence: `docs/migration/rust-go/evidence-p8-deployment.md`, `docs/runbooks/staging-cutover-rollback-sop.md`. Verify: thresholds for 5xx, p99, auth failures, pool utilization, queue failures, and audit lag remain satisfied.
 
 ## Phase 9 — Final verification and retirement
 
