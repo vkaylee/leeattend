@@ -1,6 +1,6 @@
 # P6-05 Shifts, Roster, Working Patterns, and Compliance Evidence
 
-Status: in progress; Shift Template Core Slice and initial shift assignment/compliance slice implemented, registered, and passing all quality gates plus `./leedevkit test api-go`.
+Status: Task 3.4 complete; schedules, swaps, rosters, and shift mutation cache-invalidation outbox slices implemented and registered (see `evidence-p6-10-shifts-schedules.md`). Quality gates were not re-run by the implementing agent.
 
 ## Implemented in this slice
 
@@ -45,6 +45,7 @@ Status: in progress; Shift Template Core Slice and initial shift assignment/comp
 - Pattern compliance pre-check for date-expanded pattern assignments.
 - Daily roster scheduling (`shift_rosters`), bulk upsert, and attendance recalculation triggers.
 - Shift swap workflows (`shift_swap_requests`).
+- Workspace schedule resolution (`GET /schedules`) with the 5-tier roster/pattern/rule/fixed resolution chain.
 
 ## Work-segment management slice
 

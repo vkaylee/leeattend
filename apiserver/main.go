@@ -290,6 +290,9 @@ func main() {
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{id}/rosters", rosterHandler.Upsert)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{id}/rosters/bulk", rosterHandler.BulkUpsert)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/employees/{id}/rosters/{date}", rosterHandler.Delete)
+	scheduleRepo := repository.ScheduleRepository{TenantDB: workspaceRepo.TenantDB}
+	scheduleHandler := api.ScheduleHandler{Repository: scheduleRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/schedules", scheduleHandler.List)
 	swapRepo := repository.ShiftSwapRepository{TenantDB: workspaceRepo.TenantDB}
 	swapHandler := api.ShiftSwapHandler{Repository: swapRepo, Authorizer: workspaceAuthorizer}
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/shift-swaps", swapHandler.Create)

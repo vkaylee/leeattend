@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **301**
-- Contract routes covered: **276**
-- Contract routes missing: **127**
+- Go route registrations: **302**
+- Contract routes covered: **277**
+- Contract routes missing: **126**
 
 ## Missing routes
 
@@ -133,7 +133,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | DELETE | `/api/v1/workspaces/{ws_id}/salary-bases/{base_id}/members/{component_id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/salary-components` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/salary-components` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/schedules` | NONE EVIDENCED — context extractor only; no permission guard |
 | DELETE | `/api/v1/workspaces/{ws_id}/time/entries/{id}` | Permission::AttendanceLogsImport |
 | PUT | `/api/v1/workspaces/{ws_id}/time/entries/{id}` | Permission::AttendanceLogsImport |
 | GET | `/api/v1/ws` | NONE EVIDENCED — agent token/trusted-agent check; no resource:action permission |

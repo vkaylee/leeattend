@@ -94,8 +94,10 @@ func (r RosterRepository) UpsertRoster(ctx context.Context, workspaceID uuid.UUI
 		if err != nil {
 			return mapRosterDBError(err)
 		}
-		_, scanErr := scanRoster(db.QueryRow(ctx, rosterSelect+` WHERE employment_id = $1 AND date = $2::date`, req.EmploymentID, req.Date))
-		return scanErr
+		if _, scanErr := scanRoster(db.QueryRow(ctx, rosterSelect+` WHERE employment_id = $1 AND date = $2::date`, req.EmploymentID, req.Date)); scanErr != nil {
+			return scanErr
+		}
+		return EnqueueRosterCacheInvalidation(ctx, db, workspaceID)
 	})
 	if err != nil {
 		return api.ShiftRoster{}, err
@@ -121,23 +123,25 @@ func (r RosterRepository) BulkUpsertRoster(ctx context.Context, workspaceID, emp
 				return mapRosterDBError(err)
 			}
 		}
-		return nil
+		return EnqueueRosterCacheInvalidation(ctx, db, workspaceID)
 	})
 }
 
 func (r RosterRepository) DeleteRoster(ctx context.Context, workspaceID, employmentID uuid.UUID, date string) error {
-	db, err := r.db(ctx, workspaceID)
+	tx, err := r.begin(ctx, workspaceID)
 	if err != nil {
 		return err
 	}
-	result, err := db.Exec(ctx, `DELETE FROM shift_rosters WHERE employment_id = $1 AND date = $2::date`, employmentID, date)
-	if err != nil {
-		return err
-	}
-	if result.RowsAffected() == 0 {
-		return api.ErrRosterNotFound
-	}
-	return nil
+	return service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+		result, err := db.Exec(ctx, `DELETE FROM shift_rosters WHERE employment_id = $1 AND date = $2::date`, employmentID, date)
+		if err != nil {
+			return err
+		}
+		if result.RowsAffected() == 0 {
+			return api.ErrRosterNotFound
+		}
+		return EnqueueRosterCacheInvalidation(ctx, db, workspaceID)
+	})
 }
 
 func (r RosterRepository) getRoster(ctx context.Context, workspaceID, employmentID uuid.UUID, date string) (api.ShiftRoster, error) {

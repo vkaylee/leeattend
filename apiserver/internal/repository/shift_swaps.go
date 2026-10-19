@@ -217,6 +217,9 @@ func (r ShiftSwapRepository) ApproveSwap(ctx context.Context, workspaceID, reque
 			if _, err := db.Exec(ctx, `INSERT INTO shift_rosters (id, employment_id, template_id, date, status, notes, created_at, updated_at) VALUES ($1, $2, $3, $4::date, 'active', $5, $6, $6) ON CONFLICT (employment_id, date) DO UPDATE SET template_id = EXCLUDED.template_id, status = EXCLUDED.status, notes = EXCLUDED.notes, updated_at = EXCLUDED.updated_at`, uuid.New(), tgtEmp, reqShift, swapDate, note, now); err != nil {
 				return err
 			}
+			if err := EnqueueRosterCacheInvalidation(ctx, db, workspaceID); err != nil {
+				return err
+			}
 		}
 		return nil
 	})

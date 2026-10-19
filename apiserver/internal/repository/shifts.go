@@ -67,6 +67,9 @@ func (r ShiftRepository) CreateShift(ctx context.Context, workspaceID, actorID u
 		if _, err := db.Exec(ctx, `INSERT INTO shift_audit_log (id, template_id, version_id, action, change_type, changed_by, change_reason, old_values, new_values, created_at) VALUES ($1, $2, $3, 'version_created', 'create', $4, NULL, NULL, NULL, $5)`, uuid.New(), templateID, versionID, actorID, now); err != nil {
 			return err
 		}
+		if err := EnqueueRosterCacheInvalidation(ctx, db, workspaceID); err != nil {
+			return err
+		}
 		return scanShift(ctx, db, workspaceID, templateID, &record)
 	})
 	if err != nil {
@@ -189,6 +192,9 @@ func (r ShiftRepository) UpdateShift(ctx context.Context, workspaceID, templateI
 			}
 		}
 		if _, err := db.Exec(ctx, `INSERT INTO shift_audit_log (id, template_id, version_id, action, change_type, changed_by, change_reason, old_values, new_values, created_at) VALUES ($1, $2, $3, 'version_created', $4, $5, $6, NULL, NULL, $7)`, uuid.New(), templateID, newVersionID, changeType, actorID, req.ChangeReason, now); err != nil {
+			return err
+		}
+		if err := EnqueueRosterCacheInvalidation(ctx, db, workspaceID); err != nil {
 			return err
 		}
 		return scanShift(ctx, db, workspaceID, templateID, &record)
@@ -358,6 +364,9 @@ func (r ShiftRepository) AssignShift(ctx context.Context, workspaceID, actorID u
 			if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
 				return api.ErrShiftAssignmentConflict
 			}
+			return err
+		}
+		if err := EnqueueRosterCacheInvalidation(ctx, db, workspaceID); err != nil {
 			return err
 		}
 		_ = actorID
