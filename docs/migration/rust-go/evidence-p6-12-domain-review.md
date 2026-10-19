@@ -7,11 +7,11 @@ Status: in-progress. Measured coverage contradicts a completion claim; this file
 Source of truth: `endpoint-matrix.csv` (403 contract routes) compared against the Go route table in `apiserver/main.go`, normalized per path shape. Full gap list: `endpoint-coverage-gap.md`.
 
 - Contract routes: **403**
-- Go route registrations: **108**
-- Contract routes covered: **92**
-- Contract routes missing: **311**
+- Go route registrations: **122**
+- Contract routes covered: **106**
+- Contract routes missing: **297**
 
-Missing by method: GET 145, POST 87, DELETE 41, PUT 23, PATCH 15.
+Missing by method: GET 138, POST 84, DELETE 39, PUT 22, PATCH 14.
 
 ## Domain Slices Implemented So Far
 

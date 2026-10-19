@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **108**
-- Contract routes covered: **92**
-- Contract routes missing: **311**
+- Go route registrations: **122**
+- Contract routes covered: **106**
+- Contract routes missing: **297**
 
 ## Missing routes
 
@@ -57,7 +57,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | DELETE | `/api/v1/ess/shift-swaps/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | PUT | `/api/v1/ess/shift-swaps/{id}/respond` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/ess/time-entries` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/health/ready` | None (Public) |
 | PATCH | `/api/v1/me` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/me/permissions` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/monitor/alerts` | SystemRoleType::PlatformAdmin OR SystemRoleType::Support |
@@ -133,12 +132,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | DELETE | `/api/v1/workspaces/{ws_id}/configs/{key}` | Permission::WorkspaceSettingsWrite |
 | GET | `/api/v1/workspaces/{ws_id}/configs/{key}` | Permission::WorkspaceSettingsRead |
 | GET | `/api/v1/workspaces/{ws_id}/contracts` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/departments` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/departments` | Permission::DepartmentsCreate |
-| DELETE | `/api/v1/workspaces/{ws_id}/departments/{id}` | Permission::DepartmentsDelete |
-| PATCH | `/api/v1/workspaces/{ws_id}/departments/{id}` | Permission::DepartmentsUpdate |
-| GET | `/api/v1/workspaces/{ws_id}/departments/{id}/payroll-config` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/departments/{id}/payroll-config` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/documents/distributions` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/documents/folders` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/documents/folders` | NONE EVIDENCED — context extractor only; no permission guard |
@@ -196,11 +189,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | PUT | `/api/v1/workspaces/{ws_id}/employments/{employment_id}/phases/{phase_id}/status` | Permission::EmploymentPhasesManage |
 | GET | `/api/v1/workspaces/{ws_id}/employments/{id}/salary-components` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/employments/{id}/salary-components` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/feature-flags` | Permission::FeatureFlagsRead |
-| POST | `/api/v1/workspaces/{ws_id}/feature-flags` | Permission::FeatureFlagsManage |
-| PUT | `/api/v1/workspaces/{ws_id}/feature-flags` | Permission::FeatureFlagsManage |
-| DELETE | `/api/v1/workspaces/{ws_id}/feature-flags/{id}` | Permission::FeatureFlagsManage |
-| GET | `/api/v1/workspaces/{ws_id}/feature-flags/{id}` | Permission::FeatureFlagsRead |
 | GET | `/api/v1/workspaces/{ws_id}/files/by-owner/{owner_type}/{owner_id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/files/upload` | NONE EVIDENCED — context extractor only; no permission guard |
 | PUT | `/api/v1/workspaces/{ws_id}/files/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
@@ -300,8 +288,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | POST | `/api/v1/workspaces/{ws_id}/recruitment-sources` | Permission::RecruitmentManage |
 | DELETE | `/api/v1/workspaces/{ws_id}/recruitment-sources/{id}` | Permission::RecruitmentManage |
 | PUT | `/api/v1/workspaces/{ws_id}/recruitment-sources/{id}` | Permission::RecruitmentManage |
-| GET | `/api/v1/workspaces/{ws_id}/reports/attendance` | Permission::OvertimeClaimOnBehalf |
-| GET | `/api/v1/workspaces/{ws_id}/reports/no-show` | Permission::ReportsRead |
 | GET | `/api/v1/workspaces/{ws_id}/roles` | NONE EVIDENCED — context extractor only; no permission guard |
 | DELETE | `/api/v1/workspaces/{ws_id}/roles/{role_id}` | Permission::MembersRolesManage |
 | PUT | `/api/v1/workspaces/{ws_id}/roles/{role_id}` | Permission::MembersRolesManage |

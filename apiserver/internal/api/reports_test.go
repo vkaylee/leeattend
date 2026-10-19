@@ -22,6 +22,39 @@ func (m *mockReportRepo) CreateExportJob(ctx context.Context, job ReportJob, req
 	return nil
 }
 
+func (m *mockReportRepo) GetAttendanceReport(ctx context.Context, params AttendanceReportFilter) (PaginatedReportResponse, error) {
+	if params.EmploymentID != nil && *params.EmploymentID == uuid.Nil {
+		return PaginatedReportResponse{}, ErrReportNotFound
+	}
+	if params.ReportType == "daily" {
+		return PaginatedReportResponse{
+			Data:  json.RawMessage(`[{"date":"2026-01-01","employment_id":"` + uuid.New().String() + `","employee_id":"` + uuid.New().String() + `","employee_name":"Alice","employee_id_number":"EMP01","actual_work_minutes":480,"std_work_units":1,"ot_work_units":0,"status":"present"}]`),
+			Total: 1,
+			Page:  params.Page,
+			Limit: params.Limit,
+		}, nil
+	}
+	return PaginatedReportResponse{
+		Data:  json.RawMessage(`[{"employment_id":"` + uuid.New().String() + `","employee_id":"` + uuid.New().String() + `","employee_name":"Alice","employee_id_number":"EMP01","total_std_units":20,"total_ot_units":2,"total_leave_days":0,"unit_type":"DAY","unit_coefficient_hours":8,"computed_std_hours":160,"computed_ot_hours":16}]`),
+		Total: 1,
+		Page:  params.Page,
+		Limit: params.Limit,
+	}, nil
+}
+
+func (m *mockReportRepo) GetNoShowReport(ctx context.Context, params NoShowReportFilter) (PaginatedReportResponse, error) {
+	return PaginatedReportResponse{
+		Data:  json.RawMessage(`[{"date":"2026-01-01","employment_id":"` + uuid.New().String() + `","employee_id":"` + uuid.New().String() + `","employee_name":"Bob","employee_id_number":"EMP02","status":"absent","recording_issue":"missing_punch_in"}]`),
+		Total: 1,
+		Page:  params.Page,
+		Limit: params.Limit,
+	}, nil
+}
+
+func (m *mockReportRepo) ResolveBehalfEmployeeIDs(ctx context.Context, wsID, userID uuid.UUID) ([]uuid.UUID, error) {
+	return []uuid.UUID{uuid.New()}, nil
+}
+
 type mockReportQueue struct {
 	Jobs map[uuid.UUID]ReportJob
 }
@@ -276,5 +309,185 @@ func TestReportDownloadPendingReturnsAccepted(t *testing.T) {
 	handler.Download(rec, req)
 	if rec.Code != http.StatusAccepted {
 		t.Fatalf("expected 202 Accepted, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestAttendanceReportSummarySuccess(t *testing.T) {
+	wsID := uuid.New()
+	repo := &mockReportRepo{}
+	handler := ReportHandler{Repository: repo, Authorizer: mockReportAuthorizer{}}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/attendance?start_date=2026-01-01&end_date=2026-01-31&type=summary", nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.AttendanceReport(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var resp PaginatedReportResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp.Total != 1 || resp.Page != 1 || resp.Limit != 20 {
+		t.Fatalf("unexpected pagination: %+v", resp)
+	}
+	var summaries []AttendanceSummaryRow
+	if err := json.Unmarshal(resp.Data, &summaries); err != nil {
+		t.Fatalf("failed to decode summary rows: %v", err)
+	}
+	if len(summaries) != 1 || summaries[0].EmployeeName != "Alice" {
+		t.Fatalf("unexpected summaries: %+v", summaries)
+	}
+}
+
+func TestAttendanceReportDailySuccess(t *testing.T) {
+	wsID := uuid.New()
+	repo := &mockReportRepo{}
+	handler := ReportHandler{Repository: repo, Authorizer: mockReportAuthorizer{}}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/attendance?start_date=2026-01-01&end_date=2026-01-31&type=daily", nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.AttendanceReport(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var resp PaginatedReportResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	var daily []DailyAttendanceRow
+	if err := json.Unmarshal(resp.Data, &daily); err != nil {
+		t.Fatalf("failed to decode daily rows: %v", err)
+	}
+	if len(daily) != 1 || daily[0].Status != "present" {
+		t.Fatalf("unexpected daily rows: %+v", daily)
+	}
+}
+
+func TestAttendanceReportDateValidation(t *testing.T) {
+	wsID := uuid.New()
+	handler := ReportHandler{Repository: &mockReportRepo{}, Authorizer: mockReportAuthorizer{}}
+
+	// Missing start date
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/attendance?end_date=2026-01-31", nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+	handler.AttendanceReport(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for missing start date, got %d", rec.Code)
+	}
+
+	// Inverted dates
+	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/attendance?start_date=2026-02-01&end_date=2026-01-01", nil)
+	req2.SetPathValue("ws_id", wsID.String())
+	req2 = req2.WithContext(httpinfra.WithUserIDForTest(req2.Context(), uuid.New()))
+	rec2 := httptest.NewRecorder()
+	handler.AttendanceReport(rec2, req2)
+	if rec2.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for inverted date range, got %d", rec2.Code)
+	}
+
+	// Range > 365 days
+	req3 := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/attendance?start_date=2025-01-01&end_date=2026-01-05", nil)
+	req3.SetPathValue("ws_id", wsID.String())
+	req3 = req3.WithContext(httpinfra.WithUserIDForTest(req3.Context(), uuid.New()))
+	rec3 := httptest.NewRecorder()
+	handler.AttendanceReport(rec3, req3)
+	if rec3.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for range > 365 days, got %d", rec3.Code)
+	}
+}
+
+type mockDenyAuthorizer struct{}
+
+func (mockDenyAuthorizer) IsSystemAdmin(context.Context, uuid.UUID) bool { return false }
+func (mockDenyAuthorizer) HasPermission(context.Context, uuid.UUID, uuid.UUID, string) bool {
+	return false
+}
+
+func TestAttendanceReportForbiddenWithoutPermissions(t *testing.T) {
+	wsID := uuid.New()
+	handler := ReportHandler{Repository: &mockReportRepo{}, Authorizer: mockDenyAuthorizer{}}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/attendance?start_date=2026-01-01&end_date=2026-01-31", nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.AttendanceReport(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden, got %d", rec.Code)
+	}
+}
+
+func TestNoShowReportSuccess(t *testing.T) {
+	wsID := uuid.New()
+	handler := ReportHandler{Repository: &mockReportRepo{}, Authorizer: mockReportAuthorizer{}}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/no-show?date=2026-01-01", nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.NoShowReport(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var resp PaginatedReportResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	var noShow []NoShowReportRow
+	if err := json.Unmarshal(resp.Data, &noShow); err != nil {
+		t.Fatalf("failed to decode no-show rows: %v", err)
+	}
+	if len(noShow) != 1 || noShow[0].RecordingIssue != "missing_punch_in" {
+		t.Fatalf("unexpected no-show data: %+v", noShow)
+	}
+}
+
+func TestNoShowReportValidationErrors(t *testing.T) {
+	wsID := uuid.New()
+	handler := ReportHandler{Repository: &mockReportRepo{}, Authorizer: mockReportAuthorizer{}}
+
+	// Missing date
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/no-show", nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+	handler.NoShowReport(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for missing date, got %d", rec.Code)
+	}
+
+	// Invalid UUID in employee_ids must return 400
+	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/no-show?date=2026-01-01&employee_ids=not-a-uuid", nil)
+	req2.SetPathValue("ws_id", wsID.String())
+	req2 = req2.WithContext(httpinfra.WithUserIDForTest(req2.Context(), uuid.New()))
+	rec2 := httptest.NewRecorder()
+	handler.NoShowReport(rec2, req2)
+	if rec2.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid employee_ids UUID, got %d", rec2.Code)
+	}
+}
+
+func TestNoShowReportForbidden(t *testing.T) {
+	wsID := uuid.New()
+	handler := ReportHandler{Repository: &mockReportRepo{}, Authorizer: mockDenyAuthorizer{}}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/reports/no-show?date=2026-01-01", nil)
+	req.SetPathValue("ws_id", wsID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+
+	handler.NoShowReport(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden, got %d", rec.Code)
 	}
 }

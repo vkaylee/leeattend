@@ -100,11 +100,24 @@ func main() {
 	mux.HandleFunc("POST /api/v1/workspaces", workspaceHandler.Create)
 	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}", workspaceHandler.Patch)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/roles", workspaceHandler.CreateRole)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/feature-flags", workspaceHandler.ListFeatureFlags)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/feature-flags", workspaceHandler.CreateFeatureFlag)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/feature-flags", workspaceHandler.UpsertFeatureFlag)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/feature-flags/{id}", workspaceHandler.GetFeatureFlagByID)
 	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/feature-flags/{id}", workspaceHandler.UpdateFeatureFlag)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/feature-flags/{id}", workspaceHandler.DeleteFeatureFlag)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/feature-flags/check/{key}", workspaceHandler.CheckFeatureFlag)
 	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/configs", workspaceHandler.PutConfig)
 	healthHandler := health.NewHandler(Version, nil, nil)
 	healthHandler.SetLive(true)
+	departmentRepo := repository.DepartmentRepository{TenantDB: workspaceRepo.TenantDB}
+	departmentHandler := api.DepartmentHandler{Repository: departmentRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/departments", departmentHandler.List)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/departments", departmentHandler.Create)
+	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/departments/{id}", departmentHandler.Update)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/departments/{id}", departmentHandler.Delete)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/departments/{id}/payroll-config", departmentHandler.GetPayrollConfig)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/departments/{id}/payroll-config", departmentHandler.SetPayrollConfig)
 	employeeRepo := repository.EmployeeRepository{TenantDB: workspaceRepo.TenantDB}
 	employeeHandler := api.EmployeeHandler{Repository: employeeRepo, Authorizer: workspaceAuthorizer}
 	attendanceRepo := repository.AttendanceRepository{TenantDB: workspaceRepo.TenantDB}
@@ -204,6 +217,8 @@ func main() {
 	reportRepo := repository.ReportRepository{TenantDB: workspaceRepo.TenantDB}
 	reportQueue := &repository.RedisReportQueue{Client: redisClient, TenantDB: workspaceRepo.TenantDB}
 	reportHandler := api.ReportHandler{Repository: reportRepo, Queue: reportQueue, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/reports/attendance", reportHandler.AttendanceReport)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/reports/no-show", reportHandler.NoShowReport)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/reports/export", reportHandler.CreateExport)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/reports/jobs/{job_id}", reportHandler.Status)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/reports/jobs/{job_id}", reportHandler.Cancel)
@@ -237,6 +252,7 @@ func main() {
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/condition-types/{id}", conditionHandler.Delete)
 
 	mux.HandleFunc("GET /api/v1/health", healthHandler.Liveness)
+	mux.HandleFunc("GET /api/v1/health/ready", healthHandler.Readiness)
 
 	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
 	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
@@ -249,7 +265,9 @@ func main() {
 
 	publicPrefixes := []string{
 		"/health",
+		"/health/ready",
 		"/api/v1/health",
+		"/api/v1/health/ready",
 		"/api/v1/auth/login",
 		"/api/v1/auth/refresh",
 		"/auth/login",

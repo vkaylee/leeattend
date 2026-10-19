@@ -45,6 +45,331 @@ func (r ReportRepository) CreateExportJob(ctx context.Context, job api.ReportJob
 	_, err = db.Exec(ctx, `INSERT INTO outbox_jobs (id, workspace_id, job_type, payload, status, created_at, updated_at) VALUES ($1, $2, 'AttendanceReport', $3, 'pending', NOW(), NOW())`, job.JobID, job.WorkspaceID, payload)
 	return err
 }
+func (r ReportRepository) ResolveBehalfEmployeeIDs(ctx context.Context, wsID, userID uuid.UUID) ([]uuid.UUID, error) {
+	db, err := r.db(ctx, wsID)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := db.Query(ctx, `SELECT DISTINCT e.id
+FROM behalf_assignments ba
+JOIN employments emp ON (
+    (ba.target_employee_id IS NOT NULL AND emp.employee_id = ba.target_employee_id)
+    OR (ba.target_department_id IS NOT NULL AND emp.department_id = ba.target_department_id)
+)
+JOIN employees e ON e.id = emp.employee_id
+WHERE ba.workspace_id = $1
+  AND ba.assignee_user_id = $2
+  AND ba.assignment_type = 'overtime_claim'`, wsID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	ids := make([]uuid.UUID, 0)
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.AttendanceReportFilter) (api.PaginatedReportResponse, error) {
+	db, err := r.db(ctx, params.WorkspaceID)
+	if err != nil {
+		return api.PaginatedReportResponse{}, err
+	}
+	if params.EmploymentID != nil {
+		var exists bool
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL)`, *params.EmploymentID, params.WorkspaceID).Scan(&exists); err != nil {
+			return api.PaginatedReportResponse{}, err
+		}
+		if !exists {
+			return api.PaginatedReportResponse{}, api.ErrReportNotFound
+		}
+	}
+
+	offset := (params.Page - 1) * params.Limit
+
+	if params.ReportType == "daily" {
+		whereClause := `emp.workspace_id = $1 AND emp.deleted_at IS NULL AND e.deleted_at IS NULL AND ads.date >= $2::date AND ads.date <= $3::date`
+		filterClause := ""
+		args := []any{params.WorkspaceID, params.StartDate, params.EndDate}
+		argIndex := 4
+
+		if len(params.EmployeeIDs) > 0 {
+			filterClause += fmt.Sprintf(" AND e.id = ANY($%d)", argIndex)
+			args = append(args, params.EmployeeIDs)
+			argIndex++
+		}
+		if params.DepartmentID != nil {
+			filterClause += fmt.Sprintf(" AND emp.department_id = $%d", argIndex)
+			args = append(args, *params.DepartmentID)
+			argIndex++
+		}
+		if params.EmployerID != nil {
+			filterClause += fmt.Sprintf(" AND emp.employer_id = $%d", argIndex)
+			args = append(args, *params.EmployerID)
+			argIndex++
+		}
+		if params.EmploymentID != nil {
+			filterClause += fmt.Sprintf(" AND emp.id = $%d", argIndex)
+			args = append(args, *params.EmploymentID)
+			argIndex++
+		}
+
+		var total int64
+		countQuery := fmt.Sprintf(`SELECT count(*) FROM employments emp JOIN employees e ON e.id = emp.employee_id JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id WHERE %s%s`, whereClause, filterClause)
+		if err := db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+			return api.PaginatedReportResponse{}, err
+		}
+		dataQuery := fmt.Sprintf(`SELECT ads.date::text, emp.id AS employment_id, e.id AS employee_id, e.full_name, e.employee_id_number,
+       st.name AS shift_name, ws.scheduled_start::text, ws.scheduled_end::text,
+       te.punch_in_time::text, te.punch_out_time::text,
+       COALESCE(ads.actual_work_minutes, 0),
+       COALESCE(ads.standard_minutes, 0),
+       COALESCE(ads.approved_ot_minutes, 0),
+       ads.ot_status::text
+FROM employments emp
+JOIN employees e ON e.id = emp.employee_id
+JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id
+LEFT JOIN work_segments ws ON ws.employment_id = emp.id AND ws.date = ads.date
+LEFT JOIN shift_templates st ON st.id = ws.template_id
+LEFT JOIN time_entries te ON te.employment_id = emp.id AND te.punch_in_time::date = ads.date
+WHERE %s%s
+ORDER BY ads.date ASC, e.full_name ASC
+LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
+
+		args = append(args, params.Limit, offset)
+		rows, err := db.Query(ctx, dataQuery, args...)
+		if err != nil {
+			return api.PaginatedReportResponse{}, err
+		}
+		defer rows.Close()
+
+		results := make([]api.DailyAttendanceRow, 0)
+		for rows.Next() {
+			var row api.DailyAttendanceRow
+			var actMins, stdMins, otMins int
+			var shiftName, schedStart, schedEnd, punchIn, punchOut *string
+			if err := rows.Scan(&row.Date, &row.EmploymentID, &row.EmployeeID, &row.EmployeeName, &row.EmployeeIDNumber,
+				&shiftName, &schedStart, &schedEnd, &punchIn, &punchOut,
+				&actMins, &stdMins, &otMins, &row.Status); err != nil {
+				return api.PaginatedReportResponse{}, err
+			}
+			row.ShiftName = shiftName
+			row.ScheduledStart = schedStart
+			row.ScheduledEnd = schedEnd
+			row.ActualPunchIn = punchIn
+			row.ActualPunchOut = punchOut
+			row.ActualWorkMinutes = actMins
+			row.StdWorkUnits = stdMins / 480
+			row.OTWorkUnits = otMins / 480
+			results = append(results, row)
+		}
+		if err := rows.Err(); err != nil {
+			return api.PaginatedReportResponse{}, err
+		}
+		raw, err := json.Marshal(results)
+		if err != nil {
+			return api.PaginatedReportResponse{}, err
+		}
+		return api.PaginatedReportResponse{
+			Data:  raw,
+			Total: total,
+			Page:  params.Page,
+			Limit: params.Limit,
+		}, nil
+	}
+
+	baseClause := `emp.workspace_id = $1 AND emp.deleted_at IS NULL AND e.deleted_at IS NULL`
+	countFilterClause := ""
+	countArgs := []any{params.WorkspaceID}
+	countArgIndex := 2
+	dataFilterClause := ""
+	dataArgs := []any{params.WorkspaceID, params.StartDate, params.EndDate}
+	dataArgIndex := 4
+
+	if len(params.EmployeeIDs) > 0 {
+		countFilterClause += fmt.Sprintf(" AND e.id = ANY($%d)", countArgIndex)
+		countArgs = append(countArgs, params.EmployeeIDs)
+		countArgIndex++
+		dataFilterClause += fmt.Sprintf(" AND e.id = ANY($%d)", dataArgIndex)
+		dataArgs = append(dataArgs, params.EmployeeIDs)
+		dataArgIndex++
+	}
+	if params.DepartmentID != nil {
+		countFilterClause += fmt.Sprintf(" AND emp.department_id = $%d", countArgIndex)
+		countArgs = append(countArgs, *params.DepartmentID)
+		countArgIndex++
+		dataFilterClause += fmt.Sprintf(" AND emp.department_id = $%d", dataArgIndex)
+		dataArgs = append(dataArgs, *params.DepartmentID)
+		dataArgIndex++
+	}
+	if params.EmployerID != nil {
+		countFilterClause += fmt.Sprintf(" AND emp.employer_id = $%d", countArgIndex)
+		countArgs = append(countArgs, *params.EmployerID)
+		countArgIndex++
+		dataFilterClause += fmt.Sprintf(" AND emp.employer_id = $%d", dataArgIndex)
+		dataArgs = append(dataArgs, *params.EmployerID)
+		dataArgIndex++
+	}
+	if params.EmploymentID != nil {
+		countFilterClause += fmt.Sprintf(" AND emp.id = $%d", countArgIndex)
+		countArgs = append(countArgs, *params.EmploymentID)
+		dataFilterClause += fmt.Sprintf(" AND emp.id = $%d", dataArgIndex)
+		dataArgs = append(dataArgs, *params.EmploymentID)
+		dataArgIndex++
+	}
+
+	var total int64
+	countQuery := fmt.Sprintf(`SELECT count(DISTINCT emp.id) FROM employments emp JOIN employees e ON e.id = emp.employee_id WHERE %s%s`, baseClause, countFilterClause)
+	if err := db.QueryRow(ctx, countQuery, countArgs...).Scan(&total); err != nil {
+		return api.PaginatedReportResponse{}, err
+	}
+
+	dataQuery := fmt.Sprintf(`SELECT emp.id AS employment_id, e.id AS employee_id, e.full_name, e.employee_id_number,
+       COALESCE(SUM(ads.standard_minutes), 0) / 480 AS total_std_units,
+       COALESCE(SUM(ads.approved_ot_minutes), 0) / 480 AS total_ot_units,
+       ROUND((COALESCE(SUM(ads.standard_minutes), 0)::numeric / 60.0), 2) AS computed_std_hours,
+       ROUND((COALESCE(SUM(ads.approved_ot_minutes), 0)::numeric / 60.0), 2) AS computed_ot_hours,
+       emp.employer_id, em.name AS employer_name
+FROM employments emp
+JOIN employees e ON e.id = emp.employee_id
+LEFT JOIN employers em ON em.id = emp.employer_id
+LEFT JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id AND ads.date >= $2::date AND ads.date <= $3::date
+		WHERE %s%s
+		GROUP BY emp.id, e.id, e.full_name, e.employee_id_number, emp.employer_id, em.name
+		ORDER BY e.full_name ASC
+		LIMIT $%d OFFSET $%d`, baseClause, dataFilterClause, dataArgIndex, dataArgIndex+1)
+
+	dataArgs = append(dataArgs, params.Limit, offset)
+	rows, err := db.Query(ctx, dataQuery, dataArgs...)
+	if err != nil {
+		return api.PaginatedReportResponse{}, err
+	}
+	defer rows.Close()
+
+	summaries := make([]api.AttendanceSummaryRow, 0)
+	for rows.Next() {
+		var row api.AttendanceSummaryRow
+		row.UnitType = "DAY"
+		row.UnitCoefficientHours = 8.0
+		if err := rows.Scan(&row.EmploymentID, &row.EmployeeID, &row.EmployeeName, &row.EmployeeIDNumber,
+			&row.TotalStdUnits, &row.TotalOTUnits,
+			&row.ComputedStdHours, &row.ComputedOTHours,
+			&row.EmployerID, &row.EmployerName); err != nil {
+			return api.PaginatedReportResponse{}, err
+		}
+		summaries = append(summaries, row)
+	}
+	if err := rows.Err(); err != nil {
+		return api.PaginatedReportResponse{}, err
+	}
+	raw, err := json.Marshal(summaries)
+	if err != nil {
+		return api.PaginatedReportResponse{}, err
+	}
+	return api.PaginatedReportResponse{
+		Data:  raw,
+		Total: total,
+		Page:  params.Page,
+		Limit: params.Limit,
+	}, nil
+}
+
+func (r ReportRepository) GetNoShowReport(ctx context.Context, params api.NoShowReportFilter) (api.PaginatedReportResponse, error) {
+	db, err := r.db(ctx, params.WorkspaceID)
+	if err != nil {
+		return api.PaginatedReportResponse{}, err
+	}
+	offset := (params.Page - 1) * params.Limit
+
+	subquery := `(
+    SELECT id, employment_id, template_id, date, scheduled_start, scheduled_end, workspace_id FROM work_segments
+    UNION ALL
+    SELECT sr.id, sr.employment_id, sr.template_id, sr.date, '09:00:00'::time, '17:00:00'::time, emp.workspace_id
+    FROM shift_rosters sr
+    JOIN employments emp ON emp.id = sr.employment_id
+    WHERE NOT EXISTS (SELECT 1 FROM work_segments ws2 WHERE ws2.employment_id = sr.employment_id AND ws2.date = sr.date)
+) ws`
+
+	whereClause := `ws.workspace_id = $1 AND ws.date = $2::date AND te.id IS NULL AND emp.deleted_at IS NULL AND e.deleted_at IS NULL`
+	args := []any{params.WorkspaceID, params.Date}
+	idx := 3
+
+	if len(params.EmployeeIDs) > 0 {
+		whereClause += fmt.Sprintf(" AND e.id = ANY($%d)", idx)
+		args = append(args, params.EmployeeIDs)
+		idx++
+	}
+	if params.DepartmentID != nil {
+		whereClause += fmt.Sprintf(" AND emp.department_id = $%d", idx)
+		args = append(args, *params.DepartmentID)
+		idx++
+	}
+
+	var total int64
+	countQuery := fmt.Sprintf(`SELECT count(*) FROM %s
+JOIN employments emp ON emp.id = ws.employment_id
+JOIN employees e ON e.id = emp.employee_id
+LEFT JOIN time_entries te ON te.employment_id = ws.employment_id AND te.punch_in_time::date = ws.date
+WHERE %s`, subquery, whereClause)
+
+	if err := db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return api.PaginatedReportResponse{}, err
+	}
+
+	dataQuery := fmt.Sprintf(`SELECT ws.id, ws.employment_id, e.id AS employee_id, e.full_name, e.employee_id_number,
+       st.name AS shift_name, ws.scheduled_start::text, ws.scheduled_end::text,
+       ws.date::text
+FROM %s
+JOIN employments emp ON emp.id = ws.employment_id
+JOIN employees e ON e.id = emp.employee_id
+LEFT JOIN shift_templates st ON st.id = ws.template_id
+LEFT JOIN time_entries te ON te.employment_id = ws.employment_id AND te.punch_in_time::date = ws.date
+WHERE %s
+ORDER BY e.full_name ASC
+LIMIT $%d OFFSET $%d`, subquery, whereClause, idx, idx+1)
+
+	args = append(args, params.Limit, offset)
+	rows, err := db.Query(ctx, dataQuery, args...)
+	if err != nil {
+		return api.PaginatedReportResponse{}, err
+	}
+	defer rows.Close()
+
+	results := make([]api.NoShowReportRow, 0)
+	for rows.Next() {
+		var dummyID uuid.UUID
+		var row api.NoShowReportRow
+		var shiftName, schedStart, schedEnd string
+		if err := rows.Scan(&dummyID, &row.EmploymentID, &row.EmployeeID, &row.EmployeeName, &row.EmployeeIDNumber,
+			&shiftName, &schedStart, &schedEnd, &row.Date); err != nil {
+			return api.PaginatedReportResponse{}, err
+		}
+		row.ShiftName = &shiftName
+		row.ScheduledStart = &schedStart
+		row.ScheduledEnd = &schedEnd
+		row.Status = "absent"
+		row.RecordingIssue = "missing_punch_in"
+		results = append(results, row)
+	}
+	if err := rows.Err(); err != nil {
+		return api.PaginatedReportResponse{}, err
+	}
+	raw, err := json.Marshal(results)
+	if err != nil {
+		return api.PaginatedReportResponse{}, err
+	}
+	return api.PaginatedReportResponse{
+		Data:  raw,
+		Total: total,
+		Page:  params.Page,
+		Limit: params.Limit,
+	}, nil
+}
 
 type RedisReportQueue struct {
 	Client          *redisinfra.Client

@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -55,14 +56,29 @@ type CreateRoleRequest struct {
 	ScopeType   string `json:"scope_type"`
 }
 type FeatureFlagRecord struct {
-	ID          uuid.UUID `json:"id"`
-	WorkspaceID uuid.UUID `json:"workspace_id"`
-	Key         string    `json:"key"`
-	Enabled     bool      `json:"enabled"`
-	Description *string   `json:"description"`
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspace_id"`
+	FlagKey     string          `json:"flag_key"`
+	Enabled     bool            `json:"enabled"`
+	Description *string         `json:"description"`
+	Metadata    json.RawMessage `json:"metadata"`
+	CreatedAt   string          `json:"created_at"`
+	UpdatedAt   string          `json:"updated_at"`
+}
+type FeatureFlagRequest struct {
+	FlagKey     string          `json:"flag_key"`
+	Enabled     bool            `json:"enabled"`
+	Description *string         `json:"description"`
+	Metadata    json.RawMessage `json:"metadata"`
 }
 type FeatureFlagPatch struct {
-	Enabled *bool `json:"enabled"`
+	Enabled     *bool            `json:"enabled"`
+	Description *string          `json:"description"`
+	Metadata    *json.RawMessage `json:"metadata"`
+}
+type FeatureFlagCheck struct {
+	Key     string `json:"key"`
+	Enabled bool   `json:"enabled"`
 }
 type ConfigEntryRequest struct {
 	ScopeType     string      `json:"scope_type"`
@@ -82,8 +98,13 @@ type WorkspaceRepository interface {
 	CreateWorkspace(context.Context, CreateWorkspaceRequest, uuid.UUID) (WorkspaceRecord, error)
 	UpdateWorkspace(context.Context, uuid.UUID, WorkspacePatch) (WorkspaceRecord, error)
 	CreateRole(context.Context, uuid.UUID, CreateRoleRequest) error
+	ListFeatureFlags(context.Context, uuid.UUID) ([]FeatureFlagRecord, error)
+	CreateFeatureFlag(context.Context, uuid.UUID, FeatureFlagRequest) (FeatureFlagRecord, error)
 	UpdateFeatureFlag(context.Context, uuid.UUID, uuid.UUID, FeatureFlagPatch) (FeatureFlagRecord, error)
 	GetFeatureFlag(context.Context, uuid.UUID, string) (FeatureFlagRecord, error)
+	GetFeatureFlagByID(context.Context, uuid.UUID, uuid.UUID) (FeatureFlagRecord, error)
+	DeleteFeatureFlag(context.Context, uuid.UUID, uuid.UUID) (bool, error)
+	UpsertFeatureFlag(context.Context, uuid.UUID, FeatureFlagRequest) (FeatureFlagRecord, error)
 	PutConfig(context.Context, uuid.UUID, ConfigEntryRequest, uuid.UUID) error
 }
 
@@ -163,6 +184,73 @@ func (h WorkspaceHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func (h WorkspaceHandler) ListFeatureFlags(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	userID, userOK := httpinfra.UserIDFromContext(r.Context())
+	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, "feature_flags:read") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	flags, err := h.Repository.ListFeatureFlags(r.Context(), workspaceID)
+	if err != nil {
+		h.writeRepositoryError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, flags)
+}
+
+func (h WorkspaceHandler) CreateFeatureFlag(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	userID, userOK := httpinfra.UserIDFromContext(r.Context())
+	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, "feature_flags:manage") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	req, err := DecodeJSON[FeatureFlagRequest](r, 1<<20)
+	if err != nil || req.FlagKey == "" || len(req.FlagKey) > 255 {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyInvalidFeatureFlagKey))
+		return
+	}
+	flag, err := h.Repository.CreateFeatureFlag(r.Context(), workspaceID, req)
+	if err != nil {
+		h.writeRepositoryError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusCreated, flag)
+}
+
+func (h WorkspaceHandler) GetFeatureFlagByID(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	flagID, flagOK := pathUUID(r, "id")
+	if !ok || !flagOK {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	userID, userOK := httpinfra.UserIDFromContext(r.Context())
+	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, "feature_flags:read") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	flag, err := h.Repository.GetFeatureFlagByID(r.Context(), workspaceID, flagID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyFeatureFlagNotFound))
+		return
+	}
+	if err != nil {
+		h.writeRepositoryError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, flag)
+}
+
 func (h WorkspaceHandler) UpdateFeatureFlag(w http.ResponseWriter, r *http.Request) {
 	workspaceID, ok := pathUUID(r, "ws_id")
 	flagID, flagOK := pathUUID(r, "id")
@@ -176,16 +264,68 @@ func (h WorkspaceHandler) UpdateFeatureFlag(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	patch, err := DecodeJSON[FeatureFlagPatch](r, 1<<20)
-	if err != nil || patch.Enabled == nil {
+	if err != nil || (patch.Enabled == nil && patch.Description == nil && patch.Metadata == nil) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
 	flag, err := h.Repository.UpdateFeatureFlag(r.Context(), workspaceID, flagID, patch)
+	if errors.Is(err, pgx.ErrNoRows) {
+		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyFeatureFlagNotFound))
+		return
+	}
 	if err != nil {
 		h.writeRepositoryError(w, r, err)
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, flag)
+}
+
+func (h WorkspaceHandler) UpsertFeatureFlag(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	if !ok {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	userID, userOK := httpinfra.UserIDFromContext(r.Context())
+	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, "feature_flags:manage") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	req, err := DecodeJSON[FeatureFlagRequest](r, 1<<20)
+	if err != nil || req.FlagKey == "" || len(req.FlagKey) > 255 {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyInvalidFeatureFlagKey))
+		return
+	}
+	flag, err := h.Repository.UpsertFeatureFlag(r.Context(), workspaceID, req)
+	if err != nil {
+		h.writeRepositoryError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, flag)
+}
+
+func (h WorkspaceHandler) DeleteFeatureFlag(w http.ResponseWriter, r *http.Request) {
+	workspaceID, ok := pathUUID(r, "ws_id")
+	flagID, flagOK := pathUUID(r, "id")
+	if !ok || !flagOK {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	userID, userOK := httpinfra.UserIDFromContext(r.Context())
+	if !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, "feature_flags:manage") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	deleted, err := h.Repository.DeleteFeatureFlag(r.Context(), workspaceID, flagID)
+	if err != nil {
+		h.writeRepositoryError(w, r, err)
+		return
+	}
+	if !deleted {
+		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyFeatureFlagNotFound))
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h WorkspaceHandler) CheckFeatureFlag(w http.ResponseWriter, r *http.Request) {
@@ -206,16 +346,14 @@ func (h WorkspaceHandler) CheckFeatureFlag(w http.ResponseWriter, r *http.Reques
 	}
 	flag, err := h.Repository.GetFeatureFlag(r.Context(), workspaceID, key)
 	if errors.Is(err, pgx.ErrNoRows) {
-		apperror.WriteJSON(w, http.StatusOK, struct {
-			Enabled bool `json:"enabled"`
-		}{Enabled: false})
+		apperror.WriteJSON(w, http.StatusOK, FeatureFlagCheck{Key: key, Enabled: false})
 		return
 	}
 	if err != nil {
 		h.writeRepositoryError(w, r, err)
 		return
 	}
-	apperror.WriteJSON(w, http.StatusOK, flag)
+	apperror.WriteJSON(w, http.StatusOK, FeatureFlagCheck{Key: key, Enabled: flag.Enabled})
 }
 
 func (h WorkspaceHandler) PutConfig(w http.ResponseWriter, r *http.Request) {
