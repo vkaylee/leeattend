@@ -165,6 +165,19 @@ func main() {
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/leave/requests", leaveHandler.ListRequests)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/leave/requests/{id}/approve", leaveHandler.Approve)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{id}/leave/balances", leaveHandler.Balances)
+	essRepo := repository.ESSRepository{TenantDB: workspaceRepo.TenantDB}
+	essHandler := api.ESSHandler{Repository: essRepo}
+	mux.HandleFunc("GET /api/v1/ess/profile", essHandler.GetProfile)
+	mux.HandleFunc("PUT /api/v1/ess/profile", essHandler.UpdateProfile)
+	mux.HandleFunc("GET /api/v1/ess/emergency-contacts", essHandler.GetContacts)
+	mux.HandleFunc("POST /api/v1/ess/emergency-contacts", essHandler.AddContact)
+	mux.HandleFunc("DELETE /api/v1/ess/emergency-contacts/{contact_id}", essHandler.DeleteContact)
+	workflowRepo := repository.ApprovalWorkflowRepository{TenantDB: workspaceRepo.TenantDB}
+	workflowHandler := api.ApprovalWorkflowHandler{Repository: workflowRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/approval-workflows", workflowHandler.List)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/approval-workflows", workflowHandler.Create)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/approval-workflows/approve", workflowHandler.Process)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/approval-workflows/history/{type}/{id}", workflowHandler.History)
 
 	mux.HandleFunc("GET /api/v1/health", healthHandler.Liveness)
 

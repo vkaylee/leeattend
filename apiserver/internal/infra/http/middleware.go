@@ -192,3 +192,8 @@ func WorkspaceIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 	val, ok := ctx.Value(contextKeyWorkspaceID).(uuid.UUID)
 	return val, ok
 }
+
+// WithWorkspaceIDForTest is a package test helper for handler contract tests.
+func WithWorkspaceIDForTest(ctx context.Context, id uuid.UUID) context.Context {
+	return context.WithValue(ctx, contextKeyWorkspaceID, id)
+}
