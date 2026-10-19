@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **141**
-- Contract routes covered: **118**
-- Contract routes missing: **285**
+- Go route registrations: **143**
+- Contract routes covered: **120**
+- Contract routes missing: **283**
 
 ## Missing routes
 
@@ -27,8 +27,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | GET | `/api/v1/dashboard/overtime-breakdown` | Permission::DashboardRead; conditional: Permission::PayrollSensitiveRead (controls overtime cost inclusion & dashboard.sensitive.read audit log) |
 | GET | `/api/v1/dashboard/overtime-trend` | Permission::DashboardRead |
 | GET | `/api/v1/dashboard/peak-times` | Permission::DashboardRead |
-| GET | `/api/v1/dashboard/preferences` | Permission::DashboardPreferences |
-| PUT | `/api/v1/dashboard/preferences` | Permission::DashboardPreferences |
 | GET | `/api/v1/dashboard/recruitment-effectiveness` | Permission::DashboardRead |
 | GET | `/api/v1/dashboard/recruitment-sources` | Permission::DashboardRead |
 | GET | `/api/v1/dashboard/turnover-analytics` | Permission::DashboardRead |

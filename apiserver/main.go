@@ -272,6 +272,10 @@ func main() {
 	mux.HandleFunc("PATCH /api/v1/me", authHandler.UpdateMe)
 	mux.HandleFunc("GET /api/v1/me/permissions", authHandler.MyPermissions)
 	mux.HandleFunc("GET /api/v1/users", authHandler.WorkspaceUsers)
+	preferencesRepo := repository.DashboardPreferencesRepository{TenantDB: workspaceRepo.TenantDB}
+	preferencesHandler := api.DashboardPreferencesHandler{Repository: preferencesRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/dashboard/preferences", preferencesHandler.Get)
+	mux.HandleFunc("PUT /api/v1/dashboard/preferences", preferencesHandler.Put)
 	mux.HandleFunc("POST /auth/login", authHandler.Login)
 	mux.HandleFunc("POST /auth/refresh", authHandler.Refresh)
 	mux.HandleFunc("POST /auth/logout", authHandler.Logout)
