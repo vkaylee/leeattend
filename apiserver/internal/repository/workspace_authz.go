@@ -153,3 +153,41 @@ SELECT mer.role_id FROM member_extra_roles mer WHERE mer.user_id = $1 AND mer.wo
 	}
 	return permissions, roles, nil
 }
+
+// GetUsersWithPermission returns all users in a workspace who hold the specified permission
+// either through their primary role, an active extra role, or an active extra permission.
+func (a WorkspaceAuthorizer) GetUsersWithPermission(ctx context.Context, workspaceID uuid.UUID, permission string) ([]uuid.UUID, error) {
+	if a.DB == nil {
+		return nil, nil
+	}
+	rows, err := a.DB.Query(ctx, `SELECT DISTINCT u.user_id FROM (
+		SELECT wm.user_id
+		FROM workspace_members wm
+		JOIN workspace_roles wr ON wr.id = wm.role_id
+		LEFT JOIN workspace_role_permissions wrp ON wrp.role_id = wr.id
+		WHERE wm.workspace_id = $1 AND (wr.scope_type = 'global' OR wrp.permission_name = $2)
+		UNION
+		SELECT mer.user_id
+		FROM member_extra_roles mer
+		JOIN workspace_roles wr ON wr.id = mer.role_id
+		LEFT JOIN workspace_role_permissions wrp ON wrp.role_id = wr.id
+		WHERE mer.workspace_id = $1 AND mer.expires_at > NOW() AND (wr.scope_type = 'global' OR wrp.permission_name = $2)
+		UNION
+		SELECT wmep.user_id
+		FROM workspace_member_extra_permissions wmep
+		WHERE wmep.workspace_id = $1 AND wmep.permission = $2 AND wmep.expires_at > NOW()
+	) u`, workspaceID, permission)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var users []uuid.UUID
+	for rows.Next() {
+		var uid uuid.UUID
+		if err := rows.Scan(&uid); err != nil {
+			return nil, err
+		}
+		users = append(users, uid)
+	}
+	return users, rows.Err()
+}

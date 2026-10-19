@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **231**
-- Contract routes covered: **208**
-- Contract routes missing: **195**
+- Go route registrations: **254**
+- Contract routes covered: **231**
+- Contract routes missing: **172**
 
 ## Missing routes
 
@@ -108,16 +108,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | GET | `/api/v1/workspaces/{ws_id}/employees/{id}/leave/history` | Permission::LeaveBalancesRead |
 | GET | `/api/v1/workspaces/{ws_id}/employees/{id}/payroll-config` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/employees/{id}/payroll-config` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/employees/{user_id}/phases` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/employees/{user_id}/phases` | Permission::EmploymentPhasesManage |
-| PUT | `/api/v1/workspaces/{ws_id}/employees/{user_id}/phases/{phase_id}/status` | Permission::EmploymentPhasesManage |
-| GET | `/api/v1/workspaces/{ws_id}/employment-phases` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/employment-phases` | Permission::EmploymentPhasesManage |
-| GET | `/api/v1/workspaces/{ws_id}/employments/{emp_id}/lifecycle` | Permission::EmployeesRead |
-| POST | `/api/v1/workspaces/{ws_id}/employments/{emp_id}/lifecycle` | Permission::EmployeesUpdate |
-| GET | `/api/v1/workspaces/{ws_id}/employments/{employment_id}/phases` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/employments/{employment_id}/phases` | Permission::EmploymentPhasesManage |
-| PUT | `/api/v1/workspaces/{ws_id}/employments/{employment_id}/phases/{phase_id}/status` | Permission::EmploymentPhasesManage |
 | GET | `/api/v1/workspaces/{ws_id}/employments/{id}/salary-components` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/employments/{id}/salary-components` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/files/by-owner/{owner_type}/{owner_id}` | NONE EVIDENCED — context extractor only; no permission guard |
@@ -151,19 +141,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | PATCH | `/api/v1/workspaces/{ws_id}/leave/policies/{policy_id}` | Permission::LeavePoliciesManage |
 | POST | `/api/v1/workspaces/{ws_id}/leave/upload-excel` | Permission::LeaveRequestsSubmit |
 | GET | `/api/v1/workspaces/{ws_id}/leave/upload-template` | Permission::LeaveRequestsSubmit |
-| GET | `/api/v1/workspaces/{ws_id}/lifecycle-templates` | Permission::WorkspaceSettingsRead |
-| POST | `/api/v1/workspaces/{ws_id}/lifecycle-templates` | Permission::WorkspaceSettingsWrite |
-| DELETE | `/api/v1/workspaces/{ws_id}/lifecycle-templates/{id}` | Permission::WorkspaceSettingsWrite |
-| GET | `/api/v1/workspaces/{ws_id}/lifecycle-templates/{id}` | Permission::WorkspaceSettingsRead |
-| PATCH | `/api/v1/workspaces/{ws_id}/lifecycle-templates/{id}` | Permission::WorkspaceSettingsWrite |
-| GET | `/api/v1/workspaces/{ws_id}/lifecycle-templates/{id}/items` | Permission::WorkspaceSettingsRead |
-| POST | `/api/v1/workspaces/{ws_id}/lifecycle-templates/{id}/items` | Permission::WorkspaceSettingsWrite |
-| DELETE | `/api/v1/workspaces/{ws_id}/lifecycle-templates/{tid}/items/{iid}` | Permission::WorkspaceSettingsWrite |
-| GET | `/api/v1/workspaces/{ws_id}/lifecycle-templates/{tid}/items/{iid}` | Permission::WorkspaceSettingsRead |
-| PUT | `/api/v1/workspaces/{ws_id}/lifecycle-templates/{tid}/items/{iid}` | Permission::WorkspaceSettingsWrite |
-| GET | `/api/v1/workspaces/{ws_id}/lifecycle/my-tasks` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/lifecycle/{id}` | Permission::EmployeesRead |
-| PATCH | `/api/v1/workspaces/{ws_id}/lifecycle/{id}/items/{iid}` | Permission::EmployeesUpdate |
 | GET | `/api/v1/workspaces/{ws_id}/monitor/jobs/{job_id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/overtime/policies` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/overtime/policies` | Permission::OvertimePoliciesManage |

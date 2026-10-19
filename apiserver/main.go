@@ -363,6 +363,41 @@ func main() {
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/condition-types", conditionHandler.Create)
 	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/condition-types/{id}", conditionHandler.Update)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/condition-types/{id}", conditionHandler.Delete)
+	phaseRepo := repository.EmploymentPhaseRepository{TenantDB: workspaceRepo.TenantDB}
+	phaseHandler := api.EmploymentPhaseHandler{Repository: phaseRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employment-phases", phaseHandler.CreateDefinition)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employment-phases", phaseHandler.ListDefinitions)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{user_id}/phases", phaseHandler.AssignEmployee)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{user_id}/phases", phaseHandler.ListEmployee)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/employees/{user_id}/phases/{phase_id}/status", phaseHandler.UpdateEmployeeStatus)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employments/{employment_id}/phases", phaseHandler.AssignEmployment)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employments/{employment_id}/phases", phaseHandler.ListEmployment)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/employments/{employment_id}/phases/{phase_id}/status", phaseHandler.UpdateEmploymentStatus)
+
+	lifecycleRepo := repository.LifecycleRepository{TenantDB: workspaceRepo.TenantDB}
+	lifecycleHandler := api.LifecycleHandler{
+		Repository: lifecycleRepo,
+		Authorizer: workspaceAuthorizer,
+		UsersWithPermission: func(ctx context.Context, wsID uuid.UUID, permission string) []uuid.UUID {
+			users, _ := workspaceAuthorizer.GetUsersWithPermission(ctx, wsID, permission)
+			return users
+		},
+	}
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/lifecycle/my-tasks", lifecycleHandler.GetMyTasks)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/lifecycle-templates", lifecycleHandler.CreateTemplate)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/lifecycle-templates", lifecycleHandler.ListTemplates)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/lifecycle-templates/{id}", lifecycleHandler.GetTemplate)
+	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/lifecycle-templates/{id}", lifecycleHandler.UpdateTemplate)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/lifecycle-templates/{id}", lifecycleHandler.DeleteTemplate)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/lifecycle-templates/{id}/items", lifecycleHandler.CreateTemplateItem)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/lifecycle-templates/{id}/items", lifecycleHandler.ListTemplateItems)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/lifecycle-templates/{tid}/items/{iid}", lifecycleHandler.GetTemplateItem)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/lifecycle-templates/{tid}/items/{iid}", lifecycleHandler.UpdateTemplateItem)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/lifecycle-templates/{tid}/items/{iid}", lifecycleHandler.DeleteTemplateItem)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employments/{emp_id}/lifecycle", lifecycleHandler.CreateChecklist)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employments/{emp_id}/lifecycle", lifecycleHandler.ListChecklists)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/lifecycle/{id}", lifecycleHandler.GetChecklist)
+	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/lifecycle/{id}/items/{iid}", lifecycleHandler.UpdateItemStatus)
 
 	mux.HandleFunc("GET /api/v1/health", healthHandler.Liveness)
 	mux.HandleFunc("GET /api/v1/health/ready", healthHandler.Readiness)
