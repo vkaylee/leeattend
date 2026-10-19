@@ -611,6 +611,45 @@ func main() {
 	mux.HandleFunc("GET /api/v1/system/tenants/{tenant_id}/stats", systemAdminHandler.GetTenantStats)
 	mux.HandleFunc("PUT /api/v1/system/tenants/{tenant_id}/database", systemAdminHandler.UpdateTenantDatabase)
 
+	monitorRepo := repository.MonitorRepository(workspaceRepo)
+	monitorHandler := api.MonitorHandler{
+		Repo:       monitorRepo,
+		Authorizer: workspaceAuthorizer,
+		RolesRepo:  authRepo,
+		Redis:      redisClient,
+		JWTSecret:  cfg.JWTSecret.Expose(),
+	}
+	mux.HandleFunc("GET /api/v1/monitor/overview", monitorHandler.GetOverview)
+	mux.HandleFunc("GET /v1/monitor/overview", monitorHandler.GetOverview)
+	mux.HandleFunc("GET /monitor/overview", monitorHandler.GetOverview)
+	mux.HandleFunc("GET /api/v1/monitor/jobs", monitorHandler.GetMonitorJobs)
+	mux.HandleFunc("GET /v1/monitor/jobs", monitorHandler.GetMonitorJobs)
+	mux.HandleFunc("GET /monitor/jobs", monitorHandler.GetMonitorJobs)
+	mux.HandleFunc("GET /api/v1/monitor/correlations", monitorHandler.GetMonitorCorrelations)
+	mux.HandleFunc("GET /v1/monitor/correlations", monitorHandler.GetMonitorCorrelations)
+	mux.HandleFunc("GET /monitor/correlations", monitorHandler.GetMonitorCorrelations)
+	mux.HandleFunc("GET /api/v1/monitor/stream", monitorHandler.Stream)
+	mux.HandleFunc("GET /v1/monitor/stream", monitorHandler.Stream)
+	mux.HandleFunc("GET /monitor/stream", monitorHandler.Stream)
+	mux.HandleFunc("GET /api/v1/monitor/alerts", monitorHandler.ListAlerts)
+	mux.HandleFunc("GET /v1/monitor/alerts", monitorHandler.ListAlerts)
+	mux.HandleFunc("GET /monitor/alerts", monitorHandler.ListAlerts)
+	mux.HandleFunc("GET /api/v1/monitor/alerts/{alert_id}", monitorHandler.GetAlert)
+	mux.HandleFunc("GET /v1/monitor/alerts/{alert_id}", monitorHandler.GetAlert)
+	mux.HandleFunc("GET /monitor/alerts/{alert_id}", monitorHandler.GetAlert)
+	mux.HandleFunc("POST /api/v1/monitor/alerts/{alert_id}/acknowledge", monitorHandler.AcknowledgeAlert)
+	mux.HandleFunc("POST /v1/monitor/alerts/{alert_id}/acknowledge", monitorHandler.AcknowledgeAlert)
+	mux.HandleFunc("POST /monitor/alerts/{alert_id}/acknowledge", monitorHandler.AcknowledgeAlert)
+	mux.HandleFunc("POST /api/v1/monitor/alerts/{alert_id}/resolve", monitorHandler.ResolveAlert)
+	mux.HandleFunc("POST /v1/monitor/alerts/{alert_id}/resolve", monitorHandler.ResolveAlert)
+	mux.HandleFunc("POST /monitor/alerts/{alert_id}/resolve", monitorHandler.ResolveAlert)
+	mux.HandleFunc("GET /api/v1/ws/reports/{job_id}", monitorHandler.ReportStreamWS)
+	mux.HandleFunc("GET /v1/ws/reports/{job_id}", monitorHandler.ReportStreamWS)
+	mux.HandleFunc("GET /ws/reports/{job_id}", monitorHandler.ReportStreamWS)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/audit-logs", monitorHandler.GetAuditLogs)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/jobs/{job_id}", monitorHandler.GetWorkspaceJobStatus)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/monitor/jobs/{job_id}", monitorHandler.GetWorkspaceMonitorJob)
+
 	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
 	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
 	mux.HandleFunc("POST /api/v1/auth/logout", authHandler.Logout)
@@ -670,8 +709,10 @@ func main() {
 		"/auth/register",
 		"/auth/forgot-password",
 		"/auth/reset-password",
+		"/api/v1/ws/reports/",
+		"/v1/ws/reports/",
+		"/ws/reports/",
 	}
-
 	var revocationChecker httpinfra.TokenRevocationChecker
 	var rateLimiter httpinfra.RateLimiterBackend
 	if redisClient != nil {

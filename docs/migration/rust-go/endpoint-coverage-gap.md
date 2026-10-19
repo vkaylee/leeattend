@@ -4,8 +4,8 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 
 - Contract routes: **403**
 - Go route registrations: **408**
-- Contract routes covered: **370**
-- Contract routes missing: **33**
+- Contract routes covered: **382**
+- Contract routes missing: **21**
 
 ## Missing routes
 
@@ -24,23 +24,11 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | DELETE | `/api/v1/devices/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | PUT | `/api/v1/devices/{id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/devices/{id}/info` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/monitor/alerts` | SystemRoleType::PlatformAdmin OR SystemRoleType::Support |
-| GET | `/api/v1/monitor/alerts/{alert_id}` | SystemRoleType::PlatformAdmin OR SystemRoleType::Support |
-| POST | `/api/v1/monitor/alerts/{alert_id}/acknowledge` | SystemRoleType::PlatformAdmin |
-| POST | `/api/v1/monitor/alerts/{alert_id}/resolve` | SystemRoleType::PlatformAdmin |
-| GET | `/api/v1/monitor/correlations` | SystemRoleType::PlatformAdmin OR SystemRoleType::Support |
-| GET | `/api/v1/monitor/jobs` | SystemRoleType::PlatformAdmin OR SystemRoleType::Support |
-| GET | `/api/v1/monitor/overview` | SystemRoleType::PlatformAdmin OR SystemRoleType::Support |
-| GET | `/api/v1/monitor/stream` | SystemRoleType::PlatformAdmin OR SystemRoleType::Support |
 | GET | `/api/v1/workspaces/{ws_id}/approval-workflows/pending-tasks` | Permission::ApprovalWorkflowsRead |
 | POST | `/api/v1/workspaces/{ws_id}/attendance/adjustments/{id}/approve` | Permission::AttendanceAdjustmentsApprove |
 | POST | `/api/v1/workspaces/{ws_id}/attendance/reprocess-all` | Permission::AttendanceReprocess |
 | POST | `/api/v1/workspaces/{ws_id}/attendance/reprocess/{employee_id}` | Permission::AttendanceReprocess |
 | GET | `/api/v1/workspaces/{ws_id}/attendance/summaries` | CONDITIONAL — Permission::AttendanceSummariesRead via has_permission; handler-specific self/scope behavior |
-| GET | `/api/v1/workspaces/{ws_id}/audit-logs` | Permission::AuditLogsRead |
-| GET | `/api/v1/workspaces/{ws_id}/jobs/{job_id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/monitor/jobs/{job_id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | DELETE | `/api/v1/workspaces/{ws_id}/time/entries/{id}` | Permission::AttendanceLogsImport |
 | PUT | `/api/v1/workspaces/{ws_id}/time/entries/{id}` | Permission::AttendanceLogsImport |
 | GET | `/api/v1/ws` | NONE EVIDENCED — agent token/trusted-agent check; no resource:action permission |
-| GET | `/api/v1/ws/reports/{job_id}` | NONE EVIDENCED — JWT plus workspace membership; no resource:action permission |
