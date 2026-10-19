@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -87,21 +86,4 @@ func (r EmployeeRepository) RehireEmployee(ctx context.Context, workspaceID, emp
 	var record api.EmployeeRecord
 	err = db.QueryRow(ctx, `UPDATE employees SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND workspace_id = $2 RETURNING id, workspace_id, user_id, full_name, employee_id_number, tags, created_at, updated_at`, employeeID, workspaceID).Scan(&record.ID, &record.WorkspaceID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &record.CreatedAt, &record.UpdatedAt)
 	return record, err
-}
-
-func (r EmployeeRepository) PutCustomFields(ctx context.Context, workspaceID, employeeID uuid.UUID, req api.CustomFieldValuesRequest) error {
-	db, err := r.db(ctx, workspaceID)
-	if err != nil {
-		return err
-	}
-	for _, value := range req.Values {
-		command, execErr := db.Exec(ctx, `INSERT INTO custom_field_values (definition_id, entity_id, value_text) SELECT $1, $2, $3 WHERE EXISTS (SELECT 1 FROM custom_field_definitions WHERE id = $1 AND workspace_id = $4 AND entity_type = 'employee' AND deleted_at IS NULL) ON CONFLICT (definition_id, entity_id) DO UPDATE SET value_text = EXCLUDED.value_text, updated_at = CURRENT_TIMESTAMP`, value.FieldID, employeeID, value.Value, workspaceID)
-		if execErr != nil {
-			return fmt.Errorf("custom field %s: %w", value.FieldID, execErr)
-		}
-		if command.RowsAffected() == 0 {
-			return pgx.ErrNoRows
-		}
-	}
-	return nil
 }

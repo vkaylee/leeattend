@@ -23,9 +23,6 @@ func (m mockEmployeeRepo) SoftDeleteEmployee(_ context.Context, _, _ uuid.UUID) 
 func (m mockEmployeeRepo) RehireEmployee(_ context.Context, wsID uuid.UUID, empID uuid.UUID, _ RehireEmployeeRequest) (EmployeeRecord, error) {
 	return EmployeeRecord{ID: empID, WorkspaceID: wsID, FullName: "Rehired"}, nil
 }
-func (m mockEmployeeRepo) PutCustomFields(_ context.Context, _, _ uuid.UUID, _ CustomFieldValuesRequest) error {
-	return nil
-}
 
 func TestEmployeeHandler_ListRequiresPermission(t *testing.T) {
 	wsID := uuid.New()

@@ -48,20 +48,12 @@ type EmployeeListResponse struct {
 	Limit     int              `json:"limit"`
 	Truncated *bool            `json:"truncated"`
 }
-type CustomFieldValuesRequest struct {
-	Values []CustomFieldValue `json:"values"`
-}
-type CustomFieldValue struct {
-	FieldID uuid.UUID `json:"field_id"`
-	Value   string    `json:"value"`
-}
 
 type EmployeeRepository interface {
 	CreateEmployee(context.Context, uuid.UUID, CreateEmployeeRequest) (EmployeeRecord, error)
 	ListEmployees(context.Context, uuid.UUID, int, int, string) (EmployeeListResponse, error)
 	SoftDeleteEmployee(context.Context, uuid.UUID, uuid.UUID) error
 	RehireEmployee(context.Context, uuid.UUID, uuid.UUID, RehireEmployeeRequest) (EmployeeRecord, error)
-	PutCustomFields(context.Context, uuid.UUID, uuid.UUID, CustomFieldValuesRequest) error
 }
 
 type EmployeeAuthorizer interface {
@@ -142,26 +134,6 @@ func (h EmployeeHandler) Rehire(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, employee)
-}
-
-func (h EmployeeHandler) CustomFields(w http.ResponseWriter, r *http.Request) {
-	workspaceID, ok := pathUUID(r, "ws_id")
-	employeeID, employeeOK := pathUUID(r, "entity_id")
-	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !ok || !employeeOK || !userOK || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, workspaceID, "employees:update") {
-		h.forbidden(w, r)
-		return
-	}
-	request, err := DecodeJSON[CustomFieldValuesRequest](r, 1<<20)
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if err := h.Repository.PutCustomFields(r.Context(), workspaceID, employeeID, request); err != nil {
-		h.writeError(w, r, err)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func (h EmployeeHandler) allowed(r *http.Request, workspaceID uuid.UUID, permission string) bool {

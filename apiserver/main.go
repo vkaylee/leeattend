@@ -157,7 +157,15 @@ func main() {
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees", employeeHandler.List)
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/employees/{id}", employeeHandler.Delete)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{id}/rehire", employeeHandler.Rehire)
-	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/custom-fields/values/employee/{entity_id}", employeeHandler.CustomFields)
+	customFieldRepo := repository.CustomFieldRepository{TenantDB: workspaceRepo.TenantDB}
+	customFieldHandler := api.CustomFieldHandler{Repository: customFieldRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/custom-fields/definitions", customFieldHandler.ListDefinitions)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/custom-fields/definitions", customFieldHandler.CreateDefinition)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/custom-fields/definitions/{id}", customFieldHandler.GetDefinition)
+	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/custom-fields/definitions/{id}", customFieldHandler.UpdateDefinition)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/custom-fields/definitions/{id}", customFieldHandler.DeleteDefinition)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/custom-fields/values/{entity_type}/{entity_id}", customFieldHandler.GetValues)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/custom-fields/values/{entity_type}/{entity_id}", customFieldHandler.SetValues)
 	leaveRepo := repository.LeaveRepository{TenantDB: workspaceRepo.TenantDB}
 	leaveHandler := api.LeaveHandler{Repository: leaveRepo, Authorizer: workspaceAuthorizer}
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/leave/types", leaveHandler.ListTypes)

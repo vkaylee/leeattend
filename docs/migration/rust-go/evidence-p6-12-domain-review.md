@@ -7,11 +7,11 @@ Status: in-progress. Measured coverage contradicts a completion claim; this file
 Source of truth: `endpoint-matrix.csv` (403 contract routes) compared against the Go route table in `apiserver/main.go`, normalized per path shape. Script: `scratch/endpoint_coverage.py`. Full gap list: `endpoint-coverage-gap.md`.
 
 - Contract routes: **403**
-- Go route registrations: **100**
-- Contract routes covered: **83**
-- Contract routes missing: **320**
+- Go route registrations: **106**
+- Contract routes covered: **90**
+- Contract routes missing: **313**
 
-Missing by method: GET 149, POST 88, DELETE 43, PUT 24, PATCH 16.
+Missing by method: GET 146, POST 87, DELETE 42, PUT 23, PATCH 15.
 
 ## Domain Slices Implemented So Far
 
@@ -19,7 +19,7 @@ Missing by method: GET 149, POST 88, DELETE 43, PUT 24, PATCH 16.
 |---|---|---|---|
 | P6-01 | Auth / Token | login, refresh, logout, `/me` | `evidence-p6-01-auth.md` |
 | P6-02 | Workspaces & Settings | create, patch, roles, feature flags, configs | `evidence-p6-02-p6-03.md` |
-| P6-03 | Employees & Custom Fields | create, list, delete, rehire, custom fields | `evidence-p6-02-p6-03.md` |
+| P6-03 | Employees & Custom Fields | create, list, delete, rehire, custom-field definitions CRUD, entity values GET/PUT | `evidence-p6-03-custom-fields.md` |
 | P6-04 | Attendance & Time | punch in/out, history, adjustments, approval | `evidence-p6-04-attendance.md` |
 | P6-05 | Shifts & Rosters | shifts, patterns, rosters, swaps, segments | `evidence-p6-05-shifts.md` |
 | P6-06 | Leave & ESS | leave types, submit, approve, balances, ESS profile/contacts, workflows | `evidence-p6-06-leaves.md` |

@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **100**
-- Contract routes covered: **83**
-- Contract routes missing: **320**
+- Go route registrations: **106**
+- Contract routes covered: **90**
+- Contract routes missing: **313**
 
 ## Missing routes
 
@@ -133,13 +133,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | DELETE | `/api/v1/workspaces/{ws_id}/configs/{key}` | Permission::WorkspaceSettingsWrite |
 | GET | `/api/v1/workspaces/{ws_id}/configs/{key}` | Permission::WorkspaceSettingsRead |
 | GET | `/api/v1/workspaces/{ws_id}/contracts` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/custom-fields/definitions` | Permission::WorkspaceSettingsRead |
-| POST | `/api/v1/workspaces/{ws_id}/custom-fields/definitions` | Permission::WorkspaceSettingsWrite |
-| DELETE | `/api/v1/workspaces/{ws_id}/custom-fields/definitions/{id}` | Permission::WorkspaceSettingsWrite |
-| GET | `/api/v1/workspaces/{ws_id}/custom-fields/definitions/{id}` | Permission::WorkspaceSettingsRead |
-| PATCH | `/api/v1/workspaces/{ws_id}/custom-fields/definitions/{id}` | Permission::WorkspaceSettingsWrite |
-| GET | `/api/v1/workspaces/{ws_id}/custom-fields/values/{entity_type}/{entity_id}` | Permission::EmployeesRead for employee/employment | Permission::DepartmentsRead for department |
-| PUT | `/api/v1/workspaces/{ws_id}/custom-fields/values/{entity_type}/{entity_id}` | Permission::EmployeesUpdate for employee/employment | Permission::DepartmentsUpdate for department |
 | GET | `/api/v1/workspaces/{ws_id}/departments` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/departments` | Permission::DepartmentsCreate |
 | DELETE | `/api/v1/workspaces/{ws_id}/departments/{id}` | Permission::DepartmentsDelete |
