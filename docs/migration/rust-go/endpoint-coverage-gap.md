@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **210**
-- Contract routes covered: **187**
-- Contract routes missing: **216**
+- Go route registrations: **221**
+- Contract routes covered: **198**
+- Contract routes missing: **205**
 
 ## Missing routes
 
@@ -96,7 +96,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | GET | `/api/v1/workspaces/{ws_id}/attendance/summaries` | CONDITIONAL — Permission::AttendanceSummariesRead via has_permission; handler-specific self/scope behavior |
 | POST | `/api/v1/workspaces/{ws_id}/attendance/upload` | Permission::AttendanceLogsImport |
 | GET | `/api/v1/workspaces/{ws_id}/audit-logs` | Permission::AuditLogsRead |
-| GET | `/api/v1/workspaces/{ws_id}/contracts` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/documents/distributions` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/documents/folders` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/documents/folders` | NONE EVIDENCED — context extractor only; no permission guard |
@@ -114,16 +113,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | DELETE | `/api/v1/workspaces/{ws_id}/employees/{employee_id}/assignments/{assignment_id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/employees/{employee_id}/assignments/{assignment_id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | PATCH | `/api/v1/workspaces/{ws_id}/employees/{employee_id}/assignments/{assignment_id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts` | NONE EVIDENCED — context extractor only; no permission guard |
-| DELETE | `/api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts/{contract_id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts/{contract_id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| PATCH | `/api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts/{contract_id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/employees/{employee_id}/employments` | NONE EVIDENCED — context extractor only; no permission guard |
-| POST | `/api/v1/workspaces/{ws_id}/employees/{employee_id}/employments` | NONE EVIDENCED — context extractor only; no permission guard |
-| DELETE | `/api/v1/workspaces/{ws_id}/employees/{employee_id}/employments/{employment_id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| GET | `/api/v1/workspaces/{ws_id}/employees/{employee_id}/employments/{employment_id}` | NONE EVIDENCED — context extractor only; no permission guard |
-| PATCH | `/api/v1/workspaces/{ws_id}/employees/{employee_id}/employments/{employment_id}` | NONE EVIDENCED — context extractor only; no permission guard |
 | POST | `/api/v1/workspaces/{ws_id}/employees/{id}/calculate-payroll` | Permission::PayrollCalculate |
 | POST | `/api/v1/workspaces/{ws_id}/employees/{id}/leave/adjust` | Permission::LeaveBalancesAdjust |
 | GET | `/api/v1/workspaces/{ws_id}/employees/{id}/leave/history` | Permission::LeaveBalancesRead |

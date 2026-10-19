@@ -251,6 +251,20 @@ func main() {
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{id}/compensation-history", compensationHistoryHandler.Get)
 	customFieldRepo := repository.CustomFieldRepository{TenantDB: workspaceRepo.TenantDB}
 	customFieldHandler := api.CustomFieldHandler{Repository: customFieldRepo, Authorizer: workspaceAuthorizer}
+	contractRepo := repository.ContractRepository{TenantDB: workspaceRepo.TenantDB}
+	employmentRepo := repository.EmploymentRepository{TenantDB: workspaceRepo.TenantDB}
+	contractEmploymentHandler := api.ContractEmploymentHandler{Contracts: contractRepo, Employments: employmentRepo, CustomFields: customFieldRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/contracts", contractEmploymentHandler.ListWorkspaceContracts)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts", contractEmploymentHandler.ListEmployeeContracts)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts", contractEmploymentHandler.CreateContract)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts/{contract_id}", contractEmploymentHandler.GetContract)
+	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts/{contract_id}", contractEmploymentHandler.UpdateContract)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts/{contract_id}", contractEmploymentHandler.DeleteContract)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{employee_id}/employments", contractEmploymentHandler.ListEmployments)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{employee_id}/employments", contractEmploymentHandler.CreateEmployment)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{employee_id}/employments/{employment_id}", contractEmploymentHandler.GetEmployment)
+	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/employees/{employee_id}/employments/{employment_id}", contractEmploymentHandler.UpdateEmployment)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/employees/{employee_id}/employments/{employment_id}", contractEmploymentHandler.DeleteEmployment)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/custom-fields/definitions", customFieldHandler.ListDefinitions)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/custom-fields/definitions", customFieldHandler.CreateDefinition)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/custom-fields/definitions/{id}", customFieldHandler.GetDefinition)
