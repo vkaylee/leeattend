@@ -178,6 +178,16 @@ func main() {
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/approval-workflows", workflowHandler.Create)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/approval-workflows/approve", workflowHandler.Process)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/approval-workflows/history/{type}/{id}", workflowHandler.History)
+	notifRepo := repository.NotificationRepository{SystemDB: workspaceRepo.SystemDB}
+	notifHandler := api.NotificationHandler{Repository: notifRepo}
+	mux.HandleFunc("GET /v1/notifications", notifHandler.List)
+	mux.HandleFunc("GET /v1/notifications/unread-count", notifHandler.UnreadCount)
+	mux.HandleFunc("PATCH /v1/notifications/{id}/read", notifHandler.MarkRead)
+	mux.HandleFunc("POST /v1/notifications/read-all", notifHandler.MarkAllRead)
+	mux.HandleFunc("GET /api/v1/notifications", notifHandler.List)
+	mux.HandleFunc("GET /api/v1/notifications/unread-count", notifHandler.UnreadCount)
+	mux.HandleFunc("PATCH /api/v1/notifications/{id}/read", notifHandler.MarkRead)
+	mux.HandleFunc("POST /api/v1/notifications/read-all", notifHandler.MarkAllRead)
 
 	mux.HandleFunc("GET /api/v1/health", healthHandler.Liveness)
 
