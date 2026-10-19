@@ -157,6 +157,14 @@ func main() {
 	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/employees/{id}", employeeHandler.Delete)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/employees/{id}/rehire", employeeHandler.Rehire)
 	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/custom-fields/values/employee/{entity_id}", employeeHandler.CustomFields)
+	leaveRepo := repository.LeaveRepository{TenantDB: workspaceRepo.TenantDB}
+	leaveHandler := api.LeaveHandler{Repository: leaveRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/leave/types", leaveHandler.ListTypes)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/leave/types", leaveHandler.CreateType)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/leave/submit", leaveHandler.Submit)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/leave/requests", leaveHandler.ListRequests)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/leave/requests/{id}/approve", leaveHandler.Approve)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{id}/leave/balances", leaveHandler.Balances)
 
 	mux.HandleFunc("GET /api/v1/health", healthHandler.Liveness)
 
