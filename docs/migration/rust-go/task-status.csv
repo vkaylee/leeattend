@@ -66,7 +66,7 @@ P6-01,Backend Lead,in-progress,Auth/session/token domain,"P4-10, P5-05",`docs/mi
 P6-02,Backend Lead,in-progress,Workspaces/settings/feature flags/permissions domain,"P6-01, P5-02",`docs/migration/rust-go/evidence-p6-02-p6-03.md`,Parallel Go implementation; Rust API remains untouched and operational.
 P6-03,Backend Lead,in-progress,Employees/employments/assignments/custom fields domain,"P6-02, P5-02",`docs/migration/rust-go/evidence-p6-02-p6-03.md`,Parallel Go implementation; Rust API remains untouched and operational.
 P6-04,Backend Lead,in-progress,Attendance/time tracking domain orchestration,"P6-03, P5-08",`docs/migration/rust-go/evidence-p6-04-attendance.md`,Parallel Go implementation; Rust API remains untouched and operational.
-P6-05,Backend Lead,in-progress,Shifts/roster/pattern/compliance domain,"P6-03, P6-04",`docs/migration/rust-go/evidence-p6-05-shifts.md`,Parallel Go implementation; Rust API remains untouched and operational.
+P6-05,Backend Lead,implemented,Shifts/roster/pattern/compliance domain,"P6-03, P6-04",`docs/migration/rust-go/evidence-p6-05-shifts.md`,Parallel Go implementation; Rust API remains untouched and operational.
 P6-06,Backend Lead,not-started,Leave/ESS/approvals domain,"P6-03, P5-07",pending,Parallel Go implementation; Rust API remains untouched and operational.
 P6-07,Backend Lead,not-started,Notifications/domain delivery domain,"P5-06, P5-07",pending,Parallel Go implementation; Rust API remains untouched and operational.
 P6-08,Backend Lead,not-started,Payroll/work buckets/domain calculations,"P6-04, P6-05, P6-06",pending,Parallel Go implementation; Rust API remains untouched and operational.

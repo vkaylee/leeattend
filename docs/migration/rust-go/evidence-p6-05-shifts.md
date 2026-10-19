@@ -78,7 +78,20 @@ Status: in progress; Shift Template Core Slice and initial shift assignment/comp
 - `internal/api/rosters_test.go`:
   - Unit tests covering bulk duplicate rejection, 202 accepted response for bulk, and 200 confirmed response for single upsert.
 
+## Shift swap workflow slice
+
+- `internal/api/shift_swaps.go`:
+  - Typed status/request/response/stat DTOs.
+  - `POST`, `GET`, `PUT .../{id}/approve`, and `GET .../stats` workspace routes with `shift_swaps:manage` and `shift_swaps:approve` checks.
+  - Validation rejects self-swaps, malformed dates, unsupported status filters, and approval statuses other than `approved`/`rejected`.
+- `internal/repository/shift_swaps.go`:
+  - Transactional creation validates active employees, duplicate active requests, approved-date conflicts, and same-shift requests.
+  - Workspace listing batch-loads employee and shift names; no per-row name query.
+  - Approval updates status and atomically writes both roster assignments in one transaction.
+  - Stats query preserves pending/approved/rejected/cancelled and current-month counters.
+- `internal/api/shift_swaps_test.go`:
+  - Permission denial, self-swap validation, successful create, invalid approval status, and stats response coverage.
+
 ## Remaining P6-05 scope
 
 - Pattern compliance pre-check for date-expanded pattern assignments.
-- Shift swap workflows (`shift_swap_requests`).
