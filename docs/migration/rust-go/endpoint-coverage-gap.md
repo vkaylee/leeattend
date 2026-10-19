@@ -3,9 +3,9 @@
 Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route table.
 
 - Contract routes: **403**
-- Go route registrations: **149**
-- Contract routes covered: **126**
-- Contract routes missing: **277**
+- Go route registrations: **152**
+- Contract routes covered: **129**
+- Contract routes missing: **274**
 
 ## Missing routes
 
@@ -76,9 +76,6 @@ Generated from `endpoint-matrix.csv` compared with `apiserver/main.go` route tab
 | POST | `/api/v1/system/users/{user_id}/roles` | SystemRoleType::PlatformAdmin |
 | DELETE | `/api/v1/system/users/{user_id}/roles/{role_name}` | SystemRoleType::PlatformAdmin |
 | GET | `/api/v1/workspaces/{ws_id}/approval-workflows/pending-tasks` | Permission::ApprovalWorkflowsRead |
-| DELETE | `/api/v1/workspaces/{ws_id}/approval-workflows/{id}` | Permission::ApprovalWorkflowsManage |
-| GET | `/api/v1/workspaces/{ws_id}/approval-workflows/{id}` | Permission::ApprovalWorkflowsRead |
-| PUT | `/api/v1/workspaces/{ws_id}/approval-workflows/{id}` | Permission::ApprovalWorkflowsManage |
 | GET | `/api/v1/workspaces/{ws_id}/assignment-history` | NONE EVIDENCED — context extractor only; no permission guard |
 | GET | `/api/v1/workspaces/{ws_id}/assignment-rules` | Permission::AssignmentRulesManage |
 | POST | `/api/v1/workspaces/{ws_id}/assignment-rules` | Permission::AssignmentRulesManage |

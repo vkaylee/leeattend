@@ -18,8 +18,12 @@ type mockApprovalWorkflowRepository struct {
 	processErr   error
 	listErr      error
 	historyErr   error
+	getErr       error
+	updateErr    error
+	deleteErr    error
 	createCalls  int
 	processCalls int
+	updateCalls  int
 }
 
 func (m *mockApprovalWorkflowRepository) ListWorkflows(context.Context, uuid.UUID, *string, int, int) (ApprovalWorkflowListResponse, error) {
@@ -28,6 +32,23 @@ func (m *mockApprovalWorkflowRepository) ListWorkflows(context.Context, uuid.UUI
 func (m *mockApprovalWorkflowRepository) CreateWorkflow(_ context.Context, wsID, creatorID uuid.UUID, req CreateWorkflowRequest) (ApprovalWorkflowRecord, error) {
 	m.createCalls++
 	return ApprovalWorkflowRecord{ID: uuid.New(), WorkspaceID: wsID, EntityType: req.EntityType, Name: req.Name, TotalSteps: len(req.Steps), IsActive: req.IsActive}, m.createErr
+}
+func (m *mockApprovalWorkflowRepository) GetWorkflow(_ context.Context, wsID, id uuid.UUID) (ApprovalWorkflowRecord, error) {
+	if m.getErr != nil {
+		return ApprovalWorkflowRecord{}, m.getErr
+	}
+	return ApprovalWorkflowRecord{ID: id, WorkspaceID: wsID, Name: "Workflow", Steps: []WorkflowStepRecord{}}, nil
+}
+func (m *mockApprovalWorkflowRepository) UpdateWorkflow(_ context.Context, wsID, id uuid.UUID, req UpdateWorkflowRequest) (ApprovalWorkflowRecord, error) {
+	m.updateCalls++
+	name := "Workflow"
+	if req.Name != nil {
+		name = *req.Name
+	}
+	return ApprovalWorkflowRecord{ID: id, WorkspaceID: wsID, Name: name, Steps: []WorkflowStepRecord{}}, m.updateErr
+}
+func (m *mockApprovalWorkflowRepository) DeleteWorkflow(context.Context, uuid.UUID, uuid.UUID) error {
+	return m.deleteErr
 }
 func (m *mockApprovalWorkflowRepository) ProcessApproval(context.Context, uuid.UUID, uuid.UUID, ProcessApprovalRequest) error {
 	m.processCalls++
@@ -102,5 +123,42 @@ func TestApprovalWorkflowHistorySuccess(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), "approved") {
 		t.Fatalf("history response missing action: %s", rec.Body.String())
+	}
+}
+
+func TestApprovalWorkflowGetSuccess(t *testing.T) {
+	wsID, workflowID := uuid.New(), uuid.New()
+	handler := ApprovalWorkflowHandler{Repository: &mockApprovalWorkflowRepository{}, Authorizer: mockAuthorizer{perms: map[string]bool{"approval_workflows:read": true}}}
+	req := approvalRequest(t, http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/approval-workflows/"+workflowID.String(), "", wsID)
+	req.SetPathValue("id", workflowID.String())
+	rec := httptest.NewRecorder()
+	handler.Get(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestApprovalWorkflowUpdateSuccess(t *testing.T) {
+	wsID, workflowID := uuid.New(), uuid.New()
+	repo := &mockApprovalWorkflowRepository{}
+	handler := ApprovalWorkflowHandler{Repository: repo, Authorizer: mockAuthorizer{perms: map[string]bool{"approval_workflows:manage": true}}}
+	req := approvalRequest(t, http.MethodPut, "/api/v1/workspaces/"+wsID.String()+"/approval-workflows/"+workflowID.String(), `{"name":"Updated"}`, wsID)
+	req.SetPathValue("id", workflowID.String())
+	rec := httptest.NewRecorder()
+	handler.Update(rec, req)
+	if rec.Code != http.StatusOK || repo.updateCalls != 1 {
+		t.Fatalf("expected update 200 and one call, got %d calls=%d", rec.Code, repo.updateCalls)
+	}
+}
+
+func TestApprovalWorkflowDeleteSuccess(t *testing.T) {
+	wsID, workflowID := uuid.New(), uuid.New()
+	handler := ApprovalWorkflowHandler{Repository: &mockApprovalWorkflowRepository{}, Authorizer: mockAuthorizer{perms: map[string]bool{"approval_workflows:manage": true}}}
+	req := approvalRequest(t, http.MethodDelete, "/api/v1/workspaces/"+wsID.String()+"/approval-workflows/"+workflowID.String(), "", wsID)
+	req.SetPathValue("id", workflowID.String())
+	rec := httptest.NewRecorder()
+	handler.Delete(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
 	}
 }

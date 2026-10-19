@@ -98,6 +98,9 @@ type ApprovalActionLogRecord struct {
 type ApprovalWorkflowRepository interface {
 	ListWorkflows(context.Context, uuid.UUID, *string, int, int) (ApprovalWorkflowListResponse, error)
 	CreateWorkflow(context.Context, uuid.UUID, uuid.UUID, CreateWorkflowRequest) (ApprovalWorkflowRecord, error)
+	GetWorkflow(context.Context, uuid.UUID, uuid.UUID) (ApprovalWorkflowRecord, error)
+	UpdateWorkflow(context.Context, uuid.UUID, uuid.UUID, UpdateWorkflowRequest) (ApprovalWorkflowRecord, error)
+	DeleteWorkflow(context.Context, uuid.UUID, uuid.UUID) error
 	ProcessApproval(context.Context, uuid.UUID, uuid.UUID, ProcessApprovalRequest) error
 	ListHistory(context.Context, uuid.UUID, string, uuid.UUID) ([]ApprovalActionLogRecord, error)
 }
@@ -148,6 +151,55 @@ func (h ApprovalWorkflowHandler) Create(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	apperror.WriteJSON(w, http.StatusCreated, workflow)
+}
+
+func (h ApprovalWorkflowHandler) Get(w http.ResponseWriter, r *http.Request) {
+	wsID, ok := pathUUID(r, "ws_id")
+	id, idOK := pathUUID(r, "id")
+	if !ok || !idOK || !h.allowed(r, wsID, "approval_workflows:read") {
+		h.forbidden(w, r)
+		return
+	}
+	workflow, err := h.Repository.GetWorkflow(r.Context(), wsID, id)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, workflow)
+}
+
+func (h ApprovalWorkflowHandler) Update(w http.ResponseWriter, r *http.Request) {
+	wsID, ok := pathUUID(r, "ws_id")
+	id, idOK := pathUUID(r, "id")
+	if !ok || !idOK || !h.allowed(r, wsID, "approval_workflows:manage") {
+		h.forbidden(w, r)
+		return
+	}
+	req, err := DecodeJSON[UpdateWorkflowRequest](r, 1<<20)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	workflow, err := h.Repository.UpdateWorkflow(r.Context(), wsID, id, req)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, workflow)
+}
+
+func (h ApprovalWorkflowHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	wsID, ok := pathUUID(r, "ws_id")
+	id, idOK := pathUUID(r, "id")
+	if !ok || !idOK || !h.allowed(r, wsID, "approval_workflows:manage") {
+		h.forbidden(w, r)
+		return
+	}
+	if err := h.Repository.DeleteWorkflow(r.Context(), wsID, id); err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h ApprovalWorkflowHandler) Process(w http.ResponseWriter, r *http.Request) {

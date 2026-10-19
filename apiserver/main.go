@@ -212,6 +212,9 @@ func main() {
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/approval-workflows", workflowHandler.Create)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/approval-workflows/approve", workflowHandler.Process)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/approval-workflows/history/{type}/{id}", workflowHandler.History)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/approval-workflows/{id}", workflowHandler.Get)
+	mux.HandleFunc("PUT /api/v1/workspaces/{ws_id}/approval-workflows/{id}", workflowHandler.Update)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/approval-workflows/{id}", workflowHandler.Delete)
 	notifRepo := repository.NotificationRepository{SystemDB: workspaceRepo.SystemDB}
 	notifHandler := api.NotificationHandler{Repository: notifRepo}
 	mux.HandleFunc("GET /v1/notifications", notifHandler.List)

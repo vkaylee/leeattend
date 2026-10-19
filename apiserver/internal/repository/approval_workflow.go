@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -120,6 +122,88 @@ func (r ApprovalWorkflowRepository) CreateWorkflow(ctx context.Context, workspac
 		return api.ApprovalWorkflowRecord{}, err
 	}
 	return result, nil
+}
+
+func (r ApprovalWorkflowRepository) GetWorkflow(ctx context.Context, workspaceID, workflowID uuid.UUID) (api.ApprovalWorkflowRecord, error) {
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return api.ApprovalWorkflowRecord{}, err
+	}
+	var item api.ApprovalWorkflowRecord
+	var createdAt, updatedAt time.Time
+	err = db.QueryRow(ctx, `SELECT id, workspace_id, entity_type, name, description, total_steps, is_active, created_by, created_at, updated_at FROM approval_workflows WHERE id = $1 AND workspace_id = $2`, workflowID, workspaceID).
+		Scan(&item.ID, &item.WorkspaceID, &item.EntityType, &item.Name, &item.Description, &item.TotalSteps, &item.IsActive, &item.CreatedBy, &createdAt, &updatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return api.ApprovalWorkflowRecord{}, api.ErrWorkflowNotFound
+		}
+		return api.ApprovalWorkflowRecord{}, err
+	}
+	item.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+	item.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
+	rows, err := db.Query(ctx, `SELECT id, workflow_id, step_order, step_name, approver_type, approver_config, action_required, can_skip FROM approval_workflow_steps WHERE workflow_id = $1 ORDER BY step_order ASC`, workflowID)
+	if err != nil {
+		return api.ApprovalWorkflowRecord{}, err
+	}
+	defer rows.Close()
+	item.Steps = make([]api.WorkflowStepRecord, 0)
+	for rows.Next() {
+		var step api.WorkflowStepRecord
+		if err := rows.Scan(&step.ID, &step.WorkflowID, &step.StepOrder, &step.StepName, &step.ApproverType, &step.ApproverConfig, &step.ActionRequired, &step.CanSkip); err != nil {
+			return api.ApprovalWorkflowRecord{}, err
+		}
+		item.Steps = append(item.Steps, step)
+	}
+	if err := rows.Err(); err != nil {
+		return api.ApprovalWorkflowRecord{}, err
+	}
+	return item, nil
+}
+
+func (r ApprovalWorkflowRepository) UpdateWorkflow(ctx context.Context, workspaceID, workflowID uuid.UUID, req api.UpdateWorkflowRequest) (api.ApprovalWorkflowRecord, error) {
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return api.ApprovalWorkflowRecord{}, err
+	}
+	sets := []string{"updated_at = CURRENT_TIMESTAMP"}
+	args := []any{}
+	add := func(column string, value any) {
+		args = append(args, value)
+		sets = append(sets, fmt.Sprintf("%s = $%d", column, len(args)))
+	}
+	if req.Name != nil {
+		add("name", *req.Name)
+	}
+	if req.Description != nil {
+		add("description", *req.Description)
+	}
+	if req.IsActive != nil {
+		add("is_active", *req.IsActive)
+	}
+	args = append(args, workflowID, workspaceID)
+	tag, err := db.Exec(ctx, fmt.Sprintf(`UPDATE approval_workflows SET %s WHERE id = $%d AND workspace_id = $%d`, strings.Join(sets, ", "), len(args)-1, len(args)), args...)
+	if err != nil {
+		return api.ApprovalWorkflowRecord{}, err
+	}
+	if tag.RowsAffected() == 0 {
+		return api.ApprovalWorkflowRecord{}, api.ErrWorkflowNotFound
+	}
+	return r.GetWorkflow(ctx, workspaceID, workflowID)
+}
+
+func (r ApprovalWorkflowRepository) DeleteWorkflow(ctx context.Context, workspaceID, workflowID uuid.UUID) error {
+	db, err := r.db(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	tag, err := db.Exec(ctx, `DELETE FROM approval_workflows WHERE id = $1 AND workspace_id = $2`, workflowID, workspaceID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return api.ErrWorkflowNotFound
+	}
+	return nil
 }
 
 func (r ApprovalWorkflowRepository) ProcessApproval(ctx context.Context, workspaceID, actorID uuid.UUID, req api.ProcessApprovalRequest) error {
