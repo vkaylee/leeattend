@@ -8,6 +8,7 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/app"
 	"github.com/vkaylee/leeattend/apiserver/internal/config"
 	dbpool "github.com/vkaylee/leeattend/apiserver/internal/db/pool"
+	"github.com/vkaylee/leeattend/apiserver/internal/infra/external"
 	"github.com/vkaylee/leeattend/apiserver/internal/infra/health"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 	redisinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/redis"
@@ -192,6 +193,38 @@ func main() {
 	payrollHandler := api.PayrollHandler{Repository: payrollRepo, Authorizer: workspaceAuthorizer}
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/payroll/payslips", payrollHandler.ListWorkspace)
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/employees/{employee_id}/payslips", payrollHandler.ListEmployee)
+	reportRepo := repository.ReportRepository{TenantDB: workspaceRepo.TenantDB}
+	reportQueue := &repository.RedisReportQueue{Client: redisClient, TenantDB: workspaceRepo.TenantDB}
+	reportHandler := api.ReportHandler{Repository: reportRepo, Queue: reportQueue, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/reports/export", reportHandler.CreateExport)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/reports/jobs/{job_id}", reportHandler.Status)
+	fileRepo := repository.FileRepository{TenantDB: workspaceRepo.TenantDB}
+	var fileStorage api.FileStorage
+	if s3Client, err := external.NewS3Client(cfg.S3EndpointURL, cfg.S3BucketName, cfg.S3AccessKey.Expose(), cfg.S3SecretKey.Expose(), cfg.S3Region, cfg.S3UsePathStyle, nil); err == nil {
+		fileStorage = s3Client
+	}
+	fileHandler := api.FileHandler{Repository: fileRepo, Storage: fileStorage, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("POST /v1/workspaces/{ws_id}/files/presigned", fileHandler.CreateUploadURL)
+	mux.HandleFunc("GET /v1/workspaces/{ws_id}/files/{id}", fileHandler.GetMetadata)
+	mux.HandleFunc("GET /v1/workspaces/{ws_id}/files/{id}/url", fileHandler.GetURL)
+	mux.HandleFunc("DELETE /v1/workspaces/{ws_id}/files/{id}", fileHandler.DeleteFile)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/files/presigned", fileHandler.CreateUploadURL)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/files/{id}", fileHandler.GetMetadata)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/files/{id}/url", fileHandler.GetURL)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/files/{id}", fileHandler.DeleteFile)
+	mux.HandleFunc("POST /v1/workspaces/{ws_id}/documents/{document_id}/signature-requests", fileHandler.CreateSignatureRequest)
+	mux.HandleFunc("GET /v1/ess/workspaces/{ws_id}/signatures/pending", fileHandler.ListPendingSignatures)
+	mux.HandleFunc("POST /v1/ess/workspaces/{ws_id}/signatures/{request_id}/sign", fileHandler.SignDocument)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/documents/{document_id}/signature-requests", fileHandler.CreateSignatureRequest)
+	mux.HandleFunc("GET /api/v1/ess/workspaces/{ws_id}/signatures/pending", fileHandler.ListPendingSignatures)
+	mux.HandleFunc("POST /api/v1/ess/workspaces/{ws_id}/signatures/{request_id}/sign", fileHandler.SignDocument)
+	conditionRepo := repository.ConditionTypeRepository{TenantDB: workspaceRepo.TenantDB}
+	conditionHandler := api.ConditionTypeHandler{Repository: conditionRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/condition-types", conditionHandler.List)
+	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/condition-types/{id}", conditionHandler.Get)
+	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/condition-types", conditionHandler.Create)
+	mux.HandleFunc("PATCH /api/v1/workspaces/{ws_id}/condition-types/{id}", conditionHandler.Update)
+	mux.HandleFunc("DELETE /api/v1/workspaces/{ws_id}/condition-types/{id}", conditionHandler.Delete)
 
 	mux.HandleFunc("GET /api/v1/health", healthHandler.Liveness)
 

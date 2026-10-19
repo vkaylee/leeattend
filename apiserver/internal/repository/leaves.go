@@ -52,9 +52,9 @@ func (r LeaveRepository) CreateLeaveType(ctx context.Context, workspaceID uuid.U
 	if req.IsPaid != nil {
 		isPaid = *req.IsPaid
 	}
-	policyConfigJSON, err := json.Marshal(req.PolicyConfig)
-	if err != nil {
-		policyConfigJSON = []byte("{}")
+	policyConfigJSON := req.PolicyConfig
+	if len(policyConfigJSON) == 0 {
+		policyConfigJSON = json.RawMessage(`{}`)
 	}
 	var record api.LeaveTypeRecord
 	var rawConfig []byte
@@ -67,8 +67,7 @@ func (r LeaveRepository) CreateLeaveType(ctx context.Context, workspaceID uuid.U
 		return api.LeaveTypeRecord{}, err
 	}
 	record.CreatedAt = createdAt.UTC().Format(time.RFC3339)
-	record.PolicyConfig = make(map[string]any)
-	_ = json.Unmarshal(rawConfig, &record.PolicyConfig)
+	record.PolicyConfig = json.RawMessage(rawConfig)
 	return record, nil
 }
 
@@ -91,8 +90,7 @@ func (r LeaveRepository) ListLeaveTypes(ctx context.Context, workspaceID uuid.UU
 			return nil, err
 		}
 		item.CreatedAt = createdAt.UTC().Format(time.RFC3339)
-		item.PolicyConfig = make(map[string]any)
-		_ = json.Unmarshal(rawConfig, &item.PolicyConfig)
+		item.PolicyConfig = json.RawMessage(rawConfig)
 		types = append(types, item)
 	}
 	return types, rows.Err()

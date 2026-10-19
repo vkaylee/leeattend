@@ -70,10 +70,10 @@ P6-05,Backend Lead,implemented,Shifts/roster/pattern/compliance domain,"P6-03, P
 P6-06,Backend Lead,in-progress,Leave/ESS/approvals domain,"P6-03, P5-07",`docs/migration/rust-go/evidence-p6-06-leaves.md`,Parallel Go implementation; Rust API remains untouched and operational.
 P6-07,Backend Lead,in-progress,Notifications/domain delivery domain,"P5-06, P5-07",`docs/migration/rust-go/evidence-p6-07-notifications.md`,Parallel Go implementation; Rust API remains untouched and operational.
 P6-08,Backend Lead,in-progress,Payroll/work buckets/domain calculations,"P6-04, P6-05, P6-06",`docs/migration/rust-go/evidence-p6-08-payroll.md`,Parallel Go implementation; Rust API remains untouched and operational.
-P6-09,Backend Lead,not-started,Reports/dashboard/analytics domain,P6-03 through P6-08,pending,Parallel Go implementation; Rust API remains untouched and operational.
-P6-10,Backend Lead,not-started,Files/documents/e-signature domain,"P5-06, P5-09",pending,Parallel Go implementation; Rust API remains untouched and operational.
-P6-11,Backend Lead,not-started,Lifecycle/condition types/system/admin domain,"P6-02, P5-05",pending,Parallel Go implementation; Rust API remains untouched and operational.
-P6-12,Backend Lead,not-started,Domain completion review,P6-01 through P6-11,pending,Parallel Go implementation; Rust API remains untouched and operational.
+P6-09,Backend Lead,in-progress,Reports/dashboard/analytics domain,P6-03 through P6-08,`docs/migration/rust-go/evidence-p6-09-reports.md`,Parallel Go implementation; Rust API remains untouched and operational.
+P6-10,Backend Lead,in-progress,Files/documents/e-signature domain,"P5-06, P5-09",`docs/migration/rust-go/evidence-p6-10-files.md`,Parallel Go implementation; Rust API remains untouched and operational.
+P6-11,Backend Lead,in-progress,Lifecycle/condition types/system/admin domain,"P6-02, P5-05",`docs/migration/rust-go/evidence-p6-11-condition-types.md`,Parallel Go implementation; Rust API remains untouched and operational.
+P6-12,Backend Lead,in-progress,Domain completion review,P6-01 through P6-11,`docs/migration/rust-go/evidence-p6-12-domain-review.md`,Parallel Go implementation; Rust API remains untouched and operational.
 P7-01,Backend Lead,not-started,Run all fixture requests against Rust and Go with response normalization,P6-12,pending,Parallel Go implementation; Rust API remains untouched and operational.
 P7-02,Backend Lead,not-started,Compare database mutations and rollback state after every mutating fixture,P7-01,pending,Parallel Go implementation; Rust API remains untouched and operational.
 P7-03,Backend Lead,not-started,"Compare Redis keys, values, TTLs, locks, invalidation, and rate-limit state",P7-01,pending,Parallel Go implementation; Rust API remains untouched and operational.

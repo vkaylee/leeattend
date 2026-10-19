@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -70,30 +71,30 @@ type EmployeeLeaveBalanceRecord struct {
 }
 
 type LeaveTypeRecord struct {
-	ID           uuid.UUID      `json:"id"`
-	WorkspaceID  uuid.UUID      `json:"workspace_id"`
-	Code         string         `json:"code"`
-	Name         string         `json:"name"`
-	IsPaid       bool           `json:"is_paid"`
-	PolicyConfig map[string]any `json:"policy_config"`
-	CreatedAt    string         `json:"created_at"`
+	ID           uuid.UUID       `json:"id"`
+	WorkspaceID  uuid.UUID       `json:"workspace_id"`
+	Code         string          `json:"code"`
+	Name         string          `json:"name"`
+	IsPaid       bool            `json:"is_paid"`
+	PolicyConfig json.RawMessage `json:"policy_config"`
+	CreatedAt    string          `json:"created_at"`
 }
 
 type CreateLeaveTypeRequest struct {
-	Code         string         `json:"code"`
-	Name         string         `json:"name"`
-	IsPaid       *bool          `json:"is_paid"`
-	PolicyConfig map[string]any `json:"policy_config"`
+	Code         string          `json:"code"`
+	Name         string          `json:"name"`
+	IsPaid       *bool           `json:"is_paid"`
+	PolicyConfig json.RawMessage `json:"policy_config"`
 }
 
 type LeaveRepository interface {
-	CreateLeaveType(ctx context.Context, workspaceID uuid.UUID, req CreateLeaveTypeRequest) (LeaveTypeRecord, error)
-	ListLeaveTypes(ctx context.Context, workspaceID uuid.UUID) ([]LeaveTypeRecord, error)
-	SubmitLeaveRequest(ctx context.Context, workspaceID, requesterID uuid.UUID, req SubmitLeaveRequest, autoApprove bool) (LeaveRequestRecord, error)
-	ListWorkspaceLeaveRequests(ctx context.Context, workspaceID uuid.UUID, status *string) ([]LeaveRequestRecord, error)
-	ApproveLeaveRequest(ctx context.Context, workspaceID, approverID, requestID uuid.UUID, status string) error
-	GetEmployeeLeaveBalances(ctx context.Context, workspaceID, employeeID uuid.UUID, year int) ([]EmployeeLeaveBalanceRecord, error)
-	ResolveEmployeeForUser(ctx context.Context, workspaceID, userID uuid.UUID) (uuid.UUID, error)
+	CreateLeaveType(context.Context, uuid.UUID, CreateLeaveTypeRequest) (LeaveTypeRecord, error)
+	ListLeaveTypes(context.Context, uuid.UUID) ([]LeaveTypeRecord, error)
+	SubmitLeaveRequest(context.Context, uuid.UUID, uuid.UUID, SubmitLeaveRequest, bool) (LeaveRequestRecord, error)
+	ListWorkspaceLeaveRequests(context.Context, uuid.UUID, *string) ([]LeaveRequestRecord, error)
+	ApproveLeaveRequest(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string) error
+	GetEmployeeLeaveBalances(context.Context, uuid.UUID, uuid.UUID, int) ([]EmployeeLeaveBalanceRecord, error)
+	ResolveEmployeeForUser(context.Context, uuid.UUID, uuid.UUID) (uuid.UUID, error)
 }
 
 type LeaveAuthorizer interface {
