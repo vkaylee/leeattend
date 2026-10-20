@@ -1,0 +1,215 @@
+{
+  "$schema": "./fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "WS-LOC-001",
+    "domain": "workspaces",
+    "name": "create_work_location_success",
+    "description": "Standard creation of non-headquarters work location by workspace owner",
+    "source_ref": "apiserver/tests/integration/workspace/locations.rs:40-70; apiserver/src/handlers/workspaces/locations.rs:103-127; apiserver/src/repositories/diesel_location_repository.rs:86-117",
+    "tags": ["locations", "workspace", "crud", "p1"]
+  },
+  "request": {
+    "method": "POST",
+    "path": "/api/v1/workspaces/{ws_id}/locations",
+    "path_params": {
+      "ws_id": "018d0000-0000-7000-8000-000000000001"
+    },
+    "query": {},
+    "headers": {
+      "content-type": "application/json",
+      "x-request-id": "018d0000-0000-7000-8000-000000000099"
+    },
+    "body": {
+      "name": "Branch Office Da Nang",
+      "address": "123 Tran Phu, Hai Chau, Da Nang",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "is_headquarters": false,
+      "status": "active"
+    }
+  },
+  "identity": {
+    "auth_type": "bearer",
+    "auth_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.dummy",
+    "user_id": "018d0000-0000-7000-8000-000000000010",
+    "workspace_id": "018d0000-0000-7000-8000-000000000001",
+    "role": "owner",
+    "permissions": [
+      "workspaces:read",
+      "workspaces:write",
+      "locations:read",
+      "locations:write"
+    ],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {
+        "database": "system",
+        "table": "workspaces",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000001",
+            "name": "Acme Corp",
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z"
+          }
+        ]
+      },
+      {
+        "database": "system",
+        "table": "users",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000010",
+            "email": "owner@acme.test",
+            "password_hash": "$argon2id$v=19$m=19456,t=2,p=1$dummyhash",
+            "full_name": "Workspace Owner",
+            "created_at": "2026-01-01T00:00:00Z"
+          }
+        ]
+      },
+      {
+        "database": "system",
+        "table": "workspace_roles",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000002",
+            "workspace_id": "018d0000-0000-7000-8000-000000000001",
+            "name": "owner",
+            "scope_type": "workspace",
+            "is_system": true,
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z"
+          }
+        ]
+      },
+      {
+        "database": "system",
+        "table": "workspace_members",
+        "rows": [
+          {
+            "workspace_id": "018d0000-0000-7000-8000-000000000001",
+            "user_id": "018d0000-0000-7000-8000-000000000010",
+            "role_id": "018d0000-0000-7000-8000-000000000002"
+          }
+        ]
+      },
+      {
+        "database": "tenant",
+        "table": "work_locations",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000020",
+            "workspace_id": "018d0000-0000-7000-8000-000000000001",
+            "name": "Headquarters",
+            "address": "1 Main St, District 1, Ho Chi Minh City",
+            "timezone": "Asia/Ho_Chi_Minh",
+            "is_headquarters": true,
+            "status": "active",
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z"
+          }
+        ]
+      }
+    ],
+    "redis_seeds": [
+      {
+        "key": "cache:auth:permissions:018d0000-0000-7000-8000-000000000001:018d0000-0000-7000-8000-000000000010",
+        "type": "string",
+        "value": "{\"workspace_id\":\"018d0000-0000-7000-8000-000000000001\",\"user_id\":\"018d0000-0000-7000-8000-000000000010\",\"role\":\"owner\",\"permissions\":[\"locations:write\"]}",
+        "ttl_seconds": 3600
+      }
+    ],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 201,
+    "headers": {
+      "content-type": "application/json",
+      "x-request-id": "018d0000-0000-7000-8000-000000000099"
+    },
+    "body": {
+      "id": "018d0000-0000-7000-8000-000000000090",
+      "workspace_id": "018d0000-0000-7000-8000-000000000001",
+      "name": "Branch Office Da Nang",
+      "address": "123 Tran Phu, Hai Chau, Da Nang",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "is_headquarters": false,
+      "status": "active",
+      "created_at": "2026-10-19T10:00:00Z",
+      "updated_at": "2026-10-19T10:00:00Z"
+    },
+    "body_normalizations": [
+      {
+        "path": "$.id",
+        "kind": "generated_uuid",
+        "reason": "Location ID is generated with UUIDv4 in Rust location repository",
+        "source_citation": "apiserver/src/repositories/diesel_location_repository.rs:98-100"
+      },
+      {
+        "path": "$.created_at",
+        "kind": "generated_time",
+        "tolerance_ms": 1000,
+        "reason": "Timestamp generated via Utc::now() at row creation",
+        "source_citation": "apiserver/src/repositories/diesel_location_repository.rs:106"
+      },
+      {
+        "path": "$.updated_at",
+        "kind": "generated_time",
+        "tolerance_ms": 1000,
+        "reason": "Timestamp generated via Utc::now() at row creation",
+        "source_citation": "apiserver/src/repositories/diesel_location_repository.rs:107"
+      }
+    ]
+  },
+  "expected_side_effects": {
+    "db_mutations": [
+      {
+        "database": "tenant",
+        "table": "work_locations",
+        "operation": "INSERT",
+        "pk_filter": {
+          "workspace_id": "018d0000-0000-7000-8000-000000000001",
+          "name": "Branch Office Da Nang"
+        },
+        "columns": {
+          "name": "Branch Office Da Nang",
+          "address": "123 Tran Phu, Hai Chau, Da Nang",
+          "timezone": "Asia/Ho_Chi_Minh",
+          "is_headquarters": false,
+          "status": "active"
+        }
+      }
+    ],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": [
+      {
+        "action": "location.created",
+        "workspace_id": "018d0000-0000-7000-8000-000000000001",
+        "actor_id": "018d0000-0000-7000-8000-000000000010",
+        "actor_type": "user",
+        "target_resource_id": "$.body.id",
+        "details": {
+          "name": "Branch Office Da Nang",
+          "timezone": "Asia/Ho_Chi_Minh"
+        }
+      }
+    ]
+  },
+  "normalization_rules": {
+    "tolerances": {
+      "timestamp_ms": 1000,
+      "redis_ttl_seconds": 5
+    },
+    "ignored_fields": [
+      {
+        "path": "response.headers.x-request-id",
+        "reason": "Axum request_id_middleware propagates or generates UUIDv7",
+        "source_citation": "apiserver/src/mw/request_id.rs:17-25",
+        "verification": "uuid_v7"
+      }
+    ]
+  }
+}

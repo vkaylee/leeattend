@@ -1,0 +1,120 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "WS-008",
+    "domain": "workspaces",
+    "name": "feature_flag_evaluation_enabled",
+    "description": "Feature flag check endpoint evaluates enabled dark_mode flag as true for workspace member",
+    "source_ref": "apiserver/src/handlers/feature_flags.rs:147-165; apiserver/tests/integration/feature_flags/api.rs:164-183",
+    "tags": ["workspaces", "feature-flags", "evaluation", "p3-03"]
+  },
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/workspaces/{ws_id}/feature-flags/check/{key}",
+    "path_params": {
+      "ws_id": "018d0000-0000-7000-8000-000000000001",
+      "key": "dark_mode"
+    },
+    "query": {},
+    "headers": {
+      "authorization": "Bearer <valid-jwt-token-member>",
+      "accept": "application/json"
+    },
+    "body": null
+  },
+  "identity": {
+    "auth_type": "bearer",
+    "auth_token": "<valid-jwt-token-member>",
+    "user_id": "018d0000-0000-7000-8000-000000000020",
+    "workspace_id": "018d0000-0000-7000-8000-000000000001",
+    "role": "employee",
+    "permissions": ["feature_flags:read"],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {
+        "database": "system",
+        "table": "users",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000020",
+            "email": "member@example.com",
+            "full_name": "Feature Consumer"
+          }
+        ]
+      },
+      {
+        "database": "system",
+        "table": "workspaces",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000001",
+            "name": "Acme Corp",
+            "timezone": "Asia/Ho_Chi_Minh"
+          }
+        ]
+      },
+      {
+        "database": "system",
+        "table": "workspace_members",
+        "rows": [
+          {
+            "workspace_id": "018d0000-0000-7000-8000-000000000001",
+            "user_id": "018d0000-0000-7000-8000-000000000020",
+            "role_id": "a0000000-0000-0000-0000-000000000006"
+          }
+        ]
+      },
+      {
+        "database": "tenant",
+        "table": "feature_flags",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000030",
+            "workspace_id": "018d0000-0000-7000-8000-000000000001",
+            "flag_key": "dark_mode",
+            "enabled": true,
+            "description": "Enable dark mode UI",
+            "metadata": {
+              "rollout_percent": 100
+            }
+          }
+        ]
+      }
+    ],
+    "redis_seeds": [],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "key": "dark_mode",
+      "enabled": true
+    },
+    "body_normalizations": []
+  },
+  "expected_side_effects": {
+    "db_mutations": [],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {
+    "tolerances": {
+      "timestamp_ms": 1000
+    },
+    "ignored_fields": [
+      {
+        "path": "response.headers.x-request-id",
+        "reason": "Axum request_id_middleware generates new UUIDv7 if incoming header absent",
+        "source_citation": "apiserver/src/mw/request_id.rs:17-25",
+        "verification": "uuid_v7"
+      }
+    ]
+  }
+}

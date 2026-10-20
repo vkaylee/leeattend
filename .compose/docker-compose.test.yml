@@ -305,6 +305,27 @@ services:
       - ${HOME}/.cargo/registry:/usr/local/cargo/registry
       - sccache-cache:/workspace/.sccache
 
+  api-go:
+    profiles:
+      - lint-go
+      - unit-go
+      - int-go
+      - go
+    image: localhost/leeattend-test_go
+    build:
+      context: ..
+      dockerfile: .compose/go/Dockerfile
+    networks:
+      - test_net
+    working_dir: /workspace/apiserver
+    entrypoint: ["sleep", "infinity"]
+    environment:
+      - GOFLAGS=-mod=mod -buildvcs=false
+    volumes:
+      - ${PROJECT_ROOT}:/workspace
+      - go-module-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+
   bun_init:
     profiles:
       - lint-web
@@ -392,4 +413,10 @@ volumes:
     name: leeattend-test_web-node-modules
     driver: local
   shared-data:
+    driver: local
+  go-module-cache:
+    name: leeattend-test_go-module-cache
+    driver: local
+  go-build-cache:
+    name: leeattend-test_go-build-cache
     driver: local

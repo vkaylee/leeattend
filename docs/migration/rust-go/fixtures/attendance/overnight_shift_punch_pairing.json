@@ -1,0 +1,140 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "ATT-PAIR-001",
+    "domain": "attendance",
+    "name": "overnight_shift_punch_pairing",
+    "description": "Pairs evening check-in (21:50) and next-morning check-out (06:10) for overnight shift (22:00-06:00) into single continuous time entry across midnight",
+    "source_ref": "apiserver/src/services/pairing/tests.rs:153-176 (test_shift_window_overnight_shift); apiserver/tests/integration/attendance/pairing.rs:184-207 (tier2_overnight_shift); apiserver/src/handlers/attendance/time_tracking.rs:120-165",
+    "tags": ["attendance", "pairing", "overnight", "cross-midnight", "p3-05"]
+  },
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/workspaces/{ws_id}/time/history/{employee_id}",
+    "path_params": {
+      "ws_id": "018d0000-0000-7000-8000-000000000001",
+      "employee_id": "018d0000-0000-7000-8000-000000000060"
+    },
+    "query": {
+      "start": "2026-06-20T00:00:00Z",
+      "end": "2026-06-21T23:59:59Z"
+    },
+    "headers": {
+      "x-request-id": "018d0000-0000-7000-8000-000000000203"
+    },
+    "body": null
+  },
+  "identity": {
+    "auth_type": "bearer",
+    "auth_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.dummy",
+    "user_id": "018d0000-0000-7000-8000-000000000010",
+    "workspace_id": "018d0000-0000-7000-8000-000000000001",
+    "role": "owner",
+    "permissions": ["attendance:logs:read"],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {
+        "database": "tenant",
+        "table": "employees",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000060",
+            "workspace_id": "018d0000-0000-7000-8000-000000000001",
+            "full_name": "Overnight Worker",
+            "employee_id_number": "EMP-NIGHT",
+            "deleted_at": null
+          }
+        ]
+      },
+      {
+        "database": "tenant",
+        "table": "employments",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000065",
+            "workspace_id": "018d0000-0000-7000-8000-000000000001",
+            "employee_id": "018d0000-0000-7000-8000-000000000060",
+            "status": "active"
+          }
+        ]
+      },
+      {
+        "database": "tenant",
+        "table": "time_entries",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000225",
+            "workspace_id": "018d0000-0000-7000-8000-000000000001",
+            "employment_id": "018d0000-0000-7000-8000-000000000065",
+            "shift_id": "018d0000-0000-7000-8000-000000000230",
+            "punch_in_time": "2026-06-20T14:50:00Z",
+            "punch_out_time": "2026-06-20T23:10:00Z",
+            "duration_minutes": 500,
+            "entry_type": "work",
+            "is_break_overtime": false,
+            "generation_metadata": {
+              "tier": "shift_window",
+              "overnight": true
+            },
+            "created_at": "2026-06-21T00:00:00Z",
+            "updated_at": "2026-06-21T00:00:00Z"
+          }
+        ]
+      }
+    ],
+    "redis_seeds": [],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json",
+      "x-request-id": "018d0000-0000-7000-8000-000000000203"
+    },
+    "body": [
+      {
+        "id": "018d0000-0000-7000-8000-000000000225",
+        "employment_id": "018d0000-0000-7000-8000-000000000065",
+        "workspace_id": "018d0000-0000-7000-8000-000000000001",
+        "shift_id": "018d0000-0000-7000-8000-000000000230",
+        "segment_id": null,
+        "punch_in_time": "2026-06-20T14:50:00Z",
+        "punch_out_time": "2026-06-20T23:10:00Z",
+        "duration_minutes": 500,
+        "is_break_overtime": false,
+        "entry_type": "work",
+        "note": null,
+        "generation_metadata": {
+          "tier": "shift_window",
+          "overnight": true
+        },
+        "created_at": "2026-06-21T00:00:00Z",
+        "updated_at": "2026-06-21T00:00:00Z"
+      }
+    ],
+    "body_normalizations": []
+  },
+  "expected_side_effects": {
+    "db_mutations": [],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {
+    "tolerances": {
+      "timestamp_ms": 1000,
+      "redis_ttl_seconds": 5
+    },
+    "ignored_fields": [
+      {
+        "path": "response.headers.x-request-id",
+        "reason": "Axum request_id_middleware propagates or generates UUIDv7",
+        "source_citation": "apiserver/src/mw/request_id.rs:17-25",
+        "verification": "uuid_v7"
+      }
+    ]
+  }
+}

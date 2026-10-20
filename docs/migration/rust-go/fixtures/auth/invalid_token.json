@@ -1,0 +1,62 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "AUTH-002",
+    "domain": "auth",
+    "name": "invalid_token_unauthorized",
+    "description": "Request with malformed or invalidly signed JWT bearer token yields 401 Unauthorized",
+    "source_ref": "apiserver/src/lib.rs:180-197; apiserver/src/services/auth_service.rs:323-334",
+    "tags": ["auth", "jwt", "unauthorized", "p3-02"]
+  },
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "query": {},
+    "headers": {
+      "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.tampered_invalid_signature"
+    },
+    "body": null
+  },
+  "identity": {
+    "auth_type": "bearer",
+    "auth_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.tampered_invalid_signature",
+    "user_id": null,
+    "workspace_id": null,
+    "role": null,
+    "permissions": [],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [],
+    "redis_seeds": [],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 401,
+    "headers": {
+      "content-type": "text/plain; charset=utf-8"
+    },
+    "body": "Authentication required",
+    "body_normalizations": []
+  },
+  "expected_side_effects": {
+    "db_mutations": [],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {
+    "tolerances": {
+      "timestamp_ms": 1000
+    },
+    "ignored_fields": [
+      {
+        "path": "response.headers.x-request-id",
+        "reason": "Axum request_id_middleware generates new UUIDv7 if incoming header absent",
+        "source_citation": "apiserver/src/mw/request_id.rs:17-25",
+        "verification": "uuid_v7"
+      }
+    ]
+  }
+}

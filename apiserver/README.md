@@ -1,14 +1,13 @@
-# LeeAttend API Server (Rust)
+# LeeAttend API Server (Go)
 
-Central high-performance API server for LeeAttend, built with Rust and Axum.
+Central high-performance API server for LeeAttend, built with Go 1.26+, standard library `net/http.ServeMux`, `oapi-codegen` strict server, `pgx/v5` connection pool, and `sqlc`.
 
-## 🚀 Getting Started
+> **Migration Note:** Migrated from Rust/Axum to Go in October 2026 (Phase 9 Production Cutover complete). Legacy Rust source in `src/` and `Cargo.toml` is decommissioned and retained for archival reference only. Database schema migrations in `migrations/` remain active.
 
 ### Prerequisites
 
-- **Rust 1.75+**: Install via [rustup.rs](https://rustup.rs/)
-- **Cargo**: Rust package manager (installed with Rust)
-
+- **Go 1.26+**: Install via [golang.org](https://go.dev/)
+- **Docker / Podman**: For containerized execution and integration testing
 ### Installation
 
 1. Navigate to the `apiserver` directory:
@@ -23,9 +22,8 @@ Central high-performance API server for LeeAttend, built with Rust and Axum.
 
 3. Build the project:
    ```bash
-   cargo build
+   go build -o bin/apiserver .
    ```
-
 ### 🏃 Running as Windows Service
 
 1. Copy `nssm.exe` to the `apiserver/` directory.
@@ -42,17 +40,14 @@ To remove the service, run `uninstall_service.bat` as Administrator.
 
 
 
-**Docker containers:** Use [cargo-watch](https://github.com/watchexec/cargo-watch):
 ```bash
-cargo install cargo-watch
-cargo watch -x run
+go run .
 ```
 
-#### Standard run
+Via devkit orchestrator:
 ```bash
-cargo run
+./leedevkit test api-go
 ```
-
 The server will start at `http://127.0.0.1:3000`.
 
 ### API Endpoints
@@ -61,11 +56,12 @@ The server will start at `http://127.0.0.1:3000`.
 
 ## 🛠 Tech Stack
 
-- **Web Framework**: [Axum](https://github.com/tokio-rs/axum)
-- **Runtime**: [Tokio](https://tokio.rs/)
-- **Serialization**: [Serde](https://serde.rs/)
-- **Logging**: [Tracing](https://github.com/tokio-rs/tracing)
-
+- **Web Engine**: Standard Library `net/http.ServeMux` (Go 1.22+ method-and-path routing)
+- **API Contract**: `oapi-codegen` v2 (StrictServerInterface compile-time contract enforcement)
+- **Database Layer**: `pgx/v5` connection pool + `sqlc` compile-time typed SQL (Zero ORM)
+- **Precision Math**: `shopspring/decimal` (Zero floating-point in payroll/hours/money)
+- **Cache & Distributed State**: `redis/go-redis/v9`
+- **Authentication**: `golang-jwt/jwt/v5` + `argon2id`
 ## 🧪 Testing
 
 The project uses a **Dynamic Test Database** pattern for integration tests to ensure isolation and allow parallel execution.

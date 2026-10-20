@@ -1,0 +1,176 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "SYS-MONITOR-001",
+    "domain": "system",
+    "name": "worker_monitor_status_query",
+    "description": "Platform admin queries worker monitor overview with live Redis heartbeat and queue measurements",
+    "source_ref": "apiserver/tests/integration/monitor.rs:101-155 (test_monitor_overview_rest); apiserver/src/handlers/worker_monitor.rs:88-102,1976-2182; apiserver/src/routes/reports.rs:45-49",
+    "tags": ["system", "worker", "monitor", "status", "p3"]
+  },
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/monitor/overview",
+    "query": {},
+    "headers": {
+      "accept": "application/json",
+      "x-request-id": "018d0000-0000-0000-0000-000000000099"
+    },
+    "body": null
+  },
+  "identity": {
+    "auth_type": "header_impersonation",
+    "auth_token": null,
+    "user_id": "018d0000-0000-0000-0000-000000000010",
+    "workspace_id": null,
+    "role": null,
+    "permissions": [],
+    "system_roles": ["platform_admin"]
+  },
+  "setup": {
+    "db_seeds": [],
+    "redis_seeds": [
+      {
+        "key": "monitor:worker:018d0000-0000-0000-0000-000000000077",
+        "type": "string",
+        "value": "{\"id\":\"018d0000-0000-0000-0000-000000000077\",\"host\":\"worker-pod-1\",\"status\":\"IDLE\",\"current_task_type\":null,\"last_seen_at\":\"2026-10-19T10:00:00Z\"}",
+        "ttl_seconds": 90
+      },
+      {
+        "key": "worker:jobs:high",
+        "type": "list",
+        "value": [],
+        "ttl_seconds": null
+      },
+      {
+        "key": "worker:jobs:normal",
+        "type": "list",
+        "value": [],
+        "ttl_seconds": null
+      },
+      {
+        "key": "worker:jobs:low",
+        "type": "list",
+        "value": [],
+        "ttl_seconds": null
+      }
+    ],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json",
+      "x-request-id": "018d0000-0000-0000-0000-000000000099"
+    },
+    "body": {
+      "pending_tasks": 0,
+      "pending_high": 0,
+      "pending_normal": 0,
+      "pending_low": 0,
+      "total_workers": 1,
+      "active_workers": 0,
+      "idle_workers": 1,
+      "completed_today": 0,
+      "failed_today": 0,
+      "observed_at": "2026-10-19T10:00:00Z",
+      "snapshot_age_seconds": 0,
+      "workers": [
+        {
+          "id": "018d0000-0000-0000-0000-000000000077",
+          "host": "worker-pod-1",
+          "status": "IDLE",
+          "current_task_type": null,
+          "last_seen_at": "2026-10-19T10:00:00Z",
+          "liveness": "live",
+          "heartbeat_age_seconds": 0
+        }
+      ],
+      "recent_jobs": [],
+      "job_type_stats": [],
+      "durable_jobs": {
+        "status": "available",
+        "error_code": null,
+        "jobs": [],
+        "next_cursor_token": null,
+        "limit": 10,
+        "events_truncated": false
+      },
+      "queue_health": {
+        "depth_high": {"value": 0, "unit": "jobs", "formula": "queue_depth_high", "time_window": {"start": "2026-10-19T09:55:00Z", "end": "2026-10-19T10:00:00Z", "duration_seconds": 300}, "observed_at": "2026-10-19T10:00:00Z", "source": "redis", "unknown": null},
+        "depth_normal": {"value": 0, "unit": "jobs", "formula": "queue_depth_normal", "time_window": {"start": "2026-10-19T09:55:00Z", "end": "2026-10-19T10:00:00Z", "duration_seconds": 300}, "observed_at": "2026-10-19T10:00:00Z", "source": "redis", "unknown": null},
+        "depth_low": {"value": 0, "unit": "jobs", "formula": "queue_depth_low", "time_window": {"start": "2026-10-19T09:55:00Z", "end": "2026-10-19T10:00:00Z", "duration_seconds": 300}, "observed_at": "2026-10-19T10:00:00Z", "source": "redis", "unknown": null},
+        "depth_total": {"value": 0, "unit": "jobs", "formula": "depth_high + depth_normal + depth_low", "time_window": {"start": "2026-10-19T09:55:00Z", "end": "2026-10-19T10:00:00Z", "duration_seconds": 300}, "observed_at": "2026-10-19T10:00:00Z", "source": "redis", "unknown": null}
+      },
+      "thresholds": {
+        "queue_pressure": {"medium_at": 100, "high_at": 500, "critical_at": 1000, "source": "backend_default"},
+        "worker_utilization": {"scale_down_below_percent": 20, "warning_at_percent": 70, "critical_at_percent": 90, "source": "backend_default"},
+        "live_after_seconds": 15,
+        "stale_after_seconds": 60,
+        "source": "backend_default"
+      },
+      "dependencies": {
+        "redis": {"status": "available", "availability": true, "latency_ms": 1.0, "pool_utilization_percent": null, "source": "redis.ping", "limitation": null, "observed_at": "2026-10-19T10:00:00Z"},
+        "postgres": {"status": "available", "availability": true, "latency_ms": 1.0, "pool_utilization_percent": null, "source": "postgres.select_1", "limitation": null, "observed_at": "2026-10-19T10:00:00Z"},
+        "database_pool": {"status": "available", "availability": true, "latency_ms": null, "pool_utilization_percent": 10.0, "source": "deadpool.api.status", "limitation": null, "observed_at": "2026-10-19T10:00:00Z"},
+        "outbox_sweeper": {"status": "unavailable", "availability": null, "latency_ms": null, "pool_utilization_percent": null, "source": "outbox.sweeper", "limitation": "not measured", "observed_at": "2026-10-19T10:00:00Z"},
+        "worker_process": {"status": "available", "availability": true, "latency_ms": null, "pool_utilization_percent": null, "source": "worker.heartbeat", "limitation": null, "observed_at": "2026-10-19T10:00:00Z"},
+        "cpu": {"status": "unavailable", "availability": null, "latency_ms": null, "pool_utilization_percent": null, "source": "host.cpu", "limitation": "not measured", "observed_at": "2026-10-19T10:00:00Z"},
+        "memory": {"status": "unavailable", "availability": null, "latency_ms": null, "pool_utilization_percent": null, "source": "host.memory", "limitation": "not measured", "observed_at": "2026-10-19T10:00:00Z"},
+        "disk": {"status": "unavailable", "availability": null, "latency_ms": null, "pool_utilization_percent": null, "source": "host.disk", "limitation": "not measured", "observed_at": "2026-10-19T10:00:00Z"}
+      },
+      "quality": {
+        "data_quality": "partial",
+        "freshness": "fresh",
+        "snapshot_sequence": "018d0000-0000-0000-0000-000000000099",
+        "unknown_fields": ["dependencies.outbox_sweeper", "dependencies.cpu", "dependencies.memory", "dependencies.disk"],
+        "redis": {"status": "available", "error_code": null},
+        "durable_db": {"status": "available", "error_code": null},
+        "worker_heartbeats": {"status": "available", "error_code": null}
+      }
+    },
+    "body_normalizations": [
+      {
+        "path": "$.observed_at",
+        "kind": "generated_time",
+        "tolerance_ms": 1000,
+        "reason": "Monitor snapshot observed_at uses Utc::now()",
+        "source_citation": "apiserver/src/handlers/worker_monitor.rs:1990-1993"
+      },
+      {
+        "path": "$.snapshot_age_seconds",
+        "kind": "generated_time",
+        "tolerance_ms": 1000,
+        "reason": "Snapshot age measured from current observation",
+        "source_citation": "apiserver/src/handlers/worker_monitor.rs:2119"
+      }
+    ]
+  },
+  "expected_side_effects": {
+    "db_mutations": [],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {
+    "tolerances": {
+      "timestamp_ms": 1000,
+      "redis_ttl_seconds": 5
+    },
+    "ignored_fields": [
+      {
+        "path": "response.headers.x-request-id",
+        "reason": "Axum request_id_middleware propagates or generates UUIDv7",
+        "source_citation": "apiserver/src/mw/request_id.rs:17-25",
+        "verification": "uuid_v7"
+      },
+      {
+        "path": "response.body.quality.snapshot_sequence",
+        "reason": "Monitor snapshot sequence is generated per observation",
+        "source_citation": "apiserver/src/handlers/worker_monitor.rs:1990-1993",
+        "verification": "non_empty_string"
+      }
+    ]
+  }
+}

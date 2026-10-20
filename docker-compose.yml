@@ -184,28 +184,28 @@ services:
       <<: *healthcheck-base
       test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5452"]
 
+  # ── API Server: Go (P9 Production Cutover — Rust retired) ──
   apiserver:
     image: localhost/leeattend_apiserver
     build:
       context: .
-      dockerfile: apiserver/Dockerfile
+      dockerfile: apiserver/Dockerfile.go
       target: runtime
     environment:
-      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db_system:5432/${DB_NAME}
-      - DATABASE_POOLER_TX_URL=postgres://${DB_USER}:${DB_PASSWORD}@pgbouncer_tx:6543/${DB_NAME}
-      - DATABASE_POOLER_SESS_URL=postgres://${DB_USER}:${DB_PASSWORD}@pgbouncer_sess:5452/${DB_NAME}
-      - DATABASE_TENANT_POOLER_TX_URL=postgres://tenant_user:tenant_password@pgbouncer_tenant_tx:6543/tenant_db
-      - DATABASE_TENANT_POOLER_SESS_URL=postgres://tenant_user:tenant_password@pgbouncer_tenant_sess:5452/tenant_db
-      - DB_POOLER_TYPE=pgbouncer
+      - APP_ENV=${APP_ENV:-production}
+      - APP_HOST=0.0.0.0
+      - APP_PORT=3000
+      - DB_PRIMARY_URL=postgres://${DB_USER}:${DB_PASSWORD}@db_system:5432/${DB_NAME}
+      - DB_POOLER_TX_URL=postgres://${DB_USER}:${DB_PASSWORD}@pgbouncer_tx:6543/${DB_NAME}
+      - DB_POOLER_SESS_URL=postgres://${DB_USER}:${DB_PASSWORD}@pgbouncer_sess:5452/${DB_NAME}
+      - DB_TENANT_POOLER_TX_URL=postgres://tenant_user:tenant_password@pgbouncer_tenant_tx:6543/tenant_db
+      - DB_TENANT_POOLER_SESS_URL=postgres://tenant_user:tenant_password@pgbouncer_tenant_sess:5452/tenant_db
       - DB_API_MAX_CONN=${DB_API_MAX_CONN:-20}
       - WORKER_MAX_CONCURRENT_JOBS=${WORKER_MAX_CONCURRENT_JOBS:-5}
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-      - API_HOST=0.0.0.0
-      - API_PORT=3000
       - JWT_SECRET=${JWT_SECRET}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
       - COOKIE_DOMAIN=${COOKIE_DOMAIN:-}
-      - RUST_LOG=${RUST_LOG:-info}
       - STORAGE_DIR=/app/storage
       - 'ENCRYPTION_KEYS_JSON=${ENCRYPTION_KEYS_JSON:-{"keys":{"v1":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="},"active_key":"v1"}}'
       - S3_ENDPOINT_URL=http://minio:9000
@@ -216,6 +216,7 @@ services:
       - S3_USE_PATH_STYLE=${S3_USE_PATH_STYLE:-true}
       - FILE_PROXY_THRESHOLD_BYTES=${FILE_PROXY_THRESHOLD_BYTES:-1048576}
       - PRESIGNED_URL_TTL_SECS=${PRESIGNED_URL_TTL_SECS:-900}
+      - GOMEMLIMIT=768MiB
     restart: always
     networks:
       - backend_net

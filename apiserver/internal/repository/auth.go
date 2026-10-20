@@ -1,0 +1,230 @@
+package repository
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/vkaylee/leeattend/apiserver/internal/service"
+	"strings"
+	"time"
+)
+
+// AuthRepository implements session and user persistence against the system database.
+type AuthRepository struct{ DB DBTX }
+
+var userColumns = `id, email, password_hash, full_name, avatar_url, bio, preferred_language, created_at, avatar_file_id`
+
+func (r AuthRepository) FindUserByEmail(ctx context.Context, email string) (service.UserRecord, error) {
+	return r.findUser(ctx, `SELECT `+userColumns+` FROM users WHERE lower(email) = lower($1) LIMIT 1`, email)
+}
+func (r AuthRepository) FindUserByID(ctx context.Context, id uuid.UUID) (service.UserRecord, error) {
+	return r.findUser(ctx, `SELECT `+userColumns+` FROM users WHERE id = $1 LIMIT 1`, id)
+}
+func (r AuthRepository) findUser(ctx context.Context, query string, arg any) (service.UserRecord, error) {
+	if r.DB == nil {
+		return service.UserRecord{}, errors.New("auth repository: nil database")
+	}
+	var user service.UserRecord
+	var createdAt *time.Time
+	if err := r.DB.QueryRow(ctx, query, arg).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.FullName, &user.AvatarURL, &user.Bio, &user.PreferredLanguage, &createdAt, &user.AvatarFileID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return service.UserRecord{}, service.ErrInvalidCredentials
+		}
+		return service.UserRecord{}, fmt.Errorf("find auth user: %w", err)
+	}
+	if createdAt == nil {
+		user.CreatedAt = time.Now().UTC()
+	} else {
+		user.CreatedAt = createdAt.UTC()
+	}
+	return user, nil
+}
+
+func (r AuthRepository) GetSystemRolesForUser(ctx context.Context, userID uuid.UUID) ([]string, error) {
+	if r.DB == nil {
+		return nil, errors.New("auth repository: nil database")
+	}
+	rows, err := r.DB.Query(ctx, `SELECT sr.name FROM user_system_roles usr JOIN system_roles sr ON sr.id = usr.role_id WHERE usr.user_id = $1`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("query system roles: %w", err)
+	}
+	defer rows.Close()
+	roles := []string{}
+	for rows.Next() {
+		var role string
+		if err := rows.Scan(&role); err != nil {
+			return nil, fmt.Errorf("scan system role: %w", err)
+		}
+		roles = append(roles, role)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate system roles: %w", err)
+	}
+	return roles, nil
+}
+
+func (r AuthRepository) UpdateUserProfile(ctx context.Context, userID uuid.UUID, req service.UpdateUserProfileRequest) (service.UserRecord, error) {
+	if r.DB == nil {
+		return service.UserRecord{}, errors.New("auth repository: nil database")
+	}
+	sets := make([]string, 0, 4)
+	args := make([]any, 0, 5)
+	add := func(column string, value *string) {
+		if value == nil {
+			return
+		}
+		args = append(args, *value)
+		sets = append(sets, fmt.Sprintf("%s = $%d", column, len(args)))
+	}
+	add("full_name", req.FullName)
+	add("avatar_url", req.AvatarURL)
+	add("bio", req.Bio)
+	add("preferred_language", req.PreferredLanguage)
+	args = append(args, userID)
+	if len(sets) > 0 {
+		query := fmt.Sprintf("UPDATE users SET %s WHERE id = $%d", strings.Join(sets, ", "), len(args))
+		if _, err := r.DB.Exec(ctx, query, args...); err != nil {
+			return service.UserRecord{}, fmt.Errorf("update user profile: %w", err)
+		}
+	}
+	user, err := r.FindUserByID(ctx, userID)
+	if err != nil {
+		return service.UserRecord{}, err
+	}
+	user.SystemRoles = []string{}
+	return user, nil
+}
+
+func (r AuthRepository) ListWorkspaceUsers(ctx context.Context, workspaceID uuid.UUID) ([]service.UserRecord, error) {
+	if r.DB == nil {
+		return nil, errors.New("auth repository: nil database")
+	}
+	rows, err := r.DB.Query(ctx, `SELECT u.id, u.email, u.password_hash, u.full_name, u.avatar_url, u.bio, u.preferred_language, u.created_at, u.avatar_file_id
+FROM users u
+INNER JOIN workspace_members wm ON wm.user_id = u.id
+WHERE wm.workspace_id = $1
+ORDER BY u.created_at DESC`, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("query workspace users: %w", err)
+	}
+	defer rows.Close()
+	users := []service.UserRecord{}
+	for rows.Next() {
+		var user service.UserRecord
+		var createdAt *time.Time
+		if err := rows.Scan(&user.ID, &user.Email, &user.PasswordHash, &user.FullName, &user.AvatarURL, &user.Bio, &user.PreferredLanguage, &createdAt, &user.AvatarFileID); err != nil {
+			return nil, fmt.Errorf("scan workspace user: %w", err)
+		}
+		if createdAt == nil {
+			user.CreatedAt = time.Now().UTC()
+		} else {
+			user.CreatedAt = createdAt.UTC()
+		}
+		user.SystemRoles = []string{}
+		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate workspace users: %w", err)
+	}
+	return users, nil
+}
+func (r AuthRepository) CreateSession(ctx context.Context, session service.SessionRecord) error {
+	if r.DB == nil {
+		return errors.New("auth repository: nil database")
+	}
+	_, err := r.DB.Exec(ctx, `INSERT INTO sessions (id, user_id, token, expires_at) VALUES ($1, $2, $3, $4)`, session.ID, session.UserID, session.TokenHash, session.ExpiresAt)
+	if err != nil {
+		return fmt.Errorf("create auth session: %w", err)
+	}
+	return nil
+}
+func (r AuthRepository) FindSessionByTokenHash(ctx context.Context, tokenHash string) (service.SessionRecord, error) {
+	if r.DB == nil {
+		return service.SessionRecord{}, errors.New("auth repository: nil database")
+	}
+	var session service.SessionRecord
+	if err := r.DB.QueryRow(ctx, `SELECT id, user_id, token, expires_at, revoked_at FROM sessions WHERE token = $1 LIMIT 1`, tokenHash).Scan(&session.ID, &session.UserID, &session.TokenHash, &session.ExpiresAt, &session.RevokedAt); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return service.SessionRecord{}, service.ErrSessionNotFound
+		}
+		return service.SessionRecord{}, fmt.Errorf("find auth session: %w", err)
+	}
+	return session, nil
+}
+func (r AuthRepository) RevokeSession(ctx context.Context, id uuid.UUID, revokedAt time.Time) error {
+	if r.DB == nil {
+		return errors.New("auth repository: nil database")
+	}
+	_, err := r.DB.Exec(ctx, `UPDATE sessions SET revoked_at = $2 WHERE id = $1 AND revoked_at IS NULL`, id, revokedAt)
+	if err != nil {
+		return fmt.Errorf("revoke auth session: %w", err)
+	}
+	return nil
+}
+func (r AuthRepository) RevokeAllSessions(ctx context.Context, userID uuid.UUID, revokedAt time.Time) error {
+	if r.DB == nil {
+		return errors.New("auth repository: nil database")
+	}
+	_, err := r.DB.Exec(ctx, `UPDATE sessions SET revoked_at = $2 WHERE user_id = $1 AND revoked_at IS NULL`, userID, revokedAt)
+	if err != nil {
+		return fmt.Errorf("revoke all auth sessions: %w", err)
+	}
+	return nil
+}
+
+type txBeginner interface {
+	Begin(context.Context) (pgx.Tx, error)
+}
+
+func (r AuthRepository) CreateUserWithAdminCheck(ctx context.Context, user service.UserRecord) (bool, error) {
+	if r.DB == nil {
+		return false, errors.New("auth repository: nil database")
+	}
+	beginner, ok := r.DB.(txBeginner)
+	if !ok {
+		return false, errors.New("auth repository: database does not support transactions")
+	}
+	tx, err := beginner.Begin(ctx)
+	if err != nil {
+		return false, fmt.Errorf("begin register transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(1337)`); err != nil {
+		return false, fmt.Errorf("acquire registration lock: %w", err)
+	}
+	var count int64
+	if err := tx.QueryRow(ctx, `SELECT count(*) FROM users`).Scan(&count); err != nil {
+		return false, fmt.Errorf("count users: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO users (id, email, password_hash, created_at, full_name) VALUES ($1, $2, $3, NOW(), $4)`, user.ID, user.Email, user.PasswordHash, user.FullName); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return false, service.ErrEmailExists
+		}
+		return false, fmt.Errorf("insert user: %w", err)
+	}
+	isFirst := count == 0
+	if isFirst {
+		if _, err := tx.Exec(ctx, `INSERT INTO user_system_roles (user_id, role_id) SELECT $1, id FROM system_roles WHERE name = 'platform_admin'`, user.ID); err != nil {
+			return false, fmt.Errorf("assign platform admin: %w", err)
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return false, fmt.Errorf("commit register transaction: %w", err)
+	}
+	return isFirst, nil
+}
+
+func (r AuthRepository) UpdatePasswordHash(ctx context.Context, userID uuid.UUID, hash string) error {
+	if r.DB == nil {
+		return errors.New("auth repository: nil database")
+	}
+	if _, err := r.DB.Exec(ctx, `UPDATE users SET password_hash = $2 WHERE id = $1`, userID, hash); err != nil {
+		return fmt.Errorf("update password hash: %w", err)
+	}
+	return nil
+}

@@ -1,0 +1,189 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "ROSTER-CONF-002",
+    "domain": "roster",
+    "name": "roster_conflict_insufficient_rest",
+    "description": "Trigger compliance rest period warning (2h rest between 22:00-06:00 and 08:00-16:00 < 12h rule) returning 409 Conflict with requires_override retry payload",
+    "source_ref": "apiserver/tests/integration/shift/compliance.rs:85-173; apiserver/src/services/compliance_validation_service.rs:202-215",
+    "tags": ["roster", "compliance", "rest-period", "conflict", "p3-06"]
+  },
+  "request": {
+    "method": "POST",
+    "path": "/api/v1/workspaces/{ws_id}/employees/{employee_id}/rosters/bulk",
+    "path_params": {
+      "ws_id": "018d0000-0000-0000-0000-000000000001",
+      "employee_id": "018d0000-0000-0000-0000-000000000030"
+    },
+    "query": {},
+    "headers": {
+      "content-type": "application/json",
+      "x-workspace-id": "018d0000-0000-0000-0000-000000000001",
+      "x-user-id": "018d0000-0000-0000-0000-000000000010"
+    },
+    "body": {
+      "items": [
+        {
+          "date": "2026-10-20",
+          "shift_id": "018d0000-0000-0000-0000-000000000052"
+        }
+      ],
+      "allow_warnings": false,
+      "override_reason": null
+    }
+  },
+  "identity": {
+    "auth_type": "header_impersonation",
+    "auth_token": null,
+    "user_id": "018d0000-0000-0000-0000-000000000010",
+    "workspace_id": "018d0000-0000-0000-0000-000000000001",
+    "role": "admin",
+    "permissions": ["rosters:manage"],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {
+        "database": "tenant",
+        "table": "employments",
+        "rows": [
+          {
+            "id": "018d0000-0000-0000-0000-000000000020",
+            "employee_id": "018d0000-0000-0000-0000-000000000030",
+            "workspace_id": "018d0000-0000-0000-0000-000000000001"
+          }
+        ]
+      },
+      {
+        "database": "tenant",
+        "table": "shift_templates",
+        "rows": [
+          {
+            "id": "018d0000-0000-0000-0000-000000000051",
+            "workspace_id": "018d0000-0000-0000-0000-000000000001",
+            "name": "Night Shift"
+          },
+          {
+            "id": "018d0000-0000-0000-0000-000000000052",
+            "workspace_id": "018d0000-0000-0000-0000-000000000001",
+            "name": "Morning Shift"
+          }
+        ]
+      },
+      {
+        "database": "tenant",
+        "table": "shift_versions",
+        "rows": [
+          {
+            "id": "018d0000-0000-0000-0000-000000000053",
+            "template_id": "018d0000-0000-0000-0000-000000000051",
+            "workspace_id": "018d0000-0000-0000-0000-000000000001",
+            "version_number": 1,
+            "name": "Night Shift",
+            "effective_from": "2026-10-19"
+          },
+          {
+            "id": "018d0000-0000-0000-0000-000000000054",
+            "template_id": "018d0000-0000-0000-0000-000000000052",
+            "workspace_id": "018d0000-0000-0000-0000-000000000001",
+            "version_number": 1,
+            "name": "Morning Shift",
+            "effective_from": "2026-10-19"
+          }
+        ]
+      },
+      {
+        "database": "tenant",
+        "table": "shift_default_intervals",
+        "rows": [
+          {
+            "id": "018d0000-0000-0000-0000-000000000055",
+            "version_id": "018d0000-0000-0000-0000-000000000053",
+            "sort_order": 0,
+            "start_time": "22:00:00",
+            "end_time": "06:00:00",
+            "break_duration_minutes": 0
+          },
+          {
+            "id": "018d0000-0000-0000-0000-000000000056",
+            "version_id": "018d0000-0000-0000-0000-000000000054",
+            "sort_order": 0,
+            "start_time": "08:00:00",
+            "end_time": "16:00:00",
+            "break_duration_minutes": 0
+          }
+        ]
+      },
+      {
+        "database": "tenant",
+        "table": "shift_rosters",
+        "rows": [
+          {
+            "id": "018d0000-0000-0000-0000-000000000070",
+            "employment_id": "018d0000-0000-0000-0000-000000000020",
+            "shift_id": "018d0000-0000-0000-0000-000000000051",
+            "date": "2026-10-19",
+            "status": "confirmed"
+          }
+        ]
+      }
+    ],
+    "redis_seeds": [],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 409,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "error": {
+        "code": "COMPLIANCE_OVERRIDE_REQUIRED",
+        "message": "Shift assignment violates workspace compliance rules and requires an explicit manager override reason.",
+        "retry": {
+          "requires_override": true,
+          "violations": [
+            {
+              "rule": "min_rest_period",
+              "severity": "warning",
+              "date": "2026-10-20",
+              "shift_id": "018d0000-0000-0000-0000-000000000052",
+              "details": "Rest period of 2 hours between shifts is less than the required 12 hours"
+            }
+          ]
+        }
+      }
+    },
+    "body_normalizations": []
+  },
+  "expected_side_effects": {
+    "db_mutations": [],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {
+    "tolerances": {},
+    "ignored_fields": [
+      {
+        "path": "response.headers.x-request-id",
+        "reason": "Axum request ID middleware generates a new UUIDv7 if incoming header absent",
+        "source_citation": "apiserver/src/mw/request_id.rs:17-25",
+        "verification": "uuid_v7"
+      },
+      {
+        "path": "response.body.error.message",
+        "reason": "Error message may be localized per Accept-Language header",
+        "source_citation": "apiserver/src/utils/i18n.rs:50-80",
+        "verification": "non_empty_string"
+      },
+      {
+        "path": "response.body.error.retry.violations[0].details",
+        "reason": "Violation details message formatting",
+        "source_citation": "apiserver/src/services/compliance_validation_service.rs:200-215",
+        "verification": "non_empty_string"
+      }
+    ]
+  }
+}

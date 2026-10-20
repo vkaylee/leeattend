@@ -1,0 +1,157 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "FILE-DL-001",
+    "domain": "files",
+    "name": "presigned_download_url_generation",
+    "description": "Generate a presigned S3 download URL for a large workspace file instead of proxying bytes",
+    "source_ref": "apiserver/src/handlers/files.rs:304-315; apiserver/src/services/storage/file_service.rs:215-228; apiserver/tests/integration/misc/body_limits.rs:43-81",
+    "tags": ["files", "download", "presigned_url", "s3", "p3"]
+  },
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/workspaces/{ws_id}/files/{file_id}/url",
+    "path_params": {
+      "ws_id": "018d0000-0000-0000-0000-000000000001",
+      "file_id": "018d0000-0000-0000-0000-000000000077"
+    },
+    "query": {},
+    "headers": {
+      "accept": "application/json",
+      "x-request-id": "018d0000-0000-0000-0000-000000000099"
+    },
+    "body": null
+  },
+  "identity": {
+    "auth_type": "bearer",
+    "auth_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy",
+    "user_id": "018d0000-0000-0000-0000-000000000010",
+    "workspace_id": "018d0000-0000-0000-0000-000000000001",
+    "role": "owner",
+    "permissions": [
+      "files:read"
+    ],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {
+        "database": "system",
+        "table": "workspaces",
+        "rows": [
+          {
+            "id": "018d0000-0000-0000-0000-000000000001",
+            "name": "Acme Corp",
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z"
+          }
+        ]
+      },
+      {
+        "database": "system",
+        "table": "users",
+        "rows": [
+          {
+            "id": "018d0000-0000-0000-0000-000000000010",
+            "email": "owner@acme.test",
+            "full_name": "Workspace Owner",
+            "password_hash": "$argon2id$v=19$m=19456,t=2,p=1$dummyhash",
+            "created_at": "2026-01-01T00:00:00Z"
+          }
+        ]
+      },
+      {
+        "database": "system",
+        "table": "workspace_members",
+        "rows": [
+          {
+            "workspace_id": "018d0000-0000-0000-0000-000000000001",
+            "user_id": "018d0000-0000-0000-0000-000000000010",
+            "role_id": "018d0000-0000-0000-0000-000000000002"
+          }
+        ]
+      },
+      {
+        "database": "tenant",
+        "table": "workspace_files",
+        "rows": [
+          {
+            "id": "018d0000-0000-0000-0000-000000000077",
+            "workspace_id": "018d0000-0000-0000-0000-000000000001",
+            "file_name": "annual-report.pdf",
+            "storage_key": "workspaces/018d0000-0000-0000-0000-000000000001/report_export/018d0000-0000-0000-0000-000000000077_annual-report.pdf",
+            "file_size": 2097152,
+            "mime_type": "application/pdf",
+            "content_hash": "sha256-placeholder",
+            "category": "ReportExport",
+            "owner_type": "Workspace",
+            "owner_id": "018d0000-0000-0000-0000-000000000001",
+            "uploaded_by": "018d0000-0000-0000-0000-000000000010",
+            "is_active": true,
+            "expires_at": null,
+            "scan_status": "Clean",
+            "scanned_at": "2026-01-01T00:05:00Z",
+            "version": 1,
+            "parent_file_id": null,
+            "is_latest": true,
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:05:00Z"
+          }
+        ]
+      }
+    ],
+    "redis_seeds": [],
+    "external_stubs": [
+      {
+        "service": "s3",
+        "endpoint": "https://s3.ap-southeast-1.amazonaws.com",
+        "action": "GetObjectPresign",
+        "response": {
+          "status": 200,
+          "body": {
+            "url": "https://s3.ap-southeast-1.amazonaws.com/leeattend-files/workspaces/018d0000-0000-0000-0000-000000000001/report_export/018d0000-0000-0000-0000-000000000077_annual-report.pdf?X-Amz-Expires=900&X-Amz-Signature=dummy"
+          }
+        }
+      }
+    ]
+  },
+  "expected_response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json",
+      "x-request-id": "018d0000-0000-0000-0000-000000000099"
+    },
+    "body": {
+      "url": "https://s3.ap-southeast-1.amazonaws.com/leeattend-files/workspaces/018d0000-0000-0000-0000-000000000001/report_export/018d0000-0000-0000-0000-000000000077_annual-report.pdf?X-Amz-Expires=900&X-Amz-Signature=dummy"
+    },
+    "body_normalizations": [
+      {
+        "path": "$.url",
+        "kind": "presigned_url",
+        "reason": "S3 presigned URL includes a generated signature and configured 900-second expiry",
+        "source_citation": "apiserver/src/services/storage/file_service.rs:215-228; apiserver/src/repositories/storage_config_repo.rs:97-102"
+      }
+    ]
+  },
+  "expected_side_effects": {
+    "db_mutations": [],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {
+    "tolerances": {
+      "timestamp_ms": 1000,
+      "redis_ttl_seconds": 5
+    },
+    "ignored_fields": [
+      {
+        "path": "response.headers.x-request-id",
+        "reason": "Axum request_id_middleware propagates or generates UUIDv7",
+        "source_citation": "apiserver/src/mw/request_id.rs:17-25",
+        "verification": "uuid_v7"
+      }
+    ]
+  }
+}

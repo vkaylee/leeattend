@@ -1,82 +1,46 @@
-# Multi-stage build for Rust API Server supporting Dev, Test, and Prod
+# Multi-stage production build for Go API Server (P8-01)
+# Constraints: CGO_ENABLED=0, nonroot UID 65532, distroless runtime, static binary
 
-# Stage 1: Cargo Chef base
-FROM docker.io/blackdex/rust-musl:x86_64-musl-stable AS chef
-RUN rustup component add clippy rustfmt || true
-RUN cargo install cargo-chef --version ^0.1.77 --locked
-RUN apt-get update && apt-get install -y wget rsync && rm -rf /var/lib/apt/lists/*
-WORKDIR /app
+ARG GO_VERSION=1.26.9
+FROM golang:${GO_VERSION}-bookworm AS builder
 
-# Stage 2: Planner
-FROM chef AS planner
+ENV CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64 \
+    GOPROXY=https://proxy.golang.org,direct
+
+WORKDIR /build
+
+# Cache dependency layer
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source tree and compile static binary
 COPY . .
-RUN cargo chef prepare --recipe-path recipe.json
+RUN go build -trimpath -ldflags="-s -w -X main.Version=0.1.0" -o /usr/local/bin/apiserver .
 
-# Stage 3: Cacher
-FROM chef AS cacher
-COPY --from=planner /app/recipe.json recipe.json
-ENV SCCACHE_DIR=/sccache
-ENV RUSTC_WRAPPER=sccache
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/sccache \
-    sccache --start-server && \
-    cargo chef cook --release --recipe-path recipe.json && \
-    sccache --stop-server
+# Prepare runtime storage directory with non-root ownership
+RUN mkdir -p /tmp/storage && chown -R 65532:65532 /tmp/storage
 
-# Stage 4: Dev
-FROM public.ecr.aws/docker/library/rust:1.93-bookworm AS dev
-RUN apt-get update && apt-get install -y clang mold git redis-tools postgresql-client sqlite3 netcat-traditional curl dnsutils iputils-ping iproute2 nmap jq htop bash && \
-    rm -rf /var/lib/apt/lists/* && \
-    rustup component add clippy && \
-    cargo install cargo-watch && \
-    apt-get update && apt-get install -y libpq-dev && \
-    cargo install diesel_cli --locked --no-default-features --features postgres
-WORKDIR /app
-CMD ["cargo", "watch", "-x", "run"]
-
-# Stage 5: Test
-FROM chef AS test
-ENV SCCACHE_DIR=/sccache
-ENV RUSTFLAGS="--sysroot /usr/local/rustup/toolchains/stable-x86_64-unknown-linux-gnu -Ctarget-feature=+crt-static -Clink-self-contained=yes -Cprefer-dynamic=no -L/usr/local/musl/lib -C link-arg=-lssl -C link-arg=-lcrypto -C link-arg=-lz -C link-arg=-lc -C link-arg=-z -C link-arg=notext"
-RUN apt-get update && apt-get install -y postgresql-client clang && rm -rf /var/lib/apt/lists/*
-RUN cargo install diesel_cli --locked --no-default-features --features postgres
-RUN curl -LsSf https://get.nexte.st/0.9.133/linux | tar zxf - -C /usr/local/bin
-# Coverage tooling: llvm-cov requires llvm-tools-preview component + cargo-llvm-cov binary
-RUN rustup component add llvm-tools-preview && \
-    cargo install cargo-llvm-cov --locked
-COPY --from=planner /app/recipe.json recipe.json
-ENV RUSTC_WRAPPER=sccache
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/sccache \
-    sccache --start-server && \
-    cargo chef cook --tests --recipe-path recipe.json && \
-    sccache --stop-server
-COPY . .
-CMD ["cargo", "nextest", "run"]
-
-# Stage 6: Builder
-FROM chef AS builder
-ENV RUSTFLAGS="-Ctarget-feature=+crt-static -Clink-self-contained=yes -Cprefer-dynamic=no -L/usr/local/musl/lib -C link-arg=-lssl -C link-arg=-lcrypto -C link-arg=-lz -C link-arg=-lc -C link-arg=-z -C link-arg=notext"
-COPY --from=cacher /app/target target
-COPY --from=cacher $CARGO_HOME $CARGO_HOME
-COPY . .
-ENV SCCACHE_DIR=/sccache
-ENV RUSTC_WRAPPER=sccache
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/sccache \
-    sccache --start-server && \
-    cargo build --release --locked -p apiserver && \
-    sccache --stop-server && \
-    cp target/x86_64-unknown-linux-musl/release/apiserver /usr/local/bin/apiserver && \
-    mkdir -p /tmp/storage && chown 65532:65532 /tmp/storage
-
-# Stage 7: Runtime
+# Stage 2: Hermetic runtime image
 FROM gcr.io/distroless/static-debian12 AS runtime
+
 WORKDIR /app
+
+# Copy binary and storage mount
 COPY --from=builder /usr/local/bin/apiserver /usr/local/bin/apiserver
 COPY --chown=65532:65532 --from=builder /tmp/storage /app/storage
-ENV STORAGE_DIR=/app/storage
-USER 65532
+
+# Environment defaults conforming to deployment-contract.md
+ENV STORAGE_DIR=/app/storage \
+    APP_PORT=3001 \
+    APP_HOST=0.0.0.0 \
+    APP_ENV=production
+
+# Distroless non-root user (65532:65532)
+USER 65532:65532
+
 VOLUME ["/app/storage"]
-EXPOSE 3000
-CMD ["apiserver"]
+EXPOSE 3001 3000
+
+ENTRYPOINT ["/usr/local/bin/apiserver"]

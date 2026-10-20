@@ -131,7 +131,7 @@ impl RedbStore {
         }
         let _ = self
             .unsynced_count
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
                 Some(current.saturating_sub(delta))
             });
     }

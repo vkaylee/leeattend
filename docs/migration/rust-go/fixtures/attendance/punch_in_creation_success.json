@@ -1,0 +1,175 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "ATT-PUNCH-001",
+    "domain": "attendance",
+    "name": "punch_in_creation_success",
+    "description": "Employee performs self-service punch-in via ESS web, generating raw log and open time entry record",
+    "source_ref": "apiserver/tests/integration/attendance/time_tracking.rs:18-75; apiserver/src/handlers/attendance/time_tracking.rs:36-56; apiserver/src/services/time_tracking_service.rs:63-171",
+    "tags": ["attendance", "punch-in", "time-tracking", "ess", "p3-05"]
+  },
+  "request": {
+    "method": "POST",
+    "path": "/api/v1/workspaces/{ws_id}/time/punch-in",
+    "path_params": {
+      "ws_id": "018d0000-0000-7000-8000-000000000001"
+    },
+    "query": {},
+    "headers": {
+      "content-type": "application/json",
+      "x-request-id": "018d0000-0000-7000-8000-000000000201"
+    },
+    "body": {
+      "employment_id": "018d0000-0000-7000-8000-000000000065",
+      "entry_type": "work",
+      "note": "Morning punch-in"
+    }
+  },
+  "identity": {
+    "auth_type": "bearer",
+    "auth_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.dummy",
+    "user_id": "018d0000-0000-7000-8000-000000000010",
+    "workspace_id": "018d0000-0000-7000-8000-000000000001",
+    "role": "employee",
+    "permissions": ["ess:clock"],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {
+        "database": "tenant",
+        "table": "employees",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000060",
+            "workspace_id": "018d0000-0000-7000-8000-000000000001",
+            "user_id": "018d0000-0000-7000-8000-000000000010",
+            "full_name": "Test Employee",
+            "employee_id_number": "EMP001",
+            "deleted_at": null
+          }
+        ]
+      },
+      {
+        "database": "tenant",
+        "table": "employments",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000065",
+            "workspace_id": "018d0000-0000-7000-8000-000000000001",
+            "employee_id": "018d0000-0000-7000-8000-000000000060",
+            "employer_id": "018d0000-0000-7000-8000-000000000030",
+            "status": "active",
+            "start_date": "2026-01-01",
+            "employment_type": "full_time"
+          }
+        ]
+      }
+    ],
+    "redis_seeds": [],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 201,
+    "headers": {
+      "content-type": "application/json",
+      "x-request-id": "018d0000-0000-7000-8000-000000000201"
+    },
+    "body": {
+      "id": "018d0000-0000-7000-8000-000000000220",
+      "employment_id": "018d0000-0000-7000-8000-000000000065",
+      "workspace_id": "018d0000-0000-7000-8000-000000000001",
+      "shift_id": null,
+      "segment_id": null,
+      "punch_in_time": "2026-10-19T08:00:00Z",
+      "punch_out_time": null,
+      "duration_minutes": null,
+      "is_break_overtime": false,
+      "entry_type": "work",
+      "note": "Morning punch-in",
+      "generation_metadata": null,
+      "created_at": "2026-10-19T08:00:00Z",
+      "updated_at": "2026-10-19T08:00:00Z"
+    },
+    "body_normalizations": [
+      {
+        "path": "$.id",
+        "kind": "generated_uuid",
+        "reason": "TimeEntry ID generated via new_id() UUIDv7",
+        "source_citation": "apiserver/src/utils/id.rs:1-21; apiserver/src/repositories/time_entry_repository.rs:60"
+      },
+      {
+        "path": "$.punch_in_time",
+        "kind": "generated_time",
+        "tolerance_ms": 2000,
+        "reason": "Punch time captures Utc::now() at handler invocation",
+        "source_citation": "apiserver/src/services/time_tracking_service.rs:81"
+      },
+      {
+        "path": "$.created_at",
+        "kind": "generated_time",
+        "tolerance_ms": 2000,
+        "reason": "Timestamp generated at insertion",
+        "source_citation": "apiserver/src/models/time_tracking.rs:104"
+      },
+      {
+        "path": "$.updated_at",
+        "kind": "generated_time",
+        "tolerance_ms": 2000,
+        "reason": "Timestamp generated at insertion",
+        "source_citation": "apiserver/src/models/time_tracking.rs:105"
+      }
+    ]
+  },
+  "expected_side_effects": {
+    "db_mutations": [
+      {
+        "database": "tenant",
+        "table": "raw_attendance_logs",
+        "operation": "INSERT",
+        "pk_filter": {
+          "workspace_id": "018d0000-0000-7000-8000-000000000001",
+          "employment_id": "018d0000-0000-7000-8000-000000000065"
+        },
+        "columns": {
+          "workspace_id": "018d0000-0000-7000-8000-000000000001",
+          "employment_id": "018d0000-0000-7000-8000-000000000065",
+          "source": "Device"
+        }
+      },
+      {
+        "database": "tenant",
+        "table": "time_entries",
+        "operation": "INSERT",
+        "pk_filter": {
+          "workspace_id": "018d0000-0000-7000-8000-000000000001",
+          "employment_id": "018d0000-0000-7000-8000-000000000065"
+        },
+        "columns": {
+          "workspace_id": "018d0000-0000-7000-8000-000000000001",
+          "employment_id": "018d0000-0000-7000-8000-000000000065",
+          "entry_type": "work",
+          "note": "Morning punch-in"
+        }
+      }
+    ],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {
+    "tolerances": {
+      "timestamp_ms": 2000,
+      "redis_ttl_seconds": 5
+    },
+    "ignored_fields": [
+      {
+        "path": "response.headers.x-request-id",
+        "reason": "Axum request_id_middleware propagates or generates UUIDv7",
+        "source_citation": "apiserver/src/mw/request_id.rs:17-25",
+        "verification": "uuid_v7"
+      }
+    ]
+  }
+}

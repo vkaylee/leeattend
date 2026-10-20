@@ -1,0 +1,406 @@
+# Staging Deployment Compose Definition (P8-01, P8-03)
+# Topology: Parallel Coexistence of Rust (Port 3000) & Go (Port 3001) with Caddy Traffic Management
+
+version: "3.8"
+
+x-healthcheck-base: &healthcheck-base
+  interval: 10s
+  timeout: 5s
+  retries: 5
+  start_period: 15s
+
+networks:
+  backend_net:
+    driver: bridge
+  frontend_net:
+    driver: bridge
+
+services:
+  # ── Core Infrastructure: System PostgreSQL ──
+  db_system:
+    image: docker.io/library/postgres:18-alpine
+    container_name: leeattend-staging-db-system
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-leeattend_system}
+    volumes:
+      - postgres_system_staging_data:/var/lib/postgresql/data
+    networks:
+      - backend_net
+    healthcheck:
+      <<: *healthcheck-base
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-leeattend_system}"]
+
+  # ── Core Infrastructure: Workspace Tenant PostgreSQL ──
+  db_workspace:
+    image: docker.io/library/postgres:18-alpine
+    container_name: leeattend-staging-db-workspace
+    restart: always
+    environment:
+      POSTGRES_USER: tenant_user
+      POSTGRES_PASSWORD: tenant_password
+      POSTGRES_DB: tenant_db
+    volumes:
+      - postgres_workspace_staging_data:/var/lib/postgresql/data
+    networks:
+      - backend_net
+    healthcheck:
+      <<: *healthcheck-base
+      test: ["CMD-SHELL", "pg_isready -U tenant_user -d tenant_db"]
+
+  # ── Core Infrastructure: Redis ──
+  redis:
+    image: docker.io/library/redis:7-alpine
+    container_name: leeattend-staging-redis
+    restart: always
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-redis_staging_password}"]
+    volumes:
+      - redis_staging_data:/data
+    networks:
+      - backend_net
+    healthcheck:
+      <<: *healthcheck-base
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_staging_password}", "ping"]
+
+  # ── Core Infrastructure: PgBouncer Poolers ──
+  pgbouncer_tx:
+    image: docker.io/edoburu/pgbouncer:v1.25.2-p0
+    container_name: leeattend-staging-pgbouncer-tx
+    restart: always
+    environment:
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_NAME=${DB_NAME:-leeattend_system}
+      - DB_HOST=db_system
+      - DB_PORT=5432
+      - POOL_MODE=transaction
+      - LISTEN_PORT=6543
+      - MAX_CLIENT_CONN=2000
+      - DEFAULT_POOL_SIZE=50
+      - MIN_POOL_SIZE=10
+      - RESERVE_POOL_SIZE=5
+      - RESERVE_POOL_TIMEOUT=5
+      - ADMIN_USERS=${DB_USER:-postgres}
+      - AUTH_TYPE=scram-sha-256
+    networks:
+      - backend_net
+    depends_on:
+      db_system:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck-base
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6543"]
+
+  pgbouncer_sess:
+    image: docker.io/edoburu/pgbouncer:v1.25.2-p0
+    container_name: leeattend-staging-pgbouncer-sess
+    restart: always
+    environment:
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_NAME=${DB_NAME:-leeattend_system}
+      - DB_HOST=db_system
+      - DB_PORT=5432
+      - POOL_MODE=session
+      - LISTEN_PORT=5452
+      - MAX_CLIENT_CONN=2000
+      - DEFAULT_POOL_SIZE=50
+      - MIN_POOL_SIZE=10
+      - RESERVE_POOL_SIZE=5
+      - RESERVE_POOL_TIMEOUT=5
+      - ADMIN_USERS=${DB_USER:-postgres}
+      - AUTH_TYPE=scram-sha-256
+    networks:
+      - backend_net
+    depends_on:
+      db_system:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck-base
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5452"]
+
+  pgbouncer_tenant_tx:
+    image: docker.io/edoburu/pgbouncer:v1.25.2-p0
+    container_name: leeattend-staging-pgbouncer-tenant-tx
+    restart: always
+    environment:
+      - DB_USER=tenant_user
+      - DB_PASSWORD=tenant_password
+      - DB_NAME=tenant_db
+      - DB_HOST=db_workspace
+      - DB_PORT=5432
+      - POOL_MODE=transaction
+      - LISTEN_PORT=6543
+      - MAX_CLIENT_CONN=2000
+      - DEFAULT_POOL_SIZE=50
+      - MIN_POOL_SIZE=10
+      - RESERVE_POOL_SIZE=5
+      - RESERVE_POOL_TIMEOUT=5
+      - ADMIN_USERS=tenant_user
+      - AUTH_TYPE=scram-sha-256
+    networks:
+      - backend_net
+    depends_on:
+      db_workspace:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck-base
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6543"]
+
+  pgbouncer_tenant_sess:
+    image: docker.io/edoburu/pgbouncer:v1.25.2-p0
+    container_name: leeattend-staging-pgbouncer-tenant-sess
+    restart: always
+    environment:
+      - DB_USER=tenant_user
+      - DB_PASSWORD=tenant_password
+      - DB_NAME=tenant_db
+      - DB_HOST=db_workspace
+      - DB_PORT=5432
+      - POOL_MODE=session
+      - LISTEN_PORT=5452
+      - MAX_CLIENT_CONN=2000
+      - DEFAULT_POOL_SIZE=50
+      - MIN_POOL_SIZE=10
+      - RESERVE_POOL_SIZE=5
+      - RESERVE_POOL_TIMEOUT=5
+      - ADMIN_USERS=tenant_user
+      - AUTH_TYPE=scram-sha-256
+    networks:
+      - backend_net
+    depends_on:
+      db_workspace:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck-base
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5452"]
+
+  # ── Object Storage: MinIO ──
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: leeattend-staging-minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-leeattend}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_staging_secret_key}
+    volumes:
+      - minio_staging_data:/data
+    networks:
+      - backend_net
+    healthcheck:
+      <<: *healthcheck-base
+      test: ["CMD", "mc", "ready", "local"]
+
+  # ── Baseline Service: Reference Rust API Server (Retired in Phase 9) ──
+  apiserver:
+    image: localhost/leeattend_apiserver:staging
+    container_name: leeattend-staging-apiserver-rust
+    profiles: ["legacy-retired"]
+    build:
+      context: .
+      dockerfile: apiserver/Dockerfile
+      target: runtime
+    environment:
+      - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db_system:5432/${DB_NAME:-leeattend_system}
+      - DATABASE_POOLER_TX_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer_tx:6543/${DB_NAME:-leeattend_system}
+      - DATABASE_POOLER_SESS_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer_sess:5452/${DB_NAME:-leeattend_system}
+      - DATABASE_TENANT_POOLER_TX_URL=postgres://tenant_user:tenant_password@pgbouncer_tenant_tx:6543/tenant_db
+      - DATABASE_TENANT_POOLER_SESS_URL=postgres://tenant_user:tenant_password@pgbouncer_tenant_sess:5452/tenant_db
+      - DB_POOLER_TYPE=pgbouncer
+      - DB_API_MAX_CONN=20
+      - WORKER_MAX_CONCURRENT_JOBS=5
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_staging_password}@redis:6379
+      - API_HOST=0.0.0.0
+      - API_PORT=3000
+      - JWT_SECRET=${JWT_SECRET:-staging_jwt_secret_hex_key_32_bytes_len}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-}
+      - RUST_LOG=info
+      - STORAGE_DIR=/app/storage
+      - 'ENCRYPTION_KEYS_JSON={"keys":{"v1":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="},"active_key":"v1"}'
+      - S3_ENDPOINT_URL=http://minio:9000
+      - S3_BUCKET_NAME=leeattend-staging-files
+      - S3_ACCESS_KEY=${MINIO_ROOT_USER:-leeattend}
+      - S3_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minio_staging_secret_key}
+      - S3_REGION=us-east-1
+      - S3_USE_PATH_STYLE=true
+    restart: always
+    networks:
+      - backend_net
+      - frontend_net
+    volumes:
+      - staging_storage:/app/storage
+    depends_on:
+      pgbouncer_tx:
+        condition: service_healthy
+      pgbouncer_sess:
+        condition: service_healthy
+      pgbouncer_tenant_tx:
+        condition: service_healthy
+      pgbouncer_tenant_sess:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck-base
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/v1/health > /dev/null || exit 1"]
+
+  # ── Target Service: Go API Server (Port 3001) ──
+  api-go:
+    image: localhost/leeattend_apiserver_go:staging
+    container_name: leeattend-staging-apiserver-go
+    build:
+      context: ./apiserver
+      dockerfile: Dockerfile.go
+      target: runtime
+    environment:
+      - APP_ENV=staging
+      - APP_HOST=0.0.0.0
+      - APP_PORT=3001
+      - DB_PRIMARY_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db_system:5432/${DB_NAME:-leeattend_system}
+      - DB_POOLER_TX_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer_tx:6543/${DB_NAME:-leeattend_system}
+      - DB_POOLER_SESS_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer_sess:5452/${DB_NAME:-leeattend_system}
+      - DB_TENANT_POOLER_TX_URL=postgres://tenant_user:tenant_password@pgbouncer_tenant_tx:6543/tenant_db
+      - DB_TENANT_POOLER_SESS_URL=postgres://tenant_user:tenant_password@pgbouncer_tenant_sess:5452/tenant_db
+      - DB_API_MAX_CONN=20
+      - DB_TENANT_MAX_CONN=20
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_staging_password}@redis:6379
+      - JWT_SECRET=${JWT_SECRET:-staging_jwt_secret_hex_key_32_bytes_len}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-}
+      - STORAGE_DIR=/app/storage
+      - 'ENCRYPTION_KEYS_JSON={"keys":{"v1":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="},"active_key":"v1"}'
+      - S3_ENDPOINT_URL=http://minio:9000
+      - S3_BUCKET_NAME=leeattend-staging-files
+      - S3_ACCESS_KEY=${MINIO_ROOT_USER:-leeattend}
+      - S3_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minio_staging_secret_key}
+      - S3_REGION=us-east-1
+      - S3_USE_PATH_STYLE=true
+      # Phase 9 Cutover (P9-04): Background worker queue active on Go apiserver
+      - WORKER_MAX_CONCURRENT_JOBS=${WORKER_MAX_CONCURRENT_JOBS:-5}
+      # Go runtime memory bounds
+      - GOMEMLIMIT=768MiB
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1024M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    restart: always
+    networks:
+      - backend_net
+      - frontend_net
+    volumes:
+      - staging_storage:/app/storage
+    depends_on:
+      pgbouncer_tx:
+        condition: service_healthy
+      pgbouncer_sess:
+        condition: service_healthy
+      pgbouncer_tenant_tx:
+        condition: service_healthy
+      pgbouncer_tenant_sess:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck-base
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/api/v1/health > /dev/null || exit 1"]
+
+  # ── Frontend Web Dashboard ──
+  webdashboard:
+    image: localhost/leeattend_webdashboard:staging
+    container_name: leeattend-staging-webdashboard
+    build:
+      context: ./webdashboard
+      dockerfile: Dockerfile
+      target: prod
+    networks:
+      - frontend_net
+    restart: always
+
+  # ── Edge / Reverse Proxy & Traffic Routing: Caddy ──
+  caddy:
+    image: docker.io/library/caddy:2.9-alpine
+    container_name: leeattend-staging-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+      - "2019:2019" # Caddy Admin API for dynamic canary weighting
+    volumes:
+      - ./staging/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_staging_data:/data
+      - caddy_staging_config:/config
+    networks:
+      - frontend_net
+      - backend_net
+    depends_on:
+      apiserver:
+        condition: service_healthy
+      api-go:
+        condition: service_healthy
+      webdashboard:
+        condition: service_started
+    healthcheck:
+      <<: *healthcheck-base
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/api/v1/health > /dev/null || exit 1"]
+
+  # ── Observability & Monitoring: Prometheus ──
+  prometheus:
+    image: docker.io/prom/prometheus:v2.51.0
+    container_name: leeattend-staging-prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./staging/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./staging/monitoring/alerts:/etc/prometheus/alerts:ro
+      - prometheus_staging_data:/prometheus
+    networks:
+      - backend_net
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+
+  # ── Observability & Monitoring: Grafana ──
+  grafana:
+    image: docker.io/grafana/grafana:10.4.0
+    container_name: leeattend-staging-grafana
+    restart: always
+    ports:
+      - "3005:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=staging_grafana_admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./staging/monitoring/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana_staging_data:/var/lib/grafana
+    networks:
+      - backend_net
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_system_staging_data:
+  postgres_workspace_staging_data:
+  redis_staging_data:
+  minio_staging_data:
+  staging_storage:
+  caddy_staging_data:
+  caddy_staging_config:
+  prometheus_staging_data:
+  grafana_staging_data:

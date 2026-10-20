@@ -1,0 +1,55 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "EMP-UNIQUE-001",
+    "domain": "employees",
+    "name": "duplicate_employee_code_conflict",
+    "description": "Creating an employee with an existing normalized employee_id_number/code is rejected and leaves existing row unchanged",
+    "source_ref": "apiserver/tests/integration/employee/bulk_import.rs:132-256 (test_upload_employee_xlsx_duplicate_id_skips); apiserver/src/repositories/diesel_employee_repository/crud.rs:222-232; apiserver/src/errors.rs:89-94,291-295",
+    "tags": ["employees", "uniqueness", "employee-code", "conflict", "p3-04"]
+  },
+  "request": {
+    "method": "POST",
+    "path": "/api/v1/workspaces/{ws_id}/employees",
+    "path_params": {"ws_id": "018d0000-0000-7000-8000-000000000001"},
+    "query": {},
+    "headers": {"content-type": "application/json", "x-request-id": "018d0000-0000-7000-8000-000000000101"},
+    "body": {
+      "full_name": "Replacement Name",
+      "employee_id_number": "DUP001",
+      "hire_date": "2026-01-01",
+      "primary_location_id": "018d0000-0000-7000-8000-000000000020",
+      "employer_id": "018d0000-0000-7000-8000-000000000030"
+    }
+  },
+  "identity": {
+    "auth_type": "header_impersonation",
+    "auth_token": null,
+    "user_id": "018d0000-0000-7000-8000-000000000010",
+    "workspace_id": "018d0000-0000-7000-8000-000000000001",
+    "role": "owner",
+    "permissions": ["employees:create"],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {"database": "tenant", "table": "employees", "rows": [{"id": "018d0000-0000-7000-8000-000000000060", "workspace_id": "018d0000-0000-7000-8000-000000000001", "full_name": "Existing Employee", "employee_id_number": "DUP001", "deleted_at": null, "is_active": true}]},
+      {"database": "tenant", "table": "work_locations", "rows": [{"id": "018d0000-0000-7000-8000-000000000020", "workspace_id": "018d0000-0000-7000-8000-000000000001", "is_headquarters": true}]},
+      {"database": "tenant", "table": "employers", "rows": [{"id": "018d0000-0000-7000-8000-000000000030", "workspace_id": "018d0000-0000-7000-8000-000000000001", "name": "Acme Corp"}]}
+    ],
+    "redis_seeds": [],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 409,
+    "headers": {"content-type": "application/json", "x-request-id": "018d0000-0000-7000-8000-000000000101"},
+    "body": {"error": {"code": "CONFLICT", "message": "Conflict"}},
+    "body_normalizations": []
+  },
+  "expected_side_effects": {"db_mutations": [], "redis_mutations": [], "outbox_events": [], "audit_events": []},
+  "normalization_rules": {
+    "tolerances": {"timestamp_ms": 1000, "redis_ttl_seconds": 5},
+    "ignored_fields": [{"path": "response.headers.x-request-id", "reason": "Request ID may be generated when supplied ID is not accepted by middleware", "source_citation": "apiserver/src/mw/request_id.rs:17-25", "verification": "uuid_v7"}]
+  }
+}

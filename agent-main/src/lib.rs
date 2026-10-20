@@ -27,6 +27,7 @@
     clippy::map_unwrap_or,
     clippy::too_many_arguments,
     clippy::too_many_lines,
+    clippy::double_must_use,
     clippy::disallowed_types,
     clippy::disallowed_methods
 )]

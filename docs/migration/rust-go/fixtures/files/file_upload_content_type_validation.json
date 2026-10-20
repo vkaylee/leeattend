@@ -1,0 +1,232 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "FILE-UPL-001",
+    "domain": "files",
+    "name": "file_upload_content_type_validation",
+    "description": "Presigned file upload creation with content-type MIME validation for EmployeeAvatar category",
+    "source_ref": "apiserver/src/handlers/files.rs:49-73; apiserver/src/services/storage/file_service.rs:240-275,531-566; apiserver/src/models/file.rs:142-148",
+    "tags": ["files", "upload", "presigned", "content_type_validation", "p3"]
+  },
+  "request": {
+    "method": "POST",
+    "path": "/api/v1/workspaces/{ws_id}/files/presigned",
+    "path_params": {
+      "ws_id": "018d0000-0000-7000-8000-000000000001"
+    },
+    "query": {},
+    "headers": {
+      "content-type": "application/json",
+      "x-request-id": "018d0000-0000-7000-8000-000000000099"
+    },
+    "body": {
+      "file_name": "avatar.png",
+      "mime_type": "image/png",
+      "file_size": 204800,
+      "category": "EmployeeAvatar",
+      "owner_type": "Employee",
+      "owner_id": "018d0000-0000-7000-8000-000000000030",
+      "expires_in_secs": 3600
+    }
+  },
+  "identity": {
+    "auth_type": "bearer",
+    "auth_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy",
+    "user_id": "018d0000-0000-7000-8000-000000000010",
+    "workspace_id": "018d0000-0000-7000-8000-000000000001",
+    "role": "admin",
+    "permissions": [
+      "files:create",
+      "files:read"
+    ],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {
+        "database": "system",
+        "table": "workspaces",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000001",
+            "name": "Acme Corp",
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z"
+          }
+        ]
+      },
+      {
+        "database": "system",
+        "table": "users",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000010",
+            "email": "admin@acme.test",
+            "full_name": "Admin User",
+            "password_hash": "$argon2id$v=19$m=19456,t=2,p=1$dummyhash",
+            "created_at": "2026-01-01T00:00:00Z"
+          }
+        ]
+      },
+      {
+        "database": "system",
+        "table": "workspace_members",
+        "rows": [
+          {
+            "workspace_id": "018d0000-0000-7000-8000-000000000001",
+            "user_id": "018d0000-0000-7000-8000-000000000010",
+            "role_id": "018d0000-0000-7000-8000-000000000002"
+          }
+        ]
+      },
+      {
+        "database": "tenant",
+        "table": "employees",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000030",
+            "workspace_id": "018d0000-0000-7000-8000-000000000001",
+            "employee_number": "EMP-001",
+            "first_name": "Nguyen",
+            "last_name": "Van A",
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z"
+          }
+        ]
+      }
+    ],
+    "redis_seeds": [],
+    "external_stubs": [
+      {
+        "service": "s3",
+        "endpoint": "https://s3.ap-southeast-1.amazonaws.com",
+        "action": "PutObject",
+        "response": {
+          "status": 200,
+          "headers": {
+            "etag": "\"b10a8db164e0754105b7a99be72e3fe5\""
+          }
+        }
+      }
+    ]
+  },
+  "expected_response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json",
+      "x-request-id": "018d0000-0000-7000-8000-000000000099"
+    },
+    "body": {
+      "file": {
+        "id": "018d0000-0000-7000-8000-000000000077",
+        "workspace_id": "018d0000-0000-7000-8000-000000000001",
+        "file_name": "avatar.png",
+        "storage_key": "workspaces/018d0000-0000-7000-8000-000000000001/employee_avatar/018d0000-0000-7000-8000-000000000077_avatar.png",
+        "file_size": 204800,
+        "mime_type": "image/png",
+        "content_hash": null,
+        "category": "EmployeeAvatar",
+        "folder_id": null,
+        "owner_type": "Employee",
+        "owner_id": "018d0000-0000-7000-8000-000000000030",
+        "uploaded_by": "018d0000-0000-7000-8000-000000000010",
+        "is_active": true,
+        "expires_at": "2026-10-19T11:00:00Z",
+        "scan_status": "Pending",
+        "scanned_at": null,
+        "version": 1,
+        "parent_file_id": null,
+        "is_latest": true,
+        "created_at": "2026-10-19T10:00:00Z",
+        "updated_at": "2026-10-19T10:00:00Z"
+      },
+      "upload_url": "https://s3.ap-southeast-1.amazonaws.com/leeattend-files/workspaces/018d0000-0000-7000-8000-000000000001/employee_avatar/018d0000-0000-7000-8000-000000000077_avatar.png?X-Amz-Signature=dummy"
+    },
+    "body_normalizations": [
+      {
+        "path": "$.file.id",
+        "kind": "generated_uuid",
+        "reason": "Workspace file ID generated via UUIDv7",
+        "source_citation": "apiserver/src/utils/id.rs:1-21; apiserver/src/services/storage/file_service.rs:246"
+      },
+      {
+        "path": "$.file.storage_key",
+        "kind": "presigned_url",
+        "reason": "Storage key embeds generated UUIDv7 file ID",
+        "source_citation": "apiserver/src/services/storage/key_generator.rs:18-35"
+      },
+      {
+        "path": "$.upload_url",
+        "kind": "presigned_url",
+        "reason": "Presigned PUT URL generated by AWS S3 client",
+        "source_citation": "apiserver/src/services/storage/file_service.rs:260-274"
+      },
+      {
+        "path": "$.file.created_at",
+        "kind": "generated_time",
+        "tolerance_ms": 1000,
+        "reason": "Timestamp generated via Utc::now() at row creation",
+        "source_citation": "apiserver/src/services/storage/file_service.rs:266"
+      },
+      {
+        "path": "$.file.updated_at",
+        "kind": "generated_time",
+        "tolerance_ms": 1000,
+        "reason": "Timestamp generated via Utc::now() at row creation",
+        "source_citation": "apiserver/src/services/storage/file_service.rs:267"
+      },
+      {
+        "path": "$.file.expires_at",
+        "kind": "generated_time",
+        "tolerance_ms": 1000,
+        "reason": "Expiration timestamp calculated relative to Utc::now()",
+        "source_citation": "apiserver/src/services/storage/file_service.rs:265"
+      }
+    ]
+  },
+  "expected_side_effects": {
+    "db_mutations": [
+      {
+        "database": "tenant",
+        "table": "workspace_files",
+        "operation": "INSERT",
+        "pk_filter": {
+          "workspace_id": "018d0000-0000-7000-8000-000000000001",
+          "file_name": "avatar.png"
+        },
+        "columns": {
+          "workspace_id": "018d0000-0000-7000-8000-000000000001",
+          "file_name": "avatar.png",
+          "file_size": 204800,
+          "mime_type": "image/png",
+          "category": "EmployeeAvatar",
+          "owner_type": "Employee",
+          "owner_id": "018d0000-0000-7000-8000-000000000030",
+          "uploaded_by": "018d0000-0000-7000-8000-000000000010",
+          "is_active": true,
+          "scan_status": "Pending",
+          "version": 1,
+          "is_latest": true
+        }
+      }
+    ],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {
+    "tolerances": {
+      "timestamp_ms": 1000,
+      "redis_ttl_seconds": 5
+    },
+    "ignored_fields": [
+      {
+        "path": "response.headers.x-request-id",
+        "reason": "Axum request_id_middleware propagates or generates UUIDv7",
+        "source_citation": "apiserver/src/mw/request_id.rs:17-25",
+        "verification": "uuid_v7"
+      }
+    ]
+  }
+}

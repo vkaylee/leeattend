@@ -1,0 +1,120 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "EMP-QUERY-001",
+    "domain": "employees",
+    "name": "list_employees_query_exclusion",
+    "description": "Employee listing query excludes soft-deleted records (WHERE deleted_at IS NULL), returning only active employees",
+    "source_ref": "apiserver/src/repositories/diesel_employee_repository/search.rs:24; apiserver/src/repositories/diesel_employee_repository/mod.rs:303,333; apiserver/src/handlers/employees.rs:147-252",
+    "tags": ["employees", "query", "soft-delete", "filter", "p3-04"]
+  },
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/workspaces/{ws_id}/employees",
+    "path_params": {
+      "ws_id": "018d0000-0000-7000-8000-000000000001"
+    },
+    "query": {
+      "page": 1,
+      "limit": 10
+    },
+    "headers": {
+      "x-request-id": "018d0000-0000-7000-8000-000000000104"
+    },
+    "body": null
+  },
+  "identity": {
+    "auth_type": "bearer",
+    "auth_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.dummy",
+    "user_id": "018d0000-0000-7000-8000-000000000010",
+    "workspace_id": "018d0000-0000-7000-8000-000000000001",
+    "role": "owner",
+    "permissions": ["employees:read"],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {
+        "database": "tenant",
+        "table": "employees",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000051",
+            "workspace_id": "018d0000-0000-7000-8000-000000000001",
+            "user_id": null,
+            "full_name": "Active Employee",
+            "employee_id_number": "EMP001",
+            "tags": ["active"],
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z",
+            "deleted_at": null
+          },
+          {
+            "id": "018d0000-0000-7000-8000-000000000052",
+            "workspace_id": "018d0000-0000-7000-8000-000000000001",
+            "user_id": null,
+            "full_name": "Deleted Employee",
+            "employee_id_number": "EMP002",
+            "tags": ["deleted"],
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z",
+            "deleted_at": "2026-02-01T12:00:00Z"
+          }
+        ]
+      }
+    ],
+    "redis_seeds": [],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json",
+      "x-request-id": "018d0000-0000-7000-8000-000000000104"
+    },
+    "body": {
+      "data": [
+        {
+          "id": "018d0000-0000-7000-8000-000000000051",
+          "workspace_id": "018d0000-0000-7000-8000-000000000001",
+          "user_id": null,
+          "full_name": "Active Employee",
+          "employee_id_number": "EMP001",
+          "tags": ["active"],
+          "created_at": "2026-01-01T00:00:00Z",
+          "updated_at": "2026-01-01T00:00:00Z",
+          "department_name": null,
+          "active_employment_id": null,
+          "employer_id": null,
+          "primary_location_id": null
+        }
+      ],
+      "total": 1,
+      "page": 1,
+      "limit": 10,
+      "truncated": null
+    },
+    "body_normalizations": []
+  },
+  "expected_side_effects": {
+    "db_mutations": [],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {
+    "tolerances": {
+      "timestamp_ms": 1000,
+      "redis_ttl_seconds": 5
+    },
+    "ignored_fields": [
+      {
+        "path": "response.headers.x-request-id",
+        "reason": "Axum request_id_middleware propagates or generates UUIDv7",
+        "source_citation": "apiserver/src/mw/request_id.rs:17-25",
+        "verification": "uuid_v7"
+      }
+    ]
+  }
+}

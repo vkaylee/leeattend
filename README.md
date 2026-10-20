@@ -9,8 +9,9 @@ leeattend/
 ├── agent-main/       # Rust Agent Orchestrator + ZK Device Worker
 │   └── Native Rust hardware communication via rustzk
 │
-├── apiserver/        # Rust API Server (Runs on Central Cloud/Server)
-│   ├── High-performance REST API (Axum)
+├── apiserver/        # Go API Server (Migrated from Rust/Axum — Phase 9 Cutover Complete)
+│   ├── High-performance REST API (Go net/http + oapi-codegen strict server)
+│   ├── pgx/v5 + sqlc database layer with full tenant isolation
 │   └── Central Database Management
 │
 └── docs/             # System Documentation
@@ -18,7 +19,7 @@ leeattend/
 
 ## Project Components
 
-1.  **apiserver**: Built with **Rust (Axum)**, responsible for agent management, log ingestion, and providing API for the Dashboard.
+1.  **apiserver**: Built with **Go** (`net/http`, `pgx/v5`, `sqlc`), responsible for agent management, log ingestion, and providing API for the Dashboard. Migrated from Rust/Axum in October 2026 — see `docs/migration/rust-go/final-evidence.md`.
 2.  **agent-main**: Built with **Rust**, acts as the Agent Orchestrator + ZK Worker, communicating directly with ZKTeco devices via `rustzk`.
 3.  **webdashboard**: Built with **React (Vite)**, a web interface for system management and monitoring.
 4.  **docs**: Detailed guidance and documentation.
@@ -50,7 +51,8 @@ The project uses a highly optimized testing infrastructure designed for speed an
 
 ### Prerequisites
 - Docker & Docker Compose
-- Rust (for host-side compilation)
+- Go 1.26+ (for local host-side Go builds; not required when using `./leedevkit`)
+- Rust (for `agent-main` host-side compilation)
 
 ### Running Tests
 Always use the unified orchestrator:
@@ -70,7 +72,7 @@ Always use the unified orchestrator:
 ### Key Features
 - **Smart Worker Pool**: High-efficiency orchestrator that strictly respects `NUM_WORKERS` limits (auto-capped at 2 for WSL stability).
 - **Comprehensive Summary Report**: Generates a detailed, colorized report at the end of every run with per-task status and duration.
-- **Cargo Nextest**: Modern test runner for faster, isolated Rust tests.
+- **Cargo Nextest & Go Test Harness**: Isolated test runners for backend Go API and Rust agent tests.
 - **Docker Isolation**: All tests run inside containers. Database is internal (`test_db:5432`) with no host port mapping.
 ### ⚠️ WSL Performance Note
 On WSL2, direct test execution (`cargo test`) will likely freeze your system due to Disk I/O issues. **Always use `./leedevkit test`** which runs tests inside Podman containers. AI Agents should append `</dev/null`.

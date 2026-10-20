@@ -1,0 +1,90 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "SYS-READY-001",
+    "domain": "system",
+    "name": "health_readiness_healthy_dependencies",
+    "description": "Readiness probe reports healthy PostgreSQL and Redis dependencies",
+    "source_ref": "apiserver/tests/integration/misc/health.rs:23-38 (readiness_check_works); apiserver/src/handlers/common.rs:522-580; apiserver/src/routes/auth.rs:23-26",
+    "tags": ["system", "health", "readiness", "healthy", "p3"]
+  },
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/health/ready",
+    "query": {},
+    "headers": {
+      "accept": "application/json",
+      "x-request-id": "018d0000-0000-0000-0000-000000000099"
+    },
+    "body": null
+  },
+  "identity": {
+    "auth_type": "anonymous",
+    "auth_token": null,
+    "user_id": null,
+    "workspace_id": null,
+    "role": null,
+    "permissions": [],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [],
+    "redis_seeds": [],
+    "external_stubs": [
+      {
+        "service": "clamav",
+        "endpoint": "disabled",
+        "action": "not_used",
+        "response": {
+          "status": 204
+        }
+      }
+    ]
+  },
+  "expected_response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json",
+      "x-request-id": "018d0000-0000-0000-0000-000000000099"
+    },
+    "body": {
+      "status": "healthy",
+      "version": "0.1.0",
+      "uptime_seconds": 0,
+      "checks": {
+        "database": "ok",
+        "redis": "ok"
+      }
+    },
+    "body_normalizations": [
+      {
+        "path": "$.uptime_seconds",
+        "kind": "generated_time",
+        "tolerance_ms": 1000,
+        "reason": "Readiness uptime derives from process start Instant",
+        "source_citation": "apiserver/src/handlers/common.rs:513,558-561"
+      }
+    ]
+  },
+  "expected_side_effects": {
+    "db_mutations": [],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {
+    "tolerances": {
+      "timestamp_ms": 1000,
+      "redis_ttl_seconds": 5
+    },
+    "ignored_fields": [
+      {
+        "path": "response.headers.x-request-id",
+        "reason": "Axum request_id_middleware propagates or generates UUIDv7",
+        "source_citation": "apiserver/src/mw/request_id.rs:17-25",
+        "verification": "uuid_v7"
+      }
+    ]
+  }
+}

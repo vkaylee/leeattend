@@ -1,0 +1,74 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "AUTH-003",
+    "domain": "auth",
+    "name": "expired_token_unauthorized",
+    "description": "JWT whose exp claim is in the past is rejected by AuthService verification and returns 401",
+    "source_ref": "apiserver/src/lib.rs:180-197; apiserver/src/services/auth_service.rs:355-362",
+    "tags": ["auth", "jwt", "expiry", "unauthorized", "p3-02"]
+  },
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "query": {},
+    "headers": {
+      "authorization": "Bearer <expired-jwt-for-user-018d0000-0000-7000-8000-000000000010>"
+    },
+    "body": null
+  },
+  "identity": {
+    "auth_type": "bearer",
+    "auth_token": "<expired-jwt-for-user-018d0000-0000-7000-8000-000000000010>",
+    "user_id": "018d0000-0000-7000-8000-000000000010",
+    "workspace_id": null,
+    "role": null,
+    "permissions": [],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {
+        "database": "system",
+        "table": "users",
+        "rows": [
+          {
+            "id": "018d0000-0000-7000-8000-000000000010",
+            "email": "member@example.com",
+            "full_name": "Workspace Member"
+          }
+        ]
+      }
+    ],
+    "redis_seeds": [],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 401,
+    "headers": {
+      "content-type": "text/plain; charset=utf-8"
+    },
+    "body": "Authentication required",
+    "body_normalizations": []
+  },
+  "expected_side_effects": {
+    "db_mutations": [],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {
+    "tolerances": {
+      "timestamp_ms": 1000
+    },
+    "ignored_fields": [
+      {
+        "path": "response.headers.x-request-id",
+        "reason": "Axum request_id_middleware generates new UUIDv7 if incoming header absent",
+        "source_citation": "apiserver/src/mw/request_id.rs:17-25",
+        "verification": "uuid_v7"
+      }
+    ]
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "id": "ATT-ADJ-002",
+    "domain": "attendance",
+    "name": "manual_adjustment_approval",
+    "description": "Approver approves pending attendance adjustment; status transitions to approved and manual raw log drives repunch pairing",
+    "source_ref": "apiserver/tests/integration/attendance/adjustment_extended.rs:116-140 (test_approve_adjustment_not_found); apiserver/src/handlers/attendance/adjustments.rs:126-168; apiserver/src/services/attendance_adjustment_service.rs:77-119",
+    "tags": ["attendance", "adjustment", "approval", "state-machine", "p3-05"]
+  },
+  "request": {
+    "method": "POST",
+    "path": "/api/v1/workspaces/{ws_id}/attendance/adjustments/{id}/approve",
+    "path_params": {"ws_id": "018d0000-0000-7000-8000-000000000001", "id": "018d0000-0000-7000-8000-000000000240"},
+    "query": {},
+    "headers": {"content-type": "application/json", "x-request-id": "018d0000-0000-7000-8000-000000000205"},
+    "body": {"status": "approved"}
+  },
+  "identity": {
+    "auth_type": "bearer",
+    "auth_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.dummy",
+    "user_id": "018d0000-0000-7000-8000-000000000011",
+    "workspace_id": "018d0000-0000-7000-8000-000000000001",
+    "role": "admin",
+    "permissions": ["attendance:adjustments:approve"],
+    "system_roles": []
+  },
+  "setup": {
+    "db_seeds": [
+      {"database": "tenant", "table": "employees", "rows": [{"id": "018d0000-0000-7000-8000-000000000060", "workspace_id": "018d0000-0000-7000-8000-000000000001", "full_name": "Test Employee", "employee_id_number": "EMP001", "deleted_at": null}]},
+      {"database": "tenant", "table": "employments", "rows": [{"id": "018d0000-0000-7000-8000-000000000065", "workspace_id": "018d0000-0000-7000-8000-000000000001", "employee_id": "018d0000-0000-7000-8000-000000000060", "status": "active"}]},
+      {"database": "tenant", "table": "attendance_adjustment_requests", "rows": [{"id": "018d0000-0000-7000-8000-000000000240", "employment_id": "018d0000-0000-7000-8000-000000000065", "time_entry_id": null, "requested_punch_time": "2026-10-19T08:00:00Z", "reason": "Forgot to punch in", "status": "pending", "requested_by_user_id": "018d0000-0000-7000-8000-000000000010", "approved_by_user_id": null, "created_at": "2026-10-19T07:00:00Z", "updated_at": "2026-10-19T07:00:00Z"}]}
+    ],
+    "redis_seeds": [],
+    "external_stubs": []
+  },
+  "expected_response": {
+    "status": 200,
+    "headers": {"x-request-id": "018d0000-0000-7000-8000-000000000205"},
+    "body": null,
+    "body_normalizations": []
+  },
+  "expected_side_effects": {
+    "db_mutations": [
+      {"database": "tenant", "table": "attendance_adjustment_requests", "operation": "UPDATE", "pk_filter": {"id": "018d0000-0000-7000-8000-000000000240"}, "columns": {"status": "approved", "approved_by_user_id": "018d0000-0000-7000-8000-000000000011"}},
+      {"database": "tenant", "table": "raw_attendance_logs", "operation": "INSERT", "pk_filter": {"employment_id": "018d0000-0000-7000-8000-000000000065", "punch_time": "2026-10-19T08:00:00Z"}, "columns": {"employment_id": "018d0000-0000-7000-8000-000000000065", "source": "Manual", "punch_time": "2026-10-19T08:00:00Z"}}
+    ],
+    "redis_mutations": [],
+    "outbox_events": [],
+    "audit_events": []
+  },
+  "normalization_rules": {"tolerances": {"timestamp_ms": 2000, "redis_ttl_seconds": 5}, "ignored_fields": [{"path": "response.headers.x-request-id", "reason": "Axum request_id_middleware propagates or generates UUIDv7", "source_citation": "apiserver/src/mw/request_id.rs:17-25", "verification": "uuid_v7"}]}
+}
