@@ -51,9 +51,12 @@ read -r -d '' GATES <<'GATES_EOF' || true
 set -euo pipefail
 fail() { echo "GATE FAIL: $1" >&2; exit 1; }
 
+git config --global --add safe.directory '*' 2>/dev/null || true
+export GOFLAGS="-mod=mod -buildvcs=false"
+
 if [ "${MODE}" != "unit" ]; then
     echo "== gofmt =="
-    UNFORMATTED="$(find . -name "\*.go" ! -name "Dockerfile\*" -exec gofmt -l {} +)" || fail "gofmt"
+    UNFORMATTED="$(find . -name "*.go" -exec gofmt -l {} +)" || fail "gofmt"
     [ -z "$UNFORMATTED" ] || { echo "$UNFORMATTED"; fail "gofmt listed unformatted files"; }
 
     echo "== go vet =="

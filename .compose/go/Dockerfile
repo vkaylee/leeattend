@@ -11,10 +11,11 @@ ARG SQLC_VERSION=v1.29.0
 ARG OAPI_CODEGEN_VERSION=v2.4.1
 
 ENV GOTOOLCHAIN=local \
-    GOFLAGS=-mod=mod \
+    GOFLAGS="-mod=mod -buildvcs=false" \
     CGO_ENABLED=1
 
-RUN go version \
+RUN git config --global --add safe.directory '*' \
+    && go version \
     && go install honnef.co/go/tools/cmd/staticcheck@${STATICCHECK_VERSION} \
     && go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION} \
     && go install github.com/sqlc-dev/sqlc/cmd/sqlc@${SQLC_VERSION} \

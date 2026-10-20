@@ -319,6 +319,8 @@ services:
       - test_net
     working_dir: /workspace/apiserver
     entrypoint: ["sleep", "infinity"]
+    environment:
+      - GOFLAGS=-mod=mod -buildvcs=false
     volumes:
       - ${PROJECT_ROOT}:/workspace
       - go-module-cache:/go/pkg/mod
