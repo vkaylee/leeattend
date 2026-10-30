@@ -1,0 +1,6 @@
+{
+  "type": "https://example.test/problems/rate-limited",
+  "title": "Too Many Requests",
+  "status": 429,
+  "detail": "synthetic rate limit"
+}

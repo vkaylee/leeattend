@@ -1,0 +1,12 @@
+{
+  "events": [
+    {
+      "external_event_id": "evt-synthetic-001",
+      "device_id": "device-synthetic",
+      "occurred_at": "2026-01-15T08:30:00Z",
+      "type": "check_in",
+      "data": {"source": "contract-test"}
+    }
+  ],
+  "next_cursor": "cursor-synthetic-next"
+}
