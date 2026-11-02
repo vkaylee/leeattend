@@ -47,7 +47,7 @@
 - **Idle Timeout:** Web sessions SHOULD timeout after **30 minutes** of inactivity.
 
 ## 4. Service-to-Service Authentication
-- **Internal API Calls:** Use signed JWTs with a dedicated service identity (e.g., `sub: "service:agent-main"`). Never use shared secrets or API keys for internal calls.
+- **Internal API Calls:** Use signed JWTs with a dedicated service identity. Never use shared secrets or API keys for internal calls.
 - **Background Workers:** Workers MUST authenticate using a scoped service token, NOT a user token. The service token MUST have only the permissions needed for that worker's tasks.
 - **Webhook Delivery:** Outgoing webhooks MUST include an HMAC signature header for payload verification by the receiver.
 

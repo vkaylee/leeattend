@@ -4,7 +4,7 @@
  * Usage:
  *   import { ROUTES } from "@/lib/routes";
  *   <Link to={ROUTES.EMPLOYEES}>...</Link>
- *   navigate(ROUTES.SETTINGS.CONNECTIVITY);
+ *   navigate(ROUTES.SETTINGS.GENERAL);
  *
  * Route paths are defined by TanStack Router file-based routes in src/routes/.
  * This file provides typed constants for type-safe navigation.
@@ -42,7 +42,6 @@ export const ROUTES = {
   SHIFTS_EDIT: "/shifts/$shiftId/edit",
   SHIFT_SWAPS: "/shift-swaps",
   PAYROLL: "/payroll",
-  AGENTS: "/agents",
   DEVICES: "/devices",
   PROFILE: "/profile",
 
@@ -76,7 +75,6 @@ export const ROUTES = {
     PAYROLL: "/workspace/settings/payroll",
     LEAVE: "/workspace/settings/leave",
     HOLIDAYS: "/workspace/settings/holidays",
-    CONNECTIVITY: "/workspace/settings/connectivity",
     AUDIT_LOGS: "/workspace/settings/audit-logs",
     BILLING: "/workspace/settings/billing",
     DANGER: "/workspace/settings/danger",

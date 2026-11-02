@@ -109,7 +109,6 @@ const (
 	KeyNoRefreshToken             = "error.no_refresh_token"
 	KeyInvalidFeatureFlagKey      = "error.invalid_feature_flag_key"
 	KeyFeatureFlagNotFound        = "error.feature_flag_not_found"
-	KeyAgentNotFound              = "error.agent_not_found"
 	KeyShiftNotFound              = "error.shift_not_found"
 	KeyInvalidToken               = "error.invalid_token"
 	KeyResetTokenInvalid          = "error.reset_token_invalid"
@@ -879,11 +878,6 @@ var i18nCatalog = map[string]translationEntry{
 		en: "Device not found",
 		vi: "Không tìm thấy thiết bị",
 		zh: "未找到设备",
-	},
-	"error.agent_not_found": {
-		en: "Agent not found",
-		vi: "Không tìm thấy Agent",
-		zh: "未找到 Agent",
 	},
 	"error.no_fields_to_update": {
 		en: "No fields to update",

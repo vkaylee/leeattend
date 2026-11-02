@@ -1,6 +1,6 @@
 # API Reference
 
-## 🚀 API Server (Central - Rust)
+## API Server (Central - Go)
 Base URL: `http://localhost:3000`
 
 ### 0. Authentication & Context (Updated)
@@ -199,11 +199,7 @@ Thêm thiết bị mới vào workspace.
         "brand": "zkteco|mock", "password": "...", "timezone": "Asia/Ho_Chi_Minh" }`
 - **Response (201)**: `{ "id": "uuid-v4" }`
 
-> ⚠️ **`timezone` (tùy chọn, tên IANA).** Agent dùng múi giờ này để quy đổi giá
-> trị wall-clock (không có offset) mà máy chấm công trả về thành một mốc thời
-> gian tuyệt đối. Sai giá trị này làm **lệch toàn bộ punch** của thiết bị theo
-> đúng chênh lệch offset — đây là lỗi sai *instant*, xảy ra ngay tại khâu nạp dữ
-> liệu, trước mọi báo cáo.
+> ⚠️ **`timezone` (tùy chọn, tên IANA).** `apiserver` dùng múi giờ này để quy đổi giá trị wall-clock không có offset mà provider trả về thành một mốc thời gian tuyệt đối. Sai giá trị này làm lệch toàn bộ punch của thiết bị.
 >
 > - Bỏ trống → kế thừa `timezone` của workspace (**không** mặc định `UTC`).
 > - Giá trị không phải tên IANA hợp lệ → `400` (`error.invalid_timezone`).
@@ -215,48 +211,15 @@ Cập nhật thiết bị. Mọi trường đều tùy chọn; trường bỏ tr
         "password": "...", "timezone": "Asia/Ho_Chi_Minh", "is_enabled": true }`
 - **Response (200)**: `OK`
 - **Lỗi**: `400` (`error.invalid_timezone`) nếu `timezone` không phải tên IANA hợp lệ.
-
 ---
 
-### 4. Agent Management
+### 4. Device log pull
 
-Quản lý các Edge Agents.
-- **UI Note**: Trong WebDashboard, trang này đã được hợp nhất vào `Settings > Connectivity`.
+The Go `apiserver` pulls attendance events from the configured external provider. No registration, command, or device-ingestion WebSocket API is exposed.
 
-#### GET /authorized-agents
-Lấy danh sách Agent thuộc workspace hiện tại (Xác định qua header `X-Workspace-Id`).
-- **Query Params**: `?include_inactive=true`
-- **Response (200)**: `Array<AuthorizedAgent>`
+Configure `LOG_PULL_ENABLED`, `LOG_PULL_BASE_URL`, `LOG_PULL_TOKEN`, `LOG_PULL_ACCOUNT_ID`, `LOG_PULL_MODE`, and bounded interval, timeout, page-size, and concurrency settings. `shadow` mode fetches and normalizes events without attendance writes; `write` mode commits events and the next cursor transactionally.
 
-#### POST /authorized-agents
-Khai báo một Agent mới vào workspace.
-- **Request**:
-  ```json
-  {
-    "id": "AGENT_01",
-    "name": "Chi nhánh Hà Nội",
-    "token": "secret_token_123"
-  }
-  ```
-- **Response (201)**: `{ "id": "AGENT_01" }`
-
-#### PATCH /authorized-agents/:id (New)
-Cập nhật thông tin Agent (tên, token, trạng thái active/trusted, max_concurrent_workers).
-- **Response (200 OK)**
-
-#### DELETE /authorized-agents/:id (Soft Delete)
-Đánh dấu Agent là không hoạt động (`is_active = false`). Agent sẽ bị ngắt kết nối WebSocket và ẩn khỏi danh sách mặc định.
-- **Response (204)**: No Content
-
-#### PUT /authorized-agents/:id/trust
-Phê duyệt (Trust) hoặc Thu hồi quyền của một Agent. Khi thu hồi, kết nối WebSocket hiện tại sẽ bị ngắt.
-- **Request**:
-  ```json
-  { "is_trusted": true }
-  ```
-- **Response (200 OK)**
-
----
+Provider event identity is deduplicated per workspace and device. Device CRUD remains documented above and report progress remains available at `GET /ws/reports/{job_id}`.
 
 ### 5. Employee Management
 
@@ -598,7 +561,7 @@ Lấy trạng thái chi tiết của một Job cụ thể.
 
 ### 10. Attendance Logs (New)
 
-Xem nhật ký quẹt thẻ thô từ các thiết bị ngoại vi (Edge Agents).
+Xem nhật ký quẹt thẻ thô từ provider hoặc file import.
 
 #### GET /workspaces/:ws_id/attendance/logs
 Lấy danh sách các phiên làm việc (sessions) đã được ghép cặp.
@@ -1411,192 +1374,6 @@ Xóa quy tắc.
 
 ---
 
-### WebSocket Giao thức (Agent <-> Server)
-
-Agent gửi dữ liệu chấm công thô và trạng thái sức khỏe lên Server qua một kết nối duy nhất.
-
-#### 1. Handshake (Agent -> Server)
-Bản tin đầu tiên sau khi kết nối để xác thực định danh.
-```json
-{
-  "type": "handshake",
-  "agent_id": "AGENT_01",
-  "token": "secret_token_abc_123",
-  "timestamp": "2026-01-07T10:00:00Z"
-}
-```
-
-#### 2. Heartbeat (Agent -> Server)
-Agent gửi định kỳ (mỗi 30s) để duy trì trạng thái "Online" trong Database.
-```json
-{
-  "type": "heartbeat",
-  "agent_id": "AGENT_01",
-  "timestamp": "ISO-8601"
-}
-```
-
-#### 3. Status Update (Agent -> Server)
-Cập nhật chi tiết trạng thái của các máy chấm công đang được giám sát.
-```json
-{
-  "type": "status_update",
-  "agent_id": "AGENT_01",
-  "devices": [
-    {
-      "device_id": "DEV_01",
-      "status": "online",
-      "last_sync": "...",
-      "error": null
-    }
-  ]
-}
-```
-
-#### 4. Attendance Log (Agent -> Server)
-... (giữ nguyên cấu trúc cũ) ...
-
----
-
-### WebSocket Error Codes
-Khi có lỗi xảy ra trong quá trình Handshake hoặc kết nối, Server sẽ gửi message `type: "error"` và đóng kết nối.
-
-| Code | Message | Mô tả |
-|------|---------|-------|
-| `UNAUTHORIZED_AGENT` | Agent ID không nằm trong danh sách... | ID này chưa được khai báo trong bảng `authorized_agents`. |
-| `INVALID_TOKEN` | Token không chính xác. | ID đúng nhưng chuỗi bí mật `token` không khớp. |
-| `AGENT_NOT_TRUSTED` | Agent chưa được phê duyệt... | Agent đã khai báo nhưng cờ `is_trusted` đang là `false`. |
-| `DUPLICATE_ID` | Agent ID ... đã có kết nối hoạt động. | ID này hiện đang có một WebSocket session khác đang chạy. |
-
----
-
-
-
-### POST /agent/:agent_id/command
-Gửi lệnh điều khiển đến một Agent đang online.
-
-**Request Body:**
-```json
-{
-  "method": "sync_time",
-  "device_id": "OFFICE_01",
-  "data": {}
-}
-```
-
-**Supported Methods:**
-- `sync_time`: Đồng bộ thời gian cho máy chấm công.
-- `get_users`: Lấy danh sách nhân viên từ máy.
-- `ping`: Kiểm tra kết nối đến Agent.
-
-**Response (200 OK):**
-```text
-Command sent
-```
-
-**Errors:**
-- `404 Not Found`: Agent không online hoặc không tồn tại.
-
----
-
-## 🤖 Agent Remote Control (WebSocket Tunnels)
-
-Agent không cung cấp HTTP API local. Mọi tương tác với Agent được thực hiện gián tiếp thông qua Central Server WebSocket. 
-
-Admin gửi lệnh tới API Server, và API Server sẽ định tuyến lệnh đó tới Agent tương ứng qua kết nối WebSocket đang hoạt động.
-
-### POST /agent/:agent_id/command (Central Server API)
-Gửi lệnh điều khiển đến một Agent đang online.
-
-**Request Body:**
-```json
-{
-  "method": "sync_time",
-  "device_id": "OFFICE_01",
-  "data": {}
-}
-```
-
-**Supported Methods:**
-- `sync_time`: Đồng bộ thời gian cho máy chấm công cụ thể.
-- `get_users`: Lấy danh sách nhân viên từ máy.
-- `ping`: Kiểm tra kết nối và độ trễ tới Agent.
-
-**Response (200 OK):**
-```json
-{
-  "success": true,
-  "data": { ... result of method ... },
-  "error": null
-}
-```
-
----
-
-## 🌐 Agent Outbound Giao thức (WebSocket)
-
-Agent chủ động kết nối tới `CENTRAL_SERVER_URL` để thiết lập kênh giao tiếp 2 chiều.
-
-### 1. Handshake (Agent -> Server)
-Bản tin đầu tiên để xác thực.
-```json
-{
-  "type": "handshake",
-  "agent_id": "AGENT_01",
-  "token": "secret_token_abc",
-  "timestamp": "ISO-8601"
-}
-```
-
-### 2. Status Update (Agent -> Server)
-Agent định kỳ (mỗi 30s) gửi trạng thái chi tiết của các máy chấm công local.
-```json
-{
-  "type": "status_update",
-  "agent_id": "AGENT_01",
-  "devices": [
-    {
-      "device_id": "DEV_01",
-      "status": "online",
-      "last_sync": "2026-01-07T18:00:00",
-      "error": null
-    }
-  ]
-}
-```
-
-### 3. Attendance Log (Agent -> Server)
-Gửi dữ liệu chấm công thời gian thực.
-- **Timezone Awareness**: Server sẽ tự động chuyển đổi `timestamp` từ múi giờ địa phương của Workspace sang chuẩn UTC dựa trên cấu hình `timezone` của Workspace đó.
-- **Parsing Logic**: Hỗ trợ cả định dạng ISO-8601 và Naive (dựa trên `date_format` và `time_format` của Workspace).
-
-```json
-{
-  "type": "attendance",
-  "msg_id": "uuid-v4",
-  "agent_id": "AGENT_01",
-  "device_id": "DEV_01",
-  "data": {
-    "user_id": "101",
-    "timestamp": "2026-01-07 18:00:00",
-    "status": 1,
-    "punch": 0
-  }
-}
-```
-
----
-
-## 🛠 Định dạng Log (Agent Console Output)
-
-Dù không có HTTP server, Agent vẫn in thông tin hoạt động ra Console:
-```text
-[18:00:00] [SYSTEM] ℹ️ INFO : Agent đã khởi động và đang giám sát thiết bị local.
-[18:05:00] [OFFICE_01] ⚠️ WARN : Lỗi kết nối máy chấm công (ZKError). Thử lại sau 15.0s.
-[18:10:00] [OFFICE_01] ℹ️ INFO : Kết nối máy chấm công đã được phục hồi.
-```
---- 
-
 ### 16. Overtime Policies (New)
 
 Quản lý các quy tắc tính lương tăng ca linh hoạt dựa trên khung giờ và ngày trong tuần.
@@ -1709,120 +1486,6 @@ Thực thi quy trình tự động trừ phép cho một ngày nghỉ lễ khôn
     }
   ]
   ```
-
-## WebSocket Agent Protocol
-
-The Agent communicates with the Server via a persistent WebSocket connection. All messages use a type-safe JSON format with a discriminator field `type`.
-
-### Server -> Agent: Config Push
-Sent by the server whenever a device configuration changes or an agent is authorized.
-
-**Message Type:** `config_push`
-
-**Payload Structure:**
-```json
-{
-  "type": "config_push",
-  "data": {
-    "devices": [
-      {
-        "device_id": "uuid-string",
-        "name": "Device Display Name",
-        "ip": "192.168.1.100",
-        "port": 4370,
-        "brand": "zkteco|mock"
-      }
-    ]
-  }
-}
-```
-
-### Agent -> Server: Attendance Data
-Sent by the agent to sync raw logs.
-
-**Message Type:** `attendance`
-
-**Payload Structure:**
-```json
-{
-  "type": "attendance",
-  "msg_id": "unique-msg-id",
-  "agent_id": "agent-uuid",
-  "device_id": "device-uuid",
-  "data": {
-    "user_id": "123",
-    "timestamp": "2024-01-26 10:00:00",
-    "status": 1,
-    "punch": 1
-  },
-  "timestamp": "2024-01-26T10:00:00Z"
-}
-```
-
-### Server -> Agent: Ack
-Acknowledgment for attendance sync.
-
-**Message Type:** `ack`
-
-**Payload Structure:**
-```json
-{
-  "type": "ack",
-  "msg_id": "id-of-the-attendance-msg",
-  "status": "success"
-}
-```
-
-## 🤖 Worker RPC API (Edge Orchestrator <-> Sidecars)
-The Rust Edge Orchestrator (`agent-main`) communicates with brand-specific sidecars (e.g., `agent-zk-worker`) using **JSON-RPC 2.0** over TCP.
-
-### Protocol
-- **Transport**: TCP Loopback (127.0.0.1)
-- **Format**: Line-delimited JSON-RPC 2.0
-- **Read Timeout**: 5 minutes (300s) for slow device operations
-- **Write Timeout**: 30 seconds for RPC requests
-
-### Sidecar Lifecycle & Retry Behavior
-
-#### Sidecar Connection
-The orchestrator spawns a brand-specific sidecar process (Python) and waits for it to connect on an ephemeral RPC port:
-
-- **Connection Accept Timeout**: 10 seconds - if sidecar doesn't connect within 10s, spawn is considered failed
-- **Retry Delay**: Exponential backoff with ±25% jitter
-  - Retry 1: 2s, Retry 2: 4s, Retry 3: 8s, Retry 4: 16s, Retry 5: 32s, Retry 6+: 60s (capped)
-- **Stability Reset**: Retry count resets to 0 after successful polling for 30 seconds
-- **Max Retries**: 10 attempts before the worker enters dormant state
-
-#### Failure Recovery
-All failure points trigger retry logic:
-
-| Failure | Action | Retry Delay |
-|---------|--------|-------------|
-| Sidecar spawn fails | Increment retry, apply backoff | Exponential 2-60s |
-| Connection timeout (>10s) | Kill sidecar, increment retry | Exponential 2-60s |
-| RPC call timeout (>5min read) | Kill sidecar, increment retry | Exponential 2-60s |
-| Connection drop during polling | Kill sidecar, increment retry | Exponential 2-60s |
-
-### Standard Methods
-#### `common.ping`
-Check if the sidecar is alive.
-- **Request**: `{ "jsonrpc": "2.0", "method": "common.ping", "id": 1 }`
-
-#### `device.connect`
-Connect to a physical biometric device.
-- **Params**: `ip` (String), `port` (Number)
-- **Side Effects**: If fails, triggers sidecar restart with retry logic
-
-#### `device.get_logs`
-Fetch attendance logs from the device (called every 5 seconds by orchestrator).
-- **Timeout**: Respects 5-minute read timeout
-- **Failure**: Triggers sidecar restart if connection is lost
-
-#### `device.get_time`
-Fetch current device time for synchronization checks.
-
-#### `device.sync_time`
-Synchronize device time with sidecar.
 
 ## Attendance & Overtime
 

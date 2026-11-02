@@ -1,11 +1,11 @@
 {
     "schema_version": 2,
-    "commit": "5b6365c9a349c7222810765e6bf97bbf3d140289",
-    "indexed_at": "2026-10-19T23:09:22Z",
+    "commit": "3ae7e7fb8daeee1448d6a4086705dffbb7e82b4d",
+    "indexed_at": "2026-11-02T23:38:20Z",
     "project": "home-elt1541-lee-leeattend",
-    "nodes": 55571,
-    "edges": 259171,
-    "original_size": 186318848,
-    "compressed_size": 27579689,
+    "nodes": 37416,
+    "edges": 100922,
+    "original_size": 100794368,
+    "compressed_size": 15199486,
     "compression_level": 3
 }

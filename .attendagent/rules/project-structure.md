@@ -4,7 +4,6 @@
 | Component | Language | Path |
 |-----------|----------|------|
 | API Server | Rust (Axum) | `apiserver/` |
-| Agent (ZK Worker) | Rust | `agent-main/` |
 | Web Dashboard | React + TypeScript | `webdashboard/` |
 | Containers | Compose | `docker-compose*.yml` |
 | Tests | Rust + Playwright | `./leedevkit test` |
@@ -34,7 +33,6 @@ Use conventional commits for all changes:
 | `apiserver/src/utils/` | Helpers: `I18nKey`, i18n utilities |
 | `apiserver/migrations/tenant/` | Tenant migrations (`YYYYMMDDHHMMSS_description/up.sql`+`down.sql`) |
 | `apiserver/migrations/system/` | System-wide migrations |
-| `agent-main/` | Agent binary (ZK worker) |
 | `webdashboard/` | React + TypeScript SPA frontend |
 | `scripts/` | Hermetic wrappers: `_cargo.sh`, `_npm.sh`, `_diesel.sh` |
 

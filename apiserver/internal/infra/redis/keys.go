@@ -50,11 +50,6 @@ func CalculateLoginLockoutTTL(attempts int) time.Duration {
 	return time.Duration(backoffSecs) * time.Second
 }
 
-// Key Builders — Auth family
-func KeyAgentPresence(agentID string) string {
-	return fmt.Sprintf("agent:presence:%s", agentID)
-}
-
 func KeyLoginAttempts(email string) string {
 	return fmt.Sprintf("login:attempts:%s", email)
 }
@@ -219,10 +214,6 @@ func KeyImportTotalChunks(jobID uuid.UUID) string {
 
 func KeyLockHousekeeping(date string) string {
 	return fmt.Sprintf("lock:housekeeping:%s", date)
-}
-
-func KeyIngestDelivery(agentID, msgID string) string {
-	return fmt.Sprintf("ingest:delivery:%s:%s", agentID, msgID)
 }
 
 func ChannelReportStream(jobID uuid.UUID) string {

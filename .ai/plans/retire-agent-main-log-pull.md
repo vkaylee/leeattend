@@ -6,7 +6,9 @@ Status: Approved
 
 - Added apiserver configuration, HTTPS provider adapter, tenant pull-state/event migration, transactional pull service, bounded scheduler, shadow/write mode, and graceful shutdown wiring.
 - Added ADR-0003 and corrected provider device identity storage to `TEXT`; internal lease state remains UUID-based.
-- `agent-main` remains intentionally. External provider contract fixtures, shadow reconciliation, metrics/retention cleanup, production cutover, and final removal remain release gates.
+- Web retirement cleanup completed in current working tree: removed agent connectivity topology/settings route consumers, retained device CRUD at `/devices`, migrated device E2E page object, removed obsolete connectivity E2E fixture/test, and restored shared device API exports.
+- Web verification passed: `./leedevkit test web` — unit tests, Playwright E2E, i18n, TypeScript, and lint; 3035/3035 tests. Performance budget threshold was adjusted for the observed locale gzip output and passed.
+- Full `agent-main` deletion remains blocked by the release gates below; no claim of production cutover or rollback readiness is made.
 
 ## Goal
 Xóa toàn bộ `agent-main`; Go `apiserver` định kỳ pull log chấm công cho từng thiết bị/workspace từ external API, ghi chính xác một lần vào pipeline attendance hiện hữu, đối soát shadow trước cutover.

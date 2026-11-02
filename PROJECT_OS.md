@@ -26,7 +26,6 @@
 | Service | Build (Cached) | Ad-hoc Commands |
 | :--- | :--- | :--- |
 | **apiserver** | `./run-tests.sh --docker=dev build apiserver` | `./run-tests.sh --docker=dev exec apiserver cargo [test\|clippy\|add\|sqlx]` |
-| **agent-main** | `./run-tests.sh --docker=dev build agent-main` | `./run-tests.sh --docker=dev exec agent-main cargo [test\|clippy]` |
 | **dashboard** | `./run-tests.sh --docker=dev exec webdashboard npm install` | `./run-tests.sh --docker=dev exec webdashboard npm run [build\|lint]` |
 
 ---
@@ -83,7 +82,6 @@ Wrapper scripts for direct host → container access:
 | :--- | :--- |
 | `./scripts/ai-tools/redis-cli.sh [args]` | Execute Redis commands (auto-auth) |
 | `./scripts/ai-tools/psql.sh [args]` | Execute Postgres commands |
-| `./scripts/ai-tools/sqlite.sh [args]` | Query Agent local SQLite database |
 | `./scripts/ai-tools/curl-api.sh [args]` | Call API from within `apiserver` net |
 | `./scripts/ai-tools/shell.sh [service]` | Quick bash login to service container |
 
@@ -99,7 +97,7 @@ Wrapper scripts for direct host → container access:
 - [ ] **Lint**: Linter is clean (`clippy`, `eslint`)
 - [ ] **Write/Update Tests**: (see "Test Authoring" section below)
 - [ ] **Test**: Run the test scope relevant to the change:
-  - Changed `apiserver/` or `agent-main/` → `./run-tests.sh --api`
+  - Changed `apiserver/` → `./run-tests.sh --api`
   - Changed `webdashboard/` → `./run-tests.sh --web`
   - Major refactor → `./run-tests.sh --all`
 - [ ] **Verify**: If tests fail → run full suite for the changed component to identify exact failure
@@ -129,9 +127,9 @@ Wrapper scripts for direct host → container access:
 
 ### Test File Conventions
 
-- **Rust (apiserver / agent-main):**
+- **Rust (apiserver):**
   - Unit tests: inline `#[cfg(test)] mod tests { ... }` in the same file
-  - Integration tests: `apiserver/tests/integration/` or `agent-main/tests/`
+  - Integration tests: `apiserver/tests/integration/`
   - Pattern: `./run-tests.sh --api --test=module::test_name`
 
 - **Web (webdashboard):**
@@ -144,7 +142,6 @@ Wrapper scripts for direct host → container access:
 | Component | Coverage Target |
 |---|---|
 | `apiserver` | ≥ 70% line coverage trên toàn crate |
-| `agent-main` | ≥ 70% line coverage trên toàn crate |
 | `webdashboard` | ≥ 60% line coverage (Vitest) |
 | **Từng file vừa sửa** | 100% các function được thêm/sửa phải có test |
 

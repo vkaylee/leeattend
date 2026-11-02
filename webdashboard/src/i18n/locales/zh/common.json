@@ -151,6 +151,9 @@
     "connectivity": {
       "action_failed": "操作失败。请重试。"
     },
+    "disabled": "已禁用",
+    "devices": "设备",
+    "enabled": "已启用",
     "colors": {
       "amber": "琥珀色",
       "black": "黑色",

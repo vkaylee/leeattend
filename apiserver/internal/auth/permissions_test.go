@@ -12,9 +12,9 @@ import (
 func TestCanonicalPermissionsCatalog(t *testing.T) {
 	all := AllPermissions()
 
-	// 1. Inviolable Rule: exactly 103 canonical permissions matching Rust enum
-	if len(all) != 103 {
-		t.Fatalf("expected exactly 103 permissions, got %d", len(all))
+	// Canonical permissions exclude retired edge-agent controls.
+	if len(all) != 101 {
+		t.Fatalf("expected exactly 101 permissions, got %d", len(all))
 	}
 
 	// 2. Check no duplicates

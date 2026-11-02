@@ -70,20 +70,6 @@ export const MOCK_DEPARTMENTS = [
   }
 ];
 
-export const MOCK_AGENTS = [
-  {
-    id: "agent-mock-1",
-    name: "Main Agent",
-    token: "tok-abc123",
-    is_trusted: true,
-    last_ip: "10.0.0.1",
-    last_seen_at: new Date().toISOString(),
-    created_at: "2025-01-01T00:00:00Z",
-    is_active: true,
-    max_concurrent_workers: 5,
-  }
-];
-
 export const MOCK_DEVICES_INITIAL: Device[] = [
   {
     id: "device-mock-1",

@@ -1,28 +1,21 @@
 # LeeAttend - Attendance Management System
 
-A comprehensive attendance management system comprising a local agent for ZKTeco devices and a central high-performance API server.
+A comprehensive attendance management system with central API server and web dashboard.
 
 ## 📂 Project Structure
 
 ```
 leeattend/
-├── agent-main/       # Rust Agent Orchestrator + ZK Device Worker
-│   └── Native Rust hardware communication via rustzk
-│
-├── apiserver/        # Go API Server (Migrated from Rust/Axum — Phase 9 Cutover Complete)
-│   ├── High-performance REST API (Go net/http + oapi-codegen strict server)
-│   ├── pgx/v5 + sqlc database layer with full tenant isolation
-│   └── Central Database Management
-│
+├── apiserver/        # Go API Server
+│   ├── REST API and database layer
 └── docs/             # System Documentation
 ```
 
 ## Project Components
 
-1.  **apiserver**: Built with **Go** (`net/http`, `pgx/v5`, `sqlc`), responsible for agent management, log ingestion, and providing API for the Dashboard. Migrated from Rust/Axum in October 2026 — see `docs/migration/rust-go/final-evidence.md`.
-2.  **agent-main**: Built with **Rust**, acts as the Agent Orchestrator + ZK Worker, communicating directly with ZKTeco devices via `rustzk`.
-3.  **webdashboard**: Built with **React (Vite)**, a web interface for system management and monitoring.
-4.  **docs**: Detailed guidance and documentation.
+1.  **apiserver**: Built with **Go** (`net/http`, `pgx/v5`, `sqlc`), responsible for attendance management, log ingestion, and providing API for the Dashboard. Migrated from Rust/Axum in October 2026 — see `docs/migration/rust-go/final-evidence.md`.
+2.  **webdashboard**: Built with **React (Vite)**, a web interface for system management and monitoring.
+3.  **docs**: Detailed guidance and documentation.
 
 
 ## 🤖 For AI Agents & Developers
@@ -52,7 +45,6 @@ The project uses a highly optimized testing infrastructure designed for speed an
 ### Prerequisites
 - Docker & Docker Compose
 - Go 1.26+ (for local host-side Go builds; not required when using `./leedevkit`)
-- Rust (for `agent-main` host-side compilation)
 
 ### Running Tests
 Always use the unified orchestrator:

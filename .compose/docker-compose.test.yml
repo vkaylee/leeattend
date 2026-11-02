@@ -2,7 +2,7 @@
 # Podman Compose — Test Environment (Self-Contained)
 # ==============================================================================
 # This file is fully standalone — it does NOT merge with docker-compose.yml.
-# Profiles isolate backend (db, redis, apiserver, agent) from frontend
+# Profiles isolate backend (db, redis, api-go) from frontend
 # (webdashboard, bun_init) so phases that only need one side don't
 # launch the other.
 
@@ -10,25 +10,6 @@ networks:
   test_net:
     driver: bridge
 
-x-rust-env-base: &rust-env-base
-  CARGO_TARGET_DIR: /workspace/target
-  SCCACHE_DIR: /workspace/.sccache
-  RUSTC_WRAPPER: sccache
-
-x-rust-test-base: &rust-test-base
-  tty: true
-  entrypoint: sleep infinity
-  networks:
-    - test_net
-  environment:
-    <<: *rust-env-base
-  tmpfs:
-    - /workspace/target/nextest
-    - /workspace/apiserver/storage
-  volumes:
-    - ${PROJECT_ROOT}:/workspace
-    - ${HOME}/.cargo/registry:/usr/local/cargo/registry
-    - sccache-cache:/workspace/.sccache
 
 services:
   db_system:
@@ -210,100 +191,7 @@ services:
       timeout: 5s
       retries: 5
 
-  db_init:
-    profiles:
-      - infra-db
-    <<: *rust-test-base
-    image: localhost/leeattend-test_apiserver
-    build:
-      context: ..
-      dockerfile: apiserver/Dockerfile
-      target: test
-    depends_on:
-      db_system:
-        condition: service_healthy
-    working_dir: /workspace/apiserver
-    environment:
-      <<: *rust-env-base
-      DATABASE_URL: postgres://test_user:test_password@db_system:5432/test_database?sslmode=disable
-    entrypoint:
-      - bash
-      - -c
-      - |
-        set -e
-        until pg_isready -h db_system -U test_user; do
-          echo "Waiting for db_system..."
-          sleep 1
-        done
-        diesel migration run --migration-dir ./migrations/system
-        diesel migration run --migration-dir ./migrations/tenant
-        for i in {1..5}; do
-          psql postgres://test_user:test_password@db_system:5432/postgres?sslmode=disable -c "CREATE DATABASE leeattend_test_template TEMPLATE test_database" && break
-          echo "Retrying psql..."
-          sleep 1
-        done
-        touch /tmp/db_init_done
-        sleep infinity
-    healthcheck:
-      test: "test -f /tmp/db_init_done"
-      interval: 2s
-      timeout: 5s
-      retries: 10
 
-  apiserver:
-    profiles:
-      - lint-api
-      - unit-api
-      - int-api
-      - api
-    <<: *rust-test-base
-    image: localhost/leeattend-test_apiserver
-    build:
-      context: ..
-      dockerfile: apiserver/Dockerfile
-      target: test
-    working_dir: /workspace/apiserver
-    environment:
-      <<: *rust-env-base
-      DATABASE_POOLER_TX_URL: postgres://test_user:test_password@pgbouncer_tx:6543/test_database
-      DATABASE_POOLER_SESS_URL: postgres://test_user:test_password@pgbouncer_sess:5452/test_database
-      DATABASE_TENANT_POOLER_TX_URL: postgres://tenant_test_user:tenant_test_password@pgbouncer_tenant_tx:6543/tenant_test_db
-      DATABASE_TENANT_POOLER_SESS_URL: postgres://tenant_test_user:tenant_test_password@pgbouncer_tenant_sess:5452/tenant_test_db
-      DB_POOLER_TYPE: pgbouncer
-      REDIS_URL: redis://redis:6379
-      STORAGE_DIR: /workspace/apiserver/storage
-    volumes:
-      - ${PROJECT_ROOT}:/workspace
-      - apiserver-target-cache:/workspace/target
-      - ${HOME}/.cargo/registry:/usr/local/cargo/registry
-      - sccache-cache:/workspace/.sccache
-      - shared-data:/workspace/shared
-    healthcheck:
-      test: "echo 'ready'"
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  agent-main:
-    profiles:
-      - int-api
-      - api
-    <<: *rust-test-base
-    image: localhost/leeattend-test_agent-main
-    build:
-      context: ..
-      dockerfile: agent-main/Dockerfile
-      target: test
-    working_dir: /workspace/agent-main
-    environment:
-      <<: *rust-env-base
-      DATABASE_URL: ":memory:"
-      CENTRAL_SERVER_URL: ws://apiserver:3001/api/ws
-    volumes:
-      - ${PROJECT_ROOT}:/workspace
-      - agent-target-cache:/workspace/target
-      - ${HOME}/.cargo/registry:/usr/local/cargo/registry
-      - sccache-cache:/workspace/.sccache
 
   api-go:
     profiles:
@@ -397,21 +285,6 @@ services:
       - ${PROJECT_ROOT}/webdashboard/playwright-report:/workspace/webdashboard/playwright-report
 
 volumes:
-  apiserver-target-cache:
-    name: leeattend-test_apiserver-target-cache
-    driver: local
-  agent-target-cache:
-    name: leeattend-test_agent-target-cache
-    driver: local
-  sccache-cache:
-    name: leeattend-test_sccache-cache
-    driver: local
-  bun-cache:
-    name: leeattend-test_bun-cache
-    driver: local
-  web-node-modules:
-    name: leeattend-test_web-node-modules
-    driver: local
   shared-data:
     driver: local
   go-module-cache:

@@ -151,6 +151,9 @@
     "connectivity": {
       "action_failed": "Action failed. Please try again."
     },
+    "disabled": "Disabled",
+    "devices": "Devices",
+    "enabled": "Enabled",
     "colors": {
       "amber": "Amber",
       "black": "Black",

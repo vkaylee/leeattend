@@ -151,13 +151,6 @@ const getOperationsGroup = (t: TFunction): SettingItem[] => [
 
 const getSystemGroup = (t: TFunction): SettingItem[] => [
   {
-    description: t("settings.categories.connectivity_desc"),
-    icon: <Cpu className="w-4 h-4" />,
-    label: t("settings.categories.connectivity"),
-    path: ROUTES.SETTINGS.CONNECTIVITY,
-    permissions: ["infra:monitor"],
-  },
-  {
     description: t("common.security_events"),
     icon: <ShieldCheck className="w-4 h-4" />,
     label: t("common.logs"),

@@ -114,10 +114,6 @@ func TestKeyBuildersAndTTLPolicy(t *testing.T) {
 	userID := uuid.MustParse("c0000000-0000-0000-0000-000000000002")
 	jobID := uuid.MustParse("d0000000-0000-0000-0000-000000000003")
 
-	// Auth keys
-	if k := redis.KeyAgentPresence("agent_123"); k != "agent:presence:agent_123" {
-		t.Errorf("KeyAgentPresence mismatch: %s", k)
-	}
 	if k := redis.KeyLoginAttempts("user@example.com"); k != "login:attempts:user@example.com" {
 		t.Errorf("KeyLoginAttempts mismatch: %s", k)
 	}
@@ -240,9 +236,6 @@ func TestKeyBuildersAndTTLPolicy(t *testing.T) {
 	}
 	if k := redis.KeyLockHousekeeping("2026-10-19"); k != "lock:housekeeping:2026-10-19" {
 		t.Errorf("KeyLockHousekeeping mismatch: %s", k)
-	}
-	if k := redis.KeyIngestDelivery("agent1", "msg1"); k != "ingest:delivery:agent1:msg1" {
-		t.Errorf("KeyIngestDelivery mismatch: %s", k)
 	}
 	if k := redis.ChannelReportStream(jobID); k != "report:stream:d0000000-0000-0000-0000-000000000003" {
 		t.Errorf("ChannelReportStream mismatch: %s", k)

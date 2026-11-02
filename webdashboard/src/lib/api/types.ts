@@ -21,20 +21,6 @@ export type Workspace = components["schemas"]["Workspace"];
 
 export * from "./api-generated-reexports";
 
-export interface DeviceInfo {
-  device_time: string;
-  firmware?: string;
-  hw_name?: string;
-  last_info_update?: string;
-  last_sync?: string;
-  logs_capacity?: number;
-  logs_count: number;
-  mac?: string;
-  platform?: string;
-  serial?: string;
-  users_capacity?: number;
-  users_count: number;
-}
 
 export interface User {
   avatar_url?: string | null;

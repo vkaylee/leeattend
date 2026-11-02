@@ -1,8 +1,0 @@
-target/
-node_modules/
-.git/
-.test_logs/
-.env*
-*.log
-.DS_Store
-

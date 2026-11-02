@@ -2,32 +2,12 @@
 
 ## [Unreleased]
 
-### Changed
-- **Adaptive Polling Refactor (agent-main):**
-    - Replaced skip counter mechanism (`SUCCESS_SKIP_POLLS`, `should_skip()`, `skip_remaining`) with direct interval + proactive disconnect approach.
-    - New env var `SUCCESS_COOLDOWN_SECS` (default: 300s) replaces `SUCCESS_SKIP_POLLS`.
-    - When new data is fetched, device is proactively disconnected before cooldown sleep to free connection slots.
-    - When no new data, interval escalates gradually (5→10→20→40→45s cap) to stay within device UDP session timeout.
-    - Added `proactive_cooldown` flag to prevent false "connection lost" warnings after planned disconnects.
 
 ### Fixed
 - **ESLint Warning**: Fixed `react-hooks/exhaustive-deps` warning in `DashboardPage.tsx` for `chartWidgetIds` in `useMemo`.
 
 
-### Added
-- **Device Management Enhancements:**
-    - **Device Capacity**: Agent now reports User and Log capacity (used/total) from ZK devices.
-    - **Device Time**: Agent fetches and reports device system time.
-    - **On-Demand Info**: Replaced periodic status updates with on-demand fetching for `device_info`.
-    - **UI Updates**: Frontend now displays Device Time, User Capacity, and Log Capacity in the device list.
 
-### Fixed
-- **Dependencies:**
-    - Updated `rustzk` to `0.3.1`.
-- **Code Quality:**
-    - Resolved `clippy::collapsible_if` and `clippy::uninlined_format_args` in `agent-main`.
-    - Resolved `clippy::redundant_closure` in `apiserver`.
-    - Verified clean linting and passing tests for `agent` and `apiserver`. 
 
 ### Added
 - **Production Environment Setup**:

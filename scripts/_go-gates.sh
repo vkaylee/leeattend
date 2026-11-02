@@ -21,10 +21,12 @@ PROJECT_NAME="${COMPOSE_PROJECT_NAME:-leeattend-test}"
 
 MODE="all"
 PACKAGE="./..."
+FIX=false
 while [ $# -gt 0 ]; do
     case "$1" in
         --lint-only) MODE="lint" ;;
         --unit-only) MODE="unit" ;;
+        --fix) FIX=true ;;
         --package) PACKAGE="${2:-./...}"; shift ;;
         *) echo "unknown argument: $1" >&2; exit 2 ;;
     esac
@@ -55,7 +57,9 @@ git config --global --add safe.directory '*' 2>/dev/null || true
 export GOFLAGS="-mod=mod -buildvcs=false"
 
 if [ "${MODE}" != "unit" ]; then
-    echo "== gofmt =="
+    if [ "${FIX}" = "true" ]; then
+        gofmt -w $(find . -name "*.go")
+    fi
     UNFORMATTED="$(find . -name "*.go" -exec gofmt -l {} +)" || fail "gofmt"
     [ -z "$UNFORMATTED" ] || { echo "$UNFORMATTED"; fail "gofmt listed unformatted files"; }
 
@@ -85,4 +89,4 @@ echo "ALL GATES PASSED"
 GATES_EOF
 
 exec "${COMPOSE[@]}" exec -T -w /workspace/apiserver "$SERVICE" \
-    env MODE="$MODE" PACKAGE="$PACKAGE" bash -c "$GATES"
+    env MODE="$MODE" PACKAGE="$PACKAGE" FIX="$FIX" bash -c "$GATES"

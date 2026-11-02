@@ -71,7 +71,7 @@ If the user asks to run `cargo test`, `npm test`, or a script directly, explain 
 ### Test Modes
 ```bash
 ./run-tests.sh --all              # Lint → Unit → Integration → E2E (everything)
-./run-tests.sh --api              # Lint → Unit → Integration for apiserver + agent-main
+./run-tests.sh --api              # Lint → Unit → Integration for apiserver
 ./run-tests.sh --web              # Lint → Unit → Playwright E2E for webdashboard
 ./run-tests.sh --integration      # Integration + E2E only (skip lint/unit)
 ```
@@ -80,8 +80,6 @@ If the user asks to run `cargo test`, `npm test`, or a script directly, explain 
 ```bash
 ./run-tests.sh --api --test=test_payroll_calc         # Run one test by name (regex)
 ./run-tests.sh --api --test-only --test=failing_test  # Skip lint/unit, run only this test
-./run-tests.sh --api --component=apiserver            # One crate only
-./run-tests.sh --api --component=agent-main           # Other crate only
 ./run-tests.sh --all --smoke                          # Lint + unit only, skip integration
 ```
 
@@ -109,7 +107,7 @@ If the user asks to run `cargo test`, `npm test`, or a script directly, explain 
 ./run-tests.sh --api --coverage                         # Full API coverage
 ./run-tests.sh --api --coverage --component=apiserver   # One crate only
 # Outputs → .test_logs/coverage-*.lcov + HTML report in .test_logs/
-# Target: ≥80% for apiserver and agent-main (cargo-llvm-cov)
+# Target: ≥80% for apiserver (cargo-llvm-cov)
 ```
 
 ### Cache & Maintenance
@@ -212,7 +210,7 @@ Current target: **≥80%** measured with `cargo-llvm-cov`. Focus on `--lib` dens
 - **No output redirection.** `./run-tests.sh > file.log` is not a PTY workaround — the script handles PTY safety internally. Redirecting hides streaming output.
 - **Confirm before `--clean`.** It deletes Docker volumes. Rebuilding takes 5–10 minutes.
 - **Read logs before re-running.** A second run on a broken environment rarely helps. `--logs` reveals the actual error in seconds.
-- **Coverage target:** ≥80% for `apiserver` and `agent-main`. Use `cargo-llvm-cov` with `--lib` to measure core logic density without integration boilerplate dilution.
+- **Coverage target:** ≥80% for `apiserver`. Use `cargo-llvm-cov` with `--lib` to measure core logic density without integration boilerplate dilution.
 - **Rust ≥ 1.85 required.** As of March 2026, `edition2024` features in `apiserver` require `rust:1.85+` in containerized builds.
 - **Self-discovery.** If any flag behavior is unclear, run `./run-tests.sh --help` — the orchestrator's built-in help is the authoritative reference, not this skill.
 

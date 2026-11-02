@@ -2,7 +2,7 @@
 # ==============================================================================
 # Production Image Builder — LeeAttend
 #
-# Builds optimized container images for apiserver and agent-main.
+# Builds optimized container image for apiserver.
 #
 # Usage:
 #   ./scripts/build-prod.sh                          # Build all, tag :latest
@@ -36,11 +36,9 @@ SERVICES=()
 PUSH=false
 DRY_RUN=false
 ALSO_TAG_LATEST=false
-ENGINE=""
-ENGINE=""
 
 # All buildable services
-ALL_SERVICES=("apiserver" "agent-main")
+ALL_SERVICES=("apiserver")
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -69,7 +67,7 @@ usage() {
     echo -e "${BOLD}Usage:${NC} ./scripts/build-prod.sh [OPTIONS]
 
 ${BOLD}Options:${NC}
-  --service NAME     (Required) Build a specific service (apiserver, agent-main)
+  --service NAME     (Required) Build apiserver
   --tag TAG          Image tag (default: latest)
   --image NAME       Override full image name (e.g. myreg.io/myapp)
                      If specified, --registry and the 'leeattend-' prefix are ignored.
@@ -82,12 +80,10 @@ ${BOLD}Options:${NC}
 ${BOLD}Examples:${NC}
   ./scripts/build-prod.sh --service apiserver --tag v1.2.3 --push
   ./scripts/build-prod.sh --service apiserver --image myreg.io/my-custom-api --push
-  ./scripts/build-prod.sh --service agent-main --tag \$(git rev-parse --short HEAD) --push --also-latest
 
 ${BOLD}Environment:${NC}
   REGISTRY           Override default registry prefix
   APISERVER_IMAGE    Override full image name for apiserver
-  AGENT_IMAGE        Override full image name for agent-main
   BUILD_DB_PORT      Override Postgres port for apiserver build (auto-assigned if empty)
 "
     exit 0
@@ -166,8 +162,6 @@ image_name() {
     local env_image=""
     if [[ "$svc" == "apiserver" ]]; then
         env_image="${APISERVER_IMAGE:-}"
-    elif [[ "$svc" == "agent-main" ]]; then
-        env_image="${AGENT_IMAGE:-}"
     fi
 
     if [[ -n "$IMAGE_OVERRIDE" ]]; then

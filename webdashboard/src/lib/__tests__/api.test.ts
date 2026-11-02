@@ -27,18 +27,7 @@ describe("api.ts comprehensive tests", () => {
     } as unknown as Response);
   };
 
-  describe("Device & Agent API", () => {
-    it("fetchAgents", async () => {
-      mockSuccess([]);
-      await api.fetchAgents();
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/agents"), expect.any(Object));
-    });
-
-    it("sendAgentCommand", async () => {
-      mockSuccess({});
-      await api.sendAgentCommand("ag-1", { cmd: "test" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/agent/ag-1/command"), expect.objectContaining({ method: "POST" }));
-    });
+  describe("Device API", () => {
 
     it("fetchDevices", async () => {
       mockSuccess([]);
@@ -64,35 +53,6 @@ describe("api.ts comprehensive tests", () => {
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/devices/dev-1"), expect.objectContaining({ method: "DELETE" }));
     });
 
-    it("fetchAuthorizedAgents", async () => {
-      mockSuccess([]);
-      await api.fetchAuthorizedAgents(true);
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/authorized-agents?include_inactive=true"), expect.any(Object));
-    });
-
-    it("fetchAuthorizedAgentById", async () => {
-      mockSuccess({});
-      await api.fetchAuthorizedAgentById("ag-1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/authorized-agents/ag-1"), expect.any(Object));
-    });
-
-    it("updateAgentTrust", async () => {
-      mockSuccess({});
-      await api.updateAgentTrust("ag-1", true);
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/authorized-agents/ag-1/trust"), expect.objectContaining({ method: "PUT" }));
-    });
-
-    it("updateAuthorizedAgent", async () => {
-      mockSuccess({});
-      await api.updateAuthorizedAgent("ag-1", { name: "New" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/authorized-agents/ag-1"), expect.objectContaining({ method: "PATCH" }));
-    });
-
-    it("deleteAuthorizedAgent", async () => {
-      mockSuccess({});
-      await api.deleteAuthorizedAgent("ag-1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/authorized-agents/ag-1"), expect.objectContaining({ method: "DELETE" }));
-    });
   });
 
   describe("Employee & Department API", () => {

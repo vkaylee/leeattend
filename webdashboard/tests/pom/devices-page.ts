@@ -8,49 +8,29 @@ export class DevicesPage extends BasePage {
     super(page);
   }
   async goto() {
-    await this.page.goto('/workspace/settings/connectivity');
-    await this.page.waitForURL('**/settings/connectivity', { timeout: 30000 });
+    await this.page.goto('/devices');
+    await this.page.waitForURL('**/devices', { timeout: 30000 });
     await this.waitForLoad();
   }
 
   async waitForLoad() {
-    // 1. Wait for the main container
-    const container = this.page.getByTestId('connectivity-topology');
-    await expect(container).toBeVisible({ timeout: 30000 });
-    
-    // 2. Wait for loading to finish (either agents list or empty state appears)
-    await expect(this.page.locator('[data-testid="agents-list"], [data-testid="empty-agents-state"]')).toBeVisible({ timeout: 20000 });
-
-
-    // 4. Ensure accordions are expanded so devices are visible
-    // We can rely on it being present if agents-list is present
-    const expandButton = this.page.getByTestId('expand-all-btn');
-    if (await this.page.getByTestId('agents-list').isVisible()) {
-      await expandButton.click();
-    }
+    await expect(this.page.getByTestId('devices-settings')).toBeVisible({ timeout: 30000 });
+    await expect(this.page.getByTestId('device-item-device-mock-1')).toBeVisible({ timeout: 20000 });
   }
 
   // ---------- Add/Edit form ----------
 
   async clickAddDevice() {
-    const agentCards = this.page.locator('[data-testid^="agent-card-"]');
-    const firstCard = agentCards.first();
-    const testId = await firstCard.getAttribute('data-testid') ?? '';
-    const agentId = testId.replace('agent-card-', '');
-    const addBtn = this.page.getByTestId(`add-device-btn-${agentId}`);
-    if (!(await addBtn.isVisible())) {
-      await this.page.getByTestId(`agent-header-${agentId}`).click(); // Expand first if not visible
-    }
-    await addBtn.click();
+    await this.page.getByTestId('devices-add-button').click();
     await expect(this.page.getByTestId('add-device-form')).toBeVisible();
   }
+
 
   async fillDeviceForm(data: {
     name?: string;
     ip?: string;
     port?: string;
     password?: string;
-    agentId?: string; // Note: In current UI, agent is often pre-selected or read-only in Add form
     brand?: string;
     timezone?: string;
   }) {

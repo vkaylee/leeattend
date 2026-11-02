@@ -6,7 +6,6 @@ export * from "./download-helper";
 export * from "./behalf-assignment-factory";
 export * from "./auth";
 export * from "./documents";
-export * from "./agents";
 export * from "./workspaces";
 // eslint-disable-next-line import-x/export -- re-exports Employment from types.ts via employees
 export * from "./employees";
@@ -29,6 +28,7 @@ export * from "./approval-workflows";
 export * from "./employers";
 export * from "./locations";
 export * from "./condition-types";
+export * from "./devices"
 export { overtimeRequestsApi } from "./overtime-requests";
 export { fetchMyBehalfTargets } from "./behalf-targets";
 export type { BehalfDomain } from "./behalf-targets";

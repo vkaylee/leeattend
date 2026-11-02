@@ -2,7 +2,6 @@
 import { test as base, expect } from '@playwright/test';
 
 import { setupApiMocks } from './mocks/api-intercept';
-import { ConnectivityPage } from './pom/connectivity-page';
 import { DevicesPage } from './pom/devices-page';
 import { EmployeesPage } from './pom/employees-page';
 import { LoginPage } from './pom/login-page';
@@ -14,12 +13,11 @@ export { expect };
 // Test-scoped fixtures type definition
 interface TestFixtures {
   authPage: LoginPage;
-  connectivityPage: ConnectivityPage;
   devicesPage: DevicesPage;
   employeesPage: EmployeesPage;
   loginPage: LoginPage;
   navbar: Navbar;
-  sidebar: Sidebar; 
+  sidebar: Sidebar;
   workerWebUrl: string; // Giữ lại property này để không gãy các test cũ đang import nó
 }
 
@@ -40,9 +38,6 @@ export const test = base.extend<TestFixtures>({
   },
   employeesPage: async ({ page }, use) => {
     await use(new EmployeesPage(page));
-  },
-  connectivityPage: async ({ page }, use) => {
-    await use(new ConnectivityPage(page));
   },
   devicesPage: async ({ page }, use) => {
     await use(new DevicesPage(page));
