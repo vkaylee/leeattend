@@ -285,6 +285,15 @@ services:
       - WORKER_MAX_CONCURRENT_JOBS=${WORKER_MAX_CONCURRENT_JOBS:-5}
       # Go runtime memory bounds
       - GOMEMLIMIT=768MiB
+      - LOG_PULL_ENABLED=${LOG_PULL_ENABLED:-false}
+      - LOG_PULL_BASE_URL=${LOG_PULL_BASE_URL:-https://provider.example.invalid}
+      - LOG_PULL_TOKEN=${LOG_PULL_TOKEN:-}
+      - LOG_PULL_ACCOUNT_ID=${LOG_PULL_ACCOUNT_ID:-}
+      - LOG_PULL_MODE=${LOG_PULL_MODE:-shadow}
+      - LOG_PULL_INTERVAL_SECS=${LOG_PULL_INTERVAL_SECS:-60}
+      - LOG_PULL_TIMEOUT_SECS=${LOG_PULL_TIMEOUT_SECS:-30}
+      - LOG_PULL_PAGE_SIZE=${LOG_PULL_PAGE_SIZE:-100}
+      - LOG_PULL_MAX_CONCURRENT_REQUESTS=${LOG_PULL_MAX_CONCURRENT_REQUESTS:-4}
     deploy:
       resources:
         limits:

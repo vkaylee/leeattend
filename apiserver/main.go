@@ -3,6 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"net"
+	"net/http"
+	"os"
+	"strconv"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/app"
@@ -15,12 +22,8 @@ import (
 	redisinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/redis"
 	"github.com/vkaylee/leeattend/apiserver/internal/observability"
 	"github.com/vkaylee/leeattend/apiserver/internal/repository"
+	"github.com/vkaylee/leeattend/apiserver/internal/scheduler"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
-	"log/slog"
-	"net"
-	"net/http"
-	"os"
-	"strconv"
 )
 
 // Version is the current apiserver Go component version.
@@ -702,6 +705,17 @@ func main() {
 	mux.HandleFunc("GET /users", authHandler.WorkspaceUsers)
 	agentDeviceRepo := repository.AgentDeviceRepository(workspaceRepo)
 	agentHub := api.NewAgentHub(agentDeviceRepo, redisClient)
+	var pullRunner *scheduler.Runner
+	if cfg.LogPullEnabled {
+		httpClient := external.NewHTTPClient(time.Duration(cfg.LogPullTimeoutSecs) * time.Second)
+		provider := external.AttendanceEventsClient{HTTP: httpClient, BaseURL: cfg.LogPullBaseURL, Token: cfg.LogPullToken.Expose(), PageLimit: cfg.LogPullPageSize}
+		pullRepository := repository.ExternalAttendancePullRepository{TenantDB: workspaceRepo.TenantDB, BeginTx: func(ctx context.Context, workspaceID uuid.UUID) (repository.TxBeginner, error) {
+			return poolMgr.GetTenantTxPool(ctx, workspaceID)
+		}}
+		pullService := service.ExternalAttendancePullService{Devices: agentDeviceRepo, Events: provider, Pulls: pullRepository, AccountID: cfg.LogPullAccountID, Owner: "apiserver", LeaseDuration: time.Duration(cfg.LogPullTimeoutSecs) * time.Second, Shadow: cfg.LogPullMode == "shadow"}
+		pullRunner = &scheduler.Runner{Source: workspaceRepo, Puller: pullService, Config: scheduler.Config{Interval: time.Duration(cfg.LogPullIntervalSecs) * time.Second, Timeout: time.Duration(cfg.LogPullTimeoutSecs) * time.Second, MaxConcurrent: cfg.LogPullMaxConcurrentRequests, Shadow: cfg.LogPullMode == "shadow"}, Logger: logger}
+		pullRunner.Start(context.Background())
+	}
 	agentDeviceHandler := api.AgentDeviceHandler{
 		Repository: agentDeviceRepo,
 		Hub:        agentHub,
@@ -771,7 +785,11 @@ func main() {
 		Handler: handler,
 	}
 
-	application := app.New(server)
+	var hooks []func(context.Context) error
+	if pullRunner != nil {
+		hooks = append(hooks, func(ctx context.Context) error { return pullRunner.Stop(ctx) })
+	}
+	application := app.New(server, hooks...)
 	ctx, cancel := app.NotifySignals(context.Background())
 	defer cancel()
 

@@ -78,6 +78,27 @@ WHERE wm.user_id = $1`, userID)
 	return records, nil
 }
 
+// ListPullWorkspaces returns every workspace UUID from system DB.
+func (r WorkspaceRepository) ListPullWorkspaces(ctx context.Context) ([]uuid.UUID, error) {
+	if r.SystemDB == nil {
+		return nil, errors.New("workspace repository: nil system database")
+	}
+	rows, err := r.SystemDB.Query(ctx, `SELECT id FROM workspaces ORDER BY id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 func (r WorkspaceRepository) GetWorkspace(ctx context.Context, id uuid.UUID) (api.WorkspaceRecord, error) {
 	return r.getWorkspace(ctx, id)
 }

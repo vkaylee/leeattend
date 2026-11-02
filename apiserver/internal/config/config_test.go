@@ -59,6 +59,44 @@ func TestLoad_MinimumDevSuccess(t *testing.T) {
 	}
 }
 
+func TestLoad_LogPullDefaultsDisabled(t *testing.T) {
+	cfg, err := LoadWithLookup(mockLookup(minimumDevEnv()))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.LogPullEnabled || cfg.LogPullMode != "shadow" {
+		t.Fatalf("expected disabled shadow defaults, got enabled=%t mode=%q", cfg.LogPullEnabled, cfg.LogPullMode)
+	}
+}
+
+func TestLoad_LogPullEnabledRequiresProviderSettings(t *testing.T) {
+	env := minimumDevEnv()
+	env["LOG_PULL_ENABLED"] = "true"
+	_, err := LoadWithLookup(mockLookup(env))
+	if err == nil {
+		t.Fatal("expected enabled log pull validation failure")
+	}
+	message := err.Error()
+	for _, key := range []string{"LOG_PULL_BASE_URL", "LOG_PULL_TOKEN", "LOG_PULL_ACCOUNT_ID"} {
+		if !strings.Contains(message, key) {
+			t.Errorf("expected validation error for %s, got %s", key, message)
+		}
+	}
+}
+
+func TestLoad_LogPullRejectsNonHTTPSAndInvalidMode(t *testing.T) {
+	env := minimumDevEnv()
+	env["LOG_PULL_ENABLED"] = "true"
+	env["LOG_PULL_BASE_URL"] = "http://provider.example.test"
+	env["LOG_PULL_TOKEN"] = "token"
+	env["LOG_PULL_ACCOUNT_ID"] = "account"
+	env["LOG_PULL_MODE"] = "invalid"
+	_, err := LoadWithLookup(mockLookup(env))
+	if err == nil || !strings.Contains(err.Error(), "LOG_PULL_BASE_URL") || !strings.Contains(err.Error(), "LOG_PULL_MODE") {
+		t.Fatalf("expected URL and mode validation errors, got %v", err)
+	}
+}
+
 func TestLoad_MissingRequiredAlways(t *testing.T) {
 	emptyEnv := map[string]string{}
 	cfg, err := LoadWithLookup(mockLookup(emptyEnv))

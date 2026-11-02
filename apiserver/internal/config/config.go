@@ -161,7 +161,18 @@ type Config struct {
 	SupavisorAPIURL string
 	APIJWTSecret    Secret
 
-	// 2.10 Feature Flags
+	// 2.10 Attendance log pull
+	LogPullBaseURL               string
+	LogPullToken                 Secret
+	LogPullAccountID             string
+	LogPullMode                  string
+	LogPullIntervalSecs          int
+	LogPullTimeoutSecs           int
+	LogPullPageSize              int
+	LogPullMaxConcurrentRequests int
+	LogPullEnabled               bool
+
+	// 2.11 Feature Flags
 	FFNoShowTimeline bool
 }
 
@@ -514,7 +525,36 @@ func LoadWithLookup(lookup LookupEnvFunc) (*Config, error) {
 	}
 	apiJWTSecretRaw, _ := get("API_JWT_SECRET", "SUPAVISOR_API_JWT")
 
-	// 2.10 Feature Flags Category
+	// 2.10 Attendance log pull Category
+	logPullEnabled := getBool("LOG_PULL_ENABLED", false)
+	logPullBaseURL, _ := get("LOG_PULL_BASE_URL")
+	logPullToken, _ := get("LOG_PULL_TOKEN")
+	logPullAccountID, _ := get("LOG_PULL_ACCOUNT_ID")
+	logPullMode, _ := get("LOG_PULL_MODE")
+	if logPullMode == "" {
+		logPullMode = "shadow"
+	}
+	if logPullEnabled {
+		if logPullBaseURL == "" {
+			addErr("LOG_PULL_BASE_URL", "is required when LOG_PULL_ENABLED is true")
+		} else if u, err := url.Parse(logPullBaseURL); err != nil || u.Scheme != "https" || u.Host == "" {
+			addErr("LOG_PULL_BASE_URL", "must be a valid HTTPS URL when log pull is enabled")
+		}
+		if logPullToken == "" {
+			addErr("LOG_PULL_TOKEN", "is required when LOG_PULL_ENABLED is true")
+		}
+		if logPullAccountID == "" {
+			addErr("LOG_PULL_ACCOUNT_ID", "is required when LOG_PULL_ENABLED is true")
+		}
+	}
+	if logPullMode != "shadow" && logPullMode != "write" {
+		addErr("LOG_PULL_MODE", "must be shadow or write")
+	}
+	logPullIntervalSecs := getInt("LOG_PULL_INTERVAL_SECS", 60, 1, 86400)
+	logPullTimeoutSecs := getInt("LOG_PULL_TIMEOUT_SECS", 30, 1, 300)
+	logPullPageSize := getInt("LOG_PULL_PAGE_SIZE", 100, 1, 1000)
+	logPullMaxConcurrentRequests := getInt("LOG_PULL_MAX_CONCURRENT_REQUESTS", 4, 1, 100)
+	// 2.11 Feature Flags Category
 	ffNoShowTimeline := getBool("FF_NO_SHOW_TIMELINE", false)
 
 	if len(errs) > 0 {
@@ -522,54 +562,63 @@ func LoadWithLookup(lookup LookupEnvFunc) (*Config, error) {
 	}
 
 	return &Config{
-		AppEnv:                     appEnv,
-		AppPort:                    appPort,
-		AppHost:                    appHost,
-		PortFileName:               portFileName,
-		DBPrimaryURL:               ConnectionURL(dbPrimaryRaw),
-		DBPoolerTxURL:              ConnectionURL(dbPoolerTxRaw),
-		DBPoolerSessURL:            ConnectionURL(dbPoolerSessRaw),
-		DBTenantPoolerTxURL:        ConnectionURL(dbTenantPoolerTxRaw),
-		DBTenantPoolerSessURL:      ConnectionURL(dbTenantPoolerSessRaw),
-		DBReaderURL:                ConnectionURL(dbReaderRaw),
-		DBAPIMaxConn:               dbAPIMaxConn,
-		DBAPIAcquireTimeoutSecs:    dbAPIAcquireTimeoutSecs,
-		DBWorkerAcquireTimeoutSecs: dbWorkerAcquireTimeoutSecs,
-		DBTenantMaxConn:            dbTenantMaxConn,
-		PgBouncerHost:              pgBouncerHost,
-		PgBouncerPort:              pgBouncerPort,
-		RedisURL:                   RedisURL(redisRaw),
-		JWTSecret:                  JWTSecret(jwtSecretRaw),
-		EncryptionKeysJSON:         EncryptionKeysJSON(encryptionKeysRaw),
-		EncryptionKeys:             parsedKeys,
-		AllowedOrigins:             allowedOrigins,
-		CookieDomain:               cookieDomain,
-		MaxRequestBodyBytes:        maxRequestBodyBytes,
-		MaxFileUploadBodyBytes:     maxFileUploadBodyBytes,
-		MaxBulkUploadBodyBytes:     maxBulkUploadBodyBytes,
-		S3EndpointURL:              s3EndpointURL,
-		S3BucketName:               s3BucketName,
-		S3AccessKey:                S3SecretKey(s3AccessKeyRaw),
-		S3SecretKey:                S3SecretKey(s3SecretKeyRaw),
-		S3Region:                   s3Region,
-		S3UsePathStyle:             s3UsePathStyle,
-		FileProxyThresholdBytes:    fileProxyThresholdBytes,
-		PresignedURLTTLSecs:        presignedURLTTLSecs,
-		StorageDir:                 storageDir,
-		WorkerMaxConcurrentJobs:    workerMaxConcurrentJobs,
-		WorkerPollTimeoutSecs:      workerPollTimeoutSecs,
-		WorkerMaxRetries:           workerMaxRetries,
-		WorkerJobTimeoutSecs:       workerJobTimeoutSecs,
-		ImportChunkSize:            importChunkSize,
-		PairingSweepIntervalSecs:   pairingSweepIntervalSecs,
-		RateLimitMaxRead:           rateLimitMaxRead,
-		RateLimitMaxWrite:          rateLimitMaxWrite,
-		RateLimitWindowSecs:        rateLimitWindowSecs,
-		ClamdHost:                  clamdHost,
-		ClamdPort:                  clamdPort,
-		SupavisorAPIURL:            supavisorAPIURL,
-		APIJWTSecret:               Secret(apiJWTSecretRaw),
-		FFNoShowTimeline:           ffNoShowTimeline,
+		AppEnv:                       appEnv,
+		AppPort:                      appPort,
+		AppHost:                      appHost,
+		PortFileName:                 portFileName,
+		DBPrimaryURL:                 ConnectionURL(dbPrimaryRaw),
+		DBPoolerTxURL:                ConnectionURL(dbPoolerTxRaw),
+		DBPoolerSessURL:              ConnectionURL(dbPoolerSessRaw),
+		DBTenantPoolerTxURL:          ConnectionURL(dbTenantPoolerTxRaw),
+		DBTenantPoolerSessURL:        ConnectionURL(dbTenantPoolerSessRaw),
+		DBReaderURL:                  ConnectionURL(dbReaderRaw),
+		DBAPIMaxConn:                 dbAPIMaxConn,
+		DBAPIAcquireTimeoutSecs:      dbAPIAcquireTimeoutSecs,
+		DBWorkerAcquireTimeoutSecs:   dbWorkerAcquireTimeoutSecs,
+		DBTenantMaxConn:              dbTenantMaxConn,
+		PgBouncerHost:                pgBouncerHost,
+		PgBouncerPort:                pgBouncerPort,
+		RedisURL:                     RedisURL(redisRaw),
+		JWTSecret:                    JWTSecret(jwtSecretRaw),
+		EncryptionKeysJSON:           EncryptionKeysJSON(encryptionKeysRaw),
+		EncryptionKeys:               parsedKeys,
+		AllowedOrigins:               allowedOrigins,
+		CookieDomain:                 cookieDomain,
+		MaxRequestBodyBytes:          maxRequestBodyBytes,
+		MaxFileUploadBodyBytes:       maxFileUploadBodyBytes,
+		MaxBulkUploadBodyBytes:       maxBulkUploadBodyBytes,
+		S3EndpointURL:                s3EndpointURL,
+		S3BucketName:                 s3BucketName,
+		S3AccessKey:                  S3SecretKey(s3AccessKeyRaw),
+		S3SecretKey:                  S3SecretKey(s3SecretKeyRaw),
+		S3Region:                     s3Region,
+		S3UsePathStyle:               s3UsePathStyle,
+		FileProxyThresholdBytes:      fileProxyThresholdBytes,
+		PresignedURLTTLSecs:          presignedURLTTLSecs,
+		StorageDir:                   storageDir,
+		WorkerMaxConcurrentJobs:      workerMaxConcurrentJobs,
+		WorkerPollTimeoutSecs:        workerPollTimeoutSecs,
+		WorkerMaxRetries:             workerMaxRetries,
+		WorkerJobTimeoutSecs:         workerJobTimeoutSecs,
+		ImportChunkSize:              importChunkSize,
+		PairingSweepIntervalSecs:     pairingSweepIntervalSecs,
+		RateLimitMaxRead:             rateLimitMaxRead,
+		RateLimitMaxWrite:            rateLimitMaxWrite,
+		RateLimitWindowSecs:          rateLimitWindowSecs,
+		ClamdHost:                    clamdHost,
+		ClamdPort:                    clamdPort,
+		SupavisorAPIURL:              supavisorAPIURL,
+		APIJWTSecret:                 Secret(apiJWTSecretRaw),
+		LogPullBaseURL:               logPullBaseURL,
+		LogPullToken:                 Secret(logPullToken),
+		LogPullAccountID:             logPullAccountID,
+		LogPullMode:                  logPullMode,
+		LogPullIntervalSecs:          logPullIntervalSecs,
+		LogPullTimeoutSecs:           logPullTimeoutSecs,
+		LogPullPageSize:              logPullPageSize,
+		LogPullMaxConcurrentRequests: logPullMaxConcurrentRequests,
+		LogPullEnabled:               logPullEnabled,
+		FFNoShowTimeline:             ffNoShowTimeline,
 	}, nil
 }
 
@@ -587,6 +636,7 @@ func (c *Config) RedactedSummary() string {
 	b.WriteString(fmt.Sprintf("S3 Endpoint: %s (Bucket: %s)\n", c.S3EndpointURL, c.S3BucketName))
 	b.WriteString(fmt.Sprintf("Worker Concurrency: %d, Retries: %d\n", c.WorkerMaxConcurrentJobs, c.WorkerMaxRetries))
 	b.WriteString(fmt.Sprintf("Rate Limit: Read %d / Write %d per %ds\n", c.RateLimitMaxRead, c.RateLimitMaxWrite, c.RateLimitWindowSecs))
+	b.WriteString(fmt.Sprintf("Log pull: enabled=%t mode=%s base_url=%s account_id=%s interval=%ds timeout=%ds page_size=%d concurrency=%d\n", c.LogPullEnabled, c.LogPullMode, c.LogPullBaseURL, c.LogPullAccountID, c.LogPullIntervalSecs, c.LogPullTimeoutSecs, c.LogPullPageSize, c.LogPullMaxConcurrentRequests))
 	b.WriteString("==========================================\n")
 	return b.String()
 }

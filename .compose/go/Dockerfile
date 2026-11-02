@@ -2,7 +2,7 @@
 #
 # Pinned toolchain + pinned gate binaries. Every gate version is an explicit
 # build arg so a version change is a reviewable diff, never a floating "latest".
-ARG GO_VERSION=1.26.9
+ARG GO_VERSION=1.26.10
 FROM golang:${GO_VERSION}-bookworm
 
 ARG STATICCHECK_VERSION=v0.6.1

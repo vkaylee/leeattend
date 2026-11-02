@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
 // AgentDeviceRepository provides database access for edge agents and devices.
@@ -206,6 +207,21 @@ func (r AgentDeviceRepository) ListDevices(ctx context.Context, workspaceID uuid
 		list = append(list, d)
 	}
 	return list, rows.Err()
+}
+
+// ListPullDevices returns enabled devices. Provider ID equals device UUID string by contract.
+func (r AgentDeviceRepository) ListPullDevices(ctx context.Context, workspaceID uuid.UUID) ([]service.PullDevice, error) {
+	devices, err := r.ListDevices(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]service.PullDevice, 0, len(devices))
+	for _, device := range devices {
+		if device.IsEnabled {
+			result = append(result, service.PullDevice{ID: device.ID, ProviderID: device.ID.String()})
+		}
+	}
+	return result, nil
 }
 
 // ListDevicesByAgentID returns devices belonging to an agent in tenant DB.

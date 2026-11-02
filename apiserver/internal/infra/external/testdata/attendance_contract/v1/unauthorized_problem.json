@@ -1,0 +1,6 @@
+{
+  "type": "https://example.test/problems/unauthorized",
+  "title": "Unauthorized",
+  "status": 401,
+  "detail": "synthetic token rejected"
+}
