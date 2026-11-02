@@ -54,9 +54,6 @@ vi.mock("@/hooks/use-i18n-sync", () => ({
     useI18nSync: vi.fn(),
 }));
 
-vi.mock("@/hooks/use-agents", () => ({
-    useAgentsStatus: () => ({ agents: [], isLoading: false, error: null }),
-}));
 
 vi.mock("@/hooks/use-devices", () => ({
     useDevices: () => ({ devices: [], isLoading: false, error: null }),

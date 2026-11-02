@@ -151,6 +151,9 @@
     "connectivity": {
       "action_failed": "Thao tác thất bại. Vui lòng thử lại."
     },
+    "disabled": "Đã tắt",
+    "devices": "Thiết bị",
+    "enabled": "Đã bật",
     "colors": {
       "amber": "Hổ phách",
       "black": "Đen",

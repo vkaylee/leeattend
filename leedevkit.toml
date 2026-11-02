@@ -6,7 +6,7 @@ source = "release"
 [project]
 name = "LeeAttend"
 namespace = "leeattend"
-languages = ["rust", "typescript", "go"]
+languages = ["typescript", "go"]
 
 [services.apiserver]
 dockerfile = "./apiserver"
@@ -15,10 +15,6 @@ workdir = "apiserver"
 ports = [3000]
 health_check = "/api/v1/health"
 go = true
-[services.agent-main]
-dockerfile = "./agent-main"
-lang = "rust"
-cargo = true
 
 [services.webdashboard]
 dockerfile = "./webdashboard"
@@ -28,10 +24,9 @@ bun = true
 
 
 [targets]
-api = ["apiserver", "agent-main"]
+api = ["api-go"]
 web = ["webdashboard"]
-api-go = ["apiserver"]
-all = ["apiserver", "agent-main", "webdashboard"]
+all = ["api-go", "webdashboard"]
 
 [test.dependencies]
 lint-api = ["apiserver"]

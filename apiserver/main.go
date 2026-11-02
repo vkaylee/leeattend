@@ -703,8 +703,7 @@ func main() {
 	mux.HandleFunc("PATCH /me", authHandler.UpdateMe)
 	mux.HandleFunc("GET /me/permissions", authHandler.MyPermissions)
 	mux.HandleFunc("GET /users", authHandler.WorkspaceUsers)
-	agentDeviceRepo := repository.AgentDeviceRepository(workspaceRepo)
-	agentHub := api.NewAgentHub(agentDeviceRepo, redisClient)
+	deviceRepo := repository.DeviceRepository(workspaceRepo)
 	var pullRunner *scheduler.Runner
 	if cfg.LogPullEnabled {
 		httpClient := external.NewHTTPClient(time.Duration(cfg.LogPullTimeoutSecs) * time.Second)
@@ -712,31 +711,15 @@ func main() {
 		pullRepository := repository.ExternalAttendancePullRepository{TenantDB: workspaceRepo.TenantDB, BeginTx: func(ctx context.Context, workspaceID uuid.UUID) (repository.TxBeginner, error) {
 			return poolMgr.GetTenantTxPool(ctx, workspaceID)
 		}}
-		pullService := service.ExternalAttendancePullService{Devices: agentDeviceRepo, Events: provider, Pulls: pullRepository, AccountID: cfg.LogPullAccountID, Owner: "apiserver", LeaseDuration: time.Duration(cfg.LogPullTimeoutSecs) * time.Second, Shadow: cfg.LogPullMode == "shadow"}
+		pullService := service.ExternalAttendancePullService{Devices: deviceRepo, Events: provider, Pulls: pullRepository, AccountID: cfg.LogPullAccountID, Owner: "apiserver", LeaseDuration: time.Duration(cfg.LogPullTimeoutSecs) * time.Second, Shadow: cfg.LogPullMode == "shadow"}
 		pullRunner = &scheduler.Runner{Source: workspaceRepo, Puller: pullService, Config: scheduler.Config{Interval: time.Duration(cfg.LogPullIntervalSecs) * time.Second, Timeout: time.Duration(cfg.LogPullTimeoutSecs) * time.Second, MaxConcurrent: cfg.LogPullMaxConcurrentRequests, Shadow: cfg.LogPullMode == "shadow"}, Logger: logger}
 		pullRunner.Start(context.Background())
 	}
-	agentDeviceHandler := api.AgentDeviceHandler{
-		Repository: agentDeviceRepo,
-		Hub:        agentHub,
-		Authorizer: workspaceAuthorizer,
-		Redis:      redisClient,
-	}
-	mux.HandleFunc("GET /api/v1/devices", agentDeviceHandler.ListDevices)
-	mux.HandleFunc("POST /api/v1/devices", agentDeviceHandler.CreateDevice)
-	mux.HandleFunc("PUT /api/v1/devices/{id}", agentDeviceHandler.UpdateDevice)
-	mux.HandleFunc("DELETE /api/v1/devices/{id}", agentDeviceHandler.DeleteDevice)
-	mux.HandleFunc("GET /api/v1/devices/{id}/info", agentDeviceHandler.GetDeviceInfo)
-	mux.HandleFunc("GET /api/v1/authorized-agents", agentDeviceHandler.ListAuthorizedAgents)
-	mux.HandleFunc("POST /api/v1/authorized-agents", agentDeviceHandler.CreateAuthorizedAgent)
-	mux.HandleFunc("GET /api/v1/authorized-agents/{id}", agentDeviceHandler.GetAuthorizedAgent)
-	mux.HandleFunc("PATCH /api/v1/authorized-agents/{id}", agentDeviceHandler.UpdateAuthorizedAgent)
-	mux.HandleFunc("DELETE /api/v1/authorized-agents/{id}", agentDeviceHandler.DeleteAuthorizedAgent)
-	mux.HandleFunc("PUT /api/v1/authorized-agents/{id}/trust", agentDeviceHandler.UpdateAgentTrust)
-	mux.HandleFunc("GET /api/v1/agents", agentDeviceHandler.ListAgents)
-	mux.HandleFunc("POST /api/v1/agent/{agent_id}/command", agentDeviceHandler.SendCommand)
-	mux.HandleFunc("GET /api/v1/ws", agentDeviceHandler.WebSocket)
-	mux.HandleFunc("GET /ws", agentDeviceHandler.WebSocket)
+	deviceHandler := api.DeviceHandler{Repository: deviceRepo, Authorizer: workspaceAuthorizer}
+	mux.HandleFunc("GET /api/v1/devices", deviceHandler.ListDevices)
+	mux.HandleFunc("POST /api/v1/devices", deviceHandler.CreateDevice)
+	mux.HandleFunc("PUT /api/v1/devices/{id}", deviceHandler.UpdateDevice)
+	mux.HandleFunc("DELETE /api/v1/devices/{id}", deviceHandler.DeleteDevice)
 
 	publicPrefixes := []string{
 		"/health",

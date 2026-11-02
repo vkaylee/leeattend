@@ -23,9 +23,6 @@ vi.mock("i18next", () => ({
   },
 }));
 
-vi.mock("@/hooks/use-agents", () => ({
-  useAgentsStatus: vi.fn(),
-}));
 
 vi.mock("@/hooks/use-devices", () => ({
   useDevices: vi.fn(),
@@ -71,7 +68,6 @@ vi.mock("@/components/features/dashboard/hr-quick-stats", () => ({
   }
 }));
 
-import { useAgentsStatus } from "@/hooks/use-agents";
 import { useDashboardMetrics, useDashboardStats } from "@/hooks/use-dashboard";
 import { useDashboardLayout } from "@/hooks/use-dashboard-layout";
 import { useDevices } from "@/hooks/use-devices";
@@ -88,12 +84,6 @@ describe("DashboardPage", () => {
     vi.clearAllMocks();
     shouldQuickStatsThrow = false;
 
-    vi.mocked(useAgentsStatus).mockReturnValue({
-      agents: [],
- 
-      isLoading: false,
-      error: null,
-    } as unknown as ReturnType<typeof useAgentsStatus>);
 
     vi.mocked(useDevices).mockReturnValue({
       devices: [],

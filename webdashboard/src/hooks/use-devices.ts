@@ -5,13 +5,11 @@ import {
   createDevice,
   updateDevice,
   deleteDevice,
-  fetchDeviceInfo,
   type UpdateDeviceRequest,
 } from "@/lib/api";
 
 export const devicesKeys = {
   all: ["devices"] as const,
-  info: (id: string) => ["devices", id, "info"] as const,
 };
 
 export function useDevices() {
@@ -26,7 +24,6 @@ export function useDevices() {
     mutationFn: createDevice,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: devicesKeys.all });
-      void queryClient.invalidateQueries({ queryKey: ["agents-status"] });
     },
   });
 
@@ -35,7 +32,6 @@ export function useDevices() {
       updateDevice(id, data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: devicesKeys.all });
-      void queryClient.invalidateQueries({ queryKey: ["agents-status"] });
     },
   });
 
@@ -43,7 +39,6 @@ export function useDevices() {
     mutationFn: deleteDevice,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: devicesKeys.all });
-      void queryClient.invalidateQueries({ queryKey: ["agents-status"] });
     },
   });
 
@@ -64,12 +59,3 @@ export function useDevices() {
   };
 }
 
-export function useDeviceInfo(id: string, enabled = true) {
-  return useQuery({
-    queryKey: devicesKeys.info(id),
-    queryFn: () => fetchDeviceInfo(id),
-    enabled: !!id && enabled,
-    staleTime: 60000 * 30, // Cache for 30 minutes
-    refetchOnWindowFocus: false, // Don't refetch on window focus to avoid noise
-  });
-}

@@ -40,7 +40,6 @@ export function UnassignedDevicesSection({
             onDelete={onDeleteDevice}
             onEdit={onEditDevice}
             onUpdate={onUpdateDevice}
-            parentAgentActive={false}
           />
         ))}
       </div>

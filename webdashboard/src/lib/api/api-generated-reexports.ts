@@ -19,9 +19,7 @@ export type MonitorAlertMutationRequest = components["schemas"]["MonitorAlertMut
 export type MonitorAlertsResponse = components["schemas"]["MonitorAlertsResponse"];
 
 export type DeviceStatus = components["schemas"]["DeviceStatus"];
-export type AgentStatus = components["schemas"]["AgentStatus"];
 export type Device = components["schemas"]["Device"];
-export type AuthorizedAgent = components["schemas"]["AuthorizedAgent"];
 export type Employer = components["schemas"]["Employer"];
 export type CreateEmployerRequest = components["schemas"]["CreateEmployerRequest"];
 export type UpdateEmployerRequest = components["schemas"]["UpdateEmployerRequest"];

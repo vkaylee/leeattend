@@ -21,8 +21,6 @@ test.describe('Device CRUD — DevicesPage', () => {
     await devicesPage.fillDeviceForm({
       name: 'TEST DEVICE ALPHA',
       ip: '10.0.0.50',
-      port: '4371',
-      agentId: 'agent-mock-1',
       brand: 'zkteco',
       password: 'secret123',
       timezone: 'UTC',

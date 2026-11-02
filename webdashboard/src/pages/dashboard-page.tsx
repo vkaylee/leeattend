@@ -15,7 +15,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ExecutiveCostPanel } from "@/components/features/dashboard/executive-cost-panel";
 import { ExecutiveKpiGrid } from "@/components/features/dashboard/executive-kpi-grid";
 import { ExecutiveOvertimeBreakdown } from "@/components/features/dashboard/executive-overtime-breakdown";
-import { useAgentsStatus } from "@/hooks/use-agents";
 import { useCurrency } from "@/hooks/use-currency";
 import { useDashboardMetrics, useDashboardStats } from "@/hooks/use-dashboard";
 import { useDashboardCharts } from "@/hooks/use-dashboard-charts";
@@ -38,7 +37,6 @@ export default function DashboardPage() {
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const { formatTime } = useDateTimeFormatter();
   const { formatCurrency } = useCurrency();
-  const { agents, isLoading: agentsLoading, error: agentsError } = useAgentsStatus();
   const { devices, isLoading: devicesLoading, error: devicesError } = useDevices();
   const { data: hrStats, isLoading: hrLoading, error: hrError } = useDashboardStats();
   const [dashboardFilters, setDashboardFilters] = useDashboardFilterState();
@@ -122,8 +120,8 @@ export default function DashboardPage() {
     return () => { setActionsRef.current(null); };
   }, [showSystemTab]);
 
-  const isLoading = agentsLoading || devicesLoading || hrLoading;
-  const error = (agentsError ?? devicesError) ?? hrError;
+  const isLoading = devicesLoading || hrLoading;
+  const error = devicesError ?? hrError;
   const executiveDataGap = executiveMetrics?.data_quality.status === "data_gap";
   const executiveContext = executiveMetrics?.context;
   const executiveMetricCount = executiveMetrics?.metrics.length ?? 0;
@@ -148,7 +146,6 @@ export default function DashboardPage() {
     return metric.status === "restricted" ? ("restricted" as const) : ("data_gap" as const);
   }, [executiveMetrics]);
 
-  const onlineAgents = agents.filter((a) => a.is_online).length;
   const activeDevices = devices.filter((d) => d.is_enabled).length;
 
   const donutData = useMemo(() => {
@@ -238,9 +235,10 @@ export default function DashboardPage() {
         <div className="animate-in slide-in-from-bottom-4 duration-700">
           <ResilientWidget>
             <DashboardSystemTab
-              activeDevices={activeDevices} agents={agents}
-              devices={devices} formatTime={formatTime}
-              isLoading={isLoading} onlineAgents={onlineAgents} t={t}
+              activeDevices={activeDevices}
+              devices={devices}
+              isLoading={isLoading}
+              t={t}
             />
           </ResilientWidget>
         </div>

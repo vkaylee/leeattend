@@ -1,5 +1,5 @@
 
-import { User, Workspace, AuthorizedAgent, WorkspaceMember, Device } from "@/lib/api";
+import { User, Workspace, WorkspaceMember, Device } from "@/lib/api";
 
 export const userFactory = (overrides: Partial<User> = {}): User => {
   const id = crypto.randomUUID();
@@ -33,25 +33,6 @@ export const workspaceFactory = (
   };
 };
 
-export const agentFactory = (
-  overrides: Partial<AuthorizedAgent> = {},
-): AuthorizedAgent => {
-  return {
-    id: `AGENT_${Math.floor(Math.random() * 1000)}`,
-    name: "Test Agent",
-    token: "secret_token",
-    is_trusted: true,
-    is_active: true,
-    max_concurrent_workers: 2,
-    success_cooldown_secs: 300,
-    retention_days: 365,
-    last_ip: "127.0.0.1",
-    last_seen_at: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    workspace_id: crypto.randomUUID(),
-    ...overrides,
-  };
-};
 
 export const deviceFactory = (
   overrides: Partial<Device> = {},

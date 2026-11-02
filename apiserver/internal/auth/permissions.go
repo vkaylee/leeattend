@@ -6,7 +6,7 @@ import (
 )
 
 // Permission represents a granular action permission in the system.
-// Exactly 103 canonical variants defined in apiserver/src/domain/permissions.rs.
+// Exactly 101 canonical variants remain after edge-agent controls were retired.
 type Permission string
 
 const (
@@ -116,9 +116,6 @@ const (
 	PermissionDashboardPreferences         Permission = "dashboard:preferences"
 	PermissionDashboardEmployeeAbsenceRead Permission = "dashboard:employee_absence:read"
 
-	// Agents & Devices
-	PermissionAgentsRead    Permission = "agents:read"
-	PermissionAgentsManage  Permission = "agents:manage"
 	PermissionDevicesRead   Permission = "devices:read"
 	PermissionDevicesManage Permission = "devices:manage"
 
@@ -241,8 +238,6 @@ var allCanonicalPermissions = []Permission{
 	PermissionDashboardRead,
 	PermissionDashboardPreferences,
 	PermissionDashboardEmployeeAbsenceRead,
-	PermissionAgentsRead,
-	PermissionAgentsManage,
 	PermissionDevicesRead,
 	PermissionDevicesManage,
 	PermissionEmploymentPhasesRead,
@@ -280,7 +275,7 @@ var permissionSet = func() map[Permission]bool {
 	return m
 }()
 
-// AllPermissions returns all 103 canonical system permissions.
+// AllPermissions returns all 101 canonical system permissions.
 func AllPermissions() []Permission {
 	out := make([]Permission, len(allCanonicalPermissions))
 	copy(out, allCanonicalPermissions)

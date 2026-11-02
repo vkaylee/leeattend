@@ -67,51 +67,34 @@ services:
         condition: service_healthy
 
   apiserver:
-    image: localhost/leeattend_dev_apiserver
-    build:
-      context: .
-      dockerfile: apiserver/Dockerfile
-      target: dev
+    image: golang:1.26-bookworm
     working_dir: /app/apiserver
-    command: >-
-      sh -c 'mkdir -p /var/log/app &&
-      cargo watch -w src -w migrations/system -w migrations/tenant -x run 2>&1 | tee -a /var/log/app/apiserver.log'
+    command: go run .
     environment:
-      - RUST_BACKTRACE=1
-      - RUST_LOG=apiserver=debug,tower_http=debug
-      - STORAGE_DIR=/app/apiserver/storage
+      - APP_ENV=development
+      - APP_HOST=0.0.0.0
+      - APP_PORT=3000
+      - DB_PRIMARY_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db_system:5432/${DB_NAME:-leeattend_system}
+      - DB_TENANT_POOLER_TX_URL=postgres://tenant_user:tenant_password@pgbouncer_tenant_tx:6543/tenant_db
+      - DB_TENANT_POOLER_SESS_URL=postgres://tenant_user:tenant_password@pgbouncer_tenant_sess:5452/tenant_db
       - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379
-      - 'ENCRYPTION_KEYS_JSON=${ENCRYPTION_KEYS_JSON:-{"keys":{"v1":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="},"active_key":"v1"}}'
+      - JWT_SECRET=${JWT_SECRET:-development_jwt_secret_change_me}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+      - LOG_PULL_ENABLED=${LOG_PULL_ENABLED:-false}
+      - LOG_PULL_BASE_URL=${LOG_PULL_BASE_URL:-https://provider.example.invalid}
+      - LOG_PULL_TOKEN=${LOG_PULL_TOKEN:-}
+      - LOG_PULL_ACCOUNT_ID=${LOG_PULL_ACCOUNT_ID:-}
+      - LOG_PULL_MODE=${LOG_PULL_MODE:-shadow}
     volumes:
       - .:/app
-      - cargo-registry:/usr/local/cargo/registry
-      - target-cache:/app/target
-      - ./logs:/var/log/app
-
-  agent-main:
-    image: localhost/leeattend_dev_agent-main
-    build:
-      context: .
-      dockerfile: agent-main/Dockerfile
-      target: dev
-    working_dir: /app/agent-main
-    command: >-
-      sh -c 'mkdir -p /var/log/app &&
-      cargo watch -w src -x run 2>&1 | tee -a /var/log/app/agent-main.log'
+      - go-module-cache:/go/pkg/mod
     depends_on:
-      caddy:
-        condition: service_started
-    environment:
-      - RUST_LOG=info
-      - CENTRAL_SERVER_URL=${AGENT_CENTRAL_SERVER_URL:-ws://caddy:80/api/ws}
-      - INFLIGHT_TIMEOUT_SECS=600
-      - DATABASE_URL=sqlite:///app/agent-main/data/agent.db
-    volumes:
-      - .:/app
-      - cargo-registry:/usr/local/cargo/registry
-      - target-cache:/app/target
-      - agent_dev_data:/app/agent-main/data
-      - ./logs:/var/log/app
+      db_system:
+        condition: service_healthy
+      db_workspace:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   webdashboard:
     image: localhost/leeattend_dev_webdashboard
@@ -152,8 +135,6 @@ volumes:
   postgres_system_dev_data:
   postgres_workspace_dev_data:
   redis_dev_data:
-  agent_dev_data:
-  target-cache:
-  cargo-registry:
   webdashboard-node-modules:
   cloudbeaver_dev_data:
+  go-module-cache:

@@ -11,7 +11,7 @@ Every log entry MUST include these fields:
 | `timestamp` | ISO 8601 | UTC timestamp | `2026-06-04T15:00:00.000Z` |
 | `level` | enum | Log severity | `INFO`, `WARN`, `ERROR` |
 | `message` | string | Human-readable description | `"Leave request approved"` |
-| `service` | string | Originating service name | `"apiserver"`, `"agent-main"` |
+| `service` | string | Originating service name | `"apiserver"` |
 | `request_id` | UUID | Unique per-request correlation ID | `"550e8400-..."` |
 | `workspace_id` | UUID | Tenant context (if applicable) | `"7c9e6679-..."` |
 | `actor_id` | UUID | User/system performing action (if applicable) | `"a1b2c3d4-..."` |

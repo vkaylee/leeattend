@@ -4,13 +4,12 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
-import { AuthorizedAgent, Device, type CreateDeviceRequest } from "@/lib/api";
+import { Device, type CreateDeviceRequest } from "@/lib/api";
 
 import { ConnectionSection } from "./connection-section";
 import { InfrastructureSection } from "./infrastructure-section";
 
 interface AddEditDeviceModalProps {
-  agents: AuthorizedAgent[];
   editingDevice: Device | null;
   isOpen: boolean;
   newDevice: CreateDeviceRequest;
@@ -21,7 +20,6 @@ interface AddEditDeviceModalProps {
 }
 
 export function AddEditDeviceModal({
-  agents,
   editingDevice,
   isOpen,
   newDevice,
@@ -59,7 +57,6 @@ export function AddEditDeviceModal({
     >
       <form className="space-y-8 pt-4 animate-in fade-in duration-500" data-testid={editingDevice ? "edit-device-form" : "add-device-form"} onSubmit={onSave}>
         <InfrastructureSection
-          agents={agents}
           editingDevice={editingDevice}
           getValue={getValue}
           handleChange={handleChange}

@@ -2,8 +2,7 @@
 import { Page } from '@playwright/test';
 
 import { Device } from '../../src/lib/api/types';
-import { MOCK_WORKSPACE, MOCK_USER, MOCK_EMPLOYEES, MOCK_DEPARTMENTS, MOCK_AGENTS, MOCK_DEVICES_INITIAL } from './mock-data';
-
+import { MOCK_WORKSPACE, MOCK_USER, MOCK_EMPLOYEES, MOCK_DEPARTMENTS, MOCK_DEVICES_INITIAL } from './mock-data';
 export async function setupApiMocks(page: Page) {
   // --- Stateful mock stores (isolated per page instance via closures) ---
   let devices = structuredClone(MOCK_DEVICES_INITIAL);
@@ -70,7 +69,7 @@ export async function setupApiMocks(page: Page) {
       if (pathname.includes('/permissions')) {
         return fulfill({
           permissions: [
-            "workspace.admin", "devices.manage", "agents.manage",
+            "workspace.admin", "devices.manage",
             "workspace:update", "workspace:delete", "workspace:settings:read", "workspace:settings:write", "approval_workflows:read", "approval_workflows:manage",
             "members:read", "members:invite", "members:roles:manage", "members:remove",
             "employees:read", "employees:create", "employees:update", "employees:delete", "employees:rehire", "employees:upload", "employees:bulk_edit",
@@ -84,7 +83,7 @@ export async function setupApiMocks(page: Page) {
             "reports:read", "reports:export", "dashboard:read", "dashboard:preferences",
             "documents:medical:read", "documents:contract:read",
             "audit_logs:read", "audit_logs:export", "security:settings:manage",
-            "agents:read", "agents:manage", "devices:read", "devices:manage", "feature_flags:read", "feature_flags:manage", "infra:monitor",
+            "devices:read", "devices:manage", "feature_flags:read", "feature_flags:manage", "infra:monitor",
             "recruitment:read", "recruitment:manage",
             "employment_phases:read", "employment_phases:manage",
             "ess:profile", "ess:attendance", "ess:clock", "ess:leave", "ess:payslips", "ess:shift_swaps"
@@ -417,47 +416,6 @@ export async function setupApiMocks(page: Page) {
       }
     }
 
-    // 8. Authorized Agents (READ)
-    if (/\/api\/authorized-agents(\/|$)/.exec(pathname)) {
-      if (method === 'GET') {
-        const mockAgents = MOCK_AGENTS.map(a => ({
-          ...a,
-          is_trusted: true,
-          last_seen: new Date().toISOString()
-        }));
-        
-        return fulfill(mockAgents);
-      }
-      if (method === 'POST') {
-        return fulfill({ success: true }, 201);
-      }
-      if (method === 'PATCH' || method === 'PUT') {
-        return fulfill(MOCK_AGENTS[0]);
-      }
-    }
-
-    // 9. Agent Status (realtime polling)
-    if ((/\/api\/agents(\/|$)/.exec(pathname)) || (/\/api\/agents\/status/.exec(pathname))) {
-      return fulfill([
-        {
-          agent_id: "agent-mock-1",
-          is_online: true,
-          last_seen: new Date().toISOString(),
-          devices: devices.map(d => ({
-            device_id: d.id,
-            status: d.is_enabled ? "online" : "offline",
-            last_sync: new Date().toISOString(),
-            info: {
-              device_time: new Date().toISOString(),
-              logs_count: 0,
-              users_count: 0,
-            },
-          }))
-        }
-      ]);
-    }
-
-    // 10. Devices — STATEFUL CRUD
     if (/\/api\/devices(\/|$)/.exec(pathname)) {
       // GET /api/devices
       if (method === 'GET' && (pathname === '/api/devices' || pathname === '/api/devices/')) {

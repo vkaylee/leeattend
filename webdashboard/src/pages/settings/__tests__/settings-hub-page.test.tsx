@@ -164,14 +164,12 @@ describe("SettingsHubPage", () => {
     vi.spyOn(hooks, "useSettingsNav").mockReturnValue(
       makeNavState({
         systemGroup: [
-          makeItem("Connectivity", "/workspace/settings/connectivity"),
           makeItem("Audit Logs", "/workspace/settings/audit-logs"),
         ],
       }),
     );
     render(<SettingsHubPage />);
     expect(screen.getByTestId("settings-section-system")).toBeInTheDocument();
-    expect(screen.getByText("Connectivity")).toBeInTheDocument();
     expect(screen.getByText("Audit Logs")).toBeInTheDocument();
   });
 
@@ -195,7 +193,6 @@ describe("SettingsHubPage", () => {
         workspaceGroup: [makeItem("General", "/workspace/settings/general")],
         accessGroup: [],
         operationsGroup: [],
-        systemGroup: [makeItem("Connectivity", "/workspace/settings/connectivity")],
       }),
     );
     render(<SettingsHubPage />);
@@ -203,7 +200,7 @@ describe("SettingsHubPage", () => {
     expect(screen.getByTestId("settings-section-workspace")).toBeInTheDocument();
     expect(screen.queryByTestId("settings-section-access")).not.toBeInTheDocument();
     expect(screen.queryByTestId("settings-section-operations")).not.toBeInTheDocument();
-    expect(screen.getByTestId("settings-section-system")).toBeInTheDocument();
+    expect(screen.queryByTestId("settings-section-system")).not.toBeInTheDocument();
   });
 
   // ── Danger section ─────────────────────────────────────────────
@@ -239,7 +236,7 @@ describe("SettingsHubPage", () => {
         workspaceGroup: [makeItem("General", "/workspace/settings/general")],
         accessGroup: [makeItem("Roles", "/workspace/settings/roles")],
         operationsGroup: [makeItem("Time", "/workspace/settings/time")],
-        systemGroup: [makeItem("Connectivity", "/workspace/settings/connectivity")],
+        systemGroup: [makeItem("Audit Logs", "/workspace/settings/audit-logs")],
         dangerItem: makeItem("Danger Zone", "/workspace/settings/danger"),
       }),
     );
@@ -254,7 +251,6 @@ describe("SettingsHubPage", () => {
     expect(screen.getByText("General")).toBeInTheDocument();
     expect(screen.getByText("Roles")).toBeInTheDocument();
     expect(screen.getByText("Time")).toBeInTheDocument();
-    expect(screen.getByText("Connectivity")).toBeInTheDocument();
     expect(screen.getByText("Danger Zone")).toBeInTheDocument();
   });
 

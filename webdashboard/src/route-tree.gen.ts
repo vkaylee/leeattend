@@ -31,6 +31,7 @@ import { Route as AuthenticatedWorkspaceLeaveRequestsRouteImport } from "./route
 import { Route as AuthenticatedWorkspaceLeaveBalancesRouteImport } from "./routes/_authenticated/_workspace/leave-balances"
 import { Route as AuthenticatedWorkspaceEmployeesRouteImport } from "./routes/_authenticated/_workspace/employees"
 import { Route as AuthenticatedWorkspaceEcontractsRouteImport } from "./routes/_authenticated/_workspace/econtracts"
+import { Route as AuthenticatedWorkspaceDevicesRouteImport } from "./routes/_authenticated/_workspace/devices"
 import { Route as AuthenticatedWorkspaceDepartmentsRouteImport } from "./routes/_authenticated/_workspace/departments"
 import { Route as AuthenticatedWorkspaceDashboardRouteImport } from "./routes/_authenticated/_workspace/dashboard"
 import { Route as AuthenticatedWorkspaceAttendanceLogsRouteImport } from "./routes/_authenticated/_workspace/attendance-logs"
@@ -76,7 +77,6 @@ import { Route as AuthenticatedWorkspaceWorkspaceSettingsGeneralRouteImport } fr
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsEcontractsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/econtracts"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsDangerRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/danger"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/custom-fields"
-import { Route as AuthenticatedWorkspaceWorkspaceSettingsConnectivityRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/connectivity"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/condition-types"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsBillingRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/billing"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/audit-logs"
@@ -263,6 +263,16 @@ const AuthenticatedWorkspaceEcontractsRoute =
     getParentRoute: () => AuthenticatedWorkspaceRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_workspace/econtracts.lazy").then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedWorkspaceDevicesRoute =
+  AuthenticatedWorkspaceDevicesRouteImport.update({
+    id: "/devices",
+    path: "/devices",
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/devices.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -700,16 +710,6 @@ const AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute =
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute =
-  AuthenticatedWorkspaceWorkspaceSettingsConnectivityRouteImport.update({
-    id: "/connectivity",
-    path: "/connectivity",
-    getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/workspace/settings/connectivity.lazy").then(
-      (d) => d.Route,
-    ),
-  )
 const AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute =
   AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRouteImport.update({
     id: "/condition-types",
@@ -858,6 +858,7 @@ export interface FileRoutesByFullPath {
   "/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
   "/dashboard": typeof AuthenticatedWorkspaceDashboardRoute
   "/departments": typeof AuthenticatedWorkspaceDepartmentsRoute
+  "/devices": typeof AuthenticatedWorkspaceDevicesRoute
   "/econtracts": typeof AuthenticatedWorkspaceEcontractsRoute
   "/employees": typeof AuthenticatedWorkspaceEmployeesRoute
   "/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
@@ -899,7 +900,6 @@ export interface FileRoutesByFullPath {
   "/workspace/settings/audit-logs": typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   "/workspace/settings/billing": typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
   "/workspace/settings/condition-types": typeof AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute
-  "/workspace/settings/connectivity": typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
   "/workspace/settings/custom-fields": typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
   "/workspace/settings/danger": typeof AuthenticatedWorkspaceWorkspaceSettingsDangerRoute
   "/workspace/settings/econtracts": typeof AuthenticatedWorkspaceWorkspaceSettingsEcontractsRoute
@@ -937,6 +937,7 @@ export interface FileRoutesByTo {
   "/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
   "/dashboard": typeof AuthenticatedWorkspaceDashboardRoute
   "/departments": typeof AuthenticatedWorkspaceDepartmentsRoute
+  "/devices": typeof AuthenticatedWorkspaceDevicesRoute
   "/econtracts": typeof AuthenticatedWorkspaceEcontractsRoute
   "/employees": typeof AuthenticatedWorkspaceEmployeesRoute
   "/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
@@ -974,7 +975,6 @@ export interface FileRoutesByTo {
   "/workspace/settings/audit-logs": typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   "/workspace/settings/billing": typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
   "/workspace/settings/condition-types": typeof AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute
-  "/workspace/settings/connectivity": typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
   "/workspace/settings/custom-fields": typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
   "/workspace/settings/danger": typeof AuthenticatedWorkspaceWorkspaceSettingsDangerRoute
   "/workspace/settings/econtracts": typeof AuthenticatedWorkspaceWorkspaceSettingsEcontractsRoute
@@ -1015,6 +1015,7 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
   "/_authenticated/_workspace/dashboard": typeof AuthenticatedWorkspaceDashboardRoute
   "/_authenticated/_workspace/departments": typeof AuthenticatedWorkspaceDepartmentsRoute
+  "/_authenticated/_workspace/devices": typeof AuthenticatedWorkspaceDevicesRoute
   "/_authenticated/_workspace/econtracts": typeof AuthenticatedWorkspaceEcontractsRoute
   "/_authenticated/_workspace/employees": typeof AuthenticatedWorkspaceEmployeesRoute
   "/_authenticated/_workspace/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
@@ -1057,7 +1058,6 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/workspace/settings/audit-logs": typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   "/_authenticated/_workspace/workspace/settings/billing": typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
   "/_authenticated/_workspace/workspace/settings/condition-types": typeof AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute
-  "/_authenticated/_workspace/workspace/settings/connectivity": typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
   "/_authenticated/_workspace/workspace/settings/custom-fields": typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
   "/_authenticated/_workspace/workspace/settings/danger": typeof AuthenticatedWorkspaceWorkspaceSettingsDangerRoute
   "/_authenticated/_workspace/workspace/settings/econtracts": typeof AuthenticatedWorkspaceWorkspaceSettingsEcontractsRoute
@@ -1098,6 +1098,7 @@ export interface FileRouteTypes {
     | "/attendance-logs"
     | "/dashboard"
     | "/departments"
+    | "/devices"
     | "/econtracts"
     | "/employees"
     | "/leave-balances"
@@ -1139,7 +1140,6 @@ export interface FileRouteTypes {
     | "/workspace/settings/audit-logs"
     | "/workspace/settings/billing"
     | "/workspace/settings/condition-types"
-    | "/workspace/settings/connectivity"
     | "/workspace/settings/custom-fields"
     | "/workspace/settings/danger"
     | "/workspace/settings/econtracts"
@@ -1177,6 +1177,7 @@ export interface FileRouteTypes {
     | "/attendance-logs"
     | "/dashboard"
     | "/departments"
+    | "/devices"
     | "/econtracts"
     | "/employees"
     | "/leave-balances"
@@ -1214,7 +1215,6 @@ export interface FileRouteTypes {
     | "/workspace/settings/audit-logs"
     | "/workspace/settings/billing"
     | "/workspace/settings/condition-types"
-    | "/workspace/settings/connectivity"
     | "/workspace/settings/custom-fields"
     | "/workspace/settings/danger"
     | "/workspace/settings/econtracts"
@@ -1254,6 +1254,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/attendance-logs"
     | "/_authenticated/_workspace/dashboard"
     | "/_authenticated/_workspace/departments"
+    | "/_authenticated/_workspace/devices"
     | "/_authenticated/_workspace/econtracts"
     | "/_authenticated/_workspace/employees"
     | "/_authenticated/_workspace/leave-balances"
@@ -1296,7 +1297,6 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/workspace/settings/audit-logs"
     | "/_authenticated/_workspace/workspace/settings/billing"
     | "/_authenticated/_workspace/workspace/settings/condition-types"
-    | "/_authenticated/_workspace/workspace/settings/connectivity"
     | "/_authenticated/_workspace/workspace/settings/custom-fields"
     | "/_authenticated/_workspace/workspace/settings/danger"
     | "/_authenticated/_workspace/workspace/settings/econtracts"
@@ -1486,6 +1486,13 @@ declare module "@tanstack/react-router" {
       path: "/econtracts"
       fullPath: "/econtracts"
       preLoaderRoute: typeof AuthenticatedWorkspaceEcontractsRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
+    }
+    "/_authenticated/_workspace/devices": {
+      id: "/_authenticated/_workspace/devices"
+      path: "/devices"
+      fullPath: "/devices"
+      preLoaderRoute: typeof AuthenticatedWorkspaceDevicesRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
     "/_authenticated/_workspace/departments": {
@@ -1803,13 +1810,6 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
     }
-    "/_authenticated/_workspace/workspace/settings/connectivity": {
-      id: "/_authenticated/_workspace/workspace/settings/connectivity"
-      path: "/connectivity"
-      fullPath: "/workspace/settings/connectivity"
-      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
-    }
     "/_authenticated/_workspace/workspace/settings/condition-types": {
       id: "/_authenticated/_workspace/workspace/settings/condition-types"
       path: "/condition-types"
@@ -2041,7 +2041,6 @@ interface AuthenticatedWorkspaceWorkspaceSettingsRouteChildren {
   AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   AuthenticatedWorkspaceWorkspaceSettingsBillingRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
   AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute
-  AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
   AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
   AuthenticatedWorkspaceWorkspaceSettingsDangerRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsDangerRoute
   AuthenticatedWorkspaceWorkspaceSettingsEcontractsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsEcontractsRoute
@@ -2069,8 +2068,6 @@ const AuthenticatedWorkspaceWorkspaceSettingsRouteChildren: AuthenticatedWorkspa
       AuthenticatedWorkspaceWorkspaceSettingsBillingRoute,
     AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute:
       AuthenticatedWorkspaceWorkspaceSettingsConditionTypesRoute,
-    AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute:
-      AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute,
     AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute:
       AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute,
     AuthenticatedWorkspaceWorkspaceSettingsDangerRoute:
@@ -2118,6 +2115,7 @@ interface AuthenticatedWorkspaceRouteChildren {
   AuthenticatedWorkspaceAttendanceLogsRoute: typeof AuthenticatedWorkspaceAttendanceLogsRoute
   AuthenticatedWorkspaceDashboardRoute: typeof AuthenticatedWorkspaceDashboardRoute
   AuthenticatedWorkspaceDepartmentsRoute: typeof AuthenticatedWorkspaceDepartmentsRoute
+  AuthenticatedWorkspaceDevicesRoute: typeof AuthenticatedWorkspaceDevicesRoute
   AuthenticatedWorkspaceEcontractsRoute: typeof AuthenticatedWorkspaceEcontractsRoute
   AuthenticatedWorkspaceEmployeesRoute: typeof AuthenticatedWorkspaceEmployeesRoute
   AuthenticatedWorkspaceLeaveBalancesRoute: typeof AuthenticatedWorkspaceLeaveBalancesRoute
@@ -2155,6 +2153,7 @@ const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
     AuthenticatedWorkspaceDashboardRoute: AuthenticatedWorkspaceDashboardRoute,
     AuthenticatedWorkspaceDepartmentsRoute:
       AuthenticatedWorkspaceDepartmentsRoute,
+    AuthenticatedWorkspaceDevicesRoute: AuthenticatedWorkspaceDevicesRoute,
     AuthenticatedWorkspaceEcontractsRoute:
       AuthenticatedWorkspaceEcontractsRoute,
     AuthenticatedWorkspaceEmployeesRoute: AuthenticatedWorkspaceEmployeesRoute,

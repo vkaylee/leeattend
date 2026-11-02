@@ -154,9 +154,3 @@ func UserRevokedAtKey(userID uuid.UUID) string {
 func IsTokenRevoked(iat time.Time, revokedAt time.Time) bool {
 	return iat.Before(revokedAt)
 }
-
-// ServiceIdentity models machine-to-machine authentication (GET /api/v1/ws).
-type ServiceIdentity struct {
-	AgentID uuid.UUID
-	Token   string
-}
