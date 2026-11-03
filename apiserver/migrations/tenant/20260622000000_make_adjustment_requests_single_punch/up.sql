@@ -1,3 +1,0 @@
-ALTER TABLE attendance_adjustment_requests RENAME COLUMN requested_punch_in_time TO requested_punch_time;
-ALTER TABLE attendance_adjustment_requests DROP COLUMN requested_punch_out_time;
-ALTER TABLE attendance_adjustment_requests DROP COLUMN is_break_overtime;

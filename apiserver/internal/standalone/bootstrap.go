@@ -32,6 +32,10 @@ func Bootstrap(ctx context.Context, db interface {
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
+	if err := EnsureDefaultRolesAndPermissions(ctx, tx); err != nil {
+		return err
+	}
+
 	var workspaceCount int
 	if err := tx.QueryRow(ctx, `SELECT count(*) FROM workspaces`).Scan(&workspaceCount); err != nil {
 		return fmt.Errorf("standalone: count organizations: %w", err)

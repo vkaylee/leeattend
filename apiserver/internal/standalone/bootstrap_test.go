@@ -107,3 +107,29 @@ func TestBootstrapInitializesSharedSchemaTransactionIdempotently(t *testing.T) {
 		t.Fatalf("bootstrap was not idempotent: workspaces=%d users=%d", workspaceInserts, userInserts)
 	}
 }
+
+func TestEnsureDefaultRolesAndPermissions(t *testing.T) {
+	tx := &bootstrapTx{}
+	if err := EnsureDefaultRolesAndPermissions(context.Background(), tx); err != nil {
+		t.Fatalf("expected EnsureDefaultRolesAndPermissions to succeed, got %v", err)
+	}
+	hasSystemRoles, hasWorkspaceRoles, hasPermissions, hasSalaryGroups := false, false, false, false
+	for _, sql := range tx.executed {
+		if strings.Contains(sql, "INSERT INTO public.system_roles") {
+			hasSystemRoles = true
+		}
+		if strings.Contains(sql, "INSERT INTO public.workspace_roles") {
+			hasWorkspaceRoles = true
+		}
+		if strings.Contains(sql, "INSERT INTO workspace_role_permissions") {
+			hasPermissions = true
+		}
+		if strings.Contains(sql, "salary_base_groups") {
+			hasSalaryGroups = true
+		}
+	}
+	if !hasSystemRoles || !hasWorkspaceRoles || !hasPermissions || !hasSalaryGroups {
+		t.Fatalf("missing catalog seed statements: system=%v workspace=%v perms=%v salary=%v",
+			hasSystemRoles, hasWorkspaceRoles, hasPermissions, hasSalaryGroups)
+	}
+}

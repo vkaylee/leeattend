@@ -1,1 +1,0 @@
-DROP INDEX IF EXISTS public.dashboard_preferences_user_workspace_unique;
