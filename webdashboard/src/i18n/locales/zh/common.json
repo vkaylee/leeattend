@@ -112,7 +112,7 @@
       "export_btn": "导出数据",
       "import_btn": "导入数据",
       "messages": {
-        "all_matched": "太棒了！所有设备打卡记录已成功与系统中的员工匹配。",
+        "unknown_source": "外部考勤来源",
         "loading": "正在加载日志...",
         "no_data": "未找到打卡日志。",
         "no_data_hint": "尝试调整日期范围筛选器或选择其他员工以查找您需要的内容。",
@@ -148,11 +148,7 @@
     "collapse": "折叠",
     "collapse_all": "全部折叠",
     "collapse_sidebar": "收起侧边栏",
-    "connectivity": {
-      "action_failed": "操作失败。请重试。"
-    },
-    "disabled": "已禁用",
-    "devices": "设备",
+    "optional": "选填",
     "enabled": "已启用",
     "colors": {
       "amber": "琥珀色",
@@ -228,8 +224,6 @@
     "deselect": "Deselect",
     "deselect_all": "取消全选",
     "destructive_operations": "破坏性操作",
-    "device": "设备",
-    "devices": "设备",
     "did_you_know": "你知道吗？",
     "disable": "禁用",
     "duration": "时长",
@@ -628,10 +622,9 @@
       "start_now_btn": "立即开始",
       "welcome_subtitle": "让我们创建您的第一个组织（工作区）",
       "welcome_title": "欢迎！",
-      "workspace_desc": "工作区是一个独立的环境，可帮助您在一个地方管理设备和成员。"
+      "workspace_desc": "工作区是一个独立的环境，可帮助您在一个地方管理成员。"
     },
-    "online": "在线",
-    "optional": "可选",
+    "workspace_desc": "工作区是一个独立的环境，可帮助您在一个地方管理成员。",
     "org_chart": "架构图",
     "org_name_label": "组织/项目名称",
     "org_name_placeholder": "例：ABC 公司、自由职业团队...",
@@ -999,13 +992,12 @@
     "settings": {
       "admin_only": "仅限管理员",
       "categories": {
-        "connectivity": "连接性",
-        "connectivity_desc": "管理设备连接和网络设置。",
         "general": "常规",
         "general_desc": "品牌和基本工作区选项。",
-        "leave": "休假管理",
         "organization": "组织",
         "organization_desc": "管理公司详细信息和品牌。",
+        "general_desc": "品牌和基本工作区选项。",
+        "leave": "休假管理",
         "payroll": "薪资",
         "payroll_desc": "管理标准工作日和薪资公式。",
         "people": "人员",
@@ -1066,7 +1058,6 @@
         "agents": "连接的应用程序",
         "appearance": "外观",
         "departments": "部门",
-        "devices": "物联网设备",
         "employment_phases": "雇佣阶段",
         "general": "常规配置",
         "incentives": "激励与奖金",
@@ -1559,18 +1550,13 @@
     "system": {
       "total_agents": "代理总数",
       "online_agents": "在线代理",
-      "total_devices": "设备总数",
-      "active_devices": "活跃设备",
       "edge_agents": "边缘代理",
       "live_data": "实时数据",
       "seen": "最近在线",
       "connected": "已连接",
       "disconnected": "已断开",
       "no_agents": "未连接代理",
-      "quick_actions": "快捷操作",
-      "device_management": "设备管理",
-      "device_management_desc": "在分支机构添加或移除考勤机。系统自动同步。",
-      "device_management_btn": "打开管理器"
+      "quick_actions": "快捷操作"
     },
     "connection_error": "连接错误",
     "connection_error_desc": "无法连接到 API 服务器或数据无效。",
@@ -1732,11 +1718,11 @@
   },
   "onboarding": {
     "welcome_title": "欢迎！",
+    "workspace_desc": "工作区是一个独立的环境，可帮助您在一个地方管理成员。",
     "welcome_subtitle": "让我们创建您的第一个组织 (工作空间)",
     "org_name_label": "组织名称",
     "org_name_placeholder": "例：ABC 公司、LeeAttend 团队...",
     "start_now_btn": "立即开始",
-    "workspace_desc": "工作空间是一个独立的运行环境，可帮助您在一个地方管理设备和成员。",
     "db_mode_label": "数据库模式",
     "db_mode_auto": "自动托管（推荐）",
     "db_mode_auto_desc": "系统将自动分配安全、隔离的数据库并运行迁移。推荐大多数企业使用。",

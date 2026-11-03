@@ -1,4 +1,4 @@
-import { Cpu, RotateCcw, Users } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -7,23 +7,17 @@ import ChartCatalogSidebar from "@/components/features/dashboard/chart-catalog-s
 import CustomizePanel from "@/components/features/dashboard/customize-panel";
 import { DashboardErrorBanner } from "@/components/features/dashboard/dashboard-error-banner";
 import { DashboardHrTab } from "@/components/features/dashboard/dashboard-hr-tab";
-import { DashboardSystemTab } from "@/components/features/dashboard/dashboard-system-tab";
 import PendingTasksWidget from "@/components/features/dashboard/pending-tasks-widget";
 import { DashboardFilterBar, useDashboardFilterState } from "@/components/features/dashboard/dashboard-filter-bar";
 import Button from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ExecutiveCostPanel } from "@/components/features/dashboard/executive-cost-panel";
 import { ExecutiveKpiGrid } from "@/components/features/dashboard/executive-kpi-grid";
+import { ExecutiveCostPanel } from "@/components/features/dashboard/executive-cost-panel";
 import { ExecutiveOvertimeBreakdown } from "@/components/features/dashboard/executive-overtime-breakdown";
 import { useCurrency } from "@/hooks/use-currency";
 import { useDashboardMetrics, useDashboardStats } from "@/hooks/use-dashboard";
 import { useDashboardCharts } from "@/hooks/use-dashboard-charts";
 import { useDashboardLayout } from "@/hooks/use-dashboard-layout";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { useDevices } from "@/hooks/use-devices";
 import { useHeaderActions } from "@/hooks/use-header-actions";
-import { cn } from "@/lib/utils";
-
 const DONUT_COLORS = {
   on_time: "#10b981",
   late: "#f59e0b",
@@ -33,11 +27,8 @@ const DONUT_COLORS = {
 
 export default function DashboardPage() {
   const { t } = useTranslation();
-  const [showSystemTab, setShowSystemTab] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
-  const { formatTime } = useDateTimeFormatter();
   const { formatCurrency } = useCurrency();
-  const { devices, isLoading: devicesLoading, error: devicesError } = useDevices();
   const { data: hrStats, isLoading: hrLoading, error: hrError } = useDashboardStats();
   const [dashboardFilters, setDashboardFilters] = useDashboardFilterState();
   const {
@@ -53,7 +44,6 @@ export default function DashboardPage() {
     toggleWidget, setWidgetOrder, toggleSection, resetToDefault, allWidgets,
   } = useDashboardLayout();
 
-  // ── Stable refs for callbacks (prevents effect re-fire from non-memoized deps) ─
   const tRef = useRef(t);
   const resetRef = useRef(resetToDefault);
   const setActionsRef = useRef(setActions);
@@ -61,70 +51,37 @@ export default function DashboardPage() {
   useEffect(() => { resetRef.current = resetToDefault; }, [resetToDefault]);
   useEffect(() => { setActionsRef.current = setActions; }, [setActions]);
 
-  // ── Inject header actions ─────────────────────────────────────
   useEffect(() => {
-    const updateActions = () => {
-      setActionsRef.current(
-        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
-          <Button
-            aria-label={tRef.current("dashboard.customize.reset")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-200 dark:hover:border-primary-700 transition-all shadow-sm h-auto"
-            onClick={resetRef.current}
-            type="button"
-            variant="outline"
-          >
-            <RotateCcw size={13} />
-            <span className="hidden sm:inline">{tRef.current("dashboard.customize.reset")}</span>
-          </Button>
-          <div className="flex shrink-0 bg-slate-100 dark:bg-slate-700/50 p-0.5 rounded-full border border-slate-200 dark:border-slate-700/50 shadow-inner">
-            <Button
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all h-auto shadow-none border border-transparent",
-                !showSystemTab
-                  ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border-slate-100 dark:border-slate-800"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200",
-              )}
-              onClick={() => { setShowSystemTab(false); }}
-              type="button"
-              variant="ghost"
-            >
-              <Users size={13} /> {tRef.current("dashboard.tabs.hr")}
-            </Button>
-            <Button
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all h-auto shadow-none border border-transparent",
-                showSystemTab
-                  ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border-slate-100 dark:border-slate-800"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200",
-              )}
-              onClick={() => { setShowSystemTab(true); }}
-              type="button"
-              variant="ghost"
-            >
-              <Cpu size={13} /> {tRef.current("dashboard.tabs.system")}
-            </Button>
-          </div>
-          <Button
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-all shadow-sm h-auto"
-            onClick={() => { setCustomizeOpen(true); }}
-            type="button"
-            variant="outline"
-          >
-            {tRef.current("dashboard.customize.btn")}
-          </Button>
-        </div>,
-      );
-    };
-
-    updateActions();
+    setActionsRef.current(
+      <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
+        <Button
+          aria-label={tRef.current("dashboard.customize.reset")}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-200 dark:hover:border-primary-700 transition-all shadow-sm h-auto"
+          onClick={resetRef.current}
+          type="button"
+          variant="outline"
+        >
+          <RotateCcw size={13} />
+          <span className="hidden sm:inline">{tRef.current("dashboard.customize.reset")}</span>
+        </Button>
+        <Button
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-all shadow-sm h-auto"
+          onClick={() => { setCustomizeOpen(true); }}
+          type="button"
+          variant="outline"
+        >
+          {tRef.current("dashboard.customize.btn")}
+        </Button>
+      </div>,
+    );
     return () => { setActionsRef.current(null); };
-  }, [showSystemTab]);
+  }, []);
 
-  const isLoading = devicesLoading || hrLoading;
-  const error = devicesError ?? hrError;
-  const executiveDataGap = executiveMetrics?.data_quality.status === "data_gap";
+  const isLoading = hrLoading;
+  const error = hrError;
   const executiveContext = executiveMetrics?.context;
   const executiveMetricCount = executiveMetrics?.metrics.length ?? 0;
+
 
   // The breakdown endpoint resolves dates itself from the workspace timezone; it
   // needs the *resolved* reporting window (not the raw filters) so the department
@@ -146,7 +103,6 @@ export default function DashboardPage() {
     return metric.status === "restricted" ? ("restricted" as const) : ("data_gap" as const);
   }, [executiveMetrics]);
 
-  const activeDevices = devices.filter((d) => d.is_enabled).length;
 
   const donutData = useMemo(() => {
     const { present_today = 0, late_today = 0, absent_today = 0, on_leave_today = 0 } = hrStats ?? {};
@@ -207,43 +163,29 @@ export default function DashboardPage() {
         ) : null}
       </section>
 
-      {!showSystemTab ? (
-        <div className="flex gap-6 items-start animate-in slide-in-from-bottom-4 duration-700">
-          <ChartCatalogSidebar
-            allWidgets={allWidgets}
-            onToggleWidget={toggleWidget}
-            visibleWidgets={visibleWidgets}
-          />
-          <div className="flex-1 min-w-0">
-            <ResilientWidget>
-              <DashboardHrTab
-                chartElements={chartElements}
-                collapsedSections={collapsedSections}
-                donutData={donutData}
-                formatCurrency={formatCurrency}
-                hasDonutData={hasDonutData}
-                hrStats={hrStats}
-                isLoading={isLoading}
-                t={t}
-                toggleSection={toggleSection}
-                visibleWidgets={visibleWidgets}
-              />
-            </ResilientWidget>
-          </div>
-        </div>
-      ) : (
-        <div className="animate-in slide-in-from-bottom-4 duration-700">
+      <div className="flex gap-6 items-start animate-in slide-in-from-bottom-4 duration-700">
+        <ChartCatalogSidebar
+          allWidgets={allWidgets}
+          onToggleWidget={toggleWidget}
+          visibleWidgets={visibleWidgets}
+        />
+        <div className="flex-1 min-w-0">
           <ResilientWidget>
-            <DashboardSystemTab
-              activeDevices={activeDevices}
-              devices={devices}
+            <DashboardHrTab
+              chartElements={chartElements}
+              collapsedSections={collapsedSections}
+              donutData={donutData}
+              formatCurrency={formatCurrency}
+              hasDonutData={hasDonutData}
+              hrStats={hrStats}
               isLoading={isLoading}
               t={t}
+              toggleSection={toggleSection}
+              visibleWidgets={visibleWidgets}
             />
           </ResilientWidget>
         </div>
-      )}
-
+      </div>
       {error || saveError || chartErrorCount > 0 ? <DashboardErrorBanner /> : null}
 
       <CustomizePanel

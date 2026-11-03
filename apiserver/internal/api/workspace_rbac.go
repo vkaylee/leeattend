@@ -660,7 +660,7 @@ func permissionGroup(id string) string {
 		return "documents"
 	case "audit_logs", "security":
 		return "security"
-	case "agents", "devices", "feature_flags", "infra":
+	case "feature_flags", "infra":
 		return "infra"
 	case "recruitment":
 		return "recruitment"

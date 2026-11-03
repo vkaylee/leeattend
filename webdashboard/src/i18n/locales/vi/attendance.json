@@ -176,6 +176,7 @@
     "import_btn": "Nhập dữ liệu",
     "messages": {
       "all_matched": "Tất cả bản ghi chấm công đã được khớp với nhân viên.",
+      "unknown_source": "Nguồn chấm công bên ngoài",
       "loading": "Đang tải nhật ký...",
       "no_data": "Không tìm thấy dữ liệu quẹt thẻ nào.",
       "no_data_hint": "Hãy thử điều chỉnh bộ lọc khoảng thời gian hoặc chọn nhân viên khác để tìm kiếm.",

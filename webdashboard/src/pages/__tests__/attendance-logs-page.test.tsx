@@ -43,7 +43,6 @@ vi.mock("../../lib/api", () => ({
   fetchEmployees: vi.fn(),
   fetchWorkspace: vi.fn(),
   getCurrentWorkspaceId: vi.fn(),
-  fetchDevices: vi.fn(),
   fetchStagingLogs: vi.fn(),
   resolveStagingLog: vi.fn(),
   dismissStagingLog: vi.fn(),
@@ -91,7 +90,7 @@ describe("AttendanceLogsPage", () => {
     });
     vi.mocked(api.fetchRawAttendanceLogs).mockResolvedValue({
       data: [
-        { id: "log-1", employee_id: "emp-1", employee_name: "John Doe", punch_time: new Date().toISOString(), source: "DEVICE", device_id: "dev-1" }
+        { id: "log-1", employee_id: "emp-1", employee_name: "John Doe", punch_time: new Date().toISOString(), source: "import" }
       ],
       total: 1,
       page: 1,
@@ -100,7 +99,6 @@ describe("AttendanceLogsPage", () => {
  
     } as unknown as PaginatedResponse<RawAttendanceLog>);
  
-    vi.mocked(api.fetchDevices).mockResolvedValue([]);
     vi.mocked(api.fetchStagingLogs).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
     vi.mocked(api.fetchMyPermissions).mockResolvedValue({ permissions: ["attendance_staging:manage"], roles: ["admin"], managed_department_ids: null });
   });
@@ -191,8 +189,8 @@ describe("AttendanceLogsPage", () => {
   it("displays floating record count badge with loaded/total counts", async () => {
     vi.mocked(api.fetchRawAttendanceLogs).mockResolvedValue({
       data: [
-        { id: "log-1", employee_id: "emp-1", employee_name: "John Doe", punch_time: new Date().toISOString(), source: "DEVICE", device_id: "dev-1" },
-        { id: "log-2", employee_id: "emp-1", employee_name: "John Doe", punch_time: new Date().toISOString(), source: "DEVICE", device_id: "dev-1" },
+        { id: "log-1", employee_id: "emp-1", employee_name: "John Doe", punch_time: new Date().toISOString(), source: "import" },
+        { id: "log-2", employee_id: "emp-1", employee_name: "John Doe", punch_time: new Date().toISOString(), source: "import" },
       ],
       total: 5,
       page: 1,
@@ -233,7 +231,7 @@ describe("AttendanceLogsPage", () => {
 
     vi.mocked(api.fetchStagingLogs).mockResolvedValue({
       data: [
-        { id: "stg-1", raw_user_id: "UNKNOWN-42", punch_time: new Date().toISOString(), device_id: "dev-1" },
+        { id: "stg-1", raw_user_id: "UNKNOWN-42", punch_time: new Date().toISOString() },
       ],
       total: 3,
       page: 1,

@@ -112,7 +112,7 @@
       "export_btn": "Export Data",
       "import_btn": "Import Data",
       "messages": {
-        "all_matched": "Awesome! All device punch records have been successfully matched to employees in the system.",
+        "unknown_source": "External attendance source",
         "loading": "Loading logs...",
         "no_data": "No punch logs found.",
         "no_data_hint": "Try adjusting your date range filter or selecting a different employee to find what you're looking for.",
@@ -148,11 +148,7 @@
     "collapse": "Collapse",
     "collapse_all": "Collapse All",
     "collapse_sidebar": "Collapse Sidebar",
-    "connectivity": {
-      "action_failed": "Action failed. Please try again."
-    },
-    "disabled": "Disabled",
-    "devices": "Devices",
+    "optional": "Optional",
     "enabled": "Enabled",
     "colors": {
       "amber": "Amber",
@@ -228,8 +224,6 @@
     "deselect": "Deselect",
     "deselect_all": "Deselect All",
     "destructive_operations": "Destructive Operations",
-    "device": "Device",
-    "devices": "Devices",
     "did_you_know": "Did you know?",
     "disable": "Disable",
     "duration": "Duration",
@@ -628,10 +622,9 @@
       "start_now_btn": "Start Now",
       "welcome_subtitle": "Let's create your first organization (Workspace)",
       "welcome_title": "Welcome!",
-      "workspace_desc": "A Workspace is a separate environment to help you manage devices and members in one place."
+      "workspace_desc": "A Workspace is a separate environment to help you manage members in one place."
     },
-    "online": "Online",
-    "optional": "Optional",
+    "workspace_desc": "A Workspace is a separate environment to help you manage members in one place.",
     "org_chart": "Org Chart",
     "org_name_label": "Organization / Project Name",
     "org_name_placeholder": "Ex: ABC Company, Freelance Team...",
@@ -999,8 +992,6 @@
     "settings": {
       "admin_only": "Administrators only",
       "categories": {
-        "connectivity": "Connectivity",
-        "connectivity_desc": "Manage device connections and network.",
         "general": "General",
         "general_desc": "Branding and basic workspace options.",
         "leave": "Leave Management",
@@ -1066,7 +1057,6 @@
         "agents": "Connected Agents",
         "appearance": "Appearance",
         "departments": "Departments",
-        "devices": "IoT Devices",
         "employment_phases": "Employment Phases",
         "general": "General Config",
         "incentives": "Incentives & Bonuses",
@@ -1559,18 +1549,13 @@
     "system": {
       "total_agents": "Total Agents",
       "online_agents": "Online Agents",
-      "total_devices": "Total Devices",
-      "active_devices": "Active Devices",
       "edge_agents": "Edge Agents",
       "live_data": "Live Data",
       "seen": "Seen",
       "connected": "Connected",
       "disconnected": "Disconnected",
       "no_agents": "No agents connected",
-      "quick_actions": "Quick Actions",
-      "device_management": "Device Management",
-      "device_management_desc": "Add or remove timekeepers at branches. System auto-syncs.",
-      "device_management_btn": "Open manager"
+      "quick_actions": "Quick Actions"
     },
     "connection_error": "Connection Error",
     "connection_error_desc": "Could not connect to API Server or invalid data.",
@@ -1732,11 +1717,11 @@
   },
   "onboarding": {
     "welcome_title": "Welcome!",
+    "workspace_desc": "A Workspace is a separate environment to help you manage members in one place.",
     "welcome_subtitle": "Let's create your first organization (Workspace)",
     "org_name_label": "Organization Name",
     "org_name_placeholder": "Ex: ABC Company, LeeAttend Team...",
     "start_now_btn": "Start Now",
-    "workspace_desc": "A Workspace is a separate environment to help you manage devices and members in one place.",
     "db_mode_label": "Database Mode",
     "db_mode_auto": "Auto Provision (Recommended)",
     "db_mode_auto_desc": "The system will automatically provision a secure, isolated database and run migrations. Recommended for most organizations.",

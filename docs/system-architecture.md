@@ -4,23 +4,23 @@
 
 LeeAttend runs two application services:
 
-- `apiserver/`: Go HTTP API, scheduled external attendance pull, durable import state, device CRUD, background jobs, and report-stream WebSockets.
+- `apiserver/`: Go HTTP API, scheduled external attendance pull, durable import state, background jobs, and report-stream WebSockets.
 - `webdashboard/`: React/Vite browser and Tauri client.
 
 PostgreSQL stores system, tenant, attendance, and pull-state data. Redis provides rate limiting, queue coordination, and report Pub/Sub. MinIO stores uploaded files.
 
-No edge process, ingestion WebSocket protocol, local device database, or device-only deployment is required.
+No edge process, ingestion WebSocket protocol, or local attendance database is required.
 
 ## Attendance pull flow
 
-1. `scheduler.Runner` enumerates enabled devices by workspace at the configured interval.
+1. `scheduler.Runner` enumerates enabled attendance sources by workspace at the configured interval.
 2. `external.AttendanceEventsClient` requests bounded pages from the configured provider over HTTPS.
-3. The provider adapter sends account, workspace/device identity, cursor, and page-size parameters. Tokens stay in process memory and never enter logs.
+3. The provider adapter sends account, workspace/source identity, cursor, and page-size parameters. Tokens stay in process memory and never enter logs.
 4. `service.ExternalAttendancePullService` normalizes events and delegates persistence to the tenant pull repository.
 5. A tenant transaction records processed event identity, routes attendance data through existing raw/staging/error semantics, and advances the cursor only after all rows commit.
 6. Provider retries are limited to temporary transport, 429, and 5xx failures. Authentication, validation, and decode failures stop the page.
 
-Processed event identity is scoped to `(workspace_id, device_id, external_event_id)`. Provider replay, process restart, and concurrent scheduler attempts therefore remain idempotent. Device credentials and attendance payloads are not logged.
+Processed event identity is scoped to `(workspace_id, source_id, external_event_id)`. Provider replay, process restart, and concurrent scheduler attempts therefore remain idempotent. Provider credentials and attendance payloads are not logged.
 
 ## Migration modes
 
@@ -33,12 +33,7 @@ Required provider configuration and bounded numeric settings are validated at st
 
 ## HTTP API
 
-The API server exposes authenticated REST resources for workspaces, employees, attendance, payroll, files, monitoring, and device configuration. Device CRUD remains available at:
-
-- `GET /api/v1/devices`
-- `POST /api/v1/devices`
-- `PUT /api/v1/devices/{id}`
-- `DELETE /api/v1/devices/{id}`
+The API server exposes authenticated REST resources for workspaces, employees, attendance, payroll, files, monitoring, and attendance-source operations.
 
 Workspace isolation is enforced through workspace context and tenant database predicates. Public routes are limited to health and authentication entrypoints.
 
@@ -50,11 +45,11 @@ Report exports remain asynchronous. The API publishes progress chunks to Redis P
 - `GET /v1/ws/reports/{job_id}`
 - `GET /ws/reports/{job_id}`
 
-The report WebSocket is unrelated to attendance-device ingestion and remains part of the API contract.
+The report WebSocket is unrelated to attendance-source ingestion and remains part of the API contract.
 
 ## Data protection and observability
 
-Logs and metrics contain request IDs, workspace/device IDs where permitted, counts, durations, statuses, and failure classes. They must not contain provider tokens, device passwords, raw attendance payloads, employee identifiers, or email addresses.
+Logs and metrics contain request IDs, workspace/source IDs where permitted, counts, durations, statuses, and failure classes. They must not contain provider tokens, raw attendance payloads, employee identifiers, or email addresses.
 
 Metrics cover pull success/failure, provider latency, lag, fetched/imported/deduplicated/staged counts, cursor state, and consecutive failures. Readiness and alerts must expose provider dependency failure without exposing secret configuration.
 
@@ -66,7 +61,6 @@ Metrics cover pull success/failure, provider latency, lag, fetched/imported/dedu
                                   |--queue/pubsub--> [Redis]
                                   |--object storage--> [MinIO]
                                   |--HTTPS pull--> [External attendance API]
-                                  |--device configuration--> [Attendance devices through provider API]
 ```
 
 Compose deploys `apiserver`, `webdashboard`, PostgreSQL, Redis, MinIO, and supporting poolers. No separate edge service or Rust application build belongs in the runtime topology.

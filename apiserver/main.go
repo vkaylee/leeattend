@@ -703,7 +703,7 @@ func main() {
 	mux.HandleFunc("PATCH /me", authHandler.UpdateMe)
 	mux.HandleFunc("GET /me/permissions", authHandler.MyPermissions)
 	mux.HandleFunc("GET /users", authHandler.WorkspaceUsers)
-	deviceRepo := repository.DeviceRepository(workspaceRepo)
+	sourceRepo := repository.AttendanceSourceRepository{TenantDB: workspaceRepo.TenantDB}
 	var pullRunner *scheduler.Runner
 	if cfg.LogPullEnabled {
 		httpClient := external.NewHTTPClient(time.Duration(cfg.LogPullTimeoutSecs) * time.Second)
@@ -711,15 +711,10 @@ func main() {
 		pullRepository := repository.ExternalAttendancePullRepository{TenantDB: workspaceRepo.TenantDB, BeginTx: func(ctx context.Context, workspaceID uuid.UUID) (repository.TxBeginner, error) {
 			return poolMgr.GetTenantTxPool(ctx, workspaceID)
 		}}
-		pullService := service.ExternalAttendancePullService{Devices: deviceRepo, Events: provider, Pulls: pullRepository, AccountID: cfg.LogPullAccountID, Owner: "apiserver", LeaseDuration: time.Duration(cfg.LogPullTimeoutSecs) * time.Second, Shadow: cfg.LogPullMode == "shadow"}
+		pullService := service.ExternalAttendancePullService{Sources: sourceRepo, Events: provider, Pulls: pullRepository, AccountID: cfg.LogPullAccountID, Owner: "apiserver", LeaseDuration: time.Duration(cfg.LogPullTimeoutSecs) * time.Second, Shadow: cfg.LogPullMode == "shadow"}
 		pullRunner = &scheduler.Runner{Source: workspaceRepo, Puller: pullService, Config: scheduler.Config{Interval: time.Duration(cfg.LogPullIntervalSecs) * time.Second, Timeout: time.Duration(cfg.LogPullTimeoutSecs) * time.Second, MaxConcurrent: cfg.LogPullMaxConcurrentRequests, Shadow: cfg.LogPullMode == "shadow"}, Logger: logger}
 		pullRunner.Start(context.Background())
 	}
-	deviceHandler := api.DeviceHandler{Repository: deviceRepo, Authorizer: workspaceAuthorizer}
-	mux.HandleFunc("GET /api/v1/devices", deviceHandler.ListDevices)
-	mux.HandleFunc("POST /api/v1/devices", deviceHandler.CreateDevice)
-	mux.HandleFunc("PUT /api/v1/devices/{id}", deviceHandler.UpdateDevice)
-	mux.HandleFunc("DELETE /api/v1/devices/{id}", deviceHandler.DeleteDevice)
 
 	publicPrefixes := []string{
 		"/health",

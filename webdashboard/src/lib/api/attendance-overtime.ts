@@ -109,16 +109,13 @@ export async function bulkUploadPaperOt(
 
 // --- Staging Logs (Unknown Users) ---
 
-/** Raw device data captured at punch time (varies by device firmware). */
+/** Provider metadata captured at punch time. */
 export interface StagingLogRawData {
-  device_serial?: string;
-  punch_mode?: 'face' | 'fingerprint' | 'card' | 'pin';
   verification_score?: number;
 }
 
 export interface StagingLog {
   created_at: string;
-  device_id: string | null;
   id: string;
   punch_time: string;
   raw_data: StagingLogRawData | null;

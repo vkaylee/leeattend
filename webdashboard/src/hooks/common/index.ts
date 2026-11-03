@@ -20,6 +20,5 @@ export { usePagination } from "@/hooks/use-pagination";
 export { useQuickAccess } from "@/hooks/use-quick-access";
 export { useStickyHeader } from "@/hooks/use-sticky-header";
 export { useTheme } from "@/hooks/use-theme";
-export { useTickingDeviceTime } from "@/hooks/use-ticking-device-time";
 export { useVersionCheck } from "@/hooks/use-version-check";
 export { useWebSocket } from "@/hooks/use-websocket";

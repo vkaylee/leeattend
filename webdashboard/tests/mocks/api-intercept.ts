@@ -1,12 +1,9 @@
  
 import { Page } from '@playwright/test';
+import { MOCK_WORKSPACE, MOCK_USER, MOCK_EMPLOYEES, MOCK_DEPARTMENTS } from './mock-data';
 
-import { Device } from '../../src/lib/api/types';
-import { MOCK_WORKSPACE, MOCK_USER, MOCK_EMPLOYEES, MOCK_DEPARTMENTS, MOCK_DEVICES_INITIAL } from './mock-data';
 export async function setupApiMocks(page: Page) {
   // --- Stateful mock stores (isolated per page instance via closures) ---
-  let devices = structuredClone(MOCK_DEVICES_INITIAL);
-  let nextDeviceId = 100;
   let activeWorkspace = structuredClone(MOCK_WORKSPACE);
   let exportJobCalls = 0;
   const dashboardWidgetIds = new Set([
@@ -69,8 +66,6 @@ export async function setupApiMocks(page: Page) {
       if (pathname.includes('/permissions')) {
         return fulfill({
           permissions: [
-            "workspace.admin", "devices.manage",
-            "workspace:update", "workspace:delete", "workspace:settings:read", "workspace:settings:write", "approval_workflows:read", "approval_workflows:manage",
             "members:read", "members:invite", "members:roles:manage", "members:remove",
             "employees:read", "employees:create", "employees:update", "employees:delete", "employees:rehire", "employees:upload", "employees:bulk_edit",
             "departments:read", "departments:create", "departments:update", "departments:delete", "departments:transfer",
@@ -83,7 +78,6 @@ export async function setupApiMocks(page: Page) {
             "reports:read", "reports:export", "dashboard:read", "dashboard:preferences",
             "documents:medical:read", "documents:contract:read",
             "audit_logs:read", "audit_logs:export", "security:settings:manage",
-            "devices:read", "devices:manage", "feature_flags:read", "feature_flags:manage", "infra:monitor",
             "recruitment:read", "recruitment:manage",
             "employment_phases:read", "employment_phases:manage",
             "ess:profile", "ess:attendance", "ess:clock", "ess:leave", "ess:payslips", "ess:shift_swaps"
@@ -158,7 +152,6 @@ export async function setupApiMocks(page: Page) {
     if (/\/api\/attendance\/logs/.exec(pathname)) {
       return fulfill({
         data: [
-          { id: "log-1", employee_id: "emp-mock-1", punch_time: "2026-01-15T08:00:00Z", punch_type: "in", source: "device", device_name: "Main Door" }
         ],
         pagination: { total_count: 1, page: 1, page_size: 50, totalpages: 1 }
       });
@@ -416,83 +409,6 @@ export async function setupApiMocks(page: Page) {
       }
     }
 
-    if (/\/api\/devices(\/|$)/.exec(pathname)) {
-      // GET /api/devices
-      if (method === 'GET' && (pathname === '/api/devices' || pathname === '/api/devices/')) {
-        return fulfill(devices);
-      }
-
-      // POST /api/devices (create)
-      if (method === 'POST' && (pathname === '/api/devices' || pathname === '/api/devices/')) {
-        const body = JSON.parse(route.request().postData() ?? '{}');
-        const newDevice: Device = {
-          id: `device-new-${nextDeviceId++}`,
-          agent_id: body.agent_id ?? "agent-mock-1",
-          name: body.name ?? "New Device",
-          ip: body.ip ?? "0.0.0.0",
-          port: body.port ?? 4370,
-          is_enabled: true,
-          brand: body.brand ?? "zkteco",
-          password: body.password,
-          timezone: body.timezone ?? "UTC",
-          last_status: "pending",
-          created_at: new Date().toISOString(),
-          workspace_id: MOCK_WORKSPACE.id,
-          max_concurrent_workers: 2,
-        };
-        devices.push(newDevice);
-        return fulfill({ id: newDevice.id }, 201);
-      }
-
-      // Extract device ID from URL pattern /api/devices/{id}
-      const idMatch = /\/api\/devices\/([^/]+)/.exec(pathname);
-      if (idMatch) {
-        const deviceId = idMatch[1];
-
-        // PUT /api/devices/:id (update)
-        if (method === 'PUT') {
-          const body = JSON.parse(route.request().postData() ?? '{}');
-          const index = devices.findIndex(d => d.id === deviceId);
-          if (index >= 0) {
-            devices[index] = { ...devices[index], ...body };
-            return fulfill(undefined, 200);
-          }
-          return fulfill({ error: "not found" }, 404);
-        }
-
-        // GET /api/devices/:id/info
-        if (method === 'GET' && pathname.endsWith(`/devices/${deviceId}/info`)) {
-          const device = devices.find(d => d.id === deviceId);
-          if (!device) return fulfill({ error: "not found" }, 404);
-          return fulfill({
-            device_time: new Date().toISOString(),
-            firmware: "mock-firmware",
-            hw_name: device.name,
-            last_info_update: new Date().toISOString(),
-            last_sync: new Date().toISOString(),
-            logs_capacity: 10000,
-            logs_count: 0,
-            mac: "00:00:00:00:00:01",
-            platform: device.brand,
-            serial: device.id,
-            users_capacity: 1000,
-            users_count: 0,
-          });
-        }
-
-        // DELETE /api/devices/:id
-        if (method === 'DELETE') {
-          const exists = devices.some(d => d.id === deviceId);
-          if (!exists) return fulfill({ error: "not found" }, 404);
-          devices = devices.filter(d => d.id !== deviceId);
-          return fulfill(undefined, 204);
-        }
-      }
-
-      // Fail closed for an unrecognized device route instead of returning a
-      // truthy list that hides contract regressions in the UI.
-      return fulfill({ error: "unhandled device route" }, 404);
-    }
 
     // 11. Working Patterns, Shifts, Schedules, Holidays, Leaves (Common workspace resources)
     if (pathname.includes('/working-patterns')) {

@@ -24,9 +24,6 @@ vi.mock("i18next", () => ({
 }));
 
 
-vi.mock("@/hooks/use-devices", () => ({
-  useDevices: vi.fn(),
-}));
 
 vi.mock("@/hooks/use-datetime", () => ({
   useDateTimeFormatter: () => ({
@@ -70,7 +67,6 @@ vi.mock("@/components/features/dashboard/hr-quick-stats", () => ({
 
 import { useDashboardMetrics, useDashboardStats } from "@/hooks/use-dashboard";
 import { useDashboardLayout } from "@/hooks/use-dashboard-layout";
-import { useDevices } from "@/hooks/use-devices";
 
 import DashboardPage from "../dashboard-page";
 
@@ -85,12 +81,6 @@ describe("DashboardPage", () => {
     shouldQuickStatsThrow = false;
 
 
-    vi.mocked(useDevices).mockReturnValue({
-      devices: [],
- 
-      isLoading: false,
-      error: null,
-    } as unknown as ReturnType<typeof useDevices>);
 
     vi.mocked(useDashboardMetrics).mockReturnValue({
       data: null,

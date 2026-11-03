@@ -24,7 +24,7 @@ func attendanceFixture(t *testing.T, name string) []byte {
 
 func TestAttendanceEventsClientContractPages(t *testing.T) {
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/v1/accounts/acct-synthetic/devices/device-synthetic/attendance-events" {
+		if r.Method != http.MethodGet || r.URL.Path != "/v1/accounts/acct-synthetic/sources/source-synthetic/attendance-events" {
 			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
 		}
 		expectedQuery := "cursor=cursor-synthetic-start&limit=25"
@@ -50,11 +50,11 @@ func TestAttendanceEventsClientContractPages(t *testing.T) {
 	defer server.Close()
 	client := AttendanceEventsClient{HTTP: &HTTPClient{Client: server.Client()}, BaseURL: server.URL, Token: "synthetic-token", PageLimit: 25}
 
-	page, err := client.GetPage(context.Background(), "acct-synthetic", "device-synthetic", "cursor-synthetic-start", "request-synthetic")
+	page, err := client.GetPage(context.Background(), "acct-synthetic", "source-synthetic", "cursor-synthetic-start", "request-synthetic")
 	if err != nil || len(page.Events) != 1 || page.NextCursor != "cursor-synthetic-next" {
 		t.Fatalf("unexpected success page: %+v, %v", page, err)
 	}
-	if page.Events[0].ExternalEventID != "evt-synthetic-001" || page.Events[0].DeviceID != "device-synthetic" || page.Events[0].OccurredAt != "2026-01-15T08:30:00Z" || page.Events[0].Type != "check_in" {
+	if page.Events[0].ExternalEventID != "evt-synthetic-001" || page.Events[0].ProviderSourceID != "source-synthetic" || page.Events[0].OccurredAt != "2026-01-15T08:30:00Z" || page.Events[0].Type != "check_in" {
 		t.Fatalf("unexpected event: %+v", page.Events[0])
 	}
 	var eventData map[string]string
@@ -62,7 +62,7 @@ func TestAttendanceEventsClientContractPages(t *testing.T) {
 		t.Fatalf("unexpected event data: %s, %v", page.Events[0].Data, err)
 	}
 
-	page, err = client.GetPage(context.Background(), "acct-synthetic", "device-synthetic", page.NextCursor, "request-synthetic")
+	page, err = client.GetPage(context.Background(), "acct-synthetic", "source-synthetic", page.NextCursor, "request-synthetic")
 	if err != nil || len(page.Events) != 0 || page.NextCursor != "" {
 		t.Fatalf("unexpected terminal page: %+v, %v", page, err)
 	}
@@ -90,7 +90,7 @@ func TestAttendanceEventsClientContractProblems(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Method != http.MethodGet || r.URL.Path != "/v1/accounts/acct/devices/dev/attendance-events" || r.URL.Query().Get("limit") != "100" {
+				if r.Method != http.MethodGet || r.URL.Path != "/v1/accounts/acct/sources/source/attendance-events" || r.URL.Query().Get("limit") != "100" {
 					t.Errorf("unexpected request: %s %s?%s", r.Method, r.URL.Path, r.URL.RawQuery)
 				}
 				w.Header().Set("Content-Type", "application/problem+json")
@@ -102,7 +102,7 @@ func TestAttendanceEventsClientContractProblems(t *testing.T) {
 			}))
 			defer server.Close()
 			client := AttendanceEventsClient{HTTP: &HTTPClient{Client: server.Client()}, BaseURL: server.URL, Token: "synthetic-token"}
-			_, err := client.GetPage(context.Background(), "acct", "dev", "", "")
+			_, err := client.GetPage(context.Background(), "acct", "source", "", "")
 			var problem *ProblemError
 			if !errors.As(err, &problem) || problem.Status != tc.status || problem.Retryable != tc.retryable || problem.RetryAfter != tc.retryAfter {
 				t.Fatalf("unexpected problem: %#v", err)
@@ -118,14 +118,14 @@ func TestAttendanceEventsClientContractMalformedAndCancellation(t *testing.T) {
 	}))
 	defer server.Close()
 	client := AttendanceEventsClient{HTTP: &HTTPClient{Client: server.Client()}, BaseURL: server.URL, Token: "synthetic-token"}
-	_, err := client.GetPage(context.Background(), "acct", "dev", "", "")
+	_, err := client.GetPage(context.Background(), "acct", "source", "", "")
 	if err == nil {
 		t.Fatal("expected malformed response error")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, err = client.GetPage(ctx, "acct", "dev", "", "")
+	_, err = client.GetPage(ctx, "acct", "source", "", "")
 	var problem *ProblemError
 	if !errors.As(err, &problem) || !problem.Retryable {
 		t.Fatalf("expected retryable cancellation error, got %#v", err)

@@ -15,8 +15,8 @@ describe("PageHeader Component", () => {
   });
 
   it("applies data-testid to the h1 element", () => {
-    render(<PageHeader data-testid="devices-title" title="Devices" />);
-    const heading = screen.getByTestId("devices-title");
+    render(<PageHeader data-testid="employees-title" title="Employees" />);
+    const heading = screen.getByTestId("employees-title");
     expect(heading.tagName).toBe("H1");
   });
 

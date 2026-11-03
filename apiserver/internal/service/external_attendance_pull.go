@@ -13,16 +13,19 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/infra/external"
 )
 
-type PullDevice struct {
+type AttendanceSource struct {
 	ID         uuid.UUID
 	ProviderID string
 }
-type PullDeviceSource interface {
-	ListPullDevices(context.Context, uuid.UUID) ([]PullDevice, error)
+
+type AttendanceSourceRepository interface {
+	ListAttendanceSources(context.Context, uuid.UUID) ([]AttendanceSource, error)
 }
+
 type AttendanceEventsPageClient interface {
 	GetPage(context.Context, string, string, string, string) (external.AttendanceEventsPage, error)
 }
+
 type PullRepository interface {
 	AcquireLease(context.Context, uuid.UUID, uuid.UUID, string, time.Time) (uuid.UUID, bool, error)
 	CurrentCursor(context.Context, uuid.UUID, uuid.UUID) (string, error)
@@ -34,7 +37,7 @@ type PullRepository interface {
 }
 
 type ExternalAttendancePullService struct {
-	Devices       PullDeviceSource
+	Sources       AttendanceSourceRepository
 	Events        AttendanceEventsPageClient
 	Pulls         PullRepository
 	AccountID     string
@@ -45,18 +48,18 @@ type ExternalAttendancePullService struct {
 }
 
 func (s ExternalAttendancePullService) Pull(ctx context.Context, workspaceID uuid.UUID, requestID string) error {
-	if s.Devices == nil || s.Events == nil || s.Pulls == nil {
+	if s.Sources == nil || s.Events == nil || s.Pulls == nil {
 		return errors.New("external attendance pull: dependencies are required")
 	}
 	if s.AccountID == "" {
 		return errors.New("external attendance pull: account ID is required")
 	}
-	devices, err := s.Devices.ListPullDevices(ctx, workspaceID)
+	sources, err := s.Sources.ListAttendanceSources(ctx, workspaceID)
 	if err != nil {
 		return err
 	}
-	for _, device := range devices {
-		if err := s.pullDevice(ctx, workspaceID, device, requestID); err != nil {
+	for _, source := range sources {
+		if err := s.pullSource(ctx, workspaceID, source, requestID); err != nil {
 			return err
 		}
 	}
@@ -69,9 +72,9 @@ func (s ExternalAttendancePullService) PullShadow(ctx context.Context, workspace
 	return shadow.Pull(ctx, workspaceID, requestID)
 }
 
-func (s ExternalAttendancePullService) pullDevice(ctx context.Context, workspaceID uuid.UUID, device PullDevice, requestID string) error {
-	if device.ID == uuid.Nil || strings.TrimSpace(device.ProviderID) == "" {
-		return errors.New("external attendance pull: device IDs are required")
+func (s ExternalAttendancePullService) pullSource(ctx context.Context, workspaceID uuid.UUID, source AttendanceSource, requestID string) error {
+	if source.ID == uuid.Nil || strings.TrimSpace(source.ProviderID) == "" {
+		return errors.New("external attendance pull: source identifiers are required")
 	}
 	owner := s.Owner
 	if owner == "" {
@@ -85,52 +88,52 @@ func (s ExternalAttendancePullService) pullDevice(ctx context.Context, workspace
 	if s.Now != nil {
 		now = s.Now
 	}
-	lease, claimed, err := s.Pulls.AcquireLease(ctx, workspaceID, device.ID, owner, now().Add(duration))
+	lease, claimed, err := s.Pulls.AcquireLease(ctx, workspaceID, source.ID, owner, now().Add(duration))
 	if err != nil || !claimed {
 		return err
 	}
-	cursor, err := s.Pulls.CurrentCursor(ctx, workspaceID, device.ID)
+	cursor, err := s.Pulls.CurrentCursor(ctx, workspaceID, source.ID)
 	if err != nil {
 		if s.Shadow {
-			_ = s.Pulls.ReleaseLeaseSuccess(ctx, workspaceID, device.ID, lease)
+			_ = s.Pulls.ReleaseLeaseSuccess(ctx, workspaceID, source.ID, lease)
 		} else {
-			_ = s.Pulls.ReleaseLease(ctx, workspaceID, device.ID, lease, err)
+			_ = s.Pulls.ReleaseLease(ctx, workspaceID, source.ID, lease, err)
 		}
 		return err
 	}
 	for {
-		page, pageErr := s.Events.GetPage(ctx, s.AccountID, device.ProviderID, cursor, requestID)
+		page, pageErr := s.Events.GetPage(ctx, s.AccountID, source.ProviderID, cursor, requestID)
 		if pageErr != nil {
 			if s.Shadow {
-				_ = s.Pulls.ReleaseLeaseSuccess(ctx, workspaceID, device.ID, lease)
+				_ = s.Pulls.ReleaseLeaseSuccess(ctx, workspaceID, source.ID, lease)
 			} else {
-				_ = s.Pulls.ReleaseLease(ctx, workspaceID, device.ID, lease, pageErr)
+				_ = s.Pulls.ReleaseLease(ctx, workspaceID, source.ID, lease, pageErr)
 			}
 			return pageErr
 		}
 		if s.Shadow {
 			for _, event := range page.Events {
-				if _, err := NormalizeAttendanceEvent(device.ProviderID, event); err != nil {
-					_ = s.Pulls.ReleaseLeaseSuccess(ctx, workspaceID, device.ID, lease)
+				if _, err := NormalizeAttendanceEvent(source.ProviderID, event); err != nil {
+					_ = s.Pulls.ReleaseLeaseSuccess(ctx, workspaceID, source.ID, lease)
 					return err
 				}
 			}
 			if page.NextCursor == "" {
-				return s.Pulls.ReleaseLeaseSuccess(ctx, workspaceID, device.ID, lease)
+				return s.Pulls.ReleaseLeaseSuccess(ctx, workspaceID, source.ID, lease)
 			}
 			cursor = page.NextCursor
 			continue
 		}
 		err = s.Pulls.WithPageTransaction(ctx, workspaceID, func(txCtx context.Context, tx pgx.Tx) error {
 			for _, event := range page.Events {
-				if err := s.persistEvent(txCtx, tx, workspaceID, device.ProviderID, event); err != nil {
+				if err := s.persistEvent(txCtx, tx, workspaceID, source.ProviderID, event); err != nil {
 					return err
 				}
 			}
-			return s.Pulls.AdvanceCursorTx(txCtx, tx, workspaceID, device.ID, lease, page.NextCursor)
+			return s.Pulls.AdvanceCursorTx(txCtx, tx, workspaceID, source.ID, lease, page.NextCursor)
 		})
 		if err != nil {
-			_ = s.Pulls.ReleaseLease(ctx, workspaceID, device.ID, lease, err)
+			_ = s.Pulls.ReleaseLease(ctx, workspaceID, source.ID, lease, err)
 			return err
 		}
 		if page.NextCursor == "" {
@@ -139,12 +142,18 @@ func (s ExternalAttendancePullService) pullDevice(ctx context.Context, workspace
 		cursor = page.NextCursor
 	}
 }
+
 func (s ExternalAttendancePullService) persistEvent(ctx context.Context, tx pgx.Tx, workspaceID uuid.UUID, providerID string, event external.AttendanceEvent) error {
 	normalized, err := NormalizeAttendanceEvent(providerID, event)
 	if err != nil {
 		return err
 	}
-	metadata, err := json.Marshal(event)
+	metadata, err := json.Marshal(struct {
+		ExternalEventID string          `json:"external_event_id"`
+		OccurredAt      time.Time       `json:"occurred_at"`
+		Type            string          `json:"type,omitempty"`
+		Data            json.RawMessage `json:"data,omitempty"`
+	}{normalized.ExternalEventID, normalized.OccurredAt, event.Type, event.Data})
 	if err != nil {
 		return fmt.Errorf("external attendance pull: encode event metadata: %w", err)
 	}
@@ -155,22 +164,21 @@ func (s ExternalAttendancePullService) persistEvent(ctx context.Context, tx pgx.
 	var employmentID uuid.UUID
 	err = tx.QueryRow(ctx, `SELECT em.id FROM employments em JOIN employees e ON e.id = em.employee_id WHERE em.workspace_id = $1 AND UPPER(e.employee_id_number) = UPPER($2) AND em.status = 'active' AND em.deleted_at IS NULL AND e.deleted_at IS NULL LIMIT 1`, workspaceID, normalized.EmployeeCode).Scan(&employmentID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return stageExternalAttendance(ctx, tx, workspaceID, providerID, normalized)
+		return stageExternalAttendance(ctx, tx, workspaceID, normalized)
 	}
 	if err != nil {
 		return err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, device_id, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'import', $5, $6, $7, 0, NOW()) ON CONFLICT (workspace_id, employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), workspaceID, employmentID, normalized.OccurredAt, providerID, metadata, normalized.Punch)
+	_, err = tx.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'import', $5, $6, 0, NOW()) ON CONFLICT (workspace_id, employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), workspaceID, employmentID, normalized.OccurredAt, metadata, normalized.Punch)
 	return err
 }
 
-func stageExternalAttendance(ctx context.Context, tx pgx.Tx, workspaceID uuid.UUID, providerID string, event NormalizedAttendanceEvent) error {
-	raw, err := json.Marshal(map[string]any{"employee_code": event.EmployeeCode, "external_event_id": event.ExternalEventID, "device_id": providerID, "provider_data": json.RawMessage(event.Data)})
+func stageExternalAttendance(ctx context.Context, tx pgx.Tx, workspaceID uuid.UUID, event NormalizedAttendanceEvent) error {
+	raw, err := json.Marshal(map[string]any{"employee_code": event.EmployeeCode, "external_event_id": event.ExternalEventID, "provider_data": json.RawMessage(event.Data)})
 	if err != nil {
 		return err
 	}
-	fingerprint := providerID + "|" + event.ExternalEventID
-	_, err = tx.Exec(ctx, `INSERT INTO attendance_staging_logs (workspace_id, device_id, raw_user_id, punch_time, raw_data, fingerprint, status, created_at) VALUES ($1, $2, $3, $4, $5, $6, 'pending', NOW())`, workspaceID, providerID, event.EmployeeCode, event.OccurredAt, raw, fingerprint)
+	_, err = tx.Exec(ctx, `INSERT INTO attendance_staging_logs (workspace_id, raw_user_id, punch_time, raw_data, fingerprint, status, created_at) VALUES ($1, $2, $3, $4, $5, 'pending', NOW())`, workspaceID, event.EmployeeCode, event.OccurredAt, raw, event.ExternalEventID)
 	return err
 }
 
@@ -184,8 +192,8 @@ func NormalizeAttendanceEvent(providerID string, event external.AttendanceEvent)
 	if strings.TrimSpace(event.ExternalEventID) == "" {
 		return NormalizedAttendanceEvent{}, errors.New("external attendance pull: event ID is required")
 	}
-	if strings.TrimSpace(providerID) == "" || strings.TrimSpace(event.DeviceID) != strings.TrimSpace(providerID) {
-		return NormalizedAttendanceEvent{}, errors.New("external attendance pull: event device does not match configured device")
+	if strings.TrimSpace(providerID) == "" || strings.TrimSpace(event.ProviderSourceID) != strings.TrimSpace(providerID) {
+		return NormalizedAttendanceEvent{}, errors.New("external attendance pull: event source does not match configured source")
 	}
 	occurred, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(event.OccurredAt))
 	if err != nil {

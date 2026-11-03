@@ -18,8 +18,6 @@ export type MonitorAlertEvent = components["schemas"]["MonitorAlertEventResponse
 export type MonitorAlertMutationRequest = components["schemas"]["MonitorAlertMutationRequest"];
 export type MonitorAlertsResponse = components["schemas"]["MonitorAlertsResponse"];
 
-export type DeviceStatus = components["schemas"]["DeviceStatus"];
-export type Device = components["schemas"]["Device"];
 export type Employer = components["schemas"]["Employer"];
 export type CreateEmployerRequest = components["schemas"]["CreateEmployerRequest"];
 export type UpdateEmployerRequest = components["schemas"]["UpdateEmployerRequest"];

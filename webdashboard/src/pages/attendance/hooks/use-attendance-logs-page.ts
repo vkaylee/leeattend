@@ -15,7 +15,6 @@ import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import {
   fetchRawAttendanceLogs,
   getCurrentWorkspaceId,
-  fetchDevices,
   fetchStagingLogs,
   resolveStagingLog,
   dismissStagingLog,
@@ -78,17 +77,6 @@ function useAttendanceMutations(wsId: string | null) {
   return { dismissMutation, resolveMutation };
 }
 
-function useAttendanceDevices(wsId: string | null) {
-  const { data: devicesData } = useQuery({ queryKey: ["devices", wsId], queryFn: () => fetchDevices(), enabled: !!wsId });
-  const deviceMap = useMemo(() => {
-    const map = new Map<string, string>();
-    devicesData?.forEach((d) => { if ('id' in d && 'name' in d) map.set(d.id, d.name); });
-    return map;
-  }, [devicesData]);
-
-  const getDeviceName = useCallback((deviceId?: string | null): string => deviceId ? deviceMap.get(deviceId) ?? "" : "", [deviceMap]);
-  return { getDeviceName };
-}
 
 function useAttendanceData(wsId: string | null, employeeId: string, dateRange: { start: string; end: string }, activeTab: TabType) {
   const { data: recordedPages, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }>({
@@ -197,7 +185,6 @@ export function useAttendanceLogsPage() {
 
   const { allRecordedLogs, recordedTotal, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, allStagingLogs, stagingTotal, stagingLoading, stagingCount, isFetchingNextStagingPage, hasNextStagingPage, fetchNextStagingPage } = useAttendanceData(wsId, employeeId, dateRange, activeTab);
   const { dismissMutation, resolveMutation } = useAttendanceMutations(wsId);
-  const { getDeviceName } = useAttendanceDevices(wsId);
 
   const getEmployeeName = useCallback((log: RawAttendanceLog) => log.employee_full_name ?? employeeMap.get(log.employee_id ?? log.employment_id)?.full_name ?? t("common.system"), [employeeMap, t]);
   const getEmployeeID = useCallback((log: RawAttendanceLog) => log.employee_id_number ?? employeeMap.get(log.employee_id ?? log.employment_id)?.employee_id_number ?? "", [employeeMap]);
@@ -206,6 +193,6 @@ export function useAttendanceLogsPage() {
   const loadMoreStagingRef = useInfiniteScroll<HTMLTableRowElement>({ hasNextPage: hasNextStagingPage, isFetchingNextPage: isFetchingNextStagingPage, fetchNextPage: () => { void fetchNextStagingPage(); } });
 
   return {
-    wsId, departments, t, formatDate, formatTime, activeTab, setActiveTab, employeeId, setEmployeeId, filterMode, dateRange, setDateRange, specificMonth, isImportDialogOpen, setIsImportDialogOpen, handleFilterModeChange, handleSpecificMonthChange, allRecordedLogs, recordedTotal, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, allStagingLogs, stagingTotal, stagingLoading, stagingCount, isFetchingNextStagingPage, hasNextStagingPage, fetchNextStagingPage, getEmployeeName, getEmployeeID, getDeviceName, loadMoreRef, loadMoreStagingRef, handleCreateEmployee: (enrollmentId: string) => { void navigate({ to: "/employees", search: { enrollment_id: enrollmentId } }); }, dismissMutation, resolveMutation,
+    wsId, departments, t, formatDate, formatTime, activeTab, setActiveTab, employeeId, setEmployeeId, filterMode, dateRange, setDateRange, specificMonth, isImportDialogOpen, setIsImportDialogOpen, handleFilterModeChange, handleSpecificMonthChange, allRecordedLogs, recordedTotal, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, allStagingLogs, stagingTotal, stagingLoading, stagingCount, isFetchingNextStagingPage, hasNextStagingPage, fetchNextStagingPage, getEmployeeName, getEmployeeID, loadMoreRef, loadMoreStagingRef, handleCreateEmployee: (enrollmentId: string) => { void navigate({ to: "/employees", search: { enrollment_id: enrollmentId } }); }, dismissMutation, resolveMutation,
   };
 }

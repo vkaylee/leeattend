@@ -184,42 +184,13 @@ Thu hồi một role phụ trước thời hạn.
 
 ---
 
-### 4. Device Management (CRUD)
+### 4. Attendance source log pull
 
-Quản lý thiết bị phần cứng.
-- **UI Note**: Trong WebDashboard, trang này đã được hợp nhất vào `Settings > Connectivity`.
-
-#### GET /devices
-Lấy danh sách tất cả các thiết bị trong workspace hiện tại (Xác định qua header `X-Workspace-Id`).
-- **Response (200)**: `Array<Device>`
-
-#### POST /devices
-Thêm thiết bị mới vào workspace.
-- **Request**: `{ "agent_id": "...", "name": "...", "ip": "...", "port": 4370,
-        "brand": "zkteco|mock", "password": "...", "timezone": "Asia/Ho_Chi_Minh" }`
-- **Response (201)**: `{ "id": "uuid-v4" }`
-
-> ⚠️ **`timezone` (tùy chọn, tên IANA).** `apiserver` dùng múi giờ này để quy đổi giá trị wall-clock không có offset mà provider trả về thành một mốc thời gian tuyệt đối. Sai giá trị này làm lệch toàn bộ punch của thiết bị.
->
-> - Bỏ trống → kế thừa `timezone` của workspace (**không** mặc định `UTC`).
-> - Giá trị không phải tên IANA hợp lệ → `400` (`error.invalid_timezone`).
-> - Đặt theo vị trí vật lý của thiết bị, không phải theo trụ sở chính.
-
-#### PUT /devices/{id}
-Cập nhật thiết bị. Mọi trường đều tùy chọn; trường bỏ trống giữ nguyên giá trị cũ.
-- **Request**: `{ "name": "...", "ip": "...", "port": 4370, "brand": "zkteco|mock",
-        "password": "...", "timezone": "Asia/Ho_Chi_Minh", "is_enabled": true }`
-- **Response (200)**: `OK`
-- **Lỗi**: `400` (`error.invalid_timezone`) nếu `timezone` không phải tên IANA hợp lệ.
----
-
-### 4. Device log pull
-
-The Go `apiserver` pulls attendance events from the configured external provider. No registration, command, or device-ingestion WebSocket API is exposed.
+The Go `apiserver` pulls attendance events from the configured external provider. No registration, command, or ingestion WebSocket API is exposed.
 
 Configure `LOG_PULL_ENABLED`, `LOG_PULL_BASE_URL`, `LOG_PULL_TOKEN`, `LOG_PULL_ACCOUNT_ID`, `LOG_PULL_MODE`, and bounded interval, timeout, page-size, and concurrency settings. `shadow` mode fetches and normalizes events without attendance writes; `write` mode commits events and the next cursor transactionally.
 
-Provider event identity is deduplicated per workspace and device. Device CRUD remains documented above and report progress remains available at `GET /ws/reports/{job_id}`.
+Provider event identity is deduplicated per workspace and attendance source. Report progress remains available at `GET /ws/reports/{job_id}`.
 
 ### 5. Employee Management
 
@@ -602,8 +573,7 @@ Lấy danh sách nhật ký quẹt thẻ thô (nguyên bản) từ thiết bị 
       "employee_id": "uuid",
       "workspace_id": "uuid",
       "punch_time": "2026-01-14T08:00:00Z",
-      "source": "device|import|manual",
-      "device_id": "string-or-null",
+      "source": "import|manual",
       "created_at": "datetime"
     }
   ]

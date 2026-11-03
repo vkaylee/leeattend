@@ -293,3 +293,9 @@ volumes:
   go-build-cache:
     name: leeattend-test_go-build-cache
     driver: local
+  web-node-modules:
+    name: leeattend-test_web-node-modules
+    driver: local
+  bun-cache:
+    name: leeattend-test_bun-cache
+    driver: local

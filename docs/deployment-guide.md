@@ -29,9 +29,9 @@ LOG_PULL_PAGE_SIZE=100
 LOG_PULL_MAX_CONCURRENT_REQUESTS=4
 ```
 
-When enabled, URL, token, and account ID are required. `shadow` fetches and normalizes events without attendance writes. `write` commits events and the next cursor transactionally after reconciliation. Cursor state and processed event identity are tenant-scoped per workspace/device.
+When enabled, URL, token, and account ID are required. `shadow` fetches and normalizes events without attendance writes. `write` commits events and the next cursor transactionally after reconciliation. Cursor state and processed event identity are tenant-scoped per workspace and attendance source.
 
-Never log provider tokens, device passwords, raw attendance payloads, or employee identifiers.
+Never log provider tokens, raw attendance payloads, or employee identifiers.
 
 ## Compose deployment
 
@@ -43,13 +43,13 @@ podman-compose -f docker-compose.yml down
 
 Services:
 
-- `apiserver`: Go REST API, device CRUD, scheduled external pull, and report WebSockets.
+- `apiserver`: Go REST API, scheduled external attendance pull, and report WebSockets.
 - `webdashboard`: React dashboard.
 - `db_system`, `db_workspace`: PostgreSQL system and tenant databases.
 - `redis`: rate limiting, queues, and report Pub/Sub.
 - `minio`: S3-compatible file storage.
 
-Device configuration remains available through `/api/v1/devices`. Report progress remains available through `/api/v1/ws/reports/{job_id}` and its compatibility aliases.
+Report progress remains available through `/api/v1/ws/reports/{job_id}` and its compatibility aliases.
 
 ## Dashboard
 

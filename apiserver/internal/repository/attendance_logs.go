@@ -285,7 +285,7 @@ func (r AttendanceRepository) ListAttendanceLogs(ctx context.Context, ws uuid.UU
 	return result, total, rows.Err()
 }
 
-// ListRawAttendanceLogs returns paginated raw punches joined with employee and device names.
+// ListRawAttendanceLogs returns paginated raw punches joined with employee identity.
 func (r AttendanceRepository) ListRawAttendanceLogs(ctx context.Context, ws uuid.UUID, employee *uuid.UUID, from, to *time.Time, page, limit int) ([]api.RawAttendanceLogRecord, int64, error) {
 	db, err := r.attendanceDB(ctx, ws)
 	if err != nil {
@@ -302,11 +302,7 @@ func (r AttendanceRepository) ListRawAttendanceLogs(ctx context.Context, ws uuid
 		return nil, 0, err
 	}
 	n := len(args) + 1
-	query := `SELECT l.id, l.workspace_id, l.employment_id, l.punch_time, l.source::text, l.device_id, l.raw_data, l.punch, l.status, l.created_at, e.full_name, e.employee_id_number, d.name
-		FROM raw_attendance_logs l
-		JOIN employments em ON em.id = l.employment_id
-		JOIN employees e ON e.id = em.employee_id
-		LEFT JOIN devices d ON d.id::text = l.device_id` + where + ` ORDER BY l.punch_time DESC LIMIT $` + itoa(n) + ` OFFSET $` + itoa(n+1)
+	query := `SELECT l.id, l.workspace_id, l.employment_id, l.punch_time, l.source::text, l.raw_data, l.punch, l.status, l.created_at, e.full_name, e.employee_id_number FROM raw_attendance_logs l JOIN employments em ON em.id = l.employment_id JOIN employees e ON e.id = em.employee_id` + where + ` ORDER BY l.punch_time DESC LIMIT $` + itoa(n) + ` OFFSET $` + itoa(n+1)
 	args = append(args, limit, (page-1)*limit)
 	rows, err := db.Query(ctx, query, args...)
 	if err != nil {
@@ -316,7 +312,7 @@ func (r AttendanceRepository) ListRawAttendanceLogs(ctx context.Context, ws uuid
 	result := make([]api.RawAttendanceLogRecord, 0)
 	for rows.Next() {
 		var v api.RawAttendanceLogRecord
-		if err = rows.Scan(&v.ID, &v.WorkspaceID, &v.EmploymentID, &v.PunchTime, &v.Source, &v.DeviceID, &v.RawData, &v.Punch, &v.Status, &v.CreatedAt, &v.EmployeeFullName, &v.EmployeeIDNumber, &v.DeviceName); err != nil {
+		if err = rows.Scan(&v.ID, &v.WorkspaceID, &v.EmploymentID, &v.PunchTime, &v.Source, &v.RawData, &v.Punch, &v.Status, &v.CreatedAt, &v.EmployeeFullName, &v.EmployeeIDNumber); err != nil {
 			return nil, 0, err
 		}
 		result = append(result, v)
@@ -334,9 +330,7 @@ func (r AttendanceRepository) ListStagingLogs(ctx context.Context, ws uuid.UUID,
 	if err = db.QueryRow(ctx, `SELECT COUNT(*) FROM attendance_staging_logs WHERE workspace_id = $1 AND status IN ('pending', 'ambiguous')`, ws).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, workspace_id, device_id, raw_user_id, punch_time, raw_data, status, created_at
-		FROM attendance_staging_logs WHERE workspace_id = $1 AND status IN ('pending', 'ambiguous')
-		ORDER BY created_at DESC LIMIT $2 OFFSET $3`, ws, limit, (page-1)*limit)
+	rows, err := db.Query(ctx, `SELECT id, workspace_id, raw_user_id, punch_time, raw_data, status, created_at FROM attendance_staging_logs WHERE workspace_id = $1 AND status IN ('pending', 'ambiguous') ORDER BY created_at DESC LIMIT $2 OFFSET $3`, ws, limit, (page-1)*limit)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -344,7 +338,7 @@ func (r AttendanceRepository) ListStagingLogs(ctx context.Context, ws uuid.UUID,
 	result := make([]api.AttendanceStagingLog, 0)
 	for rows.Next() {
 		var v api.AttendanceStagingLog
-		if err = rows.Scan(&v.ID, &v.WorkspaceID, &v.DeviceID, &v.RawUserID, &v.PunchTime, &v.RawData, &v.Status, &v.CreatedAt); err != nil {
+		if err = rows.Scan(&v.ID, &v.WorkspaceID, &v.RawUserID, &v.PunchTime, &v.RawData, &v.Status, &v.CreatedAt); err != nil {
 			return nil, 0, err
 		}
 		result = append(result, v)
@@ -361,9 +355,8 @@ func (r AttendanceRepository) ResolveStagingLog(ctx context.Context, ws, id, emp
 	return service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		var punchTime time.Time
 		var raw json.RawMessage
-		var device *string
 		var status string
-		if err := db.QueryRow(ctx, `SELECT punch_time, raw_data, device_id, status FROM attendance_staging_logs WHERE id = $1 AND workspace_id = $2 FOR UPDATE`, id, ws).Scan(&punchTime, &raw, &device, &status); err != nil {
+		if err := db.QueryRow(ctx, `SELECT punch_time, raw_data, status FROM attendance_staging_logs WHERE id = $1 AND workspace_id = $2 FOR UPDATE`, id, ws).Scan(&punchTime, &raw, &status); err != nil {
 			return err
 		}
 		if status != "pending" && status != "ambiguous" {
@@ -397,9 +390,7 @@ func (r AttendanceRepository) ResolveStagingLog(ctx context.Context, ws, id, emp
 				punchCode, statusCode = data.Punch, data.Status
 			}
 		}
-		if _, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, device_id, raw_data, punch, status, created_at)
-			VALUES ($1, $2, $3, $4, 'device', $5, $6, $7, $8, NOW()) ON CONFLICT (workspace_id, employment_id, punch_time, punch, status) DO NOTHING`,
-			uuid.New(), ws, *employmentID, punchTime, device, raw, punchCode, statusCode); err != nil {
+		if _, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'import', $5, $6, $7, NOW()) ON CONFLICT (workspace_id, employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), ws, *employmentID, punchTime, raw, punchCode, statusCode); err != nil {
 			return err
 		}
 		_, err := db.Exec(ctx, `UPDATE attendance_staging_logs SET status = 'processed' WHERE id = $1 AND workspace_id = $2`, id, ws)

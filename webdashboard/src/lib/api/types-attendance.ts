@@ -7,8 +7,6 @@ export type AttendanceEntry = TimeEntry;
 
 export interface RawAttendanceLog {
   created_at: string;
-  device_id?: string;
-  device_name?: string;
   employee_full_name?: string;
   employee_id?: string;
   employee_id_number?: string;

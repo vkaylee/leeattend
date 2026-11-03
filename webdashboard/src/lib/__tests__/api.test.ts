@@ -27,33 +27,6 @@ describe("api.ts comprehensive tests", () => {
     } as unknown as Response);
   };
 
-  describe("Device API", () => {
-
-    it("fetchDevices", async () => {
-      mockSuccess([]);
-      await api.fetchDevices();
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/devices"), expect.any(Object));
-    });
-
-    it("createDevice", async () => {
-      mockSuccess({ id: "d1" });
-      await api.createDevice({ name: "D", agent_id: "ag-1", ip: "192.168.1.1" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/devices"), expect.objectContaining({ method: "POST" }));
-    });
-
-    it("updateDevice", async () => {
-      mockSuccess({});
-      await api.updateDevice("dev-1", { name: "New Name" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/devices/dev-1"), expect.objectContaining({ method: "PUT" }));
-    });
-
-    it("deleteDevice", async () => {
-      mockSuccess({});
-      await api.deleteDevice("dev-1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/devices/dev-1"), expect.objectContaining({ method: "DELETE" }));
-    });
-
-  });
 
   describe("Employee & Department API", () => {
     it("fetchEmployees", async () => {

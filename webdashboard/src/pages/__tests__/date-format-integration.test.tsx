@@ -65,7 +65,6 @@ vi.mock("../../lib/api", () => ({
   submitAttendanceAdjustment: vi.fn(),
   fetchWorkspaceAttendanceAdjustments: vi.fn(),
   fetchMyPermissions: vi.fn(),
-  fetchDevices: vi.fn(),
 }));
 
 describe("Date Format Integration", () => {
@@ -79,7 +78,6 @@ describe("Date Format Integration", () => {
     });
     vi.mocked(api.fetchMyPermissions).mockResolvedValue({ permissions: ["attendance_staging:manage"], roles: ["admin"], managed_department_ids: [] });
  
-    vi.mocked(api.fetchDevices).mockResolvedValue([]);
  
   });
 
@@ -105,7 +103,7 @@ describe("Date Format Integration", () => {
 
     vi.mocked(api.fetchRawAttendanceLogs).mockResolvedValue({
 
-      data: [{ id: "l-1", punch_time: "2026-01-15T08:00:00Z", device_id: "dev-1", source: "device", employee_id: "emp-1" }],
+      data: [{ id: "l-1", punch_time: "2026-01-15T08:00:00Z", source: "import", employee_id: "emp-1" }],
       total: 1,
       page: 1,
       limit: 50
@@ -130,7 +128,7 @@ describe("Date Format Integration", () => {
 
     vi.mocked(api.fetchRawAttendanceLogs).mockResolvedValue({
 
-      data: [{ id: "l-1", punch_time: "2026-01-15T08:00:00Z", device_id: "dev-1", source: "device", employee_id: "emp-1" }],
+      data: [{ id: "l-1", punch_time: "2026-01-15T08:00:00Z", source: "import", employee_id: "emp-1" }],
       total: 1,
       page: 1,
       limit: 50

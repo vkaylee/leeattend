@@ -49,7 +49,7 @@ func (r AttendanceRepository) PunchIn(ctx context.Context, workspaceID, employme
 		if err != nil {
 			return err
 		}
-		cmd, err := tx.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, device_id, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'device', 'ESS_WEB', $5, 0, 1, CURRENT_TIMESTAMP) ON CONFLICT (workspace_id, employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), workspaceID, employmentID, punchTime, rawData)
+		cmd, err := tx.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'manual', $5, 0, 1, CURRENT_TIMESTAMP) ON CONFLICT (workspace_id, employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), workspaceID, employmentID, punchTime, rawData)
 		if err != nil {
 			return err
 		}
@@ -86,7 +86,7 @@ func (r AttendanceRepository) PunchOut(ctx context.Context, workspaceID, employe
 		if err != nil {
 			return err
 		}
-		if _, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, device_id, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'device', 'ESS_WEB', $5, 1, 1, CURRENT_TIMESTAMP) ON CONFLICT (workspace_id, employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), workspaceID, employmentID, punchTime, rawData); err != nil {
+		if _, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'manual', $5, 1, 1, CURRENT_TIMESTAMP) ON CONFLICT (workspace_id, employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), workspaceID, employmentID, punchTime, rawData); err != nil {
 			return err
 		}
 		if _, err := db.Exec(ctx, `UPDATE time_entries SET punch_out_time = $1, duration_minutes = GREATEST(0, FLOOR(EXTRACT(EPOCH FROM ($1 - punch_in_time)) / 60)::integer), note = COALESCE($2, note), updated_at = CURRENT_TIMESTAMP WHERE id = (SELECT id FROM time_entries WHERE workspace_id = $3 AND employment_id = $4 AND punch_out_time IS NULL ORDER BY punch_in_time DESC LIMIT 1)`, punchTime, note, workspaceID, employmentID); err != nil {
@@ -127,7 +127,7 @@ func (r AttendanceRepository) ESSPunch(ctx context.Context, workspaceID, employe
 			if err != nil {
 				return err
 			}
-			if _, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, device_id, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'device', 'ESS_WEB', $5, 1, 1, CURRENT_TIMESTAMP) ON CONFLICT (workspace_id, employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), workspaceID, employmentID, punchTime, rawData); err != nil {
+			if _, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'manual', $5, 1, 1, CURRENT_TIMESTAMP) ON CONFLICT (workspace_id, employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), workspaceID, employmentID, punchTime, rawData); err != nil {
 				return err
 			}
 			if _, err := db.Exec(ctx, `UPDATE time_entries SET punch_out_time = $1, duration_minutes = GREATEST(0, FLOOR(EXTRACT(EPOCH FROM ($1 - punch_in_time)) / 60)::integer), note = COALESCE($2, note), updated_at = CURRENT_TIMESTAMP WHERE id = $3`, punchTime, note, *openEntryID); err != nil {
@@ -148,7 +148,7 @@ func (r AttendanceRepository) ESSPunch(ctx context.Context, workspaceID, employe
 		if err != nil {
 			return err
 		}
-		cmd, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, device_id, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'device', 'ESS_WEB', $5, 0, 1, CURRENT_TIMESTAMP) ON CONFLICT (workspace_id, employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), workspaceID, employmentID, punchTime, rawData)
+		cmd, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'manual', $5, 0, 1, CURRENT_TIMESTAMP) ON CONFLICT (workspace_id, employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), workspaceID, employmentID, punchTime, rawData)
 		if err != nil {
 			return err
 		}
@@ -338,7 +338,7 @@ func (r AttendanceRepository) ApproveAdjustment(ctx context.Context, workspaceID
 		if status != "approved" {
 			return nil
 		}
-		_, err = db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, device_id, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'manual', NULL, NULL, 0, 0, CURRENT_TIMESTAMP)`, uuid.New(), workspaceID, employmentID, requestedPunchTime)
+		_, err = db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, workspace_id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, $4, 'manual', NULL, 0, 0, CURRENT_TIMESTAMP)`, uuid.New(), workspaceID, employmentID, requestedPunchTime)
 		return err
 	})
 }

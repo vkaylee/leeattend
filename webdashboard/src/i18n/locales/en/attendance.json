@@ -176,6 +176,7 @@
     "import_btn": "Import Data",
     "messages": {
       "all_matched": "All punch logs have been matched to employees.",
+      "unknown_source": "External attendance source",
       "loading": "Loading logs...",
       "no_data": "No punch logs found.",
       "no_data_hint": "Try adjusting your date range filter or selecting a different employee to find what you're looking for.",

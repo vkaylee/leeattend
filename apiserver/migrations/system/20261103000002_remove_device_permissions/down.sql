@@ -1,0 +1,1 @@
+-- Retired device permissions are intentionally not restored on rollback.

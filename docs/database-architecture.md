@@ -42,7 +42,7 @@ Created by tenant migrations (`migrations/tenant/`). Each workspace gets an inde
 - `time_entries`, `raw_attendance_logs`, `attendance_daily_summaries`
 - `leave_requests`, `leave_balances`, `leave_policies`
 - `payroll_*`, `payslips`, `salary_*`
-- `devices`, `feature_flags`, `dashboard_preferences`
+- `attendance_sources`, `feature_flags`, `dashboard_preferences`
 - And 40+ other business tables
 
 ### Why the Split?

@@ -874,11 +874,6 @@ var i18nCatalog = map[string]translationEntry{
 		vi: "Chưa có file báo cáo nào được tạo",
 		zh: "尚未生成报告文件",
 	},
-	"error.device_not_found": {
-		en: "Device not found",
-		vi: "Không tìm thấy thiết bị",
-		zh: "未找到设备",
-	},
 	"error.no_fields_to_update": {
 		en: "No fields to update",
 		vi: "Không có trường nào để cập nhật",

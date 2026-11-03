@@ -54,9 +54,6 @@ vi.mock("@/hooks/use-i18n-sync", () => ({
 }));
 
 
-vi.mock("@/hooks/use-devices", () => ({
-    useDevices: () => ({ devices: [], isLoading: false, error: null }),
-}));
 
 vi.mock("@/hooks/use-dashboard", () => ({
     useDashboardMetrics: () => ({ data: null, isLoading: false, error: null }),

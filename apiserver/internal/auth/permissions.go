@@ -116,9 +116,6 @@ const (
 	PermissionDashboardPreferences         Permission = "dashboard:preferences"
 	PermissionDashboardEmployeeAbsenceRead Permission = "dashboard:employee_absence:read"
 
-	PermissionDevicesRead   Permission = "devices:read"
-	PermissionDevicesManage Permission = "devices:manage"
-
 	// Employment Phases
 	PermissionEmploymentPhasesRead   Permission = "employment_phases:read"
 	PermissionEmploymentPhasesManage Permission = "employment_phases:manage"
@@ -238,8 +235,6 @@ var allCanonicalPermissions = []Permission{
 	PermissionDashboardRead,
 	PermissionDashboardPreferences,
 	PermissionDashboardEmployeeAbsenceRead,
-	PermissionDevicesRead,
-	PermissionDevicesManage,
 	PermissionEmploymentPhasesRead,
 	PermissionEmploymentPhasesManage,
 	PermissionRecruitmentRead,

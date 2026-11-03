@@ -31,7 +31,6 @@ import { Route as AuthenticatedWorkspaceLeaveRequestsRouteImport } from "./route
 import { Route as AuthenticatedWorkspaceLeaveBalancesRouteImport } from "./routes/_authenticated/_workspace/leave-balances"
 import { Route as AuthenticatedWorkspaceEmployeesRouteImport } from "./routes/_authenticated/_workspace/employees"
 import { Route as AuthenticatedWorkspaceEcontractsRouteImport } from "./routes/_authenticated/_workspace/econtracts"
-import { Route as AuthenticatedWorkspaceDevicesRouteImport } from "./routes/_authenticated/_workspace/devices"
 import { Route as AuthenticatedWorkspaceDepartmentsRouteImport } from "./routes/_authenticated/_workspace/departments"
 import { Route as AuthenticatedWorkspaceDashboardRouteImport } from "./routes/_authenticated/_workspace/dashboard"
 import { Route as AuthenticatedWorkspaceAttendanceLogsRouteImport } from "./routes/_authenticated/_workspace/attendance-logs"
@@ -263,16 +262,6 @@ const AuthenticatedWorkspaceEcontractsRoute =
     getParentRoute: () => AuthenticatedWorkspaceRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_workspace/econtracts.lazy").then(
-      (d) => d.Route,
-    ),
-  )
-const AuthenticatedWorkspaceDevicesRoute =
-  AuthenticatedWorkspaceDevicesRouteImport.update({
-    id: "/devices",
-    path: "/devices",
-    getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/devices.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -858,7 +847,6 @@ export interface FileRoutesByFullPath {
   "/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
   "/dashboard": typeof AuthenticatedWorkspaceDashboardRoute
   "/departments": typeof AuthenticatedWorkspaceDepartmentsRoute
-  "/devices": typeof AuthenticatedWorkspaceDevicesRoute
   "/econtracts": typeof AuthenticatedWorkspaceEcontractsRoute
   "/employees": typeof AuthenticatedWorkspaceEmployeesRoute
   "/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
@@ -937,7 +925,6 @@ export interface FileRoutesByTo {
   "/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
   "/dashboard": typeof AuthenticatedWorkspaceDashboardRoute
   "/departments": typeof AuthenticatedWorkspaceDepartmentsRoute
-  "/devices": typeof AuthenticatedWorkspaceDevicesRoute
   "/econtracts": typeof AuthenticatedWorkspaceEcontractsRoute
   "/employees": typeof AuthenticatedWorkspaceEmployeesRoute
   "/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
@@ -1015,7 +1002,6 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
   "/_authenticated/_workspace/dashboard": typeof AuthenticatedWorkspaceDashboardRoute
   "/_authenticated/_workspace/departments": typeof AuthenticatedWorkspaceDepartmentsRoute
-  "/_authenticated/_workspace/devices": typeof AuthenticatedWorkspaceDevicesRoute
   "/_authenticated/_workspace/econtracts": typeof AuthenticatedWorkspaceEcontractsRoute
   "/_authenticated/_workspace/employees": typeof AuthenticatedWorkspaceEmployeesRoute
   "/_authenticated/_workspace/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
@@ -1098,7 +1084,6 @@ export interface FileRouteTypes {
     | "/attendance-logs"
     | "/dashboard"
     | "/departments"
-    | "/devices"
     | "/econtracts"
     | "/employees"
     | "/leave-balances"
@@ -1177,7 +1162,6 @@ export interface FileRouteTypes {
     | "/attendance-logs"
     | "/dashboard"
     | "/departments"
-    | "/devices"
     | "/econtracts"
     | "/employees"
     | "/leave-balances"
@@ -1254,7 +1238,6 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/attendance-logs"
     | "/_authenticated/_workspace/dashboard"
     | "/_authenticated/_workspace/departments"
-    | "/_authenticated/_workspace/devices"
     | "/_authenticated/_workspace/econtracts"
     | "/_authenticated/_workspace/employees"
     | "/_authenticated/_workspace/leave-balances"
@@ -1486,13 +1469,6 @@ declare module "@tanstack/react-router" {
       path: "/econtracts"
       fullPath: "/econtracts"
       preLoaderRoute: typeof AuthenticatedWorkspaceEcontractsRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceRoute
-    }
-    "/_authenticated/_workspace/devices": {
-      id: "/_authenticated/_workspace/devices"
-      path: "/devices"
-      fullPath: "/devices"
-      preLoaderRoute: typeof AuthenticatedWorkspaceDevicesRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
     "/_authenticated/_workspace/departments": {
@@ -2115,7 +2091,6 @@ interface AuthenticatedWorkspaceRouteChildren {
   AuthenticatedWorkspaceAttendanceLogsRoute: typeof AuthenticatedWorkspaceAttendanceLogsRoute
   AuthenticatedWorkspaceDashboardRoute: typeof AuthenticatedWorkspaceDashboardRoute
   AuthenticatedWorkspaceDepartmentsRoute: typeof AuthenticatedWorkspaceDepartmentsRoute
-  AuthenticatedWorkspaceDevicesRoute: typeof AuthenticatedWorkspaceDevicesRoute
   AuthenticatedWorkspaceEcontractsRoute: typeof AuthenticatedWorkspaceEcontractsRoute
   AuthenticatedWorkspaceEmployeesRoute: typeof AuthenticatedWorkspaceEmployeesRoute
   AuthenticatedWorkspaceLeaveBalancesRoute: typeof AuthenticatedWorkspaceLeaveBalancesRoute
@@ -2153,7 +2128,6 @@ const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
     AuthenticatedWorkspaceDashboardRoute: AuthenticatedWorkspaceDashboardRoute,
     AuthenticatedWorkspaceDepartmentsRoute:
       AuthenticatedWorkspaceDepartmentsRoute,
-    AuthenticatedWorkspaceDevicesRoute: AuthenticatedWorkspaceDevicesRoute,
     AuthenticatedWorkspaceEcontractsRoute:
       AuthenticatedWorkspaceEcontractsRoute,
     AuthenticatedWorkspaceEmployeesRoute: AuthenticatedWorkspaceEmployeesRoute,

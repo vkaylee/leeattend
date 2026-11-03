@@ -48,4 +48,4 @@ The pinned Go gate image in `.compose/go/Dockerfile` provides `gofmt`, `go vet`,
 
 ## Operational contract
 
-Provider tokens, device passwords, raw attendance payloads, and employee identifiers MUST NOT appear in container logs. Pull cursors advance only after import transaction commit. `shadow` mode is the safe migration default; `write` mode requires reconciliation and rollback approval.
+Provider tokens, raw attendance payloads, and employee identifiers MUST NOT appear in container logs. Pull cursors advance only after import transaction commit. `shadow` mode is the safe migration default; `write` mode requires reconciliation and rollback approval.

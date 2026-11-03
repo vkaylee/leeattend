@@ -1,4 +1,3 @@
-import { Device } from '../../src/lib/api/types';
 
 export const MOCK_WORKSPACE = {
   id: "ws-mock-123",
@@ -68,37 +67,4 @@ export const MOCK_DEPARTMENTS = [
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z"
   }
-];
-
-export const MOCK_DEVICES_INITIAL: Device[] = [
-  {
-    id: "device-mock-1",
-    agent_id: "agent-mock-1",
-    name: "MAIN ENTRANCE",
-    ip: "192.168.1.100",
-    port: 4370,
-    is_enabled: true,
-    brand: "zkteco",
-    password: "",
-    timezone: "UTC",
-    last_status: "online",
-    created_at: "2025-01-01T00:00:00Z",
-    workspace_id: "ws-mock-123",
-    max_concurrent_workers: 2,
-  },
-  {
-    id: "device-mock-2",
-    agent_id: "agent-mock-1",
-    name: "BACK DOOR",
-    ip: "192.168.1.101",
-    port: 4370,
-    is_enabled: false,
-    brand: "mock",
-    password: "1234",
-    timezone: "Asia/Ho_Chi_Minh",
-    last_status: "offline",
-    created_at: "2025-01-02T00:00:00Z",
-    workspace_id: "ws-mock-123",
-    max_concurrent_workers: 2,
-  },
 ];

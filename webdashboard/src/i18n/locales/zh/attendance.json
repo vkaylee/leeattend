@@ -176,6 +176,7 @@
     "import_btn": "导入数据",
     "messages": {
       "all_matched": "所有打卡记录均已与员工匹配。",
+      "unknown_source": "外部考勤来源",
       "loading": "正在加载日志...",
       "no_data": "未找到打卡日志。",
       "no_data_hint": "尝试调整日期范围筛选器或选择其他员工来查找您要查找的内容。",

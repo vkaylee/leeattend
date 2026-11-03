@@ -42,7 +42,6 @@ export const ROUTES = {
   SHIFTS_EDIT: "/shifts/$shiftId/edit",
   SHIFT_SWAPS: "/shift-swaps",
   PAYROLL: "/payroll",
-  DEVICES: "/devices",
   PROFILE: "/profile",
 
   // Working patterns & Rules (unified path)

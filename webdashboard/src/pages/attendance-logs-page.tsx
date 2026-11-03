@@ -29,7 +29,6 @@ function TabContent({ state }: { state: AttendanceLogsState }) {
     departments,
     formatDate,
     formatTime,
-    getDeviceName,
     getEmployeeID,
     getEmployeeName,
     isFetchingNextPage,
@@ -72,7 +71,6 @@ function TabContent({ state }: { state: AttendanceLogsState }) {
           fetchNextPage={() => { void fetchNextPage(); }}
           formatDate={formatDate}
           formatTime={formatTime}
-          getDeviceName={getDeviceName}
           getEmployeeID={getEmployeeID}
           getEmployeeName={getEmployeeName}
           hasNextPage={hasNextPage}
@@ -90,7 +88,6 @@ function TabContent({ state }: { state: AttendanceLogsState }) {
       departments={departments}
       formatDate={formatDate}
       formatTime={formatTime}
-      getDeviceName={getDeviceName}
       isDismissing={dismissMutation.isPending}
       isFetchingNextPage={isFetchingNextStagingPage}
       isLoading={stagingLoading}

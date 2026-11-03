@@ -64,28 +64,25 @@ type AttendanceLogRecord struct {
 	EmployeeIDNumber   string          `json:"employee_id_number"`
 }
 
-// RawAttendanceLogRecord is an immutable punch with employee and device names.
+// RawAttendanceLogRecord is an immutable punch with employee identity.
 type RawAttendanceLogRecord struct {
 	ID               uuid.UUID       `json:"id"`
 	WorkspaceID      uuid.UUID       `json:"workspace_id"`
 	EmploymentID     uuid.UUID       `json:"employment_id"`
 	PunchTime        time.Time       `json:"punch_time"`
 	Source           string          `json:"source"`
-	DeviceID         *string         `json:"device_id"`
 	RawData          json.RawMessage `json:"raw_data"`
 	Punch            int             `json:"punch"`
 	Status           int             `json:"status"`
 	CreatedAt        time.Time       `json:"created_at"`
 	EmployeeFullName string          `json:"employee_full_name"`
 	EmployeeIDNumber string          `json:"employee_id_number"`
-	DeviceName       *string         `json:"device_name"`
 }
 
 // AttendanceStagingLog is an unresolved punch awaiting employee mapping.
 type AttendanceStagingLog struct {
 	ID          uuid.UUID       `json:"id"`
 	WorkspaceID uuid.UUID       `json:"workspace_id"`
-	DeviceID    *string         `json:"device_id"`
 	RawUserID   string          `json:"raw_user_id"`
 	PunchTime   time.Time       `json:"punch_time"`
 	RawData     json.RawMessage `json:"raw_data"`

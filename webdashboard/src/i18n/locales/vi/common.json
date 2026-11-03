@@ -112,7 +112,7 @@
       "export_btn": "Xuất dữ liệu",
       "import_btn": "Nhập dữ liệu",
       "messages": {
-        "all_matched": "Tuyệt vời! Tất cả các bản ghi chấm công từ thiết bị đã được khớp thành công với nhân viên trong hệ thống.",
+        "unknown_source": "Nguồn chấm công bên ngoài",
         "loading": "Đang tải nhật ký...",
         "no_data": "Không tìm thấy nhật ký chấm công.",
         "no_data_hint": "Hãy thử điều chỉnh bộ lọc phạm vi ngày hoặc chọn một nhân viên khác để tìm nội dung bạn đang tìm kiếm.",
@@ -148,11 +148,7 @@
     "collapse": "Thu gọn",
     "collapse_all": "Thu gọn tất cả",
     "collapse_sidebar": "Thu gọn menu",
-    "connectivity": {
-      "action_failed": "Thao tác thất bại. Vui lòng thử lại."
-    },
-    "disabled": "Đã tắt",
-    "devices": "Thiết bị",
+    "optional": "Tùy chọn",
     "enabled": "Đã bật",
     "colors": {
       "amber": "Hổ phách",
@@ -228,8 +224,6 @@
     "deselect": "Deselect",
     "deselect_all": "Bỏ chọn tất cả",
     "destructive_operations": "Thao tác phá hủy",
-    "device": "Thiết bị",
-    "devices": "Thiết bị",
     "did_you_know": "Bạn có biết?",
     "disable": "Tắt",
     "duration": "Thời lượng",
@@ -628,10 +622,9 @@
       "start_now_btn": "Bắt đầu ngay",
       "welcome_subtitle": "Hãy tạo tổ chức (Workspace) đầu tiên của bạn",
       "welcome_title": "Chào mừng!",
-      "workspace_desc": "Workspace là một môi trường riêng biệt giúp bạn quản lý thiết bị và thành viên tại một nơi duy nhất."
+      "workspace_desc": "Workspace là một môi trường riêng biệt giúp bạn quản lý thành viên tại một nơi."
     },
-    "online": "Trực tuyến",
-    "optional": "Tùy chọn",
+    "workspace_desc": "Workspace là một môi trường riêng biệt giúp bạn quản lý thành viên tại một nơi.",
     "org_chart": "Sơ đồ tổ chức",
     "org_name_label": "Tên tổ chức / Dự án",
     "org_name_placeholder": "Ví dụ: Công ty ABC, Team Freelance...",
@@ -999,13 +992,12 @@
     "settings": {
       "admin_only": "Chỉ dành cho Quản trị viên",
       "categories": {
-        "connectivity": "Kết nối",
-        "connectivity_desc": "Quản lý kết nối thiết bị và cài đặt mạng.",
         "general": "Chung",
         "general_desc": "Thương hiệu và các tùy chọn cơ bản.",
-        "leave": "Quản lý nghỉ phép",
         "organization": "Tổ chức",
         "organization_desc": "Quản lý thông tin tổ chức và thương hiệu.",
+        "general_desc": "Thương hiệu và các tùy chọn cơ bản.",
+        "leave": "Quản lý nghỉ phép",
         "payroll": "Lương",
         "payroll_desc": "Quản lý ngày công tiêu chuẩn và công thức tính lương.",
         "people": "Nhân sự",
@@ -1066,7 +1058,6 @@
         "agents": "Agent đã kết nối",
         "appearance": "Giao diện",
         "departments": "Phòng ban",
-        "devices": "Thiết bị IoT",
         "employment_phases": "Giai đoạn việc làm",
         "general": "Cấu hình chung",
         "incentives": "Thưởng & Khuyến khích",
@@ -1559,18 +1550,13 @@
     "system": {
       "total_agents": "Tổng số Agent",
       "online_agents": "Agent trực tuyến",
-      "total_devices": "Tổng số thiết bị",
-      "active_devices": "Thiết bị đang hoạt động",
       "edge_agents": "Edge Agent",
       "live_data": "Dữ liệu trực tiếp",
       "seen": "Nhìn thấy",
       "connected": "Đã kết nối",
       "disconnected": "Đã ngắt kết nối",
       "no_agents": "Chưa có Agent nào kết nối",
-      "quick_actions": "Thao tác nhanh",
-      "device_management": "Quản lý thiết bị",
-      "device_management_desc": "Thêm hoặc xóa máy chấm công tại các chi nhánh. Hệ thống tự động đồng bộ.",
-      "device_management_btn": "Mở trình quản lý"
+      "quick_actions": "Thao tác nhanh"
     },
     "connection_error": "Lỗi kết nối",
     "connection_error_desc": "Không thể kết nối đến API Server hoặc dữ liệu không hợp lệ.",
@@ -1732,11 +1718,11 @@
   },
   "onboarding": {
     "welcome_title": "Chào mừng bạn!",
+    "workspace_desc": "Workspace là một môi trường riêng biệt giúp bạn quản lý thành viên tại một nơi.",
     "welcome_subtitle": "Hãy tạo tổ chức đầu tiên của bạn (Workspace)",
     "org_name_label": "Tên tổ chức",
     "org_name_placeholder": "VD: Công ty ABC, LeeAttend Team...",
     "start_now_btn": "Bắt đầu ngay",
-    "workspace_desc": "Workspace là môi trường làm việc riêng biệt giúp bạn quản lý thiết bị và thành viên tại một nơi.",
     "db_mode_label": "Chế độ Cơ sở dữ liệu",
     "db_mode_auto": "Tự động khởi tạo (Khuyên dùng)",
     "db_mode_auto_desc": "Hệ thống sẽ tự động cấp phát Database an toàn, cô lập và chạy migrations ngay lập tức. Phù hợp cho hầu hết doanh nghiệp.",

@@ -15,7 +15,6 @@ interface RecordedLogsTableProps {
   fetchNextPage: () => void;
   formatDate: (date: string | null | undefined) => string;
   formatTime: (date: string | null | undefined) => string;
-  getDeviceName: (deviceId?: string | null) => string;
   getEmployeeID: (log: RawAttendanceLog) => string;
   getEmployeeName: (log: RawAttendanceLog) => string;
   hasNextPage?: boolean;
@@ -25,7 +24,7 @@ interface RecordedLogsTableProps {
   logs: RawAttendanceLog[];
 }
 
-  // eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function
 export function RecordedLogsTable({
   logs,
   fetchNextPage,
@@ -35,9 +34,8 @@ export function RecordedLogsTable({
   loadMoreRef,
   getEmployeeName,
   getEmployeeID,
-  getDeviceName,
   formatDate,
-  formatTime
+  formatTime,
 }: RecordedLogsTableProps) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -50,24 +48,16 @@ export function RecordedLogsTable({
         const log = row.original;
         return (
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-inner border border-primary-100 dark:border-primary-800/50">
-              <Clock size={18} />
-            </div>
+            <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-inner border border-primary-100 dark:border-primary-800/50"><Clock size={18} /></div>
             <div>
-              <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase">
-                {formatDate(log.punch_time)}
-              </div>
-              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 font-mono uppercase tracking-tighter">
-                {formatTime(log.punch_time)}
-              </div>
+              <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase">{formatDate(log.punch_time)}</div>
+              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 font-mono uppercase tracking-tighter">{formatTime(log.punch_time)}</div>
             </div>
           </div>
         );
       },
       size: 200,
-      meta: {
-        sticky: "left"
-      }
+      meta: { sticky: "left" },
     },
     {
       id: "employee",
@@ -76,103 +66,66 @@ export function RecordedLogsTable({
         const log = row.original;
         return (
           <div>
-            <div className="font-bold text-slate-800 dark:text-slate-100 text-sm tracking-tight uppercase">
-              {getEmployeeName(log)}
-            </div>
-            <div className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mt-0.5">
-              {getEmployeeID(log) || t("common.system")}
-            </div>
+            <div className="font-bold text-slate-800 dark:text-slate-100 text-sm tracking-tight uppercase">{getEmployeeName(log)}</div>
+            <div className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mt-0.5">{getEmployeeID(log) || t("common.system")}</div>
           </div>
         );
       },
       size: 240,
-      meta: {
-        sticky: "left"
-      }
+      meta: { sticky: "left" },
     },
     {
       id: "source",
       header: t("common.source"),
-      cell: ({ row }: { row: { original: RawAttendanceLog } }) => {
-        const log = row.original;
-        const deviceName = log.device_name ?? (log.source === "Device" && getDeviceName(log.device_id));
-        return (
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-slate-200 dark:border-slate-700">
-              {log.source}
-            </span>
-            {!!deviceName && (
-              <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase truncate">
-                {deviceName}
-              </span>
-            )}
-          </div>
-        );
-      },
-      size: 240
+      cell: ({ row }: { row: { original: RawAttendanceLog } }) => (
+        <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-slate-200 dark:border-slate-700">{row.original.source}</span>
+      ),
+      size: 240,
     },
     {
       id: "status",
       header: () => <div className="text-right w-full">{t("common.status")}</div>,
-      cell: () => (
-        <div className="flex justify-end w-full">
-          <StatusBadge variant="success">{t("attendance_logs.status.recorded")}</StatusBadge>
-        </div>
-      ),
+      cell: () => <div className="flex justify-end w-full"><StatusBadge variant="success">{t("attendance_logs.status.recorded")}</StatusBadge></div>,
       size: 160,
-      meta: {
-        headerClassName: "text-right",
-        cellClassName: "text-right"
-      }
-    }
-  ], [t, formatDate, formatTime, getEmployeeName, getEmployeeID, getDeviceName]);
+      meta: { headerClassName: "text-right", cellClassName: "text-right" },
+    },
+  ], [t, formatDate, formatTime, getEmployeeName, getEmployeeID]);
 
-  // Context Menu items for Logs context action
   const contextMenuItems = (log: RawAttendanceLog) => [
     {
       label: t("attendance_logs.context.copy_id", "Copy Employee ID"),
       icon: <User size={14} />,
       onClick: async () => {
-        const empId = getEmployeeID(log);
-        if (empId) {
-          try {
-            await navigator.clipboard.writeText(empId);
-            toast.success(t("common.copied", "Copied to clipboard"), empId);
-          } catch (err) {
-            logError(err, { component: "RecordedLogsTable" });
-          }
+        const employeeID = getEmployeeID(log);
+        if (!employeeID) return;
+        try {
+          await navigator.clipboard.writeText(employeeID);
+          toast.success(t("common.copied", "Copied to clipboard"), employeeID);
+        } catch (err) {
+          logError(err, { component: "RecordedLogsTable" });
         }
       },
-      disabled: !getEmployeeID(log)
+      disabled: !getEmployeeID(log),
     },
     {
       label: t("attendance_logs.context.copy_time", "Copy Punch Time"),
       icon: <Clock size={14} />,
       onClick: async () => {
-        const pTime = formatTime(log.punch_time);
+        const punchTime = formatTime(log.punch_time);
         try {
-          await navigator.clipboard.writeText(`${formatDate(log.punch_time)} ${pTime}`);
-          toast.success(t("common.copied", "Copied to clipboard"), pTime);
+          await navigator.clipboard.writeText(`${formatDate(log.punch_time)} ${punchTime}`);
+          toast.success(t("common.copied", "Copied to clipboard"), punchTime);
         } catch (err) {
           logError(err, { component: "RecordedLogsTable" });
         }
-      }
-    }
+      },
+    },
   ];
 
-  // Footer sentinel row for Infinite Scroll
   const footerRow = useMemo(() => (
-    <InfiniteScrollSentinel
-      colSpan={4}
-      isFetchingNextPage={isFetchingNextPage}
-      sentinelRef={loadMoreRef}
-    />
+    <InfiniteScrollSentinel colSpan={4} isFetchingNextPage={isFetchingNextPage} sentinelRef={loadMoreRef} />
   ), [isFetchingNextPage, loadMoreRef]);
-  const mobileLoadMoreRef = useInfiniteScroll<HTMLDivElement>({
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  });
+  const mobileLoadMoreRef = useInfiniteScroll<HTMLDivElement>({ fetchNextPage, hasNextPage, isFetchingNextPage });
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl lg:rounded-[2.5rem] border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden lg:h-[600px] flex flex-col p-3 lg:p-6">
@@ -181,44 +134,29 @@ export function RecordedLogsTable({
           columns={columns}
           contextMenuItems={contextMenuItems}
           data={logs}
-          emptyState={{
-            icon: <Clock className="h-10 w-10" />,
-            title: t("attendance_logs.messages.no_data"),
-          }}
+          emptyState={{ icon: <Clock className="h-10 w-10" />, title: t("attendance_logs.messages.no_data") }}
           footerRow={footerRow}
           getCardKey={(log) => log.id}
           getRowId={(log) => log.id}
           isLoading={isLoading}
-          mobileFooter={(
-            <div className="flex min-h-10 items-center justify-center" ref={mobileLoadMoreRef}>
-              {isFetchingNextPage ? <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{t("common.loading")}</span> : null}
-            </div>
+          mobileFooter={<div className="flex min-h-10 items-center justify-center" ref={mobileLoadMoreRef}>{isFetchingNextPage ? <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{t("common.loading")}</span> : null}</div>}
+          renderCard={(log) => (
+            <article className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary-100 bg-primary-50 text-primary-600 dark:border-primary-800 dark:bg-primary-950 dark:text-primary-400"><Clock size={18} /></div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-bold uppercase tracking-tight text-slate-800 dark:text-slate-100">{formatDate(log.punch_time)}</div>
+                  <div className="mt-1 font-mono text-xs font-bold text-slate-500 dark:text-slate-400">{formatTime(log.punch_time)}</div>
+                </div>
+                <StatusBadge variant="success">{t("attendance_logs.status.recorded")}</StatusBadge>
+              </div>
+              <div className="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800">
+                <div className="text-sm font-bold uppercase tracking-tight text-slate-800 dark:text-slate-100">{getEmployeeName(log)}</div>
+                <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-primary-600 dark:text-primary-400">{getEmployeeID(log) || t("common.system")}</div>
+                <div className="mt-3"><span className="rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{log.source}</span></div>
+              </div>
+            </article>
           )}
-          renderCard={(log) => {
-            const deviceName = log.device_name ?? (log.source === "Device" ? getDeviceName(log.device_id) : "");
-            return (
-              <article className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary-100 bg-primary-50 text-primary-600 dark:border-primary-800 dark:bg-primary-950 dark:text-primary-400">
-                    <Clock size={18} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-bold uppercase tracking-tight text-slate-800 dark:text-slate-100">{formatDate(log.punch_time)}</div>
-                    <div className="mt-1 font-mono text-xs font-bold text-slate-500 dark:text-slate-400">{formatTime(log.punch_time)}</div>
-                  </div>
-                  <StatusBadge variant="success">{t("attendance_logs.status.recorded")}</StatusBadge>
-                </div>
-                <div className="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800">
-                  <div className="text-sm font-bold uppercase tracking-tight text-slate-800 dark:text-slate-100">{getEmployeeName(log)}</div>
-                  <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-primary-600 dark:text-primary-400">{getEmployeeID(log) || t("common.system")}</div>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <span className="rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{log.source}</span>
-                    {!!deviceName && <span className="truncate text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">{deviceName}</span>}
-                  </div>
-                </div>
-              </article>
-            );
-          }}
         />
       </div>
     </div>

@@ -29,7 +29,6 @@ export default function Navbar({ currentWorkspaceName }: NavbarProps) {
       [ROUTES.REPORTS]: t("common.reports"),
       [ROUTES.SHIFTS]: t("common.shifts"),
       [ROUTES.PAYROLL]: t("payroll.title"),
-      [ROUTES.DEVICES]: t("common.devices"),
       [ROUTES.SETTINGS.ROOT]: t("settings.title"),
       [ROUTES.SETTINGS.GENERAL]: t("settings.categories.general"),
       [ROUTES.SETTINGS.ORGANIZATION]: t("settings.categories.organization", { defaultValue: "Organization" }),
