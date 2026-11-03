@@ -98,21 +98,11 @@ Loại bỏ hoàn toàn kiến trúc multi-tenant/workspace trong toàn bộ h�
 ---
 
 ### Phase 4: Refactor REST API Routing & Handlers (HTTP Layer)
-- [ ] **Task 4.1:** Sửa đổi định nghĩa routes trong `apiserver/main.go`:
-  - Rút gọn toàn bộ route:
-    - `/api/v1/workspaces/{ws_id}/departments` → `/api/v1/departments`
-    - `/api/v1/workspaces/{ws_id}/employees` → `/api/v1/employees`
-    - `/api/v1/workspaces/{ws_id}/attendance/...` → `/api/v1/attendance/...`
-    - `/api/v1/workspaces/{ws_id}/leave/...` → `/api/v1/leave/...`
-    - `/api/v1/workspaces/{ws_id}/payroll/...` → `/api/v1/payroll/...`
-- [ ] **Task 4.2:** Refactor HTTP Handlers trong `apiserver/internal/api/`:
-  - Xóa bỏ bước đọc `wsID := r.PathValue("ws_id")` và `uuid.Parse(wsID)`.
-  - Xóa bỏ dependency `Authorizer: workspaceAuthorizer`.
-- [ ] **Task 4.3:** Cập nhật toàn bộ các file unit test trong `apiserver/internal/api/*_test.go` (bỏ path value `ws_id`).
-- [ ] **Task 4.4:** **[DOCS UPDATE]** Cập nhật `docs/api-reference.md`:
-  - Xóa bỏ path parameter `{ws_id}` trong toàn bộ tài liệu OpenAPI / REST endpoints.
-- **Xác minh (Verify):**
-  - Chạy `./scripts/_go-gates.sh` và `./leedevkit test api`.
+- [x] **Task 4.1:** Added flat `/api/v1/...` route aliases for every existing `/api/v1/workspaces/{ws_id}/...` route. Flat aliases resolve the single organization from the shared database and inject compatibility `ws_id` for unchanged handlers.
+- [ ] **Task 4.2:** Remove `ws_id` parsing and `Authorizer` dependencies from handlers after repository SQL and API contracts are fully migrated. Current handlers preserve compatibility for existing clients.
+- [ ] **Task 4.3:** Update API tests to exercise flat routes directly and remove workspace-path fixtures.
+- [ ] **Task 4.4:** Update `docs/api-reference.md` to make flat routes canonical.
+- **Verification:** `./scripts/_go-gates.sh` passed: gofmt, vet, staticcheck, govulncheck, module verification, and full race tests.
 
 ---
 

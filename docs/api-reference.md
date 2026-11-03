@@ -3,6 +3,10 @@
 ## API Server (Central - Go)
 Base URL: `http://localhost:3000`
 
+### Single-organization routing
+
+Flat `/api/v1/...` routes are canonical for the single-organization deployment. The server resolves the sole organization from the shared database before invoking existing handlers. Legacy `/api/v1/workspaces/{ws_id}/...` routes remain available during API client migration; they are compatibility routes, not separate tenant databases.
+
 ### 0. Authentication & Context (Updated)
 
 Hệ thống sử dụng JWT (JSON Web Token) để xác thực người dùng.
