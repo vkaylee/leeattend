@@ -31,6 +31,22 @@ import (
 // Version is the current apiserver Go component version.
 const Version = "0.1.0"
 
+func singleWorkspaceHandler(db repository.DBTX, handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if db == nil {
+			http.Error(w, "database unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		var organizationID uuid.UUID
+		if err := db.QueryRow(r.Context(), `SELECT id FROM workspaces ORDER BY id LIMIT 1`).Scan(&organizationID); err != nil {
+			http.Error(w, "organization unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		r.SetPathValue("ws_id", organizationID.String())
+		handler(w, r)
+	}
+}
+
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -123,19 +139,7 @@ func main() {
 	workspaceAuthorizer := repository.WorkspaceAuthorizer{DB: workspaceRepo.SystemDB}
 	workspaceHandler := api.WorkspaceHandler{Repository: workspaceRepo, Authorizer: workspaceAuthorizer}
 	singleWorkspace := func(handler http.HandlerFunc) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			if workspaceRepo.SystemDB == nil {
-				http.Error(w, "database unavailable", http.StatusServiceUnavailable)
-				return
-			}
-			var organizationID uuid.UUID
-			if err := workspaceRepo.SystemDB.QueryRow(r.Context(), `SELECT id FROM workspaces ORDER BY id LIMIT 1`).Scan(&organizationID); err != nil {
-				http.Error(w, "organization unavailable", http.StatusServiceUnavailable)
-				return
-			}
-			r.SetPathValue("ws_id", organizationID.String())
-			handler(w, r)
-		}
+		return singleWorkspaceHandler(workspaceRepo.SystemDB, handler)
 	}
 	var cryptoService *crypto.Service
 	if encJSON := cfg.EncryptionKeysJSON.Expose(); encJSON != "" {
