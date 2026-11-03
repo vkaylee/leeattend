@@ -150,7 +150,7 @@ func TestAuthFixtures_Parity(t *testing.T) {
 
 	t.Run("AUTH-003: Expired token returns 401", func(t *testing.T) {
 		now := time.Now().UTC()
-		expiredToken, err := auth.GenerateTokenWithTimes(uuid.New(), nil, secret, now.Add(-20*time.Minute), now.Add(-10*time.Minute))
+		expiredToken, err := auth.GenerateTokenWithTimes(uuid.New(), secret, now.Add(-20*time.Minute), now.Add(-10*time.Minute))
 		if err != nil {
 			t.Fatal(err)
 		}
