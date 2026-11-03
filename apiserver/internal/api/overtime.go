@@ -333,7 +333,7 @@ func (h OvertimeHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
 			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 			return
 		}
-	case "department", "employee":
+	case "department", "employee", "user":
 		if req.AssigneeID == nil {
 			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 			return

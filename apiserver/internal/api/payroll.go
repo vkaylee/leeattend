@@ -818,7 +818,7 @@ func (h PayrollHandler) AssignPayrollRule(w http.ResponseWriter, r *http.Request
 		return
 	}
 	req, err := DecodeJSON[AssignPayrollRuleRequest](r, 1<<20)
-	if err != nil || (req.AssigneeType != "workspace" && req.AssigneeType != "department" && req.AssigneeType != "employee") {
+	if err != nil || (req.AssigneeType != "workspace" && req.AssigneeType != "department" && req.AssigneeType != "employee" && req.AssigneeType != "user") {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}

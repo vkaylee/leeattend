@@ -16,6 +16,7 @@ import (
 
 type ApprovalWorkflowRepository struct {
 	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	SystemDB DBTX
 	BeginTx  func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
@@ -291,15 +292,21 @@ func (r ApprovalWorkflowRepository) GetPendingTasksForUser(ctx context.Context, 
 	offset := (page - 1) * limit
 
 	var roleIDs []uuid.UUID
-	roleRows, _ := db.Query(ctx, `SELECT role_id FROM workspace_member_roles WHERE member_id IN (SELECT id FROM workspace_members WHERE user_id = $1 AND workspace_id = $2)`, userID, workspaceID)
-	if roleRows != nil {
-		for roleRows.Next() {
-			var rid uuid.UUID
-			if err := roleRows.Scan(&rid); err == nil {
-				roleIDs = append(roleIDs, rid)
+	if r.SystemDB != nil {
+		roleRows, err := r.SystemDB.Query(ctx, `
+			SELECT role_id FROM workspace_members WHERE user_id = $1 AND workspace_id = $2
+			UNION
+			SELECT role_id FROM member_extra_roles WHERE user_id = $1 AND workspace_id = $2 AND expires_at > NOW()
+		`, userID, workspaceID)
+		if err == nil && roleRows != nil {
+			for roleRows.Next() {
+				var rid uuid.UUID
+				if err := roleRows.Scan(&rid); err == nil {
+					roleIDs = append(roleIDs, rid)
+				}
 			}
+			roleRows.Close()
 		}
-		roleRows.Close()
 	}
 
 	countQuery := `SELECT COUNT(*) FROM approval_workflow_tasks t JOIN approval_workflow_instances i ON t.instance_id = i.id WHERE i.workspace_id = $1 AND t.status = 'pending' AND ( (t.assignee_type = 'specific_user' AND t.assignee_target_id = $2) OR (t.assignee_type = 'role' AND t.assignee_target_id = ANY($3)) OR (t.assignee_type = 'department_manager') OR (t.assignee_type = 'permission') )`

@@ -1797,6 +1797,7 @@ WHERE a.workspace_id = $1
     (a.assignee_type = 'workspace')
     OR (a.assignee_type = 'department' AND a.assignee_id = $2)
     OR (a.assignee_type = 'employee' AND a.assignee_id = $3)
+    OR (a.assignee_type = 'user' AND a.assignee_id = (SELECT user_id FROM employees WHERE id = $3))
   )
   AND a.effective_from <= $4::date AND (a.effective_to IS NULL OR a.effective_to >= $5::date)
   AND d.is_active = true`, wsID, currentDept, employeeID, endStr, startStr)

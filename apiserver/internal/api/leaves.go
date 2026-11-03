@@ -770,7 +770,7 @@ func (h LeaveHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	req, err := DecodeJSON[AssignLeavePolicyRequest](r, 1<<20)
-	if err != nil || (req.AssigneeType != "workspace" && req.AssigneeType != "department" && req.AssigneeType != "employee") || req.PolicyID == uuid.Nil || (req.AssigneeType == "workspace" && req.AssigneeID != nil) || (req.AssigneeType != "workspace" && req.AssigneeID == nil) {
+	if err != nil || (req.AssigneeType != "workspace" && req.AssigneeType != "department" && req.AssigneeType != "employee" && req.AssigneeType != "user") || req.PolicyID == uuid.Nil || (req.AssigneeType == "workspace" && req.AssigneeID != nil) || (req.AssigneeType != "workspace" && req.AssigneeID == nil) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}

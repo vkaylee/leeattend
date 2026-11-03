@@ -509,6 +509,15 @@ func TestLeaveHandlerPolicyAssignments(t *testing.T) {
 	if recAssign.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d: %s", recAssign.Code, recAssign.Body.String())
 	}
+	// Assign user policy
+	targetUserID := uuid.New()
+	assignUserBody := `{"policy_id":"` + policyID.String() + `","assignee_type":"user","assignee_id":"` + targetUserID.String() + `","effective_from":"2026-01-01"}`
+	reqAssignUser := leaveRequest(t, http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/leave/policies/assign", assignUserBody, wsID)
+	recAssignUser := httptest.NewRecorder()
+	handler.AssignPolicy(recAssignUser, reqAssignUser)
+	if recAssignUser.Code != http.StatusCreated {
+		t.Fatalf("expected 201 for user assignee_type, got %d: %s", recAssignUser.Code, recAssignUser.Body.String())
+	}
 
 	// List assignments
 	reqList := leaveRequest(t, http.MethodGet, "/api/v1/workspaces/"+wsID.String()+"/leave/policies/assignments", "", wsID)

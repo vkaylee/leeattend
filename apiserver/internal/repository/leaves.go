@@ -373,6 +373,7 @@ func (r LeaveRepository) GetWorkspaceLeaveBalances(ctx context.Context, wsID uui
 			WHERE a.workspace_id = $1
 			  AND e_inner.workspace_id = $1
 			  AND (
+				(a.assignee_type = 'user' AND a.assignee_id = e_inner.user_id) OR
 				(a.assignee_type = 'employee' AND a.assignee_id = e_inner.id) OR
 				(a.assignee_type = 'department' AND a.assignee_id = (
 					SELECT department_id FROM employments
@@ -387,9 +388,10 @@ func (r LeaveRepository) GetWorkspaceLeaveBalances(ctx context.Context, wsID uui
 			  AND d.deleted_at IS NULL
 			ORDER BY lt_id, emp_id,
 			  CASE a.assignee_type
-				WHEN 'employee' THEN 1
-				WHEN 'department' THEN 2
-				WHEN 'workspace' THEN 3
+				WHEN 'user' THEN 1
+				WHEN 'employee' THEN 2
+				WHEN 'department' THEN 3
+				WHEN 'workspace' THEN 4
 			  END ASC
 		)
 		SELECT

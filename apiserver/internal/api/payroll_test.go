@@ -1147,6 +1147,18 @@ func TestPayrollRuleAssignmentsEndpoints(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
 	}
+	// 7a. POST /payroll-rules/{rule_id}/assignments with user assignee_type (201 Created)
+	targetUserID := uuid.New()
+	body = `{"assignee_type":"user","assignee_id":"` + targetUserID.String() + `","effective_from":"2026-01-01"}`
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/"+wsID.String()+"/payroll-rules/"+ruleID.String()+"/assignments", bytes.NewBufferString(body))
+	req.SetPathValue("ws_id", wsID.String())
+	req.SetPathValue("rule_id", ruleID.String())
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec = httptest.NewRecorder()
+	handler.AssignPayrollRule(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 for user assignee_type, got %d: %s", rec.Code, rec.Body.String())
+	}
 
 	// 7b. POST /payroll-rules/{rule_id}/assignments validation error: invalid assignee_type (400)
 	body = `{"assignee_type":"unknown","effective_from":"2026-01-01"}`

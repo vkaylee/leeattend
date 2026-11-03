@@ -175,6 +175,14 @@ func TestOvertimePolicies_AssignValidation(t *testing.T) {
 	if rec2.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec2.Code)
 	}
+	// valid user assignment
+	targetUserID := uuid.New()
+	req3 := otReq(http.MethodPost, "/api/v1/workspaces/"+ws.String()+"/overtime/policies/assign", []byte(`{"assignee_type":"user","assignee_id":"`+targetUserID.String()+`","policy_id":"`+policyID.String()+`","effective_from":"2026-10-20"}`), ws, user)
+	rec3 := httptest.NewRecorder()
+	h.AssignPolicy(rec3, req3)
+	if rec3.Code != http.StatusOK {
+		t.Fatalf("expected 200 for user assignment, got %d", rec3.Code)
+	}
 }
 
 func TestOvertimeRequest_SelfVersusBehalfBypass(t *testing.T) {

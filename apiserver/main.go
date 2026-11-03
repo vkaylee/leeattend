@@ -448,7 +448,7 @@ func main() {
 	mux.HandleFunc("POST /api/v1/ess/shift-swaps", essHandler.CreateShiftSwap)
 	mux.HandleFunc("PUT /api/v1/ess/shift-swaps/{id}/respond", essHandler.RespondShiftSwap)
 	mux.HandleFunc("DELETE /api/v1/ess/shift-swaps/{id}", essHandler.CancelShiftSwap)
-	workflowRepo := repository.ApprovalWorkflowRepository{TenantDB: workspaceRepo.TenantDB}
+	workflowRepo := repository.ApprovalWorkflowRepository{TenantDB: workspaceRepo.TenantDB, SystemDB: workspaceRepo.SystemDB}
 	workflowHandler := api.ApprovalWorkflowHandler{Repository: workflowRepo, Authorizer: workspaceAuthorizer}
 	mux.HandleFunc("GET /api/v1/workspaces/{ws_id}/approval-workflows", workflowHandler.List)
 	mux.HandleFunc("POST /api/v1/workspaces/{ws_id}/approval-workflows", workflowHandler.Create)
