@@ -1,11 +1,12 @@
 {
     "schema_version": 2,
-    "commit": "3ae7e7fb8daeee1448d6a4086705dffbb7e82b4d",
-    "indexed_at": "2026-11-02T23:38:20Z",
+    "commit": "fcef8b09a4d3d7d6906e5fa0e80ad453ed991ae2",
+    "indexed_at": "2026-11-03T13:45:46Z",
     "project": "home-elt1541-lee-leeattend",
-    "nodes": 37416,
-    "edges": 100922,
-    "original_size": 100794368,
-    "compressed_size": 15199486,
-    "compression_level": 3
+    "nodes": 37040,
+    "edges": 99184,
+    "original_size": 99811328,
+    "compressed_size": 15148388,
+    "compression_level": 3,
+    "reconcile_basis": "git-clean-head"
 }
