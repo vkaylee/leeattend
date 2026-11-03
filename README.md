@@ -38,6 +38,10 @@ To spin up the entire environment with hot-reloading:
 - [API Reference](docs/api-reference.md)
 - [Deployment Guide](docs/deployment-guide.md)
 
+
+## Standalone On-Prem Deployment
+
+Use [`docker-compose.standalone.yml`](./docker-compose.standalone.yml) for the approved one-company Linux appliance deployment. Installation is documented in [`docs/standalone-deployment.md`](docs/standalone-deployment.md); encrypted backup and restore are documented in [`docs/runbooks/standalone-backup-restore.md`](docs/runbooks/standalone-backup-restore.md).
 ## 🧪 Testing
 
 The project uses a highly optimized testing infrastructure designed for speed and reliability, especially on WSL2.

@@ -1,6 +1,8 @@
 package config
 
 import (
+	"crypto/ed25519"
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"testing"
@@ -66,6 +68,38 @@ func TestLoad_LogPullDefaultsDisabled(t *testing.T) {
 	}
 	if cfg.LogPullEnabled || cfg.LogPullMode != "shadow" {
 		t.Fatalf("expected disabled shadow defaults, got enabled=%t mode=%q", cfg.LogPullEnabled, cfg.LogPullMode)
+	}
+}
+
+func TestLoad_StandaloneRequiresLicenseAndWorkspaceSettings(t *testing.T) {
+	env := minimumDevEnv()
+	env["STANDALONE_ENABLED"] = "true"
+	_, err := LoadWithLookup(mockLookup(env))
+	if err == nil {
+		t.Fatal("expected standalone required-setting validation failure")
+	}
+	for _, key := range []string{"STANDALONE_WORKSPACE_NAME", "STANDALONE_ADMIN_EMAIL", "STANDALONE_ADMIN_PASSWORD", "STANDALONE_WORKSPACE_ID", "LICENSE_PATH", "LICENSE_PUBLIC_KEY"} {
+		if !strings.Contains(err.Error(), key) {
+			t.Errorf("expected validation error for %s, got %v", key, err)
+		}
+	}
+}
+
+func TestLoad_StandaloneAcceptsValidLicenseKey(t *testing.T) {
+	env := minimumDevEnv()
+	env["STANDALONE_ENABLED"] = "true"
+	env["STANDALONE_WORKSPACE_ID"] = "00000000-0000-7000-8000-000000000001"
+	env["STANDALONE_WORKSPACE_NAME"] = "Example Company"
+	env["STANDALONE_ADMIN_EMAIL"] = "admin@example.invalid"
+	env["STANDALONE_ADMIN_PASSWORD"] = "strong-password"
+	env["LICENSE_PATH"] = "/secure/license.json"
+	env["LICENSE_PUBLIC_KEY"] = base64.RawURLEncoding.EncodeToString(make([]byte, ed25519.PublicKeySize))
+	cfg, err := LoadWithLookup(mockLookup(env))
+	if err != nil {
+		t.Fatalf("unexpected standalone config error: %v", err)
+	}
+	if !cfg.Standalone || cfg.StandaloneWorkspaceID.String() != env["STANDALONE_WORKSPACE_ID"] {
+		t.Fatalf("unexpected standalone config: %+v", cfg)
 	}
 }
 

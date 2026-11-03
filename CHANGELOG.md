@@ -3,6 +3,9 @@
 ## [Unreleased]
 
 
+
+### Added
+- Standalone one-company Linux appliance profile with singleton workspace enforcement, first-run administrator bootstrap, offline Ed25519 license verification, local-only service topology, and encrypted backup/restore runbooks.
 ### Fixed
 - **ESLint Warning**: Fixed `react-hooks/exhaustive-deps` warning in `DashboardPage.tsx` for `chartWidgetIds` in `useMemo`.
 

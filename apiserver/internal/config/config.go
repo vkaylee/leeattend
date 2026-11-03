@@ -1,6 +1,8 @@
 package config
 
 import (
+	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -8,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // Secret wraps sensitive string data to prevent accidental leakage in logs and formatters.
@@ -174,6 +178,34 @@ type Config struct {
 
 	// 2.11 Feature Flags
 	FFNoShowTimeline bool
+
+	// 2.12 Standalone deployment
+	Standalone              bool
+	StandaloneWorkspaceID   uuid.UUID
+	StandaloneWorkspaceName string
+	StandaloneAdminEmail    string
+	StandaloneAdminPassword Secret
+	LicensePath             string
+	LicensePublicKey        string
+}
+
+// Standalone deployment settings bind every request to one local organization.
+// LicensePublicKey is base64.RawURLEncoding-encoded Ed25519 public key material.
+// LicensePath points to a local, read-only perpetual license file.
+type StandaloneSettings struct {
+	Enabled          bool
+	WorkspaceID      uuid.UUID
+	LicensePath      string
+	LicensePublicKey string
+}
+
+func (c *Config) StandaloneSettings() StandaloneSettings {
+	return StandaloneSettings{
+		Enabled:          c.Standalone,
+		WorkspaceID:      c.StandaloneWorkspaceID,
+		LicensePath:      c.LicensePath,
+		LicensePublicKey: c.LicensePublicKey,
+	}
 }
 
 // IsProduction returns true if APP_ENV is "production".
@@ -534,6 +566,51 @@ func LoadWithLookup(lookup LookupEnvFunc) (*Config, error) {
 	if logPullMode == "" {
 		logPullMode = "shadow"
 	}
+	// Standalone configuration is validated only when explicitly enabled.
+	standaloneEnabled := getBool("STANDALONE_ENABLED", false)
+	standaloneWorkspaceID := uuid.Nil
+	licensePath, _ := get("LICENSE_PATH")
+	licensePublicKey, _ := get("LICENSE_PUBLIC_KEY")
+	standaloneWorkspaceName, _ := get("STANDALONE_WORKSPACE_NAME")
+	standaloneAdminEmail, _ := get("STANDALONE_ADMIN_EMAIL")
+	standaloneAdminPassword, _ := get("STANDALONE_ADMIN_PASSWORD")
+	if standaloneEnabled {
+		if standaloneWorkspaceName == "" {
+			addErr("STANDALONE_WORKSPACE_NAME", "is required when STANDALONE_ENABLED is true")
+		}
+		if standaloneAdminEmail == "" {
+			addErr("STANDALONE_ADMIN_EMAIL", "is required when STANDALONE_ENABLED is true")
+		}
+		if standaloneAdminPassword == "" {
+			addErr("STANDALONE_ADMIN_PASSWORD", "is required when STANDALONE_ENABLED is true")
+		}
+		workspaceRaw, workspaceOK := get("STANDALONE_WORKSPACE_ID")
+		if !workspaceOK {
+			addErr("STANDALONE_WORKSPACE_ID", "is required when STANDALONE_ENABLED is true")
+		} else if parsed, parseErr := uuid.Parse(workspaceRaw); parseErr != nil || parsed == uuid.Nil {
+			addErr("STANDALONE_WORKSPACE_ID", "must be a non-zero UUID")
+		} else {
+			standaloneWorkspaceID = parsed
+		}
+		if licensePath == "" {
+			addErr("LICENSE_PATH", "is required when STANDALONE_ENABLED is true")
+		}
+		if licensePublicKey == "" {
+			addErr("LICENSE_PUBLIC_KEY", "is required when STANDALONE_ENABLED is true")
+		} else if decoded, decodeErr := base64.RawURLEncoding.DecodeString(licensePublicKey); decodeErr != nil || len(decoded) != ed25519.PublicKeySize {
+			addErr("LICENSE_PUBLIC_KEY", "must be a base64url Ed25519 public key")
+		}
+	}
+	if standaloneEnabled && logPullEnabled {
+		addErr("LOG_PULL_ENABLED", "must be false when STANDALONE_ENABLED is true")
+	}
+	if standaloneEnabled && supavisorAPIURL != "" {
+		addErr("SUPAVISOR_API_URL", "must be empty when STANDALONE_ENABLED is true")
+	}
+
+	// 2.11 Feature Flags Category
+
+	// 2.11 Feature Flags Category
 	if logPullEnabled {
 		if logPullBaseURL == "" {
 			addErr("LOG_PULL_BASE_URL", "is required when LOG_PULL_ENABLED is true")
@@ -619,6 +696,13 @@ func LoadWithLookup(lookup LookupEnvFunc) (*Config, error) {
 		LogPullMaxConcurrentRequests: logPullMaxConcurrentRequests,
 		LogPullEnabled:               logPullEnabled,
 		FFNoShowTimeline:             ffNoShowTimeline,
+		Standalone:                   standaloneEnabled,
+		StandaloneWorkspaceID:        standaloneWorkspaceID,
+		StandaloneWorkspaceName:      standaloneWorkspaceName,
+		StandaloneAdminEmail:         standaloneAdminEmail,
+		StandaloneAdminPassword:      Secret(standaloneAdminPassword),
+		LicensePath:                  licensePath,
+		LicensePublicKey:             licensePublicKey,
 	}, nil
 }
 

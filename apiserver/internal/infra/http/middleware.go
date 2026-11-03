@@ -2,13 +2,15 @@ package httpinfra
 
 import (
 	"context"
+	"errors"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
 	"github.com/vkaylee/leeattend/apiserver/internal/observability"
-	"net/http"
-	"strings"
-	"time"
 )
 
 type contextKey string
@@ -162,6 +164,53 @@ func AuthMiddlewareWithRevocation(jwtSecret string, publicPrefixes []string, rev
 				}
 			}
 			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+// StandaloneWorkspaceMiddleware rejects workspace IDs other than the one local organization.
+// It preserves workspace IDs in existing routes while preventing tenant switching.
+func StandaloneWorkspaceMiddleware(workspaceID uuid.UUID) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if workspaceID == uuid.Nil {
+				apperror.WriteError(w, r, apperror.Internal(errors.New("standalone workspace is not configured")))
+				return
+			}
+			if raw := r.PathValue("ws_id"); raw != "" {
+				pathID, err := uuid.Parse(raw)
+				if err != nil || pathID != workspaceID {
+					apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+					return
+				}
+			}
+			if raw := r.Header.Get("X-Workspace-Id"); raw != "" {
+				headerID, err := uuid.Parse(raw)
+				if err != nil || headerID != workspaceID {
+					apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+					return
+				}
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// StandaloneSaaSRouteMiddleware blocks control-plane and self-registration routes.
+func StandaloneSaaSRouteMiddleware() Middleware {
+	blocked := map[string]bool{
+		http.MethodPost + " /api/v1/workspaces":    true,
+		http.MethodGet + " /api/v1/workspaces":     true,
+		http.MethodPost + " /api/v1/auth/register": true,
+		http.MethodPost + " /auth/register":        true,
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if blocked[r.Method+" "+r.URL.Path] || strings.HasPrefix(r.URL.Path, "/api/v1/system/tenants") || strings.HasPrefix(r.URL.Path, "/api/v1/system/db-clusters") {
+				apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
+				return
+			}
+			next.ServeHTTP(w, r)
 		})
 	}
 }

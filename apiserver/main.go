@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/ed25519"
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 	"net"
@@ -20,10 +22,12 @@ import (
 	"github.com/vkaylee/leeattend/apiserver/internal/infra/health"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 	redisinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/redis"
+	"github.com/vkaylee/leeattend/apiserver/internal/license"
 	"github.com/vkaylee/leeattend/apiserver/internal/observability"
 	"github.com/vkaylee/leeattend/apiserver/internal/repository"
 	"github.com/vkaylee/leeattend/apiserver/internal/scheduler"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
+	standalonebootstrap "github.com/vkaylee/leeattend/apiserver/internal/standalone"
 )
 
 // Version is the current apiserver Go component version.
@@ -38,6 +42,24 @@ func main() {
 
 	logger := observability.NewLogger(os.Stderr, slog.LevelInfo)
 	logger.Info("Starting LeeAttend Go API Server", "version", Version, "env", cfg.AppEnv)
+	if cfg.Standalone {
+		key, keyErr := base64.RawURLEncoding.DecodeString(cfg.LicensePublicKey)
+		if keyErr != nil {
+			fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: invalid LICENSE_PUBLIC_KEY\n")
+			os.Exit(1)
+		}
+		verifier, verifierErr := license.NewVerifier(ed25519.PublicKey(key), license.Product)
+		if verifierErr != nil {
+			fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: invalid standalone license verifier\n")
+			os.Exit(1)
+		}
+		status, verifyErr := verifier.VerifyFile(cfg.LicensePath)
+		if verifyErr != nil || !status.Valid {
+			fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: standalone license verification failed\n")
+			os.Exit(1)
+		}
+		logger.Info("Standalone license verified", "edition", status.Edition, "entitlements", len(status.Entitlements))
+	}
 
 	dbCfg := dbpool.DefaultConfig()
 	dbCfg.PrimaryURL = string(cfg.DBPrimaryURL)
@@ -46,6 +68,8 @@ func main() {
 	dbCfg.TenantPoolerTxURL = string(cfg.DBTenantPoolerTxURL)
 	dbCfg.TenantPoolerSessURL = string(cfg.DBTenantPoolerSessURL)
 	dbCfg.ReaderURL = string(cfg.DBReaderURL)
+	dbCfg.Standalone = cfg.Standalone
+	dbCfg.StandaloneWorkspaceID = cfg.StandaloneWorkspaceID
 	if cfg.DBAPIMaxConn > 0 {
 		dbCfg.APIMaxConn = int32(cfg.DBAPIMaxConn)
 	}
@@ -60,6 +84,12 @@ func main() {
 		logger.Warn("database connection deferred or offline", "error", err)
 	} else if sysPool, err := poolMgr.SystemPool(); err == nil {
 		authRepo = repository.AuthRepository{DB: sysPool}
+		if cfg.Standalone {
+			if err := standalonebootstrap.Bootstrap(context.Background(), sysPool, cfg.StandaloneWorkspaceID, cfg.StandaloneWorkspaceName, cfg.StandaloneAdminEmail, cfg.StandaloneAdminPassword.Expose()); err != nil {
+				fmt.Fprintf(os.Stderr, "CONFIGURATION FAILED: standalone bootstrap failed\n")
+				os.Exit(1)
+			}
+		}
 	}
 
 	var redisClient *redisinfra.Client
@@ -756,7 +786,10 @@ func main() {
 		httpinfra.BodyLimitMiddleware(cfg.MaxRequestBodyBytes),
 		httpinfra.AuthMiddlewareWithRevocation(cfg.JWTSecret.Expose(), publicPrefixes, revocationChecker),
 	)(mux)
-
+	if cfg.Standalone {
+		handler = httpinfra.StandaloneSaaSRouteMiddleware()(handler)
+		handler = httpinfra.StandaloneWorkspaceMiddleware(cfg.StandaloneWorkspaceID)(handler)
+	}
 	addr := net.JoinHostPort(cfg.AppHost, strconv.Itoa(cfg.AppPort))
 	server := &http.Server{
 		Addr:    addr,

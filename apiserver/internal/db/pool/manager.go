@@ -22,7 +22,7 @@ var (
 	ErrNilPoolConfig  = errors.New("db pool: configuration is nil")
 )
 
-// Config defines connection pool settings for system and tenant workloads.
+// Config defines connection pool settings for system and standalone workloads.
 type Config struct {
 	PrimaryURL             string
 	PoolerTxURL            string
@@ -37,6 +37,8 @@ type Config struct {
 	TenantMaxConn          int32
 	TenantIdleEvictTimeout time.Duration
 	ConnectTimeout         time.Duration
+	Standalone             bool
+	StandaloneWorkspaceID  uuid.UUID
 }
 
 // DefaultConfig returns safe defaults matching LeeAttend configuration contracts.
@@ -275,6 +277,11 @@ func (m *Manager) getOrCreateTenantPool(ctx context.Context, workspaceID uuid.UU
 	if m.closed {
 		return nil, ErrPoolClosed
 	}
+	if m.cfg.Standalone {
+		if m.cfg.StandaloneWorkspaceID == uuid.Nil || workspaceID != m.cfg.StandaloneWorkspaceID {
+			return nil, fmt.Errorf("db pool: workspace is not standalone organization")
+		}
+	}
 
 	targetMap := m.tenantTx
 	baseURL := m.cfg.TenantPoolerTxURL
@@ -282,7 +289,6 @@ func (m *Manager) getOrCreateTenantPool(ctx context.Context, workspaceID uuid.UU
 		targetMap = m.tenantSess
 		baseURL = m.cfg.TenantPoolerSessURL
 	}
-
 	if baseURL == "" {
 		if txMode {
 			baseURL = m.cfg.PoolerTxURL
@@ -293,41 +299,34 @@ func (m *Manager) getOrCreateTenantPool(ctx context.Context, workspaceID uuid.UU
 	if baseURL == "" {
 		baseURL = m.cfg.PrimaryURL
 	}
-
 	now := time.Now()
 	if entry, exists := targetMap[workspaceID]; exists {
 		entry.LastAccess = now
 		return entry.Pool, nil
 	}
-
-	tenantURL, err := BuildTenantURL(baseURL, workspaceID, "", "", "")
-	if err != nil {
-		return nil, err
+	poolURL := baseURL
+	if !m.cfg.Standalone {
+		var err error
+		poolURL, err = BuildTenantURL(baseURL, workspaceID, "", "", "")
+		if err != nil {
+			return nil, err
+		}
 	}
-
 	connectTimeout := m.cfg.ConnectTimeout
 	if connectTimeout <= 0 {
 		connectTimeout = 5 * time.Second
 	}
-
-	poolCfg, err := BuildPgxConfig(tenantURL, m.cfg.TenantMaxConn, m.cfg.APIAcquireTimeout, connectTimeout)
+	poolCfg, err := BuildPgxConfig(poolURL, m.cfg.TenantMaxConn, m.cfg.APIAcquireTimeout, connectTimeout)
 	if err != nil {
 		return nil, err
 	}
-
 	openCtx, cancel := context.WithTimeout(ctx, connectTimeout)
 	defer cancel()
-
 	pool, err := m.poolOpener(openCtx, poolCfg)
 	if err != nil {
-		return nil, fmt.Errorf("db pool: open tenant pool %s failed: %w", workspaceID, err)
+		return nil, fmt.Errorf("db pool: open workspace pool %s failed: %w", workspaceID, err)
 	}
-
-	targetMap[workspaceID] = &TenantPoolEntry{
-		Pool:       pool,
-		LastAccess: now,
-	}
-
+	targetMap[workspaceID] = &TenantPoolEntry{Pool: pool, LastAccess: now}
 	return pool, nil
 }
 
