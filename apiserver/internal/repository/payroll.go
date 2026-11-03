@@ -21,7 +21,7 @@ import (
 )
 
 type PayrollRepository struct {
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	DB       DBTX
 	BeginTx  func(context.Context, uuid.UUID) (TxBeginner, error)
 	SystemDB DBTX
 }
@@ -31,10 +31,10 @@ func isConflictError(err error) bool {
 	return errors.As(err, &pgErr) && (pgErr.Code == "23505" || pgErr.Code == "23P01")
 }
 func (r PayrollRepository) db(ctx context.Context, wsID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return nil, errors.New("payroll repository: tenant database is not configured")
 	}
-	return r.TenantDB(ctx, wsID)
+	return r.DB, nil
 }
 func scanPayslip(row interface{ Scan(...any) error }) (api.PayslipRecord, error) {
 	var p api.PayslipRecord

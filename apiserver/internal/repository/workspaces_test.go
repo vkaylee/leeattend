@@ -114,7 +114,7 @@ func TestWorkspaceRepository_PutConfigBindsTypedValues(t *testing.T) {
 			return pgconn.NewCommandTag("INSERT 0 1"), nil
 		},
 	}
-	repo := WorkspaceRepository{TenantDB: func(context.Context, uuid.UUID) (DBTX, error) { return db, nil }}
+	repo := WorkspaceRepository{DB: db}
 	valText := "dark"
 	err := repo.PutConfig(context.Background(), wsID, api.ConfigEntryRequest{
 		ScopeType:     "workspace",
@@ -156,7 +156,7 @@ func TestWorkspaceRepository_ListAndGetConfigs(t *testing.T) {
 			return pgconn.NewCommandTag("DELETE 1"), nil
 		},
 	}
-	repo := WorkspaceRepository{TenantDB: func(context.Context, uuid.UUID) (DBTX, error) { return db, nil }}
+	repo := WorkspaceRepository{DB: db}
 	entries, err := repo.ListConfigs(context.Background(), wsID)
 	if err != nil {
 		t.Fatalf("unexpected list error: %v", err)

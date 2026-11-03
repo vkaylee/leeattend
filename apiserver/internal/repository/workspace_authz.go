@@ -7,10 +7,8 @@ import (
 )
 
 // WorkspaceAuthorizer evaluates system roles and workspace permissions from current DB state.
-// TenantDB resolves the workspace tenant database for department-scope checks.
 type WorkspaceAuthorizer struct {
-	DB       DBTX
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	DB DBTX
 }
 
 func (a WorkspaceAuthorizer) IsSystemAdmin(ctx context.Context, userID uuid.UUID) bool {
@@ -46,15 +44,12 @@ func (a WorkspaceAuthorizer) HasScopedPermission(ctx context.Context, userID, wo
 	if a.isGlobalManager(ctx, userID, workspaceID) {
 		return true
 	}
-	if targetDepartmentID == nil || a.TenantDB == nil {
+	if targetDepartmentID == nil || a.DB == nil {
 		return false
 	}
-	db, err := a.TenantDB(ctx, workspaceID)
-	if err != nil || db == nil {
-		return false
-	}
+	db := a.DB
 	var managed bool
-	err = db.QueryRow(ctx, `SELECT EXISTS (
+	err := db.QueryRow(ctx, `SELECT EXISTS (
 		SELECT 1
 		FROM employees e
 		JOIN employments em ON em.employee_id = e.id
@@ -90,13 +85,10 @@ func (a WorkspaceAuthorizer) GetManagedDepartmentIDs(ctx context.Context, userID
 	if a.isGlobalManager(ctx, userID, workspaceID) {
 		return nil, true, nil
 	}
-	if a.TenantDB == nil {
+	if a.DB == nil {
 		return []uuid.UUID{}, false, nil
 	}
-	db, err := a.TenantDB(ctx, workspaceID)
-	if err != nil || db == nil {
-		return nil, false, err
-	}
+	db := a.DB
 	rows, err := db.Query(ctx, `SELECT DISTINCT em.department_id
 		FROM employees e
 		JOIN employments em ON em.employee_id = e.id

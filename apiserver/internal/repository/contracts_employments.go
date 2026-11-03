@@ -14,15 +14,15 @@ import (
 )
 
 type ContractRepository struct {
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
-	BeginTx  func(context.Context, uuid.UUID) (TxBeginner, error)
+	DB      DBTX
+	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
 func (r ContractRepository) db(ctx context.Context, wsID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return nil, errors.New("contract repository: tenant database is not configured")
 	}
-	return r.TenantDB(ctx, wsID)
+	return r.DB, nil
 }
 
 func (r ContractRepository) begin(ctx context.Context, wsID uuid.UUID) (TxBeginner, error) {
@@ -291,14 +291,14 @@ func (r ContractRepository) SoftDeleteContract(ctx context.Context, wsID, contra
 }
 
 type EmploymentRepository struct {
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	DB DBTX
 }
 
 func (r EmploymentRepository) db(ctx context.Context, wsID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return nil, errors.New("employment repository: tenant database is not configured")
 	}
-	return r.TenantDB(ctx, wsID)
+	return r.DB, nil
 }
 
 func scanEmployment(row interface{ Scan(...any) error }) (api.Employment, error) {

@@ -14,14 +14,14 @@ import (
 )
 
 type EmployeeAssignmentRepository struct {
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	DB DBTX
 }
 
 func (r EmployeeAssignmentRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return nil, errors.New("employee assignment repository: tenant database is not configured")
 	}
-	return r.TenantDB(ctx, workspaceID)
+	return r.DB, nil
 }
 
 func scanEmployeeAssignment(row interface{ Scan(...any) error }) (api.EmployeeAssignment, error) {
@@ -170,14 +170,14 @@ func (r EmployeeAssignmentRepository) DeleteEmployeeAssignment(ctx context.Conte
 }
 
 type AssignmentRuleRepository struct {
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	DB DBTX
 }
 
 func (r AssignmentRuleRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return nil, errors.New("assignment rule repository: tenant database is not configured")
 	}
-	return r.TenantDB(ctx, workspaceID)
+	return r.DB, nil
 }
 
 func scanAssignmentRule(row interface{ Scan(...any) error }) (api.AssignmentRule, error) {

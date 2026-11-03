@@ -13,14 +13,14 @@ import (
 )
 
 type CompensationHistoryRepository struct {
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	DB DBTX
 }
 
 func (r CompensationHistoryRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return nil, errors.New("compensation repository: tenant database is not configured")
 	}
-	return r.TenantDB(ctx, workspaceID)
+	return r.DB, nil
 }
 
 type compEmploymentRow struct {

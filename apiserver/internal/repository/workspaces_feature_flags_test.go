@@ -34,7 +34,7 @@ func TestWorkspaceRepository_UpdateFeatureFlagBindsAllPatchFields(t *testing.T) 
 			}}
 		},
 	}
-	repo := WorkspaceRepository{TenantDB: func(context.Context, uuid.UUID) (DBTX, error) { return db, nil }}
+	repo := WorkspaceRepository{DB: db}
 	enabled := true
 	description := "updated"
 	patchMetadata := json.RawMessage(`{"rollout_percent":100}`)
@@ -77,7 +77,7 @@ func TestWorkspaceRepository_GetFeatureFlagScopesWorkspace(t *testing.T) {
 			}}
 		},
 	}
-	repo := WorkspaceRepository{TenantDB: func(context.Context, uuid.UUID) (DBTX, error) { return db, nil }}
+	repo := WorkspaceRepository{DB: db}
 	if _, err := repo.GetFeatureFlag(context.Background(), workspaceID, "dark_mode"); err != nil {
 		t.Fatalf("get feature flag: %v", err)
 	}

@@ -12,14 +12,14 @@ import (
 )
 
 type EmployeeRepository struct {
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	DB DBTX
 }
 
 func (r EmployeeRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return nil, errors.New("employee repository: tenant database is not configured")
 	}
-	return r.TenantDB(ctx, workspaceID)
+	return r.DB, nil
 }
 
 func (r EmployeeRepository) CreateEmployee(ctx context.Context, workspaceID uuid.UUID, req api.CreateEmployeeRequest) (api.EmployeeRecord, error) {

@@ -15,14 +15,14 @@ import (
 )
 
 type DashboardAnalyticsRepository struct {
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	DB DBTX
 }
 
 func (r DashboardAnalyticsRepository) db(ctx context.Context, wsID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return nil, errors.New("dashboard analytics repository: tenant database is not configured")
 	}
-	return r.TenantDB(ctx, wsID)
+	return r.DB, nil
 }
 
 func (r DashboardAnalyticsRepository) GetWorkspaceTimezone(ctx context.Context, wsID uuid.UUID) (string, error) {

@@ -78,9 +78,7 @@ func TestApprovalWorkflowRepository_GetPendingTasksForUser_SystemDBRoles(t *test
 	}
 
 	repo := ApprovalWorkflowRepository{
-		TenantDB: func(_ context.Context, _ uuid.UUID) (DBTX, error) {
-			return tenantDB, nil
-		},
+		DB:       tenantDB,
 		SystemDB: systemDB,
 	}
 

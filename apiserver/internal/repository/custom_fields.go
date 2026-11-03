@@ -14,14 +14,14 @@ import (
 )
 
 type CustomFieldRepository struct {
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	DB DBTX
 }
 
 func (r CustomFieldRepository) db(ctx context.Context, wsID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return nil, errors.New("custom field repository: tenant database is not configured")
 	}
-	return r.TenantDB(ctx, wsID)
+	return r.DB, nil
 }
 
 func (r CustomFieldRepository) CreateDefinition(ctx context.Context, record api.CustomFieldDefinitionRecord) (api.CustomFieldDefinitionRecord, error) {

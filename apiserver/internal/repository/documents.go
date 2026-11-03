@@ -11,15 +11,15 @@ import (
 )
 
 type DocumentRepository struct {
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	DB       DBTX
 	SystemDB DBTX
 }
 
 func (r DocumentRepository) db(ctx context.Context, wsID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return nil, errors.New("document repository: tenant database is not configured")
 	}
-	return r.TenantDB(ctx, wsID)
+	return r.DB, nil
 }
 
 func (r DocumentRepository) ListFolders(ctx context.Context, wsID uuid.UUID) ([]api.DocumentFolderDto, error) {

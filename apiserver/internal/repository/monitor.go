@@ -17,7 +17,7 @@ import (
 
 type MonitorRepository struct {
 	SystemDB DBTX
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	DB       DBTX
 }
 
 func (r MonitorRepository) ListAlerts(ctx context.Context, status, severity *string, limit int, cursor *string) ([]api.MonitorAlertResponse, int64, *string, error) {
@@ -515,12 +515,12 @@ func (r MonitorRepository) GetWorkspaceDurableJob(ctx context.Context, workspace
 }
 
 func (r MonitorRepository) ListAuditLogs(ctx context.Context, workspaceID uuid.UUID, limit, offset int, action *string, startDate, endDate *time.Time) ([]api.AuditLogRecord, int64, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return make([]api.AuditLogRecord, 0), 0, nil
 	}
-	db, err := r.TenantDB(ctx, workspaceID)
-	if err != nil {
-		return nil, 0, err
+	db := r.DB
+	if db == nil {
+		return nil, 0, errors.New("monitor repository: database is not configured")
 	}
 
 	whereClauses := []string{"workspace_id = $1"}

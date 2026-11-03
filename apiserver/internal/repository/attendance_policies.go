@@ -16,16 +16,16 @@ import (
 )
 
 type AttendancePolicyRepository struct {
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	DB       DBTX
 	SystemDB DBTX
 	BeginTx  func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
 func (r AttendancePolicyRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return nil, errors.New("attendance policy repository: tenant database is not configured")
 	}
-	return r.TenantDB(ctx, workspaceID)
+	return r.DB, nil
 }
 
 func (r AttendancePolicyRepository) begin(ctx context.Context, workspaceID uuid.UUID) (TxBeginner, error) {

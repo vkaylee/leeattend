@@ -10,14 +10,14 @@ import (
 )
 
 type EmployeeConditionRepository struct {
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	DB DBTX
 }
 
 func (r EmployeeConditionRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return nil, errors.New("employee condition repository: tenant database is not configured")
 	}
-	return r.TenantDB(ctx, workspaceID)
+	return r.DB, nil
 }
 
 func employeeExists(ctx context.Context, db DBTX, workspaceID, employeeID uuid.UUID) error {

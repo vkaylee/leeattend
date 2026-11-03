@@ -27,9 +27,7 @@ func TestAttendancePolicyRepository_GetDefaultPolicyRules_Fallback(t *testing.T)
 		},
 	}
 	repo := AttendancePolicyRepository{
-		TenantDB: func(_ context.Context, _ uuid.UUID) (DBTX, error) {
-			return db, nil
-		},
+		DB: db,
 	}
 
 	rules, err := repo.GetDefaultPolicyRules(context.Background(), wsID)
@@ -109,9 +107,7 @@ func TestAttendancePolicyRepository_ListPolicyAssignments(t *testing.T) {
 		},
 	}
 	repo := AttendancePolicyRepository{
-		TenantDB: func(_ context.Context, _ uuid.UUID) (DBTX, error) {
-			return db, nil
-		},
+		DB: db,
 	}
 
 	list, err := repo.ListPolicyAssignments(context.Background(), wsID)
@@ -183,9 +179,7 @@ func TestAttendancePolicyRepository_DeletePolicyAssignment(t *testing.T) {
 		},
 	}
 	repo := AttendancePolicyRepository{
-		TenantDB: func(_ context.Context, _ uuid.UUID) (DBTX, error) {
-			return db, nil
-		},
+		DB: db,
 	}
 
 	if err := repo.DeletePolicyAssignment(context.Background(), wsID, assignID); err != nil {
@@ -236,7 +230,7 @@ func TestAttendancePolicyRepository_BehalfAssignmentsRequireWorkspaceMember(t *t
 	}
 	repo := AttendancePolicyRepository{
 		SystemDB: memberDB,
-		TenantDB: func(_ context.Context, _ uuid.UUID) (DBTX, error) { return tenantDB, nil },
+		DB:       tenantDB,
 	}
 	if _, err := repo.CreateBehalfAssignment(context.Background(), wsID, api.CreateBehalfAssignmentRequest{AssigneeUserID: assignee, TargetEmployeeID: &targetEmp}, "attendance_adjustment"); err != nil {
 		t.Fatalf("expected workspace member to be assignable: %v", err)
@@ -275,9 +269,7 @@ func TestAttendancePolicyRepository_ListMyBehalfTargets(t *testing.T) {
 		},
 	}
 	repo := AttendancePolicyRepository{
-		TenantDB: func(_ context.Context, _ uuid.UUID) (DBTX, error) {
-			return db, nil
-		},
+		DB: db,
 	}
 
 	targets, err := repo.ListMyBehalfTargets(context.Background(), wsID, userID, "attendance_adjustment")

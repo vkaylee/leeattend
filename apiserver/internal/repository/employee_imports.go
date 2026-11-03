@@ -16,15 +16,15 @@ import (
 )
 
 type EmployeeImportRepository struct {
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
-	BeginTx  func(context.Context, uuid.UUID) (TxBeginner, error)
+	DB      DBTX
+	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
 func (r EmployeeImportRepository) db(ctx context.Context, wsID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return nil, errors.New("employee import repository: tenant database is not configured")
 	}
-	return r.TenantDB(ctx, wsID)
+	return r.DB, nil
 }
 
 func (r EmployeeImportRepository) begin(ctx context.Context, wsID uuid.UUID) (TxBeginner, error) {

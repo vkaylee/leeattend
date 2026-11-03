@@ -142,7 +142,7 @@ func TestEmployeeConditionRepository_ListAndCreate(t *testing.T) {
 		},
 	}
 
-	repo := EmployeeConditionRepository{TenantDB: func(context.Context, uuid.UUID) (DBTX, error) { return db, nil }}
+	repo := EmployeeConditionRepository{DB: db}
 
 	// 1. List
 	res, err := repo.ListEmployeeConditions(context.Background(), wsID, empID, 1, 50)
@@ -287,7 +287,7 @@ func TestCompensationHistoryRepository_Timeline(t *testing.T) {
 		},
 	}
 
-	repo := CompensationHistoryRepository{TenantDB: func(context.Context, uuid.UUID) (DBTX, error) { return db, nil }}
+	repo := CompensationHistoryRepository{DB: db}
 
 	res, err := repo.GetEmployeeCompensationHistory(context.Background(), wsID, empID, nil)
 	if err != nil {

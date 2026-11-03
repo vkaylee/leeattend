@@ -10,14 +10,14 @@ import (
 )
 
 type AssignmentHistoryRepository struct {
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	DB DBTX
 }
 
 func (r AssignmentHistoryRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return nil, errors.New("assignment history repository: tenant database is not configured")
 	}
-	return r.TenantDB(ctx, workspaceID)
+	return r.DB, nil
 }
 
 func scanAssignmentHistory(row interface{ Scan(...any) error }) (api.AssignmentHistory, error) {

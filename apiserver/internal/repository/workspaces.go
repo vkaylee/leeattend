@@ -17,14 +17,14 @@ var ErrUniqueViolation = errors.New("repository: unique constraint violation")
 
 type WorkspaceRepository struct {
 	SystemDB DBTX
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	DB       DBTX
 }
 
 func (r WorkspaceRepository) tenant(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return r.SystemDB, nil
 	}
-	return r.TenantDB(ctx, workspaceID)
+	return r.DB, nil
 }
 
 func (r WorkspaceRepository) GetWorkspace(ctx context.Context, id uuid.UUID) (api.WorkspaceRecord, error) {

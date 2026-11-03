@@ -14,14 +14,14 @@ import (
 )
 
 type RecruitmentSourceRepository struct {
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	DB DBTX
 }
 
 func (r RecruitmentSourceRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return nil, errors.New("recruitment source repository: tenant database is not configured")
 	}
-	return r.TenantDB(ctx, workspaceID)
+	return r.DB, nil
 }
 
 const recruitmentSourceColumns = `id, workspace_id, source_type, name, referrer_employee_id,

@@ -90,24 +90,10 @@ Loại bỏ hoàn toàn kiến trúc multi-tenant/workspace trong toàn bộ h�
 ---
 
 ### Phase 3: Refactor Data Access Layer (Repositories)
-- [ ] **Task 3.1:** Chuyển đổi định dạng Repository struct trong `apiserver/internal/repository/`:
-  - Đổi từ:
-    ```go
-    type EmployeeRepository struct {
-        TenantDB func(ctx context.Context, wsID uuid.UUID) (DBTX, error)
-    }
-    ```
-    Thành:
-    ```go
-    type EmployeeRepository struct {
-        DB DBTX
-    }
-    ```
-- [ ] **Task 3.2:** Loại bỏ tham số `workspaceID uuid.UUID` và mệnh đề `WHERE workspace_id = $1` trong toàn bộ SQL queries của ~50 repositories:
-  - Repositories: `auth`, `employee`, `department`, `shift`, `attendance`, `leave`, `overtime`, `payroll`, `reports`, `schedules`, `contracts`, `custom_fields`,...
-- [ ] **Task 3.3:** Xóa bỏ `WorkspaceAuthorizer` và logic kiểm tra `workspace_id` cross-tenant không còn cần thiết.
-- **Xác minh (Verify):**
-  - Chạy `go test ./internal/repository/...`.
+- [x] **Task 3.1:** Converted repository structs in `apiserver/internal/repository/` from `TenantDB` closures to direct `DB DBTX` fields. Updated main wiring, workspace authorization to use the shared DB, and repository tests.
+- [ ] **Task 3.2:** Remove `workspaceID uuid.UUID` method parameters and `workspace_id` predicates from repository SQL. Retain schema columns only until API contracts are migrated.
+- [ ] **Task 3.3:** Remove `WorkspaceAuthorizer` and workspace authorization dependencies after API handlers/routes are flattened in Phase 4.
+- **Verification:** `./scripts/_go-gates.sh` passed: gofmt, vet, staticcheck, govulncheck, module verification, and full race tests.
 
 ---
 

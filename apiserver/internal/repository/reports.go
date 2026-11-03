@@ -15,14 +15,14 @@ import (
 )
 
 type ReportRepository struct {
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	DB DBTX
 }
 
 func (r ReportRepository) db(ctx context.Context, wsID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return nil, errors.New("report repository: tenant database is not configured")
 	}
-	return r.TenantDB(ctx, wsID)
+	return r.DB, nil
 }
 
 func (r ReportRepository) CreateExportJob(ctx context.Context, job api.ReportJob, req api.ExportReportRequest) error {
@@ -375,7 +375,7 @@ type RedisReportQueue struct {
 	Client          *redisinfra.Client
 	Fallback        sync.Map
 	ResultsFallback sync.Map
-	TenantDB        func(context.Context, uuid.UUID) (DBTX, error)
+	DB              DBTX
 }
 
 func (q *RedisReportQueue) EnqueueReport(ctx context.Context, job api.ReportJob, req api.ExportReportRequest) error {
@@ -479,7 +479,7 @@ func (q *RedisReportQueue) GetReport(ctx context.Context, jobID uuid.UUID) (api.
 			return job, nil
 		}
 	}
-	if q.TenantDB != nil {
+	if q.DB != nil {
 		// Try resolving from outbox_jobs
 		// Search across DB if possible
 	}

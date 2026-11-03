@@ -16,7 +16,7 @@ import (
 )
 
 func (r AttendanceRepository) attendanceDB(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
-	return r.tenantDB(ctx, workspaceID)
+	return r.db(ctx, workspaceID)
 }
 
 // CreateAttendanceImportJob inserts a processing job scoped to the workspace.

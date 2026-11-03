@@ -16,8 +16,8 @@ import (
 
 // AttendanceRepository persists punch events and paired time entries.
 type AttendanceRepository struct {
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
-	BeginTx  func(context.Context, uuid.UUID) (TxBeginner, error)
+	DB      DBTX
+	BeginTx func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
 // TxBeginner starts a transaction on a workspace-scoped tenant connection.
@@ -164,11 +164,11 @@ func (r AttendanceRepository) ESSPunch(ctx context.Context, workspaceID, employe
 	return record, nil
 }
 
-func (r AttendanceRepository) tenantDB(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
-		return nil, errors.New("attendance repository: tenant database is not configured")
+func (r AttendanceRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
+	if r.DB == nil {
+		return nil, errors.New("attendance repository: database is not configured")
 	}
-	return r.TenantDB(ctx, workspaceID)
+	return r.DB, nil
 }
 
 func resolveActiveEmployment(ctx context.Context, db DBTX, workspaceID, employeeID uuid.UUID) (uuid.UUID, error) {
@@ -198,7 +198,7 @@ func scanLatestTimeEntry(ctx context.Context, db DBTX, workspaceID, employmentID
 
 // ListTimeHistory returns entries for an employee's active employment.
 func (r AttendanceRepository) ListTimeHistory(ctx context.Context, workspaceID, employeeID uuid.UUID, start, end time.Time) ([]api.TimeEntryRecord, error) {
-	db, err := r.tenantDB(ctx, workspaceID)
+	db, err := r.db(ctx, workspaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +224,7 @@ func (r AttendanceRepository) ListTimeHistory(ctx context.Context, workspaceID, 
 
 // IsEmployeeOwnedByUser checks workspace-scoped employee ownership.
 func (r AttendanceRepository) IsEmployeeOwnedByUser(ctx context.Context, workspaceID, employeeID, userID uuid.UUID) (bool, error) {
-	db, err := r.tenantDB(ctx, workspaceID)
+	db, err := r.db(ctx, workspaceID)
 	if err != nil {
 		return false, err
 	}
@@ -235,7 +235,7 @@ func (r AttendanceRepository) IsEmployeeOwnedByUser(ctx context.Context, workspa
 
 // CreateAdjustment inserts a pending manual adjustment matching schema.
 func (r AttendanceRepository) CreateAdjustment(ctx context.Context, workspaceID uuid.UUID, req api.AdjustmentRequest, requestedByUserID uuid.UUID) (api.AdjustmentRecord, error) {
-	db, err := r.tenantDB(ctx, workspaceID)
+	db, err := r.db(ctx, workspaceID)
 	if err != nil {
 		return api.AdjustmentRecord{}, err
 	}
@@ -267,7 +267,7 @@ func (r AttendanceRepository) CreateAdjustment(ctx context.Context, workspaceID 
 }
 
 func (r AttendanceRepository) ListAdjustments(ctx context.Context, workspaceID uuid.UUID, status *string, employeeID *uuid.UUID, page, limit int) (api.PaginatedAdjustments, error) {
-	db, err := r.tenantDB(ctx, workspaceID)
+	db, err := r.db(ctx, workspaceID)
 	if err != nil {
 		return api.PaginatedAdjustments{}, err
 	}
@@ -296,7 +296,7 @@ func (r AttendanceRepository) ListAdjustments(ctx context.Context, workspaceID u
 }
 
 func (r AttendanceRepository) ListEmployeeAdjustments(ctx context.Context, workspaceID, employeeID uuid.UUID) ([]api.AdjustmentRecord, error) {
-	db, err := r.tenantDB(ctx, workspaceID)
+	db, err := r.db(ctx, workspaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -358,10 +358,10 @@ func (r AttendanceRepository) begin(ctx context.Context, workspaceID uuid.UUID) 
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx, workspaceID)
 	}
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return nil, errors.New("attendance repository: tenant database is not configured")
 	}
-	db, err := r.TenantDB(ctx, workspaceID)
+	db, err := r.db(ctx, workspaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -394,7 +394,7 @@ func scanTimeEntry(row pgx.Row, record *api.TimeEntryRecord) error {
 
 // GetAttendanceSummaries queries paginated daily summaries from tenant DB.
 func (r AttendanceRepository) GetAttendanceSummaries(ctx context.Context, workspaceID uuid.UUID, startDate, endDate string, employeeID *uuid.UUID, otStatus *string, page, limit int) (api.PaginatedSummaries, error) {
-	db, err := r.tenantDB(ctx, workspaceID)
+	db, err := r.db(ctx, workspaceID)
 	if err != nil {
 		return api.PaginatedSummaries{}, err
 	}
@@ -459,7 +459,7 @@ func (r AttendanceRepository) GetAttendanceSummaries(ctx context.Context, worksp
 
 // GetEmployeeIDByUserID returns the employee ID for a given user ID in workspace.
 func (r AttendanceRepository) GetEmployeeIDByUserID(ctx context.Context, workspaceID, userID uuid.UUID) (uuid.UUID, error) {
-	db, err := r.tenantDB(ctx, workspaceID)
+	db, err := r.db(ctx, workspaceID)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -473,7 +473,7 @@ func (r AttendanceRepository) GetEmployeeIDByUserID(ctx context.Context, workspa
 
 // UpdateTimeEntry updates time entry fields in tenant DB.
 func (r AttendanceRepository) UpdateTimeEntry(ctx context.Context, workspaceID, entryID uuid.UUID, req api.UpdateTimeEntryRequest) (api.TimeEntryRecord, error) {
-	db, err := r.tenantDB(ctx, workspaceID)
+	db, err := r.db(ctx, workspaceID)
 	if err != nil {
 		return api.TimeEntryRecord{}, err
 	}
@@ -530,7 +530,7 @@ func (r AttendanceRepository) UpdateTimeEntry(ctx context.Context, workspaceID, 
 
 // DeleteTimeEntry deletes a time entry from tenant DB.
 func (r AttendanceRepository) DeleteTimeEntry(ctx context.Context, workspaceID, entryID uuid.UUID) error {
-	db, err := r.tenantDB(ctx, workspaceID)
+	db, err := r.db(ctx, workspaceID)
 	if err != nil {
 		return err
 	}

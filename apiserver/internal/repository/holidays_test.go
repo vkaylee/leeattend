@@ -24,9 +24,7 @@ func TestHolidayRepository_GetHolidayByID_NotFound(t *testing.T) {
 		},
 	}
 	repo := HolidayRepository{
-		TenantDB: func(_ context.Context, _ uuid.UUID) (DBTX, error) {
-			return db, nil
-		},
+		DB: db,
 	}
 
 	_, err := repo.GetHolidayByID(context.Background(), wsID, holidayID)
@@ -61,9 +59,7 @@ func TestHolidayRepository_GetHolidayByID_Success(t *testing.T) {
 		},
 	}
 	repo := HolidayRepository{
-		TenantDB: func(_ context.Context, _ uuid.UUID) (DBTX, error) {
-			return db, nil
-		},
+		DB: db,
 	}
 
 	rec, err := repo.GetHolidayByID(context.Background(), wsID, holidayID)
@@ -85,9 +81,7 @@ func TestHolidayRepository_CreateHoliday_Conflict(t *testing.T) {
 		},
 	}
 	repo := HolidayRepository{
-		TenantDB: func(_ context.Context, _ uuid.UUID) (DBTX, error) {
-			return db, nil
-		},
+		DB: db,
 	}
 
 	_, err := repo.CreateHoliday(context.Background(), wsID, api.CreateHolidayRequest{
@@ -113,9 +107,7 @@ func TestHolidayRepository_DeleteHoliday_SoftDeleteAndNotFound(t *testing.T) {
 		},
 	}
 	repo := HolidayRepository{
-		TenantDB: func(_ context.Context, _ uuid.UUID) (DBTX, error) {
-			return db, nil
-		},
+		DB: db,
 	}
 
 	if err := repo.DeleteHoliday(context.Background(), wsID, hID); err != nil {
@@ -131,9 +123,7 @@ func TestHolidayRepository_DeleteHoliday_SoftDeleteAndNotFound(t *testing.T) {
 		},
 	}
 	repoNotFound := HolidayRepository{
-		TenantDB: func(_ context.Context, _ uuid.UUID) (DBTX, error) {
-			return dbNotFound, nil
-		},
+		DB: dbNotFound,
 	}
 	if err := repoNotFound.DeleteHoliday(context.Background(), wsID, hID); err != api.ErrHolidayNotFound {
 		t.Fatalf("expected ErrHolidayNotFound, got %v", err)

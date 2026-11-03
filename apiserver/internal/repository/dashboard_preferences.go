@@ -12,7 +12,7 @@ import (
 )
 
 type DashboardPreferencesRepository struct {
-	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	DB DBTX
 }
 
 var defaultVisibleWidgetsJSON = []byte(`{"kpi_cards":true,"donut_chart":true,"quick_stats":true,"attendance_trend":true,"department_chart":true,"overtime_trend":false,"peak_times":false,"leave_types":false,"lateness_by_day":false,"recruitment_sources":true,"turnover_analytics":false,"unexcused_absences":false,"promo_cards":false}`)
@@ -20,10 +20,10 @@ var defaultWidgetOrderJSON = []byte(`["kpi_cards","donut_chart","quick_stats","a
 var defaultCollapsedSectionsJSON = []byte(`{"summary":false,"charts":false,"actions":true}`)
 
 func (r DashboardPreferencesRepository) db(ctx context.Context, workspaceID uuid.UUID) (DBTX, error) {
-	if r.TenantDB == nil {
+	if r.DB == nil {
 		return nil, errors.New("dashboard preferences: nil tenant database")
 	}
-	db, err := r.TenantDB(ctx, workspaceID)
+	db, err := r.db(ctx, workspaceID)
 	if err != nil {
 		return nil, err
 	}

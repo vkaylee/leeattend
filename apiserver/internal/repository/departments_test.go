@@ -41,7 +41,7 @@ func TestDepartmentRepository_CreateAndGet(t *testing.T) {
 			}}
 		},
 	}
-	repo := DepartmentRepository{TenantDB: func(context.Context, uuid.UUID) (DBTX, error) { return db, nil }}
+	repo := DepartmentRepository{DB: db}
 
 	dept, err := repo.CreateDepartment(context.Background(), wsID, api.CreateDepartmentRequest{Name: "Engineering"})
 	if err != nil {
@@ -80,7 +80,7 @@ func TestDepartmentRepository_PayrollConfig(t *testing.T) {
 			}}
 		},
 	}
-	repo := DepartmentRepository{TenantDB: func(context.Context, uuid.UUID) (DBTX, error) { return db, nil }}
+	repo := DepartmentRepository{DB: db}
 
 	cfg, err := repo.SetDepartmentPayrollConfig(context.Background(), wsID, deptID, api.SetDepartmentPayrollConfigRequest{
 		StdWorkingDays: decimal.NewFromFloat(22),

@@ -37,9 +37,7 @@ func TestOvertimeRepository_ListOvertimePolicies(t *testing.T) {
 		},
 	}
 	repo := OvertimeRepository{
-		TenantDB: func(_ context.Context, _ uuid.UUID) (DBTX, error) {
-			return db, nil
-		},
+		DB: db,
 	}
 	res, err := repo.ListOvertimePolicies(context.Background(), wsID, 1, 50)
 	if err != nil {
@@ -80,9 +78,7 @@ func TestOvertimeRepository_CreateAndGetPolicy(t *testing.T) {
 		},
 	}
 	repo := OvertimeRepository{
-		TenantDB: func(_ context.Context, _ uuid.UUID) (DBTX, error) {
-			return db, nil
-		},
+		DB: db,
 	}
 	created, err := repo.CreateOvertimePolicy(context.Background(), wsID, api.CreateOvertimePolicyRequest{Name: "Standard"})
 	if err != nil {
@@ -186,9 +182,7 @@ func TestOvertimeRepository_ClaimAndApprove(t *testing.T) {
 	}
 
 	repo := OvertimeRepository{
-		TenantDB: func(_ context.Context, _ uuid.UUID) (DBTX, error) {
-			return db, nil
-		},
+		DB: db,
 		BeginTx: func(_ context.Context, _ uuid.UUID) (TxBeginner, error) {
 			return fakeTxBeginner{tx: tx}, nil
 		},
