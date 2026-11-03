@@ -88,3 +88,6 @@ webdashboard/playwright/
 .leedevkit/
 leedevkit
 .leedevkit.bak
+
+# Codebase memory
+.codebase-memory/
