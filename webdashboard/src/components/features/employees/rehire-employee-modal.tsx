@@ -10,7 +10,7 @@ import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationMutation } from "@/hooks/common/use-workspace-query";
 import { Typography } from "@/components/ui/typography";
 import { rehireEmployee, fetchEmployers, Employee } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
@@ -41,7 +41,7 @@ export default function RehireEmployeeModal({
     enabled: !!wsId && isOpen,
   });
 
-  const rehireMutation = useWorkspaceMutation<
+  const rehireMutation = useOrganizationMutation<
     { hire_date: string; employer_id: string },
     Employee
   >({

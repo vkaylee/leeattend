@@ -7,7 +7,7 @@ import Button from "@/components/ui/button";
 import { PatternMatrixPreview } from "@/components/ui/pattern-matrix-preview";
 import StatusBadge from "@/components/ui/status-badge";
 import { Typography } from "@/components/ui/typography";
-import { getCurrentWorkspaceId, fetchPatternDetails } from "@/lib/api";
+import { getStandaloneOrganizationId, fetchPatternDetails } from "@/lib/api";
 import { Shift, WorkingPattern, WorkingPatternDetail } from "@/lib/api/types";
 
 interface PatternRowCardProps {
@@ -28,7 +28,7 @@ export function PatternRowCard({
   shifts,
 }: PatternRowCardProps) {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId() ?? "";
+  const wsId = getStandaloneOrganizationId() ?? "";
 
   const { data: details, isLoading: isLoadingDetails } = useQuery<WorkingPatternDetail[]>({
     queryKey: ["pattern-details", wsId, pattern.id],

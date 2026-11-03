@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { fetchEmployees, fetchWorkingConditions, getCurrentWorkspaceId } from "@/lib/api";
+import { fetchEmployees, fetchWorkingConditions, getStandaloneOrganizationId } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
-import { useWorkspaceQuery } from "@/hooks/common/use-workspace-query";
+import { useOrganizationQuery } from "@/hooks/common/use-workspace-query";
 
 /**
  * Maximum number of employees fetched in a single "all employees" request.
@@ -29,7 +29,7 @@ export function useAllEmployees(
   const enabledOverride = options?.enabled ?? true;
   const permission = options?.permission;
 
-  const query = useWorkspaceQuery({
+  const query = useOrganizationQuery({
     workspaceId: wsId,
     queryKey: employeeKeys.list(wsId, { permission }),
     queryFn: (workspaceId) => fetchEmployees(workspaceId, 1, MAX_EMPLOYEE_FETCH, permission),
@@ -47,7 +47,7 @@ export function useAllEmployees(
 }
 
 export function useWorkingConditions(employeeId: string) {
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   return useQuery({
     queryKey: ["working-conditions", employeeId],
     queryFn: () => {

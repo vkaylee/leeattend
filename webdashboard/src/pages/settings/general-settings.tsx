@@ -13,13 +13,13 @@ import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
 import { useTheme } from "@/hooks/use-theme";
-import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace } from "@/lib/api";
+import { fetchWorkspace, updateWorkspace, getStandaloneOrganizationId, Workspace } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type TabType = "localization" | "appearance";
 
 export default function GeneralSettings() {
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
 
   const { data: workspace, isLoading: isLoadingWs } = useQuery({
     queryKey: ["workspace", wsId],

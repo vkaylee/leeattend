@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationMutation } from "@/hooks/common/use-workspace-query";
 import { Typography } from "@/components/ui/typography";
 import { updateEmployeeEmployment } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
@@ -32,7 +32,7 @@ export default function UndoTerminationModal({
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  const undoMutation = useWorkspaceMutation<
+  const undoMutation = useOrganizationMutation<
     undefined,
     Awaited<ReturnType<typeof updateEmployeeEmployment>>
   >({

@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import type { CreateWorkflowRequest, UpdateWorkflowRequest } from '@/lib/api/types';
 
-import { useWorkspaceQuery, useWorkspaceMutation } from '@/hooks/common/use-workspace-query';
+import { useOrganizationQuery, useOrganizationMutation } from '@/hooks/common/use-workspace-query';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { approvalWorkflowsApi } from '@/lib/api/approval-workflows';
 
@@ -20,7 +20,7 @@ export const approvalWorkflowKeys = {
 
 export const useApprovalWorkflows = (entityType?: string) => {
   const { workspace } = useWorkspace();
-  return useWorkspaceQuery({
+  return useOrganizationQuery({
     queryKey: approvalWorkflowKeys.list(workspace?.id ?? '', entityType),
     queryFn: (wsId) => approvalWorkflowsApi.listWorkflows(wsId, entityType),
   });
@@ -28,7 +28,7 @@ export const useApprovalWorkflows = (entityType?: string) => {
 
 export const useApprovalWorkflow = (id: string) => {
   const { workspace } = useWorkspace();
-  return useWorkspaceQuery({
+  return useOrganizationQuery({
     queryKey: approvalWorkflowKeys.detail(workspace?.id ?? '', id),
     queryFn: (wsId) => approvalWorkflowsApi.getWorkflow(wsId, id),
     enabled: !!id,
@@ -36,26 +36,26 @@ export const useApprovalWorkflow = (id: string) => {
 };
 
 export const useCreateApprovalWorkflow = () =>
-  useWorkspaceMutation<CreateWorkflowRequest>({
+  useOrganizationMutation<CreateWorkflowRequest>({
     mutationFn: (wsId, payload) => approvalWorkflowsApi.createWorkflow(wsId, payload),
     keys: [approvalWorkflowKeys.all],
   });
 
 export const useUpdateApprovalWorkflow = (id: string) =>
-  useWorkspaceMutation<UpdateWorkflowRequest>({
+  useOrganizationMutation<UpdateWorkflowRequest>({
     mutationFn: (wsId, payload) => approvalWorkflowsApi.updateWorkflow(wsId, id, payload),
     keys: [approvalWorkflowKeys.all],
   });
 
 export const useDeleteApprovalWorkflow = () =>
-  useWorkspaceMutation<string>({
+  useOrganizationMutation<string>({
     mutationFn: (wsId, id) => approvalWorkflowsApi.deleteWorkflow(wsId, id),
     keys: [approvalWorkflowKeys.all],
   });
 
 export const useApprovalHistory = (entityType: string, entityId: string) => {
   const { workspace } = useWorkspace();
-  return useWorkspaceQuery({
+  return useOrganizationQuery({
     queryKey: approvalWorkflowKeys.history(workspace?.id ?? '', entityType, entityId),
     queryFn: (wsId) => approvalWorkflowsApi.getApprovalHistory(wsId, entityType, entityId),
     enabled: !!entityType && !!entityId,
@@ -65,7 +65,7 @@ export const useApprovalHistory = (entityType: string, entityId: string) => {
 export const useProcessApproval = () => {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
-  return useWorkspaceMutation<{ entity_type: string; entity_id: string; action: string; note?: string }>({
+  return useOrganizationMutation<{ entity_type: string; entity_id: string; action: string; note?: string }>({
     mutationFn: (wsId, payload) => approvalWorkflowsApi.processApproval(wsId, payload),
     keys: [], // Custom onSuccess handles invalidation
     onSuccess: (_, variables) => {

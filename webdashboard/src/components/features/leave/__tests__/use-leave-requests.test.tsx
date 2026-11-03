@@ -28,7 +28,7 @@ vi.mock("@/lib/api", () => ({
   approveLeaveRequest: vi.fn().mockResolvedValue({}),
   fetchLeaveTypes: vi.fn().mockResolvedValue([]),
   fetchLatestLeaveImport: vi.fn(),
-  getCurrentWorkspaceId: vi.fn().mockReturnValue("ws-test"),
+  getStandaloneOrganizationId: vi.fn().mockReturnValue("ws-test"),
 }));
 
 vi.mock("@/hooks/use-employees", () => ({

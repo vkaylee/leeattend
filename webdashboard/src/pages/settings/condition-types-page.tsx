@@ -9,7 +9,7 @@ import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import {
   fetchConditionTypes,
-  getCurrentWorkspaceId,
+  getStandaloneOrganizationId,
   type ConditionTypeDefinition,
   type CreateConditionTypeRequest,
 } from "@/lib/api";
@@ -81,7 +81,7 @@ function ConditionTypeRow({ item, onDelete, onEdit }: {
 export default function ConditionTypesPage() {
   const { t } = useTranslation();
   const { confirm, ConfirmationDialog } = useConfirm();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 

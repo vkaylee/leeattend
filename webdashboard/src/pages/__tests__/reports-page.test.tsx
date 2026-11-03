@@ -45,7 +45,7 @@ window.IntersectionObserver = MockIntersectionObserver as unknown as typeof Inte
 // Mock the API library
 vi.mock("../../lib/api", () => ({
   fetchAttendanceReport: vi.fn(),
-  getCurrentWorkspaceId: vi.fn(),
+  getStandaloneOrganizationId: vi.fn(),
   fetchWorkspace: vi.fn(),
   reprocessAttendance: vi.fn(),
   fetchEmployees: vi.fn(),
@@ -77,7 +77,7 @@ describe("ReportsPage", () => {
  
     });
  
-    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
+    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
  
     vi.mocked(api.fetchWorkspace).mockResolvedValue({
       id: "test-ws-id",

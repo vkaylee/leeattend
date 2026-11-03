@@ -23,7 +23,7 @@ vi.mock("react-i18next", () => ({
 // Mock current workspace ID
 let mockWorkspaceId = "ws-1";
 vi.mock("@/lib/api/helpers", () => ({
-  getCurrentWorkspaceId: () => mockWorkspaceId,
+  getStandaloneOrganizationId: () => mockWorkspaceId,
 }));
 
 // Mock TanStack Router

@@ -86,7 +86,6 @@ describe("EmployeeFormModal", () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        localStorage.setItem("active_workspace_id", "ws-1");
         queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     });
 

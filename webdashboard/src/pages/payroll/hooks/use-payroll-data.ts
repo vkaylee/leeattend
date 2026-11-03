@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
-import { useWorkspaceQuery } from "@/hooks/common/use-workspace-query";
+import { useOrganizationQuery } from "@/hooks/common/use-workspace-query";
 import { employeeKeys } from "@/lib/query-keys";
 
 import { MAX_EMPLOYEE_FETCH } from "@/hooks/use-employees";
@@ -31,7 +31,7 @@ export function usePayrollData({
   selectedEmployee,
   wsId,
 }: UsePayrollDataOptions) {
-  const { data: employeesData, isLoading: empsLoading } = useWorkspaceQuery({
+  const { data: employeesData, isLoading: empsLoading } = useOrganizationQuery({
     workspaceId: wsId,
     queryKey: employeeKeys.search(wsId, { search: debouncedSearchTerm }),
     queryFn: async (workspaceId) => {

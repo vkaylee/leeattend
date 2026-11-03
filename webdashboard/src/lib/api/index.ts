@@ -1,7 +1,6 @@
-export * from "./config";
-// eslint-disable-next-line import-x/export -- types.ts/employees.ts both export Employment via barrel
-export * from "./types";
+export { API_BASE_URL, WS_BASE_URL } from "./config";
 export * from "./helpers";
+export type * from "./types";
 export * from "./download-helper";
 export * from "./behalf-assignment-factory";
 export * from "./auth";
@@ -20,8 +19,8 @@ export * from "./shift-swaps";
 export * from "./audit";
 export * from "./system";
 export * from "./shifts";
-// eslint-disable-next-line import-x/export -- Notification/NotificationResponse/UnreadCountResponse re-exported from notifications.ts and shared barrel
-export * from "./notifications";
+export { fetchNotifications, fetchUnreadCount, markNotificationAsRead, markAllNotificationsAsRead } from "./notifications";
+export type { NotificationType } from "./notifications";
 export * from "./contracts";
 export * from "./workspace-config";
 export * from "./approval-workflows";

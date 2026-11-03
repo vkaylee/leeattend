@@ -4,14 +4,14 @@ import {
   createConditionType,
   updateConditionType,
   deleteConditionType,
-  getCurrentWorkspaceId,
+  getStandaloneOrganizationId,
   type CreateConditionTypeRequest,
   type UpdateConditionTypeRequest,
 } from "@/lib/api";
 
 export function useConditionTypeActions() {
   const queryClient = useQueryClient();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
 
   const createMutation = useMutation({
     mutationFn: (req: CreateConditionTypeRequest) => {

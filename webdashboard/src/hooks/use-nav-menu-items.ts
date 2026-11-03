@@ -32,7 +32,7 @@ import { useTranslation } from "react-i18next";
 
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useProfile } from "@/hooks/use-profile";
-import { getCurrentWorkspaceId } from "@/lib/api";
+import { getStandaloneOrganizationId } from "@/lib/api";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { ROUTES } from "@/lib/routes";
 
@@ -185,7 +185,7 @@ export function useFilteredMenuItems(): NavMenuStructure {
   // still filtered by systemRoles at the item level below, and routes
   // retain their own guards.
   const hasSystemRoles = (user?.system_roles?.length ?? 0) > 0;
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   const isSystemContext = !wsId && hasSystemRoles;
 
   const filteredGroups = groups

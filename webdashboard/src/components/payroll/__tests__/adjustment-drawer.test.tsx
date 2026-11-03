@@ -14,7 +14,7 @@ import AdjustmentDrawer from "../adjustment-drawer";
 vi.mock("@/lib/api", () => ({
   fetchWorkspaceAttendanceAdjustments: vi.fn(),
   approveAttendanceAdjustment: vi.fn(),
-  getCurrentWorkspaceId: vi.fn(() => "test-ws-id"),
+  getStandaloneOrganizationId: vi.fn(() => "test-ws-id"),
 }));
 
 describe("AdjustmentDrawer", () => {

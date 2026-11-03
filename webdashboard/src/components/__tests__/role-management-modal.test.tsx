@@ -33,7 +33,7 @@ vi.mock("../../lib/api", () => ({
   assignExtraRole: vi.fn(),
   revokeExtraRole: vi.fn(),
   fetchWorkspaceRoles: vi.fn(),
-  getCurrentWorkspaceId: vi.fn(() => "test-ws-id"),
+  getStandaloneOrganizationId: vi.fn(() => "test-ws-id"),
 }));
 
 // Mock window.confirm

@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
-import { Employee, fetchPatternDetails, getCurrentWorkspaceId } from "@/lib/api";
+import { Employee, fetchPatternDetails, getStandaloneOrganizationId } from "@/lib/api";
 import { Shift, WorkingPattern } from "@/lib/api/types";
 
 import { PatternCard } from "./pattern-card";
@@ -39,7 +39,7 @@ function PatternSelector({
   shifts?: Shift[];
 }) {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId() ?? "";
+  const wsId = getStandaloneOrganizationId() ?? "";
   const [expandedPatternId, setExpandedPatternId] = useState<string | null>(null);
 
   const patternDetailsQueries = useQueries({

@@ -3,14 +3,14 @@ import { useTranslation } from "react-i18next";
 
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { usePermissionCatalog, useWorkspaceRoles, useWorkspacePermissionsMatrix } from "@/hooks/use-workspace";
-import { updateRolePermissions, getCurrentWorkspaceId } from "@/lib/api";
+import { updateRolePermissions, getStandaloneOrganizationId } from "@/lib/api";
 import { logError } from "@/lib/logger";
 
 import type { WorkspaceRole } from "../../../lib/api/types";
 
 export function useWorkspacePermissionsPage() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   const { roles, isLoading: isRolesLoading } = useWorkspaceRoles(wsId ?? undefined);
   const {
     catalog,

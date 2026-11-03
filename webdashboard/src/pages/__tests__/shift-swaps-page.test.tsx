@@ -94,7 +94,7 @@ vi.mock("@/hooks/use-datetime", () => ({
 // Mock APIs
 vi.mock("../../lib/api", () => ({
   fetchEmployees: vi.fn(),
-  getCurrentWorkspaceId: vi.fn(),
+  getStandaloneOrganizationId: vi.fn(),
 }));
 
 vi.mock("../../lib/api/shift-swaps", () => ({
@@ -155,7 +155,7 @@ describe("ShiftSwapsPage", () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });
-    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("ws-1");
+    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("ws-1");
     vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees);
     vi.mocked(shiftSwapsApi.fetchShiftSwaps).mockResolvedValue(mockSwaps);
     vi.mocked(shiftSwapsApi.fetchShiftSwapStats).mockResolvedValue(mockStats);
@@ -304,11 +304,6 @@ describe("ShiftSwapsPage", () => {
 
   // ── Edge Cases ────────────────────────────────────────────
 
-  it("shows workspace selection prompt when no workspace", async () => {
-    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue(null);
-    renderPage();
-    expect(await screen.findByText("Select workspace")).toBeInTheDocument();
-  });
 
   it("does not submit when form fields are empty", async () => {
     const user = userEvent.setup();

@@ -12,14 +12,14 @@ import {
   assignExtraPermission,
   revokeExtraPermission,
   fetchPermissionCatalog,
-  getCurrentWorkspaceId,
+  getStandaloneOrganizationId,
 } from "@/lib/api";
 
 import { workspaceKeys } from "./use-workspace-roles";
 
 export function useWorkspaceMembers(wsId?: string) {
   const queryClient = useQueryClient();
-  const activeWsId = wsId ?? getCurrentWorkspaceId();
+  const activeWsId = wsId ?? getStandaloneOrganizationId();
 
   const membersQuery = useQuery({
     queryKey: workspaceKeys.members(activeWsId ?? ""),
@@ -58,7 +58,7 @@ export function useWorkspaceMembers(wsId?: string) {
 
 export function useMemberRoles(userId: string, wsId?: string) {
   const queryClient = useQueryClient();
-  const activeWsId = wsId ?? getCurrentWorkspaceId();
+  const activeWsId = wsId ?? getStandaloneOrganizationId();
 
   const rolesQuery = useQuery({
     queryKey: workspaceKeys.roles(activeWsId ?? "", userId),
@@ -110,7 +110,7 @@ export function useMemberRoles(userId: string, wsId?: string) {
 
 export function useMemberPermissions(userId: string, wsId?: string) {
   const queryClient = useQueryClient();
-  const activeWsId = wsId ?? getCurrentWorkspaceId();
+  const activeWsId = wsId ?? getStandaloneOrganizationId();
 
   const permissionsQuery = useQuery({
     queryKey: workspaceKeys.permissions(activeWsId ?? "", userId),

@@ -101,7 +101,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
     return {
         ...actual,
         getCurrentUserId: vi.fn(() => "test-user"),
-        getCurrentWorkspaceId: vi.fn(() => "test-ws-id"),
+        getStandaloneOrganizationId: vi.fn(() => "test-ws-id"),
         fetchWorkspaceLeaveBalances: vi.fn(() => Promise.resolve([])),
         fetchEmployees: vi.fn(() => Promise.resolve([])),
         fetchWorkspace: vi.fn(() => Promise.resolve({ date_format: "DD/MM/YYYY", timezone: "UTC", default_language: "en" })),

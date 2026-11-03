@@ -13,9 +13,9 @@ vi.mock("@/lib/api/behalf-targets", () => ({
   fetchMyBehalfTargets: vi.fn(),
 }));
 
-// Mock getCurrentWorkspaceId
+// Mock backend-owned organization context.
 vi.mock("@/lib/api/helpers", () => ({
-  getCurrentWorkspaceId: vi.fn().mockReturnValue("ws-test-123"),
+  getStandaloneOrganizationId: vi.fn().mockReturnValue("ws-test-123"),
 }));
 
 function createWrapper() {
@@ -147,19 +147,4 @@ describe("useBehalfEmployees", () => {
     });
   });
 
-  describe("no workspace", () => {
-    it("does not fetch when no workspace is set", async () => {
-      // Override the mock for this test
-      const helpersModule = await import("@/lib/api/helpers");
-      vi.spyOn(helpersModule, "getCurrentWorkspaceId").mockReturnValue(null);
-
-      const { result } = renderHook(() => useBehalfEmployees("leave"), {
-        wrapper: createWrapper(),
-      });
-
-      // Should not fire the query
-      expect(result.current.employees).toEqual([]);
-      expect(fetchMyBehalfTargets).not.toHaveBeenCalled();
-    });
-  });
 });

@@ -25,7 +25,7 @@ vi.mock("../../lib/api", () => ({
   createEmployer: vi.fn(),
   updateEmployer: vi.fn(),
   deleteEmployer: vi.fn(),
-  getCurrentWorkspaceId: vi.fn(),
+  getStandaloneOrganizationId: vi.fn(),
 }));
 
 describe("EmployersPage", () => {
@@ -81,7 +81,7 @@ describe("EmployersPage", () => {
       },
     });
 
-    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
+    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
     vi.mocked(api.fetchEmployers).mockResolvedValue(mockEmployers);
     vi.mocked(api.fetchEmployees).mockResolvedValue({
       data: [],

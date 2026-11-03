@@ -25,7 +25,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@/lib/api", () => ({
-  getCurrentWorkspaceId: () => "test-ws-id",
+  getStandaloneOrganizationId: () => "test-ws-id",
   fetchShifts: vi.fn(),
   createShift: vi.fn(),
   updateShift: vi.fn(),
@@ -222,8 +222,8 @@ describe("useShiftEditor", () => {
     });
   });
 
-  describe("wsId", () => {
-    it("returns wsId from getCurrentWorkspaceId", () => {
+  describe("organization context", () => {
+    it("returns backend-owned organization context", () => {
       const { result } = renderHook(() => useShiftEditor(), {
         wrapper: createWrapper(),
       });

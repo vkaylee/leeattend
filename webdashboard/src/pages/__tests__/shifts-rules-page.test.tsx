@@ -22,10 +22,10 @@ vi.mock("../working-patterns-page", () => ({
   ),
 }));
 
-// Mock getCurrentWorkspaceId — return workspace by default
-const mockGetCurrentWorkspaceId = vi.fn().mockReturnValue("ws-test-123");
+// Mock getStandaloneOrganizationId — return organization by default
+const mockGetStandaloneOrganizationId = vi.fn().mockReturnValue("ws-test-123");
 vi.mock("@/lib/api", () => ({
-  getCurrentWorkspaceId: () => mockGetCurrentWorkspaceId(),
+  getStandaloneOrganizationId: () => mockGetStandaloneOrganizationId(),
 }));
 
 // Mock useSearch return value
@@ -37,7 +37,7 @@ vi.mock("@tanstack/react-router", () => ({
 describe("ShiftsRulesPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetCurrentWorkspaceId.mockReturnValue("ws-test-123");
+    mockGetStandaloneOrganizationId.mockReturnValue("ws-test-123");
     mockUseSearch.mockReturnValue({});
   });
 
@@ -85,15 +85,4 @@ describe("ShiftsRulesPage", () => {
     expect(screen.getByText(/hideHeaderTitle=true/)).toBeDefined();
   });
 
-  it("shows select workspace message when no workspace selected", () => {
-    mockGetCurrentWorkspaceId.mockReturnValue(null);
-
-    render(<ShiftsRulesPage />);
-
-    // The "select workspace" text should appear (resolved by setup.tsx i18n mock to Vietnamese)
-    expect(screen.getByText(/Chọn Workspace/i)).toBeDefined();
-    // Child pages should NOT render
-    expect(screen.queryByTestId("working-patterns-page")).toBeNull();
-    expect(screen.queryByTestId("assignment-rules-page")).toBeNull();
-  });
 });

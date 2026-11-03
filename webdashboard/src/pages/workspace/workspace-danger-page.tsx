@@ -8,7 +8,7 @@ import PageHeader from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { getCurrentWorkspaceId } from "@/lib/api";
+import { getStandaloneOrganizationId } from "@/lib/api";
 import { clearWorkspaceData } from "@/lib/api/workspaces";
 
 
@@ -61,7 +61,7 @@ function ClearDataModal({ isOpen, onClose, workspaceName }: { isOpen: boolean, o
   const [confirmText, setConfirmText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
-  const wsId = getCurrentWorkspaceId() ?? "";
+  const wsId = getStandaloneOrganizationId() ?? "";
 
   const handleClear = async () => {
     if (confirmText !== workspaceName) return;

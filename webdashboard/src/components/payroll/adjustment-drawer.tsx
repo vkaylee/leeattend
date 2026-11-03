@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { fetchWorkspaceAttendanceAdjustments, approveAttendanceAdjustment, getCurrentWorkspaceId } from "@/lib/api";
+import { fetchWorkspaceAttendanceAdjustments, approveAttendanceAdjustment, getStandaloneOrganizationId } from "@/lib/api";
 
 import Sheet from "../ui/sheet";
 import { useToast } from "../ui/toast";
@@ -29,7 +29,7 @@ export default function AdjustmentDrawer({
   onAdjustmentResolved
 }: AdjustmentDrawerProps) {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId() ?? "";
+  const wsId = getStandaloneOrganizationId() ?? "";
   const queryClient = useQueryClient();
   const toast = useToast();
   const { formatDate, formatTime } = useDateTimeFormatter();

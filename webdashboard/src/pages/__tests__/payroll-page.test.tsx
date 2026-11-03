@@ -20,7 +20,7 @@ vi.mock('../../lib/api', async () => {
     fetchEmployeePayslips: vi.fn(),
     fetchWorkspacePayslips: vi.fn(),
     calculateBatchPayslips: vi.fn(),
-    getCurrentWorkspaceId: vi.fn(() => 'test-ws-id'),
+    getStandaloneOrganizationId: vi.fn(() => "test-ws-id"),
     fetchWorkspaceAttendanceAdjustments: vi.fn(),
     fetchWorkspace: vi.fn(),
   };
@@ -71,7 +71,7 @@ describe('PayrollPage', () => {
     vi.mocked(api.fetchEmployeePayslips).mockResolvedValue([]);
     vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
     vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
-    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue('test-ws-id');
+    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
   });
 
   it('renders employee list and summary table', async () => {

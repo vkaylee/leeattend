@@ -23,7 +23,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
     fetchWorkspace: vi.fn(),
     fetchDefaultAttendanceRules: vi.fn(),
     fetchAttendancePolicyVersions: vi.fn(),
-    getCurrentWorkspaceId: vi.fn(),
+    getStandaloneOrganizationId: vi.fn(),
     updateDefaultAttendanceRules: vi.fn(),
     reprocessAllAttendance: vi.fn(),
     checkReprocessStatus: vi.fn(),
@@ -108,7 +108,7 @@ describe("TimeSettings Page", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue(wsId);
+    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue(wsId);
   });
 
   it("renders loader initially and then content", async () => {

@@ -4,14 +4,14 @@ import { useTranslation } from "react-i18next";
 import { useConfirm } from "../../../hooks/use-confirm";
 import { useAllEmployees } from "../../../hooks/use-employees";
 import { useDepartments } from "../../../hooks/use-departments";
-import { useWorkspaceMutation } from "../../../hooks/common/use-workspace-query";
-import { deleteDepartment, getCurrentWorkspaceId, Department } from "../../../lib/api";
+import { useOrganizationMutation } from "../../../hooks/common/use-workspace-query";
+import { deleteDepartment, getStandaloneOrganizationId, Department } from "../../../lib/api";
 import { departmentKeys } from "../../../lib/query-keys";
 
 
 export function useDepartmentsPage() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<Department | null>(null);
@@ -33,7 +33,7 @@ export function useDepartmentsPage() {
   });
 
 
-  const deleteMutation = useWorkspaceMutation<string>({
+  const deleteMutation = useOrganizationMutation<string>({
     workspaceId: wsId,
     keys: [departmentKeys.all(wsId)],
     mutationFn: (workspaceId, id) => deleteDepartment(workspaceId, id),

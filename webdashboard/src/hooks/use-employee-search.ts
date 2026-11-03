@@ -1,4 +1,4 @@
-import { useWorkspaceInfiniteQuery, useWorkspaceQuery } from '@/hooks/common/use-workspace-query';
+import { useOrganizationInfiniteQuery, useOrganizationQuery } from '@/hooks/common/use-workspace-query';
 import { employeeKeys } from '@/lib/query-keys';
 import { useState, useMemo, useEffect } from 'react';
 
@@ -31,7 +31,7 @@ export function useEmployeeSearch({
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-  } = useWorkspaceInfiniteQuery({
+  } = useOrganizationInfiniteQuery({
     workspaceId,
     queryKey: employeeKeys.search(workspaceId, {
       departmentIds,
@@ -70,7 +70,7 @@ export function useEmployeeSearch({
   const [selectedMeta, setSelectedMeta] = useState<Employee[]>([]);
 
   const firstSelectedId = selectedIds[0];
-  const { data: selectedEmpData } = useWorkspaceQuery({
+  const { data: selectedEmpData } = useOrganizationQuery({
     workspaceId,
     queryKey: employeeKeys.detail(workspaceId, firstSelectedId ?? ""),
     queryFn: (wsId) => {

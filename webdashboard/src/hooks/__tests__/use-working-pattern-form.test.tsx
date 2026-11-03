@@ -27,7 +27,7 @@ const api = vi.hoisted(() => ({
   fetchShifts: vi.fn(),
   fetchWorkingPatterns: vi.fn(),
   fetchPatternDetails: vi.fn(),
-  getCurrentWorkspaceId: vi.fn(() => "ws-test-123"),
+  getStandaloneOrganizationId: vi.fn(() => "ws-test-123"),
 }));
 
 vi.mock("@/lib/api", () => api);
@@ -91,7 +91,7 @@ describe("pure validation helpers", () => {
 describe("useWorkingPatternForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    api.getCurrentWorkspaceId.mockReturnValue(WS_ID);
+    api.getStandaloneOrganizationId.mockReturnValue(WS_ID);
     navigateFn = vi.fn();
     routerMock.useNavigate.mockReturnValue(navigateFn);
     setupQueries();

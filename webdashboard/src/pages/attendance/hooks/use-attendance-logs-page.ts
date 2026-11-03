@@ -14,7 +14,7 @@ import { useDepartments } from "@/hooks/use-departments";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import {
   fetchRawAttendanceLogs,
-  getCurrentWorkspaceId,
+  getStandaloneOrganizationId,
   fetchStagingLogs,
   resolveStagingLog,
   dismissStagingLog,
@@ -123,7 +123,7 @@ function useAttendanceData(wsId: string | null, employeeId: string, dateRange: {
 export function useAttendanceLogsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   const { formatDate, formatTime } = useDateTimeFormatter();
 
   const search = Route.useSearch();

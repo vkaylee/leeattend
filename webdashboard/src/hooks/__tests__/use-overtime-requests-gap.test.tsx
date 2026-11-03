@@ -99,14 +99,6 @@ describe("useOvertimeRequest – detail error", () => {
     expect(result.current.error?.message).toBe("Not Found");
   });
 
-  it("does not fetch when workspace is absent even with a valid id", () => {
-    mockUseWorkspace.mockReturnValue(withoutWorkspace);
-
-    const { result } = renderHook(() => useOvertimeRequest("ot-1"), { wrapper: createWrapper() });
-
-    expect(result.current.isFetching).toBe(false);
-    expect(api.getRequest).not.toHaveBeenCalled();
-  });
 });
 
 // ── Mutation pending states ──────────────────────────────────────────────────

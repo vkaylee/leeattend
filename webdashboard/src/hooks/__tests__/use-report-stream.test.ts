@@ -2,7 +2,7 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
-import { getAccessToken, getCurrentUserId, getCurrentWorkspaceId, setAccessToken, setCurrentUserId, setCurrentWorkspaceId } from "@/lib/api/helpers";
+import { getAccessToken, getCurrentUserId, setAccessToken, setCurrentUserId } from "@/lib/api/helpers";
 
 import type { UseReportStreamResult } from "../use-report-stream";
 
@@ -711,7 +711,6 @@ describe("useReportStream Hook", () => {
     it("should clear auth session on redirect to login", async () => {
       setAccessToken("expired-jwt");
       setCurrentUserId("user-123");
-      setCurrentWorkspaceId("ws-123");
       // refresh_token is NOT set here — it's an HttpOnly cookie (JS-invisible).
 
       const mockFetch = vi.fn().mockResolvedValue({ ok: false });
@@ -731,7 +730,6 @@ describe("useReportStream Hook", () => {
       await waitFor(() => {
         expect(getAccessToken()).toBeNull();
         expect(getCurrentUserId()).toBeNull();
-        expect(getCurrentWorkspaceId()).toBeNull();
       });
     });
   });

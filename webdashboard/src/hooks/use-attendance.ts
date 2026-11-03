@@ -3,7 +3,7 @@ import { useMemo } from "react";
 
 import type { AttendanceDailySummary, PaginatedResponse } from "@/lib/api";
 
-import { useWorkspaceQuery, useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationQuery, useOrganizationMutation } from "@/hooks/common/use-workspace-query";
 import {
   fetchAttendanceSummaries,
   fetchAttendanceSummariesPaginated,
@@ -12,7 +12,7 @@ import {
   bulkUploadPaperOt,
   claimOt,
 } from "@/lib/api";
-import { getCurrentWorkspaceId } from "@/lib/api/helpers";
+import { getStandaloneOrganizationId } from "@/lib/api/helpers";
 import { maybeNull } from "@/types/api-overrides";
 
 interface SummaryParams {
@@ -31,7 +31,7 @@ export const attendanceKeys = {
 const POST_OT_PAGE_SIZE = 20;
 
 export function useAttendanceSummaries(start: string, end: string, employeeId?: string) {
-  const query = useWorkspaceQuery<AttendanceDailySummary[]>({
+  const query = useOrganizationQuery<AttendanceDailySummary[]>({
     queryKey: attendanceKeys.summaries({ start, end, employeeId }),
     queryFn: (wsId) => fetchAttendanceSummaries(wsId, start, end, employeeId),
   });
@@ -49,7 +49,7 @@ export function useAttendanceSummariesInfinite(
   end: string,
   options?: { employeeId?: string; otStatus?: string },
 ) {
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
 
   const infiniteQuery = useInfiniteQuery<PaginatedResponse<AttendanceDailySummary>>({
     queryKey: [...attendanceKeys.all, "summaries", { start, end, employeeId: options?.employeeId, otStatus: options?.otStatus }],
@@ -89,7 +89,7 @@ export function useAttendanceSummariesInfinite(
 }
 
 export function useApproveOt() {
-  const mutation = useWorkspaceMutation<
+  const mutation = useOrganizationMutation<
     { employeeId: string; date: string; approved_minutes: number; manager_note?: string; status: "approved" | "rejected" }
   >({
     mutationFn: (wsId, data) =>
@@ -109,7 +109,7 @@ export function useApproveOt() {
 }
 
 export function useEnterPaperOt() {
-  const mutation = useWorkspaceMutation<
+  const mutation = useOrganizationMutation<
     {
       employeeId: string;
       date: string;
@@ -136,7 +136,7 @@ export function useEnterPaperOt() {
 }
 
 export function useBulkUploadPaperOt() {
-  const mutation = useWorkspaceMutation<
+  const mutation = useOrganizationMutation<
     File,
     { total_rows: number; success_count: number; failed_count: number; errors: { line_number: number; employment_id: string; error_message: string }[] }
   >({
@@ -151,7 +151,7 @@ export function useBulkUploadPaperOt() {
 }
 
 export function useClaimOt() {
-  const mutation = useWorkspaceMutation<
+  const mutation = useOrganizationMutation<
     { employeeId: string; date: string; claimed_minutes: number; reason?: string }
   >({
     mutationFn: (wsId, data) =>

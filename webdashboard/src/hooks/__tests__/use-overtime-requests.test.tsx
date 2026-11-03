@@ -39,7 +39,7 @@ vi.mock("@/lib/api/overtime-requests", () => ({
   overtimeRequestsApi: api,
 }));
 
-const WS_ID = "ws-test-123";
+const WS_ID = "standalone";
 const withWorkspace = { workspace: { id: WS_ID }, isLoading: false, isError: false };
 const withoutWorkspace = { workspace: undefined, isLoading: false, isError: false };
 
@@ -122,14 +122,6 @@ describe("useOvertimeRequests", () => {
     expect(result.current.data?.data).toHaveLength(1);
   });
 
-  it("does not fetch without a workspace", () => {
-    mockUseWorkspace.mockReturnValue(withoutWorkspace);
-
-    const { result } = renderHook(() => useOvertimeRequests(), { wrapper: createWrapper() });
-
-    expect(result.current.isFetching).toBe(false);
-    expect(api.listRequests).not.toHaveBeenCalled();
-  });
 });
 
 describe("useOvertimeRequest", () => {
@@ -183,15 +175,6 @@ describe("useCreateOvertimeRequest", () => {
     });
   });
 
-  it("rejects when no workspace is active", async () => {
-    mockUseWorkspace.mockReturnValue(withoutWorkspace);
-
-    const { result } = renderHook(() => useCreateOvertimeRequest(), { wrapper: createWrapper() });
-
-    await expect(
-      result.current.mutateAsync({ employees: [], planned_date: "x", planned_minutes: 60, reason: "r" }),
-    ).rejects.toThrow("No workspace ID");
-  });
 });
 
 describe("useSubmitOvertimeRequest", () => {
@@ -218,13 +201,6 @@ describe("useSubmitOvertimeRequest", () => {
     });
   });
 
-  it("rejects when no workspace is active", async () => {
-    mockUseWorkspace.mockReturnValue(withoutWorkspace);
-
-    const { result } = renderHook(() => useSubmitOvertimeRequest(), { wrapper: createWrapper() });
-
-    await expect(result.current.mutateAsync("ot-1")).rejects.toThrow("No workspace ID");
-  });
 });
 
 describe("useCancelOvertimeRequest", () => {
@@ -251,13 +227,6 @@ describe("useCancelOvertimeRequest", () => {
     });
   });
 
-  it("rejects when no workspace is active", async () => {
-    mockUseWorkspace.mockReturnValue(withoutWorkspace);
-
-    const { result } = renderHook(() => useCancelOvertimeRequest(), { wrapper: createWrapper() });
-
-    await expect(result.current.mutateAsync("ot-1")).rejects.toThrow("No workspace ID");
-  });
 });
 
 describe("useEmployeeConsent", () => {
@@ -313,15 +282,6 @@ describe("useEmployeeConsent", () => {
     });
   });
 
-  it("rejects when no workspace is active", async () => {
-    mockUseWorkspace.mockReturnValue(withoutWorkspace);
-
-    const { result } = renderHook(() => useEmployeeConsent(), { wrapper: createWrapper() });
-
-    await expect(
-      result.current.mutateAsync({ id: "ot-1", employment_id: "emp-1", status: "accepted" }),
-    ).rejects.toThrow("No workspace ID");
-  });
 });
 
 describe("useMyOtAssignments", () => {

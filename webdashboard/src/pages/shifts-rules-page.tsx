@@ -2,14 +2,14 @@ import { useSearch } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { getCurrentWorkspaceId } from "@/lib/api";
+import { getStandaloneOrganizationId } from "@/lib/api";
 
 import AssignmentRulesPage from "./assignment-rules-page";
 import WorkingPatternsPage from "./working-patterns-page";
 
 export default function ShiftsRulesPage() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
 
   // Safe search param parsing
   const search = useSearch({ strict: false });

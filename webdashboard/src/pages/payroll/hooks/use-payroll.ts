@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
-  getCurrentWorkspaceId,
+  getStandaloneOrganizationId,
   Employee,
 } from "@/lib/api";
 
@@ -13,7 +13,7 @@ import { usePayrollSelection } from "./use-payroll-selection";
 
 export function usePayroll() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId() ?? "";
+  const wsId = getStandaloneOrganizationId() ?? "";
   const queryClient = useQueryClient();
   
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);

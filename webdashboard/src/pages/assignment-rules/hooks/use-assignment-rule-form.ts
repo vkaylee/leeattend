@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/toast";
 import {
   createAssignmentRule,
   updateAssignmentRule,
-  getCurrentWorkspaceId,
+  getStandaloneOrganizationId,
   AssignmentRuleConditions,
 } from "@/lib/api";
 
@@ -18,7 +18,7 @@ export function useAssignmentRuleForm(ruleId?: string) {
   const navigate = useNavigate();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const wsId = getCurrentWorkspaceId() ?? "";
+  const wsId = getStandaloneOrganizationId() ?? "";
   const isEditMode = !!ruleId;
 
   // Form State

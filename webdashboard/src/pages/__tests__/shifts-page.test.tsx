@@ -38,7 +38,7 @@ vi.mock("../../lib/api", () => ({
   upsertRoster: vi.fn(),
   bulkUpsertRoster: vi.fn(),
   deleteRoster: vi.fn(),
-  getCurrentWorkspaceId: vi.fn(),
+  getStandaloneOrganizationId: vi.fn(),
   fetchWorkingPatterns: vi.fn(),
 }));
 
@@ -216,7 +216,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
  
 
  
-    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
+    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
  
     vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees);
  

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-import { apiFetch, getAccessToken, getCurrentUserId, getCurrentWorkspaceId, setAccessToken, setCurrentUserId, setCurrentWorkspaceId } from "../api/helpers";
+import { apiFetch, getAccessToken, getCurrentUserId, setAccessToken, setCurrentUserId } from "../api/helpers";
 
 describe("apiFetch utility", () => {
   beforeEach(() => {
@@ -10,7 +10,6 @@ describe("apiFetch utility", () => {
     // Tokens now live in the in-memory store (lib/api/token-store.ts).
     setAccessToken(null);
     setCurrentUserId(null);
-    setCurrentWorkspaceId(null);
   });
 
   afterEach(() => {
@@ -78,16 +77,6 @@ describe("apiFetch utility", () => {
     expect(callHeaders.get("Content-Type")).toBeNull();
   });
 
-  it("should include X-Workspace-Id if available in localStorage", async () => {
- 
-    localStorage.setItem("active_workspace_id", "ws-123");
-    vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve({}) } as unknown as Response);
-
-    await apiFetch("/test");
-
-    const callHeaders = (vi.mocked(fetch).mock.calls[0][1]!).headers as Headers;
-    expect(callHeaders.get("X-Workspace-Id")).toBe("ws-123");
-  });
 
   it("should include Authorization header if token is available", async () => {
     localStorage.setItem("access_token", "token-abc");
@@ -103,18 +92,11 @@ describe("apiFetch utility", () => {
     const originalLocation = window.location;
 
     beforeEach(() => {
-      // Mock window.location
       Object.defineProperty(window, "location", {
         value: { pathname: "/dashboard", href: "" },
         writable: true,
       });
-      // Set auth tokens to verify they get cleared
-      localStorage.setItem("access_token", "test-token");
-      localStorage.setItem("refresh_token", "test-refresh");
-      localStorage.setItem("active_user_id", "user-123");
-      localStorage.setItem("active_workspace_id", "ws-123");
     });
-
     afterEach(() => {
       Object.defineProperty(window, "location", {
         value: originalLocation,
@@ -126,7 +108,6 @@ describe("apiFetch utility", () => {
       // Pre-condition: tokens exist in the in-memory store.
       setAccessToken("stale");
       setCurrentUserId("u-1");
-      setCurrentWorkspaceId("ws-1");
 
       vi.mocked(fetch).mockResolvedValue({ status: 401, ok: false } as unknown as Response);
 
@@ -136,7 +117,6 @@ describe("apiFetch utility", () => {
       // (Tokens no longer live in localStorage — see lib/api/token-store.ts.)
       expect(getAccessToken()).toBeNull();
       expect(getCurrentUserId()).toBeNull();
-      expect(getCurrentWorkspaceId()).toBeNull();
 
       // Verify redirect to login
       expect(window.location.href).toBe("/login");

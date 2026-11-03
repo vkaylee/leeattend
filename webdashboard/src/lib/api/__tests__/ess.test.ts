@@ -11,7 +11,7 @@ vi.mock("../client", () => ({
 }));
 
 vi.mock("../helpers", () => ({
-  getCurrentWorkspaceId: vi.fn().mockReturnValue("test-ws-123"),
+  getStandaloneOrganizationId: vi.fn().mockReturnValue("test-ws-123"),
 }));
 
 vi.mock("../attendance", () => ({
@@ -37,7 +37,7 @@ import {
   fetchMyAttendanceSummaries,
   submitMyOtClaim,
 } from "../ess";
-import { getCurrentWorkspaceId } from "../helpers";
+import { getStandaloneOrganizationId } from "../helpers";
 
 describe("Employee Self-Service (ESS) API Client", () => {
   beforeEach(() => {
@@ -165,13 +165,13 @@ describe("Employee Self-Service (ESS) API Client", () => {
 
   it("fetchMyAttendanceSummaries should fetch via fetchAttendanceSummaries helper", async () => {
     const result = await fetchMyAttendanceSummaries("2026-03-01", "2026-03-07");
-    expect(getCurrentWorkspaceId).toHaveBeenCalled();
+    expect(getStandaloneOrganizationId).toHaveBeenCalled();
     expect(fetchAttendanceSummaries).toHaveBeenCalledWith("test-ws-123", "2026-03-01", "2026-03-07");
     expect(result).toEqual([{ date: "2026-03-01", status: "Present" }]);
   });
 
   it("fetchMyAttendanceSummaries should throw error if workspace id is missing", async () => {
-    vi.mocked(getCurrentWorkspaceId).mockReturnValueOnce("");
+    vi.mocked(getStandaloneOrganizationId).mockReturnValueOnce("");
     await expect(fetchMyAttendanceSummaries("2026-03-01", "2026-03-07")).rejects.toThrow("Workspace not found");
   });
 
@@ -189,7 +189,7 @@ describe("Employee Self-Service (ESS) API Client", () => {
   });
 
   it("submitMyOtClaim should throw error if workspace id is missing", async () => {
-    vi.mocked(getCurrentWorkspaceId).mockReturnValueOnce("");
+    vi.mocked(getStandaloneOrganizationId).mockReturnValueOnce("");
     await expect(submitMyOtClaim("2026-03-01", 120, "OT work")).rejects.toThrow("Workspace not found");
   });
 });

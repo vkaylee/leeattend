@@ -8,24 +8,18 @@ import {
   clearMemorySession,
   getAccessToken as storeGetAccessToken,
   getCurrentUserId as storeGetCurrentUserId,
-  getCurrentWorkspaceId as storeGetCurrentWorkspaceId,
   setAccessToken as storeSetAccessToken,
   setCurrentUserId as storeSetCurrentUserId,
-  setCurrentWorkspaceId as storeSetCurrentWorkspaceId,
 } from "./token-store";
 
+export { STANDALONE_ORGANIZATION_ID, getStandaloneOrganizationId } from "./config";
 export { TIMEOUT, forceRefreshToken } from "./api-fetch-helpers";
 
-// Access token + context-ID accessors read from the in-memory store
-// (NOT localStorage — see token-store.ts).
+// Access token and user context remain in memory; organization context is backend-owned.
 export const getAccessToken = storeGetAccessToken;
-export const getCurrentWorkspaceId = storeGetCurrentWorkspaceId;
 export const getCurrentUserId = storeGetCurrentUserId;
 
-// setAccessToken / setCurrentWorkspaceId / setCurrentUserId are re-exported
-// from token-store so existing callers keep working unchanged.
 export const setAccessToken = storeSetAccessToken;
-export const setCurrentWorkspaceId = storeSetCurrentWorkspaceId;
 export const setCurrentUserId = storeSetCurrentUserId;
 
 // NOTE: getRefreshToken / setRefreshToken are INTENTIONALLY removed.
@@ -54,18 +48,14 @@ function getHeaders() {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  const wsId = getCurrentWorkspaceId();
-  if (wsId) {
-    headers["X-Workspace-Id"] = wsId;
-  }
   const token = getAccessToken();
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   } else {
-    // Fallback for dev mode
     const userId = getCurrentUserId();
     if (userId) headers["X-User-Id"] = userId;
   }
+
 
   // Debug Headers (only in development)
   if (import.meta.env.DEV) {

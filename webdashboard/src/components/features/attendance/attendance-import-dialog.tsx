@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
-import { uploadAttendance, fetchLatestImportJob, fetchImportJobStatus, getCurrentWorkspaceId } from "@/lib/api";
+import { uploadAttendance, fetchLatestImportJob, fetchImportJobStatus, getStandaloneOrganizationId } from "@/lib/api";
 import { AttendanceImportJob } from "@/lib/api/types";
 import { logError } from "@/lib/logger";
 import { cn } from "@/lib/utils";
@@ -282,7 +282,7 @@ export default function AttendanceImportDialog({
   onDownloadTemplate
 }: AttendanceImportDialogProps) {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);

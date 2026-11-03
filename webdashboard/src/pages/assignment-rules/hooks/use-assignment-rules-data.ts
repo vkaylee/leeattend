@@ -5,12 +5,12 @@ import {
   fetchWorkingPatterns,
   fetchEmployers,
   fetchLocations,
-  getCurrentWorkspaceId,
+  getStandaloneOrganizationId,
 } from "@/lib/api";
 import { useDepartments } from "@/hooks/use-departments";
 
 export function useAssignmentRulesData() {
-  const wsId = getCurrentWorkspaceId() ?? "";
+  const wsId = getStandaloneOrganizationId() ?? "";
 
   const { data: rules, isLoading: rulesLoading } = useQuery({ 
     queryKey: ["assignment-rules", wsId], 

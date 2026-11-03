@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Typography } from "@/components/ui/typography";
 import {
   fetchWorkspace,
-  getCurrentWorkspaceId,
+  getStandaloneOrganizationId,
   fetchDefaultAttendanceRules,
   fetchAttendancePolicyVersions,
   AttendanceRules,
@@ -23,7 +23,7 @@ import { ReprocessModal } from "./time-settings/reprocess-modal";
   // eslint-disable-next-line complexity
 export default function TimeSettings() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
 
   const { data: workspace, isLoading: isLoadingWs, isError: isErrorWs, error: errorWs } = useQuery({
     queryKey: ["workspace", wsId],

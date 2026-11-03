@@ -9,7 +9,7 @@ import Button from "@/components/ui/button";
 import FormField, { LABEL_BASE } from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationMutation } from "@/hooks/common/use-workspace-query";
 import { Typography } from "@/components/ui/typography";
 import { updateEmployeeEmployment } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
@@ -47,7 +47,7 @@ export default function TerminateEmployeeModal({
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  const terminateMutation = useWorkspaceMutation<
+  const terminateMutation = useOrganizationMutation<
     { endDate: string; reason: string; notes: string },
     Awaited<ReturnType<typeof updateEmployeeEmployment>>
   >({

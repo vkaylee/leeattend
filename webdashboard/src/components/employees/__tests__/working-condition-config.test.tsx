@@ -41,7 +41,7 @@ vi.mock("@/lib/api", async () => {
     ]),
     createWorkingCondition: vi.fn().mockResolvedValue({ id: "cond-2", type_: "REGULAR", start_date: "2026-01-01", is_paid: true }),
     deleteWorkingCondition: mockDeleteFn,
-    getCurrentWorkspaceId: () => "ws-1",
+    getStandaloneOrganizationId: () => "ws-1",
   };
 });
 
@@ -79,7 +79,6 @@ const renderComponent = (props: { wsId: string; employeeId: string }) => {
 describe("WorkingConditionConfig", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.setItem("active_workspace_id", "ws-1");
   });
 
   afterEach(() => {

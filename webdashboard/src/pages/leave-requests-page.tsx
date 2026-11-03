@@ -29,7 +29,7 @@ import ResponsiveToolbar from "@/components/ui/responsive-toolbar";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { getCurrentWorkspaceId, Employee, LeaveRequest } from "@/lib/api";
+import { getStandaloneOrganizationId, Employee, LeaveRequest } from "@/lib/api";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
 
@@ -65,7 +65,7 @@ function StatusFilterDropdown({ setStatusFilter, statusFilter }: { setStatusFilt
 }
 
 export default function LeaveRequestsPage() {
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   const { formatDate } = useDateTimeFormatter();
   const { hasPermission } = useMyPermissions();
 

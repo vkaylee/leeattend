@@ -52,22 +52,13 @@ describe("useAllEmployees", () => {
     expect(result.current.employees[0].full_name).toBe("Alice");
   });
 
-  it("does not fetch when wsId is null", () => {
+  it("uses standalone context when no workspace argument is supplied", async () => {
     const { result } = renderHook(() => useAllEmployees(null), {
       wrapper: createWrapper(),
     });
-
-    expect(fetchEmployees).not.toHaveBeenCalled();
-    expect(result.current.employees).toEqual([]);
-  });
-
-  it("does not fetch when wsId is undefined", () => {
-    const { result } = renderHook(() => useAllEmployees(undefined), {
-      wrapper: createWrapper(),
-    });
-
-    expect(fetchEmployees).not.toHaveBeenCalled();
-    expect(result.current.employees).toEqual([]);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(fetchEmployees).toHaveBeenCalledWith("standalone", 1, MAX_EMPLOYEE_FETCH, undefined);
+    expect(result.current.employees).toEqual(MOCK_EMPLOYEES);
   });
 
   it("respects enabled option for lazy-loading (modals)", async () => {

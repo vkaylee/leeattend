@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Mock the dependencies BEFORE importing the file under test
 vi.mock("../helpers", () => ({
     apiFetch: vi.fn(),
-    getCurrentWorkspaceId: vi.fn().mockReturnValue("test-ws-id"),
+    getStandaloneOrganizationId: vi.fn().mockReturnValue("test-ws-id"),
     TIMEOUT: { REPORT_OPERATION: 180000 },
 }));
 

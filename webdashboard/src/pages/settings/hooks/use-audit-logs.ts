@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { getCurrentWorkspaceId, fetchAuditLogs } from "@/lib/api";
+import { getStandaloneOrganizationId, fetchAuditLogs } from "@/lib/api";
 
 export function useAuditLogs() {
-    const workspaceId = getCurrentWorkspaceId();
+    const workspaceId = getStandaloneOrganizationId();
     const [page, setPage] = useState(1);
     const limit = 20;
 

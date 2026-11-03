@@ -8,7 +8,7 @@ import type { WorkspaceMember, CreateEmployeeRequest, UpdateEmployeeRequest } fr
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationMutation } from "@/hooks/common/use-workspace-query";
 import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 import {
   createEmployee, updateEmployee, fetchWorkspaceMembers,
@@ -34,7 +34,7 @@ function useEmployeeMutations(wsId: string, onClose: () => void, onSuccess?: () 
   const { t } = useTranslation();
   const toast = useToast();
 
-  const createMutation = useWorkspaceMutation<
+  const createMutation = useOrganizationMutation<
     CreateEmployeeRequest,
     Awaited<ReturnType<typeof createEmployee>>
   >({
@@ -48,7 +48,7 @@ function useEmployeeMutations(wsId: string, onClose: () => void, onSuccess?: () 
     },
   });
 
-  const updateMutation = useWorkspaceMutation<
+  const updateMutation = useOrganizationMutation<
     { id: string; employee: UpdateEmployeeRequest },
     Awaited<ReturnType<typeof updateEmployee>>
   >({

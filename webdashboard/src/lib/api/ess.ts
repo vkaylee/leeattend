@@ -5,7 +5,7 @@
 
 import { claimOt, fetchAttendanceSummaries } from "./attendance";
 import { client } from "./client";
-import { getCurrentWorkspaceId } from "./helpers";
+import { getStandaloneOrganizationId } from "./helpers";
 import {
   MyProfileResponse,
   EmployeeProfile,
@@ -159,7 +159,7 @@ export async function fetchMyAttendanceSummaries(
   // If I am not admin, I can only see my own.
   // But I need to pass the workspace ID.
   
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   if (!wsId) throw new Error("Workspace not found");
   
   // We don"t necessarily need to pass employeeId if the backend resolves it from user_id for non-admins?
@@ -176,7 +176,7 @@ export async function submitMyOtClaim(
   minutes: number,
   reason: string
 ): Promise<void> {
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   if (!wsId) throw new Error("Workspace not found");
   
   // We need employee ID for the PATH param.

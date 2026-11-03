@@ -25,7 +25,7 @@ vi.mock("../../lib/api", () => ({
   createDepartment: vi.fn(),
   updateDepartment: vi.fn(),
   deleteDepartment: vi.fn(),
-  getCurrentWorkspaceId: vi.fn(),
+  getStandaloneOrganizationId: vi.fn(),
   fetchEmployees: vi.fn(),
   fetchWorkingPatterns: vi.fn(),
   fetchDepartmentPayrollConfigs: vi.fn(),
@@ -62,7 +62,7 @@ describe("DepartmentsPage", () => {
       },
     });
  
-    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
+    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
  
     vi.mocked(api.fetchDepartments).mockResolvedValue([
       { id: "dept-1", name: "Engineering", description: "Tech stuff", manager_id: "user-1", active_employee_count: 5 }
@@ -93,12 +93,6 @@ describe("DepartmentsPage", () => {
     );
   };
 
-  it("renders without workspace selected", () => {
- 
-    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue(null);
-    renderWithProviders(<DepartmentsPage />);
-    expect(screen.getByText("common.select_workspace")).toBeDefined();
-  });
 
   it("renders departments list", async () => {
     renderWithProviders(<DepartmentsPage />);

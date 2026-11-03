@@ -23,7 +23,7 @@ const api = vi.hoisted(() => ({
   assignExtraPermission: vi.fn(),
   revokeExtraPermission: vi.fn(),
   fetchPermissionCatalog: vi.fn(),
-  getCurrentWorkspaceId: vi.fn(() => "ws-test-123"),
+  getStandaloneOrganizationId: vi.fn(() => WS_ID),
 }));
 
 vi.mock("@/lib/api", () => api);
@@ -57,7 +57,7 @@ function createWrapper() {
 describe("useWorkspaceMembers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    api.getCurrentWorkspaceId.mockReturnValue(WS_ID);
+    api.getStandaloneOrganizationId.mockReturnValue(WS_ID);
     (api.fetchWorkspaceMembers as Mock).mockResolvedValue([MOCK_MEMBER]);
   });
 
@@ -66,7 +66,7 @@ describe("useWorkspaceMembers", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(api.getCurrentWorkspaceId).toHaveBeenCalled();
+    expect(api.getStandaloneOrganizationId).toHaveBeenCalled();
     expect(api.fetchWorkspaceMembers).toHaveBeenCalledWith(WS_ID);
     expect(result.current.members).toHaveLength(1);
     expect(result.current.members[0].email).toBe("alice@example.com");
@@ -84,7 +84,7 @@ describe("useWorkspaceMembers", () => {
 
   it("defaults to an empty list when no members are loaded", () => {
     (api.fetchWorkspaceMembers as Mock).mockResolvedValue(undefined);
-    api.getCurrentWorkspaceId.mockReturnValue("");
+    api.getStandaloneOrganizationId.mockReturnValue("");
 
     const { result } = renderHook(() => useWorkspaceMembers(), { wrapper: createWrapper() });
 
@@ -170,7 +170,7 @@ describe("useMemberRoles", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    api.getCurrentWorkspaceId.mockReturnValue(WS_ID);
+    api.getStandaloneOrganizationId.mockReturnValue(WS_ID);
     (api.fetchMemberRoles as Mock).mockResolvedValue(MOCK_ROLES);
   });
 
@@ -248,7 +248,7 @@ describe("useMemberRoles", () => {
 describe("useMemberPermissions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    api.getCurrentWorkspaceId.mockReturnValue(WS_ID);
+    api.getStandaloneOrganizationId.mockReturnValue(WS_ID);
     (api.fetchMemberPermissions as Mock).mockResolvedValue([
       { permission: "attendance.view", expires_at: null },
     ]);

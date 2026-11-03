@@ -12,24 +12,9 @@ import {
   type UseQueryResult,
 } from "@tanstack/react-query";
 
-import { useWorkspace } from "@/hooks/use-workspace";
+import { STANDALONE_ORGANIZATION_ID } from "@/lib/api/config";
 
-// ── useWorkspaceQuery ─────────────────────────────────────────────────────
-//
-// Thin wrapper around useQuery that:
-//  1. Guards with `enabled: !!workspace` so the query never fires without a
-//     selected workspace.
-//  2. Extracts `workspace.id` and passes it as the first argument to
-//     `queryFn`, removing the manual "if (!wsId) throw" boilerplate from
-//     every hook file.
-//  3. Accepts an optional `enabled` extra sentinel ANDed with the workspace
-//     guard (useful when the hook takes additional required params).
-//
-// Usage:
-//   useWorkspaceQuery<MyType>({
-//     queryKey: myKeys.list(wsId, ...),
-//     queryFn: (wsId) => myApi.callMethod(wsId, ...),
-//   });
+// Organization-scoped wrappers pass backend-owned context to legacy API signatures.
 
 interface WorkspaceQueryOptions<TData> {
   /** Optional validated workspace ID for hooks that already receive the active workspace. */
@@ -50,19 +35,15 @@ interface WorkspaceQueryOptions<TData> {
   staleTime?: number;
 }
 
-export function useWorkspaceQuery<TData>(
+export function useOrganizationQuery<TData>(
   options: WorkspaceQueryOptions<TData>,
 ): UseQueryResult<TData> {
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id ?? options.workspaceId;
+  const organizationId = options.workspaceId ?? STANDALONE_ORGANIZATION_ID;
 
   return useQuery<TData>({
     queryKey: options.queryKey,
-    queryFn: () => {
-      if (!workspaceId) throw new Error("No workspace ID");
-      return options.queryFn(workspaceId);
-    },
-    enabled: !!workspaceId && (options.enabled ?? true),
+    queryFn: () => options.queryFn(organizationId),
+    enabled: options.enabled ?? true,
     staleTime: options.staleTime,
     placeholderData: options.placeholderData === "keepPreviousData" ? keepPreviousData : undefined,
     refetchInterval: options.refetchInterval,
@@ -104,37 +85,29 @@ interface WorkspaceInfiniteQueryOptions<TData, TPageParam> {
   queryKey: QueryKey;
 }
 
-export function useWorkspaceInfiniteQuery<TData, TPageParam>(
+export function useOrganizationInfiniteQuery<TData, TPageParam>(
   options: WorkspaceInfiniteQueryOptions<TData, TPageParam>,
 ): UseInfiniteQueryResult<InfiniteData<TData, TPageParam>> {
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace?.id ?? options.workspaceId;
+  const organizationId = options.workspaceId ?? STANDALONE_ORGANIZATION_ID;
 
   return useInfiniteQuery<TData, Error, InfiniteData<TData, TPageParam>, QueryKey, TPageParam>({
     queryKey: options.queryKey,
-    queryFn: ({ pageParam }: QueryFunctionContext<QueryKey, TPageParam>) => {
-      if (!workspaceId) throw new Error("No workspace ID");
-      return options.queryFn(workspaceId, pageParam as TPageParam);
-    },
-    enabled: !!workspaceId && (options.enabled ?? true),
+    queryFn: ({ pageParam }: QueryFunctionContext<QueryKey, TPageParam>) =>
+      options.queryFn(organizationId, pageParam as TPageParam),
+    enabled: options.enabled ?? true,
     initialPageParam: options.initialPageParam,
     getNextPageParam: options.getNextPageParam,
     placeholderData: options.placeholderData === "keepPreviousData" ? (previous) => previous : undefined,
   });
 }
 
-export function useWorkspaceMutation<TVars = void, TData = unknown>(
+export function useOrganizationMutation<TVars = void, TData = unknown>(
   options: WorkspaceMutationOptions<TVars, TData>,
 ): UseMutationResult<TData, Error, TVars> {
-  const { workspace } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation<TData, Error, TVars>({
-    mutationFn: (vars: TVars) => {
-      const workspaceId = workspace?.id ?? options.workspaceId;
-      if (!workspaceId) throw new Error("No workspace ID");
-      return options.mutationFn(workspaceId, vars);
-    },
+    mutationFn: (vars: TVars) => options.mutationFn(options.workspaceId ?? STANDALONE_ORGANIZATION_ID, vars),
     onError: (error, vars) => {
       options.onError?.(error, vars);
     },

@@ -34,9 +34,9 @@ vi.mock("@/lib/api", () => ({
   deleteAdjustmentBehalfAssignment: vi.fn(),
 }));
 
-// Mock getCurrentWorkspaceId
+// Mock backend-owned organization context.
 vi.mock("@/lib/api/helpers", () => ({
-  getCurrentWorkspaceId: vi.fn().mockReturnValue("ws-test-123"),
+  getStandaloneOrganizationId: vi.fn().mockReturnValue("ws-test-123"),
 }));
 
 function createWrapper() {

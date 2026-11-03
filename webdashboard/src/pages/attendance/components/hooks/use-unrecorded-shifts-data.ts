@@ -8,7 +8,7 @@ import {
   PaginatedResponse,
   ScheduleTrace,
   fetchNoShowReport,
-  getCurrentWorkspaceId,
+  getStandaloneOrganizationId,
 } from "@/lib/api";
 
 import { useNoShowRows, type ZonedNoShowRow } from "../../hooks/use-no-show-rows";
@@ -64,7 +64,7 @@ export function useUnrecordedShiftsData({
   onlyZoneB,
   selectedDept,
 }: UseUnrecordedShiftsDataParams): UseUnrecordedShiftsDataResult {
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   const { workspace } = useWorkspace(wsId ?? undefined);
   const workspaceTimezone = workspace?.timezone ?? "UTC";
 

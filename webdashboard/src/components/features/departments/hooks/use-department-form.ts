@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 
-import { useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationMutation } from "@/hooks/common/use-workspace-query";
 import { useState } from "react";
 
 import type { Department } from "@/lib/api";
@@ -40,7 +40,7 @@ export function useDepartmentForm(wsId: string, editingDept: Department | null, 
     setPrevDeptId(deptId);
   }
 
-  const createMutation = useWorkspaceMutation<
+  const createMutation = useOrganizationMutation<
     Parameters<typeof createDepartment>[1],
     Awaited<ReturnType<typeof createDepartment>>
   >({
@@ -63,7 +63,7 @@ export function useDepartmentForm(wsId: string, editingDept: Department | null, 
     },
   });
 
-  const updateMutation = useWorkspaceMutation<
+  const updateMutation = useOrganizationMutation<
     Parameters<typeof updateDepartment>[2],
     Awaited<ReturnType<typeof updateDepartment>>
   >({

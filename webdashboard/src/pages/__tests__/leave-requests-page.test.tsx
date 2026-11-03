@@ -59,7 +59,7 @@ vi.mock("../../lib/api", () => ({
   deleteLeavePolicy: vi.fn(),
   assignLeavePolicy: vi.fn(),
   triggerAccrualRun: vi.fn(),
-  getCurrentWorkspaceId: vi.fn(),
+  getStandaloneOrganizationId: vi.fn(),
   fetchMyPermissions: vi.fn(),
   fetchMyProfile: vi.fn(),
   // LeaveImportDialog mocks
@@ -141,7 +141,7 @@ describe("LeaveRequestsPage", () => {
  
     });
  
-    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
+    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
     vi.mocked(api.fetchMyProfile).mockResolvedValue({
       employee: { id: "emp-1", full_name: "John Doe" },
       profile: { id: "prof-1" },
@@ -175,12 +175,6 @@ describe("LeaveRequestsPage", () => {
   });
 
  
-  it("renders without workspace selected", () => {
-    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue(null);
-    renderPage(queryClient);
-
-    expect(screen.getByText("Chọn Workspace")).toBeDefined();
-  });
 
  
   it("renders pending requests by default", async () => {

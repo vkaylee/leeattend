@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import EmploymentPhaseManager from "@/components/people/employment-phase-manager";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { getCurrentWorkspaceId } from "@/lib/api";
+import { getStandaloneOrganizationId } from "@/lib/api";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -19,7 +19,7 @@ export default function OrganizationSettings() {
 
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const wsId = getCurrentWorkspaceId() ?? "";
+  const wsId = getStandaloneOrganizationId();
   const [activeTab, setActiveTab] = useState<TabType>("departments");
   return (
 

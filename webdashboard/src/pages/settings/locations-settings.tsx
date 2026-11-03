@@ -8,7 +8,7 @@ import EmptyState from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { getCurrentWorkspaceId } from "@/lib/api";
+import { getStandaloneOrganizationId } from "@/lib/api";
 import { WorkLocation } from "@/lib/api/locations";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +17,7 @@ import { useLocations, useDeleteLocation } from "./hooks/use-locations";
 
 export default function LocationsSettings() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId() ?? "";
+  const wsId = getStandaloneOrganizationId() ?? "";
   const { data: locations, isLoading } = useLocations(wsId);
   const deleteLocation = useDeleteLocation(wsId);
   const toast = useToast();

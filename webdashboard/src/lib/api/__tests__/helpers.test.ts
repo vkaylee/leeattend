@@ -1,11 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi, Mock } from 'vitest';
 
-import { getFullUrl } from '../api-fetch-helpers';
+import { getStandaloneOrganizationId } from "../config";
+import { getFullUrl } from "../api-fetch-helpers";
 import {
   getAccessToken,
   setAccessToken,
-  getCurrentWorkspaceId,
-  setCurrentWorkspaceId,
   getCurrentUserId,
   setCurrentUserId,
   clearAuthSession,
@@ -16,11 +15,7 @@ import {
 
 describe('Token helpers', () => {
   beforeEach(() => {
-    // Reset the in-memory store between tests. The store is a module-level
-    // singleton, so we wipe via the public API (set to the zero value) rather
-    // than touching localStorage — tokens no longer live there.
     setAccessToken(null);
-    setCurrentWorkspaceId(null);
     setCurrentUserId(null);
   });
 
@@ -44,18 +39,9 @@ describe('Token helpers', () => {
   // the backend; the frontend must never read it.
 });
 
-describe('Workspace helpers', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  it('getCurrentWorkspaceId returns null when not set', () => {
-    expect(getCurrentWorkspaceId()).toBeNull();
-  });
-
-  it('setCurrentWorkspaceId / getCurrentWorkspaceId roundtrip', () => {
-    setCurrentWorkspaceId('ws-789');
-    expect(getCurrentWorkspaceId()).toBe('ws-789');
+describe('Organization context', () => {
+  it('always returns backend-owned standalone context', () => {
+    expect(getStandaloneOrganizationId()).toBe('standalone');
   });
 });
 
@@ -82,17 +68,6 @@ describe('clearAuthSession', () => {
     vi.unstubAllGlobals();
   });
 
-  it('wipes in-memory credentials', () => {
-    setAccessToken('token');
-    setCurrentWorkspaceId('ws');
-    setCurrentUserId('user');
-
-    clearAuthSession();
-
-    expect(getAccessToken()).toBeNull();
-    expect(getCurrentWorkspaceId()).toBeNull();
-    expect(getCurrentUserId()).toBeNull();
-  });
 
   it('calls the backend logout endpoint to expire HttpOnly cookies', async () => {
     const mockFetch = globalThis.fetch as Mock;
@@ -137,7 +112,6 @@ describe('apiFetch interceptor logic', () => {
     mockFetch.mockResolvedValue({ ok: true, status: 200 });
 
     setAccessToken('test-token');
-    setCurrentWorkspaceId('ws-123');
 
     const promise = apiFetch('/v1/test');
     await vi.runAllTimersAsync();
@@ -149,7 +123,6 @@ describe('apiFetch interceptor logic', () => {
     // Using Headers object
     const headers = options.headers as Headers;
     expect(headers.get('Authorization')).toBe('Bearer test-token');
-    expect(headers.get('X-Workspace-Id')).toBe('ws-123');
     expect(headers.get('Content-Type')).toBe('application/json');
   });
 

@@ -29,16 +29,16 @@ const api = vi.hoisted(() => ({
   enterPaperOt: vi.fn(),
   bulkUploadPaperOt: vi.fn(),
   claimOt: vi.fn(),
-  getCurrentWorkspaceId: vi.fn(),
+  getStandaloneOrganizationId: vi.fn(() => "standalone"),
 }));
 
 vi.mock("@/lib/api", () => api);
 
 vi.mock("@/lib/api/helpers", () => ({
-  getCurrentWorkspaceId: () => api.getCurrentWorkspaceId(),
+  getStandaloneOrganizationId: () => api.getStandaloneOrganizationId(),
 }));
 
-const WS_ID = "ws-att-999";
+const WS_ID = "standalone";
 const withWorkspace = { workspace: { id: WS_ID }, isLoading: false, isError: false };
 const withoutWorkspace = { workspace: undefined, isLoading: false, isError: false };
 
@@ -122,18 +122,6 @@ describe("useAttendanceSummaries", () => {
     );
   });
 
-  it("returns empty summaries array when no workspace is active", async () => {
-    mockUseWorkspace.mockReturnValue(withoutWorkspace);
-
-    const { result } = renderHook(
-      () => useAttendanceSummaries("2026-08-01", "2026-08-03"),
-      { wrapper: createWrapper() },
-    );
-
-    expect(result.current.isLoading).toBe(false);
-    expect(result.current.summaries).toEqual([]);
-    expect(api.fetchAttendanceSummaries).not.toHaveBeenCalled();
-  });
 
   it("exposes isError=true when the API call fails", async () => {
     (api.fetchAttendanceSummaries as Mock).mockRejectedValue(new Error("Server Error"));
@@ -171,7 +159,7 @@ describe("useAttendanceSummaries", () => {
 describe("useAttendanceSummariesInfinite", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    api.getCurrentWorkspaceId.mockReturnValue(WS_ID);
+    api.getStandaloneOrganizationId.mockReturnValue("standalone");
   });
 
   it("fetches the first page of paginated summaries and flattens results", async () => {
@@ -218,7 +206,7 @@ describe("useAttendanceSummariesInfinite", () => {
     await waitFor(() => expect(api.fetchAttendanceSummariesPaginated).toHaveBeenCalled());
 
     expect(api.fetchAttendanceSummariesPaginated).toHaveBeenCalledWith(
-      WS_ID,
+      "standalone",
       "2026-08-01",
       "2026-08-03",
       { page: 1, limit: 20, employeeId: "emp-5", otStatus: "pending" },
@@ -291,16 +279,18 @@ describe("useAttendanceSummariesInfinite", () => {
     expect(api.fetchAttendanceSummariesPaginated).toHaveBeenCalledTimes(2);
   });
 
-  it("disables the query when workspace ID is absent", () => {
-    api.getCurrentWorkspaceId.mockReturnValue(null);
-
+  it("uses standalone organization context", async () => {
     const { result } = renderHook(
       () => useAttendanceSummariesInfinite("2026-08-01", "2026-08-03"),
       { wrapper: createWrapper() },
     );
-
-    expect(result.current.isLoading).toBe(false);
-    expect(api.fetchAttendanceSummariesPaginated).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(api.fetchAttendanceSummariesPaginated).toHaveBeenCalledWith(
+      "standalone",
+      "2026-08-01",
+      "2026-08-03",
+      { employeeId: undefined, limit: 20, otStatus: undefined, page: 1 },
+    );
   });
 
   it("flattens null data from paginated response gracefully", async () => {
@@ -343,7 +333,7 @@ describe("useApproveOt", () => {
       });
     });
 
-    expect(api.approveOt).toHaveBeenCalledWith(WS_ID, "emp-1", {
+    expect(api.approveOt).toHaveBeenCalledWith("standalone", "emp-1", {
       date: "2026-08-01",
       approved_minutes: 120,
       manager_note: "Good work",
@@ -363,7 +353,7 @@ describe("useApproveOt", () => {
       });
     });
 
-    expect(api.approveOt).toHaveBeenCalledWith(WS_ID, "emp-2", {
+    expect(api.approveOt).toHaveBeenCalledWith("standalone", "emp-2", {
       date: "2026-08-02",
       approved_minutes: 0,
       manager_note: undefined,
@@ -418,7 +408,7 @@ describe("useEnterPaperOt", () => {
       });
     });
 
-    expect(api.enterPaperOt).toHaveBeenCalledWith(WS_ID, "emp-1", {
+    expect(api.enterPaperOt).toHaveBeenCalledWith("standalone", "emp-1", {
       date: "2026-08-01",
       claimed_minutes: 90,
       reason: "Project deadline",
@@ -556,7 +546,7 @@ describe("useClaimOt", () => {
       });
     });
 
-    expect(api.claimOt).toHaveBeenCalledWith(WS_ID, "emp-1", {
+    expect(api.claimOt).toHaveBeenCalledWith("standalone", "emp-1", {
       date: "2026-08-01",
       claimed_minutes: 60,
       reason: "Overtime work",

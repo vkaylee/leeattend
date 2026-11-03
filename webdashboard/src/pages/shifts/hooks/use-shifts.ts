@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import type { ComplianceViolation } from "@/lib/api/errors";
 import type { Shift, EmployeeSchedule } from "@/lib/api/types";
 
-import { getCurrentWorkspaceId } from "@/lib/api";
+import { getStandaloneOrganizationId } from "@/lib/api";
 
 import { useMonthNavigation } from "./use-month-navigation";
 import { useRosterHandlers } from "./use-roster-handlers";
@@ -15,7 +15,7 @@ import { useShiftNavigation } from "./use-shift-navigation";
 import { UseShiftsReturn } from "./use-shifts-types";
 
 export function useShifts(): UseShiftsReturn {
-  const wsId = getCurrentWorkspaceId() ?? "";
+  const wsId = getStandaloneOrganizationId() ?? "";
   const navigate = useNavigate();
   const nav = useShiftNavigation();
   const monthNav = useMonthNavigation();

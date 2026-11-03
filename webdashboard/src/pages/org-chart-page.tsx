@@ -1,4 +1,4 @@
-import { useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationMutation } from "@/hooks/common/use-workspace-query";
 import { useDepartments } from "@/hooks/use-departments";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { FolderTree } from "lucide-react";
@@ -11,12 +11,12 @@ import { DepartmentFormModal } from "@/components/features/departments/departmen
 import { DepartmentOrgChart } from "@/components/features/departments/department-org-chart";
 import { useConfirm } from "@/hooks/use-confirm";
 
-import { deleteDepartment, getCurrentWorkspaceId, Department } from "../lib/api";
+import { deleteDepartment, getStandaloneOrganizationId, Department } from "../lib/api";
 import { departmentKeys } from "@/lib/query-keys";
 
 export default function OrgChartPage() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<Department | null>(null);
@@ -32,7 +32,7 @@ export default function OrgChartPage() {
   const { data: departments = [] } = useDepartments(wsId);
   const { employees } = useAllEmployees(wsId);
 
-  const deleteMutation = useWorkspaceMutation<string>({
+  const deleteMutation = useOrganizationMutation<string>({
     workspaceId: wsId,
     keys: [departmentKeys.all(wsId)],
     mutationFn: (workspaceId, id) => deleteDepartment(workspaceId, id),

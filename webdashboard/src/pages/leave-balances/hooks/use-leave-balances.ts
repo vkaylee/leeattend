@@ -6,7 +6,7 @@ import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
-import { fetchWorkspaceLeaveBalances, getCurrentWorkspaceId, triggerAccrualRun, fetchJobStatus } from "@/lib/api";
+import { fetchWorkspaceLeaveBalances, getStandaloneOrganizationId, triggerAccrualRun, fetchJobStatus } from "@/lib/api";
 import { WorkspaceLeaveBalance } from "@/lib/api/types";
 import { logError } from "@/lib/logger";
 
@@ -14,7 +14,7 @@ export function useLeaveBalances() {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   const [searchTerm, setSearchTerm] = useState("");
   const { page, setPage, reset } = usePagination({ initialPageSize: 20 });
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());

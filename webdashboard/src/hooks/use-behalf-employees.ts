@@ -16,7 +16,7 @@ import type { BehalfDomain } from "@/lib/api/behalf-targets";
 import type { Employee } from "@/lib/api/types";
 
 import { fetchMyBehalfTargets } from "@/lib/api/behalf-targets";
-import { getCurrentWorkspaceId } from "@/lib/api/helpers";
+import { getStandaloneOrganizationId } from "@/lib/api/helpers";
 
 export interface UseBehalfEmployeesReturn {
   /** List of employees the current user can act on behalf of */
@@ -39,7 +39,7 @@ const behalfEmployeesKeys = {
 export function useBehalfEmployees(
   domain: BehalfDomain,
 ): UseBehalfEmployeesReturn {
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
 
   const query = useQuery<Employee[]>({
     queryKey: wsId ? behalfEmployeesKeys.targets(wsId, domain) : [],

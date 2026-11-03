@@ -6,7 +6,6 @@ import { HeaderActionsProvider } from "@/hooks/use-header-actions";
 import { useI18nSync } from "@/hooks/use-i18n-sync";
 import { useNavSidebar } from "@/hooks/use-nav-sidebar";
 import { useNotifications } from "@/hooks/use-notifications";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { cn } from "@/lib/utils";
 
 import BottomDrawer from "./bottom-drawer";
@@ -25,7 +24,6 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
   useTheme();
   useI18nSync();
   const location = useLocation();
-  const { workspace: currentWorkspace } = useWorkspace();
   const { unreadCount } = useNotifications();
 
   const {
@@ -70,9 +68,9 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
         onClickGroup={handleGroupClick}
         onHoverGroup={handleGroupHover}
         onTogglePin={togglePin}
-        workspaceLogoUrl={currentWorkspace?.logo_url ?? undefined}
-        workspaceName={currentWorkspace?.name ?? "LeeAttend"}
-        workspaceTagline={currentWorkspace?.tagline ?? undefined}
+        workspaceLogoUrl={undefined}
+        workspaceName="LeeAttend"
+        workspaceTagline={undefined}
       />
 
       {/* Desktop: Floating Panel */}
@@ -97,7 +95,7 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
         )}
       >
         <Navbar
-          currentWorkspaceName={currentWorkspace?.name ?? "Workspace"}
+          currentWorkspaceName="LeeAttend"
         />
 
         <main

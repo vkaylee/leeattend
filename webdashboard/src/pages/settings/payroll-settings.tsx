@@ -12,7 +12,7 @@ import SalaryComponentManager from "@/components/payroll/salary-component-manage
 import { PageTabs } from "@/components/ui/page-tabs";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Typography } from "@/components/ui/typography";
-import { getCurrentWorkspaceId } from "@/lib/api";
+import { getStandaloneOrganizationId } from "@/lib/api";
 
 type TabType = "policy" | "components" | "bases" | "incentives" | "overtime" | "statutory_rules";
 
@@ -37,7 +37,7 @@ function PayrollTabContent({ activeTab, wsId }: { activeTab: TabType; wsId: stri
 
 export default function PayrollSettings() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
 
   type ParentGroupType = "core" | "formulas" | "benefits";
 

@@ -11,7 +11,7 @@ import {
   fetchPatternDetails,
   fetchShifts,
   fetchWorkingPatterns,
-  getCurrentWorkspaceId,
+  getStandaloneOrganizationId,
   updateWorkingPattern,
 } from "@/lib/api";
 
@@ -166,7 +166,7 @@ function getPatternDetailsQueryOptions(wsId: string | null, patternId: string | 
 export function useWorkingPatternForm(patternId?: string) {
   const { t } = useTranslation();
   const toast = useToast();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   const isEditMode = !!patternId;
 
   // Form State

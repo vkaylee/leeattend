@@ -32,7 +32,7 @@ vi.mock("../../lib/api", () => ({
   fetchWorkingPatterns: vi.fn(),
   fetchDepartments: vi.fn(),
   fetchLocations: vi.fn(),
-  getCurrentWorkspaceId: vi.fn(),
+  getStandaloneOrganizationId: vi.fn(),
 }));
 
 // Mock Toast
@@ -137,7 +137,7 @@ describe("AssignmentRuleEditorPage", () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });
-    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("ws-1");
+    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("ws-1");
     vi.mocked(api.fetchAssignmentRules).mockResolvedValue(mockRules);
     vi.mocked(api.fetchWorkingPatterns).mockResolvedValue(mockPatterns as never);
     vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as never);

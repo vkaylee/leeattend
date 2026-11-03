@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { LeaveImportJob } from "@/lib/api/leaves";
 
 import Modal from "@/components/ui/modal";
-import { uploadLeaveExcel, fetchLatestLeaveImport, getCurrentWorkspaceId } from "@/lib/api";
+import { uploadLeaveExcel, fetchLatestLeaveImport, getStandaloneOrganizationId } from "@/lib/api";
 import { logError } from "@/lib/logger";
 
 import { LeaveImportProgressView } from "./leave-import-progress-view";
@@ -128,7 +128,7 @@ export default function LeaveImportDialog({
   onImportComplete,
 }: LeaveImportDialogProps) {
   const { t, i18n } = useTranslation();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   const [file, setFile] = useState<File | null>(null);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
   const { importJob, setImportJob, startPolling, isProcessing, isFinished } = useLeaveImportStatus(wsId, isOpen, onImportComplete);

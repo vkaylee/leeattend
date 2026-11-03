@@ -15,7 +15,7 @@ type CreateIntervalRequest = components["schemas"]["CreateIntervalRequest"];
 import { useToast } from "@/components/ui/toast";
 import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
 import {
-  getCurrentWorkspaceId,
+  getStandaloneOrganizationId,
   fetchShifts,
   createShift,
   updateShift,
@@ -91,7 +91,7 @@ export function useShiftEditor(shiftId?: string) {
   const navigate = useNavigate();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const wsId = getCurrentWorkspaceId() ?? "";
+  const wsId = getStandaloneOrganizationId() ?? "";
 
   const isEditMode = !!shiftId;
 

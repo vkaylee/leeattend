@@ -22,7 +22,7 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkingConditions } from "@/hooks/use-employees";
-import { createWorkingCondition, deleteWorkingCondition, getCurrentWorkspaceId, fetchConditionTypes, type ConditionTypeDefinition } from "@/lib/api";
+import { createWorkingCondition, deleteWorkingCondition, getStandaloneOrganizationId, fetchConditionTypes, type ConditionTypeDefinition } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 // Icon map: condition type code → Lucide icon component (fallback = Clock)
@@ -188,7 +188,7 @@ function useWorkingConditionActions({
   setIsAdding: (val: boolean) => void;
   t: TFunction;
 }) {
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -240,7 +240,7 @@ export default function WorkingConditionConfig({ employeeId }: Props) {
   const [endDate, setEndDate] = useState("");
   const [isPaid, setIsPaid] = useState(true);
 
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   const { data: conditions = [], isLoading } = useWorkingConditions(employeeId);
 
   // Fetch catalog types for the dropdown

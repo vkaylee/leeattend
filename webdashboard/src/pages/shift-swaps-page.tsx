@@ -28,7 +28,7 @@ import { useSearchPatch } from "@/lib/state";
 import { Route } from "@/routes/_authenticated/_workspace/shift-swaps";
 
 import {
-  getCurrentWorkspaceId,
+  getStandaloneOrganizationId,
 } from "../lib/api";
 import {
   fetchShiftSwaps,
@@ -143,7 +143,7 @@ type TabType = ShiftSwapsSearch["tab"];
 
 export default function ShiftSwapsPage() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
 
   if (!wsId) {
     return (

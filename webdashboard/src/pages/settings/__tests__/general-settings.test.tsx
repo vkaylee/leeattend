@@ -20,7 +20,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
     ...mod,
     fetchWorkspace: vi.fn(),
     updateWorkspace: vi.fn(),
-    getCurrentWorkspaceId: vi.fn(),
+    getStandaloneOrganizationId: vi.fn(),
   };
 });
 
@@ -55,7 +55,7 @@ describe("GeneralSettings Page", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue(wsId);
+    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue(wsId);
     vi.mocked(api.fetchWorkspace).mockResolvedValue(mockWorkspace as unknown as api.Workspace);
   });
 

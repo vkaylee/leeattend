@@ -2,7 +2,6 @@ import type { NotificationResponse, UnreadCountResponse } from "@/lib/api/types"
 
 import { client } from "./client";
 
-export type { Notification, NotificationResponse, UnreadCountResponse } from "@/lib/api/types";
 
 /**
  * The notification type discriminator as declared by the API schema.

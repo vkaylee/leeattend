@@ -170,35 +170,17 @@ vi.mock("@/components/ui/combobox", () => ({
   ),
 }));
 
-// Bridge localStorage auth-token WRITES to the in-memory token store so that
-// existing tests (which set access_token / active_workspace_id / active_user_id
-// via localStorage.setItem) keep working unchanged after the token-store
-// migration (see lib/api/token-store.ts).
-//
-// Why patch Storage.prototype: many tests call localStorage.setItem directly in
-// their setup, and many components read getCurrentWorkspaceId() etc. at render
-// time. The bridge translates the legacy localStorage write path into the new
-// memory store synchronously, with zero per-test edits required.
-//
-// Keys bridged: access_token, active_workspace_id, active_user_id
-// NOT bridged by design: refresh_token (now HttpOnly-only — tests must NOT set
-// it), i18nextLng, debug_*, theme, and other non-auth localStorage keys.
 import {
   setAccessToken as storeSetAccessToken,
-  setCurrentWorkspaceId as storeSetWorkspaceId,
   setCurrentUserId as storeSetUserId,
   clearMemorySession,
 } from "../lib/api/token-store";
 
-const BRIDGED_KEYS = new Set(["access_token", "active_workspace_id", "active_user_id"]);
+const BRIDGED_KEYS: Record<string, true> = { access_token: true, active_user_id: true };
 
 function bridgeWrite(key: string | null, value: string | null) {
-  if (key === null || !BRIDGED_KEYS.has(key)) return;
-  switch (key) {
-    case "access_token": storeSetAccessToken(value); break;
-    case "active_workspace_id": storeSetWorkspaceId(value); break;
-    case "active_user_id": storeSetUserId(value); break;
-  }
+  if (key === "access_token") storeSetAccessToken(value);
+  if (key === "active_user_id") storeSetUserId(value);
 }
 
 // Patch Storage.prototype.setItem/removeItem so localStorage writes are bridged
@@ -212,9 +194,6 @@ function bridgeWrite(key: string | null, value: string | null) {
 // silently redirected every sessionStorage write into localStorage while
 // getItem still read from sessionStorage — so sessionStorage writes vanished.
 //
-// bridgeWrite is called unconditionally but is a no-op for any key outside
-// BRIDGED_KEYS (the three localStorage-only auth keys), so sessionStorage
-// writes (chunkRetry, dismissed-version, …) never touch the token store.
 /* eslint-disable @typescript-eslint/unbound-method */
 const protoSetItem = Storage.prototype.setItem;
 const protoRemoveItem = Storage.prototype.removeItem;
@@ -229,13 +208,9 @@ Storage.prototype.removeItem = function removeItem(key: string): void {
 };
 
 beforeEach(() => {
-  // Reset the in-memory singleton between tests so state never leaks.
   clearMemorySession();
-  // Clear the localStorage mirrors too (kept in sync with the bridge).
-  BRIDGED_KEYS.forEach((key) => { localStorage.removeItem(key); });
+  Object.keys(BRIDGED_KEYS).forEach((key) => { localStorage.removeItem(key); });
 });
-
-// Mock useLanguage (depends on useProfile → API) so that components consuming
 // useDateTimeFormatter (which now reads i18n language) don't crash during
 // render. Self-contained: uses fake profile data without touching use-profile
 // module so individual test files can still mock use-profile themselves.

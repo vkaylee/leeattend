@@ -6,7 +6,7 @@ import {
   AttendanceSummary,
   Department,
   Employer,
-  getCurrentWorkspaceId,
+  getStandaloneOrganizationId,
 } from "@/lib/api";
 
 import { FilterMode, useReportsFilters } from "./use-reports-filters";
@@ -54,7 +54,7 @@ export interface UseReportsPageReturn {
 }
 
 export function useReportsPage(): UseReportsPageReturn {
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   
   const {
     filterMode, setFilterMode,

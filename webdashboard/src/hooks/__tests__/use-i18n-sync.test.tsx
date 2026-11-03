@@ -34,9 +34,9 @@ vi.mock('../use-workspace', () => ({
   }),
 }));
 
-// Mock getCurrentWorkspaceId
+// Mock backend-owned organization context.
 vi.mock('@/lib/api', () => ({
-  getCurrentWorkspaceId: () => 'ws1',
+  getStandaloneOrganizationId: () => 'ws1',
 }));
 
 // Mock localStorage

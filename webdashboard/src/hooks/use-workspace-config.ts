@@ -1,6 +1,6 @@
 import type { CreateConfigEntryRequest } from '@/lib/api/types';
 
-import { useWorkspaceQuery, useWorkspaceMutation } from '@/hooks/common/use-workspace-query';
+import { useOrganizationQuery, useOrganizationMutation } from '@/hooks/common/use-workspace-query';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { workspaceConfigApi } from '@/lib/api/workspace-config';
 
@@ -15,7 +15,7 @@ export const workspaceConfigKeys = {
 
 export const useWorkspaceConfigs = (prefix?: string) => {
   const { workspace } = useWorkspace();
-  return useWorkspaceQuery({
+  return useOrganizationQuery({
     queryKey: workspaceConfigKeys.list(workspace?.id ?? '', prefix),
     queryFn: (wsId) => workspaceConfigApi.listConfigs(wsId, prefix),
   });
@@ -23,7 +23,7 @@ export const useWorkspaceConfigs = (prefix?: string) => {
 
 export const useWorkspaceConfig = (key: string, date?: string) => {
   const { workspace } = useWorkspace();
-  return useWorkspaceQuery({
+  return useOrganizationQuery({
     queryKey: workspaceConfigKeys.detail(workspace?.id ?? '', key, date),
     queryFn: (wsId) => workspaceConfigApi.getConfig(wsId, key, date),
     enabled: !!key,
@@ -31,13 +31,13 @@ export const useWorkspaceConfig = (key: string, date?: string) => {
 };
 
 export const useUpsertWorkspaceConfig = () =>
-  useWorkspaceMutation<CreateConfigEntryRequest>({
+  useOrganizationMutation<CreateConfigEntryRequest>({
     mutationFn: (wsId, payload) => workspaceConfigApi.upsertConfig(wsId, payload),
     keys: [workspaceConfigKeys.all],
   });
 
 export const useDeleteWorkspaceConfig = () =>
-  useWorkspaceMutation<string>({
+  useOrganizationMutation<string>({
     mutationFn: (wsId, id) => workspaceConfigApi.deleteConfig(wsId, id),
     keys: [workspaceConfigKeys.all],
   });

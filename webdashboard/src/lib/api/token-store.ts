@@ -13,16 +13,9 @@
 // HttpOnly cookies are invisible to JS — immune to XSS token theft. The refresh
 // endpoint also falls back to reading the cookie when the body is empty.
 //
-// workspace_id / user_id are non-secret context identifiers (just UUIDs). We
-// keep them in memory too to minimise the PII/metadata footprint on shared
-// machines; they carry no auth power.
 
 let accessToken: string | null = null;
-let currentWorkspaceId: string | null = typeof import.meta.env.VITE_STANDALONE_WORKSPACE_ID === "string"
-  ? import.meta.env.VITE_STANDALONE_WORKSPACE_ID
-  : null;
 let currentUserId: string | null = null;
-
 /** auth token change listeners (e.g. websocket reconnect on token rotation) */
 type TokenListener = (token: string | null) => void;
 const listeners = new Set<TokenListener>();
@@ -39,13 +32,6 @@ export function setAccessToken(token: string | null): void {
   listeners.forEach((fn) => { fn(accessToken); });
 }
 
-export function getCurrentWorkspaceId(): string | null {
-  return currentWorkspaceId;
-}
-
-export function setCurrentWorkspaceId(id: string | null): void {
-  currentWorkspaceId = id;
-}
 
 export function getCurrentUserId(): string | null {
   return currentUserId;
@@ -70,8 +56,7 @@ export function onAccessTokenChange(fn: TokenListener): () => void {
  * sets Max-Age=0) — that call happens in `clearAuthSession`, not here.
  */
 export function clearMemorySession(): void {
-  accessToken = null;
-  currentWorkspaceId = null;
-  currentUserId = null;
-  listeners.forEach((fn) => { fn(null); });
+	accessToken = null;
+	currentUserId = null;
+	listeners.forEach((fn) => { fn(null); });
 }

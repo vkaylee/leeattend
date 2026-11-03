@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Typography } from "@/components/ui/typography";
-import { WorkspaceLeaveBalance, fetchLeaveHistory, getCurrentWorkspaceId } from "@/lib/api";
+import { WorkspaceLeaveBalance, fetchLeaveHistory, getStandaloneOrganizationId } from "@/lib/api";
 
 import { LeaveBalanceBreakdown } from "./leave-balance-detail-components/leave-balance-breakdown";
 import { LeaveBalanceHeader } from "./leave-balance-detail-components/leave-balance-header";
@@ -21,7 +21,7 @@ interface LeaveBalanceDetailModalProps {
 
 export function LeaveBalanceDetailModal({ balance, isOpen, onClose }: LeaveBalanceDetailModalProps) {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   const [activeTab, setActiveTab] = useState("all");
 
   const { data: history = [], isLoading } = useQuery({

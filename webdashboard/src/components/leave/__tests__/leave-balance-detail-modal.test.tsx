@@ -23,7 +23,7 @@ vi.mock('@/lib/api', async () => {
   return {
     ...actual,
     fetchLeaveHistory: vi.fn(),
-    getCurrentWorkspaceId: () => 'test-ws-id',
+    getStandaloneOrganizationId: () => "test-ws-id",
   };
 });
 

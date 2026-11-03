@@ -1,4 +1,4 @@
-import { useWorkspaceQuery } from "@/hooks/common/use-workspace-query";
+import { useOrganizationQuery } from "@/hooks/common/use-workspace-query";
 import { employeeKeys } from "@/lib/query-keys";
 import { useMemo } from "react";
 
@@ -10,7 +10,7 @@ interface UseReportsEmployeeSearchProps {
 }
 
 export function useReportsEmployeeSearch({ wsId, debouncedSearch }: UseReportsEmployeeSearchProps) {
-  const { data: searchResults } = useWorkspaceQuery({
+  const { data: searchResults } = useOrganizationQuery({
     workspaceId: wsId,
     queryKey: employeeKeys.search(wsId, { search: debouncedSearch }),
     queryFn: (workspaceId) => searchEmployees({ wsId: workspaceId, query: debouncedSearch }),

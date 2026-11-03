@@ -60,7 +60,6 @@ const MOCK_DEPARTMENT: Department = {
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
-  localStorage.setItem("active_workspace_id", "ws-test-123");
   mockCreateDepartment.mockResolvedValue({ id: "dept-new", name: "New Dept" });
   mockUpdateDepartment.mockResolvedValue({ ...MOCK_DEPARTMENT, name: "Updated" });
 });

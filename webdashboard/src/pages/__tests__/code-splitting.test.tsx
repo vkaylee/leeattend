@@ -100,7 +100,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
  
         ...actual,
         getCurrentUserId: vi.fn(() => "test-user"),
-        getCurrentWorkspaceId: vi.fn(() => "test-ws-id"),
+        getStandaloneOrganizationId: vi.fn(() => "test-ws-id"),
         fetchWorkspaceLeaveBalances: vi.fn(() => Promise.resolve([])),
         fetchEmployees: vi.fn(() => Promise.resolve([])),
         searchEmployees: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
@@ -183,7 +183,6 @@ describe("TanStack Router .lazy.tsx file structure", () => {
     it("layout route _workspace retains AppShell component", async () => {
         const module_ = await import("../../routes/_authenticated/_workspace");
         expect(module_.Route.options.component).toBeDefined();
-        expect(module_.Route.options.beforeLoad).toBeDefined();
     });
 
     it("layout route _infra retains AppShell component", async () => {

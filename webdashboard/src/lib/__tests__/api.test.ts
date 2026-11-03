@@ -32,55 +32,55 @@ describe("api.ts comprehensive tests", () => {
     it("fetchEmployees", async () => {
       mockSuccess([]);
       await api.fetchEmployees("ws-1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees"), expect.any(Object));
     });
 
     it("fetchEmployee", async () => {
       mockSuccess({});
       await api.fetchEmployee("ws-1", "e1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees/e1"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees/e1"), expect.any(Object));
     });
 
     it("createEmployee", async () => {
       mockSuccess({});
       await api.createEmployee("ws-1", { full_name: "A", employee_id_number: "E001", employer_id: "emp-1", hire_date: "2024-01-01" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees"), expect.objectContaining({ method: "POST" }));
     });
 
     it("updateEmployee", async () => {
       mockSuccess({});
       await api.updateEmployee("ws-1", "e1", { full_name: "B" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees/e1"), expect.objectContaining({ method: "PUT" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees/e1"), expect.objectContaining({ method: "PUT" }));
     });
 
     it("deleteEmployee", async () => {
       mockSuccess({});
       await api.deleteEmployee("ws-1", "e1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees/e1"), expect.objectContaining({ method: "DELETE" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees/e1"), expect.objectContaining({ method: "DELETE" }));
     });
 
     it("fetchDepartments", async () => {
       mockSuccess([]);
       await api.fetchDepartments("ws-1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/departments"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/departments"), expect.any(Object));
     });
 
     it("createDepartment", async () => {
       mockSuccess({});
       await api.createDepartment("ws-1", { name: "IT" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/departments"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/departments"), expect.objectContaining({ method: "POST" }));
     });
 
     it("transferEmployee", async () => {
       mockSuccess({});
       await api.transferEmployee("ws-1", "emp-1", { department_id: "d1", effective_date: "..." });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees/emp-1/departments"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees/emp-1/departments"), expect.objectContaining({ method: "POST" }));
     });
 
     it("fetchEmployeeDepartmentHistory", async () => {
       mockSuccess([]);
       await api.fetchEmployeeDepartmentHistory("ws-1", "emp-1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees/emp-1/departments"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees/emp-1/departments"), expect.any(Object));
     });
   });
 
@@ -88,56 +88,56 @@ describe("api.ts comprehensive tests", () => {
     it("punchIn", async () => {
       mockSuccess({});
       await api.punchIn("ws-1", { employment_id: "e1" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/time/punch-in"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/time/punch-in"), expect.objectContaining({ method: "POST" }));
     });
 
     it("punchOut", async () => {
       mockSuccess({});
       await api.punchOut("ws-1", { employee_id: "e1", note: "N" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/time/punch-out"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/time/punch-out"), expect.objectContaining({ method: "POST" }));
     });
 
     it("submitAttendanceAdjustment", async () => {
       mockSuccess({});
       await api.submitAttendanceAdjustment("ws-1", { employment_id: "e1", requested_punch_time: "..." });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/adjustments"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/attendance/adjustments"), expect.objectContaining({ method: "POST" }));
     });
 
     it("uploadAttendance", async () => {
       mockSuccess({});
       const file = new File([""], "test.xlsx");
       await api.uploadAttendance("ws-1", file, "timecard");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/upload"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/attendance/upload"), expect.objectContaining({ method: "POST" }));
     });
 
     it("fetchLatestImportJob", async () => {
       vi.mocked(fetch).mockResolvedValueOnce({ ok: true, headers: new Headers({ "content-type": "application/json" }), json: () => Promise.resolve({ id: "job-1" }), text: () => Promise.resolve(JSON.stringify({ id: "job-1" })) } as unknown as Response);
       await api.fetchLatestImportJob("ws-1", "adjustment");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/import-jobs/latest?target_type=adjustment"), expect.anything());
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/attendance/import-jobs/latest?target_type=adjustment"), expect.anything());
     });
 
     it("fetchImportJobStatus", async () => {
       mockSuccess({});
       await api.fetchImportJobStatus("ws-1", "j1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/import-jobs/j1"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/attendance/import-jobs/j1"), expect.any(Object));
     });
 
     it("fetchWorkspaceAttendanceAdjustments", async () => {
       mockSuccess([]);
       await api.fetchWorkspaceAttendanceAdjustments("ws-1", { status: "pending" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/adjustments?status=pending"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/attendance/adjustments?status=pending"), expect.any(Object));
     });
 
     it("approveAttendanceAdjustment", async () => {
       mockSuccess({});
       await api.approveAttendanceAdjustment("ws-1", "req-1", { status: "approved" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/adjustments/req-1/approve"), expect.objectContaining({ method: "PUT" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/attendance/adjustments/req-1/approve"), expect.objectContaining({ method: "PUT" }));
     });
 
     it("fetchAttendanceReport", async () => {
       mockSuccess({});
       await api.fetchAttendanceReport({ wsId: "ws-1", start: "2026-01-01", end: "2026-01-31", type: "summary" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/reports/attendance?start_date=2026-01-01&end_date=2026-01-31&type=summary"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/reports/attendance?start_date=2026-01-01&end_date=2026-01-31&type=summary"), expect.any(Object));
     });
   });
 
@@ -145,37 +145,37 @@ describe("api.ts comprehensive tests", () => {
     it("submitLeaveRequest", async () => {
       mockSuccess({});
       await api.submitLeaveRequest("ws-1", { employment_id: "e1", leave_type_id: "lt-1", start_date: "...", end_date: "..." });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/leave/submit"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/leave/submit"), expect.objectContaining({ method: "POST" }));
     });
 
     it("fetchWorkspaceLeaveRequests", async () => {
       mockSuccess([]);
       await api.fetchWorkspaceLeaveRequests("ws-1", { status: "pending" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/leave/requests?status=pending"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/leave/requests?status=pending"), expect.any(Object));
     });
 
     it("approveLeaveRequest", async () => {
       mockSuccess({});
       await api.approveLeaveRequest("ws-1", "req-1", { status: "approved" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/leave/requests/req-1/approve"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/leave/requests/req-1/approve"), expect.objectContaining({ method: "POST" }));
     });
 
     it("fetchEmployeeLeaveBalances", async () => {
       mockSuccess([]);
       await api.fetchEmployeeLeaveBalances("ws-1", "e1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees/e1/leave/balances"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees/e1/leave/balances"), expect.any(Object));
     });
 
     it("fetchLeavePolicies", async () => {
       mockSuccess([]);
       await api.fetchLeavePolicies("ws-1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/leave/policies"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/leave/policies"), expect.any(Object));
     });
 
     it("createLeavePolicy", async () => {
       mockSuccess({});
       await api.createLeavePolicy("ws-1", { name: "P", leave_type_id: "lt-1", rule_config: {} as never });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/leave/policies"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/leave/policies"), expect.objectContaining({ method: "POST" }));
     });
 
     it("assignLeavePolicy", async () => {
@@ -186,13 +186,13 @@ describe("api.ts comprehensive tests", () => {
         policy_id: "p1",
         effective_from: "2026-01-01"
       });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/leave/policies/assign"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/leave/policies/assign"), expect.objectContaining({ method: "POST" }));
     });
 
     it("triggerAccrualRun returns AccrualJobResponse", async () => {
       mockSuccess({ job_id: "j-123", status: "queued", message: "Accrual job enqueued" });
       const result = await api.triggerAccrualRun("ws-1", { date: "2026-01-01" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/leave/accrual/run"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/leave/accrual/run"), expect.objectContaining({ method: "POST" }));
       expect(result).toEqual({ job_id: "j-123", status: "queued", message: "Accrual job enqueued" });
     });
 
@@ -206,7 +206,7 @@ describe("api.ts comprehensive tests", () => {
     it("fetchJobStatus returns job status", async () => {
       mockSuccess({ job_id: "j-1", status: "processing", completed_at: null, error_message: null });
       const result = await api.fetchJobStatus("ws-1", "j-1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/jobs/j-1/status"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/jobs/j-1/status"), expect.any(Object));
       expect(result.status).toBe("processing");
     });
 
@@ -229,37 +229,37 @@ describe("api.ts comprehensive tests", () => {
     it("calculate_payroll", async () => {
       mockSuccess({});
       await api.calculate_payroll("ws-1", "e1", 2026, 1);
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees/e1/calculate-payroll?year=2026&month=1"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees/e1/calculate-payroll?year=2026&month=1"), expect.objectContaining({ method: "POST" }));
     });
 
     it("fetchEmployeePayslips", async () => {
       mockSuccess([]);
       await api.fetchEmployeePayslips("ws-1", "e1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees/e1/payslips"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees/e1/payslips"), expect.any(Object));
     });
 
     it("fetchShifts", async () => {
       mockSuccess([]);
       await api.fetchShifts("ws-1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/shifts"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/shifts"), expect.any(Object));
     });
 
     it("createShift", async () => {
       mockSuccess({});
       await api.createShift("ws-1", { name: "S" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/shifts"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/shifts"), expect.objectContaining({ method: "POST" }));
     });
 
     it("updateShift", async () => {
       mockSuccess({});
       await api.updateShift("ws-1", "s1", { name: "U" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/shifts/s1"), expect.objectContaining({ method: "PUT" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/shifts/s1"), expect.objectContaining({ method: "PUT" }));
     });
 
     it("assignShift", async () => {
       mockSuccess({});
       await api.assignShift("ws-1", { employment_id: "e1", shift_id: "s1", start_date: "..." });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/shifts/assign"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/shifts/assign"), expect.objectContaining({ method: "POST" }));
     });
   });
 
@@ -267,37 +267,37 @@ describe("api.ts comprehensive tests", () => {
     it("fetchWorkspaceSchedules", async () => {
       mockSuccess([]);
       await api.fetchWorkspaceSchedules("ws-1", "2026-01-01", "2026-01-07");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/schedules"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/schedules"), expect.any(Object));
     });
 
     it("fetchAssignmentHistory", async () => {
       mockSuccess([]);
       await api.fetchAssignmentHistory("ws-1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/assignment-history"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/assignment-history"), expect.any(Object));
     });
 
     it("fetchEmployeeRosters", async () => {
       mockSuccess([]);
       await api.fetchEmployeeRosters("ws-1", "e1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees/e1/rosters"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees/e1/rosters"), expect.any(Object));
     });
 
     it("upsertRoster", async () => {
       mockSuccess({});
       await api.upsertRoster("ws-1", "e1", { shift_id: "s1", date: "..." });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees/e1/rosters"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees/e1/rosters"), expect.objectContaining({ method: "POST" }));
     });
 
     it("bulkUpsertRoster", async () => {
       mockSuccess({});
       await api.bulkUpsertRoster("ws-1", "e1", []);
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees/e1/rosters/bulk"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees/e1/rosters/bulk"), expect.objectContaining({ method: "POST" }));
     });
 
     it("deleteRoster", async () => {
       mockSuccess({});
       await api.deleteRoster("ws-1", "e1", "2026-01-01");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees/e1/rosters/2026-01-01"), expect.objectContaining({ method: "DELETE" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/employees/e1/rosters/2026-01-01"), expect.objectContaining({ method: "DELETE" }));
     });
   });
 
@@ -307,19 +307,19 @@ describe("api.ts comprehensive tests", () => {
     it("fetchWorkspace", async () => {
       mockSuccess({});
       await api.fetchWorkspace("ws-1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1"), expect.any(Object));
     });
 
     it("updateWorkspace", async () => {
       mockSuccess({});
       await api.updateWorkspace("ws-1", { name: "U" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1"), expect.objectContaining({ method: "PATCH" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1"), expect.objectContaining({ method: "PATCH" }));
     });
 
     it("fetchWorkspaceMembers", async () => {
       mockSuccess([]);
       await api.fetchWorkspaceMembers("ws-1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/members"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/members"), expect.any(Object));
     });
 
     it("fetchAllWorkspaceMembers loads all paginated workspace users", async () => {
@@ -327,11 +327,13 @@ describe("api.ts comprehensive tests", () => {
         ok: true,
         headers: new Headers({ "content-type": "application/json" }),
         json: () => Promise.resolve({ data: [{ user_id: "u1" }], page: 1, limit: 3000, total: 2 }),
+        text: () => Promise.resolve(JSON.stringify({ data: [{ user_id: "u1" }], page: 1, limit: 3000, total: 2 })),
       } as unknown as Response);
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         headers: new Headers({ "content-type": "application/json" }),
         json: () => Promise.resolve({ data: [{ user_id: "u2" }], page: 2, limit: 3000, total: 2 }),
+        text: () => Promise.resolve(JSON.stringify({ data: [{ user_id: "u2" }], page: 2, limit: 3000, total: 2 })),
       } as unknown as Response);
 
       await expect(api.fetchAllWorkspaceMembers("ws-1")).resolves.toEqual([{ user_id: "u1" }, { user_id: "u2" }]);
@@ -342,19 +344,19 @@ describe("api.ts comprehensive tests", () => {
     it("addWorkspaceMember", async () => {
       mockSuccess({});
       await api.addWorkspaceMember("ws-1", "e@e.com", "admin");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/members"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/members"), expect.objectContaining({ method: "POST" }));
     });
 
     it("removeWorkspaceMember", async () => {
       mockSuccess({});
       await api.removeWorkspaceMember("ws-1", "u1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/members/u1"), expect.objectContaining({ method: "DELETE" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/members/u1"), expect.objectContaining({ method: "DELETE" }));
     });
 
     it("updateWorkspaceMemberRole", async () => {
       mockSuccess({});
       await api.updateWorkspaceMemberRole("ws-1", "u1", "owner");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/members/u1"), expect.objectContaining({ method: "PATCH" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/members/u1"), expect.objectContaining({ method: "PATCH" }));
     });
 
     it("login", async () => {
@@ -407,19 +409,19 @@ describe("api.ts comprehensive tests", () => {
     it("fetchMemberRoles", async () => {
       mockSuccess({});
       await api.fetchMemberRoles("ws-1", "u1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/members/u1/roles"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/members/u1/roles"), expect.any(Object));
     });
 
     it("assignExtraRole", async () => {
       mockSuccess({});
       await api.assignExtraRole("ws-1", "u1", "r1", "...");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/members/u1/roles"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/members/u1/roles"), expect.objectContaining({ method: "POST" }));
     });
 
     it("revokeExtraRole", async () => {
       mockSuccess({});
       await api.revokeExtraRole("ws-1", "u1", "rid1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/members/u1/roles/rid1"), expect.objectContaining({ method: "DELETE" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/v1/members/u1/roles/rid1"), expect.objectContaining({ method: "DELETE" }));
     });
 
     it("fetchDevSuperUser", async () => {

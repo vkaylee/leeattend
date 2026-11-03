@@ -1,14 +1,14 @@
-import { fetchDepartments, getCurrentWorkspaceId } from "@/lib/api";
+import { fetchDepartments, getStandaloneOrganizationId } from "@/lib/api";
 import { departmentKeys } from "@/lib/query-keys";
 
-import { useWorkspaceQuery } from "./common/use-workspace-query";
+import { useOrganizationQuery } from "./common/use-workspace-query";
 
 export function useDepartments(
-  wsId: string | null | undefined = getCurrentWorkspaceId(),
+  wsId: string | null | undefined = getStandaloneOrganizationId(),
   options?: { enabled?: boolean },
 ) {
 
-  return useWorkspaceQuery({
+  return useOrganizationQuery({
     workspaceId: wsId,
     queryKey: departmentKeys.all(wsId),
     queryFn: (workspaceId) => fetchDepartments(workspaceId),

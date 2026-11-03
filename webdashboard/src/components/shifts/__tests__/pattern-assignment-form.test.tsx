@@ -13,7 +13,7 @@ import { PatternAssignmentForm } from "../pattern-assignment-form";
 // Mock API
 vi.mock("@/lib/api", () => ({
   fetchPatternDetails: vi.fn(),
-  getCurrentWorkspaceId: vi.fn(() => "ws-1"),
+  getStandaloneOrganizationId: vi.fn(() => "ws-1"),
 }));
 
 // Mock react-i18next

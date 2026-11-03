@@ -50,7 +50,7 @@ vi.mock("@tanstack/react-query", async () => {
 let wsId: string | null = "ws-test-123";
 
 vi.mock("@/lib/api", () => ({
-  getCurrentWorkspaceId: () => wsId,
+  getStandaloneOrganizationId: () => wsId,
   fetchDepartments: vi.fn().mockResolvedValue([
     { id: "dept-1", name: "Engineering", manager_id: "emp-1" },
   ]),

@@ -1,4 +1,4 @@
-import { getCurrentWorkspaceId } from "@/lib/api/helpers";
+import { getStandaloneOrganizationId } from "@/lib/api/helpers";
 
 import { useBehalfAssignmentData } from "./use-behalf-assignment-data";
 import { useBehalfAssignmentMutations } from "./use-behalf-assignment-mutations";
@@ -11,7 +11,7 @@ export const behalfKeys = {
 };
 
 export function useBehalfAssignments(type: BehalfAssignmentType = "ot") {
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
 
   const { assignments, isLoading, isError, refetch } = useBehalfAssignmentData(type, wsId);
   const { createAssignment, isCreating, deleteAssignment, isDeleting } = useBehalfAssignmentMutations(type, wsId);

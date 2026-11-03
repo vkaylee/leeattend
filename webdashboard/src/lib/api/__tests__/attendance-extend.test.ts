@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// attendance.ts pulls getCurrentWorkspaceId + apiFetch from helpers. Functions
-// that resolve wsId from the store need getCurrentWorkspaceId mocked; the rest
+// attendance.ts resolves organization context through getStandaloneOrganizationId + apiFetch.
+// Mock both at the same boundary.
 // intercept at apiFetch. Mock both at the same boundary.
 vi.mock("../helpers", () => ({
   apiFetch: vi.fn(),
-  getCurrentWorkspaceId: vi.fn().mockReturnValue("test-ws-id"),
+  getStandaloneOrganizationId: vi.fn().mockReturnValue("test-ws-id"),
   TIMEOUT: { REPORT_OPERATION: 180000 },
 }));
 

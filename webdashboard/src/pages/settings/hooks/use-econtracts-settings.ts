@@ -16,7 +16,7 @@ import {
   EContractRoutingRule,
 } from "@/lib/api/econtracts";
 import { fetchEmployers } from "@/lib/api/employers";
-import { getCurrentWorkspaceId } from "@/lib/api/helpers";
+import { getStandaloneOrganizationId } from "@/lib/api/helpers";
 
 function getErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof Error) {
@@ -29,7 +29,7 @@ export function useEContractsSettings() {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const wsId = getCurrentWorkspaceId() ?? "";
+  const wsId = getStandaloneOrganizationId() ?? "";
 
   const [activeTab, setActiveTab] = useState<string>("configs");
   const [selectedEmployerId, setSelectedEmployerId] = useState<string>("default");

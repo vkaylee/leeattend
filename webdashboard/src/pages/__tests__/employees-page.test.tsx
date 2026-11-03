@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ToastProvider } from "../../components/ui/toast";
 import Button from "../../components/ui/button";
 import { Employee, Department } from "../../lib/api/types";
+import * as api from "../../lib/api";
 import EmployeesPage from "../employees-page";
 
 
@@ -35,7 +36,7 @@ vi.mock("../../lib/api", () => ({
     createEmployee: vi.fn(),
     updateEmployee: vi.fn(),
     deleteEmployee: vi.fn(),
-    getCurrentWorkspaceId: vi.fn(),
+    getStandaloneOrganizationId: vi.fn(),
     fetchDepartments: vi.fn(),
     fetchEmployeeDepartmentHistory: vi.fn(),
     transferEmployee: vi.fn(),
@@ -112,7 +113,7 @@ describe("EmployeesPage", () => {
             },
         });
  
-        vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
+        vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
  
         vi.mocked(api.searchEmployees).mockResolvedValue({
             data: [mockEmployee("1", "Alice Nguyen"), mockEmployee("2", "Bob Tran")],

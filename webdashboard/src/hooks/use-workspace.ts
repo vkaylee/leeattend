@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { fetchWorkspace } from "@/lib/api";
+import { getStandaloneOrganizationId } from "@/lib/api/config";
 import { maybeNull } from "@/types/api-overrides";
-import { getCurrentWorkspaceId as getStoredWorkspaceId } from "@/lib/api/token-store";
 
 import { workspaceKeys } from "./use-workspace-roles";
 
@@ -11,7 +11,7 @@ export * from "./use-workspace-members";
 
 
 export function useWorkspace(wsId?: string) {
-  const activeWsId = wsId ?? getStoredWorkspaceId();
+  const activeWsId = wsId ?? getStandaloneOrganizationId();
   const workspaceQuery = useQuery({
     queryKey: ["workspace", activeWsId],
     queryFn: async () => {

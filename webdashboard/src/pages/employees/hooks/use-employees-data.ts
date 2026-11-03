@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
-import { useWorkspaceInfiniteQuery, useWorkspaceMutation, useWorkspaceQuery } from "@/hooks/common/use-workspace-query";
+import { useOrganizationInfiniteQuery, useOrganizationMutation, useOrganizationQuery } from "@/hooks/common/use-workspace-query";
 import { useDepartments } from "@/hooks/use-departments";
 import { employeeKeys } from "@/lib/query-keys";
 import {
@@ -58,7 +58,7 @@ export const useEmployeesData = ({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useWorkspaceInfiniteQuery({
+  } = useOrganizationInfiniteQuery({
     workspaceId: wsId,
     queryKey: employeeKeys.search(wsId, {
       customFieldFilters,
@@ -105,7 +105,7 @@ export const useEmployeesData = ({
 
   const { data: departments } = useDepartments(wsId);
 
-  const { data: deptHistory } = useWorkspaceQuery({
+  const { data: deptHistory } = useOrganizationQuery({
     queryKey: ["deptHistory", selectedEmployee?.id],
     queryFn: (workspaceId) => {
       if (!selectedEmployee) return Promise.reject(new Error("No employee selected"));
@@ -116,7 +116,7 @@ export const useEmployeesData = ({
 
 
 
-  const updateMutation = useWorkspaceMutation<
+  const updateMutation = useOrganizationMutation<
     { id: string; employee: UpdateEmployeeRequest },
     Awaited<ReturnType<typeof updateEmployee>>
   >({
@@ -130,7 +130,7 @@ export const useEmployeesData = ({
     },
   });
 
-  const terminateMutation = useWorkspaceMutation<
+  const terminateMutation = useOrganizationMutation<
     { employeeId: string; employmentId: string; endDate: string },
     Awaited<ReturnType<typeof updateEmployeeEmployment>>
   >({

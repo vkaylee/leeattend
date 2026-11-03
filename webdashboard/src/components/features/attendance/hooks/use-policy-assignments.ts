@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useWorkspaceQuery } from "@/hooks/common/use-workspace-query";
+import { useOrganizationQuery } from "@/hooks/common/use-workspace-query";
 import { departmentKeys, employeeKeys } from "@/lib/query-keys";
 
 import { useToast } from "@/components/ui/toast";
@@ -42,13 +42,13 @@ export function usePolicyAssignments(wsId: string) {
     queryFn: () => fetchPolicyAssignments(wsId)
   });
 
-  const { data: departments = [] } = useWorkspaceQuery({
+  const { data: departments = [] } = useOrganizationQuery({
     workspaceId: wsId,
     queryKey: departmentKeys.all(wsId),
     queryFn: fetchDepartments,
   });
 
-  const { data: employeesResponse } = useWorkspaceQuery({
+  const { data: employeesResponse } = useOrganizationQuery({
     workspaceId: wsId,
     queryKey: employeeKeys.lookup(wsId),
     queryFn: (workspaceId) => fetchEmployees(workspaceId, 1, 1000),

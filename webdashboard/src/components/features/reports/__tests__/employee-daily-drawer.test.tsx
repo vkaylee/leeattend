@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import React from "react";
 
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
 import { ToastProvider } from "@/components/ui/toast";
 import * as api from "@/lib/api";
@@ -93,27 +93,27 @@ describe("EmployeeDailyDrawer", () => {
         });
 
  
-        (api.fetchAttendanceReport as import("vitest").Mock).mockResolvedValue({
+        (api.fetchAttendanceReport as Mock).mockResolvedValue({
             data: [mockDailyRow],
             total: 1,
         });
  
-        (api.fetchWorkspaceAttendanceAdjustments as import("vitest").Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
+        (api.fetchWorkspaceAttendanceAdjustments as Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
  
-        (api.reprocessAttendance as import("vitest").Mock).mockResolvedValue(true);
+        (api.reprocessAttendance as Mock).mockResolvedValue(true);
  
-        (api.adminConfirmAttendance as import("vitest").Mock).mockResolvedValue(true);
+        (api.adminConfirmAttendance as Mock).mockResolvedValue(true);
  
-        (api.approveOt as import("vitest").Mock).mockResolvedValue(true);
+        (api.approveOt as Mock).mockResolvedValue(true);
  
-        (api.fetchRawAttendanceLogs as import("vitest").Mock).mockResolvedValue({
+        (api.fetchRawAttendanceLogs as Mock).mockResolvedValue({
             data: [],
             total: 0,
             page: 1,
             limit: 100
         });
  
-        (api.fetchShifts as import("vitest").Mock).mockResolvedValue([
+        (api.fetchShifts as Mock).mockResolvedValue([
             {
                 id: "shift-morning",
                 workspace_id: "ws-1",
@@ -126,7 +126,7 @@ describe("EmployeeDailyDrawer", () => {
             },
         ]);
  
-        (api.upsertRoster as import("vitest").Mock).mockResolvedValue({});
+        (api.upsertRoster as Mock).mockResolvedValue({});
     });
 
     const renderWithProviders = (ui: React.ReactElement, _initialEntries = ["/"]) => {
@@ -274,7 +274,7 @@ describe("EmployeeDailyDrawer", () => {
     });
 
     it("keeps KPI slots mounted while report data is loading", async () => {
-        (api.fetchAttendanceReport as import("vitest").Mock).mockReturnValueOnce(new Promise(() => {}));
+        (api.fetchAttendanceReport as Mock).mockReturnValueOnce(new Promise(() => {}));
 
         renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
 
@@ -650,7 +650,7 @@ describe("EmployeeDailyDrawer", () => {
             scheduled_end: null,
         };
  
-        (api.fetchAttendanceReport as import("vitest").Mock).mockResolvedValue({
+        (api.fetchAttendanceReport as Mock).mockResolvedValue({
             data: [unscheduledRow],
             total: 1,
         });
@@ -684,7 +684,7 @@ describe("EmployeeDailyDrawer", () => {
             scheduled_end: null,
         };
  
-        (api.fetchAttendanceReport as import("vitest").Mock).mockResolvedValue({
+        (api.fetchAttendanceReport as Mock).mockResolvedValue({
             data: [unscheduledRow],
             total: 1,
         });

@@ -19,7 +19,7 @@ import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { deleteEmployeeContract, fetchWorkspaceContracts } from "@/lib/api/contracts";
-import { getCurrentWorkspaceId } from "@/lib/api/helpers";
+import { getStandaloneOrganizationId } from "@/lib/api/helpers";
 
 interface SelectEmployeeModalProps {
   employees: Employee[];
@@ -104,7 +104,7 @@ export default function EContractsPage() {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const wsId = getCurrentWorkspaceId() ?? "";
+  const wsId = getStandaloneOrganizationId() ?? "";
   const { confirm, ConfirmationDialog } = useConfirm();
 
   const searchParams = useSearch({ from: "/_authenticated/_workspace/econtracts" });

@@ -11,7 +11,7 @@ import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import {
   fetchWorkspaceAttendanceAdjustments,
   approveAttendanceAdjustment,
-  getCurrentWorkspaceId,
+  getStandaloneOrganizationId,
   PaginatedResponse,
   AttendanceAdjustmentRequest,
 } from "@/lib/api";
@@ -26,7 +26,7 @@ const PAGE_SIZE = 20;
 
 export function useAttendanceAdjustmentsPage() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   const queryClient = useQueryClient();
   const { formatDate, formatTime } = useDateTimeFormatter();
   const toast = useToast();

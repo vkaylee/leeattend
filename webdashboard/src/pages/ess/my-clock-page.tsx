@@ -15,7 +15,7 @@ import PageHeader from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useMyClock, useMyProfile } from "@/hooks/use-ess";
-import { fetchWorkspace, getCurrentWorkspaceId, submitAttendanceAdjustment } from "@/lib/api";
+import { fetchWorkspace, getStandaloneOrganizationId, submitAttendanceAdjustment } from "@/lib/api";
 import { toUTCISO } from "@/lib/datetime";
 
 import { HistoryTable } from "./components/history-table";
@@ -24,7 +24,7 @@ import { MyClockSkeleton } from "./components/my-clock-skeleton";
 export default function MyClockPage() {
   const { t } = useTranslation();
   const toast = useToast();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
 
   const { employee, isLoading: isLoadingProfile } = useMyProfile();
   const {

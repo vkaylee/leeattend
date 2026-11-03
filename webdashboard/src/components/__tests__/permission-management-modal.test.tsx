@@ -16,7 +16,7 @@ vi.mock("../../lib/api", () => ({
   fetchPermissionCatalog: vi.fn(),
   assignExtraPermission: vi.fn(),
   revokeExtraPermission: vi.fn(),
-  getCurrentWorkspaceId: vi.fn(() => "test-ws-id"),
+  getStandaloneOrganizationId: vi.fn(() => "test-ws-id"),
 }));
 
 // Mock window.confirm

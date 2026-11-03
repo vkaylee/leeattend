@@ -17,7 +17,6 @@ export type UpdateEmployeeRequest = components["schemas"]["UpdateEmployeeRequest
 // Employment is already exported from types.ts; re-exporting here causes
 // a duplicate when both modules are barrel-re-exported together.
 
-export type { Employment } from "./types";
 import { client } from "./client";
 
 export * from "./employee-phases";

@@ -34,7 +34,7 @@ vi.mock("../../hooks/use-permissions", () => ({
 }));
 
 vi.mock("../../lib/api", () => ({
-    getCurrentWorkspaceId: vi.fn().mockReturnValue("ws-1"),
+    getStandaloneOrganizationId: vi.fn().mockReturnValue("ws-1"),
     updateRolePermissions: vi.fn().mockResolvedValue({}),
 }));
 

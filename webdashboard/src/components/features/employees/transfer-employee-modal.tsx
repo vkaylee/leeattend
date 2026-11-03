@@ -10,7 +10,7 @@ import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationMutation } from "@/hooks/common/use-workspace-query";
 import { transferEmployee, Department } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
 
@@ -37,7 +37,7 @@ export default function TransferEmployeeModal({
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  const transferMutation = useWorkspaceMutation<
+  const transferMutation = useOrganizationMutation<
     { department_id: string; effective_date: string; notes?: string },
     Awaited<ReturnType<typeof transferEmployee>>
   >({

@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkingPatternGrid } from "@/hooks/use-working-pattern-grid";
 import { useDepartments } from "@/hooks/use-departments";
-import { useWorkspaceQuery } from "@/hooks/common/use-workspace-query";
+import { useOrganizationQuery } from "@/hooks/common/use-workspace-query";
 import {
   BulkAssignResponse,
   CreateWorkingPatternRequest,
@@ -26,7 +26,7 @@ import {
   fetchPatternDetails,
   fetchShifts,
   fetchWorkingPatterns,
-  getCurrentWorkspaceId,
+  getStandaloneOrganizationId,
   fetchEmployees,
 } from "@/lib/api";
 import { ApiError, ComplianceConflictError, parseComplianceConflict } from "@/lib/api/errors";
@@ -170,7 +170,7 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
   const { ConfirmationDialog, confirm } = useConfirm();
   const { t } = useTranslation();
   const toast = useToast();
-  const wsId = getCurrentWorkspaceId() ?? "";
+  const wsId = getStandaloneOrganizationId() ?? "";
 
   const [assignStartDate, setAssignStartDate] = useState(format(startOfToday(), "yyyy-MM-01"));
   const [assignAnchorDate, setAssignAnchorDate] = useState(format(startOfToday(), "yyyy-MM-01"));
@@ -279,7 +279,7 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
     setAssignAnchorDate(val);
   }, []);
 
-  const { data: employeesData } = useWorkspaceQuery({
+  const { data: employeesData } = useOrganizationQuery({
     workspaceId: wsId,
     queryKey: employeeKeys.lookup(wsId, { permission: "working-patterns-bulk" }),
     queryFn: (workspaceId) => fetchEmployees(workspaceId, 1, 1000),

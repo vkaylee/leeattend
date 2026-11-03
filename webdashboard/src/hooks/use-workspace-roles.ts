@@ -8,7 +8,7 @@ import {
   fetchRolePermissions,
   fetchPermissionCatalog,
   updateRolePermissions,
-  getCurrentWorkspaceId,
+  getStandaloneOrganizationId,
 } from "@/lib/api";
 import { logError } from "@/lib/logger";
 
@@ -29,7 +29,7 @@ export const workspaceKeys = {
 };
 
 export function usePermissionCatalog(wsId?: string) {
-  const activeWsId = wsId ?? getCurrentWorkspaceId();
+  const activeWsId = wsId ?? getStandaloneOrganizationId();
   const catalogQuery = useQuery({
     queryKey: workspaceKeys.permissionCatalog(activeWsId ?? ""),
     queryFn: () => fetchPermissionCatalog(activeWsId ?? ""),
@@ -46,7 +46,7 @@ export function usePermissionCatalog(wsId?: string) {
 
 export function useWorkspaceRoles(wsId?: string) {
   const queryClient = useQueryClient();
-  const activeWsId = wsId ?? getCurrentWorkspaceId();
+  const activeWsId = wsId ?? getStandaloneOrganizationId();
 
   const rolesQuery = useQuery({
     queryKey: workspaceKeys.workspaceRoles(activeWsId ?? ""),
@@ -90,7 +90,7 @@ export function useWorkspaceRoles(wsId?: string) {
 
 export function useRolePermissions(roleId: string, wsId?: string) {
   const queryClient = useQueryClient();
-  const activeWsId = wsId ?? getCurrentWorkspaceId();
+  const activeWsId = wsId ?? getStandaloneOrganizationId();
 
   const permissionsQuery = useQuery({
     queryKey: workspaceKeys.rolePermissions(activeWsId ?? "", roleId),
@@ -118,7 +118,7 @@ export function useRolePermissions(roleId: string, wsId?: string) {
 const EMPTY_MATRIX: Record<string, string[]> = {};
 
 export function useWorkspacePermissionsMatrix(wsId?: string) {
-  const activeWsId = wsId ?? getCurrentWorkspaceId();
+  const activeWsId = wsId ?? getStandaloneOrganizationId();
   const { roles } = useWorkspaceRoles(activeWsId ?? undefined);
 
   const roleIds = roles.map(r => r.id).sort().join(',');

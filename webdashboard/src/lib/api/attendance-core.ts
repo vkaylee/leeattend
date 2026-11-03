@@ -1,5 +1,5 @@
 import { client, fetch } from "./client";
-import { getCurrentWorkspaceId } from "./helpers";
+import { getStandaloneOrganizationId } from "./helpers";
 import {
   TimeEntry,
   AttendanceAdjustmentRequest,
@@ -89,7 +89,7 @@ export async function fetchRawAttendanceLogs(params: {
   page?: number;
   limit?: number;
 }): Promise<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }> {
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   if (!wsId) throw new Error("Workspace not selected");
 
   const { data: resData } = await fetch<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }>("GET", "/workspaces/{workspace_id}/attendance/raw-logs", {

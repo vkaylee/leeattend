@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import {
-  getCurrentWorkspaceId,
+  getStandaloneOrganizationId,
 } from "@/lib/api";
 
 import { useEmployeesData } from "./use-employees-data";
@@ -14,7 +14,7 @@ export type { SortKey, SortDir };
 
 export function useEmployeesPage() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId() ?? "";
+  const wsId = getStandaloneOrganizationId() ?? "";
   const { formatDate } = useDateTimeFormatter();
 
   const state = useEmployeesState();

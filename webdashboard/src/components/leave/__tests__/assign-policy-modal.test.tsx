@@ -14,7 +14,7 @@ vi.mock("../../../lib/api", () => ({
   fetchDepartments: vi.fn(),
   fetchLeavePolicies: vi.fn(),
   assignLeavePolicy: vi.fn(),
-  getCurrentWorkspaceId: vi.fn(),
+  getStandaloneOrganizationId: vi.fn(),
 }));
 
 describe("AssignPolicyModal", () => {
@@ -32,7 +32,7 @@ describe("AssignPolicyModal", () => {
       },
     });
  
-    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
+    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
  
     vi.mocked(api.fetchEmployees).mockResolvedValue({ data: [
       { id: "emp-1", first_name: "Alice", last_name: "Doe", employee_id_number: "EMP001" }

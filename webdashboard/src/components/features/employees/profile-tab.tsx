@@ -12,7 +12,7 @@ import EditTerminationModal from "@/components/features/employees/edit-terminati
 import UndoTerminationModal from "@/components/features/employees/undo-termination-modal";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import { useWorkspaceMutation } from "@/hooks/common/use-workspace-query";
+import { useOrganizationMutation } from "@/hooks/common/use-workspace-query";
 import { fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
 import { employeeKeys } from "@/lib/query-keys";
 import { maybeNull } from "@/types/api-overrides";
@@ -145,7 +145,7 @@ export default function ProfileTab({
         setSelectedLocationIdState(id);
     };
 
-    const updateLocationMutation = useWorkspaceMutation<
+    const updateLocationMutation = useOrganizationMutation<
         string,
         Awaited<ReturnType<typeof updateEmployeeEmployment>>
     >({

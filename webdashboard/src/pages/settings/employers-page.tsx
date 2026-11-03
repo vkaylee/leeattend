@@ -7,7 +7,7 @@ import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import { PageContainer } from "@/components/ui/page-container";
 import PageHeader from "@/components/ui/page-header";
-import { useWorkspaceQuery } from "@/hooks/common/use-workspace-query";
+import { useOrganizationQuery } from "@/hooks/common/use-workspace-query";
 import { useToast } from "@/components/ui/toast";
 import {
   Employer,
@@ -16,7 +16,7 @@ import {
   createEmployer,
   updateEmployer,
   deleteEmployer,
-  getCurrentWorkspaceId,
+  getStandaloneOrganizationId,
   CreateEmployerRequest,
   UpdateEmployerRequest,
 } from "@/lib/api";
@@ -27,7 +27,7 @@ import { EmployerFormModal } from "@/pages/settings/components/employer-form-mod
 // eslint-disable-next-line complexity
 export default function EmployersPage() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -44,7 +44,7 @@ export default function EmployersPage() {
     enabled: !!wsId,
   });
 
-  const { data: employeesData, isLoading: isEmployeesLoading } = useWorkspaceQuery({
+  const { data: employeesData, isLoading: isEmployeesLoading } = useOrganizationQuery({
     queryKey: employeeKeys.lookup(wsId, { permission: "employers-page" }),
     queryFn: (workspaceId) => fetchEmployees(workspaceId, 1, 1000),
   });

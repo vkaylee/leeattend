@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { Holiday } from "@/lib/api/types";
 
 import { useConfirm } from "@/hooks/use-confirm";
-import { getCurrentWorkspaceId } from "@/lib/api";
+import { getStandaloneOrganizationId } from "@/lib/api";
 import { deleteHoliday, fetchHolidays } from "@/lib/api/holidays";
 import { fetchLeaveTypes } from "@/lib/api/leaves";
 import { logError } from "@/lib/logger";
@@ -20,7 +20,7 @@ export function useHolidays() {
     const [error, setError] = useState<string | null>(null);
     const { confirm, ConfirmationDialog } = useConfirm();
 
-    const wsId = getCurrentWorkspaceId();
+    const wsId = getStandaloneOrganizationId();
 
     const { data: holidays = [], isLoading, refetch: loadHolidays } = useQuery({
         enabled: !!wsId,

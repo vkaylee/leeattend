@@ -16,7 +16,7 @@ vi.mock("../../lib/api/workspaces", () => ({
 }));
 
 vi.mock("../../lib/api", () => ({
-  getCurrentWorkspaceId: vi.fn(),
+  getStandaloneOrganizationId: vi.fn(),
 }));
 
 vi.mock("../../hooks/use-workspace", () => ({
@@ -35,7 +35,7 @@ describe("WorkspaceDangerPage", () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
+    vi.mocked(api.getStandaloneOrganizationId).mockReturnValue("test-ws-id");
     
     vi.mocked(useWorkspace).mockReturnValue({
       workspace: {

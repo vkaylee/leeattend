@@ -48,7 +48,9 @@ vi.mock("@/components/ui/toast", () => ({
 }));
 
 vi.mock("@/lib/api/leaves");
-vi.mock("@/lib/api/helpers");
+vi.mock("@/lib/api/helpers", () => ({
+  getStandaloneOrganizationId: vi.fn(() => "standalone"),
+}));
 vi.mock("@/hooks/use-employees", () => ({
   useAllEmployees: vi.fn(),
 }));
@@ -100,12 +102,11 @@ const mockAssignments = [
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
 describe("LeaveSettings Page", () => {
-  const wsId = "test-ws-id";
+  const wsId = "standalone";
 
   beforeEach(() => {
     vi.clearAllMocks();
  
-    vi.mocked(helpers.getCurrentWorkspaceId).mockReturnValue(wsId);
  
     vi.mocked(api.fetchLeaveTypes).mockResolvedValue([] as never);
  

@@ -9,7 +9,7 @@ import { useToast } from "../../components/ui/toast";
 import { useDebug } from "../../context/debug-context";
 import { useConfirm } from "../../hooks/use-confirm";
 import { debugApi, ClearDbGroup as ClearDatabaseGroup } from "../../lib/api/debug";
-import { getCurrentWorkspaceId } from "../../lib/api/helpers";
+import { getStandaloneOrganizationId } from "../../lib/api/helpers";
 
 type DebugTab = "identity" | "time" | "database";
 
@@ -319,7 +319,7 @@ export const DebugToolbar: React.FC = () => {
 
   if (!import.meta.env.DEV) return null;
 
-  const currentWorkspaceId = getCurrentWorkspaceId();
+  const currentWorkspaceId = getStandaloneOrganizationId();
 
   const handleClearDatabase = async (group: ClearDatabaseGroup) => {
     if (!currentWorkspaceId) { toast.error("No workspace selected"); return; }

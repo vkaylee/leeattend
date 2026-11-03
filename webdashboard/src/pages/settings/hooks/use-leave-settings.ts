@@ -6,7 +6,7 @@ import type { Department } from "@/lib/api/types";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { useDepartments } from "@/hooks/use-departments";
 import { fetchLeavePolicyAssignments, deleteLeavePolicyAssignment } from "@/lib/api";
-import { getCurrentWorkspaceId } from "@/lib/api/helpers";
+import { getStandaloneOrganizationId } from "@/lib/api/helpers";
 
 export type TabType = "types" | "policies" | "assignments";
 
@@ -24,7 +24,7 @@ export interface LeaveAssignment {
 
 export function useLeaveSettings() {
   const queryClient = useQueryClient();
-  const wsId = getCurrentWorkspaceId();
+  const wsId = getStandaloneOrganizationId();
   const [activeTab, setActiveTab] = useState<TabType>("types");
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<LeaveAssignment | null>(null);
