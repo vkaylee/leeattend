@@ -6,9 +6,9 @@ Single-company Linux appliance. No SaaS control plane, telemetry, activation cal
 
 `docker-compose.yml` runs one PostgreSQL database, Redis, MinIO, Go API, and local React Dashboard. Database, Redis, and MinIO have no host ports. Frontend and API networks are internal; publish only a customer-managed TLS reverse proxy to the LAN.
 
-System and tenant tables share that PostgreSQL database. Tenant transaction queries reuse the API transaction pool; tenant session queries reuse the worker/session pool. No standalone tenant pool is opened, cached, evicted, or assigned a `tenant_<workspace_id>` database name.
+System and business tables share one PostgreSQL database. The Phase 1 baseline is `apiserver/migrations/20261103000000_init/`; it applies both schema groups in one ordered migration. Existing workspace-compatible columns remain temporarily while later phases remove workspace routing and contracts.
 
-The database keeps one internal `workspace_id` for compatibility with existing business tables and authorization queries. Standalone mode rejects every other workspace ID and blocks workspace provisioning, tenant administration, public registration, Supavisor, and external attendance log pull.
+The target architecture is one company, one database, and one schema. Phase 1 still accepts the configured workspace compatibility values because the current Go authentication and repository contracts consume them. They are removed only after the backend, repository, API, and frontend phases are complete.
 
 ## Prerequisites
 
@@ -36,7 +36,7 @@ Secrets MUST come from a protected secret store or root-readable file. Never com
 ## Install
 
 1. Import the offline image bundle and verify image digests against the release manifest.
-2. Provision the release-pre-migrated PostgreSQL data volume. It applies `migrations/system/` then `migrations/tenant/` to the same database with shared migration history; migration directory versions must remain globally unique.
+2. Provision the release-pre-migrated PostgreSQL data volume and apply `apiserver/migrations/20261103000000_init/` to the single database before API bootstrap. The migration contains system objects first and business objects second.
 3. Place the license file on encrypted storage with mode `0600`.
 4. Configure TLS termination and proxy `/api/` to `apiserver:3000`; do not expose API, database, Redis, or MinIO directly.
 5. Apply the reviewed Compose file:
