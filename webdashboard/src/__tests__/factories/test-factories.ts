@@ -1,6 +1,5 @@
 // If ToastContextType does not exist, we'll use any internally for now, but we'll try to import it:
 import type { UseMyProfileReturn, UseMyClockReturn, UseMyAttendanceReturn, UseMyAttendanceSummariesReturn } from '@/hooks/use-ess';
-import type { TenantConnectionStats } from '@/lib/api/system';
 import type { Workspace, Employee, Shift, LeaveType, AttendanceAdjustmentRequest } from '@/lib/api/types';
 
 // Basic Type for Toast Context if it's not exported
@@ -161,18 +160,3 @@ export const createMockToastContext = (): ToastContextType => ({
   dismiss: () => {},
   toasts: [],
 });
-
-export function createMockTenantConnectionStats(overrides?: Partial<TenantConnectionStats>): TenantConnectionStats {
-  return {
-    connection: {
-      host: "localhost",
-      port: "5432",
-    },
-    created_at: new Date().toISOString(),
-    id: "tenant-123",
-    is_byod: false,
-    name: "Test Tenant",
-    timezone: "UTC",
-    ...overrides,
-  };
-}

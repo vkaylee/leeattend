@@ -1,14 +1,14 @@
-import { useDepartments } from "@/hooks/use-departments";
-
 import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { BehalfAssignment, Employee } from "@/lib/api/types";
+import type { BehalfAssignment, WorkspaceMember } from "@/lib/api/types";
 
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useBehalfAssignments } from "@/hooks/use-behalf-assignments";
+import { useDepartments } from "@/hooks/use-departments";
+import { fetchAllWorkspaceMembers } from "@/lib/api";
 import { logError } from "@/lib/logger";
 
 import type { AssignmentType, BehalfAssignmentInput } from "./types";
@@ -40,7 +40,6 @@ export function BehalfAssignmentsTab({
 
   const [isOpen, setIsOpen] = useState(false);
   const [assigneeId, setAssigneeId] = useState("");
-  const [selectedAssigneeEmployee, setSelectedAssigneeEmployee] = useState<Employee | null>(null);
   const [targetType, setTargetType] = useState<"employee" | "department">("employee");
   const [targetEmployeeId, setTargetEmployeeId] = useState("");
   const [targetDepartmentId, setTargetDepartmentId] = useState("");
@@ -68,14 +67,9 @@ export function BehalfAssignmentsTab({
     e.preventDefault();
     if (!validateForm()) return;
 
-    if (!selectedAssigneeEmployee?.user_id) {
-      toast.error(t("behalf_assignments.toasts.no_linked_user"));
-      return;
-    }
-
     try {
       const payload: BehalfAssignmentInput = {
-        assignee_user_id: selectedAssigneeEmployee.user_id,
+        assignee_user_id: assigneeId,
         target_department_id: targetType === "department" ? targetDepartmentId : null,
         target_employee_id: targetType === "employee" ? targetEmployeeId : null,
       };
@@ -83,7 +77,6 @@ export function BehalfAssignmentsTab({
       toast.success(t("behalf_assignments.toasts.create_success"));
       setIsOpen(false);
       setAssigneeId("");
-      setSelectedAssigneeEmployee(null);
       setTargetEmployeeId("");
       setTargetDepartmentId("");
     } catch (err: unknown) {
@@ -104,7 +97,12 @@ export function BehalfAssignmentsTab({
     }
   };
 
-  const isLoading = assignmentsLoading || deptsLoading;
+  const { data: assignees = [], isLoading: assigneesLoading } = useQuery({
+    queryKey: ["workspace-members", wsId, "behalf-assignees"],
+    queryFn: () => fetchAllWorkspaceMembers(wsId),
+  });
+
+  const isLoading = assignmentsLoading || deptsLoading || assigneesLoading;
 
   if (isLoading && assignments.length === 0) {
     return (
@@ -123,6 +121,11 @@ export function BehalfAssignmentsTab({
     value: dept.id,
   }));
 
+  const assigneeOptions = assignees.map((member: WorkspaceMember) => ({
+    label: member.full_name ?? member.email,
+    value: member.user_id,
+  }));
+
   return (
     <div className="p-8 space-y-6">
       <BehalfAssignmentsHeader
@@ -138,11 +141,12 @@ export function BehalfAssignmentsTab({
         <div className="grid gap-4 animate-in fade-in duration-500">
           {assignments.map((assignment: BehalfAssignment) => (
             <AssignmentItem
+              key={assignment.id}
+              assignees={assignees}
               assignment={assignment}
               assignmentType={assignmentType}
               departments={departments}
               isDeleting={isDeleting}
-              key={assignment.id}
               onDelete={handleDelete}
             />
           ))}
@@ -158,14 +162,15 @@ export function BehalfAssignmentsTab({
       >
         <AddAssignmentForm
           assigneeId={assigneeId}
+          assigneeOptions={assigneeOptions}
           assignmentType={assignmentType}
           departmentOptions={departmentOptions}
           departments={departments}
           isCreating={isCreating}
+          isLoadingAssignees={assigneesLoading}
           onCancel={() => {
             setIsOpen(false);
           }}
-          onSelectAssigneeEmployee={setSelectedAssigneeEmployee}
           onSubmit={handleCreate}
           setAssigneeId={setAssigneeId}
           setTargetDepartmentId={setTargetDepartmentId}

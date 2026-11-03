@@ -11,6 +11,7 @@ import { TargetScopeDisplay } from "./target-scope-display";
 export function AssignmentItem({
   assignment,
   assignmentType,
+  assignees,
   departments,
   isDeleting,
   onDelete,
@@ -34,8 +35,8 @@ export function AssignmentItem({
       }
     : null;
 
-  const assigneeName = assignment.assignee_name ?? t("behalf_assignments.unknown_employee");
-  const assigneeIdNumber = assignment.assignee_employee_id_number;
+  const assignee = assignees.find((member) => member.user_id === assignment.assignee_user_id);
+  const assigneeName = assignee?.full_name ?? assignee?.email ?? t("behalf_assignments.unknown_user");
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all duration-200">
@@ -47,11 +48,6 @@ export function AssignmentItem({
           <span className="font-bold text-slate-800 dark:text-slate-200 text-sm mt-0.5">
             {assigneeName}
           </span>
-          {assigneeIdNumber ? (
-            <span className="text-[10px] text-slate-400 font-mono mt-0.5">
-              {assigneeIdNumber}
-            </span>
-          ) : null}
         </div>
 
         <div className="flex items-center gap-2 text-slate-300 dark:text-slate-600 self-center hidden md:flex">

@@ -322,6 +322,23 @@ describe("api.ts comprehensive tests", () => {
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/members"), expect.any(Object));
     });
 
+    it("fetchAllWorkspaceMembers loads all paginated workspace users", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: () => Promise.resolve({ data: [{ user_id: "u1" }], page: 1, limit: 3000, total: 2 }),
+      } as unknown as Response);
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: () => Promise.resolve({ data: [{ user_id: "u2" }], page: 2, limit: 3000, total: 2 }),
+      } as unknown as Response);
+
+      await expect(api.fetchAllWorkspaceMembers("ws-1")).resolves.toEqual([{ user_id: "u1" }, { user_id: "u2" }]);
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(vi.mocked(fetch).mock.calls[1][0]).toContain("page=2");
+    });
+
     it("addWorkspaceMember", async () => {
       mockSuccess({});
       await api.addWorkspaceMember("ws-1", "e@e.com", "admin");

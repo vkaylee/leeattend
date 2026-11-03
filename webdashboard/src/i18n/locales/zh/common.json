@@ -1950,6 +1950,7 @@
     "scope_type_none": "无",
     "unknown_employee": "未知员工",
     "unknown_department": "未知部门",
+    "unknown_user": "未知用户",
     "assignee_labels": {
       "ot": "被授权申报人",
       "overtime_request": "被授权加班申请人",
@@ -1963,14 +1964,15 @@
       "attendance_adjustment": "考勤调整代办目标范围"
     },
     "form": {
-      "assignee_label_ot": "被授权申报人 (员工)",
-      "assignee_label_overtime_request": "被授权加班申请人 (员工)",
-      "assignee_label_other": "被授权申请人 (员工)",
-      "assignee_placeholder": "搜索并选择代办人...",
-      "assignee_help_ot": "选择被允许代为申报加班的员工。",
-      "assignee_help_overtime_request": "选择被允许代为提交 Pre-OT 申请的员工。",
-      "assignee_help_leave": "选择被允许代为提交请假申请的员工。",
-      "assignee_help_adjustment": "选择被允许代为提交考勤调整申请的员工。",
+      "assignee_label_ot": "被授权申报人 (用户)",
+      "assignee_label_overtime_request": "被授权加班申请人 (用户)",
+      "assignee_label_other": "被授权申请人 (用户)",
+      "assignee_placeholder": "搜索并选择用户...",
+      "no_assignees": "未找到工作区用户",
+      "assignee_help_ot": "选择被允许代为申报加班的工作区用户。",
+      "assignee_help_overtime_request": "选择被允许代为提交 Pre-OT 申请的工作区用户。",
+      "assignee_help_leave": "选择被允许代为提交请假申请的工作区用户。",
+      "assignee_help_adjustment": "选择被允许代为提交考勤调整申请的工作区用户。",
       "target_type_label": "目标范围类型",
       "target_type_employee": "员工",
       "target_type_department": "部门",
@@ -1986,10 +1988,10 @@
       "title_overtime_request": "代办 Pre-OT 申请分配",
       "title_leave": "代办请假申请分配",
       "title_adjustment": "代办考勤调整分配",
-      "desc_ot": "配置哪些员工有权代表特定员工或整个部门申报加班。",
-      "desc_overtime_request": "配置哪些员工有权代表特定员工或整个部门申请 Pre-OT。",
-      "desc_leave": "配置哪些员工有权代表特定员工或整个部门申请请假。",
-      "desc_adjustment": "配置哪些员工有权代表特定员工或整个部门申请考勤调整。",
+      "desc_ot": "配置哪些工作区用户有权代表特定员工或整个部门申报加班。",
+      "desc_overtime_request": "配置哪些工作区用户有权代表特定员工或整个部门申请 Pre-OT。",
+      "desc_leave": "配置哪些工作区用户有权代表特定员工或整个部门申请请假。",
+      "desc_adjustment": "配置哪些工作区用户有权代表特定员工或整个部门申请考勤调整。",
       "add_btn": "添加分配"
     },
     "empty": {
@@ -2006,12 +2008,11 @@
       "add_title": "添加代办分配"
     },
     "toasts": {
-      "select_assignee": "请选择被授权的员工",
+      "select_assignee": "请选择被授权的用户",
       "select_target_employee": "请选择目标员工",
       "select_target_department": "请选择目标部门",
       "create_success": "代办分配创建成功",
-      "delete_success": "分配删除成功",
-      "no_linked_user": "所选员工尚未关联用户账户"
+      "delete_success": "分配删除成功"
     }
   },
   "behalf": {

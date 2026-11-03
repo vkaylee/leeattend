@@ -63,7 +63,7 @@ describe("APP_REGISTRY", () => {
     const systemApps = APP_REGISTRY.filter(
       (a) => a.group === "system" && a.systemRoles,
     );
-    expect(systemApps.length).toBeGreaterThanOrEqual(3);
+    expect(systemApps.length).toBeGreaterThanOrEqual(2);
     for (const app of systemApps) {
       expect(app.systemRoles).toContain("platform_admin");
     }
@@ -200,8 +200,6 @@ describe("app filtering logic", () => {
     );
 
     expect(visible.find((a) => a.id === "system-roles")).toBeDefined();
-    expect(visible.find((a) => a.id === "system-db-clusters")).toBeDefined();
-    expect(visible.find((a) => a.id === "system-tenants")).toBeDefined();
     expect(visible.find((a) => a.id === "infra-monitor")).toBeDefined();
   });
 

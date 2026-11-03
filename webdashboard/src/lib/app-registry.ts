@@ -24,8 +24,6 @@ import {
   Clock,
   Activity,
   ShieldCheck,
-  Server,
-  Database,
   FileText,
 } from "lucide-react";
 
@@ -270,26 +268,6 @@ export const APP_REGISTRY: AppDefinition[] = [
     group: "system",
     systemRoles: ["platform_admin"],
     testId: "app-card-system-roles",
-  },
-  {
-    id: "system-db-clusters",
-    icon: Server,
-    labelKey: "db_clusters.title",
-    descriptionKey: "appLauncher.descriptions.db_clusters",
-    to: ROUTES.SYSTEM_DB_CLUSTERS,
-    group: "system",
-    systemRoles: ["platform_admin"],
-    testId: "app-card-system-db-clusters",
-  },
-  {
-    id: "system-tenants",
-    icon: Database,
-    labelKey: "system_admin.tenants.title",
-    descriptionKey: "appLauncher.descriptions.tenants",
-    to: ROUTES.SYSTEM_TENANTS,
-    group: "system",
-    systemRoles: ["platform_admin"],
-    testId: "app-card-system-tenants",
   },
   {
     id: "settings",

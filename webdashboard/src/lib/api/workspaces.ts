@@ -28,9 +28,37 @@ export async function updateWorkspace(
   return resData;
 }
 
-export async function fetchWorkspaceMembers(wsId: string): Promise<WorkspaceMember[]> {
-  const { data } = await client.GET("/v1/workspaces/{ws_id}/members", { params: { path: { ws_id: wsId } } });
-  return unwrapDataArray<WorkspaceMember>(data);
+const WORKSPACE_MEMBER_PAGE_LIMIT = 3000;
+
+export async function fetchWorkspaceMembers(wsId: string, limit?: number): Promise<WorkspaceMember[]> {
+  if (limit === undefined) {
+    const { data } = await client.GET("/v1/workspaces/{ws_id}/members", { params: { path: { ws_id: wsId } } });
+    return unwrapDataArray<WorkspaceMember>(data);
+  }
+  const response = await apiFetch(`/v1/workspaces/${wsId}/members?page=1&limit=${limit}`);
+  if (!response.ok) await ApiError.rejectResponse(response);
+  return unwrapDataArray<WorkspaceMember>(await response.json());
+}
+
+export async function fetchAllWorkspaceMembers(wsId: string): Promise<WorkspaceMember[]> {
+  const members: WorkspaceMember[] = [];
+  let page = 1;
+  let total = 0;
+
+  do {
+    const { data } = await client.GET("/v1/workspaces/{ws_id}/members", {
+      params: {
+        path: { ws_id: wsId },
+        query: { limit: WORKSPACE_MEMBER_PAGE_LIMIT, page },
+      },
+    });
+    if (!data || data.data.length === 0) return members;
+    members.push(...data.data);
+    total = data.total;
+    page += 1;
+  } while (members.length < total);
+
+  return members;
 }
 
 

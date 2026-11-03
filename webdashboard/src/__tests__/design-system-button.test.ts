@@ -90,7 +90,6 @@ const LEGACY_VIOLATIONS = new Set([
   "pages/ess/ot-page.tsx",
   "pages/leave-requests-page.tsx",
   "pages/monitor/header.tsx",
-  "pages/onboarding-page.tsx",
   "pages/payroll/components/payroll-header.tsx",
   "pages/profile/components/personalization-tab.tsx",
   "pages/profile/components/profile-header.tsx",

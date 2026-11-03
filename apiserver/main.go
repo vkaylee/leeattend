@@ -222,7 +222,7 @@ func main() {
 	attendanceRepo := repository.AttendanceRepository{TenantDB: workspaceRepo.TenantDB}
 	attendanceHandler := api.AttendanceHandler{Repository: attendanceRepo, Authorizer: workspaceAuthorizer}
 	attendanceLogsHandler := api.AttendanceLogsHandler{Repository: attendanceRepo, Authorizer: workspaceAuthorizer, StorageDir: cfg.StorageDir}
-	attendancePolicyRepo := repository.AttendancePolicyRepository{TenantDB: workspaceRepo.TenantDB}
+	attendancePolicyRepo := repository.AttendancePolicyRepository{TenantDB: workspaceRepo.TenantDB, SystemDB: workspaceRepo.SystemDB}
 	attendancePolicyHandler := api.AttendancePolicyHandler{PolicyRepository: attendancePolicyRepo, BehalfRepository: attendancePolicyRepo, Authorizer: workspaceAuthorizer}
 	overtimeRepo := repository.OvertimeRepository{TenantDB: workspaceRepo.TenantDB}
 	overtimeHandler := api.OvertimeHandler{Repository: overtimeRepo, BehalfRepository: attendancePolicyRepo, Authorizer: workspaceAuthorizer}

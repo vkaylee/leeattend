@@ -42,6 +42,7 @@ Created by tenant migrations (`migrations/tenant/`). In SaaS, each workspace get
 - `time_entries`, `raw_attendance_logs`, `attendance_daily_summaries`
 - `leave_requests`, `leave_balances`, `leave_policies`
 - `payroll_*`, `payslips`, `salary_*`
+- `behalf_assignments` — user-based delegation assignments; `assignee_user_id` references a workspace member identity, while target employee/department scope remains tenant-scoped.
 - `attendance_sources`, `feature_flags`, `dashboard_preferences`
 - And 40+ other business tables
 

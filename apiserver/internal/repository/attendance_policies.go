@@ -17,6 +17,7 @@ import (
 
 type AttendancePolicyRepository struct {
 	TenantDB func(context.Context, uuid.UUID) (DBTX, error)
+	SystemDB DBTX
 	BeginTx  func(context.Context, uuid.UUID) (TxBeginner, error)
 }
 
@@ -40,6 +41,20 @@ func (r AttendancePolicyRepository) begin(ctx context.Context, workspaceID uuid.
 		return nil, errors.New("attendance policy repository: tenant database does not support transactions")
 	}
 	return beginner, nil
+}
+
+func (r AttendancePolicyRepository) validateBehalfAssignee(ctx context.Context, workspaceID, userID uuid.UUID) error {
+	if r.SystemDB == nil {
+		return errors.New("attendance policy repository: system database is not configured")
+	}
+	var isMember bool
+	if err := r.SystemDB.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM workspace_members WHERE workspace_id = $1 AND user_id = $2)`, workspaceID, userID).Scan(&isMember); err != nil {
+		return err
+	}
+	if !isMember {
+		return apperror.Forbidden(apperror.KeyNotWorkspaceMember)
+	}
+	return nil
 }
 
 func decodeAttendanceRules(raw []byte) api.AttendanceRules {
@@ -276,14 +291,14 @@ func (r AttendancePolicyRepository) DeletePolicyAssignment(ctx context.Context, 
 func scanBehalf(row interface{ Scan(...any) error }) (api.BehalfAssignment, error) {
 	var item api.BehalfAssignment
 	var createdAt, updatedAt time.Time
-	if err := row.Scan(&item.ID, &item.WorkspaceID, &item.AssigneeUserID, &item.TargetEmployeeID, &item.TargetDepartmentID, &item.AssignmentType, &createdAt, &updatedAt, &item.EmployerID, &item.AssigneeName, &item.AssigneeEmployeeIDNumber, &item.TargetEmployeeName, &item.TargetEmployeeIDNumber, &item.TargetDepartmentName); err != nil {
+	if err := row.Scan(&item.ID, &item.WorkspaceID, &item.AssigneeUserID, &item.TargetEmployeeID, &item.TargetDepartmentID, &item.AssignmentType, &createdAt, &updatedAt, &item.EmployerID, &item.TargetEmployeeName, &item.TargetEmployeeIDNumber, &item.TargetDepartmentName); err != nil {
 		return item, err
 	}
 	item.CreatedAt, item.UpdatedAt = createdAt.UTC().Format(time.RFC3339), updatedAt.UTC().Format(time.RFC3339)
 	return item, nil
 }
 
-const behalfColumns = `ba.id, ba.workspace_id, ba.assignee_user_id, ba.target_employee_id, ba.target_department_id, ba.assignment_type, ba.created_at, ba.updated_at, ba.employer_id, ae.full_name, ae.employee_id_number, te.full_name, te.employee_id_number, d.name`
+const behalfColumns = `ba.id, ba.workspace_id, ba.assignee_user_id, ba.target_employee_id, ba.target_department_id, ba.assignment_type, ba.created_at, ba.updated_at, ba.employer_id, te.full_name, te.employee_id_number, d.name`
 
 func (r AttendancePolicyRepository) CreateBehalfAssignment(ctx context.Context, workspaceID uuid.UUID, req api.CreateBehalfAssignmentRequest, assignmentType string) (api.BehalfAssignment, error) {
 	db, err := r.db(ctx, workspaceID)
@@ -293,7 +308,10 @@ func (r AttendancePolicyRepository) CreateBehalfAssignment(ctx context.Context, 
 	if (req.TargetEmployeeID == nil) == (req.TargetDepartmentID == nil) {
 		return api.BehalfAssignment{}, apperror.Validation(apperror.KeyValidation)
 	}
-	return scanBehalf(db.QueryRow(ctx, `WITH inserted AS (INSERT INTO behalf_assignments (id, workspace_id, assignee_user_id, target_employee_id, target_department_id, assignment_type, employer_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *) SELECT `+behalfColumns+` FROM inserted ba LEFT JOIN employees ae ON ae.workspace_id = ba.workspace_id AND ae.user_id = ba.assignee_user_id AND ae.deleted_at IS NULL LEFT JOIN employees te ON te.workspace_id = ba.workspace_id AND te.id = ba.target_employee_id AND te.deleted_at IS NULL LEFT JOIN departments d ON d.workspace_id = ba.workspace_id AND d.id = ba.target_department_id`, uuid.New(), workspaceID, req.AssigneeUserID, req.TargetEmployeeID, req.TargetDepartmentID, assignmentType, req.EmployerID))
+	if err := r.validateBehalfAssignee(ctx, workspaceID, req.AssigneeUserID); err != nil {
+		return api.BehalfAssignment{}, err
+	}
+	return scanBehalf(db.QueryRow(ctx, `WITH inserted AS (INSERT INTO behalf_assignments (id, workspace_id, assignee_user_id, target_employee_id, target_department_id, assignment_type, employer_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *) SELECT `+behalfColumns+` FROM inserted ba LEFT JOIN employees te ON te.workspace_id = ba.workspace_id AND te.id = ba.target_employee_id AND te.deleted_at IS NULL LEFT JOIN departments d ON d.workspace_id = ba.workspace_id AND d.id = ba.target_department_id`, uuid.New(), workspaceID, req.AssigneeUserID, req.TargetEmployeeID, req.TargetDepartmentID, assignmentType, req.EmployerID))
 }
 
 func (r AttendancePolicyRepository) ListBehalfAssignments(ctx context.Context, workspaceID uuid.UUID, assignmentType string) ([]api.BehalfAssignment, error) {
@@ -301,7 +319,7 @@ func (r AttendancePolicyRepository) ListBehalfAssignments(ctx context.Context, w
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT `+behalfColumns+` FROM behalf_assignments ba LEFT JOIN employees ae ON ae.workspace_id = ba.workspace_id AND ae.user_id = ba.assignee_user_id AND ae.deleted_at IS NULL LEFT JOIN employees te ON te.workspace_id = ba.workspace_id AND te.id = ba.target_employee_id AND te.deleted_at IS NULL LEFT JOIN departments d ON d.workspace_id = ba.workspace_id AND d.id = ba.target_department_id WHERE ba.workspace_id = $1 AND ba.assignment_type = $2 ORDER BY ba.created_at DESC`, workspaceID, assignmentType)
+	rows, err := db.Query(ctx, `SELECT `+behalfColumns+` FROM behalf_assignments ba LEFT JOIN employees te ON te.workspace_id = ba.workspace_id AND te.id = ba.target_employee_id AND te.deleted_at IS NULL LEFT JOIN departments d ON d.workspace_id = ba.workspace_id AND d.id = ba.target_department_id WHERE ba.workspace_id = $1 AND ba.assignment_type = $2 ORDER BY ba.created_at DESC`, workspaceID, assignmentType)
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 )
 
 func TestAttendancePolicyRepository_GetDefaultPolicyRules_Fallback(t *testing.T) {
@@ -194,81 +196,64 @@ func TestAttendancePolicyRepository_DeletePolicyAssignment(t *testing.T) {
 	}
 }
 
-func TestAttendancePolicyRepository_BehalfAssignments_CRUD(t *testing.T) {
+func TestAttendancePolicyRepository_BehalfAssignmentsRequireWorkspaceMember(t *testing.T) {
 	wsID := uuid.New()
 	assignee := uuid.New()
 	targetEmp := uuid.New()
-	behalfID := uuid.New()
-	now := time.Now().UTC()
 
-	db := &fakeDBTX{
+	memberDB := &fakeDBTX{
 		queryRowFn: func(_ context.Context, sql string, _ ...any) pgx.Row {
-			if strings.Contains(sql, "INSERT INTO behalf_assignments") {
-				return fakeRow{scanFn: func(dest ...any) error {
-					*(dest[0].(*uuid.UUID)) = behalfID
-					*(dest[1].(*uuid.UUID)) = wsID
-					*(dest[2].(*uuid.UUID)) = assignee
-					*(dest[3].(**uuid.UUID)) = &targetEmp
-					*(dest[4].(**uuid.UUID)) = nil
-					*(dest[5].(*string)) = "attendance_adjustment"
-					*(dest[6].(*time.Time)) = now
-					*(dest[7].(*time.Time)) = now
-					*(dest[8].(**uuid.UUID)) = nil
-					assigneeName := "Assignee Lead"
-					*(dest[9].(**string)) = &assigneeName
-					assigneeCode := "LEAD01"
-					*(dest[10].(**string)) = &assigneeCode
-					targetName := "Target Worker"
-					*(dest[11].(**string)) = &targetName
-					targetCode := "EMP01"
-					*(dest[12].(**string)) = &targetCode
-					*(dest[13].(**string)) = nil
-					return nil
-				}}
+			if !strings.Contains(sql, "workspace_members") {
+				t.Fatalf("expected workspace membership validation query, got %s", sql)
 			}
-			return fakeRow{}
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*bool)) = true
+				return nil
+			}}
 		},
-		execFn: func(_ context.Context, sql string, _ ...any) (pgconn.CommandTag, error) {
-			if strings.Contains(sql, "DELETE FROM behalf_assignments") {
-				return pgconn.NewCommandTag("DELETE 1"), nil
+	}
+	tenantDB := &fakeDBTX{
+		queryRowFn: func(_ context.Context, sql string, _ ...any) pgx.Row {
+			if !strings.Contains(sql, "INSERT INTO behalf_assignments") {
+				t.Fatalf("expected assignment insert, got %s", sql)
 			}
-			return pgconn.NewCommandTag("OK"), nil
-		},
-		queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
-			return &rowsStub{
-				data: [][]any{
-					{behalfID, wsID, assignee, targetEmp, (*uuid.UUID)(nil), "attendance_adjustment", now, now, (*uuid.UUID)(nil), (*string)(nil), (*string)(nil), (*string)(nil), (*string)(nil), (*string)(nil)},
-				},
-			}, nil
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*uuid.UUID)) = uuid.New()
+				*(dest[1].(*uuid.UUID)) = wsID
+				*(dest[2].(*uuid.UUID)) = assignee
+				*(dest[3].(**uuid.UUID)) = &targetEmp
+				*(dest[4].(**uuid.UUID)) = nil
+				*(dest[5].(*string)) = "attendance_adjustment"
+				*(dest[6].(*time.Time)) = time.Now().UTC()
+				*(dest[7].(*time.Time)) = time.Now().UTC()
+				*(dest[8].(**uuid.UUID)) = nil
+				*(dest[9].(**string)) = nil
+				*(dest[10].(**string)) = nil
+				*(dest[11].(**string)) = nil
+				return nil
+			}}
 		},
 	}
 	repo := AttendancePolicyRepository{
-		TenantDB: func(_ context.Context, _ uuid.UUID) (DBTX, error) {
-			return db, nil
+		SystemDB: memberDB,
+		TenantDB: func(_ context.Context, _ uuid.UUID) (DBTX, error) { return tenantDB, nil },
+	}
+	if _, err := repo.CreateBehalfAssignment(context.Background(), wsID, api.CreateBehalfAssignmentRequest{AssigneeUserID: assignee, TargetEmployeeID: &targetEmp}, "attendance_adjustment"); err != nil {
+		t.Fatalf("expected workspace member to be assignable: %v", err)
+	}
+
+	nonMemberDB := &fakeDBTX{
+		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*bool)) = false
+				return nil
+			}}
 		},
 	}
-
-	// Create
-	item, err := repo.CreateBehalfAssignment(context.Background(), wsID, api.CreateBehalfAssignmentRequest{
-		AssigneeUserID:   assignee,
-		TargetEmployeeID: &targetEmp,
-	}, "attendance_adjustment")
-	if err != nil {
-		t.Fatalf("unexpected create error: %v", err)
-	}
-	if item.ID != behalfID || item.AssigneeName == nil || *item.AssigneeName != "Assignee Lead" {
-		t.Fatalf("unexpected created item: %+v", item)
-	}
-
-	// List
-	items, err := repo.ListBehalfAssignments(context.Background(), wsID, "attendance_adjustment")
-	if err != nil || len(items) != 1 {
-		t.Fatalf("unexpected list: %v, count: %d", err, len(items))
-	}
-
-	// Delete
-	if err := repo.DeleteBehalfAssignment(context.Background(), wsID, behalfID); err != nil {
-		t.Fatalf("unexpected delete error: %v", err)
+	repo.SystemDB = nonMemberDB
+	var appErr *apperror.AppError
+	if _, err := repo.CreateBehalfAssignment(context.Background(), wsID, api.CreateBehalfAssignmentRequest{AssigneeUserID: assignee, TargetEmployeeID: &targetEmp}, "attendance_adjustment"); !errors.As(err, &appErr) || appErr.Code != apperror.CodeForbidden {
+		t.Fatalf("expected non-member rejection, got %v", err)
 	}
 }
 

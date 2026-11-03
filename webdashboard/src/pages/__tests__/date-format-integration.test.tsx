@@ -10,7 +10,14 @@ import * as api from "../../lib/api";
 import AttendanceLogsPage from "../attendance-logs-page";
 import PayrollPage from "../payroll-page";
 
-// Mock TanStack Router
+const { mockWorkspace } = vi.hoisted(() => ({
+  mockWorkspace: { date_format: "DD/MM/YYYY", timezone: "UTC" },
+}));
+
+vi.mock("@/hooks/use-workspace", () => ({
+  useWorkspace: () => ({ workspace: mockWorkspace }),
+}));
+
 vi.mock("@tanstack/react-router", () => {
   const defaultSearch = { tab: "recorded", mode: "this_month" } as Record<string, unknown>;
   return {
@@ -99,7 +106,7 @@ describe("Date Format Integration", () => {
       page: 1,
       limit: 50,
     });
-    vi.mocked(api.fetchWorkspace).mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC" } as unknown as never);
+    mockWorkspace.date_format = "DD/MM/YYYY";
 
     vi.mocked(api.fetchRawAttendanceLogs).mockResolvedValue({
 
@@ -124,7 +131,7 @@ describe("Date Format Integration", () => {
       page: 1,
       limit: 50,
     });
-    vi.mocked(api.fetchWorkspace).mockResolvedValue({ date_format: "YYYY-MM-DD", timezone: "UTC" } as unknown as never);
+    mockWorkspace.date_format = "YYYY-MM-DD";
 
     vi.mocked(api.fetchRawAttendanceLogs).mockResolvedValue({
 

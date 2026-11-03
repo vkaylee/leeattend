@@ -9,17 +9,18 @@ import { Typography } from "@/components/ui/typography";
 
 import type { AddAssignmentFormProps } from "./types";
 
-// eslint-disable-next-line complexity, max-lines-per-function
+// eslint-disable-next-line complexity
 export function AddAssignmentForm({
   assigneeId,
+  assigneeOptions,
   assignmentType,
   departmentOptions,
   departments,
   isCreating,
+  isLoadingAssignees,
   onCancel,
   onSubmit,
   setAssigneeId,
-  onSelectAssigneeEmployee,
   setTargetDepartmentId,
   setTargetEmployeeId,
   setTargetType,
@@ -57,31 +58,16 @@ export function AddAssignmentForm({
         >
           {submitterLabel}
         </label>
-        <EmployeeSearch
+        <Combobox
           clearOnEscape
-          departments={departments}
-          emptyQueryBehavior="prompt-to-type"
+          data-testid="submitter-select"
+          disabled={isLoadingAssignees}
+          emptyText={t("behalf_assignments.form.no_assignees")}
           id="submitter-select"
-          onChange={(val) => {
-            const id = typeof val === "string" ? val : val[0] ?? "";
-            setAssigneeId(id);
-            if (!id) {
-              onSelectAssigneeEmployee(null);
-            }
-          }}
-          onSelectEmployee={onSelectAssigneeEmployee}
-          permission={
-            assignmentType === "ot"
-              ? "overtime:claim_on_behalf"
-              : assignmentType === "leave"
-                ? "leave:requests:submit_on_behalf"
-                : assignmentType === "attendance_adjustment"
-                  ? "attendance:adjustments:submit_on_behalf"
-                  : "overtime:request:create_on_behalf"
-          }
+          onChange={setAssigneeId}
+          options={assigneeOptions}
           placeholder={t("behalf_assignments.form.assignee_placeholder")}
           value={assigneeId}
-          workspaceId={wsId}
         />
         <Typography className="text-[10px] text-slate-400 mt-1" variant="p">
           {submitterHelpText}

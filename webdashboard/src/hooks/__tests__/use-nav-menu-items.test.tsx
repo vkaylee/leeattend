@@ -159,8 +159,8 @@ describe("useFilteredMenuItems", () => {
 
     const systemGroup = result.current.groups.find((g) => g.section === "system");
     expect(systemGroup).toBeDefined();
-    // platform_admin should see all 4 role-gated system items
-    expect(systemGroup!.items.length).toBeGreaterThanOrEqual(4);
+    // Standalone keeps SMTP as its only system navigation item.
+    expect(systemGroup!.items.length).toBeGreaterThanOrEqual(1);
   });
 
   it("hides system items for non-admin", () => {

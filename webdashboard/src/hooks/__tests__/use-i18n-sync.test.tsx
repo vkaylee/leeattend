@@ -28,8 +28,8 @@ vi.mock('../use-profile', () => ({
 
 // Mock useWorkspaces
 vi.mock('../use-workspace', () => ({
-  useWorkspaces: () => ({
-    workspaces: [{ id: 'ws1', default_language: 'vi' }],
+  useWorkspace: () => ({
+    workspace: { default_language: 'vi' },
     isLoading: false,
   }),
 }));

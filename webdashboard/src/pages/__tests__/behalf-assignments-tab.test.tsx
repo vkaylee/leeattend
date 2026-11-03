@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ToastProvider } from "../../components/ui/toast";
 import { useBehalfAssignments } from "../../hooks/use-behalf-assignments";
-import { fetchDepartments } from "../../lib/api";
+import { fetchAllWorkspaceMembers, fetchDepartments } from "../../lib/api";
 import { BehalfAssignmentsTab } from "../approvals/components/behalf-assignments-tab";
 
 // Mock toast
@@ -43,13 +43,15 @@ const { enCommon } = vi.hoisted(() => ({
         attendance_adjustment: "Request Target Scope",
       },
       form: {
-        assignee_label_ot: "Authorized Claimant (Employee)",
-        assignee_label_overtime_request: "Authorized Submitter (Employee)",
-        assignee_label_other: "Authorized Requester (Employee)",
-        assignee_placeholder: "Search and select submitter...",
-        assignee_help_ot: "Select the workspace employee who is allowed to claim on behalf.",
-        assignee_help_overtime_request: "Select the workspace employee who is allowed to submit Pre-OT requests on behalf.",
-        assignee_help_leave: "Select the workspace employee who is allowed to submit leave requests on behalf.",
+        assignee_label_ot: "Authorized Claimant (User)",
+        assignee_label_overtime_request: "Authorized Submitter (User)",
+        assignee_label_other: "Authorized Requester (User)",
+        assignee_placeholder: "Search and select user...",
+        assignee_help_ot: "Select the workspace user who is allowed to claim on behalf.",
+        assignee_help_overtime_request: "Select the workspace user who is allowed to submit Pre-OT requests on behalf.",
+        assignee_help_leave: "Select the workspace user who is allowed to submit leave requests on behalf.",
+        assignee_help_adjustment: "Select the workspace user who is allowed to submit attendance adjustment requests on behalf.",
+        no_assignees: "No workspace users found",
         target_type_label: "Target Scope Type",
         target_type_employee: "Employee",
         target_type_department: "Department",
@@ -83,7 +85,7 @@ const { enCommon } = vi.hoisted(() => ({
         add_title: "Add Behalf Assignment",
       },
       toasts: {
-        select_assignee: "Please select an assignee employee",
+        select_assignee: "Please select an assignee user",
         select_target_employee: "Please select a target employee",
         select_target_department: "Please select a target department",
         create_success: "Behalf assignment created successfully",
@@ -189,6 +191,7 @@ vi.mock("@/hooks/use-behalf-assignments", () => ({
 }));
 
 vi.mock("@/lib/api", () => ({
+  fetchAllWorkspaceMembers: vi.fn(),
   fetchDepartments: vi.fn(),
 }));
 
@@ -208,12 +211,15 @@ describe("BehalfAssignmentsTab", () => {
     { id: "dept-2", name: "Marketing", description: "Mkt department", active_employee_count: 5, created_at: "", updated_at: "", workspace_id: "ws-1" },
   ];
 
+  const mockMembers = [
+    { email: "alice@example.com", full_name: "Alice Smith", role_id: "role-1", user_id: "user-1", workspace_id: "ws-1" },
+    { email: "bob@example.com", full_name: "Bob Jones", role_id: "role-1", user_id: "user-2", workspace_id: "ws-1" },
+  ];
+
   const mockAssignments = [
     {
       id: "assign-1",
       assignee_user_id: "user-1",
-      assignee_name: "Alice Smith",
-      assignee_employee_id_number: "E001",
       target_employee_id: "emp-2",
       target_employee_name: "Bob Jones",
       target_employee_id_number: "E002",
@@ -227,8 +233,6 @@ describe("BehalfAssignmentsTab", () => {
     {
       id: "assign-2",
       assignee_user_id: "user-1",
-      assignee_name: "Alice Smith",
-      assignee_employee_id_number: "E001",
       target_employee_id: null,
       target_employee_name: null,
       target_employee_id_number: null,
@@ -261,6 +265,7 @@ describe("BehalfAssignmentsTab", () => {
     vi.mocked(useBehalfAssignments).mockReturnValue(defaultHookReturn);
 
     vi.mocked(fetchDepartments).mockResolvedValue(mockDepartments);
+    vi.mocked(fetchAllWorkspaceMembers).mockResolvedValue(mockMembers);
   });
 
   it("renders loading state when initial loading is true", () => {
@@ -331,11 +336,11 @@ describe("BehalfAssignmentsTab", () => {
     const submitBtn = screen.getByText("Create Assignment");
     await user.click(submitBtn);
 
-    expect(mockToastError).toHaveBeenCalledWith("Please select an assignee employee");
+    expect(mockToastError).toHaveBeenCalledWith("Please select an assignee user");
 
     // Fill in assignee
     const submitterInput = screen.getByTestId("submitter-select");
-    fireEvent.change(submitterInput, { target: { value: "emp-1" } });
+    fireEvent.change(submitterInput, { target: { value: "user-1" } });
 
     await user.click(submitBtn);
     expect(mockToastError).toHaveBeenCalledWith("Please select a target employee");
@@ -356,7 +361,7 @@ describe("BehalfAssignmentsTab", () => {
     await user.click(screen.getByText("Add Assignment"));
 
     const submitterInput = screen.getByTestId("submitter-select");
-    fireEvent.change(submitterInput, { target: { value: "emp-1" } });
+    fireEvent.change(submitterInput, { target: { value: "user-1" } });
 
     const targetEmpInput = screen.getByTestId("target-employee-select");
     fireEvent.change(targetEmpInput, { target: { value: "emp-2" } });
@@ -383,7 +388,7 @@ describe("BehalfAssignmentsTab", () => {
     await user.click(screen.getByText("Add Assignment"));
 
     const submitterInput = screen.getByTestId("submitter-select");
-    fireEvent.change(submitterInput, { target: { value: "emp-1" } });
+    fireEvent.change(submitterInput, { target: { value: "user-1" } });
 
     // Choose Department target scope type
     const deptRadio = screen.getByLabelText("Department");
@@ -514,7 +519,7 @@ describe("BehalfAssignmentsTab", () => {
       await user.click(screen.getByText("Add Assignment"));
 
       const submitterInput = screen.getByTestId("submitter-select");
-      fireEvent.change(submitterInput, { target: { value: "emp-1" } });
+      fireEvent.change(submitterInput, { target: { value: "user-1" } });
 
       const targetEmpInput = screen.getByTestId("target-employee-select");
       fireEvent.change(targetEmpInput, { target: { value: "emp-2" } });

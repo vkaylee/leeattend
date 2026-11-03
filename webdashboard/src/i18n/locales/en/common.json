@@ -1949,6 +1949,7 @@
     "scope_type_none": "None",
     "unknown_employee": "Unknown Employee",
     "unknown_department": "Unknown Department",
+    "unknown_user": "Unknown User",
     "assignee_labels": {
       "ot": "Authorized Claimant",
       "overtime_request": "Authorized Submitter",
@@ -1962,14 +1963,15 @@
       "attendance_adjustment": "Request Target Scope"
     },
     "form": {
-      "assignee_label_ot": "Authorized Claimant (Employee)",
-      "assignee_label_overtime_request": "Authorized Submitter (Employee)",
-      "assignee_label_other": "Authorized Requester (Employee)",
-      "assignee_placeholder": "Search and select submitter...",
-      "assignee_help_ot": "Select the workspace employee who is allowed to claim on behalf.",
-      "assignee_help_overtime_request": "Select the workspace employee who is allowed to submit Pre-OT requests on behalf.",
-      "assignee_help_leave": "Select the workspace employee who is allowed to submit leave requests on behalf.",
-      "assignee_help_adjustment": "Select the workspace employee who is allowed to submit attendance adjustment requests on behalf.",
+      "assignee_label_ot": "Authorized Claimant (User)",
+      "assignee_label_overtime_request": "Authorized Submitter (User)",
+      "assignee_label_other": "Authorized Requester (User)",
+      "assignee_placeholder": "Search and select user...",
+      "no_assignees": "No workspace users found",
+      "assignee_help_ot": "Select the workspace user who is allowed to claim on behalf.",
+      "assignee_help_overtime_request": "Select the workspace user who is allowed to submit Pre-OT requests on behalf.",
+      "assignee_help_leave": "Select the workspace user who is allowed to submit leave requests on behalf.",
+      "assignee_help_adjustment": "Select the workspace user who is allowed to submit attendance adjustment requests on behalf.",
       "target_type_label": "Target Scope Type",
       "target_type_employee": "Employee",
       "target_type_department": "Department",
@@ -1985,10 +1987,10 @@
       "title_overtime_request": "Behalf Pre-OT Request Assignments",
       "title_leave": "Behalf Leave Request Assignments",
       "title_adjustment": "Behalf Attendance Adjustment Assignments",
-      "desc_ot": "Configure which employees are authorized to claim overtime on behalf of specific employees or entire departments.",
-      "desc_overtime_request": "Configure which employees are authorized to request Pre-OT on behalf of specific employees or entire departments.",
-      "desc_leave": "Configure which employees are authorized to request leave on behalf of specific employees or entire departments.",
-      "desc_adjustment": "Configure which employees are authorized to request attendance adjustments on behalf of specific employees or entire departments.",
+      "desc_ot": "Configure which workspace users are authorized to claim overtime on behalf of specific employees or entire departments.",
+      "desc_overtime_request": "Configure which workspace users are authorized to request Pre-OT on behalf of specific employees or entire departments.",
+      "desc_leave": "Configure which workspace users are authorized to request leave on behalf of specific employees or entire departments.",
+      "desc_adjustment": "Configure which workspace users are authorized to request attendance adjustments on behalf of specific employees or entire departments.",
       "add_btn": "Add Assignment"
     },
     "empty": {
@@ -2005,12 +2007,11 @@
       "add_title": "Add Behalf Assignment"
     },
     "toasts": {
-      "select_assignee": "Please select an assignee employee",
+      "select_assignee": "Please select an assignee user",
       "select_target_employee": "Please select a target employee",
       "select_target_department": "Please select a target department",
       "create_success": "Behalf assignment created successfully",
-      "delete_success": "Assignment deleted successfully",
-      "no_linked_user": "Selected employee does not have a linked user account"
+      "delete_success": "Assignment deleted successfully"
     }
   },
   "behalf": {

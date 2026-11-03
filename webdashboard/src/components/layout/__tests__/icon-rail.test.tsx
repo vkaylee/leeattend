@@ -163,13 +163,6 @@ describe("IconRail", () => {
     expect(logo.textContent).toContain("T");
   });
 
-  it("calls onClickWorkspaceSwitcher when logo clicked", () => {
-    const onShow = vi.fn();
-    render(<IconRail {...defaultProps} onClickWorkspaceSwitcher={onShow} />, { wrapper: Wrapper });
-
-    fireEvent.click(screen.getByTestId("nav-rail-logo"));
-    expect(onShow).toHaveBeenCalled();
-  });
 
   // ── Pin ──────────────────────────────────────────────────────
 

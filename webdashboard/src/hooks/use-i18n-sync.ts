@@ -2,8 +2,8 @@ import { useEffect, useRef, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 
 
+import { useProfile } from './use-profile';
 import { useWorkspace } from './use-workspace';
-
 interface SyncLangOptions {
   currentWorkspaceDefaultLang?: string;
   hasInitialized: RefObject<boolean>;

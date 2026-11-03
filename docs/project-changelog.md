@@ -1,3 +1,19 @@
+## 2026-11-03
+
+### Enhancements
+
+#### User-Based Behalf Delegation
+**Component:** Attendance, overtime, leave, and approvals
+
+- Delegation assignees now use workspace users (`assignee_user_id`) and no longer require an employee record.
+- Creation validates workspace membership in the system database; non-members are rejected.
+- Admin UI selects workspace members and loads all member pages before displaying assignees.
+- Existing behalf assignments are preserved in a tenant-local rollback table, then cleared by migration `20261103000002_behalf_assignments_user_cutover`.
+
+**Verification:** Backend membership tests and frontend delegation tests cover member-only creation, user selection, target scopes, and pagination behavior.
+
+---
+
 # Project Changelog
 
 Detailed record of significant changes, features, and fixes in LeeAttend.

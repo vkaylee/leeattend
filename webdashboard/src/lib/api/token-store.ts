@@ -18,7 +18,9 @@
 // machines; they carry no auth power.
 
 let accessToken: string | null = null;
-let currentWorkspaceId: string | null = import.meta.env.VITE_STANDALONE_WORKSPACE_ID ?? null;
+let currentWorkspaceId: string | null = typeof import.meta.env.VITE_STANDALONE_WORKSPACE_ID === "string"
+  ? import.meta.env.VITE_STANDALONE_WORKSPACE_ID
+  : null;
 let currentUserId: string | null = null;
 
 /** auth token change listeners (e.g. websocket reconnect on token rotation) */

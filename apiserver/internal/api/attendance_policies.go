@@ -93,20 +93,18 @@ type CreateBehalfAssignmentRequest struct {
 }
 
 type BehalfAssignment struct {
-	ID                       uuid.UUID  `json:"id"`
-	WorkspaceID              uuid.UUID  `json:"workspace_id"`
-	AssigneeUserID           uuid.UUID  `json:"assignee_user_id"`
-	TargetEmployeeID         *uuid.UUID `json:"target_employee_id,omitempty"`
-	TargetDepartmentID       *uuid.UUID `json:"target_department_id,omitempty"`
-	AssignmentType           string     `json:"assignment_type"`
-	CreatedAt                string     `json:"created_at"`
-	UpdatedAt                string     `json:"updated_at"`
-	EmployerID               *uuid.UUID `json:"employer_id,omitempty"`
-	AssigneeName             *string    `json:"assignee_name,omitempty"`
-	AssigneeEmployeeIDNumber *string    `json:"assignee_employee_id_number,omitempty"`
-	TargetEmployeeName       *string    `json:"target_employee_name,omitempty"`
-	TargetEmployeeIDNumber   *string    `json:"target_employee_id_number,omitempty"`
-	TargetDepartmentName     *string    `json:"target_department_name,omitempty"`
+	ID                     uuid.UUID  `json:"id"`
+	WorkspaceID            uuid.UUID  `json:"workspace_id"`
+	AssigneeUserID         uuid.UUID  `json:"assignee_user_id"`
+	TargetEmployeeID       *uuid.UUID `json:"target_employee_id,omitempty"`
+	TargetDepartmentID     *uuid.UUID `json:"target_department_id,omitempty"`
+	AssignmentType         string     `json:"assignment_type"`
+	CreatedAt              string     `json:"created_at"`
+	UpdatedAt              string     `json:"updated_at"`
+	EmployerID             *uuid.UUID `json:"employer_id,omitempty"`
+	TargetEmployeeName     *string    `json:"target_employee_name,omitempty"`
+	TargetEmployeeIDNumber *string    `json:"target_employee_id_number,omitempty"`
+	TargetDepartmentName   *string    `json:"target_department_name,omitempty"`
 }
 
 type BehalfAssignmentRepository interface {

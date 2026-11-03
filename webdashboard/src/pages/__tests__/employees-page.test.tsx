@@ -6,7 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/toast";
-import * as api from "../../lib/api";
+import Button from "../../components/ui/button";
 import { Employee, Department } from "../../lib/api/types";
 import EmployeesPage from "../employees-page";
 
@@ -79,7 +79,16 @@ vi.mock("@/components/payroll/employee-salary-config", () => ({
 vi.mock("@/components/employees/working-condition-config", () => ({
     default: () => <div data-testid="working-condition">WorkingCondition</div>,
 }));
-
+vi.mock("@/components/features/employees/employee-detail-drawer", () => ({
+    default: ({ employee, isOpen, onTerminate }: { employee: Employee | null; isOpen: boolean; onTerminate: (employee: Employee) => void }) => (
+        isOpen && employee ? (
+            <div aria-label="Employee detail" role="dialog">
+                <span>{employee.full_name}</span>
+                <Button data-testid="employees-btn-terminate" onClick={() => { onTerminate(employee); }} type="button" variant="ghost" />
+            </div>
+        ) : null
+    ),
+}));
 const mockEmployee = (id: string, name: string, active = true, department?: string): Employee => ({
     id,
     full_name: name,

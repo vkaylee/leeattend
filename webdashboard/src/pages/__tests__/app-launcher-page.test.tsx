@@ -202,8 +202,6 @@ describe("AppLauncherPage", () => {
 
     // Non-admin should NOT see system-role-gated items
     expect(screen.queryByTestId("app-card-system-roles")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("app-card-system-db-clusters")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("app-card-system-tenants")).not.toBeInTheDocument();
     expect(screen.queryByTestId("app-card-infra-monitor")).not.toBeInTheDocument();
 
     // But should see permission-gated settings
@@ -215,8 +213,6 @@ describe("AppLauncherPage", () => {
     render(<AppLauncherPage />, { wrapper: Wrapper });
 
     expect(screen.getByTestId("app-card-system-roles")).toBeInTheDocument();
-    expect(screen.getByTestId("app-card-system-db-clusters")).toBeInTheDocument();
-    expect(screen.getByTestId("app-card-system-tenants")).toBeInTheDocument();
     expect(screen.getByTestId("app-card-infra-monitor")).toBeInTheDocument();
   });
 

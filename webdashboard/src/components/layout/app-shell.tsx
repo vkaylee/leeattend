@@ -9,6 +9,7 @@ import { useNotifications } from "@/hooks/use-notifications";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { cn } from "@/lib/utils";
 
+import BottomDrawer from "./bottom-drawer";
 import BottomNav from "./bottom-nav";
 import FloatingPanel from "./floating-panel";
 import IconRail from "./icon-rail";
@@ -25,6 +26,7 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
   useI18nSync();
   const location = useLocation();
   const { workspace: currentWorkspace } = useWorkspace();
+  const { unreadCount } = useNotifications();
 
   const {
     isPinned,
@@ -38,7 +40,6 @@ export default function AppShell({ variant: _variant }: AppShellProps) {
     setBottomDrawerOpen,
     pathActiveGroup,
   } = useNavSidebar(location.pathname);
-
 
   const isOrgChart = location.pathname.endsWith("/org-chart");
 

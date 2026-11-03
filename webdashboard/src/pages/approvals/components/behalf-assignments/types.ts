@@ -1,15 +1,16 @@
-import type { BehalfAssignment, Department, Employee } from "@/lib/api/types";
+import type { BehalfAssignment, Department, WorkspaceMember } from "@/lib/api/types";
 
 export type AssignmentType = "ot" | "leave" | "attendance_adjustment" | "overtime_request";
 
 export interface AddAssignmentFormProps {
   assigneeId: string;
+  assigneeOptions: { description?: string | null; label: string; value: string }[];
   assignmentType: AssignmentType;
   departmentOptions: { description?: string | null; label: string; value: string }[];
   departments: Department[];
   isCreating: boolean;
+  isLoadingAssignees: boolean;
   onCancel: () => void;
-  onSelectAssigneeEmployee: (emp: Employee | null) => void;
   onSubmit: (e: React.SyntheticEvent) => void;
   setAssigneeId: (id: string) => void;
   setTargetDepartmentId: (id: string) => void;
@@ -22,6 +23,7 @@ export interface AddAssignmentFormProps {
 }
 
 export interface AssignmentItemProps {
+  assignees: WorkspaceMember[];
   assignment: BehalfAssignment;
   assignmentType: AssignmentType;
   departments: {

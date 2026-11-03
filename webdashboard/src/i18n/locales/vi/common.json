@@ -1950,6 +1950,7 @@
     "scope_type_none": "Không",
     "unknown_employee": "Nhân viên không xác định",
     "unknown_department": "Phòng ban không xác định",
+    "unknown_user": "Người dùng không xác định",
     "assignee_labels": {
       "ot": "Người được ủy quyền Claim",
       "overtime_request": "Người được ủy quyền Yêu cầu Pre-OT",
@@ -1963,14 +1964,15 @@
       "attendance_adjustment": "Phạm vi Điều Chỉnh Hộ"
     },
     "form": {
-      "assignee_label_ot": "Người được ủy quyền Claim (Nhân viên)",
-      "assignee_label_overtime_request": "Người được ủy quyền Yêu cầu Pre-OT (Nhân viên)",
-      "assignee_label_other": "Người được ủy quyền Yêu cầu (Nhân viên)",
-      "assignee_placeholder": "Tìm và chọn người được ủy quyền...",
-      "assignee_help_ot": "Chọn nhân viên được phép gửi yêu cầu Claim hộ trong không gian làm việc.",
-      "assignee_help_overtime_request": "Chọn nhân viên được phép gửi yêu cầu Pre-OT hộ trong không gian làm việc.",
-      "assignee_help_leave": "Chọn nhân viên được phép gửi yêu cầu nghỉ phép hộ trong không gian làm việc.",
-      "assignee_help_adjustment": "Chọn nhân viên được phép gửi yêu cầu điều chỉnh công hộ trong không gian làm việc.",
+      "assignee_label_ot": "Người được ủy quyền Claim (Người dùng)",
+      "assignee_label_overtime_request": "Người được ủy quyền Yêu cầu Pre-OT (Người dùng)",
+      "assignee_label_other": "Người được ủy quyền Yêu cầu (Người dùng)",
+      "assignee_placeholder": "Tìm và chọn người dùng...",
+      "no_assignees": "Không tìm thấy người dùng trong workspace",
+      "assignee_help_ot": "Chọn người dùng trong workspace được phép gửi yêu cầu Claim hộ.",
+      "assignee_help_overtime_request": "Chọn người dùng trong workspace được phép gửi yêu cầu Pre-OT hộ.",
+      "assignee_help_leave": "Chọn người dùng trong workspace được phép gửi yêu cầu nghỉ phép hộ.",
+      "assignee_help_adjustment": "Chọn người dùng trong workspace được phép gửi yêu cầu điều chỉnh công hộ.",
       "target_type_label": "Loại phạm vi mục tiêu",
       "target_type_employee": "Nhân viên",
       "target_type_department": "Bộ phận",
@@ -1986,10 +1988,10 @@
       "title_overtime_request": "Phân quyền Gửi Pre-OT Hộ",
       "title_leave": "Phân quyền Gửi Yêu Cầu Nghỉ Hộ",
       "title_adjustment": "Phân quyền Gửi Điều Chỉnh Hộ",
-      "desc_ot": "Cấu hình những nhân viên được ủy quyền gửi claim ngoài giờ thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
-      "desc_overtime_request": "Cấu hình những nhân viên được ủy quyền yêu cầu Pre-OT thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
-      "desc_leave": "Cấu hình những nhân viên được ủy quyền yêu cầu nghỉ phép thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
-      "desc_adjustment": "Cấu hình những nhân viên được ủy quyền yêu cầu điều chỉnh công thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
+      "desc_ot": "Cấu hình người dùng trong workspace được phép gửi claim ngoài giờ thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
+      "desc_overtime_request": "Cấu hình người dùng trong workspace được phép yêu cầu Pre-OT thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
+      "desc_leave": "Cấu hình người dùng trong workspace được phép yêu cầu nghỉ phép thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
+      "desc_adjustment": "Cấu hình người dùng trong workspace được phép yêu cầu điều chỉnh công thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
       "add_btn": "Thêm phân quyền"
     },
     "empty": {
@@ -2006,12 +2008,11 @@
       "add_title": "Thêm phân quyền gửi hộ"
     },
     "toasts": {
-      "select_assignee": "Vui lòng chọn nhân viên được ủy quyền",
+      "select_assignee": "Vui lòng chọn người dùng được ủy quyền",
       "select_target_employee": "Vui lòng chọn nhân viên mục tiêu",
       "select_target_department": "Vui lòng chọn bộ phận mục tiêu",
       "create_success": "Tạo phân quyền gửi hộ thành công",
-      "delete_success": "Xóa phân quyền thành công",
-      "no_linked_user": "Nhân viên được chọn chưa được liên kết với tài khoản người dùng"
+      "delete_success": "Xóa phân quyền thành công"
     }
   },
   "behalf": {
